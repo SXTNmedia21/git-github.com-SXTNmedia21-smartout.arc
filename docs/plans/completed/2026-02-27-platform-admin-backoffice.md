@@ -26,26 +26,26 @@ tags: [platform-admin, module-17, implementation-plan]
 
 These are verified facts the implementing engineer must know:
 
-| Fact | Detail |
-|------|--------|
-| User table | `user_identity` (NOT `user`). PK is `user_id`, references `auth.users(id)`. GDPR vault. |
-| Auth trigger | `handle_new_user()` auto-creates `user_identity` row on `auth.users` INSERT |
-| Subscription data | Lives on `company` table: `subscription_plan` (text), `subscription_status` (text), `trial_ends_at` (timestamptz). NO separate `stripe_subscription` table |
+| Fact                    | Detail                                                                                                                                                                      |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| User table              | `user_identity` (NOT `user`). PK is `user_id`, references `auth.users(id)`. GDPR vault.                                                                                     |
+| Auth trigger            | `handle_new_user()` auto-creates `user_identity` row on `auth.users` INSERT                                                                                                 |
+| Subscription data       | Lives on `company` table: `subscription_plan` (text), `subscription_status` (text), `trial_ends_at` (timestamptz). NO separate `stripe_subscription` table                  |
 | Existing contract table | `employment_contract` (workspace-scoped HR contracts) with enum `contract_status` (draft/sent/viewed/signed/expired/terminated). Platform contracts are a DIFFERENT concept |
-| Existing enums | 33 enums already exist. `contract_status` is taken — platform contracts need `platform_contract_status` |
-| RLS pattern | `get_workspace_ids_for_user(auth.uid())` for SELECT, `is_admin_in_workspace(auth.uid(), wid)` for writes. Platform tables have NO RLS — service role only |
-| Supabase package | Exports: `.`, `./client`, `./server`, `./middleware`. No `./admin` yet. Uses `@supabase/ssr@^0.5.0` and `@supabase/supabase-js@^2.45.0` |
-| database.types.ts | Auto-generated (56KB). MUST regenerate after migration via `supabase gen types --local` |
-| Seed data | Test user `admin@smartout.local` / `password123` (user_id: `e0000000-...`). Needs `is_super_admin = true` |
-| Tailwind v4 | CSS-based config in `globals.css`. Uses `@theme inline`, OKLCH color functions, `@plugin "tailwindcss-animate"`. No `tailwind.config.ts` |
-| shadcn/ui | Style: `new-york`, only `dialog.tsx` installed. Aliases: `@/components/ui`, `@/lib`, `@/hooks` |
-| Profile status | Enum `profile_status`: trainee/active/inactive/offboarding. Use `.eq("status", "active")` not `.eq("is_active", true)` for counting active profiles |
-| Dashboard layout | Existing dashboard at `/dashboard` is `"use client"` with DashboardContext. Platform admin is SEPARATE — should prefer server components |
-| Next.js config | Clean — only PostHog rewrite rules. No transpilePackages. Dev port 3050 |
-| Path alias | `@/*` maps to `./src/*` in `apps/web` |
-| Missing deps | No `@tanstack/react-table`, no `recharts` in `apps/web/package.json` |
-| Latest migration | `20260227120000_activate_workspace_multidept.sql` (timestamp format). Sequential: up to `00012` |
-| Local Supabase | API: 54331, DB: 54332, Studio: 54333. PostgreSQL 17 |
+| Existing enums          | 33 enums already exist. `contract_status` is taken — platform contracts need `platform_contract_status`                                                                     |
+| RLS pattern             | `get_workspace_ids_for_user(auth.uid())` for SELECT, `is_admin_in_workspace(auth.uid(), wid)` for writes. Platform tables have NO RLS — service role only                   |
+| Supabase package        | Exports: `.`, `./client`, `./server`, `./middleware`. No `./admin` yet. Uses `@supabase/ssr@^0.5.0` and `@supabase/supabase-js@^2.45.0`                                     |
+| database.types.ts       | Auto-generated (56KB). MUST regenerate after migration via `supabase gen types --local`                                                                                     |
+| Seed data               | Test user `admin@smartout.local` / `password123` (user_id: `e0000000-...`). Needs `is_super_admin = true`                                                                   |
+| Tailwind v4             | CSS-based config in `globals.css`. Uses `@theme inline`, OKLCH color functions, `@plugin "tailwindcss-animate"`. No `tailwind.config.ts`                                    |
+| shadcn/ui               | Style: `new-york`, only `dialog.tsx` installed. Aliases: `@/components/ui`, `@/lib`, `@/hooks`                                                                              |
+| Profile status          | Enum `profile_status`: trainee/active/inactive/offboarding. Use `.eq("status", "active")` not `.eq("is_active", true)` for counting active profiles                         |
+| Dashboard layout        | Existing dashboard at `/dashboard` is `"use client"` with DashboardContext. Platform admin is SEPARATE — should prefer server components                                    |
+| Next.js config          | Clean — only PostHog rewrite rules. No transpilePackages. Dev port 3050                                                                                                     |
+| Path alias              | `@/*` maps to `./src/*` in `apps/web`                                                                                                                                       |
+| Missing deps            | No `@tanstack/react-table`, no `recharts` in `apps/web/package.json`                                                                                                        |
+| Latest migration        | `20260227120000_activate_workspace_multidept.sql` (timestamp format). Sequential: up to `00012`                                                                             |
+| Local Supabase          | API: 54331, DB: 54332, Studio: 54333. PostgreSQL 17                                                                                                                         |
 
 ---
 
@@ -54,6 +54,7 @@ These are verified facts the implementing engineer must know:
 ### Task 1: Database Migration — Platform Admin Tables
 
 **Files:**
+
 - Create: `supabase/migrations/00013_platform_admin_tables.sql`
 
 **Step 1: Write the migration**
@@ -296,6 +297,7 @@ Includes compute_platform_metrics() function."
 ### Task 2: Supabase Admin Client (Service Role)
 
 **Files:**
+
 - Create: `packages/supabase/src/admin.ts`
 - Modify: `packages/supabase/src/index.ts`
 - Modify: `packages/supabase/package.json`
@@ -320,9 +322,7 @@ export function createAdminClient() {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !serviceKey) {
-    throw new Error(
-      "Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY"
-    );
+    throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
   }
 
   return createClient<Database>(url, serviceKey, {
@@ -351,6 +351,7 @@ In `packages/supabase/package.json`, add to the `"exports"` object:
 ```
 
 Full exports should be:
+
 ```json
 "exports": {
   ".": "./src/index.ts",
@@ -373,6 +374,7 @@ git commit -m "feat(supabase): add admin client with service role for platform-a
 ### Task 3: Platform Types (Zod Schemas)
 
 **Files:**
+
 - Create: `packages/types/src/platform.ts`
 - Modify: `packages/types/src/identity.ts` (add `is_super_admin`)
 - Modify: `packages/types/src/index.ts` (add export)
@@ -556,6 +558,7 @@ git commit -m "feat(types): add platform admin Zod schemas (Module 17)"
 ### Task 4: Platform Admin Auth Helper + Middleware Guard
 
 **Files:**
+
 - Create: `apps/web/src/lib/platform-admin.ts`
 - Modify: `apps/web/src/middleware.ts`
 
@@ -600,7 +603,7 @@ export async function logPlatformAction(
   action: string,
   entityType: string,
   entityId: string | null,
-  details: Record<string, unknown> = {}
+  details: Record<string, unknown> = {},
 ) {
   const admin = createAdminClient();
   await admin.from("platform_audit_log").insert({
@@ -649,14 +652,12 @@ export async function middleware(request: NextRequest) {
               name: string;
               value: string;
               options: CookieOptions;
-            }[]
+            }[],
           ) {
-            cookiesToSet.forEach(({ name, value }) =>
-              request.cookies.set(name, value)
-            );
+            cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
           },
         },
-      }
+      },
     );
 
     const {
@@ -670,7 +671,7 @@ export async function middleware(request: NextRequest) {
     // Check super-admin flag via service role (bypasses RLS)
     const adminClient = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
     );
 
     const { data: identity } = await adminClient
@@ -688,9 +689,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
-  ],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
 };
 ```
 
@@ -740,6 +739,7 @@ git commit -m "feat: install TanStack Table, Recharts, and shadcn/ui components"
 ### Task 6: Platform Admin Layout Shell
 
 **Files:**
+
 - Create: `apps/web/src/app/platform-admin/layout.tsx`
 - Create: `apps/web/src/app/platform-admin/page.tsx`
 - Create: `apps/web/src/components/platform-admin/sidebar-nav.tsx`
@@ -783,15 +783,14 @@ export function PlatformAdminSidebarNav() {
   return (
     <nav className="flex flex-col gap-1 p-3">
       <div className="mb-4 px-3 py-2">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <h2 className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
           Platform Admin
         </h2>
       </div>
       {navItems.map((item) => {
         const isActive =
           item.href === "/platform-admin/dashboard"
-            ? pathname === "/platform-admin/dashboard" ||
-              pathname === "/platform-admin"
+            ? pathname === "/platform-admin/dashboard" || pathname === "/platform-admin"
             : pathname.startsWith(item.href);
         const Icon = item.icon;
         return (
@@ -821,14 +820,10 @@ Create `apps/web/src/app/platform-admin/layout.tsx`:
 ```tsx
 import { PlatformAdminSidebarNav } from "@/components/platform-admin/sidebar-nav";
 
-export default function PlatformAdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function PlatformAdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="dark flex h-screen bg-background text-foreground">
-      <aside className="w-56 shrink-0 border-r border-border bg-background">
+    <div className="dark bg-background text-foreground flex h-screen">
+      <aside className="border-border bg-background w-56 shrink-0 border-r">
         <PlatformAdminSidebarNav />
       </aside>
       <main className="flex-1 overflow-y-auto p-6">{children}</main>
@@ -861,6 +856,7 @@ git commit -m "feat: add platform-admin layout shell with sidebar navigation"
 ### Task 7: Placeholder Pages + Reusable DataTable
 
 **Files:**
+
 - Create: `apps/web/src/app/platform-admin/dashboard/page.tsx`
 - Create: `apps/web/src/app/platform-admin/workspaces/page.tsx`
 - Create: `apps/web/src/app/platform-admin/billing/page.tsx`
@@ -919,13 +915,13 @@ export function DataTable<TData, TValue>({
   });
 
   return (
-    <div className="rounded-md border border-border">
+    <div className="border-border rounded-md border">
       <Table>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
               {headerGroup.headers.map((header) => (
-                <TableHead key={header.id} className="text-xs font-medium uppercase tracking-wider">
+                <TableHead key={header.id} className="text-xs font-medium tracking-wider uppercase">
                   {header.isPlaceholder
                     ? null
                     : flexRender(header.column.columnDef.header, header.getContext())}
@@ -951,7 +947,10 @@ export function DataTable<TData, TValue>({
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
+              <TableCell
+                colSpan={columns.length}
+                className="text-muted-foreground h-24 text-center"
+              >
                 No results.
               </TableCell>
             </TableRow>
@@ -973,13 +972,14 @@ export default function XxxPage() {
   return (
     <div>
       <h1 className="text-2xl font-semibold">[Title]</h1>
-      <p className="mt-2 text-muted-foreground">[Description] coming soon.</p>
+      <p className="text-muted-foreground mt-2">[Description] coming soon.</p>
     </div>
   );
 }
 ```
 
 Pages to create with their titles:
+
 - `dashboard/page.tsx` → "Dashboard" / "Platform overview"
 - `workspaces/page.tsx` → "Workspaces" / "All workspaces across the platform"
 - `billing/page.tsx` → "Billing" / "Subscription and revenue overview"
@@ -1003,6 +1003,7 @@ git commit -m "feat: add placeholder pages and reusable DataTable component"
 ### Task 8: Workspace List — Server Component with DataTable
 
 **Files:**
+
 - Modify: `apps/web/src/app/platform-admin/workspaces/page.tsx`
 - Create: `apps/web/src/components/platform-admin/workspace-columns.tsx`
 
@@ -1045,9 +1046,7 @@ export const workspaceColumns: ColumnDef<WorkspaceRow>[] = [
   {
     accessorKey: "name",
     header: "Workspace",
-    cell: ({ row }) => (
-      <span className="font-medium">{row.original.name}</span>
-    ),
+    cell: ({ row }) => <span className="font-medium">{row.original.name}</span>,
   },
   {
     accessorFn: (row) => row.company?.name,
@@ -1059,9 +1058,7 @@ export const workspaceColumns: ColumnDef<WorkspaceRow>[] = [
     id: "org_number",
     header: "Org.nr",
     cell: ({ getValue }) => (
-      <span className="font-mono text-xs text-muted-foreground">
-        {getValue() as string}
-      </span>
+      <span className="text-muted-foreground font-mono text-xs">{getValue() as string}</span>
     ),
   },
   {
@@ -1098,8 +1095,7 @@ export const workspaceColumns: ColumnDef<WorkspaceRow>[] = [
   {
     accessorKey: "created_at",
     header: "Created",
-    cell: ({ getValue }) =>
-      new Date(getValue() as string).toLocaleDateString("no-NO"),
+    cell: ({ getValue }) => new Date(getValue() as string).toLocaleDateString("no-NO"),
   },
 ];
 ```
@@ -1123,16 +1119,14 @@ export default async function WorkspacesPage() {
     .from("workspace")
     .select(
       `workspace_id, name, slug, is_active, created_at,
-       company:company_id (company_id, name, org_number, subscription_plan, subscription_status)`
+       company:company_id (company_id, name, org_number, subscription_plan, subscription_status)`,
     )
     .order("created_at", { ascending: false });
 
   return (
     <div>
       <h1 className="text-2xl font-semibold">Workspaces</h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        All workspaces across the platform
-      </p>
+      <p className="text-muted-foreground mt-1 text-sm">All workspaces across the platform</p>
       <div className="mt-6">
         <WorkspaceListClient data={workspaces || []} />
       </div>
@@ -1159,9 +1153,7 @@ export function WorkspaceListClient({ data }: { data: WorkspaceRow[] }) {
     <DataTable
       columns={workspaceColumns}
       data={data}
-      onRowClick={(row) =>
-        router.push(`/platform-admin/workspaces/${row.workspace_id}`)
-      }
+      onRowClick={(row) => router.push(`/platform-admin/workspaces/${row.workspace_id}`)}
     />
   );
 }
@@ -1179,6 +1171,7 @@ git commit -m "feat: add workspace list page with server-fetched DataTable"
 ### Task 9: Workspace Detail Page
 
 **Files:**
+
 - Create: `apps/web/src/app/platform-admin/workspaces/[id]/page.tsx`
 
 **Context:** Profile count uses `status` enum (not `is_active`). Company data comes from the join. `department` table has `workspace_id`.
@@ -1194,11 +1187,7 @@ import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 
-export default async function WorkspaceDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function WorkspaceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const adminId = await getSuperAdminId();
   if (!adminId) redirect("/dashboard");
 
@@ -1221,8 +1210,16 @@ export default async function WorkspaceDetailPage({
     { count: departmentCount },
   ] = await Promise.all([
     admin.from("profile").select("*", { count: "exact", head: true }).eq("workspace_id", id),
-    admin.from("profile").select("*", { count: "exact", head: true }).eq("workspace_id", id).eq("status", "active"),
-    admin.from("profile").select("*", { count: "exact", head: true }).eq("workspace_id", id).eq("status", "trainee"),
+    admin
+      .from("profile")
+      .select("*", { count: "exact", head: true })
+      .eq("workspace_id", id)
+      .eq("status", "active"),
+    admin
+      .from("profile")
+      .select("*", { count: "exact", head: true })
+      .eq("workspace_id", id)
+      .eq("status", "trainee"),
     admin.from("department").select("*", { count: "exact", head: true }).eq("workspace_id", id),
   ]);
 
@@ -1239,24 +1236,24 @@ export default async function WorkspaceDetailPage({
 
       <div className="grid grid-cols-4 gap-4">
         <Card className="p-4">
-          <p className="text-xs text-muted-foreground uppercase">Profiles</p>
+          <p className="text-muted-foreground text-xs uppercase">Profiles</p>
           <p className="text-2xl font-semibold">{totalProfiles || 0}</p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-muted-foreground text-xs">
             {activeProfiles || 0} active, {traineeProfiles || 0} trainee
           </p>
         </Card>
         <Card className="p-4">
-          <p className="text-xs text-muted-foreground uppercase">Departments</p>
+          <p className="text-muted-foreground text-xs uppercase">Departments</p>
           <p className="text-2xl font-semibold">{departmentCount || 0}</p>
         </Card>
         <Card className="p-4">
-          <p className="text-xs text-muted-foreground uppercase">Plan</p>
+          <p className="text-muted-foreground text-xs uppercase">Plan</p>
           <p className="text-2xl font-semibold capitalize">
             {(company?.subscription_plan as string) || "—"}
           </p>
         </Card>
         <Card className="p-4">
-          <p className="text-xs text-muted-foreground uppercase">Created</p>
+          <p className="text-muted-foreground text-xs uppercase">Created</p>
           <p className="text-lg font-semibold">
             {new Date(workspace.created_at).toLocaleDateString("no-NO")}
           </p>
@@ -1265,7 +1262,7 @@ export default async function WorkspaceDetailPage({
 
       <div className="mt-8">
         <h2 className="mb-4 text-lg font-medium">Company Info</h2>
-        <div className="rounded-md border border-border p-4">
+        <div className="border-border rounded-md border p-4">
           <dl className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
             <div>
               <dt className="text-muted-foreground">Name</dt>
@@ -1313,6 +1310,7 @@ git commit -m "feat: add workspace detail page with stats and company info"
 ### Task 10: Dashboard with KPI Cards
 
 **Files:**
+
 - Modify: `apps/web/src/app/platform-admin/dashboard/page.tsx`
 
 **Context:** KPIs query `company.subscription_status` (text column, NOT an enum). Recent workspaces join to `company` for status.
@@ -1324,13 +1322,7 @@ import { createAdminClient } from "@smartout/supabase/admin";
 import { getSuperAdminId } from "@/lib/platform-admin";
 import { redirect } from "next/navigation";
 import { Card } from "@/components/ui/card";
-import {
-  Building2,
-  Users,
-  CreditCard,
-  AlertTriangle,
-  PlayCircle,
-} from "lucide-react";
+import { Building2, Users, CreditCard, AlertTriangle, PlayCircle } from "lucide-react";
 
 export default async function DashboardPage() {
   const adminId = await getSuperAdminId();
@@ -1348,9 +1340,18 @@ export default async function DashboardPage() {
   ] = await Promise.all([
     admin.from("workspace").select("*", { count: "exact", head: true }),
     admin.from("user_identity").select("*", { count: "exact", head: true }),
-    admin.from("company").select("*", { count: "exact", head: true }).eq("subscription_status", "trial"),
-    admin.from("company").select("*", { count: "exact", head: true }).eq("subscription_status", "active"),
-    admin.from("company").select("*", { count: "exact", head: true }).eq("subscription_status", "past_due"),
+    admin
+      .from("company")
+      .select("*", { count: "exact", head: true })
+      .eq("subscription_status", "trial"),
+    admin
+      .from("company")
+      .select("*", { count: "exact", head: true })
+      .eq("subscription_status", "active"),
+    admin
+      .from("company")
+      .select("*", { count: "exact", head: true })
+      .eq("subscription_status", "past_due"),
     admin
       .from("workspace")
       .select("workspace_id, name, created_at, company:company_id (name, subscription_status)")
@@ -1374,19 +1375,16 @@ export default async function DashboardPage() {
   return (
     <div>
       <h1 className="text-2xl font-semibold">Dashboard</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Platform overview</p>
+      <p className="text-muted-foreground mt-1 text-sm">Platform overview</p>
 
       <div className="mt-6 grid grid-cols-5 gap-4">
         {kpis.map((kpi) => {
           const Icon = kpi.icon;
           return (
-            <Card
-              key={kpi.label}
-              className={`p-4 ${kpi.danger ? "border-destructive/30" : ""}`}
-            >
+            <Card key={kpi.label} className={`p-4 ${kpi.danger ? "border-destructive/30" : ""}`}>
               <div className="flex items-center gap-2">
-                <Icon className="h-4 w-4 text-muted-foreground" />
-                <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                <Icon className="text-muted-foreground h-4 w-4" />
+                <p className="text-muted-foreground text-xs tracking-wider uppercase">
                   {kpi.label}
                 </p>
               </div>
@@ -1400,10 +1398,10 @@ export default async function DashboardPage() {
 
       <div className="mt-8">
         <h2 className="mb-4 text-lg font-medium">Recent Workspaces</h2>
-        <div className="rounded-md border border-border">
+        <div className="border-border rounded-md border">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border text-left text-xs uppercase tracking-wider text-muted-foreground">
+              <tr className="border-border text-muted-foreground border-b text-left text-xs tracking-wider uppercase">
                 <th className="px-4 py-3">Workspace</th>
                 <th className="px-4 py-3">Company</th>
                 <th className="px-4 py-3">Status</th>
@@ -1412,15 +1410,16 @@ export default async function DashboardPage() {
             </thead>
             <tbody>
               {recentWorkspaces?.map((ws) => (
-                <tr key={ws.workspace_id} className="border-b border-border last:border-0">
+                <tr key={ws.workspace_id} className="border-border border-b last:border-0">
                   <td className="px-4 py-3 font-medium">{ws.name}</td>
-                  <td className="px-4 py-3 text-muted-foreground">
+                  <td className="text-muted-foreground px-4 py-3">
                     {(ws.company as { name: string } | null)?.name || "—"}
                   </td>
-                  <td className="px-4 py-3 capitalize text-muted-foreground">
-                    {(ws.company as { subscription_status: string } | null)?.subscription_status || "—"}
+                  <td className="text-muted-foreground px-4 py-3 capitalize">
+                    {(ws.company as { subscription_status: string } | null)?.subscription_status ||
+                      "—"}
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">
+                  <td className="text-muted-foreground px-4 py-3">
                     {new Date(ws.created_at).toLocaleDateString("no-NO")}
                   </td>
                 </tr>
@@ -1448,6 +1447,7 @@ git commit -m "feat: add platform dashboard with KPI cards and recent workspaces
 ### Task 11: Audit Log Page
 
 **Files:**
+
 - Modify: `apps/web/src/app/platform-admin/audit/page.tsx`
 - Create: `apps/web/src/components/platform-admin/audit-columns.tsx`
 - Create: `apps/web/src/components/platform-admin/audit-list-client.tsx`
@@ -1494,17 +1494,14 @@ export const auditColumns: ColumnDef<AuditRow>[] = [
       }),
   },
   {
-    accessorFn: (row) =>
-      row.admin ? `${row.admin.first_name} ${row.admin.last_name}` : "System",
+    accessorFn: (row) => (row.admin ? `${row.admin.first_name} ${row.admin.last_name}` : "System"),
     id: "admin",
     header: "Admin",
   },
   {
     accessorKey: "action",
     header: "Action",
-    cell: ({ getValue }) => (
-      <span className="font-medium">{getValue() as string}</span>
-    ),
+    cell: ({ getValue }) => <span className="font-medium">{getValue() as string}</span>,
   },
   {
     accessorKey: "entity_type",
@@ -1524,7 +1521,7 @@ export const auditColumns: ColumnDef<AuditRow>[] = [
     cell: ({ getValue }) => {
       const id = getValue() as string | null;
       return id ? (
-        <span className="font-mono text-xs text-muted-foreground">{id.slice(0, 8)}...</span>
+        <span className="text-muted-foreground font-mono text-xs">{id.slice(0, 8)}...</span>
       ) : (
         <span className="text-muted-foreground">—</span>
       );
@@ -1568,7 +1565,7 @@ export default async function AuditPage() {
     .from("platform_audit_log")
     .select(
       `id, action, entity_type, entity_id, details, created_at,
-       admin:super_admin_id (first_name, last_name)`
+       admin:super_admin_id (first_name, last_name)`,
     )
     .order("created_at", { ascending: false })
     .limit(100);
@@ -1576,7 +1573,7 @@ export default async function AuditPage() {
   return (
     <div>
       <h1 className="text-2xl font-semibold">Audit Log</h1>
-      <p className="mt-1 text-sm text-muted-foreground">All super-admin actions</p>
+      <p className="text-muted-foreground mt-1 text-sm">All super-admin actions</p>
       <div className="mt-6">
         <AuditListClient data={(auditLogs as unknown as AuditRow[]) || []} />
       </div>
@@ -1599,6 +1596,7 @@ git commit -m "feat: add audit log page with filterable DataTable"
 ### Task 12: Users Page
 
 **Files:**
+
 - Modify: `apps/web/src/app/platform-admin/users/page.tsx`
 
 **Context:** Users are in `user_identity` table. `is_super_admin` column added by migration 00013.
@@ -1618,19 +1616,21 @@ export default async function UsersPage() {
   const admin = createAdminClient();
   const { data: users } = await admin
     .from("user_identity")
-    .select("user_id, email, first_name, last_name, is_super_admin, is_active, last_login_at, created_at")
+    .select(
+      "user_id, email, first_name, last_name, is_super_admin, is_active, last_login_at, created_at",
+    )
     .order("created_at", { ascending: false })
     .limit(100);
 
   return (
     <div>
       <h1 className="text-2xl font-semibold">Users</h1>
-      <p className="mt-1 text-sm text-muted-foreground">All platform users</p>
+      <p className="text-muted-foreground mt-1 text-sm">All platform users</p>
 
-      <div className="mt-6 rounded-md border border-border">
+      <div className="border-border mt-6 rounded-md border">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border text-left text-xs uppercase tracking-wider text-muted-foreground">
+            <tr className="border-border text-muted-foreground border-b text-left text-xs tracking-wider uppercase">
               <th className="px-4 py-3">Name</th>
               <th className="px-4 py-3">Email</th>
               <th className="px-4 py-3">Role</th>
@@ -1640,20 +1640,27 @@ export default async function UsersPage() {
           </thead>
           <tbody>
             {users?.map((user) => (
-              <tr key={user.user_id} className="border-b border-border last:border-0">
-                <td className="px-4 py-3 font-medium">{user.first_name} {user.last_name}</td>
-                <td className="px-4 py-3 text-muted-foreground">{user.email}</td>
+              <tr key={user.user_id} className="border-border border-b last:border-0">
+                <td className="px-4 py-3 font-medium">
+                  {user.first_name} {user.last_name}
+                </td>
+                <td className="text-muted-foreground px-4 py-3">{user.email}</td>
                 <td className="px-4 py-3">
                   {user.is_super_admin && (
-                    <Badge variant="outline" className="bg-purple-500/10 text-purple-400 border-purple-500/20 text-xs">
+                    <Badge
+                      variant="outline"
+                      className="border-purple-500/20 bg-purple-500/10 text-xs text-purple-400"
+                    >
                       Super Admin
                     </Badge>
                   )}
                 </td>
-                <td className="px-4 py-3 text-muted-foreground">
-                  {user.last_login_at ? new Date(user.last_login_at).toLocaleDateString("no-NO") : "Never"}
+                <td className="text-muted-foreground px-4 py-3">
+                  {user.last_login_at
+                    ? new Date(user.last_login_at).toLocaleDateString("no-NO")
+                    : "Never"}
                 </td>
-                <td className="px-4 py-3 text-muted-foreground">
+                <td className="text-muted-foreground px-4 py-3">
                   {new Date(user.created_at).toLocaleDateString("no-NO")}
                 </td>
               </tr>
@@ -1678,6 +1685,7 @@ git commit -m "feat: add users management page for platform admin"
 ### Task 13: Billing Page (Read-Only)
 
 **Files:**
+
 - Modify: `apps/web/src/app/platform-admin/billing/page.tsx`
 
 **Context:** All subscription data is on `company` table: `subscription_plan` (text, nullable), `subscription_status` (text, default 'trial'), `trial_ends_at` (timestamptz, nullable).
@@ -1698,7 +1706,9 @@ export default async function BillingPage() {
   const admin = createAdminClient();
   const { data: companies } = await admin
     .from("company")
-    .select("company_id, name, org_number, subscription_plan, subscription_status, trial_ends_at, created_at")
+    .select(
+      "company_id, name, org_number, subscription_plan, subscription_status, trial_ends_at, created_at",
+    )
     .order("created_at", { ascending: false });
 
   const statusColor: Record<string, string> = {
@@ -1716,27 +1726,29 @@ export default async function BillingPage() {
   return (
     <div>
       <h1 className="text-2xl font-semibold">Billing</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Subscription and revenue overview</p>
+      <p className="text-muted-foreground mt-1 text-sm">Subscription and revenue overview</p>
 
       <div className="mt-6 grid grid-cols-3 gap-4">
         <Card className="p-4">
-          <p className="text-xs text-muted-foreground uppercase">Active</p>
+          <p className="text-muted-foreground text-xs uppercase">Active</p>
           <p className="text-3xl font-semibold text-green-400">{active}</p>
         </Card>
         <Card className="p-4">
-          <p className="text-xs text-muted-foreground uppercase">Trial</p>
+          <p className="text-muted-foreground text-xs uppercase">Trial</p>
           <p className="text-3xl font-semibold text-blue-400">{trial}</p>
         </Card>
         <Card className="p-4">
-          <p className="text-xs text-muted-foreground uppercase">Past Due</p>
-          <p className={`text-3xl font-semibold ${pastDue > 0 ? "text-destructive" : ""}`}>{pastDue}</p>
+          <p className="text-muted-foreground text-xs uppercase">Past Due</p>
+          <p className={`text-3xl font-semibold ${pastDue > 0 ? "text-destructive" : ""}`}>
+            {pastDue}
+          </p>
         </Card>
       </div>
 
-      <div className="mt-8 rounded-md border border-border">
+      <div className="border-border mt-8 rounded-md border">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border text-left text-xs uppercase tracking-wider text-muted-foreground">
+            <tr className="border-border text-muted-foreground border-b text-left text-xs tracking-wider uppercase">
               <th className="px-4 py-3">Company</th>
               <th className="px-4 py-3">Org.nr</th>
               <th className="px-4 py-3">Plan</th>
@@ -1746,16 +1758,21 @@ export default async function BillingPage() {
           </thead>
           <tbody>
             {companies?.map((c) => (
-              <tr key={c.company_id} className="border-b border-border last:border-0">
+              <tr key={c.company_id} className="border-border border-b last:border-0">
                 <td className="px-4 py-3 font-medium">{c.name}</td>
-                <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{c.org_number}</td>
+                <td className="text-muted-foreground px-4 py-3 font-mono text-xs">
+                  {c.org_number}
+                </td>
                 <td className="px-4 py-3 capitalize">{c.subscription_plan || "—"}</td>
                 <td className="px-4 py-3">
-                  <Badge variant="outline" className={`text-xs capitalize ${statusColor[c.subscription_status || ""] || ""}`}>
+                  <Badge
+                    variant="outline"
+                    className={`text-xs capitalize ${statusColor[c.subscription_status || ""] || ""}`}
+                  >
                     {c.subscription_status || "unknown"}
                   </Badge>
                 </td>
-                <td className="px-4 py-3 text-muted-foreground">
+                <td className="text-muted-foreground px-4 py-3">
                   {c.trial_ends_at ? new Date(c.trial_ends_at).toLocaleDateString("no-NO") : "—"}
                 </td>
               </tr>
@@ -1780,6 +1797,7 @@ git commit -m "feat: add read-only billing overview using company subscription d
 ### Task 14: Health Page
 
 **Files:**
+
 - Modify: `apps/web/src/app/platform-admin/health/page.tsx`
 
 **Step 1: Replace health page** (reads from `platform_metrics_daily` if populated, otherwise live counts)
@@ -1806,61 +1824,68 @@ export default async function HealthPage() {
   return (
     <div>
       <h1 className="text-2xl font-semibold">Platform Health</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Metrics and system health overview</p>
+      <p className="text-muted-foreground mt-1 text-sm">Metrics and system health overview</p>
 
       {metrics ? (
         <>
           <div className="mt-6 grid grid-cols-4 gap-4">
             <Card className="p-4">
-              <p className="text-xs text-muted-foreground uppercase">Total Users</p>
+              <p className="text-muted-foreground text-xs uppercase">Total Users</p>
               <p className="text-2xl font-semibold">{metrics.total_users}</p>
-              <p className="text-xs text-muted-foreground">+{metrics.new_users_today} today</p>
+              <p className="text-muted-foreground text-xs">+{metrics.new_users_today} today</p>
             </Card>
             <Card className="p-4">
-              <p className="text-xs text-muted-foreground uppercase">Workspaces</p>
+              <p className="text-muted-foreground text-xs uppercase">Workspaces</p>
               <p className="text-2xl font-semibold">{metrics.total_workspaces}</p>
-              <p className="text-xs text-muted-foreground">+{metrics.new_workspaces_today} today</p>
+              <p className="text-muted-foreground text-xs">+{metrics.new_workspaces_today} today</p>
             </Card>
             <Card className="p-4">
-              <p className="text-xs text-muted-foreground uppercase">Active 24h</p>
+              <p className="text-muted-foreground text-xs uppercase">Active 24h</p>
               <p className="text-2xl font-semibold">{metrics.active_workspaces_24h}</p>
             </Card>
             <Card className="p-4">
-              <p className="text-xs text-muted-foreground uppercase">MRR (NOK)</p>
-              <p className="text-2xl font-semibold">{Number(metrics.mrr_nok).toLocaleString("no-NO")}</p>
+              <p className="text-muted-foreground text-xs uppercase">MRR (NOK)</p>
+              <p className="text-2xl font-semibold">
+                {Number(metrics.mrr_nok).toLocaleString("no-NO")}
+              </p>
             </Card>
           </div>
 
           <div className="mt-6 grid grid-cols-5 gap-4">
             <Card className="p-4">
-              <p className="text-xs text-muted-foreground uppercase">Trial</p>
+              <p className="text-muted-foreground text-xs uppercase">Trial</p>
               <p className="text-xl font-semibold text-blue-400">{metrics.subscriptions_trial}</p>
             </Card>
             <Card className="p-4">
-              <p className="text-xs text-muted-foreground uppercase">Active</p>
+              <p className="text-muted-foreground text-xs uppercase">Active</p>
               <p className="text-xl font-semibold text-green-400">{metrics.subscriptions_active}</p>
             </Card>
             <Card className="p-4">
-              <p className="text-xs text-muted-foreground uppercase">Paused</p>
+              <p className="text-muted-foreground text-xs uppercase">Paused</p>
               <p className="text-xl font-semibold">{metrics.subscriptions_paused}</p>
             </Card>
             <Card className="p-4">
-              <p className="text-xs text-muted-foreground uppercase">Past Due</p>
-              <p className="text-xl font-semibold text-orange-400">{metrics.subscriptions_past_due}</p>
+              <p className="text-muted-foreground text-xs uppercase">Past Due</p>
+              <p className="text-xl font-semibold text-orange-400">
+                {metrics.subscriptions_past_due}
+              </p>
             </Card>
             <Card className="p-4">
-              <p className="text-xs text-muted-foreground uppercase">Cancelled</p>
-              <p className="text-xl font-semibold text-destructive">{metrics.subscriptions_cancelled}</p>
+              <p className="text-muted-foreground text-xs uppercase">Cancelled</p>
+              <p className="text-destructive text-xl font-semibold">
+                {metrics.subscriptions_cancelled}
+              </p>
             </Card>
           </div>
 
-          <p className="mt-4 text-xs text-muted-foreground">
+          <p className="text-muted-foreground mt-4 text-xs">
             Last computed: {new Date(metrics.computed_at).toLocaleString("no-NO")}
           </p>
         </>
       ) : (
-        <p className="mt-6 text-muted-foreground">
-          No metrics data. Run <code className="text-xs">SELECT compute_platform_metrics()</code> in Supabase SQL editor to populate.
+        <p className="text-muted-foreground mt-6">
+          No metrics data. Run <code className="text-xs">SELECT compute_platform_metrics()</code> in
+          Supabase SQL editor to populate.
         </p>
       )}
     </div>
@@ -1882,6 +1907,7 @@ git commit -m "feat: add platform health page with daily metrics display"
 ### Task 15: Create ADR for New Dependencies
 
 **Files:**
+
 - Create: `docs/decisions/0017-tanstack-table-recharts-platform-admin.md`
 - Modify: `docs/decisions/0000-decision-log.md`
 
@@ -1892,6 +1918,7 @@ git commit -m "feat: add platform health page with daily metrics display"
 Title: "TanStack Table and Recharts for Platform Admin"
 
 Key points:
+
 - **Context:** Platform admin needs sortable data tables and metric visualizations
 - **Decision:** Use `@tanstack/react-table` for headless tables (composable with shadcn/ui `<Table>`) and `recharts` for charts (React-native, SSR-safe)
 - **Alternatives considered:** Raw HTML tables (insufficient for sorting/filtering), AG Grid (overkill, heavy), Nivo (heavier than Recharts, less React-idiomatic)
@@ -1917,6 +1944,7 @@ git commit -m "docs(adr): ADR-0017 TanStack Table and Recharts for platform admi
 ### Task 16: Landing Config API Routes
 
 **Files:**
+
 - Create: `apps/web/src/app/api/platform-admin/content/configs/route.ts`
 - Create: `apps/web/src/app/api/platform-admin/content/configs/[slug]/route.ts`
 - Create: `apps/web/src/app/api/platform-admin/content/configs/[slug]/publish/route.ts`
@@ -1933,7 +1961,11 @@ import { createAdminClient } from "@smartout/supabase/admin";
 import { getSuperAdminId, logPlatformAction } from "@/lib/platform-admin";
 
 const CreateConfigSchema = z.object({
-  slug: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/),
+  slug: z
+    .string()
+    .min(1)
+    .max(100)
+    .regex(/^[a-z0-9-]+$/),
   name: z.string().min(1).max(200),
   locale: z.string().default("no"),
   config_json: z.record(z.unknown()),
@@ -2001,18 +2033,14 @@ const UpdateConfigSchema = z.object({
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
+  { params }: { params: Promise<{ slug: string }> },
 ) {
   const adminId = await getSuperAdminId();
   if (!adminId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { slug } = await params;
   const admin = createAdminClient();
-  const { data, error } = await admin
-    .from("landing_config")
-    .select("*")
-    .eq("slug", slug)
-    .single();
+  const { data, error } = await admin.from("landing_config").select("*").eq("slug", slug).single();
 
   if (error || !data) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json({ data });
@@ -2020,7 +2048,7 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
+  { params }: { params: Promise<{ slug: string }> },
 ) {
   const adminId = await getSuperAdminId();
   if (!adminId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -2051,7 +2079,7 @@ export async function PATCH(
 
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
+  { params }: { params: Promise<{ slug: string }> },
 ) {
   const adminId = await getSuperAdminId();
   if (!adminId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -2084,7 +2112,7 @@ import { getSuperAdminId, logPlatformAction } from "@/lib/platform-admin";
 
 export async function POST(
   _request: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
+  { params }: { params: Promise<{ slug: string }> },
 ) {
   const adminId = await getSuperAdminId();
   if (!adminId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -2129,7 +2157,7 @@ export async function POST(
   if (versionResult.error || publishResult.error) {
     return NextResponse.json(
       { error: versionResult.error?.message || publishResult.error?.message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 
@@ -2152,7 +2180,7 @@ import { createAdminClient } from "@smartout/supabase/admin";
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
+  { params }: { params: Promise<{ slug: string }> },
 ) {
   const { slug } = await params;
   const admin = createAdminClient();
@@ -2191,6 +2219,7 @@ git commit -m "feat: add landing config CRUD, publish, and public API routes"
 ### Task 17: Content List Page + Contracts List Page
 
 **Files:**
+
 - Modify: `apps/web/src/app/platform-admin/content/page.tsx`
 - Modify: `apps/web/src/app/platform-admin/contracts/page.tsx`
 
@@ -2223,12 +2252,12 @@ export default async function ContentPage() {
   return (
     <div>
       <h1 className="text-2xl font-semibold">Content</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Landing page configurations</p>
+      <p className="text-muted-foreground mt-1 text-sm">Landing page configurations</p>
 
-      <div className="mt-6 rounded-md border border-border">
+      <div className="border-border mt-6 rounded-md border">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border text-left text-xs uppercase tracking-wider text-muted-foreground">
+            <tr className="border-border text-muted-foreground border-b text-left text-xs tracking-wider uppercase">
               <th className="px-4 py-3">Name</th>
               <th className="px-4 py-3">Slug</th>
               <th className="px-4 py-3">Locale</th>
@@ -2239,10 +2268,10 @@ export default async function ContentPage() {
           </thead>
           <tbody>
             {configs?.map((config) => (
-              <tr key={config.config_id} className="border-b border-border last:border-0">
+              <tr key={config.config_id} className="border-border border-b last:border-0">
                 <td className="px-4 py-3 font-medium">{config.name}</td>
-                <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{config.slug}</td>
-                <td className="px-4 py-3 uppercase text-muted-foreground">{config.locale}</td>
+                <td className="text-muted-foreground px-4 py-3 font-mono text-xs">{config.slug}</td>
+                <td className="text-muted-foreground px-4 py-3 uppercase">{config.locale}</td>
                 <td className="px-4 py-3">
                   <Badge
                     variant="outline"
@@ -2251,8 +2280,8 @@ export default async function ContentPage() {
                     {config.status}
                   </Badge>
                 </td>
-                <td className="px-4 py-3 text-muted-foreground">v{config.version}</td>
-                <td className="px-4 py-3 text-muted-foreground">
+                <td className="text-muted-foreground px-4 py-3">v{config.version}</td>
+                <td className="text-muted-foreground px-4 py-3">
                   {config.published_at
                     ? new Date(config.published_at).toLocaleDateString("no-NO")
                     : "—"}
@@ -2285,7 +2314,7 @@ export default async function ContractsPage() {
     .select(
       `contract_id, title, status, sent_at, signed_at, expires_at, created_at,
        company:company_id (name),
-       template:template_id (name, template_type)`
+       template:template_id (name, template_type)`,
     )
     .order("created_at", { ascending: false });
 
@@ -2301,12 +2330,12 @@ export default async function ContractsPage() {
   return (
     <div>
       <h1 className="text-2xl font-semibold">Contracts</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Platform contract management</p>
+      <p className="text-muted-foreground mt-1 text-sm">Platform contract management</p>
 
-      <div className="mt-6 rounded-md border border-border">
+      <div className="border-border mt-6 rounded-md border">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border text-left text-xs uppercase tracking-wider text-muted-foreground">
+            <tr className="border-border text-muted-foreground border-b text-left text-xs tracking-wider uppercase">
               <th className="px-4 py-3">Title</th>
               <th className="px-4 py-3">Company</th>
               <th className="px-4 py-3">Type</th>
@@ -2317,13 +2346,15 @@ export default async function ContractsPage() {
           </thead>
           <tbody>
             {contracts?.map((contract) => (
-              <tr key={contract.contract_id} className="border-b border-border last:border-0">
+              <tr key={contract.contract_id} className="border-border border-b last:border-0">
                 <td className="px-4 py-3 font-medium">{contract.title}</td>
-                <td className="px-4 py-3 text-muted-foreground">
+                <td className="text-muted-foreground px-4 py-3">
                   {(contract.company as { name: string } | null)?.name || "—"}
                 </td>
-                <td className="px-4 py-3 capitalize text-muted-foreground">
-                  {((contract.template as { template_type: string } | null)?.template_type || "—").replace("_", " ")}
+                <td className="text-muted-foreground px-4 py-3 capitalize">
+                  {(
+                    (contract.template as { template_type: string } | null)?.template_type || "—"
+                  ).replace("_", " ")}
                 </td>
                 <td className="px-4 py-3">
                   <Badge
@@ -2333,11 +2364,15 @@ export default async function ContractsPage() {
                     {contract.status}
                   </Badge>
                 </td>
-                <td className="px-4 py-3 text-muted-foreground">
-                  {contract.signed_at ? new Date(contract.signed_at).toLocaleDateString("no-NO") : "—"}
+                <td className="text-muted-foreground px-4 py-3">
+                  {contract.signed_at
+                    ? new Date(contract.signed_at).toLocaleDateString("no-NO")
+                    : "—"}
                 </td>
-                <td className="px-4 py-3 text-muted-foreground">
-                  {contract.expires_at ? new Date(contract.expires_at).toLocaleDateString("no-NO") : "—"}
+                <td className="text-muted-foreground px-4 py-3">
+                  {contract.expires_at
+                    ? new Date(contract.expires_at).toLocaleDateString("no-NO")
+                    : "—"}
                 </td>
               </tr>
             ))}
@@ -2361,6 +2396,7 @@ git commit -m "feat: add content list and contracts list pages"
 ### Task 18: DocuSeal Webhook Handler
 
 **Files:**
+
 - Create: `apps/web/src/app/api/webhooks/docuseal/route.ts`
 
 **Context:** Handles DocuSeal signature events, updates `platform_contract_instance.status`, logs to audit. Uses `platform_contract_instance` table name.
@@ -2379,16 +2415,24 @@ const DocuSealEventSchema = z.object({
     id: z.number(),
     submission_id: z.number(),
     status: z.string(),
-    documents: z.array(z.object({
-      name: z.string(),
-      url: z.string().url(),
-    })).optional(),
-    submitters: z.array(z.object({
-      name: z.string().optional(),
-      email: z.string().email(),
-      role: z.string().optional(),
-      completed_at: z.string().nullable().optional(),
-    })).optional(),
+    documents: z
+      .array(
+        z.object({
+          name: z.string(),
+          url: z.string().url(),
+        }),
+      )
+      .optional(),
+    submitters: z
+      .array(
+        z.object({
+          name: z.string().optional(),
+          email: z.string().email(),
+          role: z.string().optional(),
+          completed_at: z.string().nullable().optional(),
+        }),
+      )
+      .optional(),
   }),
 });
 
@@ -2494,26 +2538,26 @@ git commit -m "feat: add DocuSeal webhook handler for contract signature events"
 
 ## Summary
 
-| Task | Phase | Description | Key Codebase Fact |
-|------|-------|-------------|-------------------|
-| 1 | Foundation | Migration (5 new tables + flag + metrics function) | Table is `user_identity`, enum `contract_status` taken, use `platform_contract_*` names |
-| 2 | Foundation | Admin client (`@smartout/supabase/admin`) | Add export to `package.json`, uses `@supabase/supabase-js` directly |
-| 3 | Foundation | Platform Zod types | Follow `identity.ts` pattern, add `is_super_admin` to `UserSchema` |
-| 4 | Foundation | Middleware + auth helper | Use `@supabase/ssr` in middleware, `@supabase/supabase-js` for admin check |
-| 5 | Foundation | Install deps (TanStack Table, Recharts, shadcn) | Only `dialog.tsx` exists, Tailwind v4 CSS-based |
-| 6 | Foundation | Layout shell + sidebar | Use CSS variables (`text-muted-foreground`, `bg-background`), not hardcoded zinc |
-| 7 | Foundation | Placeholders + DataTable | Reusable `DataTable<TData>` for all list pages |
-| 8 | Workspaces | Workspace list | Join `workspace` → `company` for subscription data (no `stripe_subscription` table) |
-| 9 | Workspaces | Workspace detail | `profile.status = 'active'` (enum), not `is_active` for counting |
-| 10 | Dashboard | KPI cards | Query `company.subscription_status` (text column) |
-| 11 | Audit | Audit log | Join `platform_audit_log` → `user_identity` via `super_admin_id` |
-| 12 | Users/Billing/Health | Users page | `user_identity` table, `is_super_admin` boolean |
-| 13 | Users/Billing/Health | Billing (read-only) | `company` table has `subscription_plan/status/trial_ends_at` |
-| 14 | Users/Billing/Health | Health page | `platform_metrics_daily` + `compute_platform_metrics()` function |
-| 15 | ADR | ADR-0017 for TanStack Table + Recharts | MANDATORY per ADR enforcement rules — new deps require ADR |
-| 16 | Content/Contracts | Landing config APIs (full CRUD + publish + public) | `landing_config` table, publish copies `config_json` → `published_json` |
-| 17 | Content/Contracts | Content + Contracts list pages | Use `platform_contract_instance`, NOT `contract_instance` |
-| 18 | Content/Contracts | DocuSeal webhook | Updates `platform_contract_instance.status` |
+| Task | Phase                | Description                                        | Key Codebase Fact                                                                       |
+| ---- | -------------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| 1    | Foundation           | Migration (5 new tables + flag + metrics function) | Table is `user_identity`, enum `contract_status` taken, use `platform_contract_*` names |
+| 2    | Foundation           | Admin client (`@smartout/supabase/admin`)          | Add export to `package.json`, uses `@supabase/supabase-js` directly                     |
+| 3    | Foundation           | Platform Zod types                                 | Follow `identity.ts` pattern, add `is_super_admin` to `UserSchema`                      |
+| 4    | Foundation           | Middleware + auth helper                           | Use `@supabase/ssr` in middleware, `@supabase/supabase-js` for admin check              |
+| 5    | Foundation           | Install deps (TanStack Table, Recharts, shadcn)    | Only `dialog.tsx` exists, Tailwind v4 CSS-based                                         |
+| 6    | Foundation           | Layout shell + sidebar                             | Use CSS variables (`text-muted-foreground`, `bg-background`), not hardcoded zinc        |
+| 7    | Foundation           | Placeholders + DataTable                           | Reusable `DataTable<TData>` for all list pages                                          |
+| 8    | Workspaces           | Workspace list                                     | Join `workspace` → `company` for subscription data (no `stripe_subscription` table)     |
+| 9    | Workspaces           | Workspace detail                                   | `profile.status = 'active'` (enum), not `is_active` for counting                        |
+| 10   | Dashboard            | KPI cards                                          | Query `company.subscription_status` (text column)                                       |
+| 11   | Audit                | Audit log                                          | Join `platform_audit_log` → `user_identity` via `super_admin_id`                        |
+| 12   | Users/Billing/Health | Users page                                         | `user_identity` table, `is_super_admin` boolean                                         |
+| 13   | Users/Billing/Health | Billing (read-only)                                | `company` table has `subscription_plan/status/trial_ends_at`                            |
+| 14   | Users/Billing/Health | Health page                                        | `platform_metrics_daily` + `compute_platform_metrics()` function                        |
+| 15   | ADR                  | ADR-0017 for TanStack Table + Recharts             | MANDATORY per ADR enforcement rules — new deps require ADR                              |
+| 16   | Content/Contracts    | Landing config APIs (full CRUD + publish + public) | `landing_config` table, publish copies `config_json` → `published_json`                 |
+| 17   | Content/Contracts    | Content + Contracts list pages                     | Use `platform_contract_instance`, NOT `contract_instance`                               |
+| 18   | Content/Contracts    | DocuSeal webhook                                   | Updates `platform_contract_instance.status`                                             |
 
 ---
 
@@ -2540,7 +2584,7 @@ This plan uses hardcoded Tailwind color values (`text-green-400`, `bg-blue-500/1
 
 ## Changelog
 
-| Date | Version | Change | Author |
-|------|---------|--------|--------|
-| 2026-02-27 | 1.0.0 | Initial plan | Claude |
-| 2026-02-27 | 1.1.0 | Added YAML frontmatter, changelog, ADR task (Task 15), fixed enum count (30→33), replaced `as any` with proper types, completed Tasks 15-18 with full implementation code, added design notes on semantic colors | Claude |
+| Date       | Version | Change                                                                                                                                                                                                           | Author |
+| ---------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| 2026-02-27 | 1.0.0   | Initial plan                                                                                                                                                                                                     | Claude |
+| 2026-02-27 | 1.1.0   | Added YAML frontmatter, changelog, ADR task (Task 15), fixed enum count (30→33), replaced `as any` with proper types, completed Tasks 15-18 with full implementation code, added design notes on semantic colors | Claude |

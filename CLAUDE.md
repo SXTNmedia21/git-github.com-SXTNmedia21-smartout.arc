@@ -48,6 +48,7 @@
 | PostHog       | Product analytics                   | Live (EU instance)           |
 | Sentry        | Error tracking                      | Configured (production only) |
 | Upstash Redis | Rate limiting                       | Configured                   |
+| DocuSeal      | Employment contract e-signatures    | Webhook integrated           |
 
 ---
 
@@ -58,8 +59,7 @@ smartout_v3/
 ├── apps/
 │   ├── web/              → Next.js dashboard (port 3050)
 │   ├── landing/          → Next.js landing page (port 3055)
-│   ├── e2e/              → Playwright E2E tests
-│   └── scrapling/        → Python scraper (has own venv)
+│   └── e2e/              → Playwright E2E tests
 ├── packages/
 │   ├── ai/               → AI SDK agents, tools, adapters (@smartout/ai)
 │   ├── design-tokens/    → OKLCH color tokens, CSS + TS exports (@smartout/design-tokens)
@@ -75,13 +75,16 @@ smartout_v3/
 │   ├── functions/        → 11 Edge Functions
 │   ├── seed.sql          → Dev seed data
 │   └── config.toml       → Local dev config
+├── services/
+│   └── scrapling/        → Python FastAPI scraper (port 8000, own venv)
 ├── agents/               → Pydantic AI agents (Python)
 ├── docs/
 │   ├── architecture/     → System architecture docs
 │   ├── cross-cutting/    → Billing, i18n, GDPR, security
-│   ├── decisions/        → ADRs (17 accepted)
+│   ├── decisions/        → ADRs (18 accepted)
+│   ├── learnings/        → Learning records
 │   ├── modules/          → Module specs (17 modules)
-│   ├── plans/            → Implementation plans
+│   ├── plans/            → Implementation plans (completed/ for done)
 │   ├── research/         → Research reports
 │   └── roadmaps/         → Project roadmaps
 └── CLAUDE.md             → This file
@@ -201,6 +204,18 @@ Before creating a new enum, check `packages/supabase/src/database.types.ts` for 
 | Protocol       | `protocol`       | workspace_id scoped      |
 | Season         | `season`         | workspace_id scoped      |
 
+### Platform Admin Tables (5 tables — no RLS, service role only)
+
+| Table                        | Purpose                                    |
+| ---------------------------- | ------------------------------------------ |
+| `landing_config`             | Landing page CMS configs (JSON, versioned) |
+| `landing_config_version`     | Version snapshots of published configs     |
+| `platform_audit_log`         | Super-admin action audit trail             |
+| `platform_impersonation_log` | Workspace impersonation session tracking   |
+| `platform_metrics_daily`     | Daily aggregated KPI metrics               |
+
+Note: `user_identity.is_super_admin` (boolean, default false) gates access to all platform-admin functionality.
+
 ### RLS Patterns (Verified)
 
 ```sql
@@ -217,7 +232,7 @@ WITH CHECK (is_admin_in_workspace(workspace_id, auth.uid()))
 
 ### Migration Naming
 
-- Sequential: `00001_description.sql` through `00012_description.sql`
+- Sequential: `00001_description.sql` through `00013_description.sql`
 - Timestamped: `YYYYMMDDHHMMSS_description.sql` (newer migrations)
 - Regenerate types after migration: `npx supabase gen types typescript --local > packages/supabase/src/database.types.ts`
 
@@ -261,7 +276,7 @@ className="bg-zinc-950 text-zinc-100 border-zinc-800"
 - CSS variables: enabled
 - RSC: true
 - Config: `apps/web/components.json`
-- Installed components (web): `dialog.tsx` only
+- Installed components (web): badge, button, card, dropdown-menu, input, select, separator, sheet, table, tabs, tooltip
 - Add new components: `npx shadcn@latest add <component>` (from `apps/web/`)
 
 ### Dashboard Layout
@@ -302,10 +317,23 @@ className="bg-zinc-950 text-zinc-100 border-zinc-800"
 /dashboard/settings        → Settings
 /dashboard/help            → Help center
 
+Platform Admin (super-admin only):
+/platform-admin            → Dashboard KPIs + metrics
+/platform-admin/workspaces → Workspace list + management
+/platform-admin/workspaces/[id] → Workspace detail + actions
+/platform-admin/users      → User administration
+/platform-admin/billing    → Billing overview + Stripe sync
+/platform-admin/content    → Landing page content CMS
+/platform-admin/contracts  → Employment contract management
+/platform-admin/audit      → Platform audit log viewer
+/platform-admin/health     → System health + edge function status
+
 API Routes:
 /api/health                → Service health check (GET)
 /api/telemetry             → Telemetry beacon (POST)
 /api/onboarding-agent      → Onboarding AI agent (POST)
+/api/platform-admin/...    → Platform admin CRUD endpoints (service role)
+/api/webhooks/docuseal     → DocuSeal contract webhook (POST)
 ```
 
 ---
@@ -766,3 +794,4 @@ pnpm clean
 | 2026-02-27 | 2.0.0   | Complete rewrite: verified against actual codebase. Fixed table names (user_identity), removed phantom stripe_subscription, added Tailwind v4 details, env validation, package exports, migration patterns, seed data, stale doc protocol, performance rules, dev commands, third-party integrations | Claude |
 | 2026-02-27 | 2.1.0   | Added Linear repo scope section — maps which Linear projects belong to this repo vs. other repos                                                                                                                                                                                                     | Claude |
 | 2026-02-27 | 3.0.0   | Enterprise infrastructure: Added new packages (typescript-config, eslint-config, design-tokens, utils), new Edge Functions (health-check, watchdog-integrity, watchdog-uptime), new API routes (/api/health, /api/telemetry), Sentry + Upstash integrations, updated dev commands, ADR-0017          | Claude |
+| 2026-02-28 | 4.0.0   | Platform Admin Backoffice: Added 5 platform-admin tables (migration 00013), 9 platform-admin routes, DocuSeal webhook, ./admin export, DOCUSEAL_WEBHOOK_SECRET env var, ADR-0018, services/ directory, docs/learnings/ system, moved scrapling to services/                                          | Claude |
