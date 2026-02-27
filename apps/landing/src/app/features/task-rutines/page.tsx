@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, CheckCircle2, ChevronRight, ListTodo, MoreVertical, Search, CheckSquare2, Square } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ListTodo, MoreVertical, Search, CheckSquare2, Square } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Navigation from "../../../components/navigation";
 import NextPageBanner from "../../../components/next-page-banner";

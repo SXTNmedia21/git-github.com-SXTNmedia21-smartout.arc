@@ -105,7 +105,8 @@ export default function VoiceAssistant({ onClose, autoStart = false }: VoiceAssi
 
     useEffect(() => {
         if (autoStart) {
-            startSession();
+            // eslint-disable-next-line react-hooks/set-state-in-effect -- startSession manages Ultravox external session lifecycle, setState is intentional
+            void startSession();
         }
         return () => {
             endSession();

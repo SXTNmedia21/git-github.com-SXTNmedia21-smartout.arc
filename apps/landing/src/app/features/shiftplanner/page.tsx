@@ -2,8 +2,7 @@
 
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, CalendarClock, ChevronLeft, ChevronRight, Plus, Users, Search, Filter, Settings, FileText, CheckCircle2, MoreHorizontal, MoreVertical, Briefcase, Network, Clock, AlertCircle, Circle, PlayCircle, Ban, Bot, Mic, Sparkles, PanelLeftClose, PanelLeftOpen } from "lucide-react";
-import Link from "next/link";
+import { ArrowLeft, Plus, Users, CheckCircle2, MoreVertical, Briefcase, Network, Clock, AlertCircle, Circle, PlayCircle, Ban, Bot, Mic, Sparkles, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Navigation from "../../../components/navigation";
 import NextPageBanner from "../../../components/next-page-banner";
@@ -11,7 +10,6 @@ import NextPageBanner from "../../../components/next-page-banner";
 export default function VaktlisteLonnPage() {
     const router = useRouter();
     const [scheduleLayout, setScheduleLayout] = useState<'daily' | 'weekly' | 'monthly'>('daily');
-    const [scheduleView, setScheduleView] = useState<'ansatt' | 'jobb' | 'team'>('ansatt');
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
     return (
@@ -152,7 +150,12 @@ function OpenShiftCard({ title, time }: { title: string, time: string }) {
 }
 
 // MULTI-COLUMN GRID COMPONENT
-function GridContent({ isSidebarOpen, setIsSidebarOpen }: any) {
+type GridContentProps = {
+    isSidebarOpen: boolean;
+    setIsSidebarOpen: (open: boolean) => void;
+};
+
+function GridContent({ isSidebarOpen, setIsSidebarOpen }: GridContentProps) {
     return (
         <div className="flex w-fit min-w-full">
             <div className="w-[200px] xl:w-[250px] shrink-0 border-r border-white/5 bg-[#0a0a0c]/60 sticky left-0 z-30 backdrop-blur-md shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)] flex flex-col">
@@ -250,7 +253,7 @@ function GridContent({ isSidebarOpen, setIsSidebarOpen }: any) {
 }
 
 // WEEKLY GRID COMPONENT (1-10)
-function WeeklyGridContent({ isSidebarOpen, setIsSidebarOpen }: any) {
+function WeeklyGridContent({ isSidebarOpen, setIsSidebarOpen }: GridContentProps) {
     // Generate 10 columns for the weekly sequence
     const columns = Array.from({ length: 10 }, (_, i) => i + 1);
 
@@ -301,7 +304,17 @@ function WeeklyGridContent({ isSidebarOpen, setIsSidebarOpen }: any) {
     )
 }
 
-function EntityRow({ name, subtitle, hours, shifts, avatarColor, initials, contractedHours = 37.5 }: any) {
+type EntityRowProps = {
+    name: string;
+    subtitle: string;
+    hours: string;
+    shifts: string;
+    avatarColor: string;
+    initials: string;
+    contractedHours?: number;
+};
+
+function EntityRow({ name, subtitle, hours, shifts, avatarColor, initials, contractedHours = 37.5 }: EntityRowProps) {
     const scheduledHours = parseFloat(hours) || 0;
     const percentage = Math.min((scheduledHours / contractedHours) * 100, 100);
     const isOvertime = scheduledHours > contractedHours;
@@ -337,7 +350,18 @@ function EntityRow({ name, subtitle, hours, shifts, avatarColor, initials, contr
     )
 }
 
-function DayColumn({ date, staff, shifts, isHoliday, isToday, coverageAlert, children }: any) {
+type DayColumnProps = {
+    date: string;
+    staff: string;
+    shifts: string;
+    cost?: string;
+    isHoliday?: boolean;
+    isToday?: boolean;
+    coverageAlert?: string;
+    children: React.ReactNode;
+};
+
+function DayColumn({ date, staff, shifts, isHoliday, isToday, coverageAlert, children }: DayColumnProps) {
     return (
         <div className={`flex-1 shrink-0 border-r border-white/5 flex flex-col min-w-[110px] sm:min-w-[130px] lg:min-w-[140px] xl:min-w-[160px] max-w-[200px] ${isToday ? 'bg-orange-500/[0.02]' : ''}`}>
             {/* Header Sticky block */}
@@ -482,7 +506,7 @@ function AbsenceCard({ type, reason }: { type: 'Sykdom' | 'Ferie' | 'Avspasering
 }
 
 // MONTHLY GRID COMPONENT (1-31 Days)
-function MonthlyGridContent({ isSidebarOpen, setIsSidebarOpen }: any) {
+function MonthlyGridContent({ isSidebarOpen, setIsSidebarOpen }: GridContentProps) {
     // Generate 31 columns for the month sequence
     const columns = Array.from({ length: 31 }, (_, i) => i + 1);
 

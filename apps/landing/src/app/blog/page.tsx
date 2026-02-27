@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Building2, ArrowRight, Quote, Heart } from "lucide-react";
+import { Building2, Quote, Heart } from "lucide-react";
 import Navigation from "../../components/navigation";
 
 export default function BlogPage() {

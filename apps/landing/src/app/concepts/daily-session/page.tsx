@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
 import Navigation from "../../../components/navigation";
 import NextPageBanner from "../../../components/next-page-banner";
 
@@ -277,7 +276,17 @@ function TimelineSection({ time, title, status, isCurrent, children }: { time: s
     );
 }
 
-function TaskCard({ title, assigned, status, time, category, claimedBy, data }: any) {
+type TaskCardProps = {
+    title: string;
+    assigned: string;
+    status: string;
+    time: string;
+    category: string;
+    claimedBy?: string;
+    data?: string;
+};
+
+function TaskCard({ title, assigned, status, time, category, claimedBy, data }: TaskCardProps) {
 
     const getStatusConfig = () => {
         switch (status) {

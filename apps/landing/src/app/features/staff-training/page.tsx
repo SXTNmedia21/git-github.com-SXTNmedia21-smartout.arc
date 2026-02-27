@@ -9,7 +9,6 @@ import NextPageBanner from "../../../components/next-page-banner";
 
 export default function HROpplaeringPage() {
     const router = useRouter();
-    const [currentQuestion, setCurrentQuestion] = useState(0);
     const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
     const [isAnswered, setIsAnswered] = useState(false);
 
