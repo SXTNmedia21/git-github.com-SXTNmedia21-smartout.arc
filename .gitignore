@@ -10,3 +10,14 @@ secrets/
 out
 dist
 build
+
+# Turbo
+.turbo
+
+# Lock files (keep pnpm-lock.yaml committed for reproducible builds)
+bun.lock
+
+# Build artifacts & logs
+*.log
+__pycache__
+*.pyc
