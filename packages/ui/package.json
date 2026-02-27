@@ -4,19 +4,18 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "dependencies": {
-    "react": "latest",
-    "react-dom": "latest",
-    "@radix-ui/react-slot": "latest",
+    "@radix-ui/react-slot": "^1.2.4",
     "@smartout/telemetry": "workspace:*",
-    "class-variance-authority": "latest",
-    "clsx": "latest",
-    "tailwind-merge": "latest"
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
-    "@types/react": "latest",
-    "@types/react-dom": "latest",
-    "typescript": "latest",
-    "tailwindcss": "latest",
-    "postcss": "latest"
+    "typescript": "^5.9.0"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tailwindcss": "^4.0.0"
   }
 }

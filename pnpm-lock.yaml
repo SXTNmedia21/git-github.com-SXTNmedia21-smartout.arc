@@ -294,17 +294,17 @@ importers:
   packages/notifications:
     dependencies:
       '@sendgrid/mail':
-        specifier: latest
+        specifier: ^8.1.0
         version: 8.1.6
       '@supabase/supabase-js':
-        specifier: latest
+        specifier: ^2.98.0
         version: 2.98.0
       twilio:
-        specifier: latest
+        specifier: ^5.5.0
         version: 5.12.2
     devDependencies:
       typescript:
-        specifier: latest
+        specifier: ^5.9.0
         version: 5.9.3
 
   packages/supabase:
@@ -326,33 +326,30 @@ importers:
   packages/tailwind-config:
     dependencies:
       tailwindcss:
-        specifier: latest
+        specifier: ^4.0.0
         version: 4.2.1
     devDependencies:
       typescript:
-        specifier: latest
+        specifier: ^5.9.0
         version: 5.9.3
 
   packages/telemetry:
     dependencies:
       '@supabase/supabase-js':
-        specifier: latest
+        specifier: ^2.98.0
         version: 2.98.0
       posthog-js:
-        specifier: latest
-        version: 1.356.0
+        specifier: ^1.240.0
+        version: 1.356.1
       posthog-node:
-        specifier: latest
-        version: 5.26.0
+        specifier: ^4.5.0
+        version: 4.18.0
       react:
-        specifier: latest
-        version: 19.2.4
+        specifier: ^19.0.0
+        version: 19.2.3
     devDependencies:
-      '@types/react':
-        specifier: latest
-        version: 19.2.14
       typescript:
-        specifier: latest
+        specifier: ^5.9.0
         version: 5.9.3
 
   packages/types:
@@ -368,41 +365,32 @@ importers:
   packages/ui:
     dependencies:
       '@radix-ui/react-slot':
-        specifier: latest
-        version: 1.2.4(@types/react@19.2.14)(react@19.2.4)
+        specifier: ^1.2.4
+        version: 1.2.4(@types/react@19.2.14)(react@19.2.3)
       '@smartout/telemetry':
         specifier: workspace:*
         version: link:../telemetry
       class-variance-authority:
-        specifier: latest
+        specifier: ^0.7.1
         version: 0.7.1
       clsx:
-        specifier: latest
+        specifier: ^2.1.1
         version: 2.1.1
       react:
-        specifier: latest
-        version: 19.2.4
+        specifier: ^19.0.0
+        version: 19.2.3
       react-dom:
-        specifier: latest
-        version: 19.2.4(react@19.2.4)
+        specifier: ^19.0.0
+        version: 19.2.3(react@19.2.3)
       tailwind-merge:
-        specifier: latest
+        specifier: ^3.5.0
         version: 3.5.0
-    devDependencies:
-      '@types/react':
-        specifier: latest
-        version: 19.2.14
-      '@types/react-dom':
-        specifier: latest
-        version: 19.2.3(@types/react@19.2.14)
-      postcss:
-        specifier: latest
-        version: 8.5.6
       tailwindcss:
-        specifier: latest
+        specifier: ^4.0.0
         version: 4.2.1
+    devDependencies:
       typescript:
-        specifier: latest
+        specifier: ^5.9.0
         version: 5.9.3
 
   packages/utils:
@@ -411,14 +399,14 @@ importers:
         specifier: workspace:*
         version: link:../types
       date-fns:
-        specifier: latest
+        specifier: ^4.1.0
         version: 4.1.0
       zod:
-        specifier: latest
-        version: 4.3.6
+        specifier: ^3.25.0
+        version: 3.25.76
     devDependencies:
       typescript:
-        specifier: latest
+        specifier: ^5.9.0
         version: 5.9.3
 
 packages:
@@ -1293,6 +1281,9 @@ packages:
 
   '@posthog/types@1.356.0':
     resolution: {integrity: sha512-ploousJoT1/8hILP++jk32bO21O+C9ur5F10mga55kziFWRp67SkyssGCxyl/MRNd48cSsM1XpFEkCpjkk5f5Q==}
+
+  '@posthog/types@1.356.1':
+    resolution: {integrity: sha512-miIUjs4LiBDMOxKkC87HEJLIih0pNGMAjxx+mW4X7jLpN41n0PLMW7swRE6uuxcMV0z3H6MllRSCYmsokkyfuQ==}
 
   '@protobufjs/aspromise@1.1.2':
     resolution: {integrity: sha512-j+gKExEuLmKwvz3OgROXtrJ2UG2x8Ch2YZUxahh+s1F2HZ+wAceUNLkvy6zKCPVRkU++ZWQrdxsUeQXmcg4uoQ==}
@@ -4078,9 +4069,12 @@ packages:
   posthog-js@1.356.0:
     resolution: {integrity: sha512-60jOQ5yGd22m3DZ9I4swummVepHEx7EPs6jhs/HjXH0ML/3UFYHRrLHd3tHslr/uh0PXQW7m9NQkucwQ22Tdgw==}
 
-  posthog-node@5.26.0:
-    resolution: {integrity: sha512-DK1XF/RiunhvT57cFyPxW9OaliZzl5aREHFwY/AISL3MVOaDUb4wIccMn0G3ws3Ounen8iGH7xvzZQ0x2vEOEQ==}
-    engines: {node: ^20.20.0 || >=22.22.0}
+  posthog-js@1.356.1:
+    resolution: {integrity: sha512-4EQliSyTp3j/xOaWpZmu7fk1b4S+J3qy4JOu5Xy3/MYFxv1SlAylgifRdCbXZxCQWb6PViaNvwRf4EmburgfWA==}
+
+  posthog-node@4.18.0:
+    resolution: {integrity: sha512-XROs1h+DNatgKh/AlIlCtDxWzwrKdYDb2mOs58n4yN8BkGN9ewqeQwG5ApS4/IzwCb7HPttUkOVulkYatd2PIw==}
+    engines: {node: '>=15.0.0'}
 
   preact@10.28.4:
     resolution: {integrity: sha512-uKFfOHWuSNpRFVTnljsCluEFq57OKT+0QdOiQo8XWnQ/pSvg7OpX5eNOejELXJMWy+BwM2nobz0FkvzmnpCNsQ==}
@@ -5602,6 +5596,8 @@ snapshots:
 
   '@posthog/types@1.356.0': {}
 
+  '@posthog/types@1.356.1': {}
+
   '@protobufjs/aspromise@1.1.2': {}
 
   '@protobufjs/base64@1.1.2': {}
@@ -5669,12 +5665,6 @@ snapshots:
   '@radix-ui/react-compose-refs@1.1.2(@types/react@19.2.14)(react@19.2.3)':
     dependencies:
       react: 19.2.3
-    optionalDependencies:
-      '@types/react': 19.2.14
-
-  '@radix-ui/react-compose-refs@1.1.2(@types/react@19.2.14)(react@19.2.4)':
-    dependencies:
-      react: 19.2.4
     optionalDependencies:
       '@types/react': 19.2.14
 
@@ -5858,13 +5848,6 @@ snapshots:
     dependencies:
       '@radix-ui/react-compose-refs': 1.1.2(@types/react@19.2.14)(react@19.2.3)
       react: 19.2.3
-    optionalDependencies:
-      '@types/react': 19.2.14
-
-  '@radix-ui/react-slot@1.2.4(@types/react@19.2.14)(react@19.2.4)':
-    dependencies:
-      '@radix-ui/react-compose-refs': 1.1.2(@types/react@19.2.14)(react@19.2.4)
-      react: 19.2.4
     optionalDependencies:
       '@types/react': 19.2.14
 
@@ -8651,9 +8634,27 @@ snapshots:
       query-selector-shadow-dom: 1.0.1
       web-vitals: 5.1.0
 
-  posthog-node@5.26.0:
+  posthog-js@1.356.1:
     dependencies:
+      '@opentelemetry/api': 1.9.0
+      '@opentelemetry/api-logs': 0.208.0
+      '@opentelemetry/exporter-logs-otlp-http': 0.208.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/resources': 2.5.1(@opentelemetry/api@1.9.0)
+      '@opentelemetry/sdk-logs': 0.208.0(@opentelemetry/api@1.9.0)
       '@posthog/core': 1.23.1
+      '@posthog/types': 1.356.1
+      core-js: 3.48.0
+      dompurify: 3.3.1
+      fflate: 0.4.8
+      preact: 10.28.4
+      query-selector-shadow-dom: 1.0.1
+      web-vitals: 5.1.0
+
+  posthog-node@4.18.0:
+    dependencies:
+      axios: 1.13.5
+    transitivePeerDependencies:
+      - debug
 
   preact@10.28.4: {}
 
