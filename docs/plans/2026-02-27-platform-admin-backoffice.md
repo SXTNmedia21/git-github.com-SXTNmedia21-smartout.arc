@@ -1,3 +1,13 @@
+---
+id: plan-platform-admin-backoffice
+title: Platform Admin Backoffice Implementation Plan
+version: 1.1.0
+created: 2026-02-27
+last_updated: 2026-02-27
+owner: pontus
+tags: [platform-admin, module-17, implementation-plan]
+---
+
 # Platform Admin Backoffice — Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
@@ -22,7 +32,7 @@ These are verified facts the implementing engineer must know:
 | Auth trigger | `handle_new_user()` auto-creates `user_identity` row on `auth.users` INSERT |
 | Subscription data | Lives on `company` table: `subscription_plan` (text), `subscription_status` (text), `trial_ends_at` (timestamptz). NO separate `stripe_subscription` table |
 | Existing contract table | `employment_contract` (workspace-scoped HR contracts) with enum `contract_status` (draft/sent/viewed/signed/expired/terminated). Platform contracts are a DIFFERENT concept |
-| Existing enums | 30 enums already exist. `contract_status` is taken — platform contracts need `platform_contract_status` |
+| Existing enums | 33 enums already exist. `contract_status` is taken — platform contracts need `platform_contract_status` |
 | RLS pattern | `get_workspace_ids_for_user(auth.uid())` for SELECT, `is_admin_in_workspace(auth.uid(), wid)` for writes. Platform tables have NO RLS — service role only |
 | Supabase package | Exports: `.`, `./client`, `./server`, `./middleware`. No `./admin` yet. Uses `@supabase/ssr@^0.5.0` and `@supabase/supabase-js@^2.45.0` |
 | database.types.ts | Auto-generated (56KB). MUST regenerate after migration via `supabase gen types --local` |
@@ -1547,6 +1557,7 @@ import { createAdminClient } from "@smartout/supabase/admin";
 import { getSuperAdminId } from "@/lib/platform-admin";
 import { redirect } from "next/navigation";
 import { AuditListClient } from "@/components/platform-admin/audit-list-client";
+import type { AuditRow } from "@/components/platform-admin/audit-columns";
 
 export default async function AuditPage() {
   const adminId = await getSuperAdminId();
@@ -1567,7 +1578,7 @@ export default async function AuditPage() {
       <h1 className="text-2xl font-semibold">Audit Log</h1>
       <p className="mt-1 text-sm text-muted-foreground">All super-admin actions</p>
       <div className="mt-6">
-        <AuditListClient data={(auditLogs as any) || []} />
+        <AuditListClient data={(auditLogs as unknown as AuditRow[]) || []} />
       </div>
     </div>
   );
@@ -1868,7 +1879,42 @@ git commit -m "feat: add platform health page with daily metrics display"
 
 ## Phase 6: Content + Contracts (API Routes)
 
-### Task 15: Landing Config API Routes
+### Task 15: Create ADR for New Dependencies
+
+**Files:**
+- Create: `docs/decisions/0017-tanstack-table-recharts-platform-admin.md`
+- Modify: `docs/decisions/0000-decision-log.md`
+
+**Context:** ADR enforcement in CLAUDE.md requires an ADR when adding new packages. This plan adds `@tanstack/react-table` and `recharts`.
+
+**Step 1: Create ADR using `docs/decisions/template.md`**
+
+Title: "TanStack Table and Recharts for Platform Admin"
+
+Key points:
+- **Context:** Platform admin needs sortable data tables and metric visualizations
+- **Decision:** Use `@tanstack/react-table` for headless tables (composable with shadcn/ui `<Table>`) and `recharts` for charts (React-native, SSR-safe)
+- **Alternatives considered:** Raw HTML tables (insufficient for sorting/filtering), AG Grid (overkill, heavy), Nivo (heavier than Recharts, less React-idiomatic)
+- **Consequences:** Two new runtime deps scoped to `apps/web`. Both are tree-shakeable. Recharts components should be lazy-loaded via `next/dynamic` per performance rules.
+
+**Step 2: Add entry to decision log**
+
+Add to `docs/decisions/0000-decision-log.md`:
+
+```markdown
+| ADR-0017 | 27-02-2026 | [TanStack Table and Recharts for Platform Admin](./0017-tanstack-table-recharts-platform-admin.md) | **Accepted** |
+```
+
+**Step 3: Commit**
+
+```bash
+git add docs/decisions/0017-tanstack-table-recharts-platform-admin.md docs/decisions/0000-decision-log.md
+git commit -m "docs(adr): ADR-0017 TanStack Table and Recharts for platform admin"
+```
+
+---
+
+### Task 16: Landing Config API Routes
 
 **Files:**
 - Create: `apps/web/src/app/api/platform-admin/content/configs/route.ts`
@@ -1876,18 +1922,264 @@ git commit -m "feat: add platform health page with daily metrics display"
 - Create: `apps/web/src/app/api/platform-admin/content/configs/[slug]/publish/route.ts`
 - Create: `apps/web/src/app/api/content/[slug]/route.ts` (public, no auth)
 
-Implement the CRUD + publish + public API routes following the patterns shown in `apps/web/src/app/api/auth/callback/route.ts`. Each route handler:
+**Step 1: Create list + create route**
 
-1. Checks `getSuperAdminId()` (returns 403 if not super admin)
-2. Uses `createAdminClient()` for all DB operations
-3. Calls `logPlatformAction()` for mutations
-4. Returns `Response.json()` with proper status codes
+Create `apps/web/src/app/api/platform-admin/content/configs/route.ts`:
 
-The public endpoint (`/api/content/[slug]`) returns `published_json` without auth — used by the landing app.
+```typescript
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { createAdminClient } from "@smartout/supabase/admin";
+import { getSuperAdminId, logPlatformAction } from "@/lib/platform-admin";
 
-**Step 1: Create all route files** (code provided in full in the original plan — same patterns, just use `landing_config` table name which matches the migration)
+const CreateConfigSchema = z.object({
+  slug: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/),
+  name: z.string().min(1).max(200),
+  locale: z.string().default("no"),
+  config_json: z.record(z.unknown()),
+});
 
-**Step 2: Commit**
+export async function GET() {
+  const adminId = await getSuperAdminId();
+  if (!adminId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("landing_config")
+    .select("config_id, slug, name, locale, status, version, published_at, updated_at")
+    .order("updated_at", { ascending: false });
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ data });
+}
+
+export async function POST(request: NextRequest) {
+  const adminId = await getSuperAdminId();
+  if (!adminId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const body = CreateConfigSchema.safeParse(await request.json());
+  if (!body.success) {
+    return NextResponse.json({ error: body.error.flatten().fieldErrors }, { status: 400 });
+  }
+
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("landing_config")
+    .insert({
+      ...body.data,
+      created_by: adminId,
+      updated_by: adminId,
+    })
+    .select()
+    .single();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  await logPlatformAction(adminId, "create_config", "config", data.config_id, {
+    slug: body.data.slug,
+  });
+
+  return NextResponse.json({ data }, { status: 201 });
+}
+```
+
+**Step 2: Create single config + update route**
+
+Create `apps/web/src/app/api/platform-admin/content/configs/[slug]/route.ts`:
+
+```typescript
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { createAdminClient } from "@smartout/supabase/admin";
+import { getSuperAdminId, logPlatformAction } from "@/lib/platform-admin";
+
+const UpdateConfigSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  config_json: z.record(z.unknown()).optional(),
+  locale: z.string().optional(),
+});
+
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ slug: string }> }
+) {
+  const adminId = await getSuperAdminId();
+  if (!adminId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const { slug } = await params;
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("landing_config")
+    .select("*")
+    .eq("slug", slug)
+    .single();
+
+  if (error || !data) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  return NextResponse.json({ data });
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ slug: string }> }
+) {
+  const adminId = await getSuperAdminId();
+  if (!adminId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const { slug } = await params;
+  const body = UpdateConfigSchema.safeParse(await request.json());
+  if (!body.success) {
+    return NextResponse.json({ error: body.error.flatten().fieldErrors }, { status: 400 });
+  }
+
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("landing_config")
+    .update({ ...body.data, updated_by: adminId })
+    .eq("slug", slug)
+    .select()
+    .single();
+
+  if (error || !data) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  await logPlatformAction(adminId, "update_config", "config", data.config_id, {
+    slug,
+    fields: Object.keys(body.data),
+  });
+
+  return NextResponse.json({ data });
+}
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ slug: string }> }
+) {
+  const adminId = await getSuperAdminId();
+  if (!adminId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const { slug } = await params;
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("landing_config")
+    .update({ status: "archived", updated_by: adminId })
+    .eq("slug", slug)
+    .select("config_id")
+    .single();
+
+  if (error || !data) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  await logPlatformAction(adminId, "archive_config", "config", data.config_id, { slug });
+
+  return NextResponse.json({ success: true });
+}
+```
+
+**Step 3: Create publish route**
+
+Create `apps/web/src/app/api/platform-admin/content/configs/[slug]/publish/route.ts`:
+
+```typescript
+import { NextRequest, NextResponse } from "next/server";
+import { createAdminClient } from "@smartout/supabase/admin";
+import { getSuperAdminId, logPlatformAction } from "@/lib/platform-admin";
+
+export async function POST(
+  _request: NextRequest,
+  { params }: { params: Promise<{ slug: string }> }
+) {
+  const adminId = await getSuperAdminId();
+  if (!adminId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const { slug } = await params;
+  const admin = createAdminClient();
+
+  // Get current config
+  const { data: config, error: fetchError } = await admin
+    .from("landing_config")
+    .select("config_id, config_json, version")
+    .eq("slug", slug)
+    .single();
+
+  if (fetchError || !config) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const newVersion = config.version + 1;
+
+  // Save version snapshot and publish in parallel
+  const [versionResult, publishResult] = await Promise.all([
+    admin.from("landing_config_version").insert({
+      config_id: config.config_id,
+      version: newVersion,
+      config_json: config.config_json,
+      created_by: adminId,
+    }),
+    admin
+      .from("landing_config")
+      .update({
+        published_json: config.config_json,
+        status: "published",
+        version: newVersion,
+        published_at: new Date().toISOString(),
+        published_by: adminId,
+        updated_by: adminId,
+      })
+      .eq("slug", slug),
+  ]);
+
+  if (versionResult.error || publishResult.error) {
+    return NextResponse.json(
+      { error: versionResult.error?.message || publishResult.error?.message },
+      { status: 500 }
+    );
+  }
+
+  await logPlatformAction(adminId, "publish_config", "config", config.config_id, {
+    slug,
+    version: newVersion,
+  });
+
+  return NextResponse.json({ success: true, version: newVersion });
+}
+```
+
+**Step 4: Create public endpoint** (no auth — used by landing app)
+
+Create `apps/web/src/app/api/content/[slug]/route.ts`:
+
+```typescript
+import { NextRequest, NextResponse } from "next/server";
+import { createAdminClient } from "@smartout/supabase/admin";
+
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ slug: string }> }
+) {
+  const { slug } = await params;
+  const admin = createAdminClient();
+
+  const { data, error } = await admin
+    .from("landing_config")
+    .select("slug, name, locale, published_json, published_at, version")
+    .eq("slug", slug)
+    .eq("status", "published")
+    .single();
+
+  if (error || !data || !data.published_json) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  return NextResponse.json({
+    slug: data.slug,
+    name: data.name,
+    locale: data.locale,
+    content: data.published_json,
+    version: data.version,
+    published_at: data.published_at,
+  });
+}
+```
+
+**Step 5: Commit**
 
 ```bash
 git add apps/web/src/app/api/platform-admin/content/ apps/web/src/app/api/content/
@@ -1896,19 +2188,168 @@ git commit -m "feat: add landing config CRUD, publish, and public API routes"
 
 ---
 
-### Task 16: Content List Page + Contracts List Page
+### Task 17: Content List Page + Contracts List Page
 
 **Files:**
 - Modify: `apps/web/src/app/platform-admin/content/page.tsx`
 - Modify: `apps/web/src/app/platform-admin/contracts/page.tsx`
 
-Both are server components querying from `landing_config` and `platform_contract_instance` respectively. Follow the same patterns as the Users and Billing pages (server component, direct admin client query, table render).
+**Context:** Table names are `landing_config` and `platform_contract_instance` (NOT `contract_instance`) — to avoid confusion with the existing `employment_contract` table.
 
-**Key difference for contracts:** Table name is `platform_contract_instance` (not `contract_instance`) and template table is `platform_contract_template` (not `contract_template`) — to avoid confusion with the existing `employment_contract` table.
+**Step 1: Replace content page** (server component)
 
-**Step 1: Create both pages**
+```tsx
+import { createAdminClient } from "@smartout/supabase/admin";
+import { getSuperAdminId } from "@/lib/platform-admin";
+import { redirect } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
 
-**Step 2: Commit**
+export default async function ContentPage() {
+  const adminId = await getSuperAdminId();
+  if (!adminId) redirect("/dashboard");
+
+  const admin = createAdminClient();
+  const { data: configs } = await admin
+    .from("landing_config")
+    .select("config_id, slug, name, locale, status, version, published_at, updated_at")
+    .order("updated_at", { ascending: false });
+
+  const statusColor: Record<string, string> = {
+    draft: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+    published: "bg-green-500/10 text-green-400 border-green-500/20",
+    archived: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
+  };
+
+  return (
+    <div>
+      <h1 className="text-2xl font-semibold">Content</h1>
+      <p className="mt-1 text-sm text-muted-foreground">Landing page configurations</p>
+
+      <div className="mt-6 rounded-md border border-border">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border text-left text-xs uppercase tracking-wider text-muted-foreground">
+              <th className="px-4 py-3">Name</th>
+              <th className="px-4 py-3">Slug</th>
+              <th className="px-4 py-3">Locale</th>
+              <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3">Version</th>
+              <th className="px-4 py-3">Published</th>
+            </tr>
+          </thead>
+          <tbody>
+            {configs?.map((config) => (
+              <tr key={config.config_id} className="border-b border-border last:border-0">
+                <td className="px-4 py-3 font-medium">{config.name}</td>
+                <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{config.slug}</td>
+                <td className="px-4 py-3 uppercase text-muted-foreground">{config.locale}</td>
+                <td className="px-4 py-3">
+                  <Badge
+                    variant="outline"
+                    className={`text-xs capitalize ${statusColor[config.status] || ""}`}
+                  >
+                    {config.status}
+                  </Badge>
+                </td>
+                <td className="px-4 py-3 text-muted-foreground">v{config.version}</td>
+                <td className="px-4 py-3 text-muted-foreground">
+                  {config.published_at
+                    ? new Date(config.published_at).toLocaleDateString("no-NO")
+                    : "—"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+```
+
+**Step 2: Replace contracts page** (server component)
+
+```tsx
+import { createAdminClient } from "@smartout/supabase/admin";
+import { getSuperAdminId } from "@/lib/platform-admin";
+import { redirect } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
+
+export default async function ContractsPage() {
+  const adminId = await getSuperAdminId();
+  if (!adminId) redirect("/dashboard");
+
+  const admin = createAdminClient();
+  const { data: contracts } = await admin
+    .from("platform_contract_instance")
+    .select(
+      `contract_id, title, status, sent_at, signed_at, expires_at, created_at,
+       company:company_id (name),
+       template:template_id (name, template_type)`
+    )
+    .order("created_at", { ascending: false });
+
+  const statusColor: Record<string, string> = {
+    draft: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
+    sent: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+    viewed: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+    signed: "bg-green-500/10 text-green-400 border-green-500/20",
+    expired: "bg-red-500/10 text-red-400 border-red-500/20",
+    cancelled: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
+  };
+
+  return (
+    <div>
+      <h1 className="text-2xl font-semibold">Contracts</h1>
+      <p className="mt-1 text-sm text-muted-foreground">Platform contract management</p>
+
+      <div className="mt-6 rounded-md border border-border">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border text-left text-xs uppercase tracking-wider text-muted-foreground">
+              <th className="px-4 py-3">Title</th>
+              <th className="px-4 py-3">Company</th>
+              <th className="px-4 py-3">Type</th>
+              <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3">Signed</th>
+              <th className="px-4 py-3">Expires</th>
+            </tr>
+          </thead>
+          <tbody>
+            {contracts?.map((contract) => (
+              <tr key={contract.contract_id} className="border-b border-border last:border-0">
+                <td className="px-4 py-3 font-medium">{contract.title}</td>
+                <td className="px-4 py-3 text-muted-foreground">
+                  {(contract.company as { name: string } | null)?.name || "—"}
+                </td>
+                <td className="px-4 py-3 capitalize text-muted-foreground">
+                  {((contract.template as { template_type: string } | null)?.template_type || "—").replace("_", " ")}
+                </td>
+                <td className="px-4 py-3">
+                  <Badge
+                    variant="outline"
+                    className={`text-xs capitalize ${statusColor[contract.status] || ""}`}
+                  >
+                    {contract.status}
+                  </Badge>
+                </td>
+                <td className="px-4 py-3 text-muted-foreground">
+                  {contract.signed_at ? new Date(contract.signed_at).toLocaleDateString("no-NO") : "—"}
+                </td>
+                <td className="px-4 py-3 text-muted-foreground">
+                  {contract.expires_at ? new Date(contract.expires_at).toLocaleDateString("no-NO") : "—"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+```
+
+**Step 3: Commit**
 
 ```bash
 git add apps/web/src/app/platform-admin/content/ apps/web/src/app/platform-admin/contracts/
@@ -1917,14 +2358,130 @@ git commit -m "feat: add content list and contracts list pages"
 
 ---
 
-### Task 17: DocuSeal Webhook Handler
+### Task 18: DocuSeal Webhook Handler
 
 **Files:**
 - Create: `apps/web/src/app/api/webhooks/docuseal/route.ts`
 
-Handles DocuSeal signature events, updates `platform_contract_instance.status`, logs to audit. Uses `platform_contract_instance` table name.
+**Context:** Handles DocuSeal signature events, updates `platform_contract_instance.status`, logs to audit. Uses `platform_contract_instance` table name.
 
 **Step 1: Create webhook handler**
+
+```typescript
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { createAdminClient } from "@smartout/supabase/admin";
+
+const DocuSealEventSchema = z.object({
+  event_type: z.string(),
+  timestamp: z.string(),
+  data: z.object({
+    id: z.number(),
+    submission_id: z.number(),
+    status: z.string(),
+    documents: z.array(z.object({
+      name: z.string(),
+      url: z.string().url(),
+    })).optional(),
+    submitters: z.array(z.object({
+      name: z.string().optional(),
+      email: z.string().email(),
+      role: z.string().optional(),
+      completed_at: z.string().nullable().optional(),
+    })).optional(),
+  }),
+});
+
+const eventToStatus: Record<string, string> = {
+  "form.viewed": "viewed",
+  "form.started": "viewed",
+  "form.completed": "signed",
+  "submission.completed": "signed",
+  "submission.expired": "expired",
+};
+
+export async function POST(request: NextRequest) {
+  // Validate webhook signature if configured
+  const webhookSecret = process.env.DOCUSEAL_WEBHOOK_SECRET;
+  if (webhookSecret) {
+    const signature = request.headers.get("x-docuseal-signature");
+    if (signature !== webhookSecret) {
+      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+    }
+  }
+
+  const parsed = DocuSealEventSchema.safeParse(await request.json());
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  }
+
+  const { event_type, data } = parsed.data;
+  const newStatus = eventToStatus[event_type];
+
+  if (!newStatus) {
+    // Event type not relevant — acknowledge silently
+    return NextResponse.json({ received: true });
+  }
+
+  const admin = createAdminClient();
+
+  // Find contract by DocuSeal submission ID
+  const { data: contract, error: findError } = await admin
+    .from("platform_contract_instance")
+    .select("contract_id, status")
+    .eq("docuseal_submission_id", String(data.submission_id))
+    .single();
+
+  if (findError || !contract) {
+    return NextResponse.json({ error: "Contract not found" }, { status: 404 });
+  }
+
+  // Build update payload
+  const updates: Record<string, unknown> = {
+    status: newStatus,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (newStatus === "signed") {
+    updates.signed_at = new Date().toISOString();
+
+    // Store document URL if provided
+    if (data.documents?.length) {
+      updates.document_url = data.documents[0].url;
+    }
+
+    // Update signatories with completion timestamps
+    if (data.submitters?.length) {
+      updates.signatories = data.submitters.map((s) => ({
+        name: s.name || "",
+        email: s.email,
+        role: s.role || "signer",
+        signed_at: s.completed_at || null,
+      }));
+    }
+  }
+
+  const { error: updateError } = await admin
+    .from("platform_contract_instance")
+    .update(updates)
+    .eq("contract_id", contract.contract_id);
+
+  if (updateError) {
+    return NextResponse.json({ error: updateError.message }, { status: 500 });
+  }
+
+  // Audit log (system action — no super_admin_id, use a sentinel)
+  await admin.from("platform_audit_log").insert({
+    super_admin_id: "00000000-0000-0000-0000-000000000000",
+    action: `docuseal_${event_type}`,
+    entity_type: "contract",
+    entity_id: contract.contract_id,
+    details: { event_type, submission_id: data.submission_id, new_status: newStatus },
+  });
+
+  return NextResponse.json({ received: true, status: newStatus });
+}
+```
 
 **Step 2: Commit**
 
@@ -1953,9 +2510,10 @@ git commit -m "feat: add DocuSeal webhook handler for contract signature events"
 | 12 | Users/Billing/Health | Users page | `user_identity` table, `is_super_admin` boolean |
 | 13 | Users/Billing/Health | Billing (read-only) | `company` table has `subscription_plan/status/trial_ends_at` |
 | 14 | Users/Billing/Health | Health page | `platform_metrics_daily` + `compute_platform_metrics()` function |
-| 15 | Content/Contracts | Landing config APIs | `landing_config` table, publish copies `config_json` → `published_json` |
-| 16 | Content/Contracts | Content + Contracts list pages | Use `platform_contract_instance`, NOT `contract_instance` |
-| 17 | Content/Contracts | DocuSeal webhook | Updates `platform_contract_instance.status` |
+| 15 | ADR | ADR-0017 for TanStack Table + Recharts | MANDATORY per ADR enforcement rules — new deps require ADR |
+| 16 | Content/Contracts | Landing config APIs (full CRUD + publish + public) | `landing_config` table, publish copies `config_json` → `published_json` |
+| 17 | Content/Contracts | Content + Contracts list pages | Use `platform_contract_instance`, NOT `contract_instance` |
+| 18 | Content/Contracts | DocuSeal webhook | Updates `platform_contract_instance.status` |
 
 ---
 
@@ -1969,3 +2527,20 @@ git commit -m "feat: add DocuSeal webhook handler for contract signature events"
 - Alerts panel (past-due, expiring trials)
 - Recharts visualizations (MRR trends, funnels, heatmaps)
 - CSV export
+
+---
+
+## Design Notes
+
+### Hardcoded semantic colors in status badges
+
+This plan uses hardcoded Tailwind color values (`text-green-400`, `bg-blue-500/10`, etc.) for status badge styling. CLAUDE.md prohibits hardcoded colors like `zinc-800` in favor of CSS variable classes (`bg-background`, `text-foreground`). However, semantic status colors (green=active, red=danger, blue=trial) don't have CSS variable equivalents in the theme. These are intentional deviations for status indicators only — all layout/theme colors use CSS variables correctly.
+
+---
+
+## Changelog
+
+| Date | Version | Change | Author |
+|------|---------|--------|--------|
+| 2026-02-27 | 1.0.0 | Initial plan | Claude |
+| 2026-02-27 | 1.1.0 | Added YAML frontmatter, changelog, ADR task (Task 15), fixed enum count (30→33), replaced `as any` with proper types, completed Tasks 15-18 with full implementation code, added design notes on semantic colors | Claude |
