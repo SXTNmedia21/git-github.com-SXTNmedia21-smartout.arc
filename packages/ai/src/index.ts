@@ -13,3 +13,14 @@ export type { OnboardingIntelligence } from "./schemas/onboarding";
 
 // Onboarding tools
 export { ONBOARDING_TOOLS } from "./tools/onboarding";
+
+// Onboarding agent
+export {
+  runOnboardingAgent,
+  extractOnboardingIntelligence,
+} from "./agents/onboarding";
+export type {
+  AgentInput,
+  AgentResult,
+  ModelMessage,
+} from "./agents/onboarding";
