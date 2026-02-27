@@ -1,6 +1,6 @@
 // packages/ai/src/session-context.ts
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database, Json } from "@smartout/supabase";
+import type { Json } from "@smartout/supabase";
 
 type TranscriptEntry = {
   speaker: string;
@@ -13,14 +13,20 @@ type AnalysisEntry = {
   updated_at: string;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnySupabaseClient = SupabaseClient<any, any, any>;
+
 /**
  * Supabase-backed session memory for AI agents.
  * Wraps read/write operations on the onboarding_session table.
  * Works with any SupabaseClient (cookie-based in Next.js, service-role in LiveKit).
+ *
+ * Uses a relaxed SupabaseClient type to avoid generic mismatch between
+ * @supabase/ssr (3 generics) and @supabase/supabase-js (4 generics).
  */
 export class SessionContext {
   constructor(
-    private supabase: SupabaseClient<Database>,
+    private supabase: AnySupabaseClient,
     public readonly sessionId: string,
   ) {}
 

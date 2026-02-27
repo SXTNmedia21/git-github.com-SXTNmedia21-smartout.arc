@@ -12,6 +12,7 @@ export const env = createEnv({
     TWILIO_AUTH_TOKEN: z.string().optional(),
     JWT_SECRET: z.string().min(32).optional(),
     SESSION_SECRET: z.string().min(32).optional(),
+    OPENROUTER_API_KEY: z.string().min(1).optional(),
     // Allow overriding Node environment for testing
     NODE_ENV: z
       .enum(["development", "test", "production"])
