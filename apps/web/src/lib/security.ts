@@ -11,6 +11,8 @@ const SUSPICIOUS_PATHS = [
 
 const SUSPICIOUS_HEADERS = ["x-forwarded-host", "x-original-url"];
 
+const isDev = process.env.NODE_ENV === "development";
+
 export function detectSuspiciousRequest(req: Request): {
   suspicious: boolean;
   reasons: string[];
@@ -29,9 +31,12 @@ export function detectSuspiciousRequest(req: Request): {
   }
 
   // Suspicious headers (host header injection)
-  for (const header of SUSPICIOUS_HEADERS) {
-    if (req.headers.get(header)) {
-      reasons.push(`suspicious_header:${header}`);
+  // Skip in dev — Next.js dev server sets x-forwarded-host automatically
+  if (!isDev) {
+    for (const header of SUSPICIOUS_HEADERS) {
+      if (req.headers.get(header)) {
+        reasons.push(`suspicious_header:${header}`);
+      }
     }
   }
 
