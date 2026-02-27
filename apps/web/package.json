@@ -6,7 +6,9 @@
     "dev": "next dev -p 3050",
     "build": "next build",
     "start": "next start -p 3050",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf .next .turbo node_modules/.cache"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -19,11 +21,16 @@
     "@radix-ui/react-label": "^2.1.8",
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-slot": "^1.2.4",
+    "@sentry/nextjs": "^10.40.0",
     "@smartout/ai": "workspace:*",
+    "@smartout/design-tokens": "workspace:^",
     "@smartout/supabase": "workspace:*",
+    "@smartout/ui": "workspace:*",
     "@smartout/telemetry": "workspace:*",
     "@smartout/types": "workspace:*",
     "@t3-oss/env-nextjs": "^0.13.10",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.36.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.34.3",
@@ -41,6 +48,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@smartout/typescript-config": "workspace:*",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

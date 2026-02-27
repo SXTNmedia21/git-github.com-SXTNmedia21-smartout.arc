@@ -7,12 +7,16 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "lint": "echo \"No files to lint\""
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf dist .turbo"
   },
   "dependencies": {
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@smartout/eslint-config": "workspace:^",
+    "@smartout/typescript-config": "workspace:*",
     "typescript": "^5.3.3"
   }
 }

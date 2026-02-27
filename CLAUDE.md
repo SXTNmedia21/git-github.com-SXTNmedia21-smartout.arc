@@ -19,33 +19,35 @@
 
 ## Tech Stack (Verified)
 
-| Layer | Technology | Version | Notes |
-|-------|-----------|---------|-------|
-| Web Dashboard | Next.js (App Router) | 16.1.6 | React 19.2.3, TypeScript |
-| Styling | Tailwind CSS | v4 | CSS-based config, OKLCH colors |
-| UI Components | shadcn/ui | new-york style | lucide icons, CSS variables |
-| Backend | Supabase | PostgreSQL 17 | Auth, Storage, Realtime, Edge Functions (Deno) |
-| Telemetry | PostHog | EU instance | Browser + Node SDK, proxy rewrites |
-| Env Validation | @t3-oss/env-nextjs | — | Zod schema in `apps/web/src/env.ts` |
-| Voice | Ultravox | — | Voice assistant in dashboard |
-| Video | Remotion | v4 | Root devDep, Three.js + Lottie |
-| Automation | n8n + Edge Functions | — | n8n for complex workflows |
-| Hosting | Vercel (web), Supabase Cloud | — | DigitalOcean (n8n) |
-| Language | TypeScript | ^5.0 | Everywhere. No exceptions. |
-| Monorepo | pnpm 9.0.0 + Turborepo | — | `op run` for 1Password secret injection |
-| Fonts | Geist + Geist Mono | — | Google Fonts via next/font |
-| Testing | Playwright | — | E2E in `apps/e2e` |
-| Agents | Pydantic | — | Python agents in `agents/` |
+| Layer          | Technology                   | Version        | Notes                                          |
+| -------------- | ---------------------------- | -------------- | ---------------------------------------------- |
+| Web Dashboard  | Next.js (App Router)         | 16.1.6         | React 19.2.3, TypeScript                       |
+| Styling        | Tailwind CSS                 | v4             | CSS-based config, OKLCH colors                 |
+| UI Components  | shadcn/ui                    | new-york style | lucide icons, CSS variables                    |
+| Backend        | Supabase                     | PostgreSQL 17  | Auth, Storage, Realtime, Edge Functions (Deno) |
+| Telemetry      | PostHog                      | EU instance    | Browser + Node SDK, proxy rewrites             |
+| Env Validation | @t3-oss/env-nextjs           | —              | Zod schema in `apps/web/src/env.ts`            |
+| Voice          | Ultravox                     | —              | Voice assistant in dashboard                   |
+| Video          | Remotion                     | v4             | Root devDep, Three.js + Lottie                 |
+| Automation     | n8n + Edge Functions         | —              | n8n for complex workflows                      |
+| Hosting        | Vercel (web), Supabase Cloud | —              | DigitalOcean (n8n)                             |
+| Language       | TypeScript                   | ^5.0           | Everywhere. No exceptions.                     |
+| Monorepo       | pnpm 9.0.0 + Turborepo       | —              | `op run` for 1Password secret injection        |
+| Fonts          | Geist + Geist Mono           | —              | Google Fonts via next/font                     |
+| Testing        | Playwright                   | —              | E2E in `apps/e2e`                              |
+| Agents         | Pydantic                     | —              | Python agents in `agents/`                     |
 
 ### Third-Party Integrations (Live)
 
-| Service | Purpose | Status |
-|---------|---------|--------|
-| Stripe | Billing, subscriptions | Live (rebuild in progress) |
-| DocuSign | Employment contracts, confirmations | Live (rebuild in progress) |
-| SendGrid | Transactional email | Configured |
-| Twilio | SMS notifications | Configured |
-| PostHog | Product analytics | Live (EU instance) |
+| Service       | Purpose                             | Status                       |
+| ------------- | ----------------------------------- | ---------------------------- |
+| Stripe        | Billing, subscriptions              | Live (rebuild in progress)   |
+| DocuSign      | Employment contracts, confirmations | Live (rebuild in progress)   |
+| SendGrid      | Transactional email                 | Configured                   |
+| Twilio        | SMS notifications                   | Configured                   |
+| PostHog       | Product analytics                   | Live (EU instance)           |
+| Sentry        | Error tracking                      | Configured (production only) |
+| Upstash Redis | Rate limiting                       | Configured                   |
 
 ---
 
@@ -60,20 +62,24 @@ smartout_v3/
 │   └── scrapling/        → Python scraper (has own venv)
 ├── packages/
 │   ├── ai/               → AI SDK agents, tools, adapters (@smartout/ai)
+│   ├── design-tokens/    → OKLCH color tokens, CSS + TS exports (@smartout/design-tokens)
+│   ├── eslint-config/    → Shared ESLint flat config (@smartout/eslint-config)
 │   ├── types/            → Zod schemas, builds to dist/ (@smartout/types)
 │   ├── supabase/         → SSR client + database.types.ts (@smartout/supabase)
+│   ├── telemetry/        → PostHog + Supabase telemetry (@smartout/telemetry)
+│   ├── typescript-config/ → Shared TS configs (@smartout/typescript-config)
 │   ├── ui/               → Shared UI components (@smartout/ui)
-│   └── telemetry/        → PostHog + Supabase telemetry (@smartout/telemetry)
+│   └── utils/            → Shared utilities (@smartout/utils)
 ├── supabase/
-│   ├── migrations/       → 14 migrations (00001-00012 + timestamps)
-│   ├── functions/        → 8 Edge Functions
+│   ├── migrations/       → 15 migrations (00001-00012 + timestamps)
+│   ├── functions/        → 11 Edge Functions
 │   ├── seed.sql          → Dev seed data
 │   └── config.toml       → Local dev config
 ├── agents/               → Pydantic AI agents (Python)
 ├── docs/
 │   ├── architecture/     → System architecture docs
 │   ├── cross-cutting/    → Billing, i18n, GDPR, security
-│   ├── decisions/        → ADRs (7 accepted)
+│   ├── decisions/        → ADRs (17 accepted)
 │   ├── modules/          → Module specs (17 modules)
 │   ├── plans/            → Implementation plans
 │   ├── research/         → Research reports
@@ -84,23 +90,55 @@ smartout_v3/
 ### Package Exports (Verified)
 
 **@smartout/supabase** — `packages/supabase/package.json`:
+
 ```
 "."           → ./src/index.ts      (barrel: types + all clients)
 "./middleware" → ./src/middleware.ts  (updateSession for Next.js middleware)
 "./client"    → ./src/client.ts     (createBrowserClient)
 "./server"    → ./src/server.ts     (createServerClient with cookies)
 ```
+
 There is NO `./admin` export. If you need a service-role client, create one.
 
 **@smartout/types** — `packages/types/src/index.ts`:
+
 ```
 exports: enums, identity, structure, governance, time
 ```
+
 All types use Zod schemas with `z.infer<>` for TypeScript inference.
 
-**@smartout/ui** — Currently only exports `button.tsx` (shared). The web app also has `dialog.tsx` locally in `apps/web/src/components/ui/`. Add shared components to this package for cross-app reuse.
+**@smartout/design-tokens** — `packages/design-tokens/package.json`:
+
+```
+"."           → ./src/index.ts      (OKLCH token constants)
+"./tokens.css" → ./src/tokens.css   (CSS variables for all tokens)
+"./native"    → ./src/native.ts     (hex conversions for React Native)
+```
+
+Single source of truth for all colors, spacing, radii, shadows.
+
+**@smartout/eslint-config** — `packages/eslint-config/package.json`:
+
+```
+"./base"  → ./base.mjs   (TypeScript rules)
+"./react" → ./react.mjs  (extends base + React rules)
+"./next"  → ./next.mjs   (extends react + Next.js rules)
+```
+
+**@smartout/typescript-config** — `packages/typescript-config/package.json`:
+
+```
+"./base.json"          → base config (ES2022, strict, bundler)
+"./nextjs.json"        → Next.js apps (extends base + DOM + JSX)
+"./react-library.json" → React libraries (extends base + DOM + JSX)
+"./library.json"       → Pure TS libraries (extends base)
+```
+
+**@smartout/ui** — Exports button, badge, card, dialog, input, label, separator, skeleton, status-badge, and cn() utility. All use design tokens via CSS variables.
 
 **@smartout/ai** — `packages/ai/package.json`:
+
 ```
 "."                    → ./src/index.ts               (types + defineTool)
 "./session-context"    → ./src/session-context.ts     (session context)
@@ -110,6 +148,7 @@ All types use Zod schemas with `z.infer<>` for TypeScript inference.
 "./adapters/vercel-ai" → ./src/adapters/vercel-ai.ts  (Vercel AI SDK adapter)
 "./adapters/livekit"   → ./src/adapters/livekit.ts    (LiveKit voice adapter)
 ```
+
 Dependencies: Vercel AI SDK (`ai`), OpenRouter provider, Supabase client, Zod.
 
 **@smartout/telemetry** — PostHog (browser + node) event registry and tracking hooks.
@@ -149,19 +188,19 @@ Before creating a new enum, check `packages/supabase/src/database.types.ts` for 
 
 ### Core Tables (11 entities)
 
-| Entity | Table Name | Scope |
-|--------|-----------|-------|
-| User | `user_identity` | Global (no workspace_id) |
-| Company | `company` | Global (no workspace_id) |
+| Entity         | Table Name       | Scope                    |
+| -------------- | ---------------- | ------------------------ |
+| User           | `user_identity`  | Global (no workspace_id) |
+| Company        | `company`        | Global (no workspace_id) |
 | Company Member | `company_member` | Global (no workspace_id) |
-| Workspace | `workspace` | Has company_id |
-| Profile | `profile` | workspace_id scoped |
-| Department | `department` | workspace_id scoped |
-| Location | `location` | workspace_id scoped |
-| Team | `team` | workspace_id scoped |
-| Policy | `policy` | workspace_id scoped |
-| Protocol | `protocol` | workspace_id scoped |
-| Season | `season` | workspace_id scoped |
+| Workspace      | `workspace`      | Has company_id           |
+| Profile        | `profile`        | workspace_id scoped      |
+| Department     | `department`     | workspace_id scoped      |
+| Location       | `location`       | workspace_id scoped      |
+| Team           | `team`           | workspace_id scoped      |
+| Policy         | `policy`         | workspace_id scoped      |
+| Protocol       | `protocol`       | workspace_id scoped      |
+| Season         | `season`         | workspace_id scoped      |
 
 ### RLS Patterns (Verified)
 
@@ -189,9 +228,9 @@ Dev seed creates: Company (Smartout AS) → Workspace (HQ) → Location → Depa
 
 Known UUIDs: `a0000000-...` (company), `b0000000-...` (workspace), `e0000000-...` (user).
 
-### Edge Functions (8)
+### Edge Functions (11)
 
-activate-workspace, analyze-workspace, create-invitation, extract-workspace-data, finalize-workspace, gather-workspace-intelligence, scrape-raw-data, web-search-intelligence.
+activate-workspace, analyze-workspace, create-invitation, extract-workspace-data, finalize-workspace, gather-workspace-intelligence, health-check, scrape-raw-data, watchdog-integrity, watchdog-uptime, web-search-intelligence.
 
 ---
 
@@ -229,6 +268,7 @@ className="bg-zinc-950 text-zinc-100 border-zinc-800"
 ### Dashboard Layout
 
 `apps/web/src/app/dashboard/layout.tsx` is a `"use client"` component with:
+
 - `DashboardContext` providing: isAdminMode, isDark, adminView, scheduleLayout, scheduleView, activeLocation, workspaceData
 - Admin/Employee mode toggle
 - Sidebar navigation with sections: Management, Operations, Administration, Communication
@@ -262,6 +302,11 @@ className="bg-zinc-950 text-zinc-100 border-zinc-800"
 /dashboard/my-salary       → Employee: salary info
 /dashboard/settings        → Settings
 /dashboard/help            → Help center
+
+API Routes:
+/api/health                → Service health check (GET)
+/api/telemetry             → Telemetry beacon (POST)
+/api/onboarding-agent      → Onboarding AI agent (POST)
 ```
 
 ---
@@ -272,20 +317,24 @@ className="bg-zinc-950 text-zinc-100 border-zinc-800"
 
 Env vars are validated at build/start using `@t3-oss/env-nextjs` + Zod in `apps/web/src/env.ts`.
 
-| Variable | Context | Required | Notes |
-|----------|---------|----------|-------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Client | Yes | Local: `http://127.0.0.1:54331` |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Client | Yes | From `npx supabase status` |
-| `NEXT_PUBLIC_POSTHOG_KEY` | Client | No | PostHog project API key |
-| `NEXT_PUBLIC_POSTHOG_HOST` | Client | No | Default: `https://eu.i.posthog.com` |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server | No | For admin operations only |
-| `STRIPE_SECRET_KEY` | Server | No | Must start with `sk_` |
-| `STRIPE_WEBHOOK_SECRET` | Server | No | Must start with `whsec_` |
-| `SENDGRID_API_KEY` | Server | No | Must start with `SG.` |
-| `TWILIO_ACCOUNT_SID` | Server | No | Twilio account |
-| `TWILIO_AUTH_TOKEN` | Server | No | Twilio auth |
-| `JWT_SECRET` | Server | No | Min 32 chars |
-| `SESSION_SECRET` | Server | No | Min 32 chars |
+| Variable                        | Context | Required | Notes                               |
+| ------------------------------- | ------- | -------- | ----------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`      | Client  | Yes      | Local: `http://127.0.0.1:54331`     |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Client  | Yes      | From `npx supabase status`          |
+| `NEXT_PUBLIC_POSTHOG_KEY`       | Client  | No       | PostHog project API key             |
+| `NEXT_PUBLIC_POSTHOG_HOST`      | Client  | No       | Default: `https://eu.i.posthog.com` |
+| `SUPABASE_SERVICE_ROLE_KEY`     | Server  | No       | For admin operations only           |
+| `STRIPE_SECRET_KEY`             | Server  | No       | Must start with `sk_`               |
+| `STRIPE_WEBHOOK_SECRET`         | Server  | No       | Must start with `whsec_`            |
+| `SENDGRID_API_KEY`              | Server  | No       | Must start with `SG.`               |
+| `TWILIO_ACCOUNT_SID`            | Server  | No       | Twilio account                      |
+| `TWILIO_AUTH_TOKEN`             | Server  | No       | Twilio auth                         |
+| `JWT_SECRET`                    | Server  | No       | Min 32 chars                        |
+| `SESSION_SECRET`                | Server  | No       | Min 32 chars                        |
+| `UPSTASH_REDIS_REST_URL`        | Server  | No       | Rate limiting (production)          |
+| `UPSTASH_REDIS_REST_TOKEN`      | Server  | No       | Rate limiting (production)          |
+| `SENTRY_DSN`                    | Server  | No       | Sentry error tracking               |
+| `NEXT_PUBLIC_SENTRY_DSN`        | Client  | No       | Sentry client-side tracking         |
 
 ### 1Password Integration
 
@@ -364,6 +413,7 @@ SUPABASE_SERVICE_ROLE_KEY=<from supabase status>
 ### Performance Rules (from Vercel React Best Practices)
 
 **Critical:**
+
 - Use `Promise.all()` for independent async operations — never sequential awaits
 - Import directly from source — avoid barrel file re-exports in app code
 - Use `next/dynamic` for heavy components (charts, editors, maps)
@@ -371,11 +421,13 @@ SUPABASE_SERVICE_ROLE_KEY=<from supabase status>
 - Use Suspense boundaries to stream content progressively
 
 **High:**
+
 - Use `React.cache()` for per-request data deduplication in Server Components
 - Minimize data passed from Server to Client Components — serialize only what's needed
 - Restructure components to parallelize fetches (sibling components, not parent-child)
 
 **Medium:**
+
 - Don't subscribe to state only used in callbacks — use refs for transient values
 - Extract expensive computation into memoized child components
 - Use `startTransition` for non-urgent state updates
@@ -463,52 +515,55 @@ Policy (the rule)
 
 Full documentation lives in `docs/modules/`. **Read the corresponding doc before implementing any module.**
 
-| # | Module | Doc File | Status |
-|---|--------|----------|--------|
-| 1 | Onboarding | `SMARTOUT_MODULE_1_ONBOARDING.md` | Spec'd |
-| 2 | Org Structure | `SMARTOUT_MODULE_2_ORG_STRUCTURE.md` | Spec'd |
-| 3 | Scheduling | `SMARTOUT_MODULE_3_SCHEDULING.md` | Spec'd |
-| 4 | Operations | `SMARTOUT_MODULE_4_OPERATIONS.md` | Spec'd |
-| 5 | HACCP | `SMARTOUT_MODULE_5_HACCP.md` | Spec'd |
-| 6 | Training | `SMARTOUT_MODULE_6_TRAINING.md` | Spec'd |
-| 7 | Absence | `SMARTOUT_MODULE_7_ABSENCE.md` | Spec'd |
-| 8 | Payroll | `SMARTOUT_MODULE_8_PAYROLL.md` | Spec'd |
-| 9 | Communication | `SMARTOUT_MODULE_9_COMMUNICATION.md` | Spec'd |
-| 10 | Reports | `SMARTOUT_MODULE_10_REPORTS.md` | Spec'd |
-| 11 | Settings | `SMARTOUT_MODULE_11_SETTINGS.md` | Spec'd |
-| 12 | AI | `SMARTOUT_MODULE_12_AI.md` | Spec'd |
-| 13 | Multi-tenant | `SMARTOUT_MODULE_13_MULTITENANT.md` | Spec'd |
-| 14 | Production | `SMARTOUT_MODULE_14_PRODUCTION.md` | Spec'd |
-| 15 | Season Planning | `SMARTOUT_MODULE_15_SEASON_PLANNING.md` | Spec'd |
-| 17 | Platform Admin | `SMARTOUT_MODULE_17_PLATFORM_ADMIN.md` | Spec'd |
+| #   | Module          | Doc File                                | Status |
+| --- | --------------- | --------------------------------------- | ------ |
+| 1   | Onboarding      | `SMARTOUT_MODULE_1_ONBOARDING.md`       | Spec'd |
+| 2   | Org Structure   | `SMARTOUT_MODULE_2_ORG_STRUCTURE.md`    | Spec'd |
+| 3   | Scheduling      | `SMARTOUT_MODULE_3_SCHEDULING.md`       | Spec'd |
+| 4   | Operations      | `SMARTOUT_MODULE_4_OPERATIONS.md`       | Spec'd |
+| 5   | HACCP           | `SMARTOUT_MODULE_5_HACCP.md`            | Spec'd |
+| 6   | Training        | `SMARTOUT_MODULE_6_TRAINING.md`         | Spec'd |
+| 7   | Absence         | `SMARTOUT_MODULE_7_ABSENCE.md`          | Spec'd |
+| 8   | Payroll         | `SMARTOUT_MODULE_8_PAYROLL.md`          | Spec'd |
+| 9   | Communication   | `SMARTOUT_MODULE_9_COMMUNICATION.md`    | Spec'd |
+| 10  | Reports         | `SMARTOUT_MODULE_10_REPORTS.md`         | Spec'd |
+| 11  | Settings        | `SMARTOUT_MODULE_11_SETTINGS.md`        | Spec'd |
+| 12  | AI              | `SMARTOUT_MODULE_12_AI.md`              | Spec'd |
+| 13  | Multi-tenant    | `SMARTOUT_MODULE_13_MULTITENANT.md`     | Spec'd |
+| 14  | Production      | `SMARTOUT_MODULE_14_PRODUCTION.md`      | Spec'd |
+| 15  | Season Planning | `SMARTOUT_MODULE_15_SEASON_PLANNING.md` | Spec'd |
+| 17  | Platform Admin  | `SMARTOUT_MODULE_17_PLATFORM_ADMIN.md`  | Spec'd |
 
 ### Architecture Decisions (ADRs)
 
 All accepted decisions in `docs/decisions/`. **Read before making changes in the same area.**
 
-| ADR | Subject | Area |
-|-----|---------|------|
-| 0001 | Turborepo + pnpm workspaces | Monorepo |
-| 0002 | State-driven vs hook-driven logic boundaries | React |
-| 0003 | shadcn/ui integration (new-york, CSS variables) | UI |
-| 0004 | Unified telemetry engine (PostHog) | Telemetry |
-| 0005 | Testing infrastructure — four-layer strategy | Testing |
-| 0006 | Environment variables, secrets & module boundaries | Secrets |
-| 0007 | Dashboard layout & navigation state | UI |
-| 0008 | Dashboard scroll behavior | UI |
-| 0009 | Tailwind CSS v4 with CSS-based configuration | Styling |
-| 0010 | AI SDK with OpenRouter provider | AI |
-| 0011 | User table named `user_identity` | Database |
-| 0012 | Subscription data on company table | Database |
-| 0013 | Auto-generated database types workflow | Database |
-| 0014 | PostHog EU instance with reverse proxy | Privacy |
-| 0015 | Bubble.io rebuild strategy | Strategy |
+| ADR  | Subject                                                               | Area           |
+| ---- | --------------------------------------------------------------------- | -------------- |
+| 0001 | Turborepo + pnpm workspaces                                           | Monorepo       |
+| 0002 | State-driven vs hook-driven logic boundaries                          | React          |
+| 0003 | shadcn/ui integration (new-york, CSS variables)                       | UI             |
+| 0004 | Unified telemetry engine (PostHog)                                    | Telemetry      |
+| 0005 | Testing infrastructure — four-layer strategy                          | Testing        |
+| 0006 | Environment variables, secrets & module boundaries                    | Secrets        |
+| 0007 | Dashboard layout & navigation state                                   | UI             |
+| 0008 | Dashboard scroll behavior                                             | UI             |
+| 0009 | Tailwind CSS v4 with CSS-based configuration                          | Styling        |
+| 0010 | AI SDK with OpenRouter provider                                       | AI             |
+| 0011 | User table named `user_identity`                                      | Database       |
+| 0012 | Subscription data on company table                                    | Database       |
+| 0013 | Auto-generated database types workflow                                | Database       |
+| 0014 | PostHog EU instance with reverse proxy                                | Privacy        |
+| 0015 | Bubble.io rebuild strategy                                            | Strategy       |
+| 0016 | Services directory for backend microservices                          | Monorepo       |
+| 0017 | Enterprise Infrastructure — Shared Configs, Design System, Monitoring | Infrastructure |
 
 ### ADR Enforcement (MANDATORY)
 
 **When to create an ADR:**
 
 An ADR is REQUIRED when any of these are true:
+
 - Adding a new package or external dependency to the monorepo
 - Choosing between two or more valid technical approaches
 - Changing database schema patterns (new table naming, new enum, RLS strategy)
@@ -517,6 +572,7 @@ An ADR is REQUIRED when any of these are true:
 - Making a decision that future agents or developers need to know about
 
 **How to create an ADR:**
+
 1. Find the next available number in `docs/decisions/0000-decision-log.md`
 2. Create `docs/decisions/NNNN-short-description.md` using `docs/decisions/template.md`
 3. Add the entry to `0000-decision-log.md`
@@ -532,41 +588,47 @@ All enums are defined as Zod schemas. Use `z.infer<typeof EnumSchema>` for types
 
 ```typescript
 // Identity
-ProfileRole:       "employee" | "manager" | "admin" | "owner"
-ProfileStatus:     "trainee" | "active" | "inactive" | "offboarding"
-CompanyMemberRole: "owner" | "admin" | "member"
-AuthProvider:      "supabase" | "google" | "microsoft"
+ProfileRole: "employee" | "manager" | "admin" | "owner";
+ProfileStatus: "trainee" | "active" | "inactive" | "offboarding";
+CompanyMemberRole: "owner" | "admin" | "member";
+AuthProvider: "supabase" | "google" | "microsoft";
 
 // Localization
-PreferredLanguage: "no" | "sv" | "en" | "da" | "fi"
-Currency:          "NOK" | "SEK" | "DKK" | "EUR"
-Country:           "NO" | "SE" | "DK" | "FI"
-Industry:          "restaurant" | "hotel" | "cafe" | "bar" | "catering" | "other"
+PreferredLanguage: "no" | "sv" | "en" | "da" | "fi";
+Currency: "NOK" | "SEK" | "DKK" | "EUR";
+Country: "NO" | "SE" | "DK" | "FI";
+Industry: "restaurant" | "hotel" | "cafe" | "bar" | "catering" | "other";
 
 // Structure
-LocationType:      "main" | "outdoor" | "kitchen" | "event" | "storage" | "other"
-TeamType:          "operational" | "access" | "cross_department" | "seasonal" | "custom"
+LocationType: "main" | "outdoor" | "kitchen" | "event" | "storage" | "other";
+TeamType: "operational" | "access" | "cross_department" | "seasonal" | "custom";
 
 // Governance
-PolicyType:        "operational" | "haccp" | "hr" | "safety" | "access" | "payroll" | "custom"
-PolicyScope:       "workspace" | "department" | "team" | "location"
-EnforcementStatus: "aspirational" | "enforced"
-ProtocolStatus:    "draft" | "active" | "deprecated"
-ProcedureType:     "standard" | "onboarding" | "safety" | "maintenance" | "custom"
+PolicyType: "operational" | "haccp" | "hr" | "safety" | "access" | "payroll" | "custom";
+PolicyScope: "workspace" | "department" | "team" | "location";
+EnforcementStatus: "aspirational" | "enforced";
+ProtocolStatus: "draft" | "active" | "deprecated";
+ProcedureType: "standard" | "onboarding" | "safety" | "maintenance" | "custom";
 
 // Operations
-SessionStatus:     "upcoming" | "active" | "pending_signoff" | "closed" | "missed"
-TaskStatus:        "pending" | "available" | "in_progress" | "completed" | "skipped" | "overdue" | "escalated"
-HookType:          "pre_open" | "open" | "scheduled" | "pre_close" | "close" | "custom"
+SessionStatus: "upcoming" | "active" | "pending_signoff" | "closed" | "missed";
+TaskStatus: "pending" |
+  "available" |
+  "in_progress" |
+  "completed" |
+  "skipped" |
+  "overdue" |
+  "escalated";
+HookType: "pre_open" | "open" | "scheduled" | "pre_close" | "close" | "custom";
 
 // Time
-SeasonType:        "default" | "calendar" | "focus" | "cycle" | "custom"
-SeasonStatus:      "draft" | "active" | "archived"
-DayCategory:       "morning" | "midday" | "afternoon" | "evening" | "night" | "weekend"
+SeasonType: "default" | "calendar" | "focus" | "cycle" | "custom";
+SeasonStatus: "draft" | "active" | "archived";
+DayCategory: "morning" | "midday" | "afternoon" | "evening" | "night" | "weekend";
 
 // Other
-InviteStatus:      "pending" | "accepted" | "expired" | "cancelled"
-TriggerType:       "scheduled" | "event"
+InviteStatus: "pending" | "accepted" | "expired" | "cancelled";
+TriggerType: "scheduled" | "event";
 ```
 
 ---
@@ -608,16 +670,17 @@ This CLAUDE.md is the source of truth for codebase facts. Module docs in `docs/m
 ### When Code Changes
 
 If you change something that contradicts this file:
+
 1. Update this file immediately
 2. Note what changed and why
 
 ### Known Discrepancies
 
-| Doc Says | Reality | Status |
-|----------|---------|--------|
-| `MODULE_13` references `stripe_subscription` table | Subscription data on `company` table | Doc needs update |
-| Dashboard layout uses hardcoded zinc colors | Should use CSS variables | Refactor when touching |
-| Root `package.json` has `tailwindcss: ^3.4.13` | Apps use Tailwind v4 — root dep is for Remotion only | Intentional |
+| Doc Says                                           | Reality                                              | Status                 |
+| -------------------------------------------------- | ---------------------------------------------------- | ---------------------- |
+| `MODULE_13` references `stripe_subscription` table | Subscription data on `company` table                 | Doc needs update       |
+| Dashboard layout uses hardcoded zinc colors        | Should use CSS variables                             | Refactor when touching |
+| Root `package.json` has `tailwindcss: ^3.4.13`     | Apps use Tailwind v4 — root dep is for Remotion only | Intentional            |
 
 ---
 
@@ -673,18 +736,32 @@ pnpm --filter e2e test:e2e
 # Lint all packages
 pnpm lint
 
+# Type check all packages
+pnpm typecheck
+
 # Format code
 pnpm format
 
+# Check format without writing
+pnpm format:check
+
+# Run all checks (lint + typecheck + format)
+pnpm check
+
 # Build all
 pnpm build
+
+# Clean all build artifacts
+pnpm clean
 ```
 
 ---
 
 ## Changelog
 
-| Date | Version | Change | Author |
-|------|---------|--------|--------|
-| 2026-01-01 | 1.0.0 | Initial version (as GEMINI_CONTEXT.md) | Pontus |
-| 2026-02-27 | 2.0.0 | Complete rewrite: verified against actual codebase. Fixed table names (user_identity), removed phantom stripe_subscription, added Tailwind v4 details, env validation, package exports, migration patterns, seed data, stale doc protocol, performance rules, dev commands, third-party integrations | Claude |
+| Date       | Version | Change                                                                                                                                                                                                                                                                                               | Author |
+| ---------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| 2026-01-01 | 1.0.0   | Initial version (as GEMINI_CONTEXT.md)                                                                                                                                                                                                                                                               | Pontus |
+| 2026-02-27 | 2.0.0   | Complete rewrite: verified against actual codebase. Fixed table names (user_identity), removed phantom stripe_subscription, added Tailwind v4 details, env validation, package exports, migration patterns, seed data, stale doc protocol, performance rules, dev commands, third-party integrations | Claude |
+| 2026-02-27 | 2.1.0   | Added Linear repo scope section — maps which Linear projects belong to this repo vs. other repos                                                                                                                                                                                                     | Claude |
+| 2026-02-27 | 3.0.0   | Enterprise infrastructure: Added new packages (typescript-config, eslint-config, design-tokens, utils), new Edge Functions (health-check, watchdog-integrity, watchdog-uptime), new API routes (/api/health, /api/telemetry), Sentry + Upstash integrations, updated dev commands, ADR-0017          | Claude |

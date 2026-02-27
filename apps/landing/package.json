@@ -6,7 +6,9 @@
     "dev": "next dev -p 3055",
     "build": "next build",
     "start": "next start -p 3055",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf .next .turbo node_modules/.cache"
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "^1.3.3",
@@ -15,6 +17,7 @@
     "@radix-ui/react-label": "^2.1.8",
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-slot": "^1.2.4",
+    "@smartout/design-tokens": "workspace:^",
     "@smartout/supabase": "workspace:*",
     "@smartout/telemetry": "workspace:*",
     "@smartout/types": "workspace:*",
@@ -34,6 +37,7 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@smartout/typescript-config": "workspace:*",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

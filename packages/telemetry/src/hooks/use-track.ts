@@ -1,61 +1,73 @@
-import { useCallback } from "react";
-import { SmartoutEvent, EVENT_ROUTING } from "../registry";
+import { useCallback, useEffect, useRef } from "react";
+import type { SmartoutEvent } from "../registry";
+import { EVENT_ROUTING } from "../registry";
 import { sendToPostHogClient } from "../providers/posthog";
 
-// Placeholder standard context payload for the UI.
-// Will integrate tightly with proper `@smartout/supabase` later on.
 const MOCK_WORKSPACE_ID = "00000000-0000-0000-0000-000000000000";
 const MOCK_PROFILE_ID = "00000000-0000-0000-0000-000000000000";
 
-export function useTrack() {
-  const workspaceId = MOCK_WORKSPACE_ID;
-  const profileId = MOCK_PROFILE_ID;
+type TrackFn = <E extends SmartoutEvent>(event: E["event"], properties: E["properties"]) => void;
 
-  const track = useCallback(
-    // We infer typing to exclusively select properties valid for that particular event!
-    <E extends SmartoutEvent>(
-      event: E["event"],
-      properties: E["properties"],
-    ) => {
+/**
+ * Track telemetry events.
+ *
+ * @param workspaceId - Real workspace ID from auth context. Falls back to mock if omitted (deprecated).
+ * @param profileId - Real profile ID from auth context. Falls back to mock if omitted (deprecated).
+ */
+export function useTrack(workspaceId?: string, profileId?: string): { track: TrackFn } {
+  const warnedRef = useRef(false);
+
+  useEffect(() => {
+    if (
+      (!workspaceId || !profileId) &&
+      !warnedRef.current &&
+      process.env.NODE_ENV === "development"
+    ) {
+      console.warn(
+        "[telemetry] useTrack() called without workspaceId/profileId — using mock IDs. " +
+          "Pass real IDs from auth context to enable production telemetry.",
+      );
+      warnedRef.current = true;
+    }
+  }, [workspaceId, profileId]);
+
+  const wsId = workspaceId ?? MOCK_WORKSPACE_ID;
+  const actorId = profileId ?? MOCK_PROFILE_ID;
+
+  const track: TrackFn = useCallback(
+    (event, properties) => {
       const fullEvent = {
         event,
         properties,
-        workspace_id: workspaceId, // automatically attach state values
-        actor_id: profileId,
+        workspace_id: wsId,
+        actor_id: actorId,
         timestamp: new Date().toISOString(),
       } as SmartoutEvent;
 
       const routing = EVENT_ROUTING[event];
       if (!routing) return;
 
-      // Send directly over Web Socket or HTTP depending on Posthog Client
       if (routing.destinations.includes("posthog")) {
         sendToPostHogClient(fullEvent);
       }
 
-      // Crucial: Activity Trails generated strictly from UI interaction
-      // (Like an audit for some generic button or interaction not triggering Database triggers)
-      // Send over `navigator.sendBeacon` for zero-overhead background tracking even when closing tab/routing abruptly.
       if (
         routing.destinations.includes("activity_trail") ||
         routing.destinations.includes("logger")
       ) {
-        if (typeof navigator !== "undefined" && "sendBeacon" in navigator) {
-          navigator.sendBeacon(
-            "/api/telemetry", // NextJS receiving route to trigger backend telemetry process!
-            JSON.stringify(fullEvent),
-          );
+        const payload = JSON.stringify(fullEvent);
+        if (typeof navigator !== "undefined" && navigator.sendBeacon) {
+          navigator.sendBeacon("/api/telemetry", payload);
         } else {
-          fetch("/api/telemetry", {
+          void fetch("/api/telemetry", {
             method: "POST",
-            body: JSON.stringify(fullEvent),
+            body: payload,
             keepalive: true,
-            headers: { "Content-Type": "application/json" },
-          }).catch(console.error);
+          });
         }
       }
     },
-    [workspaceId, profileId],
+    [wsId, actorId],
   );
 
   return { track };

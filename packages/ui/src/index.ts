@@ -1,2 +1,10 @@
-// Export the component library and utilities
-export * from "./components/button";
+export { Button, buttonVariants, type ButtonProps } from "./components/button";
+export * from "./components/dialog";
+export * from "./components/input";
+export * from "./components/label";
+export * from "./components/badge";
+export * from "./components/card";
+export * from "./components/skeleton";
+export * from "./components/separator";
+export { StatusBadge } from "./components/status-badge";
+export { cn } from "./lib/utils";

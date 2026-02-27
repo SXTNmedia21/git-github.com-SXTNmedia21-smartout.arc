@@ -13,6 +13,11 @@
     "./adapters/vercel-ai": "./src/adapters/vercel-ai.ts",
     "./adapters/livekit": "./src/adapters/livekit.ts"
   },
+  "scripts": {
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf dist .turbo"
+  },
   "dependencies": {
     "@openrouter/ai-sdk-provider": "^2.2.3",
     "@smartout/supabase": "workspace:*",
@@ -21,6 +26,8 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@smartout/eslint-config": "workspace:^",
+    "@smartout/typescript-config": "workspace:*",
     "typescript": "^5"
   }
 }

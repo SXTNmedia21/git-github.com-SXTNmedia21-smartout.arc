@@ -1,10 +1,28 @@
 @import "tailwindcss";
+@import "@smartout/design-tokens/tokens.css";
 
-@theme {
-  --color-foreground: #ffffff;
-  --color-background: #09090b;
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-brand-orange: var(--brand-orange);
 
   --animate-ping: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
 }
 
 @layer utilities {
@@ -15,7 +33,7 @@
     background: transparent;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background-color: #3f3f46;
+    background-color: oklch(0.35 0 0);
     border-radius: 20px;
   }
 }

@@ -1,0 +1,57 @@
+// packages/design-tokens/src/native.ts
+// React Native theme — hex conversions of OKLCH tokens.
+// Update these when tokens.ts changes.
+
+export const nativeTheme = {
+  light: {
+    background: "#ffffff",
+    foreground: "#1a1a1a",
+    card: "#ffffff",
+    cardForeground: "#1a1a1a",
+    primary: "#2d2d2d",
+    primaryForeground: "#fafafa",
+    secondary: "#f5f5f5",
+    secondaryForeground: "#2d2d2d",
+    muted: "#f5f5f5",
+    mutedForeground: "#737373",
+    border: "#e5e5e5",
+    destructive: "#dc2626",
+    success: "#16a34a",
+    warning: "#d97706",
+    info: "#2563eb",
+    brandOrange: "#e85c0d",
+  },
+  dark: {
+    background: "#1a1a1a",
+    foreground: "#fafafa",
+    card: "#2d2d2d",
+    cardForeground: "#fafafa",
+    primary: "#e5e5e5",
+    primaryForeground: "#2d2d2d",
+    secondary: "#3d3d3d",
+    secondaryForeground: "#fafafa",
+    muted: "#3d3d3d",
+    mutedForeground: "#a3a3a3",
+    border: "rgba(255,255,255,0.1)",
+    destructive: "#ef4444",
+    success: "#22c55e",
+    warning: "#f59e0b",
+    info: "#3b82f6",
+    brandOrange: "#e85c0d",
+  },
+  department: {
+    kitchen: "#e85c0d",
+    floor: "#14b8a6",
+    bar: "#8b5cf6",
+    event: "#d97706",
+    storage: "#6b7280",
+  },
+  status: {
+    trainee: "#3b82f6",
+    active: "#22c55e",
+    inactive: "#6b7280",
+    offboarding: "#d97706",
+  },
+  radius: { sm: 6, md: 8, lg: 10, xl: 14, full: 9999 },
+  spacing: { page: 32, section: 24, card: 20, element: 12, tight: 8 },
+} as const;

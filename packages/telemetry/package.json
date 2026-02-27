@@ -4,7 +4,9 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "scripts": {
-    "lint": "tsc --noEmit"
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf dist .turbo"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.98.0",
@@ -12,6 +14,8 @@
     "posthog-node": "^4.5.0"
   },
   "devDependencies": {
+    "@smartout/eslint-config": "workspace:^",
+    "@smartout/typescript-config": "workspace:*",
     "@types/node": "^20",
     "@types/react": "^19",
     "typescript": "^5.9.0"

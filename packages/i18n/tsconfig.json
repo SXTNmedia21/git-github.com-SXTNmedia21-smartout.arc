@@ -1,18 +1,7 @@
 {
-    "compilerOptions": {
-        "target": "ES2022",
-        "module": "ESNext",
-        "moduleResolution": "Bundler",
-        "strict": true,
-        "skipLibCheck": true,
-        "esModuleInterop": true,
-        "declaration": true,
-        "declarationMap": true,
-        "resolveJsonModule": true,
-        "outDir": "dist"
-    },
-    "include": [
-        "src",
-        "locales"
-    ]
+  "extends": "@smartout/typescript-config/library.json",
+  "compilerOptions": {
+    "outDir": "dist"
+  },
+  "include": ["src", "locales"]
 }

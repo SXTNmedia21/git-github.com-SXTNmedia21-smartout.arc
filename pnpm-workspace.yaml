@@ -1,3 +1,4 @@
 packages:
   - "apps/*"
   - "packages/*"
+  - "services/*" # pnpm skips directories without package.json (e.g., Python services)
