@@ -19,5 +19,6 @@ bun.lock
 
 # Build artifacts & logs
 *.log
+*.tsbuildinfo
 __pycache__
 *.pyc
