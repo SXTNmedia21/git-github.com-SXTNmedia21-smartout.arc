@@ -1,0 +1,40 @@
+
+Running 1 test using 1 worker
+
+[1A[2K[1/1] [web] › tests\dashboard.spec.ts:4:7 › Dashboard App › should load the dashboard page correctly
+[1A[2K  1) [web] › tests\dashboard.spec.ts:4:7 › Dashboard App › should load the dashboard page correctly 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('text=Operations')
+    Expected: visible
+    Error: strict mode violation: locator('text=Operations') resolved to 3 elements:
+        1) <div class="text-[10px] font-bold uppercase tracking-widest mb-3 px-3 mt-6 text-zinc-500">Operations</div> aka getByRole('navigation').getByText('Operations', { exact: true })
+        2) <span class="text-[13px] tracking-wide font-medium">Live Operations</span> aka getByRole('link', { name: 'Live Operations' })
+        3) <span class="cursor-pointer transition-colors hover:text-zinc-200">Operations</span> aka getByRole('main').getByText('Operations')
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 10000ms[22m
+    [2m  - waiting for locator('text=Operations')[22m
+
+
+       5 |     await page.goto('/dashboard');
+       6 |     // For now, since there's no strict middleware redirect, we just verify it loads
+    >  7 |     await expect(page.locator('text=Operations')).toBeVisible({ timeout: 10000 });
+         |                                                   ^
+       8 |   });
+       9 | });
+      10 |
+        at C:\Users\sxtnl\Dev\Genesis\smartout.ai\apps\e2e\tests\dashboard.spec.ts:7:51
+
+    attachment #1: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\dashboard-Dashboard-App-sh-303ff-he-dashboard-page-correctly-web\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\dashboard-Dashboard-App-sh-303ff-he-dashboard-page-correctly-web\error-context.md
+
+
+[1A[2K  1 failed
+    [web] › tests\dashboard.spec.ts:4:7 › Dashboard App › should load the dashboard page correctly ─
+
+[36m  Serving HTML report at http://localhost:50264. Press Ctrl+C to quit.[39m

@@ -1,0 +1,55 @@
+
+> web@0.1.0 build C:\Users\sxtnl\Dev\Genesis\smartout.ai\apps\web
+> next build
+
+⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of C:\Users\sxtnl\Dev\Genesis\pnpm-lock.yaml as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * C:\Users\sxtnl\Dev\Genesis\smartout.ai\apps\web\pnpm-lock.yaml
+   * C:\Users\sxtnl\Dev\Genesis\smartout.ai\pnpm-lock.yaml
+
+▲ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+
+> Build error occurred
+Error: Turbopack build failed with 1 errors:
+./smartout.ai/node_modules/.pnpm/posthog-node@5.25.0/node_modules/posthog-node/dist/entrypoints/index.node.mjs
+Code generation for chunk item errored
+An error occurred while generating the chunk item [project]/smartout.ai/node_modules/.pnpm/posthog-node@5.25.0/node_modules/posthog-node/dist/entrypoints/index.node.mjs [app-client] (ecmascript)
+
+Caused by:
+- the chunking context (unknown) does not support external modules (request: node:fs)
+
+Debug info:
+- An error occurred while generating the chunk item [project]/smartout.ai/node_modules/.pnpm/posthog-node@5.25.0/node_modules/posthog-node/dist/entrypoints/index.node.mjs [app-client] (ecmascript)
+- Execution of <MergedEcmascriptModuleChunkItem as EcmascriptChunkItem>::content_with_async_module_info failed
+- Execution of *EcmascriptChunkItemContent::new failed
+- Execution of EcmascriptModuleContent::new_merged failed
+- the chunking context (unknown) does not support external modules (request: node:fs)
+
+Import traces:
+  Client Component Browser:
+    ./smartout.ai/node_modules/.pnpm/posthog-node@5.25.0/node_modules/posthog-node/dist/entrypoints/index.node.mjs [Client Component Browser]
+    ./smartout.ai/packages/telemetry/src/providers/posthog-server.ts [Client Component Browser]
+    ./smartout.ai/packages/telemetry/src/emit.ts [Client Component Browser]
+    ./smartout.ai/packages/telemetry/src/index.ts [Client Component Browser]
+    ./smartout.ai/apps/web/src/components/providers/workspace-provider.tsx [Client Component Browser]
+    ./smartout.ai/apps/web/src/components/providers/workspace-provider.tsx [Server Component]
+    ./smartout.ai/apps/web/src/app/layout.tsx [Server Component]
+
+  Client Component SSR:
+    ./smartout.ai/node_modules/.pnpm/posthog-node@5.25.0/node_modules/posthog-node/dist/entrypoints/index.node.mjs [Client Component SSR]
+    ./smartout.ai/packages/telemetry/src/providers/posthog-server.ts [Client Component SSR]
+    ./smartout.ai/packages/telemetry/src/emit.ts [Client Component SSR]
+    ./smartout.ai/packages/telemetry/src/index.ts [Client Component SSR]
+    ./smartout.ai/apps/web/src/components/providers/workspace-provider.tsx [Client Component SSR]
+    ./smartout.ai/apps/web/src/components/providers/workspace-provider.tsx [Server Component]
+    ./smartout.ai/apps/web/src/app/layout.tsx [Server Component]
+
+
+    at ignore-listed frames
+ ELIFECYCLE  Command failed with exit code 1.

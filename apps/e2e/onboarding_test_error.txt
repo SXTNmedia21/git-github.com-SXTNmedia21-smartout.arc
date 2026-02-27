@@ -1,0 +1,38 @@
+
+Running 1 test using 1 worker
+
+[1A[2K[1/1] [web] › tests\onboarding.spec.ts:8:7 › Onboarding Wizard Flow › should complete the entire onboarding process using fallback data
+[1A[2K  1) [web] › tests\onboarding.spec.ts:8:7 › Onboarding Wizard Flow › should complete the entire onboarding process using fallback data 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('h2:has-text("Analyzing your site...")')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('h2:has-text("Analyzing your site...")')[22m
+
+
+      15 |
+      16 |     // It should show crawling state briefly... 
+    > 17 |     await expect(page.locator('h2:has-text("Analyzing your site...")')).toBeVisible();
+         |                                                                         ^
+      18 |
+      19 |     // ... and then transition to Org Verification after ~3000ms mock delay
+      20 |     await expect(page.locator('h2:has-text("Verify Company Identity")')).toBeVisible({ timeout: 10000 });
+        at C:\Users\sxtnl\Dev\Genesis\smartout.ai\apps\e2e\tests\onboarding.spec.ts:17:73
+
+    attachment #1: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\onboarding-Onboarding-Wiza-a5572-process-using-fallback-data-web\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\onboarding-Onboarding-Wiza-a5572-process-using-fallback-data-web\error-context.md
+
+
+[1A[2K  1 failed
+    [web] › tests\onboarding.spec.ts:8:7 › Onboarding Wizard Flow › should complete the entire onboarding process using fallback data 
+
+[36m  Serving HTML report at http://localhost:60412. Press Ctrl+C to quit.[39m
