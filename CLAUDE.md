@@ -59,6 +59,7 @@ smartout_v3/
 │   ├── e2e/              → Playwright E2E tests
 │   └── scrapling/        → Python scraper (has own venv)
 ├── packages/
+│   ├── ai/               → AI SDK agents, tools, adapters (@smartout/ai)
 │   ├── types/            → Zod schemas, builds to dist/ (@smartout/types)
 │   ├── supabase/         → SSR client + database.types.ts (@smartout/supabase)
 │   ├── ui/               → Shared UI components (@smartout/ui)
@@ -98,6 +99,18 @@ exports: enums, identity, structure, governance, time
 All types use Zod schemas with `z.infer<>` for TypeScript inference.
 
 **@smartout/ui** — Currently only exports `button.tsx` (shared). The web app also has `dialog.tsx` locally in `apps/web/src/components/ui/`. Add shared components to this package for cross-app reuse.
+
+**@smartout/ai** — `packages/ai/package.json`:
+```
+"."                    → ./src/index.ts               (types + defineTool)
+"./session-context"    → ./src/session-context.ts     (session context)
+"./tools/onboarding"   → ./src/tools/onboarding.ts    (onboarding tools)
+"./schemas/onboarding" → ./src/schemas/onboarding.ts  (onboarding Zod schemas)
+"./agents/onboarding"  → ./src/agents/onboarding.ts   (onboarding agent)
+"./adapters/vercel-ai" → ./src/adapters/vercel-ai.ts  (Vercel AI SDK adapter)
+"./adapters/livekit"   → ./src/adapters/livekit.ts    (LiveKit voice adapter)
+```
+Dependencies: Vercel AI SDK (`ai`), OpenRouter provider, Supabase client, Zod.
 
 **@smartout/telemetry** — PostHog (browser + node) event registry and tracking hooks.
 
