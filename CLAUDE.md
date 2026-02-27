@@ -75,7 +75,7 @@ smartout_v3/
 │   ├── decisions/        → ADRs (7 accepted)
 │   ├── modules/          → Module specs (17 modules)
 │   ├── plans/            → Implementation plans
-│   ├── reasearch/        → Research reports
+│   ├── research/         → Research reports
 │   └── roadmaps/         → Project roadmaps
 └── CLAUDE.md             → This file
 ```
