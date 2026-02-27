@@ -484,18 +484,45 @@ Full documentation lives in `docs/modules/`. **Read the corresponding doc before
 
 ### Architecture Decisions (ADRs)
 
-Accepted decisions in `docs/decisions/`:
+All accepted decisions in `docs/decisions/`. **Read before making changes in the same area.**
 
-| ADR | Subject |
-|-----|---------|
-| 0001 | Turborepo + pnpm workspaces |
-| 0002 | State-driven vs hook-driven logic boundaries |
-| 0003 | shadcn/ui integration (new-york, CSS variables) |
-| 0004 | Unified telemetry engine (PostHog) |
-| 0007 | Dashboard layout & navigation state |
-| 0008 | Dashboard scroll behavior |
+| ADR | Subject | Area |
+|-----|---------|------|
+| 0001 | Turborepo + pnpm workspaces | Monorepo |
+| 0002 | State-driven vs hook-driven logic boundaries | React |
+| 0003 | shadcn/ui integration (new-york, CSS variables) | UI |
+| 0004 | Unified telemetry engine (PostHog) | Telemetry |
+| 0005 | Testing infrastructure — four-layer strategy | Testing |
+| 0006 | Environment variables, secrets & module boundaries | Secrets |
+| 0007 | Dashboard layout & navigation state | UI |
+| 0008 | Dashboard scroll behavior | UI |
+| 0009 | Tailwind CSS v4 with CSS-based configuration | Styling |
+| 0010 | AI SDK with OpenRouter provider | AI |
+| 0011 | User table named `user_identity` | Database |
+| 0012 | Subscription data on company table | Database |
+| 0013 | Auto-generated database types workflow | Database |
+| 0014 | PostHog EU instance with reverse proxy | Privacy |
+| 0015 | Bubble.io rebuild strategy | Strategy |
 
-**New ADRs:** When making architectural decisions, create a new file in `docs/decisions/` following the template at `docs/decisions/template.md`.
+### ADR Enforcement (MANDATORY)
+
+**When to create an ADR:**
+
+An ADR is REQUIRED when any of these are true:
+- Adding a new package or external dependency to the monorepo
+- Choosing between two or more valid technical approaches
+- Changing database schema patterns (new table naming, new enum, RLS strategy)
+- Adding or changing a third-party integration
+- Modifying the build, test, or deploy pipeline
+- Making a decision that future agents or developers need to know about
+
+**How to create an ADR:**
+1. Find the next available number in `docs/decisions/0000-decision-log.md`
+2. Create `docs/decisions/NNNN-short-description.md` using `docs/decisions/template.md`
+3. Add the entry to `0000-decision-log.md`
+4. Update the ADR table in this CLAUDE.md file
+
+**Do NOT skip ADRs.** Undocumented decisions cause bugs when agents assume different defaults.
 
 ---
 
