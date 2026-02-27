@@ -95,14 +95,9 @@ export async function extractOnboardingIntelligence({
   const { object } = await generateObject({
     model: getModel(),
     schema: OnboardingIntelligenceSchema,
-    messages: [
-      {
-        role: "system",
-        content:
-          "Extract all organizational intelligence from this onboarding conversation. Return structured data for every field you can identify. Use null for fields not discussed.",
-      },
-      ...conversationHistory,
-    ],
+    system:
+      "Extract all organizational intelligence from this onboarding conversation. Return structured data for every field you can identify. Use null for fields not discussed.",
+    messages: conversationHistory,
   });
 
   return object;

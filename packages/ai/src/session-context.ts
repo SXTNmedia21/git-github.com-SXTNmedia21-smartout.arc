@@ -41,6 +41,9 @@ export class SessionContext {
     return data;
   }
 
+  // NOTE: Safe for sequential tool execution (generateText).
+  // If used with parallel tool execution, replace with a Postgres
+  // jsonb_set or array_append operation to avoid lost updates.
   async appendTranscript(speaker: string, text: string) {
     const session = await this.getSession();
     const scraped =
@@ -95,12 +98,13 @@ export class SessionContext {
       updated_at: new Date().toISOString(),
     };
 
-    if (data.departments)
+    if (data.departments !== undefined)
       updates.suggested_departments = data.departments as unknown as Json;
-    if (data.teams) updates.suggested_teams = data.teams as unknown as Json;
-    if (data.locations)
+    if (data.teams !== undefined)
+      updates.suggested_teams = data.teams as unknown as Json;
+    if (data.locations !== undefined)
       updates.suggested_locations = data.locations as unknown as Json;
-    if (data.positions)
+    if (data.positions !== undefined)
       updates.suggested_positions = data.positions as unknown as Json;
 
     const { error } = await this.supabase
