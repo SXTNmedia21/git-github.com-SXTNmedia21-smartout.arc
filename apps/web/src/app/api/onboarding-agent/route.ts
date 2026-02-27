@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
 
   // 3. Session ownership check
   const { data: session, error: sessionError } = await supabase
-    .from("onboarding_session" as "onboarding_session")
+    .from("onboarding_session")
     .select("id, user_id")
     .eq("id", body.sessionId)
     .single<{ id: string; user_id: string | null }>();
