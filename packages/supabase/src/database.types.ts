@@ -745,6 +745,124 @@ export type Database = {
           },
         ]
       }
+      landing_config: {
+        Row: {
+          config_id: string
+          config_json: Json
+          created_at: string
+          created_by: string | null
+          locale: string
+          name: string
+          published_at: string | null
+          published_by: string | null
+          published_json: Json | null
+          slug: string
+          status: string
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          config_id?: string
+          config_json: Json
+          created_at?: string
+          created_by?: string | null
+          locale?: string
+          name: string
+          published_at?: string | null
+          published_by?: string | null
+          published_json?: Json | null
+          slug: string
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          config_id?: string
+          config_json?: Json
+          created_at?: string
+          created_by?: string | null
+          locale?: string
+          name?: string
+          published_at?: string | null
+          published_by?: string | null
+          published_json?: Json | null
+          slug?: string
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "landing_config_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_identity"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "landing_config_published_by_fkey"
+            columns: ["published_by"]
+            isOneToOne: false
+            referencedRelation: "user_identity"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "landing_config_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "user_identity"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      landing_config_version: {
+        Row: {
+          change_notes: string | null
+          config_id: string
+          config_json: Json
+          created_at: string
+          created_by: string | null
+          version: number
+          version_id: string
+        }
+        Insert: {
+          change_notes?: string | null
+          config_id: string
+          config_json: Json
+          created_at?: string
+          created_by?: string | null
+          version: number
+          version_id?: string
+        }
+        Update: {
+          change_notes?: string | null
+          config_id?: string
+          config_json?: Json
+          created_at?: string
+          created_by?: string | null
+          version?: number
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "landing_config_version_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "landing_config"
+            referencedColumns: ["config_id"]
+          },
+          {
+            foreignKeyName: "landing_config_version_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_identity"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       location: {
         Row: {
           address: string | null
@@ -1058,6 +1176,307 @@ export type Database = {
             referencedColumns: ["workspace_id"]
           },
         ]
+      }
+      platform_audit_log: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          ip_address: unknown
+          super_admin_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          ip_address?: unknown
+          super_admin_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          ip_address?: unknown
+          super_admin_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_audit_log_super_admin_id_fkey"
+            columns: ["super_admin_id"]
+            isOneToOne: false
+            referencedRelation: "user_identity"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      platform_contract_instance: {
+        Row: {
+          company_id: string
+          contract_id: string
+          created_at: string
+          created_by: string | null
+          document_url: string | null
+          docuseal_submission_id: string | null
+          expires_at: string | null
+          field_values: Json | null
+          sent_at: string | null
+          signatories: Json
+          signed_at: string | null
+          status: string
+          template_id: string | null
+          title: string
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          company_id: string
+          contract_id?: string
+          created_at?: string
+          created_by?: string | null
+          document_url?: string | null
+          docuseal_submission_id?: string | null
+          expires_at?: string | null
+          field_values?: Json | null
+          sent_at?: string | null
+          signatories?: Json
+          signed_at?: string | null
+          status?: string
+          template_id?: string | null
+          title: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          company_id?: string
+          contract_id?: string
+          created_at?: string
+          created_by?: string | null
+          document_url?: string | null
+          docuseal_submission_id?: string | null
+          expires_at?: string | null
+          field_values?: Json | null
+          sent_at?: string | null
+          signatories?: Json
+          signed_at?: string | null
+          status?: string
+          template_id?: string | null
+          title?: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_contract_instance_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "platform_contract_instance_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_identity"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "platform_contract_instance_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "platform_contract_template"
+            referencedColumns: ["template_id"]
+          },
+          {
+            foreignKeyName: "platform_contract_instance_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      platform_contract_template: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          docuseal_template_id: string | null
+          locale: string
+          name: string
+          status: string
+          template_id: string
+          template_type: string
+          updated_at: string
+          variable_fields: Json
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          docuseal_template_id?: string | null
+          locale?: string
+          name: string
+          status?: string
+          template_id?: string
+          template_type: string
+          updated_at?: string
+          variable_fields?: Json
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          docuseal_template_id?: string | null
+          locale?: string
+          name?: string
+          status?: string
+          template_id?: string
+          template_type?: string
+          updated_at?: string
+          variable_fields?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_contract_template_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_identity"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      platform_impersonation_log: {
+        Row: {
+          actions_taken: Json | null
+          ended_at: string | null
+          id: string
+          reason: string
+          started_at: string
+          super_admin_id: string
+          target_user_id: string
+          target_workspace_id: string
+        }
+        Insert: {
+          actions_taken?: Json | null
+          ended_at?: string | null
+          id?: string
+          reason: string
+          started_at?: string
+          super_admin_id: string
+          target_user_id: string
+          target_workspace_id: string
+        }
+        Update: {
+          actions_taken?: Json | null
+          ended_at?: string | null
+          id?: string
+          reason?: string
+          started_at?: string
+          super_admin_id?: string
+          target_user_id?: string
+          target_workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_impersonation_log_super_admin_id_fkey"
+            columns: ["super_admin_id"]
+            isOneToOne: false
+            referencedRelation: "user_identity"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "platform_impersonation_log_target_user_id_fkey"
+            columns: ["target_user_id"]
+            isOneToOne: false
+            referencedRelation: "user_identity"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "platform_impersonation_log_target_workspace_id_fkey"
+            columns: ["target_workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      platform_metrics_daily: {
+        Row: {
+          active_workspaces_24h: number
+          computed_at: string
+          date: string
+          invite_to_session: number | null
+          mrr_nok: number
+          new_users_today: number
+          new_workspaces_today: number
+          sessions_created_24h: number
+          signups_to_workspace: number | null
+          subscriptions_active: number
+          subscriptions_cancelled: number
+          subscriptions_past_due: number
+          subscriptions_paused: number
+          subscriptions_trial: number
+          tasks_completed_24h: number
+          total_companies: number
+          total_profiles: number
+          total_users: number
+          total_workspaces: number
+          workspace_to_invite: number | null
+        }
+        Insert: {
+          active_workspaces_24h?: number
+          computed_at?: string
+          date: string
+          invite_to_session?: number | null
+          mrr_nok?: number
+          new_users_today?: number
+          new_workspaces_today?: number
+          sessions_created_24h?: number
+          signups_to_workspace?: number | null
+          subscriptions_active?: number
+          subscriptions_cancelled?: number
+          subscriptions_past_due?: number
+          subscriptions_paused?: number
+          subscriptions_trial?: number
+          tasks_completed_24h?: number
+          total_companies?: number
+          total_profiles?: number
+          total_users?: number
+          total_workspaces?: number
+          workspace_to_invite?: number | null
+        }
+        Update: {
+          active_workspaces_24h?: number
+          computed_at?: string
+          date?: string
+          invite_to_session?: number | null
+          mrr_nok?: number
+          new_users_today?: number
+          new_workspaces_today?: number
+          sessions_created_24h?: number
+          signups_to_workspace?: number | null
+          subscriptions_active?: number
+          subscriptions_cancelled?: number
+          subscriptions_past_due?: number
+          subscriptions_paused?: number
+          subscriptions_trial?: number
+          tasks_completed_24h?: number
+          total_companies?: number
+          total_profiles?: number
+          total_users?: number
+          total_workspaces?: number
+          workspace_to_invite?: number | null
+        }
+        Relationships: []
       }
       policy: {
         Row: {
@@ -1952,6 +2371,7 @@ export type Database = {
           emergency_contact_relation: string | null
           first_name: string
           is_active: boolean
+          is_super_admin: boolean
           last_login_at: string | null
           last_name: string
           personal_email: string | null
@@ -1972,6 +2392,7 @@ export type Database = {
           emergency_contact_relation?: string | null
           first_name: string
           is_active?: boolean
+          is_super_admin?: boolean
           last_login_at?: string | null
           last_name: string
           personal_email?: string | null
@@ -1992,6 +2413,7 @@ export type Database = {
           emergency_contact_relation?: string | null
           first_name?: string
           is_active?: boolean
+          is_super_admin?: boolean
           last_login_at?: string | null
           last_name?: string
           personal_email?: string | null
@@ -2181,6 +2603,9 @@ export type Database = {
         Returns: string
       }
       anonymize_user: { Args: { target_user_id: string }; Returns: undefined }
+      compute_platform_metrics: { Args: never; Returns: undefined }
+      count_dangling_company_members: { Args: never; Returns: number }
+      count_empty_workspaces: { Args: never; Returns: number }
       create_workspace_transaction:
         | {
             Args: {

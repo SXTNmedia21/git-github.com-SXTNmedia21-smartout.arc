@@ -19,5 +19,6 @@ This document serves as the central index of all Architecture Decision Records (
 | ADR-0013 | 27-02-2026 | [Auto-Generated Database Types Workflow](./0013-database-types-generation.md)                                | **Accepted** |
 | ADR-0014 | 27-02-2026 | [PostHog EU Instance with Reverse Proxy](./0014-posthog-eu-proxy.md)                                         | **Accepted** |
 | ADR-0015 | 27-02-2026 | [Bubble.io Rebuild Strategy](./0015-bubble-rebuild-strategy.md)                                              | **Accepted** |
-| ADR-0016 | 27-02-2026 | [Services Directory for Backend Microservices](./0016-services-directory.md)                                  | **Accepted** |
+| ADR-0016 | 27-02-2026 | [Services Directory for Backend Microservices](./0016-services-directory.md)                                 | **Accepted** |
 | ADR-0017 | 27-02-2026 | [Enterprise Infrastructure — Shared Configs, Design System, Monitoring](./0017-enterprise-infrastructure.md) | **Accepted** |
+| ADR-0018 | 27-02-2026 | [TanStack Table and Recharts for Platform Admin](./0018-tanstack-table-recharts-platform-admin.md)           | **Accepted** |

@@ -2,10 +2,10 @@
 -- 1. Partial index for recent data (most queries hit last 90 days)
 -- 2. Harden INSERT policy to service_role only (was WITH CHECK(TRUE) for all roles)
 
--- Partial index: speeds up the most common queries (recent activity)
+-- Composite index: speeds up the most common queries (recent activity by workspace)
+-- Note: Cannot use partial index with NOW() — PostgreSQL requires IMMUTABLE predicates.
 CREATE INDEX IF NOT EXISTS idx_activity_recent
-  ON activity_trail (workspace_id, entity_type, entity_id, created_at DESC)
-  WHERE created_at >= NOW() - INTERVAL '90 days';
+  ON activity_trail (workspace_id, entity_type, entity_id, created_at DESC);
 
 -- Drop the permissive INSERT policy and replace with service_role-only
 DROP POLICY IF EXISTS "System can insert activity" ON activity_trail;

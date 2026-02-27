@@ -8,7 +8,8 @@
     ".": "./src/index.ts",
     "./middleware": "./src/middleware.ts",
     "./client": "./src/client.ts",
-    "./server": "./src/server.ts"
+    "./server": "./src/server.ts",
+    "./admin": "./src/admin.ts"
   },
   "scripts": {
     "build": "tsc",
