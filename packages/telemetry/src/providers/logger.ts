@@ -1,4 +1,4 @@
-import { SmartoutEvent, EventMeta } from "../registry";
+import type { SmartoutEvent, EventMeta } from "../registry";
 
 export interface LogEntry {
   timestamp: string;
@@ -28,5 +28,6 @@ export function logToStdout(event: SmartoutEvent, meta: EventMeta): void {
 
   // Output JSON cleanly without modifying native objects,
   // directly consumable by Datadog, Axiom, Supabase Logs, etc.
+  // eslint-disable-next-line no-console
   console.log(JSON.stringify(entry));
 }

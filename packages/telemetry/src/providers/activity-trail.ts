@@ -1,19 +1,15 @@
 import { createClient } from "@supabase/supabase-js";
-import { SmartoutEvent, EventMeta } from "../registry";
+import type { SmartoutEvent, EventMeta } from "../registry";
 
 // Since this is purely internal/immutable, we use the Service Role to skip RLS
 const getSupabaseClient = () => {
   return createClient(
-    process.env.SUPABASE_URL ||
-      (process.env.NEXT_PUBLIC_SUPABASE_URL as string),
+    process.env.SUPABASE_URL || (process.env.NEXT_PUBLIC_SUPABASE_URL as string),
     process.env.SUPABASE_SERVICE_ROLE_KEY as string,
   );
 };
 
-export async function writeActivityTrail(
-  event: SmartoutEvent,
-  meta: EventMeta,
-): Promise<void> {
+export async function writeActivityTrail(event: SmartoutEvent, meta: EventMeta): Promise<void> {
   // We can loosely assume standard props to map to our explicit DB columns
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const props = event.properties as any;
@@ -49,9 +45,6 @@ export async function writeActivityTrail(
   if (error) {
     // Failing to write to Audit Trail doesn't break user flow,
     // but we log it locally for server remediation.
-    console.error(
-      `[telemetry.activity_trail] Insertion failed for ${event.event}:`,
-      error,
-    );
+    console.error(`[telemetry.activity_trail] Insertion failed for ${event.event}:`, error);
   }
 }

@@ -1,4 +1,5 @@
-import { SmartoutEvent, EVENT_ROUTING } from "./registry";
+import type { SmartoutEvent } from "./registry";
+import { EVENT_ROUTING } from "./registry";
 import { sendToPostHogClient, sendToPostHogServer } from "./providers/posthog";
 import { logToStdout } from "./providers/logger";
 import { writeActivityTrail } from "./providers/activity-trail";
@@ -36,10 +37,8 @@ export async function emit(event: SmartoutEvent): Promise<void> {
       logToStdout(event, routing);
     } else {
       // Option to relay frontend logger constraints via Bacon later.
-      console.info(
-        `[local.logger] Client side invocation of Log event:`,
-        event,
-      );
+      // eslint-disable-next-line no-console
+      console.info(`[local.logger] Client side invocation of Log event:`, event);
     }
   }
 
