@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "main": "src/index.ts",
   "types": "src/index.ts",
+  "scripts": {
+    "lint": "tsc --noEmit"
+  },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",
     "@smartout/telemetry": "workspace:*",
@@ -11,6 +14,9 @@
     "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
     "typescript": "^5.9.0"
   },
   "peerDependencies": {

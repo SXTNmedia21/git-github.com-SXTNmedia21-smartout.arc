@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "main": "src/index.ts",
   "types": "src/index.ts",
+  "scripts": {
+    "lint": "echo \"No files to lint\""
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.98.0",
     "@sendgrid/mail": "^8.1.0",

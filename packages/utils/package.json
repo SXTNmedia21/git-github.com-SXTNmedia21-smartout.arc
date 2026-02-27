@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "main": "src/index.ts",
   "types": "src/index.ts",
+  "scripts": {
+    "lint": "tsc --noEmit"
+  },
   "dependencies": {
     "date-fns": "^4.1.0",
     "zod": "^3.25.0",
