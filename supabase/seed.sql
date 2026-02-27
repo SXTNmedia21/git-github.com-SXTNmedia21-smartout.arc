@@ -83,3 +83,9 @@ INSERT INTO public.profile (
   'c0000000-0000-0000-0000-000000000000',
   'Local Admin'
 );
+
+-- 8. Make Admin user a Super Admin for platform-admin development
+-- ------------------------------------------------------------------------------
+UPDATE public.user_identity
+SET is_super_admin = true
+WHERE user_id = 'e0000000-0000-0000-0000-000000000000';

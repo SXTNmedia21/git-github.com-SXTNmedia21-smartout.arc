@@ -25,6 +25,7 @@ export const UserSchema = z.object({
   avatar_url: z.string().url().nullish(),
   timezone: z.string(),
   is_active: z.boolean().default(true),
+  is_super_admin: z.boolean().default(false),
   last_login_at: z.string().datetime().nullish(),
   created_at: z.string().datetime(),
   updated_at: z.string().datetime().nullish(),

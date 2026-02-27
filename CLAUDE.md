@@ -96,9 +96,8 @@ smartout_v3/
 "./middleware" → ./src/middleware.ts  (updateSession for Next.js middleware)
 "./client"    → ./src/client.ts     (createBrowserClient)
 "./server"    → ./src/server.ts     (createServerClient with cookies)
+"./admin"     → ./src/admin.ts      (createAdminClient — service role, platform-admin only)
 ```
-
-There is NO `./admin` export. If you need a service-role client, create one.
 
 **@smartout/types** — `packages/types/src/index.ts`:
 
@@ -334,6 +333,7 @@ Env vars are validated at build/start using `@t3-oss/env-nextjs` + Zod in `apps/
 | `UPSTASH_REDIS_REST_URL`        | Server  | No       | Rate limiting (production)          |
 | `UPSTASH_REDIS_REST_TOKEN`      | Server  | No       | Rate limiting (production)          |
 | `SENTRY_DSN`                    | Server  | No       | Sentry error tracking               |
+| `DOCUSEAL_WEBHOOK_SECRET`       | Server  | No       | DocuSeal webhook signature secret   |
 | `NEXT_PUBLIC_SENTRY_DSN`        | Client  | No       | Sentry client-side tracking         |
 
 ### 1Password Integration
@@ -557,6 +557,7 @@ All accepted decisions in `docs/decisions/`. **Read before making changes in the
 | 0015 | Bubble.io rebuild strategy                                            | Strategy       |
 | 0016 | Services directory for backend microservices                          | Monorepo       |
 | 0017 | Enterprise Infrastructure — Shared Configs, Design System, Monitoring | Infrastructure |
+| 0018 | TanStack Table and Recharts for Platform Admin                        | UI / Deps      |
 
 ### ADR Enforcement (MANDATORY)
 
