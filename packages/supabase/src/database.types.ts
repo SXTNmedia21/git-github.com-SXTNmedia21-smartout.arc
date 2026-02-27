@@ -34,44 +34,135 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_trail: {
+        Row: {
+          action_verb: string
+          actor_id: string
+          category: string
+          changes: Json | null
+          correlation_id: string | null
+          created_at: string
+          data: Json | null
+          entity_id: string
+          entity_label: string | null
+          entity_type: string
+          event: string
+          id: number
+          ip_address: unknown
+          source: string | null
+          workspace_id: string
+        }
+        Insert: {
+          action_verb: string
+          actor_id: string
+          category: string
+          changes?: Json | null
+          correlation_id?: string | null
+          created_at?: string
+          data?: Json | null
+          entity_id: string
+          entity_label?: string | null
+          entity_type: string
+          event: string
+          id?: number
+          ip_address?: unknown
+          source?: string | null
+          workspace_id: string
+        }
+        Update: {
+          action_verb?: string
+          actor_id?: string
+          category?: string
+          changes?: Json | null
+          correlation_id?: string | null
+          created_at?: string
+          data?: Json | null
+          entity_id?: string
+          entity_label?: string | null
+          entity_type?: string
+          event?: string
+          id?: number
+          ip_address?: unknown
+          source?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_trail_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "activity_trail_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       asset: {
         Row: {
           asset_id: string
+          asset_type: Database["public"]["Enums"]["asset_type"]
           created_at: string
           description: string | null
+          icon: string | null
           is_active: boolean
           location_id: string
           name: string
           requires_routine: boolean
           requires_training: boolean
+          season_id: string | null
+          slug: string | null
+          sort_order: number | null
           updated_at: string
           workspace_id: string
         }
         Insert: {
           asset_id?: string
+          asset_type?: Database["public"]["Enums"]["asset_type"]
           created_at?: string
           description?: string | null
+          icon?: string | null
           is_active?: boolean
           location_id: string
           name: string
           requires_routine?: boolean
           requires_training?: boolean
+          season_id?: string | null
+          slug?: string | null
+          sort_order?: number | null
           updated_at?: string
           workspace_id: string
         }
         Update: {
           asset_id?: string
+          asset_type?: Database["public"]["Enums"]["asset_type"]
           created_at?: string
           description?: string | null
+          icon?: string | null
           is_active?: boolean
           location_id?: string
           name?: string
           requires_routine?: boolean
           requires_training?: boolean
+          season_id?: string | null
+          slug?: string | null
+          sort_order?: number | null
           updated_at?: string
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "asset_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "season"
+            referencedColumns: ["season_id"]
+          },
           {
             foreignKeyName: "fk_asset_location"
             columns: ["location_id"]
@@ -88,6 +179,79 @@ export type Database = {
           },
         ]
       }
+      communication_log: {
+        Row: {
+          channel: Database["public"]["Enums"]["communication_channel"]
+          created_at: string
+          error_message: string | null
+          invitation_id: string | null
+          log_id: string
+          message_type: string
+          metadata: Json | null
+          profile_id: string | null
+          provider_message_id: string | null
+          recipient: string
+          sent_at: string | null
+          status: Database["public"]["Enums"]["communication_status"]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          channel: Database["public"]["Enums"]["communication_channel"]
+          created_at?: string
+          error_message?: string | null
+          invitation_id?: string | null
+          log_id?: string
+          message_type: string
+          metadata?: Json | null
+          profile_id?: string | null
+          provider_message_id?: string | null
+          recipient: string
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["communication_status"]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          channel?: Database["public"]["Enums"]["communication_channel"]
+          created_at?: string
+          error_message?: string | null
+          invitation_id?: string | null
+          log_id?: string
+          message_type?: string
+          metadata?: Json | null
+          profile_id?: string | null
+          provider_message_id?: string | null
+          recipient?: string
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["communication_status"]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_comm_log_invitation"
+            columns: ["invitation_id"]
+            isOneToOne: false
+            referencedRelation: "invitation"
+            referencedColumns: ["invitation_id"]
+          },
+          {
+            foreignKeyName: "fk_comm_log_profile"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "fk_comm_log_workspace"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       company: {
         Row: {
           address_line_1: string | null
@@ -95,8 +259,10 @@ export type Database = {
           billing_email: string | null
           city: string | null
           company_id: string
+          company_type: string | null
           country: Database["public"]["Enums"]["country"]
           created_at: string
+          daglig_leder: string | null
           default_currency: Database["public"]["Enums"]["currency"]
           default_language: Database["public"]["Enums"]["preferred_language"]
           email: string | null
@@ -104,10 +270,15 @@ export type Database = {
           is_active: boolean
           legal_name: string | null
           logo_url: string | null
+          nace_code: string | null
+          nace_description: string | null
           name: string
+          onboarding_status: string | null
           org_number: string
           phone: string | null
           postal_code: string | null
+          raw_scraped_data: Json | null
+          registration_date: string | null
           subscription_plan: string | null
           subscription_status: string | null
           trial_ends_at: string | null
@@ -120,8 +291,10 @@ export type Database = {
           billing_email?: string | null
           city?: string | null
           company_id?: string
+          company_type?: string | null
           country?: Database["public"]["Enums"]["country"]
           created_at?: string
+          daglig_leder?: string | null
           default_currency?: Database["public"]["Enums"]["currency"]
           default_language?: Database["public"]["Enums"]["preferred_language"]
           email?: string | null
@@ -129,10 +302,15 @@ export type Database = {
           is_active?: boolean
           legal_name?: string | null
           logo_url?: string | null
+          nace_code?: string | null
+          nace_description?: string | null
           name: string
+          onboarding_status?: string | null
           org_number: string
           phone?: string | null
           postal_code?: string | null
+          raw_scraped_data?: Json | null
+          registration_date?: string | null
           subscription_plan?: string | null
           subscription_status?: string | null
           trial_ends_at?: string | null
@@ -145,8 +323,10 @@ export type Database = {
           billing_email?: string | null
           city?: string | null
           company_id?: string
+          company_type?: string | null
           country?: Database["public"]["Enums"]["country"]
           created_at?: string
+          daglig_leder?: string | null
           default_currency?: Database["public"]["Enums"]["currency"]
           default_language?: Database["public"]["Enums"]["preferred_language"]
           email?: string | null
@@ -154,10 +334,15 @@ export type Database = {
           is_active?: boolean
           legal_name?: string | null
           logo_url?: string | null
+          nace_code?: string | null
+          nace_description?: string | null
           name?: string
+          onboarding_status?: string | null
           org_number?: string
           phone?: string | null
           postal_code?: string | null
+          raw_scraped_data?: Json | null
+          registration_date?: string | null
           subscription_plan?: string | null
           subscription_status?: string | null
           trial_ends_at?: string | null
@@ -355,6 +540,164 @@ export type Database = {
           },
         ]
       }
+      employment_contract: {
+        Row: {
+          contract_id: string
+          created_at: string
+          created_by: string | null
+          document_url: string | null
+          employment_category: string
+          employment_percentage: number | null
+          end_date: string | null
+          hourly_rate: number | null
+          monthly_salary: number | null
+          position_title: string
+          profile_id: string
+          signature_id: string | null
+          signed_at: string | null
+          start_date: string
+          status: Database["public"]["Enums"]["contract_status"]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          contract_id?: string
+          created_at?: string
+          created_by?: string | null
+          document_url?: string | null
+          employment_category: string
+          employment_percentage?: number | null
+          end_date?: string | null
+          hourly_rate?: number | null
+          monthly_salary?: number | null
+          position_title: string
+          profile_id: string
+          signature_id?: string | null
+          signed_at?: string | null
+          start_date: string
+          status?: Database["public"]["Enums"]["contract_status"]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          contract_id?: string
+          created_at?: string
+          created_by?: string | null
+          document_url?: string | null
+          employment_category?: string
+          employment_percentage?: number | null
+          end_date?: string | null
+          hourly_rate?: number | null
+          monthly_salary?: number | null
+          position_title?: string
+          profile_id?: string
+          signature_id?: string | null
+          signed_at?: string | null
+          start_date?: string
+          status?: Database["public"]["Enums"]["contract_status"]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_contract_created_by"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "fk_contract_profile"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "fk_contract_workspace"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      invitation: {
+        Row: {
+          company_id: string
+          created_at: string
+          department_ids: string[] | null
+          email: string
+          expires_at: string
+          first_name: string | null
+          invitation_id: string
+          invited_by: string | null
+          last_name: string | null
+          role: Database["public"]["Enums"]["profile_role"]
+          status: Database["public"]["Enums"]["invite_status"]
+          team_ids: string[] | null
+          token: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          department_ids?: string[] | null
+          email: string
+          expires_at?: string
+          first_name?: string | null
+          invitation_id?: string
+          invited_by?: string | null
+          last_name?: string | null
+          role?: Database["public"]["Enums"]["profile_role"]
+          status?: Database["public"]["Enums"]["invite_status"]
+          team_ids?: string[] | null
+          token?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          department_ids?: string[] | null
+          email?: string
+          expires_at?: string
+          first_name?: string | null
+          invitation_id?: string
+          invited_by?: string | null
+          last_name?: string | null
+          role?: Database["public"]["Enums"]["profile_role"]
+          status?: Database["public"]["Enums"]["invite_status"]
+          team_ids?: string[] | null
+          token?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_invitation_company"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "fk_invitation_invited_by"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "fk_invitation_workspace"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       knowledge_test: {
         Row: {
           created_at: string
@@ -464,6 +807,258 @@ export type Database = {
           },
         ]
       }
+      notification_outbox: {
+        Row: {
+          action_url: string | null
+          allowed_channels:
+            | Database["public"]["Enums"]["notification_channel"][]
+            | null
+          body: string
+          created_at: string
+          error_log: string | null
+          id: number
+          metadata: Json | null
+          mode: Database["public"]["Enums"]["notification_mode"]
+          priority: number
+          processed_at: string | null
+          recipient_id: string
+          scheduled_for: string | null
+          status: Database["public"]["Enums"]["notification_status"] | null
+          title: string
+          workspace_id: string
+        }
+        Insert: {
+          action_url?: string | null
+          allowed_channels?:
+            | Database["public"]["Enums"]["notification_channel"][]
+            | null
+          body: string
+          created_at?: string
+          error_log?: string | null
+          id?: number
+          metadata?: Json | null
+          mode: Database["public"]["Enums"]["notification_mode"]
+          priority?: number
+          processed_at?: string | null
+          recipient_id: string
+          scheduled_for?: string | null
+          status?: Database["public"]["Enums"]["notification_status"] | null
+          title: string
+          workspace_id: string
+        }
+        Update: {
+          action_url?: string | null
+          allowed_channels?:
+            | Database["public"]["Enums"]["notification_channel"][]
+            | null
+          body?: string
+          created_at?: string
+          error_log?: string | null
+          id?: number
+          metadata?: Json | null
+          mode?: Database["public"]["Enums"]["notification_mode"]
+          priority?: number
+          processed_at?: string | null
+          recipient_id?: string
+          scheduled_for?: string | null
+          status?: Database["public"]["Enums"]["notification_status"] | null
+          title?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_outbox_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "notification_outbox_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      notification_preference: {
+        Row: {
+          community_enabled: boolean | null
+          created_at: string
+          email_enabled: boolean | null
+          push_enabled: boolean | null
+          quiet_hours_end: string | null
+          quiet_hours_start: string | null
+          quiet_hours_timezone: string | null
+          sms_enabled: boolean | null
+          training_enabled: boolean | null
+          updated_at: string
+          user_id: string
+          work_enabled: boolean | null
+        }
+        Insert: {
+          community_enabled?: boolean | null
+          created_at?: string
+          email_enabled?: boolean | null
+          push_enabled?: boolean | null
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          quiet_hours_timezone?: string | null
+          sms_enabled?: boolean | null
+          training_enabled?: boolean | null
+          updated_at?: string
+          user_id: string
+          work_enabled?: boolean | null
+        }
+        Update: {
+          community_enabled?: boolean | null
+          created_at?: string
+          email_enabled?: boolean | null
+          push_enabled?: boolean | null
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          quiet_hours_timezone?: string | null
+          sms_enabled?: boolean | null
+          training_enabled?: boolean | null
+          updated_at?: string
+          user_id?: string
+          work_enabled?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_preference_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "user_identity"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      onboarding_session: {
+        Row: {
+          ai_analysis: Json | null
+          brreg_data: Json | null
+          company_id: string | null
+          completed_at: string | null
+          completed_steps: number[] | null
+          confirmed_branding: Json | null
+          confirmed_departments: Json | null
+          confirmed_locations: Json | null
+          confirmed_positions: Json | null
+          confirmed_teams: Json | null
+          contract_generated_at: string | null
+          contract_sent_at: string | null
+          contract_signed_at: string | null
+          contract_url: string | null
+          created_at: string | null
+          current_step: number | null
+          id: string
+          scraped_data: Json | null
+          season_id: string | null
+          seasonal_context: string | null
+          source_url: string | null
+          started_at: string | null
+          suggested_branding: Json | null
+          suggested_departments: Json | null
+          suggested_locations: Json | null
+          suggested_positions: Json | null
+          suggested_teams: Json | null
+          updated_at: string | null
+          user_id: string | null
+          web_search_data: Json | null
+          workspace_id: string | null
+        }
+        Insert: {
+          ai_analysis?: Json | null
+          brreg_data?: Json | null
+          company_id?: string | null
+          completed_at?: string | null
+          completed_steps?: number[] | null
+          confirmed_branding?: Json | null
+          confirmed_departments?: Json | null
+          confirmed_locations?: Json | null
+          confirmed_positions?: Json | null
+          confirmed_teams?: Json | null
+          contract_generated_at?: string | null
+          contract_sent_at?: string | null
+          contract_signed_at?: string | null
+          contract_url?: string | null
+          created_at?: string | null
+          current_step?: number | null
+          id?: string
+          scraped_data?: Json | null
+          season_id?: string | null
+          seasonal_context?: string | null
+          source_url?: string | null
+          started_at?: string | null
+          suggested_branding?: Json | null
+          suggested_departments?: Json | null
+          suggested_locations?: Json | null
+          suggested_positions?: Json | null
+          suggested_teams?: Json | null
+          updated_at?: string | null
+          user_id?: string | null
+          web_search_data?: Json | null
+          workspace_id?: string | null
+        }
+        Update: {
+          ai_analysis?: Json | null
+          brreg_data?: Json | null
+          company_id?: string | null
+          completed_at?: string | null
+          completed_steps?: number[] | null
+          confirmed_branding?: Json | null
+          confirmed_departments?: Json | null
+          confirmed_locations?: Json | null
+          confirmed_positions?: Json | null
+          confirmed_teams?: Json | null
+          contract_generated_at?: string | null
+          contract_sent_at?: string | null
+          contract_signed_at?: string | null
+          contract_url?: string | null
+          created_at?: string | null
+          current_step?: number | null
+          id?: string
+          scraped_data?: Json | null
+          season_id?: string | null
+          seasonal_context?: string | null
+          source_url?: string | null
+          started_at?: string | null
+          suggested_branding?: Json | null
+          suggested_departments?: Json | null
+          suggested_locations?: Json | null
+          suggested_positions?: Json | null
+          suggested_teams?: Json | null
+          updated_at?: string | null
+          user_id?: string | null
+          web_search_data?: Json | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_session_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "onboarding_session_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "season"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "onboarding_session_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       policy: {
         Row: {
           created_at: string
@@ -551,41 +1146,53 @@ export type Database = {
       }
       position: {
         Row: {
+          color: string | null
           created_at: string
           department_id: string
           description: string | null
+          icon: string | null
           is_active: boolean
           minimum_role: Database["public"]["Enums"]["profile_role"] | null
           name: string
           position_id: string
+          season_id: string | null
           skill_requirements: Json | null
           slug: string
+          sort_order: number | null
           updated_at: string
           workspace_id: string
         }
         Insert: {
+          color?: string | null
           created_at?: string
           department_id: string
           description?: string | null
+          icon?: string | null
           is_active?: boolean
           minimum_role?: Database["public"]["Enums"]["profile_role"] | null
           name: string
           position_id?: string
+          season_id?: string | null
           skill_requirements?: Json | null
           slug: string
+          sort_order?: number | null
           updated_at?: string
           workspace_id: string
         }
         Update: {
+          color?: string | null
           created_at?: string
           department_id?: string
           description?: string | null
+          icon?: string | null
           is_active?: boolean
           minimum_role?: Database["public"]["Enums"]["profile_role"] | null
           name?: string
           position_id?: string
+          season_id?: string | null
           skill_requirements?: Json | null
           slug?: string
+          sort_order?: number | null
           updated_at?: string
           workspace_id?: string
         }
@@ -603,6 +1210,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "workspace"
             referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "position_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "season"
+            referencedColumns: ["season_id"]
           },
         ]
       }
@@ -699,7 +1313,11 @@ export type Database = {
       }
       profile: {
         Row: {
+          address_line_1: string | null
+          address_line_2: string | null
           avatar_url: string | null
+          bank_account: string | null
+          city: string | null
           company_id: string
           created_at: string
           department_id: string | null
@@ -715,6 +1333,8 @@ export type Database = {
           location_id: string | null
           locations: string[] | null
           notification_pref: Json | null
+          personal_number: string | null
+          postal_code: string | null
           profile_code: string
           profile_id: string
           role: Database["public"]["Enums"]["profile_role"]
@@ -726,7 +1346,11 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          address_line_1?: string | null
+          address_line_2?: string | null
           avatar_url?: string | null
+          bank_account?: string | null
+          city?: string | null
           company_id: string
           created_at?: string
           department_id?: string | null
@@ -742,6 +1366,8 @@ export type Database = {
           location_id?: string | null
           locations?: string[] | null
           notification_pref?: Json | null
+          personal_number?: string | null
+          postal_code?: string | null
           profile_code: string
           profile_id?: string
           role?: Database["public"]["Enums"]["profile_role"]
@@ -753,7 +1379,11 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          address_line_1?: string | null
+          address_line_2?: string | null
           avatar_url?: string | null
+          bank_account?: string | null
+          city?: string | null
           company_id?: string
           created_at?: string
           department_id?: string | null
@@ -769,6 +1399,8 @@ export type Database = {
           location_id?: string | null
           locations?: string[] | null
           notification_pref?: Json | null
+          personal_number?: string | null
+          postal_code?: string | null
           profile_code?: string
           profile_id?: string
           role?: Database["public"]["Enums"]["profile_role"]
@@ -1376,13 +2008,17 @@ export type Database = {
           active_modules: string[] | null
           address_line_1: string | null
           address_line_2: string | null
+          brand_color: string | null
           city: string | null
+          communication_tone: string | null
           company_id: string
           country: Database["public"]["Enums"]["country"]
+          cover_photo_url: string | null
           created_at: string
           currency: Database["public"]["Enums"]["currency"]
           description: string | null
           email: string | null
+          extended_description: string | null
           is_active: boolean
           language: Database["public"]["Enums"]["preferred_language"]
           logo_url: string | null
@@ -1390,6 +2026,8 @@ export type Database = {
           name: string
           phone: string | null
           postal_code: string | null
+          short_description: string | null
+          slogan: string | null
           slug: string
           timezone: string
           updated_at: string
@@ -1399,13 +2037,17 @@ export type Database = {
           active_modules?: string[] | null
           address_line_1?: string | null
           address_line_2?: string | null
+          brand_color?: string | null
           city?: string | null
+          communication_tone?: string | null
           company_id: string
           country?: Database["public"]["Enums"]["country"]
+          cover_photo_url?: string | null
           created_at?: string
           currency?: Database["public"]["Enums"]["currency"]
           description?: string | null
           email?: string | null
+          extended_description?: string | null
           is_active?: boolean
           language?: Database["public"]["Enums"]["preferred_language"]
           logo_url?: string | null
@@ -1413,6 +2055,8 @@ export type Database = {
           name: string
           phone?: string | null
           postal_code?: string | null
+          short_description?: string | null
+          slogan?: string | null
           slug: string
           timezone?: string
           updated_at?: string
@@ -1422,13 +2066,17 @@ export type Database = {
           active_modules?: string[] | null
           address_line_1?: string | null
           address_line_2?: string | null
+          brand_color?: string | null
           city?: string | null
+          communication_tone?: string | null
           company_id?: string
           country?: Database["public"]["Enums"]["country"]
+          cover_photo_url?: string | null
           created_at?: string
           currency?: Database["public"]["Enums"]["currency"]
           description?: string | null
           email?: string | null
+          extended_description?: string | null
           is_active?: boolean
           language?: Database["public"]["Enums"]["preferred_language"]
           logo_url?: string | null
@@ -1436,6 +2084,8 @@ export type Database = {
           name?: string
           phone?: string | null
           postal_code?: string | null
+          short_description?: string | null
+          slogan?: string | null
           slug?: string
           timezone?: string
           updated_at?: string
@@ -1454,36 +2104,45 @@ export type Database = {
       zone: {
         Row: {
           capacity: number | null
+          color: string | null
           created_at: string
           description: string | null
           is_active: boolean
           location_id: string
           name: string
+          season_id: string | null
           slug: string
+          sort_order: number | null
           updated_at: string
           workspace_id: string
           zone_id: string
         }
         Insert: {
           capacity?: number | null
+          color?: string | null
           created_at?: string
           description?: string | null
           is_active?: boolean
           location_id: string
           name: string
+          season_id?: string | null
           slug: string
+          sort_order?: number | null
           updated_at?: string
           workspace_id: string
           zone_id?: string
         }
         Update: {
           capacity?: number | null
+          color?: string | null
           created_at?: string
           description?: string | null
           is_active?: boolean
           location_id?: string
           name?: string
+          season_id?: string | null
           slug?: string
+          sort_order?: number | null
           updated_at?: string
           workspace_id?: string
           zone_id?: string
@@ -1503,6 +2162,13 @@ export type Database = {
             referencedRelation: "workspace"
             referencedColumns: ["workspace_id"]
           },
+          {
+            foreignKeyName: "zone_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "season"
+            referencedColumns: ["season_id"]
+          },
         ]
       }
     }
@@ -1510,11 +2176,58 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      activate_workspace_v3: {
+        Args: { p_data: Json; p_user_id: string }
+        Returns: string
+      }
       anonymize_user: { Args: { target_user_id: string }; Returns: undefined }
+      create_workspace_transaction:
+        | {
+            Args: {
+              p_company_name: string
+              p_departments: Json
+              p_locations: Json
+              p_policies: Json
+              p_user_id: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_company_name: string
+              p_departments: Json
+              p_locations: Json
+              p_policies: Json
+              p_raw_scraped_data?: Json
+              p_user_id: string
+            }
+            Returns: string
+          }
+      get_workspace_ids_for_user: { Args: { uid: string }; Returns: string[] }
+      is_admin_in_workspace: {
+        Args: { uid: string; wid: string }
+        Returns: boolean
+      }
     }
     Enums: {
+      asset_type: "equipment" | "safety" | "storage" | "station" | "other"
       auth_provider: "supabase" | "google" | "microsoft"
+      communication_channel: "email" | "sms" | "push" | "in_app"
+      communication_status:
+        | "pending"
+        | "sent"
+        | "delivered"
+        | "failed"
+        | "opened"
+        | "clicked"
       company_member_role: "owner" | "admin" | "member"
+      contract_status:
+        | "draft"
+        | "sent"
+        | "viewed"
+        | "signed"
+        | "expired"
+        | "terminated"
       control_frequency: "every_time" | "every_nth" | "never"
       control_list_assigned_to_type:
         | "team_leader"
@@ -1525,6 +2238,7 @@ export type Database = {
       currency: "NOK" | "SEK" | "DKK" | "EUR"
       enforcement_status: "aspirational" | "enforced"
       industry: "restaurant" | "hotel" | "cafe" | "bar" | "catering" | "other"
+      invite_status: "pending" | "accepted" | "expired" | "cancelled"
       location_type:
         | "main"
         | "outdoor"
@@ -1532,6 +2246,14 @@ export type Database = {
         | "event"
         | "storage"
         | "other"
+      notification_channel: "push" | "sms" | "email" | "voice"
+      notification_mode: "training" | "work" | "community"
+      notification_status:
+        | "pending"
+        | "processing"
+        | "delivered"
+        | "failed"
+        | "suppressed"
       policy_scope: "workspace" | "department" | "team" | "location"
       policy_type:
         | "operational"
@@ -1692,8 +2414,26 @@ export const Constants = {
   },
   public: {
     Enums: {
+      asset_type: ["equipment", "safety", "storage", "station", "other"],
       auth_provider: ["supabase", "google", "microsoft"],
+      communication_channel: ["email", "sms", "push", "in_app"],
+      communication_status: [
+        "pending",
+        "sent",
+        "delivered",
+        "failed",
+        "opened",
+        "clicked",
+      ],
       company_member_role: ["owner", "admin", "member"],
+      contract_status: [
+        "draft",
+        "sent",
+        "viewed",
+        "signed",
+        "expired",
+        "terminated",
+      ],
       control_frequency: ["every_time", "every_nth", "never"],
       control_list_assigned_to_type: [
         "team_leader",
@@ -1705,6 +2445,7 @@ export const Constants = {
       currency: ["NOK", "SEK", "DKK", "EUR"],
       enforcement_status: ["aspirational", "enforced"],
       industry: ["restaurant", "hotel", "cafe", "bar", "catering", "other"],
+      invite_status: ["pending", "accepted", "expired", "cancelled"],
       location_type: [
         "main",
         "outdoor",
@@ -1712,6 +2453,15 @@ export const Constants = {
         "event",
         "storage",
         "other",
+      ],
+      notification_channel: ["push", "sms", "email", "voice"],
+      notification_mode: ["training", "work", "community"],
+      notification_status: [
+        "pending",
+        "processing",
+        "delivered",
+        "failed",
+        "suppressed",
       ],
       policy_scope: ["workspace", "department", "team", "location"],
       policy_type: [
