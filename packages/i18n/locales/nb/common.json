@@ -1,0 +1,9 @@
+{
+  "common": {
+    "save": "Lagre",
+    "cancel": "Avbryt",
+    "delete": "Slett",
+    "confirm": "Bekreft",
+    "back": "Tilbake"
+  }
+}

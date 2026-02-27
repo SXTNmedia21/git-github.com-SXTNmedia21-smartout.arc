@@ -1,0 +1,1026 @@
+# Module 9B: WebRTC Voice & Video (LiveKit Integration)
+
+> **Smartout.io** — Functional documentation for migration
+> Version 1.0 | February 2026
+> **Dependencies:** Core Architecture v2 (Profile, Team, Department, Workspace), Module 9 (Communication — chat_channel, chat_message), Module 12 (AI Layer — Mr. Botsson)
+> **Technology:** LiveKit Cloud → self-hosted migration path
+
+---
+
+## 1. Module Overview
+
+This module adds real-time voice and video calling to Smartout's communication layer. It extends Module 9 (Communication) with WebRTC capabilities via LiveKit — enabling employees to make WhatsApp-style voice calls, join group voice channels, use push-to-talk walkie-talkie mode, and (Phase 2) conduct video calls with camera sharing for HACCP visual verification.
+
+**Key insight:** This is NOT a standalone module. It extends Module 9's `chat_channel` system with voice/video capabilities. Every call happens in the context of a channel — a department channel, team channel, session channel, or direct message. The call button lives inside the chat UI.
+
+### What This Module Covers
+
+- 1:1 voice calls (WhatsApp-style tap-to-call from DMs)
+- Group voice calls (from department/team/session channels)
+- Push-to-talk / walkie-talkie mode for channels
+- Call state management (ringing, connected, ended, missed)
+- Call history and logging
+- Phase 2: Video calls with camera switching (HACCP use case)
+- Phase 2: Call recording for compliance/training
+- SIP telephony (calling employees on their actual phones)
+- AI agent participation (Mr. Botsson joining calls)
+
+### What This Module Does NOT Cover
+
+- Text chat (Module 9 via Supabase Realtime)
+- Push notifications infrastructure (Module 9)
+- AI voice conversation logic (Module 12)
+- SMS/Email notifications (Module 9)
+
+### Design Philosophy
+
+Restaurant communication is **short and operational**. Typical calls last 30 seconds to 3 minutes: "Leveransen er her, kom til baksiden." "Bord 12 har allergispørsmål." "Kan du dekke min seksjon i 5 minutter?" The system optimizes for instant connection, crystal-clear audio in noisy environments, and zero friction. If it takes more than 2 taps to start a call, it's too slow.
+
+---
+
+## 2. Architecture
+
+### 2.1 Technology Choice: LiveKit
+
+LiveKit is an open-source (Apache 2.0) WebRTC Selective Forwarding Unit (SFU) written in Go. Unlike peer-to-peer WebRTC (which degrades beyond 3-4 participants), the SFU receives each publisher's encoded media once and forwards copies to every subscriber without transcoding. This eliminates latency while scaling to hundreds of participants per room.
+
+**Why LiveKit over alternatives:**
+
+| Requirement                   | LiveKit           | Twilio Voice      | Agora      | Daily.co   |
+| ----------------------------- | ----------------- | ----------------- | ---------- | ---------- |
+| Open source / self-hostable   | ✅ Apache 2.0     | ❌                | ❌         | ❌         |
+| React Native + Expo SDK       | ✅ Official       | ⚠️ Limited        | ✅         | ✅         |
+| SIP/PSTN telephony            | ✅ Built-in       | ✅ Native         | ⚠️ Limited | ✅         |
+| AI agent framework            | ✅ LiveKit Agents | ❌                | ❌         | ✅ Pipecat |
+| Noise cancellation (Krisp)    | ✅ Built-in       | ❌                | ✅         | ✅         |
+| WebRTC audio cost/min         | $0.0004–0.0005    | $0.014 (28× more) | $0.00099   | $0.00099   |
+| Cloud → self-hosted migration | ✅ Same code      | N/A               | N/A        | N/A        |
+| Deno support (Edge Functions) | ✅ Server SDK v2  | ❌                | ❌         | ❌         |
+
+### 2.2 Deployment Strategy
+
+**Phase 1: LiveKit Cloud (Ship plan — $50/month)**
+
+- Managed infrastructure, automatic scaling
+- EU region (Frankfurt/Zurich) for GDPR compliance — ~15-25ms latency to Norway
+- 150,000 WebRTC minutes included (vastly exceeds restaurant usage)
+- Built-in analytics dashboard
+
+**Phase 2+: Evaluate self-hosted**
+
+- Only economical at 1000+ concurrent users
+- Deploy to AWS `eu-north-1` (Stockholm) for optimal Nordic latency
+- Same code, same SDKs — only the endpoint URL changes
+- Requires Redis for multi-node coordination
+
+### 2.3 System Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                         SMARTOUT CLIENT                              │
+│                                                                      │
+│  ┌──────────────────────┐         ┌──────────────────────┐          │
+│  │    Next.js Web        │         │  React Native Mobile  │          │
+│  │                       │         │                       │          │
+│  │  @livekit/components  │         │  @livekit/react-      │          │
+│  │  -react               │         │  native               │          │
+│  │                       │         │                       │          │
+│  │  Supabase Realtime    │         │  Supabase Realtime    │          │
+│  │  (chat + signaling)   │         │  (chat + signaling)   │          │
+│  └──────────┬────────────┘         └──────────┬────────────┘          │
+│             │                                  │                      │
+└─────────────┼──────────────────────────────────┼──────────────────────┘
+              │                                  │
+              │  WebRTC (voice/video)             │  WebRTC (voice/video)
+              │  ┌───────────────────────────┐    │
+              └──┤     LiveKit Cloud SFU     ├────┘
+                 │     (EU region)            │
+                 │                            │
+                 │  ┌────────────────────┐    │
+                 │  │  SIP Bridge        │    │
+                 │  │  (Twilio trunk)    │    │
+                 │  └────────┬───────────┘    │
+                 └───────────┼────────────────┘
+                             │
+                             │ SIP/PSTN
+                             │
+                    ┌────────┴─────────┐
+                    │  Twilio Elastic   │
+                    │  SIP Trunk        │
+                    │  (NO numbers)     │
+                    └──────────────────┘
+
+              ┌──────────────────────────────────┐
+              │         SMARTOUT BACKEND           │
+              │                                    │
+              │  Supabase Edge Functions:           │
+              │  ├── livekit-token (Deno)           │
+              │  ├── call-invite                    │
+              │  └── call-webhook                   │
+              │                                    │
+              │  Next.js API Routes:                │
+              │  ├── /api/calls/initiate             │
+              │  ├── /api/calls/webhook              │
+              │  └── /api/calls/history              │
+              │                                    │
+              │  PostgreSQL:                         │
+              │  ├── call_session                    │
+              │  ├── call_participant                │
+              │  └── call_recording (Phase 2)        │
+              │                                    │
+              │  Supabase Realtime:                  │
+              │  └── call signaling (invite/accept/  │
+              │      reject/end)                     │
+              └──────────────────────────────────┘
+```
+
+### 2.4 Core Concepts Mapping
+
+| LiveKit Concept  | Smartout Mapping                                                           |
+| ---------------- | -------------------------------------------------------------------------- |
+| **Room**         | One per active call, named `{workspace_id}:{channel_id}:{call_session_id}` |
+| **Participant**  | Profile (human), Mr. Botsson (AI agent), or SIP caller (phone)             |
+| **Audio Track**  | Microphone — published when unmuted                                        |
+| **Video Track**  | Camera — Phase 2 only                                                      |
+| **Data Channel** | Call metadata, typing indicators, call state sync                          |
+| **Token**        | JWT with `profile_id` as identity, scoped to specific room                 |
+
+---
+
+## 3. Call Types & User Flows
+
+### 3.1 Direct Call (1:1)
+
+The primary use case. Two employees calling each other from a DM or contact list.
+
+```
+User A taps 📞 on User B's profile or DM
+  │
+  ├── 1. Client calls POST /api/calls/initiate
+  │       Body: { channel_id, callee_profile_id }
+  │
+  ├── 2. Backend creates call_session row (status: ringing)
+  │       Generates LiveKit room name: ws_abc:ch_dm_123:cs_456
+  │       Creates token for User A (canPublish: true)
+  │
+  ├── 3. Backend broadcasts call invite via Supabase Realtime
+  │       Channel: profile:{callee_profile_id}:calls
+  │       Payload: { call_session_id, caller_name, caller_avatar, room_name }
+  │
+  ├── 4. User B's device receives invite
+  │       Shows incoming call UI (full-screen overlay on mobile)
+  │       Plays ringtone
+  │
+  ├── 5a. User B ACCEPTS:
+  │       Client fetches token from /api/calls/token
+  │       Joins LiveKit room → audio flows
+  │       call_session.status → 'active'
+  │       Both clients show in-call UI
+  │
+  ├── 5b. User B REJECTS:
+  │       Broadcasts rejection via Supabase Realtime
+  │       call_session.status → 'rejected'
+  │       User A sees "Call declined"
+  │
+  ├── 5c. TIMEOUT (30 seconds, no answer):
+  │       call_session.status → 'missed'
+  │       Backend creates notification for User B (missed call)
+  │       User A sees "No answer"
+  │
+  └── 6. CALL ENDS:
+          Either user taps End Call
+          Client disconnects from LiveKit room
+          room_finished webhook fires → backend logs duration
+          call_session.status → 'completed', ended_at set
+```
+
+### 3.2 Group Call (from Channel)
+
+Started from a department, team, or session channel. All channel members can join.
+
+```
+Manager taps 📞 in #kjøkken channel
+  │
+  ├── 1. Client calls POST /api/calls/initiate
+  │       Body: { channel_id, call_type: 'group' }
+  │
+  ├── 2. Backend creates call_session (status: active — no ringing phase)
+  │       Room name: ws_abc:ch_dept_kjokken:cs_789
+  │       Creates token for initiator
+  │
+  ├── 3. Backend broadcasts to channel via Supabase Realtime
+  │       "📞 [Manager Name] startet en gruppesamtale"
+  │       All channel members see "Join call" banner in chat
+  │
+  ├── 4. Other members tap "Join" as they choose
+  │       Each fetches token → joins room
+  │       Chat shows "[Name] joined the call"
+  │
+  ├── 5. Members leave individually or call ends when last person leaves
+  │       room_finished webhook → log total duration and participants
+  │
+  └── UI: Floating call bar at top of chat showing active speakers
+          and participant count: "🔊 3 in call — [Join]"
+```
+
+### 3.3 Push-to-Talk (Walkie-Talkie Mode)
+
+For persistent voice channels — e.g., kitchen team stays connected during service. All participants join muted and press-to-speak.
+
+```
+Employee opens #kjøkken-radio channel (channel_type: voice)
+  │
+  ├── 1. Auto-connects to persistent LiveKit room
+  │       Room: ws_abc:ch_voice_kjokken (always exists during active session)
+  │       Token: canPublish: true, mic starts MUTED
+  │
+  ├── 2. UI shows list of connected members with presence dots
+  │       Large PTT button at bottom of screen
+  │
+  ├── 3. Employee PRESSES AND HOLDS 🎤 button
+  │       localParticipant.setMicrophoneEnabled(true)
+  │       Active speaker indicator shows on all devices
+  │       Near-instant — no connection delay (already connected)
+  │
+  ├── 4. Employee RELEASES button
+  │       localParticipant.setMicrophoneEnabled(false)
+  │       Audio stops
+  │
+  └── Connection stays alive until employee leaves channel or shift ends
+      emptyTimeout on room set high (e.g., 3600 = 1 hour)
+      Room auto-recreated by session start Edge Function
+```
+
+**Implementation detail:** Push-to-talk is purely a mute/unmute toggle. Since the WebRTC connection is already established, the latency is negligible (~10-20ms signaling). The alternative (connect/disconnect per transmission) would add 500ms+ handshake delay and miss the beginning of each transmission.
+
+### 3.4 SIP Call (Calling Employee's Phone)
+
+For reaching employees who aren't in the app — off-duty staff, or employees without smartphones.
+
+```
+Manager taps "Ring telefon" on employee's profile
+  │
+  ├── 1. Client calls POST /api/calls/initiate
+  │       Body: { callee_profile_id, call_type: 'sip' }
+  │
+  ├── 2. Backend looks up employee's phone number from User record
+  │       Creates LiveKit room
+  │       Calls LiveKit SIP API: createSipParticipant()
+  │       → LiveKit dials employee via Twilio SIP trunk
+  │
+  ├── 3. Employee's phone rings (appears as call from Smartout number)
+  │       SIP participant status: dialing → ringing → active
+  │
+  ├── 4. Employee answers on phone
+  │       Bidirectional audio flows through LiveKit room
+  │       Manager hears employee through app, employee hears through phone
+  │
+  └── 5. Either party hangs up → call ends
+          SIP participant disconnects → room closes
+```
+
+**Cost note:** SIP calls incur both LiveKit SIP minutes ($0.003-0.004/min) AND Twilio SIP trunk termination fees (~$0.03/min for Norwegian mobile numbers). App-to-app calls are dramatically cheaper (WebRTC minutes only).
+
+---
+
+## 4. Data Model
+
+### 4.1 New Tables
+
+```
+call_session
+  call_session_id      uuid (PK)
+  workspace_id         fk → workspace
+  channel_id           fk → chat_channel (the channel this call belongs to)
+
+  -- Call identity
+  room_name            string (LiveKit room name, unique per active call)
+  call_type            direct | group | ptt | sip
+
+  -- State
+  status               ringing | active | completed | missed | rejected | failed
+  initiated_by         fk → profile
+
+  -- Timing
+  started_at           timestamp (when call_session created)
+  connected_at         timestamp | null (when first two participants connected)
+  ended_at             timestamp | null
+  duration_seconds     integer | null (computed from connected_at to ended_at)
+
+  -- SIP details (only for sip call_type)
+  sip_phone_number     string | null
+  sip_trunk_id         string | null
+
+  -- Recording (Phase 2)
+  is_recorded          boolean (default false)
+  recording_url        string | null (Supabase Storage path)
+  recording_consent    jsonb | null ([{profile_id, consented_at}])
+
+  -- Metadata
+  participant_count     integer (max concurrent participants)
+  ended_reason         user_hangup | timeout | error | all_left
+
+  created_at           timestamp
+  updated_at           timestamp
+
+
+call_participant
+  id                   uuid (PK)
+  call_session_id      fk → call_session
+  workspace_id         fk → workspace
+  profile_id           fk → profile | null (null for SIP-only callers)
+
+  -- Participation
+  participant_type     human | ai_agent | sip_phone
+  joined_at            timestamp
+  left_at              timestamp | null
+  duration_seconds     integer | null
+
+  -- State during call
+  was_initiator        boolean
+  was_muted            boolean (final state)
+
+  created_at           timestamp
+```
+
+### 4.2 Extensions to Existing Tables
+
+```
+-- Add to chat_channel (Module 9)
+ALTER TABLE chat_channel ADD COLUMN
+  voice_enabled        boolean (default false — enables call button in channel UI)
+  ptt_enabled          boolean (default false — enables walkie-talkie mode)
+  active_call_id       fk → call_session | null (currently active call in this channel)
+
+
+-- Add to profile (Core)
+ALTER TABLE profile ADD COLUMN
+  call_status          available | on_call | do_not_disturb | offline
+  last_call_status_at  timestamp | null
+```
+
+### 4.3 Indexes
+
+```sql
+CREATE INDEX idx_call_session_workspace ON call_session(workspace_id);
+CREATE INDEX idx_call_session_channel ON call_session(channel_id);
+CREATE INDEX idx_call_session_status ON call_session(workspace_id, status) WHERE status = 'active';
+CREATE INDEX idx_call_participant_session ON call_participant(call_session_id);
+CREATE INDEX idx_call_participant_profile ON call_participant(profile_id, created_at DESC);
+```
+
+### 4.4 RLS Policies
+
+```sql
+-- call_session: users can only see calls in their workspace
+CREATE POLICY call_session_workspace ON call_session
+  USING (workspace_id IN (SELECT get_workspace_ids_for_user()));
+
+-- call_participant: users can see participants of calls they can see
+CREATE POLICY call_participant_access ON call_participant
+  USING (workspace_id IN (SELECT get_workspace_ids_for_user()));
+```
+
+---
+
+## 5. Token Generation & Security
+
+### 5.1 Token Flow
+
+Every LiveKit connection requires a JWT token signed with the API secret. Tokens encode:
+
+- **identity:** `profile_id` (unique per participant)
+- **room:** Specific room name the token is valid for
+- **grants:** Permissions (canPublish, canSubscribe, canPublishData)
+- **ttl:** Token expiry (default: 6 hours)
+
+### 5.2 Supabase Edge Function (Primary — Deno)
+
+```typescript
+// supabase/functions/livekit-token/index.ts
+import { AccessToken } from "npm:livekit-server-sdk";
+import { createClient } from "npm:@supabase/supabase-js";
+
+Deno.serve(async (req) => {
+  // Authenticate the request via Supabase Auth
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_ANON_KEY")!,
+    {
+      global: { headers: { Authorization: req.headers.get("Authorization")! } },
+    },
+  );
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
+  const { roomName, workspaceId } = await req.json();
+
+  // Verify user has access to this workspace
+  const { data: profile } = await supabase
+    .from("profile")
+    .select("profile_id, display_name, workspace_id")
+    .eq("user_id", user.id)
+    .eq("workspace_id", workspaceId)
+    .eq("is_active", true)
+    .single();
+
+  if (!profile) {
+    return new Response("No active profile in workspace", { status: 403 });
+  }
+
+  // Verify room name starts with the correct workspace_id
+  if (!roomName.startsWith(workspaceId)) {
+    return new Response("Room does not belong to workspace", { status: 403 });
+  }
+
+  const at = new AccessToken(
+    Deno.env.get("LIVEKIT_API_KEY")!,
+    Deno.env.get("LIVEKIT_API_SECRET")!,
+    {
+      identity: profile.profile_id,
+      name: profile.display_name,
+      ttl: "6h",
+    },
+  );
+
+  at.addGrant({
+    roomJoin: true,
+    room: roomName,
+    canPublish: true,
+    canSubscribe: true,
+    canPublishData: true, // for call metadata
+  });
+
+  const token = await at.toJwt();
+
+  return new Response(
+    JSON.stringify({
+      token,
+      serverUrl: Deno.env.get("LIVEKIT_URL"),
+    }),
+    {
+      headers: { "Content-Type": "application/json" },
+    },
+  );
+});
+```
+
+### 5.3 Security Rules
+
+- **Room naming convention** enforces workspace isolation: `{workspace_id}:{channel_id}:{call_session_id}`
+- Tokens are scoped to exactly ONE room — users cannot join rooms in other workspaces
+- Backend validates workspace membership BEFORE issuing tokens
+- Call invites sent via Supabase Realtime channels scoped to profile_id
+- LiveKit webhooks validated via HMAC signature using API secret
+
+---
+
+## 6. Call Signaling via Supabase Realtime
+
+LiveKit provides media transport but NOT call signaling (ringing, accept, reject). Smartout uses Supabase Realtime Broadcast for signaling — reusing existing infrastructure from Module 9 chat.
+
+### 6.1 Signaling Channels
+
+```typescript
+// Each profile subscribes to their personal call channel
+const callChannel = supabase.channel(`profile:${profileId}:calls`);
+
+callChannel.on("broadcast", { event: "call_invite" }, (payload) => {
+  // Show incoming call UI
+  // payload: { call_session_id, caller_name, caller_avatar, room_name, call_type }
+});
+
+callChannel.on("broadcast", { event: "call_accepted" }, (payload) => {
+  // Callee accepted — stop ringing, connect
+});
+
+callChannel.on("broadcast", { event: "call_rejected" }, (payload) => {
+  // Callee rejected — show "Call declined"
+});
+
+callChannel.on("broadcast", { event: "call_ended" }, (payload) => {
+  // Other party hung up — disconnect from room
+});
+
+callChannel.on("broadcast", { event: "call_cancelled" }, (payload) => {
+  // Caller cancelled before answer — dismiss incoming call UI
+});
+
+callChannel.subscribe();
+```
+
+### 6.2 Group Call Signaling
+
+For group calls, broadcast to the chat channel instead of individual profiles:
+
+```typescript
+// Broadcast to all channel members
+const channelBroadcast = supabase.channel(`chat:${channelId}`);
+
+channelBroadcast.send({
+  type: "broadcast",
+  event: "group_call_started",
+  payload: {
+    call_session_id,
+    initiator_name,
+    room_name,
+    participant_count: 1,
+  },
+});
+```
+
+---
+
+## 7. Client SDK Integration
+
+### 7.1 NPM Packages
+
+```json
+{
+  "dependencies": {
+    "livekit-client": "^2.17.2",
+    "@livekit/components-react": "^2.9.20",
+    "@livekit/components-styles": "^1.1.4",
+    "livekit-server-sdk": "^2.15.0"
+  }
+}
+```
+
+**Mobile (React Native + Expo):**
+
+```json
+{
+  "dependencies": {
+    "@livekit/react-native": "^2.9.6",
+    "@livekit/react-native-webrtc": "^137.0.2"
+  },
+  "devDependencies": {
+    "@livekit/react-native-expo-plugin": "^1.0.1",
+    "@config-plugins/react-native-webrtc": "latest"
+  }
+}
+```
+
+**Expo config (app.json):**
+
+```json
+{
+  "expo": {
+    "plugins": [
+      "@livekit/react-native-expo-plugin",
+      "@config-plugins/react-native-webrtc"
+    ]
+  }
+}
+```
+
+**Critical:** LiveKit requires Expo development builds. NOT compatible with Expo Go. Run `npx expo prebuild` and use `npx expo run:ios` / `npx expo run:android`.
+
+### 7.2 React Native Initialization
+
+```typescript
+// Must be called at app entry point BEFORE any LiveKit usage
+import { registerGlobals } from "@livekit/react-native";
+registerGlobals();
+```
+
+### 7.3 Web Component (Next.js)
+
+```tsx
+"use client";
+
+import {
+  LiveKitRoom,
+  RoomAudioRenderer,
+  useParticipants,
+  useLocalParticipant,
+} from "@livekit/components-react";
+import "@livekit/components-styles";
+
+interface VoiceCallProps {
+  token: string;
+  roomName: string;
+  onCallEnd: () => void;
+}
+
+export function VoiceCall({ token, roomName, onCallEnd }: VoiceCallProps) {
+  return (
+    <LiveKitRoom
+      token={token}
+      serverUrl={process.env.NEXT_PUBLIC_LIVEKIT_URL}
+      connect={true}
+      audio={true}
+      video={false}
+      onDisconnected={onCallEnd}
+    >
+      <RoomAudioRenderer />
+      <CallControls onEnd={onCallEnd} />
+    </LiveKitRoom>
+  );
+}
+
+function CallControls({ onEnd }: { onEnd: () => void }) {
+  const { localParticipant } = useLocalParticipant();
+  const participants = useParticipants();
+  const [isMuted, setIsMuted] = useState(false);
+
+  const toggleMute = async () => {
+    await localParticipant.setMicrophoneEnabled(isMuted);
+    setIsMuted(!isMuted);
+  };
+
+  return (
+    <div className="call-controls">
+      <span>{participants.length} deltakere</span>
+      <button onClick={toggleMute}>{isMuted ? "🔇" : "🔊"}</button>
+      <button onClick={onEnd} className="end-call">
+        📞 Legg på
+      </button>
+    </div>
+  );
+}
+```
+
+### 7.4 Mobile Component (React Native)
+
+```tsx
+import { useEffect } from "react";
+import { AudioSession, LiveKitRoom } from "@livekit/react-native";
+
+export function VoiceCallScreen({
+  token,
+  onEnd,
+}: {
+  token: string;
+  onEnd: () => void;
+}) {
+  useEffect(() => {
+    AudioSession.startAudioSession();
+    return () => {
+      AudioSession.stopAudioSession();
+    };
+  }, []);
+
+  return (
+    <LiveKitRoom
+      serverUrl={LIVEKIT_URL}
+      token={token}
+      connect={true}
+      audio={true}
+      video={false}
+      options={{ adaptiveStream: { pixelDensity: "screen" } }}
+      onDisconnected={onEnd}
+    >
+      <MobileCallUI />
+    </LiveKitRoom>
+  );
+}
+```
+
+### 7.5 Push-to-Talk Component
+
+```tsx
+import { useLocalParticipant } from "@livekit/components-react";
+
+function PushToTalkButton() {
+  const { localParticipant } = useLocalParticipant();
+
+  const handlePressStart = async () => {
+    await localParticipant.setMicrophoneEnabled(true);
+  };
+
+  const handlePressEnd = async () => {
+    await localParticipant.setMicrophoneEnabled(false);
+  };
+
+  return (
+    <Pressable
+      onPressIn={handlePressStart}
+      onPressOut={handlePressEnd}
+      className="ptt-button"
+    >
+      <Text>🎤 Hold for å snakke</Text>
+    </Pressable>
+  );
+}
+```
+
+---
+
+## 8. Webhook Integration
+
+LiveKit sends webhook events for room and participant lifecycle. Configure the webhook URL in LiveKit Cloud dashboard.
+
+### 8.1 Webhook Handler
+
+```typescript
+// app/api/calls/webhook/route.ts
+import { WebhookReceiver } from "livekit-server-sdk";
+
+const receiver = new WebhookReceiver(
+  process.env.LIVEKIT_API_KEY!,
+  process.env.LIVEKIT_API_SECRET!,
+);
+
+export async function POST(req: Request) {
+  const body = await req.text();
+  const event = await receiver.receive(body, req.headers.get("Authorization")!);
+
+  switch (event.event) {
+    case "participant_joined":
+      // Update call_participant.joined_at
+      // Update call_session.participant_count
+      // Broadcast presence update to channel
+      break;
+
+    case "participant_left":
+      // Update call_participant.left_at, duration_seconds
+      // If last participant → mark call as completed
+      break;
+
+    case "room_finished":
+      // Final call_session update: ended_at, duration_seconds, status → completed
+      // Create notification for missed call if status was 'ringing'
+      // Log to call history
+      break;
+
+    case "egress_ended": // Phase 2: recording
+      // Save recording URL to call_session.recording_url
+      break;
+  }
+
+  return new Response("ok");
+}
+```
+
+### 8.2 Key Webhook Events
+
+| Event                | Trigger                 | Smartout Action                                     |
+| -------------------- | ----------------------- | --------------------------------------------------- |
+| `participant_joined` | User connects to room   | Update `call_participant`, broadcast to channel     |
+| `participant_left`   | User disconnects        | Update participant record, check if call should end |
+| `room_finished`      | Last participant leaves | Finalize `call_session`, log duration, cleanup      |
+| `room_started`       | First participant joins | Update `call_session.connected_at`                  |
+| `track_published`    | User unmutes/publishes  | Active speaker indicator (for PTT)                  |
+| `egress_ended`       | Recording finished      | Save recording URL                                  |
+
+---
+
+## 9. Audio Quality & Noise Cancellation
+
+### 9.1 Krisp Noise Cancellation
+
+Critical for restaurant environments with kitchen noise, espresso machines, conversations, music. LiveKit integrates Krisp for on-device noise cancellation — no audio sent to external servers.
+
+**Web:**
+
+```bash
+npm install @livekit/krisp-noise-filter
+```
+
+**React Native:**
+
+```bash
+npx expo install @livekit/react-native-krisp-noise-filter
+```
+
+**Important rule:** Never enable Krisp on both the client AND an AI agent simultaneously. The models are trained on raw audio — double-processing creates artifacts.
+
+### 9.2 Audio Configuration
+
+- Codec: Opus at 20kbps (configurable up to 510kbps for music mode)
+- Audio RED (redundant encoding) enabled by default for packet loss resilience
+- DTX (Discontinuous Transmission) drops to ~1kbps during silence
+- Echo cancellation via WebRTC's built-in AEC
+
+---
+
+## 10. Phase 2: Video Calling
+
+### 10.1 Use Cases
+
+- **HACCP visual verification:** Employee shows food safety issue via back camera, manager inspects remotely
+- **Training demonstrations:** Chef shows technique to trainee
+- **Remote troubleshooting:** Equipment issues shown via camera
+- **Management meetings:** Multi-participant video calls
+
+### 10.2 Video Features
+
+- **Simulcast:** Publisher encodes three quality layers; SFU selects per subscriber
+- **Adaptive Stream:** Auto-adjusts quality based on rendered video element size
+- **Dynacast:** Pauses encoding of unused quality layers
+- **Camera switching:** `facingMode: 'environment'` for back camera (HACCP inspection)
+- **Screen sharing:** Web only (mobile limited by OS restrictions)
+
+### 10.3 Recording via Egress
+
+LiveKit's server-side Egress service handles recording without client-side overhead:
+
+- **RoomComposite:** Composites all participants into one video (MP4/HLS)
+- **TrackComposite:** Records specific participant's audio+video
+- **Storage:** Direct upload to Supabase Storage via S3-compatible API (`force_path_style: true`)
+- **Consent:** `Room.isRecording` property + `RecordingStatusChanged` event for UI indicators
+- **Limitation:** E2EE and server-side recording are mutually exclusive
+
+---
+
+## 11. AI Agent Integration (Mr. Botsson)
+
+LiveKit Agents framework enables Mr. Botsson to join calls as a regular room participant. An AI agent, a human on the mobile app, and a human on a phone call are all just participants in the same room.
+
+### 11.1 Use Cases
+
+- Manager invites Mr. Botsson to a call for real-time translation
+- Mr. Botsson joins morning brief call to take notes automatically
+- Employee asks Mr. Botsson a question during shift via voice channel
+- Mr. Botsson proactively joins escalation calls to provide HACCP guidance
+
+### 11.2 Architecture
+
+Mr. Botsson runs as a LiveKit Agent that can be dispatched to specific rooms:
+
+```python
+# LiveKit Agent for Mr. Botsson
+from livekit.agents import AgentSession, Agent
+from livekit.plugins import openai, deepgram, cartesia, silero
+
+async def entrypoint(ctx: agents.JobContext):
+    await ctx.connect()
+    session = AgentSession(
+        stt=deepgram.STT(),
+        llm=openai.LLM(model="gpt-4o"),
+        tts=cartesia.TTS(),
+        vad=silero.VAD.load(),
+    )
+    await session.start(
+        room=ctx.room,
+        agent=Agent(
+            instructions="Du er Mr. Botsson, en hjelpsom assistent for "
+            "Smartout restaurantansatte. Du snakker norsk og engelsk."
+        )
+    )
+```
+
+### 11.3 Migration Path from Ultravox
+
+| Capability           | Ultravox (current)                 | LiveKit Agents                      |
+| -------------------- | ---------------------------------- | ----------------------------------- |
+| Speech model         | Speech-native (audio-in, text-out) | STT → LLM → TTS pipeline            |
+| Latency              | ~150ms TTFT                        | ~300-500ms (depends on STT+LLM+TTS) |
+| Room integration     | External (via BrowserCall joinUrl) | Native participant in any room      |
+| Human-to-human calls | ❌ Cannot do                       | ✅ Core feature                     |
+| SIP/phone calls      | Via Twilio separately              | ✅ Built-in SIP bridge              |
+| Provider flexibility | Ultravox only                      | Deepgram, OpenAI, Anthropic, etc.   |
+
+**Recommendation:** Keep Ultravox for the V1 workspace setup wizard (proven, low-latency). Use LiveKit for all human-to-human calls. Evaluate migrating Mr. Botsson to LiveKit Agents once the infrastructure is stable and latency is acceptable.
+
+---
+
+## 12. Pricing & Cost Estimates
+
+### 12.1 Realistic Restaurant Usage
+
+A 20-employee restaurant typically generates:
+
+- ~50 short calls/day (30 sec to 3 min average)
+- ~2-3 group calls/day (shift handoff, morning brief: 5-10 min)
+- ~100-150 total minutes/day → ~3,000 minutes/month
+- Push-to-talk connection time is higher (persistent connections) but audio minutes are low
+
+### 12.2 LiveKit Cloud Cost
+
+| Scale                     | Plan         | Monthly Cost | Included      | Overage risk               |
+| ------------------------- | ------------ | ------------ | ------------- | -------------------------- |
+| 1 restaurant (20 emp)     | Ship ($50)   | **$50**      | 150,000 min   | None — uses ~2%            |
+| 5 restaurants (100 emp)   | Ship ($50)   | **$50**      | 150,000 min   | ~15,000 min — still within |
+| 10 restaurants (200 emp)  | Ship ($50)   | **$50-60**   | 150,000 min   | May touch overage          |
+| 50 restaurants (1000 emp) | Scale ($500) | **$500**     | 1,500,000 min | Comfortable                |
+
+### 12.3 SIP/Phone Call Costs (additional)
+
+When calling employees on their Norwegian mobile numbers:
+
+- LiveKit SIP minutes: $0.003-0.004/min
+- Twilio termination to Norwegian mobile: ~$0.03/min
+- **Total per phone call minute: ~$0.034**
+- If 10% of calls are to phones: ~$10-30/month per restaurant
+
+### 12.4 App-to-App vs Phone Call Cost Comparison
+
+| Call Type           | Cost per minute  | 100 min/month |
+| ------------------- | ---------------- | ------------- |
+| App-to-app (WebRTC) | Included in plan | $0            |
+| App-to-phone (SIP)  | ~$0.034          | ~$3.40        |
+| Twilio Voice direct | $0.014           | $1.40         |
+
+**Key takeaway:** App-to-app calls are essentially free within the plan. Push employees toward using the app for calls. SIP/phone calls are the cost driver.
+
+---
+
+## 13. GDPR & Norwegian Compliance
+
+### 13.1 Data Privacy
+
+- **GDPR compliant:** LiveKit Cloud has Data Processing Addendum with EU Standard Contractual Clauses
+- **SOC 2 Type II certified:** Confidentiality, security, availability
+- **EU data residency:** Available on Scale plan ($500/mo) — traffic stays within EU
+- **No recording by default:** LiveKit never stores audio/video unless Egress is explicitly requested
+- **Analytics retention:** Maximum 14 days, encrypted with AES-256
+
+### 13.2 End-to-End Encryption
+
+- AES-GCM E2EE available across all platforms (web, iOS, Android, React Native)
+- React Native: `useRNE2EEManager` hook
+- **Limitation:** E2EE and server-side recording are mutually exclusive
+- For compliance recording: disable E2EE on recorded calls, show clear recording indicator
+
+### 13.3 Call Recording Consent (Norwegian Labor Law)
+
+- `Room.isRecording` property provides real-time recording status
+- `RecordingStatusChanged` event triggers UI indicator
+- `roomRecord` token permission controls who can initiate recording
+- Consent tracking in `call_session.recording_consent` JSONB field
+- Application-layer responsibility: show consent dialog before recording starts
+
+---
+
+## 14. Known Gotchas & Mitigations
+
+| Gotcha                              | Impact                                | Mitigation                                                                          |
+| ----------------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------- |
+| **No Expo Go**                      | Cannot test in Expo Go app            | Use dev builds: `npx expo prebuild`, test on physical devices                       |
+| **iOS background audio**            | App suspends calls when backgrounded  | Phase 2: Add CallKit + VoIP push. Phase 1: accept in-app-only limitation            |
+| **Version mismatches**              | Connection stuck at "connecting"      | Pin exact versions of `livekit-client` and `@livekit/react-native`                  |
+| **`navigator.userAgent` undefined** | Silent track publishing failure on RN | Check for SDK updates, add polyfill if needed                                       |
+| **Double Krisp**                    | Audio artifacts                       | Never enable Krisp on both client and AI agent                                      |
+| **E2EE + recording**                | Mutually exclusive                    | Choose per-call based on compliance need                                            |
+| **Room naming collisions**          | Cross-workspace access                | Enforce `{workspace_id}:` prefix in token generation                                |
+| **Supabase Realtime limits**        | Signaling bottleneck at scale         | Realtime handles 100s of concurrent channels fine; re-evaluate at 1000+ restaurants |
+
+---
+
+## 15. Implementation Sequence
+
+| Phase                      | Scope                                                               | Effort    | Dependencies    |
+| -------------------------- | ------------------------------------------------------------------- | --------- | --------------- |
+| **1. Infrastructure**      | LiveKit Cloud setup, env vars, webhook URL                          | 2 hours   | LiveKit account |
+| **2. Token endpoint**      | Supabase Edge Function with auth validation                         | 2-4 hours | Phase 1         |
+| **3. Database schema**     | `call_session`, `call_participant` tables + RLS                     | 2-3 hours | Core schema     |
+| **4. Call signaling**      | Supabase Realtime broadcast for invite/accept/reject/end            | 3-4 hours | Phase 2         |
+| **5. Web call UI**         | `<VoiceCall>` component, call controls, integration in chat channel | 4-6 hours | Phases 2-4      |
+| **6. Mobile call UI**      | React Native LiveKit setup, `VoiceCallScreen`, call controls        | 6-8 hours | Phases 2-4      |
+| **7. Group calls**         | Channel-level call initiation, join banner, participant list        | 3-4 hours | Phase 5-6       |
+| **8. Push-to-talk**        | Persistent rooms, PTT button, active speaker indicators             | 2-3 hours | Phase 5-6       |
+| **9. Webhook handler**     | Call logging, duration tracking, missed call notifications          | 3-4 hours | Phase 3         |
+| **10. Call history**       | UI for missed calls, recent calls, call duration display            | 2-3 hours | Phase 9         |
+| **11. Noise cancellation** | Krisp integration for web + mobile                                  | 1-2 hours | Phase 5-6       |
+| **12. Testing & polish**   | Edge cases, reconnection, error states                              | 4-6 hours | All above       |
+
+**Total estimate: ~35-50 hours of implementation work**
+
+### Phase 2 (Video + Recording + SIP): Additional ~25-35 hours
+
+| Component                           | Effort    |
+| ----------------------------------- | --------- |
+| Video track publishing + UI         | 4-6 hours |
+| Camera switching (front/back)       | 2 hours   |
+| Video call layouts (grid/spotlight) | 4-6 hours |
+| Egress recording setup              | 3-4 hours |
+| Recording consent UI                | 2-3 hours |
+| SIP trunk configuration (Twilio)    | 3-4 hours |
+| SIP call flow + UI                  | 4-6 hours |
+| iOS CallKit integration             | 4-6 hours |
+
+---
+
+## 16. Integration Points
+
+| Module                      | Integration                                                                                                                                                  |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Core Architecture**       | Profile identity for participants. Workspace scoping. User phone number for SIP.                                                                             |
+| **Module 9: Communication** | Extends `chat_channel` with voice/video. Call button in channel UI. Call events as system messages. Missed call notifications through notification pipeline. |
+| **Module 4: Operations**    | Session channels auto-enable voice during active sessions. Handoff can include voice recording summary.                                                      |
+| **Module 5: HACCP**         | Video calls for visual inspection of deviations. Recorded calls as compliance evidence.                                                                      |
+| **Module 6: Training**      | Video demonstrations. AI agent joins training calls for guidance.                                                                                            |
+| **Module 12: AI Layer**     | Mr. Botsson as LiveKit Agent participant. Voice-activated assistance in channels.                                                                            |
+| **Module 3: Scheduling**    | Show "on shift" status for call availability. Auto-create PTT rooms for active sessions.                                                                     |
+
+---
+
+## 17. Migration Notes
+
+- **LiveKit and Ultravox coexist.** V1 wizard uses Ultravox (existing BrowserCall component). Human-to-human calls use LiveKit. No conflict — they're separate rooms/connections.
+- **Supabase Realtime handles both chat messages AND call signaling.** Same infrastructure, different channel names.
+- **Room lifecycle is automatic.** Rooms auto-create on first join, auto-close on last leave. No cleanup cron needed.
+- **Call history replaces manual logging.** Webhook-driven `call_session` records provide accurate, automatic call logs.
+- **PTT rooms for sessions can be created by the same Edge Function** that creates session chat channels (Module 9 implementation sequence, Phase 5).
+
+---
+
+_Voice and video in Smartout serve the same principle as every other communication feature: every call serves an operational purpose. The walkie-talkie mode keeps the kitchen connected during service. Direct calls solve problems in seconds. Group calls align the team. Video calls provide visual verification for HACCP compliance. And Mr. Botsson can join any of them as a helpful participant — not as a separate system, but as a colleague in the room._

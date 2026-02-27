@@ -1,0 +1,161 @@
+# Cross-Cutting: Contracts & Certifications
+
+> **Smartout.io** — Cross-cutting documentation
+> Version 1.0 | February 2026
+> **Source:** SMARTOUT_COMPLETE_DOCUMENTATION.md, Sections 22, 23
+
+---
+
+> This document covers workspace-level employee contracts and certifications. For platform-level SaaS contracts (Smartout ↔ customer), see Module 17 (Platform Admin).
+
+## 1. Employment Contracts (Section 22)
+
+### 1.1 Norwegian Law Requirements (Arbeidsmiljøloven §14-5/14-6)
+
+All employees must receive a written contract covering: employer/employee identity, workplace, job description, start date, trial period, working hours, salary, vacation rights, notice period, collective agreement, pension scheme.
+
+### 1.2 Contract Data Model
+
+```
+employment_contract
+  contract_id          uuid (PK)
+  workspace_id         fk → workspace
+  profile_id           fk → profile
+  contract_type        permanent | temporary | freelance | apprentice | substitute
+  status               draft | pending_signature | active | amended | terminated | expired
+  template_id          fk → contract_template | null
+  start_date           date
+  end_date             date | null (null = permanent)
+  trial_period_end     date | null (max 6 months)
+  position_title       string
+  department_id        fk → department
+  location_id          fk → location | null
+  employment_pct       integer (100 = full time)
+  weekly_hours         decimal
+  salary_type          hourly | monthly
+  base_salary          decimal
+  salary_currency      NOK | SEK | DKK | EUR
+  payment_frequency    monthly | biweekly
+  notice_period_days   integer
+  vacation_days        integer (25 minimum)
+  pension_scheme       text | null
+  collective_agreement string | null
+  signed_by_employee   timestamp | null
+  signed_by_employer   timestamp | null
+  employee_signature   text | null
+  employer_signature   text | null
+  document_url         string | null
+  version              integer
+  created_at           timestamp
+  updated_at           timestamp
+```
+
+### 1.3 Contract Templates
+
+```
+contract_template
+  template_id          uuid (PK)
+  workspace_id         fk → workspace
+  name                 string
+  contract_type        permanent | temporary | freelance | apprentice | substitute
+  content_template     text (markdown/HTML with merge fields)
+  default_terms        jsonb
+  is_active            boolean
+  created_at           timestamp
+  updated_at           timestamp
+```
+
+Merge fields: `{{employee_name}}`, `{{position}}`, `{{start_date}}`, `{{salary}}`, etc.
+
+### 1.4 Contract Lifecycle
+
+```
+Draft → Pending Signature → Active → Amended / Terminated / Expired
+```
+
+### 1.5 Contract Amendments
+
+```
+contract_amendment
+  amendment_id         uuid (PK)
+  contract_id          fk → employment_contract
+  amendment_type       salary_change | role_change | hours_change | department_change | terms_change | other
+  description          text
+  changes_json         jsonb (field: { old_value, new_value })
+  effective_date       date
+  signed_by_employee   timestamp | null
+  signed_by_employer   timestamp | null
+  document_url         string | null
+  created_at           timestamp
+  updated_at           timestamp
+```
+
+### 1.6 Digital Signing
+
+In-app signature capture (draw or type). Email confirmation with signed PDF. Audit trail. No external e-signature provider in v1.
+
+### 1.7 Contract → Profile Sync
+
+When activated/amended, Profile auto-updates: role, department_id, employment percentage, salary.
+
+---
+
+## 2. Certifications & Document Management (Section 23)
+
+### 2.1 Certification Data Model
+
+```
+certification
+  certification_id     uuid (PK)
+  workspace_id         fk → workspace
+  profile_id           fk → profile
+  certification_type   food_safety | first_aid | alcohol_service | hygiene | fire_safety | allergen | custom
+  name                 string
+  issuer               string | null
+  certificate_number   string | null
+  issued_date          date
+  expiry_date          date | null
+  status               valid | expiring_soon | expired | revoked
+  document_url         string | null
+  reminder_days        integer[] (e.g., [90, 30, 7])
+  notes                text | null
+  verified_by          fk → profile | null
+  verified_at          timestamp | null
+  created_at           timestamp
+  updated_at           timestamp
+```
+
+### 2.2 Certification Requirements
+
+```
+certification_requirement
+  requirement_id       uuid (PK)
+  workspace_id         fk → workspace
+  certification_type   string
+  required_for_type    workspace | department | position | team
+  required_for_ref     uuid | null
+  is_mandatory         boolean
+  created_at           timestamp
+  updated_at           timestamp
+```
+
+### 2.3 Expiry Tracking
+
+- `valid` → expiry_date > today + 30 days
+- `expiring_soon` → within 30 days (configurable)
+- `expired` → past expiry
+
+Notifications at configured intervals to both employee and manager.
+
+### 2.4 Document Storage
+
+Supabase Storage with workspace isolation:
+- `/{workspace_id}/certifications/{profile_id}/{file}`
+- `/{workspace_id}/contracts/{profile_id}/{file}`
+- `/{workspace_id}/documents/{profile_id}/{file}`
+
+RLS: employees see own, managers see department, admin sees all.
+
+---
+
+*Employee contracts and certifications are tightly integrated with Profile, Scheduling, and HACCP modules. Contract data feeds payroll; certification expiry affects scheduling eligibility.*

@@ -1,0 +1,5 @@
+src/app/dashboard/schedule/page.tsx(652,11): error TS2451: Cannot redeclare block-scoped variable 'isDark'.
+src/app/dashboard/schedule/page.tsx(653,11): error TS2451: Cannot redeclare block-scoped variable 'isDark'.
+src/app/dashboard/schedule/page.tsx(846,38): error TS2304: Cannot find name 'isDark'.
+src/app/dashboard/schedule/page.tsx(847,43): error TS2304: Cannot find name 'isDark'.
+src/app/dashboard/schedule/page.tsx(862,38): error TS2304: Cannot find name 'isDark'.

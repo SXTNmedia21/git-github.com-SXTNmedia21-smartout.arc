@@ -1,0 +1,14 @@
+{
+  "name": "@smartout/utils",
+  "version": "1.0.0",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "date-fns": "latest",
+    "zod": "latest",
+    "@smartout/types": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "latest"
+  }
+}

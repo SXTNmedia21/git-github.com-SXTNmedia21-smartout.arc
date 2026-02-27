@@ -1,0 +1,24 @@
+{
+  "name": "@smartout/supabase",
+  "version": "1.0.0",
+  "description": "Supabase client and types for Smartout",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./middleware": "./src/middleware.ts",
+    "./client": "./src/client.ts",
+    "./server": "./src/server.ts"
+  },
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.5.0",
+    "@supabase/supabase-js": "^2.45.0"
+  },
+  "devDependencies": {
+    "next": "^16.1.6",
+    "typescript": "^5.0.0"
+  }
+}

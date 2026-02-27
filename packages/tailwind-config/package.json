@@ -1,0 +1,12 @@
+{
+  "name": "@smartout/tailwind-config",
+  "version": "1.0.0",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "tailwindcss": "latest"
+  },
+  "devDependencies": {
+    "typescript": "latest"
+  }
+}

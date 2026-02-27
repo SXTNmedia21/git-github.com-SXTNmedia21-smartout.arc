@@ -1,0 +1,16 @@
+{
+  "name": "@smartout/telemetry",
+  "version": "1.0.0",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@supabase/supabase-js": "latest",
+    "posthog-js": "latest",
+    "posthog-node": "latest",
+    "react": "latest"
+  },
+  "devDependencies": {
+    "typescript": "latest",
+    "@types/react": "latest"
+  }
+}

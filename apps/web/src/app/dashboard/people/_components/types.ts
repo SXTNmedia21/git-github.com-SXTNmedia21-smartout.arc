@@ -1,0 +1,22 @@
+export type Employee = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  department: string;
+  status: "active" | "inactive" | "on_leave" | "invited";
+  readinessScore?: number;
+  avatar?: string;
+  lastActive?: string;
+  inviteToken?: string;
+  inviteStatus?: "pending" | "expired";
+  phone?: string;
+  address?: string;
+  birthDate?: string;
+  personalNumber?: string;
+  bankAccount?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  hasContract?: boolean;
+  contactLog?: { id: string; type: string; channel: "email" | "sms"; status: "sent" | "delivered" | "failed"; date: string }[];
+};

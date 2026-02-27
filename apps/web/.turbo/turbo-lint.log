@@ -1,0 +1,56 @@
+
+> web@0.1.0 lint C:\Users\sxtnl\Dev\Genesis\smartout.ai\apps\web
+> eslint
+
+
+C:\Users\sxtnl\Dev\Genesis\smartout.ai\apps\web\generate-pages.js
+  1:12  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  2:14  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\sxtnl\Dev\Genesis\smartout.ai\apps\web\src\app\dashboard\layout.tsx
+  11:22  warning  '_val' is defined but never used  @typescript-eslint/no-unused-vars
+  13:17  warning  '_val' is defined but never used  @typescript-eslint/no-unused-vars
+  15:20  warning  '_val' is defined but never used  @typescript-eslint/no-unused-vars
+  17:25  warning  '_val' is defined but never used  @typescript-eslint/no-unused-vars
+  19:23  warning  '_val' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\sxtnl\Dev\Genesis\smartout.ai\apps\web\src\app\dashboard\schedule\page.tsx
+   22:56   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   24:35   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   27:26   warning  'event' is defined but never used         @typescript-eslint/no-unused-vars
+   27:33   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  133:113  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  147:59   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  259:65   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  322:102  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  358:90   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  437:113  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  516:66   error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  606:113  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\sxtnl\Dev\Genesis\smartout.ai\apps\web\src\app\onboarding\page.tsx
+  243:61  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  250:40  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  585:53  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\sxtnl\Dev\Genesis\smartout.ai\apps\web\src\components\voice-assistant.tsx
+  108:13  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\sxtnl\Dev\Genesis\smartout.ai\apps\web\src\components\voice-assistant.tsx:108:13
+  106 |     useEffect(() => {
+  107 |         if (autoStart) {
+> 108 |             startSession();
+      |             ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  109 |         }
+  110 |         return () => {
+  111 |             endSession();  react-hooks/set-state-in-effect
+
+✖ 23 problems (16 errors, 7 warnings)
+
+ ELIFECYCLE  Command failed with exit code 1.
