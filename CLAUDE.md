@@ -97,7 +97,7 @@ exports: enums, identity, structure, governance, time
 ```
 All types use Zod schemas with `z.infer<>` for TypeScript inference.
 
-**@smartout/ui** — Currently only exports `button.tsx`. Add components here for cross-app sharing.
+**@smartout/ui** — Currently only exports `button.tsx` (shared). The web app also has `dialog.tsx` locally in `apps/web/src/components/ui/`. Add shared components to this package for cross-app reuse.
 
 **@smartout/telemetry** — PostHog (browser + node) event registry and tracking hooks.
 
@@ -479,9 +479,8 @@ Accepted decisions in `docs/decisions/`:
 | 0002 | State-driven vs hook-driven logic boundaries |
 | 0003 | shadcn/ui integration (new-york, CSS variables) |
 | 0004 | Unified telemetry engine (PostHog) |
-| 0005 | Four-layer testing strategy |
-| 0006 | Environment variables, secrets & module boundaries |
 | 0007 | Dashboard layout & navigation state |
+| 0008 | Dashboard scroll behavior |
 
 **New ADRs:** When making architectural decisions, create a new file in `docs/decisions/` following the template at `docs/decisions/template.md`.
 
