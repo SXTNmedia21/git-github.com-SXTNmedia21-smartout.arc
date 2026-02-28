@@ -8,6 +8,7 @@ export default async function BillingPage() {
   if (!adminId) redirect("/dashboard");
 
   const admin = createAdminClient();
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0];
 
   // Fetch companies and MRR metrics in parallel
   const [companiesResult, metricsResult] = await Promise.all([
@@ -21,7 +22,7 @@ export default async function BillingPage() {
       .from("platform_metrics_daily")
       .select("metric_date, metric_name, metric_value")
       .eq("metric_name", "mrr")
-      .gte("metric_date", new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0])
+      .gte("metric_date", thirtyDaysAgo)
       .order("metric_date", { ascending: true }),
   ]);
 

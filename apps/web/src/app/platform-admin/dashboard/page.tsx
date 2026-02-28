@@ -10,6 +10,7 @@ export default async function DashboardPage() {
   if (!adminId) redirect("/dashboard");
 
   const admin = createAdminClient();
+  const fourteenDaysAgo = new Date(Date.now() - 14 * 86400000).toISOString().split("T")[0];
 
   // Fetch all KPI data + activity in parallel
   const [
@@ -51,7 +52,7 @@ export default async function DashboardPage() {
       .select(
         "date, total_workspaces, total_users, subscriptions_active, subscriptions_trial, subscriptions_past_due",
       )
-      .gte("date", new Date(Date.now() - 14 * 86400000).toISOString().split("T")[0])
+      .gte("date", fourteenDaysAgo)
       .order("date", { ascending: true }),
     // Activity feed from audit log
     admin
