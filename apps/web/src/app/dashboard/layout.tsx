@@ -50,12 +50,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
     workspace = wsRow;
   } else {
     // No subdomain (local dev or legacy) — use first workspace
-    const { data: profileData } = await supabase
+    const { data: profileData } = (await supabase
       .from("profile")
       .select("workspace_id")
       .eq("user_id", user.id)
       .limit(1)
-      .single();
+      .single()) as { data: { workspace_id: string } | null };
 
     if (profileData?.workspace_id) {
       const { data: wsData } = await supabase
