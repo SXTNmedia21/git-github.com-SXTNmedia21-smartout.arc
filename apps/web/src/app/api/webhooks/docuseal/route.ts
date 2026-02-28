@@ -1,4 +1,3 @@
-// @ts-nocheck -- depends on contract tables from untracked contract-system migration
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -42,6 +41,9 @@ const eventToStatus: Record<string, string> = {
   "submission.expired": "expired",
 };
 
+// Contract table type (pending contract-system migration — not yet in generated types)
+type ContractRow = { contract_id: string; status: string; workspace_id: string };
+
 export async function POST(request: NextRequest) {
   // Validate webhook signature if configured
   const webhookSecret = env.DOCUSEAL_WEBHOOK_SECRET;
@@ -68,15 +70,18 @@ export async function POST(request: NextRequest) {
   const admin = createAdminClient();
 
   // Find contract by DocuSeal submission ID
-  const { data: contract, error: findError } = await admin
-    .from("contract")
+  // Tables from contract-system migration — use `as never` to bypass generated type check
+  const { data: rawContract, error: findError } = await admin
+    .from("contract" as never)
     .select("contract_id, status, workspace_id")
     .eq("docuseal_submission_id", String(data.submission_id))
     .single();
 
-  if (findError || !contract) {
+  if (findError || !rawContract) {
     return NextResponse.json({ error: "Contract not found" }, { status: 404 });
   }
+
+  const contract = rawContract as unknown as ContractRow;
 
   // Prevent status regression from out-of-order webhook events
   const statusWeight: Record<string, number> = {
@@ -124,7 +129,7 @@ export async function POST(request: NextRequest) {
   }
 
   const { error: updateError } = await admin
-    .from("contract")
+    .from("contract" as never)
     .update(updates)
     .eq("contract_id", contract.contract_id);
 
@@ -133,7 +138,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Log to contract_event (new immutable audit trail)
-  await admin.from("contract_event").insert({
+  await admin.from("contract_event" as never).insert({
     contract_id: contract.contract_id,
     workspace_id: contract.workspace_id,
     event_type: event_type.replace(".", "_"),
@@ -163,15 +168,15 @@ export async function POST(request: NextRequest) {
   if (newStatus === "signed" && contract.workspace_id) {
     await Promise.all([
       admin
-        .from("contract_reminder")
+        .from("contract_reminder" as never)
         .update({ status: "skipped", skip_reason: "contract_signed" })
         .eq("contract_id", contract.contract_id)
         .eq("status", "scheduled"),
       admin
         .from("workspace")
         .update({
-          contract_status: "active",
-          active_contract_id: contract.contract_id,
+          contract_status: "active" as never,
+          active_contract_id: contract.contract_id as never,
           updated_at: new Date().toISOString(),
         })
         .eq("workspace_id", contract.workspace_id),
