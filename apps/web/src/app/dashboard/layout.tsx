@@ -25,11 +25,12 @@ const ROUTE_MISSION_MAP: Record<string, MissionId> = {
 };
 
 function resolveMissionForRoute(pathname: string): MissionId {
-  if (ROUTE_MISSION_MAP[pathname]) return ROUTE_MISSION_MAP[pathname];
-  const sorted = Object.keys(ROUTE_MISSION_MAP)
+  const direct = ROUTE_MISSION_MAP[pathname];
+  if (direct) return direct;
+  const match = Object.keys(ROUTE_MISSION_MAP)
     .filter((prefix) => pathname.startsWith(prefix) && prefix !== "/dashboard")
-    .sort((a, b) => b.length - a.length);
-  return sorted.length > 0 ? ROUTE_MISSION_MAP[sorted[0]] : "mr-botsson";
+    .sort((a, b) => b.length - a.length)[0];
+  return (match !== undefined ? ROUTE_MISSION_MAP[match] : undefined) ?? "mr-botsson";
 }
 
 export type AdminViewType = "tactical" | "strategic" | "reconciliation" | "activity";

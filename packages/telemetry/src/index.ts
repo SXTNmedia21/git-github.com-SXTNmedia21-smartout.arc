@@ -1,4 +1,3 @@
-// Export definitions
+// Server-safe exports — no React dependencies
 export * from "./registry";
 export * from "./emit";
-export * from "./hooks/use-track";
