@@ -1,6 +1,7 @@
 import { generateText } from "ai";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
-import type { ModelMessage } from "./onboarding";
+import type { ModelMessage } from "ai";
+export type { ModelMessage };
 
 export type DocsKnowledgeDoc = {
   title: string;

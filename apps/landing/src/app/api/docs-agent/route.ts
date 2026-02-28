@@ -1,8 +1,8 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { runDocsAgent } from "@smartout/ai";
-import type { ModelMessage } from "@smartout/ai";
+import { runDocsAgent } from "@smartout/ai/agents/docs";
+import type { ModelMessage } from "@smartout/ai/agents/docs";
 import { getUserManualDocs, searchUserManual } from "@/lib/user-manual";
 
 const RequestSchema = z.object({

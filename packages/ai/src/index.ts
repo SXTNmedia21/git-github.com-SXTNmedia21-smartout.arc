@@ -14,11 +14,8 @@ export type { OnboardingIntelligence } from "./schemas/onboarding";
 // Onboarding tools
 export { ONBOARDING_TOOLS } from "./tools/onboarding";
 
-// Onboarding agent
-export { runOnboardingAgent, extractOnboardingIntelligence } from "./agents/onboarding";
-export type { AgentInput, AgentResult, ModelMessage } from "./agents/onboarding";
-export { runDocsAgent } from "./agents/docs";
-export type { DocsKnowledgeDoc, DocsAgentInput, DocsAgentResult } from "./agents/docs";
+// Agents — import via subpath: @smartout/ai/agents/onboarding, @smartout/ai/agents/docs
+// (not re-exported from barrel to avoid pulling heavy deps into unrelated routes)
 
 // Missions (Ultravox agent configurations)
 export {

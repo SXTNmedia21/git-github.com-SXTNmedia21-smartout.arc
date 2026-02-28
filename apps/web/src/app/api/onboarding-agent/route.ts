@@ -1,12 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@smartout/supabase/server";
-import {
-  SessionContext,
-  runOnboardingAgent,
-  extractOnboardingIntelligence,
-} from "@smartout/ai";
-import type { ModelMessage } from "@smartout/ai";
+import { SessionContext } from "@smartout/ai";
+import { runOnboardingAgent, extractOnboardingIntelligence } from "@smartout/ai/agents/onboarding";
+import type { ModelMessage } from "@smartout/ai/agents/onboarding";
 
 const RequestSchema = z.object({
   sessionId: z.string().uuid(),
@@ -41,9 +39,7 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     const message =
       err instanceof z.ZodError
-        ? err.errors
-            .map((e) => `${e.path.join(".")}: ${e.message}`)
-            .join(", ")
+        ? err.errors.map((e) => `${e.path.join(".")}: ${e.message}`).join(", ")
         : "Invalid request body";
     return NextResponse.json({ error: message }, { status: 400 });
   }
@@ -56,10 +52,7 @@ export async function POST(request: NextRequest) {
     .single<{ id: string; user_id: string | null }>();
 
   if (sessionError || !session) {
-    return NextResponse.json(
-      { error: "Onboarding session not found" },
-      { status: 404 },
-    );
+    return NextResponse.json({ error: "Onboarding session not found" }, { status: 404 });
   }
 
   if (session.user_id !== user.id) {
@@ -72,10 +65,7 @@ export async function POST(request: NextRequest) {
 
     // 4a. Extract intelligence (final step of conversation)
     if (body.extractIntelligence) {
-      const allMessages: ModelMessage[] = [
-        ...history,
-        { role: "user", content: body.userMessage },
-      ];
+      const allMessages: ModelMessage[] = [...history, { role: "user", content: body.userMessage }];
 
       const intelligence = await extractOnboardingIntelligence({
         conversationHistory: allMessages,
@@ -98,9 +88,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     console.error("Onboarding agent error:", err);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
