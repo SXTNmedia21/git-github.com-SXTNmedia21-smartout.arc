@@ -10,24 +10,17 @@ export default async function WorkspaceDetailPage({ params }: { params: Promise<
   const { id } = await params;
   const admin = createAdminClient();
 
-  const { data: workspace } = await admin
-    .from("workspace")
-    .select("*, company:company_id (*)")
-    .eq("workspace_id", id)
-    .single();
-
-  if (!workspace) redirect("/platform-admin/workspaces");
-
-  // Parallel data fetches
   const [
+    { data: workspace },
     { count: totalProfiles },
     { count: activeProfiles },
     { count: traineeProfiles },
     { count: departmentCount },
     { data: profiles },
     { data: notes },
-    { data: communicationHistory },
+    { data: commHistory },
   ] = await Promise.all([
+    admin.from("workspace").select("*, company:company_id (*)").eq("workspace_id", id).single(),
     admin.from("profile").select("*", { count: "exact", head: true }).eq("workspace_id", id),
     admin
       .from("profile")
@@ -43,63 +36,62 @@ export default async function WorkspaceDetailPage({ params }: { params: Promise<
     admin
       .from("profile")
       .select(
-        "profile_id, display_name, role, status, created_at, user_identity:user_id (email, last_sign_in_at)",
+        "profile_id, user_id, display_name, role, status, created_at, user_identity!inner(email, last_login_at)",
       )
       .eq("workspace_id", id)
       .order("created_at", { ascending: false }),
     admin
       .from("platform_audit_log")
-      .select("log_id, action, details, created_at, super_admin_id")
+      .select("id, action, details, created_at")
       .eq("entity_type", "workspace_note")
       .eq("entity_id", id)
       .order("created_at", { ascending: false })
       .limit(50),
     admin
-      .from("platform_audit_log")
-      .select("log_id, action, details, created_at")
-      .eq("entity_type", "communication")
-      .eq("entity_id", id)
+      .from("platform_communication_log" as never)
+      .select("*")
+      .eq("workspace_id", id)
       .order("created_at", { ascending: false })
-      .limit(50),
+      .limit(20),
   ]);
+
+  if (!workspace) redirect("/platform-admin/workspaces");
 
   const company = workspace.company as Record<string, unknown> | null;
 
-  // Flatten profiles with user_identity join
-  const flatProfiles = (profiles ?? []).map((p: Record<string, unknown>) => {
-    const ui = p.user_identity as Record<string, unknown> | null;
+  const profileRows = (profiles ?? []).map((p) => {
+    const ui = p.user_identity as unknown as { email: string; last_login_at: string | null };
     return {
-      profile_id: p.profile_id as string,
-      display_name: p.display_name as string | null,
-      email: (ui?.email as string) ?? null,
+      profileId: p.profile_id,
+      userId: p.user_id,
+      name: p.display_name || "\u2014",
+      email: ui.email,
       role: p.role as string,
       status: p.status as string,
-      last_sign_in_at: (ui?.last_sign_in_at as string) ?? null,
+      lastLogin: ui.last_login_at,
     };
   });
 
   return (
     <WorkspaceDetailClient
       workspace={{
-        workspace_id: workspace.workspace_id,
+        workspaceId: workspace.workspace_id,
         name: workspace.name,
-        slug: workspace.slug,
-        is_active: workspace.is_active,
-        created_at: workspace.created_at,
+        slug: workspace.slug ?? "",
+        createdAt: workspace.created_at,
       }}
       company={
         company
           ? {
-              company_id: company.company_id as string,
-              name: (company.name as string) ?? null,
-              org_number: (company.org_number as string) ?? null,
-              city: (company.city as string) ?? null,
-              industry: (company.industry as string) ?? null,
-              email: (company.email as string) ?? null,
-              phone: (company.phone as string) ?? null,
-              subscription_plan: (company.subscription_plan as string) ?? null,
-              subscription_status: (company.subscription_status as string) ?? null,
-              trial_ends_at: (company.trial_ends_at as string) ?? null,
+              name: (company.name as string) ?? "\u2014",
+              orgNumber: (company.org_number as string) ?? "\u2014",
+              city: (company.city as string) ?? "\u2014",
+              industry: (company.industry as string) ?? "\u2014",
+              email: (company.email as string) ?? "\u2014",
+              phone: (company.phone as string) ?? "\u2014",
+              subscriptionPlan: (company.subscription_plan as string) ?? "\u2014",
+              subscriptionStatus: (company.subscription_status as string) ?? "unknown",
+              trialEndsAt: (company.trial_ends_at as string) ?? null,
             }
           : null
       }
@@ -109,24 +101,13 @@ export default async function WorkspaceDetailPage({ params }: { params: Promise<
         traineeProfiles: traineeProfiles ?? 0,
         departmentCount: departmentCount ?? 0,
       }}
-      profiles={flatProfiles}
-      notes={
-        (notes as Array<{
-          log_id: string;
-          action: string;
-          details: { note?: string } | null;
-          created_at: string;
-          super_admin_id: string;
-        }>) ?? []
-      }
-      communicationHistory={
-        (communicationHistory as Array<{
-          log_id: string;
-          action: string;
-          details: Record<string, unknown> | null;
-          created_at: string;
-        }>) ?? []
-      }
+      profiles={profileRows}
+      notes={(notes ?? []).map((n) => ({
+        id: n.id,
+        text: ((n.details as Record<string, unknown>)?.note as string) ?? "",
+        createdAt: n.created_at,
+      }))}
+      commHistory={(commHistory as Array<Record<string, unknown>>) ?? []}
     />
   );
 }

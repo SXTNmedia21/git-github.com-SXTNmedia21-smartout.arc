@@ -10,7 +10,9 @@ export default async function DashboardPage() {
   if (!adminId) redirect("/dashboard");
 
   const admin = createAdminClient();
-  const fourteenDaysAgo = new Date(Date.now() - 14 * 86400000).toISOString().split("T")[0];
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 14);
+  const fourteenDaysAgo = cutoff.toISOString().split("T")[0];
 
   // Fetch all KPI data + activity in parallel
   const [

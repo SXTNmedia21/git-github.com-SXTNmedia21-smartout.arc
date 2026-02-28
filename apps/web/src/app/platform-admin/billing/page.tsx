@@ -8,7 +8,9 @@ export default async function BillingPage() {
   if (!adminId) redirect("/dashboard");
 
   const admin = createAdminClient();
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0];
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 30);
+  const thirtyDaysAgo = cutoff.toISOString().split("T")[0];
 
   // Fetch companies and MRR metrics in parallel
   const [companiesResult, metricsResult] = await Promise.all([
@@ -20,10 +22,9 @@ export default async function BillingPage() {
       .order("created_at", { ascending: false }),
     admin
       .from("platform_metrics_daily")
-      .select("metric_date, metric_name, metric_value")
-      .eq("metric_name", "mrr")
-      .gte("metric_date", thirtyDaysAgo)
-      .order("metric_date", { ascending: true }),
+      .select("date, mrr_nok")
+      .gte("date", thirtyDaysAgo)
+      .order("date", { ascending: true }),
   ]);
 
   const companies: CompanyRow[] = (companiesResult.data ?? []).map((c) => ({
@@ -37,8 +38,8 @@ export default async function BillingPage() {
   }));
 
   const mrrData: MrrDataPoint[] = (metricsResult.data ?? []).map((m) => ({
-    metric_date: m.metric_date,
-    metric_value: Number(m.metric_value),
+    metric_date: m.date,
+    metric_value: Number(m.mrr_nok),
   }));
 
   return (

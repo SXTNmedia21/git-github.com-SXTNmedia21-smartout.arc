@@ -21,7 +21,7 @@ export default async function WorkspacesPage() {
       <h1 className="text-2xl font-semibold">Workspaces</h1>
       <p className="text-muted-foreground mt-1 text-sm">All workspaces across the platform</p>
       <div className="mt-6">
-        <WorkspaceListEnhanced data={workspaces || []} />
+        <WorkspaceListEnhanced data={(workspaces ?? []) as never} />
       </div>
     </div>
   );
