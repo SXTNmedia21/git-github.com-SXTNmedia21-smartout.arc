@@ -1,3 +1,27 @@
+---
+title: "API KPI and Review Cadence"
+id: ROADMAP_API_KPI
+version: "1.0"
+status: canonical
+layer: roadmap
+created: 2026-02-28
+updated: 2026-02-28
+author: claude
+supersedes: []
+superseded_by: null
+depends_on:
+  - ROADMAP_API
+tags:
+  - api
+  - kpi
+  - review
+  - governance
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # API KPI and Review Cadence
 
 > Operational KPI model and governance review cycle for Smartout APIs.

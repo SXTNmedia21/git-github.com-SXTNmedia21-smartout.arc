@@ -1,3 +1,27 @@
+---
+title: "Production Architecture"
+id: PROD_ARCH
+version: "1.0"
+status: canonical
+layer: architecture
+created: 2026-02-26
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on: []
+tags:
+  - production
+  - images
+  - i18n
+  - scalability
+  - monitoring
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # SMARTOUT — Production Architecture
 
 > **Status:** Decided

@@ -1,3 +1,26 @@
+---
+title: "API Governance and Data Sharing"
+id: XCUT_API_GOVERNANCE
+version: "1.0"
+status: canonical
+layer: cross-cutting
+created: 2026-02-28
+updated: 2026-02-28
+author: claude
+supersedes: []
+superseded_by: null
+depends_on: []
+tags:
+  - api
+  - governance
+  - data-sharing
+  - tenant-isolation
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # API Governance and Data Sharing
 
 > Governance rules for Smartout APIs and external data sharing.

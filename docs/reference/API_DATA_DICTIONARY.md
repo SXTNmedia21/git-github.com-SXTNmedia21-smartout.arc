@@ -1,3 +1,27 @@
+---
+title: "API Data Dictionary"
+id: REF_API_DATA
+version: "1.0"
+status: canonical
+layer: reference
+created: 2026-02-28
+updated: 2026-02-28
+author: claude
+supersedes: []
+superseded_by: null
+depends_on:
+  - REF_API_OVERVIEW
+tags:
+  - api
+  - data-dictionary
+  - field-semantics
+  - sensitivity
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Smartout API Data Dictionary
 
 > Canonical API field semantics, sensitivity classes, and sharing guidance.

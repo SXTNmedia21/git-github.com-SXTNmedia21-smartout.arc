@@ -1,3 +1,27 @@
+---
+title: "LISA / AI-assistent och installningar (stub)"
+id: MANUAL_10_STUB
+version: "1.0"
+status: draft
+layer: manual
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on: []
+tags:
+  - manual
+  - ai
+  - settings
+  - stub
+  - swedish
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # LISA / AI-assistent och installningar
 
 ## Syfte

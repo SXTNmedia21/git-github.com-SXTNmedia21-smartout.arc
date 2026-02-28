@@ -1,3 +1,28 @@
+---
+title: "PRD-03: Avstemmingssystem — Daglig, Yrkes- & Sesongavstemming"
+id: PRD_03
+version: "1.0"
+status: canonical
+layer: architecture
+created: 2026-02-28
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on:
+  - CORE_ARCH_V2
+tags:
+  - prd
+  - reconciliation
+  - operations
+  - payroll
+  - compliance
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # PRD-03: Avstemmingssystem — Daglig, Yrkes- & Sesongavstemming
 
 **Kildeutviklere:** Pontus Lindroth & Martin Lundqvist

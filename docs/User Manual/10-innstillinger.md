@@ -1,3 +1,27 @@
+---
+title: "Innstillinger"
+id: MANUAL_10
+version: "1.0"
+status: canonical
+layer: manual
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on: []
+tags:
+  - manual
+  - settings
+  - configuration
+  - gdpr
+  - norwegian
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Innstillinger
 
 > Konfigurering, abonnement, GDPR, språk og integrasjoner — tilpass SmartOut til din bedrift.

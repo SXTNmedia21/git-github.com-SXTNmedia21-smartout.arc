@@ -1,3 +1,29 @@
+---
+title: "Module 10 — Reports & KPIs Architecture"
+id: ARCH_REPORTS_KPIS
+version: "1.0"
+status: canonical
+layer: architecture
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on:
+  - CORE_ARCH_V2
+tags:
+  - reports
+  - kpis
+  - module-10
+  - analytics
+  - dashboard
+tables:
+  - kpi_config
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # SMARTOUT_MODULE_10_REPORTS_AND_KPIS
 
 > **Purpose:** Architectural plan for the database upgrades and data extraction strategy required to power the Strategic KPI Dashboard (Module 10).

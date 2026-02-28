@@ -1,3 +1,28 @@
+---
+title: "Module 3: Vaktplanlegging (Shift Planning)"
+id: MODULE_03
+version: "1.0"
+status: canonical
+layer: module
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on:
+  - CORE_ARCH_V2
+  - MODULE_02
+tags:
+  - scheduling
+  - shifts
+  - calendar
+  - staffing
+  - open-shifts
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Modul 3: Vaktplanlegging (Shift Planning)
 
 > **Smartout.io** — Funksjonell dokumentasjon for migrering

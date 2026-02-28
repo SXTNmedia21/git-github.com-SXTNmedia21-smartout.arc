@@ -1,3 +1,27 @@
+---
+title: "API Endpoint Reference"
+id: REF_API_ENDPOINTS
+version: "1.0"
+status: canonical
+layer: reference
+created: 2026-02-28
+updated: 2026-02-28
+author: claude
+supersedes: []
+superseded_by: null
+depends_on:
+  - REF_API_OVERVIEW
+tags:
+  - api
+  - endpoints
+  - rest
+  - documentation
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Smartout API Endpoint Reference
 
 > Classical endpoint documentation for currently implemented APIs plus target control endpoints.

@@ -1,3 +1,27 @@
+---
+title: "Telemetry & Audit Trail Architecture"
+id: TELEMETRY_ARCH
+version: "1.0"
+status: canonical
+layer: architecture
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on: []
+tags:
+  - telemetry
+  - posthog
+  - analytics
+  - audit-trail
+  - logging
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Smartout Telemetry & Audit Trail Architecture
 
 > Design document for the unified event system covering product analytics, structured logging, and user-facing activity trails.

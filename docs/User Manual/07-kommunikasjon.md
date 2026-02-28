@@ -1,3 +1,27 @@
+---
+title: "Kommunikasjon"
+id: MANUAL_07
+version: "1.0"
+status: canonical
+layer: manual
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on: []
+tags:
+  - manual
+  - communication
+  - chat
+  - notifications
+  - norwegian
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Kommunikasjon
 
 > Chat, varsler, kunngjøringer, eskalering og stille timer — hold teamet informert og koordinert.

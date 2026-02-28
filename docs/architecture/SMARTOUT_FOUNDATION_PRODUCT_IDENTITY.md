@@ -1,3 +1,26 @@
+---
+title: "Foundation — Product Identity"
+id: FOUND_PRODUCT_ID
+version: "1.0"
+status: canonical
+layer: architecture
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on: []
+tags:
+  - foundation
+  - product-identity
+  - market
+  - pricing
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Smartout — Product Identity
 
 > **Smartout.io** — Foundation documentation

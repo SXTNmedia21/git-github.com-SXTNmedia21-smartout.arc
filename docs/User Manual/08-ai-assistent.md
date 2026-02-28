@@ -1,3 +1,27 @@
+---
+title: "Lise AI-assistent"
+id: MANUAL_08
+version: "1.0"
+status: canonical
+layer: manual
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on: []
+tags:
+  - manual
+  - ai
+  - lise
+  - voice
+  - norwegian
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Lise AI-assistent
 
 > 8 AI-motorer, autorisasjonsnivåer, stemmegrensesnitt og hendelseslogg — møt Lise, din operative medarbeider.

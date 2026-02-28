@@ -1,3 +1,33 @@
+---
+title: "Organization Structure Integration Roadmap"
+id: ORG_ROADMAP
+version: "1.0"
+status: canonical
+layer: architecture
+created: 2026-02-27
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on:
+  - CORE_ARCH_V2
+tags:
+  - org-structure
+  - roadmap
+  - module-2
+  - dashboard
+tables:
+  - department
+  - location
+  - team
+  - zone
+  - asset
+  - position
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Roadmap för Integrering av Organisationsstruktur (Module 2)
 
 > **Draft:** 2026-02-27  

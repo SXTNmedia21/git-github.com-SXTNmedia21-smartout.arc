@@ -1,3 +1,26 @@
+---
+title: "Performance and Build Governance"
+id: XCUT_PERF_GOVERNANCE
+version: "1.0"
+status: canonical
+layer: cross-cutting
+created: 2026-02-28
+updated: 2026-02-28
+author: claude
+supersedes: []
+superseded_by: null
+depends_on: []
+tags:
+  - performance
+  - governance
+  - build
+  - budgets
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Smartout Performance and Build Governance
 
 ## Purpose

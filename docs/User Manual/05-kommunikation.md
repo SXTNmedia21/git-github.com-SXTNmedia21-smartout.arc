@@ -1,3 +1,26 @@
+---
+title: "Kommunikation (stub)"
+id: MANUAL_05_STUB
+version: "1.0"
+status: draft
+layer: manual
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on: []
+tags:
+  - manual
+  - communication
+  - stub
+  - swedish
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Kommunikation
 
 ## Syfte

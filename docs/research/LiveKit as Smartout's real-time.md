@@ -1,3 +1,27 @@
+---
+title: "LiveKit as Smartout's Real-Time Communication Layer"
+id: RESEARCH_LIVEKIT
+version: "1.0"
+status: canonical
+layer: research
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on: []
+tags:
+  - research
+  - livekit
+  - webrtc
+  - voice
+  - video
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # LiveKit as Smartout's real-time communication layer
 
 **LiveKit is the strongest candidate for adding human-to-human voice and video calling to Smartout**, offering an open-source WebRTC SFU with first-class React Native support, built-in SIP telephony, Krisp noise cancellation, and an AI agents framework that could eventually unify your Ultravox and Twilio infrastructure into a single platform. The combination of Apache 2.0 licensing, Deno-compatible server SDK (critical for Supabase Edge Functions), and a mature Expo plugin makes it uniquely well-suited for Smartout's existing stack. The primary trade-off: LiveKit provides media transport primitives, not a turnkey calling product — you must build call signaling (ringing, accept/reject), push notifications, and call state management yourself. Estimated effort for a voice calling MVP is **4–6 weeks with two developers** or 8–12 weeks solo, with video adding 3–4 weeks incrementally.

@@ -1,3 +1,26 @@
+---
+title: "Workforce Management Tool Research Report"
+id: RESEARCH_WORKFORCE
+version: "1.0"
+status: canonical
+layer: research
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on: []
+tags:
+  - research
+  - workforce-management
+  - personas
+  - hospitality
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Workforce Management Tool Research Report
 
 ## Hva trenger restaurant- og serviceledere fra et digitalt verktøy?

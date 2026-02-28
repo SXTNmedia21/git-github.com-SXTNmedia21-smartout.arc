@@ -1,3 +1,29 @@
+---
+title: "Module 12: AI-Laget — Mr. Botsson"
+id: MODULE_12
+version: "1.0"
+status: canonical
+layer: module
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on:
+  - CORE_ARCH_V2
+tags:
+  - ai
+  - mr-botsson
+  - voice
+  - chat
+  - rag
+  - context-engine
+  - ultravox
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Module 12: AI-Laget — Mr. Botsson
 
 > **Smartout.io** — Functional documentation for migration
@@ -41,7 +67,7 @@
 
 ## 3. Voice Interface
 
-> **TODO:** Detailed specification needed (existing infrastructure documented in SMARTOUT_V1_REVISED_ARCHITECTURE.md)
+> **TODO:** Detailed specification needed (existing infrastructure documented in archive/SMARTOUT_V1_REVISED_ARCHITECTURE.md)
 
 - Ultravox integration for AI voice conversations
 - Twilio telephony for phone-based access
@@ -187,4 +213,4 @@ All AI operations logged with full transparency:
 
 ---
 
-_This module requires detailed specification across all 8 engines. The existing voice infrastructure (MCP server, Ultravox, BrowserCall) provides a significant head start. See SMARTOUT_V1_REVISED_ARCHITECTURE.md for voice implementation details._
+_This module requires detailed specification across all 8 engines. The existing voice infrastructure (MCP server, Ultravox, BrowserCall) provides a significant head start. See archive/SMARTOUT_V1_REVISED_ARCHITECTURE.md for voice implementation details._

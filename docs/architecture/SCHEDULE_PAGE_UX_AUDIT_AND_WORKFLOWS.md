@@ -1,3 +1,28 @@
+---
+title: "Dashboard Schedule UX Audit and Workflow Design"
+id: SCHED_UX_AUDIT
+version: "1.0"
+status: canonical
+layer: architecture
+created: 2026-02-28
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on:
+  - CORE_ARCH_V2
+  - UI_ARCH
+tags:
+  - schedule
+  - ux-audit
+  - dashboard
+  - workflows
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Dashboard Schedule UX Audit and Workflow Design
 
 Date: 2026-02-28  

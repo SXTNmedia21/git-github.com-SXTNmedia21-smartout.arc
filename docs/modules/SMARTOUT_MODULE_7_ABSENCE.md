@@ -1,3 +1,33 @@
+---
+title: "Module 7: Fravær & Permisjon (Absence & Leave)"
+id: MODULE_07
+version: "1.0"
+status: draft
+layer: module
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on:
+  - CORE_ARCH_V2
+  - MODULE_03
+  - MODULE_08
+tags:
+  - absence
+  - leave
+  - vacation
+  - sick-leave
+  - norwegian-labor-law
+tables:
+  - absence_request
+  - absence_balance
+  - sick_leave_period
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Module 7: Fravær & Permisjon (Absence & Leave)
 
 > **Smartout.io** — Functional documentation for migration

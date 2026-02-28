@@ -1,3 +1,26 @@
+---
+title: "Vaktplan (stub)"
+id: MANUAL_02_STUB
+version: "1.0"
+status: draft
+layer: manual
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on: []
+tags:
+  - manual
+  - scheduling
+  - stub
+  - swedish
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Vaktplan
 
 ## Syfte

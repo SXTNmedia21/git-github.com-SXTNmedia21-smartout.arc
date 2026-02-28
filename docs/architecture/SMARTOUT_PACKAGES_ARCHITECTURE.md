@@ -1,3 +1,27 @@
+---
+title: "Shared Packages Architecture"
+id: PACKAGES_ARCH
+version: "1.0"
+status: canonical
+layer: architecture
+created: 2026-02-26
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on:
+  - CORE_ARCH_V2
+tags:
+  - packages
+  - monorepo
+  - shared-code
+  - conventions
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # SMARTOUT — Shared Packages Architecture
 
 > **Status:** Decided

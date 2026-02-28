@@ -1,3 +1,42 @@
+---
+title: "Module 14: Production & Menu Management"
+id: MODULE_14
+version: "1.0"
+status: canonical
+layer: module
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on:
+  - CORE_ARCH_V2
+tags:
+  - production
+  - menu
+  - recipes
+  - ingredients
+  - bookings
+  - waste-tracking
+  - kitchen
+tables:
+  - ingredient
+  - recipe
+  - recipe_ingredient
+  - dish
+  - dish_recipe
+  - production_plan_step
+  - menu
+  - menu_dish
+  - booking
+  - booking_dish
+  - production_session
+  - waste_log
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Module 14: Production & Menu Management
 
 > **Smartout.io** — Functional documentation for migration  

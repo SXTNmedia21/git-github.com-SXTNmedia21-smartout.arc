@@ -1,3 +1,26 @@
+---
+title: "Vaktplan"
+id: MANUAL_03
+version: "1.0"
+status: canonical
+layer: manual
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on: []
+tags:
+  - manual
+  - scheduling
+  - shifts
+  - norwegian
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Vaktplan
 
 > Tre visningsmodi, vaktkort, maler, tilgjengelighet, vaktbytte og stemplingsur — alt du trenger for skiftplanlegging.

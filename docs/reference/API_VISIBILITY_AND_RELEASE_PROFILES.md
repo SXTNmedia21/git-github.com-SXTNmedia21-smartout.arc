@@ -1,3 +1,27 @@
+---
+title: "API Visibility and Release Profiles"
+id: REF_API_VISIBILITY
+version: "1.0"
+status: canonical
+layer: reference
+created: 2026-02-28
+updated: 2026-02-28
+author: claude
+supersedes: []
+superseded_by: null
+depends_on:
+  - REF_API_OVERVIEW
+tags:
+  - api
+  - visibility
+  - release-profiles
+  - documentation
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # API Visibility and Release Profiles
 
 > Control what API docs/functions are visible per release stage.

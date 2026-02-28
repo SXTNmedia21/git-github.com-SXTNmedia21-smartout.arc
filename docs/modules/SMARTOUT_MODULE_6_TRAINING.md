@@ -1,3 +1,32 @@
+---
+title: "Module 6: Opplæring & Kompetanse (Training & Competence)"
+id: MODULE_06
+version: "1.0"
+status: canonical
+layer: module
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on:
+  - CORE_ARCH_V2
+tags:
+  - training
+  - competence
+  - readiness
+  - protocol-training
+  - knowledge-tests
+  - spaced-repetition
+tables:
+  - protocol_assignment
+  - knowledge_test_attempt
+  - confirmation_signature
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Module 6: Opplæring & Kompetanse (Training & Competence)
 
 > **Smartout.io** — Functional documentation for migration

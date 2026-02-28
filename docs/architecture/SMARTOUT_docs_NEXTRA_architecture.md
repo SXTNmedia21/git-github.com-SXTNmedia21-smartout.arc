@@ -1,9 +1,44 @@
+---
+title: "Documentation System Architecture (Nextra)"
+id: NEXTRA_ARCH
+version: "1.1"
+status: draft
+layer: architecture
+created: 2026-02-28
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on:
+  - CORE_ARCH_V2
+  - SUBDOMAIN_ARCH
+tags:
+  - documentation
+  - nextra
+  - docs-site
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Updated: apps/docs/ Nextra v4 scaffold now exists (ADR-0025). Internal docs restructured with YAML frontmatter + layered system. This architecture doc needs revision to match actual implementation."
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Smartout — Documentation System Architecture
 
-> **Status:** Directional (v1.0)
+> **Status:** Draft — needs revision (v1.1)
 > **Updated:** February 28, 2026
 > **Depends on:** Core Architecture v2 (Monorepo structure), Subdomain Architecture (docs.smartout.ai)
-> **Cross-reference:** `SMARTOUT_SUBDOMAIN_ARCHITECTURE.md`
+> **Cross-reference:** `SMARTOUT_SUBDOMAIN_ARCHITECTURE.md`, ADR-0025
+
+---
+
+> **Note (2026-02-28):** The documentation system has been restructured (ADR-0025):
+>
+> - Internal docs (`docs/`) now have YAML frontmatter with layered discovery (INDEX.md, reference/, modules/, architecture/, archive/)
+> - Public docs site scaffolded at `apps/docs/` using Nextra v4 (App Router, port 3060)
+> - The `packages/docs-content/` approach described below was NOT implemented — evaluate whether apps/docs/ Nextra replaces it entirely
+> - Existing `apps/landing/docs/` pages continue to serve hardcoded Norwegian documentation
 
 ---
 

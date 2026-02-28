@@ -1,3 +1,19 @@
+---
+title: "Smartout Rebuild Strategy"
+id: ARCH_REBUILD_STRATEGY
+version: "1.0"
+status: archived
+layer: architecture
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+superseded_by: CORE_ARCH_V2
+tags: [archived, strategy, rebuild]
+changelog:
+  - date: 2026-02-28
+    change: "Archived — strategy absorbed into CLAUDE.md and active architecture docs"
+---
+
 # SMARTOUT — Clean-Slate Rebuild Strategy
 
 > **Purpose:** Guide the full rebuild of Smartout using Cursor + Claude Code

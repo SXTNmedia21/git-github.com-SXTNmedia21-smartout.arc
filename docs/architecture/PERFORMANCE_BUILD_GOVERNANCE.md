@@ -1,3 +1,27 @@
+---
+title: "Performance and Build Governance Architecture"
+id: PERF_GOVERNANCE
+version: "1.0"
+status: canonical
+layer: architecture
+created: 2026-02-28
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on: []
+tags:
+  - performance
+  - build
+  - governance
+  - ci-cd
+  - budgets
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Performance and Build Governance Architecture
 
 ## Purpose

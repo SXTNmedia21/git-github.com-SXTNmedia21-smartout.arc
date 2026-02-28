@@ -1,3 +1,39 @@
+---
+title: "Database Review — 2026-02-28"
+id: DB_REVIEW_20260228
+version: "1.0"
+status: canonical
+layer: reference
+created: 2026-02-28
+updated: 2026-02-28
+author: claude
+supersedes: []
+superseded_by: null
+depends_on:
+  - CORE_ARCH_V2
+  - FOUND_DATA_MODEL
+tags:
+  - database
+  - review
+  - rls
+  - indexing
+  - scheduling
+tables:
+  - user_identity
+  - company
+  - workspace
+  - profile
+  - department
+  - location
+  - team
+  - policy
+  - protocol
+  - season
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Smartout Database Review — 2026-02-28
 
 > **Scope:** Core tables (identity + structure + governance + operations), RLS policies, indexing, scheduling/shift planning gaps.

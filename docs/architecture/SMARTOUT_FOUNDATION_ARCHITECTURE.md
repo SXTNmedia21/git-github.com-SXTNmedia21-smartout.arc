@@ -1,3 +1,26 @@
+---
+title: "Foundation Architecture — Technical Stack"
+id: FOUND_ARCH
+version: "1.0"
+status: canonical
+layer: architecture
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on:
+  - CORE_ARCH_V2
+tags:
+  - foundation
+  - tech-stack
+  - infrastructure
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Smartout — Technical Architecture & Stack
 
 > **Smartout.io** — Foundation documentation

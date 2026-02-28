@@ -1,3 +1,32 @@
+---
+title: "Workspace Onboarding Architecture"
+id: WS_ONBOARD_ARCH
+version: "3.1"
+status: canonical
+layer: architecture
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on:
+  - CORE_ARCH_V2
+tags:
+  - onboarding
+  - workspace-setup
+  - seasons
+  - admin-flow
+tables:
+  - workspace
+  - season
+  - department
+  - location
+  - team
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Smartout — Workspace Onboarding Architecture
 
 > **Version:** 3.1 | February 2026
@@ -872,7 +901,7 @@ _The onboarding IS the first Season. The admin doesn't configure Smartout and th
 ## Appendix A: Voice Infrastructure Discovery (from V1 Revised Architecture)
 
 > **Context:** Repo agent discovery revealed that 80% of the voice infrastructure already exists.
-> **Supersedes:** SMARTOUT_V1_REVISED_ARCHITECTURE.md (retired February 26, 2026)
+> **Supersedes:** archive/SMARTOUT_V1_REVISED_ARCHITECTURE.md (archived February 28, 2026)
 
 ### What We Don't Need to Build
 

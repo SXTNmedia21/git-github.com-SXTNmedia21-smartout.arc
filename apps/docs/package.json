@@ -1,0 +1,21 @@
+{
+  "name": "docs",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3060",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "next": "^16.1.6",
+    "nextra": "^4",
+    "nextra-theme-docs": "^4",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.0",
+    "@smartout/typescript-config": "workspace:*"
+  }
+}

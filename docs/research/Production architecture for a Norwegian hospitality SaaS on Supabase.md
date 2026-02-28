@@ -1,3 +1,28 @@
+---
+title: "Production Architecture for a Norwegian Hospitality SaaS on Supabase"
+id: RESEARCH_PROD_ARCH
+version: "1.0"
+status: canonical
+layer: research
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on: []
+tags:
+  - research
+  - production
+  - architecture
+  - supabase
+  - images
+  - i18n
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Production architecture for a Norwegian hospitality SaaS on Supabase
 
 **A solo builder targeting Norway's HoReCa industry needs a pragmatic, phased approach to image processing, AI generation, multilingual support, and scalability.** The recommended stack centers on client-side compression with `expo-image-manipulator` before upload, server-side enhancement via `sharp` in Next.js API routes, Supabase Storage with built-in imgproxy transforms, OpenAI GPT Image 1 Mini for instructional art at $0.02/image, `next-intl` for web i18n (not next-i18next—it's incompatible with App Router), `react-i18next` for mobile, Google Cloud Translation v3 as the primary translation API, and an aggressive caching layer to control costs. Total infrastructure cost starts at **~$70/month** at launch and scales to ~$1,100/month at 1,000 workspaces—well within viable unit economics at Norwegian SaaS pricing.

@@ -1,3 +1,26 @@
+---
+title: "Kom i gang"
+id: MANUAL_01
+version: "1.0"
+status: canonical
+layer: manual
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on: []
+tags:
+  - manual
+  - getting-started
+  - onboarding
+  - norwegian
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Kom i gang
 
 > Opprett konto, konfigurer bedriften din, sett opp arbeidsplass, og inviter ansatte — alt du trenger for å starte med SmartOut.

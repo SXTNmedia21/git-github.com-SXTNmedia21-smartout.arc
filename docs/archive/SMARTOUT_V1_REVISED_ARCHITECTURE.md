@@ -1,3 +1,19 @@
+---
+title: "Smartout V1 Revised Architecture"
+id: ARCH_V1_REVISED
+version: "1.0"
+status: archived
+layer: architecture
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+superseded_by: CORE_ARCH_V2
+tags: [archived, architecture, v1]
+changelog:
+  - date: 2026-02-28
+    change: "Archived — superseded by CORE_ARCH_V2"
+---
+
 # SMARTOUT V1 — Revised Architecture (Post-Discovery)
 
 > **Date:** February 24, 2026  

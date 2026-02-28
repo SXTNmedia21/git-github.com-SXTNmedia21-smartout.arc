@@ -1,3 +1,38 @@
+---
+title: "Core Architecture v2"
+id: CORE_ARCH_V2
+version: "2.0"
+status: canonical
+layer: architecture
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on: []
+tags:
+  - core
+  - data-model
+  - identity
+  - governance
+  - structure
+tables:
+  - user_identity
+  - company
+  - company_member
+  - workspace
+  - profile
+  - department
+  - location
+  - team
+  - policy
+  - protocol
+  - season
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # SMARTOUT — Core Architecture v2
 
 > **Status:** Directional (v2.0)  

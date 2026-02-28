@@ -1,3 +1,27 @@
+---
+title: "API Release Gates and Compliance"
+id: XCUT_API_RELEASE
+version: "1.0"
+status: canonical
+layer: cross-cutting
+created: 2026-02-28
+updated: 2026-02-28
+author: claude
+supersedes: []
+superseded_by: null
+depends_on:
+  - XCUT_API_GOVERNANCE
+tags:
+  - api
+  - release-gates
+  - compliance
+  - ci-cd
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # API Release Gates and Compliance
 
 > Mandatory release gates and compliance checks for Smartout API changes.

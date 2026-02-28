@@ -1,3 +1,36 @@
+---
+title: "Module 17: Platform Administration (Super Admin Backoffice)"
+id: MODULE_17
+version: "1.0"
+status: canonical
+layer: module
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on:
+  - CORE_ARCH_V2
+  - MODULE_13
+tags:
+  - platform-admin
+  - super-admin
+  - backoffice
+  - stripe
+  - landing-config
+  - contracts
+  - audit-log
+tables:
+  - landing_config
+  - landing_config_version
+  - platform_audit_log
+  - platform_impersonation_log
+  - platform_metrics_daily
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Module 17: Platform Administration (Super Admin Backoffice)
 
 > **Smartout.io** — Functional documentation for platform-level administration

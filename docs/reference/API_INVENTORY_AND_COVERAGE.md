@@ -1,3 +1,27 @@
+---
+title: "API Inventory and Coverage"
+id: REF_API_INVENTORY
+version: "1.0"
+status: canonical
+layer: reference
+created: 2026-02-28
+updated: 2026-02-28
+author: claude
+supersedes: []
+superseded_by: null
+depends_on:
+  - REF_API_OVERVIEW
+tags:
+  - api
+  - inventory
+  - coverage
+  - gaps
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Smartout API Inventory and Coverage
 
 > Canonical inventory of current API endpoints and target API gaps.

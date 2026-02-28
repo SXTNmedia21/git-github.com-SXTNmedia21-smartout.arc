@@ -1,3 +1,27 @@
+---
+title: "API Client Setup and BYOK"
+id: XCUT_API_CLIENT
+version: "1.0"
+status: canonical
+layer: cross-cutting
+created: 2026-02-28
+updated: 2026-02-28
+author: claude
+supersedes: []
+superseded_by: null
+depends_on:
+  - XCUT_API_GOVERNANCE
+tags:
+  - api
+  - byok
+  - integrations
+  - client-setup
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # API Client Setup and BYOK
 
 > How Smartout customers configure integrations with their own credentials and governance controls.

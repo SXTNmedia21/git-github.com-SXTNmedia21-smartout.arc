@@ -1,3 +1,39 @@
+---
+title: "Module 10: Reports, Dashboards & Reconciliation"
+id: MODULE_10
+version: "1.0"
+status: canonical
+layer: module
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on:
+  - CORE_ARCH_V2
+  - MODULE_04
+tags:
+  - reports
+  - dashboards
+  - reconciliation
+  - deviations
+  - kpis
+  - settlement
+  - qr-routines
+tables:
+  - deviation
+  - daily_reconciliation
+  - shift_approval
+  - settlement_image
+  - settlement_validation
+  - location_routine_session
+  - role_reconciliation
+  - season_reconciliation
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Module 10: Reports, Dashboards & Reconciliation
 
 > **Smartout.io** — Functional documentation for migration  

@@ -1,3 +1,26 @@
+---
+title: "Smartout — Project Roadmap"
+id: PROJECT_ROADMAP
+version: "1.0"
+status: canonical
+layer: plan
+created: 2026-02-28
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on: []
+tags:
+  - roadmap
+  - modules
+  - phases
+  - planning
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Smartout — Project Roadmap
 
 > The big picture. Module order, scope, and where to find everything.
@@ -106,13 +129,13 @@ The entry point. AI-driven workspace setup is working, but invitation management
 
 Shift planning — the most-used feature for managers. Depends on departments, locations, and positions from Wave 1.
 
-| Scope                                         | References                                                          |
-| --------------------------------------------- | ------------------------------------------------------------------- |
-| Shift creation, templates, drag-and-drop      | [Module 3 Spec](../modules/SMARTOUT_MODULE_3_SCHEDULING.md)         |
-| Schedule views (week, day, list, "Vaktliste") | [Module 3 Spec (NO)](../modules/smartout-modul3-vaktplanlegging.md) |
-| Open shifts, swap mechanics                   | [Module 3 Spec](../modules/SMARTOUT_MODULE_3_SCHEDULING.md)         |
-| Employee view: `/dashboard/my-schedule`       | Dashboard shell exists                                              |
-| Routes: `/dashboard/schedule`                 | Partially built                                                     |
+| Scope                                         | References                                                  |
+| --------------------------------------------- | ----------------------------------------------------------- |
+| Shift creation, templates, drag-and-drop      | [Module 3 Spec](../modules/SMARTOUT_MODULE_3_SCHEDULING.md) |
+| Schedule views (week, day, list, "Vaktliste") | [Module 3 Spec](../modules/SMARTOUT_MODULE_3_SCHEDULING.md) |
+| Open shifts, swap mechanics                   | [Module 3 Spec](../modules/SMARTOUT_MODULE_3_SCHEDULING.md) |
+| Employee view: `/dashboard/my-schedule`       | Dashboard shell exists                                      |
+| Routes: `/dashboard/schedule`                 | Partially built                                             |
 
 #### Module 9: Communication
 

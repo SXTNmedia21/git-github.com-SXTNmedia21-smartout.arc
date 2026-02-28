@@ -1,3 +1,27 @@
+---
+title: "Ansatte"
+id: MANUAL_04
+version: "1.0"
+status: canonical
+layer: manual
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on: []
+tags:
+  - manual
+  - employees
+  - organization
+  - roles
+  - norwegian
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Ansatte
 
 > Organisasjonsstruktur, profiler, roller, kompetansesporing — administrer teamet ditt effektivt.

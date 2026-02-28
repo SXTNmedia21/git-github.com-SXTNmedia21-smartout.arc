@@ -1,3 +1,35 @@
+---
+title: "Module 9: Kommunikasjon (Communication)"
+id: MODULE_09
+version: "1.0"
+status: canonical
+layer: module
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on:
+  - CORE_ARCH_V2
+tags:
+  - communication
+  - chat
+  - notifications
+  - announcements
+  - push-notifications
+  - sms
+  - email
+tables:
+  - notification
+  - chat_channel
+  - chat_message
+  - chat_message_read
+  - announcement
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Module 9: Kommunikasjon (Communication)
 
 > **Smartout.io** — Functional documentation for migration

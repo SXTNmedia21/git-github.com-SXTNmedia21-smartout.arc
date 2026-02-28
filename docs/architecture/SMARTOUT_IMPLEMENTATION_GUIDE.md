@@ -1,9 +1,34 @@
+---
+title: "Implementation Guide"
+id: IMPL_GUIDE
+version: "1.0"
+status: canonical
+layer: architecture
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on:
+  - CORE_ARCH_V2
+  - FOUND_ARCH
+tags:
+  - implementation
+  - build-order
+  - migration
+  - phases
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Smartout — Implementation Guide
 
 > **Smartout.io** — Implementation documentation
 > Version 1.0 | February 2026
 > **Source:** SMARTOUT_COMPLETE_DOCUMENTATION.md, Sections 31-35
-> **See also:** BUILD_ORDER.md (detailed task-level breakdown), SMARTOUT_REBUILD_STRATEGY.md, CLAUDE.md
+> **See also:** BUILD_ORDER.md (detailed task-level breakdown), archive/SMARTOUT_REBUILD_STRATEGY.md (archived), CLAUDE.md
 
 ---
 
@@ -125,5 +150,5 @@ Order: Users → Workspaces → Org Structure → Governance → Scheduling → 
 ---
 
 _For detailed task-level build order see BUILD_ORDER.md._
-_For layered context architecture see SMARTOUT_REBUILD_STRATEGY.md._
+_For layered context architecture see archive/SMARTOUT_REBUILD_STRATEGY.md (archived)._
 _For AI coding agent instructions see CLAUDE.md._

@@ -1,3 +1,33 @@
+---
+title: "Module 8: Lønn & Økonomi (Payroll & Finance)"
+id: MODULE_08
+version: "1.0"
+status: draft
+layer: module
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on:
+  - CORE_ARCH_V2
+  - MODULE_03
+tags:
+  - payroll
+  - finance
+  - supplements
+  - overtime
+  - norwegian-compliance
+tables:
+  - payroll_run
+  - payroll_line
+  - supplement_rule
+  - timebank_balance
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Module 8: Lønn & Økonomi (Payroll & Finance)
 
 > **Smartout.io** — Functional documentation for migration

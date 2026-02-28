@@ -1,3 +1,27 @@
+---
+title: "HACCP og Mattilsynet"
+id: MANUAL_06
+version: "1.0"
+status: canonical
+layer: manual
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on: []
+tags:
+  - manual
+  - haccp
+  - food-safety
+  - compliance
+  - norwegian
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # HACCP og Mattilsynet
 
 > HACCP-governance, temperaturlogging, avvikshåndtering, sertifiseringer og inspeksjonsklar dokumentasjon.

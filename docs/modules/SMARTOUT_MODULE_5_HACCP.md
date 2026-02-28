@@ -1,3 +1,31 @@
+---
+title: "Module 5: HACCP & Matsikkerhet (Food Safety)"
+id: MODULE_05
+version: "1.0"
+status: canonical
+layer: module
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on:
+  - CORE_ARCH_V2
+  - MODULE_04
+tags:
+  - haccp
+  - food-safety
+  - compliance
+  - temperature-logging
+  - mattilsynet
+  - ccp
+tables:
+  - haccp_control_point
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Module 5: HACCP & Matsikkerhet (Food Safety)
 
 > **Smartout.io** — Functional documentation for migration

@@ -1,3 +1,27 @@
+---
+title: "Security & Infrastructure"
+id: XCUT_SECURITY
+version: "1.0"
+status: canonical
+layer: cross-cutting
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on: []
+tags:
+  - security
+  - infrastructure
+  - rls
+  - audit
+  - notifications
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Cross-Cutting: Security & Infrastructure
 
 > **Smartout.io** — Cross-cutting documentation

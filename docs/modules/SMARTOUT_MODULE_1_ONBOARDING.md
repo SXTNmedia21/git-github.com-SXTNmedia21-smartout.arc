@@ -1,3 +1,34 @@
+---
+title: "Module 1: Onboarding & Brukerregistrering"
+id: MODULE_01
+version: "2.0"
+status: canonical
+layer: module
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes:
+  - SMARTOUT_ONBOARDING_FRAMEWORK.md
+  - SMARTOUT_ONBOARDING_FRAMEWORK_v2.md
+superseded_by: null
+depends_on:
+  - CORE_ARCH_V2
+tags:
+  - onboarding
+  - trainee-mode
+  - module-journeys
+  - sandbox
+  - ai-guided
+tables:
+  - trainee_journey
+  - module_journey
+  - module_journey_checkpoint
+  - profile_checkpoint_progress
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Module 1: Onboarding & Brukerregistrering
 
 > **Smartout.io** — Functional documentation for migration

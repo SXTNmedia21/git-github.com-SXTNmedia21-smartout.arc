@@ -1,3 +1,19 @@
+---
+title: "Smartout Full Documentation Index v2"
+id: ARCH_FULL_INDEX_V2
+version: "2.0"
+status: archived
+layer: architecture
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+superseded_by: INDEX
+tags: [archived, index, navigation]
+changelog:
+  - date: 2026-02-28
+    change: "Archived — replaced by docs/INDEX.md"
+---
+
 # SMARTOUT — Full Dokumentasjonsindex
 
 > **Formål:** Komplett index for å dokumentere hele Smartout-appen.

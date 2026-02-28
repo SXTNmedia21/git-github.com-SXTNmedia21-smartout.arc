@@ -1,3 +1,27 @@
+---
+title: "Oppgaver og rutiner"
+id: MANUAL_05
+version: "1.0"
+status: canonical
+layer: manual
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on: []
+tags:
+  - manual
+  - tasks
+  - routines
+  - operations
+  - norwegian
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Oppgaver og rutiner
 
 > Driftsøkter, hooks, oppgavetyper, governance-kjede og signering — slik styrer SmartOut daglig drift.

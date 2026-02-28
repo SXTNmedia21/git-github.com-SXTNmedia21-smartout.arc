@@ -1,3 +1,26 @@
+---
+title: "Payments, Billing & Stripe Integration"
+id: XCUT_BILLING
+version: "1.0"
+status: canonical
+layer: cross-cutting
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on: []
+tags:
+  - billing
+  - stripe
+  - payments
+  - subscriptions
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Cross-Cutting: Payments, Billing & Stripe Integration
 
 > **Smartout.io** — Cross-cutting documentation

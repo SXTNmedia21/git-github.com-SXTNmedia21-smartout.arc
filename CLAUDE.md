@@ -17,6 +17,20 @@
 
 ---
 
+## Source of Truth
+
+1. **Code + database schema** → implementation always wins
+2. **This file** → conventions, rules, verified facts
+3. **docs/reference/** → detailed lookup during coding (DATABASE, ROUTES, PACKAGES, ENV_VARS)
+4. **docs/modules/** → business logic per module
+5. **docs/architecture/** → system design decisions
+6. **docs/cross-cutting/** → concerns spanning modules (GDPR, billing, security, i18n)
+
+> Full navigation map with all document IDs: `docs/INDEX.md`
+> All docs have YAML frontmatter for machine-readable discovery.
+
+---
+
 ## Tech Stack (Verified)
 
 | Layer          | Technology                             | Version        | Notes                                          |
@@ -85,12 +99,18 @@ smartout_v3/
 ├── docs/
 │   ├── architecture/     → System architecture docs
 │   ├── cross-cutting/    → Billing, i18n, GDPR, security
-│   ├── decisions/        → ADRs (24 accepted)
+│   ├── archive/          → Superseded docs (never loaded actively)
+│   ├── decisions/        → ADRs (25 accepted)
 │   ├── learnings/        → Learning records
 │   ├── modules/          → Module specs (17 modules)
 │   ├── plans/            → Implementation plans (completed/ for done)
+│   ├── reference/        → Quick-lookup: DATABASE, ROUTES, PACKAGES, ENV_VARS
 │   ├── research/         → Research reports
-│   └── roadmaps/         → Project roadmaps
+│   ├── roadmaps/         → Project roadmaps
+│   ├── "User Manual"/    → Norwegian user-facing docs (future Nextra content)
+│   └── INDEX.md          → Master navigation map (all doc IDs + status)
+├── apps/
+│   └── docs/             → Nextra public docs site (docs.smartout.ai, port 3060)
 └── CLAUDE.md             → This file
 ```
 
@@ -669,29 +689,11 @@ Policy (the rule)
 
 ---
 
-## Module Documentation
+## Modules
 
-Full documentation lives in `docs/modules/`. **Read the corresponding doc before implementing any module.**
-
-| #   | Module          | Doc File                                | Status |
-| --- | --------------- | --------------------------------------- | ------ |
-| 1   | Onboarding      | `SMARTOUT_MODULE_1_ONBOARDING.md`       | Spec'd |
-| 2   | Org Structure   | `SMARTOUT_MODULE_2_ORG_STRUCTURE.md`    | Spec'd |
-| 3   | Scheduling      | `SMARTOUT_MODULE_3_SCHEDULING.md`       | Spec'd |
-| 4   | Operations      | `SMARTOUT_MODULE_4_OPERATIONS.md`       | Spec'd |
-| 5   | HACCP           | `SMARTOUT_MODULE_5_HACCP.md`            | Spec'd |
-| 6   | Training        | `SMARTOUT_MODULE_6_TRAINING.md`         | Spec'd |
-| 7   | Absence         | `SMARTOUT_MODULE_7_ABSENCE.md`          | Spec'd |
-| 8   | Payroll         | `SMARTOUT_MODULE_8_PAYROLL.md`          | Spec'd |
-| 9   | Communication   | `SMARTOUT_MODULE_9_COMMUNICATION.md`    | Spec'd |
-| 10  | Reports         | `SMARTOUT_MODULE_10_REPORTS.md`         | Spec'd |
-| 11  | Settings        | `SMARTOUT_MODULE_11_SETTINGS.md`        | Spec'd |
-| 12  | AI              | `SMARTOUT_MODULE_12_AI.md`              | Spec'd |
-| 13  | Multi-tenant    | `SMARTOUT_MODULE_13_MULTITENANT.md`     | Spec'd |
-| 14  | Production      | `SMARTOUT_MODULE_14_PRODUCTION.md`      | Spec'd |
-| 15  | Season Planning | `SMARTOUT_MODULE_15_SEASON_PLANNING.md` | Spec'd |
-| 17  | Platform Admin  | `SMARTOUT_MODULE_17_PLATFORM_ADMIN.md`  | Spec'd |
-| 18  | WebRTC          | `SMARTOUT_MODULE_18_WEBRTC.md`          | Spec'd |
+> **Load** relevant `docs/modules/MODULE_*.md` BEFORE implementing any module feature.
+> Full list with IDs, status, and dependencies: `docs/INDEX.md`
+> 17 modules total (1-15, 17-18). Each has YAML frontmatter with `depends_on` chain.
 
 ### Architecture Decisions (ADRs)
 
@@ -723,6 +725,7 @@ All accepted decisions in `docs/decisions/`. **Read before making changes in the
 | 0022 | Email/Notification Service Architecture                               | Notifications  |
 | 0023 | Global Scrollbar Standard via Design Tokens                           | UI             |
 | 0024 | Contract System Architecture                                          | Contracts      |
+| 0025 | Documentation Restructuring — Layered System with YAML Frontmatter    | Documentation  |
 
 ### ADR Enforcement (MANDATORY)
 
@@ -748,54 +751,11 @@ An ADR is REQUIRED when any of these are true:
 
 ---
 
-## Key Enums (from packages/types/src/enums.ts)
+## Enums
 
-All enums are defined as Zod schemas. Use `z.infer<typeof EnumSchema>` for types.
-
-```typescript
-// Identity
-ProfileRole: "employee" | "manager" | "admin" | "owner";
-ProfileStatus: "trainee" | "active" | "inactive" | "offboarding";
-CompanyMemberRole: "owner" | "admin" | "member";
-AuthProvider: "supabase" | "google" | "microsoft";
-
-// Localization
-PreferredLanguage: "no" | "sv" | "en" | "da" | "fi";
-Currency: "NOK" | "SEK" | "DKK" | "EUR";
-Country: "NO" | "SE" | "DK" | "FI";
-Industry: "restaurant" | "hotel" | "cafe" | "bar" | "catering" | "other";
-
-// Structure
-LocationType: "main" | "outdoor" | "kitchen" | "event" | "storage" | "other";
-TeamType: "operational" | "access" | "cross_department" | "seasonal" | "custom";
-
-// Governance
-PolicyType: "operational" | "haccp" | "hr" | "safety" | "access" | "payroll" | "custom";
-PolicyScope: "workspace" | "department" | "team" | "location";
-EnforcementStatus: "aspirational" | "enforced";
-ProtocolStatus: "draft" | "active" | "deprecated";
-ProcedureType: "standard" | "onboarding" | "safety" | "maintenance" | "custom";
-
-// Operations
-SessionStatus: "upcoming" | "active" | "pending_signoff" | "closed" | "missed";
-TaskStatus: "pending" |
-  "available" |
-  "in_progress" |
-  "completed" |
-  "skipped" |
-  "overdue" |
-  "escalated";
-HookType: "pre_open" | "open" | "scheduled" | "pre_close" | "close" | "custom";
-
-// Time
-SeasonType: "default" | "calendar" | "focus" | "cycle" | "custom";
-SeasonStatus: "draft" | "active" | "archived";
-DayCategory: "morning" | "midday" | "afternoon" | "evening" | "night" | "weekend";
-
-// Other
-InviteStatus: "pending" | "accepted" | "expired" | "cancelled";
-TriggerType: "scheduled" | "event";
-```
+> **Load** `docs/reference/DATABASE.md` for the full enum reference (30 DB enums + TypeScript enums).
+> All enums defined as Zod schemas in `packages/types/src/enums.ts`. Use `z.infer<typeof Schema>` for types.
+> Before creating a new enum, check `packages/supabase/src/database.types.ts` for name conflicts.
 
 ---
 
@@ -823,15 +783,22 @@ Time period wrapping all operations. Like a gamification campaign. Own leaderboa
 
 ---
 
-## Stale Documentation Protocol
+## Documentation Protocol
 
-This CLAUDE.md is the source of truth for codebase facts. Module docs in `docs/modules/` describe **intended behavior** and may be ahead of implementation.
+This CLAUDE.md is the source of truth for codebase facts. See **Source of Truth** section above for the full hierarchy.
+
+### Finding Documentation
+
+1. Check `docs/INDEX.md` for the master map of all documents with IDs and status
+2. Every doc has YAML frontmatter — read the `id`, `status`, `depends_on`, and `Summary` to assess relevance
+3. Use `layer` field to know the doc's purpose: `reference` (lookup), `module` (business logic), `architecture` (design)
 
 ### When Reading Docs
 
 1. Check this file first for verified ground truth
 2. If a module doc contradicts this file, this file wins for structural facts
 3. Module docs win for business logic and domain rules
+4. Never load `docs/archive/` files — they are superseded
 
 ### When Code Changes
 
@@ -883,6 +850,9 @@ pnpm --filter web dev
 
 # Run landing page dev server (port 3055)
 pnpm --filter landing dev
+
+# Run docs site dev server (port 3060)
+pnpm --filter docs dev
 
 # Run all dev servers (requires 1Password CLI)
 pnpm dev
@@ -936,3 +906,4 @@ pnpm clean
 | 2026-02-28 | 4.2.0   | Vercel deployment: Updated ADR-0020 with verified build settings (Root Dir = app dir, not `.`), pnpm 9.15.9, 17 migrations to production Supabase. Added Learnings 0008-0010 (x-forwarded-host, .vercelignore depth, Turborepo Root Directory). Fixed security middleware blocking all production requests.              | Claude |
 | 2026-02-28 | 5.0.0   | Contract system: Added contract-service microservice (Fastify, port 3100), 6 contract tables, contract-lifecycle Edge Function, Tiptap editor, 20 AI contract tools, signing pages, @smartout/notifications package. Registered ADR-0021 through ADR-0024. Updated monorepo structure, routes, env vars, edge functions. | Claude |
 | 2026-02-28 | 5.1.0   | Landing page: Added full landing route map (features, concepts, docs, legal pages), landing component table (WorkspaceAnalyzer, VoiceAssistant, Navigation, Footer, NextPageBanner). Added Learning-0011 (Framer Motion animation patterns).                                                                             | Claude |
+| 2026-02-28 | 6.0.0   | Docs restructuring: Added Source of Truth hierarchy, docs/INDEX.md, 4 reference files (DATABASE, ROUTES, PACKAGES, ENV_VARS), YAML frontmatter on all docs, docs/archive/, Nextra scaffold at apps/docs/. Removed Key Enums section (→ DATABASE.md) and Module table (→ INDEX.md). ADR-0025.                             | Claude |

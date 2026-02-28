@@ -1,3 +1,27 @@
+---
+title: "Subdomain & Workspace Routing Implementation Plan"
+id: PLAN_SUBDOMAIN
+version: "1.0"
+status: canonical
+layer: plan
+created: 2026-02-28
+updated: 2026-02-28
+author: claude
+supersedes: []
+superseded_by: null
+depends_on: []
+tags:
+  - plan
+  - subdomain
+  - routing
+  - workspace
+  - middleware
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Subdomain & Workspace Routing Implementation Plan (v2)
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.

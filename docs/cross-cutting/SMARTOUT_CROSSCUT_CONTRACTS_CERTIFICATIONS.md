@@ -1,3 +1,26 @@
+---
+title: "Contracts & Certifications"
+id: XCUT_CONTRACTS
+version: "1.0"
+status: canonical
+layer: cross-cutting
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on: []
+tags:
+  - contracts
+  - certifications
+  - employment
+  - norwegian-law
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Cross-Cutting: Contracts & Certifications
 
 > **Smartout.io** — Cross-cutting documentation

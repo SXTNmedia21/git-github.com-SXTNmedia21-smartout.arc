@@ -1,3 +1,26 @@
+---
+title: "Smartout API Roadmap"
+id: ROADMAP_API
+version: "1.0"
+status: canonical
+layer: roadmap
+created: 2026-02-28
+updated: 2026-02-28
+author: claude
+supersedes: []
+superseded_by: null
+depends_on: []
+tags:
+  - api
+  - roadmap
+  - strategy
+  - planning
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Smartout API Roadmap
 
 > Strategic and operational control plan for Smartout APIs.

@@ -1,3 +1,26 @@
+---
+title: "Internationalization (i18n)"
+id: XCUT_I18N
+version: "1.0"
+status: canonical
+layer: cross-cutting
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on: []
+tags:
+  - i18n
+  - localization
+  - languages
+  - norwegian
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Cross-Cutting: Internationalization (i18n)
 
 > **Smartout.io** — Cross-cutting documentation

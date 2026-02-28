@@ -1,3 +1,27 @@
+---
+title: "UI Architecture & Screen Inventory"
+id: UI_ARCH
+version: "1.0"
+status: draft
+layer: architecture
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on:
+  - CORE_ARCH_V2
+tags:
+  - ui
+  - dashboard
+  - personas
+  - screens
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # SMARTOUT — UI Architecture & Screen Inventory
 
 > **Smartout.io** — User Journeys, Screen Architecture, and Component Library

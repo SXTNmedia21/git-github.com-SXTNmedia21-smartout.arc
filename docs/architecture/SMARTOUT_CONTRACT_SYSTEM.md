@@ -1,3 +1,34 @@
+---
+title: "Contract System Architecture"
+id: CONTRACT_ARCH
+version: "1.0"
+status: canonical
+layer: architecture
+created: 2026-02-28
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on:
+  - CORE_ARCH_V2
+tags:
+  - contracts
+  - cross-cutting
+  - docuseal
+  - signing
+  - legal
+tables:
+  - contract_template
+  - contract
+  - contract_event
+  - contract_reminder
+  - message_template
+  - clause_library
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Smartout Cross-Cutting Concern: Contract System
 
 > **Type:** Cross-Cutting Concern (#22 in platform index)  

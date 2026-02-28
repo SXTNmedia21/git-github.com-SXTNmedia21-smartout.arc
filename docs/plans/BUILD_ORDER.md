@@ -1,3 +1,26 @@
+---
+title: "Build Order (Detailed Implementation Plan)"
+id: PLAN_BUILD_ORDER
+version: "1.0"
+status: canonical
+layer: plan
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on: []
+tags:
+  - plan
+  - build-order
+  - implementation
+  - waves
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Smartout — Build Order (Detailed Implementation Plan)
 
 > Step-by-step implementation tasks for each wave.
@@ -253,7 +276,7 @@ These components are used across 3+ modules and should live in the shared packag
 
 ### 2.1 — Module 3: Scheduling
 
-> **Refs:** [Module 3 Spec](modules/SMARTOUT_MODULE_3_SCHEDULING.md), [Module 3 Spec (NO)](modules/smartout-modul3-vaktplanlegging.md)
+> **Refs:** [Module 3 Spec](modules/SMARTOUT_MODULE_3_SCHEDULING.md)
 > **Route:** `/dashboard/schedule`, `/dashboard/my-schedule`
 > **Partially built:** Basic shift view and "Vaktliste" exist
 

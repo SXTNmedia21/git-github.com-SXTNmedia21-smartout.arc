@@ -1,3 +1,26 @@
+---
+title: "SmartOut Brukermanual — Innhold"
+id: MANUAL_INDEX
+version: "1.0"
+status: canonical
+layer: manual
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on: []
+tags:
+  - manual
+  - index
+  - norwegian
+  - user-docs
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # SmartOut Brukermanual — Innhold
 
 > Kanonisk innholdsreferanse for nettsidenes dokumentasjon (`/docs`).

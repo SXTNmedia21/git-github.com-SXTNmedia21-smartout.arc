@@ -1,3 +1,27 @@
+---
+title: "HACCP / MAT-Syn (stub)"
+id: MANUAL_09_STUB
+version: "1.0"
+status: draft
+layer: manual
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on: []
+tags:
+  - manual
+  - haccp
+  - food-safety
+  - stub
+  - swedish
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # HACCP / MAT-Syn
 
 ## Syfte

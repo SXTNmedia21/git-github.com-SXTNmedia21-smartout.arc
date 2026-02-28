@@ -1,3 +1,33 @@
+---
+title: "Module 13: Multi-Tenant & Skalering (Multi-Tenancy & Scaling)"
+id: MODULE_13
+version: "1.0"
+status: canonical
+layer: module
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on:
+  - CORE_ARCH_V2
+tags:
+  - multi-tenancy
+  - rls
+  - workspace-isolation
+  - stripe
+  - billing
+  - scaling
+tables:
+  - workspace
+  - company
+  - company_member
+  - user_identity
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Module 13: Multi-Tenant & Skalering (Multi-Tenancy & Scaling)
 
 > **Smartout.io** — Functional documentation for migration

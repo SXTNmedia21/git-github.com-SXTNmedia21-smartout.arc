@@ -1,3 +1,27 @@
+---
+title: "Seven AI Council Personas for Smartout's Norwegian Hospitality Platform"
+id: RESEARCH_AI_COUNCIL
+version: "1.0"
+status: canonical
+layer: research
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on: []
+tags:
+  - research
+  - ai
+  - personas
+  - user-testing
+  - hospitality
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Seven AI Council personas for Smartout's Norwegian hospitality platform
 
 **Smartout's customer base spans an extraordinary demographic range** — from Michelin-starred sommeliers with WSET Level 4 diplomas to recently arrived immigrants navigating workplace software in their third language. This report synthesizes research across Norwegian hospitality demographics, labor law, digital literacy patterns, persona design best practices, and AI prompt engineering to define seven distinct user personas that authentically represent this full spectrum. Each persona includes both a rich narrative profile and a structured AI agent system prompt ready for deployment in Claude-based product testing.

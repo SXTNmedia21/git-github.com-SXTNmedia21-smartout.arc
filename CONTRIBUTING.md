@@ -8,7 +8,7 @@ All contributors (human and AI) are expected to read and adhere to our [Code of 
 
 ## 🛠️ Development Guidelines
 
-To ensure code quality and consistency across all operations, our platform has a "Zero-Tolerance Policy" for architectural ambiguity (`GEMINI.md`).
+To ensure code quality and consistency across all operations, our platform has a "Zero-Tolerance Policy" for architectural ambiguity. See `CLAUDE.md` for ground truth and `docs/INDEX.md` for the full documentation map.
 
 ### 1. **Precision & Code Quality**
 
@@ -18,8 +18,10 @@ To ensure code quality and consistency across all operations, our platform has a
 
 ### 2. **Persistent Decisioning**
 
-- Maintain Architecture Decision Records (ADRs).
+- Maintain Architecture Decision Records (ADRs) in `docs/decisions/`.
 - Update the relevant module documentation (e.g., `docs/modules/SMARTOUT_MODULE_*.md`) BEFORE implementing a change that alters core business logic.
+- All docs have YAML frontmatter with `id`, `status`, `depends_on` — read frontmatter + Summary to assess relevance before loading full files.
+- Quick-lookup references: `docs/reference/DATABASE.md`, `ROUTES.md`, `PACKAGES.md`, `ENV_VARS.md`.
 - Commit messages must clearly state "Why" and "What." Reference issue numbers if available.
 
 ### 3. **The 'State-Driven' Rule**

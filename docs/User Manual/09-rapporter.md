@@ -1,3 +1,27 @@
+---
+title: "Rapporter og avstemming"
+id: MANUAL_09
+version: "1.0"
+status: canonical
+layer: manual
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on: []
+tags:
+  - manual
+  - reports
+  - reconciliation
+  - kpi
+  - norwegian
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Rapporter og avstemming
 
 > Daglig avstemming, KPI-dashboard, sesongavstemming og rapporttyper — datadrevet innsikt for bedre drift.

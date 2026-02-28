@@ -1,3 +1,33 @@
+---
+title: "Module 15: Season Planning & Budget Engine"
+id: MODULE_15
+version: "1.0"
+status: canonical
+layer: module
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on:
+  - CORE_ARCH_V2
+tags:
+  - season-planning
+  - budget
+  - revenue-forecasting
+  - staffing-capacity
+  - factor-hierarchy
+tables:
+  - season_budget
+  - day_factor
+  - hour_factor
+  - date_override
+  - factor_learning
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Module 15: Season Planning & Budget Engine
 
 > **Smartout.io** — Functional documentation for migration  

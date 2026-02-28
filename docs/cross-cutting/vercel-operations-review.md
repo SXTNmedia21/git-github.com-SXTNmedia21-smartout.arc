@@ -1,3 +1,26 @@
+---
+title: "Vercel Operations Review"
+id: XCUT_VERCEL_OPS
+version: "1.0"
+status: canonical
+layer: cross-cutting
+created: 2026-02-28
+updated: 2026-02-28
+author: claude
+supersedes: []
+superseded_by: null
+depends_on: []
+tags:
+  - vercel
+  - operations
+  - monitoring
+  - web-vitals
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Vercel Operations Review
 
 ## Weekly Review (per project: smartout-web, smartout-landing)

@@ -1,3 +1,38 @@
+---
+title: "Foundation Data Model"
+id: FOUND_DATA_MODEL
+version: "1.0"
+status: canonical
+layer: architecture
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on:
+  - CORE_ARCH_V2
+tags:
+  - data-model
+  - foundation
+  - database
+  - schema
+tables:
+  - user_identity
+  - company
+  - company_member
+  - workspace
+  - profile
+  - department
+  - location
+  - team
+  - policy
+  - protocol
+  - season
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Smartout — Core Data Model
 
 > **Smartout.io** — Foundation documentation

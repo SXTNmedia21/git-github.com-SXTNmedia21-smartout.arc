@@ -1,3 +1,27 @@
+---
+title: "Legal, GDPR & Compliance"
+id: XCUT_LEGAL_GDPR
+version: "1.0"
+status: canonical
+layer: cross-cutting
+created: 2026-02-24
+updated: 2026-02-28
+author: pontus
+supersedes: []
+superseded_by: null
+depends_on: []
+tags:
+  - gdpr
+  - legal
+  - compliance
+  - privacy
+  - norwegian-law
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Cross-Cutting: Legal, GDPR & Compliance
 
 > **Smartout.io** — Cross-cutting documentation

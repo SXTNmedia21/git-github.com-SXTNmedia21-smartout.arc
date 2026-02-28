@@ -1,3 +1,27 @@
+---
+title: "Performance and Build Checklist"
+id: XCUT_PERF_CHECKLIST
+version: "1.0"
+status: canonical
+layer: cross-cutting
+created: 2026-02-28
+updated: 2026-02-28
+author: claude
+supersedes: []
+superseded_by: null
+depends_on:
+  - XCUT_PERF_GOVERNANCE
+tags:
+  - performance
+  - checklist
+  - build
+  - pr-review
+tables: []
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
+---
+
 # Performance and Build Checklist
 
 Use this checklist for PRs that touch `web` or `landing` UI routes.
