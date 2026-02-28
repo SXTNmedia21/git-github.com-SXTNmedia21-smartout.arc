@@ -1,12 +1,12 @@
 import type { NextConfig } from "next";
 import path from "path";
-import fs from "fs";
 
 // This will force validation of the .env on start/build
 import "./src/env";
 
 const nextConfig: NextConfig = {
   transpilePackages: [
+    "@smartout/ai",
     "@smartout/supabase",
     "@smartout/telemetry",
     "@smartout/types",
@@ -14,17 +14,6 @@ const nextConfig: NextConfig = {
   ],
   webpack: (config, { dir }) => {
     const aiDist = path.join(dir, "../../packages/ai/dist");
-
-    // Diagnostics: log filesystem state on Vercel
-    const distExists = fs.existsSync(aiDist);
-    const docsFile = path.join(aiDist, "agents", "docs.js");
-    const docsExists = fs.existsSync(docsFile);
-    console.error(`[@smartout/ai] dist=${distExists} docs.js=${docsExists} path=${aiDist}`);
-    if (distExists) {
-      try {
-        console.error(`[@smartout/ai] files=${fs.readdirSync(aiDist).join(",")}`);
-      } catch {}
-    }
 
     // Exact file aliases — bypasses exports field resolution entirely
     config.resolve.alias["@smartout/ai$"] = path.join(aiDist, "index.js");
