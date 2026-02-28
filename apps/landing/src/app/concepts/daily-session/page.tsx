@@ -179,7 +179,7 @@ export default function DailySessionSimple() {
               </TimelineSection>
 
               {/* OPEN HOOK */}
-              <TimelineSection time="10:00" title="Opening Hook" status="Completed">
+              <TimelineSection time="10:00" title="Åpning" status="Fullført">
                 <TaskCard
                   title="Temperaturkontroll - Kjølerom 1"
                   assigned="Erik (Sous Chef)"
@@ -193,18 +193,18 @@ export default function DailySessionSimple() {
                   assigned="Skift-ansvarlig"
                   status="completed"
                   time="10:30"
-                  category="Prep"
+                  category="Forberedelse"
                 />
               </TimelineSection>
 
               {/* MID-DAY ROUTINE (CURRENT TIME ZONE) */}
-              <TimelineSection time="14:00" title="Mid-Day Routine" status="Active" isCurrent>
+              <TimelineSection time="14:00" title="Midt-På-Dagen Rutine" status="Aktiv" isCurrent>
                 <TaskCard
                   title="Vask og desinfiser prep-stasjon"
                   assigned="Alle på skift"
                   status="in_progress"
                   time="Startet 14:15"
-                  category="Cleaning"
+                  category="Rengjøring"
                   claimedBy="Lise"
                 />
                 <TaskCard
@@ -217,7 +217,7 @@ export default function DailySessionSimple() {
                 {/* Ad-hoc task inserted into timeline */}
                 <TaskCard
                   title="Søl i Sone 3 - Dyprens nødvendig"
-                  assigned="Ad-hoc (Manager)"
+                  assigned="Ad-hoc (Leder)"
                   status="available"
                   time="Opprettet 14:45"
                   category="Ad-hoc"
@@ -225,7 +225,7 @@ export default function DailySessionSimple() {
               </TimelineSection>
 
               {/* PRE-CLOSE HOOK */}
-              <TimelineSection time="21:00" title="Pre-Close Hook" status="Upcoming">
+              <TimelineSection time="21:00" title="Før-Stenging" status="Kommende">
                 <TaskCard
                   title="Last Orders Call (Rop opp)"
                   assigned="Kvelds-skift"
@@ -238,7 +238,7 @@ export default function DailySessionSimple() {
                   assigned="Kvelds-skift"
                   status="pending"
                   time="Planlagt 21:15"
-                  category="Prep"
+                  category="Forberedelse"
                 />
               </TimelineSection>
             </div>
@@ -311,9 +311,9 @@ function TimelineSection({
       {/* Node on the timeline */}
       <div
         className={`absolute top-1 -left-[10px] flex h-5 w-5 items-center justify-center rounded-full border-4 border-[#050505] shadow-[0_0_20px_-5px_rgba(0,0,0,1)] ${
-          status === "Completed"
+          status === "Fullført"
             ? "bg-zinc-600"
-            : status === "Active"
+            : status === "Aktiv"
               ? "bg-orange-500 shadow-[0_0_20px_rgba(249,115,22,0.6)]"
               : "border-zinc-700 bg-zinc-800"
         }`}
