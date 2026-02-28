@@ -15,6 +15,7 @@ export type CallResult = {
   joinUrl: string;
   callId: string;
   mission: AgentMission;
+  voiceFallbackUsed: boolean;
 };
 
 function toInitialOutputMediumEnum(
@@ -90,6 +91,7 @@ export async function startMissionCall(options: StartCallOptions): Promise<CallR
 
   let response = await makeRequest(callBody);
   let errText = "";
+  let voiceFallbackUsed = false;
 
   if (!response.ok) {
     errText = await response.text();
@@ -97,6 +99,7 @@ export async function startMissionCall(options: StartCallOptions): Promise<CallR
     if (callBody.voice && /voice .* does not exist/i.test(errText)) {
       const retryBody = { ...callBody };
       delete retryBody.voice;
+      voiceFallbackUsed = true;
       response = await makeRequest(retryBody);
       if (!response.ok) {
         errText = await response.text();
@@ -117,5 +120,6 @@ export async function startMissionCall(options: StartCallOptions): Promise<CallR
     joinUrl: data.joinUrl,
     callId: data.callId,
     mission,
+    voiceFallbackUsed,
   };
 }

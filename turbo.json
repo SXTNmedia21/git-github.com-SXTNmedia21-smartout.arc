@@ -7,11 +7,10 @@
       "inputs": ["src/**", "tsconfig.json", "package.json"]
     },
     "typecheck": {
-      "dependsOn": ["^build"],
       "outputs": []
     },
     "lint": {
-      "dependsOn": ["^build"]
+      "outputs": []
     },
     "test": {
       "dependsOn": ["build"],

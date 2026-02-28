@@ -1,0 +1,26 @@
+{
+  "app": "web",
+  "baseUrl": "http://127.0.0.1:3050",
+  "routes": [
+    {
+      "path": "/",
+      "maxResponseTimeMs": 900,
+      "maxHtmlSizeKb": 220
+    },
+    {
+      "path": "/dashboard",
+      "maxResponseTimeMs": 1100,
+      "maxHtmlSizeKb": 260
+    },
+    {
+      "path": "/dashboard/schedule",
+      "maxResponseTimeMs": 1400,
+      "maxHtmlSizeKb": 320
+    },
+    {
+      "path": "/login",
+      "maxResponseTimeMs": 900,
+      "maxHtmlSizeKb": 200
+    }
+  ]
+}

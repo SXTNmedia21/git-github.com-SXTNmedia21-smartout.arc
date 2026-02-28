@@ -66,6 +66,16 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm turbo run build
+      - name: Upload web build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-next-build
+          path: apps/web/.next
+      - name: Upload landing build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: landing-next-build
+          path: apps/landing/.next
 
   verify:
     name: Post-Build Verification
@@ -86,3 +96,91 @@ jobs:
           pnpm --filter @smartout/supabase exec tsc --noEmit
           pnpm --filter @smartout/ui exec tsc --noEmit
           pnpm --filter @smartout/telemetry exec tsc --noEmit
+
+  build-health:
+    name: Build Health
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:health
+      - name: Upload build health artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build-health-report
+          path: artifacts/quality/build-health-report.json
+
+  perf-budgets:
+    name: Performance Budgets
+    runs-on: ubuntu-latest
+    needs: [build]
+    env:
+      PERF_ENFORCEMENT: ${{ github.event_name == 'pull_request' && 'warn' || 'fail' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [web, landing]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Download web build artifact
+        if: matrix.app == 'web'
+        uses: actions/download-artifact@v4
+        with:
+          name: web-next-build
+          path: apps/web/.next
+      - name: Download landing build artifact
+        if: matrix.app == 'landing'
+        uses: actions/download-artifact@v4
+        with:
+          name: landing-next-build
+          path: apps/landing/.next
+      - name: Start target app
+        run: pnpm --filter ${{ matrix.app }} start &
+      - name: Wait for app readiness
+        run: |
+          if [ "${{ matrix.app }}" = "web" ]; then
+            npx wait-on http://127.0.0.1:3050
+          else
+            npx wait-on http://127.0.0.1:3055
+          fi
+      - name: Run perf budget audit
+        continue-on-error: ${{ env.PERF_ENFORCEMENT != 'fail' }}
+        run: |
+          if [ "${{ matrix.app }}" = "web" ]; then
+            pnpm perf:audit:web
+          else
+            pnpm perf:audit:landing
+          fi
+      - name: Upload perf artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: perf-report-${{ matrix.app }}
+          path: artifacts/perf/*
+
+  api-docs-go-live-guard:
+    name: API Docs Go-Live Guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Verify go-live API spec is up to date
+        run: pnpm api:docs:verify-go-live

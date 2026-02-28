@@ -1,0 +1,500 @@
+openapi: 3.1.0
+info:
+  title: Smartout API (go-live)
+  version: 0.1.0-draft-go-live
+  summary: Starter OpenAPI contract for Smartout internal and target external APIs.
+  description: >
+    This starter spec captures currently implemented endpoints and planned `/v1`
+    endpoint groups.
+
+    It is intentionally contract-first and roadmap-aware.
+servers:
+  - url: https://app.smartout.ai
+    description: Web app host (Next.js API routes)
+  - url: https://smartout.ai
+    description: Landing host (Next.js API routes)
+  - url: https://{projectRef}.supabase.co/functions/v1
+    description: Supabase Edge Functions
+    variables:
+      projectRef:
+        default: your-project-ref
+  - url: http://localhost:8000
+    description: Internal scrapling service (local/internal)
+tags:
+  - name: Health
+  - name: Voice
+  - name: Telemetry
+  - name: Auth
+  - name: PlatformAdminContent
+  - name: PublicContent
+  - name: Onboarding
+  - name: EdgeFunctions
+  - name: InternalService
+  - name: PlannedIntegrations
+  - name: PlannedGovernance
+  - name: PlannedEvents
+  - name: PlannedDomainApi
+paths:
+  /api/content/{slug}:
+    parameters:
+      - $ref: "#/components/parameters/SlugPath"
+    get:
+      tags:
+        - PublicContent
+      operationId: getPublishedContentBySlug
+      summary: Get public published content by slug
+      responses:
+        "200":
+          description: Published content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublishedContentResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+      x-smartout-surface: internal
+      x-roadmap-status: implemented
+      x-doc-visibility: public
+  /api/health:
+    get:
+      tags:
+        - Health
+      operationId: getAppHealth
+      summary: Get app health status
+      responses:
+        "200":
+          description: Healthy or degraded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "503":
+          description: Unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+      x-smartout-surface: internal
+      x-roadmap-status: implemented
+      x-doc-visibility: public
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    SupabaseSession:
+      type: apiKey
+      in: cookie
+      name: sb-access-token
+    DocuSealSignature:
+      type: apiKey
+      in: header
+      name: x-docuseal-signature
+  parameters:
+    SlugPath:
+      name: slug
+      in: path
+      required: true
+      schema:
+        type: string
+  responses:
+    ValidationError:
+      description: Validation failed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    UnauthorizedError:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    ForbiddenError:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFoundError:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    ConflictError:
+      description: Conflict
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    RateLimitError:
+      description: Too many requests
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    BadGatewayError:
+      description: Upstream gateway failure
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    ServiceUnavailableError:
+      description: Service unavailable
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+  schemas:
+    VisibilityProfile:
+      type: string
+      enum:
+        - internal
+        - partner
+        - public
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        details:
+          type: string
+      required:
+        - error
+    WizardStartRequest:
+      type: object
+      properties:
+        mission_id:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+    WizardStartResponse:
+      type: object
+      properties:
+        joinUrl:
+          type: string
+        callId:
+          type: string
+        mission:
+          type: string
+      required:
+        - joinUrl
+        - callId
+        - mission
+    DocuSealEvent:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - data
+      properties:
+        event_type:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        data:
+          type: object
+          required:
+            - id
+            - submission_id
+            - status
+          properties:
+            id:
+              type: integer
+            submission_id:
+              type: integer
+            status:
+              type: string
+            documents:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  url:
+                    type: string
+                    format: uri
+            submitters:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  email:
+                    type: string
+                    format: email
+                  role:
+                    type: string
+                  completed_at:
+                    type: string
+                    format: date-time
+                    nullable: true
+    WebhookAck:
+      type: object
+      properties:
+        received:
+          type: boolean
+        status:
+          type: string
+        skipped:
+          type: string
+    LandingConfigSummary:
+      type: object
+      properties:
+        config_id:
+          type: string
+          format: uuid
+        slug:
+          type: string
+        name:
+          type: string
+        locale:
+          type: string
+        status:
+          type: string
+        version:
+          type: integer
+        published_at:
+          type: string
+          format: date-time
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+    LandingConfig:
+      allOf:
+        - $ref: "#/components/schemas/LandingConfigSummary"
+        - type: object
+          properties:
+            config_json:
+              type: object
+              additionalProperties: true
+            published_json:
+              type: object
+              additionalProperties: true
+              nullable: true
+    LandingConfigCreate:
+      type: object
+      required:
+        - slug
+        - name
+        - config_json
+      properties:
+        slug:
+          type: string
+          pattern: ^[a-z0-9-]+$
+        name:
+          type: string
+        locale:
+          type: string
+          default: no
+        config_json:
+          type: object
+          additionalProperties: true
+    LandingConfigUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        locale:
+          type: string
+        config_json:
+          type: object
+          additionalProperties: true
+    PublishedContentResponse:
+      type: object
+      properties:
+        slug:
+          type: string
+        name:
+          type: string
+        locale:
+          type: string
+        content:
+          type: object
+          additionalProperties: true
+        version:
+          type: integer
+        published_at:
+          type: string
+          format: date-time
+      required:
+        - slug
+        - name
+        - locale
+        - content
+        - version
+    TelemetryEvent:
+      type: object
+      required:
+        - event
+        - workspace_id
+        - actor_id
+      properties:
+        event:
+          type: string
+        workspace_id:
+          type: string
+          format: uuid
+        actor_id:
+          type: string
+          format: uuid
+        properties:
+          type: object
+          additionalProperties: true
+        timestamp:
+          type: string
+          format: date-time
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        version:
+          type: string
+        checks:
+          type: object
+          additionalProperties: true
+    OnboardingAgentRequest:
+      type: object
+      required:
+        - sessionId
+        - userMessage
+        - conversationHistory
+      properties:
+        sessionId:
+          type: string
+          format: uuid
+        userMessage:
+          type: string
+          minLength: 1
+          maxLength: 5000
+        conversationHistory:
+          type: array
+          items:
+            type: object
+            required:
+              - role
+              - content
+            properties:
+              role:
+                type: string
+                enum:
+                  - user
+                  - assistant
+              content:
+                type: string
+        extractIntelligence:
+          type: boolean
+          default: false
+    OnboardingAgentResponse:
+      type: object
+      properties:
+        text:
+          type: string
+        toolCalls:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        toolResults:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        intelligence:
+          type: object
+          additionalProperties: true
+    ScraplingExtractRequest:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          format: uri
+        config:
+          type: object
+          properties:
+            include_company_info:
+              type: boolean
+              default: true
+            include_locations:
+              type: boolean
+              default: true
+            include_departments:
+              type: boolean
+              default: true
+            include_dictionary:
+              type: boolean
+              default: false
+    ScraplingExtractResponse:
+      type: object
+      properties:
+        companyName:
+          type: string
+        locations:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        departments:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        summary:
+          type: string
+        pageDictionary:
+          type: object
+          additionalProperties:
+            type: string
+        images:
+          type: array
+          items:
+            type: object
+            properties:
+              src:
+                type: string
+              alt:
+                type: string
+        menus:
+          type: array
+          items:
+            type: object
+            properties:
+              href:
+                type: string
+              text:
+                type: string
+        socialLinks:
+          type: object
+          additionalProperties:
+            type: string
+        reservationUrl:
+          type: string
+          format: uri
+x-generated-profile: go-live
+x-generated-at: 2026-02-28T02:45:17.827Z

@@ -1,0 +1,26 @@
+{
+  "app": "landing",
+  "baseUrl": "http://127.0.0.1:3055",
+  "routes": [
+    {
+      "path": "/",
+      "maxResponseTimeMs": 900,
+      "maxHtmlSizeKb": 260
+    },
+    {
+      "path": "/pricing",
+      "maxResponseTimeMs": 900,
+      "maxHtmlSizeKb": 240
+    },
+    {
+      "path": "/features/communications",
+      "maxResponseTimeMs": 1100,
+      "maxHtmlSizeKb": 320
+    },
+    {
+      "path": "/concepts/daily-session",
+      "maxResponseTimeMs": 1100,
+      "maxHtmlSizeKb": 320
+    }
+  ]
+}

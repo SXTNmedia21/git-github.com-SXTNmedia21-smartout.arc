@@ -1,4 +1,4 @@
-# Module 9B: WebRTC Voice & Video (LiveKit Integration)
+# Module 18: WebRTC Voice & Video (LiveKit Integration)
 
 > **Smartout.io** — Functional documentation for migration
 > Version 1.0 | February 2026
@@ -403,13 +403,9 @@ import { createClient } from "npm:@supabase/supabase-js";
 
 Deno.serve(async (req) => {
   // Authenticate the request via Supabase Auth
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_ANON_KEY")!,
-    {
-      global: { headers: { Authorization: req.headers.get("Authorization")! } },
-    },
-  );
+  const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
+    global: { headers: { Authorization: req.headers.get("Authorization")! } },
+  });
 
   const {
     data: { user },
@@ -572,10 +568,7 @@ channelBroadcast.send({
 ```json
 {
   "expo": {
-    "plugins": [
-      "@livekit/react-native-expo-plugin",
-      "@config-plugins/react-native-webrtc"
-    ]
+    "plugins": ["@livekit/react-native-expo-plugin", "@config-plugins/react-native-webrtc"]
   }
 }
 ```
@@ -653,13 +646,7 @@ function CallControls({ onEnd }: { onEnd: () => void }) {
 import { useEffect } from "react";
 import { AudioSession, LiveKitRoom } from "@livekit/react-native";
 
-export function VoiceCallScreen({
-  token,
-  onEnd,
-}: {
-  token: string;
-  onEnd: () => void;
-}) {
+export function VoiceCallScreen({ token, onEnd }: { token: string; onEnd: () => void }) {
   useEffect(() => {
     AudioSession.startAudioSession();
     return () => {
@@ -700,11 +687,7 @@ function PushToTalkButton() {
   };
 
   return (
-    <Pressable
-      onPressIn={handlePressStart}
-      onPressOut={handlePressEnd}
-      className="ptt-button"
-    >
+    <Pressable onPressIn={handlePressStart} onPressOut={handlePressEnd} className="ptt-button">
       <Text>🎤 Hold for å snakke</Text>
     </Pressable>
   );
@@ -723,10 +706,7 @@ LiveKit sends webhook events for room and participant lifecycle. Configure the w
 // app/api/calls/webhook/route.ts
 import { WebhookReceiver } from "livekit-server-sdk";
 
-const receiver = new WebhookReceiver(
-  process.env.LIVEKIT_API_KEY!,
-  process.env.LIVEKIT_API_SECRET!,
-);
+const receiver = new WebhookReceiver(process.env.LIVEKIT_API_KEY!, process.env.LIVEKIT_API_SECRET!);
 
 export async function POST(req: Request) {
   const body = await req.text();

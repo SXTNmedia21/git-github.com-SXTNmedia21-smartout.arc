@@ -17,6 +17,7 @@ export const env = createEnv({
     UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
     SENTRY_DSN: z.string().url().optional(),
     DOCUSEAL_WEBHOOK_SECRET: z.string().optional(),
+    ULTRAVOX_API_KEY: z.string().optional(),
     // Allow overriding Node environment for testing
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   },

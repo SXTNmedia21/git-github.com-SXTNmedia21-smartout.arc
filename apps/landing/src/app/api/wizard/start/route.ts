@@ -1,87 +1,44 @@
-import { NextRequest, NextResponse } from 'next/server';
-
-const ULTRAVOX_BASE = 'https://api.ultravox.ai/api';
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
+import { startMissionCall } from "@smartout/ai/missions";
 
 export async function POST(request: NextRequest) {
-  const ULTRAVOX_API_KEY = process.env.ULTRAVOX_API_KEY;
+  const apiKey = process.env.ULTRAVOX_API_KEY;
 
-  if (!ULTRAVOX_API_KEY) {
+  if (!apiKey) {
+    console.error("[wizard/start] ULTRAVOX_API_KEY is not set. Add it to .env.local or 1Password.");
     return NextResponse.json(
-      { error: 'ULTRAVOX_API_KEY not configured in environment parameters' },
-      { status: 500 }
+      { error: "Voice assistant is not configured. Contact administrator." },
+      { status: 503 },
     );
   }
 
   try {
     const body = await request.json().catch(() => ({}));
-    const { mission_id } = body;
+    const missionId = body.mission_id || "landing-demo";
 
-    // Contact the MCP Server to get the session and stage
-    const INTERVJU_MCP_URL = 'https://intervju-mcp.vercel.app';
-    let mcpSessionId = null;
-
-    try {
-      const authHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (process.env.INTERVJU_MCP_WEBHOOK_SECRET) {
-        authHeaders['x-webhook-secret'] = process.env.INTERVJU_MCP_WEBHOOK_SECRET;
-      }
-
-      const mcpRes = await fetch(`${INTERVJU_MCP_URL}/api/interview/start`, {
-        method: 'POST',
-        headers: authHeaders,
-        body: JSON.stringify({
-          mission_id: mission_id || 'chat-agent',
-          channel: 'web'
-        }),
-      });
-      
-      if (mcpRes.ok) {
-        const mcpData = await mcpRes.json();
-        mcpSessionId = mcpData.session_id;
-      } else {
-        console.warn("MCP Server returned error:", await mcpRes.text());
-      }
-    } catch (e) {
-      console.warn("Could not connect to MCP server", e);
-    }
-
-    const agentId = '7af2da8a-e9cc-4475-8e5f-a763b7209d7a';
-
-    const response = await fetch(`${ULTRAVOX_BASE}/agents/${agentId}/calls`, {
-      method: 'POST',
-      headers: {
-        'X-API-Key': ULTRAVOX_API_KEY,
-        'Content-Type': 'application/json',
+    const result = await startMissionCall({
+      missionId,
+      apiKey,
+      agentId: process.env.ULTRAVOX_AGENT_ID,
+      metadata: {
+        source: "landing",
+        ...(body.metadata || {}),
       },
-      body: JSON.stringify({
-        medium: { webRtc: {} },
-        metadata: { 
-          mission_id: mission_id || 'chat-agent',
-          session_id: mcpSessionId || undefined
-        }
-      }),
     });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error('Ultravox API error:', errText);
-      return NextResponse.json(
-        { error: `Ultravox API error: ${response.status}`, details: errText },
-        { status: 502 }
-      );
-    }
-
-    const uvData = await response.json();
 
     return NextResponse.json({
-      joinUrl: uvData.joinUrl,
-      callId: uvData.callId,
+      joinUrl: result.joinUrl,
+      callId: result.callId,
+      mission: result.mission.name,
+      voiceFallbackUsed: result.voiceFallbackUsed,
     });
   } catch (error) {
-    console.error('Failed to start wizard session:', error);
+    const message = error instanceof Error ? error.message : "Unknown error";
+    console.error("[wizard/start] Failed:", message);
     return NextResponse.json(
-      { error: 'Internal Server Error' },
-      { status: 500 }
+      { error: "Failed to start voice session", details: message },
+      { status: 502 },
     );
   }
 }

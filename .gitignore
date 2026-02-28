@@ -38,4 +38,5 @@ desktop.ini
 
 # Coverage
 coverage/
+artifacts/
 .claude/

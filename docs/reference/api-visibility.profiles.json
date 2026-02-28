@@ -1,0 +1,53 @@
+{
+  "profiles": {
+    "internal": {
+      "allowVisibility": ["internal", "partner", "public"],
+      "includePlanned": true
+    },
+    "partner": {
+      "allowVisibility": ["partner", "public"],
+      "includePlanned": false
+    },
+    "public": {
+      "allowVisibility": ["public"],
+      "includePlanned": false
+    },
+    "go-live": {
+      "allowVisibility": ["public"],
+      "includePlanned": false
+    }
+  },
+  "operations": {
+    "startVoiceMission": { "visibility": "internal", "enabled": { "go-live": false } },
+    "askDocsAgent": { "visibility": "internal", "enabled": { "go-live": false } },
+    "receiveDocuSealWebhook": { "visibility": "internal", "enabled": { "go-live": false } },
+    "listLandingConfigs": { "visibility": "internal", "enabled": { "go-live": false } },
+    "createLandingConfig": { "visibility": "internal", "enabled": { "go-live": false } },
+    "getLandingConfigBySlug": { "visibility": "internal", "enabled": { "go-live": false } },
+    "updateLandingConfigBySlug": { "visibility": "internal", "enabled": { "go-live": false } },
+    "archiveLandingConfigBySlug": { "visibility": "internal", "enabled": { "go-live": false } },
+    "publishLandingConfigBySlug": { "visibility": "internal", "enabled": { "go-live": false } },
+    "ingestTelemetryBeacon": { "visibility": "internal", "enabled": { "go-live": false } },
+    "runOnboardingAgent": { "visibility": "internal", "enabled": { "go-live": false } },
+    "handleSupabaseAuthCallback": { "visibility": "internal", "enabled": { "go-live": false } },
+    "activateWorkspace": { "visibility": "internal", "enabled": { "go-live": false } },
+    "analyzeWorkspace": { "visibility": "internal", "enabled": { "go-live": false } },
+    "extractWorkspaceData": { "visibility": "internal", "enabled": { "go-live": false } },
+    "createInvitationBatch": { "visibility": "internal", "enabled": { "go-live": false } },
+    "finalizeWorkspace": { "visibility": "internal", "enabled": { "go-live": false } },
+    "gatherWorkspaceIntelligence": { "visibility": "internal", "enabled": { "go-live": false } },
+    "scrapeRawDataEdge": { "visibility": "internal", "enabled": { "go-live": false } },
+    "webSearchIntelligence": { "visibility": "internal", "enabled": { "go-live": false } },
+    "edgeHealthCheck": { "visibility": "internal", "enabled": { "go-live": false } },
+    "watchdogIntegrity": { "visibility": "internal", "enabled": { "go-live": false } },
+    "watchdogUptime": { "visibility": "internal", "enabled": { "go-live": false } },
+    "extractWorkspaceDataFromUrl": { "visibility": "internal", "enabled": { "go-live": false } },
+    "scrapeRawPageData": { "visibility": "internal", "enabled": { "go-live": false } },
+    "getPublishedContentBySlug": { "visibility": "public", "enabled": { "go-live": true } },
+    "getAppHealth": { "visibility": "public", "enabled": { "go-live": true } },
+    "createIntegrationClient": { "visibility": "public", "enabled": { "go-live": false } },
+    "upsertDataSharingPolicy": { "visibility": "public", "enabled": { "go-live": false } },
+    "createWebhookSubscription": { "visibility": "partner", "enabled": { "go-live": false } },
+    "getReadinessSummary": { "visibility": "public", "enabled": { "go-live": false } }
+  }
+}

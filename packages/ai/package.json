@@ -10,8 +10,10 @@
     "./tools/onboarding": "./src/tools/onboarding.ts",
     "./schemas/onboarding": "./src/schemas/onboarding.ts",
     "./agents/onboarding": "./src/agents/onboarding.ts",
+    "./agents/docs": "./src/agents/docs.ts",
     "./adapters/vercel-ai": "./src/adapters/vercel-ai.ts",
-    "./adapters/livekit": "./src/adapters/livekit.ts"
+    "./adapters/livekit": "./src/adapters/livekit.ts",
+    "./missions": "./src/missions/index.ts"
   },
   "scripts": {
     "lint": "eslint src/",

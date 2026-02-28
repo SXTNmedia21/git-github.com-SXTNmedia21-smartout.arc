@@ -1,0 +1,1338 @@
+openapi: 3.1.0
+info:
+  title: Smartout API (internal)
+  version: 0.1.0-draft-internal
+  summary: Starter OpenAPI contract for Smartout internal and target external APIs.
+  description: >
+    This starter spec captures currently implemented endpoints and planned `/v1`
+    endpoint groups.
+
+    It is intentionally contract-first and roadmap-aware.
+servers:
+  - url: https://app.smartout.ai
+    description: Web app host (Next.js API routes)
+  - url: https://smartout.ai
+    description: Landing host (Next.js API routes)
+  - url: https://{projectRef}.supabase.co/functions/v1
+    description: Supabase Edge Functions
+    variables:
+      projectRef:
+        default: your-project-ref
+  - url: http://localhost:8000
+    description: Internal scrapling service (local/internal)
+tags:
+  - name: Health
+  - name: Voice
+  - name: Telemetry
+  - name: Auth
+  - name: PlatformAdminContent
+  - name: PublicContent
+  - name: Onboarding
+  - name: EdgeFunctions
+  - name: InternalService
+  - name: PlannedIntegrations
+  - name: PlannedGovernance
+  - name: PlannedEvents
+  - name: PlannedDomainApi
+paths:
+  /api/wizard/start:
+    post:
+      tags:
+        - Voice
+      operationId: startVoiceMission
+      summary: Start Ultravox voice mission
+      description: Used by both web and landing apps; mission default differs by caller.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WizardStartRequest"
+      responses:
+        "200":
+          description: Voice call started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WizardStartResponse"
+        "502":
+          $ref: "#/components/responses/BadGatewayError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailableError"
+      x-smartout-surface: internal
+      x-roadmap-status: implemented
+  /api/webhooks/docuseal:
+    post:
+      tags:
+        - PlatformAdminContent
+      operationId: receiveDocuSealWebhook
+      summary: Receive DocuSeal webhook
+      security:
+        - DocuSealSignature: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocuSealEvent"
+      responses:
+        "200":
+          description: Event received
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookAck"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      x-smartout-surface: internal
+      x-roadmap-status: implemented
+  /api/platform-admin/content/configs:
+    get:
+      tags:
+        - PlatformAdminContent
+      operationId: listLandingConfigs
+      summary: List landing content configs
+      security:
+        - SupabaseSession: []
+      responses:
+        "200":
+          description: Config list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/LandingConfigSummary"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      x-smartout-surface: internal
+      x-roadmap-status: implemented
+    post:
+      tags:
+        - PlatformAdminContent
+      operationId: createLandingConfig
+      summary: Create landing content config
+      security:
+        - SupabaseSession: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LandingConfigCreate"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/LandingConfig"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      x-smartout-surface: internal
+      x-roadmap-status: implemented
+  /api/platform-admin/content/configs/{slug}:
+    parameters:
+      - $ref: "#/components/parameters/SlugPath"
+    get:
+      tags:
+        - PlatformAdminContent
+      operationId: getLandingConfigBySlug
+      summary: Get landing config by slug
+      security:
+        - SupabaseSession: []
+      responses:
+        "200":
+          description: Config found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/LandingConfig"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+    patch:
+      tags:
+        - PlatformAdminContent
+      operationId: updateLandingConfigBySlug
+      summary: Update landing config by slug
+      security:
+        - SupabaseSession: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LandingConfigUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/LandingConfig"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+    delete:
+      tags:
+        - PlatformAdminContent
+      operationId: archiveLandingConfigBySlug
+      summary: Archive landing config by slug
+      security:
+        - SupabaseSession: []
+      responses:
+        "200":
+          description: Archived
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+      x-smartout-surface: internal
+      x-roadmap-status: implemented
+  /api/platform-admin/content/configs/{slug}/publish:
+    parameters:
+      - $ref: "#/components/parameters/SlugPath"
+    post:
+      tags:
+        - PlatformAdminContent
+      operationId: publishLandingConfigBySlug
+      summary: Publish landing config snapshot
+      security:
+        - SupabaseSession: []
+      responses:
+        "200":
+          description: Published
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  version:
+                    type: integer
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "409":
+          $ref: "#/components/responses/ConflictError"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      x-smartout-surface: internal
+      x-roadmap-status: implemented
+  /api/content/{slug}:
+    parameters:
+      - $ref: "#/components/parameters/SlugPath"
+    get:
+      tags:
+        - PublicContent
+      operationId: getPublishedContentBySlug
+      summary: Get public published content by slug
+      responses:
+        "200":
+          description: Published content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublishedContentResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+      x-smartout-surface: internal
+      x-roadmap-status: implemented
+      x-doc-visibility: public
+  /api/telemetry:
+    post:
+      tags:
+        - Telemetry
+      operationId: ingestTelemetryBeacon
+      summary: Ingest telemetry event
+      security:
+        - SupabaseSession: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TelemetryEvent"
+      responses:
+        "202":
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "429":
+          $ref: "#/components/responses/RateLimitError"
+      x-smartout-surface: internal
+      x-roadmap-status: implemented
+  /api/health:
+    get:
+      tags:
+        - Health
+      operationId: getAppHealth
+      summary: Get app health status
+      responses:
+        "200":
+          description: Healthy or degraded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "503":
+          description: Unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+      x-smartout-surface: internal
+      x-roadmap-status: implemented
+      x-doc-visibility: public
+  /api/docs-agent:
+    post:
+      tags:
+        - Onboarding
+      operationId: askDocsAgent
+      summary: Ask docs assistant (landing)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - message
+              properties:
+                message:
+                  type: string
+                  minLength: 1
+                  maxLength: 4000
+                history:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - role
+                      - content
+                    properties:
+                      role:
+                        type: string
+                        enum:
+                          - user
+                          - assistant
+                      content:
+                        type: string
+      responses:
+        "200":
+          description: Answer with sources
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  answer:
+                    type: string
+                  sources:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        title:
+                          type: string
+                        href:
+                          type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      x-smartout-surface: internal
+      x-roadmap-status: implemented
+  /api/onboarding-agent:
+    post:
+      tags:
+        - Onboarding
+      operationId: runOnboardingAgent
+      summary: Run onboarding chat agent or extract intelligence
+      security:
+        - SupabaseSession: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OnboardingAgentRequest"
+      responses:
+        "200":
+          description: Agent result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OnboardingAgentResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      x-smartout-surface: internal
+      x-roadmap-status: implemented
+  /api/auth/callback:
+    get:
+      tags:
+        - Auth
+      operationId: handleSupabaseAuthCallback
+      summary: Exchange auth code and redirect
+      parameters:
+        - name: code
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: next
+          in: query
+          required: false
+          schema:
+            type: string
+            default: /dashboard
+      responses:
+        "302":
+          description: Redirect to dashboard or login error page
+      x-smartout-surface: internal
+      x-roadmap-status: implemented
+  /activate-workspace:
+    post:
+      tags:
+        - EdgeFunctions
+      operationId: activateWorkspace
+      summary: Activate workspace via RPC
+      servers:
+        - url: https://{projectRef}.supabase.co/functions/v1
+          variables:
+            projectRef:
+              default: your-project-ref
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - workspaceData
+              properties:
+                workspaceData:
+                  type: object
+                  additionalProperties: true
+      responses:
+        "200":
+          description: Activated
+        "400":
+          $ref: "#/components/responses/ValidationError"
+      x-smartout-surface: internal
+      x-roadmap-status: implemented
+  /analyze-workspace:
+    post:
+      tags:
+        - EdgeFunctions
+      operationId: analyzeWorkspace
+      summary: Analyze workspace intelligence payload
+      servers:
+        - url: https://{projectRef}.supabase.co/functions/v1
+          variables:
+            projectRef:
+              default: your-project-ref
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - sessionId
+              properties:
+                sessionId:
+                  type: string
+                companyName:
+                  type: string
+                scrapedData:
+                  type: object
+                  additionalProperties: true
+                webSearchData:
+                  type: object
+                  additionalProperties: true
+      responses:
+        "200":
+          description: Analysis complete
+        "400":
+          $ref: "#/components/responses/ValidationError"
+      x-smartout-surface: internal
+      x-roadmap-status: implemented
+  /extract-workspace-data:
+    post:
+      tags:
+        - EdgeFunctions
+      operationId: extractWorkspaceData
+      summary: Extract and initialize workspace from URL
+      servers:
+        - url: https://{projectRef}.supabase.co/functions/v1
+          variables:
+            projectRef:
+              default: your-project-ref
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - url
+              properties:
+                url:
+                  type: string
+                config:
+                  type: object
+                  additionalProperties: true
+      responses:
+        "200":
+          description: Extracted and initialized
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+      x-smartout-surface: internal
+      x-roadmap-status: implemented
+  /create-invitation:
+    post:
+      tags:
+        - EdgeFunctions
+      operationId: createInvitationBatch
+      summary: Create invitation batch
+      servers:
+        - url: https://{projectRef}.supabase.co/functions/v1
+          variables:
+            projectRef:
+              default: your-project-ref
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - workspace_id
+                - company_id
+                - invites
+              properties:
+                workspace_id:
+                  type: string
+                company_id:
+                  type: string
+                invites:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: true
+      responses:
+        "200":
+          description: Invitations created
+        "400":
+          $ref: "#/components/responses/ValidationError"
+      x-smartout-surface: internal
+      x-roadmap-status: implemented
+  /finalize-workspace:
+    post:
+      tags:
+        - EdgeFunctions
+      operationId: finalizeWorkspace
+      summary: Finalize workspace transaction
+      servers:
+        - url: https://{projectRef}.supabase.co/functions/v1
+          variables:
+            projectRef:
+              default: your-project-ref
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - companyName
+              properties:
+                companyName:
+                  type: string
+                locations:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: true
+                departments:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: true
+                policies:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: true
+      responses:
+        "200":
+          description: Finalized
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+      x-smartout-surface: internal
+      x-roadmap-status: implemented
+  /gather-workspace-intelligence:
+    post:
+      tags:
+        - EdgeFunctions
+      operationId: gatherWorkspaceIntelligence
+      summary: Gather onboarding intelligence
+      servers:
+        - url: https://{projectRef}.supabase.co/functions/v1
+          variables:
+            projectRef:
+              default: your-project-ref
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - url
+              properties:
+                url:
+                  type: string
+                orgNumber:
+                  type: string
+      responses:
+        "200":
+          description: Intelligence gathered
+        "400":
+          $ref: "#/components/responses/ValidationError"
+      x-smartout-surface: internal
+      x-roadmap-status: implemented
+  /scrape-raw-data:
+    post:
+      tags:
+        - EdgeFunctions
+      operationId: scrapeRawDataEdge
+      summary: Proxy raw scraping through edge
+      servers:
+        - url: https://{projectRef}.supabase.co/functions/v1
+          variables:
+            projectRef:
+              default: your-project-ref
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - url
+              properties:
+                url:
+                  type: string
+      responses:
+        "200":
+          description: Raw scrape returned
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+      x-smartout-surface: internal
+      x-roadmap-status: implemented
+  /web-search-intelligence:
+    post:
+      tags:
+        - EdgeFunctions
+      operationId: webSearchIntelligence
+      summary: Enrich onboarding with web search data
+      servers:
+        - url: https://{projectRef}.supabase.co/functions/v1
+          variables:
+            projectRef:
+              default: your-project-ref
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - sessionId
+                - companyName
+              properties:
+                sessionId:
+                  type: string
+                companyName:
+                  type: string
+                city:
+                  type: string
+                scrapedData:
+                  type: object
+                  additionalProperties: true
+      responses:
+        "200":
+          description: Enrichment queued/completed
+        "400":
+          $ref: "#/components/responses/ValidationError"
+      x-smartout-surface: internal
+      x-roadmap-status: implemented
+  /health-check:
+    get:
+      tags:
+        - EdgeFunctions
+      operationId: edgeHealthCheck
+      summary: Edge function health check
+      servers:
+        - url: https://{projectRef}.supabase.co/functions/v1
+          variables:
+            projectRef:
+              default: your-project-ref
+      responses:
+        "200":
+          description: Health response
+      x-smartout-surface: internal
+      x-roadmap-status: implemented
+  /watchdog-integrity:
+    get:
+      tags:
+        - EdgeFunctions
+      operationId: watchdogIntegrity
+      summary: Run integrity checks
+      servers:
+        - url: https://{projectRef}.supabase.co/functions/v1
+          variables:
+            projectRef:
+              default: your-project-ref
+      responses:
+        "200":
+          description: Integrity status
+      x-smartout-surface: internal
+      x-roadmap-status: implemented
+  /watchdog-uptime:
+    get:
+      tags:
+        - EdgeFunctions
+      operationId: watchdogUptime
+      summary: Run uptime checks
+      servers:
+        - url: https://{projectRef}.supabase.co/functions/v1
+          variables:
+            projectRef:
+              default: your-project-ref
+      responses:
+        "200":
+          description: Uptime status
+      x-smartout-surface: internal
+      x-roadmap-status: implemented
+  /extract:
+    post:
+      tags:
+        - InternalService
+      operationId: extractWorkspaceDataFromUrl
+      summary: Extract structured business data from URL
+      servers:
+        - url: http://localhost:8000
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScraplingExtractRequest"
+      responses:
+        "200":
+          description: Extraction result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScraplingExtractResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      x-smartout-surface: internal
+      x-roadmap-status: implemented
+  /scrape-raw:
+    post:
+      tags:
+        - InternalService
+      operationId: scrapeRawPageData
+      summary: Scrape raw text/images/files from URL
+      servers:
+        - url: http://localhost:8000
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - url
+              properties:
+                url:
+                  type: string
+                  format: uri
+      responses:
+        "200":
+          description: Raw scrape data
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      x-smartout-surface: internal
+      x-roadmap-status: implemented
+  /v1/integrations/clients:
+    post:
+      tags:
+        - PlannedIntegrations
+      operationId: createIntegrationClient
+      summary: Create tenant integration client (planned)
+      security:
+        - BearerAuth: []
+      responses:
+        "501":
+          description: Planned, not implemented
+      x-smartout-surface: public
+      x-roadmap-status: planned
+      x-doc-visibility: public
+  /v1/governance/data-policies/{policyId}:
+    put:
+      tags:
+        - PlannedGovernance
+      operationId: upsertDataSharingPolicy
+      summary: Set data sharing policy for integration (planned)
+      parameters:
+        - name: policyId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      security:
+        - BearerAuth: []
+      responses:
+        "501":
+          description: Planned, not implemented
+      x-smartout-surface: public
+      x-roadmap-status: planned
+      x-doc-visibility: public
+  /v1/events/subscriptions:
+    post:
+      tags:
+        - PlannedEvents
+      operationId: createWebhookSubscription
+      summary: Create webhook subscription (planned)
+      security:
+        - BearerAuth: []
+      responses:
+        "501":
+          description: Planned, not implemented
+      x-smartout-surface: partner
+      x-roadmap-status: planned
+      x-doc-visibility: partner
+  /v1/readiness/summary:
+    get:
+      tags:
+        - PlannedDomainApi
+      operationId: getReadinessSummary
+      summary: Get readiness summary data product (planned)
+      security:
+        - BearerAuth: []
+      responses:
+        "501":
+          description: Planned, not implemented
+      x-smartout-surface: public
+      x-roadmap-status: planned
+      x-doc-visibility: public
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    SupabaseSession:
+      type: apiKey
+      in: cookie
+      name: sb-access-token
+    DocuSealSignature:
+      type: apiKey
+      in: header
+      name: x-docuseal-signature
+  parameters:
+    SlugPath:
+      name: slug
+      in: path
+      required: true
+      schema:
+        type: string
+  responses:
+    ValidationError:
+      description: Validation failed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    UnauthorizedError:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    ForbiddenError:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFoundError:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    ConflictError:
+      description: Conflict
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    RateLimitError:
+      description: Too many requests
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    BadGatewayError:
+      description: Upstream gateway failure
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    ServiceUnavailableError:
+      description: Service unavailable
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+  schemas:
+    VisibilityProfile:
+      type: string
+      enum:
+        - internal
+        - partner
+        - public
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        details:
+          type: string
+      required:
+        - error
+    WizardStartRequest:
+      type: object
+      properties:
+        mission_id:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+    WizardStartResponse:
+      type: object
+      properties:
+        joinUrl:
+          type: string
+        callId:
+          type: string
+        mission:
+          type: string
+      required:
+        - joinUrl
+        - callId
+        - mission
+    DocuSealEvent:
+      type: object
+      required:
+        - event_type
+        - timestamp
+        - data
+      properties:
+        event_type:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        data:
+          type: object
+          required:
+            - id
+            - submission_id
+            - status
+          properties:
+            id:
+              type: integer
+            submission_id:
+              type: integer
+            status:
+              type: string
+            documents:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  url:
+                    type: string
+                    format: uri
+            submitters:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  email:
+                    type: string
+                    format: email
+                  role:
+                    type: string
+                  completed_at:
+                    type: string
+                    format: date-time
+                    nullable: true
+    WebhookAck:
+      type: object
+      properties:
+        received:
+          type: boolean
+        status:
+          type: string
+        skipped:
+          type: string
+    LandingConfigSummary:
+      type: object
+      properties:
+        config_id:
+          type: string
+          format: uuid
+        slug:
+          type: string
+        name:
+          type: string
+        locale:
+          type: string
+        status:
+          type: string
+        version:
+          type: integer
+        published_at:
+          type: string
+          format: date-time
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+    LandingConfig:
+      allOf:
+        - $ref: "#/components/schemas/LandingConfigSummary"
+        - type: object
+          properties:
+            config_json:
+              type: object
+              additionalProperties: true
+            published_json:
+              type: object
+              additionalProperties: true
+              nullable: true
+    LandingConfigCreate:
+      type: object
+      required:
+        - slug
+        - name
+        - config_json
+      properties:
+        slug:
+          type: string
+          pattern: ^[a-z0-9-]+$
+        name:
+          type: string
+        locale:
+          type: string
+          default: no
+        config_json:
+          type: object
+          additionalProperties: true
+    LandingConfigUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        locale:
+          type: string
+        config_json:
+          type: object
+          additionalProperties: true
+    PublishedContentResponse:
+      type: object
+      properties:
+        slug:
+          type: string
+        name:
+          type: string
+        locale:
+          type: string
+        content:
+          type: object
+          additionalProperties: true
+        version:
+          type: integer
+        published_at:
+          type: string
+          format: date-time
+      required:
+        - slug
+        - name
+        - locale
+        - content
+        - version
+    TelemetryEvent:
+      type: object
+      required:
+        - event
+        - workspace_id
+        - actor_id
+      properties:
+        event:
+          type: string
+        workspace_id:
+          type: string
+          format: uuid
+        actor_id:
+          type: string
+          format: uuid
+        properties:
+          type: object
+          additionalProperties: true
+        timestamp:
+          type: string
+          format: date-time
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        version:
+          type: string
+        checks:
+          type: object
+          additionalProperties: true
+    OnboardingAgentRequest:
+      type: object
+      required:
+        - sessionId
+        - userMessage
+        - conversationHistory
+      properties:
+        sessionId:
+          type: string
+          format: uuid
+        userMessage:
+          type: string
+          minLength: 1
+          maxLength: 5000
+        conversationHistory:
+          type: array
+          items:
+            type: object
+            required:
+              - role
+              - content
+            properties:
+              role:
+                type: string
+                enum:
+                  - user
+                  - assistant
+              content:
+                type: string
+        extractIntelligence:
+          type: boolean
+          default: false
+    OnboardingAgentResponse:
+      type: object
+      properties:
+        text:
+          type: string
+        toolCalls:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        toolResults:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        intelligence:
+          type: object
+          additionalProperties: true
+    ScraplingExtractRequest:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          format: uri
+        config:
+          type: object
+          properties:
+            include_company_info:
+              type: boolean
+              default: true
+            include_locations:
+              type: boolean
+              default: true
+            include_departments:
+              type: boolean
+              default: true
+            include_dictionary:
+              type: boolean
+              default: false
+    ScraplingExtractResponse:
+      type: object
+      properties:
+        companyName:
+          type: string
+        locations:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        departments:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        summary:
+          type: string
+        pageDictionary:
+          type: object
+          additionalProperties:
+            type: string
+        images:
+          type: array
+          items:
+            type: object
+            properties:
+              src:
+                type: string
+              alt:
+                type: string
+        menus:
+          type: array
+          items:
+            type: object
+            properties:
+              href:
+                type: string
+              text:
+                type: string
+        socialLinks:
+          type: object
+          additionalProperties:
+            type: string
+        reservationUrl:
+          type: string
+          format: uri
+x-generated-profile: internal
+x-generated-at: 2026-02-28T02:40:35.367Z
