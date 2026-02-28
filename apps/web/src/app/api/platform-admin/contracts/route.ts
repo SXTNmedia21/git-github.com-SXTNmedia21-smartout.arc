@@ -7,7 +7,7 @@ import { getSuperAdminId, logPlatformAction } from "@/lib/platform-admin";
 
 const CreateContractSchema = z.object({
   template_id: z.string().uuid(),
-  company_id: z.string().uuid().optional(),
+  company_id: z.string().uuid(),
   recipient_name: z.string().min(1),
   recipient_email: z.string().email(),
   title: z.string().optional(),
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
     .from("contract")
     .insert({
       template_id: body.data.template_id,
-      company_id: body.data.company_id || null,
+      company_id: body.data.company_id,
       title: contractTitle,
       contract_type: template.contract_type,
       status: "draft",

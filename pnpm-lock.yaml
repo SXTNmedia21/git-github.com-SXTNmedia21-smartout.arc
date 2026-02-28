@@ -271,6 +271,9 @@ importers:
       '@smartout/design-tokens':
         specifier: workspace:^
         version: link:../../packages/design-tokens
+      '@smartout/notifications':
+        specifier: workspace:^
+        version: link:../../packages/notifications
       '@smartout/supabase':
         specifier: workspace:*
         version: link:../../packages/supabase

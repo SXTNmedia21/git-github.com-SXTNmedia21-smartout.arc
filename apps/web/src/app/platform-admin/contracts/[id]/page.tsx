@@ -359,10 +359,10 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
                           <Badge
                             variant="outline"
                             className={`text-xs capitalize ${
-                              reminderStatusColor[reminder.status] || ""
+                              (reminder.status && reminderStatusColor[reminder.status]) || ""
                             }`}
                           >
-                            {reminder.status}
+                            {reminder.status ?? "unknown"}
                           </Badge>
                         </td>
                       </tr>

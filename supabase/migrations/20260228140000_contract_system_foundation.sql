@@ -19,7 +19,7 @@ ALTER TRIGGER set_platform_contract_instance_updated_at
 
 -- Rename indexes
 ALTER INDEX idx_platform_contract_company RENAME TO idx_contract_company;
-ALTER INDEX idx_platform_contract_workspace RENAME TO idx_contract_workspace;
+ALTER INDEX idx_platform_contract_workspace RENAME TO idx_contract_ws;
 ALTER INDEX idx_platform_contract_status RENAME TO idx_contract_status;
 ALTER INDEX idx_platform_contract_template RENAME TO idx_contract_template;
 

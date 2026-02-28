@@ -127,10 +127,12 @@ export async function POST(request: NextRequest) {
   // Filter suppressed
   const suppressedEmails = await filterSuppressed(
     admin,
-    recipients.map((r) => r.email),
+    recipients.map((r: { email: string }) => r.email),
   );
-  const suppressedSet = new Set(suppressedEmails.map((e) => e.toLowerCase()));
-  const activeRecipients = recipients.filter((r) => !suppressedSet.has(r.email.toLowerCase()));
+  const suppressedSet = new Set(suppressedEmails.map((e: string) => e.toLowerCase()));
+  const activeRecipients = recipients.filter(
+    (r: { email: string }) => !suppressedSet.has(r.email.toLowerCase()),
+  );
 
   if (activeRecipients.length === 0) {
     return NextResponse.json({ error: "All recipients are suppressed" }, { status: 400 });
@@ -161,13 +163,15 @@ export async function POST(request: NextRequest) {
   const jobId = (commLog as { communication_id: string }).communication_id;
 
   // Create recipient entries
-  const recipientRows = activeRecipients.map((r) => ({
-    communication_id: jobId,
-    user_id: r.userId,
-    email: r.email,
-    name: r.name,
-    status: "pending",
-  }));
+  const recipientRows = activeRecipients.map(
+    (r: { userId: string; email: string; name: string }) => ({
+      communication_id: jobId,
+      user_id: r.userId,
+      email: r.email,
+      name: r.name,
+      status: "pending",
+    }),
+  );
 
   await admin.from("platform_communication_recipient" as never).insert(recipientRows as never);
 

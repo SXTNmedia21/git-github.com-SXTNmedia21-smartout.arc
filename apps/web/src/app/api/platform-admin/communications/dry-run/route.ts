@@ -40,10 +40,12 @@ export async function POST(request: NextRequest) {
       resolveAudience(admin, audience as AudienceFilter),
     ]);
 
-    const sampleRecipients = allRecipients.slice(0, 10).map((r) => ({
-      name: r.name,
-      email: r.email,
-    }));
+    const sampleRecipients = allRecipients
+      .slice(0, 10)
+      .map((r: { name: string; email: string }) => ({
+        name: r.name,
+        email: r.email,
+      }));
 
     return NextResponse.json({ recipientCount, sampleRecipients });
   } catch (err) {

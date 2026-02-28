@@ -32,6 +32,7 @@
     "@sentry/nextjs": "^10.40.0",
     "@smartout/ai": "workspace:*",
     "@smartout/design-tokens": "workspace:^",
+    "@smartout/notifications": "workspace:^",
     "@smartout/supabase": "workspace:*",
     "@smartout/telemetry": "workspace:*",
     "@smartout/types": "workspace:*",

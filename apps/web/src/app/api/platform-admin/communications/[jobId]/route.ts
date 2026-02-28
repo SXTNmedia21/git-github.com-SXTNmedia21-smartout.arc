@@ -34,5 +34,7 @@ export async function GET(
     summary[r.status] = (summary[r.status] ?? 0) + 1;
   }
 
-  return NextResponse.json({ data: { ...job, recipientSummary: summary } });
+  return NextResponse.json({
+    data: { ...(job as Record<string, unknown>), recipientSummary: summary },
+  });
 }
