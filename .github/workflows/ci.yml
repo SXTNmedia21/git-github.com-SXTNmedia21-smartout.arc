@@ -77,11 +77,13 @@ jobs:
         with:
           name: web-next-build
           path: apps/web/.next
+          include-hidden-files: true
       - name: Upload landing build artifact
         uses: actions/upload-artifact@v4
         with:
           name: landing-next-build
           path: apps/landing/.next
+          include-hidden-files: true
 
   verify:
     name: Post-Build Verification
