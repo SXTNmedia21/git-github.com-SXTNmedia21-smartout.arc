@@ -1,11 +1,9 @@
 import Link from "next/link";
 import { Building2, ArrowRight, CheckCircle2, Zap, Star } from "lucide-react";
 import Navigation from "../../components/navigation";
+import { WEB_APP_LINKS } from "../../lib/web-app-url";
 
 export default function PricingPage() {
-  const webAppOrigin = process.env.NEXT_PUBLIC_WEB_APP_URL ?? "";
-  const onboardingHref = `${webAppOrigin}/onboarding`;
-
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-[#050505] font-sans text-white selection:bg-orange-500/30">
       {/* Dynamic Premium Background */}
@@ -101,7 +99,7 @@ export default function PricingPage() {
             </div>
 
             <Link
-              href={onboardingHref}
+              href={WEB_APP_LINKS.onboarding}
               className="relative z-10 w-full rounded-2xl border border-white/10 bg-white/5 py-4 text-center font-bold text-white transition-colors hover:bg-white/10"
             >
               Kom i gang
@@ -149,7 +147,7 @@ export default function PricingPage() {
               </ul>
             </div>
 
-            <Link href={onboardingHref} className="group relative block w-full">
+            <Link href={WEB_APP_LINKS.onboarding} className="group relative block w-full">
               <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-500 opacity-40 blur transition duration-500 group-hover:opacity-70"></div>
               <div className="relative flex w-full items-center justify-center gap-2 rounded-2xl bg-white py-4 text-center font-black text-zinc-950 shadow-[0_0_30px_rgba(255,255,255,0.2)] transition-all group-hover:-translate-y-0.5">
                 Velg Pro <ArrowRight className="h-4 w-4" />

@@ -5,11 +5,10 @@ import { ArrowLeft, Users, Target, Heart, ShieldCheck, Zap } from "lucide-react"
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Navigation from "../../components/navigation";
+import { WEB_APP_LINKS } from "../../lib/web-app-url";
 
 export default function OmOssPage() {
   const router = useRouter();
-  const webAppOrigin = process.env.NEXT_PUBLIC_WEB_APP_URL ?? "";
-  const onboardingHref = `${webAppOrigin}/onboarding`;
 
   return (
     <div className="relative flex min-h-screen flex-col items-center overflow-hidden bg-[#050505] p-4 pt-24 font-sans text-zinc-100 selection:bg-orange-500/30 sm:p-6 md:p-12 md:pt-28">
@@ -144,7 +143,7 @@ export default function OmOssPage() {
               fremtidens restaurantdrift.
             </p>
             <Link
-              href={onboardingHref}
+              href={WEB_APP_LINKS.onboarding}
               className="inline-flex items-center gap-3 rounded-full bg-white px-10 py-5 text-lg font-black text-zinc-950 shadow-[0_0_40px_rgba(255,255,255,0.2)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_60px_rgba(255,255,255,0.4)]"
             >
               <Zap className="h-5 w-5 text-orange-500" /> Start din SmartOut i dag

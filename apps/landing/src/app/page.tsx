@@ -29,6 +29,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import Navigation from "../components/navigation";
+import { WEB_APP_LINKS } from "../lib/web-app-url";
 
 const VoiceAssistant = dynamic(() => import("../components/voice-assistant"), {
   ssr: false,
@@ -129,8 +130,7 @@ const MOCK_SEASONS = [
 export default function SmartoutLandingPage() {
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("locations");
-  const webAppOrigin = process.env.NEXT_PUBLIC_WEB_APP_URL ?? "";
-  const onboardingHref = `${webAppOrigin}/onboarding`;
+  const onboardingHref = WEB_APP_LINKS.onboarding;
 
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
