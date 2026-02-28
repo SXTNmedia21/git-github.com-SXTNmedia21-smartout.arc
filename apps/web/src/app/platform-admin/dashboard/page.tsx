@@ -1,7 +1,6 @@
 import { createAdminClient } from "@smartout/supabase/admin";
 import { getSuperAdminId } from "@/lib/platform-admin";
 import { redirect } from "next/navigation";
-import { Building2, Users, CreditCard, AlertTriangle, PlayCircle } from "lucide-react";
 import { KpiCard } from "@/components/platform-admin/kpi-card";
 import { DashboardClient } from "./_components/dashboard-client";
 
@@ -116,7 +115,7 @@ export default async function DashboardPage() {
         <KpiCard
           label="Workspaces"
           value={totalWorkspaces ?? 0}
-          icon={Building2}
+          icon="Building2"
           trend={computeTrend(workspaceSparkline)}
           sparklineData={
             workspaceSparkline && workspaceSparkline.length > 1 ? workspaceSparkline : undefined
@@ -125,14 +124,14 @@ export default async function DashboardPage() {
         <KpiCard
           label="Users"
           value={totalUsers ?? 0}
-          icon={Users}
+          icon="Users"
           trend={computeTrend(userSparkline)}
           sparklineData={userSparkline && userSparkline.length > 1 ? userSparkline : undefined}
         />
         <KpiCard
           label="Active Subs"
           value={activeCount ?? 0}
-          icon={CreditCard}
+          icon="CreditCard"
           trend={computeTrend(activeSparkline)}
           sparklineData={
             activeSparkline && activeSparkline.length > 1 ? activeSparkline : undefined
@@ -141,14 +140,14 @@ export default async function DashboardPage() {
         <KpiCard
           label="Trials"
           value={trialCount ?? 0}
-          icon={PlayCircle}
+          icon="PlayCircle"
           trend={computeTrend(trialSparkline)}
           sparklineData={trialSparkline && trialSparkline.length > 1 ? trialSparkline : undefined}
         />
         <KpiCard
           label="At Risk"
           value={pastDueCount ?? 0}
-          icon={AlertTriangle}
+          icon="AlertTriangle"
           danger={(pastDueCount ?? 0) > 0}
           trend={computeTrend(pastDueSparkline)}
           sparklineData={

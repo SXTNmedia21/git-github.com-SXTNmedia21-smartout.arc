@@ -1,21 +1,38 @@
 "use client";
 
-import type { LucideIcon } from "lucide-react";
-import { ArrowUp, ArrowDown } from "lucide-react";
+import {
+  ArrowUp,
+  ArrowDown,
+  Building2,
+  Users,
+  CreditCard,
+  AlertTriangle,
+  PlayCircle,
+  type LucideIcon,
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Sparkline } from "@/components/platform-admin/sparkline";
 import { cn } from "@/lib/utils";
 
+const ICON_MAP: Record<string, LucideIcon> = {
+  Building2,
+  Users,
+  CreditCard,
+  AlertTriangle,
+  PlayCircle,
+};
+
 type KpiCardProps = {
   label: string;
   value: number | string;
-  icon: LucideIcon;
+  icon: string;
   trend?: { value: number; isPositive: boolean };
   sparklineData?: number[];
   danger?: boolean;
 };
 
-export function KpiCard({ label, value, icon: Icon, trend, sparklineData, danger }: KpiCardProps) {
+export function KpiCard({ label, value, icon, trend, sparklineData, danger }: KpiCardProps) {
+  const Icon = ICON_MAP[icon] ?? Building2;
   return (
     <Card className={cn("transition-colors", danger && "border-destructive/50")}>
       <CardContent className="p-4">

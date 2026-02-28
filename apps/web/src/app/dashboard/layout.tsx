@@ -95,6 +95,8 @@ import {
   ChevronDown,
 } from "lucide-react";
 
+import { UserMenu } from "@/components/dashboard/UserMenu";
+
 const LazyVoiceAssistant = dynamic(() => import("@/components/voice-assistant"), {
   ssr: false,
   loading: () => (
@@ -210,16 +212,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             )}
           </div>
 
-          <div className="group flex cursor-pointer items-center gap-3">
-            <div className="text-right">
-              <p className="text-sm leading-tight font-semibold text-white">Anna Olsen</p>
-              <p className="text-[10px] font-bold tracking-wider text-zinc-400 uppercase">Admin</p>
-            </div>
-            <div className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-700 bg-zinc-800">
-              <span className="text-xs font-bold text-zinc-300">AO</span>
-            </div>
-            <ChevronRight className="h-4 w-4 rotate-90 text-zinc-500 transition-colors group-hover:text-white" />
-          </div>
+          <UserMenu isDark={isDark} />
         </div>
       </header>
 
