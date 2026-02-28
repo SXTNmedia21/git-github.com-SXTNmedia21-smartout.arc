@@ -402,3 +402,6 @@ verify_jwt = false
 
 [functions.cleanup-api-keys]
 verify_jwt = false
+
+[functions.workspace-api]
+verify_jwt = false
