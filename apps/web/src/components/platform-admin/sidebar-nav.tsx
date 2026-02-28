@@ -33,6 +33,11 @@ const navItems = [
     label: "Contracts",
     icon: FileSignature,
   },
+  {
+    href: "/platform-admin/contracts/templates",
+    label: "Maler",
+    icon: FileText,
+  },
   { href: "/platform-admin/health", label: "Health", icon: Activity },
   { href: "/platform-admin/users", label: "Users", icon: Users },
   { href: "/platform-admin/audit", label: "Audit Log", icon: ScrollText },

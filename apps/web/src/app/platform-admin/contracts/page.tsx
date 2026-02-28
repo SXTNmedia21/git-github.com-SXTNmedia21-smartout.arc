@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { ContractListClient } from "@/components/platform-admin/contract-list-client";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, FileText } from "lucide-react";
 
 // Contract row shape (table from pending contract-system migration)
 type ContractQueryRow = {
@@ -57,12 +57,20 @@ export default async function ContractsPage() {
             Platform contract management — create, track, and manage all contracts
           </p>
         </div>
-        <Link href="/platform-admin/contracts/new">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Ny kontrakt
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/platform-admin/contracts/templates">
+            <Button variant="outline">
+              <FileText className="mr-2 h-4 w-4" />
+              Maler
+            </Button>
+          </Link>
+          <Link href="/platform-admin/contracts/new">
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Ny kontrakt
+            </Button>
+          </Link>
+        </div>
       </div>
       <div className="mt-6">
         <ContractListClient data={normalizedContracts} />

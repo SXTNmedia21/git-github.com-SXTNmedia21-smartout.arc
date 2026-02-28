@@ -8,6 +8,7 @@ import {
   CreditCard,
   AlertTriangle,
   PlayCircle,
+  TrendingUp,
   type LucideIcon,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,19 +21,20 @@ const ICON_MAP: Record<string, LucideIcon> = {
   CreditCard,
   AlertTriangle,
   PlayCircle,
+  TrendingUp,
 };
 
 type KpiCardProps = {
   label: string;
   value: number | string;
-  icon: string;
+  icon: LucideIcon | string;
   trend?: { value: number; isPositive: boolean };
   sparklineData?: number[];
   danger?: boolean;
 };
 
 export function KpiCard({ label, value, icon, trend, sparklineData, danger }: KpiCardProps) {
-  const Icon = ICON_MAP[icon] ?? Building2;
+  const Icon = typeof icon === "string" ? (ICON_MAP[icon] ?? Building2) : icon;
   return (
     <Card className={cn("transition-colors", danger && "border-destructive/50")}>
       <CardContent className="p-4">

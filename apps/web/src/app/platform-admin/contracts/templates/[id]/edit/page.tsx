@@ -1,45 +1,45 @@
 import { createAdminClient } from "@smartout/supabase/admin";
 import { getSuperAdminId } from "@/lib/platform-admin";
 import { redirect, notFound } from "next/navigation";
-import { ContractEditor } from "@/components/contract-editor/contract-editor";
+import { TemplateEditor } from "@/components/contract-editor/template-editor";
 import { saveTemplate } from "./save-action";
+import type { PlaceholderItem } from "@/components/contract-editor/placeholder-panel";
 
 type PageProps = {
   params: Promise<{ id: string }>;
 };
 
-/**
- * Template row shape — contract_template table is new and not yet in database.types.ts.
- * Once the migration is applied and types regenerated, replace this with the generated type.
- */
-type ContractTemplateRow = {
-  id: string;
-  name: string;
-  content_html: string | null;
-  description: string | null;
-  contract_type: string;
-  language: string;
-  accent_color: string | null;
-  placeholders: unknown;
-};
+const DEFAULT_TEMPLATE_CONTENT = `
+<h1>Kontraktsmal</h1>
+<p>Denne avtalen er inngatt mellom partene beskrevet nedenfor.</p>
+<h2>1. Parter</h2>
+<p>Arbeidsgiver: {{bedrift_navn}}</p>
+<p>Arbeidstaker: {{ansatt_navn}}</p>
+<h2>2. Stilling</h2>
+<p>Arbeidstaker ansettes som {{stilling}} ved {{avdeling}}.</p>
+<h2>3. Vilkar</h2>
+<p>Tilleggsbetingelser kan legges til her.</p>
+`;
 
-/**
- * Load a contract template by ID from the database.
- * Uses type assertion because contract_template is not yet in database.types.ts.
- */
-async function loadTemplate(id: string): Promise<ContractTemplateRow | null> {
+const DEFAULT_PLACEHOLDERS: PlaceholderItem[] = [
+  { key: "bedrift_navn", label: "Bedriftsnavn", source: "company", required: true },
+  { key: "ansatt_navn", label: "Ansattnavn", source: "employee", required: true },
+  { key: "stilling", label: "Stilling", source: "manual", required: true },
+  { key: "avdeling", label: "Avdeling", source: "workspace", required: false },
+];
+
+async function loadTemplate(templateId: string) {
   const admin = createAdminClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (admin as any)
+  const { data, error } = await admin
     .from("contract_template")
     .select(
-      "id, name, content_html, description, contract_type, language, accent_color, placeholders",
+      "template_id, name, content_html, description, contract_type, language, placeholders, is_active, status",
     )
-    .eq("id", id)
+    .eq("template_id", templateId)
     .single();
 
   if (error || !data) return null;
-  return data as ContractTemplateRow;
+  return data;
 }
 
 export default async function ContractTemplateEditPage({ params }: PageProps) {
@@ -47,42 +47,47 @@ export default async function ContractTemplateEditPage({ params }: PageProps) {
   const adminId = await getSuperAdminId();
   if (!adminId) redirect("/dashboard");
 
-  // For "new" templates, start with empty content
   if (id === "new") {
     const boundSave = saveTemplate.bind(null, "new", adminId);
     return (
       <div className="flex h-full flex-col">
-        <ContractEditor
+        <TemplateEditor
           templateId="new"
-          templateName="Ny kontraktsmal"
-          initialContent={DEFAULT_TEMPLATE_CONTENT}
+          initialData={{
+            name: "Ny kontraktsmal",
+            contract_type: "employee",
+            content_html: DEFAULT_TEMPLATE_CONTENT,
+            placeholders: DEFAULT_PLACEHOLDERS,
+          }}
           onSave={boundSave}
         />
       </div>
     );
   }
 
-  // Load existing template
   const template = await loadTemplate(id);
-  if (!template) {
-    notFound();
-  }
+  if (!template) notFound();
 
-  const boundSave = saveTemplate.bind(null, template.id, adminId);
+  const boundSave = saveTemplate.bind(null, template.template_id, adminId);
+
+  // Parse placeholders from JSON — default to empty array
+  let parsedPlaceholders: PlaceholderItem[] = [];
+  if (Array.isArray(template.placeholders)) {
+    parsedPlaceholders = template.placeholders as unknown as PlaceholderItem[];
+  }
 
   return (
     <div className="flex h-full flex-col">
-      <ContractEditor
-        templateId={template.id}
-        templateName={template.name}
-        initialContent={template.content_html || DEFAULT_TEMPLATE_CONTENT}
+      <TemplateEditor
+        templateId={template.template_id}
+        initialData={{
+          name: template.name,
+          contract_type: template.contract_type,
+          content_html: template.content_html || DEFAULT_TEMPLATE_CONTENT,
+          placeholders: parsedPlaceholders,
+        }}
         onSave={boundSave}
       />
     </div>
   );
 }
-
-const DEFAULT_TEMPLATE_CONTENT = `
-<h1>Tjenesteavtale</h1>
-<p>Denne avtalen er inngått mellom partene beskrevet nedenfor.</p>
-`;
