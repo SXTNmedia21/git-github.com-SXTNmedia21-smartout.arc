@@ -9,6 +9,13 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export type PlaceholderItem = {
   key: string;
@@ -206,17 +213,21 @@ export function PlaceholderPanel({
                   </div>
 
                   <div className="mt-2 flex items-center justify-between">
-                    <select
+                    <Select
                       value={p.source}
-                      onChange={(e) => handleSourceChange(p.key, e.target.value)}
-                      className="bg-background h-6 rounded border px-1.5 text-xs"
+                      onValueChange={(val) => handleSourceChange(p.key, val)}
                     >
-                      {SOURCE_OPTIONS.map((o) => (
-                        <option key={o.value} value={o.value}>
-                          {o.label}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger className="h-6 w-28 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {SOURCE_OPTIONS.map((o) => (
+                          <SelectItem key={o.value} value={o.value}>
+                            {o.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <div className="flex items-center gap-1.5">
                       <span className="text-muted-foreground text-xs">Pakrevd</span>
                       <Switch

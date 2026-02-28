@@ -14,11 +14,24 @@ export type PlaceholderItem = {
   required: boolean;
 };
 
+export type TemplateAttachment = {
+  id: string;
+  file_name: string;
+  file_path: string;
+  file_size: number;
+  mime_type: string;
+  uploaded_at: string;
+};
+
 export type SaveTemplateData = {
   name: string;
   contract_type: string;
   content_html: string;
   placeholders: PlaceholderItem[];
+  description?: string;
+  language?: string;
+  status?: string;
+  attachments?: TemplateAttachment[];
 };
 
 /**
@@ -41,11 +54,13 @@ export async function saveTemplate(
         content_html: data.content_html,
         contract_type: data.contract_type,
         template_type: "standard",
-        language: "no",
-        locale: "nb-NO",
-        status: "draft",
+        language: data.language || "no",
+        locale: data.language === "en" ? "en-US" : "nb-NO",
+        status: data.status || "draft",
+        description: data.description || null,
         is_active: false,
         placeholders: data.placeholders as unknown as Json,
+        attachments: (data.attachments || []) as unknown as Json,
         created_by: adminId,
       })
       .select("template_id")
@@ -71,7 +86,11 @@ export async function saveTemplate(
       name: data.name,
       content_html: data.content_html,
       contract_type: data.contract_type,
+      description: data.description || null,
+      language: data.language || "no",
+      status: data.status || "draft",
       placeholders: data.placeholders as unknown as Json,
+      attachments: (data.attachments || []) as unknown as Json,
       updated_at: new Date().toISOString(),
     })
     .eq("template_id", templateId);
