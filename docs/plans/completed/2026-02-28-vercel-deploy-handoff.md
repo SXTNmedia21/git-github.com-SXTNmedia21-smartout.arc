@@ -1,3 +1,12 @@
+---
+title: "Vercel Deploy — Handoff"
+id: PLAN_VERCEL_DEPLOY
+status: completed
+layer: plan
+created: 2026-02-28
+updated: 2026-02-28
+---
+
 # Vercel Deploy — Handoff
 
 > Session: 2026-02-28 | Plan: ADR-0020 Vercel Fresh Deploy

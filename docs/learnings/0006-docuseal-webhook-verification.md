@@ -1,8 +1,10 @@
 ---
 id: 0006
 title: DocuSeal uses plain shared secret for webhook verification
+status: canonical
 date: 2026-02-28
 tags: [docuseal, webhooks, security]
+layer: learning
 ---
 
 # Learning-0006: DocuSeal uses plain shared secret for webhook verification

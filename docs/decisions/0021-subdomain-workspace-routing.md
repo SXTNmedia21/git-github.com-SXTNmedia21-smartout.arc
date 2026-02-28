@@ -3,6 +3,7 @@ id: "0021"
 title: Subdomain-Based Workspace Routing
 status: Accepted
 date: 2026-02-28
+layer: decision
 ---
 
 # ADR-0021: Subdomain-Based Workspace Routing

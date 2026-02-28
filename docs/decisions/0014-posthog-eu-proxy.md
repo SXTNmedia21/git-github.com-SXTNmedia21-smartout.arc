@@ -1,3 +1,12 @@
+---
+title: "ADR-0014: PostHog EU Instance with Reverse Proxy"
+id: ADR_0014
+status: accepted
+layer: decision
+created: 2026-02-27
+updated: 2026-02-27
+---
+
 # ADR-0014: PostHog EU Instance with Reverse Proxy
 
 **Date:** 2026-02-27

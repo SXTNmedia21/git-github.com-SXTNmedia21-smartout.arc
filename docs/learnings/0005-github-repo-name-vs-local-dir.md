@@ -1,8 +1,10 @@
 ---
 id: 0005
 title: GitHub repo name differs from local directory name
+status: canonical
 date: 2026-02-28
 tags: [git, github, tooling]
+layer: learning
 ---
 
 # Learning-0005: GitHub repo name differs from local directory name

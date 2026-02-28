@@ -1,3 +1,12 @@
+---
+title: "Vercel Hosting and Reporting Plan"
+id: PLAN_VERCEL_HOSTING
+status: completed
+layer: plan
+created: 2026-02-28
+updated: 2026-02-28
+---
+
 # Vercel Hosting and Reporting Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.

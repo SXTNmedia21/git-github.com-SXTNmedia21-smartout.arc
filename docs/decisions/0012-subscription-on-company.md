@@ -1,3 +1,12 @@
+---
+title: "ADR-0012: Subscription Data on Company Table (No Separate Table)"
+id: ADR_0012
+status: accepted
+layer: decision
+created: 2026-02-27
+updated: 2026-02-27
+---
+
 # ADR-0012: Subscription Data on Company Table (No Separate Table)
 
 **Date:** 2026-02-27

@@ -1,3 +1,12 @@
+---
+title: "ADR-0005: Testing Infrastructure — Four-Layer Strategy"
+id: ADR_0005
+status: accepted
+layer: decision
+created: 2026-02-27
+updated: 2026-02-27
+---
+
 # ADR-0005: Testing Infrastructure — Four-Layer Strategy
 
 **Date:** 2026-02-27

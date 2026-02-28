@@ -1,3 +1,12 @@
+---
+title: "Docs Pages Implementation Plan"
+id: PLAN_DOCS_LANDING
+status: completed
+layer: plan
+created: 2026-02-28
+updated: 2026-02-28
+---
+
 # Docs Pages Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.

@@ -1,3 +1,12 @@
+---
+title: "Onboarding Agent Rewrite: Python to TypeScript"
+id: PLAN_ONBOARDING_AGENT
+status: completed
+layer: plan
+created: 2026-02-27
+updated: 2026-02-27
+---
+
 # Onboarding Agent Rewrite: Python to TypeScript
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.

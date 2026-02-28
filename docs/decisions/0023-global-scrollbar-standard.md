@@ -1,3 +1,12 @@
+---
+title: "ADR-0023: Global Scrollbar Standard via Design Tokens"
+id: ADR_0023
+status: accepted
+layer: decision
+created: 2026-02-28
+updated: 2026-02-28
+---
+
 # ADR-0023: Global Scrollbar Standard via Design Tokens
 
 **Status:** Accepted

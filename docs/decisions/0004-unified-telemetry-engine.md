@@ -1,3 +1,12 @@
+---
+title: "ADR-0004: Unified Telemetry & Audit Trail Engine"
+id: ADR_0004
+status: accepted
+layer: decision
+created: 2026-02-24
+updated: 2026-02-24
+---
+
 # 4. Unified Telemetry & Audit Trail Engine
 
 Date: 2026-02-24

@@ -1,3 +1,8 @@
+---
+title: "Learning Log"
+updated: 2026-02-28
+---
+
 # Learning Log
 
 This document serves as the central index of all Learning Records within the Smartout project.

@@ -1,3 +1,12 @@
+---
+title: "ADR-0013: Auto-Generated Database Types Workflow"
+id: ADR_0013
+status: accepted
+layer: decision
+created: 2026-02-27
+updated: 2026-02-27
+---
+
 # ADR-0013: Auto-Generated Database Types Workflow
 
 **Date:** 2026-02-27

@@ -1,8 +1,10 @@
 ---
 id: 0007
 title: Warn-to-fail Performance and Build Governance scales better than immediate hard-fail
+status: canonical
 date: 2026-02-28
 tags: [performance, ci, governance, architecture]
+layer: learning
 ---
 
 # Learning-0007: Warn-to-fail Performance and Build Governance scales better than immediate hard-fail

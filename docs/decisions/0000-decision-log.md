@@ -1,3 +1,8 @@
+---
+title: "Decision Log"
+updated: 2026-02-28
+---
+
 # Architecture Decision Log
 
 This document serves as the central index of all Architecture Decision Records (ADRs) within the Smartout project.

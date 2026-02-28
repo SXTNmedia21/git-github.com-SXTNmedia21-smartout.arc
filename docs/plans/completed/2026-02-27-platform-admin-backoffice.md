@@ -1,6 +1,8 @@
 ---
 id: plan-platform-admin-backoffice
 title: Platform Admin Backoffice Implementation Plan
+status: completed
+layer: plan
 version: 1.1.0
 created: 2026-02-27
 last_updated: 2026-02-27

@@ -1,8 +1,10 @@
 ---
 id: 0003
 title: Optimistic locking pattern for Supabase concurrent writes
+status: canonical
 date: 2026-02-28
 tags: [supabase, concurrency, database, api]
+layer: learning
 ---
 
 # Learning-0003: Optimistic locking pattern for Supabase concurrent writes

@@ -1,3 +1,12 @@
+---
+title: "Vercel Deployment Handoff"
+id: PLAN_VERCEL_DEPLOYMENT
+status: completed
+layer: plan
+created: 2026-02-28
+updated: 2026-02-28
+---
+
 # Vercel Deployment Handoff
 
 **Date:** 2026-02-28

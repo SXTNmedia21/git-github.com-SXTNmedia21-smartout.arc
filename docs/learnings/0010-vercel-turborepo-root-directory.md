@@ -1,8 +1,10 @@
 ---
 id: "0010"
 title: Vercel Turborepo monorepo — Root Directory is app dir, not monorepo root
+status: canonical
 date: 2026-02-28
 tags: [vercel, turborepo, monorepo, deployment]
+layer: learning
 ---
 
 # Learning-0010: Vercel Turborepo monorepo — Root Directory is app dir, not monorepo root

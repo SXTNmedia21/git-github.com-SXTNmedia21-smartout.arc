@@ -1,8 +1,10 @@
 ---
 id: 0002
 title: Next.js middleware must copy cookies to redirect responses
+status: canonical
 date: 2026-02-28
 tags: [middleware, auth, cookies, next.js, supabase]
+layer: learning
 ---
 
 # Learning-0002: Next.js middleware must copy cookies to redirect responses

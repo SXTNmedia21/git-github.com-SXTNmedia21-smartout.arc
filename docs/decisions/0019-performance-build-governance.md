@@ -1,3 +1,12 @@
+---
+title: "ADR-0019: Performance and Build Governance System"
+id: ADR_0019
+status: accepted
+layer: decision
+created: 2026-02-28
+updated: 2026-02-28
+---
+
 # ADR-0019: Performance and Build Governance System
 
 **Status:** Accepted  

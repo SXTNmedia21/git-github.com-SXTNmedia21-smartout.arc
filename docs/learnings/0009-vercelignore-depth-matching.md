@@ -1,8 +1,10 @@
 ---
 id: "0009"
 title: .vercelignore patterns without leading / match at any depth
+status: canonical
 date: 2026-02-28
 tags: [vercel, gitignore, build, monorepo]
+layer: learning
 ---
 
 # Learning-0009: .vercelignore patterns without leading / match at any depth

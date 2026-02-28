@@ -1,3 +1,12 @@
+---
+title: "ADR-0008: Dashboard Scroll Behavior & Dynamic Layout"
+id: ADR_0008
+status: accepted
+layer: decision
+created: 2026-02-25
+updated: 2026-02-25
+---
+
 # ADR-0008: Dashboard Scroll Behavior & Dynamic Layout
 
 ## Status

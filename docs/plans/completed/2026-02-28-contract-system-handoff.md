@@ -1,3 +1,12 @@
+---
+title: "Contract System — Session Handoff"
+id: PLAN_CONTRACT_HANDOFF
+status: completed
+layer: plan
+created: 2026-02-28
+updated: 2026-02-28
+---
+
 # Contract System — Session Handoff
 
 > Written: 2026-02-28 ~19:00 CET

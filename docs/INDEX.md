@@ -127,6 +127,8 @@ See `docs/decisions/0000-decision-log.md` -- 25 accepted ADRs (0001-0025).
 | ADR_0023 | decisions/0023-global-scrollbar-standard.md              | Global scrollbar standard                  |
 | ADR_0024 | decisions/0024-contract-system-architecture.md           | Contract system                            |
 | ADR_0025 | decisions/0025-documentation-restructuring.md            | Docs restructuring (YAML, layers, archive) |
+| ADR_0026 | decisions/0026-template-editor-redesign-attachments.md   | Template editor redesign                   |
+| ADR_0027 | decisions/0027-pricing-terms-table.md                    | Pricing terms table                        |
 
 ### Learnings
 
@@ -190,14 +192,14 @@ Completed plans (historical, not loaded actively):
 | --------------- | -------------------------------------- | --------- |
 | ROADMAP_API_KPI | roadmaps/API_KPI_AND_REVIEW_CADENCE.md | canonical |
 | ROADMAP_API     | roadmaps/API_ROADMAP.md                | canonical |
-| PROJECT_ROADMAP | project-roadmap.md                     | canonical |
+| PROJECT_ROADMAP | roadmaps/project-roadmap.md            | canonical |
 
-### Root-Level Docs
+### Additional Reference
 
-| id                 | File                          | Status    |
-| ------------------ | ----------------------------- | --------- |
-| DB_REVIEW_20260228 | DATABASE_REVIEW_2026-02-28.md | canonical |
-| GIT_WORKFLOW       | GIT-WORKFLOW.md               | canonical |
+| id                 | File                                    | Status    |
+| ------------------ | --------------------------------------- | --------- |
+| DB_REVIEW_20260228 | reference/DATABASE_REVIEW_2026-02-28.md | canonical |
+| GIT_WORKFLOW       | reference/GIT-WORKFLOW.md               | canonical |
 
 ### User Manual
 

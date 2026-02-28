@@ -1,3 +1,12 @@
+---
+title: "ADR-0006: Environment Variables, Secrets & Module Boundaries"
+id: ADR_0006
+status: accepted
+layer: decision
+created: 2026-02-27
+updated: 2026-02-27
+---
+
 # ADR-0006: Environment Variables, Secrets & Module Boundaries
 
 **Date:** 2026-02-27

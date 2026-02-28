@@ -1,3 +1,12 @@
+---
+title: "Landing Page Production Polish"
+id: PLAN_LANDING_POLISH
+status: completed
+layer: plan
+created: 2026-02-28
+updated: 2026-02-28
+---
+
 # Landing Page Production Polish — Design, Mobile, and Button Audit
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.

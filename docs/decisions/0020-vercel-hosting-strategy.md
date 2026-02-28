@@ -3,6 +3,7 @@ id: "0020"
 title: Vercel Hosting with Dual-Project Split
 status: Accepted
 date: 2026-02-28
+layer: decision
 ---
 
 # ADR-0020: Vercel Hosting with Dual-Project Split

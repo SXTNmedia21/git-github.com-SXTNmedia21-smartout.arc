@@ -1,3 +1,12 @@
+---
+title: "Repo Health Fixes Implementation Plan"
+id: PLAN_REPO_HEALTH
+status: completed
+layer: plan
+created: 2026-02-27
+updated: 2026-02-27
+---
+
 # Repo Health Fixes Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.

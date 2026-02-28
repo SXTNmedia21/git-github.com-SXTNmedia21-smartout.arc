@@ -3,6 +3,7 @@ id: ADR-0027
 title: Pricing Terms Table for Workspace Commercial Model
 status: Accepted
 date: 2026-02-28
+layer: decision
 ---
 
 # ADR-0027: Pricing Terms Table for Workspace Commercial Model

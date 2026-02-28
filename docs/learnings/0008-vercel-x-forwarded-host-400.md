@@ -1,8 +1,10 @@
 ---
 id: "0008"
 title: Vercel always sets x-forwarded-host — never treat it as suspicious
+status: canonical
 date: 2026-02-28
 tags: [vercel, security, middleware, reverse-proxy]
+layer: learning
 ---
 
 # Learning-0008: Vercel always sets x-forwarded-host — never treat it as suspicious

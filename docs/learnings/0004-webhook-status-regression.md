@@ -1,8 +1,10 @@
 ---
 id: 0004
 title: Webhook status regression guard pattern
+status: canonical
 date: 2026-02-28
 tags: [webhooks, docuseal, idempotency, api]
+layer: learning
 ---
 
 # Learning-0004: Webhook status regression guard pattern

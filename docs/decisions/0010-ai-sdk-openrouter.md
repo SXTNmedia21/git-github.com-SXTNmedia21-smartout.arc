@@ -1,3 +1,12 @@
+---
+title: "ADR-0010: AI SDK with OpenRouter Provider"
+id: ADR_0010
+status: accepted
+layer: decision
+created: 2026-02-27
+updated: 2026-02-27
+---
+
 # ADR-0010: AI SDK with OpenRouter Provider
 
 **Date:** 2026-02-27

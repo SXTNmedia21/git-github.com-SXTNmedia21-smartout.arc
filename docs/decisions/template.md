@@ -1,3 +1,12 @@
+---
+title: "ADR Template"
+id: ADR_TEMPLATE
+status: canonical
+layer: decision
+created: 2026-02-27
+updated: 2026-02-27
+---
+
 # ADR Template: [Short noun phrase describing the decision]
 
 **Status:** Proposed | Accepted | Rejected | Superseded  

@@ -1,3 +1,12 @@
+---
+title: "ADR-0001: Adopt Turborepo & pnpm Workspaces"
+id: ADR_0001
+status: accepted
+layer: decision
+created: 2026-02-24
+updated: 2026-02-24
+---
+
 # ADR-0001: Adopt Turborepo & pnpm Workspaces
 
 **Status:** Accepted  

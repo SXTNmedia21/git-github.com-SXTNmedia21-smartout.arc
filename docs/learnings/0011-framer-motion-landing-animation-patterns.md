@@ -1,8 +1,10 @@
 ---
 id: "0011"
 title: Framer Motion Landing Page Animation Patterns
+status: canonical
 date: 2026-02-28
 tags: [framer-motion, animation, landing, ux, performance]
+layer: learning
 ---
 
 # Learning-0011: Framer Motion Landing Page Animation Patterns

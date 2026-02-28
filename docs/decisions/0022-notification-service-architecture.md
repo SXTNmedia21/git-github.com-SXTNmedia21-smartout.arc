@@ -1,3 +1,12 @@
+---
+title: "ADR-0022: Email/Notification Service Architecture"
+id: ADR_0022
+status: accepted
+layer: decision
+created: 2026-02-28
+updated: 2026-02-28
+---
+
 # ADR-0022: Email/Notification Service Architecture
 
 **Status:** Accepted

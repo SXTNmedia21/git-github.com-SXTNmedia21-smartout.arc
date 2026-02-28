@@ -1,3 +1,12 @@
+---
+title: "ADR-0016: Services Directory for Backend Microservices"
+id: ADR_0016
+status: accepted
+layer: decision
+created: 2026-02-27
+updated: 2026-02-27
+---
+
 # ADR-0016: Services Directory for Backend Microservices
 
 **Status:** Accepted

@@ -3,6 +3,7 @@ id: ADR-0026
 title: Template Editor Redesign with PDF Attachments
 status: Accepted
 date: 2026-02-28
+layer: decision
 ---
 
 # ADR-0026: Template Editor Redesign with PDF Attachments

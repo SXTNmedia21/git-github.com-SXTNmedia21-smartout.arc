@@ -1,8 +1,10 @@
 ---
 id: 0001
 title: Next.js Turbopack sets x-forwarded-host in development
+status: canonical
 date: 2026-02-28
 tags: [security, middleware, next.js, turbopack, development]
+layer: learning
 ---
 
 # Learning-0001: Next.js Turbopack sets x-forwarded-host in development

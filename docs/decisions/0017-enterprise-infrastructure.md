@@ -3,6 +3,7 @@ id: "0017"
 title: Enterprise Infrastructure — Shared Configs, Design System, Monitoring
 status: Accepted
 date: 2026-02-27
+layer: decision
 ---
 
 # ADR-0017: Enterprise Infrastructure — Shared Configs, Design System, Monitoring
