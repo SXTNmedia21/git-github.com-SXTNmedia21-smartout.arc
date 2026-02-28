@@ -77,14 +77,14 @@ Workspace-level settings and configuration. Covers branding, module activation, 
 
 > **TODO:** Detailed specification needed
 
-| Integration | Purpose | Configuration |
-|-------------|---------|---------------|
-| Supabase | Backend | Automatic (no user config) |
-| Twilio | SMS/Voice | API keys, phone numbers |
-| Resend | Email | API key, sender domain |
-| Stripe | Billing | Managed via Module 13 |
-| n8n | Automation | Webhook URLs |
-| DocuSeal | Contracts | Template IDs, API key |
+| Integration | Purpose    | Configuration              |
+| ----------- | ---------- | -------------------------- |
+| Supabase    | Backend    | Automatic (no user config) |
+| Twilio      | SMS/Voice  | API keys, phone numbers    |
+| Resend      | Email      | API key, sender domain     |
+| Stripe      | Billing    | Managed via Module 13      |
+| n8n         | Automation | Webhook URLs               |
+| DocuSeal    | Contracts  | Template IDs, API key      |
 
 ---
 
@@ -101,16 +101,16 @@ Workspace-level settings and configuration. Covers branding, module activation, 
 
 ## 8. UI Routes
 
-| Screen | Route | Description |
-|--------|-------|-------------|
-| Workspace Settings | `/settings` | Name, logo, timezone, language, defaults |
-| Modules | `/settings/modules` | Active modules toggle. Plan limits. |
-| Billing | `/settings/billing` | Stripe subscription. Plan, usage, invoices. |
-| Payroll Config | `/settings/payroll` | Supplement rules, day categories, overtime. |
-| Notifications | `/settings/notifications` | Global rules, channels, rate limits. |
-| Integrations | `/settings/integrations` | Connected services. API keys. |
-| Data & Privacy | `/settings/data` | GDPR export, data deletion, audit log. |
+| Screen             | Route                     | Description                                 |
+| ------------------ | ------------------------- | ------------------------------------------- |
+| Workspace Settings | `/settings`               | Name, logo, timezone, language, defaults    |
+| Modules            | `/settings/modules`       | Active modules toggle. Plan limits.         |
+| Billing            | `/settings/billing`       | Stripe subscription. Plan, usage, invoices. |
+| Payroll Config     | `/settings/payroll`       | Supplement rules, day categories, overtime. |
+| Notifications      | `/settings/notifications` | Global rules, channels, rate limits.        |
+| Integrations       | `/settings/integrations`  | Connected services. API keys.               |
+| Data & Privacy     | `/settings/data`          | GDPR export, data deletion, audit log.      |
 
 ---
 
-*This module requires detailed specification. Many settings are configured via the Policy system with `rules_json` — the Settings UI is essentially a friendly editor for those Policy objects.*
+_This module requires detailed specification. Many settings are configured via the Policy system with `rules_json` — the Settings UI is essentially a friendly editor for those Policy objects._

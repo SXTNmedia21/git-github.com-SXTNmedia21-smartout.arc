@@ -577,23 +577,15 @@ import { SmartoutEvent, EventMeta } from "../registry";
 import { createClient } from "@supabase/supabase-js";
 
 // Uses service role — activity trail writes bypass RLS
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-);
+const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
-export async function writeActivityTrail(
-  event: SmartoutEvent,
-  meta: EventMeta,
-): Promise<void> {
+export async function writeActivityTrail(event: SmartoutEvent, meta: EventMeta): Promise<void> {
   // Extract entity info from properties (if present)
   const props = event.properties as any;
   const entity = props?.entity;
 
   if (!entity) {
-    console.warn(
-      `[telemetry] Activity trail event "${event.event}" missing entity ref`,
-    );
+    console.warn(`[telemetry] Activity trail event "${event.event}" missing entity ref`);
     return;
   }
 
@@ -638,10 +630,7 @@ export function useTrack() {
   const { workspaceId, profileId } = useWorkspace();
 
   const track = useCallback(
-    <E extends SmartoutEvent>(
-      event: E["event"],
-      properties: E["properties"],
-    ) => {
+    <E extends SmartoutEvent>(event: E["event"], properties: E["properties"]) => {
       const fullEvent = {
         event,
         properties,
@@ -685,11 +674,7 @@ export function useTrack() {
 import { emit } from "@smartout/telemetry";
 
 export async function POST(req: Request) {
-  const { data, error } = await supabase
-    .from("shift")
-    .insert(shiftData)
-    .select()
-    .single();
+  const { data, error } = await supabase.from("shift").insert(shiftData).select().single();
 
   if (data) {
     await emit({

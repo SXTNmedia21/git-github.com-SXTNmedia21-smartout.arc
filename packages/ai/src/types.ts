@@ -8,10 +8,7 @@ import type { z } from "zod";
  * @typeParam TCtx - The context type passed to execute (e.g., SessionContext)
  * @typeParam TSchema - The Zod schema type for input validation
  */
-export type SmartoutTool<
-  TCtx = unknown,
-  TSchema extends z.ZodType = z.ZodType,
-> = {
+export type SmartoutTool<TCtx = unknown, TSchema extends z.ZodType = z.ZodType> = {
   name: string;
   description: string;
   schema: TSchema;

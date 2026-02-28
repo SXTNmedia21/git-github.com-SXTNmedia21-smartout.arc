@@ -151,6 +151,7 @@
 > **TODO:** Detailed specification needed
 
 When admin writes a Policy, AI helps configure the Protocol — suggesting:
+
 - Procedures based on policy statement and industry
 - Routines with appropriate scheduling
 - Runbooks for failure scenarios
@@ -162,13 +163,13 @@ When admin writes a Policy, AI helps configure the Protocol — suggesting:
 
 ## 13. AI Authority Levels
 
-| Level | Behavior | Example |
-|-------|----------|---------|
-| `autonomous` | AI acts without asking | Create ad-hoc task from note |
+| Level            | Behavior                 | Example                                |
+| ---------------- | ------------------------ | -------------------------------------- |
+| `autonomous`     | AI acts without asking   | Create ad-hoc task from note           |
 | `notify_suggest` | AI notifies and suggests | "HACCP check overdue — send reminder?" |
-| `notify` | AI only notifies | "Overtime threshold approaching" |
-| `escalate` | AI escalates to human | "Deviation requires manager review" |
-| `never` | AI does not participate | Manual-only operations |
+| `notify`         | AI only notifies         | "Overtime threshold approaching"       |
+| `escalate`       | AI escalates to human    | "Deviation requires manager review"    |
+| `never`          | AI does not participate  | Manual-only operations                 |
 
 Configurable per workspace, per action type.
 
@@ -177,6 +178,7 @@ Configurable per workspace, per action type.
 ## 14. AI Event Log
 
 All AI operations logged with full transparency:
+
 - What the AI decided
 - What authority level was used
 - What data was considered
@@ -185,4 +187,4 @@ All AI operations logged with full transparency:
 
 ---
 
-*This module requires detailed specification across all 8 engines. The existing voice infrastructure (MCP server, Ultravox, BrowserCall) provides a significant head start. See SMARTOUT_V1_REVISED_ARCHITECTURE.md for voice implementation details.*
+_This module requires detailed specification across all 8 engines. The existing voice infrastructure (MCP server, Ultravox, BrowserCall) provides a significant head start. See SMARTOUT_V1_REVISED_ARCHITECTURE.md for voice implementation details._

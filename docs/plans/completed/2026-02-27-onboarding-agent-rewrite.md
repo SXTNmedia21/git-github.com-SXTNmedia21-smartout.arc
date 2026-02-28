@@ -12,14 +12,14 @@
 
 ## Key References
 
-| File | Purpose |
-|------|---------|
-| `agents/onboarding_agent.py` | Python source — 1:1 parity reference |
-| `supabase/migrations/00009_onboarding_v3.sql` | `onboarding_session` table schema |
-| `packages/supabase/src/server.ts` | Server-side Supabase client factory |
-| `packages/supabase/src/database.types.ts` | Auto-generated DB types (needs regen) |
-| `apps/web/src/app/api/wizard/start/route.ts` | Existing API route pattern |
-| `apps/web/tsconfig.json` | Path alias: `@/*` -> `./src/*` |
+| File                                          | Purpose                               |
+| --------------------------------------------- | ------------------------------------- |
+| `agents/onboarding_agent.py`                  | Python source — 1:1 parity reference  |
+| `supabase/migrations/00009_onboarding_v3.sql` | `onboarding_session` table schema     |
+| `packages/supabase/src/server.ts`             | Server-side Supabase client factory   |
+| `packages/supabase/src/database.types.ts`     | Auto-generated DB types (needs regen) |
+| `apps/web/src/app/api/wizard/start/route.ts`  | Existing API route pattern            |
+| `apps/web/tsconfig.json`                      | Path alias: `@/*` -> `./src/*`        |
 
 ## Environment Variable
 
@@ -32,6 +32,7 @@
 The `onboarding_session` table exists in migration `00009` but is missing from `packages/supabase/src/database.types.ts`. We need it for type-safe Supabase queries.
 
 **Files:**
+
 - Modify: `packages/supabase/src/database.types.ts` (auto-generated)
 
 **Step 1: Start local Supabase (if not running)**
@@ -62,6 +63,7 @@ git commit -m "chore: regenerate Supabase types (includes onboarding_session)"
 ## Task 1: Install Vercel AI SDK + OpenRouter Provider
 
 **Files:**
+
 - Modify: `apps/web/package.json`
 - Modify: `pnpm-lock.yaml`
 
@@ -88,6 +90,7 @@ git commit -m "feat: add Vercel AI SDK and OpenRouter provider"
 1:1 TypeScript equivalent of the Python `OnboardingIntelligence` Pydantic model. Used for AI structured output extraction via `generateObject`.
 
 **Files:**
+
 - Create: `apps/web/src/lib/ai/onboarding-schemas.ts`
 
 **Step 1: Create the directory**
@@ -101,45 +104,17 @@ Run: `mkdir -p apps/web/src/lib/ai`
 import { z } from "zod";
 
 export const OnboardingIntelligenceSchema = z.object({
-  company_name: z
-    .string()
-    .nullable()
-    .describe("The name of the business"),
-  vibe: z
-    .string()
-    .nullable()
-    .describe("The concept or vibe of the business"),
-  general_manager: z
-    .string()
-    .nullable()
-    .describe("Daglig leder (general manager)"),
-  hr_manager: z
-    .string()
-    .nullable()
-    .describe("Personalansvarig (HR manager)"),
-  fire_safety_manager: z
-    .string()
-    .nullable()
-    .describe("Brannansvarig (fire safety manager)"),
-  current_season: z
-    .string()
-    .nullable()
-    .describe("Current operating season"),
-  departments: z
-    .array(z.string())
-    .describe("List of departments (e.g., Kitchen, Floor, Bar)"),
-  teams: z
-    .array(z.string())
-    .describe("List of teams"),
-  locations: z
-    .array(z.string())
-    .describe("List of physical locations"),
-  zones: z
-    .array(z.string())
-    .describe("List of zones within locations"),
-  assets_with_haccp: z
-    .array(z.string())
-    .describe("Assets requiring HACCP controls or routines"),
+  company_name: z.string().nullable().describe("The name of the business"),
+  vibe: z.string().nullable().describe("The concept or vibe of the business"),
+  general_manager: z.string().nullable().describe("Daglig leder (general manager)"),
+  hr_manager: z.string().nullable().describe("Personalansvarig (HR manager)"),
+  fire_safety_manager: z.string().nullable().describe("Brannansvarig (fire safety manager)"),
+  current_season: z.string().nullable().describe("Current operating season"),
+  departments: z.array(z.string()).describe("List of departments (e.g., Kitchen, Floor, Bar)"),
+  teams: z.array(z.string()).describe("List of teams"),
+  locations: z.array(z.string()).describe("List of physical locations"),
+  zones: z.array(z.string()).describe("List of zones within locations"),
+  assets_with_haccp: z.array(z.string()).describe("Assets requiring HACCP controls or routines"),
 });
 
 export type OnboardingIntelligence = z.infer<typeof OnboardingIntelligenceSchema>;
@@ -164,12 +139,14 @@ git commit -m "feat: add OnboardingIntelligence Zod schema"
 Replaces Python filesystem I/O with Supabase database operations. Uses factory pattern `createOnboardingTools(sessionId)` — every tool is scoped to a specific `onboarding_session` row.
 
 Tool mapping from Python:
+
 - `save_raw_transcription` -> `save_transcription` (appends to `scraped_data.transcripts` JSONB array)
 - `generate_markdown_report` -> `save_intelligence_report` (writes to `ai_analysis[topic]` JSONB object)
 - `create_workspace_folder` -> removed (no filesystem needed)
 - NEW: `update_intelligence` (writes structured data to `suggested_departments/teams/locations/positions`)
 
 **Files:**
+
 - Create: `apps/web/src/lib/ai/onboarding-tools.ts`
 
 **Step 1: Create the tools file**
@@ -186,12 +163,8 @@ export function createOnboardingTools(sessionId: string) {
       description:
         "Save a voice transcription entry. Call this for each meaningful user statement during the interview.",
       inputSchema: z.object({
-        speaker: z
-          .enum(["user", "agent"])
-          .describe("Who said it"),
-        text: z
-          .string()
-          .describe("The transcribed text"),
+        speaker: z.enum(["user", "agent"]).describe("Who said it"),
+        text: z.string().describe("The transcribed text"),
       }),
       execute: async ({ speaker, text }) => {
         const supabase = await createClient();
@@ -229,12 +202,8 @@ export function createOnboardingTools(sessionId: string) {
       description:
         "Save a markdown intelligence report for a specific topic (e.g., 'departments', 'leadership', 'locations').",
       inputSchema: z.object({
-        topic: z
-          .string()
-          .describe("Report topic key (e.g., 'departments', 'leadership')"),
-        content_markdown: z
-          .string()
-          .describe("The markdown report content"),
+        topic: z.string().describe("Report topic key (e.g., 'departments', 'leadership')"),
+        content_markdown: z.string().describe("The markdown report content"),
       }),
       execute: async ({ topic, content_markdown }) => {
         const supabase = await createClient();
@@ -268,22 +237,10 @@ export function createOnboardingTools(sessionId: string) {
       description:
         "Update the structured intelligence data (departments, teams, locations, positions) based on what the user has described so far.",
       inputSchema: z.object({
-        departments: z
-          .array(z.string())
-          .optional()
-          .describe("List of department names"),
-        teams: z
-          .array(z.string())
-          .optional()
-          .describe("List of team names"),
-        locations: z
-          .array(z.string())
-          .optional()
-          .describe("List of physical location names"),
-        positions: z
-          .array(z.string())
-          .optional()
-          .describe("List of position/role names"),
+        departments: z.array(z.string()).optional().describe("List of department names"),
+        teams: z.array(z.string()).optional().describe("List of team names"),
+        locations: z.array(z.string()).optional().describe("List of physical location names"),
+        positions: z.array(z.string()).optional().describe("List of position/role names"),
       }),
       execute: async ({ departments, teams, locations, positions }) => {
         const supabase = await createClient();
@@ -343,6 +300,7 @@ Two exported functions:
 System prompt preserved from Python with voice-friendly rules.
 
 **Files:**
+
 - Create: `apps/web/src/lib/ai/onboarding-agent.ts`
 
 **Step 1: Create the agent file**
@@ -403,10 +361,7 @@ export async function runOnboardingAgent({
 }: AgentInput): Promise<AgentResult> {
   const tools = createOnboardingTools(sessionId);
 
-  const messages: CoreMessage[] = [
-    ...conversationHistory,
-    { role: "user", content: userMessage },
-  ];
+  const messages: CoreMessage[] = [...conversationHistory, { role: "user", content: userMessage }];
 
   const result = await generateText({
     model,
@@ -466,6 +421,7 @@ git commit -m "feat: add onboarding agent module with Vercel AI SDK + OpenRouter
 POST endpoint following existing patterns from `apps/web/src/app/api/wizard/start/route.ts`.
 
 Flow:
+
 1. Auth check via `supabase.auth.getUser()`
 2. Input validation via Zod
 3. Session ownership check (verify `user_id` matches authenticated user)
@@ -474,6 +430,7 @@ Flow:
 6. Proper error handling with HTTP status codes
 
 **Files:**
+
 - Create: `apps/web/src/app/api/onboarding-agent/route.ts`
 
 **Step 1: Create the route directory**
@@ -487,10 +444,7 @@ Run: `mkdir -p apps/web/src/app/api/onboarding-agent`
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@smartout/supabase/server";
-import {
-  runOnboardingAgent,
-  extractOnboardingIntelligence,
-} from "@/lib/ai/onboarding-agent";
+import { runOnboardingAgent, extractOnboardingIntelligence } from "@/lib/ai/onboarding-agent";
 import type { CoreMessage } from "ai";
 
 const RequestSchema = z.object({
@@ -500,7 +454,7 @@ const RequestSchema = z.object({
     z.object({
       role: z.enum(["user", "assistant"]),
       content: z.string(),
-    })
+    }),
   ),
   extractIntelligence: z.boolean().optional().default(false),
 });
@@ -539,10 +493,7 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (sessionError || !session) {
-    return NextResponse.json(
-      { error: "Onboarding session not found" },
-      { status: 404 }
-    );
+    return NextResponse.json({ error: "Onboarding session not found" }, { status: 404 });
   }
 
   if (session.user_id !== user.id) {
@@ -554,10 +505,7 @@ export async function POST(request: NextRequest) {
 
     // 4a. Extract intelligence (final step)
     if (body.extractIntelligence) {
-      const allMessages: CoreMessage[] = [
-        ...history,
-        { role: "user", content: body.userMessage },
-      ];
+      const allMessages: CoreMessage[] = [...history, { role: "user", content: body.userMessage }];
 
       const intelligence = await extractOnboardingIntelligence({
         conversationHistory: allMessages,
@@ -580,10 +528,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     console.error("Onboarding agent error:", err);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 ```
@@ -605,6 +550,7 @@ git commit -m "feat: add onboarding agent API route"
 ## Task 6: Delete Python Agent
 
 **Files:**
+
 - Delete: `agents/onboarding_agent.py`
 - Delete: `agents/` directory (if no other files exist)
 
@@ -669,12 +615,12 @@ agents/
 
 ## Summary of Changes
 
-| Action | File |
-|--------|------|
-| Regen | `packages/supabase/src/database.types.ts` |
+| Action | File                                                        |
+| ------ | ----------------------------------------------------------- |
+| Regen  | `packages/supabase/src/database.types.ts`                   |
 | Modify | `apps/web/package.json` (+ai, +@openrouter/ai-sdk-provider) |
-| Create | `apps/web/src/lib/ai/onboarding-schemas.ts` |
-| Create | `apps/web/src/lib/ai/onboarding-tools.ts` |
-| Create | `apps/web/src/lib/ai/onboarding-agent.ts` |
-| Create | `apps/web/src/app/api/onboarding-agent/route.ts` |
-| Delete | `agents/` directory |
+| Create | `apps/web/src/lib/ai/onboarding-schemas.ts`                 |
+| Create | `apps/web/src/lib/ai/onboarding-tools.ts`                   |
+| Create | `apps/web/src/lib/ai/onboarding-agent.ts`                   |
+| Create | `apps/web/src/app/api/onboarding-agent/route.ts`            |
+| Delete | `agents/` directory                                         |

@@ -9,21 +9,25 @@
 ## 1. Product Identity
 
 ### What is Smartout
-**Employee Readiness System.** A holistic system that makes employees *ready* for their shifts: trained, compliant, equipped, and informed. "Ready" has a concrete meaning: all assigned Policies have been learned, all Protocols have been completed — knowledge tested, procedures trained, confirmation signed.
+
+**Employee Readiness System.** A holistic system that makes employees _ready_ for their shifts: trained, compliant, equipped, and informed. "Ready" has a concrete meaning: all assigned Policies have been learned, all Protocols have been completed — knowledge tested, procedures trained, confirmation signed.
 
 ### Core Problem
+
 ~75% annual turnover in the Norwegian service industry. New hires are expensive, undertrained, and often leave before becoming productive.
 
 ### Target Market
-| Segment | Description | Priority |
-|---------|-------------|----------|
-| Restaurants (1–3 locations) | Owner/manager runs operations daily | Primary |
-| Hotels | Operations manager coordinates multiple departments | Primary |
-| Chains / Franchises | Operations director oversees multiple locations | Primary |
-| HR in HoReCa | HR manager focused on compliance and retention | Primary |
-| Retail | Shift-based retail operations | Roadmap |
+
+| Segment                     | Description                                         | Priority |
+| --------------------------- | --------------------------------------------------- | -------- |
+| Restaurants (1–3 locations) | Owner/manager runs operations daily                 | Primary  |
+| Hotels                      | Operations manager coordinates multiple departments | Primary  |
+| Chains / Franchises         | Operations director oversees multiple locations     | Primary  |
+| HR in HoReCa                | HR manager focused on compliance and retention      | Primary  |
+| Retail                      | Shift-based retail operations                       | Roadmap  |
 
 ### Pricing
+
 Per employee / per month. Plan tiers to be defined.
 
 ---
@@ -32,31 +36,35 @@ Per employee / per month. Plan tiers to be defined.
 
 ### Stack
 
-| Layer | Technology | Purpose |
-|-------|-----------|---------|
-| **Web Dashboard** | Next.js (TypeScript) | Admin + employee desktop experience |
-| **Mobile App** | React Native + Expo (TypeScript) | Runtime restaurant operations |
-| **Backend** | Supabase (PostgreSQL, Auth, Storage, Realtime, Edge Functions) | All backend services |
-| **Automation** | n8n (complex workflows) + Supabase Edge Functions (simple triggers) | Business logic orchestration |
-| **Hosting** | Vercel (web), Supabase Cloud (backend), DigitalOcean (n8n) | Infrastructure |
-| **Language** | TypeScript | Everywhere — no exceptions |
+| Layer             | Technology                                                          | Purpose                             |
+| ----------------- | ------------------------------------------------------------------- | ----------------------------------- |
+| **Web Dashboard** | Next.js (TypeScript)                                                | Admin + employee desktop experience |
+| **Mobile App**    | React Native + Expo (TypeScript)                                    | Runtime restaurant operations       |
+| **Backend**       | Supabase (PostgreSQL, Auth, Storage, Realtime, Edge Functions)      | All backend services                |
+| **Automation**    | n8n (complex workflows) + Supabase Edge Functions (simple triggers) | Business logic orchestration        |
+| **Hosting**       | Vercel (web), Supabase Cloud (backend), DigitalOcean (n8n)          | Infrastructure                      |
+| **Language**      | TypeScript                                                          | Everywhere — no exceptions          |
 
 ### Authentication
+
 - Email + password
 - Magic link
 - SMS OTP (via Twilio)
 - All managed through Supabase Auth
 
 ### Multi-Tenant Model
+
 - All data scoped via `workspace_id`
 - Enforced through Supabase Row Level Security (RLS)
 - Users can have Profiles in multiple Workspaces (even across Companies)
 
 ### ID Strategy
+
 - **Primary keys:** UUIDs (Supabase default)
 - **Display codes:** Human-readable identifiers (EMP-001, SHF-4521) generated per workspace
 
 ### Environments
+
 Production, Staging, Development — Supabase project branching for isolation.
 
 ---
@@ -64,9 +72,11 @@ Production, Staging, Development — Supabase project branching for isolation.
 ## 3. Platform Strategy
 
 ### Desktop (Web Dashboard)
+
 Two-mode platform accessible to ALL users:
 
 **Employee Mode — Personal Workspace:**
+
 - Contracts and employment details
 - Shift calendar and available shifts
 - Training, education, and certificates
@@ -75,6 +85,7 @@ Two-mode platform accessible to ALL users:
 - Policy & protocol completion tracking
 
 **Admin/Manager Mode — Operational Control:**
+
 - Everything in employee mode, PLUS:
 - Scheduling and shift management
 - Payroll and salary oversight
@@ -84,6 +95,7 @@ Two-mode platform accessible to ALL users:
 - Team management and reporting
 
 ### Mobile App (React Native)
+
 Runtime operations — where the restaurant actually runs.
 
 **Phase 1:** Shift planning, shift swapping, notifications, punch in/out, payroll/salary calculation.
@@ -95,6 +107,7 @@ Runtime operations — where the restaurant actually runs.
 ## 4. Core Data Model
 
 ### Design Principles
+
 - **11 Core types** — identity, structure, access, rules, time, and governance
 - **Everything else is modules** — plugged in via extender pattern
 - **Core has no business logic** — only identity, relationships, access control, and governance
@@ -174,6 +187,7 @@ User ──── CompanyMember ──── Company
 ## 5. Core Types — Detailed Schemas
 
 ### 5.1 User
+
 Person. Login. One per human regardless of how many jobs they have.
 
 ```
@@ -198,12 +212,14 @@ user
 ```
 
 **Design decisions:**
+
 - User has NO direct connection to Company or Workspace — always via CompanyMember/Profile
 - `personal_email` separate from login email — GDPR: private contact not tied to workplace
 - `date_of_birth` needed for Norwegian labor law (young workers, pension)
 - `avatar_url` is global — Profile has its own that overrides in workspace context
 
 ### 5.2 Company
+
 Legal entity. Can have multiple Workspaces. Static — no Season connection.
 
 ```
@@ -234,11 +250,13 @@ company
 ```
 
 **Design decisions:**
+
 - Company NEVER has season. Static legal entity.
 - `default_language` and `default_currency` inherited to Workspace at creation but can be overridden.
 - `industry` drives which modules are suggested during onboarding. Restaurant ≠ Hotel.
 
 ### 5.3 CompanyMember
+
 Thin bridge between User and Company. "Do you belong to this company?"
 
 ```
@@ -255,11 +273,13 @@ company_member
 ```
 
 **Design decisions:**
+
 - Thin by design. All rich work data lives in Profile.
 - A User can be member in multiple Companies (chains, franchises, consultants).
 - `owner` role: only one per Company. `admin` can be multiple.
 
 ### 5.4 Workspace
+
 Physical workplace. The operational unit. All daily work happens here.
 
 ```
@@ -288,11 +308,13 @@ workspace
 ```
 
 **Design decisions:**
+
 - Workspace always has EXACTLY ONE default Season (created automatically at setup).
 - `active_modules` is an array, not booleans — easier to extend with new modules.
 - Workspace owns: Departments, Locations, Teams, Policies, Seasons.
 
 ### 5.5 Profile
+
 Rich bridge User ↔ Workspace. Work identity. All daily work flows from here.
 
 ```
@@ -340,17 +362,20 @@ profile
 ```
 
 **Status lifecycle:**
+
 - `trainee` → sandbox mode. All actions sandboxed. Learning the system (see Module 1). NOT a role — it's a status.
 - `active` → full employee. Live data. Real impact.
 - `inactive` → paused / on leave.
 - `offboarding` → leaving the organization.
 
 **Design decisions:**
+
 - Profile has NO direct season connection. Season filters DATA, not the person.
 - A User can have Profiles in multiple Workspaces, even across Companies.
 - Operational state (on the clock, working today) is DERIVED from shift/punch data, not stored here.
 
 ### 5.6 Department
+
 Fixed organizational division. Rarely changes.
 
 ```
@@ -369,11 +394,13 @@ department
 ```
 
 **Design decisions:**
+
 - Department NEVER has season. Permanent structure.
 - Department can have Teams under it (`team.department_id`).
 - A Profile has ONE primary department but can list additional in `departments[]`.
 
 ### 5.7 Location
+
 Physical place within a Workspace.
 
 ```
@@ -396,10 +423,12 @@ location
 ```
 
 **Design decisions:**
+
 - Location NEVER has season. The place always exists — even if not used.
 - Tasks/shifts CAN have both location AND season: "Prepare outdoor terrace" = season:summer + location:terrace.
 
 ### 5.8 Team
+
 Dynamic access group. Controls what you see and can do.
 
 ```
@@ -421,6 +450,7 @@ team
 ```
 
 **Design decisions:**
+
 - Team IS the core type that CAN have season. Winter crew, summer team, event group.
 - `team_type: seasonal` + `season_id` = clearly seasonal team.
 - `team_type: operational` without `season_id` = always active.
@@ -428,6 +458,7 @@ team
 - A Profile can be in seasonal AND permanent teams simultaneously.
 
 ### 5.9 Policy
+
 Universal rule. One statement. One standard. Can be aspirational or enforced.
 
 ```
@@ -453,6 +484,7 @@ policy
 ```
 
 **Design decisions:**
+
 - Policy CAN have season. "Winter supplement" = season:winter + policy_type:payroll.
 - Policy WITHOUT season = always applies (default).
 - `valid_from`/`valid_to` and `season_id` are independent: season = coarse filter, dates = fine filter.
@@ -461,6 +493,7 @@ policy
 - 1:1 relationship with Protocol.
 
 ### 5.10 Season
+
 Operational time context. Filters all module data.
 
 ```
@@ -484,6 +517,7 @@ season
 ```
 
 **Design decisions:**
+
 - Season lives on WORKSPACE level. Never Company.
 - Every Workspace has exactly ONE default Season (`is_default=true`). Created at workspace setup.
 - Default Season: `start_date=null`, `end_date=null`, `status=active`, `parent_season_id=null`.
@@ -507,6 +541,7 @@ season
 **The admin experience:** Setting up a season feels like preparing a battlefield. You configure teams, define rules, set focus areas — then click PLAY. The season is live. The goal: gather maximum score and points.
 
 ### 5.11 Protocol
+
 Enforcement container for a Policy. The "how we comply" umbrella. Contains all actionable elements needed to implement a policy.
 
 ```
@@ -537,6 +572,7 @@ Protocol
 ```
 
 **Design decisions:**
+
 - 1:1 with Policy. One policy, one protocol. No protocol = aspirational policy.
 - Protocol is a Core type because multiple modules need it (scheduling, operations, QA, training, onboarding).
 - When you join a team → receive policies → complete protocols → you're READY.
@@ -546,6 +582,7 @@ Protocol
 ## 6. Governance Model
 
 ### The Chain
+
 ```
 Policy      →  "What must happen"     (the rule)
 Protocol    →  "How we comply"        (the umbrella)
@@ -558,6 +595,7 @@ Protocol    →  "How we comply"        (the umbrella)
 ```
 
 ### Procedure
+
 Static instructions. Contains ordered tasks. Can have onboarding requirements, skill requirements, team-specific training.
 
 ```
@@ -586,6 +624,7 @@ procedure_step
 ```
 
 ### Routine
+
 Scheduled execution of a Procedure. The thing that makes procedures actually run.
 
 ```
@@ -607,6 +646,7 @@ routine
 ```
 
 ### Runbook
+
 Event-triggered escalation workflow. IS a procedure, but specifically for when things go wrong. Always triggers a Control List when completed.
 
 ```
@@ -629,6 +669,7 @@ runbook
 ```
 
 ### Control List
+
 Follow-up verification. NEVER standalone — only exists as follow-up to Routines and Runbooks.
 
 ```
@@ -650,11 +691,13 @@ control_list
 ```
 
 **Trigger rules:**
+
 - From Routine: configurable frequency (every time, every Nth time, never)
 - From Runbook: ALWAYS, automatically assigned when runbook completes
 - No routines/runbooks run = no control lists to complete
 
 ### Knowledge Test
+
 Verify that the employee actually understands the policy and its procedures.
 
 ```
@@ -672,6 +715,7 @@ knowledge_test
 ```
 
 ### Confirmation
+
 Employee sign-off. Anti-ghosting. Manual acknowledgment that they've read and understand.
 
 ```
@@ -687,6 +731,7 @@ confirmation
 ```
 
 ### Employee Readiness Flow
+
 ```
 Employee joins Team
   → Receives Policies for that Team/Department
@@ -722,30 +767,31 @@ User logs in
 
 ### Access Dimensions
 
-| Dimension | Controls | Example |
-|-----------|----------|---------|
-| **Role** | What you CAN do | Admin can edit, Employee can view |
-| **Team** | What you SEE | Kitchen team sees kitchen procedures, not bar's |
-| **Department** | Where you BELONG | Payroll calculation, reporting |
-| **Location** | Where you ARE | Punch-in verification, resource allocation |
-| **Module** | Which functionality | Payroll enabled? Training enabled? |
-| **Season** | Which time context | Filter data by active season |
-| **Status** | Data scope | Trainee = sandbox, Active = live |
+| Dimension      | Controls            | Example                                         |
+| -------------- | ------------------- | ----------------------------------------------- |
+| **Role**       | What you CAN do     | Admin can edit, Employee can view               |
+| **Team**       | What you SEE        | Kitchen team sees kitchen procedures, not bar's |
+| **Department** | Where you BELONG    | Payroll calculation, reporting                  |
+| **Location**   | Where you ARE       | Punch-in verification, resource allocation      |
+| **Module**     | Which functionality | Payroll enabled? Training enabled?              |
+| **Season**     | Which time context  | Filter data by active season                    |
+| **Status**     | Data scope          | Trainee = sandbox, Active = live                |
 
 ### Role Definitions
 
-| Role | Scope | Capabilities |
-|------|-------|-------------|
-| **Employee** | Own data + team visibility | View own shifts, complete tasks, access training |
-| **Manager** | One or more departments | Manage schedules, approve requests, view reports |
-| **Admin** | Full workspace | All manager capabilities + settings, payroll, policies, custom permission handling |
-| **Owner** | Full workspace + billing | All admin capabilities + subscription, billing, data export |
+| Role         | Scope                      | Capabilities                                                                       |
+| ------------ | -------------------------- | ---------------------------------------------------------------------------------- |
+| **Employee** | Own data + team visibility | View own shifts, complete tasks, access training                                   |
+| **Manager**  | One or more departments    | Manage schedules, approve requests, view reports                                   |
+| **Admin**    | Full workspace             | All manager capabilities + settings, payroll, policies, custom permission handling |
+| **Owner**    | Full workspace + billing   | All admin capabilities + subscription, billing, data export                        |
 
 **Leader** is not a role level — defined on Team (`team.leader_profile_id`). A leader has elevated access within their team's scope.
 
 **Custom permissions** handled via Policy (`policy_type: "access"`) — admins create workspace-specific permission sets that grant or restrict capabilities. E.g. "Manager X can see salary for Department A but not Department B."
 
 ### Smartout Super-Admin
+
 Cross-workspace access for Smartout's internal team. Separate from workspace roles.
 
 ---
@@ -753,15 +799,17 @@ Cross-workspace access for Smartout's internal team. Separate from workspace rol
 ## 8. The Season Concept
 
 ### Overview
+
 A Season is a defined operational period that wraps specialized configurations. It's the gamification and operational planning unit of Smartout.
 
 ### How It Works
 
 **Default mode:** Set up Smartout and just work. No season required. Everything is "default."
 
-**Creating a season:** Admin is prompted — *"When is your next season change?"* → Create a named season with start/end dates.
+**Creating a season:** Admin is prompted — _"When is your next season change?"_ → Create a named season with start/end dates.
 
 ### What Lives Inside a Season
+
 - Specialized routines and procedures
 - Specialized teams (seasonal crews)
 - Specialized jobs
@@ -770,6 +818,7 @@ A Season is a defined operational period that wraps specialized configurations. 
 - Specialized policies and protocols
 
 ### Key Rules
+
 1. **One active named season at a time** (plus the always-running default)
 2. When a season is active, every new item created gets a dropdown: **Default** or **Season-based**
 3. Everything filters by season context automatically
@@ -777,6 +826,7 @@ A Season is a defined operational period that wraps specialized configurations. 
 5. Season-specific data inherits from Default when not explicitly defined
 
 ### Season Lifecycle
+
 ```
 Default (always running)
   → Season created (draft — "setting up the battlefield")
@@ -791,19 +841,22 @@ Default (always running)
 ## 9. Gamification Layer
 
 ### Points System
+
 Staff earn points through actions during a season. Every completed task, shift, training module, protocol completion, and compliance check contributes.
 
 ### Competition Levels
 
-| Level | Scope |
-|-------|-------|
-| **Individual** | Personal score and achievements |
-| **Team** | Team competition within workspace |
-| **Department** | Department-level competition |
-| **Workspace** | Global leaderboard across ALL Smartout workspaces |
+| Level          | Scope                                             |
+| -------------- | ------------------------------------------------- |
+| **Individual** | Personal score and achievements                   |
+| **Team**       | Team competition within workspace                 |
+| **Department** | Department-level competition                      |
+| **Workspace**  | Global leaderboard across ALL Smartout workspaces |
 
 ### Boosters & Penalties
+
 Managers can activate score multipliers and modifiers:
+
 - **Boosters:** Temporary point multipliers (e.g. 2x for HACCP tasks this week)
 - **Penalties:** Point deductions for compliance failures
 
@@ -813,32 +866,34 @@ Managers can activate score multipliers and modifiers:
 
 Modules plug into Core via extender tables. Each module creates its own Ws* config and Emp* data.
 
-| Module | Ws Config | Profile Data | Core Dependencies |
-|--------|-----------|-------------|-------------------|
-| **Payroll** | WsPayroll | EmpPayroll | Department, Policy |
-| **Scheduling** | WsScheduling | EmpSchedule | Department, Location, Team |
-| **Onboarding** | WsOnboarding | EmpOnboarding | Department, Team |
-| **Training** | WsTraining | EmpTraining | Department, Team, Policy |
-| **Tasks** | WsTask | EmpTask | Department, Team, Location |
-| **Chat** | — | EmpChat | Team |
-| **Inventory** | WsInventory | — | Location |
-| **Operations** | WsOperations | — | Department, Location, Policy |
-| **QA/Audit** | WsAudit | — | Department, Location, Policy |
-| **News/Comms** | WsNews | — | Team, Department |
-| **HeatMap** | WsHeatMap | — | Location |
-| **Contracts/HR** | — | EmpContract | Department |
+| Module           | Ws Config    | Profile Data  | Core Dependencies            |
+| ---------------- | ------------ | ------------- | ---------------------------- |
+| **Payroll**      | WsPayroll    | EmpPayroll    | Department, Policy           |
+| **Scheduling**   | WsScheduling | EmpSchedule   | Department, Location, Team   |
+| **Onboarding**   | WsOnboarding | EmpOnboarding | Department, Team             |
+| **Training**     | WsTraining   | EmpTraining   | Department, Team, Policy     |
+| **Tasks**        | WsTask       | EmpTask       | Department, Team, Location   |
+| **Chat**         | —            | EmpChat       | Team                         |
+| **Inventory**    | WsInventory  | —             | Location                     |
+| **Operations**   | WsOperations | —             | Department, Location, Policy |
+| **QA/Audit**     | WsAudit      | —             | Department, Location, Policy |
+| **News/Comms**   | WsNews       | —             | Team, Department             |
+| **HeatMap**      | WsHeatMap    | —             | Location                     |
+| **Contracts/HR** | —            | EmpContract   | Department                   |
 
 ---
 
 ## 11. Department vs. Team
 
 ### Department
+
 - **Fixed**, rarely changes
 - Organizational home, tied to payroll and reporting
 - A Profile has ONE primary department (can work in additional ones)
 - Examples: Kitchen, Service, Bar, Administration, Cleaning
 
 ### Team
+
 - **Dynamic**, can change per season/week
 - Access group — controls what you see
 - A Profile can belong to MULTIPLE teams
@@ -846,6 +901,7 @@ Modules plug into Core via extender tables. Each module creates its own Ws* conf
 - Examples: "Lunch Crew", "Event Team", "HSE Responsible"
 
 ### Relationship
+
 ```
 Department: Kitchen
   ├── Team: Breakfast Kitchen
@@ -861,12 +917,12 @@ Cross-departmental:
 
 ## 12. Design System
 
-| Decision | Choice |
-|----------|--------|
-| **Direction** | Fresh design, same clean/professional DNA |
-| **CSS Framework** | Tailwind CSS |
-| **Component Library** | shadcn/ui |
-| **Responsive** | Desktop and mobile equally prioritized |
+| Decision              | Choice                                    |
+| --------------------- | ----------------------------------------- |
+| **Direction**         | Fresh design, same clean/professional DNA |
+| **CSS Framework**     | Tailwind CSS                              |
+| **Component Library** | shadcn/ui                                 |
+| **Responsive**        | Desktop and mobile equally prioritized    |
 
 ---
 
@@ -891,21 +947,22 @@ AI assists in governance: when admin writes a Policy, AI helps configure the Pro
 
 ### 11 Core Types
 
-| # | Type | Purpose |
-|---|------|---------|
-| 1 | **User** | Who you are (person, auth) |
-| 2 | **CompanyMember** | Which organization you belong to |
-| 3 | **Company** | The legal entity |
-| 4 | **Workspace** | The physical workplace |
-| 5 | **Profile** | Your role and identity here |
-| 6 | **Department** | Fixed organizational division |
-| 7 | **Location** | Physical place |
-| 8 | **Team** | Dynamic access group |
-| 9 | **Policy** | Rules — what must happen |
-| 10 | **Season** | Operational time period |
-| 11 | **Protocol** | Enforcement — how we comply |
+| #   | Type              | Purpose                          |
+| --- | ----------------- | -------------------------------- |
+| 1   | **User**          | Who you are (person, auth)       |
+| 2   | **CompanyMember** | Which organization you belong to |
+| 3   | **Company**       | The legal entity                 |
+| 4   | **Workspace**     | The physical workplace           |
+| 5   | **Profile**       | Your role and identity here      |
+| 6   | **Department**    | Fixed organizational division    |
+| 7   | **Location**      | Physical place                   |
+| 8   | **Team**          | Dynamic access group             |
+| 9   | **Policy**        | Rules — what must happen         |
+| 10  | **Season**        | Operational time period          |
+| 11  | **Protocol**      | Enforcement — how we comply      |
 
 ### The Formula
+
 **Access:** Role × Team × Season × Module × Status
 
 **Readiness:** Policies assigned → Protocols completed → READY ✓
@@ -914,4 +971,4 @@ AI assists in governance: when admin writes a Policy, AI helps configure the Pro
 
 ---
 
-*This document is directional (v2.0). Implementation details refined during module development.*
+_This document is directional (v2.0). Implementation details refined during module development._

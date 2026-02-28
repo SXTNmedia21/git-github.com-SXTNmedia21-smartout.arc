@@ -40,14 +40,14 @@ Full payroll calculation from shift data. Covers wage types, supplements (evenin
 
 Configured via Policy (`policy_type: payroll`) with `rules_json`:
 
-| Supplement | Trigger | Typical Rate |
-|-----------|---------|-------------|
-| Evening (kveldstillegg) | After 17:00/21:00 | kr/hour or % |
-| Night (nattillegg) | After 21:00/23:00 | kr/hour or % |
-| Weekend (helgetillegg) | Saturday/Sunday | kr/hour or % |
-| Holiday (helligdagstillegg) | Public holidays | kr/hour or % |
-| Overtime 40% | First 2 hours overtime | 40% of base |
-| Overtime 50% | Beyond 2 hours / night/weekend | 50% of base |
+| Supplement                  | Trigger                        | Typical Rate |
+| --------------------------- | ------------------------------ | ------------ |
+| Evening (kveldstillegg)     | After 17:00/21:00              | kr/hour or % |
+| Night (nattillegg)          | After 21:00/23:00              | kr/hour or % |
+| Weekend (helgetillegg)      | Saturday/Sunday                | kr/hour or % |
+| Holiday (helligdagstillegg) | Public holidays                | kr/hour or % |
+| Overtime 40%                | First 2 hours overtime         | 40% of base  |
+| Overtime 50%                | Beyond 2 hours / night/weekend | 50% of base  |
 
 Rules per day category (`_dayCategory`): morning, midday, afternoon, evening, night, weekend.
 
@@ -81,8 +81,9 @@ Rules per day category (`_dayCategory`): morning, midday, afternoon, evening, ni
 > **TODO:** Detailed specification needed
 
 Monthly payroll run pipeline:
+
 ```
-Shifts (from Module 3) 
+Shifts (from Module 3)
   → Hours per day category
     → Base pay calculation
       → + Supplements (evening, night, weekend, holiday)
@@ -118,12 +119,14 @@ Validation checks before finalization. Admin review and approval step.
 > **TODO:** Detailed table schemas needed
 
 **Expected tables:**
+
 - `payroll_run` — monthly run with status (draft, calculating, review, finalized)
 - `payroll_line` — individual line items per employee per run
 - `supplement_rule` — configured via Policy, referenced during calculation
 - `timebank_balance` — TOIL balance per employee
 
 **Expected enums:**
+
 - `RateType`: fixed | hourly | multiplier | percentage | calculated
 - `SalaryCategory`: base_pay | overtime | supplement | absence | deductions
 - `SalaryType`: hourly | monthly
@@ -133,14 +136,14 @@ Validation checks before finalization. Admin review and approval step.
 
 ## 9. Integration Points
 
-| Module | Integration |
-|--------|------------|
-| **Module 3 (Scheduling)** | Shift data + punch records = hours worked |
-| **Module 7 (Absence)** | Absence days → pay deductions + absence pay |
-| **Module 11 (Settings)** | Payroll configuration via Policy |
+| Module                       | Integration                                          |
+| ---------------------------- | ---------------------------------------------------- |
+| **Module 3 (Scheduling)**    | Shift data + punch records = hours worked            |
+| **Module 7 (Absence)**       | Absence days → pay deductions + absence pay          |
+| **Module 11 (Settings)**     | Payroll configuration via Policy                     |
 | **Module 13 (Multi-Tenant)** | Workspace-scoped payroll, no cross-workspace leakage |
-| **Module 14 (Compliance)** | A-melding export, Bokføringsloven retention |
+| **Module 14 (Compliance)**   | A-melding export, Bokføringsloven retention          |
 
 ---
 
-*This module requires detailed specification. The content above is extracted from SMARTOUT_COMPLETE_DOCUMENTATION.md and the master index. A full spec should include complete data models, calculation algorithms, Norwegian tax/law edge cases, and the payroll UI.*
+_This module requires detailed specification. The content above is extracted from SMARTOUT_COMPLETE_DOCUMENTATION.md and the master index. A full spec should include complete data models, calculation algorithms, Norwegian tax/law edge cases, and the payroll UI._

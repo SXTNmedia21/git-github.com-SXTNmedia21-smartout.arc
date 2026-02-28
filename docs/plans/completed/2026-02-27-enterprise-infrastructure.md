@@ -16,17 +16,17 @@
 
 This plan incorporates fixes from two independent reviews:
 
-| # | Severity | Issue | Fix |
-|---|----------|-------|-----|
-| 1 | High | Task 3.1 duplicates existing `00005_activity_trail.sql` | Changed to audit + add missing partial index only |
-| 2 | High | `useTrack()` API change breaks existing callers | Non-breaking overload: optional params, mock fallback preserved |
-| 3 | High | `activity_trail` INSERT policy `WITH CHECK (TRUE)` too permissive | Restricted INSERT to `service_role` only (`TO service_role`) |
-| 4 | High | `/api/health` DB check fails on RLS-protected table | Use service role client with dedicated health query |
-| 5 | High | `health-check` Edge Function has no auth gate | Added bearer token verification |
-| 6 | Medium | `rm -rf` not Windows-safe | Use `rimraf` package (cross-platform) |
-| 7 | Medium | Route-level middleware.ts invalid for Next.js App Router | Removed; rate limiting integrated directly in route handlers |
-| 8 | Medium | `packages/notifications/tsconfig.json` doesn't exist | Added creation sub-step |
-| 9 | Medium | Telemetry beacon endpoint validation too weak | Added Zod schema validation |
+| #   | Severity | Issue                                                             | Fix                                                             |
+| --- | -------- | ----------------------------------------------------------------- | --------------------------------------------------------------- |
+| 1   | High     | Task 3.1 duplicates existing `00005_activity_trail.sql`           | Changed to audit + add missing partial index only               |
+| 2   | High     | `useTrack()` API change breaks existing callers                   | Non-breaking overload: optional params, mock fallback preserved |
+| 3   | High     | `activity_trail` INSERT policy `WITH CHECK (TRUE)` too permissive | Restricted INSERT to `service_role` only (`TO service_role`)    |
+| 4   | High     | `/api/health` DB check fails on RLS-protected table               | Use service role client with dedicated health query             |
+| 5   | High     | `health-check` Edge Function has no auth gate                     | Added bearer token verification                                 |
+| 6   | Medium   | `rm -rf` not Windows-safe                                         | Use `rimraf` package (cross-platform)                           |
+| 7   | Medium   | Route-level middleware.ts invalid for Next.js App Router          | Removed; rate limiting integrated directly in route handlers    |
+| 8   | Medium   | `packages/notifications/tsconfig.json` doesn't exist              | Added creation sub-step                                         |
+| 9   | Medium   | Telemetry beacon endpoint validation too weak                     | Added Zod schema validation                                     |
 
 ---
 
@@ -39,6 +39,7 @@ No dependencies. Everything else builds on this.
 ### Task 1.1: Create shared TypeScript config package
 
 **Files:**
+
 - Create: `packages/typescript-config/package.json`
 - Create: `packages/typescript-config/base.json`
 - Create: `packages/typescript-config/nextjs.json`
@@ -136,20 +137,21 @@ For pure TypeScript packages (`types`, `utils`, `supabase`).
 
 Update each `tsconfig.json` to extend the appropriate base:
 
-| Package | Extends | Path alias |
-|---------|---------|------------|
-| `apps/web/tsconfig.json` | `@smartout/typescript-config/nextjs.json` | `@/*` → `./src/*` |
-| `apps/landing/tsconfig.json` | `@smartout/typescript-config/nextjs.json` | `@/*` → `./src/*` |
-| `packages/types/tsconfig.json` | `@smartout/typescript-config/library.json` | none |
-| `packages/supabase/tsconfig.json` | `@smartout/typescript-config/library.json` | none |
-| `packages/utils/tsconfig.json` | `@smartout/typescript-config/library.json` | none |
-| `packages/ai/tsconfig.json` | `@smartout/typescript-config/library.json` | none |
-| `packages/ui/tsconfig.json` | `@smartout/typescript-config/react-library.json` | none |
-| `packages/telemetry/tsconfig.json` | `@smartout/typescript-config/react-library.json` | none |
-| `packages/i18n/tsconfig.json` | `@smartout/typescript-config/library.json` | none |
-| `packages/notifications/tsconfig.json` | `@smartout/typescript-config/library.json` | none |
+| Package                                | Extends                                          | Path alias        |
+| -------------------------------------- | ------------------------------------------------ | ----------------- |
+| `apps/web/tsconfig.json`               | `@smartout/typescript-config/nextjs.json`        | `@/*` → `./src/*` |
+| `apps/landing/tsconfig.json`           | `@smartout/typescript-config/nextjs.json`        | `@/*` → `./src/*` |
+| `packages/types/tsconfig.json`         | `@smartout/typescript-config/library.json`       | none              |
+| `packages/supabase/tsconfig.json`      | `@smartout/typescript-config/library.json`       | none              |
+| `packages/utils/tsconfig.json`         | `@smartout/typescript-config/library.json`       | none              |
+| `packages/ai/tsconfig.json`            | `@smartout/typescript-config/library.json`       | none              |
+| `packages/ui/tsconfig.json`            | `@smartout/typescript-config/react-library.json` | none              |
+| `packages/telemetry/tsconfig.json`     | `@smartout/typescript-config/react-library.json` | none              |
+| `packages/i18n/tsconfig.json`          | `@smartout/typescript-config/library.json`       | none              |
+| `packages/notifications/tsconfig.json` | `@smartout/typescript-config/library.json`       | none              |
 
 **Pre-step:** `packages/notifications/tsconfig.json` does not currently exist. Create it before migrating:
+
 ```json
 {
   "extends": "@smartout/typescript-config/library.json",
@@ -162,6 +164,7 @@ Update each `tsconfig.json` to extend the appropriate base:
 **Critical:** Remove `~/*` path aliases from `packages/ui` and `packages/telemetry`. Standardize on `@/*` for apps only, no aliases in packages (use relative imports).
 
 Example migration for `packages/ui/tsconfig.json`:
+
 ```json
 {
   "extends": "@smartout/typescript-config/react-library.json",
@@ -175,6 +178,7 @@ Example migration for `packages/ui/tsconfig.json`:
 ```
 
 Example migration for `apps/web/tsconfig.json`:
+
 ```json
 {
   "extends": "@smartout/typescript-config/nextjs.json",
@@ -183,7 +187,14 @@ Example migration for `apps/web/tsconfig.json`:
       "@/*": ["./src/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", ".next/dev/types/**/*.ts", "**/*.mts"],
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    "**/*.mts"
+  ],
   "exclude": ["node_modules"]
 }
 ```
@@ -209,6 +220,7 @@ Eliminates ES2017/ES2020/ES2022 target drift and ~/* path alias inconsistency."
 ### Task 1.2: Create shared ESLint config package
 
 **Files:**
+
 - Create: `packages/eslint-config/package.json`
 - Create: `packages/eslint-config/base.mjs`
 - Create: `packages/eslint-config/react.mjs`
@@ -346,6 +358,7 @@ export { default } from "@smartout/eslint-config/base";
 **Step 8: Update lint scripts in all packages**
 
 Every `package.json` gets:
+
 ```json
 "lint": "eslint src/"
 ```
@@ -372,6 +385,7 @@ Consistent type imports enforced."
 ### Task 1.3: Add Prettier config and formatting rules
 
 **Files:**
+
 - Create: `.prettierrc`
 - Create: `.prettierignore`
 
@@ -424,6 +438,7 @@ Tailwind class sorting enabled."
 ```
 
 Then commit formatted files separately:
+
 ```bash
 git add packages/ apps/ services/ *.json *.yaml *.md
 git commit -m "style: format entire codebase with Prettier"
@@ -434,6 +449,7 @@ git commit -m "style: format entire codebase with Prettier"
 ### Task 1.4: Update Turbo pipeline and root scripts
 
 **Files:**
+
 - Modify: `turbo.json`
 - Modify: `package.json` (root)
 
@@ -473,11 +489,13 @@ git commit -m "style: format entire codebase with Prettier"
 **Step 2: Add typecheck scripts to all packages**
 
 Every package.json that doesn't have one gets:
+
 ```json
 "typecheck": "tsc --noEmit"
 ```
 
 For apps/web and apps/landing (Next.js handles its own TS):
+
 ```json
 "typecheck": "tsc --noEmit"
 ```
@@ -543,6 +561,7 @@ All packages now have typecheck and clean scripts."
 ### Task 1.5: Add git hooks with Husky + lint-staged
 
 **Files:**
+
 - Create: `.husky/pre-commit`
 - Create: `.lintstagedrc.json`
 - Modify: `package.json` (root)
@@ -558,6 +577,7 @@ Run: `npx husky init`
 **Step 3: Create pre-commit hook**
 
 Write `.husky/pre-commit`:
+
 ```bash
 npx lint-staged
 ```
@@ -565,6 +585,7 @@ npx lint-staged
 **Step 4: Create lint-staged config**
 
 Write `.lintstagedrc.json`:
+
 ```json
 {
   "*.{ts,tsx}": ["eslint --fix --no-warn-ignored", "prettier --write"],
@@ -591,6 +612,7 @@ Auto-format and lint staged files on commit. Prevents broken code from entering 
 ### Task 1.6: Add GitHub Actions CI
 
 **Files:**
+
 - Create: `.github/workflows/ci.yml`
 
 **Step 1: Create CI workflow**
@@ -694,6 +716,7 @@ Depends on Phase 1 (shared configs must exist first).
 ### Task 2.1: Create design-tokens package
 
 **Files:**
+
 - Create: `packages/design-tokens/package.json`
 - Create: `packages/design-tokens/tsconfig.json`
 - Create: `packages/design-tokens/src/tokens.ts`
@@ -1105,6 +1128,7 @@ Brand, semantic, department, status, priority colors defined."
 ### Task 2.2: Replace app globals.css with token imports
 
 **Files:**
+
 - Modify: `apps/web/src/app/globals.css`
 - Modify: `apps/landing/src/app/globals.css`
 - Modify: `apps/web/package.json` (add dependency)
@@ -1113,6 +1137,7 @@ Brand, semantic, department, status, priority colors defined."
 **Step 1: Add design-tokens dependency to both apps**
 
 In both `apps/web/package.json` and `apps/landing/package.json`:
+
 ```json
 "@smartout/design-tokens": "workspace:*"
 ```
@@ -1255,6 +1280,7 @@ Single source of truth for all colors, radii, and domain tokens."
 ### Task 2.3: Rebuild packages/ui as dumb components
 
 **Files:**
+
 - Modify: `packages/ui/package.json` (remove telemetry dependency)
 - Create: `packages/ui/src/lib/utils.ts`
 - Modify: `packages/ui/src/components/button.tsx` (remove telemetry)
@@ -1361,6 +1387,7 @@ Update web app imports from `@/components/ui/dialog` to `@smartout/ui`.
 **Step 5: Create remaining core components**
 
 Use shadcn/ui patterns (all dumb, all CSS-variable based). Each component follows the same pattern:
+
 - CVA for variants
 - `cn()` for class merging
 - Forwarded refs
@@ -1437,6 +1464,7 @@ All components use CSS variables only — no hardcoded colors, no isDark ternari
 ### Task 2.4: Delete packages/tailwind-config (dead code)
 
 **Files:**
+
 - Delete: `packages/tailwind-config/` (entire directory)
 
 **Step 1: Verify nothing imports it**
@@ -1465,6 +1493,7 @@ Design tokens package replaces this entirely."
 Depends on Phase 1 (configs) and Phase 2 (ui/telemetry decoupled).
 
 The `@smartout/telemetry` package already has a partial implementation:
+
 - `registry.ts` (225 lines, 11 events, routing map) — **exists, needs expansion**
 - `emit.ts` (53 lines, routes to 3 destinations) — **exists, functional**
 - `providers/posthog.ts` (44 lines) — **exists, functional**
@@ -1477,6 +1506,7 @@ The `@smartout/telemetry` package already has a partial implementation:
 ### Task 3.1: Audit existing activity_trail migration + harden RLS
 
 **Files:**
+
 - Audit: `supabase/migrations/00005_activity_trail.sql` (EXISTING — do NOT recreate)
 - Create: `supabase/migrations/[timestamp]_activity_trail_improvements.sql`
 
@@ -1535,6 +1565,7 @@ from writing directly to the audit trail."
 ### Task 3.2: Create /api/telemetry beacon endpoint
 
 **Files:**
+
 - Create: `apps/web/src/app/api/telemetry/route.ts`
 
 **Step 1: Create the endpoint with Zod validation**
@@ -1590,6 +1621,7 @@ logger, and activity trail via emit(). Fire-and-forget, returns 202."
 ### Task 3.3: Add PostHog provider to root layout
 
 **Files:**
+
 - Create: `apps/web/src/app/providers.tsx`
 - Modify: `apps/web/src/app/layout.tsx`
 
@@ -1641,6 +1673,7 @@ all events go through typed registry."
 ### Task 3.4: Fix useTrack hook — non-breaking migration from mock IDs
 
 **Files:**
+
 - Modify: `packages/telemetry/src/hooks/use-track.ts`
 
 > **NON-BREAKING:** The current hook is called as `useTrack()` with no args (e.g., in `packages/ui/src/components/button.tsx`).
@@ -1657,10 +1690,7 @@ import { sendToPostHogClient } from "../providers/posthog";
 const MOCK_WORKSPACE_ID = "00000000-0000-0000-0000-000000000000";
 const MOCK_PROFILE_ID = "00000000-0000-0000-0000-000000000000";
 
-type TrackFn = <E extends SmartoutEvent>(
-  event: E["event"],
-  properties: E["properties"],
-) => void;
+type TrackFn = <E extends SmartoutEvent>(event: E["event"], properties: E["properties"]) => void;
 
 /**
  * Track telemetry events.
@@ -1672,10 +1702,14 @@ export function useTrack(workspaceId?: string, profileId?: string): { track: Tra
   const warnedRef = useRef(false);
 
   useEffect(() => {
-    if ((!workspaceId || !profileId) && !warnedRef.current && process.env.NODE_ENV === "development") {
+    if (
+      (!workspaceId || !profileId) &&
+      !warnedRef.current &&
+      process.env.NODE_ENV === "development"
+    ) {
       console.warn(
         "[telemetry] useTrack() called without workspaceId/profileId — using mock IDs. " +
-        "Pass real IDs from auth context to enable production telemetry."
+          "Pass real IDs from auth context to enable production telemetry.",
       );
       warnedRef.current = true;
     }
@@ -1745,6 +1779,7 @@ Depends on Phase 1 (CI), Phase 3 (telemetry for alerting context).
 ### Task 4.1: Add health check endpoints to all services
 
 **Files:**
+
 - Create: `apps/web/src/app/api/health/route.ts`
 - Create: `apps/landing/src/app/api/health/route.ts`
 - Modify: `services/scrapling/main.py`
@@ -1922,6 +1957,7 @@ Returns 503 when unhealthy for load balancer integration."
 ### Task 4.2: Add rate limiting middleware
 
 **Files:**
+
 - Create: `packages/utils/src/rate-limit.ts`
 - Create: `apps/web/src/lib/rate-limit.ts`
 - Modify: `apps/web/src/env.ts` (add UPSTASH env vars)
@@ -1950,10 +1986,7 @@ type RateLimitResult = {
 // In-memory fallback for local dev (no Redis)
 const memoryStore = new Map<string, { count: number; resetAt: number }>();
 
-export function createRateLimiter(opts: {
-  maxRequests: number;
-  windowMs: number;
-}) {
+export function createRateLimiter(opts: { maxRequests: number; windowMs: number }) {
   return {
     async check(key: string): Promise<RateLimitResult> {
       const now = Date.now();
@@ -1961,7 +1994,12 @@ export function createRateLimiter(opts: {
 
       if (!entry || now > entry.resetAt) {
         memoryStore.set(key, { count: 1, resetAt: now + opts.windowMs });
-        return { success: true, limit: opts.maxRequests, remaining: opts.maxRequests - 1, reset: now + opts.windowMs };
+        return {
+          success: true,
+          limit: opts.maxRequests,
+          remaining: opts.maxRequests - 1,
+          reset: now + opts.windowMs,
+        };
       }
 
       entry.count++;
@@ -1985,30 +2023,29 @@ import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
 // Use Upstash in production, memory in dev
-export const apiRateLimit =
-  process.env.UPSTASH_REDIS_REST_URL
-    ? new Ratelimit({
-        redis: Redis.fromEnv(),
-        limiter: Ratelimit.slidingWindow(20, "60 s"),
-        analytics: true,
-        prefix: "smartout:api",
-      })
-    : null;
+export const apiRateLimit = process.env.UPSTASH_REDIS_REST_URL
+  ? new Ratelimit({
+      redis: Redis.fromEnv(),
+      limiter: Ratelimit.slidingWindow(20, "60 s"),
+      analytics: true,
+      prefix: "smartout:api",
+    })
+  : null;
 
-export const authRateLimit =
-  process.env.UPSTASH_REDIS_REST_URL
-    ? new Ratelimit({
-        redis: Redis.fromEnv(),
-        limiter: Ratelimit.slidingWindow(5, "60 s"),
-        analytics: true,
-        prefix: "smartout:auth",
-      })
-    : null;
+export const authRateLimit = process.env.UPSTASH_REDIS_REST_URL
+  ? new Ratelimit({
+      redis: Redis.fromEnv(),
+      limiter: Ratelimit.slidingWindow(5, "60 s"),
+      analytics: true,
+      prefix: "smartout:auth",
+    })
+  : null;
 ```
 
 **Step 4: Add env vars to apps/web/src/env.ts**
 
 Add to server section:
+
 ```typescript
 UPSTASH_REDIS_REST_URL: z.string().url().optional(),
 UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
@@ -2029,6 +2066,7 @@ In-memory fallback for local development without Redis."
 ### Task 4.3: Add error tracking with Sentry
 
 **Files:**
+
 - Create: `apps/web/sentry.client.config.ts`
 - Create: `apps/web/sentry.server.config.ts`
 - Create: `apps/web/sentry.edge.config.ts`
@@ -2095,6 +2133,7 @@ export default withSentryConfig(nextConfig, {
 **Step 6: Add env vars**
 
 Add to `apps/web/src/env.ts`:
+
 ```typescript
 // Server
 SENTRY_DSN: z.string().url().optional(),
@@ -2117,6 +2156,7 @@ Client + server + edge configs. Disabled in development.
 ### Task 4.4: Create data integrity watchdog Edge Function
 
 **Files:**
+
 - Create: `supabase/functions/watchdog-integrity/index.ts`
 
 This runs on a schedule (via cron or n8n) and checks for data anomalies.
@@ -2210,12 +2250,14 @@ Deno.serve(async (req) => {
   };
 
   // Log for structured logger pickup
-  console.log(JSON.stringify({
-    level: hasFailures ? "error" : hasWarnings ? "warn" : "info",
-    action: "watchdog_integrity_check",
-    category: "system",
-    ...result,
-  }));
+  console.log(
+    JSON.stringify({
+      level: hasFailures ? "error" : hasWarnings ? "warn" : "info",
+      action: "watchdog_integrity_check",
+      category: "system",
+      ...result,
+    }),
+  );
 
   return new Response(JSON.stringify(result), {
     status: hasFailures ? 503 : 200,
@@ -2269,6 +2311,7 @@ for monitoring integration."
 ### Task 4.5: Add security monitoring middleware
 
 **Files:**
+
 - Create: `apps/web/src/lib/security.ts`
 - Modify: `apps/web/src/middleware.ts`
 
@@ -2333,15 +2376,17 @@ import { detectSuspiciousRequest } from "@/lib/security";
 // At the top of middleware function:
 const { suspicious, reasons } = detectSuspiciousRequest(request);
 if (suspicious) {
-  console.log(JSON.stringify({
-    level: "warn",
-    action: "suspicious_request_blocked",
-    category: "security",
-    path: request.nextUrl.pathname,
-    reasons,
-    ip: request.headers.get("x-forwarded-for") ?? "unknown",
-    timestamp: new Date().toISOString(),
-  }));
+  console.log(
+    JSON.stringify({
+      level: "warn",
+      action: "suspicious_request_blocked",
+      category: "security",
+      path: request.nextUrl.pathname,
+      reasons,
+      ip: request.headers.get("x-forwarded-for") ?? "unknown",
+      timestamp: new Date().toISOString(),
+    }),
+  );
   return new NextResponse("Bad Request", { status: 400 });
 }
 ```
@@ -2361,6 +2406,7 @@ host header injection, oversized query strings. Logs to structured logger."
 ### Task 4.6: Add uptime monitoring with cron health checks
 
 **Files:**
+
 - Create: `supabase/functions/watchdog-uptime/index.ts`
 
 This Edge Function pings all service health endpoints and logs results.
@@ -2423,9 +2469,7 @@ Deno.serve(async (req) => {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  const checks = await Promise.all(
-    SERVICES.map((s) => checkService(s.service, s.url)),
-  );
+  const checks = await Promise.all(SERVICES.map((s) => checkService(s.service, s.url)));
 
   const anyDown = checks.some((c) => c.status === "down");
   const anyDegraded = checks.some((c) => c.status === "degraded");
@@ -2437,12 +2481,14 @@ Deno.serve(async (req) => {
   };
 
   // Structured log
-  console.log(JSON.stringify({
-    level: anyDown ? "error" : anyDegraded ? "warn" : "info",
-    action: "watchdog_uptime_check",
-    category: "system",
-    ...result,
-  }));
+  console.log(
+    JSON.stringify({
+      level: anyDown ? "error" : anyDegraded ? "warn" : "info",
+      action: "watchdog_uptime_check",
+      category: "system",
+      ...result,
+    }),
+  );
 
   // If anything is down, could trigger alert via webhook here
   // e.g., POST to n8n webhook for Slack/email notification
@@ -2469,6 +2515,7 @@ Structured logs for monitoring pipeline. Can trigger alerts via n8n webhook."
 ### Task 4.7: Update GitHub Actions CI with health check validation
 
 **Files:**
+
 - Modify: `.github/workflows/ci.yml`
 
 **Step 1: Add build verification step**
@@ -2476,28 +2523,28 @@ Structured logs for monitoring pipeline. Can trigger alerts via n8n webhook."
 Add after the build job:
 
 ```yaml
-  verify:
-    name: Post-Build Verification
-    runs-on: ubuntu-latest
-    needs: [build]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
+verify:
+  name: Post-Build Verification
+  runs-on: ubuntu-latest
+  needs: [build]
+  steps:
+    - uses: actions/checkout@v4
+    - uses: pnpm/action-setup@v4
+      with:
+        version: 9
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: pnpm
+    - run: pnpm install --frozen-lockfile
 
-      # Verify package exports resolve correctly
-      - name: Verify package exports
-        run: |
-          pnpm --filter @smartout/types exec tsc --noEmit
-          pnpm --filter @smartout/supabase exec tsc --noEmit
-          pnpm --filter @smartout/ui exec tsc --noEmit
-          pnpm --filter @smartout/telemetry exec tsc --noEmit
+    # Verify package exports resolve correctly
+    - name: Verify package exports
+      run: |
+        pnpm --filter @smartout/types exec tsc --noEmit
+        pnpm --filter @smartout/supabase exec tsc --noEmit
+        pnpm --filter @smartout/ui exec tsc --noEmit
+        pnpm --filter @smartout/telemetry exec tsc --noEmit
 ```
 
 **Step 2: Commit**
@@ -2550,6 +2597,7 @@ Phase 4: Watchdog & Monitoring (depends on Phase 1 + 3)
 ## ADR Required
 
 After completing this plan, create **ADR-0017: Enterprise Infrastructure — Shared Configs, Design System, Monitoring** documenting:
+
 - Shared TypeScript/ESLint config pattern
 - Design tokens as single source of truth
 - Telemetry three-destination architecture
@@ -2561,6 +2609,7 @@ After completing this plan, create **ADR-0017: Enterprise Infrastructure — Sha
 ## CLAUDE.md Updates Required
 
 After completing this plan, update CLAUDE.md with:
+
 1. New packages: `@smartout/typescript-config`, `@smartout/eslint-config`, `@smartout/design-tokens`
 2. Removed package: `@smartout/tailwind-config`
 3. New dev commands: `check`, `typecheck`, `clean`, `db:*`

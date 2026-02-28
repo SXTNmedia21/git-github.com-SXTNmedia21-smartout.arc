@@ -13,6 +13,7 @@
 ## Task 1: Fix landing build — add "use client" directive
 
 **Files:**
+
 - Modify: `apps/landing/src/app/concepts/daily-session/page.tsx:1`
 
 **Step 1: Add "use client" directive to the top of the file**
@@ -47,6 +48,7 @@ Page uses useRouter and framer-motion which require client rendering."
 ## Task 2: Fix landing lint errors (7 errors, 16 warnings)
 
 **Files:**
+
 - Modify: `apps/landing/src/app/concepts/daily-session/page.tsx:21,278`
 - Modify: `apps/landing/src/app/features/shiftplanner/page.tsx:5-6,14,155,253,304,340,485`
 - Modify: `apps/landing/src/app/blog/page.tsx:5`
@@ -57,14 +59,17 @@ Page uses useRouter and framer-motion which require client rendering."
 ### Step 1: Fix `daily-session/page.tsx`
 
 **Line 21** — Remove unused `motion` import:
+
 ```typescript
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Navigation from "../../../components/navigation";
 ```
+
 (Remove `import { motion } from "framer-motion";` entirely)
 
 **Line 278** — Replace `any` with a proper type:
+
 ```typescript
 type TaskCardProps = {
   title: string;
@@ -82,17 +87,39 @@ function TaskCard({ title, assigned, status, time, category, claimedBy, data }: 
 ### Step 2: Fix `shiftplanner/page.tsx`
 
 **Lines 5-6** — Remove unused imports:
+
 ```typescript
-import { ArrowLeft, Plus, Users, CheckCircle2, MoreVertical, Briefcase, Network, Clock, AlertCircle, Circle, PlayCircle, Ban, Bot, Mic, Sparkles, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import {
+  ArrowLeft,
+  Plus,
+  Users,
+  CheckCircle2,
+  MoreVertical,
+  Briefcase,
+  Network,
+  Clock,
+  AlertCircle,
+  Circle,
+  PlayCircle,
+  Ban,
+  Bot,
+  Mic,
+  Sparkles,
+  PanelLeftClose,
+  PanelLeftOpen,
+} from "lucide-react";
 ```
+
 (Remove: `CalendarClock`, `ChevronLeft`, `ChevronRight`, `Search`, `Filter`, `Settings`, `FileText`, `MoreHorizontal`)
 (Remove: `import Link from "next/link";` — unused)
 
 **Line 14** — Remove unused state:
+
 ```typescript
-    const [scheduleLayout, setScheduleLayout] = useState<'daily' | 'weekly' | 'monthly'>('daily');
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+const [scheduleLayout, setScheduleLayout] = useState<"daily" | "weekly" | "monthly">("daily");
+const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 ```
+
 (Remove: `const [scheduleView, setScheduleView] = useState<'ansatt' | 'jobb' | 'team'>('ansatt');`)
 
 **Lines 155, 253, 304, 340, 485** — Replace `any` with typed props on 5 component functions:
@@ -141,6 +168,7 @@ function DayColumn({ date, staff, shifts, isHoliday, isToday, coverageAlert, chi
 ### Step 3: Fix `blog/page.tsx`
 
 **Line 5** — Remove unused `ArrowRight`:
+
 ```typescript
 import { Building2, Quote, Heart } from "lucide-react";
 ```
@@ -148,17 +176,28 @@ import { Building2, Quote, Heart } from "lucide-react";
 ### Step 4: Fix `staff-training/page.tsx`
 
 **Line 12** — Remove unused state variable. Check if `currentQuestion` is used anywhere further in the file. If not:
+
 ```typescript
-    const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-    const [isAnswered, setIsAnswered] = useState(false);
+const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+const [isAnswered, setIsAnswered] = useState(false);
 ```
+
 (Remove: `const [currentQuestion, setCurrentQuestion] = useState(0);`)
 
 ### Step 5: Fix `task-rutines/page.tsx`
 
 **Line 5** — Remove unused `ChevronRight`:
+
 ```typescript
-import { ArrowLeft, CheckCircle2, ListTodo, MoreVertical, Search, CheckSquare2, Square } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  ListTodo,
+  MoreVertical,
+  Search,
+  CheckSquare2,
+  Square,
+} from "lucide-react";
 ```
 
 ### Step 6: Fix `voice-assistant.tsx`
@@ -166,15 +205,15 @@ import { ArrowLeft, CheckCircle2, ListTodo, MoreVertical, Search, CheckSquare2, 
 **Lines 106-113** — The `startSession` call inside `useEffect` triggers a setState cascade. Wrap with a flag to avoid the lint error:
 
 ```typescript
-    useEffect(() => {
-        if (autoStart) {
-            void startSession();
-        }
-        return () => {
-            endSession();
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [autoStart]);
+useEffect(() => {
+  if (autoStart) {
+    void startSession();
+  }
+  return () => {
+    endSession();
+  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [autoStart]);
 ```
 
 Note: `startSession` is an async function that calls `setStatus` — the `void` prefix makes the intent explicit. The eslint-disable is appropriate here since `startSession` and `endSession` are stable refs we don't want to re-trigger on.
@@ -210,11 +249,13 @@ git commit -m "fix(landing): resolve all lint errors and warnings
 ## Task 3: Fix .gitignore — stop ignoring lockfile
 
 **Files:**
+
 - Modify: `.gitignore:17-19`
 
 **Step 1: Remove lockfile ignores from .gitignore**
 
 Replace:
+
 ```
 # Lock files
 pnpm-lock.yaml
@@ -222,6 +263,7 @@ bun.lock
 ```
 
 With:
+
 ```
 # Lock files (keep pnpm-lock.yaml committed for reproducible builds)
 bun.lock
@@ -247,6 +289,7 @@ environments. bun.lock remains ignored as we use pnpm."
 ## Task 4: Delete stale files
 
 **Files:**
+
 - Delete: `Claude..md` (typo duplicate of CLAUDE.md — contains old Gemini context)
 - Delete: `apps/storybook/next-env.d.ts` (orphan file in empty workspace)
 - Delete: `apps/video/error.log` (stale log in empty workspace)
@@ -275,6 +318,7 @@ git commit -m "chore: remove stale files
 ## Task 5: Pin package versions (replace all "latest")
 
 **Files:**
+
 - Modify: `packages/ui/package.json`
 - Modify: `packages/utils/package.json`
 - Modify: `packages/notifications/package.json`
@@ -418,6 +462,7 @@ to peerDependencies in library packages."
 ## Task 6: Clean up empty workspaces
 
 **Files:**
+
 - Delete: `apps/storybook/` (empty — only had orphan files deleted in Task 4)
 - Delete: `apps/video/` (empty — only had stale log deleted in Task 4)
 
@@ -427,6 +472,7 @@ to peerDependencies in library packages."
 ls -la apps/storybook/
 ls -la apps/video/
 ```
+
 Expected: Empty directories (orphan files removed in Task 4)
 
 **Step 2: Remove empty workspace directories**
@@ -455,6 +501,7 @@ when needed."
 ## Task 7: Add build scripts to packages missing them
 
 **Files:**
+
 - Modify: `packages/ui/package.json`
 - Modify: `packages/utils/package.json`
 - Modify: `packages/notifications/package.json`
@@ -466,6 +513,7 @@ Note: These packages use `main: "src/index.ts"` — they're consumed directly as
 **Step 1: Verify packages are consumed as source**
 
 Check if `apps/web/next.config.ts` has `transpilePackages` or if Turbopack handles it:
+
 ```bash
 grep -r "transpilePackages\|@smartout" apps/web/next.config*
 ```

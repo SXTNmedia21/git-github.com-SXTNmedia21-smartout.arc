@@ -45,21 +45,21 @@ Company (legal entity)
 
 ### 2.2 What's Scoped Where
 
-| Level | Entities | Isolation |
-|-------|----------|-----------|
-| **User** | `user` table | Global — one user across all workspaces |
-| **Company** | `company`, `company_member` | Company-level — shared across company's workspaces |
-| **Workspace** | Everything else | Strict workspace isolation via `workspace_id` |
+| Level         | Entities                    | Isolation                                          |
+| ------------- | --------------------------- | -------------------------------------------------- |
+| **User**      | `user` table                | Global — one user across all workspaces            |
+| **Company**   | `company`, `company_member` | Company-level — shared across company's workspaces |
+| **Workspace** | Everything else             | Strict workspace isolation via `workspace_id`      |
 
 ### 2.3 Tables Without workspace_id
 
 Only three tables are NOT scoped by workspace:
 
-| Table | Why | Scoping mechanism |
-|-------|-----|-------------------|
-| `user` | A person exists independently of workspaces | Scoped via auth — user only sees own record |
-| `company` | Legal entity spans workspaces | Scoped via `company_member` — user must be a member |
-| `company_member` | Bridge between user and company | Scoped via `user_id` — user sees own memberships |
+| Table            | Why                                         | Scoping mechanism                                   |
+| ---------------- | ------------------------------------------- | --------------------------------------------------- |
+| `user`           | A person exists independently of workspaces | Scoped via auth — user only sees own record         |
+| `company`        | Legal entity spans workspaces               | Scoped via `company_member` — user must be a member |
+| `company_member` | Bridge between user and company             | Scoped via `user_id` — user sees own memberships    |
 
 **Everything else** has `workspace_id` and is strictly isolated.
 
@@ -156,17 +156,17 @@ CREATE POLICY "employee_update_own_task" ON session_task
 
 ### 3.3 RLS Patterns Per Module
 
-| Module | Key RLS patterns |
-|--------|-----------------|
-| **Core (Profiles)** | Users see only workspaces they belong to. Profile data visible within workspace. |
-| **Module 1 (Onboarding)** | Trainee sees own journey. Manager sees department trainees. Admin sees all. |
-| **Module 2 (Org Structure)** | All workspace members can read structure. Only admin+ can modify. |
-| **Module 3 (Scheduling)** | Published shifts visible to all. Unpublished only to manager+. |
-| **Module 4 (Operations)** | Tasks visible based on assignment. Session data visible to department members. Manager sees department. Admin sees all. |
-| **Module 5 (HACCP)** | HACCP data readable by all in department. CCP configuration admin-only. |
-| **Module 6 (Training)** | Own assignments visible. Manager sees department readiness. Admin sees all. |
-| **Module 9 (Chat)** | Messages visible only to channel members. Channel membership derived from org structure or explicit. |
-| **Payroll** | Own salary visible. Manager sees department (if permitted via Policy). Admin sees all. |
+| Module                       | Key RLS patterns                                                                                                        |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| **Core (Profiles)**          | Users see only workspaces they belong to. Profile data visible within workspace.                                        |
+| **Module 1 (Onboarding)**    | Trainee sees own journey. Manager sees department trainees. Admin sees all.                                             |
+| **Module 2 (Org Structure)** | All workspace members can read structure. Only admin+ can modify.                                                       |
+| **Module 3 (Scheduling)**    | Published shifts visible to all. Unpublished only to manager+.                                                          |
+| **Module 4 (Operations)**    | Tasks visible based on assignment. Session data visible to department members. Manager sees department. Admin sees all. |
+| **Module 5 (HACCP)**         | HACCP data readable by all in department. CCP configuration admin-only.                                                 |
+| **Module 6 (Training)**      | Own assignments visible. Manager sees department readiness. Admin sees all.                                             |
+| **Module 9 (Chat)**          | Messages visible only to channel members. Channel membership derived from org structure or explicit.                    |
+| **Payroll**                  | Own salary visible. Manager sees department (if permitted via Policy). Admin sees all.                                  |
 
 ### 3.4 RLS Helper Functions
 
@@ -299,6 +299,7 @@ Super-admins can access any workspace for support and debugging. Logged and audi
 ### 5.1 Indexing Strategy
 
 **Every table gets:**
+
 ```sql
 CREATE INDEX idx_{table}_workspace ON {table} (workspace_id);
 ```
@@ -336,13 +337,13 @@ CREATE INDEX idx_protocol_assignment_workspace ON protocol_assignment (workspace
 
 For a typical restaurant (20 employees, 1 department session/day):
 
-| Table | Daily rows | Monthly rows | Yearly rows |
-|-------|-----------|-------------|-------------|
-| session_task | 30–50 | 900–1,500 | ~12,000 |
-| chat_message | 50–200 | 1,500–6,000 | ~40,000 |
-| notification | 100–300 | 3,000–9,000 | ~50,000 |
-| shift | 10–20 | 300–600 | ~5,000 |
-| department_session | 1–3 | 30–90 | ~500 |
+| Table              | Daily rows | Monthly rows | Yearly rows |
+| ------------------ | ---------- | ------------ | ----------- |
+| session_task       | 30–50      | 900–1,500    | ~12,000     |
+| chat_message       | 50–200     | 1,500–6,000  | ~40,000     |
+| notification       | 100–300    | 3,000–9,000  | ~50,000     |
+| shift              | 10–20      | 300–600      | ~5,000      |
+| department_session | 1–3        | 30–90        | ~500        |
 
 For 100 workspaces: multiply by 100. Still manageable for PostgreSQL on Supabase Pro.
 
@@ -350,20 +351,21 @@ For 1,000+ workspaces: consider table partitioning on `workspace_id` or `created
 
 ### 5.3 Caching Strategy
 
-| Data | Cache type | TTL | Invalidation |
-|------|-----------|-----|-------------|
-| Workspace settings | In-memory (Next.js) | 5 min | On settings change |
-| Department/Team/Location structure | In-memory | 5 min | On org structure change |
-| Profile list (who works here) | In-memory | 1 min | On profile change |
-| Shift schedule (current week) | In-memory | 30 sec | On shift publish/change |
-| Session task board | Supabase Realtime | Real-time | Subscription |
-| Chat messages | Supabase Realtime | Real-time | Subscription |
-| Notification count | In-memory + Realtime | Hybrid | New notification triggers Realtime |
-| Readiness scores | Computed + cached | 5 min | On protocol_assignment update |
+| Data                               | Cache type           | TTL       | Invalidation                       |
+| ---------------------------------- | -------------------- | --------- | ---------------------------------- |
+| Workspace settings                 | In-memory (Next.js)  | 5 min     | On settings change                 |
+| Department/Team/Location structure | In-memory            | 5 min     | On org structure change            |
+| Profile list (who works here)      | In-memory            | 1 min     | On profile change                  |
+| Shift schedule (current week)      | In-memory            | 30 sec    | On shift publish/change            |
+| Session task board                 | Supabase Realtime    | Real-time | Subscription                       |
+| Chat messages                      | Supabase Realtime    | Real-time | Subscription                       |
+| Notification count                 | In-memory + Realtime | Hybrid    | New notification triggers Realtime |
+| Readiness scores                   | Computed + cached    | 5 min     | On protocol_assignment update      |
 
 ### 5.4 Supabase Realtime Scaling
 
 Real-time subscriptions (chat, task updates, notifications) are bounded by:
+
 - **Per-workspace connections:** ~20 (one per online employee)
 - **Channels per connection:** ~5 (session channel, department channel, DMs, notifications)
 - **Messages per channel:** ~1/minute average, bursts during service
@@ -372,15 +374,15 @@ Supabase Pro handles this for hundreds of workspaces. At 1,000+ workspaces with 
 
 ### 5.5 Edge Function Performance
 
-| Function | Trigger | Expected latency | Scaling note |
-|----------|---------|------------------|-------------|
-| Session auto-generation | Nightly cron | 1–5 sec per workspace | Batch all workspaces, parallelize |
-| Hook evaluation | Every 5 min | 100–500ms per session | Only active sessions |
-| Task inheritance | On no-show | 200–500ms | Per-session, rare event |
-| Day Brief generation | 30 min before first shift | 1–3 sec (AI call) | Per department, sequential OK |
-| Notification delivery | On event | 50–200ms | Queue + batch for SMS/email |
-| Recurring task generation | Nightly cron | 500ms–2 sec per workspace | Batch |
-| Certificate expiry check | Nightly cron | 100–500ms per workspace | Batch |
+| Function                  | Trigger                   | Expected latency          | Scaling note                      |
+| ------------------------- | ------------------------- | ------------------------- | --------------------------------- |
+| Session auto-generation   | Nightly cron              | 1–5 sec per workspace     | Batch all workspaces, parallelize |
+| Hook evaluation           | Every 5 min               | 100–500ms per session     | Only active sessions              |
+| Task inheritance          | On no-show                | 200–500ms                 | Per-session, rare event           |
+| Day Brief generation      | 30 min before first shift | 1–3 sec (AI call)         | Per department, sequential OK     |
+| Notification delivery     | On event                  | 50–200ms                  | Queue + batch for SMS/email       |
+| Recurring task generation | Nightly cron              | 500ms–2 sec per workspace | Batch                             |
+| Certificate expiry check  | Nightly cron              | 100–500ms per workspace   | Batch                             |
 
 ---
 
@@ -396,63 +398,64 @@ stripe_subscription (Smartout-side tracking)
   company_id           fk → company
   stripe_customer_id   string (Stripe customer ID)
   stripe_subscription_id string (Stripe subscription ID)
-  
+
   -- Plan
   plan                 trial | starter | professional | enterprise
   status               trialing | active | past_due | canceled | paused
-  
+
   -- Limits
   max_workspaces       integer
   max_profiles_per_workspace integer
   active_modules       string[] (which modules are included in plan)
-  
+
   -- Billing
   current_period_start timestamp
   current_period_end   timestamp
   trial_ends_at        timestamp | null
-  
+
   -- Usage
   current_profile_count integer (updated on profile create/deactivate)
-  
+
   created_at           timestamp
   updated_at           timestamp
 ```
 
 ### 6.2 Plan Tiers
 
-| Feature | Trial | Starter | Professional | Enterprise |
-|---------|-------|---------|-------------|------------|
-| Duration | 14 days | — | — | — |
-| Max profiles/workspace | 10 | 20 | 50 | Unlimited |
-| Workspaces | 1 | 1 | 3 | Unlimited |
-| Core modules | ✅ | ✅ | ✅ | ✅ |
-| HACCP module | ✅ | ✅ | ✅ | ✅ |
-| AI features | Basic | Basic | Full | Full + custom |
-| Voice AI (Mr. Botsson) | Demo | — | ✅ | ✅ |
-| SMS notifications | 50/month | 100/month | 500/month | Unlimited |
-| API access | — | — | — | ✅ |
-| Price | Free | Per employee/month | Per employee/month | Custom |
+| Feature                | Trial    | Starter            | Professional       | Enterprise    |
+| ---------------------- | -------- | ------------------ | ------------------ | ------------- |
+| Duration               | 14 days  | —                  | —                  | —             |
+| Max profiles/workspace | 10       | 20                 | 50                 | Unlimited     |
+| Workspaces             | 1        | 1                  | 3                  | Unlimited     |
+| Core modules           | ✅       | ✅                 | ✅                 | ✅            |
+| HACCP module           | ✅       | ✅                 | ✅                 | ✅            |
+| AI features            | Basic    | Basic              | Full               | Full + custom |
+| Voice AI (Mr. Botsson) | Demo     | —                  | ✅                 | ✅            |
+| SMS notifications      | 50/month | 100/month          | 500/month          | Unlimited     |
+| API access             | —        | —                  | —                  | ✅            |
+| Price                  | Free     | Per employee/month | Per employee/month | Custom        |
 
-*Plan details are directional — final pricing TBD.*
+_Plan details are directional — final pricing TBD._
 
 ### 6.3 Profile Count Enforcement
 
 Trainee profiles count toward the plan limit. The system checks on:
+
 - Invite acceptance → before creating profile, check `current_profile_count < max_profiles_per_workspace`
 - If at limit → show upgrade prompt: "Du har nådd grensen for ansatte på din plan. Oppgrader for å legge til flere."
 
 ### 6.4 Billing Events
 
-| Event | Stripe action | Smartout action |
-|-------|--------------|----------------|
-| Workspace created | — | Check workspace limit against plan |
-| Profile created | — | Increment `current_profile_count`, check limit |
-| Profile deactivated | — | Decrement count |
-| Plan upgrade | Stripe subscription update | Update plan limits, unlock modules |
-| Plan downgrade | Stripe subscription update | Warn if over new limits, grace period |
-| Payment failed | Stripe webhook: `invoice.payment_failed` | Email admin, 7-day grace, then pause |
-| Subscription canceled | Stripe webhook: `customer.subscription.deleted` | 30-day data retention, then archive |
-| Trial ending | Stripe webhook | Email admin 3 days before: "Din prøveperiode utløper snart" |
+| Event                 | Stripe action                                   | Smartout action                                             |
+| --------------------- | ----------------------------------------------- | ----------------------------------------------------------- |
+| Workspace created     | —                                               | Check workspace limit against plan                          |
+| Profile created       | —                                               | Increment `current_profile_count`, check limit              |
+| Profile deactivated   | —                                               | Decrement count                                             |
+| Plan upgrade          | Stripe subscription update                      | Update plan limits, unlock modules                          |
+| Plan downgrade        | Stripe subscription update                      | Warn if over new limits, grace period                       |
+| Payment failed        | Stripe webhook: `invoice.payment_failed`        | Email admin, 7-day grace, then pause                        |
+| Subscription canceled | Stripe webhook: `customer.subscription.deleted` | 30-day data retention, then archive                         |
+| Trial ending          | Stripe webhook                                  | Email admin 3 days before: "Din prøveperiode utløper snart" |
 
 ### 6.5 Stripe Webhook Handler
 
@@ -479,14 +482,14 @@ All operational data stays in the primary database while the subscription is act
 
 ### 7.2 Archival Strategy
 
-| Data type | Archive after | Storage |
-|-----------|-------------|---------|
-| Session tasks (completed) | 12 months | Move to archive table or cold storage |
-| Chat messages | 12 months | Archive to cold storage, keep searchable |
-| Notifications (read) | 3 months | Delete |
-| AI event logs | 6 months | Archive |
-| Temperature/HACCP logs | 24 months (regulatory) | Keep in primary DB (compliance requirement) |
-| Session sign-offs | 24 months | Keep in primary DB |
+| Data type                 | Archive after          | Storage                                     |
+| ------------------------- | ---------------------- | ------------------------------------------- |
+| Session tasks (completed) | 12 months              | Move to archive table or cold storage       |
+| Chat messages             | 12 months              | Archive to cold storage, keep searchable    |
+| Notifications (read)      | 3 months               | Delete                                      |
+| AI event logs             | 6 months               | Archive                                     |
+| Temperature/HACCP logs    | 24 months (regulatory) | Keep in primary DB (compliance requirement) |
+| Session sign-offs         | 24 months              | Keep in primary DB                          |
 
 ### 7.3 On Subscription Cancellation
 
@@ -501,29 +504,29 @@ GDPR data export available at any time via Edge Function (see Module 14).
 
 ## 8. Integration Points
 
-| Module | Multi-tenancy consideration |
-|--------|---------------------------|
-| **All modules** | Every query must include `workspace_id` filter. RLS enforces this even if application code forgets. |
-| **Module 1 (Onboarding)** | Invite links are workspace-scoped. Profile creation checks plan limits. |
-| **Module 4 (Operations)** | Session auto-generation runs per workspace. High-volume tables need indexing. |
-| **Module 9 (Communication)** | Chat channels scoped to workspace. Push tokens linked to Profile (workspace-aware). |
-| **Module 12 (AI)** | AI context includes workspace settings. AI never leaks data across workspaces. |
-| **Module 14 (Compliance)** | GDPR export per workspace. Data retention rules per regulatory requirement. |
+| Module                       | Multi-tenancy consideration                                                                         |
+| ---------------------------- | --------------------------------------------------------------------------------------------------- |
+| **All modules**              | Every query must include `workspace_id` filter. RLS enforces this even if application code forgets. |
+| **Module 1 (Onboarding)**    | Invite links are workspace-scoped. Profile creation checks plan limits.                             |
+| **Module 4 (Operations)**    | Session auto-generation runs per workspace. High-volume tables need indexing.                       |
+| **Module 9 (Communication)** | Chat channels scoped to workspace. Push tokens linked to Profile (workspace-aware).                 |
+| **Module 12 (AI)**           | AI context includes workspace settings. AI never leaks data across workspaces.                      |
+| **Module 14 (Compliance)**   | GDPR export per workspace. Data retention rules per regulatory requirement.                         |
 
 ---
 
 ## 9. Implementation Sequence
 
-| Phase | Scope | Duration |
-|-------|-------|----------|
-| **1. RLS foundation** | RLS helper functions. Base workspace isolation policy on all tables. Test with multiple workspaces. | Week 1–2 |
-| **2. Role-based RLS** | Per-module RLS policies (employee vs. manager vs. admin access levels). | Week 3–4 |
-| **3. Indexing** | Composite indexes on high-traffic tables. EXPLAIN ANALYZE on common queries. | Week 5–6 |
-| **4. Stripe integration** | Subscription creation, plan management, webhook handler, profile count enforcement. | Week 7–9 |
-| **5. Multi-workspace** | Workspace switcher UI. Cross-workspace profile management. Company-level admin view. | Week 10–11 |
-| **6. Super-Admin** | Smartout internal admin panel. Cross-workspace access. Audit logging. | Week 12 |
-| **7. Performance tuning** | Caching layer. Realtime connection optimization. Query profiling. | Week 13–14 |
-| **8. Archival** | Data retention policies. Archive jobs. GDPR export function. | Week 15–16 |
+| Phase                     | Scope                                                                                               | Duration   |
+| ------------------------- | --------------------------------------------------------------------------------------------------- | ---------- |
+| **1. RLS foundation**     | RLS helper functions. Base workspace isolation policy on all tables. Test with multiple workspaces. | Week 1–2   |
+| **2. Role-based RLS**     | Per-module RLS policies (employee vs. manager vs. admin access levels).                             | Week 3–4   |
+| **3. Indexing**           | Composite indexes on high-traffic tables. EXPLAIN ANALYZE on common queries.                        | Week 5–6   |
+| **4. Stripe integration** | Subscription creation, plan management, webhook handler, profile count enforcement.                 | Week 7–9   |
+| **5. Multi-workspace**    | Workspace switcher UI. Cross-workspace profile management. Company-level admin view.                | Week 10–11 |
+| **6. Super-Admin**        | Smartout internal admin panel. Cross-workspace access. Audit logging.                               | Week 12    |
+| **7. Performance tuning** | Caching layer. Realtime connection optimization. Query profiling.                                   | Week 13–14 |
+| **8. Archival**           | Data retention policies. Archive jobs. GDPR export function.                                        | Week 15–16 |
 
 ---
 
@@ -543,4 +546,4 @@ Specific considerations for migration from Bubble to Next.js/Supabase:
 
 ---
 
-*Multi-tenancy in Smartout is not a feature — it's a structural guarantee. Every table has `workspace_id`, every query runs through RLS, and every workspace is provably isolated at the database level. The subscription model scales from a single restaurant trial to an enterprise chain with hundreds of locations, all on the same infrastructure.*
+_Multi-tenancy in Smartout is not a feature — it's a structural guarantee. Every table has `workspace_id`, every query runs through RLS, and every workspace is provably isolated at the database level. The subscription model scales from a single restaurant trial to an enterprise chain with hundreds of locations, all on the same infrastructure._

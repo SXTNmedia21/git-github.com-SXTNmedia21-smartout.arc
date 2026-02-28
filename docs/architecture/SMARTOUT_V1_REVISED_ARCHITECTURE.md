@@ -10,20 +10,21 @@
 
 The repo discovery revealed that the entire voice pipeline is operational:
 
-| Component | Status | Location |
-|-----------|--------|----------|
-| Voice MCP server | ✅ Production on Vercel | `mcp-servers/intervju-mcp/` |
-| Journey/mission system | ✅ Working with 4 missions | `mission_definitions` + `stage_definitions` + `interview_sessions` in Supabase |
-| Ultravox WebRTC client | ✅ Full implementation | `ai_layer/apps/dashboard/src/components/voice-calls/browser-call.tsx` |
-| Call creation API | ✅ Working | `ai_layer/apps/dashboard/src/app/api/voice-calls/` |
-| Stage prompt builder | ✅ Generic, works for any mission | `buildStagePrompt()` |
-| Norwegian voice config | ✅ Configured (languageHint: "no") | Call creation payload |
-| Mute/unmute/transcripts | ✅ Built into BrowserCall | Component props |
-| Status indicators | ✅ Color-coded (gray→yellow→cyan→blue→magenta) | BrowserCall component |
-| Tool proxy pattern | ✅ Exists for advance_stage | `/api/voice-calls/tools/` |
-| Session persistence | ✅ Supabase with JSONB collected_data | `interview_sessions` table |
+| Component               | Status                                         | Location                                                                       |
+| ----------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------ |
+| Voice MCP server        | ✅ Production on Vercel                        | `mcp-servers/intervju-mcp/`                                                    |
+| Journey/mission system  | ✅ Working with 4 missions                     | `mission_definitions` + `stage_definitions` + `interview_sessions` in Supabase |
+| Ultravox WebRTC client  | ✅ Full implementation                         | `ai_layer/apps/dashboard/src/components/voice-calls/browser-call.tsx`          |
+| Call creation API       | ✅ Working                                     | `ai_layer/apps/dashboard/src/app/api/voice-calls/`                             |
+| Stage prompt builder    | ✅ Generic, works for any mission              | `buildStagePrompt()`                                                           |
+| Norwegian voice config  | ✅ Configured (languageHint: "no")             | Call creation payload                                                          |
+| Mute/unmute/transcripts | ✅ Built into BrowserCall                      | Component props                                                                |
+| Status indicators       | ✅ Color-coded (gray→yellow→cyan→blue→magenta) | BrowserCall component                                                          |
+| Tool proxy pattern      | ✅ Exists for advance_stage                    | `/api/voice-calls/tools/`                                                      |
+| Session persistence     | ✅ Supabase with JSONB collected_data          | `interview_sessions` table                                                     |
 
 **This means V1 voice work reduces to:**
+
 1. Insert 1 mission + 7 stage definitions into Supabase
 2. Write system prompts for each stage (Norwegian, restaurant context)
 3. Register additional tools (create_department, etc.) alongside advance_stage
@@ -118,6 +119,7 @@ ADMIN CLICKS "Start oppsett" ON WIZARD PAGE
 ```
 
 Both paths write to the same Supabase tables. The wizard form and Mr. Botsson tools are two interfaces to the same data. Real-time sync via:
+
 - Voice creates entity → Supabase Realtime subscription → UI updates
 - UI creates entity → get_wizard_state tool → Mr. Botsson knows
 
@@ -261,198 +263,257 @@ const wizardTools = [
   // EXISTING — stage advancement
   {
     temporaryTool: {
-      modelToolName: 'advance_stage',
-      description: 'Call when the current stage goal is achieved and admin is ready to move on',
+      modelToolName: "advance_stage",
+      description: "Call when the current stage goal is achieved and admin is ready to move on",
       dynamicParameters: [
-        { name: 'result', location: 'PARAMETER_LOCATION_BODY',
-          schema: { type: 'string', description: 'Summary of what was accomplished in this stage' },
-          required: true }
+        {
+          name: "result",
+          location: "PARAMETER_LOCATION_BODY",
+          schema: { type: "string", description: "Summary of what was accomplished in this stage" },
+          required: true,
+        },
       ],
       staticParameters: [
-        { name: 'session_id', value: '{mcpSessionId}' },
-        { name: 'goal_achieved', value: 'true' }
+        { name: "session_id", value: "{mcpSessionId}" },
+        { name: "goal_achieved", value: "true" },
       ],
       http: {
-        baseUrlPattern: '{INTERVJU_MCP_URL}/api/ultravox/interview-respond',
-        httpMethod: 'POST'
-      }
-    }
+        baseUrlPattern: "{INTERVJU_MCP_URL}/api/ultravox/interview-respond",
+        httpMethod: "POST",
+      },
+    },
   },
 
   // NEW — entity creation tools
   {
     temporaryTool: {
-      modelToolName: 'create_department',
-      description: 'Create a new department in the workspace. Use when admin names a department.',
+      modelToolName: "create_department",
+      description: "Create a new department in the workspace. Use when admin names a department.",
       dynamicParameters: [
-        { name: 'name', location: 'PARAMETER_LOCATION_BODY',
-          schema: { type: 'string', description: 'Department name (e.g., Kjøkken, Sal, Bar)' },
-          required: true },
-        { name: 'color', location: 'PARAMETER_LOCATION_BODY',
-          schema: { type: 'string', description: 'Hex color code for UI' },
-          required: false },
-        { name: 'icon', location: 'PARAMETER_LOCATION_BODY',
-          schema: { type: 'string', description: 'Emoji icon' },
-          required: false }
+        {
+          name: "name",
+          location: "PARAMETER_LOCATION_BODY",
+          schema: { type: "string", description: "Department name (e.g., Kjøkken, Sal, Bar)" },
+          required: true,
+        },
+        {
+          name: "color",
+          location: "PARAMETER_LOCATION_BODY",
+          schema: { type: "string", description: "Hex color code for UI" },
+          required: false,
+        },
+        {
+          name: "icon",
+          location: "PARAMETER_LOCATION_BODY",
+          schema: { type: "string", description: "Emoji icon" },
+          required: false,
+        },
       ],
-      staticParameters: [
-        { name: 'workspace_id', value: '{workspaceId}' }
-      ],
+      staticParameters: [{ name: "workspace_id", value: "{workspaceId}" }],
       http: {
-        baseUrlPattern: '{DASHBOARD_URL}/api/wizard/create-department',
-        httpMethod: 'POST'
-      }
-    }
+        baseUrlPattern: "{DASHBOARD_URL}/api/wizard/create-department",
+        httpMethod: "POST",
+      },
+    },
   },
   {
     temporaryTool: {
-      modelToolName: 'create_location',
-      description: 'Create a new physical location in the workspace.',
+      modelToolName: "create_location",
+      description: "Create a new physical location in the workspace.",
       dynamicParameters: [
-        { name: 'name', location: 'PARAMETER_LOCATION_BODY',
-          schema: { type: 'string', description: 'Location name (e.g., Innendørs, Utendørs, Kjøkken)' },
-          required: true },
-        { name: 'description', location: 'PARAMETER_LOCATION_BODY',
-          schema: { type: 'string', description: 'Brief description of the location' },
-          required: false }
+        {
+          name: "name",
+          location: "PARAMETER_LOCATION_BODY",
+          schema: {
+            type: "string",
+            description: "Location name (e.g., Innendørs, Utendørs, Kjøkken)",
+          },
+          required: true,
+        },
+        {
+          name: "description",
+          location: "PARAMETER_LOCATION_BODY",
+          schema: { type: "string", description: "Brief description of the location" },
+          required: false,
+        },
       ],
-      staticParameters: [
-        { name: 'workspace_id', value: '{workspaceId}' }
-      ],
+      staticParameters: [{ name: "workspace_id", value: "{workspaceId}" }],
       http: {
-        baseUrlPattern: '{DASHBOARD_URL}/api/wizard/create-location',
-        httpMethod: 'POST'
-      }
-    }
+        baseUrlPattern: "{DASHBOARD_URL}/api/wizard/create-location",
+        httpMethod: "POST",
+      },
+    },
   },
   {
     temporaryTool: {
-      modelToolName: 'create_zone',
-      description: 'Create a service zone within a location.',
+      modelToolName: "create_zone",
+      description: "Create a service zone within a location.",
       dynamicParameters: [
-        { name: 'name', location: 'PARAMETER_LOCATION_BODY',
-          schema: { type: 'string', description: 'Zone name (e.g., Zone 1, Seaside, Penthouse)' },
-          required: true },
-        { name: 'location_name', location: 'PARAMETER_LOCATION_BODY',
-          schema: { type: 'string', description: 'Name of the parent location' },
-          required: true },
-        { name: 'capacity', location: 'PARAMETER_LOCATION_BODY',
-          schema: { type: 'integer', description: 'Seating capacity' },
-          required: false }
+        {
+          name: "name",
+          location: "PARAMETER_LOCATION_BODY",
+          schema: { type: "string", description: "Zone name (e.g., Zone 1, Seaside, Penthouse)" },
+          required: true,
+        },
+        {
+          name: "location_name",
+          location: "PARAMETER_LOCATION_BODY",
+          schema: { type: "string", description: "Name of the parent location" },
+          required: true,
+        },
+        {
+          name: "capacity",
+          location: "PARAMETER_LOCATION_BODY",
+          schema: { type: "integer", description: "Seating capacity" },
+          required: false,
+        },
       ],
-      staticParameters: [
-        { name: 'workspace_id', value: '{workspaceId}' }
-      ],
+      staticParameters: [{ name: "workspace_id", value: "{workspaceId}" }],
       http: {
-        baseUrlPattern: '{DASHBOARD_URL}/api/wizard/create-zone',
-        httpMethod: 'POST'
-      }
-    }
+        baseUrlPattern: "{DASHBOARD_URL}/api/wizard/create-zone",
+        httpMethod: "POST",
+      },
+    },
   },
   {
     temporaryTool: {
-      modelToolName: 'create_asset',
-      description: 'Register an equipment asset at a location.',
+      modelToolName: "create_asset",
+      description: "Register an equipment asset at a location.",
       dynamicParameters: [
-        { name: 'name', location: 'PARAMETER_LOCATION_BODY',
-          schema: { type: 'string', description: 'Asset name (e.g., Oppvaskmaskin, Kjøleskap)' },
-          required: true },
-        { name: 'location_name', location: 'PARAMETER_LOCATION_BODY',
-          schema: { type: 'string', description: 'Name of the location this asset belongs to' },
-          required: true },
-        { name: 'asset_type', location: 'PARAMETER_LOCATION_BODY',
-          schema: { type: 'string', description: 'Type: equipment, safety, storage, or other' },
-          required: true },
-        { name: 'requires_training', location: 'PARAMETER_LOCATION_BODY',
-          schema: { type: 'boolean', description: 'Does this asset require training to operate?' },
-          required: false }
+        {
+          name: "name",
+          location: "PARAMETER_LOCATION_BODY",
+          schema: { type: "string", description: "Asset name (e.g., Oppvaskmaskin, Kjøleskap)" },
+          required: true,
+        },
+        {
+          name: "location_name",
+          location: "PARAMETER_LOCATION_BODY",
+          schema: { type: "string", description: "Name of the location this asset belongs to" },
+          required: true,
+        },
+        {
+          name: "asset_type",
+          location: "PARAMETER_LOCATION_BODY",
+          schema: { type: "string", description: "Type: equipment, safety, storage, or other" },
+          required: true,
+        },
+        {
+          name: "requires_training",
+          location: "PARAMETER_LOCATION_BODY",
+          schema: { type: "boolean", description: "Does this asset require training to operate?" },
+          required: false,
+        },
       ],
-      staticParameters: [
-        { name: 'workspace_id', value: '{workspaceId}' }
-      ],
+      staticParameters: [{ name: "workspace_id", value: "{workspaceId}" }],
       http: {
-        baseUrlPattern: '{DASHBOARD_URL}/api/wizard/create-asset',
-        httpMethod: 'POST'
-      }
-    }
+        baseUrlPattern: "{DASHBOARD_URL}/api/wizard/create-asset",
+        httpMethod: "POST",
+      },
+    },
   },
   {
     temporaryTool: {
-      modelToolName: 'create_position',
-      description: 'Create a position/role type within a department.',
+      modelToolName: "create_position",
+      description: "Create a position/role type within a department.",
       dynamicParameters: [
-        { name: 'name', location: 'PARAMETER_LOCATION_BODY',
-          schema: { type: 'string', description: 'Position name (e.g., Kokk, Servitør, Bartender)' },
-          required: true },
-        { name: 'department_name', location: 'PARAMETER_LOCATION_BODY',
-          schema: { type: 'string', description: 'Name of the department this position belongs to' },
-          required: true }
+        {
+          name: "name",
+          location: "PARAMETER_LOCATION_BODY",
+          schema: {
+            type: "string",
+            description: "Position name (e.g., Kokk, Servitør, Bartender)",
+          },
+          required: true,
+        },
+        {
+          name: "department_name",
+          location: "PARAMETER_LOCATION_BODY",
+          schema: {
+            type: "string",
+            description: "Name of the department this position belongs to",
+          },
+          required: true,
+        },
       ],
-      staticParameters: [
-        { name: 'workspace_id', value: '{workspaceId}' }
-      ],
+      staticParameters: [{ name: "workspace_id", value: "{workspaceId}" }],
       http: {
-        baseUrlPattern: '{DASHBOARD_URL}/api/wizard/create-position',
-        httpMethod: 'POST'
-      }
-    }
+        baseUrlPattern: "{DASHBOARD_URL}/api/wizard/create-position",
+        httpMethod: "POST",
+      },
+    },
   },
   {
     temporaryTool: {
-      modelToolName: 'create_team',
-      description: 'Create a team (dynamic group of employees).',
+      modelToolName: "create_team",
+      description: "Create a team (dynamic group of employees).",
       dynamicParameters: [
-        { name: 'name', location: 'PARAMETER_LOCATION_BODY',
-          schema: { type: 'string', description: 'Team name (e.g., Lunsjteam, Eventcrew)' },
-          required: true },
-        { name: 'department_name', location: 'PARAMETER_LOCATION_BODY',
-          schema: { type: 'string', description: 'Department name if team is department-specific, or "cross" for cross-departmental' },
-          required: false }
+        {
+          name: "name",
+          location: "PARAMETER_LOCATION_BODY",
+          schema: { type: "string", description: "Team name (e.g., Lunsjteam, Eventcrew)" },
+          required: true,
+        },
+        {
+          name: "department_name",
+          location: "PARAMETER_LOCATION_BODY",
+          schema: {
+            type: "string",
+            description:
+              'Department name if team is department-specific, or "cross" for cross-departmental',
+          },
+          required: false,
+        },
       ],
-      staticParameters: [
-        { name: 'workspace_id', value: '{workspaceId}' }
-      ],
+      staticParameters: [{ name: "workspace_id", value: "{workspaceId}" }],
       http: {
-        baseUrlPattern: '{DASHBOARD_URL}/api/wizard/create-team',
-        httpMethod: 'POST'
-      }
-    }
+        baseUrlPattern: "{DASHBOARD_URL}/api/wizard/create-team",
+        httpMethod: "POST",
+      },
+    },
   },
 
   // NEW — state tools
   {
     temporaryTool: {
-      modelToolName: 'get_wizard_state',
-      description: 'Get the current state of the wizard — what has been created so far across all steps.',
+      modelToolName: "get_wizard_state",
+      description:
+        "Get the current state of the wizard — what has been created so far across all steps.",
       dynamicParameters: [],
-      staticParameters: [
-        { name: 'workspace_id', value: '{workspaceId}' }
-      ],
+      staticParameters: [{ name: "workspace_id", value: "{workspaceId}" }],
       http: {
-        baseUrlPattern: '{DASHBOARD_URL}/api/wizard/state',
-        httpMethod: 'GET'
-      }
-    }
+        baseUrlPattern: "{DASHBOARD_URL}/api/wizard/state",
+        httpMethod: "GET",
+      },
+    },
   },
   {
     temporaryTool: {
-      modelToolName: 'suggest_defaults',
-      description: 'Get AI-suggested defaults for the current wizard step based on industry and what has been created so far.',
+      modelToolName: "suggest_defaults",
+      description:
+        "Get AI-suggested defaults for the current wizard step based on industry and what has been created so far.",
       dynamicParameters: [
-        { name: 'step', location: 'PARAMETER_LOCATION_BODY',
-          schema: { type: 'string', description: 'Current wizard step: departments, locations, zones, assets, positions, teams, settings' },
-          required: true }
+        {
+          name: "step",
+          location: "PARAMETER_LOCATION_BODY",
+          schema: {
+            type: "string",
+            description:
+              "Current wizard step: departments, locations, zones, assets, positions, teams, settings",
+          },
+          required: true,
+        },
       ],
       staticParameters: [
-        { name: 'workspace_id', value: '{workspaceId}' },
-        { name: 'industry', value: '{industry}' }
+        { name: "workspace_id", value: "{workspaceId}" },
+        { name: "industry", value: "{industry}" },
       ],
       http: {
-        baseUrlPattern: '{DASHBOARD_URL}/api/wizard/suggest',
-        httpMethod: 'POST'
-      }
-    }
-  }
+        baseUrlPattern: "{DASHBOARD_URL}/api/wizard/suggest",
+        httpMethod: "POST",
+      },
+    },
+  },
 ];
 ```
 
@@ -460,16 +521,16 @@ const wizardTools = [
 
 ## 5. Revised Build Order (What's Actually New)
 
-| Phase | What | Duration | Why |
-|-------|------|----------|-----|
-| **0. Database** | SQL migrations for Core tables + RLS + seed data + mission/stage inserts | 3-4 days | Foundation everything else needs |
-| **1. Auth + Company/Workspace** | Signup, login, company creation, workspace creation (auto-creates profile + default season) | 2-3 days | Must exist before wizard |
-| **2. Wizard API routes** | 9 routes under `/api/wizard/` (create-department, create-location, create-zone, create-asset, create-position, create-team, state, suggest, settings) | 3-4 days | HTTP endpoints for Ultravox tools |
-| **3. Wizard UI shell** | 7-step wizard with progress bar, navigation, state management. Forms for each step. Supabase Realtime subscriptions for voice-created entities. | 5-7 days | The visual experience |
-| **4. Voice integration** | Import BrowserCall component. Wire up call creation with workspace-setup mission + all tools. Handle stage transitions (MCP callback → UI step advance). | 2-3 days | Plugging into existing infrastructure |
-| **5. Infographics** | 7 SVG/React visual explanations | 3-4 days | Educational layer |
-| **6. Dashboard** | Read-only org structure view + edit mode | 2-3 days | Post-wizard landing |
-| **7. Polish** | Completion celebration, error states, resume-from-last-step, loading states | 2-3 days | Production readiness |
+| Phase                           | What                                                                                                                                                     | Duration | Why                                   |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------- |
+| **0. Database**                 | SQL migrations for Core tables + RLS + seed data + mission/stage inserts                                                                                 | 3-4 days | Foundation everything else needs      |
+| **1. Auth + Company/Workspace** | Signup, login, company creation, workspace creation (auto-creates profile + default season)                                                              | 2-3 days | Must exist before wizard              |
+| **2. Wizard API routes**        | 9 routes under `/api/wizard/` (create-department, create-location, create-zone, create-asset, create-position, create-team, state, suggest, settings)    | 3-4 days | HTTP endpoints for Ultravox tools     |
+| **3. Wizard UI shell**          | 7-step wizard with progress bar, navigation, state management. Forms for each step. Supabase Realtime subscriptions for voice-created entities.          | 5-7 days | The visual experience                 |
+| **4. Voice integration**        | Import BrowserCall component. Wire up call creation with workspace-setup mission + all tools. Handle stage transitions (MCP callback → UI step advance). | 2-3 days | Plugging into existing infrastructure |
+| **5. Infographics**             | 7 SVG/React visual explanations                                                                                                                          | 3-4 days | Educational layer                     |
+| **6. Dashboard**                | Read-only org structure view + edit mode                                                                                                                 | 2-3 days | Post-wizard landing                   |
+| **7. Polish**                   | Completion celebration, error states, resume-from-last-step, loading states                                                                              | 2-3 days | Production readiness                  |
 
 **Revised total: 4-5 weeks** (down from 6-8, because phases 7-8 from the original plan are now just phase 4)
 
@@ -477,30 +538,30 @@ const wizardTools = [
 
 ## 6. Gotcha Mitigations
 
-| Gotcha | Solution |
-|--------|----------|
-| **One tool per call currently** | Register all 10 tools in the selectedTools array. Ultravox supports multiple tools — the repo just only used one. |
-| **collected_data is flat JSONB** | Use it for session metadata only. Actual entities (departments, locations) are written to Core tables directly via the HTTP tools. collected_data tracks stage summaries. |
-| **No undo/go-back in MCP** | Wizard UI handles back navigation independently. MCP tracks the "furthest stage reached." Going back in the UI doesn't reverse the MCP stage — it just lets the admin edit. advance_stage only fires when moving to a genuinely NEW stage. |
-| **System prompt replaced per stage** | Perfect for the wizard. Each stage gets fresh context. Include a summary of collected_data so Mr. Botsson knows what was already created in previous stages. |
-| **5-min stage cache** | Not an issue — wizard stages are static seed data, not dynamically edited. |
-| **24h session expiry** | Fine for wizard. Add a "resume wizard" flow: check for active interview_session with mission_id='workspace-setup' on login → offer to continue. |
+| Gotcha                               | Solution                                                                                                                                                                                                                                   |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **One tool per call currently**      | Register all 10 tools in the selectedTools array. Ultravox supports multiple tools — the repo just only used one.                                                                                                                          |
+| **collected_data is flat JSONB**     | Use it for session metadata only. Actual entities (departments, locations) are written to Core tables directly via the HTTP tools. collected_data tracks stage summaries.                                                                  |
+| **No undo/go-back in MCP**           | Wizard UI handles back navigation independently. MCP tracks the "furthest stage reached." Going back in the UI doesn't reverse the MCP stage — it just lets the admin edit. advance_stage only fires when moving to a genuinely NEW stage. |
+| **System prompt replaced per stage** | Perfect for the wizard. Each stage gets fresh context. Include a summary of collected_data so Mr. Botsson knows what was already created in previous stages.                                                                               |
+| **5-min stage cache**                | Not an issue — wizard stages are static seed data, not dynamically edited.                                                                                                                                                                 |
+| **24h session expiry**               | Fine for wizard. Add a "resume wizard" flow: check for active interview_session with mission_id='workspace-setup' on login → offer to continue.                                                                                            |
 
 ---
 
 ## 7. Key Files to Touch in Existing Repo
 
-| File/Location | Action |
-|---------------|--------|
-| `ai_layer/apps/dashboard/src/app/api/voice-calls/route.ts` | Extend to support workspace-setup mission + additional tools |
-| `ai_layer/apps/dashboard/src/components/voice-calls/browser-call.tsx` | Import as-is into wizard page |
-| `ai_layer/apps/dashboard/src/lib/voice-calls/` | Reuse MCP client, prompt builders, types |
-| `mcp-servers/intervju-mcp/` | No changes needed — just seed the mission/stage data |
-| NEW: `src/app/api/wizard/*.ts` | 9 new API routes for entity creation + state |
-| NEW: `src/app/(setup)/wizard/` | 7 wizard step pages |
-| NEW: `src/components/wizard/` | Wizard shell, step components, infographics |
-| NEW: `supabase/migrations/` | Core schema SQL |
+| File/Location                                                         | Action                                                       |
+| --------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `ai_layer/apps/dashboard/src/app/api/voice-calls/route.ts`            | Extend to support workspace-setup mission + additional tools |
+| `ai_layer/apps/dashboard/src/components/voice-calls/browser-call.tsx` | Import as-is into wizard page                                |
+| `ai_layer/apps/dashboard/src/lib/voice-calls/`                        | Reuse MCP client, prompt builders, types                     |
+| `mcp-servers/intervju-mcp/`                                           | No changes needed — just seed the mission/stage data         |
+| NEW: `src/app/api/wizard/*.ts`                                        | 9 new API routes for entity creation + state                 |
+| NEW: `src/app/(setup)/wizard/`                                        | 7 wizard step pages                                          |
+| NEW: `src/components/wizard/`                                         | Wizard shell, step components, infographics                  |
+| NEW: `supabase/migrations/`                                           | Core schema SQL                                              |
 
 ---
 
-*The voice infrastructure is a multiplier, not a blocker. What would have been the hardest part of V1 (Ultravox + WebRTC + session management + Norwegian voice) is already solved. The work is now: database schema, wizard UI, and wiring the two together through HTTP tools.*
+_The voice infrastructure is a multiplier, not a blocker. What would have been the hardest part of V1 (Ultravox + WebRTC + session management + Norwegian voice) is already solved. The work is now: database schema, wizard UI, and wiring the two together through HTTP tools._

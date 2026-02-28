@@ -333,13 +333,7 @@ deviation
   "policy_type": "operations",
   "name": "Deviation severity rules",
   "rules_json": {
-    "auto_critical": [
-      "pest",
-      "gas_smell",
-      "fire",
-      "food_poisoning",
-      "serious_injury"
-    ],
+    "auto_critical": ["pest", "gas_smell", "fire", "food_poisoning", "serious_injury"],
     "blocks_approval_severities": ["critical", "high"],
     "requires_photo_domains": ["safety", "material"],
     "stop_the_line_triggers": ["pest", "gas_smell", "fire"]

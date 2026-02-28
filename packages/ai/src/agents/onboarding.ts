@@ -67,10 +67,7 @@ export async function runOnboardingAgent({
     ctx,
   );
 
-  const messages: ModelMessage[] = [
-    ...conversationHistory,
-    { role: "user", content: userMessage },
-  ];
+  const messages: ModelMessage[] = [...conversationHistory, { role: "user", content: userMessage }];
 
   const result = await generateText({
     model: getModel(),

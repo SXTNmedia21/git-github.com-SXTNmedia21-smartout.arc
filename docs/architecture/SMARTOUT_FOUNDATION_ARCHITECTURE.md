@@ -9,24 +9,24 @@
 
 ## 1. Technical Stack
 
-| Layer | Technology | Purpose |
-|-------|-----------|---------|
-| Web Dashboard | Next.js 14+ (App Router, TypeScript) | Admin + employee desktop experience |
-| Mobile App | React Native + Expo (TypeScript) | Runtime restaurant operations |
-| Backend | Supabase (PostgreSQL, Auth, Storage, Realtime, Edge Functions) | All backend services |
-| Automation | n8n (complex workflows) + Supabase Edge Functions (simple triggers) | Business logic orchestration |
-| Hosting | Vercel (web), Supabase Cloud (backend), DigitalOcean (n8n) | Infrastructure |
-| Language | TypeScript | Everywhere — no exceptions |
-| Monorepo | pnpm workspaces + Turborepo | Package management |
-| CSS | Tailwind CSS | Styling |
-| Components | shadcn/ui | Component library |
-| Data Fetching | TanStack Query (React Query) | Client-side caching & fetching |
-| Real-time | Supabase Realtime | Live updates (chat, session status, task board) |
-| SMS | Twilio | SMS notifications, OTP, voice |
-| Email | Resend | Transactional email |
-| Voice AI | Ultravox + Twilio | AI voice conversations |
-| Payments | Stripe | Subscription billing |
-| Vector Search | pgvector (Supabase) | RAG / Knowledge Engine embeddings |
+| Layer         | Technology                                                          | Purpose                                         |
+| ------------- | ------------------------------------------------------------------- | ----------------------------------------------- |
+| Web Dashboard | Next.js 14+ (App Router, TypeScript)                                | Admin + employee desktop experience             |
+| Mobile App    | React Native + Expo (TypeScript)                                    | Runtime restaurant operations                   |
+| Backend       | Supabase (PostgreSQL, Auth, Storage, Realtime, Edge Functions)      | All backend services                            |
+| Automation    | n8n (complex workflows) + Supabase Edge Functions (simple triggers) | Business logic orchestration                    |
+| Hosting       | Vercel (web), Supabase Cloud (backend), DigitalOcean (n8n)          | Infrastructure                                  |
+| Language      | TypeScript                                                          | Everywhere — no exceptions                      |
+| Monorepo      | pnpm workspaces + Turborepo                                         | Package management                              |
+| CSS           | Tailwind CSS                                                        | Styling                                         |
+| Components    | shadcn/ui                                                           | Component library                               |
+| Data Fetching | TanStack Query (React Query)                                        | Client-side caching & fetching                  |
+| Real-time     | Supabase Realtime                                                   | Live updates (chat, session status, task board) |
+| SMS           | Twilio                                                              | SMS notifications, OTP, voice                   |
+| Email         | Resend                                                              | Transactional email                             |
+| Voice AI      | Ultravox + Twilio                                                   | AI voice conversations                          |
+| Payments      | Stripe                                                              | Subscription billing                            |
+| Vector Search | pgvector (Supabase)                                                 | RAG / Knowledge Engine embeddings               |
 
 ## 2. Authentication
 
@@ -54,26 +54,26 @@ Production, Staging, Development — Supabase project branching for environment 
 
 ## 6. Voice Infrastructure (Existing)
 
-| Component | Status |
-|-----------|--------|
-| Voice MCP server | Production on Vercel |
-| Journey/mission system | Working with missions/stages in Supabase |
-| Ultravox WebRTC client | Full implementation |
-| Call creation API | Working |
-| Stage prompt builder | Generic, works for any mission |
-| Norwegian voice config | Configured (languageHint: "no") |
-| Mute/unmute/transcripts | Built into BrowserCall |
-| Tool proxy pattern | Exists for advance_stage |
-| Session persistence | Supabase with JSONB collected_data |
+| Component               | Status                                   |
+| ----------------------- | ---------------------------------------- |
+| Voice MCP server        | Production on Vercel                     |
+| Journey/mission system  | Working with missions/stages in Supabase |
+| Ultravox WebRTC client  | Full implementation                      |
+| Call creation API       | Working                                  |
+| Stage prompt builder    | Generic, works for any mission           |
+| Norwegian voice config  | Configured (languageHint: "no")          |
+| Mute/unmute/transcripts | Built into BrowserCall                   |
+| Tool proxy pattern      | Exists for advance_stage                 |
+| Session persistence     | Supabase with JSONB collected_data       |
 
 ## 7. Design System
 
-| Decision | Choice |
-|----------|--------|
-| CSS Framework | Tailwind CSS |
-| Component Library | shadcn/ui |
-| Responsive | Desktop and mobile equally prioritized |
-| Typography | System defaults via Tailwind |
+| Decision          | Choice                                 |
+| ----------------- | -------------------------------------- |
+| CSS Framework     | Tailwind CSS                           |
+| Component Library | shadcn/ui                              |
+| Responsive        | Desktop and mobile equally prioritized |
+| Typography        | System defaults via Tailwind           |
 
 Desktop and mobile are separate applications sharing TypeScript types and Supabase queries.
 
@@ -86,5 +86,5 @@ Two modes on desktop: Employee Mode (personal workspace) and Admin/Manager Mode 
 
 ---
 
-*For complete screen specifications see SMARTOUT_UI_ARCHITECTURE.md.*
-*For detailed data architecture see SMARTOUT_CORE_ARCHITECTURE_v2.md.*
+_For complete screen specifications see SMARTOUT_UI_ARCHITECTURE.md._
+_For detailed data architecture see SMARTOUT_CORE_ARCHITECTURE_v2.md._

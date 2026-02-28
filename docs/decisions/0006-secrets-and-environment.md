@@ -11,13 +11,13 @@ Smartout integrates with multiple external services (Supabase, Stripe, DocuSign,
 
 ### Secret Storage
 
-| Context | Method |
-|---------|--------|
-| Local development | `.env.local` per app (gitignored) |
-| CI/CD | Vercel environment variables |
-| Production runtime | Supabase Vault (for runtime secrets) |
-| Secret management | 1Password as master record |
-| Script injection | `op run --env-file=.env.template` at root |
+| Context            | Method                                    |
+| ------------------ | ----------------------------------------- |
+| Local development  | `.env.local` per app (gitignored)         |
+| CI/CD              | Vercel environment variables              |
+| Production runtime | Supabase Vault (for runtime secrets)      |
+| Secret management  | 1Password as master record                |
+| Script injection   | `op run --env-file=.env.template` at root |
 
 ### Environment Validation
 

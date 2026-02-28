@@ -54,7 +54,8 @@ To ensure robust scale and prevent race conditions, Smartout enforces a strict b
 ## Agent Operational Directives
 
 When invoked, the AI Agent shall:
+
 1. **Read context:** Start by reviewing this `GEMINI.md` and the relevant `[MODULE].md` file.
 2. **State intent:** Briefly explain what you are about to do.
-3. **Execute reliably:** Prioritize precision and logging. 
+3. **Execute reliably:** Prioritize precision and logging.
 4. **Verify:** Check for side-effects, lint errors, or type breaks before concluding the task.

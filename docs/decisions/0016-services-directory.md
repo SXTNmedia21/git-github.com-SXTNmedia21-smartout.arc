@@ -9,16 +9,16 @@
 
 ## Decision Drivers (Why we must make a decision)
 
-* `apps/` currently mixes UI apps (Next.js) with backend services (Python FastAPI)
-* New developers and agents need to quickly understand what lives where
-* Future backend services (webhook handlers, job runners) need a home
-* Monorepo conventions should be self-documenting
+- `apps/` currently mixes UI apps (Next.js) with backend services (Python FastAPI)
+- New developers and agents need to quickly understand what lives where
+- Future backend services (webhook handlers, job runners) need a home
+- Monorepo conventions should be self-documenting
 
 ## Considered Options
 
-* **Keep services in `apps/`** — everything runnable goes in one place
-* **Create `services/` directory** — separate UI apps from backend microservices
-* **Put services under `packages/`** — treat them as internal packages
+- **Keep services in `apps/`** — everything runnable goes in one place
+- **Create `services/` directory** — separate UI apps from backend microservices
+- **Put services under `packages/`** — treat them as internal packages
 
 ## Decision Outcome
 
@@ -31,7 +31,7 @@ Chosen option: **"Create `services/` directory"**, because it makes the monorepo
 
 ## Rules & Consequences enforced for Agents
 
-* **Good, because** the directory structure is self-documenting — no guessing where a new service belongs
-* **Good, because** pnpm workspace can optionally include `services/*` for tooling integration
-* **Bad, because** one-time migration effort to move existing services
-* **Agent Impact:** When creating new backend services, place them in `services/`. UI apps go in `apps/`. Never mix the two.
+- **Good, because** the directory structure is self-documenting — no guessing where a new service belongs
+- **Good, because** pnpm workspace can optionally include `services/*` for tooling integration
+- **Bad, because** one-time migration effort to move existing services
+- **Agent Impact:** When creating new backend services, place them in `services/`. UI apps go in `apps/`. Never mix the two.

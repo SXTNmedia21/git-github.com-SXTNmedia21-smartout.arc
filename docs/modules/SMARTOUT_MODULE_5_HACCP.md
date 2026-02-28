@@ -14,16 +14,16 @@ HACCP (Hazard Analysis and Critical Control Points) compliance is not a separate
 
 ### What This Module Covers
 
-| HACCP Need | Smartout Implementation |
-|------------|----------------------|
-| Temperature logging | Session Hook → Routine → session_task with `completion_data` (temperature readings) |
-| Hygiene checklists | Procedure with ordered steps → materialized as session_tasks via hooks |
-| Deviation reporting | `deviation_flagged` on session_task → triggers Runbook → escalation chain |
-| Corrective actions | Runbook (event-triggered procedure) → Control List (verification) |
-| Critical control points | Asset (with `asset_type: ccp`) + Policy → Protocol → Routine |
-| Compliance documentation | session_task audit trail + completion_data + AI-compiled reports |
-| Inspector readiness | Filtered views: all HACCP tasks with timestamps, who, what, deviations |
-| Certifications | Profile-level certificate tracking with expiry and renewal alerts |
+| HACCP Need               | Smartout Implementation                                                             |
+| ------------------------ | ----------------------------------------------------------------------------------- |
+| Temperature logging      | Session Hook → Routine → session_task with `completion_data` (temperature readings) |
+| Hygiene checklists       | Procedure with ordered steps → materialized as session_tasks via hooks              |
+| Deviation reporting      | `deviation_flagged` on session_task → triggers Runbook → escalation chain           |
+| Corrective actions       | Runbook (event-triggered procedure) → Control List (verification)                   |
+| Critical control points  | Asset (with `asset_type: ccp`) + Policy → Protocol → Routine                        |
+| Compliance documentation | session_task audit trail + completion_data + AI-compiled reports                    |
+| Inspector readiness      | Filtered views: all HACCP tasks with timestamps, who, what, deviations              |
+| Certifications           | Profile-level certificate tracking with expiry and renewal alerts                   |
 
 ### What This Module Does NOT Do
 
@@ -38,15 +38,15 @@ HACCP (Hazard Analysis and Critical Control Points) compliance is not a separate
 
 ### 2.1 How HACCP Principles Map to Smartout
 
-| HACCP Principle | Smartout Equivalent |
-|----------------|-------------------|
-| **Principle 1:** Conduct hazard analysis | Admin identifies hazards → creates Policy with `policy_type: haccp` |
-| **Principle 2:** Determine CCPs | Admin marks Assets as `asset_type: ccp` with thresholds in `metadata` |
-| **Principle 3:** Establish critical limits | Stored in `haccp_control_point.critical_limit_min/max` |
-| **Principle 4:** Monitoring procedures | Routine with `trigger_type: scheduled` + Session Hooks for timed checks |
-| **Principle 5:** Corrective actions | Runbook with escalation chain, triggered when deviation_flagged = true |
-| **Principle 6:** Verification procedures | Control List (follow-up on Routines and Runbooks) |
-| **Principle 7:** Documentation | session_task audit trail, completion_data, AI-compiled HACCP reports |
+| HACCP Principle                            | Smartout Equivalent                                                     |
+| ------------------------------------------ | ----------------------------------------------------------------------- |
+| **Principle 1:** Conduct hazard analysis   | Admin identifies hazards → creates Policy with `policy_type: haccp`     |
+| **Principle 2:** Determine CCPs            | Admin marks Assets as `asset_type: ccp` with thresholds in `metadata`   |
+| **Principle 3:** Establish critical limits | Stored in `haccp_control_point.critical_limit_min/max`                  |
+| **Principle 4:** Monitoring procedures     | Routine with `trigger_type: scheduled` + Session Hooks for timed checks |
+| **Principle 5:** Corrective actions        | Runbook with escalation chain, triggered when deviation_flagged = true  |
+| **Principle 6:** Verification procedures   | Control List (follow-up on Routines and Runbooks)                       |
+| **Principle 7:** Documentation             | session_task audit trail, completion_data, AI-compiled HACCP reports    |
 
 ### 2.2 The Full HACCP Chain in Smartout
 
@@ -188,7 +188,7 @@ All historical temperature data is queryable through `session_task`:
 
 ```sql
 -- All temperature readings for the last 30 days, Kitchen
-SELECT 
+SELECT
   st.completed_at,
   st.completed_by,
   st.completion_data->'readings' as readings,
@@ -206,11 +206,11 @@ ORDER BY st.completed_at DESC;
 
 **Report format for Mattilsynet inspection:**
 
-| Date | Time | Unit | Reading | Limit | Status | Measured by | Deviation action |
-|------|------|------|---------|-------|--------|-------------|-----------------|
-| 24.02 | 10:12 | Walk-in | 3.2°C | 0–4°C | ✅ OK | Anna S. | — |
-| 24.02 | 10:12 | Freezer | -19.5°C | < -18°C | ✅ OK | Anna S. | — |
-| 24.02 | 14:05 | Walk-in | 6.1°C | 0–4°C | ❌ Avvik | Erik P. | Compressor checked, reset. Re-measured at 3.4°C after 30 min. |
+| Date  | Time  | Unit    | Reading | Limit   | Status   | Measured by | Deviation action                                              |
+| ----- | ----- | ------- | ------- | ------- | -------- | ----------- | ------------------------------------------------------------- |
+| 24.02 | 10:12 | Walk-in | 3.2°C   | 0–4°C   | ✅ OK    | Anna S.     | —                                                             |
+| 24.02 | 10:12 | Freezer | -19.5°C | < -18°C | ✅ OK    | Anna S.     | —                                                             |
+| 24.02 | 14:05 | Walk-in | 6.1°C   | 0–4°C   | ❌ Avvik | Erik P.     | Compressor checked, reset. Re-measured at 3.4°C after 30 min. |
 
 ---
 
@@ -234,7 +234,7 @@ Policy: "Kitchen Hygiene Standards"
         │     Step 3: Inspect floor drains (is_required: true)
         │     Step 4: Clean door handles and light switches (is_required: false)
         │
-        ├── Procedure: "Service Cleaning" 
+        ├── Procedure: "Service Cleaning"
         │     Step 1: Wipe down stations between service (is_required: true)
         │     Step 2: Empty and sanitize waste bins (is_required: true)
         │     Step 3: Clean spills immediately (is_required: true)
@@ -257,9 +257,7 @@ For steps that require photo evidence:
 ```json
 // completion_data for a photo-required step
 {
-  "photo_urls": [
-    "https://storage.supabase.co/.../kitchen-clean-20260224-2200.jpg"
-  ],
+  "photo_urls": ["https://storage.supabase.co/.../kitchen-clean-20260224-2200.jpg"],
   "photo_taken_at": "2026-02-24T22:05:00Z",
   "notes": "All surfaces cleaned and sanitized"
 }
@@ -270,6 +268,7 @@ Photos are stored in Supabase Storage under `{workspace_id}/haccp/{date}/{task_i
 ### 4.3 Signing and Timestamp
 
 Every completed session_task already has:
+
 - `completed_by` (who did it)
 - `completed_at` (when)
 - `completion_data` (what they recorded)
@@ -284,11 +283,11 @@ This is the digital signature. For procedures requiring explicit acknowledgment,
 
 Deviations are reported through the existing `session_task` fields:
 
-| Field | Purpose |
-|-------|---------|
-| `deviation_flagged` | Boolean — was there a problem? |
-| `deviation_notes` | Free text describing the deviation |
-| `completion_data` | Structured data: photos, readings, measurements |
+| Field               | Purpose                                         |
+| ------------------- | ----------------------------------------------- |
+| `deviation_flagged` | Boolean — was there a problem?                  |
+| `deviation_notes`   | Free text describing the deviation              |
+| `completion_data`   | Structured data: photos, readings, measurements |
 
 **Deviation categories** are derived from the task's parent Procedure/Policy context, not a separate field. The category taxonomy:
 
@@ -333,7 +332,7 @@ All deviations are permanently recorded in the session_task audit trail. They ca
 
 ```sql
 -- All deviations for the last 90 days
-SELECT 
+SELECT
   st.completed_at,
   ds.department_id,
   st.title,
@@ -366,28 +365,28 @@ haccp_control_point
   asset_id             fk → asset (the physical unit/control point)
   workspace_id         fk → workspace
   policy_id            fk → policy | null (which HACCP policy this CCP enforces)
-  
+
   -- Identity
   ccp_code             string (CCP-001, CCP-002 — display code)
   name                 string ("Walk-in Fridge Temperature", "Cooking Core Temperature")
   description          text | null
   hazard_description   text ("Bacterial growth from improper refrigeration")
-  
+
   -- Critical limits
   measurement_type     temperature | time | visual | ph | humidity | other
   measurement_unit     celsius | fahrenheit | minutes | ph | percent | custom
   critical_limit_min   decimal | null (null = no lower limit)
   critical_limit_max   decimal | null (null = no upper limit)
   target_value         decimal | null (ideal value, not just within limits)
-  
+
   -- Monitoring
   monitoring_frequency text ("Every 4 hours during operation")
   monitoring_method    text ("Digital thermometer in center of unit")
   routine_id           fk → routine | null (which routine monitors this CCP)
-  
+
   -- Corrective action reference
   runbook_id           fk → runbook | null (which runbook triggers on deviation)
-  
+
   is_active            boolean
   created_at           timestamp
   updated_at           timestamp
@@ -418,7 +417,7 @@ Mr. Botsson: "Notert. Jeg oppretter:
               - Protocol med prosedyre, rutine, og runbook
               - CCP for hver enhet med riktige grenser
               - Session Hooks for kjøkken (hver 4. time) og bar (2x daglig)
-              
+
               Vil du gjennomgå før jeg aktiverer?"
 ```
 
@@ -462,24 +461,24 @@ haccp_certificate
   certificate_id       uuid (PK)
   profile_id           fk → profile
   workspace_id         fk → workspace
-  
+
   -- Certificate details
   certificate_type     mattilsynet_basic | allergen | hygiene_pass | first_aid | fire_safety | custom
   name                 string ("Mattrygghets-kurs", "Allergenkurs")
   issuer               string | null ("Mattilsynet", "Kurssenteret AS")
   certificate_number   string | null
-  
+
   -- Validity
   issued_date          date
   expiry_date          date | null (null = no expiry)
-  
+
   -- Documentation
   document_url         string | null (scan/PDF in Supabase Storage)
-  
+
   -- Status
   status               valid | expiring_soon | expired | revoked
   renewal_reminder_days integer (default: 30 — days before expiry to start alerting)
-  
+
   created_at           timestamp
   updated_at           timestamp
 ```
@@ -495,6 +494,7 @@ The AI monitors certificate expiry dates and proactively alerts:
 ### 7.3 Training Integration (Module 6)
 
 Required HACCP knowledge is enforced through the Governance model:
+
 - Policy requires a specific certificate type
 - Protocol includes a Knowledge Test on food safety
 - Employees who fail the test or lack the certificate cannot be assigned to HACCP-critical tasks
@@ -508,14 +508,14 @@ Required HACCP knowledge is enforced through the Governance model:
 
 The Operation Engine (Module 4, Section 18) handles HACCP-specific monitoring as part of its general session monitoring. HACCP-specific behaviors:
 
-| AI Function | HACCP Application |
-|-------------|-------------------|
-| **TRIAGE** | Temperature reading out of range → classify as CRITICAL, route to shift lead + manager immediately |
-| **MONITOR** | Track: are all scheduled HACCP tasks completed on time? Any CCPs missed? Certificate expiring? |
-| **COMPILE** | Include HACCP status in Day Brief: "All temperature checks OK yesterday. 1 deviation on Walk-in fridge (resolved)." |
+| AI Function | HACCP Application                                                                                                                            |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **TRIAGE**  | Temperature reading out of range → classify as CRITICAL, route to shift lead + manager immediately                                           |
+| **MONITOR** | Track: are all scheduled HACCP tasks completed on time? Any CCPs missed? Certificate expiring?                                               |
+| **COMPILE** | Include HACCP status in Day Brief: "All temperature checks OK yesterday. 1 deviation on Walk-in fridge (resolved)."                          |
 | **PREDICT** | "Walk-in fridge has shown readings trending upward over 3 days (2.1 → 3.2 → 3.8°C). Suggest maintenance check before critical limit breach." |
-| **ACT** | Auto-trigger Runbook when deviation confirmed. Auto-assign corrective action task. |
-| **LEARN** | "Temperature deviations correlate with delivery days — suggest additional check 1 hour after delivery." |
+| **ACT**     | Auto-trigger Runbook when deviation confirmed. Auto-assign corrective action task.                                                           |
+| **LEARN**   | "Temperature deviations correlate with delivery days — suggest additional check 1 hour after delivery."                                      |
 
 ### 8.2 Smart Deviation Detection
 
@@ -557,6 +557,7 @@ This view is read-only, pre-formatted, and can be exported to PDF. It shows only
 ### 9.3 Compliance Score
 
 A workspace-level metric derived from:
+
 - % of scheduled HACCP tasks completed on time
 - % of deviations with documented corrective action
 - % of employees with valid certifications
@@ -571,56 +572,56 @@ Displayed on the manager dashboard as a health indicator. Below 80% triggers adm
 
 ### New Tables (this module only)
 
-| Entity | Purpose | Key fields |
-|--------|---------|------------|
-| **haccp_control_point** | CCP definitions with critical limits | ccp_code, measurement_type, critical_limit_min/max, linked to Asset + Policy + Routine + Runbook |
-| **haccp_certificate** | Per-employee food safety certifications | certificate_type, expiry_date, document_url, renewal alerts |
+| Entity                  | Purpose                                 | Key fields                                                                                       |
+| ----------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| **haccp_control_point** | CCP definitions with critical limits    | ccp_code, measurement_type, critical_limit_min/max, linked to Asset + Policy + Routine + Runbook |
+| **haccp_certificate**   | Per-employee food safety certifications | certificate_type, expiry_date, document_url, renewal alerts                                      |
 
 ### Existing Tables Used (no modifications needed)
 
-| Entity | HACCP Usage |
-|--------|-------------|
-| **Asset** | Physical equipment marked as `asset_type: ccp` |
-| **Policy** | HACCP policies with `policy_type: haccp` |
-| **Protocol** | Enforcement container for HACCP policies |
-| **Procedure** | Step-by-step instructions for HACCP tasks |
-| **Routine** | Scheduled monitoring of CCPs |
-| **Runbook** | Deviation response workflows |
-| **Control List** | Verification of routine completion and corrective actions |
-| **Knowledge Test** | HACCP knowledge verification for employees |
-| **Confirmation** | Employee sign-off on HACCP protocols |
-| **session_task** | Runtime task instances with `category: haccp` and `completion_data` for readings |
-| **session_hook** | Timed triggers for HACCP routines |
-| **ai_session_event** | AI monitoring log for HACCP events |
+| Entity               | HACCP Usage                                                                      |
+| -------------------- | -------------------------------------------------------------------------------- |
+| **Asset**            | Physical equipment marked as `asset_type: ccp`                                   |
+| **Policy**           | HACCP policies with `policy_type: haccp`                                         |
+| **Protocol**         | Enforcement container for HACCP policies                                         |
+| **Procedure**        | Step-by-step instructions for HACCP tasks                                        |
+| **Routine**          | Scheduled monitoring of CCPs                                                     |
+| **Runbook**          | Deviation response workflows                                                     |
+| **Control List**     | Verification of routine completion and corrective actions                        |
+| **Knowledge Test**   | HACCP knowledge verification for employees                                       |
+| **Confirmation**     | Employee sign-off on HACCP protocols                                             |
+| **session_task**     | Runtime task instances with `category: haccp` and `completion_data` for readings |
+| **session_hook**     | Timed triggers for HACCP routines                                                |
+| **ai_session_event** | AI monitoring log for HACCP events                                               |
 
 ---
 
 ## 11. Integration Points
 
-| Module | Integration |
-|--------|-------------|
-| **Core Architecture** | Governance model (Policy → Protocol → full chain). Asset type `ccp`. |
-| **Module 2: Org Structure** | Assets (equipment), Locations (where CCPs are), Zones (specific areas) |
-| **Module 3: Scheduling** | HACCP tasks visible in shift context. Employees with expired certs flagged. |
-| **Module 4: Operations** | Department Session is the container. Session Hooks trigger HACCP routines. Session Tasks are the trackable units. Deviation → Runbook → Control List all within session context. |
-| **Module 6: Training** | HACCP Knowledge Tests, certification training, cross-training on HACCP procedures |
-| **Module 9: Communication** | Deviation alerts via push/SMS/voice. HACCP status in Day Brief. |
-| **Module 10: Reports** | HACCP compliance report, temperature history, deviation trends, Mattilsynet inspection report |
-| **Module 12: AI** | Operation Engine monitors HACCP in real-time. Predictive maintenance. Pattern detection. |
+| Module                      | Integration                                                                                                                                                                      |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Core Architecture**       | Governance model (Policy → Protocol → full chain). Asset type `ccp`.                                                                                                             |
+| **Module 2: Org Structure** | Assets (equipment), Locations (where CCPs are), Zones (specific areas)                                                                                                           |
+| **Module 3: Scheduling**    | HACCP tasks visible in shift context. Employees with expired certs flagged.                                                                                                      |
+| **Module 4: Operations**    | Department Session is the container. Session Hooks trigger HACCP routines. Session Tasks are the trackable units. Deviation → Runbook → Control List all within session context. |
+| **Module 6: Training**      | HACCP Knowledge Tests, certification training, cross-training on HACCP procedures                                                                                                |
+| **Module 9: Communication** | Deviation alerts via push/SMS/voice. HACCP status in Day Brief.                                                                                                                  |
+| **Module 10: Reports**      | HACCP compliance report, temperature history, deviation trends, Mattilsynet inspection report                                                                                    |
+| **Module 12: AI**           | Operation Engine monitors HACCP in real-time. Predictive maintenance. Pattern detection.                                                                                         |
 
 ---
 
 ## 12. Implementation Sequence
 
-| Phase | Scope | Duration |
-|-------|-------|----------|
-| **1. CCP data layer** | `haccp_control_point` table. Link Assets to CCPs. Admin UI for defining CCPs with limits. | Week 1–2 |
-| **2. Temperature logging UI** | Mobile form for temperature input. CCP-aware task rendering. Auto-deviation detection. | Week 3–4 |
-| **3. Hygiene checklists** | Procedure-based checklists with photo upload. Session hook integration. | Week 5–6 |
-| **4. Deviation flow** | deviation_flagged → Runbook trigger → corrective action → Control List closure. Full loop. | Week 7–8 |
-| **5. Certificate tracking** | `haccp_certificate` table. Expiry monitoring. AI alerts. Admin management UI. | Week 9–10 |
-| **6. Inspection reports** | HACCP report generator. PDF export. Inspection mode view. Compliance score. | Week 11–12 |
-| **7. AI intelligence** | Trend detection, pattern correlation, predictive maintenance, smart routing. | Week 13–14 |
+| Phase                         | Scope                                                                                      | Duration   |
+| ----------------------------- | ------------------------------------------------------------------------------------------ | ---------- |
+| **1. CCP data layer**         | `haccp_control_point` table. Link Assets to CCPs. Admin UI for defining CCPs with limits.  | Week 1–2   |
+| **2. Temperature logging UI** | Mobile form for temperature input. CCP-aware task rendering. Auto-deviation detection.     | Week 3–4   |
+| **3. Hygiene checklists**     | Procedure-based checklists with photo upload. Session hook integration.                    | Week 5–6   |
+| **4. Deviation flow**         | deviation_flagged → Runbook trigger → corrective action → Control List closure. Full loop. | Week 7–8   |
+| **5. Certificate tracking**   | `haccp_certificate` table. Expiry monitoring. AI alerts. Admin management UI.              | Week 9–10  |
+| **6. Inspection reports**     | HACCP report generator. PDF export. Inspection mode view. Compliance score.                | Week 11–12 |
+| **7. AI intelligence**        | Trend detection, pattern correlation, predictive maintenance, smart routing.               | Week 13–14 |
 
 ---
 
@@ -640,4 +641,4 @@ Specific considerations for migration from Bubble to Next.js/Supabase:
 
 ---
 
-*This module demonstrates the power of the Governance model — HACCP compliance requires no new task engine, no separate scheduling, and no custom deviation system. Everything is built on Policy → Protocol → Procedure → Routine → Runbook → Control List, materialized through Department Sessions and tracked through session_tasks. The only new tables are `haccp_control_point` (CCP definitions) and `haccp_certificate` (employee certifications).*
+_This module demonstrates the power of the Governance model — HACCP compliance requires no new task engine, no separate scheduling, and no custom deviation system. Everything is built on Policy → Protocol → Procedure → Routine → Runbook → Control List, materialized through Department Sessions and tracked through session_tasks. The only new tables are `haccp_control_point` (CCP definitions) and `haccp_certificate` (employee certifications)._

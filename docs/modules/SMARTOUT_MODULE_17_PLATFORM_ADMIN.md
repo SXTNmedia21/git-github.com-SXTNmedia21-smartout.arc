@@ -733,10 +733,7 @@ const DOCUSEAL_API_URL = process.env.DOCUSEAL_API_URL; // Self-hosted or cloud
 const DOCUSEAL_API_KEY = process.env.DOCUSEAL_API_KEY;
 
 // Create submission (send contract for signing)
-async function sendContract(
-  contract: ContractInstance,
-  template: ContractTemplate,
-) {
+async function sendContract(contract: ContractInstance, template: ContractTemplate) {
   const response = await fetch(`${DOCUSEAL_API_URL}/submissions`, {
     method: "POST",
     headers: {

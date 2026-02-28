@@ -11,6 +11,7 @@ import {
   Activity,
   Users,
   ScrollText,
+  Mail,
 } from "lucide-react";
 
 const navItems = [
@@ -21,6 +22,11 @@ const navItems = [
   },
   { href: "/platform-admin/workspaces", label: "Workspaces", icon: Building2 },
   { href: "/platform-admin/billing", label: "Billing", icon: CreditCard },
+  {
+    href: "/platform-admin/communications",
+    label: "Communications",
+    icon: Mail,
+  },
   { href: "/platform-admin/content", label: "Content", icon: FileText },
   {
     href: "/platform-admin/contracts",

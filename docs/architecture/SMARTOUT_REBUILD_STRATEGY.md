@@ -133,63 +133,75 @@ smartout/
 ## 4. Recommended Build Order
 
 ### Phase 0: Foundation (Week 1-2)
+
 **What:** Monorepo setup, Supabase project, core SQL migrations, shared types, auth
 **Why:** Everything else depends on this. No module can function without core tables and auth.
 
-| Step | Deliverable | Dependencies |
-|------|------------|--------------|
-| 0.1 | Monorepo scaffold (pnpm + Turborepo) | None |
-| 0.2 | Supabase project + CLI setup | None |
-| 0.3 | Core SQL migrations (User, Company, Workspace, Profile, Department, Location, Team, Season) | 0.2 |
-| 0.4 | Governance SQL (Policy, Protocol, Procedure, Routine, Runbook, ControlList, KnowledgeTest, Confirmation) | 0.3 |
-| 0.5 | Extension SQL (Zone, Asset, Position) | 0.3 |
-| 0.6 | RLS policies (workspace isolation) | 0.3–0.5 |
-| 0.7 | Shared TypeScript types package | 0.3–0.5 |
-| 0.8 | Supabase client + auth helpers | 0.2 |
-| 0.9 | Next.js scaffold with auth (login, signup) | 0.7, 0.8 |
-| 0.10 | Seed data for development | 0.3–0.5 |
+| Step | Deliverable                                                                                              | Dependencies |
+| ---- | -------------------------------------------------------------------------------------------------------- | ------------ |
+| 0.1  | Monorepo scaffold (pnpm + Turborepo)                                                                     | None         |
+| 0.2  | Supabase project + CLI setup                                                                             | None         |
+| 0.3  | Core SQL migrations (User, Company, Workspace, Profile, Department, Location, Team, Season)              | 0.2          |
+| 0.4  | Governance SQL (Policy, Protocol, Procedure, Routine, Runbook, ControlList, KnowledgeTest, Confirmation) | 0.3          |
+| 0.5  | Extension SQL (Zone, Asset, Position)                                                                    | 0.3          |
+| 0.6  | RLS policies (workspace isolation)                                                                       | 0.3–0.5      |
+| 0.7  | Shared TypeScript types package                                                                          | 0.3–0.5      |
+| 0.8  | Supabase client + auth helpers                                                                           | 0.2          |
+| 0.9  | Next.js scaffold with auth (login, signup)                                                               | 0.7, 0.8     |
+| 0.10 | Seed data for development                                                                                | 0.3–0.5      |
 
 ### Phase 1: Module 1 — Onboarding (Week 3-4)
+
 **What:** Company creation, workspace setup, invite flow, profile creation
 **Why:** You can't do anything without users in the system.
 
 ### Phase 2: Module 2 — Org Structure (Week 5-6)
+
 **What:** Department, Location, Zone, Asset, Position, Team CRUD + UI
 **Why:** The organizational skeleton that everything hangs on.
 
 ### Phase 3: Module 3 — Scheduling (Week 7-9)
+
 **What:** Shift templates, shift creation, calendar UI, punch clock, availability
 **Why:** Core daily operation — employees need shifts before sessions make sense.
 
 ### Phase 4: Module 4 — Operations (Week 10-13)
+
 **What:** Department Sessions, hooks, session tasks, sign-off, Day Brief, handoffs
 **Why:** The operational engine. This is the heart of the daily workflow.
 
 ### Phase 5: Module 5 — HACCP (Week 14-15)
+
 **What:** Temperature logging, hygiene checklists, deviation handling, Mattilsynet reports
 **Why:** Compliance requirement. Builds on Operations (session_task with HACCP category).
 
 ### Phase 6: Module 6 — Training (Week 16-17)
+
 **What:** Protocol assignment, procedure completion, knowledge tests, confirmations, readiness scoring
 **Why:** The "readiness" in Employee Readiness System.
 
 ### Phase 7: Module 9 — Communication (Week 18-19)
+
 **What:** Team chat, notifications, announcements, escalations
 **Why:** Connects all the operational pieces with real-time communication.
 
 ### Phase 8: Gamification + Season (Week 20-21)
+
 **What:** Season activation, points, leaderboard, boosters/penalties
 **Why:** Engagement layer on top of the operational foundation.
 
 ### Phase 9: Module 12 — AI Layer (Week 22-26)
+
 **What:** Mr. Botsson, context engine, operation engine, onboarding engine
 **Why:** The differentiator. Built last because it needs all other modules to have data to work with.
 
 ### Phase 10: Module 13 — Multi-tenant & Scaling (Week 27-28)
+
 **What:** Stripe billing, plan limits, workspace switcher, super-admin
 **Why:** Production readiness. RLS is already in place from Phase 0.
 
 ### Phase 11: Mobile App (Week 29-34)
+
 **What:** React Native + Expo, core employee flows, punch clock, task board, chat
 **Why:** Parallel track possible from Phase 4 onward, but listed here as focused sprint.
 
@@ -248,12 +260,12 @@ These are provided as companion files to this strategy document.
 
 ## 7. Key Risks & Mitigations
 
-| Risk | Mitigation |
-|------|-----------|
-| Context window overflow | Layered context architecture — never dump everything |
-| Inconsistent code across sessions | System prompt with strict conventions |
-| Database drift between modules | Single migration folder, numbered sequentially |
-| AI "forgetting" domain concepts | Comprehensive type definitions in shared package |
-| Losing track of progress | Linear as source of truth (linear-protocol) |
-| Scope creep per module | Stories with acceptance criteria in BUILD_ORDER.md |
-| Mobile/web code duplication | Shared types + queries in packages/ |
+| Risk                              | Mitigation                                           |
+| --------------------------------- | ---------------------------------------------------- |
+| Context window overflow           | Layered context architecture — never dump everything |
+| Inconsistent code across sessions | System prompt with strict conventions                |
+| Database drift between modules    | Single migration folder, numbered sequentially       |
+| AI "forgetting" domain concepts   | Comprehensive type definitions in shared package     |
+| Losing track of progress          | Linear as source of truth (linear-protocol)          |
+| Scope creep per module            | Stories with acceptance criteria in BUILD_ORDER.md   |
+| Mobile/web code duplication       | Shared types + queries in packages/                  |

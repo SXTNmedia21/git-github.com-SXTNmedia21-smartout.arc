@@ -2201,7 +2201,7 @@ Document decisions:
 - Tiptap editor over DocuSeal builder
 - HTML content format
 - Embedded signing in Smartout
-- Table rename strategy (platform*contract*_ → contract\__)
+- Table rename strategy (platform*contract*\_ → contract\_\_)
 
 ---
 

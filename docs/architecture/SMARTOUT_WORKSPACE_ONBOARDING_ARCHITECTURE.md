@@ -876,18 +876,18 @@ _The onboarding IS the first Season. The admin doesn't configure Smartout and th
 
 ### What We Don't Need to Build
 
-| Component | Status | Location |
-|-----------|--------|----------|
-| Voice MCP server | ✅ Production on Vercel | `mcp-servers/intervju-mcp/` |
-| Journey/mission system | ✅ Working with 4 missions | `mission_definitions` + `stage_definitions` + `interview_sessions` in Supabase |
-| Ultravox WebRTC client | ✅ Full implementation | `ai_layer/apps/dashboard/src/components/voice-calls/browser-call.tsx` |
-| Call creation API | ✅ Working | `ai_layer/apps/dashboard/src/app/api/voice-calls/` |
-| Stage prompt builder | ✅ Generic, works for any mission | `buildStagePrompt()` |
-| Norwegian voice config | ✅ Configured (languageHint: "no") | Call creation payload |
-| Mute/unmute/transcripts | ✅ Built into BrowserCall | Component props |
-| Status indicators | ✅ Color-coded (gray→yellow→cyan→blue→magenta) | BrowserCall component |
-| Tool proxy pattern | ✅ Exists for advance_stage | `/api/voice-calls/tools/` |
-| Session persistence | ✅ Supabase with JSONB collected_data | `interview_sessions` table |
+| Component               | Status                                         | Location                                                                       |
+| ----------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------ |
+| Voice MCP server        | ✅ Production on Vercel                        | `mcp-servers/intervju-mcp/`                                                    |
+| Journey/mission system  | ✅ Working with 4 missions                     | `mission_definitions` + `stage_definitions` + `interview_sessions` in Supabase |
+| Ultravox WebRTC client  | ✅ Full implementation                         | `ai_layer/apps/dashboard/src/components/voice-calls/browser-call.tsx`          |
+| Call creation API       | ✅ Working                                     | `ai_layer/apps/dashboard/src/app/api/voice-calls/`                             |
+| Stage prompt builder    | ✅ Generic, works for any mission              | `buildStagePrompt()`                                                           |
+| Norwegian voice config  | ✅ Configured (languageHint: "no")             | Call creation payload                                                          |
+| Mute/unmute/transcripts | ✅ Built into BrowserCall                      | Component props                                                                |
+| Status indicators       | ✅ Color-coded (gray→yellow→cyan→blue→magenta) | BrowserCall component                                                          |
+| Tool proxy pattern      | ✅ Exists for advance_stage                    | `/api/voice-calls/tools/`                                                      |
+| Session persistence     | ✅ Supabase with JSONB collected_data          | `interview_sessions` table                                                     |
 
 ### What V1 Voice Work Actually Requires
 
@@ -900,31 +900,32 @@ _The onboarding IS the first Season. The admin doesn't configure Smartout and th
 ### Dual Input Model (Voice + UI)
 
 Both paths write to the same Supabase tables. The wizard form and Mr. Botsson tools are two interfaces to the same data. Real-time sync via:
+
 - Voice creates entity → Supabase Realtime subscription → UI updates
 - UI creates entity → `get_wizard_state` tool → Mr. Botsson knows
 
 ### Gotcha Mitigations
 
-| Gotcha | Solution |
-|--------|----------|
-| One tool per call currently | Register all 10 tools in selectedTools array. Ultravox supports multiple. |
-| collected_data is flat JSONB | Use for session metadata only. Entities written to Core tables via HTTP tools. |
-| No undo/go-back in MCP | Wizard UI handles back navigation independently. MCP tracks furthest stage. |
+| Gotcha                           | Solution                                                                       |
+| -------------------------------- | ------------------------------------------------------------------------------ |
+| One tool per call currently      | Register all 10 tools in selectedTools array. Ultravox supports multiple.      |
+| collected_data is flat JSONB     | Use for session metadata only. Entities written to Core tables via HTTP tools. |
+| No undo/go-back in MCP           | Wizard UI handles back navigation independently. MCP tracks furthest stage.    |
 | System prompt replaced per stage | Perfect for wizard. Each stage gets fresh context with collected_data summary. |
-| 5-min stage cache | Not an issue — wizard stages are static seed data. |
-| 24h session expiry | Add resume flow: check for active session on login → offer to continue. |
+| 5-min stage cache                | Not an issue — wizard stages are static seed data.                             |
+| 24h session expiry               | Add resume flow: check for active session on login → offer to continue.        |
 
 ### Revised Build Timeline (V1)
 
-| Phase | What | Duration |
-|-------|------|----------|
-| 0. Database | Core tables + RLS + seed data + mission/stage inserts | 3-4 days |
-| 1. Auth + Company/Workspace | Signup, login, company creation, workspace creation | 2-3 days |
-| 2. Wizard API routes | 9 routes under `/api/wizard/` | 3-4 days |
-| 3. Wizard UI shell | 7-step wizard with progress, forms, Realtime subscriptions | 5-7 days |
-| 4. Voice integration | Import BrowserCall, wire up call creation + tools + stage transitions | 2-3 days |
-| 5. Infographics | 7 SVG/React visual explanations | 3-4 days |
-| 6. Dashboard | Read-only org structure view + edit mode | 2-3 days |
-| 7. Polish | Completion celebration, error states, resume-from-last-step | 2-3 days |
+| Phase                       | What                                                                  | Duration |
+| --------------------------- | --------------------------------------------------------------------- | -------- |
+| 0. Database                 | Core tables + RLS + seed data + mission/stage inserts                 | 3-4 days |
+| 1. Auth + Company/Workspace | Signup, login, company creation, workspace creation                   | 2-3 days |
+| 2. Wizard API routes        | 9 routes under `/api/wizard/`                                         | 3-4 days |
+| 3. Wizard UI shell          | 7-step wizard with progress, forms, Realtime subscriptions            | 5-7 days |
+| 4. Voice integration        | Import BrowserCall, wire up call creation + tools + stage transitions | 2-3 days |
+| 5. Infographics             | 7 SVG/React visual explanations                                       | 3-4 days |
+| 6. Dashboard                | Read-only org structure view + edit mode                              | 2-3 days |
+| 7. Polish                   | Completion celebration, error states, resume-from-last-step           | 2-3 days |
 
 **Total: 4-5 weeks** (down from 6-8, because voice infrastructure already exists)

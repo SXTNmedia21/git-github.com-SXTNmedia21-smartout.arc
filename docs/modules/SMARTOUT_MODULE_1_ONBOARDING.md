@@ -10,21 +10,21 @@
 
 Onboarding in Smartout is split into **THREE distinct systems:**
 
-| System | Purpose | Scope | Timeline |
-|--------|---------|-------|----------|
-| **Trainee Mode** | Learn Smartout the software | Navigation, functionality, installed modules | Must complete before first real shift |
-| **Module Journeys** | Per-module quick onboarding | One journey per installed module | Part of trainee mode + triggered when new modules activate |
-| **Protocol Training** | Learn the actual job | HACCP, kitchen procedures, safety, etc. | Longer timeline, managed by governance model |
+| System                | Purpose                     | Scope                                        | Timeline                                                   |
+| --------------------- | --------------------------- | -------------------------------------------- | ---------------------------------------------------------- |
+| **Trainee Mode**      | Learn Smartout the software | Navigation, functionality, installed modules | Must complete before first real shift                      |
+| **Module Journeys**   | Per-module quick onboarding | One journey per installed module             | Part of trainee mode + triggered when new modules activate |
+| **Protocol Training** | Learn the actual job        | HACCP, kitchen procedures, safety, etc.      | Longer timeline, managed by governance model               |
 
 **Trainee Mode** and **Module Journeys** are what this document covers. Protocol Training lives in the Training module (Module 6) and the governance model (Policy → Protocol → Procedure/KnowledgeTest/Confirmation) — it runs alongside and after the trainee period on its own schedule.
 
 ### Module Boundary
 
-| System | Owned by | Data tables |
-|--------|----------|-------------|
-| **Trainee Mode** | This module (Module 1) | `trainee_journey` |
-| **Module Journeys** | This module (Module 1) | `module_journey`, `module_journey_checkpoint`, `profile_checkpoint_progress` |
-| **Protocol Training** | Module 6 (Training) + Core (Governance) | `procedure`, `knowledge_test`, `confirmation` + training progress tables |
+| System                | Owned by                                | Data tables                                                                  |
+| --------------------- | --------------------------------------- | ---------------------------------------------------------------------------- |
+| **Trainee Mode**      | This module (Module 1)                  | `trainee_journey`                                                            |
+| **Module Journeys**   | This module (Module 1)                  | `module_journey`, `module_journey_checkpoint`, `profile_checkpoint_progress` |
+| **Protocol Training** | Module 6 (Training) + Core (Governance) | `procedure`, `knowledge_test`, `confirmation` + training progress tables     |
 
 ---
 
@@ -102,27 +102,27 @@ The invitation flow is how employees enter the Smartout ecosystem. It creates th
 
 ### 3.1 Invitation Methods
 
-| Method | How | Best for |
-|--------|-----|----------|
-| **Email invite** | Admin enters employee's email. System sends invite link via Resend. | Standard — most employees |
-| **SMS invite** | Admin enters employee's phone. System sends invite link via Twilio. | Employees without regular email access |
-| **Shareable link** | Admin generates a workspace invite link with optional expiry. | Job fairs, group hiring, walk-ins |
-| **Bulk CSV import** | Admin uploads CSV with name, email, phone, department, position. | Seasonal hiring (10+ employees at once) |
+| Method              | How                                                                 | Best for                                |
+| ------------------- | ------------------------------------------------------------------- | --------------------------------------- |
+| **Email invite**    | Admin enters employee's email. System sends invite link via Resend. | Standard — most employees               |
+| **SMS invite**      | Admin enters employee's phone. System sends invite link via Twilio. | Employees without regular email access  |
+| **Shareable link**  | Admin generates a workspace invite link with optional expiry.       | Job fairs, group hiring, walk-ins       |
+| **Bulk CSV import** | Admin uploads CSV with name, email, phone, department, position.    | Seasonal hiring (10+ employees at once) |
 
 ### 3.2 Invitation Data
 
 When creating an invite, admin provides:
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| **Name** | Yes | First name + last name |
-| **Email or Phone** | Yes (one) | Login identifier and invite delivery |
-| **Department** | Yes | Primary department assignment |
-| **Position** | No | Default position (can be set later) |
-| **Role** | No | Defaults to `employee`. Admin can set `manager`. |
-| **Team(s)** | No | Team memberships (can be assigned later) |
-| **Start date** | No | Expected first day — used for first shift scheduling |
-| **Language** | No | Defaults to workspace language. Can override. |
+| Field              | Required  | Description                                          |
+| ------------------ | --------- | ---------------------------------------------------- |
+| **Name**           | Yes       | First name + last name                               |
+| **Email or Phone** | Yes (one) | Login identifier and invite delivery                 |
+| **Department**     | Yes       | Primary department assignment                        |
+| **Position**       | No        | Default position (can be set later)                  |
+| **Role**           | No        | Defaults to `employee`. Admin can set `manager`.     |
+| **Team(s)**        | No        | Team memberships (can be assigned later)             |
+| **Start date**     | No        | Expected first day — used for first shift scheduling |
+| **Language**       | No        | Defaults to workspace language. Can override.        |
 
 ### 3.3 Acceptance Flow
 
@@ -149,25 +149,25 @@ Employee receives invite (email / SMS / clicks link)
 
 When an invite is accepted, the system automatically creates:
 
-| Entity | Details |
-|--------|---------|
-| **User** | If new. Auth credentials, personal info. |
-| **CompanyMember** | Links User to Company (role: member). |
-| **Profile** | Status: `trainee`. Role as specified by admin. Department, position, teams assigned. |
-| **trainee_journey** | Auto-created with `status: not_started`. First shift date populated if known. |
-| **profile_checkpoint_progress** | Records created for all required module journey checkpoints. |
+| Entity                          | Details                                                                              |
+| ------------------------------- | ------------------------------------------------------------------------------------ |
+| **User**                        | If new. Auth credentials, personal info.                                             |
+| **CompanyMember**               | Links User to Company (role: member).                                                |
+| **Profile**                     | Status: `trainee`. Role as specified by admin. Department, position, teams assigned. |
+| **trainee_journey**             | Auto-created with `status: not_started`. First shift date populated if known.        |
+| **profile_checkpoint_progress** | Records created for all required module journey checkpoints.                         |
 
 ### 3.5 Invite Management
 
 Admin can manage outstanding invites:
 
-| Action | Description |
-|--------|-------------|
-| **Resend** | Re-send invite via original channel or alternate |
-| **Cancel** | Revoke invite before acceptance |
-| **Expire** | Invites expire after configurable period (default: 14 days) |
-| **Track** | See which invites are pending, accepted, expired |
-| **Bulk actions** | Resend all pending, cancel all expired |
+| Action           | Description                                                 |
+| ---------------- | ----------------------------------------------------------- |
+| **Resend**       | Re-send invite via original channel or alternate            |
+| **Cancel**       | Revoke invite before acceptance                             |
+| **Expire**       | Invites expire after configurable period (default: 14 days) |
+| **Track**        | See which invites are pending, accepted, expired            |
+| **Bulk actions** | Resend all pending, cancel all expired                      |
 
 ### 3.6 Bulk Import
 
@@ -220,6 +220,7 @@ Trainee mode must be completed before the trainee's **first real shift**. The AI
 ### Transition: Trainee → Active
 
 Requires BOTH:
+
 1. All required module journeys completed (core + installed modules)
 2. Admin or leader explicitly approves readiness
 
@@ -229,21 +230,22 @@ Admin/leader sees the trainee's progress dashboard, reviews completion, and conf
 
 During trainee mode, activities are a **mix of sandbox and real:**
 
-| Activity | Mode | Reason |
-|----------|------|--------|
-| **Punch clock** | Sandbox | Simulated — doesn't create real payroll data |
-| **Task completion** | Sandbox | Test tasks — don't affect session sign-off |
-| **Temperature logging** | Sandbox | Practice entries — don't count for HACCP compliance |
-| **Availability registration** | Sandbox | Practice — doesn't affect real scheduling |
-| **Chat / messages** | Real | Social integration matters from day one |
-| **Profile setup** | Real | Actual profile data — name, photo, emergency contact, preferences |
-| **Reading procedures** | Real | Actual content, progress tracked |
+| Activity                      | Mode    | Reason                                                            |
+| ----------------------------- | ------- | ----------------------------------------------------------------- |
+| **Punch clock**               | Sandbox | Simulated — doesn't create real payroll data                      |
+| **Task completion**           | Sandbox | Test tasks — don't affect session sign-off                        |
+| **Temperature logging**       | Sandbox | Practice entries — don't count for HACCP compliance               |
+| **Availability registration** | Sandbox | Practice — doesn't affect real scheduling                         |
+| **Chat / messages**           | Real    | Social integration matters from day one                           |
+| **Profile setup**             | Real    | Actual profile data — name, photo, emergency contact, preferences |
+| **Reading procedures**        | Real    | Actual content, progress tracked                                  |
 
 ### Trainee Visibility in Scheduling
 
 **Trainees ARE visible in the Module 3 scheduling grid** with a visual trainee badge/tag. Managers can assign trainees to shifts, which establishes their "first shift" deadline for trainee mode completion.
 
 Key rules:
+
 - Trainees appear in the employee list with a `TRAINEE` badge
 - Managers can assign them to shifts like any other employee
 - The first assigned shift automatically becomes the trainee deadline
@@ -286,11 +288,11 @@ AI GUIDANCE (dynamic, per person):
 
 Checkpoints are **mixed** — some are actions, some are screen visits:
 
-| Type | Example | How tracked |
-|------|---------|-------------|
-| **Screen visit** | "User visited the schedule page" | Navigation event |
-| **Action** | "User completed a test punch-in" | System event from the action |
-| **AI-verified understanding** | "User understood shift swap" | AI asks a quick question, confirms comprehension |
+| Type                          | Example                          | How tracked                                      |
+| ----------------------------- | -------------------------------- | ------------------------------------------------ |
+| **Screen visit**              | "User visited the schedule page" | Navigation event                                 |
+| **Action**                    | "User completed a test punch-in" | System event from the action                     |
+| **AI-verified understanding** | "User understood shift swap"     | AI asks a quick question, confirms comprehension |
 
 ### Ordering
 
@@ -307,12 +309,12 @@ If no first shift is scheduled yet, AI uses a sensible default order based on th
 
 **When a new module is activated in a workspace, ALL users get the module journey** — not just trainees. The AI adapts the depth based on the user's history:
 
-| User type | AI behavior |
-|-----------|-------------|
-| **Trainee** | Full guided journey with all checkpoints |
+| User type                             | AI behavior                                                                           |
+| ------------------------------------- | ------------------------------------------------------------------------------------- |
+| **Trainee**                           | Full guided journey with all checkpoints                                              |
 | **Active employee, tech-comfortable** | Quick overview: "New module: HACCP. Here's where it is, here's what it does. Try it." |
-| **Active employee, less comfortable** | Deeper guidance, similar to trainee but skipping basics they already know |
-| **Admin/manager** | Focus on management features: "Here's how to configure HACCP for your team" |
+| **Active employee, less comfortable** | Deeper guidance, similar to trainee but skipping basics they already know             |
+| **Admin/manager**                     | Focus on management features: "Here's how to configure HACCP for your team"           |
 
 This makes the module journey system a **feature adoption engine**, not just an onboarding tool.
 
@@ -327,6 +329,7 @@ This makes the module journey system a **feature adoption engine**, not just an 
 Default is text-based chat guidance. Trainee can switch to voice anytime. AI remembers preference and adapts over time.
 
 Chat-first because:
+
 - Works in noisy restaurant environments
 - Lower barrier (no need to find a quiet spot)
 - Trainee can do it on public transport, at home, etc.
@@ -342,39 +345,39 @@ The AI has six UI guidance capabilities plus operational tools:
 
 **UI Guidance Tools:**
 
-| Tool | What it does | Implementation |
-|------|-------------|----------------|
-| `navigate_to` | Opens a specific screen/page | Next.js router programmatic navigation |
-| `highlight_element` | Pulse/glow animation on a UI element | CSS animation on `data-onboard` tagged elements |
-| `show_tooltip` | Contextual tooltip overlay on an element | Portal-rendered tooltip component |
-| `spotlight_element` | Dims background, spotlights one element | Overlay with cutout mask |
-| `autofill_demo` | Fills a form with demo data for practice | Dispatches values to form state |
-| `celebrate` | Confetti/celebration animation | Triggered on checkpoint completion |
+| Tool                | What it does                             | Implementation                                  |
+| ------------------- | ---------------------------------------- | ----------------------------------------------- |
+| `navigate_to`       | Opens a specific screen/page             | Next.js router programmatic navigation          |
+| `highlight_element` | Pulse/glow animation on a UI element     | CSS animation on `data-onboard` tagged elements |
+| `show_tooltip`      | Contextual tooltip overlay on an element | Portal-rendered tooltip component               |
+| `spotlight_element` | Dims background, spotlights one element  | Overlay with cutout mask                        |
+| `autofill_demo`     | Fills a form with demo data for practice | Dispatches values to form state                 |
+| `celebrate`         | Confetti/celebration animation           | Triggered on checkpoint completion              |
 
 **Operational Tools:**
 
-| Tool | What it does |
-|------|-------------|
-| `get_trainee_progress` | Returns current completion status across all journeys |
-| `mark_checkpoint` | Records a checkpoint as completed |
-| `suggest_next` | AI recommends next step based on progress + first shift context |
-| `start_sandbox_activity` | Initiates a sandbox activity (test shift, test task, etc.) |
-| `complete_sandbox_activity` | Marks sandbox activity as done, records result |
-| `escalate_to_admin` | Alerts admin about trainee progress concerns |
+| Tool                        | What it does                                                    |
+| --------------------------- | --------------------------------------------------------------- |
+| `get_trainee_progress`      | Returns current completion status across all journeys           |
+| `mark_checkpoint`           | Records a checkpoint as completed                               |
+| `suggest_next`              | AI recommends next step based on progress + first shift context |
+| `start_sandbox_activity`    | Initiates a sandbox activity (test shift, test task, etc.)      |
+| `complete_sandbox_activity` | Marks sandbox activity as done, records result                  |
+| `escalate_to_admin`         | Alerts admin about trainee progress concerns                    |
 
 ### Profile-Specific Adaptation
 
 The AI adapts based on:
 
-| Signal | Adaptation |
-|--------|-----------|
-| **Position** | Kokk gets kitchen-relevant modules first. Servitør gets service modules first. |
-| **Experience** | "Have you used scheduling software before?" → Yes: compress. No: expand. |
-| **Learning speed** | Fast checkpoint completion → skip detailed guidance. Slow → more support. |
-| **Language** | Matches `preferred_language` from profile |
-| **Time available** | "You have 15 minutes? Let's do one quick module." |
-| **First shift context** | Orders modules by relevance to upcoming shift |
-| **Engagement** | Low engagement detected → switch approach, offer help, check if stuck |
+| Signal                  | Adaptation                                                                     |
+| ----------------------- | ------------------------------------------------------------------------------ |
+| **Position**            | Kokk gets kitchen-relevant modules first. Servitør gets service modules first. |
+| **Experience**          | "Have you used scheduling software before?" → Yes: compress. No: expand.       |
+| **Learning speed**      | Fast checkpoint completion → skip detailed guidance. Slow → more support.      |
+| **Language**            | Matches `preferred_language` from profile                                      |
+| **Time available**      | "You have 15 minutes? Let's do one quick module."                              |
+| **First shift context** | Orders modules by relevance to upcoming shift                                  |
+| **Engagement**          | Low engagement detected → switch approach, offer help, check if stuck          |
 
 ### First Launch Experience
 
@@ -428,16 +431,17 @@ Tapping a module expands to show individual checkpoints with check/uncheck statu
 
 **Dashboard shows:**
 
-| Column | Data |
-|--------|------|
-| Employee | Name, position, department |
-| Progress | Overall % + per-module breakdown |
-| Status | On track / At risk / Blocked / Ready |
-| First shift | Date + days remaining |
-| Last activity | When they last interacted |
-| Action | Approve readiness / Send reminder / View detail |
+| Column        | Data                                            |
+| ------------- | ----------------------------------------------- |
+| Employee      | Name, position, department                      |
+| Progress      | Overall % + per-module breakdown                |
+| Status        | On track / At risk / Blocked / Ready            |
+| First shift   | Date + days remaining                           |
+| Last activity | When they last interacted                       |
+| Action        | Approve readiness / Send reminder / View detail |
 
 **AI proactive alerts:**
+
 - "Anna har ikke logget inn på 3 dager. Første vakt er om 4 dager."
 - "Erik sliter med HACCP-modulen — har forsøkt temperaturloggen 3 ganger uten å fullføre."
 - "3 av 5 nye ansatte stopper opp på oppgave-modulen, steg 3. Kanskje vi bør forenkle?"
@@ -472,6 +476,7 @@ When a procedure is updated → employees who completed the old version get noti
 **Trainee points count toward the first active season.** Points earned during trainee mode (completing checkpoints, finishing module journeys) carry over when the trainee transitions to `active` status and become part of their score in the current season's competition.
 
 This means:
+
 - Trainees who complete onboarding quickly start their active career with a point advantage
 - Points act as motivation during trainee mode (real stakes, not throwaway)
 - The leaderboard shows trainee points alongside active employee points once they transition
@@ -479,13 +484,13 @@ This means:
 
 ### Point-Earning Actions During Trainee Mode
 
-| Action | Points | Notes |
-|--------|--------|-------|
-| Complete a module journey checkpoint | 5 | Per checkpoint |
-| Complete an entire module journey | 15 | Bonus for finishing a full module |
-| Complete all journeys (100%) | 50 | Readiness bonus |
-| Complete onboarding early (>48h before first shift) | 25 | Early completion bonus |
-| Complete profile setup (all fields including emergency contact) | 10 | Encourages complete profiles |
+| Action                                                          | Points | Notes                             |
+| --------------------------------------------------------------- | ------ | --------------------------------- |
+| Complete a module journey checkpoint                            | 5      | Per checkpoint                    |
+| Complete an entire module journey                               | 15     | Bonus for finishing a full module |
+| Complete all journeys (100%)                                    | 50     | Readiness bonus                   |
+| Complete onboarding early (>48h before first shift)             | 25     | Early completion bonus            |
+| Complete profile setup (all fields including emergency contact) | 10     | Encourages complete profiles      |
 
 Point values are configurable per workspace via the gamification config (see Module 4, Section 22.3).
 
@@ -529,13 +534,13 @@ trainee_journey
 workspace_invite
   invite_id            uuid (PK)
   workspace_id         fk → workspace
-  
+
   -- Invite details
   email                string | null
   phone                string | null
   invite_method        email | sms | link | bulk
   invite_token         string (unique, used in invite URL)
-  
+
   -- Pre-populated profile data
   first_name           string
   last_name            string
@@ -545,13 +550,13 @@ workspace_invite
   team_ids             uuid[] | null
   language             string | null (override workspace default)
   start_date           date | null
-  
+
   -- Status
   status               pending | accepted | expired | cancelled
   expires_at           timestamp
   accepted_at          timestamp | null
   accepted_by_user_id  fk → user | null (the User who accepted)
-  
+
   -- Created by
   created_by           fk → profile
   created_at           timestamp
@@ -564,7 +569,7 @@ module_journey
   module_slug          string (scheduling, chat, haccp, tasks, etc.)
   is_core              boolean (true = Smartout core journey, not a module)
   version              string (1.0, 1.1 — updated when module UI changes)
-  
+
   created_at           timestamp
   updated_at           timestamp
 
@@ -573,23 +578,23 @@ module_journey
 module_journey_checkpoint
   id                   uuid (PK)
   journey_id           fk → module_journey
-  
+
   -- Identity
   name                 string ("Test punch-in", "View schedule")
   description          string | null
   checkpoint_type      screen_visit | action | ai_verified
   sort_order           integer
-  
+
   -- Tracking config
   event_name           string | null (system event that marks completion)
   target_screen        string | null (route path for screen_visit type)
   is_sandbox           boolean (sandbox or real activity)
   is_required          boolean (must complete for journey completion)
-  
+
   -- AI guidance hints (AI uses these to generate dynamic guidance)
   ai_context           text | null (what the AI should explain about this step)
   ai_success_hint      text | null (what success looks like)
-  
+
   created_at           timestamp
   updated_at           timestamp
 
@@ -601,15 +606,15 @@ profile_checkpoint_progress
   checkpoint_id        fk → module_journey_checkpoint
   trainee_journey_id   fk → trainee_journey | null (null for active employee module journeys)
   workspace_id         fk → workspace
-  
+
   -- Status
   status               not_started | in_progress | completed | skipped
   completed_at         timestamp | null
-  
+
   -- AI interaction log
   attempts             integer (how many times they tried)
   ai_guided            boolean (did AI walk them through it)
-  
+
   created_at           timestamp
   updated_at           timestamp
 ```
@@ -662,34 +667,34 @@ profile (additions for Module 1)
 
 ## 11. Integration Points
 
-| Module | Integration |
-|--------|-------------|
-| **Core Architecture** | Profile.status (trainee/active), emergency_contact fields, preferred_language |
-| **Module 2: Org Structure** | Department, Team, Position → determines which protocols to assign |
-| **Module 3: Scheduling** | Trainee visible in grid with badge. First shift = trainee deadline. Sandbox punch-in. |
-| **Module 4: Operations** | Trainees excluded from real Department Sessions. Sandbox task completion. Module journey for tasks. |
-| **Module 5: HACCP** | Sandbox temperature logging. Module journey for HACCP. |
-| **Module 9: Communication** | Real chat during trainee mode. Module journey for chat. Invite delivery via Resend/Twilio. |
-| **Module 12: AI (Mr. Botsson)** | All AI guidance, tool calling, voice integration |
-| **Module 13: Billing** | Workspace creation triggers Stripe subscription. Trainees count toward plan limits. |
-| **Governance Model** | Protocol training (separate from trainee mode, longer timeline) |
-| **Gamification** | Trainee points carry over to first active season |
+| Module                          | Integration                                                                                         |
+| ------------------------------- | --------------------------------------------------------------------------------------------------- |
+| **Core Architecture**           | Profile.status (trainee/active), emergency_contact fields, preferred_language                       |
+| **Module 2: Org Structure**     | Department, Team, Position → determines which protocols to assign                                   |
+| **Module 3: Scheduling**        | Trainee visible in grid with badge. First shift = trainee deadline. Sandbox punch-in.               |
+| **Module 4: Operations**        | Trainees excluded from real Department Sessions. Sandbox task completion. Module journey for tasks. |
+| **Module 5: HACCP**             | Sandbox temperature logging. Module journey for HACCP.                                              |
+| **Module 9: Communication**     | Real chat during trainee mode. Module journey for chat. Invite delivery via Resend/Twilio.          |
+| **Module 12: AI (Mr. Botsson)** | All AI guidance, tool calling, voice integration                                                    |
+| **Module 13: Billing**          | Workspace creation triggers Stripe subscription. Trainees count toward plan limits.                 |
+| **Governance Model**            | Protocol training (separate from trainee mode, longer timeline)                                     |
+| **Gamification**                | Trainee points carry over to first active season                                                    |
 
 ---
 
 ## 12. Implementation Sequence
 
-| Phase | Scope | Duration |
-|-------|-------|----------|
-| **1. Invitation system** | `workspace_invite` table. Email/SMS invite sending. Acceptance flow. Supabase Auth integration. | Week 1-2 |
-| **2. Data layer** | `trainee_journey`, `module_journey`, checkpoint tables. Auto-assign on invite acceptance. | Week 3-4 |
-| **3. Core journey** | Smartout basics: navigation, profile (incl. emergency contact), core concepts. Hardcoded checkpoints. | Week 5-6 |
-| **4. AI chat guidance** | Mr. Botsson tool definitions. Chat-based walkthrough. Progress tracking. | Week 7-8 |
-| **5. UI overlay** | `OnboardingOverlay` component. Element tagging. Navigate/highlight/spotlight/tooltip. | Week 9-10 |
-| **6. Module journeys** | Per-module checkpoints for Scheduling, Tasks, HACCP, Chat. Sandbox activities. | Week 11-12 |
-| **7. Admin dashboard** | Trainee progress view. Approval flow. AI alerts for at-risk trainees. Invite management. | Week 13-14 |
-| **8. Voice upgrade** | Ultravox integration for voice-guided onboarding. | Week 15-16 |
-| **9. Intelligence** | Adaptive depth, difficulty, pacing. Profile-specific ordering. Auto-fill demo. Confetti. | Week 17-18 |
+| Phase                    | Scope                                                                                                 | Duration   |
+| ------------------------ | ----------------------------------------------------------------------------------------------------- | ---------- |
+| **1. Invitation system** | `workspace_invite` table. Email/SMS invite sending. Acceptance flow. Supabase Auth integration.       | Week 1-2   |
+| **2. Data layer**        | `trainee_journey`, `module_journey`, checkpoint tables. Auto-assign on invite acceptance.             | Week 3-4   |
+| **3. Core journey**      | Smartout basics: navigation, profile (incl. emergency contact), core concepts. Hardcoded checkpoints. | Week 5-6   |
+| **4. AI chat guidance**  | Mr. Botsson tool definitions. Chat-based walkthrough. Progress tracking.                              | Week 7-8   |
+| **5. UI overlay**        | `OnboardingOverlay` component. Element tagging. Navigate/highlight/spotlight/tooltip.                 | Week 9-10  |
+| **6. Module journeys**   | Per-module checkpoints for Scheduling, Tasks, HACCP, Chat. Sandbox activities.                        | Week 11-12 |
+| **7. Admin dashboard**   | Trainee progress view. Approval flow. AI alerts for at-risk trainees. Invite management.              | Week 13-14 |
+| **8. Voice upgrade**     | Ultravox integration for voice-guided onboarding.                                                     | Week 15-16 |
+| **9. Intelligence**      | Adaptive depth, difficulty, pacing. Profile-specific ordering. Auto-fill demo. Confetti.              | Week 17-18 |
 
 ---
 
@@ -697,27 +702,27 @@ profile (additions for Module 1)
 
 All decisions made during the design process:
 
-| # | Decision | Choice | Rationale |
-|---|----------|--------|-----------|
-| 1 | Architecture split | Three systems: Trainee Mode + Module Journeys + Protocol Training | Trainee mode = learn the tool. Protocols = learn the job. Different timelines. |
-| 2 | Trainee payroll | Paid only during scheduled hours | Norwegian labor law: employer-mandated training compensable. Self-exploration unpaid. |
-| 3 | Trainee → active transition | Admin/leader approval required | Human checkpoint ensures readiness beyond just checkbox completion. |
-| 4 | Unready trainee at shift time | AI escalates 48h before, admin decides | Admin can extend, override, or reschedule. System doesn't block automatically. |
-| 5 | Sandbox scope | Mixed: punch clock/tasks sandbox, chat/profile real | Real chat for social integration. Sandbox for data-affecting activities. |
-| 6 | Module journey definition | Hybrid: hardcoded checkpoints + AI dynamic guidance | Measurable completion + adaptive experience. Best of both worlds. |
-| 7 | Journey ordering | AI decides based on first shift needs | Position + department + first shift context determines priority. |
-| 8 | New module for active users | Yes, all users get module journey | Feature adoption engine, not just onboarding. AI adapts depth. |
-| 9 | Default AI mode | Chat-first, voice as upgrade | Works in noisy environments, lower barrier, voice available on demand. |
-| 10 | Remote onboarding | Admin configurable per workspace | Some want pre-day-one prep, others want on-site only. |
-| 11 | UI guidance capabilities | All six: navigate, highlight, tooltip, spotlight, autofill, confetti | Full toolkit for rich guided experience. |
-| 12 | Checkpoint types | Mixed: actions + screen visits | Actions for meaningful steps, screen visits for awareness. |
-| 13 | Trainee progress display | Checklist + progress bar | Detail (what's left) + overview (how far along). |
-| 14 | Admin progress view | Dashboard + AI proactive alerts | See status at a glance + get warned about at-risk trainees. |
-| 15 | Active employee new modules | AI decides depth based on user history | Tech-comfortable → quick tour. Less comfortable → fuller guidance. |
-| 16 | Cross-training | No trainee mode, just new protocols + AI guidance | Employee already knows the system. Just needs new job content. |
-| 17 | Language | Match profile's preferred_language | Multilingual workforce reality in Norwegian service industry. |
-| 18 | Trainee scheduling visibility | Visible with trainee badge, can be assigned shifts | First assigned shift becomes trainee deadline. Managers need to see trainees in planning. |
-| 19 | Trainee gamification | Points carry over to first active season | Real stakes motivate faster completion. Early completers get a head start. |
+| #   | Decision                      | Choice                                                               | Rationale                                                                                 |
+| --- | ----------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| 1   | Architecture split            | Three systems: Trainee Mode + Module Journeys + Protocol Training    | Trainee mode = learn the tool. Protocols = learn the job. Different timelines.            |
+| 2   | Trainee payroll               | Paid only during scheduled hours                                     | Norwegian labor law: employer-mandated training compensable. Self-exploration unpaid.     |
+| 3   | Trainee → active transition   | Admin/leader approval required                                       | Human checkpoint ensures readiness beyond just checkbox completion.                       |
+| 4   | Unready trainee at shift time | AI escalates 48h before, admin decides                               | Admin can extend, override, or reschedule. System doesn't block automatically.            |
+| 5   | Sandbox scope                 | Mixed: punch clock/tasks sandbox, chat/profile real                  | Real chat for social integration. Sandbox for data-affecting activities.                  |
+| 6   | Module journey definition     | Hybrid: hardcoded checkpoints + AI dynamic guidance                  | Measurable completion + adaptive experience. Best of both worlds.                         |
+| 7   | Journey ordering              | AI decides based on first shift needs                                | Position + department + first shift context determines priority.                          |
+| 8   | New module for active users   | Yes, all users get module journey                                    | Feature adoption engine, not just onboarding. AI adapts depth.                            |
+| 9   | Default AI mode               | Chat-first, voice as upgrade                                         | Works in noisy environments, lower barrier, voice available on demand.                    |
+| 10  | Remote onboarding             | Admin configurable per workspace                                     | Some want pre-day-one prep, others want on-site only.                                     |
+| 11  | UI guidance capabilities      | All six: navigate, highlight, tooltip, spotlight, autofill, confetti | Full toolkit for rich guided experience.                                                  |
+| 12  | Checkpoint types              | Mixed: actions + screen visits                                       | Actions for meaningful steps, screen visits for awareness.                                |
+| 13  | Trainee progress display      | Checklist + progress bar                                             | Detail (what's left) + overview (how far along).                                          |
+| 14  | Admin progress view           | Dashboard + AI proactive alerts                                      | See status at a glance + get warned about at-risk trainees.                               |
+| 15  | Active employee new modules   | AI decides depth based on user history                               | Tech-comfortable → quick tour. Less comfortable → fuller guidance.                        |
+| 16  | Cross-training                | No trainee mode, just new protocols + AI guidance                    | Employee already knows the system. Just needs new job content.                            |
+| 17  | Language                      | Match profile's preferred_language                                   | Multilingual workforce reality in Norwegian service industry.                             |
+| 18  | Trainee scheduling visibility | Visible with trainee badge, can be assigned shifts                   | First assigned shift becomes trainee deadline. Managers need to see trainees in planning. |
+| 19  | Trainee gamification          | Points carry over to first active season                             | Real stakes motivate faster completion. Early completers get a head start.                |
 
 ---
 
@@ -756,4 +761,4 @@ Specific considerations for migration from Bubble to Next.js/Supabase:
 
 ---
 
-*This document covers the full onboarding lifecycle from workspace creation through invite acceptance, trainee mode, module journeys, and transition to active employee. Protocol Training (the third onboarding system) is documented in Module 6 (Training) and the Core Governance model.*
+_This document covers the full onboarding lifecycle from workspace creation through invite acceptance, trainee mode, module journeys, and transition to active employee. Protocol Training (the third onboarding system) is documented in Module 6 (Training) and the Core Governance model._

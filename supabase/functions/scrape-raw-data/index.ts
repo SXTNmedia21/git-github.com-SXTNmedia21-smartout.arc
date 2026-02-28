@@ -17,7 +17,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
       {
         global: { headers: { Authorization: req.headers.get("Authorization")! } },
-      }
+      },
     );
 
     // 1. Authorize User
@@ -44,10 +44,11 @@ serve(async (req) => {
     }
 
     // 3. Call the Python Scrapling Microservice raw scrape endpoint
-    const scraplingUrl = Deno.env.get("SCRAPLING_SERVICE_URL") || "http://host.docker.internal:8000";
-    
+    const scraplingUrl =
+      Deno.env.get("SCRAPLING_SERVICE_URL") || "http://host.docker.internal:8000";
+
     console.log(`Calling Scrapling Microservice Raw Scrape at: ${scraplingUrl}/scrape-raw`);
-    
+
     const extractionResponse = await fetch(`${scraplingUrl}/scrape-raw`, {
       method: "POST",
       headers: {
@@ -57,8 +58,8 @@ serve(async (req) => {
     });
 
     if (!extractionResponse.ok) {
-       console.error("Scrapling service error:", await extractionResponse.text());
-       throw new Error(`Scrapling service returned status: ${extractionResponse.status}`);
+      console.error("Scrapling service error:", await extractionResponse.text());
+      throw new Error(`Scrapling service returned status: ${extractionResponse.status}`);
     }
 
     const extractionData = await extractionResponse.json();
@@ -68,12 +69,14 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
-    
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Function Error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 400,
-    });
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+      },
+    );
   }
 });

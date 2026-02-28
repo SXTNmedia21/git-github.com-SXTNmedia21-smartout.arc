@@ -9,7 +9,7 @@ const ROLE_HIERARCHY: Record<string, number> = {
 
 export function hasMinimumRole(userRole: Profile["role"], requiredRole: Profile["role"]): boolean {
   if (!userRole || !requiredRole) return false;
-  
+
   const userLevel = ROLE_HIERARCHY[userRole] ?? 0;
   const requiredLevel = ROLE_HIERARCHY[requiredRole] ?? 0;
 

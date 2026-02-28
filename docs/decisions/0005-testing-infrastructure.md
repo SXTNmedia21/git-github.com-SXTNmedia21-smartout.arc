@@ -18,12 +18,12 @@ We adopt a four-layer testing strategy:
 
 ### Tools
 
-| Layer | Tool | Location |
-|-------|------|----------|
-| Types | TypeScript + Zod | `packages/types/`, `pnpm lint` |
-| Database | Supabase CLI | `supabase db reset`, `supabase db lint` |
-| Integration | curl / Supabase REST | Manual + CI |
-| E2E | Playwright | `apps/e2e/`, `pnpm --filter e2e test:e2e` |
+| Layer       | Tool                 | Location                                  |
+| ----------- | -------------------- | ----------------------------------------- |
+| Types       | TypeScript + Zod     | `packages/types/`, `pnpm lint`            |
+| Database    | Supabase CLI         | `supabase db reset`, `supabase db lint`   |
+| Integration | curl / Supabase REST | Manual + CI                               |
+| E2E         | Playwright           | `apps/e2e/`, `pnpm --filter e2e test:e2e` |
 
 ## Rationale
 

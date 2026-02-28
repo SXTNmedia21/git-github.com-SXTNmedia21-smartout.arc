@@ -46,8 +46,7 @@ export class SessionContext {
   // jsonb_set or array_append operation to avoid lost updates.
   async appendTranscript(speaker: string, text: string) {
     const session = await this.getSession();
-    const scraped =
-      (session.scraped_data as Record<string, unknown> | null) ?? {};
+    const scraped = (session.scraped_data as Record<string, unknown> | null) ?? {};
     const transcripts = (scraped.transcripts as TranscriptEntry[]) ?? [];
 
     transcripts.push({
@@ -69,8 +68,7 @@ export class SessionContext {
 
   async saveAnalysis(topic: string, content: string) {
     const session = await this.getSession();
-    const analysis =
-      (session.ai_analysis as Record<string, AnalysisEntry> | null) ?? {};
+    const analysis = (session.ai_analysis as Record<string, AnalysisEntry> | null) ?? {};
 
     analysis[topic] = {
       content,
@@ -100,8 +98,7 @@ export class SessionContext {
 
     if (data.departments !== undefined)
       updates.suggested_departments = data.departments as unknown as Json;
-    if (data.teams !== undefined)
-      updates.suggested_teams = data.teams as unknown as Json;
+    if (data.teams !== undefined) updates.suggested_teams = data.teams as unknown as Json;
     if (data.locations !== undefined)
       updates.suggested_locations = data.locations as unknown as Json;
     if (data.positions !== undefined)
@@ -112,7 +109,6 @@ export class SessionContext {
       .update(updates)
       .eq("id", this.sessionId);
 
-    if (error)
-      throw new Error(`Failed to update suggestions: ${error.message}`);
+    if (error) throw new Error(`Failed to update suggestions: ${error.message}`);
   }
 }

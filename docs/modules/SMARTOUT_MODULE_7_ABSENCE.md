@@ -42,6 +42,7 @@ Covers vacation requests, sick leave (egenmelding + sykemelding), other leave ty
 > **TODO:** Detailed specification needed
 
 ### 3.1 Egenmelding (Self-Reported)
+
 - Max 3 calendar days per instance (Folketrygdloven)
 - Max 4 instances per 12-month period (with IA-avtale: up to 24 days)
 - Employee registers in app
@@ -49,6 +50,7 @@ Covers vacation requests, sick leave (egenmelding + sykemelding), other leave ty
 - Day counting logic
 
 ### 3.2 Sykemelding (Doctor's Note)
+
 - Registered by admin/manager
 - Day counting and periods
 - Employer period: first 16 calendar days
@@ -57,6 +59,7 @@ Covers vacation requests, sick leave (egenmelding + sykemelding), other leave ty
 - Follow-up plans (oppfølgingsplan) at 4 weeks, 7 weeks
 
 ### 3.3 Sick Leave Rules
+
 - Cannot be denied (employee right)
 - Must notify as soon as possible
 - Self-certification vs. medical certification thresholds
@@ -67,14 +70,14 @@ Covers vacation requests, sick leave (egenmelding + sykemelding), other leave ty
 
 > **TODO:** Detailed specification needed
 
-| Leave Type | Paid | Duration | Legal Basis |
-|-----------|------|----------|-------------|
-| Parental leave | Yes (NAV) | Up to 49/59 weeks | Folketrygdloven |
-| Military service | Yes (limited) | Duration of service | Arbeidsmiljøloven §12-12 |
-| Training leave | Varies | As agreed | Arbeidsmiljøloven §12-11 |
-| Welfare leave | Varies | Short-term | Tariffavtale |
-| Unpaid leave | No | As agreed | Agreement-based |
-| Care of sick child | Yes | 10 days/year | Folketrygdloven |
+| Leave Type         | Paid          | Duration            | Legal Basis              |
+| ------------------ | ------------- | ------------------- | ------------------------ |
+| Parental leave     | Yes (NAV)     | Up to 49/59 weeks   | Folketrygdloven          |
+| Military service   | Yes (limited) | Duration of service | Arbeidsmiljøloven §12-12 |
+| Training leave     | Varies        | As agreed           | Arbeidsmiljøloven §12-11 |
+| Welfare leave      | Varies        | Short-term          | Tariffavtale             |
+| Unpaid leave       | No            | As agreed           | Agreement-based          |
+| Care of sick child | Yes           | 10 days/year        | Folketrygdloven          |
 
 ---
 
@@ -107,11 +110,13 @@ Covers vacation requests, sick leave (egenmelding + sykemelding), other leave ty
 > **TODO:** Detailed table schemas needed
 
 **Expected tables:**
+
 - `absence_request` — request with type, dates, status, approver
 - `absence_balance` — running balance per employee per type
 - `sick_leave_period` — detailed sick leave tracking with employer/NAV split
 
 **Expected enums:**
+
 - `AbsenceType`: sick_leave | parental_leave | vacation | unpaid_leave | military | training | welfare
 - `RequestType`: available | not_available | vacation | sick_day | flextime | shift_swap | other
 
@@ -119,14 +124,14 @@ Covers vacation requests, sick leave (egenmelding + sykemelding), other leave ty
 
 ## 8. Integration Points
 
-| Module | Integration |
-|--------|------------|
-| **Module 3 (Scheduling)** | Conflict detection, schedule adjustment, availability blocking |
-| **Module 4 (Operations)** | Session task reassignment when employee absent |
-| **Module 8 (Payroll)** | Absence pay calculation, NAV refund tracking |
-| **Module 9 (Communication)** | Absence notifications to team/manager |
-| **Module 10 (Reports)** | HR absence statistics, patterns |
+| Module                       | Integration                                                    |
+| ---------------------------- | -------------------------------------------------------------- |
+| **Module 3 (Scheduling)**    | Conflict detection, schedule adjustment, availability blocking |
+| **Module 4 (Operations)**    | Session task reassignment when employee absent                 |
+| **Module 8 (Payroll)**       | Absence pay calculation, NAV refund tracking                   |
+| **Module 9 (Communication)** | Absence notifications to team/manager                          |
+| **Module 10 (Reports)**      | HR absence statistics, patterns                                |
 
 ---
 
-*This module requires detailed specification. The content above is extracted from SMARTOUT_COMPLETE_DOCUMENTATION.md and the master index. A full spec should include complete data models, API endpoints, UI screens, Norwegian labor law edge cases, and the full approval workflow.*
+_This module requires detailed specification. The content above is extracted from SMARTOUT_COMPLETE_DOCUMENTATION.md and the master index. A full spec should include complete data models, API endpoints, UI screens, Norwegian labor law edge cases, and the full approval workflow._

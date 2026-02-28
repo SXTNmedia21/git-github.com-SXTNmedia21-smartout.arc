@@ -11,10 +11,7 @@ export const saveTranscription = defineTool({
     speaker: z.enum(["user", "agent"]).describe("Who said it"),
     text: z.string().describe("The transcribed text"),
   }),
-  execute: async (
-    { speaker, text },
-    ctx: SessionContext,
-  ) => {
+  execute: async ({ speaker, text }, ctx: SessionContext) => {
     await ctx.appendTranscript(speaker, text);
     return "Transcription saved.";
   },
@@ -25,17 +22,10 @@ export const saveIntelligenceReport = defineTool({
   description:
     "Save a markdown intelligence report for a specific topic (e.g., 'departments', 'leadership', 'locations').",
   schema: z.object({
-    topic: z
-      .string()
-      .describe("Report topic key (e.g., 'departments', 'leadership')"),
-    content_markdown: z
-      .string()
-      .describe("The markdown report content"),
+    topic: z.string().describe("Report topic key (e.g., 'departments', 'leadership')"),
+    content_markdown: z.string().describe("The markdown report content"),
   }),
-  execute: async (
-    { topic, content_markdown },
-    ctx: SessionContext,
-  ) => {
+  execute: async ({ topic, content_markdown }, ctx: SessionContext) => {
     await ctx.saveAnalysis(topic, content_markdown);
     return `Report '${topic}' saved.`;
   },

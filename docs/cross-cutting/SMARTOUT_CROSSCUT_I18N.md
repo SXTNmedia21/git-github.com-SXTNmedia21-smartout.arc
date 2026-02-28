@@ -8,13 +8,13 @@
 
 ## 1. Language Support
 
-| Language | Code | Status |
-|----------|------|--------|
-| Norsk (Bokmål) | no | Primary |
-| Svenska | sv | Planned |
-| English | en | Planned |
-| Dansk | da | Planned |
-| Suomi | fi | Planned |
+| Language       | Code | Status  |
+| -------------- | ---- | ------- |
+| Norsk (Bokmål) | no   | Primary |
+| Svenska        | sv   | Planned |
+| English        | en   | Planned |
+| Dansk          | da   | Planned |
+| Suomi          | fi   | Planned |
 
 ## 2. Language Resolution
 
@@ -42,4 +42,4 @@ Profile.language_override (if set)
 
 ---
 
-*Norwegian is the primary language and will be implemented first. Other languages are on the roadmap. The i18n infrastructure should be built from day one even if only Norwegian keys exist initially.*
+_Norwegian is the primary language and will be implemented first. Other languages are on the roadmap. The i18n infrastructure should be built from day one even if only Norwegian keys exist initially._

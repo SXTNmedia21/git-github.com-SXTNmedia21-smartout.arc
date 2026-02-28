@@ -10,6 +10,7 @@
 The Organization Structure module defines the physical and logical map of a business. It provides the building blocks that every other module references but no single module owns.
 
 **What Org Structure defines:**
+
 - **WHO works here** → Profiles (people, roles)
 - **WHAT divisions exist** → Departments (Kitchen, Service, Bar)
 - **WHERE things happen** → Locations → Zones → Assets
@@ -25,15 +26,15 @@ Org Structure is the **stage** before any action happens. Scheduling, Payroll, T
 
 The following entities are Core types with full schemas in SMARTOUT_CORE_ARCHITECTURE_v2.md:
 
-| Core Type | Purpose | Season-aware |
-|-----------|---------|-------------|
-| **Workspace** | Physical workplace, operational unit | Owns seasons |
-| **Department** | Fixed organizational division (Kitchen, Service, Bar) | Never |
-| **Location** | Physical place (Main Restaurant, Terrace, Kitchen) | Never |
-| **Team** | Dynamic access group | Yes |
-| **Season** | Operational time period | Is the season |
-| **Policy** | Rules that govern behavior | Yes |
-| **Protocol** | Enforcement container for policies | Via Policy |
+| Core Type      | Purpose                                               | Season-aware  |
+| -------------- | ----------------------------------------------------- | ------------- |
+| **Workspace**  | Physical workplace, operational unit                  | Owns seasons  |
+| **Department** | Fixed organizational division (Kitchen, Service, Bar) | Never         |
+| **Location**   | Physical place (Main Restaurant, Terrace, Kitchen)    | Never         |
+| **Team**       | Dynamic access group                                  | Yes           |
+| **Season**     | Operational time period                               | Is the season |
+| **Policy**     | Rules that govern behavior                            | Yes           |
+| **Protocol**   | Enforcement container for policies                    | Via Policy    |
 
 See Core Architecture v2 for full schemas and design decisions.
 
@@ -65,6 +66,7 @@ zone
 ```
 
 **Design decisions:**
+
 - Zone is season-aware. Summer opens "Seaside" and "Penthouse", winter adds "Julbord Zone."
 - A Zone belongs to exactly ONE Location.
 - Shifts are assigned to one or more Zones, with time-splitting possible (Zone 1+2 from 07:00–15:00, Zone 1 only from 15:00–19:00). Time-splitting is handled by the Scheduling module via shift-zone assignment records.
@@ -72,6 +74,7 @@ zone
 - Zone with `season_id = null` = permanent. Zone with `season_id` = only active during that season.
 
 **Examples:**
+
 ```
 Location: Inside Restaurant
   ├── Zone: Section 1 (permanent)
@@ -110,6 +113,7 @@ asset
 ```
 
 **Design decisions:**
+
 - Asset connects to Governance via Policy/Protocol. E.g. a fridge has a Policy ("temperature must be logged twice daily") with a Protocol containing a Routine (scheduled checks) and a Control List (verification).
 - `requires_training = true` means employees must complete a certification procedure before operating this asset.
 - `requires_routine = true` means there are scheduled maintenance/check procedures (cleaning, settlement, temperature logging).
@@ -117,6 +121,7 @@ asset
 - Training and certification on assets is tracked per Profile in the Training module.
 
 **Examples:**
+
 ```
 Location: Inside Restaurant
   ├── Asset: Register 1 (equipment)
@@ -161,6 +166,7 @@ position
 ```
 
 **Design decisions:**
+
 - Position is season-aware. Some positions are permanent (Kokk, Servitør), some are seasonal (Grill Chef in summer, Julbord Servitør at Christmas).
 - Position belongs to exactly ONE Department.
 - `skill_requirements` links to the Training/Governance model — what Protocols must be completed before you can work this position.
@@ -168,6 +174,7 @@ position
 - `min_role_level` can restrict certain positions to experienced employees (e.g. "Shift Lead" requires manager level).
 
 **Examples:**
+
 ```
 Department: Kitchen
   ├── Position: Kokk (permanent)
@@ -195,21 +202,22 @@ Department: Bar
 
 Managed by Admin/Owner. Controls the operational parameters of the workspace.
 
-| Setting | Description | Where |
-|---------|-------------|-------|
-| Company info | Name, logo, branding | Workspace table |
-| Timezone | Operational timezone | Workspace table |
-| Currency | NOK, SEK, etc. | Workspace table |
-| Language | Default language | Workspace table |
-| Active modules | Which modules are enabled | Workspace table (`active_modules[]`) |
-| Subscription | Plan, billing, limits | Company table + Stripe |
-| Default values | Shift lengths, break rules, etc. | Policy (`policy_type: scheduling`) |
+| Setting        | Description                      | Where                                |
+| -------------- | -------------------------------- | ------------------------------------ |
+| Company info   | Name, logo, branding             | Workspace table                      |
+| Timezone       | Operational timezone             | Workspace table                      |
+| Currency       | NOK, SEK, etc.                   | Workspace table                      |
+| Language       | Default language                 | Workspace table                      |
+| Active modules | Which modules are enabled        | Workspace table (`active_modules[]`) |
+| Subscription   | Plan, billing, limits            | Company table + Stripe               |
+| Default values | Shift lengths, break rules, etc. | Policy (`policy_type: scheduling`)   |
 
 ### 4.2 Department Management
 
 Admin creates and manages departments. Departments are fixed and rarely change.
 
 **Admin flows:**
+
 - Create department (name, color, icon)
 - Assign department manager (Profile)
 - Reorder departments (sort_order)
@@ -220,6 +228,7 @@ Admin creates and manages departments. Departments are fixed and rarely change.
 Admin creates and manages physical locations within the workspace.
 
 **Admin flows:**
+
 - Create location (name, type, address, GPS coordinates)
 - Add zones within a location (permanent or seasonal)
 - Add assets within a location (with training/routine requirements)
@@ -231,6 +240,7 @@ Admin creates and manages physical locations within the workspace.
 Admin/managers create and manage teams. Teams are dynamic and can be seasonal.
 
 **Admin flows:**
+
 - Create team (name, type, department link)
 - Assign team leader (Profile)
 - Add/remove team members
@@ -242,6 +252,7 @@ Admin/managers create and manage teams. Teams are dynamic and can be seasonal.
 Admin creates and manages position types per department.
 
 **Admin flows:**
+
 - Create position (name, department, skill requirements)
 - Create seasonal positions (linked to a Season)
 - Define skill/certification requirements per position
@@ -285,16 +296,16 @@ Workspace
 
 ## 6. Season Impact on Org Structure
 
-| Entity | Season behavior |
-|--------|----------------|
-| **Workspace** | Owns seasons. Always has default. |
-| **Department** | NEVER seasonal. Permanent structure. |
-| **Location** | NEVER seasonal. Place always exists. |
-| **Team** | CAN be seasonal. Winter crew, event team. |
-| **Position** | CAN be seasonal. Grill Chef (summer only). |
-| **Zone** | CAN be seasonal. Terrace zones (summer only). |
-| **Asset** | CAN be seasonal. Outdoor grill (summer only). |
-| **Policy** | CAN be seasonal. Summer opening hours. |
+| Entity         | Season behavior                               |
+| -------------- | --------------------------------------------- |
+| **Workspace**  | Owns seasons. Always has default.             |
+| **Department** | NEVER seasonal. Permanent structure.          |
+| **Location**   | NEVER seasonal. Place always exists.          |
+| **Team**       | CAN be seasonal. Winter crew, event team.     |
+| **Position**   | CAN be seasonal. Grill Chef (summer only).    |
+| **Zone**       | CAN be seasonal. Terrace zones (summer only). |
+| **Asset**      | CAN be seasonal. Outdoor grill (summer only). |
+| **Policy**     | CAN be seasonal. Summer opening hours.        |
 
 **Pattern:** Departments and Locations are permanent infrastructure. Teams, Positions, Zones, and Assets can be specialized per season.
 
@@ -302,34 +313,36 @@ Workspace
 
 ## 7. Integration Points
 
-| Module | Uses from Org Structure |
-|--------|------------------------|
+| Module         | Uses from Org Structure                                       |
+| -------------- | ------------------------------------------------------------- |
 | **Scheduling** | Department, Location, Zone, Team, Position — shift assignment |
-| **Payroll** | Department, Position — pay rates, supplements |
-| **Training** | Position (skill requirements), Asset (certifications) |
-| **HACCP** | Location, Zone, Asset — safety checks |
-| **Operations** | Location, Zone, Asset — daily routines |
-| **Onboarding** | Department, Team, Position — role-specific flows |
-| **Reporting** | Department, Location, Team — aggregation |
+| **Payroll**    | Department, Position — pay rates, supplements                 |
+| **Training**   | Position (skill requirements), Asset (certifications)         |
+| **HACCP**      | Location, Zone, Asset — safety checks                         |
+| **Operations** | Location, Zone, Asset — daily routines                        |
+| **Onboarding** | Department, Team, Position — role-specific flows              |
+| **Reporting**  | Department, Location, Team — aggregation                      |
 
 ---
 
 ## 8. Data Entities Summary
 
 ### Core Types (in Core Architecture v2)
-| Entity | Fields | Details |
-|--------|--------|---------|
-| Workspace | 20+ fields | See Core Architecture |
-| Department | 9 fields | See Core Architecture |
-| Location | 13 fields | See Core Architecture |
-| Team | 13 fields | See Core Architecture |
+
+| Entity     | Fields     | Details               |
+| ---------- | ---------- | --------------------- |
+| Workspace  | 20+ fields | See Core Architecture |
+| Department | 9 fields   | See Core Architecture |
+| Location   | 13 fields  | See Core Architecture |
+| Team       | 13 fields  | See Core Architecture |
 
 ### Extension Types (this module)
-| Entity | Extends | Season-aware | Key fields |
-|--------|---------|-------------|------------|
-| **Zone** | Location | Yes | name, capacity, color, location_id, season_id |
-| **Asset** | Location | Yes | name, asset_type, requires_training, requires_routine, location_id, season_id |
-| **Position** | Department | Yes | name, skill_requirements, min_role_level, department_id, season_id |
+
+| Entity       | Extends    | Season-aware | Key fields                                                                    |
+| ------------ | ---------- | ------------ | ----------------------------------------------------------------------------- |
+| **Zone**     | Location   | Yes          | name, capacity, color, location_id, season_id                                 |
+| **Asset**    | Location   | Yes          | name, asset_type, requires_training, requires_routine, location_id, season_id |
+| **Position** | Department | Yes          | name, skill_requirements, min_role_level, department_id, season_id            |
 
 ---
 
@@ -347,4 +360,4 @@ Specific considerations for migration from Bubble to Next.js/Supabase:
 
 ---
 
-*This document covers the organizational structure that all modules build upon. For Core type schemas, see SMARTOUT_CORE_ARCHITECTURE_v2.md.*
+_This document covers the organizational structure that all modules build upon. For Core type schemas, see SMARTOUT_CORE_ARCHITECTURE_v2.md._

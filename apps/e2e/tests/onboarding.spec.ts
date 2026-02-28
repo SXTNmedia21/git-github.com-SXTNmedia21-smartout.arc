@@ -1,19 +1,23 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from "@playwright/test";
 
-test.describe('Onboarding Wizard Flow', () => {
+test.describe("Onboarding Wizard Flow", () => {
   // Use a longer timeout for this specific test because the "crawling" mock takes 3 seconds,
   // and finalize mock takes another 3 seconds.
   test.setTimeout(60000);
 
-  test('should complete the entire onboarding process using fallback data', async ({ page }) => {
+  test("should complete the entire onboarding process using fallback data", async ({ page }) => {
     // 1. Visit Onboarding
-    await page.goto('/onboarding');
-    await expect(page.locator('h1:has-text("Let\'s build your workspace.")')).toBeVisible({ timeout: 10000 });
+    await page.goto("/onboarding");
+    await expect(page.locator('h1:has-text("Let\'s build your workspace.")')).toBeVisible({
+      timeout: 10000,
+    });
 
     // 2. Trigger fallback by filling URL and submitting
-    await page.fill('input[placeholder="your-webpage.com"]', 'mocksite.com');
+    await page.fill('input[placeholder="your-webpage.com"]', "mocksite.com");
     await page.click('button:has-text("Scan & Generate")');
-    await expect(page.locator('h2:has-text("Verify Company Identity")')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('h2:has-text("Verify Company Identity")')).toBeVisible({
+      timeout: 10000,
+    });
 
     // 3. Skip org verification to move to branding
     await page.click('button:has-text("Skip this step for now")');
@@ -55,8 +59,12 @@ test.describe('Onboarding Wizard Flow', () => {
     await expect(page.locator('span:has-text("Grand Hotel Oslo")')).toBeVisible();
 
     // Mock the activate-workspace call so we can see the success state
-    await page.route('**/functions/v1/activate-workspace', async (route) => {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) });
+    await page.route("**/functions/v1/activate-workspace", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ success: true }),
+      });
     });
 
     // Finalize

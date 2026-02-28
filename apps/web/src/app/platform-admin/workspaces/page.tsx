@@ -1,7 +1,7 @@
 import { createAdminClient } from "@smartout/supabase/admin";
 import { getSuperAdminId } from "@/lib/platform-admin";
 import { redirect } from "next/navigation";
-import { WorkspaceListClient } from "@/components/platform-admin/workspace-list-client";
+import { WorkspaceListEnhanced } from "./_components/workspace-list-enhanced";
 
 export default async function WorkspacesPage() {
   const adminId = await getSuperAdminId();
@@ -21,7 +21,7 @@ export default async function WorkspacesPage() {
       <h1 className="text-2xl font-semibold">Workspaces</h1>
       <p className="text-muted-foreground mt-1 text-sm">All workspaces across the platform</p>
       <div className="mt-6">
-        <WorkspaceListClient data={workspaces || []} />
+        <WorkspaceListEnhanced data={workspaces || []} />
       </div>
     </div>
   );

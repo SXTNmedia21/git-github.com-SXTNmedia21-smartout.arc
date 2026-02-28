@@ -2,16 +2,16 @@
 
 > **Smartout.io** — Functional documentation for migration
 > Version 1.0 | February 2026
-> 
+>
 > **Scope change:** This module was originally titled "Oppgavehåndtering (Task Management)" in the index. After architectural analysis, it has been elevated to **Operations & Task Management** because it introduces the **Department Session** — the daily operational container that binds shifts, procedures, tasks, and accountability into a single auditable unit.
 
 ---
 
 ## 1. The Core Insight
 
-A restaurant doesn't think in "tasks." It thinks in **days**. 
+A restaurant doesn't think in "tasks." It thinks in **days**.
 
-Every day, each department opens, runs, and closes. Within that daily arc, shifts start and end, procedures execute, routines trigger, problems arise and get handled, and at the end someone in charge signs off: *"Today is done. Here's what happened."*
+Every day, each department opens, runs, and closes. Within that daily arc, shifts start and end, procedures execute, routines trigger, problems arise and get handled, and at the end someone in charge signs off: _"Today is done. Here's what happened."_
 
 This module introduces the **Department Session** — a daily operational container that is automatically created for every active department, every day, within the active season. It is the runtime equivalent of what Season is at the planning level.
 
@@ -69,20 +69,20 @@ Season (operational period)
 
 Based on architectural clarity, the following renames are proposed:
 
-| Old Name | New Name | Reason |
-|----------|----------|--------|
-| **Job** (Kokk, Servitør) | **Position** | "Job" was ambiguous — confused with shift work packages. Position = what you are. |
-| **Job** (Opening shift, Closing shift) | **Shift Template** | Pre-configured shift package with procedures, locations, expected work. |
-| *(new concept)* | **Department Session** | Daily operational container per department. The "day" as a managed entity. |
-| *(new concept)* | **Session Hook** | Timed trigger point within a session (open, mid-day, close, custom). |
-| "Maintenance Task" | **Recurring Task** | Clearer. Location-bound, scheduled, flexible timing, trackable. |
-| "ASAP Task" | **Ad-hoc Task** | Real-time, manager-created, assignable to team/position/location/person. |
+| Old Name                               | New Name               | Reason                                                                            |
+| -------------------------------------- | ---------------------- | --------------------------------------------------------------------------------- |
+| **Job** (Kokk, Servitør)               | **Position**           | "Job" was ambiguous — confused with shift work packages. Position = what you are. |
+| **Job** (Opening shift, Closing shift) | **Shift Template**     | Pre-configured shift package with procedures, locations, expected work.           |
+| _(new concept)_                        | **Department Session** | Daily operational container per department. The "day" as a managed entity.        |
+| _(new concept)_                        | **Session Hook**       | Timed trigger point within a session (open, mid-day, close, custom).              |
+| "Maintenance Task"                     | **Recurring Task**     | Clearer. Location-bound, scheduled, flexible timing, trackable.                   |
+| "ASAP Task"                            | **Ad-hoc Task**        | Real-time, manager-created, assignable to team/position/location/person.          |
 
 ---
 
 ## 4. Position (replaces Job as role type)
 
-Position is what you *are*. It defines your skills, your pay grade, your training requirements. It lives in Module 2 (Org Structure) as an extension of Department.
+Position is what you _are_. It defines your skills, your pay grade, your training requirements. It lives in Module 2 (Org Structure) as an extension of Department.
 
 ```
 position
@@ -109,7 +109,7 @@ This is the same schema as the current `job` table in Module 2, renamed for clar
 
 ## 5. Department Schedule
 
-Before we can create sessions, each department needs to know *when it operates*. This is configured per season and can vary by weekday and specific calendar dates.
+Before we can create sessions, each department needs to know _when it operates_. This is configured per season and can vary by weekday and specific calendar dates.
 
 ```
 department_schedule
@@ -117,21 +117,21 @@ department_schedule
   department_id        fk → department
   workspace_id         fk → workspace
   season_id            fk → season (which season this schedule belongs to)
-  
+
   -- Weekly defaults
   schedule_type        weekly | date_override
-  
+
   -- For weekly: which day(s)
   weekday              integer | null (0=Mon, 1=Tue... 6=Sun; null for date_override)
-  
+
   -- For date_override: specific date (Christmas, events, etc.)
   specific_date        date | null
-  
+
   -- Hours
   open_time            time (e.g., 10:00)
   close_time           time (e.g., 22:00)
   is_closed            boolean (true = department doesn't operate this day)
-  
+
   -- Metadata
   label                string | null ("Christmas Eve", "Sommertider", etc.)
   priority             integer (higher wins; date_override > weekly)
@@ -141,18 +141,19 @@ department_schedule
 ```
 
 **Resolution logic:** For any given date, the system finds the applicable schedule:
+
 1. Check `date_override` for exact date → if found, use it
 2. Fall back to `weekly` for that weekday in the active season
 3. Fall back to `weekly` for that weekday in the default season
 4. No schedule found → department is closed
 
-**Season setup experience:** When an admin creates a new season, they're prompted: *"Set operating hours for each department."* They can copy from default and adjust, or start fresh. This is part of "setting up the battlefield."
+**Season setup experience:** When an admin creates a new season, they're prompted: _"Set operating hours for each department."_ They can copy from default and adjust, or start fresh. This is part of "setting up the battlefield."
 
 ---
 
 ## 6. Department Session
 
-The daily operational container. Auto-generated, one per department per operating day. This is where the day *lives*.
+The daily operational container. Auto-generated, one per department per operating day. This is where the day _lives_.
 
 ```
 department_session
@@ -160,23 +161,23 @@ department_session
   department_id        fk → department
   workspace_id         fk → workspace
   season_id            fk → season
-  
+
   -- Time
   date                 date
   scheduled_open       time (from department_schedule)
   scheduled_close      time (from department_schedule)
   actual_open          timestamp | null (first punch-in)
   actual_close         timestamp | null (sign-off timestamp)
-  
+
   -- Status lifecycle
   status               upcoming | active | pending_signoff | closed | missed
-  
+
   -- Sign-off
   signed_off_by        fk → profile | null
   signed_off_at        timestamp | null
   signoff_notes        text | null (handoff notes for next session)
   signoff_type         clean | with_exceptions
-  
+
   -- Aggregates (materialized for dashboards)
   total_shifts         integer
   shifts_completed     integer
@@ -185,12 +186,13 @@ department_session
   tasks_incomplete     integer
   tasks_overdue        integer
   incidents_count      integer
-  
+
   created_at           timestamp
   updated_at           timestamp
 ```
 
 **Status lifecycle:**
+
 ```
 upcoming       Session exists but department hasn't opened yet
      │
@@ -222,39 +224,39 @@ session_hook
   department_id        fk → department
   workspace_id         fk → workspace
   season_id            fk → season | null (null = default/permanent)
-  
+
   -- Identity
   name                 string ("Opening prep", "Temperature check", "Closing routine")
   hook_type            pre_open | open | scheduled | pre_close | close | custom
-  
+
   -- Timing
   trigger_offset       integer (minutes relative to anchor)
   trigger_anchor       open | close (offset from session open or close time)
   -- Example: trigger_anchor=open, trigger_offset=-120 → 2 hours BEFORE opening
   -- Example: trigger_anchor=open, trigger_offset=60 → 1 hour AFTER opening
   -- Example: trigger_anchor=close, trigger_offset=-60 → 1 hour BEFORE closing
-  
+
   -- Recurrence within session (for things like "every 4 hours")
   repeat_interval      integer | null (minutes; null = fires once)
   repeat_until_anchor  open | close | null (stop repeating relative to...)
   repeat_until_offset  integer | null
-  
+
   -- What it triggers
   action_type          procedure | routine | notification | custom
   action_ref_id        uuid | null (procedure_id, routine_id, etc.)
-  
+
   -- Assignment
   assigned_to_type     shift_template | position | team | location | any_on_shift
   assigned_to_ref      uuid | null
   -- "any_on_shift" = anyone currently clocked in at the department can complete it
-  
+
   -- Priority
   priority             critical | high | normal | low
   is_required          boolean (must be completed for clean sign-off)
-  
+
   -- Weekday filter (hooks don't always fire every day)
   active_weekdays      integer[] | null (null = every day; [0,1,2,3,4] = Mon-Fri only)
-  
+
   is_active            boolean
   created_at           timestamp
   updated_at           timestamp
@@ -262,16 +264,17 @@ session_hook
 
 **Hook types explained:**
 
-| Type | Typical timing | Example |
-|------|---------------|---------|
-| `pre_open` | 1–3 hours before open | Prep kitchen, receive deliveries, mise en place |
-| `open` | At opening time | Turn on systems, final checks, open doors |
+| Type        | Typical timing             | Example                                               |
+| ----------- | -------------------------- | ----------------------------------------------------- |
+| `pre_open`  | 1–3 hours before open      | Prep kitchen, receive deliveries, mise en place       |
+| `open`      | At opening time            | Turn on systems, final checks, open doors             |
 | `scheduled` | Custom time during session | Temperature checks, stock rotation, mid-service tasks |
-| `pre_close` | 1–2 hours before close | Last orders, start breakdown, cleaning |
-| `close` | At closing time | Final cleaning, register settlement, lock up |
-| `custom` | Any offset | Special events, delivery windows, inspection prep |
+| `pre_close` | 1–2 hours before close     | Last orders, start breakdown, cleaning                |
+| `close`     | At closing time            | Final cleaning, register settlement, lock up          |
+| `custom`    | Any offset                 | Special events, delivery windows, inspection prep     |
 
 **Repeating hooks:** For things like temperature logging that happen every 4 hours:
+
 ```
 name: "Temperature check — walk-in fridge"
 hook_type: scheduled
@@ -297,50 +300,50 @@ session_task
   task_id              uuid (PK)
   session_id           fk → department_session
   workspace_id         fk → workspace
-  
+
   -- Origin (where did this task come from?)
   source_type          hook | ad_hoc | inherited | routine
   source_ref_id        uuid | null (hook_id, or null for ad_hoc)
-  
+
   -- From governance (if applicable)
   procedure_id         fk → procedure | null
   procedure_step_id    fk → procedure_step | null
   routine_id           fk → routine | null
-  
+
   -- Content
   title                string
   description          text | null
   instructions         text | null (from procedure step, if applicable)
   category             string | null (cleaning, safety, prep, service, admin, haccp, custom)
-  
+
   -- Assignment
   assigned_to_type     profile | position | team | location | zone | any_on_shift
   assigned_to_ref      uuid | null
   claimed_by           fk → profile | null (who actually picked it up)
-  
+
   -- Timing
   scheduled_at         timestamp | null (when it should be done)
   due_at               timestamp | null (deadline)
   started_at           timestamp | null
   completed_at         timestamp | null
-  
+
   -- Status
   status               pending | available | in_progress | completed | skipped | overdue | escalated
-  
+
   -- Priority & urgency
   priority             critical | high | normal | low
   is_required          boolean (required for clean session sign-off)
-  
+
   -- Completion data (full trackability)
   completed_by         fk → profile | null
   completion_notes     text | null
   completion_data      jsonb | null (temperature readings, measurements, photos, etc.)
   deviation_flagged    boolean (was there a problem?)
   deviation_notes      text | null
-  
+
   -- Inheritance
   inherited_from_shift fk → shift | null (if inherited from absent shift)
-  
+
   -- Audit
   created_by           fk → profile | null (null = system-generated)
   created_at           timestamp
@@ -348,6 +351,7 @@ session_task
 ```
 
 **Status lifecycle:**
+
 ```
 pending          Task exists but isn't due yet
      │
@@ -368,6 +372,7 @@ available        Task is ready to be claimed/worked on
 ```
 
 **Category system** enables compliance reporting:
+
 - Filter all tasks by `category: cleaning` + `location: Inside Restaurant` → full cleaning compliance report
 - Filter by `category: haccp` → all food safety tasks with timestamps, who did them, deviations
 - Filter by `completed_by` → everything a specific employee did today/this week/this month
@@ -376,7 +381,7 @@ available        Task is ready to be claimed/worked on
 
 ## 9. Shift Template
 
-A Shift Template is a pre-configured work package. It defines what a shift *contains* — which procedures, which locations/zones, what's expected. It lives at the department level.
+A Shift Template is a pre-configured work package. It defines what a shift _contains_ — which procedures, which locations/zones, what's expected. It lives at the department level.
 
 ```
 shift_template
@@ -384,33 +389,33 @@ shift_template
   department_id        fk → department
   workspace_id         fk → workspace
   season_id            fk → season | null (null = permanent)
-  
+
   -- Identity
   name                 string ("Opening Shift", "Closing Shift", "1. vakt", "Midtvakt")
   slug                 string
   description          string | null
   color                string | null (UI)
   icon                 string | null
-  
+
   -- Timing defaults
   default_start_time   time | null (e.g., 08:00)
   default_end_time     time | null (e.g., 16:00)
   default_break_minutes integer | null
-  
+
   -- Location scope
   locations            uuid[] | null (which locations this shift covers)
   zones                uuid[] | null (which zones within those locations)
-  
+
   -- Position scope
   default_position_id  fk → position | null (typical position for this shift)
-  
+
   -- Procedures attached
   -- (via junction table: shift_template_procedure)
-  
+
   -- Capacity
   min_staff            integer | null (minimum people needed on this template)
   max_staff            integer | null
-  
+
   sort_order           integer
   is_active            boolean
   created_at           timestamp
@@ -418,6 +423,7 @@ shift_template
 ```
 
 **Junction: Shift Template ↔ Procedure**
+
 ```
 shift_template_procedure
   id                   uuid (PK)
@@ -431,6 +437,7 @@ shift_template_procedure
 **How it works in practice:**
 
 The admin creates shift templates during season setup:
+
 ```
 Department: Kitchen
   ├── "Opening Shift" (08:00–16:00)
@@ -474,12 +481,12 @@ shift
   workspace_id         fk → workspace
   session_id           fk → department_session | null (linked when session is generated)
   template_id          fk → shift_template | null (null = custom/ad-hoc shift)
-  
+
   -- People
   profile_id           fk → profile | null (assigned employee; null = open shift)
   position_id          fk → position | null (what position they work this shift)
   team_id              fk → team
-  
+
   -- Time
   start_time           timestamp
   end_time             timestamp
@@ -487,25 +494,26 @@ shift
   actual_start         timestamp | null (punch-in)
   actual_end           timestamp | null (punch-out)
   work_hours           decimal | null (calculated)
-  
+
   -- Location scope (can override template)
   locations            uuid[] | null
   zones                uuid[] | null
-  
+
   -- Status
   status               draft | published | active | completed | cancelled
   is_published         boolean
   day_category         morning | midday | afternoon | evening | night | weekend
-  
+
   -- Publishing
   published_at         timestamp | null
   published_by         fk → profile | null
-  
+
   created_at           timestamp
   updated_at           timestamp
 ```
 
 **Shift → Session binding:** When a shift starts (punch-in), the system:
+
 1. Finds or creates the `department_session` for that department + date
 2. Links the shift to the session
 3. Loads procedures from the shift template
@@ -519,11 +527,13 @@ shift
 This is one of Smartout's most powerful features: if someone doesn't show up, the work doesn't disappear.
 
 **Scenario:**
+
 - Kitchen has 3 shifts today: Opening (Anna), Mid (empty/no-show), Closing (Ole)
 - Mid Shift template includes "Afternoon Temperature Check" procedure
 - Nobody punched in for Mid Shift
 
 **What happens:**
+
 1. When Mid Shift's `scheduled_at` passes with no punch-in, system flags it
 2. Mid Shift's procedure tasks are created as `session_task` with `source_type: inherited`
 3. `assigned_to_type` is changed to `any_on_shift` (anyone currently working in the department)
@@ -570,52 +580,53 @@ recurring_task_config
   config_id            uuid (PK)
   workspace_id         fk → workspace
   season_id            fk → season | null
-  
+
   -- What
   title                string ("Clean windows", "Descale coffee machine", "Check fire extinguishers")
   description          text | null
   category             string (cleaning, maintenance, safety, inventory, admin, custom)
   procedure_id         fk → procedure | null (if this follows a specific procedure)
-  
+
   -- Where
   location_id          fk → location | null
   zone_id              fk → zone | null
   asset_id             fk → asset | null
-  
+
   -- When
   frequency            daily | weekly | biweekly | monthly | quarterly | custom
   frequency_config     jsonb | null (for custom: cron expression or specific dates)
   active_weekdays      integer[] | null (null = all days)
   preferred_time       time | null (when during the day it should ideally be done)
-  
+
   -- Who (soft assignment — anyone at location can do it)
   preferred_team_id    fk → team | null
   preferred_position   fk → position | null
-  
+
   -- Priority
   priority             normal | low
   is_required          boolean
   max_delay_hours      integer | null (how long after preferred_time before it's flagged overdue)
-  
+
   is_active            boolean
   created_at           timestamp
   updated_at           timestamp
 ```
 
 **How it materializes:** A scheduled job generates `session_task` instances from `recurring_task_config`:
+
 - `source_type: routine` (or a new `recurring` type)
 - `assigned_to_type: any_on_shift` at the configured location
 - Tasks appear on the session's task board alongside hook-triggered and shift tasks
 
 **Difference from hook-triggered procedures:**
 
-| | Hook → Procedure | Recurring Task |
-|---|---|---|
-| **Bound to** | Session timeline (relative to open/close) | Calendar (frequency-based) |
-| **Urgency** | Variable (can be critical) | Usually normal/low |
-| **Assigned to** | Shift template / position / team | Location — anyone present |
-| **Governance link** | Always via Policy → Protocol → Procedure | Optional procedure link |
-| **Example** | "Open kitchen at 10:00" | "Clean windows — weekly" |
+|                     | Hook → Procedure                          | Recurring Task             |
+| ------------------- | ----------------------------------------- | -------------------------- |
+| **Bound to**        | Session timeline (relative to open/close) | Calendar (frequency-based) |
+| **Urgency**         | Variable (can be critical)                | Usually normal/low         |
+| **Assigned to**     | Shift template / position / team          | Location — anyone present  |
+| **Governance link** | Always via Policy → Protocol → Procedure  | Optional procedure link    |
+| **Example**         | "Open kitchen at 10:00"                   | "Clean windows — weekly"   |
 
 ---
 
@@ -648,14 +659,15 @@ Session status: closed
 
 Not everyone can close a session. Sign-off requires authority:
 
-| Role | Can sign off? |
-|------|---------------|
-| Employee | No |
+| Role        | Can sign off?                    |
+| ----------- | -------------------------------- |
+| Employee    | No                               |
 | Team Leader | Yes, for their team's department |
-| Manager | Yes, for departments they manage |
-| Admin/Owner | Yes, for any department |
+| Manager     | Yes, for departments they manage |
+| Admin/Owner | Yes, for any department          |
 
 If no one with authority is on the closing shift, the system escalates:
+
 1. Push notification to department manager
 2. After timeout → notification to admin
 3. Session stays `pending_signoff` until resolved (never auto-closes)
@@ -663,6 +675,7 @@ If no one with authority is on the closing shift, the system escalates:
 ### 14.3 What Gets Sealed
 
 When a session is signed off:
+
 - All task statuses are frozen
 - Completion data is immutable (audit trail)
 - Handoff notes become visible to the next session
@@ -672,6 +685,7 @@ When a session is signed off:
 ### 14.4 Missed Sessions
 
 If `scheduled_open` passes and no one punches in:
+
 - Session status → `missed` (after a configurable grace period, e.g., 30 min)
 - Alert to department manager and admin
 - Stays in reporting as a gap
@@ -679,6 +693,7 @@ If `scheduled_open` passes and no one punches in:
 ### 14.5 Unsigned Sessions
 
 If a session stays `pending_signoff` for more than a configurable time (default: 4 hours past close):
+
 - Dashboard alert: "Kitchen — Feb 24 was not signed off"
 - Blocks next session from being signed off cleanly (chain of accountability)
 - Manager can retroactively sign off with a note
@@ -691,16 +706,17 @@ Each active session has a task board visible to everyone working in that departm
 
 ### 15.1 Views
 
-| View | Description |
-|------|-------------|
-| **Timeline** | Tasks ordered by `scheduled_at` — shows what's coming up, what's now, what's done |
-| **By Person** | Grouped by who it's assigned to / claimed by |
-| **By Status** | Kanban-style: Pending → In Progress → Done |
-| **By Category** | Grouped by category (Cleaning, HACCP, Prep, Service, etc.) |
+| View            | Description                                                                       |
+| --------------- | --------------------------------------------------------------------------------- |
+| **Timeline**    | Tasks ordered by `scheduled_at` — shows what's coming up, what's now, what's done |
+| **By Person**   | Grouped by who it's assigned to / claimed by                                      |
+| **By Status**   | Kanban-style: Pending → In Progress → Done                                        |
+| **By Category** | Grouped by category (Cleaning, HACCP, Prep, Service, etc.)                        |
 
 ### 15.2 Task Card Content
 
 Each task card shows:
+
 - Title and category badge
 - Priority indicator (color/icon)
 - Assigned to (person, position, or "Anyone")
@@ -724,20 +740,20 @@ Every `session_task` captures the full audit trail. This enables powerful compli
 
 ### 16.1 What's Captured Per Task
 
-| Field | Purpose |
-|-------|---------|
-| `completed_by` | Who did it |
-| `completed_at` | When they finished |
-| `started_at` | When they started |
-| `scheduled_at` | When it was supposed to happen |
-| `due_at` | The deadline |
-| `category` | Classification for reporting |
-| `completion_notes` | Free text |
-| `completion_data` | Structured data (temperature readings, photos, measurements) |
-| `deviation_flagged` | Problem occurred |
-| `deviation_notes` | What went wrong |
-| `source_type` | Where the task came from |
-| `inherited_from_shift` | If it was inherited from an absent shift |
+| Field                  | Purpose                                                      |
+| ---------------------- | ------------------------------------------------------------ |
+| `completed_by`         | Who did it                                                   |
+| `completed_at`         | When they finished                                           |
+| `started_at`           | When they started                                            |
+| `scheduled_at`         | When it was supposed to happen                               |
+| `due_at`               | The deadline                                                 |
+| `category`             | Classification for reporting                                 |
+| `completion_notes`     | Free text                                                    |
+| `completion_data`      | Structured data (temperature readings, photos, measurements) |
+| `deviation_flagged`    | Problem occurred                                             |
+| `deviation_notes`      | What went wrong                                              |
+| `source_type`          | Where the task came from                                     |
+| `inherited_from_shift` | If it was inherited from an absent shift                     |
 
 ### 16.2 Compliance Report Queries
 
@@ -783,32 +799,32 @@ Low-friction, high-value information capture. Anyone can add a note to any date.
 session_note
   note_id              uuid (PK)
   workspace_id         fk → workspace
-  
+
   -- Targeting
   target_date          date (which day is this note about?)
   department_id        fk → department | null (null = workspace-wide)
   session_id           fk → department_session | null (linked when session exists)
   location_id          fk → location | null
-  
+
   -- Content
   title                string | null (optional short headline)
   body                 text (the actual note content)
   category             info | warning | request | customer | supply | event | staffing | other
   priority             normal | important | urgent
-  
+
   -- Visibility
   visibility           workspace | department | team | shift
   visibility_ref_id    uuid | null (team_id or shift_id if scoped)
-  
+
   -- Attachments
   attachments          jsonb | null ([{url, filename, type}])
-  
+
   -- Lifecycle
   is_actionable        boolean (does this need someone to do something?)
   action_status        null | pending | in_progress | resolved
   resolved_by          fk → profile | null
   resolved_at          timestamp | null
-  
+
   -- Who
   created_by           fk → profile
   created_at           timestamp
@@ -817,18 +833,19 @@ session_note
 
 **How notes are created:**
 
-| Context | Example | UX |
-|---------|---------|-----|
-| **From calendar** | Manager clicks on Saturday, adds "Private event 20 pax, setup by 18:00" | Date picker + note form |
-| **From session board** | Shift lead writes "Walk-in fridge making noise, maintenance called" | Quick-add on active session |
-| **From mobile** | Waiter in service: "Customer Nilsen complained about wine selection" | Quick note button, voice-to-text supported |
-| **From phone/voice** | Manager calls Smartout: "We're out of sugar, need to buy before tomorrow" | Mr. Botsson transcribes and creates note |
-| **Future dates** | Admin adds note on next Thursday: "Health inspector visiting, be prepared" | Calendar note on future date |
-| **From handoff** | Closing shift lead: "Oven 2 not reaching temperature, needs service" | Part of handoff flow, auto-categorized |
+| Context                | Example                                                                    | UX                                         |
+| ---------------------- | -------------------------------------------------------------------------- | ------------------------------------------ |
+| **From calendar**      | Manager clicks on Saturday, adds "Private event 20 pax, setup by 18:00"    | Date picker + note form                    |
+| **From session board** | Shift lead writes "Walk-in fridge making noise, maintenance called"        | Quick-add on active session                |
+| **From mobile**        | Waiter in service: "Customer Nilsen complained about wine selection"       | Quick note button, voice-to-text supported |
+| **From phone/voice**   | Manager calls Smartout: "We're out of sugar, need to buy before tomorrow"  | Mr. Botsson transcribes and creates note   |
+| **Future dates**       | Admin adds note on next Thursday: "Health inspector visiting, be prepared" | Calendar note on future date               |
+| **From handoff**       | Closing shift lead: "Oven 2 not reaching temperature, needs service"       | Part of handoff flow, auto-categorized     |
 
 **Actionable notes:** When `is_actionable: true`, the note appears as a to-do that someone needs to resolve. It shows up on the session board alongside tasks but is visually distinct (information vs. task). When resolved, it's marked with who resolved it and when.
 
 **Categories enable filtering:**
+
 - `customer` → all customer feedback for a period
 - `supply` → all supply/inventory notes
 - `warning` → all warnings and alerts
@@ -846,7 +863,7 @@ day_brief
   session_id           fk → department_session
   department_id        fk → department
   date                 date
-  
+
   -- Content (AI-generated)
   summary              text (natural language summary of what matters today)
   sections             jsonb [
@@ -858,23 +875,24 @@ day_brief
     { type: "warnings", content: "Walk-in fridge noise reported yesterday — monitor temperature closely." },
     { type: "previous_handoff", content: "Ole (closing yesterday): All tasks completed. Dishwasher descaled. New wine delivery expected by 10:00." }
   ]
-  
+
   -- Delivery
   generated_at         timestamp
   delivered_to         jsonb [{channel: "team_chat", ref: "kitchen_chat_id"}, {channel: "push", profiles: [...]}]
   delivery_status      generated | delivered | failed
-  
+
   -- Source tracking (what went into this brief)
   source_notes         uuid[] (note IDs that contributed)
   source_handoff_id    uuid | null (previous session's handoff)
   source_session_id    uuid | null (previous session)
-  
+
   created_at           timestamp
 ```
 
 **Generation logic:**
 
 The Day Brief is generated by the AI (Operation Engine / Mr. Botsson) using:
+
 1. **Notes** targeting this date and department (including future-dated notes from the past)
 2. **Previous session's handoff** notes and unresolved items
 3. **Schedule data** — who's working, any gaps, any changes
@@ -886,6 +904,7 @@ The Day Brief is generated by the AI (Operation Engine / Mr. Botsson) using:
 **Timing:** Generated ~30 minutes before the first shift starts (or at a configured time). Can be regenerated if new critical notes are added.
 
 **Delivery channels:**
+
 - Team chat (posted in the department's chat channel)
 - Push notification to all employees on today's schedule
 - Available on the session board in the app
@@ -900,45 +919,46 @@ session_handoff
   handoff_id           uuid (PK)
   workspace_id         fk → workspace
   session_id           fk → department_session
-  
+
   -- Who
   handed_off_by        fk → profile
   shift_id             fk → shift | null (if shift-level handoff vs. session-level)
-  
+
   -- Content
   handoff_type         shift_end | session_close | emergency | custom
-  
+
   -- Structured sections
   summary              text (free text overview)
   completed_items      text | null ("What we got done")
   incomplete_items     text | null ("What's still open")
   incidents            text | null ("What went wrong")
   next_session_notes   text | null ("What the next team needs to know")
-  
+
   -- AI-extracted structured data (from voice or text)
   extracted_events     jsonb | null ([{type, description, severity, action_needed}])
   extracted_notes      uuid[] | null (auto-generated session_notes from handoff content)
-  
+
   -- Method
   method               text | voice | ai_call
   voice_recording_url  string | null (if voice handoff)
   voice_transcript     text | null (AI transcription)
-  
+
   -- Delivery
   delivered_to         jsonb | null ([{channel, ref}])
-  
+
   created_at           timestamp
 ```
 
 **Three handoff methods:**
 
-| Method | How it works | Best for |
-|--------|-------------|----------|
-| **Text** | Manager types a structured handoff in the app | Quick end-of-shift notes |
-| **Voice** | Manager calls Smartout or uses in-app voice recorder. AI transcribes and extracts structured data. | Busy closing shifts, hands-full scenarios |
+| Method      | How it works                                                                                                                                                               | Best for                                        |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| **Text**    | Manager types a structured handoff in the app                                                                                                                              | Quick end-of-shift notes                        |
+| **Voice**   | Manager calls Smartout or uses in-app voice recorder. AI transcribes and extracts structured data.                                                                         | Busy closing shifts, hands-full scenarios       |
 | **AI Call** | Smartout (Mr. Botsson) calls the closing shift lead, conducts a structured interview: "How was service? Any incidents? Anything for tomorrow?" AI extracts and structures. | Ensures handoff happens even when people forget |
 
 **Voice AI handoff flow (via Mr. Botsson):**
+
 ```
 System detects: closing shift approaching, no handoff started
   → Mr. Botsson initiates call to shift lead (or sends prompt)
@@ -982,7 +1002,7 @@ DAY 1 (Monday)
   │
   └── Session sign-off (Ole, 22:15)
         Handoff saved. Session closed.
-  
+
 DAY 2 (Tuesday)
   │
   ├── Day Brief generated (Tuesday 07:30)
@@ -1002,16 +1022,16 @@ The AI isn't a feature bolted on top — it's the **nervous system** of every se
 
 The AI has a real-time feed of everything happening in a session:
 
-| Data Stream | What it monitors | Frequency |
-|-------------|-----------------|-----------|
-| **Punch clock** | Who punched in, who's late, who's missing | Real-time |
-| **Task status** | Task completion, overdue tasks, skipped tasks | Real-time |
-| **Notes** | New notes added, actionable items, warnings | Real-time |
-| **Schedule** | Shift changes, cancellations, swaps | Real-time |
-| **Hook triggers** | Which hooks fired, which procedures materialized | On trigger |
-| **Completion data** | HACCP readings, deviation flags, measurements | On submission |
-| **Communication** | Team chat messages, escalation responses | Real-time |
-| **External signals** | Weather (for outdoor locations), reservation systems, delivery confirmations | Periodic |
+| Data Stream          | What it monitors                                                             | Frequency     |
+| -------------------- | ---------------------------------------------------------------------------- | ------------- |
+| **Punch clock**      | Who punched in, who's late, who's missing                                    | Real-time     |
+| **Task status**      | Task completion, overdue tasks, skipped tasks                                | Real-time     |
+| **Notes**            | New notes added, actionable items, warnings                                  | Real-time     |
+| **Schedule**         | Shift changes, cancellations, swaps                                          | Real-time     |
+| **Hook triggers**    | Which hooks fired, which procedures materialized                             | On trigger    |
+| **Completion data**  | HACCP readings, deviation flags, measurements                                | On submission |
+| **Communication**    | Team chat messages, escalation responses                                     | Real-time     |
+| **External signals** | Weather (for outdoor locations), reservation systems, delivery confirmations | Periodic      |
 
 ### 18.2 What the AI Does
 
@@ -1032,6 +1052,7 @@ Input arrives (note, task completion, punch-in, chat message, etc.)
 ```
 
 **Example:** A note is added: "Customer allergic to nuts arriving at 19:00, table 7."
+
 - **Classify:** Action needed — affects kitchen and service
 - **Relevance:** Kitchen team (food prep) + Service team (table 7 server)
 - **Urgency:** Before 19:00 — high priority
@@ -1040,33 +1061,34 @@ Input arrives (note, task completion, punch-in, chat message, etc.)
 
 #### 18.2.2 MONITOR — Detect Anomalies and Gaps
 
-The AI continuously compares *what should be happening* with *what is actually happening*:
+The AI continuously compares _what should be happening_ with _what is actually happening_:
 
-| Condition | Detection | Action |
-|-----------|-----------|--------|
-| **Late punch-in** | Shift starts in 10 min, no punch-in | Notify employee → if no response, notify shift lead → escalate to manager |
-| **No-show** | 30 min past shift start, no punch-in | Trigger inheritance logic, notify manager, suggest available replacements |
-| **Task overdue** | `due_at` passed, status ≠ completed | Remind assigned person → escalate to shift lead → escalate to manager |
-| **Critical task missed** | Required task with `priority: critical` not started | Immediate alert to all on-shift + manager |
-| **Deviation pattern** | Same task flagged with deviation 3+ times this week | Alert manager with pattern analysis and suggested corrective action |
-| **Temperature out of range** | HACCP reading exceeds threshold | Trigger runbook, escalate immediately, log compliance event |
-| **Understaffing** | Fewer people on shift than `min_staff` on template | Alert manager, suggest open-shift posting or recall |
-| **Session approaching close** | 1 hour before scheduled close, tasks incomplete | Summary push to shift lead: "X tasks remaining, Y require sign-off" |
-| **Unsigned session** | Session `pending_signoff` past grace period | Escalation chain: shift lead → manager → admin |
+| Condition                     | Detection                                           | Action                                                                    |
+| ----------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------- |
+| **Late punch-in**             | Shift starts in 10 min, no punch-in                 | Notify employee → if no response, notify shift lead → escalate to manager |
+| **No-show**                   | 30 min past shift start, no punch-in                | Trigger inheritance logic, notify manager, suggest available replacements |
+| **Task overdue**              | `due_at` passed, status ≠ completed                 | Remind assigned person → escalate to shift lead → escalate to manager     |
+| **Critical task missed**      | Required task with `priority: critical` not started | Immediate alert to all on-shift + manager                                 |
+| **Deviation pattern**         | Same task flagged with deviation 3+ times this week | Alert manager with pattern analysis and suggested corrective action       |
+| **Temperature out of range**  | HACCP reading exceeds threshold                     | Trigger runbook, escalate immediately, log compliance event               |
+| **Understaffing**             | Fewer people on shift than `min_staff` on template  | Alert manager, suggest open-shift posting or recall                       |
+| **Session approaching close** | 1 hour before scheduled close, tasks incomplete     | Summary push to shift lead: "X tasks remaining, Y require sign-off"       |
+| **Unsigned session**          | Session `pending_signoff` past grace period         | Escalation chain: shift lead → manager → admin                            |
 
 #### 18.2.3 COMPILE — Synthesize Information
 
 The AI takes raw data and produces structured, actionable summaries:
 
-| Output | When | What it compiles |
-|--------|------|------------------|
-| **Day Brief** | Pre-session (~30 min before first shift) | Notes + previous handoff + schedule + tasks + events + warnings |
-| **Shift Brief** | When employee punches in | Personal task list + relevant notes + team status + what happened before their shift |
-| **Mid-session Digest** | Configurable (e.g., every 4 hours) | Progress update: tasks done/remaining, notes added, deviations, staffing status |
-| **Pre-close Summary** | 1 hour before session close | What's done, what's still open, who needs to complete what, handoff prep |
-| **Handoff Extraction** | After handoff submitted | Extract structured events/notes from free text or voice, create actionable items |
+| Output                 | When                                     | What it compiles                                                                     |
+| ---------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------ |
+| **Day Brief**          | Pre-session (~30 min before first shift) | Notes + previous handoff + schedule + tasks + events + warnings                      |
+| **Shift Brief**        | When employee punches in                 | Personal task list + relevant notes + team status + what happened before their shift |
+| **Mid-session Digest** | Configurable (e.g., every 4 hours)       | Progress update: tasks done/remaining, notes added, deviations, staffing status      |
+| **Pre-close Summary**  | 1 hour before session close              | What's done, what's still open, who needs to complete what, handoff prep             |
+| **Handoff Extraction** | After handoff submitted                  | Extract structured events/notes from free text or voice, create actionable items     |
 
 **Shift Brief** is a new concept worth highlighting — when an employee punches in mid-day (e.g., the closing shift), they get a personalized brief:
+
 - "Here's what happened so far today"
 - "These tasks are assigned to you"
 - "These tasks were inherited (mid-shift was empty)"
@@ -1078,42 +1100,42 @@ This is compiled automatically from session data. No one needs to write it.
 
 The AI uses historical data and current session state to predict problems before they happen:
 
-| Prediction | Based on | Action |
-|------------|----------|--------|
-| **Coverage gap** | Tomorrow's schedule has no closing shift for Kitchen | Alert manager: "Kitchen closing shift empty for Wednesday. Suggest: [available employees]" |
-| **Task bottleneck** | 5 tasks due between 14:00–15:00, only 2 people on shift | Suggest: redistribute, deprioritize non-critical, or flag understaffing |
-| **Compliance risk** | Temperature checks missed twice this week | Proactive alert: "HACCP compliance at risk. 2 missed checks this week. Next check due in 1 hour." |
-| **Handoff likely missed** | Closing shift lead has skipped handoff 3 of last 5 sessions | Auto-trigger AI call handoff 30 min before shift end |
-| **Employee overload** | Employee has 12 tasks today, average is 6 | Flag to shift lead: "Anna has 2x average task load. Consider redistribution." |
-| **Recurring deviation** | Same procedure fails quality check repeatedly | Suggest: "Procedure 'Prep Cold Station' has 40% deviation rate. Review procedure steps or assign to more experienced staff." |
+| Prediction                | Based on                                                    | Action                                                                                                                       |
+| ------------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| **Coverage gap**          | Tomorrow's schedule has no closing shift for Kitchen        | Alert manager: "Kitchen closing shift empty for Wednesday. Suggest: [available employees]"                                   |
+| **Task bottleneck**       | 5 tasks due between 14:00–15:00, only 2 people on shift     | Suggest: redistribute, deprioritize non-critical, or flag understaffing                                                      |
+| **Compliance risk**       | Temperature checks missed twice this week                   | Proactive alert: "HACCP compliance at risk. 2 missed checks this week. Next check due in 1 hour."                            |
+| **Handoff likely missed** | Closing shift lead has skipped handoff 3 of last 5 sessions | Auto-trigger AI call handoff 30 min before shift end                                                                         |
+| **Employee overload**     | Employee has 12 tasks today, average is 6                   | Flag to shift lead: "Anna has 2x average task load. Consider redistribution."                                                |
+| **Recurring deviation**   | Same procedure fails quality check repeatedly               | Suggest: "Procedure 'Prep Cold Station' has 40% deviation rate. Review procedure steps or assign to more experienced staff." |
 
 #### 18.2.5 ACT — Automated Operations
 
 Some operations happen automatically without human intervention:
 
-| Trigger | Automated action |
-|---------|-----------------|
-| Hook fires | Create session tasks from procedure, assign to appropriate person/role |
-| Shift no-show confirmed | Activate inheritance, redistribute tasks, notify team |
-| Recurring task schedule met | Materialize task instance in session |
-| Note marked `is_actionable` | Add to session task board as information card, track resolution |
-| Critical deviation submitted | Trigger runbook, escalate, log compliance event |
-| Session sign-off completed | Freeze task statuses, calculate aggregates, prepare handoff for next brief |
-| Day Brief time reached | Compile and deliver brief to all channels |
-| Handoff submitted | Extract structured data, create follow-up notes, queue for next brief |
+| Trigger                      | Automated action                                                           |
+| ---------------------------- | -------------------------------------------------------------------------- |
+| Hook fires                   | Create session tasks from procedure, assign to appropriate person/role     |
+| Shift no-show confirmed      | Activate inheritance, redistribute tasks, notify team                      |
+| Recurring task schedule met  | Materialize task instance in session                                       |
+| Note marked `is_actionable`  | Add to session task board as information card, track resolution            |
+| Critical deviation submitted | Trigger runbook, escalate, log compliance event                            |
+| Session sign-off completed   | Freeze task statuses, calculate aggregates, prepare handoff for next brief |
+| Day Brief time reached       | Compile and deliver brief to all channels                                  |
+| Handoff submitted            | Extract structured data, create follow-up notes, queue for next brief      |
 
 #### 18.2.6 LEARN — Pattern Recognition Over Time
 
 The AI builds knowledge over time to improve operations:
 
-| Learning | How it's used |
-|----------|--------------|
-| **Task duration patterns** | Refine `estimated_minutes` on procedures: "Opening Kitchen actually takes 45 min, not 30" |
-| **Staffing patterns** | "Fridays need +1 kitchen staff based on task completion data" |
-| **Deviation patterns** | "Walk-in fridge temperatures spike on delivery days — suggest check 1 hour after delivery" |
-| **Employee capabilities** | "Anna completes prep tasks 30% faster than average — consider for time-critical assignments" |
-| **Note patterns** | "Supply issues are noted every Monday — suggest automated restock reminder on Fridays" |
-| **Handoff quality** | "Sessions with voice handoffs have 20% fewer carryover issues than text-only" |
+| Learning                   | How it's used                                                                                |
+| -------------------------- | -------------------------------------------------------------------------------------------- |
+| **Task duration patterns** | Refine `estimated_minutes` on procedures: "Opening Kitchen actually takes 45 min, not 30"    |
+| **Staffing patterns**      | "Fridays need +1 kitchen staff based on task completion data"                                |
+| **Deviation patterns**     | "Walk-in fridge temperatures spike on delivery days — suggest check 1 hour after delivery"   |
+| **Employee capabilities**  | "Anna completes prep tasks 30% faster than average — consider for time-critical assignments" |
+| **Note patterns**          | "Supply issues are noted every Monday — suggest automated restock reminder on Fridays"       |
+| **Handoff quality**        | "Sessions with voice handoffs have 20% fewer carryover issues than text-only"                |
 
 This data feeds into the Business Engine (Module 12) for strategic insights and into the season setup for better planning.
 
@@ -1121,13 +1143,13 @@ This data feeds into the Business Engine (Module 12) for strategic insights and 
 
 Not all AI actions are equal. Clear authority boundaries prevent the AI from overstepping:
 
-| Level | AI can... | Example |
-|-------|-----------|---------|
-| **Autonomous** | Act without asking | Create tasks from hooks, generate briefs, send routine reminders, calculate aggregates |
-| **Notify + Suggest** | Alert a human and propose an action | "Coverage gap detected. Suggest posting open shift. [Post] [Dismiss]" |
-| **Notify only** | Alert a human, no proposed action | "Temperature deviation logged. Review required." |
-| **Escalate** | Pass to a higher authority | "Unsigned session for 24+ hours. Escalating to admin." |
-| **Never** | Cannot do this | Change schedules, approve payroll, override sign-offs, delete data |
+| Level                | AI can...                           | Example                                                                                |
+| -------------------- | ----------------------------------- | -------------------------------------------------------------------------------------- |
+| **Autonomous**       | Act without asking                  | Create tasks from hooks, generate briefs, send routine reminders, calculate aggregates |
+| **Notify + Suggest** | Alert a human and propose an action | "Coverage gap detected. Suggest posting open shift. [Post] [Dismiss]"                  |
+| **Notify only**      | Alert a human, no proposed action   | "Temperature deviation logged. Review required."                                       |
+| **Escalate**         | Pass to a higher authority          | "Unsigned session for 24+ hours. Escalating to admin."                                 |
+| **Never**            | Cannot do this                      | Change schedules, approve payroll, override sign-offs, delete data                     |
 
 **The principle:** AI handles the operational noise. Humans make the decisions. The AI's job is to ensure no decision is missed, no information is lost, and everyone has what they need exactly when they need it.
 
@@ -1140,30 +1162,31 @@ ai_session_event
   event_id             uuid (PK)
   session_id           fk → department_session
   workspace_id         fk → workspace
-  
+
   -- What happened
   event_type           triage | monitor | compile | predict | act | learn
   action               string (specific action taken: "task_created", "alert_sent", "brief_generated", etc.)
   description          text (human-readable description of what the AI did and why)
-  
+
   -- Context
   trigger_source       string (what triggered this: "hook_fired", "task_overdue", "note_created", etc.)
   trigger_ref_id       uuid | null (ID of the triggering entity)
-  
+
   -- Result
   result_type          success | failed | escalated | suppressed
   result_ref_ids       uuid[] | null (IDs of created/modified entities)
-  
+
   -- Authority
   authority_level      autonomous | notify_suggest | notify | escalate
   human_response       approved | dismissed | modified | pending | null
   human_response_by    fk → profile | null
   human_response_at    timestamp | null
-  
+
   created_at           timestamp
 ```
 
 **Why this matters:**
+
 - **Transparency:** Manager can see exactly what the AI did during a session: "Why did Anna get a push notification at 14:32?" → "HACCP temperature check was overdue by 15 minutes, AI sent reminder to assigned person."
 - **Debugging:** If something goes wrong, the event log shows the chain of decisions
 - **Learning validation:** See if AI predictions were accurate, if suggestions were accepted
@@ -1175,32 +1198,32 @@ Workspaces can tune AI behavior:
 
 ```
 ai_operations_config (part of workspace settings / Policy)
-  
+
   -- Monitoring sensitivity
   late_punchin_threshold     integer (minutes before alerting, default: 10)
   noshow_threshold           integer (minutes before confirming no-show, default: 30)
   task_overdue_grace         integer (minutes after due_at before escalating, default: 15)
-  
+
   -- Brief timing
   day_brief_offset           integer (minutes before first shift, default: 30)
   shift_brief_enabled        boolean (default: true)
   mid_session_digest_enabled boolean (default: false)
   mid_session_interval       integer (hours, default: 4)
-  
+
   -- Handoff
   auto_handoff_call_enabled  boolean (default: false — opt-in)
   handoff_call_offset        integer (minutes before shift end, default: 30)
   missed_handoff_threshold   integer (consecutive misses before auto-call activates, default: 3)
-  
+
   -- Predictions
   predictions_enabled        boolean (default: true)
   coverage_lookahead_days    integer (how far ahead to predict coverage gaps, default: 7)
-  
+
   -- Notification preferences
   ai_notification_channel    push | sms | email | voice (default notification method)
   quiet_hours_start          time | null
   quiet_hours_end            time | null
-  
+
   -- Authority overrides
   autonomous_task_creation   boolean (default: true — hooks create tasks automatically)
   autonomous_inheritance     boolean (default: true — no-show triggers auto-inherit)
@@ -1236,6 +1259,7 @@ SESSION LAYER (Runtime)
 ```
 
 **The relationship:**
+
 - A **Routine** defines WHAT should happen and HOW OFTEN (governance intent)
 - A **Session Hook** translates that into WHEN it fires within a daily session (operational schedule)
 - A **Session Task** is the actual work item created when the hook fires (runtime instance)
@@ -1272,12 +1296,12 @@ Task due_at passes
 
 **Escalation varies by priority:**
 
-| Priority | Grace period | L1 (team lead) | L2 (manager) | L3 (admin) |
-|----------|-------------|----------------|--------------|------------|
-| `critical` | 0 min | Immediate | +10 min | +20 min |
-| `high` | 10 min | +15 min | +30 min | +60 min |
-| `normal` | 15 min | +30 min | +60 min | +120 min |
-| `low` | 30 min | +60 min | No escalation | No escalation |
+| Priority   | Grace period | L1 (team lead) | L2 (manager)  | L3 (admin)    |
+| ---------- | ------------ | -------------- | ------------- | ------------- |
+| `critical` | 0 min        | Immediate      | +10 min       | +20 min       |
+| `high`     | 10 min       | +15 min        | +30 min       | +60 min       |
+| `normal`   | 15 min       | +30 min        | +60 min       | +120 min      |
+| `low`      | 30 min       | +60 min        | No escalation | No escalation |
 
 **Runbook integration:** When a task is linked to a Procedure that has an associated Runbook (via Protocol), and the task gets a deviation flag or hits Level 3 escalation, the Runbook activates automatically. The Runbook's own escalation chain and Control List take over from there.
 
@@ -1289,32 +1313,33 @@ Module 4 is where the majority of points are **earned** in Smartout. Every opera
 
 **Point-earning actions:**
 
-| Action | Base points | Modifier |
-|--------|------------|----------|
-| Complete a session task on time | 10 | ×1.5 if critical priority |
-| Complete a session task early (before due_at) | 10 + bonus | +5 per 15-min early block |
-| Claim and complete an inherited task | 15 | (reward for covering gaps) |
-| Complete all shift tasks (100% completion) | 25 | Shift completion bonus |
-| Clean session sign-off (all tasks done) | 50 | Department-level bonus |
-| Zero deviations in a session | 20 | Compliance bonus |
-| Complete HACCP task with data | 15 | Safety bonus |
-| Submit handoff | 10 | +5 if voice handoff (higher quality) |
-| Add a useful session note | 5 | (encourages information sharing) |
+| Action                                        | Base points | Modifier                             |
+| --------------------------------------------- | ----------- | ------------------------------------ |
+| Complete a session task on time               | 10          | ×1.5 if critical priority            |
+| Complete a session task early (before due_at) | 10 + bonus  | +5 per 15-min early block            |
+| Claim and complete an inherited task          | 15          | (reward for covering gaps)           |
+| Complete all shift tasks (100% completion)    | 25          | Shift completion bonus               |
+| Clean session sign-off (all tasks done)       | 50          | Department-level bonus               |
+| Zero deviations in a session                  | 20          | Compliance bonus                     |
+| Complete HACCP task with data                 | 15          | Safety bonus                         |
+| Submit handoff                                | 10          | +5 if voice handoff (higher quality) |
+| Add a useful session note                     | 5           | (encourages information sharing)     |
 
 **Point-reducing events:**
 
-| Event | Penalty |
-|-------|---------|
-| Task overdue (hit Level 1 escalation) | -5 |
-| Task escalated to Level 2+ | -10 |
-| Deviation flagged without corrective action | -10 |
-| No-show (shift not covered) | -25 |
-| Session sign-off with exceptions (incomplete required tasks) | -15 |
-| Missed handoff | -10 |
+| Event                                                        | Penalty |
+| ------------------------------------------------------------ | ------- |
+| Task overdue (hit Level 1 escalation)                        | -5      |
+| Task escalated to Level 2+                                   | -10     |
+| Deviation flagged without corrective action                  | -10     |
+| No-show (shift not covered)                                  | -25     |
+| Session sign-off with exceptions (incomplete required tasks) | -15     |
+| Missed handoff                                               | -10     |
 
 **Boosters apply here:** When a manager activates a booster (e.g., "2× points for HACCP tasks this week"), it multiplies the base points for matching session tasks. Boosters are defined at the Season/workspace level and filter by task category, department, or team.
 
 **Leaderboard feeds:**
+
 - Individual: sum of all points from session tasks across all sessions
 - Team: aggregate of team members' points within a season
 - Department: aggregate across department sessions
@@ -1327,17 +1352,20 @@ Module 4 is where the majority of points are **earned** in Smartout. Every opera
 **Question: what happens when an admin changes a shift template or hook mid-season?**
 
 **Shift Templates — snapshot at shift creation:**
+
 - When a manager creates a shift from a template, the shift captures a **snapshot** of the template's procedures at that moment
 - If the template is later modified, already-created shifts keep their original procedures
 - New shifts created from the updated template get the new version
 - This prevents a mid-season template change from silently altering already-published shifts
 
 **Session Hooks — effective immediately (for future sessions):**
+
 - Hook changes take effect from the next session forward
 - Already-generated session tasks from previous hooks are not modified
 - If a hook is deactivated, it stops firing in future sessions but doesn't remove tasks from current/past sessions
 
 **Procedures (Core Governance) — versioned via Protocol:**
+
 - Protocol has a `version` field (1.0, 1.1, 2.0)
 - When a Procedure is updated, the Protocol version increments
 - Session tasks link to the specific `procedure_step_id` at creation time — they reference the step as it was, not as it currently is
@@ -1350,12 +1378,14 @@ Module 4 is where the majority of points are **earned** in Smartout. Every opera
 When multiple sources (hooks, shift templates, recurring task configs) could create overlapping tasks:
 
 **Deduplication rules:**
+
 - Same `procedure_id` + same `session_id` + same `scheduled_at` (within 30-min window) = potential duplicate
 - System creates the task from the first source and marks subsequent duplicates as `suppressed` in the AI event log
 - Priority wins: if two sources define the same procedure but different priorities, the higher priority is used
 - Assignment wins: specific person > specific position > specific team > any_on_shift
 
 **Conflict resolution:**
+
 - Two hooks fire at the same time for the same person → tasks are created for both (person has two tasks, not a conflict)
 - A shift template and a hook both trigger the same procedure → deduplicated (one task, attributed to whichever source has higher priority)
 - A recurring task and a hook overlap → hook takes priority (hooks are session-specific and intentional; recurring tasks are background)
@@ -1407,22 +1437,23 @@ Season
 
 ### 19.2 Integration Points
 
-| Module | Integration |
-|--------|-------------|
-| **0. Core / Governance** | Policy → Protocol → Procedure/Routine → materializes as Session Tasks |
-| **2. Org Structure** | Department, Location, Zone, Asset, Position — all referenced by sessions and tasks |
-| **3. Scheduling** | Shifts are created from Shift Templates, linked to Sessions when started |
-| **5. HACCP** | HACCP procedures execute as session tasks with structured completion data |
-| **6. Training** | Readiness determines which procedures an employee is qualified to perform |
-| **7. Absence** | Absent employees trigger shift inheritance logic |
-| **8. Payroll** | Session data feeds payroll: hours, shifts, overtime context |
-| **9. Communication** | Day Brief pushed to team channels. Task notifications. Handoff delivery. |
-| **10. Dashboards** | Session aggregates + note analytics power operational dashboards |
+| Module                   | Integration                                                                        |
+| ------------------------ | ---------------------------------------------------------------------------------- |
+| **0. Core / Governance** | Policy → Protocol → Procedure/Routine → materializes as Session Tasks              |
+| **2. Org Structure**     | Department, Location, Zone, Asset, Position — all referenced by sessions and tasks |
+| **3. Scheduling**        | Shifts are created from Shift Templates, linked to Sessions when started           |
+| **5. HACCP**             | HACCP procedures execute as session tasks with structured completion data          |
+| **6. Training**          | Readiness determines which procedures an employee is qualified to perform          |
+| **7. Absence**           | Absent employees trigger shift inheritance logic                                   |
+| **8. Payroll**           | Session data feeds payroll: hours, shifts, overtime context                        |
+| **9. Communication**     | Day Brief pushed to team channels. Task notifications. Handoff delivery.           |
+| **10. Dashboards**       | Session aggregates + note analytics power operational dashboards                   |
 | **12. AI (Mr. Botsson)** | Generates Day Briefs, conducts voice handoffs, extracts structured data from notes |
 
 ### 19.3 Module Boundary
 
 **This module owns:**
+
 - Department Schedule
 - Department Session (lifecycle, sign-off)
 - Session Hooks
@@ -1440,6 +1471,7 @@ Season
 - Inheritance logic
 
 **This module does NOT own (but consumes):**
+
 - Procedure, Routine, Runbook, Control List (owned by Core/Governance)
 - Position (owned by Org Structure)
 - Shift scheduling & publishing (owned by Module 3 — Scheduling)
@@ -1454,27 +1486,27 @@ Season
 
 ### New entities introduced by this module
 
-| Entity | Purpose | Key relationships |
-|--------|---------|-------------------|
-| **department_schedule** | Operating hours per department per season | Department, Season |
-| **department_session** | Daily operational container | Department, Season |
-| **session_hook** | Timed triggers within a session | Department, Season, Procedure/Routine |
-| **session_task** | Runtime task instance (the actual work item) | Session, Procedure, Profile |
-| **session_note** | Information notes targeted at dates/sessions | Session, Department, Profile |
-| **day_brief** | AI-generated daily summary | Session, Department |
-| **session_handoff** | End-of-shift/session knowledge transfer | Session, Shift, Profile |
-| **ai_session_event** | AI action log for transparency and audit | Session |
-| **ai_operations_config** | Per-workspace AI tuning (via Policy/settings) | Workspace |
-| **shift_template** | Pre-configured shift work package | Department, Season, Position |
-| **shift_template_procedure** | Junction: template ↔ procedure | Shift Template, Procedure |
-| **recurring_task_config** | Location-bound recurring task definitions | Location, Zone, Asset, Procedure |
+| Entity                       | Purpose                                       | Key relationships                     |
+| ---------------------------- | --------------------------------------------- | ------------------------------------- |
+| **department_schedule**      | Operating hours per department per season     | Department, Season                    |
+| **department_session**       | Daily operational container                   | Department, Season                    |
+| **session_hook**             | Timed triggers within a session               | Department, Season, Procedure/Routine |
+| **session_task**             | Runtime task instance (the actual work item)  | Session, Procedure, Profile           |
+| **session_note**             | Information notes targeted at dates/sessions  | Session, Department, Profile          |
+| **day_brief**                | AI-generated daily summary                    | Session, Department                   |
+| **session_handoff**          | End-of-shift/session knowledge transfer       | Session, Shift, Profile               |
+| **ai_session_event**         | AI action log for transparency and audit      | Session                               |
+| **ai_operations_config**     | Per-workspace AI tuning (via Policy/settings) | Workspace                             |
+| **shift_template**           | Pre-configured shift work package             | Department, Season, Position          |
+| **shift_template_procedure** | Junction: template ↔ procedure                | Shift Template, Procedure             |
+| **recurring_task_config**    | Location-bound recurring task definitions     | Location, Zone, Asset, Procedure      |
 
 ### Modified entities
 
-| Entity | Change |
-|--------|--------|
-| **position** | Renamed from `job` in Module 2. Same schema. |
-| **shift** | Added `session_id`, `template_id`. Updated to reference new model. |
+| Entity       | Change                                                             |
+| ------------ | ------------------------------------------------------------------ |
+| **position** | Renamed from `job` in Module 2. Same schema.                       |
+| **shift**    | Added `session_id`, `template_id`. Updated to reference new model. |
 
 ---
 
@@ -1500,6 +1532,7 @@ These changes should be discussed and decided before implementation begins.
 When an employee works across departments (Kitchen 08:00–14:00, Bar 14:00–20:00), the app **auto-switches context** based on the active shift and punch-in.
 
 **How it works:**
+
 - Employee punches into Kitchen shift → app context = Kitchen Session
 - Kitchen shift ends, employee punches into Bar shift → app context auto-switches to Bar Session
 - No manual session switching needed
@@ -1513,6 +1546,7 @@ When an employee works across departments (Kitchen 08:00–14:00, Bar 14:00–20
 The primary mobile view is a **unified feed** — a stream of tasks, notes, briefs, and messages ordered by relevance and time. The employee doesn't think in sessions or shifts; they think in "what do I need to do right now."
 
 **Feed composition:**
+
 ```
 Feed (personalized, real-time)
   │
@@ -1547,6 +1581,7 @@ Feed (personalized, real-time)
 Point values are **configurable per workspace** (admin sets the values) with **AI recommendations** based on behavioral data.
 
 **How it works:**
+
 - System ships with sensible defaults (the values in Section 19.2)
 - Admin can adjust any point value via workspace settings (Policy: `policy_type: gamification`)
 - AI analyzes engagement data over time and suggests adjustments:
@@ -1557,6 +1592,7 @@ Point values are **configurable per workspace** (admin sets the values) with **A
 - AI never changes point values autonomously (follows authority level: notify + suggest)
 
 **Configuration stored as:**
+
 ```
 gamification_config (via Policy, policy_type: gamification)
   rules_json: {
@@ -1589,6 +1625,7 @@ gamification_config (via Policy, policy_type: gamification)
 When someone adds a note, the **AI evaluates the content** and auto-creates an ad-hoc task if it detects an action is needed. The note remains as information; the task is the trackable action.
 
 **How it works:**
+
 ```
 User adds note: "We're out of sugar, need to buy it before tomorrow"
   │
@@ -1612,14 +1649,14 @@ User adds note: "We're out of sugar, need to buy it before tomorrow"
 
 **AI classification examples:**
 
-| Note content | AI assessment | Action |
-|-------------|---------------|--------|
-| "Customer Nilsen loved the new menu" | Information only, no action needed | Note only, `is_actionable: false` |
-| "Oven 2 making strange noise" | Warning, action needed | Note + task: "Inspect Oven 2", category: maintenance, priority: high |
-| "Private event Saturday 20 pax" | Event, prep action needed | Note + task: "Prepare for Saturday event (20 pax)", due: Saturday pre-open |
-| "Health inspector might visit this week" | Warning, no specific action | Note only, `is_actionable: false`, but flagged in Day Brief as warning |
-| "We ran out of napkins during service" | Supply issue, action needed | Note + task: "Restock napkins", category: supply, priority: normal |
-| "Great teamwork today, thanks everyone!" | Positive feedback, no action | Note only, but flagged for engagement/morale tracking |
+| Note content                             | AI assessment                      | Action                                                                     |
+| ---------------------------------------- | ---------------------------------- | -------------------------------------------------------------------------- |
+| "Customer Nilsen loved the new menu"     | Information only, no action needed | Note only, `is_actionable: false`                                          |
+| "Oven 2 making strange noise"            | Warning, action needed             | Note + task: "Inspect Oven 2", category: maintenance, priority: high       |
+| "Private event Saturday 20 pax"          | Event, prep action needed          | Note + task: "Prepare for Saturday event (20 pax)", due: Saturday pre-open |
+| "Health inspector might visit this week" | Warning, no specific action        | Note only, `is_actionable: false`, but flagged in Day Brief as warning     |
+| "We ran out of napkins during service"   | Supply issue, action needed        | Note + task: "Restock napkins", category: supply, priority: normal         |
+| "Great teamwork today, thanks everyone!" | Positive feedback, no action       | Note only, but flagged for engagement/morale tracking                      |
 
 **Override:** If the AI creates a task the user didn't intend, the task can be dismissed by any team lead+. If the AI misses an action, any user can manually create a task from a note (tap note → "Create task"). The AI learns from both corrections.
 
@@ -1629,11 +1666,11 @@ User adds note: "We're out of sugar, need to buy it before tomorrow"
 
 Admins decide how much of the gamification layer employees can see:
 
-| Setting | What employees see | What managers see |
-|---------|-------------------|-------------------|
-| `full` | Personal score, team score, department leaderboard, workspace leaderboard | Everything + individual employee scores + analytics |
-| `personal_only` | Their own points and achievements only | Everything |
-| `managers_only` | Nothing — gamification runs silently | Full visibility + analytics |
+| Setting         | What employees see                                                        | What managers see                                   |
+| --------------- | ------------------------------------------------------------------------- | --------------------------------------------------- |
+| `full`          | Personal score, team score, department leaderboard, workspace leaderboard | Everything + individual employee scores + analytics |
+| `personal_only` | Their own points and achievements only                                    | Everything                                          |
+| `managers_only` | Nothing — gamification runs silently                                      | Full visibility + analytics                         |
 
 **Default:** `personal_only` — employees see their own progress without competitive pressure. Admin can upgrade to `full` when the culture supports it.
 
@@ -1646,6 +1683,7 @@ Admins decide how much of the gamification layer employees can see:
 Specific considerations for migration from Bubble to Next.js/Supabase:
 
 **Session & Tasks:**
+
 - `department_session` auto-generation should be an Edge Function or database trigger, not client-side
 - `session_task` table will be high-volume — needs proper indexing on `session_id`, `status`, `category`, `completed_by`, `scheduled_at`
 - Hook evaluation (checking offsets, generating tasks) runs as a scheduled Edge Function, e.g., every 5 minutes
@@ -1658,6 +1696,7 @@ Specific considerations for migration from Bubble to Next.js/Supabase:
 - Recurring task generation: nightly Edge Function creates instances for the next N days based on `recurring_task_config`
 
 **Information Layer:**
+
 - `session_note` needs full-text search — consider `pg_trgm` extension or Supabase full-text search for searching notes across sessions
 - Day Brief generation calls the AI (Operation Engine) via Edge Function, triggered ~30 min before first shift or at configured time
 - Day Brief delivery to team chat requires integration with Module 9 (Communication) — the brief is posted as a structured message
@@ -1668,6 +1707,7 @@ Specific considerations for migration from Bubble to Next.js/Supabase:
 - RLS for notes: respect `visibility` scope — workspace-wide notes visible to all, department notes to department members, team notes to team members
 
 **AI Operations:**
+
 - AI monitoring runs as a persistent process — either a long-running Edge Function or an n8n workflow that polls session state every 1–5 minutes
 - Day Brief and Shift Brief generation should be async Edge Functions calling the AI with session context as structured prompt
 - AI event log (`ai_session_event`) will be high-volume — consider write-optimized table with periodic archival
@@ -1679,4 +1719,4 @@ Specific considerations for migration from Bubble to Next.js/Supabase:
 
 ---
 
-*This document redefines Module 4 from simple task management to a comprehensive operational model built around the Department Session. It bridges the governance framework (Core Architecture) with daily restaurant operations, ensuring every task is trackable, every day is accountable, every piece of information is captured, and no work falls through the cracks. The AI layer ensures nothing is missed, everyone is informed, and the system gets smarter over time.*
+_This document redefines Module 4 from simple task management to a comprehensive operational model built around the Department Session. It bridges the governance framework (Core Architecture) with daily restaurant operations, ensuring every task is trackable, every day is accountable, every piece of information is captured, and no work falls through the cracks. The AI layer ensures nothing is missed, everyone is informed, and the system gets smarter over time._

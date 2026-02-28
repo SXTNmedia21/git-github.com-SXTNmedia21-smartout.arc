@@ -19,19 +19,19 @@
 
 ## 2. 11 Core Types
 
-| # | Type | Category | Purpose |
-|---|------|----------|---------|
-| 1 | User | Identity | Person. Login. One per human. |
-| 2 | Company | Identity | Legal entity. Can have multiple Workspaces. |
-| 3 | CompanyMember | Identity | Thin bridge User ↔ Company. |
-| 4 | Workspace | Identity | Physical workplace. Operational unit. |
-| 5 | Profile | Identity | Rich bridge User ↔ Workspace. Work identity. |
-| 6 | Department | Structure | Fixed organizational division. Never season-aware. |
-| 7 | Location | Structure | Physical place within a Workspace. |
-| 8 | Team | Structure | Dynamic access group. Season-aware. |
-| 9 | Policy | Governance | Universal rule. One statement. One standard. |
-| 10 | Protocol | Governance | Enforcement container for a Policy (1:1). |
-| 11 | Season | Time | Operational time context. |
+| #   | Type          | Category   | Purpose                                            |
+| --- | ------------- | ---------- | -------------------------------------------------- |
+| 1   | User          | Identity   | Person. Login. One per human.                      |
+| 2   | Company       | Identity   | Legal entity. Can have multiple Workspaces.        |
+| 3   | CompanyMember | Identity   | Thin bridge User ↔ Company.                        |
+| 4   | Workspace     | Identity   | Physical workplace. Operational unit.              |
+| 5   | Profile       | Identity   | Rich bridge User ↔ Workspace. Work identity.       |
+| 6   | Department    | Structure  | Fixed organizational division. Never season-aware. |
+| 7   | Location      | Structure  | Physical place within a Workspace.                 |
+| 8   | Team          | Structure  | Dynamic access group. Season-aware.                |
+| 9   | Policy        | Governance | Universal rule. One statement. One standard.       |
+| 10  | Protocol      | Governance | Enforcement container for a Policy (1:1).          |
+| 11  | Season        | Time       | Operational time context.                          |
 
 ## 3. Extension Types
 
@@ -66,5 +66,5 @@ Default mode: just work, everything is "default." Advanced mode: create named se
 
 ---
 
-*For complete field-level schemas, see SMARTOUT_CORE_ARCHITECTURE_v2.md.*
-*For all enums, see SMARTOUT_APPENDIX_ENUMS.md.*
+_For complete field-level schemas, see SMARTOUT_CORE_ARCHITECTURE_v2.md._
+_For all enums, see SMARTOUT_APPENDIX_ENUMS.md._

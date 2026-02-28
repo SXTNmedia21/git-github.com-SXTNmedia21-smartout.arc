@@ -1,7 +1,10 @@
 import { createAdminClient } from "@smartout/supabase/admin";
 import { getSuperAdminId } from "@/lib/platform-admin";
 import { redirect } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
+import { ContractListClient } from "@/components/platform-admin/contract-list-client";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 
 export default async function ContractsPage() {
   const adminId = await getSuperAdminId();
@@ -11,73 +14,42 @@ export default async function ContractsPage() {
   const { data: contracts } = await admin
     .from("contract")
     .select(
-      `contract_id, title, status, sent_at, signed_at, expires_at, created_at,
-       company:company_id (name),
-       template:template_id (name, template_type)`,
+      `contract_id, title, status, contract_type, recipient_name, recipient_email,
+       sent_at, signed_at, expires_at, created_at, signed_pdf_url,
+       company:workspace_id (name),
+       template:template_id (name, contract_type)`,
     )
     .order("created_at", { ascending: false });
 
-  const statusColor: Record<string, string> = {
-    draft: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
-    sent: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-    viewed: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
-    signed: "bg-green-500/10 text-green-400 border-green-500/20",
-    expired: "bg-red-500/10 text-red-400 border-red-500/20",
-    cancelled: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
-  };
+  // Normalize the data shape for the client component
+  const normalizedContracts = (contracts || []).map((c) => ({
+    ...c,
+    contract_type:
+      c.contract_type ||
+      (c.template as { contract_type: string } | null)?.contract_type ||
+      "custom",
+    company: c.company as { name: string } | null,
+    template: c.template as { name: string; contract_type: string } | null,
+  }));
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold">Contracts</h1>
-      <p className="text-muted-foreground mt-1 text-sm">Platform contract management</p>
-
-      <div className="border-border mt-6 rounded-md border">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-border text-muted-foreground border-b text-left text-xs tracking-wider uppercase">
-              <th className="px-4 py-3">Title</th>
-              <th className="px-4 py-3">Company</th>
-              <th className="px-4 py-3">Type</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Signed</th>
-              <th className="px-4 py-3">Expires</th>
-            </tr>
-          </thead>
-          <tbody>
-            {contracts?.map((contract) => (
-              <tr key={contract.contract_id} className="border-border border-b last:border-0">
-                <td className="px-4 py-3 font-medium">{contract.title}</td>
-                <td className="text-muted-foreground px-4 py-3">
-                  {(contract.company as { name: string } | null)?.name || "\u2014"}
-                </td>
-                <td className="text-muted-foreground px-4 py-3 capitalize">
-                  {(
-                    (contract.template as { template_type: string } | null)?.template_type ||
-                    "\u2014"
-                  ).replace("_", " ")}
-                </td>
-                <td className="px-4 py-3">
-                  <Badge
-                    variant="outline"
-                    className={`text-xs capitalize ${statusColor[contract.status] || ""}`}
-                  >
-                    {contract.status}
-                  </Badge>
-                </td>
-                <td className="text-muted-foreground px-4 py-3">
-                  {contract.signed_at
-                    ? new Date(contract.signed_at).toLocaleDateString("no-NO")
-                    : "\u2014"}
-                </td>
-                <td className="text-muted-foreground px-4 py-3">
-                  {contract.expires_at
-                    ? new Date(contract.expires_at).toLocaleDateString("no-NO")
-                    : "\u2014"}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">Contracts</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Platform contract management — create, track, and manage all contracts
+          </p>
+        </div>
+        <Link href="/platform-admin/contracts/new">
+          <Button>
+            <Plus className="mr-2 h-4 w-4" />
+            Ny kontrakt
+          </Button>
+        </Link>
+      </div>
+      <div className="mt-6">
+        <ContractListClient data={normalizedContracts} />
       </div>
     </div>
   );

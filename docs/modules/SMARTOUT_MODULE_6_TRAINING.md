@@ -12,10 +12,10 @@ Training in Smartout is the **third onboarding system** — the longest-running 
 
 ### The Three Training Systems
 
-| System | What it teaches | Timeline | Owned by |
-|--------|----------------|----------|----------|
-| **Trainee Mode** | Smartout the software | Before first shift (days) | Module 1 |
-| **Module Journeys** | Per-module UI features | Part of trainee mode + ongoing | Module 1 |
+| System                | What it teaches                                 | Timeline                       | Owned by                   |
+| --------------------- | ----------------------------------------------- | ------------------------------ | -------------------------- |
+| **Trainee Mode**      | Smartout the software                           | Before first shift (days)      | Module 1                   |
+| **Module Journeys**   | Per-module UI features                          | Part of trainee mode + ongoing | Module 1                   |
 | **Protocol Training** | The actual job — procedures, safety, compliance | Ongoing (weeks/months/forever) | **This module (Module 6)** |
 
 Protocol Training runs on the **Governance model**: when an employee joins a Team or Department, they receive Policies → each enforced Policy has a Protocol → they must complete the Protocol's Procedures, pass Knowledge Tests, and sign Confirmations → when ALL are done, they're **READY**.
@@ -69,6 +69,7 @@ Employee joins Team or Department
 ```
 
 **Scope cascade:**
+
 1. **Workspace-wide Policies** → everyone gets them (e.g., fire safety, GDPR, house rules)
 2. **Department Policies** → all department members (e.g., kitchen hygiene, service standards)
 3. **Team Policies** → team members only (e.g., lunch crew specific prep procedures)
@@ -82,18 +83,18 @@ protocol_assignment
   profile_id           fk → profile
   protocol_id          fk → protocol
   workspace_id         fk → workspace
-  
+
   -- How it was assigned
   assigned_via         team | department | workspace | position | manual | season
   assigned_ref_id      uuid | null (team_id, department_id, etc.)
   assigned_at          timestamp
   assigned_by          fk → profile | null (null = system-assigned)
-  
+
   -- Completion tracking
   status               not_started | in_progress | completed | expired | waived
   started_at           timestamp | null
   completed_at         timestamp | null
-  
+
   -- Component progress (denormalized for dashboard performance)
   procedures_total     integer
   procedures_completed integer
@@ -101,14 +102,14 @@ protocol_assignment
   tests_passed         integer
   confirmations_total  integer
   confirmations_signed integer
-  
+
   -- Waiver (manager can waive for experienced hires)
   waived_by            fk → profile | null
   waived_reason        text | null
-  
+
   -- Versioning
   protocol_version     string (version at time of assignment)
-  
+
   created_at           timestamp
   updated_at           timestamp
 ```
@@ -116,6 +117,7 @@ protocol_assignment
 ### 2.3 What Happens When Protocols Update
 
 When a Protocol is versioned (e.g., 1.0 → 1.1):
+
 - **Minor update (1.0 → 1.1):** Existing completed assignments stay valid. New employees get 1.1.
 - **Major update (1.0 → 2.0):** Admin chooses: reset all assignments or only reset specific components (e.g., "everyone must re-sign the Confirmation, but procedure completion carries over")
 - AI alerts employees: "Hygiene Protocol has been updated. You have 2 new steps to complete."
@@ -127,6 +129,7 @@ When a Protocol is versioned (e.g., 1.0 → 1.1):
 ### 3.1 Procedures Are Training Material
 
 A Procedure (from Governance) serves dual purpose:
+
 1. **Runtime:** Steps materialized as session_tasks during operations (Module 4)
 2. **Training:** The same steps used as learning material for new employees
 
@@ -145,11 +148,11 @@ procedure_step (existing, with training-relevant fields)
   step_order           integer
   is_required          boolean
   estimated_minutes    integer | null
-  
+
   -- Training content (used when step is viewed as learning material)
   training_content     text | null (extended explanation, tips, context — markdown)
   media_urls           jsonb | null ([{type: "image"|"video", url: "...", caption: "..."}])
-  
+
   created_at           timestamp
   updated_at           timestamp
 ```
@@ -183,11 +186,11 @@ Procedure: "Temperaturmåling Kjøkken"
 
 The same Procedure renders differently depending on context:
 
-| Context | What's shown |
-|---------|-------------|
-| **Training mode** | Full step with `training_content`, media, explanations, AI can answer questions |
-| **Operations mode** (session_task) | Compact step with `description` only — the employee already knows what to do |
-| **Refresher mode** | Employee can expand any step to see training_content again from the task view |
+| Context                            | What's shown                                                                    |
+| ---------------------------------- | ------------------------------------------------------------------------------- |
+| **Training mode**                  | Full step with `training_content`, media, explanations, AI can answer questions |
+| **Operations mode** (session_task) | Compact step with `description` only — the employee already knows what to do    |
+| **Refresher mode**                 | Employee can expand any step to see training_content again from the task view   |
 
 ---
 
@@ -252,26 +255,27 @@ knowledge_test_attempt
   profile_id           fk → profile
   assignment_id        fk → protocol_assignment
   workspace_id         fk → workspace
-  
+
   -- Attempt details
   attempt_number       integer (1, 2, 3...)
   started_at           timestamp
   completed_at         timestamp | null
-  
+
   -- Results
   answers              jsonb ([{question_id, answer, is_correct, points_earned}])
   score                decimal (percentage)
   passed               boolean
-  
+
   -- AI grading (for free_text questions)
   ai_grading_notes     jsonb | null ([{question_id, ai_assessment, confidence}])
-  
+
   created_at           timestamp
 ```
 
 ### 4.3 Adaptive Testing (AI)
 
 The Learning Engine (Module 12) can adjust difficulty:
+
 - Employee fails same question type repeatedly → AI suggests reviewing specific Procedure steps
 - Employee passes easily → AI can recommend skipping basic tests and jumping to advanced
 - Free-text answers graded by AI with confidence score — low confidence flags for manual review by manager
@@ -291,20 +295,21 @@ confirmation_signature
   profile_id           fk → profile
   assignment_id        fk → protocol_assignment
   workspace_id         fk → workspace
-  
+
   signed_at            timestamp
   ip_address           string | null (for audit trail)
   device_info          string | null ("iPhone 15 / Smartout App 2.1")
-  
+
   -- Digital signature (if requires_signature = true)
   signature_data       text | null (base64 encoded signature image)
-  
+
   created_at           timestamp
 ```
 
 ### 5.2 Anti-Ghosting
 
 Confirmations prevent "I never saw that" situations:
+
 - Timestamped digital record that the employee acknowledged the policy
 - Optional digital signature
 - Device and IP logged for compliance
@@ -328,7 +333,7 @@ Position: Kokk
     ❌ Allergen management (Protocol: Allergen Safety → in_progress, 60%)
     ✅ Fire safety (Protocol: Fire Procedures → completed)
     ❌ Food prep level 2 (Protocol: Advanced Prep → not_started)
-  
+
   Readiness for Kokk position: 3/5 = 60%
 ```
 
@@ -355,6 +360,7 @@ Position: Kokk
 ### 6.3 CV Builder (Employee Desktop)
 
 On the desktop platform, employees see their competence as a professional CV:
+
 - All completed Protocols and their dates
 - All certifications (from Module 5)
 - All Knowledge Tests passed with scores
@@ -376,22 +382,22 @@ Position: Servitør
   Handbook Contents:
     1. Velkommen som Servitør
        → Confirmation: "Velkommen" sign-off
-    
+
     2. Servering & Gjestkontakt
        → Procedure: "Bordservering" (12 steps with media)
        → Procedure: "Vinservering" (8 steps)
        → Knowledge Test: "Service Standards Quiz"
-    
+
     3. Allergenbehandling
        → Procedure: "Allergenkommunikasjon med gjester" (7 steps)
        → Procedure: "Allergenkommunikasjon med kjøkken" (5 steps)
        → Knowledge Test: "Allergen Quiz"
        → Confirmation: "Allergenansvar"
-    
+
     4. Kassesystem & Betaling
        → Procedure: "Kasseopplæring" (10 steps with video)
        → Procedure: "Deling av regning" (4 steps)
-    
+
     5. Brann & Sikkerhet
        → Procedure: "Brannrutine" (8 steps)
        → Knowledge Test: "Brannsikkerhet"
@@ -401,6 +407,7 @@ Position: Servitør
 ### 7.2 Version Control
 
 Handbooks inherit versioning from Protocol.version. When a Protocol is updated:
+
 - Handbook automatically reflects the new version
 - Employees who completed the old version may need to re-read/re-sign depending on change type
 - AI notifies: "The Allergen Protocol has been updated. Review the 2 new steps added to 'Allergenkommunikasjon med gjester'."
@@ -417,15 +424,15 @@ For protocols that include a Confirmation with `confirmation_text` like "I have 
 
 The Learning Engine (Mr. Botsson, Module 12) personalizes training:
 
-| Capability | How it works |
-|------------|-------------|
-| **Knowledge gap detection** | Analyzes test results and task performance to identify weak areas |
-| **Personalized priority** | "Your first shift is in the Kitchen — prioritize HACCP and Hygiene protocols" |
-| **Difficulty adaptation** | Employee struggles with allergen content → AI provides more examples and simpler explanations |
-| **Spaced repetition** | After passing a test, AI re-asks questions weeks later to reinforce retention |
-| **Content generation** | AI creates additional practice questions based on Procedure content |
-| **Contextual training** | During a shift, if employee hesitates on a task → AI offers a quick refresher of the relevant Procedure |
-| **Language adaptation** | Training content in workspace language, but AI can explain in employee's preferred_language |
+| Capability                  | How it works                                                                                            |
+| --------------------------- | ------------------------------------------------------------------------------------------------------- |
+| **Knowledge gap detection** | Analyzes test results and task performance to identify weak areas                                       |
+| **Personalized priority**   | "Your first shift is in the Kitchen — prioritize HACCP and Hygiene protocols"                           |
+| **Difficulty adaptation**   | Employee struggles with allergen content → AI provides more examples and simpler explanations           |
+| **Spaced repetition**       | After passing a test, AI re-asks questions weeks later to reinforce retention                           |
+| **Content generation**      | AI creates additional practice questions based on Procedure content                                     |
+| **Contextual training**     | During a shift, if employee hesitates on a task → AI offers a quick refresher of the relevant Procedure |
+| **Language adaptation**     | Training content in workspace language, but AI can explain in employee's preferred_language             |
 
 ### 8.2 Proactive Training Nudges
 
@@ -453,6 +460,7 @@ Mr. Botsson to manager:
 ### 8.3 Post-Deviation Training
 
 When an employee flags a deviation or makes an error during a session:
+
 - AI identifies which Protocol/Procedure is relevant
 - Suggests a refresher: "It looks like the temperature measurement didn't follow the correct procedure. Would you like to review the steps?"
 - Tracks whether refresher was completed
@@ -465,6 +473,7 @@ When an employee flags a deviation or makes an error during a session:
 ### 9.1 Cross-Training (Department/Team Move)
 
 When an active employee moves to a new Department or Team:
+
 - **Status stays `active`** — no trainee mode
 - New Policies from the new Department/Team are automatically assigned
 - AI identifies: "You already completed Fire Safety (workspace-wide) — that carries over. You need 4 new protocols for the Bar."
@@ -474,6 +483,7 @@ When an active employee moves to a new Department or Team:
 ### 9.2 Season-Based Training
 
 New Season with new Protocols:
+
 - AI detects unfinished protocols for existing employees
 - Proactive outreach: "Sommersesong er i gang. Du har 3 nye rutiner å lære for uteterrassen."
 - Season-specific training can have deadlines (e.g., "must be completed before season start")
@@ -481,6 +491,7 @@ New Season with new Protocols:
 ### 9.3 Continuous Learning
 
 Even after all protocols are completed (100% readiness):
+
 - **Periodic re-assessment:** Knowledge Tests can be set to re-trigger after N months
 - **Protocol updates:** New versions create new learning requirements
 - **Spaced repetition:** AI re-tests on critical knowledge (HACCP, allergens) over time
@@ -492,16 +503,16 @@ Even after all protocols are completed (100% readiness):
 
 Training activities earn points within the Season gamification system (Module 4):
 
-| Activity | Points (configurable) |
-|----------|----------------------|
-| Complete a Procedure (read through all steps) | 10 |
-| Pass a Knowledge Test (first attempt) | 25 |
-| Pass a Knowledge Test (retry) | 15 |
-| Sign a Confirmation | 5 |
-| Complete an entire Protocol | 50 bonus |
-| Reach 100% readiness | 100 bonus |
-| Complete a refresher/re-assessment | 10 |
-| Help a trainee (mentor) | 20 |
+| Activity                                      | Points (configurable) |
+| --------------------------------------------- | --------------------- |
+| Complete a Procedure (read through all steps) | 10                    |
+| Pass a Knowledge Test (first attempt)         | 25                    |
+| Pass a Knowledge Test (retry)                 | 15                    |
+| Sign a Confirmation                           | 5                     |
+| Complete an entire Protocol                   | 50 bonus              |
+| Reach 100% readiness                          | 100 bonus             |
+| Complete a refresher/re-assessment            | 10                    |
+| Help a trainee (mentor)                       | 20                    |
 
 Point values are configurable per workspace via `gamification_config.rules_json`. AI can suggest appropriate values based on protocol importance.
 
@@ -511,61 +522,61 @@ Point values are configurable per workspace via `gamification_config.rules_json`
 
 ### New Tables (this module)
 
-| Entity | Purpose | Key fields |
-|--------|---------|------------|
-| **protocol_assignment** | Tracks which Protocols are assigned to which employees | profile_id, protocol_id, status, component progress counts, versioning |
-| **knowledge_test_attempt** | Individual test attempt with answers and results | test_id, profile_id, attempt_number, score, passed, AI grading |
-| **confirmation_signature** | Digital signature/acknowledgment record | confirmation_id, profile_id, signed_at, device_info, signature_data |
+| Entity                     | Purpose                                                | Key fields                                                             |
+| -------------------------- | ------------------------------------------------------ | ---------------------------------------------------------------------- |
+| **protocol_assignment**    | Tracks which Protocols are assigned to which employees | profile_id, protocol_id, status, component progress counts, versioning |
+| **knowledge_test_attempt** | Individual test attempt with answers and results       | test_id, profile_id, attempt_number, score, passed, AI grading         |
+| **confirmation_signature** | Digital signature/acknowledgment record                | confirmation_id, profile_id, signed_at, device_info, signature_data    |
 
 ### Existing Tables Extended
 
-| Entity | Addition |
-|--------|----------|
+| Entity             | Addition                                                                          |
+| ------------------ | --------------------------------------------------------------------------------- |
 | **procedure_step** | `training_content` (text), `media_urls` (jsonb) — rich training material per step |
 
 ### Existing Tables Used (no modifications)
 
-| Entity | Training Usage |
-|--------|---------------|
-| **Protocol** | The training unit — contains all components |
-| **Procedure** | Training material (steps with content and media) |
-| **Knowledge Test** | Quiz/test verification |
-| **Confirmation** | Sign-off acknowledgment |
-| **Policy** | The rule that drives training assignment |
-| **Profile** | Readiness tracking via protocol_assignment aggregation |
-| **Position** | skill_requirements define which protocols are needed |
-| **Team/Department** | Membership drives automatic protocol assignment |
+| Entity              | Training Usage                                         |
+| ------------------- | ------------------------------------------------------ |
+| **Protocol**        | The training unit — contains all components            |
+| **Procedure**       | Training material (steps with content and media)       |
+| **Knowledge Test**  | Quiz/test verification                                 |
+| **Confirmation**    | Sign-off acknowledgment                                |
+| **Policy**          | The rule that drives training assignment               |
+| **Profile**         | Readiness tracking via protocol_assignment aggregation |
+| **Position**        | skill_requirements define which protocols are needed   |
+| **Team/Department** | Membership drives automatic protocol assignment        |
 
 ---
 
 ## 12. Integration Points
 
-| Module | Integration |
-|--------|-------------|
-| **Core Architecture** | Governance model is the training backbone. Readiness score = core product metric. |
-| **Module 1: Onboarding** | Trainee Mode teaches Smartout. Module 6 teaches the job. They run in parallel but are distinct systems. |
-| **Module 2: Org Structure** | Team/Department membership triggers protocol assignment. Position defines skill requirements. |
-| **Module 3: Scheduling** | Employees below readiness threshold can be flagged in scheduler. Shift assignment considers training completion for safety-critical positions. |
-| **Module 4: Operations** | Session tasks ARE the runtime execution of trained Procedures. Deviations trigger refresher training. Gamification points for training completion. |
-| **Module 5: HACCP** | HACCP protocols are a high-priority subset of training. Certificate tracking in Module 5 cross-references training completion. |
-| **Module 9: Communication** | Training reminders, deadline alerts, AI nudges via push/SMS. |
-| **Module 10: Reports** | Competence matrix, readiness scores, training completion rates, knowledge test analytics. |
-| **Module 12: AI** | Learning Engine — adaptive training, knowledge gap detection, content generation, spaced repetition. |
+| Module                      | Integration                                                                                                                                        |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Core Architecture**       | Governance model is the training backbone. Readiness score = core product metric.                                                                  |
+| **Module 1: Onboarding**    | Trainee Mode teaches Smartout. Module 6 teaches the job. They run in parallel but are distinct systems.                                            |
+| **Module 2: Org Structure** | Team/Department membership triggers protocol assignment. Position defines skill requirements.                                                      |
+| **Module 3: Scheduling**    | Employees below readiness threshold can be flagged in scheduler. Shift assignment considers training completion for safety-critical positions.     |
+| **Module 4: Operations**    | Session tasks ARE the runtime execution of trained Procedures. Deviations trigger refresher training. Gamification points for training completion. |
+| **Module 5: HACCP**         | HACCP protocols are a high-priority subset of training. Certificate tracking in Module 5 cross-references training completion.                     |
+| **Module 9: Communication** | Training reminders, deadline alerts, AI nudges via push/SMS.                                                                                       |
+| **Module 10: Reports**      | Competence matrix, readiness scores, training completion rates, knowledge test analytics.                                                          |
+| **Module 12: AI**           | Learning Engine — adaptive training, knowledge gap detection, content generation, spaced repetition.                                               |
 
 ---
 
 ## 13. Implementation Sequence
 
-| Phase | Scope | Duration |
-|-------|-------|----------|
-| **1. Protocol assignment engine** | `protocol_assignment` table. Auto-assign on team/department membership. Status tracking. | Week 1–2 |
-| **2. Training content viewer** | Procedure step viewer with training_content and media. Mobile + desktop rendering. | Week 3–4 |
-| **3. Knowledge Test system** | `knowledge_test_attempt` table. Quiz UI (multiple choice, true/false, free text). Scoring. Pass/fail. | Week 5–6 |
-| **4. Confirmation signing** | `confirmation_signature` table. Digital sign-off UI. Device logging. | Week 7–8 |
-| **5. Readiness dashboard** | Competence matrix. Per-employee readiness score. Per-department aggregate. Admin filters. | Week 9–10 |
-| **6. Digital handbooks** | Position-based handbook view. Table of contents. Protocol grouping. Version tracking. | Week 11–12 |
-| **7. AI adaptive training** | Learning Engine integration. Knowledge gap detection. Personalized priority. Nudges. | Week 13–14 |
-| **8. CV builder** | Employee desktop view. Training history. Certificate integration. Professional profile. | Week 15–16 |
+| Phase                             | Scope                                                                                                 | Duration   |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------- | ---------- |
+| **1. Protocol assignment engine** | `protocol_assignment` table. Auto-assign on team/department membership. Status tracking.              | Week 1–2   |
+| **2. Training content viewer**    | Procedure step viewer with training_content and media. Mobile + desktop rendering.                    | Week 3–4   |
+| **3. Knowledge Test system**      | `knowledge_test_attempt` table. Quiz UI (multiple choice, true/false, free text). Scoring. Pass/fail. | Week 5–6   |
+| **4. Confirmation signing**       | `confirmation_signature` table. Digital sign-off UI. Device logging.                                  | Week 7–8   |
+| **5. Readiness dashboard**        | Competence matrix. Per-employee readiness score. Per-department aggregate. Admin filters.             | Week 9–10  |
+| **6. Digital handbooks**          | Position-based handbook view. Table of contents. Protocol grouping. Version tracking.                 | Week 11–12 |
+| **7. AI adaptive training**       | Learning Engine integration. Knowledge gap detection. Personalized priority. Nudges.                  | Week 13–14 |
+| **8. CV builder**                 | Employee desktop view. Training history. Certificate integration. Professional profile.               | Week 15–16 |
 
 ---
 
@@ -586,4 +597,4 @@ Specific considerations for migration from Bubble to Next.js/Supabase:
 
 ---
 
-*This module makes Smartout's value proposition concrete: "Readiness" isn't a marketing buzzword — it's a measurable score derived from the Governance model. Every Policy has a Protocol, every Protocol has trackable components, and every employee's progress is visible in real time. The Competence Matrix is the manager's answer to "who can I trust with this?" and the CV Builder is the employee's answer to "what have I learned here?"*
+_This module makes Smartout's value proposition concrete: "Readiness" isn't a marketing buzzword — it's a measurable score derived from the Governance model. Every Policy has a Protocol, every Protocol has trackable components, and every employee's progress is visible in real time. The Competence Matrix is the manager's answer to "who can I trust with this?" and the CV Builder is the employee's answer to "what have I learned here?"_

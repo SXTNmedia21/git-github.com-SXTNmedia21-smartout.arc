@@ -8,10 +8,7 @@ import type { SmartoutTool } from "../types";
 type LiveKitToolFactory = (config: {
   description: string;
   parameters: unknown;
-  execute: (
-    params: Record<string, unknown>,
-    opts: { ctx: unknown },
-  ) => Promise<unknown>;
+  execute: (params: Record<string, unknown>, opts: { ctx: unknown }) => Promise<unknown>;
 }) => unknown;
 
 /**

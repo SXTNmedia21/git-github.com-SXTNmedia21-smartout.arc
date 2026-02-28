@@ -10,10 +10,7 @@ import type { SmartoutTool } from "../types";
  * @param ctx - The context object passed to each tool's execute function
  * @returns Record of tool name -> Vercel AI SDK tool, ready for generateText()
  */
-export function toVercelTools<TCtx>(
-  tools: ReadonlyArray<SmartoutTool<TCtx>>,
-  ctx: TCtx,
-) {
+export function toVercelTools<TCtx>(tools: ReadonlyArray<SmartoutTool<TCtx>>, ctx: TCtx) {
   return Object.fromEntries(
     tools.map((t) => [
       t.name,

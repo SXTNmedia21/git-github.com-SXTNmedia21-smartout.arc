@@ -18,5 +18,11 @@ export type Employee = {
   emergencyContactName?: string;
   emergencyContactPhone?: string;
   hasContract?: boolean;
-  contactLog?: { id: string; type: string; channel: "email" | "sms"; status: "sent" | "delivered" | "failed"; date: string }[];
+  contactLog?: {
+    id: string;
+    type: string;
+    channel: "email" | "sms";
+    status: "sent" | "delivered" | "failed";
+    date: string;
+  }[];
 };

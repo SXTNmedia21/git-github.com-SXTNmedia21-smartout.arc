@@ -26,9 +26,7 @@ export const PlatformImpersonationLogSchema = z.object({
   ended_at: z.string().datetime().nullish(),
   actions_taken: z.array(z.unknown()).default([]),
 });
-export type PlatformImpersonationLog = z.infer<
-  typeof PlatformImpersonationLogSchema
->;
+export type PlatformImpersonationLog = z.infer<typeof PlatformImpersonationLogSchema>;
 
 // ─── Landing Config ────────────────────────────────────────────
 
@@ -85,9 +83,7 @@ export const PlatformContractTemplateSchema = z.object({
   created_at: z.string().datetime(),
   updated_at: z.string().datetime(),
 });
-export type PlatformContractTemplate = z.infer<
-  typeof PlatformContractTemplateSchema
->;
+export type PlatformContractTemplate = z.infer<typeof PlatformContractTemplateSchema>;
 
 // ─── Platform Contract Instance ────────────────────────────────
 
@@ -117,9 +113,7 @@ export const PlatformContractInstanceSchema = z.object({
   created_at: z.string().datetime(),
   updated_at: z.string().datetime(),
 });
-export type PlatformContractInstance = z.infer<
-  typeof PlatformContractInstanceSchema
->;
+export type PlatformContractInstance = z.infer<typeof PlatformContractInstanceSchema>;
 
 // ─── Platform Metrics Daily ────────────────────────────────────
 

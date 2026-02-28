@@ -28,10 +28,10 @@ Colors use OKLCH color space defined as CSS custom properties:
 
 ```tsx
 // CORRECT — use CSS variable classes
-className="bg-background text-foreground border-border"
+className = "bg-background text-foreground border-border";
 
 // WRONG — hardcoded values bypass theming and dark mode
-className="bg-zinc-950 text-zinc-100 border-zinc-800"
+className = "bg-zinc-950 text-zinc-100 border-zinc-800";
 ```
 
 ### Exception

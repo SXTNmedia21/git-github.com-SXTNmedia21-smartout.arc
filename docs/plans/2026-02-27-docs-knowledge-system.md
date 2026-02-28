@@ -15,6 +15,7 @@
 ### Task 1: Create ADR-0017 (RAG + pgvector)
 
 **Files:**
+
 - Create: `docs/decisions/0017-doc-rag-pgvector.md`
 
 **Step 1: Write ADR-0017**
@@ -31,16 +32,16 @@ The `docs/` folder contains 67+ markdown files (module specs, ADRs, architecture
 
 ## Decision Drivers
 
-* AI agents need runtime access to project documentation for accurate responses
-* Manual doc references don't scale as the doc count grows
-* Embedding-based retrieval gives semantic matching, not just keyword search
-* Cost must be negligible for a 67-file corpus
+- AI agents need runtime access to project documentation for accurate responses
+- Manual doc references don't scale as the doc count grows
+- Embedding-based retrieval gives semantic matching, not just keyword search
+- Cost must be negligible for a 67-file corpus
 
 ## Considered Options
 
-* Option A: pgvector in Supabase (existing infrastructure)
-* Option B: Pinecone or Weaviate (external vector DB)
-* Option C: In-memory embedding search (no persistence)
+- Option A: pgvector in Supabase (existing infrastructure)
+- Option B: Pinecone or Weaviate (external vector DB)
+- Option C: In-memory embedding search (no persistence)
 
 ## Decision Outcome
 
@@ -63,11 +64,11 @@ OpenAI `text-embedding-3-small` (1536 dimensions) via `@ai-sdk/openai`. Chosen f
 
 ## Rules & Consequences enforced for Agents
 
-* **Good, because** agents can semantically search all project docs at runtime
-* **Good, because** zero additional infrastructure cost (Supabase pgvector)
-* **Good, because** auto-ingestion keeps embeddings in sync with doc changes
-* **Bad, because** requires `OPENAI_API_KEY` as a new secret (managed via 1Password)
-* **Agent Impact:** New tools `search_platform_docs` and `get_doc_by_path` available in `@smartout/ai`. Use these to find relevant docs before making architectural decisions. The `platform_doc_chunk` table is platform-level — never apply RLS, always use service-role client.
+- **Good, because** agents can semantically search all project docs at runtime
+- **Good, because** zero additional infrastructure cost (Supabase pgvector)
+- **Good, because** auto-ingestion keeps embeddings in sync with doc changes
+- **Bad, because** requires `OPENAI_API_KEY` as a new secret (managed via 1Password)
+- **Agent Impact:** New tools `search_platform_docs` and `get_doc_by_path` available in `@smartout/ai`. Use these to find relevant docs before making architectural decisions. The `platform_doc_chunk` table is platform-level — never apply RLS, always use service-role client.
 ```
 
 **Step 2: Verify file exists**
@@ -80,6 +81,7 @@ Expected: `# ADR-0017: Documentation RAG with pgvector`
 ### Task 2: Create ADR-0018 (Enforcement Pipeline)
 
 **Files:**
+
 - Create: `docs/decisions/0018-doc-enforcement-pipeline.md`
 
 **Step 1: Write ADR-0018**
@@ -96,16 +98,16 @@ The project enforces ADR creation for architectural decisions (per CLAUDE.md), b
 
 ## Decision Drivers
 
-* ADR log (`0000-decision-log.md`) can drift from filesystem state
-* CLAUDE.md ADR table can drift from the decision log
-* No enforcement of doc structure conventions
-* Agents may create ADRs without registering them
+- ADR log (`0000-decision-log.md`) can drift from filesystem state
+- CLAUDE.md ADR table can drift from the decision log
+- No enforcement of doc structure conventions
+- Agents may create ADRs without registering them
 
 ## Considered Options
 
-* Option A: CLI validation tool in `packages/docs-pipeline`
-* Option B: Git pre-commit hook with shell script
-* Option C: CI-only validation (GitHub Actions)
+- Option A: CLI validation tool in `packages/docs-pipeline`
+- Option B: Git pre-commit hook with shell script
+- Option C: CI-only validation (GitHub Actions)
 
 ## Decision Outcome
 
@@ -113,14 +115,14 @@ Chosen option: "CLI validation tool in `packages/docs-pipeline`", because it can
 
 ### Validation Rules
 
-| Rule | Severity | Description |
-|------|----------|-------------|
-| ADR log consistency | FAIL | Every `NNNN-*.md` in `docs/decisions/` is listed in `0000-decision-log.md` and vice versa |
-| ADR required fields | FAIL | Each ADR has Status, Date, Context section, Decision section |
-| Frontmatter (plans) | FAIL | All `docs/plans/` files have YAML frontmatter |
-| Frontmatter (other) | WARN | Other docs missing frontmatter |
-| Cross-reference integrity | WARN | "See Module N" references point to existing files |
-| Module structure | WARN | Module specs have a `## ` overview section |
+| Rule                      | Severity | Description                                                                               |
+| ------------------------- | -------- | ----------------------------------------------------------------------------------------- |
+| ADR log consistency       | FAIL     | Every `NNNN-*.md` in `docs/decisions/` is listed in `0000-decision-log.md` and vice versa |
+| ADR required fields       | FAIL     | Each ADR has Status, Date, Context section, Decision section                              |
+| Frontmatter (plans)       | FAIL     | All `docs/plans/` files have YAML frontmatter                                             |
+| Frontmatter (other)       | WARN     | Other docs missing frontmatter                                                            |
+| Cross-reference integrity | WARN     | "See Module N" references point to existing files                                         |
+| Module structure          | WARN     | Module specs have a `## ` overview section                                                |
 
 ### Package Location
 
@@ -128,9 +130,9 @@ Chosen option: "CLI validation tool in `packages/docs-pipeline`", because it can
 
 ## Rules & Consequences enforced for Agents
 
-* **Good, because** catches ADR registration drift before it causes confusion
-* **Good, because** runs locally and in CI
-* **Agent Impact:** After creating any ADR, run `pnpm docs:validate` to verify registration. After modifying doc structure, run validation to catch issues. The validate command exits non-zero on FAIL severity rules — use `--strict` to also fail on WARNs.
+- **Good, because** catches ADR registration drift before it causes confusion
+- **Good, because** runs locally and in CI
+- **Agent Impact:** After creating any ADR, run `pnpm docs:validate` to verify registration. After modifying doc structure, run validation to catch issues. The validate command exits non-zero on FAIL severity rules — use `--strict` to also fail on WARNs.
 ```
 
 **Step 2: Verify file exists**
@@ -143,6 +145,7 @@ Expected: `# ADR-0018: Documentation Enforcement Pipeline`
 ### Task 3: Update Decision Log and CLAUDE.md
 
 **Files:**
+
 - Modify: `docs/decisions/0000-decision-log.md` (append 2 rows)
 - Modify: `CLAUDE.md` (ADR table + monorepo structure)
 
@@ -151,8 +154,8 @@ Expected: `# ADR-0018: Documentation Enforcement Pipeline`
 Add these two rows to the end of the table in `docs/decisions/0000-decision-log.md`:
 
 ```markdown
-| ADR-0017 | 27-02-2026 | [Documentation RAG with pgvector](./0017-doc-rag-pgvector.md)                            | **Accepted** |
-| ADR-0018 | 27-02-2026 | [Documentation Enforcement Pipeline](./0018-doc-enforcement-pipeline.md)                  | **Accepted** |
+| ADR-0017 | 27-02-2026 | [Documentation RAG with pgvector](./0017-doc-rag-pgvector.md) | **Accepted** |
+| ADR-0018 | 27-02-2026 | [Documentation Enforcement Pipeline](./0018-doc-enforcement-pipeline.md) | **Accepted** |
 ```
 
 **Step 2: Update CLAUDE.md ADR table**
@@ -185,6 +188,7 @@ Expected: `18`
 ### Task 4: Write Supabase Migration
 
 **Files:**
+
 - Create: `supabase/migrations/20260227200000_platform_doc_embeddings.sql`
 
 **Step 1: Write migration file**
@@ -331,6 +335,7 @@ Expected: Type definitions referencing the new table.
 ### Task 6: Commit Phase A
 
 Run:
+
 ```bash
 git add docs/decisions/0017-doc-rag-pgvector.md docs/decisions/0018-doc-enforcement-pipeline.md docs/decisions/0000-decision-log.md CLAUDE.md supabase/migrations/20260227200000_platform_doc_embeddings.sql packages/supabase/src/database.types.ts
 git commit -m "feat: add pgvector migration and ADRs for doc knowledge system
@@ -347,6 +352,7 @@ Migration: platform_doc_chunk table with HNSW index and match_platform_docs RPC"
 ### Task 7: Create Package Scaffold
 
 **Files:**
+
 - Create: `packages/docs-pipeline/package.json`
 - Create: `packages/docs-pipeline/tsconfig.json`
 
@@ -412,6 +418,7 @@ Expected: `package.json tsconfig.json`
 ### Task 8: Register Package in Workspace
 
 **Files:**
+
 - Modify: `turbo.json` (add tasks)
 - Modify: `package.json` (root — add scripts)
 
@@ -457,7 +464,7 @@ Add to `"scripts"` in root `package.json`:
 "docs:watch": "pnpm --filter @smartout/docs-pipeline watch"
 ```
 
-**Step 3: Verify pnpm-workspace.yaml already includes packages/***
+**Step 3: Verify pnpm-workspace.yaml already includes packages/\***
 
 Run: `cat pnpm-workspace.yaml`
 Expected: Contains `- "packages/*"` (already present — no change needed).
@@ -481,6 +488,7 @@ Expected: `ok`
 ### Task 10: Write Hash Utility
 
 **Files:**
+
 - Create: `packages/docs-pipeline/src/utils/hash.ts`
 
 **Step 1: Write hash utility**
@@ -509,6 +517,7 @@ Expected: No errors (may warn about missing src/index.ts — that's fine for now
 ### Task 11: Write Token Estimation Utility
 
 **Files:**
+
 - Create: `packages/docs-pipeline/src/utils/tokens.ts`
 
 **Step 1: Write token estimator**
@@ -529,6 +538,7 @@ export function estimateTokens(text: string): number {
 ### Task 12: Write Metadata Extractor
 
 **Files:**
+
 - Create: `packages/docs-pipeline/src/chunking/metadata-extractor.ts`
 
 **Step 1: Write metadata extractor**
@@ -581,10 +591,7 @@ export function detectDocType(relativePath: string): DocType {
  * Extract metadata from markdown content.
  * Handles both YAML frontmatter and inline metadata (existing ADR format).
  */
-export function extractMetadata(
-  content: string,
-  relativePath: string,
-): DocMetadata {
+export function extractMetadata(content: string, relativePath: string): DocMetadata {
   const doc_type = detectDocType(relativePath);
 
   // Try YAML frontmatter first
@@ -596,20 +603,14 @@ export function extractMetadata(
 
   // Extract status — YAML or inline **Status:** pattern
   const status =
-    (frontmatter.status as string) ||
-    content.match(/\*\*Status:\*\*\s*(.+)/)?.[1]?.trim() ||
-    null;
+    (frontmatter.status as string) || content.match(/\*\*Status:\*\*\s*(.+)/)?.[1]?.trim() || null;
 
   // Extract date — YAML or inline **Date:** pattern
   const date =
-    (frontmatter.date as string) ||
-    content.match(/\*\*Date:\*\*\s*(.+)/)?.[1]?.trim() ||
-    null;
+    (frontmatter.date as string) || content.match(/\*\*Date:\*\*\s*(.+)/)?.[1]?.trim() || null;
 
   // Extract tags from YAML frontmatter only
-  const tags = Array.isArray(frontmatter.tags)
-    ? (frontmatter.tags as string[])
-    : [];
+  const tags = Array.isArray(frontmatter.tags) ? (frontmatter.tags as string[]) : [];
 
   return { title, doc_type, status, date, tags, frontmatter };
 }
@@ -625,17 +626,14 @@ Expected: No errors.
 ### Task 13: Write Chunking Engine
 
 **Files:**
+
 - Create: `packages/docs-pipeline/src/chunking/chunker.ts`
 
 **Step 1: Write chunking engine**
 
 ```typescript
 import { estimateTokens } from "../utils/tokens.js";
-import {
-  extractMetadata,
-  type DocMetadata,
-  type DocType,
-} from "./metadata-extractor.js";
+import { extractMetadata, type DocMetadata, type DocType } from "./metadata-extractor.js";
 
 export type Chunk = {
   source_path: string;
@@ -669,11 +667,7 @@ const STRATEGIES: Record<DocType, ChunkStrategy> = {
 /**
  * Build a context header prepended to each chunk for embedding clarity.
  */
-function contextHeader(
-  sourcePath: string,
-  docType: DocType,
-  meta: DocMetadata,
-): string {
+function contextHeader(sourcePath: string, docType: DocType, meta: DocMetadata): string {
   const parts = [`Source: ${sourcePath}`, `Type: ${docType}`];
   if (meta.status) parts.push(`Status: ${meta.status}`);
   return `[${parts.join(" | ")}]\n\n`;
@@ -755,11 +749,7 @@ function getOverlapSentences(text: string, count: number): string {
 /**
  * Chunk a markdown document into embedding-ready pieces.
  */
-export function chunkDocument(
-  content: string,
-  sourcePath: string,
-  sourceHash: string,
-): Chunk[] {
+export function chunkDocument(content: string, sourcePath: string, sourceHash: string): Chunk[] {
   const meta = extractMetadata(content, sourcePath);
   const strategy = STRATEGIES[meta.doc_type];
   const header = contextHeader(sourcePath, meta.doc_type, meta);
@@ -801,9 +791,7 @@ export function chunkDocument(
 
     for (const sub of subSections) {
       const overlap = getOverlapSentences(previousContent, strategy.overlap);
-      const rawContent = overlap
-        ? `${overlap}\n\n${sub.content}`
-        : sub.content;
+      const rawContent = overlap ? `${overlap}\n\n${sub.content}` : sub.content;
       const chunkContent = header + rawContent;
       const sectionTitle = sub.title || section.title;
 
@@ -837,6 +825,7 @@ Expected: No errors.
 ### Task 14: Commit utilities and chunking
 
 Run:
+
 ```bash
 git add packages/docs-pipeline/package.json packages/docs-pipeline/tsconfig.json packages/docs-pipeline/src/utils/ packages/docs-pipeline/src/chunking/ turbo.json package.json
 git commit -m "feat: add docs-pipeline package with chunking engine and utilities
@@ -850,6 +839,7 @@ and markdown chunking with per-doc-type strategies."
 ### Task 15: Write Supabase Service-Role Client
 
 **Files:**
+
 - Create: `packages/docs-pipeline/src/db/client.ts`
 
 **Step 1: Write client**
@@ -870,9 +860,7 @@ export function getServiceClient(): SupabaseClient {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url) {
-    throw new Error(
-      "Missing SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL environment variable",
-    );
+    throw new Error("Missing SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL environment variable");
   }
   if (!key) {
     throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY environment variable");
@@ -891,6 +879,7 @@ export function getServiceClient(): SupabaseClient {
 ### Task 16: Write Database Operations
 
 **Files:**
+
 - Create: `packages/docs-pipeline/src/db/operations.ts`
 
 **Step 1: Write CRUD operations**
@@ -911,9 +900,7 @@ type ExistingDoc = {
 /**
  * Fetch all existing source_path + source_hash pairs for change detection.
  */
-export async function getExistingHashes(
-  supabase: SupabaseClient,
-): Promise<Map<string, string>> {
+export async function getExistingHashes(supabase: SupabaseClient): Promise<Map<string, string>> {
   const { data, error } = await supabase
     .from("platform_doc_chunk")
     .select("source_path, source_hash")
@@ -973,9 +960,7 @@ export async function insertChunks(
       embedding: JSON.stringify(c.embedding),
     }));
 
-    const { error } = await supabase
-      .from("platform_doc_chunk")
-      .insert(batch);
+    const { error } = await supabase.from("platform_doc_chunk").insert(batch);
 
     if (error) throw new Error(`Failed to insert chunks (batch ${i}): ${error.message}`);
     inserted += batch.length;
@@ -990,6 +975,7 @@ export async function insertChunks(
 ### Task 17: Write Embedding Client
 
 **Files:**
+
 - Create: `packages/docs-pipeline/src/embedding/client.ts`
 
 **Step 1: Write embedding client**
@@ -1005,9 +991,7 @@ const BATCH_SIZE = 100;
  * Generate embeddings for an array of text strings.
  * Automatically batches if input exceeds BATCH_SIZE.
  */
-export async function generateEmbeddings(
-  texts: string[],
-): Promise<number[][]> {
+export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
   if (texts.length === 0) return [];
 
   const model = openai.embedding(EMBEDDING_MODEL);
@@ -1028,6 +1012,7 @@ export async function generateEmbeddings(
 ### Task 18: Write Ingest Command
 
 **Files:**
+
 - Create: `packages/docs-pipeline/src/commands/ingest.ts`
 
 **Step 1: Write ingest command**
@@ -1177,12 +1162,10 @@ export async function runIngest(options: IngestOptions = {}): Promise<void> {
     const embeddings = await generateEmbeddings(texts);
 
     // Combine chunks with embeddings
-    const chunksWithEmbeddings: ChunkWithEmbedding[] = allChunks.map(
-      (chunk, i) => ({
-        ...chunk,
-        embedding: embeddings[i],
-      }),
-    );
+    const chunksWithEmbeddings: ChunkWithEmbedding[] = allChunks.map((chunk, i) => ({
+      ...chunk,
+      embedding: embeddings[i],
+    }));
 
     // Insert into DB
     console.log(`Inserting ${chunksWithEmbeddings.length} chunks...`);
@@ -1204,6 +1187,7 @@ Expected: No errors. Note: `node:fs/promises` `glob` is available in Node 22+. I
 ### Task 19: Write Watch Command
 
 **Files:**
+
 - Create: `packages/docs-pipeline/src/commands/watch.ts`
 
 **Step 1: Write watch command**
@@ -1263,6 +1247,7 @@ export function runWatch(): void {
 ### Task 20: Write CLI Entry Point
 
 **Files:**
+
 - Create: `packages/docs-pipeline/src/index.ts`
 
 **Step 1: Write CLI with commander**
@@ -1329,6 +1314,7 @@ Expected: No errors.
 The `node:fs/promises` `glob` function requires Node.js 22+. The project requires Node >= 18. We need to handle this.
 
 **Files:**
+
 - Modify: `packages/docs-pipeline/package.json` (add `fast-glob`)
 - Modify: `packages/docs-pipeline/src/commands/ingest.ts` (use fast-glob)
 
@@ -1366,7 +1352,11 @@ import {
 async function discoverDocs(repoRoot: string): Promise<string[]> {
   const entries = await fg("docs/**/*.md", {
     cwd: repoRoot,
-    ignore: ["**/template.md", "docs/decisions/0000-decision-log.md", "docs/learnings/0000-learning-log.md"],
+    ignore: [
+      "**/template.md",
+      "docs/decisions/0000-decision-log.md",
+      "docs/learnings/0000-learning-log.md",
+    ],
   });
 
   return entries.sort();
@@ -1380,6 +1370,7 @@ The rest of `runIngest` stays the same. Just remove the `import { glob } from "n
 ### Task 22: Commit Phase B (Ingestion Pipeline)
 
 Run:
+
 ```bash
 git add packages/docs-pipeline/
 git commit -m "feat: add docs-pipeline ingestion with embedding and file watcher
@@ -1396,6 +1387,7 @@ Uses OpenAI text-embedding-3-small via Vercel AI SDK."
 ### Task 23: Create Embedding Helper in @smartout/ai
 
 **Files:**
+
 - Create: `packages/ai/src/embedding.ts`
 - Modify: `packages/ai/package.json` (add `@ai-sdk/openai` dep + exports)
 
@@ -1446,6 +1438,7 @@ Run: `pnpm install`
 ### Task 24: Create Doc Retrieval Tools
 
 **Files:**
+
 - Create: `packages/ai/src/tools/docs.ts`
 
 **Step 1: Write RAG tools following the defineTool pattern**
@@ -1489,15 +1482,10 @@ const searchSchema = z.object({
 const getDocSchema = z.object({
   source_path: z
     .string()
-    .describe(
-      'Relative file path, e.g. "docs/decisions/0010-ai-sdk-openrouter.md"',
-    ),
+    .describe('Relative file path, e.g. "docs/decisions/0010-ai-sdk-openrouter.md"'),
 });
 
-export const searchPlatformDocs = defineTool<
-  DocsToolCtx,
-  typeof searchSchema
->({
+export const searchPlatformDocs = defineTool<DocsToolCtx, typeof searchSchema>({
   name: "search_platform_docs",
   description:
     "Search platform documentation by semantic similarity. Returns relevant chunks from ADRs, module specs, architecture docs, and other project documentation.",
@@ -1552,6 +1540,7 @@ export const DOC_TOOLS = [searchPlatformDocs, getDocByPath] as const;
 ### Task 25: Update @smartout/ai Barrel Exports
 
 **Files:**
+
 - Modify: `packages/ai/src/index.ts`
 
 **Step 1: Add doc tools and embedding exports**
@@ -1576,6 +1565,7 @@ Expected: No errors.
 ### Task 26: Add OPENAI_API_KEY to Env Validation
 
 **Files:**
+
 - Modify: `apps/web/src/env.ts`
 
 **Step 1: Add OPENAI_API_KEY**
@@ -1591,6 +1581,7 @@ OPENAI_API_KEY: z.string().startsWith("sk-").optional(),
 ### Task 27: Commit Phase C (RAG Retrieval)
 
 Run:
+
 ```bash
 git add packages/ai/src/embedding.ts packages/ai/src/tools/docs.ts packages/ai/src/index.ts packages/ai/package.json apps/web/src/env.ts
 git commit -m "feat: add RAG retrieval tools to @smartout/ai
@@ -1607,6 +1598,7 @@ Uses OpenAI text-embedding-3-small via @ai-sdk/openai."
 ### Task 28: Write Frontmatter Validation
 
 **Files:**
+
 - Create: `packages/docs-pipeline/src/validation/frontmatter.ts`
 
 **Step 1: Write frontmatter validation rules**
@@ -1630,9 +1622,7 @@ export type ValidationResult = {
  * Check that plan files have YAML frontmatter.
  * Other doc types get a WARN if missing (not enforced yet).
  */
-export async function validateFrontmatter(
-  repoRoot: string,
-): Promise<ValidationResult[]> {
+export async function validateFrontmatter(repoRoot: string): Promise<ValidationResult[]> {
   const results: ValidationResult[] = [];
 
   // Plans MUST have frontmatter
@@ -1658,12 +1648,7 @@ export async function validateFrontmatter(
   // Other docs: WARN if missing
   const otherFiles = await fg("docs/**/*.md", {
     cwd: repoRoot,
-    ignore: [
-      "docs/plans/**",
-      "docs/decisions/**",
-      "**/template.md",
-      "docs/**/0000-*.md",
-    ],
+    ignore: ["docs/plans/**", "docs/decisions/**", "**/template.md", "docs/**/0000-*.md"],
   });
 
   let missingCount = 0;
@@ -1698,6 +1683,7 @@ export async function validateFrontmatter(
 ### Task 29: Write ADR Compliance Validation
 
 **Files:**
+
 - Create: `packages/docs-pipeline/src/validation/adr-compliance.ts`
 
 **Step 1: Write ADR validation rules**
@@ -1730,17 +1716,12 @@ function parseDecisionLog(content: string): Map<string, string> {
 /**
  * Validate ADR log consistency and ADR structure.
  */
-export async function validateAdrCompliance(
-  repoRoot: string,
-): Promise<ValidationResult[]> {
+export async function validateAdrCompliance(repoRoot: string): Promise<ValidationResult[]> {
   const results: ValidationResult[] = [];
   const decisionsDir = resolve(repoRoot, "docs/decisions");
 
   // 1. Read decision log
-  const logContent = await readFile(
-    resolve(decisionsDir, "0000-decision-log.md"),
-    "utf-8",
-  );
+  const logContent = await readFile(resolve(decisionsDir, "0000-decision-log.md"), "utf-8");
   const logEntries = parseDecisionLog(logContent);
 
   // 2. Find ADR files on disk (exclude template and log)
@@ -1780,10 +1761,7 @@ export async function validateAdrCompliance(
 
   // 5. Check ADR required fields
   for (const [id, fileName] of diskFiles) {
-    const content = await readFile(
-      resolve(repoRoot, `docs/decisions/${fileName}`),
-      "utf-8",
-    );
+    const content = await readFile(resolve(repoRoot, `docs/decisions/${fileName}`), "utf-8");
 
     // Must have Status
     if (!/\*\*Status:\*\*/i.test(content)) {
@@ -1843,6 +1821,7 @@ export async function validateAdrCompliance(
 ### Task 30: Write Structure Validation
 
 **Files:**
+
 - Create: `packages/docs-pipeline/src/validation/structure.ts`
 
 **Step 1: Write structure validation rules**
@@ -1856,9 +1835,7 @@ import type { ValidationResult } from "./frontmatter.js";
 /**
  * Validate doc structure conventions.
  */
-export async function validateStructure(
-  repoRoot: string,
-): Promise<ValidationResult[]> {
+export async function validateStructure(repoRoot: string): Promise<ValidationResult[]> {
   const results: ValidationResult[] = [];
 
   // 1. Module specs should have an overview section
@@ -1922,16 +1899,14 @@ export async function validateStructure(
 ### Task 31: Write Validate Command
 
 **Files:**
+
 - Create: `packages/docs-pipeline/src/commands/validate.ts`
 
 **Step 1: Write validate command**
 
 ```typescript
 import { resolve } from "node:path";
-import {
-  validateFrontmatter,
-  type ValidationResult,
-} from "../validation/frontmatter.js";
+import { validateFrontmatter, type ValidationResult } from "../validation/frontmatter.js";
 import { validateAdrCompliance } from "../validation/adr-compliance.js";
 import { validateStructure } from "../validation/structure.js";
 
@@ -1942,17 +1917,14 @@ type ValidateOptions = {
 
 function printResults(results: ValidationResult[]): void {
   for (const r of results) {
-    const icon =
-      r.severity === "PASS" ? "OK" : r.severity === "WARN" ? "WARN" : "FAIL";
+    const icon = r.severity === "PASS" ? "OK" : r.severity === "WARN" ? "WARN" : "FAIL";
     const prefix = `[${icon}]`;
     const filePart = r.file ? ` (${r.file})` : "";
     console.log(`  ${prefix} ${r.rule}: ${r.message}${filePart}`);
   }
 }
 
-export async function runValidate(
-  options: ValidateOptions = {},
-): Promise<void> {
+export async function runValidate(options: ValidateOptions = {}): Promise<void> {
   const repoRoot = resolve(process.cwd(), "../..");
 
   console.log("Running documentation validation...\n");
@@ -2012,6 +1984,7 @@ export async function runValidate(
 ### Task 32: Wire Validate Command into CLI
 
 **Files:**
+
 - Modify: `packages/docs-pipeline/src/index.ts`
 
 **Step 1: Replace the validate placeholder**
@@ -2104,6 +2077,7 @@ Expected: Only ADR compliance results shown.
 ### Task 34: Commit Phase D (Enforcement)
 
 Run:
+
 ```bash
 git add packages/docs-pipeline/src/validation/ packages/docs-pipeline/src/commands/validate.ts packages/docs-pipeline/src/index.ts
 git commit -m "feat: add doc validation with ADR compliance and structure checks
@@ -2119,6 +2093,7 @@ module structure, cross-reference integrity. Supports --strict and --rule flags.
 ### Task 35: Add Git-Aware Change Detection Mode
 
 **Files:**
+
 - Modify: `packages/docs-pipeline/src/commands/ingest.ts`
 - Modify: `packages/docs-pipeline/src/index.ts`
 - Modify: `packages/docs-pipeline/package.json`
@@ -2163,6 +2138,7 @@ Add scripts:
 ### Task 36: Add Duplicate Detection and Alerts
 
 **Files:**
+
 - Modify: `supabase/migrations/20260227200000_platform_doc_embeddings.sql` (or new follow-up migration)
 - Modify: `packages/docs-pipeline/src/db/operations.ts`
 - Modify: `packages/docs-pipeline/src/commands/ingest.ts`
@@ -2181,15 +2157,18 @@ Set `content_hash` to SHA-256 of normalized chunk content (without unstable whit
 **Step 2: Add duplicate query helper**
 
 Create DB operation that finds hash-colliding chunks on different paths:
+
 - same `content_hash`
 - different `source_path`
 
 Emit warnings in ingest output:
+
 - `[DUPLICATE][EXACT] docs/a.md <-> docs/b.md`
 
 **Step 3: Add semantic duplicate alert (optional threshold)**
 
 Use vector similarity over newly inserted chunks to flag near-duplicates:
+
 - default threshold `>= 0.96`
 - alert only (do not fail ingestion)
 
@@ -2204,6 +2183,7 @@ CLI flag:
 ### Task 37: Add Concurrency Locking for Write Commands
 
 **Files:**
+
 - Create: `packages/docs-pipeline/src/locking/ingest-lock.ts`
 - Modify: `packages/docs-pipeline/src/commands/ingest.ts`
 - Modify: `packages/docs-pipeline/src/commands/watch.ts`
@@ -2211,11 +2191,13 @@ CLI flag:
 **Step 1: Implement lock strategy**
 
 Use a lock file under repo root (for example `.cache/docs-pipeline.ingest.lock`) containing:
+
 - `pid`
 - `started_at`
 - `command`
 
 Behavior:
+
 - if lock exists and process alive: exit with clear message
 - if lock exists and process dead: clean stale lock and continue
 - always release lock in `finally`
@@ -2229,6 +2211,7 @@ Wrap only write runs (`dryRun === false`) in lock. Keep dry-run lock-free.
 ### Task 38: Fix ADR Validation False Positives
 
 **Files:**
+
 - Modify: `packages/docs-pipeline/src/validation/adr-compliance.ts`
 
 **Step 1: Exclude index files from ADR file scan**
@@ -2249,6 +2232,7 @@ This prevents treating decision log/index files as ADRs.
 ### Task 39: Frontmatter Rollout Mode (Warn Before Fail)
 
 **Files:**
+
 - Modify: `packages/docs-pipeline/src/validation/frontmatter.ts`
 - Modify: `packages/docs-pipeline/src/commands/validate.ts`
 - Modify: `packages/docs-pipeline/src/index.ts`
@@ -2274,6 +2258,7 @@ CLI flag:
 **Step 2: Backfill task before enforcement**
 
 Add migration subtask:
+
 - add YAML frontmatter to all active plan files
 - then enable `--enforce-plan-frontmatter` in CI
 
@@ -2282,17 +2267,20 @@ Add migration subtask:
 ### Task 40: Integrate Docs Tools into Runtime Agent Flow
 
 **Files:**
+
 - Modify: Agent wiring file(s) where tools are assembled for runtime
 
 **Step 1: Register docs tools**
 
 `DOC_TOOLS` must be included in the runtime toolset for at least:
+
 - architecture/planning assistant flows
 - repo QA flows
 
 **Step 2: Add usage guardrails**
 
 System prompt guidance:
+
 - before architectural/schema decisions, call `search_platform_docs`
 - if a specific ADR/path is referenced, call `get_doc_by_path`
 
@@ -2318,8 +2306,8 @@ After all phases complete, run these in order:
 
 ## Secret Management
 
-| Secret | Action Required |
-|--------|----------------|
+| Secret           | Action Required                                                                                              |
+| ---------------- | ------------------------------------------------------------------------------------------------------------ |
 | `OPENAI_API_KEY` | Add to 1Password Development vault. Add `OPENAI_API_KEY=op://Development/OpenAI/api-key` to `.env.template`. |
 
 The ingestion CLI reads `OPENAI_API_KEY` from env (auto-detected by `@ai-sdk/openai`).

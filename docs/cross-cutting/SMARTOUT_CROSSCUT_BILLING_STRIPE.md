@@ -48,5 +48,5 @@ Edge Function: `stripe-webhook/index.ts` with Stripe signature validation.
 
 ---
 
-*For plan tiers, profile enforcement, and billing events see SMARTOUT_MODULE_13_MULTITENANT.md §6.*
-*For platform-level billing management (super admin) see SMARTOUT_MODULE_17_PLATFORM_ADMIN.md §4.4.*
+_For plan tiers, profile enforcement, and billing events see SMARTOUT_MODULE_13_MULTITENANT.md §6._
+_For platform-level billing management (super admin) see SMARTOUT_MODULE_17_PLATFORM_ADMIN.md §4.4._

@@ -14,14 +14,14 @@ Communication in Smartout is the connective tissue between all other modules. It
 
 ### Communication Channels
 
-| Channel | Technology | Use case | Latency |
-|---------|-----------|----------|---------|
-| **In-app chat** | Supabase Realtime | Team coordination, quick questions, shift chat | Real-time |
-| **Push notifications** | Expo Push (React Native), Web Push (Next.js) | Task alerts, shift reminders, training nudges | Seconds |
-| **SMS** | Twilio | Critical alerts, employees who don't use the app regularly | Seconds |
-| **Email** | Resend | Formal communications, schedules, payslips, invite links | Minutes |
-| **Voice** | Twilio + Ultravox | AI handoff calls, emergency escalations | Real-time |
-| **In-app alerts** | App UI | Non-urgent notifications, status updates | On next app open |
+| Channel                | Technology                                   | Use case                                                   | Latency          |
+| ---------------------- | -------------------------------------------- | ---------------------------------------------------------- | ---------------- |
+| **In-app chat**        | Supabase Realtime                            | Team coordination, quick questions, shift chat             | Real-time        |
+| **Push notifications** | Expo Push (React Native), Web Push (Next.js) | Task alerts, shift reminders, training nudges              | Seconds          |
+| **SMS**                | Twilio                                       | Critical alerts, employees who don't use the app regularly | Seconds          |
+| **Email**              | Resend                                       | Formal communications, schedules, payslips, invite links   | Minutes          |
+| **Voice**              | Twilio + Ultravox                            | AI handoff calls, emergency escalations                    | Real-time        |
+| **In-app alerts**      | App UI                                       | Non-urgent notifications, status updates                   | On next app open |
 
 ### What This Module Covers
 
@@ -81,25 +81,25 @@ Workspace: Bårdshaug Vegkro
 chat_channel
   channel_id           uuid (PK)
   workspace_id         fk → workspace
-  
+
   -- Identity
   name                 string ("#kjøkken", "#lunsj-kjøkken", "#kjøkken-24feb")
   channel_type         department | team | session | custom | direct
-  
+
   -- Auto-linking
   department_id        fk → department | null (for department channels)
   team_id              fk → team | null (for team channels)
   session_id           fk → department_session | null (for session channels)
-  
+
   -- Members (for custom and direct channels)
   -- Department/team channels derive membership from org structure
   -- Session channels derive from who's on shift
-  
+
   -- Settings
   is_read_only         boolean (announcements can be read-only)
   is_archived          boolean (session channels auto-archive on session close)
   created_by           fk → profile | null (null = system-created)
-  
+
   created_at           timestamp
   updated_at           timestamp
 
@@ -108,17 +108,17 @@ chat_channel_member
   id                   uuid (PK)
   channel_id           fk → chat_channel
   profile_id           fk → profile
-  
+
   -- Role in channel
   role                 member | admin (admin can pin, moderate)
-  
+
   -- Read tracking
   last_read_at         timestamp | null
-  
+
   -- Notifications
   muted                boolean (per-channel mute)
   muted_until          timestamp | null (temporary mute)
-  
+
   joined_at            timestamp
 
 
@@ -126,33 +126,33 @@ chat_message
   message_id           uuid (PK)
   channel_id           fk → chat_channel
   workspace_id         fk → workspace
-  
+
   -- Author
   sender_id            fk → profile
-  
+
   -- Content
   content              text (markdown-supported)
   message_type         text | image | file | system | brief | handoff | announcement
-  
+
   -- Media
   media_urls           jsonb | null ([{type, url, filename, size_bytes}])
-  
+
   -- Threading
   reply_to_id          fk → chat_message | null (thread reply)
-  
+
   -- System message metadata (for briefs, handoffs, announcements)
   system_data          jsonb | null ({source_type, source_ref_id, ...})
-  
+
   -- Status
   is_edited            boolean
   edited_at            timestamp | null
   is_deleted           boolean (soft delete — content replaced with "Message deleted")
-  
+
   -- Pinned
   is_pinned            boolean
   pinned_by            fk → profile | null
   pinned_at            timestamp | null
-  
+
   created_at           timestamp
 
 
@@ -166,6 +166,7 @@ chat_message_read
 ### 2.3 Session Channels
 
 Session channels are the operational heartbeat:
+
 - **Auto-created** when a Department Session becomes `active`
 - **Members:** Everyone with a shift in that session
 - **Content:** Task updates, notes, quick coordination
@@ -223,44 +224,44 @@ notification
   notification_id      uuid (PK)
   workspace_id         fk → workspace
   profile_id           fk → profile (recipient)
-  
+
   -- Content
   title                string ("Oppgave forfalt", "Ny vakt publisert")
   body                 text ("Temperatursjekk var forfalt kl. 14:00")
-  
+
   -- Categorization
   category             shift | task | training | haccp | absence | payroll | system | chat | announcement
   priority             critical | high | normal | low
-  
+
   -- Source
   source_type          string (module or entity that generated this)
   source_ref_id        uuid | null (reference to the source entity)
   action_url           string | null (deep link to relevant screen)
-  
+
   -- Delivery tracking
   channels_sent        jsonb ([{channel: "push", sent_at: "...", delivered: true}])
-  
+
   -- User interaction
   read_at              timestamp | null
   dismissed_at         timestamp | null
   actioned_at          timestamp | null (if notification had an action and user took it)
-  
+
   created_at           timestamp
 ```
 
 ### 3.3 Notification Categories and Triggers
 
-| Category | Triggers | Default Priority |
-|----------|---------|------------------|
-| **shift** | Shift published, shift change, shift reminder (1h before), shift swap request | normal |
-| **task** | Task assigned, task overdue, task escalated, session approaching close | high (overdue/escalated: critical) |
-| **training** | Protocol assigned, test deadline approaching, protocol updated | normal |
-| **haccp** | Temperature deviation, HACCP task overdue, certificate expiring | critical (deviation), high (others) |
-| **absence** | Request submitted, request approved/denied, absence starting | normal |
-| **payroll** | Payslip ready, pay period closing, discrepancy detected | normal |
-| **system** | Workspace settings changed, new module activated, maintenance | low |
-| **chat** | Direct message, @mention in channel, pinned message | normal (DM: high) |
-| **announcement** | Workspace-wide or department announcement | per announcement |
+| Category         | Triggers                                                                      | Default Priority                    |
+| ---------------- | ----------------------------------------------------------------------------- | ----------------------------------- |
+| **shift**        | Shift published, shift change, shift reminder (1h before), shift swap request | normal                              |
+| **task**         | Task assigned, task overdue, task escalated, session approaching close        | high (overdue/escalated: critical)  |
+| **training**     | Protocol assigned, test deadline approaching, protocol updated                | normal                              |
+| **haccp**        | Temperature deviation, HACCP task overdue, certificate expiring               | critical (deviation), high (others) |
+| **absence**      | Request submitted, request approved/denied, absence starting                  | normal                              |
+| **payroll**      | Payslip ready, pay period closing, discrepancy detected                       | normal                              |
+| **system**       | Workspace settings changed, new module activated, maintenance                 | low                                 |
+| **chat**         | Direct message, @mention in channel, pinned message                           | normal (DM: high)                   |
+| **announcement** | Workspace-wide or department announcement                                     | per announcement                    |
 
 ### 3.4 User Notification Preferences
 
@@ -271,18 +272,18 @@ Stored on `profile.notification_pref` (jsonb):
   "push_enabled": true,
   "sms_enabled": true,
   "email_enabled": true,
-  
+
   "quiet_hours": {
     "enabled": true,
     "start": "22:00",
     "end": "07:00"
   },
-  
+
   "category_overrides": {
     "chat": { "push_enabled": false },
     "training": { "sms_enabled": false }
   },
-  
+
   "digest_mode": false
 }
 ```
@@ -301,34 +302,34 @@ Announcements are formal messages from management to groups of employees:
 announcement
   announcement_id      uuid (PK)
   workspace_id         fk → workspace
-  
+
   -- Author
   created_by           fk → profile
-  
+
   -- Content
   title                string ("Ny meny fra mandag", "Julelunsj 20. desember")
   body                 text (markdown-supported)
   media_urls           jsonb | null
-  
+
   -- Targeting
   scope                workspace | department | team
   scope_ref_id         uuid | null (department_id or team_id; null for workspace)
-  
+
   -- Settings
   priority             normal | high | urgent
   requires_read_confirmation boolean (must employees acknowledge?)
-  
+
   -- Scheduling
   published_at         timestamp | null (null = draft)
   expires_at           timestamp | null (auto-hide after date)
-  
+
   -- Delivery
   deliver_via_chat     boolean (post to relevant channel?)
   deliver_via_push     boolean
   deliver_via_email    boolean
-  
+
   is_pinned            boolean
-  
+
   created_at           timestamp
   updated_at           timestamp
 
@@ -344,6 +345,7 @@ announcement_read
 ### 4.2 Announcement with Read Confirmation
 
 For important announcements (new allergen policy, schedule changes, safety updates):
+
 - `requires_read_confirmation: true`
 - Every targeted employee must explicitly confirm they've read it
 - Manager dashboard shows: "12/15 employees have confirmed. Missing: Erik, Ole, Kari."
@@ -357,12 +359,12 @@ For important announcements (new allergen policy, schedule changes, safety updat
 
 Module 4 creates the content (Day Brief, Shift Brief, Handoff summaries). Module 9 handles the delivery:
 
-| Content | Created by | Delivered via |
-|---------|-----------|--------------|
-| **Day Brief** | AI Operations (Module 4) | Session channel (as system message) + Push notification to first shift employees |
-| **Shift Brief** | AI Operations (Module 4) | Push notification to employee at punch-in + in-app card |
-| **Handoff Summary** | AI extraction from handoff (Module 4) | Session channel + next session's Day Brief |
-| **Session Notes** | Added during session (Module 4) | Real-time in session channel (if `visibility` allows) |
+| Content             | Created by                            | Delivered via                                                                    |
+| ------------------- | ------------------------------------- | -------------------------------------------------------------------------------- |
+| **Day Brief**       | AI Operations (Module 4)              | Session channel (as system message) + Push notification to first shift employees |
+| **Shift Brief**     | AI Operations (Module 4)              | Push notification to employee at punch-in + in-app card                          |
+| **Handoff Summary** | AI extraction from handoff (Module 4) | Session channel + next session's Day Brief                                       |
+| **Session Notes**   | Added during session (Module 4)       | Real-time in session channel (if `visibility` allows)                            |
 
 ### 5.2 System Messages in Chat
 
@@ -456,14 +458,14 @@ Push notification at 07:00:
 
 The Communication Engine (Mr. Botsson, Module 12) handles message intelligence:
 
-| Function | What it does |
-|----------|-------------|
-| **Channel selection** | Given notification priority + user preferences → pick optimal channel(s) |
-| **Message formatting** | Adapt message tone and length for channel (SMS = short, email = formal, push = concise) |
-| **Language adaptation** | Format message in user's `preferred_language` (Norwegian default, multi-language support) |
-| **Batch intelligence** | Group related notifications into coherent digests |
+| Function                  | What it does                                                                              |
+| ------------------------- | ----------------------------------------------------------------------------------------- |
+| **Channel selection**     | Given notification priority + user preferences → pick optimal channel(s)                  |
+| **Message formatting**    | Adapt message tone and length for channel (SMS = short, email = formal, push = concise)   |
+| **Language adaptation**   | Format message in user's `preferred_language` (Norwegian default, multi-language support) |
+| **Batch intelligence**    | Group related notifications into coherent digests                                         |
 | **Delivery optimization** | Track which channels actually reach each user (if someone never opens email, prefer push) |
-| **Template management** | Maintain message templates per notification category, season, and context |
+| **Template management**   | Maintain message templates per notification category, season, and context                 |
 
 ### 8.2 Message Templates
 
@@ -473,7 +475,7 @@ System messages use templates with variable substitution:
 Template: shift_published
   Push: "Ny vakt: {date} kl. {start_time}–{end_time} ({position})"
   SMS: "Smartout: Du har fått ny vakt {date} {start_time}-{end_time}. Åpne appen for detaljer."
-  Email: 
+  Email:
     Subject: "Ny vakt publisert — {date}"
     Body: "Hei {first_name}, ..."
 ```
@@ -486,46 +488,46 @@ Templates are configurable per workspace. AI can suggest improvements based on o
 
 ### New Tables (this module)
 
-| Entity | Purpose | Key fields |
-|--------|---------|------------|
-| **chat_channel** | Chat rooms — auto-created for departments, teams, sessions | channel_type, auto-linked to department/team/session |
-| **chat_channel_member** | Membership and read state per channel | role, last_read_at, muted |
-| **chat_message** | Individual messages with threading and media | content, message_type, reply_to_id, system_data |
-| **chat_message_read** | Per-message read receipts | message_id, profile_id, read_at |
-| **notification** | Multi-channel notification with delivery tracking | category, priority, channels_sent, read/actioned state |
-| **announcement** | Formal management communications | scope, requires_read_confirmation, scheduling |
-| **announcement_read** | Announcement read/confirmation tracking | read_at, confirmed_at |
+| Entity                  | Purpose                                                    | Key fields                                             |
+| ----------------------- | ---------------------------------------------------------- | ------------------------------------------------------ |
+| **chat_channel**        | Chat rooms — auto-created for departments, teams, sessions | channel_type, auto-linked to department/team/session   |
+| **chat_channel_member** | Membership and read state per channel                      | role, last_read_at, muted                              |
+| **chat_message**        | Individual messages with threading and media               | content, message_type, reply_to_id, system_data        |
+| **chat_message_read**   | Per-message read receipts                                  | message_id, profile_id, read_at                        |
+| **notification**        | Multi-channel notification with delivery tracking          | category, priority, channels_sent, read/actioned state |
+| **announcement**        | Formal management communications                           | scope, requires_read_confirmation, scheduling          |
+| **announcement_read**   | Announcement read/confirmation tracking                    | read_at, confirmed_at                                  |
 
 ---
 
 ## 10. Integration Points
 
-| Module | Integration |
-|--------|-------------|
-| **Core Architecture** | Profile notification preferences. Team/Department membership drives channel membership. |
-| **Module 1: Onboarding** | Invite delivery (email/SMS). Trainee welcome messages. Onboarding chat support. |
-| **Module 3: Scheduling** | Shift published → notification. Shift swap → notification. Schedule reminders. |
+| Module                   | Integration                                                                                           |
+| ------------------------ | ----------------------------------------------------------------------------------------------------- |
+| **Core Architecture**    | Profile notification preferences. Team/Department membership drives channel membership.               |
+| **Module 1: Onboarding** | Invite delivery (email/SMS). Trainee welcome messages. Onboarding chat support.                       |
+| **Module 3: Scheduling** | Shift published → notification. Shift swap → notification. Schedule reminders.                        |
 | **Module 4: Operations** | Day Brief → session channel. Handoff → session channel + next brief. Task alerts. Escalation routing. |
-| **Module 5: HACCP** | HACCP deviation alerts (CRITICAL priority). Certificate expiry reminders. |
-| **Module 6: Training** | Protocol assigned → notification. Deadline reminders. Test results. |
-| **Module 7: Absence** | Request submitted/approved/denied notifications. |
-| **Module 8: Payroll** | Payslip ready notification. Period closing alerts. |
-| **Module 12: AI** | Communication Engine for channel selection, formatting, templates. Mr. Botsson chat integration. |
+| **Module 5: HACCP**      | HACCP deviation alerts (CRITICAL priority). Certificate expiry reminders.                             |
+| **Module 6: Training**   | Protocol assigned → notification. Deadline reminders. Test results.                                   |
+| **Module 7: Absence**    | Request submitted/approved/denied notifications.                                                      |
+| **Module 8: Payroll**    | Payslip ready notification. Period closing alerts.                                                    |
+| **Module 12: AI**        | Communication Engine for channel selection, formatting, templates. Mr. Botsson chat integration.      |
 
 ---
 
 ## 11. Implementation Sequence
 
-| Phase | Scope | Duration |
-|-------|-------|----------|
-| **1. Notification infrastructure** | `notification` table. Multi-channel delivery (push + in-app). Preference handling. | Week 1–3 |
-| **2. Push notifications** | Expo Push setup (React Native). Web Push setup (Next.js). Token management. | Week 4–5 |
-| **3. SMS & Email** | Twilio integration for SMS. Resend integration for email. Template system. | Week 6–7 |
-| **4. Team chat** | `chat_channel`, `chat_message` tables. Supabase Realtime. Department + team channels. | Week 8–10 |
-| **5. Session channels** | Auto-create on session start. System messages (briefs, handoffs). Auto-archive. | Week 11–12 |
-| **6. Announcements** | `announcement` table. Read confirmation. Admin UI. Multi-channel delivery. | Week 13–14 |
-| **7. Escalation routing** | Timeout-based escalation chain. Level tracking. Voice call integration (Twilio). | Week 15–16 |
-| **8. Quiet hours & rate limiting** | Queue system for delayed delivery. Digest compilation. Morning digest push. | Week 17–18 |
+| Phase                              | Scope                                                                                 | Duration   |
+| ---------------------------------- | ------------------------------------------------------------------------------------- | ---------- |
+| **1. Notification infrastructure** | `notification` table. Multi-channel delivery (push + in-app). Preference handling.    | Week 1–3   |
+| **2. Push notifications**          | Expo Push setup (React Native). Web Push setup (Next.js). Token management.           | Week 4–5   |
+| **3. SMS & Email**                 | Twilio integration for SMS. Resend integration for email. Template system.            | Week 6–7   |
+| **4. Team chat**                   | `chat_channel`, `chat_message` tables. Supabase Realtime. Department + team channels. | Week 8–10  |
+| **5. Session channels**            | Auto-create on session start. System messages (briefs, handoffs). Auto-archive.       | Week 11–12 |
+| **6. Announcements**               | `announcement` table. Read confirmation. Admin UI. Multi-channel delivery.            | Week 13–14 |
+| **7. Escalation routing**          | Timeout-based escalation chain. Level tracking. Voice call integration (Twilio).      | Week 15–16 |
+| **8. Quiet hours & rate limiting** | Queue system for delayed delivery. Digest compilation. Morning digest push.           | Week 17–18 |
 
 ---
 
@@ -547,4 +549,4 @@ Specific considerations for migration from Bubble to Next.js/Supabase:
 
 ---
 
-*Communication in Smartout is purpose-built for restaurant operations — every channel, notification, and message serves an operational need. Session channels auto-create and auto-archive with the daily rhythm. Day Briefs and Handoffs flow through chat as structured system messages. Escalations route through priority-based channels with timeout-based level progression. The system reduces noise (rate limiting, quiet hours, batching) while ensuring nothing critical is missed (CRITICAL priority always delivers).*
+_Communication in Smartout is purpose-built for restaurant operations — every channel, notification, and message serves an operational need. Session channels auto-create and auto-archive with the daily rhythm. Day Briefs and Handoffs flow through chat as structured system messages. Escalations route through priority-based channels with timeout-based level progression. The system reduces noise (rate limiting, quiet hours, batching) while ensuring nothing critical is missed (CRITICAL priority always delivers)._

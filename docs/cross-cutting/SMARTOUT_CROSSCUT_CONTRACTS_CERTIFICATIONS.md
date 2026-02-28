@@ -150,6 +150,7 @@ Notifications at configured intervals to both employee and manager.
 ### 2.4 Document Storage
 
 Supabase Storage with workspace isolation:
+
 - `/{workspace_id}/certifications/{profile_id}/{file}`
 - `/{workspace_id}/contracts/{profile_id}/{file}`
 - `/{workspace_id}/documents/{profile_id}/{file}`
@@ -158,4 +159,4 @@ RLS: employees see own, managers see department, admin sees all.
 
 ---
 
-*Employee contracts and certifications are tightly integrated with Profile, Scheduling, and HACCP modules. Contract data feeds payroll; certification expiry affects scheduling eligibility.*
+_Employee contracts and certifications are tightly integrated with Profile, Scheduling, and HACCP modules. Contract data feeds payroll; certification expiry affects scheduling eligibility._

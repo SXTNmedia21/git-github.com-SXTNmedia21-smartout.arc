@@ -69,10 +69,7 @@ export type Profile = {
   updatedAt: string;
 };
 
-export type CreateProfile = Omit<
-  Profile,
-  "profileId" | "createdAt" | "updatedAt"
->;
+export type CreateProfile = Omit<Profile, "profileId" | "createdAt" | "updatedAt">;
 ```
 
 ---
@@ -128,10 +125,7 @@ The original recommendation suggested `packages/api` for shared hooks. We keep h
 // queries/departments.ts — raw query function
 import { SupabaseClient } from "@supabase/supabase-js";
 
-export async function getDepartments(
-  client: SupabaseClient,
-  workspaceId: string,
-) {
+export async function getDepartments(client: SupabaseClient, workspaceId: string) {
   const { data, error } = await client
     .from("department")
     .select("*")
@@ -145,11 +139,7 @@ export async function createDepartment(
   client: SupabaseClient,
   dept: { workspace_id: string; name: string; color?: string; icon?: string },
 ) {
-  const { data, error } = await client
-    .from("department")
-    .insert(dept)
-    .select()
-    .single();
+  const { data, error } = await client.from("department").insert(dept).select().single();
   if (error) throw error;
   return data;
 }
@@ -239,16 +229,7 @@ packages/i18n/
 ```typescript
 // packages/i18n/src/config.ts
 export const defaultLocale = "nb" as const;
-export const supportedLocales = [
-  "nb",
-  "en",
-  "sv",
-  "da",
-  "pl",
-  "ar",
-  "so",
-  "fi",
-] as const;
+export const supportedLocales = ["nb", "en", "sv", "da", "pl", "ar", "so", "fi"] as const;
 export type SupportedLocale = (typeof supportedLocales)[number];
 export const RTL_LOCALES: SupportedLocale[] = ["ar"];
 export const fallbackLocale = "nb" as const;
@@ -260,8 +241,7 @@ import { getRequestConfig } from "next-intl/server";
 import { supportedLocales, defaultLocale } from "@smartout/i18n";
 
 export default getRequestConfig(async ({ locale }) => ({
-  messages: (await import(`@smartout/i18n/locales/${locale}/common.json`))
-    .default,
+  messages: (await import(`@smartout/i18n/locales/${locale}/common.json`)).default,
 }));
 ```
 
@@ -433,10 +413,7 @@ const ROLE_HIERARCHY: Record<ProfileRole, number> = {
   owner: 4,
 };
 
-export function hasMinimumRole(
-  userRole: ProfileRole,
-  requiredRole: ProfileRole,
-): boolean {
+export function hasMinimumRole(userRole: ProfileRole, requiredRole: ProfileRole): boolean {
   return ROLE_HIERARCHY[userRole] >= ROLE_HIERARCHY[requiredRole];
 }
 ```

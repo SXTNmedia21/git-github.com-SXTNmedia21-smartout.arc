@@ -19,14 +19,14 @@ Hovedvisningen er et rutenett (grid) med ansatte/jobber/team vertikalt på venst
 
 ### 2.1 Rutenettstruktur
 
-| Element | Beskrivelse |
-|---------|-------------|
-| **Venstre kolonne** | Liste over ansatte med profilbilde, navn, antall vakter og timer. Viser også Åpen vakt-seksjon (kollapsbar). |
-| **Dagkolonner** | En kolonne per dag i valgt periode. Overskrift viser ukedag, dato, antall ansatte på jobb, antall vakter, og samlet kostnad (NOK). |
-| **Vaktkort** | Kort i cellen som viser: vaktnavn (f.eks. "1 vakt", "Servitør", "Vaske vakt"), tidsrom (08:00-16:00), rolle, statusindikator (grønn hake = fullført, grå sirkel = ikke påbegynt), og tannhjulikon for innstillinger. |
-| **Fraværsmarkører** | Viser "Avspasering", "Ferie", "Ikke tilgjengelig" etc. som tags direkte i rutenettet med rosa/rød fargekoding. |
-| **+ Legg til info** | Knapp over hver dag for å legge til dagsinformasjon (f.eks. spesielle hendelser, notater). |
-| **Kostnadslinje** | Under dag-headeren vises estimert personalkostnad i NOK for den dagen. |
+| Element             | Beskrivelse                                                                                                                                                                                                          |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Venstre kolonne** | Liste over ansatte med profilbilde, navn, antall vakter og timer. Viser også Åpen vakt-seksjon (kollapsbar).                                                                                                         |
+| **Dagkolonner**     | En kolonne per dag i valgt periode. Overskrift viser ukedag, dato, antall ansatte på jobb, antall vakter, og samlet kostnad (NOK).                                                                                   |
+| **Vaktkort**        | Kort i cellen som viser: vaktnavn (f.eks. "1 vakt", "Servitør", "Vaske vakt"), tidsrom (08:00-16:00), rolle, statusindikator (grønn hake = fullført, grå sirkel = ikke påbegynt), og tannhjulikon for innstillinger. |
+| **Fraværsmarkører** | Viser "Avspasering", "Ferie", "Ikke tilgjengelig" etc. som tags direkte i rutenettet med rosa/rød fargekoding.                                                                                                       |
+| **+ Legg til info** | Knapp over hver dag for å legge til dagsinformasjon (f.eks. spesielle hendelser, notater).                                                                                                                           |
+| **Kostnadslinje**   | Under dag-headeren vises estimert personalkostnad i NOK for den dagen.                                                                                                                                               |
 
 ### 2.2 Venstre sidebar
 
@@ -42,11 +42,11 @@ Sidebaren inneholder kontekstuell informasjon og filtrering:
 
 Tre tabs øverst gir forskjellige perspektiver på det samme datasettet. Alle tre visninger bruker samme rutenett-layout men grupperer rader forskjellig.
 
-| Tab | Gruppering | Brukstilfelle |
-|-----|-----------|---------------|
-| **Ansa** | Rader = individuelle ansatte | "Når jobber Jan denne uken?" Standard oversikt for å se alle ansattes vakter, tilgjengelighet og fravær. Beste for individuell planlegging og fraværshåndtering. |
-| **Jobb** | Rader = stillingstyper (Kokk, Servitør, etc.) | "Har vi nok kokker fredag kveld?" Dekningsbasert visning som viser om roller er tilstrekkelig bemannet. Avslører hull i bemanningen per rolle. |
-| **Team** | Rader = team (Kjøkken, Sal, Bar) | "Er kjøkkenteamet dekket?" Teambasert overblikk for å se kapasitet per operasjonelt team. God for avdelingsledere som fokuserer på sitt eget team. |
+| Tab      | Gruppering                                    | Brukstilfelle                                                                                                                                                    |
+| -------- | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Ansa** | Rader = individuelle ansatte                  | "Når jobber Jan denne uken?" Standard oversikt for å se alle ansattes vakter, tilgjengelighet og fravær. Beste for individuell planlegging og fraværshåndtering. |
+| **Jobb** | Rader = stillingstyper (Kokk, Servitør, etc.) | "Har vi nok kokker fredag kveld?" Dekningsbasert visning som viser om roller er tilstrekkelig bemannet. Avslører hull i bemanningen per rolle.                   |
+| **Team** | Rader = team (Kjøkken, Sal, Bar)              | "Er kjøkkenteamet dekket?" Teambasert overblikk for å se kapasitet per operasjonelt team. God for avdelingsledere som fokuserer på sitt eget team.               |
 
 Alle visninger støtter søk og filtrering. Ansattvisningen inkluderer statistikk per ansatt (antall vakter, timer) under navnet.
 
@@ -58,13 +58,13 @@ En datovelger-popup lar brukeren velge hvilken periode som vises i rutenettet. K
 
 ### 4.1 Periodevalg
 
-| Alternativ | Beskrivelse | Kolonner i rutenett |
-|------------|-------------|---------------------|
-| Dag | Viser kun én dag | 1 kolonne |
-| **Uke** | Mandag til søndag (standard, markert) | 7 kolonner |
-| To uker | To uker fra valgt start | 14 kolonner |
-| Måned | Hel kalendermåned | 28–31 kolonner |
-| Tilpasset | Brukerdefinert start- og sluttdato | Variabelt |
+| Alternativ | Beskrivelse                           | Kolonner i rutenett |
+| ---------- | ------------------------------------- | ------------------- |
+| Dag        | Viser kun én dag                      | 1 kolonne           |
+| **Uke**    | Mandag til søndag (standard, markert) | 7 kolonner          |
+| To uker    | To uker fra valgt start               | 14 kolonner         |
+| Måned      | Hel kalendermåned                     | 28–31 kolonner      |
+| Tilpasset  | Brukerdefinert start- og sluttdato    | Variabelt           |
 
 "I dag"-knapp navigerer direkte til gjeldende uke. Piler navigerer fremover/bakover i valgt periodemodus.
 
@@ -74,14 +74,14 @@ En datovelger-popup lar brukeren velge hvilken periode som vises i rutenettet. K
 
 Hver dagkolonne har en kebab-meny (tre prikker) som åpner en kontekstmeny med følgende operasjoner:
 
-| Handling | Beskrivelse |
-|----------|-------------|
-| **Velg dag** | Markerer dagen for masseoperasjoner (avkrysningsboks) |
-| **Publiser dag** | Publiserer alle vakter for denne dagen til ansatte. Utløser varsler basert på kanalinnstillinger. |
-| **Avpubliser dag** | Trekker tilbake publisering. Ansatte ser ikke lenger vaktene som publiserte. |
+| Handling              | Beskrivelse                                                                                                         |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| **Velg dag**          | Markerer dagen for masseoperasjoner (avkrysningsboks)                                                               |
+| **Publiser dag**      | Publiserer alle vakter for denne dagen til ansatte. Utløser varsler basert på kanalinnstillinger.                   |
+| **Avpubliser dag**    | Trekker tilbake publisering. Ansatte ser ikke lenger vaktene som publiserte.                                        |
 | **Kopiere denne dag** | Kopierer hele dagens bemanningsplan til en annen valgt dag. Kopierer alle vakter med roller, tider og tilordninger. |
-| **Lagre som mal** | Lagrer dagens vaktoppsett som en gjenbrukbar mal med navn. Kan brukes som grunnlag for lignende dager. |
-| **Last inn mal** | Laster en tidligere lagret mal inn på valgt dag. Fyller rutenettet med vakter fra malen. |
+| **Lagre som mal**     | Lagrer dagens vaktoppsett som en gjenbrukbar mal med navn. Kan brukes som grunnlag for lignende dager.              |
+| **Last inn mal**      | Laster en tidligere lagret mal inn på valgt dag. Fyller rutenettet med vakter fra malen.                            |
 
 Malsystemet er spesielt nyttig for restauranter med faste ukemønstre (f.eks. "Fredagsoppsett" med ekstra servitører, "Mandagsminimum" med redusert bemanning).
 
@@ -93,15 +93,15 @@ Når en vakt klikkes eller opprettes, åpnes en modal med seks faner som gir ful
 
 ### 6.1 Detaljer-fanen
 
-| Felt | Beskrivelse |
-|------|-------------|
-| **Tid & dato** | Start- og sluttid (f.eks. 08:00 – 12:00). Datoen vises i modal-headeren. |
-| **Jobb** | Dropdown for å velge jobbtype/vaktnavn (f.eks. "1 vakt", "Vaske vakt", "4 vakt") |
-| **Team** | Dropdown med team og lokasjon (f.eks. "Kokk – Bårdshaug Vegkro") |
-| **Ansatt** | Dropdown for å tilordne vakten til en spesifikk ansatt |
-| **Vakt info** | Viser beregnet arbeidstid (f.eks. "4,0 timer") og vaktstatus ("Ikke påbegynt", "Pågår", "Fullført") |
-| **Publiseringsstatus** | Toggle mellom "Ikke publisert" og "Publisere". Kontrollerer om ansatte kan se vakten. |
-| **Varslingskanaler** | Push / E-post / SMS knapper for å sende varsel om vakten til den ansatte |
+| Felt                   | Beskrivelse                                                                                         |
+| ---------------------- | --------------------------------------------------------------------------------------------------- |
+| **Tid & dato**         | Start- og sluttid (f.eks. 08:00 – 12:00). Datoen vises i modal-headeren.                            |
+| **Jobb**               | Dropdown for å velge jobbtype/vaktnavn (f.eks. "1 vakt", "Vaske vakt", "4 vakt")                    |
+| **Team**               | Dropdown med team og lokasjon (f.eks. "Kokk – Bårdshaug Vegkro")                                    |
+| **Ansatt**             | Dropdown for å tilordne vakten til en spesifikk ansatt                                              |
+| **Vakt info**          | Viser beregnet arbeidstid (f.eks. "4,0 timer") og vaktstatus ("Ikke påbegynt", "Pågår", "Fullført") |
+| **Publiseringsstatus** | Toggle mellom "Ikke publisert" og "Publisere". Kontrollerer om ansatte kan se vakten.               |
+| **Varslingskanaler**   | Push / E-post / SMS knapper for å sende varsel om vakten til den ansatte                            |
 
 ### 6.2 Funksjoner-fanen
 
@@ -143,10 +143,10 @@ Fravær og tilgjengelighet håndteres direkte fra vaktplanleggingsrutenettet via
 
 ### 7.1 Popover-handlinger
 
-| Handling | Beskrivelse |
-|----------|-------------|
+| Handling   | Beskrivelse                                                                                  |
+| ---------- | -------------------------------------------------------------------------------------------- |
 | **Fravær** | Registrerer fravær (sykefravær, permisjon etc.) for ansatt på valgt dag. Kobles til Modul 7. |
-| **Ferie** | Registrerer ferie for ansatt. Trekker fra feriesaldo. Kobles til Modul 7. |
+| **Ferie**  | Registrerer ferie for ansatt. Trekker fra feriesaldo. Kobles til Modul 7.                    |
 
 ### 7.2 Visuelle markører
 
@@ -161,14 +161,14 @@ Fravær og tilgjengelighet håndteres direkte fra vaktplanleggingsrutenettet via
 
 Hvert vaktkort i rutenettet er et kompakt visuelt element med følgende informasjon:
 
-| Element | Detaljer |
-|---------|----------|
-| **Vaktnavn** | F.eks. "1 vakt", "Servitør", "Vaske vakt", "4 vakt" |
-| **Tidsrom** | Start–slutt (f.eks. "08:00-16:00"). Viser klokkeikon med faktisk stemplingstid der relevant. |
-| **Rolle** | Stilling/rolle (f.eks. "Servitør", "Kokk") |
-| **Statusindikator** | Grønn hake = fullført. Grå sirkel = ikke påbegynt. Kan også vise pågående-status. |
-| **Innstillinger-ikon** | Tannhjul-ikon for hurtighandlinger og innstillinger |
-| **Kantlinjefarge** | Fargekoding per type: blå = standard aktiv, gul = spesifikke roller, rød/rosa = fravær/avspasering |
+| Element                | Detaljer                                                                                           |
+| ---------------------- | -------------------------------------------------------------------------------------------------- |
+| **Vaktnavn**           | F.eks. "1 vakt", "Servitør", "Vaske vakt", "4 vakt"                                                |
+| **Tidsrom**            | Start–slutt (f.eks. "08:00-16:00"). Viser klokkeikon med faktisk stemplingstid der relevant.       |
+| **Rolle**              | Stilling/rolle (f.eks. "Servitør", "Kokk")                                                         |
+| **Statusindikator**    | Grønn hake = fullført. Grå sirkel = ikke påbegynt. Kan også vise pågående-status.                  |
+| **Innstillinger-ikon** | Tannhjul-ikon for hurtighandlinger og innstillinger                                                |
+| **Kantlinjefarge**     | Fargekoding per type: blå = standard aktiv, gul = spesifikke roller, rød/rosa = fravær/avspasering |
 
 ---
 
@@ -176,11 +176,11 @@ Hvert vaktkort i rutenettet er et kompakt visuelt element med følgende informas
 
 Hver dagkolonne viser aggregerte tall i headeren som gir rask oversikt over bemanningssituasjonen:
 
-| Ikon | Metrikk | Beskrivelse |
-|------|---------|-------------|
-| Person-ikon | Ansatte | Antall unike ansatte som har vakt denne dagen |
-| Liste-ikon | Vakter | Totalt antall planlagte vakter (kan være flere per ansatt) |
-| Klokke-ikon | Timer/kostnad | Samlet arbeidstimer eller estimert personalkostnad i NOK |
+| Ikon        | Metrikk       | Beskrivelse                                                |
+| ----------- | ------------- | ---------------------------------------------------------- |
+| Person-ikon | Ansatte       | Antall unike ansatte som har vakt denne dagen              |
+| Liste-ikon  | Vakter        | Totalt antall planlagte vakter (kan være flere per ansatt) |
+| Klokke-ikon | Timer/kostnad | Samlet arbeidstimer eller estimert personalkostnad i NOK   |
 
 ---
 
@@ -255,15 +255,15 @@ En raskere variant av malsystemet for engangskopier: kopierer alle vakter fra é
 
 Vaktplanleggingsmodulen er den mest sammenkoblede modulen i Smartout og berører nesten alle andre moduler:
 
-| Modul | Integrasjon |
-|-------|-------------|
-| **2. Organisasjon** | Avdelinger, team, stillinger og lokasjoner brukes for filtrering og gruppering. |
-| **4. Oppgaver** | Oppgaver tilordnes per vakt via Oppgaver-fanen. Fullførte oppgaver vises med grønn hake. |
-| **5. HACCP** | Temperaturmålinger og hygiene-sjekklister kan være del av vaktoppgavene. |
-| **7. Fravær** | Fravær og ferie registreres direkte fra rutenettet og blokkerer vaktplanlegging. |
-| **8. Lønn** | Lønnsgrunnlag beregnes per vakt (fanen i modalen). Vaktdata er input til lønnskjøring. |
-| **9. Kommunikasjon** | Publiseringsvarsler sendes via Push/E-post/SMS. Skift-overlevering bruker vaktdata. |
-| **12. AI (Mr. Botsson)** | Operasjonsmotoren bruker vaktdata for proaktive varsler og forslag. |
+| Modul                    | Integrasjon                                                                              |
+| ------------------------ | ---------------------------------------------------------------------------------------- |
+| **2. Organisasjon**      | Avdelinger, team, stillinger og lokasjoner brukes for filtrering og gruppering.          |
+| **4. Oppgaver**          | Oppgaver tilordnes per vakt via Oppgaver-fanen. Fullførte oppgaver vises med grønn hake. |
+| **5. HACCP**             | Temperaturmålinger og hygiene-sjekklister kan være del av vaktoppgavene.                 |
+| **7. Fravær**            | Fravær og ferie registreres direkte fra rutenettet og blokkerer vaktplanlegging.         |
+| **8. Lønn**              | Lønnsgrunnlag beregnes per vakt (fanen i modalen). Vaktdata er input til lønnskjøring.   |
+| **9. Kommunikasjon**     | Publiseringsvarsler sendes via Push/E-post/SMS. Skift-overlevering bruker vaktdata.      |
+| **12. AI (Mr. Botsson)** | Operasjonsmotoren bruker vaktdata for proaktive varsler og forslag.                      |
 
 ---
 
@@ -271,14 +271,14 @@ Vaktplanleggingsmodulen er den mest sammenkoblede modulen i Smartout og berører
 
 Følgende er de sentrale dataentitetene som ligger bak vaktplanleggingsmodulen. Disse skal detaljeres ytterligere i den fullstendige datamodellen (Modul 0.3).
 
-| Entitet | Nøkkelfelter | Relasjoner |
-|---------|-------------|------------|
-| **Shift** | id, startTime, endTime, status, isPublished, dayCategory, workHours | Employee, Job, Team, Location |
-| **ShiftTemplate** | id, name, shifts[], createdBy, workspace | Workspace |
-| **ShiftTask** | id, title, isCompleted, completedAt, order | Shift, Task |
-| **ShiftHistory** | id, shiftId, eventType, timestamp, comment | Shift, User |
-| **DayInfo** | id, date, notes, dayStats | Workspace, Location |
-| **Absence** | id, type, startDate, endDate, status | Employee, ApprovedBy |
+| Entitet           | Nøkkelfelter                                                        | Relasjoner                    |
+| ----------------- | ------------------------------------------------------------------- | ----------------------------- |
+| **Shift**         | id, startTime, endTime, status, isPublished, dayCategory, workHours | Employee, Job, Team, Location |
+| **ShiftTemplate** | id, name, shifts[], createdBy, workspace                            | Workspace                     |
+| **ShiftTask**     | id, title, isCompleted, completedAt, order                          | Shift, Task                   |
+| **ShiftHistory**  | id, shiftId, eventType, timestamp, comment                          | Shift, User                   |
+| **DayInfo**       | id, date, notes, dayStats                                           | Workspace, Location           |
+| **Absence**       | id, type, startDate, endDate, status                                | Employee, ApprovedBy          |
 
 ---
 
