@@ -2473,6 +2473,24 @@ export type Database = {
           },
         ]
       }
+      reserved_slug: {
+        Row: {
+          created_at: string
+          reason: string
+          slug: string
+        }
+        Insert: {
+          created_at?: string
+          reason?: string
+          slug: string
+        }
+        Update: {
+          created_at?: string
+          reason?: string
+          slug?: string
+        }
+        Relationships: []
+      }
       routine: {
         Row: {
           assigned_to_ref: string
