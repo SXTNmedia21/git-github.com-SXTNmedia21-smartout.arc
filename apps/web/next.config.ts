@@ -5,6 +5,15 @@ import { withSentryConfig } from "@sentry/nextjs";
 import "./src/env";
 
 const nextConfig: NextConfig = {
+  transpilePackages: [
+    "@smartout/ai",
+    "@smartout/supabase",
+    "@smartout/telemetry",
+    "@smartout/types",
+    "@smartout/ui",
+    "@smartout/design-tokens",
+    "@smartout/utils",
+  ],
   async rewrites() {
     return [
       {
