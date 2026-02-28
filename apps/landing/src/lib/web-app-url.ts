@@ -4,7 +4,7 @@
  * Never returns a relative path — always an absolute URL.
  */
 
-const PRODUCTION_WEB_APP_URL = "https://smartout-web.vercel.app";
+const PRODUCTION_WEB_APP_URL = "https://app.smartout.ai";
 
 function getWebAppOrigin(): string {
   const envUrl = process.env.NEXT_PUBLIC_WEB_APP_URL;
