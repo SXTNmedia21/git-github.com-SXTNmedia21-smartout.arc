@@ -9,7 +9,7 @@ export default async function ContractsPage() {
 
   const admin = createAdminClient();
   const { data: contracts } = await admin
-    .from("platform_contract_instance")
+    .from("contract")
     .select(
       `contract_id, title, status, sent_at, signed_at, expires_at, created_at,
        company:company_id (name),

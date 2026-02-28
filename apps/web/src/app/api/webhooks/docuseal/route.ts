@@ -68,8 +68,8 @@ export async function POST(request: NextRequest) {
 
   // Find contract by DocuSeal submission ID
   const { data: contract, error: findError } = await admin
-    .from("platform_contract_instance")
-    .select("contract_id, status")
+    .from("contract")
+    .select("contract_id, status, workspace_id")
     .eq("docuseal_submission_id", String(data.submission_id))
     .single();
 
@@ -98,12 +98,17 @@ export async function POST(request: NextRequest) {
     updated_at: new Date().toISOString(),
   };
 
+  if (event_type === "form.viewed") {
+    updates.viewed_at = new Date().toISOString();
+  }
+
   if (newStatus === "signed") {
     updates.signed_at = new Date().toISOString();
 
     // Store document URL if provided
     if (data.documents && data.documents.length > 0) {
       updates.document_url = data.documents[0]!.url;
+      updates.signed_pdf_url = data.documents[0]!.url;
     }
 
     // Update signatories with completion timestamps
@@ -118,13 +123,27 @@ export async function POST(request: NextRequest) {
   }
 
   const { error: updateError } = await admin
-    .from("platform_contract_instance")
+    .from("contract")
     .update(updates)
     .eq("contract_id", contract.contract_id);
 
   if (updateError) {
     return NextResponse.json({ error: updateError.message }, { status: 500 });
   }
+
+  // Log to contract_event (new immutable audit trail)
+  await admin.from("contract_event").insert({
+    contract_id: contract.contract_id,
+    workspace_id: contract.workspace_id,
+    event_type: event_type.replace(".", "_"),
+    actor_type: "webhook",
+    details: {
+      docuseal_event: event_type,
+      submission_id: data.submission_id,
+      new_status: newStatus,
+    } as unknown as Json,
+    ip_address: request.headers.get("x-forwarded-for") ?? null,
+  });
 
   // Audit log (system action — sentinel UUID for system entries)
   await admin.from("platform_audit_log").insert({
@@ -138,6 +157,25 @@ export async function POST(request: NextRequest) {
       new_status: newStatus,
     } as unknown as Json,
   });
+
+  // On signing: cancel pending reminders + update workspace contract status
+  if (newStatus === "signed" && contract.workspace_id) {
+    await Promise.all([
+      admin
+        .from("contract_reminder")
+        .update({ status: "skipped", skip_reason: "contract_signed" })
+        .eq("contract_id", contract.contract_id)
+        .eq("status", "scheduled"),
+      admin
+        .from("workspace")
+        .update({
+          contract_status: "active",
+          active_contract_id: contract.contract_id,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("workspace_id", contract.workspace_id),
+    ]);
+  }
 
   return NextResponse.json({ received: true, status: newStatus });
 }

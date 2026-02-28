@@ -1,9 +1,10 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Sparkles, Building2, ArrowRight } from "lucide-react";
 import Navigation from "../../components/navigation";
 import { WEB_APP_LINKS } from "../../lib/web-app-url";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Venteliste — SmartOut",
   description: "Kom i gang med SmartOut — AI-drevet workforce management.",
 };

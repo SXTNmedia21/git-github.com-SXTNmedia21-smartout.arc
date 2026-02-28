@@ -7,6 +7,7 @@
       "inputs": ["src/**", "tsconfig.json", "next.config.ts", "package.json"]
     },
     "typecheck": {
+      "dependsOn": ["^build"],
       "outputs": []
     },
     "lint": {

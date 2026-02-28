@@ -106,7 +106,6 @@ cloned.info = {
   version: `${cloned.info?.version ?? "0.1.0"}-${profile}`,
 };
 cloned["x-generated-profile"] = profile;
-cloned["x-generated-at"] = new Date().toISOString();
 
 fs.mkdirSync(path.dirname(absOutput), { recursive: true });
 fs.writeFileSync(absOutput, YAML.stringify(cloned), "utf8");
