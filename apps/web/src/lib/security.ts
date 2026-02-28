@@ -9,7 +9,9 @@ const SUSPICIOUS_PATHS = [
   "/actuator",
 ];
 
-const SUSPICIOUS_HEADERS = ["x-forwarded-host", "x-original-url"];
+// Note: x-forwarded-host is NOT suspicious — it's always set by reverse proxies
+// (Vercel, Cloudflare, nginx, etc.). Only flag truly unusual headers.
+const SUSPICIOUS_HEADERS = ["x-original-url"];
 
 const isDev = process.env.NODE_ENV === "development";
 

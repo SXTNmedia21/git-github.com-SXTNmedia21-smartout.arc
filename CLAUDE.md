@@ -1,7 +1,7 @@
 # CLAUDE.md — Smartout v3
 
 > Ground truth for this repository. Verified against actual code, migrations, and configs.
-> Last verified: 2026-02-27. If something contradicts this file, the CODE is right — update this doc.
+> Last verified: 2026-02-28. If something contradicts this file, the CODE is right — update this doc.
 
 ---
 
@@ -19,23 +19,23 @@
 
 ## Tech Stack (Verified)
 
-| Layer          | Technology                   | Version        | Notes                                          |
-| -------------- | ---------------------------- | -------------- | ---------------------------------------------- |
-| Web Dashboard  | Next.js (App Router)         | 16.1.6         | React 19.2.3, TypeScript                       |
-| Styling        | Tailwind CSS                 | v4             | CSS-based config, OKLCH colors                 |
-| UI Components  | shadcn/ui                    | new-york style | lucide icons, CSS variables                    |
-| Backend        | Supabase                     | PostgreSQL 17  | Auth, Storage, Realtime, Edge Functions (Deno) |
-| Telemetry      | PostHog                      | EU instance    | Browser + Node SDK, proxy rewrites             |
-| Env Validation | @t3-oss/env-nextjs           | —              | Zod schema in `apps/web/src/env.ts`            |
-| Voice          | Ultravox                     | —              | Voice assistant in dashboard                   |
-| Video          | Remotion                     | v4             | Root devDep, Three.js + Lottie                 |
-| Automation     | n8n + Edge Functions         | —              | n8n for complex workflows                      |
-| Hosting        | Vercel (web), Supabase Cloud | —              | DigitalOcean (n8n)                             |
-| Language       | TypeScript                   | ^5.0           | Everywhere. No exceptions.                     |
-| Monorepo       | pnpm 9.0.0 + Turborepo       | —              | `op run` for 1Password secret injection        |
-| Fonts          | Geist + Geist Mono           | —              | Google Fonts via next/font                     |
-| Testing        | Playwright                   | —              | E2E in `apps/e2e`                              |
-| Agents         | Pydantic                     | —              | Python agents in `agents/`                     |
+| Layer          | Technology                             | Version        | Notes                                          |
+| -------------- | -------------------------------------- | -------------- | ---------------------------------------------- |
+| Web Dashboard  | Next.js (App Router)                   | 16.1.6         | React 19.2.3, TypeScript                       |
+| Styling        | Tailwind CSS                           | v4             | CSS-based config, OKLCH colors                 |
+| UI Components  | shadcn/ui                              | new-york style | lucide icons, CSS variables                    |
+| Backend        | Supabase                               | PostgreSQL 17  | Auth, Storage, Realtime, Edge Functions (Deno) |
+| Telemetry      | PostHog                                | EU instance    | Browser + Node SDK, proxy rewrites             |
+| Env Validation | @t3-oss/env-nextjs                     | —              | Zod schema in `apps/web/src/env.ts`            |
+| Voice          | Ultravox                               | —              | Voice assistant in dashboard                   |
+| Video          | Remotion                               | v4             | Root devDep, Three.js + Lottie                 |
+| Automation     | n8n + Edge Functions                   | —              | n8n for complex workflows                      |
+| Hosting        | Vercel (web + landing), Supabase Cloud | —              | DigitalOcean (n8n). See ADR-0020.              |
+| Language       | TypeScript                             | ^5.0           | Everywhere. No exceptions.                     |
+| Monorepo       | pnpm 9.15.9 + Turborepo                | —              | `op run` for 1Password secret injection        |
+| Fonts          | Geist + Geist Mono                     | —              | Google Fonts via next/font                     |
+| Testing        | Playwright                             | —              | E2E in `apps/e2e`                              |
+| Agents         | Pydantic                               | —              | Python agents in `agents/`                     |
 
 ### Third-Party Integrations (Live)
 
@@ -71,7 +71,7 @@ smartout_v3/
 │   ├── ui/               → Shared UI components (@smartout/ui)
 │   └── utils/            → Shared utilities (@smartout/utils)
 ├── supabase/
-│   ├── migrations/       → 15 migrations (00001-00012 + timestamps)
+│   ├── migrations/       → 17 migrations (00001-00013 + timestamps)
 │   ├── functions/        → 11 Edge Functions
 │   ├── seed.sql          → Dev seed data
 │   └── config.toml       → Local dev config
@@ -816,11 +816,12 @@ pnpm clean
 
 ## Changelog
 
-| Date       | Version | Change                                                                                                                                                                                                                                                                                               | Author |
-| ---------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| 2026-01-01 | 1.0.0   | Initial version (as GEMINI_CONTEXT.md)                                                                                                                                                                                                                                                               | Pontus |
-| 2026-02-27 | 2.0.0   | Complete rewrite: verified against actual codebase. Fixed table names (user_identity), removed phantom stripe_subscription, added Tailwind v4 details, env validation, package exports, migration patterns, seed data, stale doc protocol, performance rules, dev commands, third-party integrations | Claude |
-| 2026-02-27 | 2.1.0   | Added Linear repo scope section — maps which Linear projects belong to this repo vs. other repos                                                                                                                                                                                                     | Claude |
-| 2026-02-27 | 3.0.0   | Enterprise infrastructure: Added new packages (typescript-config, eslint-config, design-tokens, utils), new Edge Functions (health-check, watchdog-integrity, watchdog-uptime), new API routes (/api/health, /api/telemetry), Sentry + Upstash integrations, updated dev commands, ADR-0017          | Claude |
-| 2026-02-28 | 4.0.0   | Platform Admin Backoffice: Added 5 platform-admin tables (migration 00013), 9 platform-admin routes, DocuSeal webhook, ./admin export, DOCUSEAL_WEBHOOK_SECRET env var, ADR-0018, services/ directory, docs/learnings/ system, moved scrapling to services/                                          | Claude |
-| 2026-02-28 | 4.1.0   | Performance and Build Governance documentation sweep: added architecture doc (`PERFORMANCE_BUILD_GOVERNANCE.md`), expanded ADR-0019 with rollout learnings, added Learning-0007, updated roadmap references and CLAUDE governance section                                                            | Claude |
+| Date       | Version | Change                                                                                                                                                                                                                                                                                                      | Author |
+| ---------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| 2026-01-01 | 1.0.0   | Initial version (as GEMINI_CONTEXT.md)                                                                                                                                                                                                                                                                      | Pontus |
+| 2026-02-27 | 2.0.0   | Complete rewrite: verified against actual codebase. Fixed table names (user_identity), removed phantom stripe_subscription, added Tailwind v4 details, env validation, package exports, migration patterns, seed data, stale doc protocol, performance rules, dev commands, third-party integrations        | Claude |
+| 2026-02-27 | 2.1.0   | Added Linear repo scope section — maps which Linear projects belong to this repo vs. other repos                                                                                                                                                                                                            | Claude |
+| 2026-02-27 | 3.0.0   | Enterprise infrastructure: Added new packages (typescript-config, eslint-config, design-tokens, utils), new Edge Functions (health-check, watchdog-integrity, watchdog-uptime), new API routes (/api/health, /api/telemetry), Sentry + Upstash integrations, updated dev commands, ADR-0017                 | Claude |
+| 2026-02-28 | 4.0.0   | Platform Admin Backoffice: Added 5 platform-admin tables (migration 00013), 9 platform-admin routes, DocuSeal webhook, ./admin export, DOCUSEAL_WEBHOOK_SECRET env var, ADR-0018, services/ directory, docs/learnings/ system, moved scrapling to services/                                                 | Claude |
+| 2026-02-28 | 4.1.0   | Performance and Build Governance documentation sweep: added architecture doc (`PERFORMANCE_BUILD_GOVERNANCE.md`), expanded ADR-0019 with rollout learnings, added Learning-0007, updated roadmap references and CLAUDE governance section                                                                   | Claude |
+| 2026-02-28 | 4.2.0   | Vercel deployment: Updated ADR-0020 with verified build settings (Root Dir = app dir, not `.`), pnpm 9.15.9, 17 migrations to production Supabase. Added Learnings 0008-0010 (x-forwarded-host, .vercelignore depth, Turborepo Root Directory). Fixed security middleware blocking all production requests. | Claude |
