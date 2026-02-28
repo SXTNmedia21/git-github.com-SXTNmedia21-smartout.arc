@@ -1,13 +1,26 @@
 # Contract System — Session Handoff
 
 > Written: 2026-02-28 ~19:00 CET
+> Updated: 2026-02-28 ~18:45 CET (session 2)
 > Purpose: Resume contract system integration in a fresh session
 
 ---
 
 ## Current State Summary
 
-The contract system plan (`docs/plans/2026-02-28-contract-system.md`) had 25 tasks across 6 phases. Four parallel agents wrote code for ALL 25 tasks, and the code is mostly committed to `SmartOut.ai` (the main branch). However, integration is incomplete — there are **90 TypeScript errors** and **9 untracked files** that still need to be committed.
+**STATUS: TYPECHECK PASSES, BUILD SUCCEEDS**
+
+The contract system plan (`docs/plans/2026-02-28-contract-system.md`) had 25 tasks across 6 phases. Four parallel agents wrote code for ALL 25 tasks. All code is now committed, typecheck passes (0 errors), and `pnpm build` succeeds.
+
+### Session 2 completed (2026-02-28):
+
+1. Committed 9 untracked files (`58ad639`)
+2. Fixed Supabase port conflicts (analytics port 54337 → 55437)
+3. Fixed migration index name collision (`idx_contract_workspace` → `idx_contract_ws`)
+4. Started Supabase, reset DB (all 23 migrations applied), regenerated `database.types.ts`
+5. Fixed all 90 TypeScript errors (down to 0)
+6. Added `@smartout/notifications` dep to web app
+7. Full build passes (`12169ae`)
 
 ---
 
