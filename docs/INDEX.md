@@ -96,9 +96,30 @@ Master navigation map for all documentation. An agent reads this to find any doc
 | XCUT_API_RELEASE     | cross-cutting/API_RELEASE_GATES_AND_COMPLIANCE.md           | canonical |
 | XCUT_VERCEL_OPS      | cross-cutting/vercel-operations-review.md                   | canonical |
 
+### Protocols (Enforcement)
+
+High-level rules that MUST be followed. No exceptions.
+
+| id                  | File                       | Scope                          |
+| ------------------- | -------------------------- | ------------------------------ |
+| PROTO_SECURITY      | protocols/SECURITY.md      | Secrets, auth, RLS, API keys   |
+| PROTO_DOCUMENTATION | protocols/DOCUMENTATION.md | Source of truth, doc standards |
+| PROTO_KNOWLEDGE     | protocols/KNOWLEDGE.md     | ADRs, learnings, templates     |
+
+### Templates
+
+Reusable document templates in `docs/templates/`.
+
+| id           | File                      | Purpose                      |
+| ------------ | ------------------------- | ---------------------------- |
+| TPL_DECISION | templates/decision.md     | ADR template                 |
+| TPL_LEARNING | templates/learning.md     | Learning record template     |
+| TPL_ARCH     | templates/architecture.md | Architecture doc template    |
+| TPL_PLAN     | templates/plan.md         | Implementation plan template |
+
 ### Decisions (ADRs)
 
-See `docs/decisions/0000-decision-log.md` -- 25 accepted ADRs (0001-0025).
+See `docs/decisions/0000-decision-log.md` -- 27 accepted ADRs (0001-0027).
 
 | id       | File                                                     | Subject                                    |
 | -------- | -------------------------------------------------------- | ------------------------------------------ |
@@ -158,6 +179,7 @@ Active plans in `docs/plans/`. Completed plans in `docs/plans/completed/`.
 | PLAN_KNOWLEDGE_SYS | plans/2026-02-27-docs-knowledge-system.md       | canonical |
 | PLAN_NEXTRA        | plans/2026-02-28-docs-nextra-system.md          | draft     |
 | PLAN_SUBDOMAIN     | plans/2026-02-28-subdomain-workspace-routing.md | canonical |
+| PLAN_AUTH_KEY_MGMT | plans/2026-02-28-auth-key-management.md         | draft     |
 
 Completed plans (historical, not loaded actively):
 

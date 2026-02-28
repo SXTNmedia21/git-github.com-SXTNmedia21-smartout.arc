@@ -140,7 +140,7 @@ smartout_v3/
 > 28 ADRs in `docs/decisions/`. Read before making changes in the same area.
 > Full lists: `docs/INDEX.md`
 
-**ADR Enforcement:** Create an ADR when adding dependencies, choosing between approaches, changing schema patterns, adding integrations, or modifying build/deploy. Template: `docs/decisions/template.md`. Register in `0000-decision-log.md`.
+**ADR Enforcement:** Create an ADR when adding dependencies, choosing between approaches, changing schema patterns, adding integrations, or modifying build/deploy. Template: `docs/templates/decision.md`. Register in `0000-decision-log.md`.
 
 ---
 
@@ -153,22 +153,15 @@ Validated with `@t3-oss/env-nextjs` + Zod in `apps/web/src/env.ts`.
 
 ---
 
-## Security
+## Protocols (Enforcement)
 
-All work involving secrets, API keys, authentication, or authorization
-MUST follow `SMARTOUT_SECURITY_PROTOCOL.md`. Read it before touching:
+High-level rules in `docs/protocols/`. Read before working in their scope.
 
-- Edge Functions with auth logic
-- Vault or secret storage
-- RLS policies
-- API key creation, rotation, or validation
-- Frontend key management UI
-
-Three laws (memorize these):
-
-1. Never plaintext secrets in code, config, logs, or DB columns.
-2. Never bypass RLS for convenience.
-3. Never commit secrets to Git.
+| Protocol      | File                              | Triggers                                     |
+| ------------- | --------------------------------- | -------------------------------------------- |
+| Security      | `docs/protocols/SECURITY.md`      | Secrets, auth, RLS, API keys, Edge Functions |
+| Documentation | `docs/protocols/DOCUMENTATION.md` | Source of truth, doc standards, frontmatter  |
+| Knowledge     | `docs/protocols/KNOWLEDGE.md`     | ADRs, learnings, templates                   |
 
 ---
 
@@ -223,6 +216,7 @@ cd apps/web && npx shadcn@latest add <component>
 
 | Date       | Version | Change                                                                     | Author |
 | ---------- | ------- | -------------------------------------------------------------------------- | ------ |
+| 2026-03-01 | 7.3.0   | Protocols folder, templates folder, security protocol populated            | Claude |
 | 2026-02-28 | 7.2.0   | API key management: 3 tables, 2 Edge Functions, 8 API routes, UI, ADR-0028 | Claude |
 | 2026-02-28 | 7.1.0   | Added Security section referencing SMARTOUT_SECURITY_PROTOCOL              | Pontus |
 | 2026-02-28 | 7.0.0   | Major trim: moved details to reference files, <280 lines                   | Claude |
