@@ -369,28 +369,94 @@ Before every deployment that touches auth, keys, or secrets:
 
 When Claude Code, Cursor, or any AI agent works on Smartout code:
 
+### 15.1 Context Loading (Before ANY auth/key work)
+
 ```
-MANDATORY CONTEXT LOADING:
-  Before touching any auth, secret, or key-related code:
-  1. Read docs/architecture/SMARTOUT_SECRET_API_INFRASTRUCTURE.md
-  2. Read docs/architecture/SMARTOUT_ADMIN_KEY_MANAGEMENT.md
-  3. Read this document (docs/protocols/SECURITY.md)
+MANDATORY — Read these before touching auth, secrets, keys, RLS, or Edge Functions:
+  1. This document (docs/protocols/SECURITY.md)
+  2. CLAUDE.md § "API Gateway — Mandatory Checklists"
+  3. docs/architecture/SMARTOUT_SECRET_API_INFRASTRUCTURE.md (if touching key logic)
+  4. docs/architecture/SMARTOUT_ADMIN_KEY_MANAGEMENT.md (if touching key UI)
+```
 
-FORBIDDEN ACTIONS:
-  - Generating placeholder secrets that look real (use obvious fakes: "REPLACE_ME")
-  - Creating Edge Functions with custom auth logic (use _shared/auth-middleware.ts)
-  - Storing secrets in Supabase tables outside Vault
-  - Writing RLS policies that use service_role bypass for convenience
-  - Logging request bodies that might contain API keys
-  - Creating API key validation without scope checking
-  - Accepting raw secret values in prompts — suggest op:// reference
-  - Inventing new key prefixes — use smo_sk_ and smo_svc_ only
+### 15.2 New Table Checklist
 
-REQUIRED ACTIONS:
+```
+EVERY new workspace-scoped table MUST have:
+  ☐ ALTER TABLE ... ENABLE ROW LEVEL SECURITY
+  ☐ JWT read policy:  USING (workspace_id IN (SELECT get_workspace_ids_for_user(auth.uid())))
+  ☐ API key read policy: CREATE POLICY "api_key_read_{table}" USING (workspace_id = get_api_workspace_id())
+  ☐ Write policies if applicable (JWT + API key variants)
+  ☐ If exposed via public API: handler + route + scope guard + API registry entry
+
+Tables WITHOUT workspace_id (identity layer, platform-admin) are exempt from API key policies.
+```
+
+### 15.3 New Edge Function Checklist
+
+```
+EVERY new Edge Function MUST:
+  ☐ Use one of the three auth patterns (JWT-only, dual-auth, cron-only)
+  ☐ NEVER implement custom auth logic — use _shared/auth-middleware.ts
+  ☐ If dual-auth: add verify_jwt = false to supabase/functions/config.toml
+  ☐ If data endpoint: call requireScope() from _shared/scope-middleware.ts
+  ☐ If querying workspace data: use executeWithWorkspaceContext() from _shared/api-key-auth.ts
+  ☐ Add to API registry in health/_components/api-registry.ts
+  ☐ Update CLAUDE.md Edge Function count
+```
+
+### 15.4 New Scope Checklist
+
+```
+EVERY new API scope MUST:
+  ☐ Follow format: {resource}:{action} (e.g., schedules:read)
+  ☐ Be added to CLAUDE.md canonical scope table
+  ☐ Be added to SMARTOUT_SECRET_API_INFRASTRUCTURE.md §2.4
+  ☐ Have a handler in workspace-api/handlers/
+  ☐ Have a route registered in workspace-api/index.ts
+  ☐ Be added to relevant preset bundles if applicable
+  ☐ Have api_key_read/write RLS policies on all tables it accesses
+```
+
+### 15.5 New Microservice Checklist
+
+```
+EVERY new microservice MUST:
+  ☐ Authenticate via managed service key (smo_svc_live_*)
+  ☐ Validate key against platform_api_key (via validate-api-key or DB lookup)
+  ☐ NEVER use hardcoded env var keys for auth
+  ☐ Document the key in platform-admin Keys & Secrets UI
+  ☐ Health endpoint must be public (no auth required)
+  ☐ Webhook endpoints use provider-specific signature verification, not API keys
+```
+
+### 15.6 Forbidden Actions
+
+```
+NEVER:
+  - Generate placeholder secrets that look real (use "REPLACE_ME")
+  - Create Edge Functions with custom auth logic
+  - Store secrets in Supabase tables outside Vault
+  - Write RLS policies that use service_role bypass for convenience
+  - Log request bodies that might contain API keys
+  - Create API key validation without scope checking
+  - Accept raw secret values in prompts — suggest op:// reference
+  - Invent new key prefixes — use smo_sk_ and smo_svc_ only
+  - Create workspace-scoped tables without api_key_read_* RLS policies
+  - Add workspace-api endpoints without scope guards
+  - Skip the API registry when adding endpoints
+```
+
+### 15.7 Required Actions
+
+```
+ALWAYS:
   - Reference this protocol in PR descriptions for auth-related changes
   - Include workspace isolation test in acceptance criteria
   - Use the established key format (smo_sk_, smo_svc_)
   - Write ADR for any new auth pattern or security decision
+  - Update CLAUDE.md scope table when adding scopes
+  - Run workspace isolation test: fake workspace → 0 results
 ```
 
 ---

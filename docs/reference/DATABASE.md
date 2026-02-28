@@ -203,24 +203,49 @@ company.trial_ends_at        -- timestamptz
 
 ## RLS Patterns
 
-All workspace-scoped tables use RLS. Platform-admin tables are exceptions (no RLS, service role only).
+All workspace-scoped tables use RLS with TWO auth paths: JWT (for user sessions) and API key (for external integrations). Platform-admin tables are exceptions (no RLS, service role only).
 
-### SELECT Pattern
+### Pattern 1: JWT Auth (user sessions)
 
 ```sql
-USING (workspace_id IN (SELECT get_workspace_ids_for_user(auth.uid())))
+-- SELECT: user can read data in workspaces they belong to
+CREATE POLICY "Read {table}" ON public.{table}
+  FOR SELECT USING (workspace_id IN (SELECT get_workspace_ids_for_user(auth.uid())));
+
+-- WRITE: admin/owner can modify data in their workspace
+CREATE POLICY "Write {table}" ON public.{table}
+  FOR ALL USING (is_admin_in_workspace(auth.uid(), workspace_id));
 ```
 
-### INSERT/UPDATE/DELETE Pattern
+### Pattern 2: API Key Auth (external integrations)
 
 ```sql
-WITH CHECK (is_admin_in_workspace(workspace_id, auth.uid()))
+-- SELECT: API key can read data in the workspace it belongs to
+CREATE POLICY "api_key_read_{table}" ON public.{table}
+  FOR SELECT USING (workspace_id = get_api_workspace_id());
+
+-- WRITE (if needed): API key can write to its workspace
+CREATE POLICY "api_key_write_{table}" ON public.{table}
+  FOR INSERT WITH CHECK (workspace_id = get_api_workspace_id());
 ```
 
 ### Helper Functions
 
-- `get_workspace_ids_for_user(user_uuid)` -- returns all workspace_ids the user has a profile in
-- `is_admin_in_workspace(workspace_uuid, user_uuid)` -- checks if user has admin+ role in workspace
+- `get_workspace_ids_for_user(user_uuid)` -- returns all workspace_ids the user has a profile in (JWT path)
+- `is_admin_in_workspace(user_uuid, workspace_uuid)` -- checks admin+ role (JWT path)
+- `get_api_workspace_id()` -- returns `current_setting('app.workspace_id', true)::uuid` (API key path)
+
+### **MANDATORY: Every workspace-scoped table needs BOTH patterns**
+
+When creating a new workspace-scoped table:
+
+1. `ALTER TABLE ... ENABLE ROW LEVEL SECURITY;`
+2. Add JWT SELECT policy (Pattern 1)
+3. Add JWT WRITE policy (Pattern 1)
+4. Add API key SELECT policy (Pattern 2)
+5. Add API key WRITE policy (Pattern 2) -- only if the table will be writable via public API
+
+Tables WITHOUT workspace_id (user_identity, company, platform-admin) are exempt from API key policies.
 
 ### Rules
 

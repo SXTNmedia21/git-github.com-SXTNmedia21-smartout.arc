@@ -265,6 +265,9 @@ ALL microservices (contract-service, scrapling, future services):
 - Never use hardcoded colors (zinc-800) — use CSS variables (bg-background)
 - Never use `any` — use `unknown` + type guards
 - Never commit `.env.local` or raw secrets
+- Never create workspace-scoped tables without BOTH JWT and API key RLS policies
+- Never create public API endpoints without scope guards
+- Never create Edge Functions outside the workspace-api gateway (for data endpoints)
 
 ---
 
@@ -300,15 +303,16 @@ cd apps/web && npx shadcn@latest add <component>
 
 ## Changelog
 
-| Date       | Version | Change                                                                         | Author |
-| ---------- | ------- | ------------------------------------------------------------------------------ | ------ |
-| 2026-03-01 | 7.4.0   | Inline security summary: Three Laws, API key tiers, env vars always in context | Claude |
-| 2026-03-01 | 7.3.0   | Protocols folder, templates folder, security protocol populated                | Claude |
-| 2026-02-28 | 7.2.0   | API key management: 3 tables, 2 Edge Functions, 8 API routes, UI, ADR-0028     | Claude |
-| 2026-02-28 | 7.1.0   | Added Security section referencing SMARTOUT_SECURITY_PROTOCOL                  | Pontus |
-| 2026-02-28 | 7.0.0   | Major trim: moved details to reference files, <280 lines                       | Claude |
-| 2026-02-28 | 6.1.0   | Pricing terms, workspace creation, ADR-0027                                    | Claude |
-| 2026-02-28 | 6.0.0   | Docs restructuring, INDEX.md, reference files, YAML, ADR-0025                  | Claude |
-| 2026-02-28 | 5.0.0   | Contract system, microservice, notifications, ADR-0021-0024                    | Claude |
-| 2026-02-27 | 2.0.0   | Complete rewrite verified against codebase                                     | Claude |
-| 2026-01-01 | 1.0.0   | Initial version                                                                | Pontus |
+| Date       | Version | Change                                                                                    | Author |
+| ---------- | ------- | ----------------------------------------------------------------------------------------- | ------ |
+| 2026-03-01 | 7.5.0   | API Gateway enforcement: mandatory checklists, scope table, service auth, env enforcement | Claude |
+| 2026-03-01 | 7.4.0   | Inline security summary: Three Laws, API key tiers, env vars always in context            | Claude |
+| 2026-03-01 | 7.3.0   | Protocols folder, templates folder, security protocol populated                           | Claude |
+| 2026-02-28 | 7.2.0   | API key management: 3 tables, 2 Edge Functions, 8 API routes, UI, ADR-0028                | Claude |
+| 2026-02-28 | 7.1.0   | Added Security section referencing SMARTOUT_SECURITY_PROTOCOL                             | Pontus |
+| 2026-02-28 | 7.0.0   | Major trim: moved details to reference files, <280 lines                                  | Claude |
+| 2026-02-28 | 6.1.0   | Pricing terms, workspace creation, ADR-0027                                               | Claude |
+| 2026-02-28 | 6.0.0   | Docs restructuring, INDEX.md, reference files, YAML, ADR-0025                             | Claude |
+| 2026-02-28 | 5.0.0   | Contract system, microservice, notifications, ADR-0021-0024                               | Claude |
+| 2026-02-27 | 2.0.0   | Complete rewrite verified against codebase                                                | Claude |
+| 2026-01-01 | 1.0.0   | Initial version                                                                           | Pontus |
