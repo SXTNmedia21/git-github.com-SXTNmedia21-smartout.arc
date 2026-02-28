@@ -14,7 +14,7 @@ export default async function UsersPage() {
     admin
       .from("user_identity")
       .select(
-        "user_id, email, first_name, last_name, is_super_admin, is_active, last_login_at, created_at",
+        "user_id, email, first_name, last_name, is_godmode, is_active, last_login_at, created_at",
       )
       .order("created_at", { ascending: false })
       .limit(250),
@@ -35,7 +35,7 @@ export default async function UsersPage() {
     email: u.email,
     first_name: u.first_name,
     last_name: u.last_name,
-    is_super_admin: u.is_super_admin,
+    is_godmode: u.is_godmode,
     is_active: u.is_active,
     last_login_at: u.last_login_at,
     created_at: u.created_at,

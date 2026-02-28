@@ -38,7 +38,7 @@ async function resolveSuperAdmins(adminClient: SupabaseClient): Promise<Resolved
   const { data, error } = await adminClient
     .from("user_identity")
     .select("user_id, email, first_name, last_name, preferred_language")
-    .eq("is_super_admin", true)
+    .eq("is_godmode", true)
     .eq("is_active", true);
 
   if (error) throw new Error(`Failed to resolve super_admins: ${error.message}`);
@@ -223,7 +223,7 @@ export async function countAudience(
       const { count, error } = await adminClient
         .from("user_identity")
         .select("user_id", { count: "exact", head: true })
-        .eq("is_super_admin", true)
+        .eq("is_godmode", true)
         .eq("is_active", true);
       if (error) throw new Error(`Failed to count super_admins: ${error.message}`);
       return count ?? 0;

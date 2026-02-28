@@ -96,10 +96,10 @@ export default function SchedulePage() {
 
   return (
     <div
-      className={`flex flex-1 flex-col ${isDark ? "bg-[#050505]" : "bg-zinc-50"} relative h-full overflow-hidden rounded-2xl border border-white/5 font-sans text-zinc-100 shadow-2xl print:block print:h-auto print:overflow-visible print:border-none print:bg-white print:shadow-none`}
+      className={`flex flex-1 flex-col ${isDark ? "bg-[#050505]" : "bg-zinc-50"} relative h-full overflow-hidden rounded-2xl border border-white/[0.04] font-sans text-zinc-100 shadow-2xl print:block print:h-auto print:overflow-visible print:border-none print:bg-white print:shadow-none`}
     >
       {/* AMBIENT BACKGROUND */}
-      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-2xl opacity-20">
+      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-2xl opacity-10">
         <div className="absolute top-[-10%] left-[-10%] h-[500px] w-[500px] rounded-full bg-orange-600/20 mix-blend-screen blur-[120px]" />
       </div>
 
@@ -184,11 +184,11 @@ function ScheduleSidebar({
 }) {
   return (
     <aside
-      className={`border-r border-white/5 ${isDark ? "bg-[#0a0a0c]/40" : "bg-white/60"} z-20 hidden shrink-0 flex-col backdrop-blur-md transition-all duration-300 ease-in-out lg:flex ${isSidebarOpen ? "w-64 opacity-100 xl:w-72" : "w-0 overflow-hidden border-none opacity-0"} print:hidden`}
+      className={`border-r border-white/[0.04] ${isDark ? "bg-[#0a0a0c]/40" : "bg-white/60"} z-20 hidden shrink-0 flex-col backdrop-blur-md transition-all duration-300 ease-in-out lg:flex ${isSidebarOpen ? "w-64 opacity-100 xl:w-72" : "w-0 overflow-hidden border-none opacity-0"} print:hidden`}
     >
       <div className="flex w-64 flex-1 flex-col overflow-y-auto p-4 xl:w-72 xl:p-5">
         <div
-          className={`mb-4 flex gap-1 rounded-xl p-1 ${isDark ? "bg-white/5" : "bg-zinc-200/50"}`}
+          className={`mb-4 flex gap-1 rounded-xl p-1 ${isDark ? "bg-white/[0.03]" : "bg-zinc-200/50"}`}
         >
           <button
             onClick={() => setSidebarMode("open")}
@@ -289,11 +289,11 @@ function WeeklyGridContent({
   setIsSidebarOpen: (v: boolean) => void;
   onDateClick?: (d: string) => void;
 }) {
-  const { isDark, scheduleView } = useContext(DashboardContext);
-  const columns = Array.from({ length: 10 }, (_, i) => i + 1);
+  const { isDark, scheduleView, weeklyPeriodCount } = useContext(DashboardContext);
+  const columns = Array.from({ length: weeklyPeriodCount }, (_, i) => i + 1);
 
   return (
-    <div className="flex w-fit min-w-full">
+    <div className="flex w-full">
       <div
         className={`w-[200px] shrink-0 border-r border-white/5 xl:w-[250px] ${isDark ? "bg-[#0a0a0c]/60" : "bg-white/80"} sticky left-0 z-30 flex flex-col shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)] backdrop-blur-md`}
       >
@@ -371,7 +371,7 @@ function WeeklyGridContent({
       {columns.map((col) => (
         <div
           key={col}
-          className={`w-40 shrink-0 border-r xl:w-48 ${isDark ? "border-white/5" : "border-zinc-200"} flex flex-col transition-colors hover:bg-white/[0.02] ${col === 3 ? "bg-orange-500/[0.02]" : ""}`}
+          className={`min-w-0 flex-1 border-r ${isDark ? "border-white/5" : "border-zinc-200"} flex flex-col transition-colors hover:bg-white/[0.02] ${col === 3 ? "bg-orange-500/[0.02]" : ""}`}
         >
           <div
             onClick={() => onDateClick && onDateClick(`Uke ${col}`)}
@@ -383,7 +383,7 @@ function WeeklyGridContent({
               </div>
             )}
             <h2
-              className={`text-xl font-black tracking-tighter xl:text-3xl ${col === 3 ? "text-orange-400" : isDark ? "text-white" : "text-zinc-900"}`}
+              className={`font-black tracking-tighter ${weeklyPeriodCount > 5 ? "text-lg xl:text-xl" : "text-xl xl:text-3xl"} ${col === 3 ? "text-orange-400" : isDark ? "text-white" : "text-zinc-900"}`}
             >
               {col}
             </h2>
@@ -476,10 +476,10 @@ function EntityRow({
   const percentage = Math.min((scheduledHours / contractedHours) * 100, 100);
   const isOvertime = scheduledHours > contractedHours;
 
-  let barColor = "bg-zinc-500";
-  if (isOvertime) barColor = "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]";
-  else if (percentage >= 95) barColor = "bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]";
-  else if (percentage >= 70) barColor = "bg-orange-500";
+  let barColor = "bg-zinc-600";
+  if (isOvertime) barColor = "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.4)]";
+  else if (percentage >= 95) barColor = "bg-emerald-500/80";
+  else if (percentage >= 70) barColor = "bg-zinc-500";
 
   return (
     <div
@@ -492,19 +492,19 @@ function EntityRow({
       </div>
       <div className="min-w-0 flex-1">
         <h3
-          className={`text-[10px] font-bold xl:text-[11px] ${isDark ? "text-white" : "text-zinc-900"} truncate leading-tight transition-colors group-hover:text-orange-400`}
+          className={`text-[11px] font-bold xl:text-xs ${isDark ? "text-white" : "text-zinc-900"} truncate leading-tight transition-colors group-hover:text-zinc-300`}
         >
           {name}
         </h3>
-        <p className="mb-1 truncate text-[8px] leading-tight text-zinc-500 xl:text-[9px]">
+        <p className="mb-1 truncate text-[9px] leading-tight text-zinc-500 xl:text-[10px]">
           {subtitle}
         </p>
         <div className="mt-1 space-y-1">
-          <div className="flex items-center justify-between text-[7px] font-bold tracking-widest uppercase">
+          <div className="flex items-center justify-between text-[8px] font-bold tracking-widest uppercase">
             <span className="text-zinc-500">{shifts} vakter</span>
             <span
               className={
-                isOvertime ? "text-red-400" : percentage >= 95 ? "text-green-400" : "text-zinc-400"
+                isOvertime ? "text-red-400" : "text-zinc-400"
               }
             >
               {hours} <span className="text-zinc-600">/{contractedHours}</span>

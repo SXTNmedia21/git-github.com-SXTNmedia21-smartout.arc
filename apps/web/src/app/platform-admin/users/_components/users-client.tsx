@@ -53,7 +53,7 @@ export type UserRow = {
   email: string;
   first_name: string | null;
   last_name: string | null;
-  is_super_admin: boolean;
+  is_godmode: boolean;
   is_active: boolean;
   last_login_at: string | null;
   created_at: string;
@@ -107,12 +107,12 @@ export function UsersClient({ users: initialUsers }: UsersClientProps) {
     audience?: AudienceFilter;
   }>({ open: false });
 
-  async function toggleSuperAdmin(userId: string, currentValue: boolean) {
+  async function toggleGodmode(userId: string, currentValue: boolean) {
     try {
       const res = await fetch("/api/platform-admin/users/toggle-super-admin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, isSuperAdmin: !currentValue }),
+        body: JSON.stringify({ userId, isGodmode: !currentValue }),
       });
 
       if (!res.ok) {
@@ -122,7 +122,7 @@ export function UsersClient({ users: initialUsers }: UsersClientProps) {
       }
 
       setUsers((prev) =>
-        prev.map((u) => (u.user_id === userId ? { ...u, is_super_admin: !currentValue } : u)),
+        prev.map((u) => (u.user_id === userId ? { ...u, is_godmode: !currentValue } : u)),
       );
       toast.success(currentValue ? "Super admin access revoked" : "Super admin access granted");
     } catch {
@@ -218,15 +218,15 @@ export function UsersClient({ users: initialUsers }: UsersClientProps) {
         ),
       },
       {
-        accessorKey: "is_super_admin",
+        accessorKey: "is_godmode",
         header: "Role",
         cell: ({ row }) =>
-          row.original.is_super_admin ? (
+          row.original.is_godmode ? (
             <Badge
               variant="outline"
               className="border-purple-500/20 bg-purple-500/10 text-xs text-purple-400"
             >
-              Super Admin
+              Godmode
             </Badge>
           ) : (
             <span className="text-muted-foreground text-xs">User</span>
@@ -299,25 +299,25 @@ export function UsersClient({ users: initialUsers }: UsersClientProps) {
                   onClick={() => {
                     setConfirmDialog({
                       open: true,
-                      title: user.is_super_admin ? "Revoke Super Admin" : "Grant Super Admin",
-                      description: user.is_super_admin
-                        ? `Remove super admin access from ${getUserName(user)} (${user.email})?`
-                        : `Grant super admin access to ${getUserName(user)} (${user.email})? This gives full platform control.`,
-                      confirmLabel: user.is_super_admin ? "Revoke" : "Grant",
-                      variant: user.is_super_admin ? "destructive" : "default",
-                      onConfirm: () => toggleSuperAdmin(user.user_id, user.is_super_admin),
+                      title: user.is_godmode ? "Revoke Godmode" : "Grant Godmode",
+                      description: user.is_godmode
+                        ? `Remove godmode access from ${getUserName(user)} (${user.email})?`
+                        : `Grant godmode access to ${getUserName(user)} (${user.email})? This gives full platform control.`,
+                      confirmLabel: user.is_godmode ? "Revoke" : "Grant",
+                      variant: user.is_godmode ? "destructive" : "default",
+                      onConfirm: () => toggleGodmode(user.user_id, user.is_godmode),
                     });
                   }}
                 >
-                  {user.is_super_admin ? (
+                  {user.is_godmode ? (
                     <>
                       <ShieldOff className="h-4 w-4" />
-                      Revoke Super Admin
+                      Revoke Godmode
                     </>
                   ) : (
                     <>
                       <Shield className="h-4 w-4" />
-                      Grant Super Admin
+                      Grant Godmode
                     </>
                   )}
                 </DropdownMenuItem>

@@ -63,6 +63,14 @@ export const DashboardContext = createContext({
   setActiveLocation: (_val: string) => {
     void _val;
   },
+  isSidebarCollapsed: false,
+  setIsSidebarCollapsed: (_val: boolean) => {
+    void _val;
+  },
+  weeklyPeriodCount: 4,
+  setWeeklyPeriodCount: (_val: number) => {
+    void _val;
+  },
   workspaceData: null as { workspace_id: string; company_id: string; name: string } | null,
 });
 import Link from "next/link";
@@ -97,6 +105,12 @@ import {
 } from "lucide-react";
 
 import { UserMenu } from "@/components/dashboard/UserMenu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const LazyVoiceAssistant = dynamic(() => import("@/components/voice-assistant"), {
   ssr: false,
@@ -112,6 +126,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [scheduleLayout, setScheduleLayout] = useState<ScheduleLayoutMode>("daily");
   const [scheduleView, setScheduleView] = useState<ScheduleViewMode>("ansatt");
   const [activeLocation, setActiveLocation] = useState("Alle Lokasjoner");
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [weeklyPeriodCount, setWeeklyPeriodCount] = useState(4);
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const pathname = usePathname();
   const workspaceCtx = useWorkspaceOptional();
@@ -140,12 +156,21 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       setScheduleView,
       activeLocation,
       setActiveLocation,
+      isSidebarCollapsed,
+      setIsSidebarCollapsed,
+      weeklyPeriodCount,
+      setWeeklyPeriodCount,
       workspaceData,
     }),
-    [isAdminMode, isDark, adminView, scheduleLayout, scheduleView, activeLocation, workspaceData],
+    [isAdminMode, isDark, adminView, scheduleLayout, scheduleView, activeLocation, isSidebarCollapsed, weeklyPeriodCount, workspaceData],
   );
 
   const isDashboardPage = pathname === "/dashboard";
+
+  // Auto-collapse sidebar when navigating or clicking main content
+  const collapseSidebar = () => {
+    if (!isSidebarCollapsed) setIsSidebarCollapsed(true);
+  };
 
   // Helper to determine if a link is active
   const isActive = (path: string) => {
@@ -226,26 +251,33 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       <div className="relative flex flex-1 overflow-hidden">
         {/* LEFT SIDEBAR NAVIGATION */}
         <aside
-          className={`z-20 flex w-64 flex-col border-r transition-colors duration-300 ${
+          className={`z-20 flex flex-col border-r overflow-hidden transition-[width] duration-200 ${
+            isSidebarCollapsed ? "w-16" : "w-64"
+          } ${
             isDark ? "border-zinc-800 bg-[#0c0c0e]" : "border-zinc-200 bg-white shadow-sm"
           } print:hidden`}
         >
-          <nav className="hide-scrollbar relative flex-1 space-y-1 overflow-y-auto px-4 py-8">
+          <TooltipProvider delayDuration={0}>
+          <nav className={`hide-scrollbar relative flex-1 space-y-1 overflow-y-auto py-8 ${isSidebarCollapsed ? "px-2" : "px-4"}`}>
             {isAdminMode ? (
               <>
-                <div
-                  className={`mt-2 mb-3 px-3 text-[10px] font-bold tracking-widest uppercase ${
-                    isDark ? "text-zinc-500" : "text-zinc-400"
-                  }`}
-                >
-                  Management
-                </div>
+                {!isSidebarCollapsed && (
+                  <div
+                    className={`mt-2 mb-3 px-3 text-[10px] font-bold tracking-widest uppercase ${
+                      isDark ? "text-zinc-500" : "text-zinc-400"
+                    }`}
+                  >
+                    Management
+                  </div>
+                )}
                 <NavItem
                   href="/dashboard"
                   icon={LayoutDashboard}
                   label="Dashboard"
                   isDark={isDark}
                   active={isActive("/dashboard")}
+                  isCollapsed={isSidebarCollapsed}
+                  onNavigate={collapseSidebar}
                 />
                 <NavItem
                   href="/dashboard/people"
@@ -254,6 +286,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   isDark={isDark}
                   badge="2 Req"
                   active={isActive("/dashboard/people")}
+                  isCollapsed={isSidebarCollapsed}
+                  onNavigate={collapseSidebar}
                 />
                 <NavItem
                   href="/dashboard/schedule"
@@ -261,21 +295,28 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   label="Schedule"
                   isDark={isDark}
                   active={isActive("/dashboard/schedule")}
+                  isCollapsed={isSidebarCollapsed}
+                  onNavigate={collapseSidebar}
                 />
 
-                <div
-                  className={`mt-6 mb-3 px-3 text-[10px] font-bold tracking-widest uppercase ${
-                    isDark ? "text-zinc-500" : "text-zinc-400"
-                  }`}
-                >
-                  Operations
-                </div>
+                {!isSidebarCollapsed && (
+                  <div
+                    className={`mt-6 mb-3 px-3 text-[10px] font-bold tracking-widest uppercase ${
+                      isDark ? "text-zinc-500" : "text-zinc-400"
+                    }`}
+                  >
+                    Operations
+                  </div>
+                )}
+                {isSidebarCollapsed && <div className="mt-4" />}
                 <NavItem
                   href="/dashboard/operations"
                   icon={Activity}
                   label="Live Operations"
                   isDark={isDark}
                   active={isActive("/dashboard/operations")}
+                  isCollapsed={isSidebarCollapsed}
+                  onNavigate={collapseSidebar}
                 />
                 <NavItem
                   href="/dashboard/reports"
@@ -283,21 +324,28 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   label="Reports"
                   isDark={isDark}
                   active={isActive("/dashboard/reports")}
+                  isCollapsed={isSidebarCollapsed}
+                  onNavigate={collapseSidebar}
                 />
 
-                <div
-                  className={`mt-6 mb-3 px-3 text-[10px] font-bold tracking-widest uppercase ${
-                    isDark ? "text-zinc-500" : "text-zinc-400"
-                  }`}
-                >
-                  Administration
-                </div>
+                {!isSidebarCollapsed && (
+                  <div
+                    className={`mt-6 mb-3 px-3 text-[10px] font-bold tracking-widest uppercase ${
+                      isDark ? "text-zinc-500" : "text-zinc-400"
+                    }`}
+                  >
+                    Administration
+                  </div>
+                )}
+                {isSidebarCollapsed && <div className="mt-4" />}
                 <NavItem
                   href="/dashboard/governance"
                   icon={ShieldCheck}
                   label="Governance"
                   isDark={isDark}
                   active={isActive("/dashboard/governance")}
+                  isCollapsed={isSidebarCollapsed}
+                  onNavigate={collapseSidebar}
                 />
                 <NavItem
                   href="/dashboard/season"
@@ -305,6 +353,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   label="Season"
                   isDark={isDark}
                   active={isActive("/dashboard/season")}
+                  isCollapsed={isSidebarCollapsed}
+                  onNavigate={collapseSidebar}
                 />
                 <NavItem
                   href="/dashboard/organization"
@@ -312,23 +362,29 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   label="Organization"
                   isDark={isDark}
                   active={isActive("/dashboard/organization")}
+                  isCollapsed={isSidebarCollapsed}
+                  onNavigate={collapseSidebar}
                 />
               </>
             ) : (
               <>
-                <div
-                  className={`mt-2 mb-3 px-3 text-[10px] font-bold tracking-widest uppercase ${
-                    isDark ? "text-zinc-500" : "text-zinc-400"
-                  }`}
-                >
-                  My Workspace
-                </div>
+                {!isSidebarCollapsed && (
+                  <div
+                    className={`mt-2 mb-3 px-3 text-[10px] font-bold tracking-widest uppercase ${
+                      isDark ? "text-zinc-500" : "text-zinc-400"
+                    }`}
+                  >
+                    My Workspace
+                  </div>
+                )}
                 <NavItem
                   href="/dashboard"
                   icon={LayoutDashboard}
                   label="Dashboard"
                   isDark={isDark}
                   active={isActive("/dashboard")}
+                  isCollapsed={isSidebarCollapsed}
+                  onNavigate={collapseSidebar}
                 />
                 <NavItem
                   href="/dashboard/my-schedule"
@@ -336,6 +392,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   label="My Schedule"
                   isDark={isDark}
                   active={isActive("/dashboard/my-schedule")}
+                  isCollapsed={isSidebarCollapsed}
+                  onNavigate={collapseSidebar}
                 />
                 <NavItem
                   href="/dashboard/my-training"
@@ -344,6 +402,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   isDark={isDark}
                   badge="1 Due"
                   active={isActive("/dashboard/my-training")}
+                  isCollapsed={isSidebarCollapsed}
+                  onNavigate={collapseSidebar}
                 />
                 <NavItem
                   href="/dashboard/my-cv"
@@ -351,6 +411,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   label="My CV & Profile"
                   isDark={isDark}
                   active={isActive("/dashboard/my-cv")}
+                  isCollapsed={isSidebarCollapsed}
+                  onNavigate={collapseSidebar}
                 />
                 <NavItem
                   href="/dashboard/my-salary"
@@ -358,17 +420,22 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   label="My Salary"
                   isDark={isDark}
                   active={isActive("/dashboard/my-salary")}
+                  isCollapsed={isSidebarCollapsed}
+                  onNavigate={collapseSidebar}
                 />
               </>
             )}
 
-            <div
-              className={`mt-6 mb-3 px-3 text-[10px] font-bold tracking-widest uppercase ${
-                isDark ? "text-zinc-500" : "text-zinc-400"
-              }`}
-            >
-              Communication
-            </div>
+            {!isSidebarCollapsed && (
+              <div
+                className={`mt-6 mb-3 px-3 text-[10px] font-bold tracking-widest uppercase ${
+                  isDark ? "text-zinc-500" : "text-zinc-400"
+                }`}
+              >
+                Communication
+              </div>
+            )}
+            {isSidebarCollapsed && <div className="mt-4" />}
             <NavItem
               href="/dashboard/chat"
               icon={MessageSquare}
@@ -376,6 +443,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               isDark={isDark}
               badge="3"
               active={isActive("/dashboard/chat")}
+              isCollapsed={isSidebarCollapsed}
             />
             <NavItem
               href="/dashboard/ai"
@@ -384,6 +452,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               isDark={isDark}
               ai
               active={isActive("/dashboard/ai")}
+              isCollapsed={isSidebarCollapsed}
             />
             <NavItem
               href="/dashboard/onboarding-assistant"
@@ -392,6 +461,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               isDark={isDark}
               ai
               active={isActive("/dashboard/onboarding-assistant")}
+              isCollapsed={isSidebarCollapsed}
             />
 
             <div className="mt-8 space-y-1 pt-4">
@@ -401,6 +471,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 label="Settings"
                 isDark={isDark}
                 active={isActive("/dashboard/settings")}
+                isCollapsed={isSidebarCollapsed}
               />
               <NavItem
                 href="/dashboard/help"
@@ -408,18 +479,21 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 label="Help"
                 isDark={isDark}
                 active={isActive("/dashboard/help")}
+                isCollapsed={isSidebarCollapsed}
               />
             </div>
           </nav>
 
+          {/* Sidebar bottom controls */}
           <div
-            className={`border-t p-4 ${
+            className={`border-t ${isSidebarCollapsed ? "p-2" : "p-4"} ${
               isDark ? "border-zinc-800 bg-[#0a0a0c]" : "border-zinc-200 bg-zinc-50/50"
-            }`}
+            } space-y-2`}
           >
+            {/* Admin/Employee toggle */}
             <button
               onClick={() => setIsAdminMode(!isAdminMode)}
-              className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm font-semibold transition-all ${
+              className={`flex w-full items-center ${isSidebarCollapsed ? "justify-center" : "justify-between"} rounded-lg border ${isSidebarCollapsed ? "px-0 py-2" : "px-3 py-2"} text-sm font-semibold transition-all ${
                 isAdminMode
                   ? isDark
                     ? "border-orange-500/20 bg-orange-500/10 text-orange-500"
@@ -429,7 +503,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                     : "border-zinc-200 bg-white text-zinc-700 shadow-sm"
               }`}
             >
-              <span>{isAdminMode ? "Admin Mode" : "Employee Mode"}</span>
+              {!isSidebarCollapsed && <span>{isAdminMode ? "Admin Mode" : "Employee Mode"}</span>}
               <div
                 className={`flex h-4 w-8 items-center rounded-full p-0.5 transition-colors ${
                   isAdminMode ? "bg-orange-500" : "bg-zinc-400"
@@ -442,7 +516,24 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 />
               </div>
             </button>
+
+            {/* Collapse toggle */}
+            <button
+              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              className={`flex w-full items-center justify-center rounded-lg py-1.5 transition-colors ${
+                isDark
+                  ? "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
+                  : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
+              }`}
+            >
+              {isSidebarCollapsed ? (
+                <ChevronRight className="h-4 w-4" />
+              ) : (
+                <ChevronLeft className="h-4 w-4" />
+              )}
+            </button>
           </div>
+          </TooltipProvider>
         </aside>
 
         {/* MAIN CONTENT AREA */}
@@ -550,7 +641,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                       onClick={() => setScheduleLayout("weekly")}
                       className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "weekly" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : isDark ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
                     >
-                      Rullerende (1-10)
+                      Rullerende ({weeklyPeriodCount})
                     </button>
                     <button
                       onClick={() => setScheduleLayout("monthly")}
@@ -565,6 +656,23 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                       Vaktliste
                     </button>
                   </div>
+
+                  {/* PERIOD COUNT SELECTOR (weekly only) */}
+                  {scheduleLayout === "weekly" && (
+                    <div
+                      className={`hidden items-center gap-0.5 rounded-xl border p-1 shadow-sm md:flex ${isDark ? "border-zinc-800 bg-[#0a0a0c]" : "border-zinc-200 bg-zinc-100"} mr-2`}
+                    >
+                      {[3, 4, 5, 6, 8].map((count) => (
+                        <button
+                          key={count}
+                          onClick={() => setWeeklyPeriodCount(count)}
+                          className={`rounded-lg px-2.5 py-1.5 text-xs font-bold tabular-nums transition-all ${weeklyPeriodCount === count ? (isDark ? "bg-zinc-800 text-white shadow-sm" : "bg-white text-zinc-900 shadow-sm") : isDark ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
+                        >
+                          {count}
+                        </button>
+                      ))}
+                    </div>
+                  )}
 
                   {/* DATE NAVIGATION */}
                   <div
@@ -686,7 +794,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <DashboardContext.Provider value={dashboardContextValue}>
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-6 md:p-8 print:block print:h-auto print:overflow-visible print:p-0">
+            {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
+            <div
+              className="flex min-h-0 flex-1 flex-col overflow-hidden p-6 md:p-8 print:block print:h-auto print:overflow-visible print:p-0"
+              onClick={!isSidebarCollapsed ? collapseSidebar : undefined}
+            >
               {children}
             </div>
           </DashboardContext.Provider>
@@ -706,13 +818,18 @@ interface NavItemProps {
   badge?: string;
   isDark?: boolean;
   ai?: boolean;
+  isCollapsed?: boolean;
+  onNavigate?: () => void;
 }
 
-function NavItem({ icon: Icon, label, href, active, badge, isDark, ai }: NavItemProps) {
-  return (
+function NavItem({ icon: Icon, label, href, active, badge, isDark, ai, isCollapsed, onNavigate }: NavItemProps) {
+  const content = (
     <Link
       href={href}
-      className={`group flex items-center justify-between rounded-xl px-3 py-2.5 transition-all ${
+      onClick={onNavigate}
+      className={`group flex items-center rounded-xl transition-all ${
+        isCollapsed ? "justify-center px-0 py-2.5" : "justify-between px-3 py-2.5"
+      } ${
         active
           ? isDark
             ? "border border-zinc-700/50 bg-zinc-800/80 font-semibold text-white"
@@ -722,9 +839,9 @@ function NavItem({ icon: Icon, label, href, active, badge, isDark, ai }: NavItem
             : "border border-transparent text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"
       }`}
     >
-      <div className="flex items-center gap-3">
+      <div className={`flex items-center ${isCollapsed ? "" : "gap-3"}`}>
         <Icon
-          className={`h-[18px] w-[18px] transition-colors ${
+          className={`h-[18px] w-[18px] shrink-0 transition-colors ${
             ai
               ? "text-indigo-500 group-hover:text-indigo-400"
               : active
@@ -736,11 +853,13 @@ function NavItem({ icon: Icon, label, href, active, badge, isDark, ai }: NavItem
                   : "text-zinc-400 group-hover:text-zinc-600"
           }`}
         />
-        <span className={`text-[13px] tracking-wide ${active ? "font-bold" : "font-medium"}`}>
-          {label}
-        </span>
+        {!isCollapsed && (
+          <span className={`text-[13px] tracking-wide ${active ? "font-bold" : "font-medium"}`}>
+            {label}
+          </span>
+        )}
       </div>
-      {active && !badge && (
+      {!isCollapsed && active && !badge && (
         <div
           className={`h-1.5 w-1.5 rounded-full ${
             isDark
@@ -749,7 +868,10 @@ function NavItem({ icon: Icon, label, href, active, badge, isDark, ai }: NavItem
           }`}
         />
       )}
-      {badge && (
+      {isCollapsed && badge && (
+        <div className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-orange-500" />
+      )}
+      {!isCollapsed && badge && (
         <span
           className={`rounded border px-2 py-0.5 text-[9px] font-bold ${
             isDark
@@ -762,6 +884,22 @@ function NavItem({ icon: Icon, label, href, active, badge, isDark, ai }: NavItem
       )}
     </Link>
   );
+
+  if (isCollapsed) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="relative">{content}</div>
+        </TooltipTrigger>
+        <TooltipContent side="right" className="text-xs font-semibold">
+          {label}
+          {badge ? ` (${badge})` : ""}
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return content;
 }
 
 export default DashboardShell;

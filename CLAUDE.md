@@ -65,7 +65,7 @@ smartout_v3/
 - After migration: `npx supabase gen types typescript --local > packages/supabase/src/database.types.ts`
 - RLS on EVERY workspace-scoped table. Platform-admin tables use service role only.
 - `handle_new_user()` trigger creates `user_identity` on auth.users INSERT.
-- `is_super_admin` on `user_identity` gates all platform-admin access.
+- `is_godmode` on `user_identity` gates all platform-admin access. (Renamed from `is_super_admin`)
 - API key tables: `platform_api_key` (SHA-256 hashes), `platform_api_key_usage` (hourly buckets), `platform_external_secret` (Vault metadata). See ADR-0028.
 - Enums: `api_key_version_status` (current/previous/revoked), `api_key_type` (workspace/service).
 - Vault wrappers: `get_secret()`, `upsert_secret()`, `delete_vault_secret()` — SECURITY DEFINER, service_role only.
@@ -175,6 +175,69 @@ Three laws. No exceptions.
 
 > Full variable list: `docs/reference/ENV_VARS.md`
 > Full security protocol (427 lines): `docs/protocols/SECURITY.md`
+
+### API Gateway — Mandatory Checklists
+
+These are not guidelines. They are rules. Violations break the API contract.
+
+**The gateway pattern:** External consumers get one API key. That key is validated by Supabase Edge Functions. Services sit behind the gate — they don't hold or validate consumer keys. Supabase is the gate.
+
+#### When creating a NEW workspace-scoped table
+
+Every workspace-scoped table needs BOTH auth paths. No exceptions.
+
+1. `ALTER TABLE ... ENABLE ROW LEVEL SECURITY;`
+2. JWT policy: `USING (workspace_id IN (SELECT get_workspace_ids_for_user(auth.uid())))`
+3. API key policy: `CREATE POLICY "api_key_read_{table}" ... USING (workspace_id = get_api_workspace_id())`
+4. If write access needed via API: add `api_key_write_{table}` policy too
+5. If publicly exposed: add handler in `workspace-api/handlers/`, register route, add to API registry
+
+Skip steps 3-5 only if the table is internal-only (platform-admin, audit logs).
+
+#### When creating a NEW Edge Function
+
+| Pattern   | When                                    | `verify_jwt`     | Auth                                                 |
+| --------- | --------------------------------------- | ---------------- | ---------------------------------------------------- |
+| JWT-only  | User-facing (onboarding, workspace ops) | `true` (default) | `supabase.auth.getUser()`                            |
+| Dual-auth | Public API, data endpoints              | `false`          | `resolveAuth(req)` from `_shared/auth-middleware.ts` |
+| Cron-only | Scheduled tasks (cleanup, watchdog)     | `false`          | `WATCHDOG_CRON_SECRET` bearer token                  |
+
+- NEVER roll your own auth. Use `_shared/auth-middleware.ts` for dual-auth.
+- Every `verify_jwt = false` function MUST be in `supabase/functions/config.toml`.
+- Every data endpoint MUST call `requireScope()` before querying.
+
+#### Canonical Scope List (source of truth)
+
+| Scope              | Tables                                        | Status  |
+| ------------------ | --------------------------------------------- | ------- |
+| `profiles:read`    | profile, department, location, team, position | Active  |
+| `schedules:read`   | schedule_shift (future)                       | Planned |
+| `schedules:write`  | schedule_shift (future)                       | Planned |
+| `operations:read`  | department_session (future)                   | Planned |
+| `operations:write` | department_session (future)                   | Planned |
+| `haccp:read`       | haccp_log (future)                            | Planned |
+| `haccp:write`      | haccp_log (future)                            | Planned |
+| `training:read`    | protocol, protocol_assignment                 | Active  |
+| `reports:read`     | aggregated views (future)                     | Planned |
+| `contracts:read`   | employment_contract                           | Active  |
+
+To add a new scope: (1) add to this table, (2) add handler in `workspace-api/handlers/`, (3) register route in `workspace-api/index.ts`, (4) add to API registry, (5) update preset bundles in `SMARTOUT_SECRET_API_INFRASTRUCTURE.md` §2.4.
+
+#### Service Authentication
+
+ALL microservices (contract-service, scrapling, future services):
+
+- MUST use managed service keys (`smo_svc_live_*`) in `platform_api_key`
+- MUST validate via `validate-api-key` Edge Function or direct DB lookup
+- MUST NOT use hardcoded env var keys (legacy pattern, being migrated)
+- Internal services don't hold consumer keys — the web app/Edge Function is the gateway
+
+#### Environment Enforcement
+
+- `smo_sk_test_*` → blocked in production, allowed in local/staging
+- `smo_sk_live_*` → works in all environments
+- Environment is key metadata, enforced at the gateway
+- No separate databases per environment (single Supabase project per env)
 
 ---
 

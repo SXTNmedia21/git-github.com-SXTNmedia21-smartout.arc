@@ -22,7 +22,7 @@ type UserData = {
 type IdentityRow = {
   first_name: string;
   last_name: string;
-  is_super_admin: boolean;
+  is_godmode: boolean;
 };
 
 export function UserMenu({ isDark }: { isDark: boolean }) {
@@ -39,7 +39,7 @@ export function UserMenu({ isDark }: { isDark: boolean }) {
       // Cast needed: user_identity RLS may not expose typed select to browser client
       const { data } = await supabase
         .from("user_identity")
-        .select("first_name, last_name, is_super_admin")
+        .select("first_name, last_name, is_godmode")
         .eq("user_id", authUser.id)
         .single();
 
@@ -59,7 +59,7 @@ export function UserMenu({ isDark }: { isDark: boolean }) {
         displayName: name,
         email: authUser.email ?? "",
         initials,
-        isSuperAdmin: identity?.is_super_admin ?? false,
+        isSuperAdmin: identity?.is_godmode ?? false,
       });
     }
 

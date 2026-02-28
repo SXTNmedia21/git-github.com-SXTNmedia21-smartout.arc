@@ -101,11 +101,11 @@ export async function middleware(request: NextRequest): Promise<Response> {
       const adminClient = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceRoleKey);
       const { data: identity } = await adminClient
         .from("user_identity")
-        .select("is_super_admin")
+        .select("is_godmode")
         .eq("user_id", sessionUser.id)
         .single();
 
-      if (!identity?.is_super_admin) {
+      if (!identity?.is_godmode) {
         const redir = NextResponse.redirect(new URL("/select-workspace", request.url));
         copySessionCookies(response, redir);
         return redir;
@@ -261,11 +261,11 @@ async function handleLegacyRouting(request: NextRequest): Promise<Response> {
     const adminClient = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceRoleKey);
     const { data: identity } = await adminClient
       .from("user_identity")
-      .select("is_super_admin")
+      .select("is_godmode")
       .eq("user_id", sessionUser.id)
       .single();
 
-    if (!identity?.is_super_admin) {
+    if (!identity?.is_godmode) {
       const redir = NextResponse.redirect(new URL("/dashboard", request.url));
       copySessionCookies(response, redir);
       return redir;

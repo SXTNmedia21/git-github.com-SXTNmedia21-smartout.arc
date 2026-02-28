@@ -6,7 +6,7 @@ import { getSuperAdminId, logPlatformAction } from "@/lib/platform-admin";
 
 const ToggleSchema = z.object({
   userId: z.string().uuid(),
-  isSuperAdmin: z.boolean(),
+  isGodmode: z.boolean(),
 });
 
 export async function POST(request: NextRequest) {
@@ -31,9 +31,9 @@ export async function POST(request: NextRequest) {
   }
 
   // Prevent self-demotion
-  if (body.userId === adminId && !body.isSuperAdmin) {
+  if (body.userId === adminId && !body.isGodmode) {
     return NextResponse.json(
-      { error: "Cannot revoke your own super admin access" },
+      { error: "Cannot revoke your own godmode access" },
       { status: 400 },
     );
   }
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
   const admin = createAdminClient();
   const { error } = await admin
     .from("user_identity")
-    .update({ is_super_admin: body.isSuperAdmin })
+    .update({ is_godmode: body.isGodmode })
     .eq("user_id", body.userId);
 
   if (error) {
@@ -50,10 +50,10 @@ export async function POST(request: NextRequest) {
 
   await logPlatformAction(
     adminId,
-    body.isSuperAdmin ? "grant_super_admin" : "revoke_super_admin",
+    body.isGodmode ? "grant_godmode" : "revoke_godmode",
     "user",
     body.userId,
-    { isSuperAdmin: body.isSuperAdmin },
+    { isGodmode: body.isGodmode },
   );
 
   return NextResponse.json({ success: true });

@@ -3186,7 +3186,7 @@ export type Database = {
           emergency_contact_relation: string | null
           first_name: string
           is_active: boolean
-          is_super_admin: boolean
+          is_godmode: boolean
           last_login_at: string | null
           last_name: string
           personal_email: string | null
@@ -3207,7 +3207,7 @@ export type Database = {
           emergency_contact_relation?: string | null
           first_name: string
           is_active?: boolean
-          is_super_admin?: boolean
+          is_godmode?: boolean
           last_login_at?: string | null
           last_name: string
           personal_email?: string | null
@@ -3228,7 +3228,7 @@ export type Database = {
           emergency_contact_relation?: string | null
           first_name?: string
           is_active?: boolean
-          is_super_admin?: boolean
+          is_godmode?: boolean
           last_login_at?: string | null
           last_name?: string
           personal_email?: string | null

@@ -3,9 +3,9 @@ import { createClient } from "@smartout/supabase/server";
 import type { Json } from "@smartout/supabase";
 
 /**
- * Check if the current user is a super admin.
+ * Check if the current user has godmode access.
  * Use in server components and route handlers (NOT middleware).
- * Returns the user_id if super admin, null otherwise.
+ * Returns the user_id if godmode, null otherwise.
  */
 export async function getSuperAdminId(): Promise<string | null> {
   const supabase = await createClient();
@@ -18,11 +18,11 @@ export async function getSuperAdminId(): Promise<string | null> {
   const admin = createAdminClient();
   const { data } = await admin
     .from("user_identity")
-    .select("is_super_admin")
+    .select("is_godmode")
     .eq("user_id", user.id)
     .single();
 
-  return data?.is_super_admin ? user.id : null;
+  return data?.is_godmode ? user.id : null;
 }
 
 /**

@@ -40,11 +40,11 @@ export async function POST(request: NextRequest) {
   const admin = createAdminClient();
   const { data: identity } = await admin
     .from("user_identity")
-    .select("is_super_admin")
+    .select("is_godmode")
     .eq("user_id", user.id)
     .single();
 
-  if (!identity?.is_super_admin) {
+  if (!identity?.is_godmode) {
     return NextResponse.json({ error: "Forbidden — super admin only" }, { status: 403 });
   }
 
