@@ -3,12 +3,20 @@ import { type User } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "./database.types";
 
+function getMiddlewareCookieDomain(): string | undefined {
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN;
+  if (!rootDomain || rootDomain === "localhost") return undefined;
+  return `.${rootDomain}`;
+}
+
 export async function updateSession(
   request: NextRequest,
 ): Promise<{ response: NextResponse; user: User | null }> {
   let supabaseResponse = NextResponse.next({
     request,
   });
+
+  const cookieDomain = getMiddlewareCookieDomain();
 
   const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -30,7 +38,10 @@ export async function updateSession(
             request,
           });
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options),
+            supabaseResponse.cookies.set(name, value, {
+              ...options,
+              ...(cookieDomain ? { domain: cookieDomain } : {}),
+            }),
           );
         },
       },
