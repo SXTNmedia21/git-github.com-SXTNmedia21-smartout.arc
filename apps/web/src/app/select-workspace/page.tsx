@@ -14,19 +14,21 @@ export default async function SelectWorkspacePage() {
 
   const { data: profiles } = await supabase
     .from("profile")
-    .select(
-      "profile_id, role, display_name, workspace:workspace_id(workspace_id, name, slug, logo_url)",
-    )
+    .select("profile_id, role, display_name, workspace_id")
     .eq("user_id", user.id);
+
+  const workspaceIds = (profiles ?? []).map((p) => p.workspace_id);
+
+  const { data: workspaceRows } = workspaceIds.length > 0
+    ? await supabase
+        .from("workspace")
+        .select("workspace_id, name, slug, logo_url")
+        .in("workspace_id", workspaceIds)
+    : { data: [] as { workspace_id: string; name: string; slug: string; logo_url: string | null }[] };
 
   const workspaces = (profiles ?? [])
     .map((p) => {
-      const ws = p.workspace as unknown as {
-        workspace_id: string;
-        name: string;
-        slug: string;
-        logo_url: string | null;
-      } | null;
+      const ws = (workspaceRows ?? []).find((w) => w.workspace_id === p.workspace_id);
       return ws ? { ...ws, role: p.role, displayName: p.display_name } : null;
     })
     .filter(Boolean) as {

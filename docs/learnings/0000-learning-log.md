@@ -14,3 +14,4 @@ This document serves as the central index of all Learning Records within the Sma
 | 0008 | 28-02-2026 | [Vercel always sets x-forwarded-host — never treat it as suspicious](./0008-vercel-x-forwarded-host-400.md)                           | vercel, security, middleware, reverse-proxy |
 | 0009 | 28-02-2026 | [.vercelignore patterns without leading / match at any depth](./0009-vercelignore-depth-matching.md)                                  | vercel, gitignore, build, monorepo          |
 | 0010 | 28-02-2026 | [Vercel Turborepo monorepo — Root Directory is app dir, not monorepo root](./0010-vercel-turborepo-root-directory.md)                 | vercel, turborepo, monorepo, deployment     |
+| 0011 | 28-02-2026 | [Framer Motion Landing Page Animation Patterns](./0011-framer-motion-landing-animation-patterns.md)                                   | framer-motion, animation, landing, ux       |

@@ -387,6 +387,59 @@ API Routes:
 /api/webhooks/docuseal     → DocuSeal contract webhook (POST)
 ```
 
+### Landing Page Routes (apps/landing)
+
+```
+/                          → Homepage (workspace analyzer, features, CTAs)
+/pricing                   → Pricing page
+/om-oss                    → About us
+/blog                      → Blog
+/login                     → Login redirect
+/signup                    → Signup redirect
+/waitlist                  → Waitlist signup
+/personvern                → Privacy policy (GDPR)
+/vilkar                    → Terms of service
+
+Feature Pages:
+/features/shiftplanner             → Shift planning showcase
+/features/punchclock-timetracking  → Time tracking + shift detail view
+/features/staff-training           → Staff training showcase
+/features/task-rutines             → Tasks & routines showcase
+/features/haccp-complience         → HACCP compliance showcase
+/features/communications           → Communication tools showcase
+
+Concept Pages:
+/concepts/seasons          → Season management concept
+/concepts/lokations        → Location management concept
+/concepts/procedures       → Procedure management concept
+/concepts/daily-session    → Daily session concept
+
+Documentation:
+/docs                      → Docs index with sidebar
+/docs/kom-i-gang           → Getting started
+/docs/onboarding           → Onboarding docs
+/docs/ansatte              → Employee management docs
+/docs/vaktplan             → Shift planning docs
+/docs/oppgaver-rutiner     → Tasks & routines docs
+/docs/haccp                → HACCP docs
+/docs/kommunikasjon        → Communication docs
+/docs/rapporter            → Reports docs
+/docs/ai-assistent         → AI assistant docs
+/docs/innstillinger        → Settings docs
+/docs/api                  → API docs
+/docs/[slug]               → Dynamic doc page
+```
+
+### Landing Page Components
+
+| Component         | File                                | Type   | Purpose                                     |
+| ----------------- | ----------------------------------- | ------ | ------------------------------------------- |
+| Navigation        | `components/navigation.tsx`         | Client | Top nav with mobile menu                    |
+| Footer            | `components/footer.tsx`             | Server | Footer with legal links                     |
+| WorkspaceAnalyzer | `components/workspace-analyzer.tsx` | Client | URL input → animated analysis → mock scores |
+| VoiceAssistant    | `components/voice-assistant.tsx`    | Client | Voice assistant demo                        |
+| NextPageBanner    | `components/next-page-banner.tsx`   | Client | Cross-page navigation banner                |
+
 ---
 
 ## Environment Variables
@@ -874,3 +927,4 @@ pnpm clean
 | 2026-02-28 | 4.1.0   | Performance and Build Governance documentation sweep: added architecture doc (`PERFORMANCE_BUILD_GOVERNANCE.md`), expanded ADR-0019 with rollout learnings, added Learning-0007, updated roadmap references and CLAUDE governance section                                                                                | Claude |
 | 2026-02-28 | 4.2.0   | Vercel deployment: Updated ADR-0020 with verified build settings (Root Dir = app dir, not `.`), pnpm 9.15.9, 17 migrations to production Supabase. Added Learnings 0008-0010 (x-forwarded-host, .vercelignore depth, Turborepo Root Directory). Fixed security middleware blocking all production requests.              | Claude |
 | 2026-02-28 | 5.0.0   | Contract system: Added contract-service microservice (Fastify, port 3100), 6 contract tables, contract-lifecycle Edge Function, Tiptap editor, 20 AI contract tools, signing pages, @smartout/notifications package. Registered ADR-0021 through ADR-0024. Updated monorepo structure, routes, env vars, edge functions. | Claude |
+| 2026-02-28 | 5.1.0   | Landing page: Added full landing route map (features, concepts, docs, legal pages), landing component table (WorkspaceAnalyzer, VoiceAssistant, Navigation, Footer, NextPageBanner). Added Learning-0011 (Framer Motion animation patterns).                                                                             | Claude |

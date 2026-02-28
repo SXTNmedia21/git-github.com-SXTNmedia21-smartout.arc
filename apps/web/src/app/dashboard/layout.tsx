@@ -52,16 +52,23 @@ export default async function DashboardLayout({ children }: { children: React.Re
     // No subdomain (local dev or legacy) — use first workspace
     const { data: profileData } = await supabase
       .from("profile")
-      .select(
-        "workspace_id, workspace:workspace_id(workspace_id, company_id, name, slug, logo_url, currency, language, country, timezone, contract_status)",
-      )
+      .select("workspace_id")
       .eq("user_id", user.id)
       .limit(1)
       .single();
 
-    const ws = (profileData as unknown as { workspace: WorkspaceData } | null)?.workspace;
-    if (ws) {
-      workspace = ws;
+    if (profileData?.workspace_id) {
+      const { data: wsData } = await supabase
+        .from("workspace")
+        .select(
+          "workspace_id, company_id, name, slug, logo_url, currency, language, country, timezone, contract_status",
+        )
+        .eq("workspace_id", profileData.workspace_id)
+        .single();
+
+      if (wsData) {
+        workspace = wsData as unknown as WorkspaceData;
+      }
     }
   }
 
