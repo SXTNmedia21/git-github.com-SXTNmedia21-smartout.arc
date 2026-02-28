@@ -4,7 +4,7 @@ node_modules
 !.env.template
 !.env.example
 *.secrets
-secrets/
+/secrets/
 .op/
 .next
 out

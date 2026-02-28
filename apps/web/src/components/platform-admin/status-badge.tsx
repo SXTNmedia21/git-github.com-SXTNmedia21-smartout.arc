@@ -29,6 +29,16 @@ const statusColorMap: Record<string, string> = {
   failed: "bg-red-500/15 text-red-500 border-red-500/20",
   down: "bg-red-500/15 text-red-500 border-red-500/20",
   outage: "bg-red-500/15 text-red-500 border-red-500/20",
+  // Violet
+  workspace: "bg-violet-500/15 text-violet-500 border-violet-500/20",
+  service: "bg-purple-500/15 text-purple-500 border-purple-500/20",
+  // Key version status
+  current: "bg-emerald-500/15 text-emerald-500 border-emerald-500/20",
+  previous: "bg-orange-500/15 text-orange-500 border-orange-500/20",
+  revoked: "bg-red-500/15 text-red-500 border-red-500/20",
+  // Environment
+  live: "bg-emerald-500/15 text-emerald-500 border-emerald-500/20",
+  test: "bg-amber-500/15 text-amber-500 border-amber-500/20",
   // Zinc/neutral
   paused: "bg-zinc-500/15 text-zinc-400 border-zinc-500/20",
   archived: "bg-zinc-500/15 text-zinc-400 border-zinc-500/20",

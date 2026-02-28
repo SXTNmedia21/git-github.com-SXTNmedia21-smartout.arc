@@ -36,3 +36,4 @@ This document serves as the central index of all Architecture Decision Records (
 | ADR-0025 | 28-02-2026 | [Documentation Restructuring — Layered System with YAML Frontmatter](./0025-documentation-restructuring.md)  | **Accepted** |
 | ADR-0026 | 28-02-2026 | [Template Editor Redesign with PDF Attachments](./0026-template-editor-redesign-attachments.md)              | **Accepted** |
 | ADR-0027 | 28-02-2026 | [Pricing Terms Table for Workspace Commercial Model](./0027-pricing-terms-table.md)                          | **Accepted** |
+| ADR-0028 | 28-02-2026 | [API Key Management System](./0028-api-key-management-system.md)                                             | **Accepted** |

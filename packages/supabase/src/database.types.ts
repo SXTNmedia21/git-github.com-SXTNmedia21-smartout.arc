@@ -1637,6 +1637,144 @@ export type Database = {
           },
         ]
       }
+      platform_api_key: {
+        Row: {
+          allowed_ips: unknown[] | null
+          company_id: string | null
+          created_at: string
+          created_by: string
+          demoted_at: string | null
+          description: string | null
+          environment: string
+          expires_at: string | null
+          grace_period_ends_at: string | null
+          id: string
+          key_hash: string
+          key_prefix: string
+          key_type: Database["public"]["Enums"]["api_key_type"]
+          last_used_at: string | null
+          name: string
+          rate_limit_per_minute: number | null
+          revoked_at: string | null
+          rotation_number: number
+          scopes: string[]
+          updated_at: string
+          version: Database["public"]["Enums"]["api_key_version_status"]
+          workspace_id: string | null
+        }
+        Insert: {
+          allowed_ips?: unknown[] | null
+          company_id?: string | null
+          created_at?: string
+          created_by: string
+          demoted_at?: string | null
+          description?: string | null
+          environment?: string
+          expires_at?: string | null
+          grace_period_ends_at?: string | null
+          id?: string
+          key_hash: string
+          key_prefix: string
+          key_type?: Database["public"]["Enums"]["api_key_type"]
+          last_used_at?: string | null
+          name: string
+          rate_limit_per_minute?: number | null
+          revoked_at?: string | null
+          rotation_number?: number
+          scopes?: string[]
+          updated_at?: string
+          version?: Database["public"]["Enums"]["api_key_version_status"]
+          workspace_id?: string | null
+        }
+        Update: {
+          allowed_ips?: unknown[] | null
+          company_id?: string | null
+          created_at?: string
+          created_by?: string
+          demoted_at?: string | null
+          description?: string | null
+          environment?: string
+          expires_at?: string | null
+          grace_period_ends_at?: string | null
+          id?: string
+          key_hash?: string
+          key_prefix?: string
+          key_type?: Database["public"]["Enums"]["api_key_type"]
+          last_used_at?: string | null
+          name?: string
+          rate_limit_per_minute?: number | null
+          revoked_at?: string | null
+          rotation_number?: number
+          scopes?: string[]
+          updated_at?: string
+          version?: Database["public"]["Enums"]["api_key_version_status"]
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_api_key_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "platform_api_key_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_identity"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "platform_api_key_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      platform_api_key_usage: {
+        Row: {
+          api_key_id: string
+          created_at: string
+          error_count: number
+          id: string
+          last_endpoint: string | null
+          last_status: number | null
+          period_start: string
+          request_count: number
+        }
+        Insert: {
+          api_key_id: string
+          created_at?: string
+          error_count?: number
+          id?: string
+          last_endpoint?: string | null
+          last_status?: number | null
+          period_start: string
+          request_count?: number
+        }
+        Update: {
+          api_key_id?: string
+          created_at?: string
+          error_count?: number
+          id?: string
+          last_endpoint?: string | null
+          last_status?: number | null
+          period_start?: string
+          request_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_api_key_usage_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "platform_api_key"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       platform_audit_log: {
         Row: {
           action: string
@@ -1833,6 +1971,78 @@ export type Database = {
           suppression_id?: string
         }
         Relationships: []
+      }
+      platform_external_secret: {
+        Row: {
+          created_at: string
+          description: string | null
+          environment: string
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          last_error_at: string | null
+          last_error_message: string | null
+          last_rotated_at: string | null
+          last_rotated_by: string | null
+          last_verified_at: string | null
+          provider: string
+          rotation_reminder_days: number | null
+          updated_at: string
+          vault_secret_name: string
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          environment?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          last_error_at?: string | null
+          last_error_message?: string | null
+          last_rotated_at?: string | null
+          last_rotated_by?: string | null
+          last_verified_at?: string | null
+          provider: string
+          rotation_reminder_days?: number | null
+          updated_at?: string
+          vault_secret_name: string
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          environment?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          last_error_at?: string | null
+          last_error_message?: string | null
+          last_rotated_at?: string | null
+          last_rotated_by?: string | null
+          last_verified_at?: string | null
+          provider?: string
+          rotation_reminder_days?: number | null
+          updated_at?: string
+          vault_secret_name?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_external_secret_last_rotated_by_fkey"
+            columns: ["last_rotated_by"]
+            isOneToOne: false
+            referencedRelation: "user_identity"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "platform_external_secret_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
       }
       platform_impersonation_log: {
         Row: {
@@ -3238,6 +3448,7 @@ export type Database = {
         Returns: string
       }
       anonymize_user: { Args: { target_user_id: string }; Returns: undefined }
+      cleanup_expired_api_keys: { Args: never; Returns: number }
       compute_platform_metrics: { Args: never; Returns: undefined }
       count_dangling_company_members: { Args: never; Returns: number }
       count_empty_workspaces: { Args: never; Returns: number }
@@ -3263,14 +3474,37 @@ export type Database = {
             }
             Returns: string
           }
+      delete_vault_secret: { Args: { secret_name: string }; Returns: boolean }
       generate_contract_number: { Args: never; Returns: string }
+      get_secret: { Args: { secret_name: string }; Returns: string }
       get_workspace_ids_for_user: { Args: { uid: string }; Returns: string[] }
       is_admin_in_workspace: {
         Args: { uid: string; wid: string }
         Returns: boolean
       }
+      log_api_key_usage: {
+        Args: { p_endpoint: string; p_key_id: string; p_status: number }
+        Returns: undefined
+      }
+      rotate_api_key: {
+        Args: {
+          p_environment: string
+          p_grace_period?: string
+          p_key_type: Database["public"]["Enums"]["api_key_type"]
+          p_new_key_hash: string
+          p_new_key_prefix: string
+          p_workspace_id: string
+        }
+        Returns: string
+      }
+      upsert_secret: {
+        Args: { p_description?: string; p_name: string; p_secret: string }
+        Returns: string
+      }
     }
     Enums: {
+      api_key_type: "workspace" | "service"
+      api_key_version_status: "current" | "previous" | "revoked"
       asset_type: "equipment" | "safety" | "storage" | "station" | "other"
       auth_provider: "supabase" | "google" | "microsoft"
       communication_channel: "email" | "sms" | "push" | "in_app"
@@ -3475,6 +3709,8 @@ export const Constants = {
   },
   public: {
     Enums: {
+      api_key_type: ["workspace", "service"],
+      api_key_version_status: ["current", "previous", "revoked"],
       asset_type: ["equipment", "safety", "storage", "station", "other"],
       auth_provider: ["supabase", "google", "microsoft"],
       communication_channel: ["email", "sms", "push", "in_app"],

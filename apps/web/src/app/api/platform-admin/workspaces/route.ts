@@ -93,7 +93,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ data });
   }
 
-  return NextResponse.json({ error: "Invalid type parameter" }, { status: 400 });
+  // Default: list workspaces (used by key management UI and other dropdowns)
+  {
+    const { data, error } = await admin
+      .from("workspace")
+      .select("workspace_id, name, slug, is_active")
+      .eq("is_active", true)
+      .order("name");
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ data });
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -239,6 +249,8 @@ export async function POST(request: NextRequest) {
             title: `${template.name} - ${d.workspace_name}`,
             contract_type: template.contract_type,
             status: "draft",
+            sender_name: "Smartout AS",
+            sender_email: "pontus@smartout.no",
             recipient_name: d.company_name || "",
             recipient_email: d.company_email || d.email || "",
             resolved_html: template.content_html,
