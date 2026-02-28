@@ -139,16 +139,18 @@ Single source of truth for all colors, spacing, radii, shadows.
 
 **@smartout/ui** — Exports button, badge, card, dialog, input, label, separator, skeleton, status-badge, and cn() utility. All use design tokens via CSS variables.
 
-**@smartout/ai** — `packages/ai/package.json`:
+**@smartout/ai** — `packages/ai/package.json` (pre-built via `tsc` → `dist/`):
 
 ```
-"."                    → ./src/index.ts               (types + defineTool)
-"./session-context"    → ./src/session-context.ts     (session context)
-"./tools/onboarding"   → ./src/tools/onboarding.ts    (onboarding tools)
-"./schemas/onboarding" → ./src/schemas/onboarding.ts  (onboarding Zod schemas)
-"./agents/onboarding"  → ./src/agents/onboarding.ts   (onboarding agent)
-"./adapters/vercel-ai" → ./src/adapters/vercel-ai.ts  (Vercel AI SDK adapter)
-"./adapters/livekit"   → ./src/adapters/livekit.ts    (LiveKit voice adapter)
+"."                    → ./dist/index.js              (types + defineTool)
+"./session-context"    → ./dist/session-context.js    (session context)
+"./tools/onboarding"   → ./dist/tools/onboarding.js   (onboarding tools)
+"./schemas/onboarding" → ./dist/schemas/onboarding.js  (onboarding Zod schemas)
+"./agents/onboarding"  → ./dist/agents/onboarding.js   (onboarding agent)
+"./agents/docs"        → ./dist/agents/docs.js         (docs agent)
+"./adapters/vercel-ai" → ./dist/adapters/vercel-ai.js  (Vercel AI SDK adapter)
+"./adapters/livekit"   → ./dist/adapters/livekit.js    (LiveKit voice adapter)
+"./missions"           → ./dist/missions/index.js      (mission registry + Ultravox)
 ```
 
 Dependencies: Vercel AI SDK (`ai`), OpenRouter provider, Supabase client, Zod.

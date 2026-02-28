@@ -2,20 +2,48 @@
   "name": "@smartout/ai",
   "version": "1.0.0",
   "private": true,
-  "main": "src/index.ts",
-  "types": "src/index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./session-context": "./src/session-context.ts",
-    "./tools/onboarding": "./src/tools/onboarding.ts",
-    "./schemas/onboarding": "./src/schemas/onboarding.ts",
-    "./agents/onboarding": "./src/agents/onboarding.ts",
-    "./agents/docs": "./src/agents/docs.ts",
-    "./adapters/vercel-ai": "./src/adapters/vercel-ai.ts",
-    "./adapters/livekit": "./src/adapters/livekit.ts",
-    "./missions": "./src/missions/index.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./session-context": {
+      "types": "./dist/session-context.d.ts",
+      "default": "./dist/session-context.js"
+    },
+    "./tools/onboarding": {
+      "types": "./dist/tools/onboarding.d.ts",
+      "default": "./dist/tools/onboarding.js"
+    },
+    "./schemas/onboarding": {
+      "types": "./dist/schemas/onboarding.d.ts",
+      "default": "./dist/schemas/onboarding.js"
+    },
+    "./agents/onboarding": {
+      "types": "./dist/agents/onboarding.d.ts",
+      "default": "./dist/agents/onboarding.js"
+    },
+    "./agents/docs": {
+      "types": "./dist/agents/docs.d.ts",
+      "default": "./dist/agents/docs.js"
+    },
+    "./adapters/vercel-ai": {
+      "types": "./dist/adapters/vercel-ai.d.ts",
+      "default": "./dist/adapters/vercel-ai.js"
+    },
+    "./adapters/livekit": {
+      "types": "./dist/adapters/livekit.d.ts",
+      "default": "./dist/adapters/livekit.js"
+    },
+    "./missions": {
+      "types": "./dist/missions/index.d.ts",
+      "default": "./dist/missions/index.js"
+    }
   },
   "scripts": {
+    "build": "tsc",
     "lint": "eslint src/",
     "typecheck": "tsc --noEmit",
     "clean": "rimraf dist .turbo"
