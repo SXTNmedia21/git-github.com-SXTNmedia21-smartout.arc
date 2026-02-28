@@ -11,6 +11,9 @@ const statusColorMap: Record<string, string> = {
   active: "bg-emerald-500/15 text-emerald-500 border-emerald-500/20",
   signed: "bg-emerald-500/15 text-emerald-500 border-emerald-500/20",
   published: "bg-emerald-500/15 text-emerald-500 border-emerald-500/20",
+  operational: "bg-emerald-500/15 text-emerald-500 border-emerald-500/20",
+  configured: "bg-emerald-500/15 text-emerald-500 border-emerald-500/20",
+  pass: "bg-emerald-500/15 text-emerald-500 border-emerald-500/20",
   // Blue
   trial: "bg-blue-500/15 text-blue-500 border-blue-500/20",
   draft: "bg-blue-500/15 text-blue-500 border-blue-500/20",
@@ -18,14 +21,19 @@ const statusColorMap: Record<string, string> = {
   // Orange
   past_due: "bg-orange-500/15 text-orange-500 border-orange-500/20",
   expiring: "bg-orange-500/15 text-orange-500 border-orange-500/20",
+  degraded: "bg-orange-500/15 text-orange-500 border-orange-500/20",
+  warn: "bg-orange-500/15 text-orange-500 border-orange-500/20",
   // Red
   cancelled: "bg-red-500/15 text-red-500 border-red-500/20",
   expired: "bg-red-500/15 text-red-500 border-red-500/20",
   failed: "bg-red-500/15 text-red-500 border-red-500/20",
+  down: "bg-red-500/15 text-red-500 border-red-500/20",
+  outage: "bg-red-500/15 text-red-500 border-red-500/20",
   // Zinc/neutral
   paused: "bg-zinc-500/15 text-zinc-400 border-zinc-500/20",
   archived: "bg-zinc-500/15 text-zinc-400 border-zinc-500/20",
   inactive: "bg-zinc-500/15 text-zinc-400 border-zinc-500/20",
+  unconfigured: "bg-zinc-500/15 text-zinc-400 border-zinc-500/20",
 };
 
 const defaultColor = "bg-secondary text-secondary-foreground border-transparent";
