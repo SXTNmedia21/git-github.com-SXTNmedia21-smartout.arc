@@ -1,18 +1,22 @@
+# Anchor all patterns with / to match ROOT directories only.
+# Without /, gitignore syntax matches at ANY depth (e.g., docs/ would
+# also remove apps/landing/src/app/docs/ — breaking the build).
+
 # Python services — deployed separately (DigitalOcean)
-services/
+/services/
 
 # Documentation — not deployed
-docs/
+/docs/
 
 # CI scripts and artifacts — not deployed
-scripts/
-artifacts/
+/scripts/
+/artifacts/
 
 # Claude Code config
-.claude/
+/.claude/
 
 # GitHub Actions — not deployed
-.github/
+/.github/
 
 # Python AI agents — deployed separately
-agents/
+/agents/
