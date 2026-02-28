@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
@@ -25,9 +25,85 @@ import {
   CalendarDays,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { UltravoxSession } from "ultravox-client";
+import type { MissionId } from "@smartout/ai/missions";
 import Navigation from "../../../components/navigation";
 import NextPageBanner from "../../../components/next-page-banner";
+
+function useWalkieTalkie({
+  missionId,
+  onSummary,
+}: {
+  missionId: MissionId;
+  onSummary: () => void;
+}) {
+  const [isCalling, setIsCalling] = useState(false);
+  const [uvStatus, setUvStatus] = useState("idle");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sessionRef = useRef<any>(null);
+
+  const stopCall = useCallback(
+    (withSummary: boolean) => {
+      sessionRef.current?.leaveCall();
+      sessionRef.current = null;
+      setIsCalling(false);
+      setUvStatus("idle");
+      if (withSummary) onSummary();
+    },
+    [onSummary],
+  );
+
+  const toggleWalkieTalkie = useCallback(async () => {
+    if (isCalling) {
+      stopCall(false);
+      return;
+    }
+
+    setIsCalling(true);
+    setUvStatus("connecting");
+    try {
+      const { UltravoxSession } = await import("ultravox-client");
+      const currentSession = new UltravoxSession();
+      sessionRef.current = currentSession;
+      currentSession.addEventListener("status", () => {
+        setUvStatus(currentSession.status || "idle");
+      });
+
+      const res = await fetch("/api/wizard/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mission_id: missionId }),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { joinUrl?: string };
+        if (data.joinUrl && sessionRef.current === currentSession) {
+          currentSession.joinCall(data.joinUrl);
+        } else {
+          setUvStatus("active");
+        }
+      } else {
+        console.warn("[WalkieTalkie] API unavailable, falling back to UI simulation.");
+        setUvStatus("active");
+      }
+    } catch (error) {
+      console.error("[WalkieTalkie] Error:", error);
+      setUvStatus("active");
+    }
+  }, [isCalling, missionId, stopCall]);
+
+  useEffect(
+    () => () => {
+      sessionRef.current?.leaveCall();
+    },
+    [],
+  );
+
+  return {
+    isCalling,
+    uvStatus,
+    toggleWalkieTalkie,
+    endCallAndSummarize: () => stopCall(true),
+  };
+}
 
 const CHATS_DATA = [
   {
@@ -128,53 +204,7 @@ export default function KommunikasjonPage() {
   // active chat data
   const activeChat = (chats.find((c) => c.id === activeChatId) ?? chats[0])!;
 
-  // Ultravox / Walkie Talkie States
-  const [isCalling, setIsCalling] = useState(false);
-  const [uvStatus, setUvStatus] = useState("idle");
-  const sessionRef = useRef<UltravoxSession | null>(null);
-
-  const toggleWalkieTalkie = async () => {
-    if (isCalling) {
-      sessionRef.current?.leaveCall();
-      sessionRef.current = null;
-      setIsCalling(false);
-      setUvStatus("idle");
-    } else {
-      setIsCalling(true);
-      setUvStatus("connecting");
-      try {
-        sessionRef.current = new UltravoxSession();
-        sessionRef.current.addEventListener("status", () => {
-          const nextStatus = sessionRef.current?.status || "idle";
-          setUvStatus(nextStatus);
-        });
-
-        const res = await fetch("/api/wizard/start", { method: "POST" });
-        if (res.ok) {
-          const data = await res.json();
-          if (sessionRef.current) {
-            sessionRef.current.joinCall(data.joinUrl);
-          }
-        } else {
-          console.warn("Could not connect to Ultravox, falling back to UI simulation.");
-          setUvStatus("active");
-        }
-      } catch (error) {
-        console.error("Ultravox error:", error);
-        setUvStatus("active"); // Fallback for UI purposes if SDK fails
-      }
-    }
-  };
-
-  const endCallAndSummarize = () => {
-    if (sessionRef.current) {
-      sessionRef.current.leaveCall();
-      sessionRef.current = null;
-    }
-    setIsCalling(false);
-    setUvStatus("idle");
-
-    // Insert summary message into active chat
+  const handleWalkieTalkieSummary = useCallback(() => {
     setChats((prev) =>
       prev.map((c) => {
         if (c.id === activeChatId) {
@@ -186,7 +216,7 @@ export default function KommunikasjonPage() {
                 id: Date.now(),
                 sender: "Smartout AI",
                 content:
-                  "Voice session avsluttet. Sammendrag: Teamet diskuterte vaktplanen for neste måned og ble enige om å flytte lørdagsvakten.",
+                  "Voice session avsluttet. Sammendrag: Teamet diskuterte vaktplanen for neste uke og ble enige om ny fordeling.",
                 time: new Date().toLocaleTimeString("no-NO", {
                   hour: "2-digit",
                   minute: "2-digit",
@@ -201,16 +231,12 @@ export default function KommunikasjonPage() {
         return c;
       }),
     );
-  };
+  }, [activeChatId]);
 
-  // Cleanup Ultravox on unmount
-  useEffect(() => {
-    return () => {
-      if (sessionRef.current) {
-        sessionRef.current.leaveCall();
-      }
-    };
-  }, []);
+  const { isCalling, uvStatus, toggleWalkieTalkie, endCallAndSummarize } = useWalkieTalkie({
+    missionId: "landing-demo",
+    onSummary: handleWalkieTalkieSummary,
+  });
 
   const handleSend = () => {
     if (!newMessage.trim()) return;
@@ -522,7 +548,7 @@ export default function KommunikasjonPage() {
                               Aktiv Voice Channel
                               {uvStatus === "connecting" && (
                                 <span className="tracking-normal text-zinc-400 normal-case">
-                                  (Kobler til Ultravox...)
+                                  (Kobler til...)
                                 </span>
                               )}
                               {uvStatus === "active" && (
@@ -532,7 +558,7 @@ export default function KommunikasjonPage() {
                               )}
                             </span>
                             <span className="mt-0.5 block text-sm text-zinc-300">
-                              Ultravox AI og teamet lytter... Trykk for å snakke.
+                              AI og teamet lytter... Trykk for å snakke.
                             </span>
                           </div>
                           <div className="flex h-6 shrink-0 items-center gap-1 px-4">
