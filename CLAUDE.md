@@ -81,7 +81,7 @@ smartout_v3/
 ├── docs/
 │   ├── architecture/     → System architecture docs
 │   ├── cross-cutting/    → Billing, i18n, GDPR, security
-│   ├── decisions/        → ADRs (18 accepted)
+│   ├── decisions/        → ADRs (19 accepted)
 │   ├── learnings/        → Learning records
 │   ├── modules/          → Module specs (17 modules)
 │   ├── plans/            → Implementation plans (completed/ for done)
@@ -462,6 +462,22 @@ SUPABASE_SERVICE_ROLE_KEY=<from supabase status>
 - Use functional `setState` for stable callbacks
 - Derive state during render, not in effects
 
+### Performance and Build Governance System (ADR-0019)
+
+- Canonical architecture doc: `docs/architecture/PERFORMANCE_BUILD_GOVERNANCE.md`
+- Governance policy: `docs/cross-cutting/performance-governance.md`
+- PR checklist: `docs/cross-cutting/performance-checklist.md`
+- Route budgets:
+  - `apps/web/perf-budgets.json`
+  - `apps/landing/perf-budgets.json`
+- CI enforcement model:
+  - Pull Requests -> warn mode (`PERF_ENFORCEMENT=warn`)
+  - Push to integration branch -> fail mode (`PERF_ENFORCEMENT=fail`)
+- Required commands before claiming performance-safe changes:
+  - `pnpm build:health`
+  - `pnpm perf:audit:web`
+  - `pnpm perf:audit:landing`
+
 ### Error Handling
 
 - Edge Functions: proper HTTP status codes with JSON error body
@@ -561,6 +577,7 @@ Full documentation lives in `docs/modules/`. **Read the corresponding doc before
 | 14  | Production      | `SMARTOUT_MODULE_14_PRODUCTION.md`      | Spec'd |
 | 15  | Season Planning | `SMARTOUT_MODULE_15_SEASON_PLANNING.md` | Spec'd |
 | 17  | Platform Admin  | `SMARTOUT_MODULE_17_PLATFORM_ADMIN.md`  | Spec'd |
+| 18  | WebRTC          | `SMARTOUT_MODULE_18_WEBRTC.md`          | Spec'd |
 
 ### Architecture Decisions (ADRs)
 
@@ -586,6 +603,8 @@ All accepted decisions in `docs/decisions/`. **Read before making changes in the
 | 0016 | Services directory for backend microservices                          | Monorepo       |
 | 0017 | Enterprise Infrastructure — Shared Configs, Design System, Monitoring | Infrastructure |
 | 0018 | TanStack Table and Recharts for Platform Admin                        | UI / Deps      |
+| 0019 | Performance and Build Governance System                               | Performance    |
+| 0020 | Vercel Hosting with Dual-Project Split                                | Hosting        |
 
 ### ADR Enforcement (MANDATORY)
 
@@ -795,3 +814,4 @@ pnpm clean
 | 2026-02-27 | 2.1.0   | Added Linear repo scope section — maps which Linear projects belong to this repo vs. other repos                                                                                                                                                                                                     | Claude |
 | 2026-02-27 | 3.0.0   | Enterprise infrastructure: Added new packages (typescript-config, eslint-config, design-tokens, utils), new Edge Functions (health-check, watchdog-integrity, watchdog-uptime), new API routes (/api/health, /api/telemetry), Sentry + Upstash integrations, updated dev commands, ADR-0017          | Claude |
 | 2026-02-28 | 4.0.0   | Platform Admin Backoffice: Added 5 platform-admin tables (migration 00013), 9 platform-admin routes, DocuSeal webhook, ./admin export, DOCUSEAL_WEBHOOK_SECRET env var, ADR-0018, services/ directory, docs/learnings/ system, moved scrapling to services/                                          | Claude |
+| 2026-02-28 | 4.1.0   | Performance and Build Governance documentation sweep: added architecture doc (`PERFORMANCE_BUILD_GOVERNANCE.md`), expanded ADR-0019 with rollout learnings, added Learning-0007, updated roadmap references and CLAUDE governance section                                                            | Claude |

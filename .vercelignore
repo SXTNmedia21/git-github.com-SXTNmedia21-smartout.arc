@@ -1,0 +1,21 @@
+# Python services — deployed separately (DigitalOcean)
+services/
+
+# E2E tests — CI only
+apps/e2e/
+
+# Documentation — not deployed
+docs/
+
+# CI scripts and artifacts — not deployed
+scripts/
+artifacts/
+
+# Claude Code config
+.claude/
+
+# GitHub Actions — not deployed
+.github/
+
+# Python AI agents — deployed separately
+agents/

@@ -22,3 +22,5 @@ This document serves as the central index of all Architecture Decision Records (
 | ADR-0016 | 27-02-2026 | [Services Directory for Backend Microservices](./0016-services-directory.md)                                 | **Accepted** |
 | ADR-0017 | 27-02-2026 | [Enterprise Infrastructure — Shared Configs, Design System, Monitoring](./0017-enterprise-infrastructure.md) | **Accepted** |
 | ADR-0018 | 27-02-2026 | [TanStack Table and Recharts for Platform Admin](./0018-tanstack-table-recharts-platform-admin.md)           | **Accepted** |
+| ADR-0019 | 28-02-2026 | [Performance and Build Governance System](./0019-performance-build-governance.md)                            | **Accepted** |
+| ADR-0020 | 28-02-2026 | [Vercel Hosting with Dual-Project Split](./0020-vercel-hosting-strategy.md)                                  | **Accepted** |
