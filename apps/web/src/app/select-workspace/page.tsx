@@ -12,19 +12,28 @@ export default async function SelectWorkspacePage() {
     redirect("/login");
   }
 
-  const { data: profiles } = await supabase
+  type ProfileRow = {
+    profile_id: string;
+    role: string;
+    display_name: string;
+    workspace_id: string;
+  };
+  type WorkspaceRow = { workspace_id: string; name: string; slug: string; logo_url: string | null };
+
+  const { data: profiles } = (await supabase
     .from("profile")
     .select("profile_id, role, display_name, workspace_id")
-    .eq("user_id", user.id);
+    .eq("user_id", user.id)) as { data: ProfileRow[] | null };
 
   const workspaceIds = (profiles ?? []).map((p) => p.workspace_id);
 
-  const { data: workspaceRows } = workspaceIds.length > 0
-    ? await supabase
-        .from("workspace")
-        .select("workspace_id, name, slug, logo_url")
-        .in("workspace_id", workspaceIds)
-    : { data: [] as { workspace_id: string; name: string; slug: string; logo_url: string | null }[] };
+  const { data: workspaceRows } =
+    workspaceIds.length > 0
+      ? ((await supabase
+          .from("workspace")
+          .select("workspace_id, name, slug, logo_url")
+          .in("workspace_id", workspaceIds)) as { data: WorkspaceRow[] | null })
+      : { data: [] as WorkspaceRow[] };
 
   const workspaces = (profiles ?? [])
     .map((p) => {
