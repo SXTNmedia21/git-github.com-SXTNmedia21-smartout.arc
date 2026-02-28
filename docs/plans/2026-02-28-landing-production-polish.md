@@ -10,6 +10,84 @@
 
 ---
 
+## Production Review (2026-02-28, verified against live site)
+
+### Review Scope
+
+- Live pages reviewed: `/`, `/login`, `/signup`, `/blog`, `/blog/story-0`, `/waitlist`, `/onboarding`, `/dashboard`, `/concepts/daily-session`
+- Source reviewed in parallel: `apps/landing/src/components/navigation.tsx` and affected route files in `apps/landing/src/app/**`
+
+### Findings (ordered by severity)
+
+1. **Primary CTA destination is broken in production** (Critical)
+   - Multiple CTAs resolve to landing-local `/onboarding` and `/dashboard`, both 404 in production.
+   - Root cause: URL construction depends on `NEXT_PUBLIC_WEB_APP_URL`; when empty, links become local (`/onboarding`, `/dashboard`).
+   - Impact: Top-funnel conversion path is broken.
+
+2. **`/waitlist` is still a hard 404** (Critical)
+   - Linked from `/concepts/daily-session`.
+   - Confirmed both in live route and source (`Link href="/waitlist"`).
+
+3. **Auth pages are off-brand and non-functional** (Critical)
+   - `/login` and `/signup` remain light-mode English forms with `action="#"`.
+   - No real auth handoff, inconsistent with product brand and locale.
+
+4. **Mobile navigation still has no menu** (Critical)
+   - Nav links are hidden on mobile (`hidden md:block`) with no hamburger replacement.
+   - Mobile users effectively lose page navigation.
+
+5. **Blog cards still link to missing story routes** (High)
+   - `/blog/story-0` through `/blog/story-5` are still 404.
+
+6. **Language consistency regressions persist** (Medium)
+   - `/concepts/lokations` still contains English-only labels.
+   - `/concepts/daily-session` includes mixed language labels (for example: "Waitlist", "Tasks Completed", "Overdue", "Staff Checked In").
+
+7. **SEO metadata still missing for most routes** (Medium)
+   - Only root layout and docs layout export metadata; most marketing routes still rely on generic metadata.
+
+8. **Plan scope mismatch: footer refactor is overestimated** (Low)
+   - Footer duplication currently appears in a subset of marketing pages (not all feature/concept pages).
+   - A shared footer is still recommended, but expected touch set should be narrowed.
+
+### Suggested Plan Adjustments
+
+#### Add new Task 0 (before Task 1): External URL hardening
+
+Implement a single helper for web-app destination links (onboarding/login/dashboard) and fail-safe behavior:
+
+- Create `apps/landing/src/lib/web-app-url.ts`:
+  - Resolve origin from `NEXT_PUBLIC_WEB_APP_URL`.
+  - Fallback to a safe, explicit production web app URL (or fail closed by rendering disabled CTA + telemetry warning).
+  - Normalize slashes so path joins are deterministic.
+- Replace ad-hoc string concatenation in nav and pages with helper.
+- Add a smoke test checklist item: no CTA may resolve to `smartout-landing.vercel.app/onboarding` or `/dashboard`.
+
+#### Re-prioritize execution phases
+
+Use this order for production impact:
+
+1. **Task 0 (new): URL hardening**
+2. **Task 5: `/waitlist` resolution**
+3. **Task 6: auth page redesign/redirect**
+4. **Task 1 + Task 2: mobile nav + CTA correction**
+5. **Task 4: blog 404 links**
+6. **Task 8: metadata**
+7. **Task 7: language consistency sweep (expand beyond `lokations`)**
+8. **Task 3: shared footer refactor (narrowed file set)**
+9. QA + build verification
+
+#### Tighten Task 3 (Footer) file scope
+
+Start with pages that actually contain inline `<footer>` blocks now:
+
+- `apps/landing/src/app/page.tsx`
+- `apps/landing/src/app/pricing/page.tsx`
+- `apps/landing/src/app/om-oss/page.tsx`
+- `apps/landing/src/app/blog/page.tsx`
+
+Then optionally roll out to feature/concept pages if design calls for it, but do not assume they all already contain duplicate footer markup.
+
 ## Critical Issues Found (Audit Summary)
 
 | #   | Issue                                                                                         | Severity | Pages Affected              |
