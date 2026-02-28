@@ -176,7 +176,7 @@ export function EmployeeProfileCard({ employee, isOpen, onClose }: EmployeeProfi
         </div>
 
         {/* Content Area */}
-        <div className="custom-scrollbar flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-6">
           {activeTab === "overview" && (
             <div className="animate-in fade-in zoom-in-95 space-y-6 duration-200">
               <div className="space-y-3 rounded-xl border border-zinc-800/50 bg-zinc-900/30 p-4">

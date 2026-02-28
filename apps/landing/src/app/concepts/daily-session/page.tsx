@@ -145,7 +145,7 @@ export default function DailySessionSimple() {
         </header>
 
         {/* TIMELINE / DAY VIEW */}
-        <div className="custom-scrollbar relative flex-1 overflow-y-auto p-4 md:p-10">
+        <div className="relative flex-1 overflow-y-auto p-4 md:p-10">
           {/* Inner Grid Pattern */}
           <div className="pointer-events-none absolute inset-0 bg-[url('/grid.svg')] bg-[length:32px_32px] bg-repeat opacity-[0.02]"></div>
 

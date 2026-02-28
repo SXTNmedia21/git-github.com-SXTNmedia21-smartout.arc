@@ -107,7 +107,7 @@ export default function SesongerPage() {
             />
 
             {/* Season selector */}
-            <div className="custom-scrollbar z-10 mb-10 flex gap-3 overflow-x-auto pb-2">
+            <div className="z-10 mb-10 flex gap-3 overflow-x-auto pb-2">
               {seasons.map((s) => {
                 const isActive = selected === s.id;
                 const Icon = s.icon;

@@ -291,7 +291,7 @@ export function PeopleDataTable({
       </div>
 
       {/* Table Body */}
-      <div className="custom-scrollbar flex-1 overflow-auto" onScroll={handleScroll}>
+      <div className="flex-1 overflow-auto" onScroll={handleScroll}>
         {filteredEmployees.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center p-8 text-zinc-500">
             <SearchX className="mb-4 h-12 w-12 text-zinc-700" />

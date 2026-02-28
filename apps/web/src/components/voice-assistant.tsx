@@ -200,7 +200,7 @@ export default function VoiceAssistant({
       </div>
 
       {/* Transcript Area */}
-      <div className="custom-scrollbar flex-1 space-y-4 overflow-y-auto p-4">
+      <div className="flex-1 space-y-4 overflow-y-auto p-4">
         {messages.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center px-4 text-center">
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-zinc-800 bg-zinc-900">

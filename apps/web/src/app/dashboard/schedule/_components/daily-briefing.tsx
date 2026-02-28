@@ -94,7 +94,7 @@ export function DailyBriefingPanel({
         </div>
       </div>
 
-      <div className="custom-scrollbar flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-6">
         {activeTab === "oversikt" && <OversiktTab isDark={isDark} />}
         {activeTab === "meldinger" && <MeldingerTab isDark={isDark} />}
         {activeTab === "bookings" && <BookingsTab isDark={isDark} />}

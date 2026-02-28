@@ -384,7 +384,7 @@ export default function ChatPage() {
                 </button>
               </div>
             </div>
-            <div className="custom-scrollbar flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto">
               {chats.map((chat) => (
                 <div
                   key={chat.id}
@@ -430,7 +430,7 @@ export default function ChatPage() {
 
             {isCreatingChat ? (
               // Create Chat View
-              <div className="custom-scrollbar relative z-10 flex flex-1 flex-col items-center overflow-y-auto p-6">
+              <div className="relative z-10 flex flex-1 flex-col items-center overflow-y-auto p-6">
                 <div className="mt-10 w-full max-w-lg">
                   {!createChatType ? (
                     <>
@@ -535,7 +535,7 @@ export default function ChatPage() {
                               <label className="mb-2 block text-sm font-bold text-zinc-300">
                                 Legg til medlemmer
                               </label>
-                              <div className="custom-scrollbar max-h-48 overflow-y-auto rounded-2xl border border-white/10 bg-[#111] p-2">
+                              <div className="max-h-48 overflow-y-auto rounded-2xl border border-white/10 bg-[#111] p-2">
                                 {["Kari (Manager)", "Johan (Ansatt)", "Ola (Servitør)"].map(
                                   (name, i) => (
                                     <div
@@ -763,7 +763,7 @@ export default function ChatPage() {
               </div>
             ) : showSettings ? (
               // Settings View
-              <div className="custom-scrollbar relative z-10 flex flex-1 flex-col items-center overflow-y-auto p-6">
+              <div className="relative z-10 flex flex-1 flex-col items-center overflow-y-auto p-6">
                 <div className="mt-10 w-full max-w-lg">
                   <h2 className="mb-8 text-2xl font-bold text-white">
                     Innstillinger for Kommunikasjon
@@ -814,7 +814,7 @@ export default function ChatPage() {
               </div>
             ) : selectedUser ? (
               // User Profile View
-              <div className="custom-scrollbar relative z-10 flex flex-1 flex-col items-center justify-center overflow-y-auto p-6">
+              <div className="relative z-10 flex flex-1 flex-col items-center justify-center overflow-y-auto p-6">
                 <button
                   onClick={() => setSelectedUser(null)}
                   className="absolute top-6 right-6 text-zinc-500 transition-colors hover:text-white"
@@ -984,7 +984,7 @@ export default function ChatPage() {
                     )}
 
                     {/* Message Area */}
-                    <div className="custom-scrollbar flex flex-1 flex-col gap-6 overflow-y-auto p-4 sm:p-6">
+                    <div className="flex flex-1 flex-col gap-6 overflow-y-auto p-4 sm:p-6">
                       <div className="my-4 text-center text-xs font-bold tracking-widest text-zinc-600 uppercase">
                         I dag
                       </div>
@@ -1225,7 +1225,7 @@ export default function ChatPage() {
                             <X className="h-4 w-4" />
                           </button>
                         </div>
-                        <div className="custom-scrollbar flex-1 overflow-y-auto p-2">
+                        <div className="flex-1 overflow-y-auto p-2">
                           {Array.from({ length: Math.min(activeChat.participants, 10) }).map(
                             (_, i) => {
                               const mockNames = [

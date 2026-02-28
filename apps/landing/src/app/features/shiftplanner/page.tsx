@@ -218,7 +218,7 @@ export default function VaktlisteLonnPage() {
             <aside
               className={`z-20 hidden shrink-0 flex-col border-r border-white/5 bg-[#0a0a0c]/40 backdrop-blur-md transition-all duration-300 ease-in-out lg:flex ${isSidebarOpen ? "w-64 opacity-100 xl:w-72" : "w-0 overflow-hidden border-none opacity-0"}`}
             >
-              <div className="custom-scrollbar w-64 flex-1 overflow-y-auto p-5 xl:w-72 xl:p-6">
+              <div className="w-64 flex-1 overflow-y-auto p-5 xl:w-72 xl:p-6">
                 <div className="mb-4 flex items-center justify-between">
                   <h3 className="text-[10px] font-black tracking-widest text-zinc-500 uppercase xl:text-xs">
                     Åpen Vakt
@@ -235,7 +235,7 @@ export default function VaktlisteLonnPage() {
             </aside>
 
             {/* THE GRID (CALENDAR) */}
-            <main className="custom-scrollbar relative flex flex-1 shrink-0 overflow-auto">
+            <main className="relative flex flex-1 shrink-0 overflow-auto">
               {scheduleLayout === "daily" && (
                 <GridContent isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} />
               )}

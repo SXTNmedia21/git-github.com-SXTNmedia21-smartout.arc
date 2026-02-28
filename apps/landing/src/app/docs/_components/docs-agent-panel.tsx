@@ -83,7 +83,7 @@ export function DocsAgentPanel() {
         </div>
       </div>
 
-      <div className="custom-scrollbar max-h-[420px] space-y-3 overflow-y-auto p-5">
+      <div className="max-h-[420px] space-y-3 overflow-y-auto p-5">
         {messages.map((message, idx) => (
           <div
             key={`${message.role}-${idx}`}

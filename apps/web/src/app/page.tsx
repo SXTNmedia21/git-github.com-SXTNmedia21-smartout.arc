@@ -36,7 +36,7 @@ export default function SmartoutDashboardDraft() {
   const renderMainContent = () => {
     if (activeTab === "Live Operations") {
       return (
-        <div className="custom-scrollbar z-10 flex-1 overflow-y-auto px-10 pt-8 pb-20">
+        <div className="z-10 flex-1 overflow-y-auto px-10 pt-8 pb-20">
           <div className="mb-6">
             <h1
               className={`mb-2 flex items-center gap-3 text-3xl font-extrabold tracking-tight ${isDark ? "text-white" : "text-zinc-900"}`}
@@ -216,7 +216,7 @@ export default function SmartoutDashboardDraft() {
     }
 
     return (
-      <div className="custom-scrollbar z-10 flex flex-1 flex-col overflow-y-auto px-10 pt-8 pb-20">
+      <div className="z-10 flex flex-1 flex-col overflow-y-auto px-10 pt-8 pb-20">
         <div className="mb-6">
           <h1
             className={`mb-2 text-3xl font-extrabold tracking-tight ${isDark ? "text-white" : "text-zinc-900"}`}
@@ -304,7 +304,7 @@ export default function SmartoutDashboardDraft() {
         <aside
           className={`z-20 flex w-64 flex-col border-r transition-colors duration-300 ${isDark ? "border-zinc-800 bg-[#0c0c0e]" : "border-zinc-200 bg-white shadow-sm"}`}
         >
-          <nav className="custom-scrollbar relative flex-1 space-y-1 overflow-y-auto px-4 py-8">
+          <nav className="relative flex-1 space-y-1 overflow-y-auto px-4 py-8">
             {isAdminMode ? (
               <>
                 <div
@@ -539,17 +539,6 @@ export default function SmartoutDashboardDraft() {
           {renderMainContent()}
         </main>
       </div>
-
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-        .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(150,150,150,0.2); border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(150,150,150,0.4); }
-      `,
-        }}
-      />
     </div>
   );
 }

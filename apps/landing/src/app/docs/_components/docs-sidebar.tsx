@@ -41,7 +41,7 @@ export function DocsSidebar({ navigation }: { navigation: DocsNavItem[] }) {
         </div>
       </div>
 
-      <nav className="custom-scrollbar flex-1 space-y-1 overflow-y-auto p-4">
+      <nav className="flex-1 space-y-1 overflow-y-auto p-4">
         {filteredNav.map((item) => (
           <Link
             key={item.href}

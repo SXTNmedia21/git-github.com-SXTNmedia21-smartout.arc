@@ -159,7 +159,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   return (
     <div
       className={`flex h-screen flex-col overflow-hidden font-sans transition-colors duration-300 selection:bg-orange-500/30 ${
-        isDark ? "bg-zinc-950 text-zinc-100" : "bg-zinc-50 text-zinc-900"
+        isDark ? "dark bg-zinc-950 text-zinc-100" : "bg-zinc-50 text-zinc-900"
       } print:block print:h-auto print:overflow-visible`}
     >
       {/* TOP CONTEXT BAR */}

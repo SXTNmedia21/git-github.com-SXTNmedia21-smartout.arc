@@ -319,7 +319,7 @@ export default function KommunikasjonPage() {
                   <Settings className="h-4 w-4" />
                 </button>
               </div>
-              <div className="custom-scrollbar flex-1 overflow-y-auto">
+              <div className="flex-1 overflow-y-auto">
                 {chats.map((chat) => (
                   <div
                     key={chat.id}
@@ -364,7 +364,7 @@ export default function KommunikasjonPage() {
 
               {showSettings ? (
                 // Settings View
-                <div className="custom-scrollbar relative z-10 flex flex-1 flex-col items-center overflow-y-auto p-6">
+                <div className="relative z-10 flex flex-1 flex-col items-center overflow-y-auto p-6">
                   <div className="mt-10 w-full max-w-lg">
                     <h2 className="mb-8 text-2xl font-bold text-white">
                       Innstillinger for Kommunikasjon
@@ -417,7 +417,7 @@ export default function KommunikasjonPage() {
                 </div>
               ) : selectedUser ? (
                 // User Profile View
-                <div className="custom-scrollbar relative z-10 flex flex-1 flex-col items-center justify-center overflow-y-auto p-6">
+                <div className="relative z-10 flex flex-1 flex-col items-center justify-center overflow-y-auto p-6">
                   <button
                     onClick={() => setSelectedUser(null)}
                     className="absolute top-6 right-6 text-zinc-500 transition-colors hover:text-white"
@@ -584,7 +584,7 @@ export default function KommunikasjonPage() {
                       )}
 
                       {/* Message Area */}
-                      <div className="custom-scrollbar flex flex-1 flex-col gap-6 overflow-y-auto p-4 sm:p-6">
+                      <div className="flex flex-1 flex-col gap-6 overflow-y-auto p-4 sm:p-6">
                         <div className="my-4 text-center text-xs font-bold tracking-widest text-zinc-600 uppercase">
                           I dag
                         </div>
@@ -704,7 +704,7 @@ export default function KommunikasjonPage() {
                               <X className="h-4 w-4" />
                             </button>
                           </div>
-                          <div className="custom-scrollbar flex-1 overflow-y-auto p-2">
+                          <div className="flex-1 overflow-y-auto p-2">
                             {Array.from({ length: Math.min(activeChat.participants, 10) }).map(
                               (_, i) => {
                                 const mockNames = [

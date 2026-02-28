@@ -83,7 +83,7 @@ export function ActivityView({ isDark }: { isDark: boolean }) {
   };
 
   return (
-    <div className="animate-in fade-in custom-scrollbar flex min-h-0 min-w-0 flex-1 flex-col gap-6 overflow-y-auto pr-2 pb-6 duration-500">
+    <div className="animate-in fade-in flex min-h-0 min-w-0 flex-1 flex-col gap-6 overflow-y-auto pr-2 pb-6 duration-500">
       {/* Header */}
       <div className="flex flex-shrink-0 flex-col justify-between gap-4 pt-2 md:flex-row md:items-center">
         <div>

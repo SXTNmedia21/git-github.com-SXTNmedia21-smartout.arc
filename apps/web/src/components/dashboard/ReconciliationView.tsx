@@ -169,7 +169,7 @@ export function ReconciliationView({ isDark }: { isDark: boolean }) {
   };
 
   return (
-    <div className="animate-in fade-in custom-scrollbar flex min-h-0 min-w-0 flex-1 flex-col gap-6 overflow-y-auto pr-2 pb-6 duration-500">
+    <div className="animate-in fade-in flex min-h-0 min-w-0 flex-1 flex-col gap-6 overflow-y-auto pr-2 pb-6 duration-500">
       {!selectedSession ? (
         // LIST VIEW
         <>

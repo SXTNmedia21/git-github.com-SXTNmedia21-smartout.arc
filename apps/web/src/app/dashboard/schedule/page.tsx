@@ -186,7 +186,7 @@ function ScheduleSidebar({
     <aside
       className={`border-r border-white/5 ${isDark ? "bg-[#0a0a0c]/40" : "bg-white/60"} z-20 hidden shrink-0 flex-col backdrop-blur-md transition-all duration-300 ease-in-out lg:flex ${isSidebarOpen ? "w-64 opacity-100 xl:w-72" : "w-0 overflow-hidden border-none opacity-0"} print:hidden`}
     >
-      <div className="custom-scrollbar flex w-64 flex-1 flex-col overflow-y-auto p-4 xl:w-72 xl:p-5">
+      <div className="flex w-64 flex-1 flex-col overflow-y-auto p-4 xl:w-72 xl:p-5">
         <div
           className={`mb-4 flex gap-1 rounded-xl p-1 ${isDark ? "bg-white/5" : "bg-zinc-200/50"}`}
         >
@@ -326,7 +326,7 @@ function WeeklyGridContent({
           </div>
         </div>
 
-        <div className="custom-scrollbar flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto">
           <TeamGroup title="Kjøkken" count={2}>
             <EntityRow
               name="Lars Erik Johansen"
@@ -610,7 +610,7 @@ function MonthlyGridContent({
           <div
             className={`h-[60px] border-b ${isDark ? "border-white/5" : "border-zinc-200"} bg-transparent`}
           />
-          <div className="custom-scrollbar flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto">
             <TeamCoverageRow title="Kjøkken" target={8} current={7} />
             <TeamCoverageRow title="Sal & Service" target={12} current={12} isPerfect />
             <TeamCoverageRow title="Bar" target={4} current={3} isWarning />

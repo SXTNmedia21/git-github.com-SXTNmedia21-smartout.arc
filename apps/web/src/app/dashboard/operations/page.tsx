@@ -8,7 +8,7 @@ export default function OperationsPage() {
   const { isDark } = useContext(DashboardContext);
 
   return (
-    <div className="custom-scrollbar z-10 flex-1 overflow-y-auto px-10 pt-8 pb-20">
+    <div className="z-10 flex-1 overflow-y-auto px-10 pt-8 pb-20">
       <div className="mb-6">
         <h1
           className={`mb-2 flex items-center gap-3 text-3xl font-extrabold tracking-tight ${isDark ? "text-white" : "text-zinc-900"}`}

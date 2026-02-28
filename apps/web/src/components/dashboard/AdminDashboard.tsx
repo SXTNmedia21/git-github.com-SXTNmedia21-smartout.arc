@@ -51,7 +51,7 @@ export default function AdminDashboard({ isDark }: AdminDashboardProps) {
 // ==========================================
 function TacticalView({ isDark }: { isDark: boolean }) {
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 custom-scrollbar flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto pr-2 pb-2 duration-500">
+    <div className="animate-in fade-in slide-in-from-bottom-4 flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto pr-2 pb-2 duration-500">
       {/* Top Metrics Row */}
       <div className="grid flex-shrink-0 grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         {/* Payroll Cost */}
@@ -469,7 +469,7 @@ function StrategicView({ isDark }: { isDark: boolean }) {
   const data = defaultMetrics[selectedLocId as keyof typeof defaultMetrics];
 
   return (
-    <div className="animate-in fade-in custom-scrollbar flex min-h-0 min-w-0 flex-1 flex-col gap-6 overflow-y-auto pr-2 pb-6 duration-500">
+    <div className="animate-in fade-in flex min-h-0 min-w-0 flex-1 flex-col gap-6 overflow-y-auto pr-2 pb-6 duration-500">
       {/* Header & Department/Location Selector */}
       <div className="flex flex-shrink-0 flex-col justify-between gap-4 pt-2 md:flex-row md:items-center">
         <div>

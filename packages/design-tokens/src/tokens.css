@@ -73,6 +73,11 @@
     --priority-high: oklch(0.65 0.22 40);
     --priority-normal: oklch(0.6 0.15 250);
     --priority-low: oklch(0.55 0 0);
+
+    /* Scrollbar — Light */
+    --scrollbar-thumb: oklch(0.78 0 0);
+    --scrollbar-thumb-hover: oklch(0.65 0 0);
+    --scrollbar-track: transparent;
   }
 
   .dark {
@@ -102,6 +107,11 @@
     --chart-3: oklch(0.769 0.188 70.08);
     --chart-4: oklch(0.627 0.265 303.9);
     --chart-5: oklch(0.645 0.246 16.439);
+
+    /* Scrollbar — Dark */
+    --scrollbar-thumb: oklch(0.35 0 0);
+    --scrollbar-thumb-hover: oklch(0.45 0 0);
+    --scrollbar-track: transparent;
 
     /* Sidebar — Dark */
     --sidebar: oklch(0.205 0 0);
