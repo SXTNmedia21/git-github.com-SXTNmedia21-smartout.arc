@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, UserPlus } from "lucide-react";
 import Navigation from "../../components/navigation";
+import Footer from "../../components/footer";
 import { WEB_APP_LINKS } from "../../lib/web-app-url";
 
 export const metadata: Metadata = {
@@ -69,17 +70,7 @@ export default function SignupPage() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="relative z-10 border-t border-zinc-900 bg-zinc-950 py-12">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-6 md:flex-row">
-          <span className="text-lg font-black tracking-tighter text-zinc-400 opacity-50">
-            SmartOut
-          </span>
-          <p className="text-sm font-semibold text-zinc-600">
-            &copy; 2026 SmartOut AS. Helt bygget for fremtiden.
-          </p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
