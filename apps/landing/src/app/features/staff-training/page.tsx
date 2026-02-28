@@ -36,7 +36,7 @@ export default function HROpplaeringPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] p-4 pt-24 text-zinc-100 selection:bg-fuchsia-500/30 sm:p-6 md:p-12 md:pt-28">
+    <div className="min-h-screen overflow-x-hidden bg-[#050505] p-4 pt-24 text-zinc-100 selection:bg-fuchsia-500/30 sm:p-6 md:p-12 md:pt-28">
       <Navigation />
 
       <button

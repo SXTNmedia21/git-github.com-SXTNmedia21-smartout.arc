@@ -207,7 +207,7 @@ export default function SmartoutLandingPage() {
 
             <motion.h1
               variants={itemVariants}
-              className="mb-8 text-6xl leading-[1.05] font-black tracking-tighter drop-shadow-2xl md:text-8xl lg:text-[7.5rem]"
+              className="mb-8 text-4xl leading-[1.05] font-black tracking-tighter drop-shadow-2xl sm:text-6xl md:text-8xl lg:text-[7.5rem]"
             >
               Én plattform. <br />
               <span className="relative inline-block">

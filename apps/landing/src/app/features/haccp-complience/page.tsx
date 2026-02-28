@@ -196,7 +196,7 @@ export default function IkMatAvvikPage() {
                       />
 
                       <div
-                        className={`text-7xl font-black tracking-tighter transition-colors duration-300 ${temp > 4 ? "text-rose-400 drop-shadow-[0_0_15px_rgba(244,63,94,0.3)]" : temp < 0 ? "text-blue-400 drop-shadow-[0_0_15px_rgba(96,165,250,0.3)]" : "bg-gradient-to-r from-orange-400 to-rose-400 bg-clip-text text-transparent"}`}
+                        className={`text-4xl font-black tracking-tighter transition-colors duration-300 sm:text-5xl md:text-7xl ${temp > 4 ? "text-rose-400 drop-shadow-[0_0_15px_rgba(244,63,94,0.3)]" : temp < 0 ? "text-blue-400 drop-shadow-[0_0_15px_rgba(96,165,250,0.3)]" : "bg-gradient-to-r from-orange-400 to-rose-400 bg-clip-text text-transparent"}`}
                       >
                         {temp}°C
                       </div>

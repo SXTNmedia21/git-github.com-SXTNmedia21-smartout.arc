@@ -87,7 +87,7 @@ export default function LokasjonerPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#050505] p-4 pt-24 text-zinc-100 selection:bg-orange-500/30 sm:p-6 md:p-12 md:pt-28">
+    <div className="min-h-screen overflow-x-hidden bg-[#050505] p-4 pt-24 text-zinc-100 selection:bg-orange-500/30 sm:p-6 md:p-12 md:pt-28">
       <Navigation />
 
       <button
@@ -128,7 +128,7 @@ export default function LokasjonerPage() {
               Daglig Kvalitetspoeng
             </h2>
             <div className="flex items-end gap-4">
-              <span className="text-7xl font-black tracking-tighter text-white">
+              <span className="text-4xl font-black tracking-tighter text-white sm:text-5xl md:text-7xl">
                 98.4<span className="text-4xl text-emerald-400">%</span>
               </span>
               <div className="mb-2 flex items-center gap-1 rounded-full bg-emerald-500/10 px-3 py-1.5 font-bold text-emerald-400">

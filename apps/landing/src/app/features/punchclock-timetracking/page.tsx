@@ -63,7 +63,7 @@ export default function TimeforingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] p-4 pt-24 text-zinc-100 selection:bg-blue-500/30 sm:p-6 md:p-12 md:pt-28">
+    <div className="min-h-screen overflow-x-hidden bg-[#050505] p-4 pt-24 text-zinc-100 selection:bg-blue-500/30 sm:p-6 md:p-12 md:pt-28">
       <Navigation />
 
       <button
@@ -106,7 +106,7 @@ export default function TimeforingPage() {
               <p className="mb-4 text-sm font-bold tracking-widest text-zinc-400 uppercase">
                 Lokal Tid Oslo
               </p>
-              <h2 className="mb-12 text-6xl font-black tracking-tight text-white tabular-nums sm:text-7xl">
+              <h2 className="mb-12 text-4xl font-black tracking-tight text-white tabular-nums sm:text-6xl md:text-7xl">
                 {currentTime}
               </h2>
 

@@ -1,4 +1,4 @@
-// @ts-nocheck — depends on contract tables from untracked contract-system migration
+// @ts-nocheck -- depends on contract tables from untracked contract-system migration
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { z } from "zod";

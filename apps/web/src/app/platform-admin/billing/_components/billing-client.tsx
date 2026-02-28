@@ -365,7 +365,7 @@ export function BillingClient({ companies, mrrData }: BillingClientProps) {
                         color: "hsl(var(--popover-foreground))",
                         fontSize: 12,
                       }}
-                      formatter={(value: number) => [`${value.toLocaleString("no-NO")} kr`, "MRR"]}
+                      formatter={(value) => [`${Number(value).toLocaleString("no-NO")} kr`, "MRR"]}
                     />
                     <Line
                       type="monotone"
