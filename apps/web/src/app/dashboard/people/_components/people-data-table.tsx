@@ -1,235 +1,231 @@
 "use client";
 
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useRef, useCallback, useMemo } from "react";
 import {
   Search,
   Filter,
-  MoreHorizontal,
   CheckCircle2,
   AlertCircle,
   Clock,
   SearchX,
   Mail,
   Plus,
-  Link,
-  Send,
   AlertTriangle,
+  Loader2,
+  GraduationCap,
+  LogOut,
 } from "lucide-react";
+import { toast } from "sonner";
 import { EmployeeProfileCard } from "./employee-profile-card";
 import { InviteMemberDialog } from "./invite-member-dialog";
+import { PeopleRowActions } from "./people-row-actions";
+import type { ConfirmAction } from "./people-row-actions";
+import { ConfirmationDialog } from "@/components/platform-admin/confirmation-dialog";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
+import {
+  updateProfileRole,
+  updateProfileDepartment,
+  deactivateProfile,
+  resetUserPassword,
+  cancelInvitation,
+} from "../_actions/people-actions";
+import type { Enums } from "@smartout/supabase";
 
-import type { Employee } from "./types";
+import type { Employee, Department, ProfileRole } from "./types";
 
-const mockEmployees: Employee[] = [
-  {
-    id: "1",
-    name: "Anna Olsen",
-    email: "anna@smartout.io",
-    phone: "+47 912 34 567",
-    role: "Kokk",
-    department: "Kitchen",
-    status: "active",
-    readinessScore: 100,
-    lastActive: "Just now",
-    avatar: "https://i.pravatar.cc/150?u=a042581f4e29026704d",
-    address: "Storgata 1, 0155 Oslo",
-    bankAccount: "1234.56.78901",
-    personalNumber: "120190 12345",
-    emergencyContactName: "Ola Olsen",
-    emergencyContactPhone: "+47 999 88 777",
-    hasContract: true,
-    contactLog: [
-      {
-        id: "cl1",
-        type: "Shift Reminder",
-        channel: "sms",
-        status: "delivered",
-        date: "Today, 06:00",
-      },
-      {
-        id: "cl2",
-        type: "Onboarding Email",
-        channel: "email",
-        status: "delivered",
-        date: "Jan 12, 14:00",
-      },
-    ],
-  },
-  {
-    id: "2",
-    name: "Erik Pedersen",
-    email: "erik@smartout.io",
-    phone: "+47 411 22 333",
-    role: "Sous Chef",
-    department: "Kitchen",
-    status: "active",
-    readinessScore: 100,
-    lastActive: "2 min ago",
-    avatar: "https://i.pravatar.cc/150?u=a042581f4e29026704e",
-    hasContract: true,
-  },
-  {
-    id: "3",
-    name: "Lise Markussen",
-    email: "lise@smartout.io",
-    phone: "+47 922 33 444",
-    role: "Servitør",
-    department: "Service",
-    status: "inactive",
-    readinessScore: 85,
-    lastActive: "1 day ago",
-    avatar: "https://i.pravatar.cc/150?u=a042581f4e29026704f",
-    hasContract: true,
-  },
-  {
-    id: "4",
-    name: "Ole Torp",
-    email: "ole@smartout.io",
-    phone: "+47 433 44 555",
-    role: "Bartender",
-    department: "Bar",
-    status: "active",
-    readinessScore: 100,
-    lastActive: "Just now",
-    avatar: "https://i.pravatar.cc/150?u=a042581f4e29026704g",
-    hasContract: true,
-  },
-  {
-    id: "5",
-    name: "Trainee Kari",
-    email: "kari@smartout.io",
-    phone: "+47 944 55 666",
-    role: "Servitør",
-    department: "Service",
-    status: "inactive",
-    readinessScore: 20,
-    lastActive: "3 days ago",
-    avatar: "https://i.pravatar.cc/150?u=a042581f4e29026704h",
-    hasContract: false,
-  },
-  {
-    id: "6",
-    name: "Jon Doe",
-    email: "jon@smartout.io",
-    phone: "+47 455 66 777",
-    role: "Oppvask",
-    department: "Kitchen",
-    status: "inactive",
-    readinessScore: 60,
-    lastActive: "1 week ago",
-    avatar: "https://i.pravatar.cc/150?u=a042581f4e29026704i",
-    hasContract: true,
-  },
-  {
-    id: "7",
-    name: "Sara Lee",
-    email: "sara@smartout.io",
-    phone: "+47 966 77 888",
-    role: "Hovmester",
-    department: "Service",
-    status: "on_leave",
-    readinessScore: 100,
-    lastActive: "2 weeks ago",
-    hasContract: true,
-  },
-  {
-    id: "8",
-    name: "Jonas Bakken",
-    email: "jonas@smartout.io",
-    phone: "+47 477 88 999",
-    role: "Kokk",
-    department: "Kitchen",
-    status: "invited",
-    inviteStatus: "pending",
-    inviteToken: "abc-123",
-    readinessScore: 0,
-    lastActive: "Never",
-    hasContract: false,
-    contactLog: [
-      {
-        id: "cl3",
-        type: "Invitation Email",
-        channel: "email",
-        status: "delivered",
-        date: "Yesterday, 10:00",
-      },
-      {
-        id: "cl4",
-        type: "Invitation SMS",
-        channel: "sms",
-        status: "delivered",
-        date: "Yesterday, 10:02",
-      },
-    ],
-  },
-  {
-    id: "9",
-    name: "Silje Ruud",
-    email: "silje@smartout.io",
-    phone: "+47 988 99 000",
-    role: "Servitør",
-    department: "Service",
-    status: "invited",
-    inviteStatus: "expired",
-    inviteToken: "xyz-789",
-    readinessScore: 0,
-    lastActive: "Never",
-    hasContract: false,
-    contactLog: [
-      {
-        id: "cl5",
-        type: "Invitation Email",
-        channel: "email",
-        status: "delivered",
-        date: "3 days ago, 10:00",
-      },
-      {
-        id: "cl6",
-        type: "Invitation Reminder",
-        channel: "email",
-        status: "failed",
-        date: "Yesterday, 10:00",
-      },
-    ],
-  },
-];
+type MetricFilter = "all" | "active" | "readiness" | "invites";
 
 export function PeopleDataTable({
+  employees,
+  departments,
+  activeFilter,
+  loading,
   onScrollChange,
   isCompact,
+  currentUserRole,
+  onRefresh,
 }: {
+  employees: Employee[];
+  departments: Department[];
+  activeFilter: MetricFilter;
+  loading: boolean;
   onScrollChange?: (isDown: boolean) => void;
   isCompact?: boolean;
+  currentUserRole: ProfileRole;
+  onRefresh: () => void;
 }) {
-  const { isDark } = useContext(DashboardContext);
+  const { isDark, workspaceData } = useContext(DashboardContext);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDept, setSelectedDept] = useState("All");
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
-  const [lastScrollY, setLastScrollY] = useState(0);
-
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const currentScrollY = e.currentTarget.scrollTop;
-    if (currentScrollY > lastScrollY && currentScrollY > 40) {
-      // Scrolling down
-      if (!isCompact) onScrollChange?.(true);
-    } else if (currentScrollY < lastScrollY) {
-      // Scrolling up
-      if (isCompact) onScrollChange?.(false);
-    }
-    setLastScrollY(currentScrollY);
-  };
-
-  const filteredEmployees = mockEmployees.filter((emp) => {
-    const matchesSearch =
-      emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      emp.role.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDept = selectedDept === "All" || emp.department === selectedDept;
-
-    return matchesSearch && matchesDept;
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    confirmLabel: string;
+    variant: "default" | "destructive";
+    onConfirm: () => void;
+  }>({
+    open: false,
+    title: "",
+    description: "",
+    confirmLabel: "Confirm",
+    variant: "default",
+    onConfirm: () => {},
   });
+  const lastScrollY = useRef(0);
+  const isTransitioning = useRef(false);
+
+  const workspaceId = workspaceData?.workspace_id ?? "";
+
+  async function handleRoleChange(profileId: string, newRole: string) {
+    try {
+      await updateProfileRole(profileId, workspaceId, newRole as Enums<"profile_role">);
+      toast.success(`Role updated to ${newRole}`);
+      onRefresh();
+    } catch {
+      toast.error("Failed to update role");
+    }
+  }
+
+  async function handleDepartmentChange(profileId: string, departmentId: string) {
+    try {
+      await updateProfileDepartment(profileId, workspaceId, departmentId);
+      toast.success("Department updated");
+      onRefresh();
+    } catch {
+      toast.error("Failed to update department");
+    }
+  }
+
+  function handleConfirmAction(action: ConfirmAction) {
+    switch (action.type) {
+      case "deactivate":
+        setConfirmDialog({
+          open: true,
+          title: "Deactivate employee",
+          description: `Are you sure you want to deactivate ${action.name}? They will be moved to offboarding status.`,
+          confirmLabel: "Deactivate",
+          variant: "destructive",
+          onConfirm: async () => {
+            try {
+              await deactivateProfile(action.profileId, workspaceId);
+              toast.success(`${action.name} has been deactivated`);
+              onRefresh();
+            } catch {
+              toast.error("Failed to deactivate employee");
+            }
+            setConfirmDialog((prev) => ({ ...prev, open: false }));
+          },
+        });
+        break;
+      case "cancelInvite":
+        setConfirmDialog({
+          open: true,
+          title: "Cancel invitation",
+          description: `Are you sure you want to cancel the invitation for ${action.name}?`,
+          confirmLabel: "Cancel Invite",
+          variant: "destructive",
+          onConfirm: async () => {
+            try {
+              await cancelInvitation(action.invitationId);
+              toast.success("Invitation cancelled");
+              onRefresh();
+            } catch {
+              toast.error("Failed to cancel invitation");
+            }
+            setConfirmDialog((prev) => ({ ...prev, open: false }));
+          },
+        });
+        break;
+      case "resetPassword":
+        setConfirmDialog({
+          open: true,
+          title: "Reset password",
+          description: `Send a password reset email to ${action.name} (${action.email})?`,
+          confirmLabel: "Send Reset Email",
+          variant: "default",
+          onConfirm: async () => {
+            try {
+              await resetUserPassword(action.email);
+              toast.success("Password reset email sent");
+            } catch {
+              toast.error("Failed to send password reset email");
+            }
+            setConfirmDialog((prev) => ({ ...prev, open: false }));
+          },
+        });
+        break;
+    }
+  }
+
+  function handleResendInvite(email: string) {
+    toast.info(`Resend invite to ${email} — not yet implemented`);
+  }
+
+  const handleScroll = useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      if (isTransitioning.current) return;
+
+      const currentScrollY = e.currentTarget.scrollTop;
+      const delta = currentScrollY - lastScrollY.current;
+      lastScrollY.current = currentScrollY;
+
+      if (delta > 0 && currentScrollY > 40 && !isCompact) {
+        isTransitioning.current = true;
+        onScrollChange?.(true);
+        setTimeout(() => {
+          isTransitioning.current = false;
+        }, 500);
+      } else if (delta < -5 && isCompact) {
+        isTransitioning.current = true;
+        onScrollChange?.(false);
+        setTimeout(() => {
+          isTransitioning.current = false;
+        }, 500);
+      }
+    },
+    [isCompact, onScrollChange],
+  );
+
+  const deptNames = useMemo(() => {
+    return ["All", ...departments.map((d) => d.name)];
+  }, [departments]);
+
+  const filteredEmployees = useMemo(() => {
+    let result = employees;
+
+    // Metric card filter
+    if (activeFilter === "active") {
+      result = result.filter((emp) => emp.status === "active");
+    } else if (activeFilter === "invites") {
+      result = result.filter((emp) => emp.status === "invited");
+    }
+
+    // Search filter
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      result = result.filter(
+        (emp) =>
+          emp.name.toLowerCase().includes(term) ||
+          emp.email.toLowerCase().includes(term) ||
+          emp.role.toLowerCase().includes(term),
+      );
+    }
+
+    // Department filter
+    if (selectedDept !== "All") {
+      result = result.filter((emp) => emp.department === selectedDept);
+    }
+
+    // Readiness sort
+    if (activeFilter === "readiness") {
+      result = [...result].sort((a, b) => (a.readinessScore ?? 0) - (b.readinessScore ?? 0));
+    }
+
+    return result;
+  }, [employees, activeFilter, searchTerm, selectedDept]);
 
   return (
     <div
@@ -237,7 +233,7 @@ export function PeopleDataTable({
     >
       {/* Table Header/Controls */}
       <div
-        className={`border-b transition-all duration-500 ease-in-out ${isDark ? "border-zinc-800 bg-zinc-900/40" : "border-zinc-200 bg-zinc-50/80"} flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center ${isCompact ? "mb-0 h-0 overflow-hidden border-transparent py-0 opacity-0" : "p-5 opacity-100"}`}
+        className={`border-b ${isDark ? "border-zinc-800 bg-zinc-900/40" : "border-zinc-200 bg-zinc-50/80"} flex flex-col items-start justify-between gap-4 p-5 sm:flex-row sm:items-center`}
       >
         <div className="flex w-full items-center gap-3 sm:w-auto">
           <div className="group relative w-full sm:w-72">
@@ -264,7 +260,7 @@ export function PeopleDataTable({
           <div
             className={`${isDark ? "border-zinc-800 bg-zinc-950" : "border-zinc-200 bg-white"} flex rounded-lg border p-1`}
           >
-            {["All", "Kitchen", "Service", "Bar"].map((dept) => (
+            {deptNames.map((dept) => (
               <button
                 key={dept}
                 onClick={() => setSelectedDept(dept)}
@@ -292,7 +288,12 @@ export function PeopleDataTable({
 
       {/* Table Body */}
       <div className="flex-1 overflow-auto" onScroll={handleScroll}>
-        {filteredEmployees.length === 0 ? (
+        {loading ? (
+          <div className="flex h-full flex-col items-center justify-center p-8">
+            <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+            <p className="mt-3 text-sm text-zinc-500">Loading people...</p>
+          </div>
+        ) : filteredEmployees.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center p-8 text-zinc-500">
             <SearchX className="mb-4 h-12 w-12 text-zinc-700" />
             <p className="font-medium text-zinc-400">No employees found</p>
@@ -369,33 +370,11 @@ export function PeopleDataTable({
                     <p className="mt-0.5 text-xs text-zinc-500">{emp.department}</p>
                   </td>
                   <td className="px-6 py-4 text-center">
-                    {emp.status === "active" ? (
-                      <span className="inline-flex items-center gap-1.5 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-bold tracking-wider text-emerald-400 uppercase">
-                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />{" "}
-                        Clocked In
-                      </span>
-                    ) : emp.status === "inactive" ? (
-                      <span
-                        className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-bold tracking-wider uppercase ${isDark ? "bg-zinc-800 text-zinc-400" : "bg-zinc-100 text-zinc-500"}`}
-                      >
-                        <Clock className="h-3 w-3" /> Out
-                      </span>
-                    ) : emp.status === "invited" ? (
-                      <span
-                        className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-bold tracking-wider uppercase ${emp.inviteStatus === "expired" ? (isDark ? "border border-orange-500/20 bg-orange-500/10 text-orange-400" : "border border-orange-200 bg-orange-50 text-orange-600") : isDark ? "bg-zinc-800 text-zinc-300" : "bg-zinc-100 text-zinc-600"}`}
-                      >
-                        {emp.inviteStatus === "expired" ? (
-                          <AlertTriangle className="h-3 w-3" />
-                        ) : (
-                          <Mail className="h-3 w-3" />
-                        )}
-                        {emp.inviteStatus === "expired" ? "Expired" : "Invited"}
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 rounded-md border border-rose-500/20 bg-rose-500/10 px-2.5 py-1 text-[11px] font-bold tracking-wider text-rose-400 uppercase">
-                        On Leave
-                      </span>
-                    )}
+                    <StatusBadge
+                      status={emp.status}
+                      inviteStatus={emp.inviteStatus}
+                      isDark={isDark}
+                    />
                   </td>
                   <td className="px-6 py-4">
                     {emp.status !== "invited" ? (
@@ -411,7 +390,7 @@ export function PeopleDataTable({
                           <span
                             className={`text-sm font-bold ${emp.readinessScore === 100 ? "text-emerald-500" : (emp.readinessScore ?? 0) > 50 ? "text-orange-500" : "text-rose-500"}`}
                           >
-                            {emp.readinessScore}%
+                            {emp.readinessScore ?? 0}%
                           </span>
                         </div>
                         <div
@@ -419,7 +398,7 @@ export function PeopleDataTable({
                         >
                           <div
                             className={`h-full rounded-full transition-all duration-500 ${emp.readinessScore === 100 ? "bg-emerald-500" : (emp.readinessScore ?? 0) > 50 ? "bg-orange-500" : "bg-rose-500"}`}
-                            style={{ width: `${emp.readinessScore}%` }}
+                            style={{ width: `${emp.readinessScore ?? 0}%` }}
                           />
                         </div>
                       </div>
@@ -433,50 +412,16 @@ export function PeopleDataTable({
                       </div>
                     )}
                   </td>
-                  <td className="px-6 py-4 text-right">
-                    {emp.status === "invited" ? (
-                      <div className="flex justify-end gap-1">
-                        <button
-                          title="Copy Invite Link"
-                          className={`rounded-md p-1.5 transition-colors ${isDark ? "text-zinc-400 hover:bg-zinc-800 hover:text-white" : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const webOrigin = process.env.NEXT_PUBLIC_WEB_APP_URL ?? "";
-                            navigator.clipboard.writeText(`${webOrigin}/invite/${emp.inviteToken}`);
-                            alert("Link copied to clipboard!");
-                          }}
-                        >
-                          <Link className="h-4 w-4" />
-                        </button>
-                        <button
-                          title="Resend Invite"
-                          className={`rounded-md p-1.5 transition-colors ${isDark ? "text-zinc-400 hover:bg-zinc-800 hover:text-white" : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            alert("Invitation resent!");
-                          }}
-                        >
-                          <Send className="h-4 w-4" />
-                        </button>
-                        <button
-                          className={`rounded-md p-1.5 transition-colors ${isDark ? "text-zinc-500 hover:bg-zinc-800 hover:text-white" : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900"}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                          }}
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        className={`rounded-lg p-2 transition-colors ${isDark ? "text-zinc-500 hover:bg-zinc-800 hover:text-white" : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900"}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                        }}
-                      >
-                        <MoreHorizontal className="h-4 w-4" />
-                      </button>
-                    )}
+                  <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                    <PeopleRowActions
+                      employee={emp}
+                      departments={departments}
+                      currentUserRole={currentUserRole}
+                      onRoleChange={handleRoleChange}
+                      onDepartmentChange={handleDepartmentChange}
+                      onConfirmAction={handleConfirmAction}
+                      onResendInvite={handleResendInvite}
+                    />
                   </td>
                 </tr>
               ))}
@@ -494,6 +439,79 @@ export function PeopleDataTable({
 
       {/* Invite Modal */}
       <InviteMemberDialog isOpen={isInviteOpen} onClose={() => setIsInviteOpen(false)} />
+
+      {/* Confirmation Dialog for destructive/sensitive actions */}
+      <ConfirmationDialog
+        open={confirmDialog.open}
+        onOpenChange={(open) => setConfirmDialog((prev) => ({ ...prev, open }))}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        confirmLabel={confirmDialog.confirmLabel}
+        onConfirm={confirmDialog.onConfirm}
+        variant={confirmDialog.variant}
+      />
     </div>
   );
+}
+
+function StatusBadge({
+  status,
+  inviteStatus,
+  isDark,
+}: {
+  status: Employee["status"];
+  inviteStatus?: "pending" | "expired";
+  isDark: boolean;
+}) {
+  switch (status) {
+    case "active":
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-bold tracking-wider text-emerald-400 uppercase">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" /> Active
+        </span>
+      );
+    case "inactive":
+      return (
+        <span
+          className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-bold tracking-wider uppercase ${isDark ? "bg-zinc-800 text-zinc-400" : "bg-zinc-100 text-zinc-500"}`}
+        >
+          <Clock className="h-3 w-3" /> Inactive
+        </span>
+      );
+    case "trainee":
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-md border border-blue-500/20 bg-blue-500/10 px-2.5 py-1 text-[11px] font-bold tracking-wider text-blue-400 uppercase">
+          <GraduationCap className="h-3 w-3" /> Trainee
+        </span>
+      );
+    case "offboarding":
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-md border border-rose-500/20 bg-rose-500/10 px-2.5 py-1 text-[11px] font-bold tracking-wider text-rose-400 uppercase">
+          <LogOut className="h-3 w-3" /> Offboarding
+        </span>
+      );
+    case "invited":
+      return (
+        <span
+          className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-bold tracking-wider uppercase ${
+            inviteStatus === "expired"
+              ? isDark
+                ? "border border-orange-500/20 bg-orange-500/10 text-orange-400"
+                : "border border-orange-200 bg-orange-50 text-orange-600"
+              : isDark
+                ? "bg-zinc-800 text-zinc-300"
+                : "bg-zinc-100 text-zinc-600"
+          }`}
+        >
+          {inviteStatus === "expired" ? (
+            <AlertTriangle className="h-3 w-3" />
+          ) : (
+            <Mail className="h-3 w-3" />
+          )}
+          {inviteStatus === "expired" ? "Expired" : "Invited"}
+        </span>
+      );
+    default:
+      return null;
+  }
 }
