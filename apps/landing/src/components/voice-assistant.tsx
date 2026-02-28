@@ -112,10 +112,10 @@ export default function VoiceAssistant({
   };
 
   useEffect(() => {
-    if (autoStart) {
-      void startSession();
-    }
+    if (!autoStart) return;
+    const timer = setTimeout(() => void startSession(), 0);
     return () => {
+      clearTimeout(timer);
       endSession();
     };
   }, [autoStart]);

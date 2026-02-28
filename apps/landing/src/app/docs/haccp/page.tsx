@@ -4,7 +4,6 @@ import {
   Heading,
   SubHeading,
   Paragraph,
-  InfoBox,
   FeatureCard,
 } from "../_components/docs-article";
 

@@ -1,14 +1,4 @@
-import {
-  Rocket,
-  Building2,
-  MapPin,
-  Users,
-  Mail,
-  Globe,
-  Search,
-  Brain,
-  FileText,
-} from "lucide-react";
+import { Rocket, Building2, MapPin, Users, Globe, Search, Brain, FileText } from "lucide-react";
 import {
   DocsArticle,
   Heading,

@@ -1,4 +1,4 @@
-import { GraduationCap, ShieldCheck, Gamepad2, Timer, BookOpen } from "lucide-react";
+import { GraduationCap, ShieldCheck, BookOpen } from "lucide-react";
 import {
   DocsArticle,
   Heading,

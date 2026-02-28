@@ -1,4 +1,4 @@
-import { MessageSquare, Bell, Megaphone, Clock, Volume2, Settings } from "lucide-react";
+import { MessageSquare, Megaphone, Clock, Settings } from "lucide-react";
 import {
   DocsArticle,
   Heading,

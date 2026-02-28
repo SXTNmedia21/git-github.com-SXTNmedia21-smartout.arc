@@ -1,10 +1,9 @@
-import { Bot, Cpu, Mic, Eye, Shield, Sparkles } from "lucide-react";
+import { Bot, Cpu, Mic, Eye, Shield } from "lucide-react";
 import {
   DocsArticle,
   Heading,
   SubHeading,
   Paragraph,
-  InfoBox,
   FeatureCard,
 } from "../_components/docs-article";
 

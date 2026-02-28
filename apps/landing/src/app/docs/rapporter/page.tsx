@@ -1,10 +1,9 @@
-import { BarChart3, Camera, TrendingUp, AlertTriangle, FileBarChart, Sparkles } from "lucide-react";
+import { BarChart3, Camera, TrendingUp, Sparkles } from "lucide-react";
 import {
   DocsArticle,
   Heading,
   SubHeading,
   Paragraph,
-  InfoBox,
   FeatureCard,
 } from "../_components/docs-article";
 

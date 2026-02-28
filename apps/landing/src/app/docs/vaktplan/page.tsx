@@ -1,10 +1,9 @@
-import { CalendarDays, Clock, ArrowLeftRight, LayoutGrid, Shield, Sparkles } from "lucide-react";
+import { CalendarDays, Clock, LayoutGrid, Sparkles } from "lucide-react";
 import {
   DocsArticle,
   Heading,
   SubHeading,
   Paragraph,
-  InfoBox,
   FeatureCard,
 } from "../_components/docs-article";
 

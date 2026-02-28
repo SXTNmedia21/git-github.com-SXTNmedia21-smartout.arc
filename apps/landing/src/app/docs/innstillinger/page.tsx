@@ -1,4 +1,4 @@
-import { Settings, CreditCard, Globe, Shield, Building2, Plug } from "lucide-react";
+import { Settings, Building2 } from "lucide-react";
 import {
   DocsArticle,
   Heading,
