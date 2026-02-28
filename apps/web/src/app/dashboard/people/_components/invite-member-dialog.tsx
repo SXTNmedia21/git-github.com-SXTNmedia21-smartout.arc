@@ -2,7 +2,7 @@
 
 import { X, Mail, Phone, Building2, Briefcase, Plus, Loader2 } from "lucide-react";
 import { useState, useContext, useEffect } from "react";
-import { DashboardContext } from "@/app/dashboard/layout";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";

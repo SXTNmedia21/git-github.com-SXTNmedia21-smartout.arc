@@ -1,7 +1,7 @@
 "use client";
 
 import { useContext } from "react";
-import { DashboardContext } from "@/app/dashboard/layout";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { Percent, Gauge, Clock, Users, Activity, AlertCircle } from "lucide-react";
 
 export default function OperationsPage() {

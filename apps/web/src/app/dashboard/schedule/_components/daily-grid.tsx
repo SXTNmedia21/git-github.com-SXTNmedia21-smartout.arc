@@ -14,7 +14,7 @@ import {
   ListTodo,
 } from "lucide-react";
 import { useDroppable } from "@dnd-kit/core";
-import { DashboardContext } from "../../layout";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { ShiftCard, AbsenceCard } from "./grid-cards";
 import {
   dummyEmployees,

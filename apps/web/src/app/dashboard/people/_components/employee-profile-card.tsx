@@ -18,7 +18,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { useState, useContext } from "react";
-import { DashboardContext } from "@/app/dashboard/layout";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import type { Employee } from "./types";
 
 interface EmployeeProfileCardProps {

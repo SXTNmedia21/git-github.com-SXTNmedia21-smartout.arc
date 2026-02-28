@@ -20,7 +20,7 @@ import {
   CheckSquare,
   AlertCircle,
 } from "lucide-react";
-import { DashboardContext } from "../../layout";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 
 // ---------------------------------------------------------------------------
 // DailyBriefingPanel — rich day detail panel (no DnD interaction)

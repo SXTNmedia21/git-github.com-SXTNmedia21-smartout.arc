@@ -2,7 +2,7 @@
 
 import { useContext } from "react";
 import dynamic from "next/dynamic";
-import { DashboardContext } from "./layout";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 
 const AdminDashboard = dynamic(() => import("@/components/dashboard/AdminDashboard"), {
   ssr: false,

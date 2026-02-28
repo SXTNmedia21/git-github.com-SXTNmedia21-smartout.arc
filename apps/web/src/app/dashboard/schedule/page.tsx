@@ -15,7 +15,7 @@ import {
   Printer,
   Ban,
 } from "lucide-react";
-import { DashboardContext } from "../layout";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import {
   DndContext,
   type CollisionDetection,

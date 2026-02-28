@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useContext, useState } from "react";
-import { DashboardContext } from "@/app/dashboard/layout";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import {
   Calendar,
   TrendingUp,

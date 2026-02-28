@@ -4,7 +4,7 @@ import React, { useContext } from "react";
 import { AlertCircle, Ban } from "lucide-react";
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { DashboardContext } from "../../layout";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { ShiftCardView, OpenShiftCardView, TemplateCardView } from "./draggable-card-views";
 
 // ---------------------------------------------------------------------------

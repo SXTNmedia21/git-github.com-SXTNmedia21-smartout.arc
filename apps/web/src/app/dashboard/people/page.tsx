@@ -3,7 +3,7 @@
 import { useState, useContext, useEffect } from "react";
 import { Users, Star, ShieldCheck, Mail } from "lucide-react";
 import { PeopleDataTable } from "./_components/people-data-table";
-import { DashboardContext } from "@/app/dashboard/layout";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { createClient } from "@smartout/supabase/client";
 
 export default function PeoplePage() {

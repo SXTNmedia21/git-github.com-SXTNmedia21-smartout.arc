@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { EmployeeProfileCard } from "./employee-profile-card";
 import { InviteMemberDialog } from "./invite-member-dialog";
-import { DashboardContext } from "@/app/dashboard/layout";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 
 import type { Employee } from "./types";
 
