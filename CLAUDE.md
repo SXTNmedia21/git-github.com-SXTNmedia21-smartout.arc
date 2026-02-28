@@ -150,6 +150,25 @@ Validated with `@t3-oss/env-nextjs` + Zod in `apps/web/src/env.ts`.
 
 ---
 
+## Security
+
+All work involving secrets, API keys, authentication, or authorization
+MUST follow `SMARTOUT_SECURITY_PROTOCOL.md`. Read it before touching:
+
+- Edge Functions with auth logic
+- Vault or secret storage
+- RLS policies
+- API key creation, rotation, or validation
+- Frontend key management UI
+
+Three laws (memorize these):
+
+1. Never plaintext secrets in code, config, logs, or DB columns.
+2. Never bypass RLS for convenience.
+3. Never commit secrets to Git.
+
+---
+
 ## What NOT To Do
 
 - Never use JavaScript — TypeScript only
@@ -201,6 +220,7 @@ cd apps/web && npx shadcn@latest add <component>
 
 | Date       | Version | Change                                                        | Author |
 | ---------- | ------- | ------------------------------------------------------------- | ------ |
+| 2026-02-28 | 7.1.0   | Added Security section referencing SMARTOUT_SECURITY_PROTOCOL | Pontus |
 | 2026-02-28 | 7.0.0   | Major trim: moved details to reference files, <280 lines      | Claude |
 | 2026-02-28 | 6.1.0   | Pricing terms, workspace creation, ADR-0027                   | Claude |
 | 2026-02-28 | 6.0.0   | Docs restructuring, INDEX.md, reference files, YAML, ADR-0025 | Claude |
