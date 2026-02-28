@@ -318,13 +318,18 @@ className="bg-zinc-950 text-zinc-100 border-zinc-800"
 
 ### Dashboard Layout
 
-`apps/web/src/app/dashboard/layout.tsx` is a `"use client"` component with:
+**Split architecture (ADR-0021):**
+
+- `apps/web/src/app/dashboard/layout.tsx` — **Server Component**. Reads `x-workspace-slug` header, queries workspace by slug, verifies user profile, wraps in `WorkspaceProvider` + `DashboardShell`.
+- `apps/web/src/components/dashboard/DashboardShell.tsx` — **Client Component**. Contains all UI: sidebar, nav, context bar, admin/employee toggle. Gets workspace data via `useWorkspaceOptional()`.
+
+**Key patterns:**
 
 - `DashboardContext` providing: isAdminMode, isDark, adminView, scheduleLayout, scheduleView, activeLocation, workspaceData
-- Admin/Employee mode toggle
-- Sidebar navigation with sections: Management, Operations, Administration, Communication
-- Top context bar with workspace switcher, season indicator, voice assistant
-- Hardcoded mock data (workspace name, user name) — needs real data integration
+- `WorkspaceProvider` + `useWorkspace()` for workspace context (from `@/lib/workspace-context`)
+- Subdomain routing: `{slug}.smartout.ai` → middleware sets `x-workspace-slug` header → layout reads it
+- Portal: `app.smartout.ai` → workspace selector at `/select-workspace`
+- Dev fallback: `localhost:3050` works without subdomains (uses first profile's workspace)
 
 ### Existing Routes
 
@@ -353,6 +358,8 @@ className="bg-zinc-950 text-zinc-100 border-zinc-800"
 /dashboard/my-salary       → Employee: salary info
 /dashboard/settings        → Settings
 /dashboard/help            → Help center
+/select-workspace          → Workspace selector (portal: app.smartout.ai)
+/access-denied             → Access denied (invalid workspace or no profile)
 
 Platform Admin (super-admin only):
 /platform-admin            → Dashboard KPIs + metrics
@@ -448,27 +455,28 @@ Documentation:
 
 Env vars are validated at build/start using `@t3-oss/env-nextjs` + Zod in `apps/web/src/env.ts`.
 
-| Variable                        | Context | Required | Notes                                        |
-| ------------------------------- | ------- | -------- | -------------------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`      | Client  | Yes      | Local: `http://127.0.0.1:54331`              |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Client  | Yes      | From `npx supabase status`                   |
-| `NEXT_PUBLIC_POSTHOG_KEY`       | Client  | No       | PostHog project API key                      |
-| `NEXT_PUBLIC_POSTHOG_HOST`      | Client  | No       | Default: `https://eu.i.posthog.com`          |
-| `SUPABASE_SERVICE_ROLE_KEY`     | Server  | No       | For admin operations only                    |
-| `STRIPE_SECRET_KEY`             | Server  | No       | Must start with `sk_`                        |
-| `STRIPE_WEBHOOK_SECRET`         | Server  | No       | Must start with `whsec_`                     |
-| `SENDGRID_API_KEY`              | Server  | No       | Must start with `SG.`                        |
-| `TWILIO_ACCOUNT_SID`            | Server  | No       | Twilio account                               |
-| `TWILIO_AUTH_TOKEN`             | Server  | No       | Twilio auth                                  |
-| `JWT_SECRET`                    | Server  | No       | Min 32 chars                                 |
-| `SESSION_SECRET`                | Server  | No       | Min 32 chars                                 |
-| `UPSTASH_REDIS_REST_URL`        | Server  | No       | Rate limiting (production)                   |
-| `UPSTASH_REDIS_REST_TOKEN`      | Server  | No       | Rate limiting (production)                   |
-| `SENTRY_DSN`                    | Server  | No       | Sentry error tracking                        |
-| `DOCUSEAL_WEBHOOK_SECRET`       | Server  | No       | DocuSeal webhook signature secret            |
-| `CONTRACT_SERVICE_URL`          | Server  | No       | Contract microservice URL                    |
-| `CONTRACT_SERVICE_KEY`          | Server  | No       | Contract microservice API key (min 16 chars) |
-| `NEXT_PUBLIC_SENTRY_DSN`        | Client  | No       | Sentry client-side tracking                  |
+| Variable                        | Context | Required | Notes                                                                          |
+| ------------------------------- | ------- | -------- | ------------------------------------------------------------------------------ |
+| `NEXT_PUBLIC_SUPABASE_URL`      | Client  | Yes      | Local: `http://127.0.0.1:54331`                                                |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Client  | Yes      | From `npx supabase status`                                                     |
+| `NEXT_PUBLIC_POSTHOG_KEY`       | Client  | No       | PostHog project API key                                                        |
+| `NEXT_PUBLIC_POSTHOG_HOST`      | Client  | No       | Default: `https://eu.i.posthog.com`                                            |
+| `NEXT_PUBLIC_ROOT_DOMAIN`       | Client  | No       | Default: `localhost`. Set to `smartout.ai` in production for subdomain routing |
+| `SUPABASE_SERVICE_ROLE_KEY`     | Server  | No       | For admin operations only                                                      |
+| `STRIPE_SECRET_KEY`             | Server  | No       | Must start with `sk_`                                                          |
+| `STRIPE_WEBHOOK_SECRET`         | Server  | No       | Must start with `whsec_`                                                       |
+| `SENDGRID_API_KEY`              | Server  | No       | Must start with `SG.`                                                          |
+| `TWILIO_ACCOUNT_SID`            | Server  | No       | Twilio account                                                                 |
+| `TWILIO_AUTH_TOKEN`             | Server  | No       | Twilio auth                                                                    |
+| `JWT_SECRET`                    | Server  | No       | Min 32 chars                                                                   |
+| `SESSION_SECRET`                | Server  | No       | Min 32 chars                                                                   |
+| `UPSTASH_REDIS_REST_URL`        | Server  | No       | Rate limiting (production)                                                     |
+| `UPSTASH_REDIS_REST_TOKEN`      | Server  | No       | Rate limiting (production)                                                     |
+| `SENTRY_DSN`                    | Server  | No       | Sentry error tracking                                                          |
+| `DOCUSEAL_WEBHOOK_SECRET`       | Server  | No       | DocuSeal webhook signature secret                                              |
+| `CONTRACT_SERVICE_URL`          | Server  | No       | Contract microservice URL                                                      |
+| `CONTRACT_SERVICE_KEY`          | Server  | No       | Contract microservice API key (min 16 chars)                                   |
+| `NEXT_PUBLIC_SENTRY_DSN`        | Client  | No       | Sentry client-side tracking                                                    |
 
 ### 1Password Integration
 
