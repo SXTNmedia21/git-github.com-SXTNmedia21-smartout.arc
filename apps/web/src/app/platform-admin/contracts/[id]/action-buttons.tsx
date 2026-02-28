@@ -88,10 +88,6 @@ export function ContractActionButtons({ contractId, status }: Props) {
             <Clock className="mr-2 h-4 w-4" />
             Forleng frist
           </Button>
-          <Button variant="outline" size="sm" onClick={handleSend} disabled={sending}>
-            <Send className="mr-2 h-4 w-4" />
-            {sending ? "Sender..." : "Send pa nytt"}
-          </Button>
         </>
       )}
 

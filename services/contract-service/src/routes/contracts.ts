@@ -133,13 +133,47 @@ export async function contractRoutes(app: FastifyInstance) {
     }
 
     try {
+      // Resolve placeholders if still unresolved (e.g. contract created by Next.js route
+      // which stores raw template HTML without running resolvePlaceholders)
+      let contractHtml = contract.resolved_html ?? "";
+      const template = contract.template as {
+        content_html: string | null;
+        placeholders: Array<{
+          key: string;
+          label: string;
+          source: string;
+          default_value?: string;
+          required: boolean;
+        }> | null;
+      } | null;
+
+      if (contractHtml.includes("{{") && template?.placeholders?.length && contract.workspace_id) {
+        const { resolved_html, resolved_values } = await resolvePlaceholders(
+          template.content_html ?? contractHtml,
+          template.placeholders,
+          contract.workspace_id,
+          {
+            contract_number: contract.contract_number ?? "",
+            recipient_name: contract.recipient_name ?? "",
+            recipient_email: contract.recipient_email ?? "",
+          },
+        );
+        contractHtml = resolved_html;
+
+        // Persist the resolved HTML so it doesn't need re-resolving
+        await supabase
+          .from("contract")
+          .update({ resolved_html: contractHtml, resolved_values })
+          .eq("contract_id", id);
+      }
+
       // Build full HTML
       const fullHtml = `<!DOCTYPE html>
 <html lang="no">
 <head><meta charset="UTF-8"><style>
 body { font-family: Inter, sans-serif; padding: 40px; }
 </style></head>
-<body>${contract.resolved_html}</body>
+<body>${contractHtml}</body>
 </html>`;
 
       // Create DocuSeal template from resolved HTML
@@ -171,7 +205,7 @@ body { font-family: Inter, sans-serif; padding: 40px; }
 
       const docusealEmbedUrl = clientSubmitter?.embed_src ?? clientSubmitter?.slug ?? null;
       // Generate a short token for the /sign/:token URL path
-      const signingToken = randomUUID().replace(/-/g, "").slice(0, 12);
+      const signingToken = randomUUID().replace(/-/g, "").slice(0, 24);
 
       const sentAt = new Date();
 

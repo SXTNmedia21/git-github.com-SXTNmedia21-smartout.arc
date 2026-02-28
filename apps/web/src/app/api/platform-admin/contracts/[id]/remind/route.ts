@@ -28,19 +28,19 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     );
   }
 
-  // Log a manual reminder event
+  // Log a manual reminder request (no email delivery yet — placeholder for future integration)
   await admin.from("contract_event").insert({
     contract_id: id,
     workspace_id: contract.workspace_id,
-    event_type: "reminder_sent",
+    event_type: "reminder_requested",
     actor_type: "user",
     actor_id: adminId,
     details: { type: "manual_reminder", recipient: contract.recipient_email } as unknown as Json,
   });
 
-  await logPlatformAction(adminId, "send_contract_reminder", "contract", id, {
+  await logPlatformAction(adminId, "request_contract_reminder", "contract", id, {
     recipient_email: contract.recipient_email,
   });
 
-  return NextResponse.json({ data: { contract_id: id, reminder: "logged" } });
+  return NextResponse.json({ data: { contract_id: id, reminder: "requested" } });
 }
