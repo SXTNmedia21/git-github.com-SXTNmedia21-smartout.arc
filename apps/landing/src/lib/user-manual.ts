@@ -93,7 +93,16 @@ export function getUserManualDocs(): UserManualDoc[] {
     })
     .sort((a, b) => a.order - b.order);
 
-  return docs;
+  // Deduplicate by slug — keep the first (lowest order) when multiple files
+  // produce the same slug (e.g. Norwegian 03-vaktplan.md + Swedish 02-vaktplan.md)
+  const seen = new Set<string>();
+  const unique = docs.filter((doc) => {
+    if (seen.has(doc.slug)) return false;
+    seen.add(doc.slug);
+    return true;
+  });
+
+  return unique;
 }
 
 export function getUserManualDocBySlug(slug: string) {
