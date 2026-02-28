@@ -270,7 +270,7 @@ export default function KommunikasjonPage() {
   };
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-[#050505] p-4 pt-24 text-zinc-100 selection:bg-cyan-500/30 sm:p-6 md:p-8 md:pt-28">
+    <div className="flex min-h-screen flex-col overflow-x-hidden bg-[#050505] p-4 pt-24 pb-12 text-zinc-100 selection:bg-cyan-500/30 sm:p-6 md:h-screen md:overflow-hidden md:p-8 md:pt-28 md:pb-8">
       <Navigation />
 
       <button
@@ -282,15 +282,15 @@ export default function KommunikasjonPage() {
       </button>
 
       <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col">
-        <div className="mb-5 flex shrink-0 items-center gap-4">
-          <div className="h-16 w-16 rounded-2xl bg-gradient-to-tr from-cyan-400 to-sky-500 p-[1px] shadow-[0_0_30px_-5px_rgba(34,211,238,0.4)]">
+        <div className="mb-5 flex shrink-0 items-start gap-4">
+          <div className="hidden h-16 w-16 shrink-0 rounded-2xl bg-gradient-to-tr from-cyan-400 to-sky-500 p-[1px] shadow-[0_0_30px_-5px_rgba(34,211,238,0.4)] sm:block">
             <div className="flex h-full w-full items-center justify-center rounded-2xl bg-[#111]">
               <MessageSquare className="h-8 w-8 text-white drop-shadow-md" />
             </div>
           </div>
           <div>
             <h1 className="text-3xl font-black text-white sm:text-4xl">Sømløs Kommunikasjon</h1>
-            <p className="text-lg text-zinc-400">
+            <p className="text-sm text-zinc-400 sm:text-lg">
               Direkte chat og talekontroll for umiddelbar respons
             </p>
           </div>
@@ -299,7 +299,7 @@ export default function KommunikasjonPage() {
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#0a0a0c]/80 shadow-[0_0_50px_-15px_rgba(34,211,238,0.2)] backdrop-blur-3xl"
+          className="relative flex h-[70vh] flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#0a0a0c]/80 shadow-[0_0_50px_-15px_rgba(34,211,238,0.2)] backdrop-blur-3xl md:min-h-0 md:flex-1"
         >
           <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-cyan-400 to-sky-500"></div>
           <div className="pointer-events-none absolute top-0 left-0 h-[20%] w-[50%] bg-cyan-500/10 blur-[100px]"></div>

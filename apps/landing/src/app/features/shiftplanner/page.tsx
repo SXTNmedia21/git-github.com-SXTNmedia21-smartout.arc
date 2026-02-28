@@ -31,7 +31,7 @@ export default function VaktlisteLonnPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#050505] p-4 pt-24 text-zinc-100 selection:bg-orange-500/30 sm:p-6 md:p-12 md:pt-28">
+    <div className="min-h-screen overflow-x-hidden bg-[#050505] p-4 pt-24 pb-12 text-zinc-100 selection:bg-orange-500/30 sm:p-6 md:p-12 md:pt-28">
       <Navigation />
 
       <button
@@ -42,7 +42,7 @@ export default function VaktlisteLonnPage() {
         Tilbake til forside
       </button>
 
-      <div className="mx-auto flex h-[85vh] min-h-[850px] max-w-[1500px] flex-col">
+      <div className="mx-auto flex max-w-[1500px] flex-col md:h-[85vh] md:min-h-[850px]">
         {/* Toggle controls to show off the different views on the landing page */}
         <div className="mb-8 flex shrink-0 flex-col items-start justify-between gap-6 md:flex-row md:items-center">
           <div>
@@ -55,7 +55,7 @@ export default function VaktlisteLonnPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="hidden items-center gap-3 md:flex">
             <div className="flex rounded-xl border border-white/10 bg-[#0a0a0c] p-1 shadow-inner">
               <button
                 onClick={() => setScheduleLayout("daily")}
@@ -110,42 +110,110 @@ export default function VaktlisteLonnPage() {
               </p>
             </div>
 
-            <div className="group relative flex w-full items-center gap-4 overflow-hidden rounded-3xl border border-white/10 bg-[#050505] p-5 pl-4 shadow-[0_0_40px_-5px_rgba(249,115,22,0.15)] xl:w-auto">
+            <div className="group relative flex w-full items-center gap-3 overflow-hidden rounded-2xl border border-white/10 bg-[#050505] p-3 shadow-[0_0_40px_-5px_rgba(249,115,22,0.15)] sm:gap-4 sm:rounded-3xl sm:p-5 sm:pl-4 xl:w-auto">
               <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100"></div>
 
-              <div className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-rose-500 p-[2px] shadow-[0_0_20px_rgba(249,115,22,0.4)]">
+              <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-rose-500 p-[2px] shadow-[0_0_20px_rgba(249,115,22,0.4)] sm:h-16 sm:w-16">
                 <div className="flex h-full w-full items-center justify-center rounded-full bg-[#050505]">
-                  <Bot className="h-7 w-7 text-orange-500 transition-transform duration-300 group-hover:scale-110" />
+                  <Bot className="h-5 w-5 text-orange-500 transition-transform duration-300 group-hover:scale-110 sm:h-7 sm:w-7" />
                 </div>
-                <span className="absolute -right-0.5 -bottom-0.5 flex h-4 w-4">
+                <span className="absolute -right-0.5 -bottom-0.5 flex h-3.5 w-3.5 sm:h-4 sm:w-4">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
-                  <span className="relative inline-flex h-4 w-4 rounded-full border-2 border-zinc-950 bg-green-500"></span>
+                  <span className="relative inline-flex h-3.5 w-3.5 rounded-full border-2 border-zinc-950 bg-green-500 sm:h-4 sm:w-4"></span>
                 </span>
               </div>
 
-              <div className="flex-1 pl-2 xl:pr-12">
-                <div className="mb-1 flex items-center gap-2">
-                  <h3 className="text-lg leading-none font-bold text-white">Lise Botsson</h3>
-                  <span className="rounded-md border border-orange-500/30 bg-orange-500/20 px-2 py-0.5 text-[9px] font-black tracking-widest text-orange-400 uppercase">
+              <div className="min-w-0 flex-1 pl-1 sm:pl-2 xl:pr-12">
+                <div className="mb-0.5 flex items-center gap-2 sm:mb-1">
+                  <h3 className="truncate text-base leading-none font-bold text-white sm:text-lg">
+                    Lise Botsson
+                  </h3>
+                  <span className="hidden shrink-0 rounded-md border border-orange-500/30 bg-orange-500/20 px-2 py-0.5 text-[9px] font-black tracking-widest text-orange-400 uppercase sm:inline-block">
                     AI Agent
                   </span>
                 </div>
-                <p className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-zinc-500">
-                  <span className="h-1.5 w-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
+                <p className="mt-1 flex items-center gap-1.5 text-[11px] font-medium text-zinc-500 sm:mt-1.5 sm:text-xs">
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
                   Klar til å hjelpe deg
                 </p>
               </div>
 
               <div className="shrink-0">
-                <button className="group/btn flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500 to-rose-600 text-white shadow-lg shadow-orange-500/20 transition-all hover:scale-110 hover:from-orange-400 hover:to-rose-500 active:scale-95">
-                  <Mic className="h-6 w-6 transition-transform group-hover/btn:scale-95" />
+                <button className="group/btn flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-rose-600 text-white shadow-lg shadow-orange-500/20 transition-all hover:scale-110 hover:from-orange-400 hover:to-rose-500 active:scale-95 sm:h-14 sm:w-14 sm:rounded-2xl">
+                  <Mic className="h-5 w-5 transition-transform group-hover/btn:scale-95 sm:h-6 sm:w-6" />
                 </button>
               </div>
             </div>
           </div>
 
-          {/* MAIN CONTENT AREA */}
-          <div className="relative z-10 flex w-full flex-1 overflow-hidden bg-[#030303]/50">
+          {/* MOBILE SHIFT PREVIEW */}
+          <div className="relative z-10 space-y-3 p-4 md:hidden">
+            <h3 className="mb-4 text-xs font-black tracking-widest text-zinc-500 uppercase">
+              Dagens Vakter — Torsdag 27. feb
+            </h3>
+            {[
+              {
+                name: "Maria S.",
+                dept: "Kjøkken",
+                time: "07:00–15:00",
+                color: "from-orange-500 to-rose-500",
+              },
+              {
+                name: "Lars K.",
+                dept: "Sal",
+                time: "10:00–18:00",
+                color: "from-cyan-500 to-blue-500",
+              },
+              {
+                name: "Sofia A.",
+                dept: "Bar",
+                time: "16:00–00:00",
+                color: "from-purple-500 to-indigo-500",
+              },
+              {
+                name: "Peder N.",
+                dept: "Kjøkken",
+                time: "15:00–23:00",
+                color: "from-orange-500 to-rose-500",
+              },
+              {
+                name: "Nina H.",
+                dept: "Sal",
+                time: "17:00–01:00",
+                color: "from-cyan-500 to-blue-500",
+              },
+            ].map((shift, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-4 rounded-2xl border border-white/5 bg-[#0a0a0c]/80 p-4"
+              >
+                <div
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${shift.color} text-sm font-bold text-white`}
+                >
+                  {shift.name.charAt(0)}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-white">{shift.name}</span>
+                    <span className="text-sm font-medium text-zinc-400">{shift.time}</span>
+                  </div>
+                  <span className="text-xs text-zinc-500">{shift.dept}</span>
+                </div>
+              </div>
+            ))}
+            <div className="mt-4 flex items-center gap-3 rounded-2xl border border-dashed border-orange-500/20 bg-orange-500/5 p-4">
+              <Plus className="h-5 w-5 text-orange-400" />
+              <div>
+                <span className="text-sm font-bold text-orange-400">2 åpne vakter</span>
+                <p className="text-xs text-zinc-500">
+                  Ekstra Servitør 17:00–23:00 · Vaskevakt 22:00–02:00
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* DESKTOP GRID */}
+          <div className="relative z-10 hidden w-full flex-1 overflow-hidden bg-[#030303]/50 md:flex">
             {/* LEFT CONTEXT SIDEBAR */}
             <aside
               className={`z-20 hidden shrink-0 flex-col border-r border-white/5 bg-[#0a0a0c]/40 backdrop-blur-md transition-all duration-300 ease-in-out lg:flex ${isSidebarOpen ? "w-64 opacity-100 xl:w-72" : "w-0 overflow-hidden border-none opacity-0"}`}

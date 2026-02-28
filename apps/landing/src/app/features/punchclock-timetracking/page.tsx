@@ -222,10 +222,10 @@ export default function TimeforingPage() {
                         <span>Ut {log.out}</span>
                       </div>
                     </div>
-                    <div className="flex flex-col items-end text-sm">
+                    <div className="flex shrink-0 flex-col items-end text-sm">
                       <span className="mb-1 font-bold text-white">{log.hours}</span>
                       <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${log.status === "Godkjent" ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400"}`}
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap ${log.status === "Godkjent" ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400"}`}
                       >
                         {log.status === "Godkjent" ? (
                           <CheckCircle2 className="mr-1 inline h-3 w-3" />

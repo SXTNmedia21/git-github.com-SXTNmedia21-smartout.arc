@@ -432,16 +432,25 @@ export default function SmartoutLandingPage() {
 
             <motion.div
               variants={itemVariants}
-              className="mt-12 flex items-center gap-6 text-zinc-500"
+              className="mt-10 grid grid-cols-3 gap-3 sm:mt-12 sm:flex sm:items-center sm:gap-6"
             >
-              <div className="flex items-center gap-2 text-sm font-semibold">
-                <Clock className="h-4 w-4 text-zinc-400" /> Tidsbesparelse
+              <div className="flex flex-col items-center gap-1.5 rounded-2xl border border-white/5 bg-white/[0.02] px-3 py-3 sm:flex-row sm:gap-2 sm:border-0 sm:bg-transparent sm:p-0">
+                <Clock className="h-4 w-4 text-zinc-400" />
+                <span className="text-center text-[11px] font-semibold text-zinc-500 sm:text-sm">
+                  Tidsbesparelse
+                </span>
               </div>
-              <div className="flex items-center gap-2 text-sm font-semibold">
-                <ShieldCheck className="h-4 w-4 text-zinc-400" /> 100% Compliance
+              <div className="flex flex-col items-center gap-1.5 rounded-2xl border border-white/5 bg-white/[0.02] px-3 py-3 sm:flex-row sm:gap-2 sm:border-0 sm:bg-transparent sm:p-0">
+                <ShieldCheck className="h-4 w-4 text-zinc-400" />
+                <span className="text-center text-[11px] font-semibold text-zinc-500 sm:text-sm">
+                  100% Compliance
+                </span>
               </div>
-              <div className="flex items-center gap-2 text-sm font-semibold">
-                <Users className="h-4 w-4 text-zinc-400" /> Høy Retensjon
+              <div className="flex flex-col items-center gap-1.5 rounded-2xl border border-white/5 bg-white/[0.02] px-3 py-3 sm:flex-row sm:gap-2 sm:border-0 sm:bg-transparent sm:p-0">
+                <Users className="h-4 w-4 text-zinc-400" />
+                <span className="text-center text-[11px] font-semibold text-zinc-500 sm:text-sm">
+                  Høy Retensjon
+                </span>
               </div>
             </motion.div>
           </motion.div>
@@ -532,7 +541,7 @@ export default function SmartoutLandingPage() {
           </motion.div>
 
           {/* Interactive Tabs */}
-          <div className="hide-scrollbar mb-12 flex justify-center gap-4 overflow-x-auto pb-4">
+          <div className="mb-12 flex justify-center gap-1.5 px-2 sm:gap-3 sm:px-4">
             {[
               { id: "locations", label: "Lokasjoner", icon: MapPin },
               { id: "procedures", label: "Prosedyrer", icon: ClipboardList },
@@ -544,16 +553,16 @@ export default function SmartoutLandingPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`group relative flex items-center gap-2 overflow-hidden rounded-[32px] px-8 py-4 text-base font-black transition-all duration-500 ${
-                    isActive ? "text-white" : "text-zinc-500 hover:text-white"
+                  className={`group relative flex items-center gap-1.5 rounded-full px-3 py-2.5 text-xs font-bold transition-all duration-300 sm:gap-2 sm:px-6 sm:py-4 sm:text-base sm:font-black ${
+                    isActive
+                      ? "border border-orange-500/30 bg-orange-500/10 text-white"
+                      : "border border-white/5 bg-white/5 text-zinc-500 hover:border-white/10 hover:text-white"
                   }`}
                 >
-                  {isActive && (
-                    <div className="absolute inset-0 rounded-[32px] bg-gradient-to-r from-orange-600/20 to-rose-600/20" />
-                  )}
-                  <div className="absolute inset-0 rounded-[32px] bg-white/5 opacity-0 transition-opacity group-hover:opacity-100" />
-                  <Icon className={`relative z-10 h-5 w-5 ${isActive ? "text-orange-500" : ""}`} />
-                  <span className="relative z-10">{tab.label}</span>
+                  <Icon
+                    className={`h-3.5 w-3.5 sm:h-5 sm:w-5 ${isActive ? "text-orange-400" : ""}`}
+                  />
+                  <span>{tab.label}</span>
                 </button>
               );
             })}
@@ -909,10 +918,10 @@ export default function SmartoutLandingPage() {
                   <div className="group relative">
                     <div className="absolute -inset-2 rounded-[32px] bg-gradient-to-r from-blue-500/20 to-purple-500/20 opacity-50 blur-xl transition duration-1000 group-hover:opacity-100 group-hover:duration-200"></div>
                     <div className="relative flex items-center gap-4 rounded-[32px] border border-white/10 bg-[#0a0a0c]/60 p-3 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] backdrop-blur-3xl">
-                      <div className="flex h-14 flex-1 items-center rounded-2xl bg-white/5 px-6 font-mono text-sm text-zinc-300 sm:text-base">
+                      <div className="flex h-14 flex-1 items-center truncate rounded-2xl bg-white/5 px-4 font-mono text-xs text-zinc-300 sm:px-6 sm:text-base">
                         https://din-restaurant.no
                       </div>
-                      <div className="flex h-14 cursor-pointer items-center justify-center rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-8 font-black text-white transition-all hover:shadow-[0_0_30px_-5px_rgba(79,70,229,0.5)]">
+                      <div className="flex h-14 shrink-0 cursor-pointer items-center justify-center rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 font-black text-white transition-all hover:shadow-[0_0_30px_-5px_rgba(79,70,229,0.5)] sm:px-8">
                         Generer
                       </div>
                     </div>
@@ -1042,7 +1051,7 @@ export default function SmartoutLandingPage() {
                   className="relative mx-auto flex w-full items-center justify-center gap-3 rounded-full bg-white px-8 py-4 text-sm font-black text-zinc-950 shadow-[0_0_40px_rgba(255,255,255,0.2)] transition-all group-hover:-translate-y-1 group-hover:shadow-[0_0_60px_rgba(255,255,255,0.4)] sm:w-auto sm:px-12 sm:py-5 sm:text-lg"
                 >
                   <Globe className="h-5 w-5 text-orange-600 drop-shadow-sm" />
-                  Opprett Workspace nå
+                  Kom i gang
                 </motion.button>
               </Link>
             </motion.div>

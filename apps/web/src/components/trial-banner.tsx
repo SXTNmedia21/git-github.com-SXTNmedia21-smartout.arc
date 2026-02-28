@@ -15,9 +15,10 @@ export function TrialBanner({ trialEndsAt, contractStatus }: TrialBannerProps) {
   if (dismissed) return null;
   if (contractStatus !== "pending_contract" && contractStatus !== "trial") return null;
 
+  const now = new Date();
   const daysRemaining = Math.max(
     0,
-    Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
+    Math.ceil((new Date(trialEndsAt).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
   );
 
   return (

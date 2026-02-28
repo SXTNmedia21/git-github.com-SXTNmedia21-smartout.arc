@@ -50,7 +50,7 @@ Smartout needs a contract system that handles B2B client contracts (Smartout <->
 
 ### Database Naming
 
-1. **Rename platform*contract*_ to contract\__** — Clean names, single migration
+1. **Rename platform*contract*\_ to contract\_\_** — Clean names, single migration
 2. **Keep platform*contract*\* prefix** — Maintain existing naming convention
 
 ## Decision Outcome
@@ -102,7 +102,7 @@ Chosen: **Embedded via `@docuseal/react`**, because:
 - DocuSeal's React component handles signature capture, field validation, and submission
 - Signing events are captured via webhooks for audit trail
 
-### Table rename strategy (platform*contract*_ to contract\__)
+### Table rename strategy (platform*contract*\_ to contract\_\_)
 
 Chosen: **Rename to clean names**, because:
 
