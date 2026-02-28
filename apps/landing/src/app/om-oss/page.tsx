@@ -5,6 +5,7 @@ import { ArrowLeft, Users, Target, Heart, ShieldCheck, Zap } from "lucide-react"
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Navigation from "../../components/navigation";
+import Footer from "../../components/footer";
 import { WEB_APP_LINKS } from "../../lib/web-app-url";
 
 export default function OmOssPage() {
@@ -151,17 +152,7 @@ export default function OmOssPage() {
           </div>
         </motion.div>
       </div>
-      {/* FOOTER */}
-      <footer className="relative z-10 mt-auto w-full border-t border-zinc-900 bg-zinc-950 py-12">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-6 md:flex-row">
-          <div className="flex items-center gap-2 opacity-50">
-            <span className="text-lg font-black tracking-tighter text-zinc-400">SmartOut</span>
-          </div>
-          <p className="text-sm font-semibold text-zinc-600">
-            &copy; 2026 SmartOut AS. Helt bygget for fremtiden.
-          </p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

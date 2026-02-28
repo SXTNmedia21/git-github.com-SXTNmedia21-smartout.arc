@@ -29,6 +29,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import Navigation from "../components/navigation";
+import Footer from "../components/footer";
 import { WEB_APP_LINKS } from "../lib/web-app-url";
 
 const VoiceAssistant = dynamic(() => import("../components/voice-assistant"), {
@@ -1049,18 +1050,7 @@ export default function SmartoutLandingPage() {
         </section>
       </main>
 
-      {/* FOOTER */}
-      <footer className="relative z-10 border-t border-zinc-900 bg-zinc-950 py-12">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-6 md:flex-row">
-          <div className="flex items-center gap-2 opacity-50">
-            <Building2 className="h-5 w-5 text-zinc-400" />
-            <span className="text-lg font-black tracking-tighter text-zinc-400">SmartOut</span>
-          </div>
-          <p className="text-sm font-semibold text-zinc-600">
-            &copy; 2026 SmartOut AS. Helt bygget for fremtiden.
-          </p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
