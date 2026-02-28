@@ -1,0 +1,1272 @@
+# Smartout Cross-Cutting Concern: Contract System
+
+> **Type:** Cross-Cutting Concern (#22 in platform index)  
+> **Status:** Implementation-Ready Specification  
+> **Date:** February 28, 2026  
+> **Author:** Pontus Johansson / Claude  
+> **Replaces:** Section 22 "Contracts & Employment Agreements" in SMARTOUT_COMPLETE_DOCUMENTATION.md  
+> **First Deliverable:** B2B Client Contract (Smartout ↔ Restaurant)  
+> **Future Scope:** Employee contracts (Arbeidsmiljøloven §14-5/14-6), HACCP sign-offs, training acknowledgments, season agreements
+>
+> **Why cross-cutting:** The contract system is shared infrastructure consumed by multiple modules from different perspectives — onboarding (client contracts), HR (employee contracts), HACCP (acknowledgments), training (certifications). It is governed by multiple regulatory domains: Avtaleloven, GDPR/Personopplysningsloven, Arbeidsmiljøloven. No single module owns it; all depend on it.
+>
+> **Modules that consume this system:**
+> | Module | Use Case |
+> |--------|----------|
+> | Module 1: Onboarding | Client B2B contract during workspace setup |
+> | Module 5: HACCP | Food safety acknowledgment sign-offs |
+> | Module 6: Training | Training completion certifications |
+> | Module 11: Settings | Template creator UI, contract admin dashboard |
+> | Module 12: AI | Mr. Botsson contract assistant agent |
+> | Future HR Module | Employee contracts (§14-5/14-6 compliance) |, NDAs
+
+---
+
+## Table of Contents
+
+1. Overview & Decisions
+2. System Architecture
+3. Data Model
+4. Contract Microservice
+5. AI Contract Template Creator
+6. Client Contract Journeys
+7. Workspace State Machine
+8. Reminder & Escalation Sequences
+9. Notification Infrastructure Requirements
+10. DocuSeal SDK Integration
+11. Client Contract Template Specification
+12. _(removed — merged into 11)_
+13. Legal & Regulatory Compliance
+14. Security
+15. Implementation Order
+16. Edge Cases
+17. Open Questions Resolved
+
+---
+
+## 1. Overview & Decisions
+
+### 1.1 What This System Does
+
+The Contract System is **shared signing infrastructure** consumed by multiple modules. It is NOT a standalone module in the user navigation — it surfaces inside onboarding flows, admin settings, HR workflows, and compliance processes. It consists of three parts:
+
+1. **Contract Microservice** — Standalone Docker service abstracting DocuSeal. Handles template sync, submission creation, webhook processing, PDF storage, and the signing lifecycle. Every other part of Smartout talks to this service, never directly to DocuSeal.
+
+2. **AI Contract Template Creator** — Next.js page with Tiptap editor + Vercel AI SDK agent. Admins build and customize contract templates conversationally with AI assistance. Produces HTML that the microservice pushes to DocuSeal.
+
+3. **Contract Journeys & Workspace Integration** — The flows for sending, signing, and managing contracts, plus the workspace state machine that gates access based on contract status.
+
+### 1.2 Key Decisions Made
+
+| Decision                        | Choice                                                                | Rationale                                                                                                                          |
+| ------------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Build vs. buy signing infra     | **Use DocuSeal**                                                      | Competitive advantage is the AI experience, not PDF plumbing. Microservice abstraction protects against vendor lock-in.            |
+| DocuSeal Cloud vs. self-hosted  | **Cloud first** ($0.20/doc)                                           | Zero ops burden. Self-host when volume justifies it.                                                                               |
+| Edge Functions vs. microservice | **Standalone microservice**                                           | Reusable across 6+ use cases (client, employee, HACCP, training, season, NDA). Own scaling. Background jobs. Worth 2-3 days extra. |
+| Microservice framework          | **Fastify + TypeScript**                                              | Lightweight, schema validation built-in, matches stack.                                                                            |
+| Microservice hosting            | **Fly.io or Railway**                                                 | Simple Docker deploys, auto-scaling, affordable.                                                                                   |
+| Editor for template builder     | **Tiptap** (ProseMirror-based)                                        | Headless (own UI), schema-aware (AI can't break structure), extension-based, AI toolkit available, HTML output maps to DocuSeal.   |
+| AI SDK                          | **Vercel AI SDK 6 Agent class**                                       | ToolLoopAgent handles multi-step tool execution. Type-safe. Streaming. Works with Anthropic.                                       |
+| Template storage                | **Supabase** (not DocuSeal)                                           | Templates are Smartout data. DocuSeal gets a synced copy.                                                                          |
+| Contract content format         | **HTML**                                                              | DocuSeal `POST /templates/html` is the most code-friendly creation method. Tiptap outputs HTML natively.                           |
+| Signing experience              | **Embedded in Smartout**                                              | `@docuseal/react` `DocusealForm` component embedded in smartout.io/sign/[token]. Full brand control.                               |
+| DocuSeal SDK                    | **`@docuseal/api`** (microservice) + **`@docuseal/react`** (frontend) | Official TypeScript SDK with built-in types. v1.0.21 (API), v1.0.71 (React).                                                       |
+| Contract design philosophy      | **Pop-in colors, section summaries, visual hierarchy**                | Not traditional legal walls of text. Enjoyable to read and sign.                                                                   |
+| Language support V1             | **Norwegian + English**                                               | Swedish and Danish deferred.                                                                                                       |
+| Trial period                    | **14 days**                                                           | Industry standard for SaaS.                                                                                                        |
+| Signing deadline                | **14 days**                                                           | For sales-assisted contracts.                                                                                                      |
+| Grace period                    | **14 days** after trial expires                                       | Read-only access, then deactivation.                                                                                               |
+
+---
+
+## 2. System Architecture
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│                        SMARTOUT PLATFORM                            │
+│                                                                     │
+│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐  │
+│  │   Web App         │  │  AI Template     │  │  Admin Dashboard  │  │
+│  │   (Next.js)       │  │  Creator         │  │  (Next.js)       │  │
+│  │                   │  │  (Tiptap +       │  │                   │  │
+│  │  - Registration   │  │   AI SDK Agent)  │  │  - Contract list  │  │
+│  │  - Signing page   │  │                   │  │  - Send contract  │  │
+│  │  - Trial banners  │  │  - Edit template  │  │  - Track status   │  │
+│  │  - Workspace UI   │  │  - AI chat panel  │  │  - Reminders      │  │
+│  └────────┬─────────┘  └────────┬─────────┘  └────────┬─────────┘  │
+│           │                      │                      │            │
+│           └──────────────────────┼──────────────────────┘            │
+│                                  │                                   │
+│           ┌──────────────────────▼──────────────────────┐           │
+│           │           CONTRACT MICROSERVICE               │           │
+│           │           (Docker — Fastify + TS)             │           │
+│           │                                               │           │
+│           │  Templates API    Contracts API    Webhooks   │           │
+│           │  /templates/*     /contracts/*     /webhooks  │           │
+│           └──────┬────────────────────┬──────────────────┘           │
+│                  │                    │                               │
+│        ┌─────────▼──────────┐  ┌─────▼───────────────┐              │
+│        │   Supabase          │  │   DocuSeal Cloud    │              │
+│        │   - PostgreSQL      │  │   - Template sync   │              │
+│        │   - Auth            │  │   - Signing UX      │              │
+│        │   - Storage (PDFs)  │  │   - Audit trails    │              │
+│        │   - Realtime        │  │   - PDF generation  │              │
+│        └─────────────────────┘  └─────────────────────┘              │
+│                                                                     │
+│        ┌────────────────────────────────────────────────┐           │
+│        │   Notification Service (future — prerequisite)  │           │
+│        │   Email (Resend) · SMS (Twilio) · Push · In-app │           │
+│        └────────────────────────────────────────────────┘           │
+└────────────────────────────────────────────────────────────────────┘
+```
+
+### 2.1 npm Dependencies
+
+**Microservice (`packages/contract-service`):**
+
+```
+@docuseal/api          — DocuSeal REST client (v1.0.21)
+jsonwebtoken           — JWT generation for embedded builder
+fastify                — HTTP framework
+@supabase/supabase-js  — Supabase client (service role)
+zod                    — Schema validation
+```
+
+**Web App (`apps/web`):**
+
+```
+@docuseal/react        — Embedded signing form + builder (v1.0.71)
+@tiptap/core           — Editor core
+@tiptap/react          — React bindings
+@tiptap/starter-kit    — Basic extensions
+ai                     — Vercel AI SDK
+@ai-sdk/anthropic      — Anthropic provider
+```
+
+---
+
+## 3. Data Model
+
+All tables in shared Supabase PostgreSQL. `workspace_id` on every row. RLS enforced.
+
+### 3.1 contract_template
+
+Stores the template definition. DocuSeal gets a synced copy via the microservice.
+
+```sql
+CREATE TABLE contract_template (
+  id                    uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id          uuid REFERENCES workspace(id),  -- NULL = Smartout system template
+
+  -- Identity
+  name                  text NOT NULL,
+  description           text,
+  contract_type         text NOT NULL,  -- 'client' | 'employee' | 'haccp' | 'training' | 'season' | 'custom'
+  language              text NOT NULL DEFAULT 'no',
+
+  -- Content
+  content_html          text NOT NULL,
+  content_css           text,
+  header_html           text,
+  footer_html           text,
+  watermark_url         text,
+  accent_color          text DEFAULT '#FF6B35',
+
+  -- Placeholders (JSON array defining all merge fields)
+  placeholders          jsonb NOT NULL DEFAULT '[]',
+
+  -- DocuSeal sync
+  docuseal_template_id  integer,
+  last_synced_at        timestamptz,
+
+  -- Metadata
+  version               integer DEFAULT 1,
+  is_system             boolean DEFAULT false,
+  is_active             boolean DEFAULT true,
+  created_by            uuid REFERENCES auth.users(id),
+  created_at            timestamptz DEFAULT now(),
+  updated_at            timestamptz DEFAULT now()
+);
+```
+
+### 3.2 contract
+
+An instance of a template sent for signing.
+
+```sql
+CREATE TABLE contract (
+  id                        uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id              uuid NOT NULL REFERENCES workspace(id),
+  template_id               uuid REFERENCES contract_template(id),
+
+  -- Identity
+  contract_type             text NOT NULL,
+  contract_number           text,  -- KONTRAKT-2026-001
+  title                     text NOT NULL,
+
+  -- Content (resolved — placeholders filled)
+  resolved_html             text NOT NULL,
+  resolved_values           jsonb NOT NULL DEFAULT '{}',
+
+  -- Parties
+  sender_name               text NOT NULL,
+  sender_email              text NOT NULL,
+  recipient_name            text NOT NULL,
+  recipient_email           text NOT NULL,
+
+  -- Lifecycle
+  status                    text NOT NULL DEFAULT 'draft',
+  -- draft | sent | viewed | signed | active | declined | expired | cancelled | terminated | voided
+
+  sent_at                   timestamptz,
+  viewed_at                 timestamptz,
+  signed_at                 timestamptz,
+  expires_at                timestamptz,
+  declined_at               timestamptz,
+  decline_reason            text,
+
+  -- DocuSeal
+  docuseal_submission_id    integer,
+  docuseal_submitter_id     integer,
+  signing_url               text,
+
+  -- Signed document
+  signed_pdf_url            text,
+  audit_log_url             text,
+
+  -- Journey context
+  journey_type              text,  -- 'self_service' | 'sales_assisted'
+  auto_create_workspace     boolean DEFAULT false,  -- Journey B1: create workspace on signing
+
+  -- Metadata
+  metadata                  jsonb DEFAULT '{}',
+  created_by                uuid REFERENCES auth.users(id),
+  created_at                timestamptz DEFAULT now(),
+  updated_at                timestamptz DEFAULT now()
+);
+
+CREATE INDEX idx_contract_workspace ON contract(workspace_id);
+CREATE INDEX idx_contract_status ON contract(workspace_id, status);
+CREATE INDEX idx_contract_recipient ON contract(recipient_email);
+```
+
+### 3.3 contract_event
+
+Immutable audit trail for every contract action.
+
+```sql
+CREATE TABLE contract_event (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  contract_id     uuid NOT NULL REFERENCES contract(id),
+  workspace_id    uuid NOT NULL,
+  event_type      text NOT NULL,
+  -- created | sent | viewed | started | signed | declined | expired |
+  -- cancelled | amended | terminated | downloaded | reminder_sent | voided
+  actor_type      text NOT NULL,  -- 'system' | 'user' | 'webhook' | 'scheduler'
+  actor_id        text,
+  details         jsonb DEFAULT '{}',
+  ip_address      inet,
+  user_agent      text,
+  created_at      timestamptz DEFAULT now()
+);
+
+CREATE INDEX idx_event_contract ON contract_event(contract_id);
+```
+
+### 3.4 contract_reminder
+
+Scheduled and tracked reminders for unsigned contracts.
+
+```sql
+CREATE TABLE contract_reminder (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  contract_id     uuid NOT NULL REFERENCES contract(id),
+  workspace_id    uuid REFERENCES workspace(id),
+  reminder_type   text NOT NULL,  -- 'email' | 'sms' | 'push' | 'in_app'
+  template_key    text NOT NULL,  -- Reference to message_template.key
+  language        text NOT NULL DEFAULT 'no',
+  scheduled_at    timestamptz NOT NULL,
+  sent_at         timestamptz,
+  status          text DEFAULT 'scheduled',  -- scheduled | sent | skipped | failed
+  skip_reason     text,
+  metadata        jsonb DEFAULT '{}',
+  created_at      timestamptz DEFAULT now()
+);
+
+CREATE INDEX idx_reminder_pending ON contract_reminder(scheduled_at) WHERE status = 'scheduled';
+```
+
+### 3.5 message_template
+
+Multi-language message templates used across the platform (contracts, onboarding, billing, etc.).
+
+```sql
+CREATE TABLE message_template (
+  id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  key               text NOT NULL UNIQUE,  -- 'contract.reminder.day3'
+  channel           text NOT NULL,  -- 'email' | 'sms' | 'push' | 'in_app'
+  category          text NOT NULL,  -- 'contract' | 'onboarding' | 'billing' | 'operational'
+
+  subject_no        text,
+  subject_en        text,
+  body_no           text NOT NULL,
+  body_en           text,
+
+  cta_label_no      text,
+  cta_label_en      text,
+  cta_url_template  text,  -- "https://smartout.io/sign/{{token}}"
+
+  sms_body_no       text,
+  sms_body_en       text,
+
+  is_active         boolean DEFAULT true,
+  created_at        timestamptz DEFAULT now(),
+  updated_at        timestamptz DEFAULT now()
+);
+```
+
+### 3.6 clause_library
+
+Pre-approved clause blocks for the AI template creator.
+
+```sql
+CREATE TABLE clause_library (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title           text NOT NULL,
+  summary         text,
+  content_html    text NOT NULL,
+  category        text NOT NULL,  -- 'parties' | 'service' | 'payment' | 'duration' | 'gdpr' | etc.
+  contract_types  text[] DEFAULT '{}',  -- Which template types this applies to
+  language        text NOT NULL DEFAULT 'no',
+  is_active       boolean DEFAULT true,
+  sort_order      integer DEFAULT 0,
+  created_at      timestamptz DEFAULT now(),
+  updated_at      timestamptz DEFAULT now()
+);
+```
+
+### 3.7 workspace additions
+
+New columns on the existing workspace table:
+
+```sql
+ALTER TABLE workspace ADD COLUMN
+  contract_status       text DEFAULT 'none',
+  -- none | pending_contract | trial | active | suspended | deactivated | archived
+  trial_started_at      timestamptz,
+  trial_ends_at         timestamptz,
+  suspended_at          timestamptz,
+  deactivated_at        timestamptz,
+  grace_period_ends     timestamptz,
+  active_contract_id    uuid REFERENCES contract(id),
+  override_access       boolean DEFAULT false,
+  override_note         text,
+  override_expires      timestamptz;
+```
+
+---
+
+## 4. Contract Microservice
+
+### 4.1 Tech Stack
+
+| Component       | Choice                  |
+| --------------- | ----------------------- |
+| Runtime         | Node.js 22 + TypeScript |
+| Framework       | Fastify                 |
+| Container       | Docker (node:22-alpine) |
+| Hosting         | Fly.io or Railway       |
+| Port            | 3100                    |
+| DocuSeal client | `@docuseal/api` v1.0.21 |
+
+### 4.2 Environment Variables
+
+```env
+PORT=3100
+SERVICE_KEY=<shared-secret>
+NODE_ENV=production
+SUPABASE_URL=https://xxx.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=<key>
+DOCUSEAL_API_KEY=<key>
+DOCUSEAL_API_URL=https://api.docuseal.com
+DOCUSEAL_WEBHOOK_SECRET=<secret>
+SMARTOUT_COMPANY_NAME=Smartout AS
+SMARTOUT_ORG_NUMBER=93XXXXXXX
+SMARTOUT_CONTACT_EMAIL=pontus@smartout.io
+```
+
+### 4.3 API Endpoints
+
+Authentication: `X-Service-Key` header. Workspace context via `X-Workspace-Id` header.
+
+**Templates:**
+
+| Method | Path                   | Purpose                                 |
+| ------ | ---------------------- | --------------------------------------- |
+| GET    | /templates             | List (filter by type, language, system) |
+| GET    | /templates/:id         | Get with placeholders                   |
+| POST   | /templates             | Create from AI builder output           |
+| PUT    | /templates/:id         | Update content/design                   |
+| POST   | /templates/:id/sync    | Push to DocuSeal                        |
+| POST   | /templates/:id/preview | PDF preview                             |
+| DELETE | /templates/:id         | Archive                                 |
+
+**Contracts:**
+
+| Method | Path                    | Purpose                                  |
+| ------ | ----------------------- | ---------------------------------------- |
+| GET    | /contracts              | List (filter by status, type, recipient) |
+| GET    | /contracts/:id          | Get with events                          |
+| POST   | /contracts              | Create from template + values            |
+| POST   | /contracts/:id/send     | Send for signing                         |
+| POST   | /contracts/:id/remind   | Send reminder                            |
+| POST   | /contracts/:id/cancel   | Cancel/void                              |
+| POST   | /contracts/:id/download | Download signed PDF                      |
+| GET    | /contracts/:id/events   | Audit trail                              |
+
+**System:**
+
+| Method | Path               | Purpose                        |
+| ------ | ------------------ | ------------------------------ |
+| POST   | /webhooks/docuseal | DocuSeal webhook receiver      |
+| POST   | /preview           | Preview from raw HTML + values |
+| GET    | /health            | Health check                   |
+| GET    | /stats             | Contract counts by status      |
+
+### 4.4 Core Workflows
+
+**Create & Send Contract:**
+
+1. Caller passes `template_id` + `workspace_id` + optional value overrides
+2. Microservice resolves all placeholders from Supabase workspace/company/subscription data
+3. Fills HTML template → stores as `resolved_html`
+4. Calls DocuSeal `POST /templates/html` → creates DocuSeal template
+5. Calls DocuSeal `POST /submissions` with submitters (Smartout + Client)
+6. Auto-signs Smartout party via `PUT /submitters/{id}` with `completed: true`
+7. Returns contract record with `signing_url`
+
+**Webhook Processing:**
+
+- `form.viewed` → update `viewed_at`, log event
+- `form.started` → log event
+- `form.completed` → update `signed_at`, download signed PDF to Supabase Storage, update status → 'signed', update workspace `contract_status` → 'active', notify admin
+- `form.declined` → update `declined_at` + `decline_reason`, notify admin
+- `submission.completed` → all parties signed, status → 'active'
+
+**Placeholder Resolution:**
+
+```
+Source "workspace"      → SELECT FROM workspace WHERE id = :workspace_id
+Source "workspace.company" → SELECT FROM company WHERE workspace_id = :workspace_id
+Source "subscription"   → Stripe API or local cache
+Source "auto"           → Generated (date, contract_number, etc.)
+Source "manual"         → Passed in request body
+Source "constant"       → Environment variables (Smartout company info)
+```
+
+### 4.5 Dockerfile
+
+```dockerfile
+FROM node:22-alpine
+WORKDIR /app
+COPY package.json pnpm-lock.yaml ./
+RUN corepack enable && pnpm install --frozen-lockfile --prod
+COPY dist ./dist
+EXPOSE 3100
+ENV NODE_ENV=production
+CMD ["node", "dist/server.js"]
+```
+
+---
+
+## 5. AI Contract Template Creator
+
+### 5.1 Overview
+
+A Next.js page at `/admin/contracts/templates/[id]/edit` with a split-view layout: Tiptap editor (70%) + AI chat panel (30%). The AI agent has tools to read, edit, design, translate, and validate the contract.
+
+### 5.2 Editor Stack
+
+- **Tiptap** (headless, ProseMirror-based) with custom extensions
+- **Vercel AI SDK 6** — `ToolLoopAgent` with Anthropic Claude
+- **UI:** shadcn/ui components
+- **Voice:** Mr. Botsson via Ultravox WebRTC (existing infrastructure)
+
+### 5.3 Custom Tiptap Extensions
+
+| Extension          | Purpose                                                              |
+| ------------------ | -------------------------------------------------------------------- |
+| `ClauseBlock`      | Draggable section with title, summary, collapsible body, drag handle |
+| `PlaceholderField` | Inline `{{placeholder}}` rendered as colored chip                    |
+| `SignatureField`   | Maps to DocuSeal `<signature-field>`                                 |
+| `DateField`        | Maps to DocuSeal `<date-field>`                                      |
+| `HighlightSection` | AI-applied colored highlights                                        |
+| `SectionSummary`   | One-line plain-language summary per section                          |
+| `ConditionalBlock` | Show/hide based on contract parameters                               |
+
+### 5.4 AI Agent Tools (18 total)
+
+**Document Reading (2):**
+
+- `read_document` — Full document content and structure
+- `read_placeholders` — All placeholder fields with values/sources
+
+**Document Editing (5):**
+
+- `replace_section` — Rewrite a section with diff visualization
+- `insert_section` — Add new clause block
+- `remove_section` — Remove with confirmation
+- `reorder_sections` — Change section order
+- `edit_text` — Targeted find-and-replace within a section
+
+**Design & Styling (3):**
+
+- `highlight_text` — Apply color emphasis to text
+- `apply_design` — Visual improvements (colorize headers, add summaries, highlight key terms, improve spacing, full makeover)
+- `add_image` — Logo, watermark, or inline image
+
+**Placeholder & Field Management (2):**
+
+- `add_placeholder` — Insert new merge field
+- `add_signature_field` — Add signature block for a party
+
+**Translation (2):**
+
+- `translate_section` — Translate one section preserving placeholders
+- `translate_document` — Full document translation with governing language clause
+
+**Preview & Validation (3):**
+
+- `generate_preview` — PDF preview via microservice
+- `validate_contract` — Check completeness, missing sections, legal requirements
+- `summarize_contract` — Human-readable summary
+
+**Clause Library (1):**
+
+- `search_clauses` — Find pre-approved clauses from clause_library table
+
+### 5.5 Agent System Prompt
+
+```
+Du er en kontraktsassistent for Smartout, en norsk SaaS-plattform for
+serveringsbransjen. Du hjelper administratorer å bygge, redigere og
+forbedre kontraktsmaler.
+
+PERSONLIGHET:
+- Profesjonell men vennlig
+- Forklarer juridiske begreper på enkelt norsk
+- Foreslår forbedringer proaktivt
+- Advarer om manglende eller svake klausuler
+- Bruker verktøyene aktivt — ikke bare foreslå, GJØR endringene
+
+REGLER:
+- Kontrakter skal følge norsk lov (Avtaleloven, GDPR/Personopplysningsloven)
+- Behold placeholders som {{variabel}} — aldri erstatt dem med tekst
+- Vis endringer som diff (grønn=lagt til, rød=fjernet)
+- Design skal være moderne, fargerikt og lettlest
+- Signaturfelt alltid til slutt
+- Hver seksjon bør ha en én-linjers oppsummering
+
+KONTEKST:
+- Smartout selger SaaS til restauranter, hoteller og kafeer i Norge
+- Prismodell: per ansatt per måned
+- Alle kundeavtaler krever databehandleravtale (DPA) referanse
+- Norsk lovvalg, Oslo tingrett som verneting
+```
+
+### 5.6 UI Layout
+
+```
+┌──────────────────────────────────────────────────────────┐
+│  ← Tilbake    [Template Name]    [Lagre] [Forhåndsvis]   │
+├─────────────────────────────────┬────────────────────────┤
+│                                 │                        │
+│  TIPTAP EDITOR (70%)            │  AI CHAT PANEL (30%)   │
+│                                 │                        │
+│  [Toolbar: B I U H1 H2 ...]    │  Mr. Botsson is online │
+│                                 │                        │
+│  ┌─ § 1. Parter ──────── ≡ ┐   │  Chat messages with    │
+│  │ 💡 Summary...           │   │  streaming + diffs     │
+│  │ Content with             │   │                        │
+│  │ [🟢 Firmanavn] chips     │   │  Quick actions:        │
+│  └──────────────────────────┘   │  [Forenkle] [Oversett] │
+│                                 │  [Legg til] [Valider]  │
+│  ┌─ § 2. Tjeneste ──── ≡ ──┐   │                        │
+│  │ ...                      │   │  [💬 Chat] [🎤 Snakk]  │
+│  └──────────────────────────┘   │  Type melding...       │
+│                                 │                        │
+└─────────────────────────────────┴────────────────────────┘
+```
+
+### 5.7 Diff Visualization
+
+When AI proposes changes, the editor shows inline diffs per the Liveblocks/Tiptap pattern:
+
+- **Deletions:** Red background + strikethrough
+- **Insertions:** Green background
+- **Modifications:** Blue background
+- Each changed section gets `[✓ Godta] [✗ Avvis] [💬 Diskuter]` buttons
+
+### 5.8 Placeholder Chip Colors
+
+| Type                            | Color     | Examples                            |
+| ------------------------------- | --------- | ----------------------------------- |
+| Auto-populated (workspace data) | 🟢 Green  | Firmanavn, Org.nr, Adresse          |
+| Manual input                    | 🟠 Orange | Avtaleperiode, Spesielle vilkår     |
+| Auto-generated                  | 🔵 Blue   | Kontraktsnummer, Dato               |
+| Signature fields                | 🟣 Purple | Signatur Leverandør, Signatur Kunde |
+
+### 5.9 Design Tokens
+
+```json
+{
+  "accent_color": "#FF6B35",
+  "accent_light": "#FFF0EB",
+  "header_bg": "#1A1A2E",
+  "header_text": "#FFFFFF",
+  "body_font": "Inter, sans-serif",
+  "summary_color": "#6B7280",
+  "placeholder_auto": "#10B981",
+  "placeholder_manual": "#F59E0B",
+  "placeholder_generated": "#3B82F6",
+  "placeholder_signature": "#8B5CF6"
+}
+```
+
+---
+
+## 6. Client Contract Journeys
+
+### 6.1 Journey A: Self-Service Registration
+
+**Trigger:** Client registers on smartout.io
+
+```
+1. Register → email, phone, company name, org number (Brreg auto-lookup)
+2. Email verification
+3. Mr. Botsson guides workspace setup (name, employees, locations, plan)
+4. Workspace created: status = 'pending_contract', trial starts (14 days)
+5. Contract auto-generated from base template + workspace data
+6. Contract presented in-app (embedded DocusealForm)
+7. Client signs → workspace: 'active', Stripe subscription created
+   OR
+   Client skips → trial mode, reminder sequence starts
+```
+
+**In-app signing page:** Full-screen embedded `DocusealForm` with pre-filled readonly fields, Smartout branding, and options to sign, download PDF, or skip.
+
+### 6.2 Journey B: Sales-Assisted
+
+**Trigger:** Pontus has agreed terms with a client
+
+**Path B1 — No workspace exists:**
+
+```
+1. Pontus opens Admin → Contracts → "Ny kundekontrakt"
+2. Enters client details manually (or Brreg lookup)
+3. Selects plan, adjusts pricing/terms, optionally customizes via AI
+4. Reviews contract preview
+5. Clicks "Send kontrakt"
+6. Client receives branded email with signing link
+7. Client signs → workspace auto-created as 'active' → invitation email sent
+```
+
+**Path B2 — Workspace already exists (trial/upgrade):**
+
+```
+1. Pontus selects existing workspace
+2. Data auto-populated, adjusts terms as needed
+3. Sends contract
+4. Client signs → workspace upgraded to 'active'
+```
+
+### 6.3 Signing Experience
+
+The signing page at `smartout.io/sign/[token]` embeds:
+
+```tsx
+<DocusealForm
+  src={signingUrl}
+  email={recipientEmail}
+  logo="https://smartout.io/logo.png"
+  backgroundColor="#f9fafb"
+  customCss=".ds-form { font-family: Inter; }"
+  values={prefilledValues}
+  readonlyFields={readonlyFieldNames}
+  withDecline={true}
+  withDownloadButton={true}
+  language="no"
+  onComplete={(data) => handleSigningComplete(data)}
+  onDecline={(data) => handleDecline(data)}
+/>
+```
+
+### 6.4 Admin Contract Dashboard
+
+Pontus sees all contracts at `/admin/contracts`:
+
+- Card per contract: company name, contact, plan, status, days since sent
+- Status indicators: Sendt (blue), Sett (gray), Signert (green), Forfalt (red)
+- Actions: Preview, Send reminder, Cancel, Download PDF
+- Filter by status, date range, search
+
+---
+
+## 7. Workspace State Machine
+
+### 7.1 States
+
+| State              | Description                                         | User Access         |
+| ------------------ | --------------------------------------------------- | ------------------- |
+| `setup`            | Being configured, no contract                       | Setup wizard only   |
+| `pending_contract` | Workspace exists, contract not signed, trial active | Full access (trial) |
+| `trial`            | Alias for pending_contract, emphasizes countdown    | Full access         |
+| `active`           | Contract signed, subscription active                | Full access         |
+| `suspended`        | Trial expired unsigned, or payment failed           | Read-only           |
+| `deactivated`      | Grace period expired, access revoked                | No access           |
+| `archived`         | Data retention period expired, data purged          | No access           |
+
+### 7.2 Transitions
+
+```
+User registers         → setup
+Workspace configured   → pending_contract (trial starts)
+Contract signed        → active
+Trial expires unsigned → suspended (grace period)
+Payment fails          → suspended (after Stripe retries)
+Grace period expires   → deactivated
+Admin override         → any state (with note + expiry)
+90 days deactivated    → archived (data purged)
+```
+
+### 7.3 Access Control Matrix
+
+| Status           | Login | View | Edit  | Invite |   Admin   |  Billing  |
+| ---------------- | :---: | :--: | :---: | :----: | :-------: | :-------: |
+| setup            |   ✓   |  -   | Setup |   -    |  Wizard   |     -     |
+| pending_contract |   ✓   |  ✓   |   ✓   |   ✓    |     ✓     |   Free    |
+| active           |   ✓   |  ✓   |   ✓   |   ✓    |     ✓     |  Active   |
+| suspended        |   ✓   |  ✓   |   ✗   |   ✗    | Sign only |  Paused   |
+| deactivated      |   ✗   |  ✗   |   ✗   |   ✗    |     ✗     | Cancelled |
+
+---
+
+## 8. Reminder & Escalation Sequences
+
+### 8.1 Journey A: Self-Service Trial
+
+| Day |       In-App       |             Email             | SMS |  Admin   |
+| --- | :----------------: | :---------------------------: | :-: | :------: |
+| 0   |       Banner       |            Welcome            |  -  |    -     |
+| 3   |       Banner       |  Soft nudge (value-focused)   |  -  |    -     |
+| 7   |   Yellow banner    |   "Halvveis" + usage stats    |  ✓  |    -     |
+| 10  |     Red banner     |            Urgent             |  -  |    -     |
+| 13  | Fullscreen overlay |          "Siste dag"          |  ✓  |    ✓     |
+| 14  |   **READ-ONLY**    |           "Utløpt"            |  -  |    ✓     |
+| 17  |     Read-only      |       "Dataene venter"        |  -  |    -     |
+| 21  |     Read-only      | "Slettes om 7 dager" + export |  ✓  |    ✓     |
+| 28  | **ACCESS REVOKED** |         "Deaktivert"          |  -  |    ✓     |
+| 118 |         -          |        "Data slettet"         |  -  | Archived |
+
+### 8.2 Journey B: Sales-Assisted
+
+| Day            |             Email              | SMS | Admin |
+| -------------- | :----------------------------: | :-: | :---: |
+| 0              |    Contract email with link    |  -  |   -   |
+| 3 (not viewed) |        Gentle reminder         |  -  |   ✓   |
+| 7 (not signed) |           Follow-up            |  ✓  |   ✓   |
+| 10             |            Urgency             |  -  |   -   |
+| 13             |          Last chance           |  ✓  |   ✓   |
+| 14             | **EXPIRED** — link deactivated |  -  |   ✓   |
+
+Admin can: extend deadline, resend modified contract, or archive.
+
+### 8.3 All Reminders Cancel On Signing
+
+When a contract is signed, all scheduled reminders for that contract are marked `status = 'skipped'` with `skip_reason = 'contract_signed'`.
+
+---
+
+## 9. Notification Infrastructure Requirements
+
+The reminder sequences reveal a platform-wide need. This is NOT contract-specific — it's shared infrastructure.
+
+**Required capabilities:**
+
+- **Email** via Resend (existing in stack)
+- **SMS** via Twilio or Link Mobility (Norwegian provider)
+- **Push** via Expo Push (mobile) + Web Push API
+- **In-app** via Supabase Realtime (banners, toasts)
+- **Message templates** with multi-language support and `{{placeholder}}` resolution
+- **Scheduling** (send at specific time, recurring)
+- **Delivery tracking** (sent, delivered, opened, bounced, failed)
+- **User preferences** (opt-out of SMS, quiet hours, email frequency)
+- **Rate limiting** (don't spam)
+- **Admin controls** (pause all for a workspace, manual override)
+
+**Implementation note:** This should be a separate module specification. The contract system depends on it but shouldn't build its own notification logic. For V1, a simplified version using Supabase Edge Functions for scheduled email/SMS via Resend/Twilio is sufficient.
+
+**Cron/Scheduler for automated checks:**
+
+- Daily at 06:00 CET: Check for trial expiry, contract expiry, grace period expiry
+- Process workspace state transitions
+- Queue scheduled reminders
+- Options: Supabase `pg_cron`, n8n workflow, or Edge Function on cron trigger
+
+---
+
+## 10. DocuSeal SDK Integration
+
+### 10.1 Microservice: @docuseal/api
+
+```typescript
+import { DocusealApi } from "@docuseal/api";
+
+const docuseal = new DocusealApi({
+  key: process.env.DOCUSEAL_API_KEY,
+  url: process.env.DOCUSEAL_API_URL, // https://api.docuseal.com or self-hosted
+});
+
+// Create template from HTML
+const template = await docuseal.createTemplateFromHtml({
+  html: resolvedHtml,
+  name: `Client Contract - ${companyName}`,
+});
+
+// Create submission (send for signing)
+const submission = await docuseal.createSubmission({
+  template_id: template.id,
+  send_email: true,
+  submitters: [
+    {
+      role: "Leverandør",
+      email: "pontus@smartout.io",
+      completed: true, // Auto-sign Smartout party
+      values: { Signatur: "https://smartout.io/assets/signature.png" },
+    },
+    {
+      role: "Kunde",
+      email: recipientEmail,
+      values: prefilledValues,
+      fields: readonlyFields.map((f) => ({ name: f, readonly: true })),
+    },
+  ],
+});
+
+// Get submission status
+const sub = await docuseal.getSubmission(submissionId);
+
+// Get signed documents
+const docs = await docuseal.getSubmissionDocuments(submissionId);
+```
+
+### 10.2 Frontend: @docuseal/react
+
+Two components used:
+
+**`DocusealForm`** — Embedded signing on `smartout.io/sign/[token]`. Props: `src`, `email`, `logo`, `backgroundColor`, `customCss`, `values`, `readonlyFields`, `withDecline`, `withDownloadButton`, `language`, `onComplete`, `onDecline`.
+
+**`DocusealBuilder`** — Embedded template builder in admin. Requires JWT (HS256) token generated server-side. Props: `token`, `customCss`, `backgroundColor`, `withFieldsDetection`, `language`, `onSave`, `onChange`. Note: We use our own Tiptap-based editor for the primary template creation experience, but DocusealBuilder can serve as a fallback for advanced field positioning.
+
+### 10.3 Webhook Verification
+
+DocuSeal uses shared-secret headers (no HMAC):
+
+```typescript
+fastify.post("/webhooks/docuseal", async (request, reply) => {
+  const secret = request.headers["x-docuseal-secret"];
+  if (secret !== process.env.DOCUSEAL_WEBHOOK_SECRET) {
+    return reply.status(401).send({ error: "Unauthorized" });
+  }
+  const { event_type, data } = request.body;
+  // Process event...
+});
+```
+
+---
+
+## 11. Client Contract Template Specification
+
+### 11.1 Required Sections (Norwegian Legal Standard)
+
+1. **§ 1 Parter** — Parties identification
+2. **§ 2 Bakgrunn og formål** — Background and purpose
+3. **§ 3 Definisjoner** — Key definitions
+4. **§ 4 Tjenestebeskrivelse** — Service description
+5. **§ 5 Abonnement og priser** — Subscription and pricing
+6. **§ 6 Betalingsbetingelser** — Payment terms
+7. **§ 7 Varighet og oppsigelse** — Duration and termination (auto-renewal with 3-month notice)
+8. **§ 8 Databehandling (GDPR)** — DPA reference
+9. **§ 9 Konfidensialitet** — Confidentiality
+10. **§ 10 Ansvarsbegrensning** — Limitation of liability
+11. **§ 11 Immaterielle rettigheter** — Intellectual property
+12. **§ 12 Force majeure** — Force majeure
+13. **§ 13 Endringer** — Amendments
+14. **§ 14 Tvister og lovvalg** — Norwegian law, Oslo district court
+15. **§ 15 Underskrifter** — Signatures
+
+### 11.2 Placeholders
+
+**Auto-populated from workspace data:**
+
+| Key                    | Label           | Source                       |
+| ---------------------- | --------------- | ---------------------------- |
+| `client_company_name`  | Firmanavn       | workspace.company.name       |
+| `client_org_number`    | Org.nr          | workspace.company.org_number |
+| `client_address`       | Adresse         | workspace.address            |
+| `client_postal_code`   | Postnummer      | workspace.postal_code        |
+| `client_city`          | Poststed        | workspace.city               |
+| `client_contact_name`  | Kontaktperson   | workspace.owner.full_name    |
+| `client_contact_email` | E-post          | workspace.owner.email        |
+| `client_contact_phone` | Telefon         | workspace.owner.phone        |
+| `plan_name`            | Abonnement      | stripe.plan                  |
+| `price_per_employee`   | Pris per ansatt | stripe.unit_price            |
+| `max_employees`        | Maks ansatte    | stripe.max_profiles          |
+
+**Auto-generated:**
+
+| Key               | Label               | Source                |
+| ----------------- | ------------------- | --------------------- |
+| `contract_number` | Kontraktsnummer     | KONTRAKT-{YEAR}-{SEQ} |
+| `contract_date`   | Dato                | Today                 |
+| `effective_date`  | Ikrafttredelsesdato | Signing date          |
+
+**Constants (Smartout):**
+
+| Key                      | Value              |
+| ------------------------ | ------------------ |
+| `smartout_company_name`  | Smartout AS        |
+| `smartout_org_number`    | [org number]       |
+| `smartout_address`       | [address]          |
+| `smartout_contact_name`  | Pontus Johansson   |
+| `smartout_contact_email` | pontus@smartout.io |
+
+**Manual (set during creation):**
+
+| Key                 | Label                | Default        |
+| ------------------- | -------------------- | -------------- |
+| `contract_duration` | Avtaleperiode        | 12 måneder     |
+| `notice_period`     | Oppsigelsestid       | 3 måneder      |
+| `payment_terms`     | Betalingsbetingelser | 30 dager netto |
+| `custom_terms`      | Spesielle vilkår     | (empty)        |
+
+### 11.3 Clause Library — V1 Content
+
+Ship these pre-built clause blocks in Norwegian + English:
+
+Parter, Tjenestebeskrivelse (SaaS service, uptime SLA, support), Betaling (monthly, annual, price adjustments, late payment), Varighet (fixed term, auto-renewal, trial, termination), Data & GDPR (DPA reference, data ownership, portability, breach notification), Konfidensialitet (mutual NDA, carve-outs), Ansvar (limitation, indemnification, warranty disclaimer), IP (ownership, license grant), Force Majeure, Endringer, Tvister (Norwegian law, Oslo court, mediation), Underskrifter (signature block).
+
+---
+
+## 13. Legal & Regulatory Compliance
+
+This section documents the Norwegian and EU legal requirements that the contract system must satisfy. Smartout is a B2B SaaS platform, but certain consumer protection laws may apply when sole proprietors (ENK) are clients, and the DPA/GDPR obligations are non-negotiable for all client types.
+
+### 13.1 Applicable Laws
+
+| Law                               | Norwegian Name                                  | Relevance to Contract System                                                                                            |
+| --------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| **Contracts Act**                 | Avtaleloven (1918)                              | Foundation — offer, acceptance, validity, §36 unfairness review                                                         |
+| **Personal Data Act**             | Personopplysningsloven (2018)                   | GDPR implementation in Norway. Governs all personal data processing.                                                    |
+| **GDPR**                          | Personvernforordningen                          | Art. 28 mandates DPA. Art. 6 legal basis. Art. 30 records.                                                              |
+| **Digital Consumer Services Act** | Digitalytelsesloven (2022, in force April 2024) | May apply if sole proprietor clients qualify as "consumers." Binding period caps, complaint rights, update obligations. |
+| **Marketing Control Act**         | Markedsføringsloven (2009)                      | §22 B2B good practice. Contract terms must not be misleading.                                                           |
+| **E-Commerce Act**                | E-handelsloven (2003)                           | Online contract formation: steps to conclude, order confirmation, language.                                             |
+| **Cancellation Rights Act**       | Angrerettloven                                  | 14-day cooling-off for distance B2C contracts. Does NOT apply to B2B.                                                   |
+| **Working Environment Act**       | Arbeidsmiljøloven §14-5/14-6                    | Employee contracts only (future scope). 7-day deadline, mandatory content.                                              |
+| **Bookkeeping Act**               | Bokføringsloven                                 | Contract retention: 5 years (invoicing basis), 10 years (accounting material).                                          |
+| **AI Act**                        | KI-loven (expected summer 2026)                 | If AI generates or modifies contract terms, transparency obligations may apply.                                         |
+| **NIS2 Directive**                | (transposition expected 2025)                   | Security requirements for digital infrastructure providers.                                                             |
+
+### 13.2 B2B vs. B2C Distinction
+
+Smartout sells to businesses (AS, ENK, NUF). The critical distinction:
+
+- **AS/NUF clients:** Pure B2B. Avtaleloven applies. Freedom of contract is broad. No angrerett. No Digitalytelsesloven protection (the law applies to consumer relationships only).
+- **ENK (sole proprietor) clients:** A gray area. If the sole proprietor purchases Smartout for personal/mixed use, Digitalytelsesloven and consumer protection MAY apply. The safest approach:
+  - Always include information about angrerett in the contract flow even for ENK (costs nothing, protects against disputes)
+  - Respect the 6-month maximum binding period rule from Digitalytelsesloven if client could be classified as consumer
+  - Provide clear pre-contractual information as required by E-handelsloven
+
+**Recommendation:** Design the contract to be valid for both B2B and B2C scenarios. This means following the stricter consumer rules as a floor, not a ceiling. It's less risky than trying to distinguish client types.
+
+### 13.3 Mandatory DPA (Databehandleravtale)
+
+Smartout processes personal data on behalf of its clients (employee names, schedules, certifications, training records, etc.). Under GDPR Article 28, a Data Processing Agreement is **mandatory**. This is not optional — operating without a DPA exposes both Smartout and the client to regulatory liability and Datatilsynet enforcement.
+
+**The DPA must be a separate document (or identifiable annex) containing at minimum:**
+
+| Requirement (Art. 28)       | What Smartout Must Include                                                                                  |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Subject matter & duration   | "Processing of employee data for the duration of the subscription"                                          |
+| Nature & purpose            | "Hosting, storing, and processing employee data to provide the Smartout SaaS platform"                      |
+| Types of personal data      | Names, contact info, work schedules, training records, health certifications (HACCP), location data, photos |
+| Categories of data subjects | Client's employees, managers, trainees                                                                      |
+| Controller obligations      | Client determines purpose; Smartout follows documented instructions only                                    |
+| Processor obligations       | Confidentiality, security measures (Art. 32), assist with DSAR, breach notification                         |
+| Sub-processor rules         | General authorization with right to object. Current sub-processor list maintained.                          |
+| International transfers     | Data stored in EU/EEA (Supabase EU region). If US sub-processors: SCCs in place.                            |
+| Data return/deletion        | On contract termination: export available for 30 days, then permanent deletion                              |
+| Audit rights                | Controller may audit or appoint auditor. Smartout provides SOC 2 / security documentation as alternative.   |
+| Breach notification         | Without undue delay (target: 48 hours) after becoming aware of breach                                       |
+
+**Implementation in contract system:**
+
+- The DPA is a **separate template** stored alongside the main service agreement
+- When sending a client contract, the DPA is attached as Bilag (Annex)
+- The DPA has its own signature field — signed in the same DocuSeal submission
+- The DPA references a **sub-processor list** hosted at `smartout.io/sub-processors` (publicly accessible, updated when vendors change)
+- AI template creator includes a `validate_contract` tool check: "DPA reference present? → Yes/No"
+
+**Sub-processor list (V1):**
+
+| Sub-processor                    | Purpose                     | Data Location       |
+| -------------------------------- | --------------------------- | ------------------- |
+| Supabase (US entity, EU hosting) | Database, Auth, Storage     | EU (Frankfurt)      |
+| Vercel                           | Web hosting, Edge Functions | EU                  |
+| DocuSeal                         | Document signing            | EU (or self-hosted) |
+| Resend                           | Transactional email         | US (SCCs in place)  |
+| Stripe                           | Payment processing          | US/EU (SCCs)        |
+| Twilio                           | SMS notifications           | US (SCCs)           |
+| Expo                             | Mobile push notifications   | US (SCCs)           |
+
+### 13.4 Pre-Contractual Information (E-handelsloven)
+
+When contracts are formed online (Journey A: self-service), E-handelsloven requires Smartout to provide before contract conclusion:
+
+1. **Technical steps to conclude the contract** — Show the signing flow (review → sign → confirmation)
+2. **Whether the contract will be stored and accessible** — Yes: signed PDF stored, downloadable anytime
+3. **Technical means for correcting input errors** — Preview step before signing, ability to go back
+4. **Languages offered** — Norwegian and English
+5. **Order confirmation without undue delay** — Automated confirmation email on signing
+
+These are already covered by our Journey A flow, but they must be explicitly visible in the UI.
+
+### 13.5 Contract Content — Legal Requirements
+
+For the B2B SaaS agreement, Norwegian law (Avtaleloven + general contract principles) expects:
+
+**Must-have clauses (legally required or practically essential):**
+
+- Clear identification of parties (name, org number, address)
+- Service description (what Smartout provides)
+- Price and payment terms (per-employee pricing, billing cycle)
+- Duration and termination (notice period, auto-renewal terms)
+- DPA reference (GDPR Art. 28 requirement)
+- Limitation of liability (cap and exclusions)
+- Governing law and dispute resolution (Norwegian law, Oslo tingrett)
+
+**Should-have clauses (strong legal recommendation):**
+
+- SLA / uptime commitment (commercially expected for SaaS)
+- Data ownership and portability (client owns their data)
+- Breach notification procedure
+- Force majeure
+- Confidentiality
+- IP rights (Smartout retains platform IP, client owns their content)
+- Price adjustment mechanism (Avtaleloven §36 — must be clear and proportionate)
+- Amendments procedure (how contract terms can change)
+
+**Avtaleloven §36 — the "urimelighetssensur" (unfairness review):**
+Any contract term can be set aside by a court if invoking it would be "unreasonable." This is the Norwegian catch-all fairness provision. Implications for Smartout's contract:
+
+- Limitation of liability must be reasonable (not zero liability for gross negligence)
+- Auto-renewal must be clearly communicated (not hidden in fine print)
+- Price adjustment clauses must be clear about triggers and limits
+- Termination terms must give reasonable notice
+
+### 13.6 Price Adjustment Clause
+
+Norwegian law (CMS analysis, 2024) establishes that B2B price adjustment clauses must be:
+
+- **Clear:** Specific criteria for when and how prices change
+- **Proportionate:** Not creating significant imbalance (§36 Avtaleloven)
+- **Communicated:** Advance notice before changes take effect
+
+**Recommended contract language pattern:**
+
+```
+Smartout kan justere prisene årlig per 1. januar med virkning fra
+påfølgende faktureringsperiode. Prisendringer varsles skriftlig
+minst 60 dager før ikrafttredelse. Kunden kan si opp avtalen
+dersom prisøkningen overstiger 10% av gjeldende pris.
+```
+
+This is a placeholder placeholder — include as a standard clause in the clause library.
+
+### 13.7 Digitalytelsesloven Considerations
+
+Even though Smartout primarily serves B2B clients, the Digital Consumer Services Act (in force April 2024) creates obligations IF a client qualifies as a consumer. Key rules:
+
+- **Maximum binding period:** 6 months (12 months in special cases), and only if the consumer gets a proportional economic benefit
+- **Cancellation during binding period:** Provider can only demand compensation if explicitly stated in the contract
+- **Update obligation:** Provider must supply necessary updates for security and functionality
+- **Defect remedies:** Consumer can demand rectification, price reduction, or termination if the service doesn't match what was agreed
+- **No unconditional payment obligation:** Consumer cannot be forced to pay regardless of whether the service is delivered on time
+
+**Safest approach for Smartout:**
+
+- Don't offer binding periods longer than 12 months for any client
+- Always provide annual billing discount as the "economic benefit" justifying any binding period
+- Include update commitment language in the service description
+- Make cancellation terms clear and accessible
+
+### 13.8 Document Retention Requirements
+
+| Document Type                | Retention Period                      | Legal Basis                     |
+| ---------------------------- | ------------------------------------- | ------------------------------- |
+| Signed contracts             | 10 years after termination            | Bokføringsloven §13             |
+| Contract audit trail         | 10 years                              | Bokføringsloven §13             |
+| DPA                          | Duration of processing + 5 years      | GDPR Art. 28, Bokføringsloven   |
+| Invoices related to contract | 5 years                               | Bokføringsloven §13             |
+| Client personal data         | 30 days post-termination, then delete | GDPR Art. 17 (right to erasure) |
+| Contract correspondence      | 5 years                               | Good practice                   |
+
+**Implementation:** Signed PDFs in Supabase Storage must NOT be deleted during workspace deactivation/archival. They move to a separate cold storage bucket with retention policies enforced.
+
+### 13.9 Norwegian AI Act Implications (Upcoming)
+
+The Norwegian AI Act (KI-loven), transposing the EU AI Act, is expected to enter into force summer 2026. The AI Contract Template Creator may be affected:
+
+- If AI generates contract terms that the client is bound by, Smartout may need to disclose that AI was involved in drafting
+- The contract template creator should include a clear disclosure: "Denne kontrakten ble utarbeidet med hjelp av AI-verktøy og gjennomgått av Smartout"
+- Risk classification: Contract generation is likely low-risk under the AI Act, but monitoring is needed
+
+**Immediate action:** Add a standard footer note on AI-generated contracts stating AI involvement. This costs nothing and future-proofs compliance.
+
+### 13.10 Electronic Signatures — Legal Validity
+
+Norway follows the eIDAS Regulation (transposed 2018). DocuSeal provides electronic signatures that qualify as "simple electronic signatures" under eIDAS — sufficient for B2B SaaS contracts. Advanced or qualified electronic signatures (e.g., BankID) are NOT required for this type of agreement.
+
+Norwegian courts accept simple electronic signatures for commercial agreements. The DocuSeal audit trail (IP address, timestamp, device info, geolocation) provides sufficient evidence of signing intent.
+
+### 13.11 Compliance Checklist for AI Template Creator
+
+The `validate_contract` tool should check:
+
+| Check                       | Severity   | Description                                  |
+| --------------------------- | ---------- | -------------------------------------------- |
+| DPA reference present       | ❌ Blocker | Cannot send without DPA annex                |
+| Parties fully identified    | ❌ Blocker | Name + org number + address for both parties |
+| Service description present | ⚠️ Warning | Section §4 Tjenestebeskrivelse               |
+| Price clause present        | ❌ Blocker | Monthly/annual, per-employee                 |
+| Price adjustment clause     | ⚠️ Warning | Required for >12 month contracts             |
+| Duration and notice period  | ❌ Blocker | Must specify both                            |
+| Governing law clause        | ⚠️ Warning | Default: Norwegian law, Oslo tingrett        |
+| Liability limitation        | ⚠️ Warning | Must exist and be reasonable                 |
+| Force majeure               | ℹ️ Info    | Recommended                                  |
+| Data ownership clause       | ⚠️ Warning | Client owns their data                       |
+| Signature fields            | ❌ Blocker | Both parties must have signature fields      |
+| AI disclosure footer        | ℹ️ Info    | Recommended for future AI Act compliance     |
+| Language consistency        | ⚠️ Warning | All sections in same language                |
+
+---
+
+- **Service-to-service auth:** Shared `X-Service-Key` header between web app and microservice
+- **Webhook verification:** Shared secret header from DocuSeal
+- **Supabase access:** Service role key (bypasses RLS), manual workspace_id filtering
+- **Signed PDFs:** Private Supabase Storage bucket, workspace-scoped paths: `/{workspace_id}/contracts/{contract_id}/signed.pdf`
+- **PII protection:** Contract content never logged. Audit events log event types, not content.
+- **HTTPS:** Enforced on all external communication
+- **JWT for embedded builder:** HS256 signed server-side, short TTL
+
+---
+
+## 15. Implementation Order
+
+### Phase 1: Foundation (Week 1-2)
+
+1. Database migrations: all tables from Section 3
+2. Microservice scaffold: Fastify + TypeScript + Docker + health endpoint
+3. `@docuseal/api` integration: basic template and submission methods
+4. Template CRUD endpoints
+
+### Phase 2: Core Signing Flow (Week 3-4)
+
+5. DocuSeal template sync (HTML → DocuSeal)
+6. Contract creation with placeholder resolution
+7. Submission creation + auto-sign Smartout party
+8. Webhook processing (viewed, signed, declined)
+9. PDF download + Supabase Storage
+
+### Phase 3: Client Journeys (Week 5-6)
+
+10. Signing page: `smartout.io/sign/[token]` with embedded DocusealForm
+11. Journey A: Self-service registration → contract presentation → signing
+12. Journey B: Admin contract creation + send UI
+13. Workspace state machine (status transitions tied to contract events)
+
+### Phase 4: Reminders & Lifecycle (Week 7-8)
+
+14. contract_reminder scheduling on contract creation
+15. Daily cron: check expiry, process state transitions
+16. Email reminders via Resend (simplified — no full notification service yet)
+17. SMS reminders via Twilio (critical ones only: day 7, 13, 21)
+18. In-app banners: trial countdown, contract signing prompt
+
+### Phase 5: AI Template Creator (Week 9-12)
+
+19. Tiptap editor setup with custom extensions
+20. Split-view layout: editor + AI chat panel
+21. Agent tools: read_document, read_placeholders
+22. Agent tools: replace_section, edit_text, insert_section, remove_section
+23. Diff visualization with accept/reject
+24. Agent tools: apply_design, highlight_text, add_image
+25. Agent tools: translate_section, translate_document
+26. Agent tools: validate_contract, summarize_contract
+27. Clause library + search_clauses
+28. Preview integration (microservice PDF preview)
+29. Voice integration (Mr. Botsson)
+
+### Phase 6: Admin Dashboard (Week 13-14)
+
+30. Contract list view with filters
+31. Contract detail view with event timeline
+32. Manual actions: extend deadline, resend, cancel, override workspace
+33. Stats/analytics: conversion rate, average signing time
+
+---
+
+## 16. Edge Cases
+
+**Client signs but payment fails:**
+Contract remains 'active'. Workspace suspended only after Stripe exhausts retries (~7 days). Resolution: client updates payment method.
+
+**Client signs but never logs in (Journey B1):**
+Workspace created as 'active'. Day 7/14: follow-up emails. Day 30: admin notification. Billing continues per contract.
+
+**Client declines contract:**
+Admin notified with decline reason. Can modify terms → generate new version → resend. Journey A: trial continues. Journey B: no workspace impact.
+
+**Client requests changes:**
+Admin creates new contract version, voids old one, resends. Future: in-app negotiation via AI chat.
+
+**Multiple locations:**
+Master contract at organization level, covering all workspaces. Billing aggregated. One contract governs all.
+
+**Contract renewal:**
+Day -60: notification. Day -30: auto-generate renewal. Day -14: send for signing. If auto-renewal clause: contract continues, just log renewal. If no auto-renewal: escalation sequence.
+
+**Admin manual override:**
+Pontus can: extend trial, force workspace 'active' without contract, pause reminders, mark contract "signed offline" (with PDF upload), grant grace period extensions.
+
+**Offline signing:**
+Support "signed outside system" — admin uploads signed PDF, manually marks contract as 'signed'. For sales flexibility with traditional clients.
+
+---
+
+## 17. Open Questions Resolved
+
+| Question                          | Resolution                                                                                                     |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Trial length                      | **14 days** — standard, not configurable per plan in V1                                                        |
+| Grace period                      | **14 days** read-only, then deactivation                                                                       |
+| Data retention after deactivation | **90 days** before permanent deletion (GDPR)                                                                   |
+| SMS provider                      | **Twilio** — best docs, Norwegian number support, reasonable pricing. Evaluate Link Mobility later for bulk.   |
+| Signing page                      | **Always embed in Smartout** via DocusealForm. Full brand control.                                             |
+| Offline signing                   | **Yes** — admin can upload PDF and mark signed. Sales flexibility.                                             |
+| Multi-location                    | **Master contract** at org level. Per-workspace contracts deferred.                                            |
+| Auto-renewal                      | **Yes** — include auto-renewal clause with 3-month written notice period.                                      |
+| Data export format                | **JSON + CSV** zip package, downloadable before deletion                                                       |
+| Embedded builder                  | Use **Tiptap-based custom editor** as primary. DocusealBuilder as fallback for field positioning.              |
+| DocuSeal SDK                      | **`@docuseal/api` v1.0.21** (microservice) + **`@docuseal/react` v1.0.71** (frontend). Both TypeScript-native. |
