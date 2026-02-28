@@ -167,13 +167,30 @@ export async function contractRoutes(app: FastifyInstance) {
           .eq("contract_id", id);
       }
 
+      // Transform Tiptap custom fields to DocuSeal HTML field tags
+      const docusealHtml = contractHtml
+        // Signature fields: <div data-type="signature-field" data-role="sender|recipient" ...>
+        .replace(
+          /<div\s+data-type="signature-field"\s+data-role="sender"[^>]*><\/div>/gi,
+          '<signature-field name="Signatur Smartout" role="Leverandør" format="drawn_or_typed" required="true" style="width: 240px; height: 60px; display: inline-block;"> </signature-field>',
+        )
+        .replace(
+          /<div\s+data-type="signature-field"\s+data-role="recipient"[^>]*><\/div>/gi,
+          '<signature-field name="Signatur Kunde" role="Kunde" format="drawn_or_typed" required="true" style="width: 240px; height: 60px; display: inline-block;"> </signature-field>',
+        )
+        // Date fields: <span data-type="date-field" ...>...</span>
+        .replace(
+          /<span\s+data-type="date-field"[^>]*data-label="([^"]*)"[^>]*>[^<]*<\/span>/gi,
+          '<date-field name="$1" role="Kunde" format="DD/MM/YYYY" required="false" style="width: 120px; height: 18px; display: inline-block;"> </date-field>',
+        );
+
       // Build full HTML
       const fullHtml = `<!DOCTYPE html>
 <html lang="no">
 <head><meta charset="UTF-8"><style>
 body { font-family: Inter, sans-serif; padding: 40px; }
 </style></head>
-<body>${contractHtml}</body>
+<body>${docusealHtml}</body>
 </html>`;
 
       // Create DocuSeal template from resolved HTML
@@ -182,6 +199,14 @@ body { font-family: Inter, sans-serif; padding: 40px; }
         name: contract.title ?? "Smartout Contract",
       });
 
+      // Fallback to config values if sender/recipient not set on contract
+      const senderEmail = contract.sender_email || config.SMARTOUT_CONTACT_EMAIL;
+      const recipientEmail = contract.recipient_email;
+
+      if (!recipientEmail) {
+        return reply.status(400).send({ error: "Contract is missing recipient_email" });
+      }
+
       // Create submission with two parties
       const submission = await docuseal.createSubmission({
         template_id: dsTemplate.id,
@@ -189,12 +214,12 @@ body { font-family: Inter, sans-serif; padding: 40px; }
         submitters: [
           {
             role: "Leverandør",
-            email: contract.sender_email,
+            email: senderEmail,
             completed: true, // Auto-sign Smartout party
           },
           {
             role: "Kunde",
-            email: contract.recipient_email,
+            email: recipientEmail,
           },
         ],
       });
