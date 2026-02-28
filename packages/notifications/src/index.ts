@@ -1,3 +1,42 @@
-// @smartout/notifications — placeholder
-// TODO: Implement notification channels (email, SMS, push)
-export {};
+/**
+ * @smartout/notifications — Email notification infrastructure
+ */
+
+// Types
+export type {
+  AudienceFilter,
+  EmailClassification,
+  EmailJob,
+  EmailJobOptions,
+  EmailTemplate,
+  RenderedEmail,
+  ResolvedRecipient,
+  SendEmailResult,
+} from "./types";
+
+// Email service (high-level API)
+export { createEmailJob, getEmailJobStatus, processEmailJob } from "./email-service";
+
+// SendGrid adapter
+export { sendEmailBatch } from "./sendgrid";
+
+// Templates
+export { renderTemplate } from "./templates";
+
+// Audiences
+export { countAudience, resolveAudience } from "./audiences";
+
+// Compliance
+export {
+  ALLOWED_SENDERS,
+  classifyEmail,
+  filterSuppressed,
+  getLegalFooter,
+  validateSender,
+} from "./compliance";
+
+// Rate limiting
+export { checkRateLimit, RECIPIENT_HARD_CAP, RECIPIENT_SOFT_CAP } from "./rate-limit";
+
+// Kill switch
+export { isOutboundEmailEnabled } from "./kill-switch";
