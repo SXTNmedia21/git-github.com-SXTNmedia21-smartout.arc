@@ -6,7 +6,6 @@ import "./src/env";
 
 const nextConfig: NextConfig = {
   transpilePackages: [
-    "@smartout/ai",
     "@smartout/supabase",
     "@smartout/telemetry",
     "@smartout/types",
