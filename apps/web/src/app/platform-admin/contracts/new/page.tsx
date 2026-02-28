@@ -36,14 +36,22 @@ type Company = {
   name: string;
 };
 
+type Workspace = {
+  workspace_id: string;
+  name: string;
+  slug: string;
+};
+
 export default function NewContractPage() {
   const router = useRouter();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     template_id: "",
     company_id: "",
+    workspace_id: "",
     recipient_name: "",
     recipient_email: "",
     title: "",
@@ -69,6 +77,33 @@ export default function NewContractPage() {
     loadData();
   }, []);
 
+  // Load workspaces when company changes
+  useEffect(() => {
+    if (!formData.company_id) {
+      setWorkspaces([]);
+      setFormData((prev) => ({ ...prev, workspace_id: "" }));
+      return;
+    }
+
+    async function loadWorkspaces() {
+      const res = await fetch(
+        `/api/platform-admin/contracts?type=workspaces&company_id=${formData.company_id}`,
+      );
+      if (res.ok) {
+        const { data } = await res.json();
+        const ws = data ?? [];
+        setWorkspaces(ws);
+        // Auto-select if only one workspace
+        if (ws.length === 1) {
+          setFormData((prev) => ({ ...prev, workspace_id: ws[0].workspace_id }));
+        } else {
+          setFormData((prev) => ({ ...prev, workspace_id: "" }));
+        }
+      }
+    }
+    loadWorkspaces();
+  }, [formData.company_id]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!formData.template_id || !formData.recipient_email || !formData.recipient_name) {
@@ -81,7 +116,11 @@ export default function NewContractPage() {
       const res = await fetch("/api/platform-admin/contracts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          // Only send workspace_id if selected
+          workspace_id: formData.workspace_id || undefined,
+        }),
       });
 
       if (!res.ok) {
@@ -89,7 +128,17 @@ export default function NewContractPage() {
         throw new Error(err.error || "Kunne ikke opprette kontrakt");
       }
 
-      toast.success("Kontrakt opprettet og sendt");
+      const result = await res.json();
+      const status = result.data?.status;
+
+      if (status === "sent") {
+        toast.success("Kontrakt opprettet og sendt");
+      } else {
+        toast.success("Kontrakt opprettet som utkast", {
+          description: result.warning || "Kontrakten kan sendes manuelt fra kontraktsiden.",
+        });
+      }
+
       router.push("/platform-admin/contracts");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Noe gikk galt");
@@ -145,14 +194,14 @@ export default function NewContractPage() {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium" htmlFor="company">
-                  Selskap
+                  Selskap *
                 </label>
                 <Select
                   value={formData.company_id}
                   onValueChange={(v) => setFormData((prev) => ({ ...prev, company_id: v }))}
                 >
                   <SelectTrigger id="company">
-                    <SelectValue placeholder="Velg selskap (valgfritt)..." />
+                    <SelectValue placeholder="Velg selskap..." />
                   </SelectTrigger>
                   <SelectContent>
                     {companies.map((c) => (
@@ -163,6 +212,29 @@ export default function NewContractPage() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {workspaces.length > 1 && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium" htmlFor="workspace">
+                    Arbeidssted
+                  </label>
+                  <Select
+                    value={formData.workspace_id}
+                    onValueChange={(v) => setFormData((prev) => ({ ...prev, workspace_id: v }))}
+                  >
+                    <SelectTrigger id="workspace">
+                      <SelectValue placeholder="Velg arbeidssted..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {workspaces.map((w) => (
+                        <SelectItem key={w.workspace_id} value={w.workspace_id}>
+                          {w.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <label className="text-sm font-medium" htmlFor="recipient_name">

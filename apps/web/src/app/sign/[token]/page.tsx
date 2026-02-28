@@ -14,11 +14,13 @@ export default async function SignPage({ params }: Props) {
   // Look up contract by signing URL token
   const { data: contract } = await admin
     .from("contract")
-    .select("contract_id, title, signing_url, recipient_email, recipient_name, status, sender_name")
+    .select(
+      "contract_id, title, signing_url, docuseal_embed_url, recipient_email, recipient_name, status, sender_name",
+    )
     .eq("signing_url", token)
     .single();
 
-  if (!contract || !contract.signing_url) notFound();
+  if (!contract || !contract.signing_url || !contract.docuseal_embed_url) notFound();
 
   // Already signed or expired
   if (["signed", "expired", "cancelled", "declined"].includes(contract.status)) {
@@ -42,7 +44,7 @@ export default async function SignPage({ params }: Props) {
 
   return (
     <SigningForm
-      signingUrl={contract.signing_url}
+      docusealEmbedUrl={contract.docuseal_embed_url}
       recipientEmail={contract.recipient_email ?? ""}
       contractTitle={contract.title ?? "Avtale"}
     />

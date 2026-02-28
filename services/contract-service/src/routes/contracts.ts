@@ -3,6 +3,7 @@ import { supabase } from "../lib/supabase.js";
 import { docuseal } from "../lib/docuseal.js";
 import { resolvePlaceholders } from "../lib/placeholders.js";
 import { scheduleReminders } from "../lib/reminders.js";
+import { randomUUID } from "node:crypto";
 import { config } from "../config.js";
 import { createContractSchema, listContractsQuery } from "../schemas/contracts.js";
 
@@ -46,7 +47,7 @@ export async function contractRoutes(app: FastifyInstance) {
     const { data: template, error: tplErr } = await supabase
       .from("contract_template")
       .select("*")
-      .eq("id", body.template_id)
+      .eq("template_id", body.template_id)
       .single();
 
     if (tplErr || !template) {
@@ -168,7 +169,9 @@ body { font-family: Inter, sans-serif; padding: 40px; }
       const submitters = submission.submitters;
       const clientSubmitter = submitters.find((s) => s.role === "Kunde");
 
-      const signingUrl = clientSubmitter?.embed_src ?? clientSubmitter?.slug ?? null;
+      const docusealEmbedUrl = clientSubmitter?.embed_src ?? clientSubmitter?.slug ?? null;
+      // Generate a short token for the /sign/:token URL path
+      const signingToken = randomUUID().replace(/-/g, "").slice(0, 12);
 
       const sentAt = new Date();
 
@@ -181,7 +184,8 @@ body { font-family: Inter, sans-serif; padding: 40px; }
           expires_at: new Date(sentAt.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString(),
           docuseal_submission_id: String(submitters[0]?.submission_id ?? dsTemplate.id),
           docuseal_submitter_id: clientSubmitter?.id ?? null,
-          signing_url: signingUrl,
+          signing_url: signingToken,
+          docuseal_embed_url: docusealEmbedUrl,
           updated_at: sentAt.toISOString(),
         })
         .eq("contract_id", id);
@@ -207,7 +211,8 @@ body { font-family: Inter, sans-serif; padding: 40px; }
       return {
         contract_id: id,
         status: "sent",
-        signing_url: signingUrl,
+        signing_url: signingToken,
+        docuseal_embed_url: docusealEmbedUrl,
         expires_at: new Date(sentAt.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString(),
       };
     } catch (err) {

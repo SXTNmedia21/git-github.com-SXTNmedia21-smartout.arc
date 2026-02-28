@@ -30,6 +30,8 @@ const DocuSealEventSchema = z.object({
         }),
       )
       .optional(),
+    declined_at: z.string().nullable().optional(),
+    decline_reason: z.string().nullable().optional(),
   }),
 });
 
@@ -37,6 +39,7 @@ const eventToStatus: Record<string, string> = {
   "form.viewed": "viewed",
   "form.started": "viewed",
   "form.completed": "signed",
+  "form.declined": "declined",
   "submission.completed": "signed",
   "submission.expired": "expired",
 };
@@ -87,6 +90,7 @@ export async function POST(request: NextRequest) {
     sent: 1,
     viewed: 2,
     signed: 3,
+    declined: 3,
     expired: 3,
     cancelled: 3,
   };
@@ -126,6 +130,11 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  if (newStatus === "declined") {
+    updates.declined_at = data.declined_at ?? new Date().toISOString();
+    updates.decline_reason = data.decline_reason ?? null;
+  }
+
   const { error: updateError } = await admin
     .from("contract")
     .update(updates)
@@ -161,6 +170,15 @@ export async function POST(request: NextRequest) {
       new_status: newStatus,
     } as unknown as Json,
   });
+
+  // On decline: cancel pending reminders
+  if (newStatus === "declined") {
+    await admin
+      .from("contract_reminder")
+      .update({ status: "skipped", skip_reason: "contract_declined" })
+      .eq("contract_id", contract.contract_id)
+      .eq("status", "scheduled");
+  }
 
   // On signing: cancel pending reminders + update workspace contract status
   if (newStatus === "signed" && contract.workspace_id) {

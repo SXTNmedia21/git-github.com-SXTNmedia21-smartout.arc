@@ -5,8 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Download, Bell, XCircle, Clock, Send, Shield } from "lucide-react";
+import { ArrowLeft, Download } from "lucide-react";
 import Link from "next/link";
+import { ContractActionButtons } from "./action-buttons";
 
 const statusColor: Record<string, string> = {
   draft: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
@@ -125,49 +126,16 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
       </div>
 
       {/* Action buttons */}
-      <div className="flex flex-wrap gap-2">
-        {(contract.status === "sent" || contract.status === "viewed") && (
-          <>
-            <Button variant="outline" size="sm" disabled title="Requires contract microservice">
-              <Bell className="mr-2 h-4 w-4" />
-              Send reminder
-            </Button>
-            <Button variant="outline" size="sm" disabled title="Requires contract microservice">
-              <Clock className="mr-2 h-4 w-4" />
-              Extend deadline
-            </Button>
-            <Button variant="outline" size="sm" disabled title="Requires contract microservice">
-              <Send className="mr-2 h-4 w-4" />
-              Resend
-            </Button>
-          </>
-        )}
-        {contract.status !== "cancelled" &&
-          contract.status !== "signed" &&
-          contract.status !== "active" && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-red-400 hover:text-red-300"
-              disabled
-              title="Requires contract microservice"
-            >
-              <XCircle className="mr-2 h-4 w-4" />
-              Cancel
-            </Button>
-          )}
+      <div className="flex flex-wrap items-center gap-2">
+        <ContractActionButtons contractId={contract.contract_id} status={contract.status} />
         {contract.signed_pdf_url && (
           <a href={contract.signed_pdf_url} target="_blank" rel="noopener noreferrer">
             <Button variant="outline" size="sm">
               <Download className="mr-2 h-4 w-4" />
-              Download signed PDF
+              Last ned signert PDF
             </Button>
           </a>
         )}
-        <Button variant="outline" size="sm" disabled title="Requires contract microservice">
-          <Shield className="mr-2 h-4 w-4" />
-          Override workspace access
-        </Button>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">

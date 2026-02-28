@@ -29,7 +29,7 @@ export async function templateRoutes(app: FastifyInstance) {
     const { data, error } = await supabase
       .from("contract_template")
       .select("*")
-      .eq("id", id)
+      .eq("template_id", id)
       .single();
 
     if (error) return reply.status(404).send({ error: "Template not found" });
@@ -62,7 +62,7 @@ export async function templateRoutes(app: FastifyInstance) {
     const { data, error } = await supabase
       .from("contract_template")
       .update({ ...body, updated_at: new Date().toISOString() })
-      .eq("id", id)
+      .eq("template_id", id)
       .select()
       .single();
 
@@ -77,7 +77,7 @@ export async function templateRoutes(app: FastifyInstance) {
     const { error } = await supabase
       .from("contract_template")
       .update({ is_active: false, updated_at: new Date().toISOString() })
-      .eq("id", id);
+      .eq("template_id", id);
 
     if (error) return reply.status(400).send({ error: error.message });
     return reply.status(204).send();

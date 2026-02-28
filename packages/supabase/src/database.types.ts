@@ -501,6 +501,7 @@ export type Database = {
           decline_reason: string | null
           declined_at: string | null
           document_url: string | null
+          docuseal_embed_url: string | null
           docuseal_submission_id: string | null
           docuseal_submitter_id: number | null
           expires_at: string | null
@@ -537,6 +538,7 @@ export type Database = {
           decline_reason?: string | null
           declined_at?: string | null
           document_url?: string | null
+          docuseal_embed_url?: string | null
           docuseal_submission_id?: string | null
           docuseal_submitter_id?: number | null
           expires_at?: string | null
@@ -573,6 +575,7 @@ export type Database = {
           decline_reason?: string | null
           declined_at?: string | null
           document_url?: string | null
+          docuseal_embed_url?: string | null
           docuseal_submission_id?: string | null
           docuseal_submitter_id?: number | null
           expires_at?: string | null

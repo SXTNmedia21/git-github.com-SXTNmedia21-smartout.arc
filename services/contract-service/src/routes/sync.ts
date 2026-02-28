@@ -11,7 +11,7 @@ export async function syncRoutes(app: FastifyInstance) {
     const { data: template, error } = await supabase
       .from("contract_template")
       .select("*")
-      .eq("id", id)
+      .eq("template_id", id)
       .single();
 
     if (error || !template) {
@@ -40,7 +40,7 @@ export async function syncRoutes(app: FastifyInstance) {
           last_synced_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
-        .eq("id", id);
+        .eq("template_id", id);
 
       return {
         template_id: id,
@@ -61,7 +61,7 @@ export async function syncRoutes(app: FastifyInstance) {
     const { data: template, error } = await supabase
       .from("contract_template")
       .select("*")
-      .eq("id", id)
+      .eq("template_id", id)
       .single();
 
     if (error || !template) {

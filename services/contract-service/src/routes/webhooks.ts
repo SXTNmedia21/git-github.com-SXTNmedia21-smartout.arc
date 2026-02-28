@@ -1,3 +1,9 @@
+/**
+ * DEPRECATED: Use /api/webhooks/docuseal in the Next.js app (apps/web).
+ * That handler is deployed on Vercel and handles the full lifecycle:
+ * status update, workspace activation, reminder cancellation, audit logging.
+ * This handler is kept for reference and local development only.
+ */
 import type { FastifyInstance } from "fastify";
 import { supabase } from "../lib/supabase.js";
 import { config } from "../config.js";

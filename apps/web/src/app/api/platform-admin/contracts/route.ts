@@ -4,10 +4,12 @@ import { z } from "zod";
 import { createAdminClient } from "@smartout/supabase/admin";
 import type { Json } from "@smartout/supabase";
 import { getSuperAdminId, logPlatformAction } from "@/lib/platform-admin";
+import { callContractService, isContractServiceConfigured } from "@/lib/contract-service";
 
 const CreateContractSchema = z.object({
   template_id: z.string().uuid(),
   company_id: z.string().uuid(),
+  workspace_id: z.string().uuid().optional(),
   recipient_name: z.string().min(1),
   recipient_email: z.string().email(),
   title: z.string().optional(),
@@ -39,6 +41,21 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ data });
   }
 
+  if (type === "workspaces") {
+    const companyId = request.nextUrl.searchParams.get("company_id");
+    if (!companyId) {
+      return NextResponse.json({ error: "company_id required" }, { status: 400 });
+    }
+    const { data, error } = await admin
+      .from("workspace")
+      .select("workspace_id, name, slug")
+      .eq("company_id", companyId)
+      .order("name");
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ data });
+  }
+
   return NextResponse.json({ error: "Invalid type parameter" }, { status: 400 });
 }
 
@@ -53,6 +70,18 @@ export async function POST(request: NextRequest) {
 
   const admin = createAdminClient();
 
+  // Resolve workspace_id: use provided value, or find the first workspace for the company
+  let workspaceId = body.data.workspace_id;
+  if (!workspaceId) {
+    const { data: workspace } = await admin
+      .from("workspace")
+      .select("workspace_id")
+      .eq("company_id", body.data.company_id)
+      .limit(1)
+      .single();
+    workspaceId = workspace?.workspace_id ?? undefined;
+  }
+
   // Fetch the template
   const { data: template, error: templateError } = await admin
     .from("contract_template")
@@ -64,7 +93,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Template not found" }, { status: 404 });
   }
 
-  // Create the contract record
+  // Create the contract record as draft
   const contractTitle = body.data.title || `${template.name} - ${body.data.recipient_name}`;
   const now = new Date().toISOString();
   const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
@@ -74,6 +103,7 @@ export async function POST(request: NextRequest) {
     .insert({
       template_id: body.data.template_id,
       company_id: body.data.company_id,
+      workspace_id: workspaceId ?? null,
       title: contractTitle,
       contract_type: template.contract_type,
       status: "draft",
@@ -101,5 +131,35 @@ export async function POST(request: NextRequest) {
     recipient_email: body.data.recipient_email,
   });
 
-  return NextResponse.json({ data: contract }, { status: 201 });
+  // Try to send via contract microservice (if configured)
+  let sendStatus: "draft" | "sent" = "draft";
+  let sendWarning: string | undefined;
+
+  if (isContractServiceConfigured()) {
+    try {
+      const sendRes = await callContractService(`/contracts/${contract.contract_id}/send`, {
+        method: "POST",
+        headers: { "X-User-Id": adminId },
+      });
+
+      if (sendRes.ok) {
+        sendStatus = "sent";
+      } else {
+        const sendBody = await sendRes.json();
+        sendWarning = sendBody.error ?? "Failed to send via microservice";
+      }
+    } catch {
+      sendWarning = "Contract microservice unreachable";
+    }
+  } else {
+    sendWarning = "Contract microservice not configured — saved as draft";
+  }
+
+  return NextResponse.json(
+    {
+      data: { contract_id: contract.contract_id, status: sendStatus },
+      ...(sendWarning ? { warning: sendWarning } : {}),
+    },
+    { status: 201 },
+  );
 }
