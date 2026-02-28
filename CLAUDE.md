@@ -153,7 +153,14 @@ Single source of truth for all colors, spacing, radii, shadows.
 
 Dependencies: Vercel AI SDK (`ai`), OpenRouter provider, Supabase client, Zod.
 
-**@smartout/telemetry** — PostHog (browser + node) event registry and tracking hooks.
+**@smartout/telemetry** — `packages/telemetry/package.json`:
+
+```
+"."       → ./src/index.ts   (server-safe: event registry, emit(), routing)
+"./react" → ./src/react.ts   (client-only: useTrack() hook — requires React)
+```
+
+Root export is server-safe (no React). API routes and server code import from `@smartout/telemetry`. Client components that need the `useTrack` hook import from `@smartout/telemetry/react`.
 
 ---
 
