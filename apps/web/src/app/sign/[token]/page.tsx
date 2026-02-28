@@ -47,6 +47,7 @@ export default async function SignPage({ params }: Props) {
       docusealEmbedUrl={contract.docuseal_embed_url}
       recipientEmail={contract.recipient_email ?? ""}
       contractTitle={contract.title ?? "Avtale"}
+      signingToken={token}
     />
   );
 }

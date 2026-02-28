@@ -12,6 +12,7 @@ const envSchema = z.object({
   SMARTOUT_COMPANY_NAME: z.string().default("Smartout AS"),
   SMARTOUT_ORG_NUMBER: z.string().default(""),
   SMARTOUT_CONTACT_EMAIL: z.string().email().default("pontus@smartout.io"),
+  APP_URL: z.string().url().default("http://localhost:3050"),
 });
 
 export const config = envSchema.parse(process.env);

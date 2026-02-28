@@ -144,18 +144,41 @@ smartout_v3/
 
 ---
 
-## Environment Variables
+## Security — Always Enforced
 
-Validated with `@t3-oss/env-nextjs` + Zod in `apps/web/src/env.ts`.
-1Password: `op run --env-file=.env.template`. Never commit `.env.local`.
+Three laws. No exceptions.
+
+1. **Never plaintext secrets** in code, config, logs, or DB columns. Vault for external secrets, SHA-256 hash for issued keys.
+2. **Never bypass RLS** for convenience. API key auth uses `set_config` + `SET LOCAL ROLE authenticated`. Service role is for Vault access and platform-admin only.
+3. **Never commit secrets** to Git. Not in code, comments, migrations, or seed files.
+
+### API Key System
+
+| Tier   | What                                    | Storage                            | Key prefix                      |
+| ------ | --------------------------------------- | ---------------------------------- | ------------------------------- |
+| Tier 1 | Workspace API keys                      | SHA-256 hash in `platform_api_key` | `smo_sk_live_` / `smo_sk_test_` |
+| Tier 2 | External secrets (Stripe, Twilio, etc.) | Supabase Vault (pgsodium)          | Provider-specific               |
+| Tier 3 | Service-to-service keys                 | SHA-256 hash in `platform_api_key` | `smo_svc_live_`                 |
+
+- Raw key shown **once** at creation. Only hash stored. Never invent new prefixes.
+- Dual-auth Edge Functions: use `_shared/auth-middleware.ts` — never roll your own.
+- Edge Functions with API keys need `verify_jwt = false` in `config.toml`.
+- Vault access: `get_secret()`, `upsert_secret()`, `delete_secret()` — all `SECURITY DEFINER`, `service_role` only.
+- Workspace isolation via `current_setting('app.workspace_id', true)::uuid` in RLS. Always transaction-local (`set_config(..., true)` + `BEGIN`/`COMMIT`).
+
+### Environment Variables
+
+- Validated with `@t3-oss/env-nextjs` + Zod in `apps/web/src/env.ts`
+- All secrets in `.env.local` (gitignored). Never `.env` or hardcoded.
+- 1Password: `op run --env-file=.env.template`. Use `op://` references, never raw values.
+- Service role key: server-side and Edge Functions only, never in client code.
 
 > Full variable list: `docs/reference/ENV_VARS.md`
+> Full security protocol (427 lines): `docs/protocols/SECURITY.md`
 
 ---
 
-## Protocols (Enforcement)
-
-High-level rules in `docs/protocols/`. Read before working in their scope.
+## Protocols
 
 | Protocol      | File                              | Triggers                                     |
 | ------------- | --------------------------------- | -------------------------------------------- |
@@ -214,14 +237,15 @@ cd apps/web && npx shadcn@latest add <component>
 
 ## Changelog
 
-| Date       | Version | Change                                                                     | Author |
-| ---------- | ------- | -------------------------------------------------------------------------- | ------ |
-| 2026-03-01 | 7.3.0   | Protocols folder, templates folder, security protocol populated            | Claude |
-| 2026-02-28 | 7.2.0   | API key management: 3 tables, 2 Edge Functions, 8 API routes, UI, ADR-0028 | Claude |
-| 2026-02-28 | 7.1.0   | Added Security section referencing SMARTOUT_SECURITY_PROTOCOL              | Pontus |
-| 2026-02-28 | 7.0.0   | Major trim: moved details to reference files, <280 lines                   | Claude |
-| 2026-02-28 | 6.1.0   | Pricing terms, workspace creation, ADR-0027                                | Claude |
-| 2026-02-28 | 6.0.0   | Docs restructuring, INDEX.md, reference files, YAML, ADR-0025              | Claude |
-| 2026-02-28 | 5.0.0   | Contract system, microservice, notifications, ADR-0021-0024                | Claude |
-| 2026-02-27 | 2.0.0   | Complete rewrite verified against codebase                                 | Claude |
-| 2026-01-01 | 1.0.0   | Initial version                                                            | Pontus |
+| Date       | Version | Change                                                                         | Author |
+| ---------- | ------- | ------------------------------------------------------------------------------ | ------ |
+| 2026-03-01 | 7.4.0   | Inline security summary: Three Laws, API key tiers, env vars always in context | Claude |
+| 2026-03-01 | 7.3.0   | Protocols folder, templates folder, security protocol populated                | Claude |
+| 2026-02-28 | 7.2.0   | API key management: 3 tables, 2 Edge Functions, 8 API routes, UI, ADR-0028     | Claude |
+| 2026-02-28 | 7.1.0   | Added Security section referencing SMARTOUT_SECURITY_PROTOCOL                  | Pontus |
+| 2026-02-28 | 7.0.0   | Major trim: moved details to reference files, <280 lines                       | Claude |
+| 2026-02-28 | 6.1.0   | Pricing terms, workspace creation, ADR-0027                                    | Claude |
+| 2026-02-28 | 6.0.0   | Docs restructuring, INDEX.md, reference files, YAML, ADR-0025                  | Claude |
+| 2026-02-28 | 5.0.0   | Contract system, microservice, notifications, ADR-0021-0024                    | Claude |
+| 2026-02-27 | 2.0.0   | Complete rewrite verified against codebase                                     | Claude |
+| 2026-01-01 | 1.0.0   | Initial version                                                                | Pontus |

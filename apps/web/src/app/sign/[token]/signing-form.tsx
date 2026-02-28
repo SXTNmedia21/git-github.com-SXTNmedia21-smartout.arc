@@ -6,9 +6,15 @@ type Props = {
   docusealEmbedUrl: string;
   recipientEmail: string;
   contractTitle: string;
+  signingToken: string;
 };
 
-export function SigningForm({ docusealEmbedUrl, recipientEmail, contractTitle }: Props) {
+export function SigningForm({
+  docusealEmbedUrl,
+  recipientEmail,
+  contractTitle,
+  signingToken,
+}: Props) {
   return (
     <div className="mx-auto max-w-4xl py-8">
       <div className="mb-6 text-center">
@@ -24,10 +30,10 @@ export function SigningForm({ docusealEmbedUrl, recipientEmail, contractTitle }:
         withDownloadButton={true}
         language="no"
         onComplete={() => {
-          window.location.href = "/sign/success";
+          window.location.href = `/sign/success?token=${signingToken}`;
         }}
         onDecline={() => {
-          window.location.href = "/sign/declined";
+          window.location.href = `/sign/declined?token=${signingToken}`;
         }}
       />
     </div>

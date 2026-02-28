@@ -41,9 +41,11 @@ export async function resolvePlaceholders(
       case "constant":
         values[p.key] = resolveConstant(p.key) ?? p.default_value ?? "";
         break;
-      case "auto":
-        values[p.key] = resolveAuto(p.key);
+      case "auto": {
+        const autoVal = resolveAuto(p.key);
+        values[p.key] = autoVal || overrides[p.key] || p.default_value || "";
         break;
+      }
       case "manual":
         values[p.key] = overrides[p.key] ?? p.default_value ?? "";
         break;

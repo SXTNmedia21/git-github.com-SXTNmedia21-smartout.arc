@@ -118,7 +118,9 @@ export async function contractRoutes(app: FastifyInstance) {
 
     const { data: contract, error } = await supabase
       .from("contract")
-      .select("*, template:template_id(*)")
+      .select(
+        "*, template:template_id(content_html, placeholders, header_html, footer_html, content_css, accent_color)",
+      )
       .eq("contract_id", id)
       .single();
 
@@ -138,6 +140,10 @@ export async function contractRoutes(app: FastifyInstance) {
       let contractHtml = contract.resolved_html ?? "";
       const template = contract.template as {
         content_html: string | null;
+        header_html: string | null;
+        footer_html: string | null;
+        content_css: string | null;
+        accent_color: string | null;
         placeholders: Array<{
           key: string;
           label: string;
@@ -148,15 +154,37 @@ export async function contractRoutes(app: FastifyInstance) {
       } | null;
 
       if (contractHtml.includes("{{") && template?.placeholders?.length && contract.workspace_id) {
+        // Fetch workspace + company for comprehensive placeholder resolution
+        const { data: workspace } = await supabase
+          .from("workspace")
+          .select("*, company:company_id(*)")
+          .eq("workspace_id", contract.workspace_id)
+          .single();
+
+        const company = workspace?.company as {
+          name?: string;
+          org_number?: string;
+          email?: string;
+        } | null;
+
+        const overrides: Record<string, string> = {
+          contract_number: contract.contract_number ?? "",
+          recipient_name: contract.recipient_name ?? "",
+          recipient_email: contract.recipient_email ?? "",
+          kunde_navn: contract.recipient_name ?? company?.name ?? "",
+          kunde_org: company?.org_number ?? "",
+          kunde_epost: contract.recipient_email ?? company?.email ?? "",
+          arbeidssted_navn: workspace?.name ?? "",
+          arbeidssted_adresse: [workspace?.address_line_1, workspace?.postal_code, workspace?.city]
+            .filter(Boolean)
+            .join(", "),
+        };
+
         const { resolved_html, resolved_values } = await resolvePlaceholders(
           template.content_html ?? contractHtml,
           template.placeholders,
           contract.workspace_id,
-          {
-            contract_number: contract.contract_number ?? "",
-            recipient_name: contract.recipient_name ?? "",
-            recipient_email: contract.recipient_email ?? "",
-          },
+          overrides,
         );
         contractHtml = resolved_html;
 
@@ -184,13 +212,25 @@ export async function contractRoutes(app: FastifyInstance) {
           '<date-field name="$1" role="Kunde" format="DD/MM/YYYY" required="false" style="width: 120px; height: 18px; display: inline-block;"> </date-field>',
         );
 
-      // Build full HTML
+      // Build full HTML with template branding
+      const accent = template?.accent_color ?? "#FF6B35";
       const fullHtml = `<!DOCTYPE html>
 <html lang="no">
-<head><meta charset="UTF-8"><style>
-body { font-family: Inter, sans-serif; padding: 40px; }
-</style></head>
-<body>${docusealHtml}</body>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    :root { --accent: ${accent}; --accent-light: ${accent}1a; }
+    body { font-family: Inter, sans-serif; margin: 0; padding: 40px; color: #1a1a2e; }
+    h1, h2, h3 { color: var(--accent); }
+    .section-summary { color: #6b7280; font-style: italic; margin-bottom: 1em; }
+    ${template?.content_css ?? ""}
+  </style>
+</head>
+<body>
+  ${template?.header_html ?? ""}
+  ${docusealHtml}
+  ${template?.footer_html ?? ""}
+</body>
 </html>`;
 
       // Create DocuSeal template from resolved HTML
@@ -207,10 +247,14 @@ body { font-family: Inter, sans-serif; padding: 40px; }
         return reply.status(400).send({ error: "Contract is missing recipient_email" });
       }
 
+      // Generate signing token before submission so we can use it in the redirect URL
+      const signingToken = randomUUID().replace(/-/g, "").slice(0, 24);
+
       // Create submission with two parties
       const submission = await docuseal.createSubmission({
         template_id: dsTemplate.id,
         send_email: true,
+        completed_redirect_url: `${config.APP_URL}/sign/success?token=${signingToken}`,
         submitters: [
           {
             role: "Leverandør",
@@ -229,8 +273,6 @@ body { font-family: Inter, sans-serif; padding: 40px; }
       const clientSubmitter = submitters.find((s) => s.role === "Kunde");
 
       const docusealEmbedUrl = clientSubmitter?.embed_src ?? clientSubmitter?.slug ?? null;
-      // Generate a short token for the /sign/:token URL path
-      const signingToken = randomUUID().replace(/-/g, "").slice(0, 24);
 
       const sentAt = new Date();
 
