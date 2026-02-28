@@ -2,6 +2,8 @@ import { createAdminClient } from "@smartout/supabase/admin";
 import { getSuperAdminId } from "@/lib/platform-admin";
 import { redirect } from "next/navigation";
 import { WorkspaceListEnhanced } from "./_components/workspace-list-enhanced";
+import Link from "next/link";
+import { Plus } from "lucide-react";
 
 export default async function WorkspacesPage() {
   const adminId = await getSuperAdminId();
@@ -18,8 +20,19 @@ export default async function WorkspacesPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold">Workspaces</h1>
-      <p className="text-muted-foreground mt-1 text-sm">All workspaces across the platform</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">Arbeidssteder</h1>
+          <p className="text-muted-foreground mt-1 text-sm">Alle arbeidssteder på plattformen</p>
+        </div>
+        <Link
+          href="/platform-admin/workspaces/new"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex h-9 items-center gap-2 rounded-md px-4 text-sm font-medium"
+        >
+          <Plus className="h-4 w-4" />
+          Nytt arbeidssted
+        </Link>
+      </div>
       <div className="mt-6">
         <WorkspaceListEnhanced data={(workspaces ?? []) as never} />
       </div>

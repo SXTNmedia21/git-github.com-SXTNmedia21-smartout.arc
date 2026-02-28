@@ -248,7 +248,7 @@ Before creating a new enum, check `packages/supabase/src/database.types.ts` for 
 | Protocol       | `protocol`       | workspace_id scoped      |
 | Season         | `season`         | workspace_id scoped      |
 
-### Platform Admin Tables (5 tables — no RLS, service role only)
+### Platform Admin Tables (6 tables — no RLS, service role only)
 
 | Table                        | Purpose                                    |
 | ---------------------------- | ------------------------------------------ |
@@ -257,6 +257,7 @@ Before creating a new enum, check `packages/supabase/src/database.types.ts` for 
 | `platform_audit_log`         | Super-admin action audit trail             |
 | `platform_impersonation_log` | Workspace impersonation session tracking   |
 | `platform_metrics_daily`     | Daily aggregated KPI metrics               |
+| `pricing_terms`              | Workspace pricing terms (ADR-0027)         |
 
 Note: `user_identity.is_super_admin` (boolean, default false) gates access to all platform-admin functionality.
 
@@ -384,6 +385,7 @@ className="bg-zinc-950 text-zinc-100 border-zinc-800"
 Platform Admin (super-admin only):
 /platform-admin            → Dashboard KPIs + metrics
 /platform-admin/workspaces → Workspace list + management
+/platform-admin/workspaces/new → Create workspace form (pricing, contract, subscription)
 /platform-admin/workspaces/[id] → Workspace detail + actions
 /platform-admin/users      → User administration
 /platform-admin/billing    → Billing overview + Stripe sync
@@ -407,6 +409,7 @@ API Routes:
 /api/onboarding-agent      → Onboarding AI agent (POST)
 /api/contract-agent        → AI contract assistant (POST)
 /api/platform-admin/...    → Platform admin CRUD endpoints (service role)
+/api/platform-admin/workspaces → Create workspace + dropdown data (GET/POST)
 /api/platform-admin/contracts → Contract proxy to microservice (GET/POST)
 /api/platform-admin/contracts/[id]/send → Send contract for signing (POST)
 /api/platform-admin/contracts/[id]/cancel → Cancel contract (POST)
@@ -726,6 +729,8 @@ All accepted decisions in `docs/decisions/`. **Read before making changes in the
 | 0023 | Global Scrollbar Standard via Design Tokens                           | UI             |
 | 0024 | Contract System Architecture                                          | Contracts      |
 | 0025 | Documentation Restructuring — Layered System with YAML Frontmatter    | Documentation  |
+| 0026 | Template Editor Redesign with PDF Attachments                         | Contracts      |
+| 0027 | Pricing Terms Table for Workspace Commercial Model                    | Pricing        |
 
 ### ADR Enforcement (MANDATORY)
 
@@ -907,3 +912,4 @@ pnpm clean
 | 2026-02-28 | 5.0.0   | Contract system: Added contract-service microservice (Fastify, port 3100), 6 contract tables, contract-lifecycle Edge Function, Tiptap editor, 20 AI contract tools, signing pages, @smartout/notifications package. Registered ADR-0021 through ADR-0024. Updated monorepo structure, routes, env vars, edge functions. | Claude |
 | 2026-02-28 | 5.1.0   | Landing page: Added full landing route map (features, concepts, docs, legal pages), landing component table (WorkspaceAnalyzer, VoiceAssistant, Navigation, Footer, NextPageBanner). Added Learning-0011 (Framer Motion animation patterns).                                                                             | Claude |
 | 2026-02-28 | 6.0.0   | Docs restructuring: Added Source of Truth hierarchy, docs/INDEX.md, 4 reference files (DATABASE, ROUTES, PACKAGES, ENV_VARS), YAML frontmatter on all docs, docs/archive/, Nextra scaffold at apps/docs/. Removed Key Enums section (→ DATABASE.md) and Module table (→ INDEX.md). ADR-0025.                             | Claude |
+| 2026-02-28 | 6.1.0   | Create Workspace: Added `pricing_terms` table (migration 20260228220000), workspace creation API route, new workspace form page with pricing/contract/subscription cards. ADR-0027. Updated platform admin tables count, routes.                                                                                         | Claude |

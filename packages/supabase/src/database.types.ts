@@ -741,11 +741,13 @@ export type Database = {
       contract_template: {
         Row: {
           accent_color: string | null
+          attachments: Json
           content_css: string | null
           content_html: string | null
           contract_type: string
           created_at: string
           created_by: string | null
+          default_pricing: Json | null
           description: string | null
           docuseal_template_id: string | null
           footer_html: string | null
@@ -768,11 +770,13 @@ export type Database = {
         }
         Insert: {
           accent_color?: string | null
+          attachments?: Json
           content_css?: string | null
           content_html?: string | null
           contract_type?: string
           created_at?: string
           created_by?: string | null
+          default_pricing?: Json | null
           description?: string | null
           docuseal_template_id?: string | null
           footer_html?: string | null
@@ -795,11 +799,13 @@ export type Database = {
         }
         Update: {
           accent_color?: string | null
+          attachments?: Json
           content_css?: string | null
           content_html?: string | null
           contract_type?: string
           created_at?: string
           created_by?: string | null
+          default_pricing?: Json | null
           description?: string | null
           docuseal_template_id?: string | null
           footer_html?: string | null
@@ -2122,6 +2128,101 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "season"
             referencedColumns: ["season_id"]
+          },
+        ]
+      }
+      pricing_terms: {
+        Row: {
+          billing_interval: string
+          company_id: string
+          contract_id: string | null
+          created_at: string
+          created_by: string | null
+          currency: Database["public"]["Enums"]["currency"]
+          discount_label: string | null
+          discount_percent: number | null
+          effective_from: string
+          effective_until: string | null
+          monthly_cost: number | null
+          notes: string | null
+          onboarding_cost: number | null
+          onboarding_package: string | null
+          price_per_employee: number
+          pricing_terms_id: string
+          trial_days: number | null
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          billing_interval?: string
+          company_id: string
+          contract_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: Database["public"]["Enums"]["currency"]
+          discount_label?: string | null
+          discount_percent?: number | null
+          effective_from: string
+          effective_until?: string | null
+          monthly_cost?: number | null
+          notes?: string | null
+          onboarding_cost?: number | null
+          onboarding_package?: string | null
+          price_per_employee: number
+          pricing_terms_id?: string
+          trial_days?: number | null
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          billing_interval?: string
+          company_id?: string
+          contract_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: Database["public"]["Enums"]["currency"]
+          discount_label?: string | null
+          discount_percent?: number | null
+          effective_from?: string
+          effective_until?: string | null
+          monthly_cost?: number | null
+          notes?: string | null
+          onboarding_cost?: number | null
+          onboarding_package?: string | null
+          price_per_employee?: number
+          pricing_terms_id?: string
+          trial_days?: number | null
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_terms_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "pricing_terms_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contract"
+            referencedColumns: ["contract_id"]
+          },
+          {
+            foreignKeyName: "pricing_terms_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_identity"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "pricing_terms_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
           },
         ]
       }

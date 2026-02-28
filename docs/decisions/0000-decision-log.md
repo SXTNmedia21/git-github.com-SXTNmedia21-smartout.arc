@@ -29,3 +29,5 @@ This document serves as the central index of all Architecture Decision Records (
 | ADR-0023 | 28-02-2026 | [Global Scrollbar Standard via Design Tokens](./0023-global-scrollbar-standard.md)                           | **Accepted** |
 | ADR-0024 | 28-02-2026 | [Contract System Architecture](./0024-contract-system-architecture.md)                                       | **Accepted** |
 | ADR-0025 | 28-02-2026 | [Documentation Restructuring — Layered System with YAML Frontmatter](./0025-documentation-restructuring.md)  | **Accepted** |
+| ADR-0026 | 28-02-2026 | [Template Editor Redesign with PDF Attachments](./0026-template-editor-redesign-attachments.md)              | **Accepted** |
+| ADR-0027 | 28-02-2026 | [Pricing Terms Table for Workspace Commercial Model](./0027-pricing-terms-table.md)                          | **Accepted** |
