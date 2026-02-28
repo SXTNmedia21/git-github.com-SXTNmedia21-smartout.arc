@@ -1,0 +1,276 @@
+import type { FastifyInstance } from "fastify";
+import { supabase } from "../lib/supabase.js";
+import { docuseal } from "../lib/docuseal.js";
+import { resolvePlaceholders } from "../lib/placeholders.js";
+import { scheduleReminders } from "../lib/reminders.js";
+import { config } from "../config.js";
+import { createContractSchema, listContractsQuery } from "../schemas/contracts.js";
+
+export async function contractRoutes(app: FastifyInstance) {
+  // List contracts
+  app.get("/contracts", async (request, reply) => {
+    const query = listContractsQuery.parse(request.query);
+    let q = supabase.from("contract").select("*");
+
+    if (query.workspace_id) q = q.eq("workspace_id", query.workspace_id);
+    if (query.status) q = q.eq("status", query.status);
+    if (query.contract_type) q = q.eq("contract_type", query.contract_type);
+    if (query.recipient_email) q = q.eq("recipient_email", query.recipient_email);
+
+    const { data, error } = await q.order("created_at", { ascending: false });
+    if (error) return reply.status(500).send({ error: error.message });
+    return data;
+  });
+
+  // Get contract with events
+  app.get("/contracts/:id", async (request, reply) => {
+    const { id } = request.params as { id: string };
+
+    const [contractResult, eventsResult] = await Promise.all([
+      supabase.from("contract").select("*").eq("contract_id", id).single(),
+      supabase.from("contract_event").select("*").eq("contract_id", id).order("created_at"),
+    ]);
+
+    if (contractResult.error) {
+      return reply.status(404).send({ error: "Contract not found" });
+    }
+
+    return { ...contractResult.data, events: eventsResult.data ?? [] };
+  });
+
+  // Create contract from template
+  app.post("/contracts", async (request, reply) => {
+    const body = createContractSchema.parse(request.body);
+
+    // Fetch template
+    const { data: template, error: tplErr } = await supabase
+      .from("contract_template")
+      .select("*")
+      .eq("id", body.template_id)
+      .single();
+
+    if (tplErr || !template) {
+      return reply.status(404).send({ error: "Template not found" });
+    }
+
+    // Generate contract number
+    const { data: numResult } = await supabase.rpc("generate_contract_number" as never);
+    const contractNumber = (numResult as string) ?? `KONTRAKT-${new Date().getFullYear()}-000`;
+
+    // Resolve placeholders
+    const placeholders =
+      (template.placeholders as Array<{
+        key: string;
+        label: string;
+        source: string;
+        default_value?: string;
+        required: boolean;
+      }>) ?? [];
+
+    const { resolved_html, resolved_values } = await resolvePlaceholders(
+      template.content_html ?? "",
+      placeholders,
+      body.workspace_id,
+      { ...body.value_overrides, contract_number: contractNumber },
+    );
+
+    // Insert contract record
+    const { data: contract, error: insertErr } = await supabase
+      .from("contract")
+      .insert({
+        workspace_id: body.workspace_id,
+        template_id: body.template_id,
+        contract_type: body.contract_type,
+        contract_number: contractNumber,
+        title: `${template.name} - ${body.recipient_name}`,
+        resolved_html,
+        resolved_values,
+        sender_name: config.SMARTOUT_COMPANY_NAME,
+        sender_email: config.SMARTOUT_CONTACT_EMAIL,
+        recipient_name: body.recipient_name,
+        recipient_email: body.recipient_email,
+        status: "draft",
+        journey_type: body.journey_type,
+        auto_create_workspace: body.auto_create_workspace,
+        metadata: body.metadata,
+      })
+      .select()
+      .single();
+
+    if (insertErr) return reply.status(400).send({ error: insertErr.message });
+
+    // Log creation event
+    await supabase.from("contract_event").insert({
+      contract_id: contract.contract_id,
+      workspace_id: body.workspace_id,
+      event_type: "created",
+      actor_type: "user",
+      actor_id: (request.headers["x-user-id"] as string) ?? "system",
+    });
+
+    return reply.status(201).send(contract);
+  });
+
+  // Send contract for signing
+  app.post("/contracts/:id/send", async (request, reply) => {
+    const { id } = request.params as { id: string };
+
+    const { data: contract, error } = await supabase
+      .from("contract")
+      .select("*, template:template_id(*)")
+      .eq("contract_id", id)
+      .single();
+
+    if (error || !contract) {
+      return reply.status(404).send({ error: "Contract not found" });
+    }
+
+    if (contract.status !== "draft") {
+      return reply
+        .status(400)
+        .send({ error: `Cannot send contract in status: ${contract.status}` });
+    }
+
+    try {
+      // Build full HTML
+      const fullHtml = `<!DOCTYPE html>
+<html lang="no">
+<head><meta charset="UTF-8"><style>
+body { font-family: Inter, sans-serif; padding: 40px; }
+</style></head>
+<body>${contract.resolved_html}</body>
+</html>`;
+
+      // Create DocuSeal template from resolved HTML
+      const dsTemplate = await docuseal.createTemplateFromHtml({
+        html: fullHtml,
+        name: contract.title ?? "Smartout Contract",
+      });
+
+      // Create submission with two parties
+      const submission = await docuseal.createSubmission({
+        template_id: dsTemplate.id,
+        send_email: true,
+        submitters: [
+          {
+            role: "Leverandør",
+            email: contract.sender_email,
+            completed: true, // Auto-sign Smartout party
+          },
+          {
+            role: "Kunde",
+            email: contract.recipient_email,
+          },
+        ],
+      });
+
+      // Extract signing URL for the client submitter
+      const submitters = submission.submitters;
+      const clientSubmitter = submitters.find((s) => s.role === "Kunde");
+
+      const signingUrl = clientSubmitter?.embed_src ?? clientSubmitter?.slug ?? null;
+
+      const sentAt = new Date();
+
+      // Update contract record
+      await supabase
+        .from("contract")
+        .update({
+          status: "sent",
+          sent_at: sentAt.toISOString(),
+          expires_at: new Date(sentAt.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+          docuseal_submission_id: String(submitters[0]?.submission_id ?? dsTemplate.id),
+          docuseal_submitter_id: clientSubmitter?.id ?? null,
+          signing_url: signingUrl,
+          updated_at: sentAt.toISOString(),
+        })
+        .eq("contract_id", id);
+
+      // Log sent event
+      await supabase.from("contract_event").insert({
+        contract_id: id,
+        workspace_id: contract.workspace_id,
+        event_type: "sent",
+        actor_type: "user",
+        actor_id: (request.headers["x-user-id"] as string) ?? "system",
+        details: { docuseal_template_id: dsTemplate.id },
+      });
+
+      // Schedule reminders (Task 13)
+      await scheduleReminders(
+        id,
+        contract.workspace_id,
+        contract.journey_type ?? "sales_assisted",
+        sentAt,
+      );
+
+      return {
+        contract_id: id,
+        status: "sent",
+        signing_url: signingUrl,
+        expires_at: new Date(sentAt.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+      };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to send contract";
+      return reply.status(502).send({ error: message });
+    }
+  });
+
+  // Cancel contract
+  app.post("/contracts/:id/cancel", async (request, reply) => {
+    const { id } = request.params as { id: string };
+
+    const { data: contract, error } = await supabase
+      .from("contract")
+      .select("contract_id, status, workspace_id")
+      .eq("contract_id", id)
+      .single();
+
+    if (error || !contract) {
+      return reply.status(404).send({ error: "Contract not found" });
+    }
+
+    const cancellable = ["draft", "sent", "viewed"];
+    if (!cancellable.includes(contract.status)) {
+      return reply
+        .status(400)
+        .send({ error: `Cannot cancel contract in status: ${contract.status}` });
+    }
+
+    await supabase
+      .from("contract")
+      .update({ status: "cancelled", updated_at: new Date().toISOString() })
+      .eq("contract_id", id);
+
+    // Cancel pending reminders
+    await supabase
+      .from("contract_reminder")
+      .update({ status: "skipped", skip_reason: "contract_cancelled" })
+      .eq("contract_id", id)
+      .eq("status", "scheduled");
+
+    // Log cancellation
+    await supabase.from("contract_event").insert({
+      contract_id: id,
+      workspace_id: contract.workspace_id,
+      event_type: "cancelled",
+      actor_type: "user",
+      actor_id: (request.headers["x-user-id"] as string) ?? "system",
+    });
+
+    return { contract_id: id, status: "cancelled" };
+  });
+
+  // Get contract events (audit trail)
+  app.get("/contracts/:id/events", async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { data, error } = await supabase
+      .from("contract_event")
+      .select("*")
+      .eq("contract_id", id)
+      .order("created_at");
+
+    if (error) return reply.status(500).send({ error: error.message });
+    return data;
+  });
+}

@@ -40,6 +40,14 @@
     "./missions": {
       "types": "./dist/missions/index.d.ts",
       "default": "./dist/missions/index.js"
+    },
+    "./tools/contract": {
+      "types": "./dist/tools/contract/index.d.ts",
+      "default": "./dist/tools/contract/index.js"
+    },
+    "./agents/contract": {
+      "types": "./dist/agents/contract.d.ts",
+      "default": "./dist/agents/contract.js"
     }
   },
   "scripts": {

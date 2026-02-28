@@ -58,7 +58,7 @@ export default function Footer() {
           </p>
           <div className="flex gap-6 text-sm text-zinc-600">
             <span>Personvern</span>
-            <span>Vilkar</span>
+            <span>Vilkår</span>
           </div>
         </div>
       </div>

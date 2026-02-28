@@ -5,6 +5,7 @@ import path from "path";
 import "./src/env";
 
 const nextConfig: NextConfig = {
+  turbopack: {},
   transpilePackages: [
     "@smartout/ai",
     "@smartout/supabase",
