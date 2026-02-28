@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import path from "path";
 import { withSentryConfig } from "@sentry/nextjs";
 
 // This will force validation of the .env on start/build
@@ -13,6 +14,13 @@ const nextConfig: NextConfig = {
     "@smartout/design-tokens",
     "@smartout/utils",
   ],
+  webpack: (config, { dir }) => {
+    // Map @smartout/ai imports to pre-built dist/ output.
+    // Needed because pnpm workspace symlinks + exports field
+    // don't resolve reliably on Vercel's build environment.
+    config.resolve.alias["@smartout/ai"] = path.join(dir, "../../packages/ai/dist");
+    return config;
+  },
   async rewrites() {
     return [
       {
