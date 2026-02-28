@@ -1,9 +1,6 @@
 # Python services — deployed separately (DigitalOcean)
 services/
 
-# E2E tests — CI only
-apps/e2e/
-
 # Documentation — not deployed
 docs/
 
