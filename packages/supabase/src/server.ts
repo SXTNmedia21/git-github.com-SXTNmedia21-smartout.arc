@@ -2,8 +2,15 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import type { Database } from "./database.types";
 
+function getServerCookieDomain(): string | undefined {
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN;
+  if (!rootDomain || rootDomain === "localhost") return undefined;
+  return `.${rootDomain}`;
+}
+
 export async function createClient() {
   const cookieStore = await cookies();
+  const cookieDomain = getServerCookieDomain();
 
   return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -22,7 +29,10 @@ export async function createClient() {
         ) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options),
+              cookieStore.set(name, value, {
+                ...options,
+                ...(cookieDomain ? { domain: cookieDomain } : {}),
+              }),
             );
           } catch {
             // The `setAll` method was called from a Server Component.
