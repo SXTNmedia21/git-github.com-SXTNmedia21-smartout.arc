@@ -65,7 +65,13 @@ jobs:
           node-version: 20
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm turbo run build
+      - name: Build all apps
+        env:
+          # Placeholder values for CI build — @supabase/ssr validates these
+          # exist at client creation time. Real values are set in Vercel.
+          NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-key
+        run: pnpm turbo run build
       - name: Upload web build artifact
         uses: actions/upload-artifact@v4
         with:
@@ -123,6 +129,9 @@ jobs:
     needs: [build]
     env:
       PERF_ENFORCEMENT: ${{ github.event_name == 'pull_request' && 'warn' || 'fail' }}
+      # Placeholder values — web app needs these to start for perf audits
+      NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-key
     strategy:
       fail-fast: false
       matrix:
