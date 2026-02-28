@@ -7,14 +7,45 @@ import { webhookRoutes } from "./routes/webhooks.js";
 
 const app = Fastify({ logger: true });
 
+// Decorate request with workspace context from API key validation
+app.decorateRequest("workspaceId", undefined as string | undefined);
+
+declare module "fastify" {
+  interface FastifyRequest {
+    workspaceId?: string;
+  }
+}
+
 // Service key auth hook
 app.addHook("onRequest", async (request, reply) => {
   // Skip auth for health check and webhooks
   if (request.url === "/health" || request.url.startsWith("/webhooks/")) return;
 
-  const serviceKey = request.headers["x-service-key"];
-  if (serviceKey !== config.SERVICE_KEY) {
-    return reply.status(401).send({ error: "Unauthorized" });
+  const serviceKey = request.headers["x-service-key"] as string | undefined;
+  if (!serviceKey) {
+    return reply.status(401).send({ error: "Unauthorized: missing X-Service-Key" });
+  }
+
+  // Validate against Supabase platform_api_key table
+  try {
+    const res = await fetch(`${config.SUPABASE_URL}/functions/v1/validate-api-key`, {
+      method: "POST",
+      headers: {
+        "x-api-key": serviceKey,
+        "Content-Type": "application/json",
+      },
+    });
+    const body = (await res.json()) as { valid: boolean; workspace_id?: string };
+    if (!body.valid) {
+      return reply.status(401).send({ error: "Unauthorized: invalid service key" });
+    }
+    // Attach workspace context for downstream use
+    request.workspaceId = body.workspace_id;
+  } catch {
+    // Fallback: if validate-api-key is unavailable, check legacy env var
+    if (serviceKey !== config.SERVICE_KEY) {
+      return reply.status(401).send({ error: "Unauthorized" });
+    }
   }
 });
 
