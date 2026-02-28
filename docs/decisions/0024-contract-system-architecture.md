@@ -1,4 +1,4 @@
-# ADR-0021: Contract System Architecture
+# ADR-0024: Contract System Architecture
 
 **Status:** Accepted
 **Date:** 2026-02-28

@@ -25,3 +25,6 @@ This document serves as the central index of all Architecture Decision Records (
 | ADR-0019 | 28-02-2026 | [Performance and Build Governance System](./0019-performance-build-governance.md)                            | **Accepted** |
 | ADR-0020 | 28-02-2026 | [Vercel Hosting with Dual-Project Split](./0020-vercel-hosting-strategy.md)                                  | **Accepted** |
 | ADR-0021 | 28-02-2026 | [Subdomain-Based Workspace Routing](./0021-subdomain-workspace-routing.md)                                   | **Accepted** |
+| ADR-0022 | 28-02-2026 | [Email/Notification Service Architecture](./0022-notification-service-architecture.md)                       | **Accepted** |
+| ADR-0023 | 28-02-2026 | [Global Scrollbar Standard via Design Tokens](./0023-global-scrollbar-standard.md)                           | **Accepted** |
+| ADR-0024 | 28-02-2026 | [Contract System Architecture](./0024-contract-system-architecture.md)                                       | **Accepted** |

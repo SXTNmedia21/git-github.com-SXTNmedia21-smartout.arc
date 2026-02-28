@@ -35,6 +35,8 @@
 | Monorepo       | pnpm 9.15.9 + Turborepo                | —              | `op run` for 1Password secret injection        |
 | Fonts          | Geist + Geist Mono                     | —              | Google Fonts via next/font                     |
 | Testing        | Playwright                             | —              | E2E in `apps/e2e`                              |
+| Contracts      | DocuSeal Cloud + Fastify microservice  | —              | `services/contract-service/` (ADR-0024)        |
+| Rich Text      | Tiptap (ProseMirror)                   | v3.20          | Contract template editor                       |
 | Agents         | Pydantic                               | —              | Python agents in `agents/`                     |
 
 ### Third-Party Integrations (Live)
@@ -48,7 +50,7 @@
 | PostHog       | Product analytics                   | Live (EU instance)           |
 | Sentry        | Error tracking                      | Configured (production only) |
 | Upstash Redis | Rate limiting                       | Configured                   |
-| DocuSeal      | Employment contract e-signatures    | Webhook integrated           |
+| DocuSeal      | B2B + employment contract e-signing | Live (contract microservice) |
 
 ---
 
@@ -64,6 +66,7 @@ smartout_v3/
 │   ├── ai/               → AI SDK agents, tools, adapters (@smartout/ai)
 │   ├── design-tokens/    → OKLCH color tokens, CSS + TS exports (@smartout/design-tokens)
 │   ├── eslint-config/    → Shared ESLint flat config (@smartout/eslint-config)
+│   ├── notifications/    → Email + SMS sending via SendGrid/Twilio (@smartout/notifications)
 │   ├── types/            → Zod schemas, builds to dist/ (@smartout/types)
 │   ├── supabase/         → SSR client + database.types.ts (@smartout/supabase)
 │   ├── telemetry/        → PostHog + Supabase telemetry (@smartout/telemetry)
@@ -71,17 +74,18 @@ smartout_v3/
 │   ├── ui/               → Shared UI components (@smartout/ui)
 │   └── utils/            → Shared utilities (@smartout/utils)
 ├── supabase/
-│   ├── migrations/       → 17 migrations (00001-00013 + timestamps)
-│   ├── functions/        → 11 Edge Functions
+│   ├── migrations/       → 23 migrations (00001-00013 + timestamps)
+│   ├── functions/        → 12 Edge Functions
 │   ├── seed.sql          → Dev seed data
 │   └── config.toml       → Local dev config
 ├── services/
+│   ├── contract-service/ → Fastify contract microservice (port 3100, ADR-0024)
 │   └── scrapling/        → Python FastAPI scraper (port 8000, own venv)
 ├── agents/               → Pydantic AI agents (Python)
 ├── docs/
 │   ├── architecture/     → System architecture docs
 │   ├── cross-cutting/    → Billing, i18n, GDPR, security
-│   ├── decisions/        → ADRs (19 accepted)
+│   ├── decisions/        → ADRs (24 accepted)
 │   ├── learnings/        → Learning records
 │   ├── modules/          → Module specs (17 modules)
 │   ├── plans/            → Implementation plans (completed/ for done)
@@ -164,6 +168,17 @@ Dependencies: Vercel AI SDK (`ai`), OpenRouter provider, Supabase client, Zod.
 
 Root export is server-safe (no React). API routes and server code import from `@smartout/telemetry`. Client components that need the `useTrack` hook import from `@smartout/telemetry/react`.
 
+**@smartout/notifications** — `packages/notifications/package.json`:
+
+```
+"."            → ./src/index.ts       (sendEmail, createBroadcastJob, getJobStatus)
+"./templates"  → ./src/templates.ts   (email template registry)
+"./audiences"  → ./src/audiences.ts   (audience filter types + resolvers)
+"./compliance" → ./src/compliance.ts  (suppression list, classification)
+```
+
+Dependencies: SendGrid (`@sendgrid/mail`), Twilio, Supabase, Zod. See ADR-0022.
+
 ---
 
 ## Database Ground Truth
@@ -225,6 +240,19 @@ Before creating a new enum, check `packages/supabase/src/database.types.ts` for 
 
 Note: `user_identity.is_super_admin` (boolean, default false) gates access to all platform-admin functionality.
 
+### Contract System Tables (6 tables — ADR-0024)
+
+| Table               | Purpose                                     | Scope                  |
+| ------------------- | ------------------------------------------- | ---------------------- |
+| `contract_template` | Reusable contract templates with HTML + CSS | workspace_id scoped    |
+| `contract`          | Sent contract instances with signing state  | workspace_id scoped    |
+| `contract_event`    | Immutable audit trail per contract          | via contract.workspace |
+| `contract_reminder` | Scheduled email/SMS reminders               | workspace_id scoped    |
+| `message_template`  | Email/SMS template content (NO + EN)        | System (no RLS)        |
+| `clause_library`    | Reusable legal clause snippets              | Global (authenticated) |
+
+Note: `contract` and `contract_template` were renamed from `platform_contract_instance` and `platform_contract_template` (migration `20260228140000`). The workspace table also gained `contract_status`, `trial_started_at`, `trial_ends_at`, `active_contract_id`, and override columns.
+
 ### RLS Patterns (Verified)
 
 ```sql
@@ -251,9 +279,9 @@ Dev seed creates: Company (Smartout AS) → Workspace (HQ) → Location → Depa
 
 Known UUIDs: `a0000000-...` (company), `b0000000-...` (workspace), `e0000000-...` (user).
 
-### Edge Functions (11)
+### Edge Functions (12)
 
-activate-workspace, analyze-workspace, create-invitation, extract-workspace-data, finalize-workspace, gather-workspace-intelligence, health-check, scrape-raw-data, watchdog-integrity, watchdog-uptime, web-search-intelligence.
+activate-workspace, analyze-workspace, contract-lifecycle, create-invitation, extract-workspace-data, finalize-workspace, gather-workspace-intelligence, health-check, scrape-raw-data, watchdog-integrity, watchdog-uptime, web-search-intelligence.
 
 ---
 
@@ -333,15 +361,29 @@ Platform Admin (super-admin only):
 /platform-admin/users      → User administration
 /platform-admin/billing    → Billing overview + Stripe sync
 /platform-admin/content    → Landing page content CMS
-/platform-admin/contracts  → Employment contract management
+/platform-admin/contracts  → Contract list + management (TanStack Table)
+/platform-admin/contracts/new → Contract creation form
+/platform-admin/contracts/[id] → Contract detail + actions
+/platform-admin/contracts/templates → Template list
+/platform-admin/contracts/templates/[id]/edit → Tiptap template editor + AI
 /platform-admin/audit      → Platform audit log viewer
 /platform-admin/health     → System health + edge function status
+
+Signing (public, no auth):
+/sign/[token]              → Embedded DocuSeal signing page
+/sign/success              → Post-signing success
+/sign/declined             → Post-decline page
 
 API Routes:
 /api/health                → Service health check (GET)
 /api/telemetry             → Telemetry beacon (POST)
 /api/onboarding-agent      → Onboarding AI agent (POST)
+/api/contract-agent        → AI contract assistant (POST)
 /api/platform-admin/...    → Platform admin CRUD endpoints (service role)
+/api/platform-admin/contracts → Contract proxy to microservice (GET/POST)
+/api/platform-admin/contracts/[id]/send → Send contract for signing (POST)
+/api/platform-admin/contracts/[id]/cancel → Cancel contract (POST)
+/api/platform-admin/contracts/[id]/remind → Send reminder (POST)
 /api/webhooks/docuseal     → DocuSeal contract webhook (POST)
 ```
 
@@ -353,25 +395,27 @@ API Routes:
 
 Env vars are validated at build/start using `@t3-oss/env-nextjs` + Zod in `apps/web/src/env.ts`.
 
-| Variable                        | Context | Required | Notes                               |
-| ------------------------------- | ------- | -------- | ----------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`      | Client  | Yes      | Local: `http://127.0.0.1:54331`     |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Client  | Yes      | From `npx supabase status`          |
-| `NEXT_PUBLIC_POSTHOG_KEY`       | Client  | No       | PostHog project API key             |
-| `NEXT_PUBLIC_POSTHOG_HOST`      | Client  | No       | Default: `https://eu.i.posthog.com` |
-| `SUPABASE_SERVICE_ROLE_KEY`     | Server  | No       | For admin operations only           |
-| `STRIPE_SECRET_KEY`             | Server  | No       | Must start with `sk_`               |
-| `STRIPE_WEBHOOK_SECRET`         | Server  | No       | Must start with `whsec_`            |
-| `SENDGRID_API_KEY`              | Server  | No       | Must start with `SG.`               |
-| `TWILIO_ACCOUNT_SID`            | Server  | No       | Twilio account                      |
-| `TWILIO_AUTH_TOKEN`             | Server  | No       | Twilio auth                         |
-| `JWT_SECRET`                    | Server  | No       | Min 32 chars                        |
-| `SESSION_SECRET`                | Server  | No       | Min 32 chars                        |
-| `UPSTASH_REDIS_REST_URL`        | Server  | No       | Rate limiting (production)          |
-| `UPSTASH_REDIS_REST_TOKEN`      | Server  | No       | Rate limiting (production)          |
-| `SENTRY_DSN`                    | Server  | No       | Sentry error tracking               |
-| `DOCUSEAL_WEBHOOK_SECRET`       | Server  | No       | DocuSeal webhook signature secret   |
-| `NEXT_PUBLIC_SENTRY_DSN`        | Client  | No       | Sentry client-side tracking         |
+| Variable                        | Context | Required | Notes                                        |
+| ------------------------------- | ------- | -------- | -------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`      | Client  | Yes      | Local: `http://127.0.0.1:54331`              |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Client  | Yes      | From `npx supabase status`                   |
+| `NEXT_PUBLIC_POSTHOG_KEY`       | Client  | No       | PostHog project API key                      |
+| `NEXT_PUBLIC_POSTHOG_HOST`      | Client  | No       | Default: `https://eu.i.posthog.com`          |
+| `SUPABASE_SERVICE_ROLE_KEY`     | Server  | No       | For admin operations only                    |
+| `STRIPE_SECRET_KEY`             | Server  | No       | Must start with `sk_`                        |
+| `STRIPE_WEBHOOK_SECRET`         | Server  | No       | Must start with `whsec_`                     |
+| `SENDGRID_API_KEY`              | Server  | No       | Must start with `SG.`                        |
+| `TWILIO_ACCOUNT_SID`            | Server  | No       | Twilio account                               |
+| `TWILIO_AUTH_TOKEN`             | Server  | No       | Twilio auth                                  |
+| `JWT_SECRET`                    | Server  | No       | Min 32 chars                                 |
+| `SESSION_SECRET`                | Server  | No       | Min 32 chars                                 |
+| `UPSTASH_REDIS_REST_URL`        | Server  | No       | Rate limiting (production)                   |
+| `UPSTASH_REDIS_REST_TOKEN`      | Server  | No       | Rate limiting (production)                   |
+| `SENTRY_DSN`                    | Server  | No       | Sentry error tracking                        |
+| `DOCUSEAL_WEBHOOK_SECRET`       | Server  | No       | DocuSeal webhook signature secret            |
+| `CONTRACT_SERVICE_URL`          | Server  | No       | Contract microservice URL                    |
+| `CONTRACT_SERVICE_KEY`          | Server  | No       | Contract microservice API key (min 16 chars) |
+| `NEXT_PUBLIC_SENTRY_DSN`        | Client  | No       | Sentry client-side tracking                  |
 
 ### 1Password Integration
 
@@ -614,6 +658,10 @@ All accepted decisions in `docs/decisions/`. **Read before making changes in the
 | 0018 | TanStack Table and Recharts for Platform Admin                        | UI / Deps      |
 | 0019 | Performance and Build Governance System                               | Performance    |
 | 0020 | Vercel Hosting with Dual-Project Split                                | Hosting        |
+| 0021 | Subdomain-Based Workspace Routing                                     | Routing        |
+| 0022 | Email/Notification Service Architecture                               | Notifications  |
+| 0023 | Global Scrollbar Standard via Design Tokens                           | UI             |
+| 0024 | Contract System Architecture                                          | Contracts      |
 
 ### ADR Enforcement (MANDATORY)
 
@@ -816,12 +864,13 @@ pnpm clean
 
 ## Changelog
 
-| Date       | Version | Change                                                                                                                                                                                                                                                                                                      | Author |
-| ---------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| 2026-01-01 | 1.0.0   | Initial version (as GEMINI_CONTEXT.md)                                                                                                                                                                                                                                                                      | Pontus |
-| 2026-02-27 | 2.0.0   | Complete rewrite: verified against actual codebase. Fixed table names (user_identity), removed phantom stripe_subscription, added Tailwind v4 details, env validation, package exports, migration patterns, seed data, stale doc protocol, performance rules, dev commands, third-party integrations        | Claude |
-| 2026-02-27 | 2.1.0   | Added Linear repo scope section — maps which Linear projects belong to this repo vs. other repos                                                                                                                                                                                                            | Claude |
-| 2026-02-27 | 3.0.0   | Enterprise infrastructure: Added new packages (typescript-config, eslint-config, design-tokens, utils), new Edge Functions (health-check, watchdog-integrity, watchdog-uptime), new API routes (/api/health, /api/telemetry), Sentry + Upstash integrations, updated dev commands, ADR-0017                 | Claude |
-| 2026-02-28 | 4.0.0   | Platform Admin Backoffice: Added 5 platform-admin tables (migration 00013), 9 platform-admin routes, DocuSeal webhook, ./admin export, DOCUSEAL_WEBHOOK_SECRET env var, ADR-0018, services/ directory, docs/learnings/ system, moved scrapling to services/                                                 | Claude |
-| 2026-02-28 | 4.1.0   | Performance and Build Governance documentation sweep: added architecture doc (`PERFORMANCE_BUILD_GOVERNANCE.md`), expanded ADR-0019 with rollout learnings, added Learning-0007, updated roadmap references and CLAUDE governance section                                                                   | Claude |
-| 2026-02-28 | 4.2.0   | Vercel deployment: Updated ADR-0020 with verified build settings (Root Dir = app dir, not `.`), pnpm 9.15.9, 17 migrations to production Supabase. Added Learnings 0008-0010 (x-forwarded-host, .vercelignore depth, Turborepo Root Directory). Fixed security middleware blocking all production requests. | Claude |
+| Date       | Version | Change                                                                                                                                                                                                                                                                                                                   | Author |
+| ---------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------ |
+| 2026-01-01 | 1.0.0   | Initial version (as GEMINI_CONTEXT.md)                                                                                                                                                                                                                                                                                   | Pontus |
+| 2026-02-27 | 2.0.0   | Complete rewrite: verified against actual codebase. Fixed table names (user_identity), removed phantom stripe_subscription, added Tailwind v4 details, env validation, package exports, migration patterns, seed data, stale doc protocol, performance rules, dev commands, third-party integrations                     | Claude |
+| 2026-02-27 | 2.1.0   | Added Linear repo scope section — maps which Linear projects belong to this repo vs. other repos                                                                                                                                                                                                                         | Claude |
+| 2026-02-27 | 3.0.0   | Enterprise infrastructure: Added new packages (typescript-config, eslint-config, design-tokens, utils), new Edge Functions (health-check, watchdog-integrity, watchdog-uptime), new API routes (/api/health, /api/telemetry), Sentry + Upstash integrations, updated dev commands, ADR-0017                              | Claude |
+| 2026-02-28 | 4.0.0   | Platform Admin Backoffice: Added 5 platform-admin tables (migration 00013), 9 platform-admin routes, DocuSeal webhook, ./admin export, DOCUSEAL_WEBHOOK_SECRET env var, ADR-0018, services/ directory, docs/learnings/ system, moved scrapling to services/                                                              | Claude |
+| 2026-02-28 | 4.1.0   | Performance and Build Governance documentation sweep: added architecture doc (`PERFORMANCE_BUILD_GOVERNANCE.md`), expanded ADR-0019 with rollout learnings, added Learning-0007, updated roadmap references and CLAUDE governance section                                                                                | Claude |
+| 2026-02-28 | 4.2.0   | Vercel deployment: Updated ADR-0020 with verified build settings (Root Dir = app dir, not `.`), pnpm 9.15.9, 17 migrations to production Supabase. Added Learnings 0008-0010 (x-forwarded-host, .vercelignore depth, Turborepo Root Directory). Fixed security middleware blocking all production requests.              | Claude |
+| 2026-02-28 | 5.0.0   | Contract system: Added contract-service microservice (Fastify, port 3100), 6 contract tables, contract-lifecycle Edge Function, Tiptap editor, 20 AI contract tools, signing pages, @smartout/notifications package. Registered ADR-0021 through ADR-0024. Updated monorepo structure, routes, env vars, edge functions. | Claude |

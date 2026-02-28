@@ -1,4 +1,4 @@
-# ADR-0021: Global Scrollbar Standard via Design Tokens
+# ADR-0023: Global Scrollbar Standard via Design Tokens
 
 **Status:** Accepted
 **Date:** 2026-02-28
