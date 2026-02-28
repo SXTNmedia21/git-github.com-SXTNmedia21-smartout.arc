@@ -57,8 +57,12 @@ export default function Footer() {
             &copy; 2026 SmartOut AS. Helt bygget for fremtiden.
           </p>
           <div className="flex gap-6 text-sm text-zinc-600">
-            <span>Personvern</span>
-            <span>Vilkår</span>
+            <Link href="/personvern" className="transition-colors hover:text-zinc-400">
+              Personvern
+            </Link>
+            <Link href="/vilkar" className="transition-colors hover:text-zinc-400">
+              Vilkår
+            </Link>
           </div>
         </div>
       </div>

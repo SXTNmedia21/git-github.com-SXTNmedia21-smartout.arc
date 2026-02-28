@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import Navigation from "../components/navigation";
 import Footer from "../components/footer";
+import WorkspaceAnalyzer from "../components/workspace-analyzer";
 import { WEB_APP_LINKS } from "../lib/web-app-url";
 
 const VoiceAssistant = dynamic(() => import("../components/voice-assistant"), {
@@ -184,9 +185,9 @@ export default function SmartoutLandingPage() {
       {/* Navigation */}
       <Navigation />
 
-      <main className="relative z-10 mx-auto max-w-7xl px-6 pt-32 pb-20">
+      <main className="relative z-10 mx-auto max-w-7xl px-6 pt-24 pb-12 sm:pt-32 sm:pb-20">
         {/* MAIN HERO SECTION */}
-        <div className="relative flex min-h-[calc(100dvh-120px)] flex-col items-center justify-center gap-8 pt-20 pb-10 text-center">
+        <div className="relative flex min-h-0 flex-col items-center justify-center gap-6 pt-10 pb-6 text-center sm:min-h-[calc(100dvh-120px)] sm:gap-8 sm:pt-20 sm:pb-10">
           <motion.div
             initial="hidden"
             animate="visible"
@@ -195,7 +196,7 @@ export default function SmartoutLandingPage() {
           >
             <motion.div
               variants={itemVariants}
-              className="group relative mb-8 inline-flex items-center gap-2 overflow-hidden rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white shadow-xl backdrop-blur-md"
+              className="group relative mb-4 inline-flex items-center gap-2 overflow-hidden rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white shadow-xl backdrop-blur-md sm:mb-8"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-orange-500/20 to-rose-500/20 opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
               <div className="absolute -inset-[1px] rounded-full bg-gradient-to-r from-orange-500 to-rose-500 opacity-0 blur-sm transition-opacity duration-500 group-hover:opacity-30" />
@@ -207,7 +208,7 @@ export default function SmartoutLandingPage() {
 
             <motion.h1
               variants={itemVariants}
-              className="mb-8 text-4xl leading-[1.05] font-black tracking-tighter drop-shadow-2xl sm:text-6xl md:text-8xl lg:text-[7.5rem]"
+              className="mb-4 text-4xl leading-[1.05] font-black tracking-tighter drop-shadow-2xl sm:mb-8 sm:text-6xl md:text-8xl lg:text-[7.5rem]"
             >
               Én plattform. <br />
               <span className="relative inline-block">
@@ -220,7 +221,7 @@ export default function SmartoutLandingPage() {
 
             <motion.p
               variants={itemVariants}
-              className="mb-12 max-w-3xl text-xl leading-relaxed font-medium text-zinc-400 md:text-2xl"
+              className="mb-8 max-w-3xl text-lg leading-relaxed font-medium text-zinc-400 sm:mb-12 sm:text-xl md:text-2xl"
             >
               Samle vaktplaner, HR, kommunikasjon, stemplingsur og internkontroll i ett og samme
               lynraske system. Reduser kaos og øk fortjenesten.
@@ -313,7 +314,7 @@ export default function SmartoutLandingPage() {
         </div>
 
         {/* BRAND / INTEGRATION MARQUEE */}
-        <div className="relative mt-32 mb-12 flex w-full items-center overflow-hidden py-12">
+        <div className="relative mt-12 mb-8 flex w-full items-center overflow-hidden py-6 sm:mt-32 sm:mb-12 sm:py-12">
           <div className="pointer-events-none absolute top-0 bottom-0 left-0 z-10 w-48 bg-gradient-to-r from-zinc-950 to-transparent"></div>
           <div className="pointer-events-none absolute top-0 right-0 bottom-0 z-10 w-48 bg-gradient-to-l from-zinc-950 to-transparent"></div>
           <motion.div
@@ -368,7 +369,7 @@ export default function SmartoutLandingPage() {
         {/* LISE HERO SECTION */}
         <div
           id="lise"
-          className="relative flex min-h-[calc(100dvh-120px)] flex-col items-center justify-between gap-16 py-32 lg:flex-row"
+          className="relative flex min-h-0 flex-col items-center justify-between gap-10 py-16 sm:min-h-[calc(100dvh-120px)] sm:gap-16 sm:py-32 lg:flex-row"
         >
           {/* Soft background glow for Lise section */}
           <div className="pointer-events-none absolute top-1/2 left-1/2 h-[800px] w-[800px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-orange-500/5 mix-blend-screen blur-[120px]" />
@@ -381,7 +382,7 @@ export default function SmartoutLandingPage() {
           >
             <motion.div
               variants={itemVariants}
-              className="mb-6 inline-flex items-center gap-2 rounded-full border border-orange-500/20 bg-orange-500/10 px-3 py-1 text-xs font-bold tracking-wider text-orange-400 uppercase"
+              className="mb-4 inline-flex items-center gap-2 rounded-full border border-orange-500/20 bg-orange-500/10 px-3 py-1 text-xs font-bold tracking-wider text-orange-400 uppercase sm:mb-6"
             >
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-400 opacity-75"></span>
@@ -392,7 +393,7 @@ export default function SmartoutLandingPage() {
 
             <motion.h1
               variants={itemVariants}
-              className="mb-6 text-5xl leading-[1.1] font-extrabold tracking-tight md:text-7xl"
+              className="mb-4 text-4xl leading-[1.1] font-extrabold tracking-tight sm:mb-6 sm:text-5xl md:text-7xl"
             >
               Møt{" "}
               <span className="bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent">
@@ -404,7 +405,7 @@ export default function SmartoutLandingPage() {
 
             <motion.p
               variants={itemVariants}
-              className="mb-10 max-w-xl text-lg leading-relaxed text-zinc-400 md:text-xl"
+              className="mb-6 max-w-xl text-base leading-relaxed text-zinc-400 sm:mb-10 sm:text-lg md:text-xl"
             >
               SmartOut er bygget for den norske serveringsbransjen. Reduser administrativt arbeid
               fra timer til minutter, integrer ansatte på tvers av språkbarrierer, og få full
@@ -434,24 +435,24 @@ export default function SmartoutLandingPage() {
               variants={itemVariants}
               className="mt-10 grid grid-cols-3 gap-3 sm:mt-12 sm:flex sm:items-center sm:gap-6"
             >
-              <div className="flex flex-col items-center gap-1.5 rounded-2xl border border-white/5 bg-white/[0.02] px-3 py-3 sm:flex-row sm:gap-2 sm:border-0 sm:bg-transparent sm:p-0">
-                <Clock className="h-4 w-4 text-zinc-400" />
-                <span className="text-center text-[11px] font-semibold text-zinc-500 sm:text-sm">
-                  Tidsbesparelse
-                </span>
-              </div>
-              <div className="flex flex-col items-center gap-1.5 rounded-2xl border border-white/5 bg-white/[0.02] px-3 py-3 sm:flex-row sm:gap-2 sm:border-0 sm:bg-transparent sm:p-0">
-                <ShieldCheck className="h-4 w-4 text-zinc-400" />
-                <span className="text-center text-[11px] font-semibold text-zinc-500 sm:text-sm">
-                  100% Compliance
-                </span>
-              </div>
-              <div className="flex flex-col items-center gap-1.5 rounded-2xl border border-white/5 bg-white/[0.02] px-3 py-3 sm:flex-row sm:gap-2 sm:border-0 sm:bg-transparent sm:p-0">
-                <Users className="h-4 w-4 text-zinc-400" />
-                <span className="text-center text-[11px] font-semibold text-zinc-500 sm:text-sm">
-                  Høy Retensjon
-                </span>
-              </div>
+              {[
+                { icon: Clock, label: "Tidsbesparelse" },
+                { icon: ShieldCheck, label: "100% Compliance" },
+                { icon: Users, label: "Høy Retensjon" },
+              ].map((stat, i) => (
+                <motion.div
+                  key={stat.label}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.8 + i * 0.15, duration: 0.4 }}
+                  className="flex flex-col items-center gap-1.5 rounded-2xl border border-white/5 bg-white/[0.02] px-3 py-3 sm:flex-row sm:gap-2 sm:border-0 sm:bg-transparent sm:p-0"
+                >
+                  <stat.icon className="h-4 w-4 text-zinc-400" />
+                  <span className="text-center text-[11px] font-semibold text-zinc-500 sm:text-sm">
+                    {stat.label}
+                  </span>
+                </motion.div>
+              ))}
             </motion.div>
           </motion.div>
 
@@ -464,7 +465,7 @@ export default function SmartoutLandingPage() {
                   initial={{ opacity: 0, scale: 0.9, y: 20 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                  className="relative z-50 h-[600px] w-full"
+                  className="relative z-50 h-[400px] w-full sm:h-[600px]"
                 >
                   <VoiceAssistant
                     autoStart
@@ -478,7 +479,7 @@ export default function SmartoutLandingPage() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="group relative flex h-[600px] w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded-[40px] border border-white/10 bg-[#0a0a0c]/50 p-10 text-center shadow-2xl backdrop-blur-xl transition-colors hover:border-orange-500/30"
+                  className="group relative flex h-[360px] w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded-3xl border border-white/10 bg-[#0a0a0c]/50 p-6 text-center shadow-2xl backdrop-blur-xl transition-colors hover:border-orange-500/30 sm:h-[600px] sm:rounded-[40px] sm:p-10"
                   onClick={() => setIsAssistantOpen(true)}
                 >
                   <div className="absolute inset-0 z-10 bg-gradient-to-t from-[#050505]/90 to-transparent" />
@@ -493,15 +494,15 @@ export default function SmartoutLandingPage() {
                       ],
                     }}
                     transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                    className="relative z-20 mb-6 flex h-24 w-24 items-center justify-center rounded-full border border-white/5 bg-white/5 transition-colors group-hover:border-orange-500/20 group-hover:bg-orange-500/10"
+                    className="relative z-20 mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-white/5 bg-white/5 transition-colors group-hover:border-orange-500/20 group-hover:bg-orange-500/10 sm:mb-6 sm:h-24 sm:w-24"
                   >
                     <div className="absolute inset-0 rounded-full border border-orange-500/20 opacity-0 group-hover:animate-ping group-hover:opacity-100" />
-                    <Mic className="h-10 w-10 text-zinc-500 transition-colors group-hover:text-orange-500" />
+                    <Mic className="h-7 w-7 text-zinc-500 transition-colors group-hover:text-orange-500 sm:h-10 sm:w-10" />
                   </motion.div>
-                  <h3 className="relative z-20 mb-2 text-2xl font-bold text-white">
+                  <h3 className="relative z-20 mb-1 text-lg font-bold text-white sm:mb-2 sm:text-2xl">
                     Lise venter...
                   </h3>
-                  <p className="relative z-20 mb-8 max-w-xs text-zinc-500">
+                  <p className="relative z-20 mb-4 max-w-xs text-sm text-zinc-500 sm:mb-8 sm:text-base">
                     Klikk her for å vekke röstassistenten og still spørsmål om vaktplan, onboarding
                     eller rutiner.
                   </p>
@@ -518,7 +519,7 @@ export default function SmartoutLandingPage() {
         {/* INTERACTIVE WORKSPACE SECTION */}
         <section
           id="workspace"
-          className="relative z-10 mt-20 flex min-h-[100dvh] flex-col justify-center py-32"
+          className="relative z-10 mt-12 flex min-h-0 flex-col justify-center py-16 sm:mt-20 sm:min-h-[100dvh] sm:py-32"
         >
           {/* Ambient Glow */}
           <div className="pointer-events-none absolute top-0 right-0 h-[600px] w-[600px] rounded-full bg-blue-500/5 mix-blend-screen blur-[150px]" />
@@ -528,12 +529,12 @@ export default function SmartoutLandingPage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.8 }}
-            className="mb-16 text-center"
+            className="mb-8 text-center sm:mb-16"
           >
-            <h2 className="mb-4 text-3xl font-black tracking-tight text-white sm:mb-6 sm:text-4xl">
+            <h2 className="mb-3 text-2xl font-black tracking-tight text-white sm:mb-6 sm:text-4xl">
               Se for deg ditt fremtidige workspace
             </h2>
-            <p className="mx-auto max-w-2xl text-base text-zinc-400 sm:text-lg">
+            <p className="mx-auto max-w-2xl text-sm text-zinc-400 sm:text-lg">
               Restaurantdrift er komplekst. Derfor er Smartout bygget for å speile din virkelighet
               tvers av alle aspekter. Slik organiserer stjernene bedriften sin for å overholde
               Arbeidstilsynets og Mattilsynets krav:
@@ -541,7 +542,7 @@ export default function SmartoutLandingPage() {
           </motion.div>
 
           {/* Interactive Tabs */}
-          <div className="mb-12 flex justify-center gap-1.5 px-2 sm:gap-3 sm:px-4">
+          <div className="mb-8 flex justify-center gap-1.5 px-2 sm:mb-12 sm:gap-3 sm:px-4">
             {[
               { id: "locations", label: "Lokasjoner", icon: MapPin },
               { id: "procedures", label: "Prosedyrer", icon: ClipboardList },
@@ -576,28 +577,60 @@ export default function SmartoutLandingPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4 }}
-                className="grid grid-cols-1 gap-8 md:grid-cols-3"
               >
-                {MOCK_LOCATIONS.map((loc) => (
-                  <Link
-                    href={loc.href}
-                    key={loc.id}
-                    className="group relative block overflow-hidden rounded-[40px] border border-white/5 bg-[#0a0a0c]/40 p-10 shadow-2xl backdrop-blur-3xl transition-all duration-500 hover:-translate-y-2 hover:border-white/10"
-                  >
-                    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-50 transition-all duration-500 group-hover:via-orange-500/50 group-hover:opacity-100" />
-                    <div className="absolute -inset-1 bg-gradient-to-b from-orange-500/5 to-transparent opacity-0 blur-xl transition-opacity duration-500 group-hover:opacity-100" />
-                    <div className="relative z-10 mb-8 flex h-16 w-16 items-center justify-center rounded-[24px] border border-orange-500/10 bg-gradient-to-tr from-orange-600/20 to-orange-400/5 shadow-inner transition-all duration-500 group-hover:scale-110 group-hover:bg-orange-600/30">
-                      <loc.icon className="h-8 w-8 text-orange-400 drop-shadow-[0_0_15px_rgba(251,146,60,0.5)]" />
-                    </div>
-                    <h3 className="mb-2 text-2xl font-bold text-white">{loc.name}</h3>
-                    <div className="flex items-center justify-between font-medium text-zinc-400">
-                      <span>{loc.city}</span>
-                      <span className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-black/50 px-3 py-1.5">
-                        <Users className="h-4 w-4 text-orange-400" /> {loc.employees} ansatte
-                      </span>
-                    </div>
-                  </Link>
-                ))}
+                <div className="mx-auto mb-6 max-w-2xl text-center sm:mb-10">
+                  <h3 className="mb-2 text-lg font-black text-white sm:mb-3 sm:text-2xl">
+                    Din arbeidsplass, delt opp og organisert
+                  </h3>
+                  <p className="mb-6 text-sm leading-relaxed text-zinc-400 sm:text-base">
+                    Del opp virksomheten i lokasjoner, soner og utstyr — og knytt rutiner,
+                    dokumentasjon og opplæring direkte til stedet der arbeidet skjer.
+                  </p>
+                  <div className="flex flex-wrap justify-center gap-3">
+                    {["Flerlokasjon", "Soner & Utstyr", "Stedsbasert opplæring"].map((tag, i) => (
+                      <motion.span
+                        key={tag}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.3, delay: 0.2 + i * 0.07 }}
+                        className="rounded-full border border-orange-500/20 bg-orange-500/5 px-3 py-1 text-xs font-bold text-orange-300"
+                      >
+                        {tag}
+                      </motion.span>
+                    ))}
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 gap-6 sm:gap-8 md:grid-cols-3">
+                  {MOCK_LOCATIONS.map((loc, i) => (
+                    <motion.div
+                      key={loc.id}
+                      initial={{ opacity: 0, y: 30 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5, delay: i * 0.1 }}
+                    >
+                      <Link
+                        href={loc.href}
+                        className="group relative block overflow-hidden rounded-3xl border border-white/5 bg-[#0a0a0c]/40 p-6 shadow-2xl backdrop-blur-3xl transition-all duration-500 hover:-translate-y-2 hover:border-white/10 sm:rounded-[40px] sm:p-10"
+                      >
+                        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-50 transition-all duration-500 group-hover:via-orange-500/50 group-hover:opacity-100" />
+                        <div className="absolute -inset-1 bg-gradient-to-b from-orange-500/5 to-transparent opacity-0 blur-xl transition-opacity duration-500 group-hover:opacity-100" />
+                        <div className="relative z-10 mb-5 flex h-12 w-12 items-center justify-center rounded-2xl border border-orange-500/10 bg-gradient-to-tr from-orange-600/20 to-orange-400/5 shadow-inner transition-all duration-500 group-hover:scale-110 group-hover:bg-orange-600/30 sm:mb-8 sm:h-16 sm:w-16 sm:rounded-[24px]">
+                          <loc.icon className="h-6 w-6 text-orange-400 drop-shadow-[0_0_15px_rgba(251,146,60,0.5)] sm:h-8 sm:w-8" />
+                        </div>
+                        <h3 className="mb-1 text-lg font-bold text-white sm:mb-2 sm:text-2xl">
+                          {loc.name}
+                        </h3>
+                        <div className="flex items-center justify-between text-sm font-medium text-zinc-400">
+                          <span>{loc.city}</span>
+                          <span className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-black/50 px-2 py-1 text-xs sm:px-3 sm:py-1.5 sm:text-sm">
+                            <Users className="h-3.5 w-3.5 text-orange-400 sm:h-4 sm:w-4" />{" "}
+                            {loc.employees}
+                          </span>
+                        </div>
+                      </Link>
+                    </motion.div>
+                  ))}
+                </div>
               </motion.div>
             )}
 
@@ -607,27 +640,58 @@ export default function SmartoutLandingPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4 }}
-                className="grid grid-cols-1 gap-6 md:grid-cols-4"
               >
-                {MOCK_PROCEDURES.map((proc) => (
-                  <Link
-                    href={proc.href}
-                    key={proc.id}
-                    className="group relative block flex flex-col items-center overflow-hidden rounded-[32px] border border-white/5 bg-[#0a0a0c]/40 p-8 text-center shadow-2xl backdrop-blur-xl transition-all duration-300 hover:-translate-y-2 hover:border-white/10"
-                  >
-                    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                    <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                    <div
-                      className={`relative z-10 mb-6 flex h-20 w-20 items-center justify-center rounded-2xl border border-white/10 bg-black/50 ${proc.color} shadow-inner transition-transform duration-500 group-hover:scale-110`}
+                <div className="mx-auto mb-6 max-w-2xl text-center sm:mb-10">
+                  <h3 className="mb-2 text-lg font-black text-white sm:mb-3 sm:text-2xl">
+                    Sjekklister, kontrollister og verifiseringsplaner
+                  </h3>
+                  <p className="mb-6 text-sm leading-relaxed text-zinc-400 sm:text-base">
+                    Bygg prosedyrer som sikrer at alt blir gjort riktig, hver gang. Fra
+                    morgenrutiner til IK-mat — med sporbar signering og automatisk oppfølging.
+                  </p>
+                  <div className="flex flex-wrap justify-center gap-3">
+                    {["Sporbar signering", "Automatisk oppfølging", "HACCP-klar"].map((tag, i) => (
+                      <motion.span
+                        key={tag}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.3, delay: 0.2 + i * 0.07 }}
+                        className="rounded-full border border-emerald-500/20 bg-emerald-500/5 px-3 py-1 text-xs font-bold text-emerald-300"
+                      >
+                        {tag}
+                      </motion.span>
+                    ))}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-4">
+                  {MOCK_PROCEDURES.map((proc, i) => (
+                    <motion.div
+                      key={proc.id}
+                      initial={{ opacity: 0, y: 30 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.45, delay: i * 0.08 }}
                     >
-                      <proc.icon className="h-10 w-10" />
-                    </div>
-                    <h3 className="mb-3 text-xl font-bold text-white">{proc.name}</h3>
-                    <span className="rounded-full bg-black/30 px-3 py-1 text-sm font-bold tracking-widest text-zinc-500 uppercase">
-                      {proc.taskCount} Oppgaver
-                    </span>
-                  </Link>
-                ))}
+                      <Link
+                        href={proc.href}
+                        className="group relative flex flex-col items-center overflow-hidden rounded-2xl border border-white/5 bg-[#0a0a0c]/40 p-5 text-center shadow-2xl backdrop-blur-xl transition-all duration-300 hover:-translate-y-2 hover:border-white/10 sm:rounded-[32px] sm:p-8"
+                      >
+                        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                        <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                        <div
+                          className={`relative z-10 mb-4 flex h-14 w-14 items-center justify-center rounded-xl border border-white/10 bg-black/50 ${proc.color} shadow-inner transition-transform duration-500 group-hover:scale-110 sm:mb-6 sm:h-20 sm:w-20 sm:rounded-2xl`}
+                        >
+                          <proc.icon className="h-7 w-7 sm:h-10 sm:w-10" />
+                        </div>
+                        <h3 className="mb-2 text-sm font-bold text-white sm:mb-3 sm:text-xl">
+                          {proc.name}
+                        </h3>
+                        <span className="rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-bold tracking-widest text-zinc-500 uppercase sm:px-3 sm:py-1 sm:text-sm">
+                          {proc.taskCount} Oppgaver
+                        </span>
+                      </Link>
+                    </motion.div>
+                  ))}
+                </div>
               </motion.div>
             )}
 
@@ -637,34 +701,69 @@ export default function SmartoutLandingPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4 }}
-                className="grid grid-cols-1 gap-8 md:grid-cols-3"
               >
-                {MOCK_SEASONS.map((season) => (
-                  <Link
-                    href={season.href}
-                    key={season.id}
-                    className={`block rounded-[32px] border p-10 shadow-2xl backdrop-blur-xl ${season.active ? "border-orange-500/40 bg-orange-500/10 shadow-[0_0_40px_-10px_rgba(249,115,22,0.3)]" : "border-white/5 bg-[#0a0a0c]/40 hover:border-white/10 hover:bg-[#0a0a0c]/60"} group relative overflow-hidden transition-all duration-300 hover:-translate-y-2`}
-                  >
-                    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                    {season.active && (
-                      <span className="absolute top-6 right-6 z-10 rounded-full bg-gradient-to-r from-orange-500 to-rose-500 px-3 py-1.5 text-xs font-black tracking-wider text-white uppercase shadow-lg">
-                        Aktiv nå
-                      </span>
+                <div className="mx-auto mb-6 max-w-2xl text-center sm:mb-10">
+                  <h3 className="mb-2 text-lg font-black text-white sm:mb-3 sm:text-2xl">
+                    Modulbasert drift, sesong for sesong
+                  </h3>
+                  <p className="mb-6 text-sm leading-relaxed text-zinc-400 sm:text-base">
+                    Organiser hele virksomheten i sesonger. Lagre innstillinger, menyer, vaktplaner
+                    og rutiner per sesong — og aktiver med ett klikk når tiden er inne.
+                  </p>
+                  <div className="flex flex-wrap justify-center gap-3">
+                    {["Ett-klikk aktivering", "Lagrede oppsett", "Sesongbasert meny"].map(
+                      (tag, i) => (
+                        <motion.span
+                          key={tag}
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ duration: 0.3, delay: 0.2 + i * 0.07 }}
+                          className="rounded-full border border-blue-500/20 bg-blue-500/5 px-3 py-1 text-xs font-bold text-blue-300"
+                        >
+                          {tag}
+                        </motion.span>
+                      ),
                     )}
-                    <season.icon
-                      className={`mb-8 h-12 w-12 ${season.active ? "text-orange-400" : "text-zinc-500"}`}
-                    />
-                    <h3 className="mb-2 text-3xl font-black text-white">{season.name}</h3>
-                    <p className="text-lg font-medium text-zinc-400">{season.period}</p>
-                  </Link>
-                ))}
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 gap-6 sm:gap-8 md:grid-cols-3">
+                  {MOCK_SEASONS.map((season, i) => (
+                    <motion.div
+                      key={season.id}
+                      initial={{ opacity: 0, y: 30 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5, delay: i * 0.1 }}
+                    >
+                      <Link
+                        href={season.href}
+                        className={`block rounded-3xl border p-6 shadow-2xl backdrop-blur-xl sm:rounded-[32px] sm:p-10 ${season.active ? "border-orange-500/40 bg-orange-500/10 shadow-[0_0_40px_-10px_rgba(249,115,22,0.3)]" : "border-white/5 bg-[#0a0a0c]/40 hover:border-white/10 hover:bg-[#0a0a0c]/60"} group relative overflow-hidden transition-all duration-300 hover:-translate-y-2`}
+                      >
+                        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                        {season.active && (
+                          <span className="absolute top-4 right-4 z-10 rounded-full bg-gradient-to-r from-orange-500 to-rose-500 px-2.5 py-1 text-[10px] font-black tracking-wider text-white uppercase shadow-lg sm:top-6 sm:right-6 sm:px-3 sm:py-1.5 sm:text-xs">
+                            Aktiv nå
+                          </span>
+                        )}
+                        <season.icon
+                          className={`mb-5 h-8 w-8 sm:mb-8 sm:h-12 sm:w-12 ${season.active ? "text-orange-400" : "text-zinc-500"}`}
+                        />
+                        <h3 className="mb-1 text-xl font-black text-white sm:mb-2 sm:text-3xl">
+                          {season.name}
+                        </h3>
+                        <p className="text-sm font-medium text-zinc-400 sm:text-lg">
+                          {season.period}
+                        </p>
+                      </Link>
+                    </motion.div>
+                  ))}
+                </div>
               </motion.div>
             )}
           </div>
         </section>
 
         {/* COMPLIANCE SECTION */}
-        <section className="relative z-10 mt-20 py-40">
+        <section className="relative z-10 mt-12 py-16 sm:mt-20 sm:py-40">
           {/* Blended background for compliance */}
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-emerald-950/10 to-transparent" />
           <div className="pointer-events-none absolute top-1/2 left-1/2 h-[600px] w-[1000px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-500/5 blur-[150px]" />
@@ -675,16 +774,21 @@ export default function SmartoutLandingPage() {
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
-              className="mb-8 inline-flex h-20 w-20 items-center justify-center rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
+              className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 sm:mb-8 sm:h-20 sm:w-20"
             >
-              <ShieldCheck className="h-10 w-10" />
+              <motion.div
+                animate={{ scale: [1, 1.1, 1] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <ShieldCheck className="h-7 w-7 sm:h-10 sm:w-10" />
+              </motion.div>
             </motion.div>
             <motion.h2
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: 0.1 }}
-              className="mb-6 text-4xl font-black tracking-tight text-white sm:text-5xl"
+              className="mb-4 text-2xl font-black tracking-tight text-white sm:mb-6 sm:text-5xl"
             >
               Sov godt om natten.
             </motion.h2>
@@ -693,13 +797,13 @@ export default function SmartoutLandingPage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="mx-auto mb-16 max-w-2xl text-lg text-zinc-400"
+              className="mx-auto mb-8 max-w-2xl text-sm text-zinc-400 sm:mb-16 sm:text-lg"
             >
               Når Mattilsynet eller Arbeidstilsynet banker på døren, er alt klart. Vi sikrer at du
               automatisk følger regelverket for arbeidstid, pauser, og IK-mat.
             </motion.p>
 
-            <div className="relative mx-auto grid max-w-5xl grid-cols-1 gap-8 text-left md:grid-cols-2">
+            <div className="relative mx-auto grid max-w-5xl grid-cols-1 gap-2 text-left sm:gap-8 md:grid-cols-2">
               {/* Decorative divider */}
               <div className="absolute top-1/2 left-1/2 hidden h-3/4 w-px -translate-x-1/2 -translate-y-1/2 bg-gradient-to-b from-transparent via-emerald-500/20 to-transparent md:block"></div>
 
@@ -708,7 +812,7 @@ export default function SmartoutLandingPage() {
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.6, delay: 0.3 }}
-                className="group relative cursor-pointer p-10"
+                className="group relative cursor-pointer p-5 sm:p-10"
               >
                 <Link
                   href="/features/haccp-complience"
@@ -736,7 +840,7 @@ export default function SmartoutLandingPage() {
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.6, delay: 0.4 }}
-                className="group relative cursor-pointer p-10"
+                className="group relative cursor-pointer p-5 sm:p-10"
               >
                 <Link
                   href="/features/shiftplanner"
@@ -766,14 +870,14 @@ export default function SmartoutLandingPage() {
         {/* Features Showcase Section */}
         <section
           id="features"
-          className="relative z-10 flex min-h-[100dvh] flex-col justify-center py-40 pt-20"
+          className="relative z-10 flex min-h-0 flex-col justify-center py-16 pt-8 sm:min-h-[100dvh] sm:py-40 sm:pt-20"
         >
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.8 }}
-            className="mx-auto mb-20 max-w-3xl lg:text-center"
+            className="mx-auto mb-10 max-w-3xl sm:mb-20 lg:text-center"
           >
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-orange-500/20 bg-orange-500/10 px-3 py-1 text-xs font-bold tracking-widest text-orange-400 uppercase sm:mb-6 sm:text-sm">
               <Zap className="h-4 w-4" /> Neste generasjons plattform
@@ -789,7 +893,7 @@ export default function SmartoutLandingPage() {
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:gap-8 md:grid-cols-2 lg:grid-cols-3">
             <FeatureCard
               href="/features/punchclock-timetracking"
               icon={Clock}
@@ -842,9 +946,9 @@ export default function SmartoutLandingPage() {
         </section>
 
         {/* ONBOARDING PROMISE SECTION */}
-        <section className="relative z-10 py-40">
+        <section className="relative z-10 py-16 sm:py-40">
           <div className="mx-auto max-w-7xl px-6">
-            <div className="grid grid-cols-1 items-center gap-16 lg:grid-cols-2">
+            <div className="grid grid-cols-1 items-center gap-10 sm:gap-16 lg:grid-cols-2">
               <motion.div
                 initial={{ opacity: 0, x: -40 }}
                 whileInView={{ opacity: 1, x: 0 }}
@@ -873,7 +977,7 @@ export default function SmartoutLandingPage() {
                     visible: { transition: { staggerChildren: 0.2 } },
                     hidden: {},
                   }}
-                  className="mb-10 space-y-6"
+                  className="mb-6 space-y-4 sm:mb-10 sm:space-y-6"
                 >
                   <motion.li
                     variants={{ hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0 } }}
@@ -912,59 +1016,8 @@ export default function SmartoutLandingPage() {
                 className="relative"
               >
                 <div className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-tr from-blue-500/10 via-purple-500/5 to-emerald-500/10 blur-[120px]" />
-
-                {/* URL Entry visually blended */}
-                <div className="relative z-10 flex flex-col gap-6">
-                  <div className="group relative">
-                    <div className="absolute -inset-2 rounded-[32px] bg-gradient-to-r from-blue-500/20 to-purple-500/20 opacity-50 blur-xl transition duration-1000 group-hover:opacity-100 group-hover:duration-200"></div>
-                    <div className="relative flex items-center gap-4 rounded-[32px] border border-white/10 bg-[#0a0a0c]/60 p-3 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] backdrop-blur-3xl">
-                      <div className="flex h-14 flex-1 items-center truncate rounded-2xl bg-white/5 px-4 font-mono text-xs text-zinc-300 sm:px-6 sm:text-base">
-                        https://din-restaurant.no
-                      </div>
-                      <div className="flex h-14 shrink-0 cursor-pointer items-center justify-center rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 font-black text-white transition-all hover:shadow-[0_0_30px_-5px_rgba(79,70,229,0.5)] sm:px-8">
-                        Generer
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Console visually blended */}
-                  <div className="relative overflow-hidden rounded-[40px] border border-white/5 bg-[#0a0a0c]/80 p-10 shadow-2xl backdrop-blur-xl">
-                    {/* Subtle internal glow */}
-                    <div className="absolute top-0 right-0 h-64 w-64 rounded-full bg-emerald-500/10 blur-[80px]" />
-
-                    <div className="relative z-10">
-                      <div className="mb-10 flex items-center gap-3">
-                        <div className="h-3 w-3 animate-pulse rounded-full bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]" />
-                        <span className="text-sm font-bold tracking-wider text-blue-400 uppercase">
-                          Analyserer...
-                        </span>
-                      </div>
-                      <div className="space-y-8">
-                        <div className="flex items-center gap-6">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-emerald-500/20 bg-gradient-to-tr from-emerald-600/20 to-teal-400/20">
-                            <CheckCircle2 className="h-5 w-5 text-emerald-400" />
-                          </div>
-                          <div className="h-2 w-1/3 rounded-full bg-emerald-500/40" />
-                        </div>
-                        <div className="flex items-center gap-6">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-emerald-500/20 bg-gradient-to-tr from-emerald-600/20 to-teal-400/20">
-                            <CheckCircle2 className="h-5 w-5 text-emerald-400" />
-                          </div>
-                          <div className="h-2 w-1/2 rounded-full bg-emerald-500/40" />
-                        </div>
-                        <div className="flex items-center gap-6">
-                          <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10">
-                            <div className="absolute inset-0 animate-spin rounded-2xl border-[3px] border-transparent border-t-emerald-500" />
-                          </div>
-                          <div className="h-2 w-3/4 rounded-full bg-white/10" />
-                        </div>
-                        <div className="flex items-center gap-6 opacity-30">
-                          <div className="h-10 w-10 shrink-0 rounded-2xl border border-white/10" />
-                          <div className="h-2 w-2/3 rounded-full bg-white/10" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                <div className="relative z-10">
+                  <WorkspaceAnalyzer />
                 </div>
               </motion.div>
             </div>
@@ -972,7 +1025,7 @@ export default function SmartoutLandingPage() {
         </section>
 
         {/* PRICING SECTION */}
-        <section id="priser" className="relative z-10 mt-10 py-32">
+        <section id="priser" className="relative z-10 mt-4 py-16 sm:mt-10 sm:py-32">
           <div className="mx-auto max-w-7xl px-6 text-center">
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
@@ -1023,7 +1076,7 @@ export default function SmartoutLandingPage() {
         </section>
 
         {/* CTA Footer Section */}
-        <section className="relative z-10 mt-10 overflow-hidden py-32 sm:py-48">
+        <section className="relative z-10 mt-4 overflow-hidden py-16 sm:mt-10 sm:py-32 md:py-48">
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0a0a0c]/80 to-[#0a0a0c]"></div>
           <div className="pointer-events-none absolute top-1/2 left-1/2 h-[800px] w-[1200px] -translate-x-1/2 -translate-y-1/2 rounded-[50%] bg-orange-500/10 blur-[150px]"></div>
 
@@ -1050,7 +1103,13 @@ export default function SmartoutLandingPage() {
                   whileTap={{ scale: 0.95 }}
                   className="relative mx-auto flex w-full items-center justify-center gap-3 rounded-full bg-white px-8 py-4 text-sm font-black text-zinc-950 shadow-[0_0_40px_rgba(255,255,255,0.2)] transition-all group-hover:-translate-y-1 group-hover:shadow-[0_0_60px_rgba(255,255,255,0.4)] sm:w-auto sm:px-12 sm:py-5 sm:text-lg"
                 >
-                  <Globe className="h-5 w-5 text-orange-600 drop-shadow-sm" />
+                  <motion.span
+                    animate={{ rotate: [0, 10, -10, 0] }}
+                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                    className="inline-flex"
+                  >
+                    <Globe className="h-5 w-5 text-orange-600 drop-shadow-sm" />
+                  </motion.span>
                   Kom i gang
                 </motion.button>
               </Link>
@@ -1086,26 +1145,32 @@ function FeatureCard({
       viewport={{ once: true, margin: "-50px" }}
       transition={{ duration: 0.6, delay }}
       whileHover={{ y: -10 }}
-      className={`group relative h-full overflow-hidden rounded-[32px] border border-white/5 bg-[#0a0a0c]/40 shadow-2xl backdrop-blur-2xl transition-all duration-500 hover:border-white/10 ${href ? "cursor-pointer" : ""}`}
+      className={`group relative h-full overflow-hidden rounded-2xl border border-white/5 bg-[#0a0a0c]/40 shadow-2xl backdrop-blur-2xl transition-all duration-500 hover:border-white/10 sm:rounded-[32px] ${href ? "cursor-pointer" : ""}`}
     >
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
       <div
         className={`absolute -inset-1 bg-gradient-to-b ${color} opacity-0 blur-2xl transition-opacity duration-500 group-hover:opacity-10`}
       ></div>
 
-      <div className="relative z-10 flex h-full flex-col p-8">
-        <div className={`h-14 w-14 rounded-2xl bg-gradient-to-tr ${color} mb-6 p-[1px] shadow-2xl`}>
+      <div className="relative z-10 flex h-full flex-col p-5 sm:p-8">
+        <motion.div
+          animate={{ y: [0, -3, 0] }}
+          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: delay * 2 }}
+          className={`h-11 w-11 rounded-xl bg-gradient-to-tr ${color} mb-4 p-[1px] shadow-2xl sm:mb-6 sm:h-14 sm:w-14 sm:rounded-2xl`}
+        >
           <div className="flex h-full w-full items-center justify-center rounded-2xl bg-[#111]">
             <Icon className="h-6 w-6 text-white drop-shadow-md" />
           </div>
-        </div>
-        <h3 className="mb-4 flex items-center justify-between text-xl font-bold tracking-tight text-white transition-all group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-zinc-400 group-hover:bg-clip-text group-hover:text-transparent">
+        </motion.div>
+        <h3 className="mb-2 flex items-center justify-between text-lg font-bold tracking-tight text-white transition-all group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-zinc-400 group-hover:bg-clip-text group-hover:text-transparent sm:mb-4 sm:text-xl">
           {title}
           {href && (
             <ArrowRight className="h-5 w-5 -translate-x-4 transform opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:text-zinc-300 group-hover:opacity-100" />
           )}
         </h3>
-        <p className="leading-relaxed font-medium text-zinc-400">{description}</p>
+        <p className="text-sm leading-relaxed font-medium text-zinc-400 sm:text-base">
+          {description}
+        </p>
       </div>
     </motion.div>
   );

@@ -8,9 +8,10 @@ import {
   Sun,
   CalendarRange,
   ToggleRight,
-  Info,
+  Copy,
   Sparkles,
   Target,
+  CheckCircle2,
 } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -28,8 +29,10 @@ export default function SesongerPage() {
       icon: Sun,
       color: "text-amber-400",
       bg: "bg-amber-500/10",
-      border: "border-amber-500/20",
-      glow: "shadow-[0_0_50px_-10px_rgba(251,191,36,0.3)]",
+      border: "border-amber-500/30",
+      iconBg: "bg-amber-500/15",
+      accentClass: "from-amber-500 to-orange-500",
+      routines: 84,
     },
     {
       id: 2,
@@ -37,8 +40,10 @@ export default function SesongerPage() {
       icon: Leaf,
       color: "text-orange-400",
       bg: "bg-orange-500/10",
-      border: "border-orange-500/20",
-      glow: "shadow-[0_0_50px_-10px_rgba(249,115,22,0.3)]",
+      border: "border-orange-500/30",
+      iconBg: "bg-orange-500/15",
+      accentClass: "from-orange-500 to-red-500",
+      routines: 67,
     },
     {
       id: 3,
@@ -46,8 +51,10 @@ export default function SesongerPage() {
       icon: Snowflake,
       color: "text-cyan-400",
       bg: "bg-cyan-500/10",
-      border: "border-cyan-500/20",
-      glow: "shadow-[0_0_50px_-10px_rgba(34,211,238,0.3)]",
+      border: "border-cyan-500/30",
+      iconBg: "bg-cyan-500/15",
+      accentClass: "from-cyan-500 to-blue-500",
+      routines: 112,
     },
   ];
 
@@ -66,13 +73,14 @@ export default function SesongerPage() {
       </button>
 
       <div className="mx-auto max-w-6xl">
+        {/* Header */}
         <div className="mb-16 flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
           <div className="flex items-center gap-6">
-            <div className="relative h-20 w-20 rounded-3xl bg-gradient-to-tr from-amber-400 to-orange-500 p-[1px] shadow-[0_0_50px_-10px_rgba(251,191,36,0.4)]">
+            <div className="relative h-20 w-20 rounded-full bg-gradient-to-tr from-amber-400 to-orange-500 p-[1px] shadow-[0_0_50px_-10px_rgba(251,191,36,0.4)]">
               <div className="absolute -top-3 -right-3 z-20 flex items-center gap-1 rounded-full bg-fuchsia-500 px-3 py-1 text-[10px] font-black tracking-widest text-white uppercase shadow-[0_0_15px_rgba(217,70,239,0.5)]">
                 <Sparkles className="h-3 w-3" /> 100% Unikt
               </div>
-              <div className="relative z-10 flex h-full w-full items-center justify-center rounded-[23px] bg-[#0a0a0c]">
+              <div className="relative z-10 flex h-full w-full items-center justify-center rounded-full bg-[#0a0a0c]">
                 <CalendarRange className="h-10 w-10 text-white drop-shadow-lg" />
               </div>
             </div>
@@ -93,56 +101,81 @@ export default function SesongerPage() {
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           {/* Visualizer */}
           <div className="relative flex min-h-[500px] flex-col overflow-hidden rounded-[2.5rem] border border-white/10 bg-[#0a0a0c]/80 p-8 shadow-[0_0_50px_-15px_rgba(251,191,36,0.15)] backdrop-blur-3xl md:p-12 lg:col-span-2">
+            {/* Accent bar */}
             <div
-              className={`absolute inset-x-0 top-0 h-1 transition-colors duration-1000 ${currentSeason.bg.replace("/10", "")}`}
-            ></div>
+              className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${currentSeason.accentClass} transition-all duration-700`}
+            />
 
-            <div className="custom-scrollbar z-10 mb-12 flex gap-4 overflow-x-auto pb-4">
-              {seasons.map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => setSelected(s.id)}
-                  className={`flex min-w-max items-center gap-3 rounded-2xl border px-6 py-4 transition-all duration-300 ${selected === s.id ? `${s.bg} ${s.border} ${s.glow}` : "border-white/5 bg-black/30 opacity-60 hover:opacity-100"}`}
-                >
-                  <s.icon className={`h-6 w-6 ${selected === s.id ? s.color : "text-zinc-500"}`} />
-                  <span
-                    className={`text-lg font-bold ${selected === s.id ? "text-white" : "text-zinc-400"}`}
+            {/* Season selector */}
+            <div className="custom-scrollbar z-10 mb-10 flex gap-3 overflow-x-auto pb-2">
+              {seasons.map((s) => {
+                const isActive = selected === s.id;
+                const Icon = s.icon;
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => setSelected(s.id)}
+                    className={`flex min-w-max items-center gap-3 rounded-full border px-5 py-3 transition-all duration-300 ${
+                      isActive
+                        ? `${s.bg} ${s.border}`
+                        : "border-white/5 bg-white/[0.02] hover:border-white/10 hover:bg-white/[0.04]"
+                    }`}
                   >
-                    {s.name}
-                  </span>
-                </button>
-              ))}
+                    <div
+                      className={`flex h-9 w-9 items-center justify-center rounded-full transition-colors duration-300 ${
+                        isActive ? s.iconBg : "bg-white/5"
+                      }`}
+                    >
+                      <Icon className={`h-4.5 w-4.5 ${isActive ? s.color : "text-zinc-500"}`} />
+                    </div>
+                    <span
+                      className={`text-sm font-bold ${isActive ? "text-white" : "text-zinc-400"}`}
+                    >
+                      {s.name}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
 
+            {/* Active season display */}
             <div className="relative z-10 flex flex-1 flex-col justify-center">
               <motion.div
                 key={selected}
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.4 }}
-                className="relative flex flex-col items-center justify-center overflow-hidden rounded-[2rem] border border-white/5 bg-black/40 p-12 text-center shadow-inner"
+                className="relative flex flex-col items-center justify-center overflow-hidden rounded-3xl border border-white/5 bg-black/40 px-8 py-14 text-center sm:px-12"
               >
-                <div className={`absolute inset-0 ${currentSeason.bg} opacity-20 blur-3xl`}></div>
-                <currentSeason.icon
-                  className={`mb-6 h-24 w-24 ${currentSeason.color} relative z-10 drop-shadow-[0_0_25px_rgba(251,191,36,0.5)]`}
-                />
-                <h2 className="relative z-10 mb-4 text-3xl font-black tracking-tight text-white uppercase sm:text-4xl">
-                  {currentSeason.name} Aktiv
+                <div className={`absolute inset-0 ${currentSeason.bg} opacity-30 blur-3xl`} />
+
+                <div
+                  className={`relative z-10 mb-8 flex h-28 w-28 items-center justify-center rounded-full ${currentSeason.iconBg} ring-1 ring-white/10`}
+                >
+                  <currentSeason.icon
+                    className={`h-14 w-14 ${currentSeason.color} drop-shadow-lg`}
+                  />
+                </div>
+
+                <h2 className="relative z-10 mb-3 text-3xl font-black tracking-tight text-white sm:text-4xl">
+                  {currentSeason.name}
                 </h2>
-                <p className="relative z-10 mx-auto mb-8 max-w-md text-lg leading-relaxed text-zinc-300">
-                  Akkurat nå har <strong>{currentSeason.name.toLowerCase()}</strong>-protokollene
-                  fortrengt alle standardoppgaver. Appen har automatisk byttet ut alt innhold for
-                  samtlige ansatte.
+                <p className="relative z-10 mx-auto mb-8 max-w-md text-base leading-relaxed text-zinc-400">
+                  Alle <strong className="text-zinc-200">{currentSeason.name.toLowerCase()}</strong>
+                  -protokoller er aktive. Appen har automatisk byttet ut innhold for samtlige
+                  ansatte.
                 </p>
-                <div className="relative z-10 flex items-center gap-3 rounded-full border border-emerald-500/50 bg-emerald-500/20 px-6 py-3 font-bold text-emerald-400 shadow-[0_0_30px_-5px_rgba(16,185,129,0.3)]">
-                  <ToggleRight className="h-5 w-5" /> 84 Rutiner Modifisert
+
+                <div className="relative z-10 flex items-center gap-3 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-5 py-2.5 text-sm font-bold text-emerald-400">
+                  <CheckCircle2 className="h-4 w-4" />
+                  {currentSeason.routines} Rutiner Modifisert
                 </div>
               </motion.div>
             </div>
           </div>
 
           {/* Features checklist */}
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-5">
             {[
               {
                 title: "SmartOut Eksklusiv",
@@ -158,31 +191,44 @@ export default function SesongerPage() {
               {
                 title: "Gjenbruk og kopier",
                 desc: "Var fjorårets sommerrutiner bra? Gjenbruk og kopier over til nytt år, så er du klar på sekunder.",
-                icon: Info,
+                icon: Copy,
               },
-            ].map((feat, i) => (
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 * (i + 1) }}
-                key={i}
-                className={`border border-l-4 border-white/5 bg-[#0a0a0c]/80 backdrop-blur-xl ${feat.isPrimary ? "border-l-fuchsia-500 bg-fuchsia-500/5" : "border-l-amber-500"} group rounded-2xl p-6 shadow-lg transition-all`}
-              >
-                <div className="flex items-start gap-4">
-                  <feat.icon
-                    className={`h-6 w-6 flex-shrink-0 ${feat.isPrimary ? "text-fuchsia-400" : "text-amber-500/50"}`}
-                  />
-                  <div>
-                    <h3
-                      className={`mb-2 text-lg font-bold ${feat.isPrimary ? "text-fuchsia-400" : "text-white"}`}
+            ].map((feat, i) => {
+              const Icon = feat.icon;
+              return (
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 * (i + 1) }}
+                  key={i}
+                  className={`rounded-2xl border p-6 transition-all ${
+                    feat.isPrimary
+                      ? "border-fuchsia-500/20 bg-fuchsia-500/5"
+                      : "border-white/5 bg-[#0a0a0c]/80 hover:border-white/10"
+                  }`}
+                >
+                  <div className="flex items-start gap-4">
+                    <div
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+                        feat.isPrimary ? "bg-fuchsia-500/15" : "bg-amber-500/10"
+                      }`}
                     >
-                      {feat.title}
-                    </h3>
-                    <p className="text-sm leading-relaxed font-medium text-zinc-400">{feat.desc}</p>
+                      <Icon
+                        className={`h-5 w-5 ${feat.isPrimary ? "text-fuchsia-400" : "text-amber-400"}`}
+                      />
+                    </div>
+                    <div>
+                      <h3
+                        className={`mb-1.5 text-[15px] font-bold ${feat.isPrimary ? "text-fuchsia-300" : "text-white"}`}
+                      >
+                        {feat.title}
+                      </h3>
+                      <p className="text-sm leading-relaxed text-zinc-500">{feat.desc}</p>
+                    </div>
                   </div>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              );
+            })}
           </div>
         </div>
 
