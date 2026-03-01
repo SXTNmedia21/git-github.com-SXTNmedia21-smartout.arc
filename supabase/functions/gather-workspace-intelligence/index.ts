@@ -40,13 +40,15 @@ serve(async (req) => {
     console.log(`Gathering intelligence for URL: ${url}`);
 
     // SOURCE 1: Scrape (using existing Python microservice)
-    const scraplingUrl =
-      Deno.env.get("SCRAPLING_SERVICE_URL") || "http://host.docker.internal:8000/extract";
+    // Base URL for scrapling service — no trailing slash, no path
+    // Docker: http://scrapling:8000 | Local: http://host.docker.internal:8000
+    const scraplingBase =
+      Deno.env.get("SCRAPLING_SERVICE_URL") || "http://host.docker.internal:8000";
 
     const fetchScraplingWithRetry = async (retries = 3) => {
       for (let i = 0; i < retries; i++) {
         try {
-          const res = await fetch(scraplingUrl, {
+          const res = await fetch(`${scraplingBase}/extract`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({

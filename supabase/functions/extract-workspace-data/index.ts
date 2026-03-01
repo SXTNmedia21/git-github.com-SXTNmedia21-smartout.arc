@@ -44,14 +44,14 @@ serve(async (req) => {
     }
 
     // 3. Call the Python Scrapling Microservice
-    // For local development, using host.docker.internal to reach localhost:8000
-    // In production, this would be an environment variable for the microservice URL
-    const scraplingUrl =
-      Deno.env.get("SCRAPLING_SERVICE_URL") || "http://host.docker.internal:8000/extract";
+    // Base URL for scrapling service — no trailing slash, no path
+    // Docker: http://scrapling:8000 | Local: http://host.docker.internal:8000
+    const scraplingBase =
+      Deno.env.get("SCRAPLING_SERVICE_URL") || "http://host.docker.internal:8000";
 
-    console.log(`Calling Scrapling Microservice at: ${scraplingUrl}`);
+    console.log(`Calling Scrapling Microservice at: ${scraplingBase}/extract`);
 
-    const extractionResponse = await fetch(scraplingUrl, {
+    const extractionResponse = await fetch(`${scraplingBase}/extract`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
