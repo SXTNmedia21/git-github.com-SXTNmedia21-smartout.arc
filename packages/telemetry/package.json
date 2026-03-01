@@ -13,7 +13,7 @@
     "clean": "rimraf dist .turbo"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.98.0",
+    "@supabase/supabase-js": "2.49.4",
     "posthog-js": "^1.240.0",
     "posthog-node": "^4.5.0"
   },

@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@sendgrid/mail": "^8.1.0",
-    "@supabase/supabase-js": "^2.98.0",
+    "@supabase/supabase-js": "2.49.4",
     "twilio": "^5.5.0",
     "zod": "^3.24.2"
   },
