@@ -10,6 +10,7 @@ import {
   AlertTriangle,
   Pencil,
   UserCircle,
+  ArrowRightLeft,
 } from "lucide-react";
 import { createClient } from "@smartout/supabase/client";
 import { toast } from "sonner";
@@ -34,6 +35,7 @@ import { ICON_COMPONENTS } from "./constants";
 import { EditDepartmentDialog } from "./EditDepartmentDialog";
 import { CreatePositionDialog } from "./CreatePositionDialog";
 import { EditPositionDialog } from "./EditPositionDialog";
+import { MovePositionDialog } from "./MovePositionDialog";
 
 type DepartmentsTabProps = {
   departments: DepartmentRow[];
@@ -72,6 +74,7 @@ export function DepartmentsTab({
   // Position CRUD state
   const [createPosDeptId, setCreatePosDeptId] = useState<string | null>(null);
   const [editPosition, setEditPosition] = useState<PositionRow | null>(null);
+  const [movePosition, setMovePosition] = useState<PositionRow | null>(null);
 
   const cardBase = `rounded-2xl border p-5 transition-all ${
     isDark
@@ -459,6 +462,10 @@ export function DepartmentsTab({
                                   <Pencil className="mr-2 h-3.5 w-3.5" />
                                   Edit
                                 </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setMovePosition(pos)}>
+                                  <ArrowRightLeft className="mr-2 h-3.5 w-3.5" />
+                                  Move to Department
+                                </DropdownMenuItem>
                                 <DropdownMenuSeparator className={isDark ? "bg-zinc-800" : ""} />
                                 <DropdownMenuItem onClick={() => togglePositionActive(pos)}>
                                   {pos.is_active ? "Deactivate" : "Reactivate"}
@@ -692,6 +699,20 @@ export function DepartmentsTab({
           open={!!editPosition}
           onOpenChange={(open) => {
             if (!open) setEditPosition(null);
+          }}
+          onSave={onRefresh}
+        />
+      )}
+
+      {/* Move Position Dialog */}
+      {movePosition && (
+        <MovePositionDialog
+          position={movePosition}
+          departments={departments}
+          isDark={isDark}
+          open={!!movePosition}
+          onOpenChange={(open) => {
+            if (!open) setMovePosition(null);
           }}
           onSave={onRefresh}
         />
