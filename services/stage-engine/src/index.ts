@@ -17,6 +17,7 @@ import { sessions } from "./routes/sessions.js";
 import { store } from "./routes/store.js";
 import { fetchRoute } from "./routes/fetch.js";
 import { advance } from "./routes/advance.js";
+import { ultravox } from "./routes/adapters/ultravox.js";
 import { expireStaleSession } from "./core/session-manager.js";
 
 const app = new Hono();
@@ -34,6 +35,7 @@ app.route("/", sessions);
 app.route("/", store);
 app.route("/", fetchRoute);
 app.route("/", advance);
+app.route("/", ultravox);
 
 // Start server
 const port = config.PORT;
