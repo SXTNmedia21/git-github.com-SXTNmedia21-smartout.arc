@@ -59,3 +59,5 @@ tags: []
 | 2026-03-01 | 23:55 | Task 11+12: Created signup-visitor-linker.tsx, wired into signup page. Updated landing-columns.tsx with 4 new event types (click, scroll_depth, session_heartbeat, session_end) |
 | 2026-03-01 | 24:00 | Task 13: Type errors fixed with UntypedClient casts (pending type regeneration). All 18 turbo tasks pass                                                                        |
 | 2026-03-01 | 24:05 | Task 14: Documentation updated. Feature complete                                                                                                                                |
+| 2026-03-01 | 24:10 | Lint fix: Date.now() in useRef → moved inside useEffect (react-hooks/purity)                                                                                                    |
+| 2026-03-01 | 24:15 | Feature closure: Decision log verified (10 decisions), learning log verified (6 learnings), user journeys written (7 journeys). Ready for cf.                                   |
