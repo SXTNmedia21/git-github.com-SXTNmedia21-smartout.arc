@@ -8,8 +8,8 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createClient } from "@smartout/supabase/server";
 import { createAdminClient } from "@smartout/supabase/admin";
+import { getSuperAdminId } from "@/lib/platform-admin";
 
 const CreateSchema = z.object({
   workspaceId: z.string().uuid(),
@@ -24,19 +24,10 @@ const CreateSchema = z.object({
  * @returns The created wizard session record
  */
 export async function POST(request: NextRequest) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const adminId = await getSuperAdminId();
+  if (!adminId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const admin = createAdminClient();
-  const { data: identity } = await admin
-    .from("user_identity")
-    .select("is_godmode")
-    .eq("user_id", user.id)
-    .single();
-  if (!identity?.is_godmode) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   let body: z.infer<typeof CreateSchema>;
   try {
@@ -50,7 +41,7 @@ export async function POST(request: NextRequest) {
     .from("wizard_session")
     .insert({
       workspace_id: body.workspaceId,
-      created_by: user.id,
+      created_by: adminId,
     })
     .select()
     .single();
@@ -68,19 +59,10 @@ export async function POST(request: NextRequest) {
  * @returns Array of wizard session summaries
  */
 export async function GET() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const adminId = await getSuperAdminId();
+  if (!adminId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const admin = createAdminClient();
-  const { data: identity } = await admin
-    .from("user_identity")
-    .select("is_godmode")
-    .eq("user_id", user.id)
-    .single();
-  if (!identity?.is_godmode) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { data, error } = await admin
     .from("wizard_session")

@@ -10,10 +10,10 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createClient } from "@smartout/supabase/server";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { runJourneyAgent } from "@smartout/ai/agents/journey";
 import type { ModelMessage, JourneyToolContext } from "@smartout/ai/agents/journey";
+import { getSuperAdminId } from "@/lib/platform-admin";
 
 const RequestSchema = z.object({
   sessionId: z.string().uuid(),
@@ -31,31 +31,12 @@ const RequestSchema = z.object({
  * for defining journeys across all workspaces.
  */
 export async function POST(request: NextRequest) {
-  const supabase = await createClient();
-
   // 1. Auth check
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+  const adminId = await getSuperAdminId();
+  if (!adminId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  if (authError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  // 2. Godmode check — wizard is platform-admin only
+  // 2. Parse request
   const admin = createAdminClient();
-  const { data: identity } = await admin
-    .from("user_identity")
-    .select("is_godmode")
-    .eq("user_id", user.id)
-    .single();
-
-  if (!identity?.is_godmode) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  // 3. Parse request
   let body: z.infer<typeof RequestSchema>;
   try {
     const raw = await request.json();
@@ -68,7 +49,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: message }, { status: 400 });
   }
 
-  // 4. Load wizard session
+  // 3. Load wizard session
   const { data: session, error: sessionError } = await admin
     .from("wizard_session")
     .select("*")
@@ -84,14 +65,14 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // 5. Build conversation history from stored messages
+    // 4. Build conversation history from stored messages
     const existingMessages = (session.messages as Array<{ role: string; content: string }>) ?? [];
     const conversationHistory = existingMessages.map((m) => ({
       role: m.role as "user" | "assistant",
       content: m.content,
     })) as ModelMessage[];
 
-    // 6. Build tool context — gives the agent DB access and session state
+    // 5. Build tool context — gives the agent DB access and session state
     const ctx: JourneyToolContext = {
       supabase: admin,
       workspaceId: session.workspace_id,
@@ -100,14 +81,14 @@ export async function POST(request: NextRequest) {
       draftJourney: (session.draft_journey as Record<string, unknown>) ?? {},
     };
 
-    // 7. Run the agent for one turn
+    // 6. Run the agent for one turn
     const result = await runJourneyAgent({
       ctx,
       userMessage: body.userMessage,
       conversationHistory,
     });
 
-    // 8. Append new messages to session (user + assistant)
+    // 7. Append new messages to session (user + assistant)
     const now = new Date().toISOString();
     const updatedMessages = [
       ...existingMessages,
@@ -120,7 +101,7 @@ export async function POST(request: NextRequest) {
       .update({ messages: updatedMessages })
       .eq("wizard_session_id", body.sessionId);
 
-    // 9. Reload session to get latest draft state (tools may have updated it)
+    // 8. Reload session to get latest draft state (tools may have updated it)
     const { data: updatedSession } = await admin
       .from("wizard_session")
       .select("current_phase, draft_journey")

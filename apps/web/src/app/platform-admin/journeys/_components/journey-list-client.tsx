@@ -423,7 +423,6 @@ export function JourneyListClient({ initialJourneys }: JourneyListClientProps) {
                       <TableCell>
                         <JourneyStatusChanger
                           journeyId={journey.journey_id}
-                          workspaceId={journey.workspace_id}
                           currentStatus={journey.status}
                           onStatusChanged={handleStatusChange}
                         />
