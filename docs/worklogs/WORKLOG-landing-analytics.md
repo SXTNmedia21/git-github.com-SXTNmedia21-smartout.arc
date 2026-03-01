@@ -17,11 +17,11 @@ tags: []
 - [x] Task 5: Wire up tracking in landing page components
 - [x] Task 6: Admin page.tsx — session data fetching
 - [x] Task 7: Admin sessions tab + columns + tab container
+- [x] Task 8: Admin session detail sheet (Sheet panel with visitor info, summary stats, event timeline)
+- [x] Task 9: Session events API route (GET /api/admin/session-events)
+- [x] Task 10: Visitor tag dialog + API (Dialog + POST /api/admin/tag-visitor)
 
 ## Remaining
-- [ ] Task 8: Admin session detail sheet
-- [ ] Task 9: Session events API route
-- [ ] Task 10: Visitor tag dialog + API
 - [ ] Task 11: Auto-link visitor at signup
 - [ ] Task 12: Update landing event columns for new event types
 - [ ] Task 13: Type check + build verification
@@ -47,3 +47,4 @@ tags: []
 | 2026-03-01 | 23:10 | Task 4: Enhanced /api/track with visitor/session upsert, 7 event types, device detection |
 | 2026-03-01 | 23:15 | Task 5: Created FullTracker component, replaced PageTracker in 5 pages (kept in signup) |
 | 2026-03-01 | 23:30 | Task 6+7: Rewrote page.tsx with session data fetches + KPIs; created landing-tabs.tsx, session-columns.tsx, sessions-tab.tsx |
+| 2026-03-01 | 23:45 | Task 8+9+10: Created session-detail.tsx (Sheet panel), session-events API route, visitor-tag-dialog.tsx + tag-visitor API route. Wired into sessions-tab.tsx |

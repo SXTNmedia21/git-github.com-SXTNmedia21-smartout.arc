@@ -1,10 +1,12 @@
 // ============================================
 // sessions-tab.tsx
 // Client component: the "Sessions" tab content.
-// Renders session KPI cards and a data table of landing sessions.
+// Renders session KPI cards, a data table of landing sessions,
+// and a slide-over detail panel for individual sessions.
 //
 // Connected to: landing-tabs.tsx (parent tab container)
 //               session-columns.tsx (column definitions)
+//               session-detail.tsx (detail sheet)
 //               platform-admin/landing/page.tsx (SessionRow type)
 // ============================================
 
@@ -15,6 +17,7 @@ import { Users, UserCheck, Clock, ArrowDownToLine } from "lucide-react";
 import { KpiCard } from "@/components/platform-admin/kpi-card";
 import { DataTable } from "@/components/platform-admin/data-table";
 import { sessionColumns } from "./session-columns";
+import { SessionDetail } from "./session-detail";
 import type { SessionRow } from "../page";
 
 type SessionsTabProps = {
@@ -47,9 +50,6 @@ export function SessionsTab({
   avgScrollToday,
 }: SessionsTabProps) {
   const [selectedSession, setSelectedSession] = useState<SessionRow | null>(null);
-
-  // Suppress unused variable lint — selectedSession will be consumed by SessionDetail in Task 8
-  void selectedSession;
 
   return (
     <div className="space-y-6">
@@ -84,7 +84,11 @@ export function SessionsTab({
         onRowClick={(row) => setSelectedSession(row)}
       />
 
-      {/* SessionDetail will be added in Task 8 */}
+      {/* Session detail slide-over panel */}
+      <SessionDetail
+        session={selectedSession}
+        onClose={() => setSelectedSession(null)}
+      />
     </div>
   );
 }
