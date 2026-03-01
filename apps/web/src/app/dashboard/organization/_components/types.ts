@@ -58,6 +58,7 @@ export type DepartmentRow = {
   color: string | null;
   icon: string | null;
   sort_order: number | null;
+  manager_profile_id: string | null;
   is_active: boolean;
 };
 
@@ -140,6 +141,16 @@ export type SetupCheckItem = {
   label: string;
   done: boolean;
   tab?: OrgTab;
+};
+
+/** Lightweight profile row for pickers and member lists */
+export type ProfileRow = {
+  profile_id: string;
+  display_name: string;
+  role: string;
+  department_id: string | null;
+  status: string;
+  is_active: boolean;
 };
 
 export type CountMap = Record<string, number>;
