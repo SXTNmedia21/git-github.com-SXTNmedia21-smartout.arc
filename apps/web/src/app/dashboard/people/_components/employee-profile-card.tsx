@@ -19,15 +19,23 @@ import {
 } from "lucide-react";
 import { useState, useContext } from "react";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import type { Employee } from "./types";
+import type { Employee, Department } from "./types";
 
 interface EmployeeProfileCardProps {
   employee: Employee | null;
+  departments: Department[];
   isOpen: boolean;
   onClose: () => void;
+  onRefresh: () => void;
 }
 
-export function EmployeeProfileCard({ employee, isOpen, onClose }: EmployeeProfileCardProps) {
+export function EmployeeProfileCard({
+  employee,
+  departments,
+  isOpen,
+  onClose,
+  onRefresh,
+}: EmployeeProfileCardProps) {
   const { isDark } = useContext(DashboardContext);
   const [activeTab, setActiveTab] = useState<"overview" | "competence" | "hr" | "settings">(
     "overview",

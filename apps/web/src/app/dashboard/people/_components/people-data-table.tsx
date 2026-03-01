@@ -434,8 +434,10 @@ export function PeopleDataTable({
       {/* Slide-out Employee Profile Sheet */}
       <EmployeeProfileCard
         employee={selectedEmployee}
+        departments={departments}
         isOpen={!!selectedEmployee}
         onClose={() => setSelectedEmployee(null)}
+        onRefresh={onRefresh}
       />
 
       {/* Invite Modal */}
