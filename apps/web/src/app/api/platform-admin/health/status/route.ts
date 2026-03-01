@@ -167,6 +167,48 @@ async function checkScraplingService(): Promise<ServiceResult> {
   }
 }
 
+async function checkShiftMcpService(): Promise<ServiceResult> {
+  const start = Date.now();
+  const url = env.SHIFT_MCP_URL;
+  if (!url) {
+    return {
+      name: "Shift MCP",
+      status: "down",
+      latency_ms: null,
+      version: null,
+      error: "Not configured",
+    };
+  }
+  try {
+    const res = await fetchWithTimeout(`${url}/health`);
+    const latency = Date.now() - start;
+    let version: string | null = null;
+    if (res.ok) {
+      try {
+        const body = (await res.json()) as { version?: string };
+        version = body.version ?? null;
+      } catch {
+        // ignore parse errors
+      }
+    }
+    return {
+      name: "Shift MCP",
+      status: res.ok ? "operational" : "degraded",
+      latency_ms: latency,
+      version,
+      error: res.ok ? null : `HTTP ${res.status}`,
+    };
+  } catch (e) {
+    return {
+      name: "Shift MCP",
+      status: "down",
+      latency_ms: Date.now() - start,
+      version: null,
+      error: e instanceof Error ? e.message : "Unknown error",
+    };
+  }
+}
+
 async function checkSupabaseEdgeFunctions(): Promise<ServiceResult> {
   const start = Date.now();
   const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
@@ -307,6 +349,7 @@ export async function GET(req: NextRequest) {
       checkSupabaseDb(),
       checkContractService(),
       checkScraplingService(),
+      checkShiftMcpService(),
       checkSupabaseEdgeFunctions(),
     ]),
     fetchMetrics(),

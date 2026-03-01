@@ -21,6 +21,7 @@ export const env = createEnv({
     CONTRACT_SERVICE_URL: z.string().url().optional(),
     CONTRACT_SERVICE_KEY: z.string().min(16).optional(),
     SCRAPLING_SERVICE_URL: z.string().url().optional(),
+    SHIFT_MCP_URL: z.string().url().optional(),
     // Allow overriding Node environment for testing
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   },
