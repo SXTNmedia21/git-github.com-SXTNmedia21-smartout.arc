@@ -28,6 +28,11 @@ import { z } from "zod";
 import { createAdminClient } from "@smartout/supabase/admin";
 import type { Json } from "@smartout/supabase";
 
+// TODO: Remove UntypedClient cast after regenerating database.types.ts
+// (landing_visitor + landing_session tables are not yet in the generated types)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type UntypedClient = ReturnType<typeof createAdminClient> & { from: (table: string) => any };
+
 /**
  * Validates the request body for a landing event.
  * All fields except event_type are optional.
@@ -82,7 +87,7 @@ function detectDeviceType(ua: string | null): string {
  * Subsequent events: UPDATE last_seen only (preserve first_* fields).
  */
 async function upsertVisitor(
-  admin: ReturnType<typeof createAdminClient>,
+  admin: UntypedClient,
   visitor_id: string,
   referrer: string | null,
   variant: string | null,
@@ -114,7 +119,7 @@ async function upsertVisitor(
  * Existing session: UPDATE counters incrementally based on event type.
  */
 async function upsertSession(
-  admin: ReturnType<typeof createAdminClient>,
+  admin: UntypedClient,
   session_id: string,
   visitor_id: string,
   event_type: string,
@@ -163,10 +168,7 @@ async function upsertSession(
       updates.duration_seconds = Number(details.timeOnPage);
     }
 
-    await admin
-      .from("landing_session")
-      .update(updates)
-      .eq("id", existing.id);
+    await admin.from("landing_session").update(updates).eq("id", existing.id);
   } else {
     // --- Insert new session ---
     await admin.from("landing_session").insert({
@@ -180,9 +182,8 @@ async function upsertSession(
       page_count: event_type === "page_view" ? 1 : 0,
       click_count: event_type === "click" ? 1 : 0,
       cta_click_count: event_type === "cta_click" ? 1 : 0,
-      max_scroll_depth: event_type === "scroll_depth" && details?.percent != null
-        ? Number(details.percent)
-        : 0,
+      max_scroll_depth:
+        event_type === "scroll_depth" && details?.percent != null ? Number(details.percent) : 0,
     });
 
     // Increment the visitor's visit_count for new sessions
@@ -222,7 +223,8 @@ export async function POST(request: NextRequest) {
   const user_agent = request.headers.get("user-agent");
 
   try {
-    const admin = createAdminClient();
+    // TODO: Remove cast after regenerating database.types.ts
+    const admin = createAdminClient() as unknown as UntypedClient;
 
     // --- 1. Insert event (critical path) ---
     const { error } = await admin.from("landing_event").insert({
@@ -245,7 +247,14 @@ export async function POST(request: NextRequest) {
     // --- 2. Visitor upsert (best-effort, fire-and-forget) ---
     if (visitor_id) {
       try {
-        await upsertVisitor(admin, visitor_id, referrer ?? null, variant ?? null, ip_address, user_agent);
+        await upsertVisitor(
+          admin,
+          visitor_id,
+          referrer ?? null,
+          variant ?? null,
+          ip_address,
+          user_agent,
+        );
       } catch (err) {
         console.error("[track] Visitor upsert failed:", err);
         // Non-critical — continue

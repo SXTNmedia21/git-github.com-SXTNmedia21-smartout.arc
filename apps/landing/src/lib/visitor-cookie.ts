@@ -34,9 +34,9 @@ function generateUUID(): string {
   crypto.getRandomValues(bytes);
 
   // Set version 4 (0100 in bits 6-7 of byte 6)
-  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[6] = (bytes[6]! & 0x0f) | 0x40;
   // Set variant 1 (10xx in bits 6-7 of byte 8)
-  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  bytes[8] = (bytes[8]! & 0x3f) | 0x80;
 
   const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
   return [
@@ -54,10 +54,8 @@ function generateUUID(): string {
  */
 function readCookie(name: string): string | undefined {
   try {
-    const match = document.cookie
-      .split("; ")
-      .find((row) => row.startsWith(`${name}=`));
-    return match ? decodeURIComponent(match.split("=")[1]) : undefined;
+    const match = document.cookie.split("; ").find((row) => row.startsWith(`${name}=`));
+    return match ? decodeURIComponent(match.split("=")[1] ?? "") : undefined;
   } catch {
     return undefined;
   }

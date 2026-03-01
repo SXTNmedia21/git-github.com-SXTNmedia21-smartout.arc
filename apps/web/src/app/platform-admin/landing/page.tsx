@@ -16,6 +16,11 @@ import { redirect } from "next/navigation";
 import { LandingTabs } from "./_components/landing-tabs";
 import type { LandingEventRow } from "./_components/landing-columns";
 
+// TODO: Remove UntypedClient cast after regenerating database.types.ts
+// (landing_visitor + landing_session tables are not yet in the generated types)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type UntypedClient = ReturnType<typeof createAdminClient> & { from: (table: string) => any };
+
 // ── Exported types ────────────────────────────────────────────
 
 /** Shape of a landing session row with joined visitor + user_identity data. */
@@ -78,7 +83,8 @@ export default async function LandingActivityPage() {
   const adminId = await getSuperAdminId();
   if (!adminId) redirect("/dashboard");
 
-  const admin = createAdminClient();
+  // TODO: Remove cast after regenerating database.types.ts
+  const admin = createAdminClient() as unknown as UntypedClient;
   const today = todayUtcStart();
   const sevenDaysAgo = sevenDaysAgoUtcStart();
 
@@ -158,9 +164,7 @@ export default async function LandingActivityPage() {
     // Last 7 days sessions for returning visitor count
     admin
       .from("landing_session")
-      .select(
-        `visitor_id, visitor:landing_visitor(visit_count)`,
-      )
+      .select(`visitor_id, visitor:landing_visitor(visit_count)`)
       .gte("started_at", sevenDaysAgo),
   ]);
 
@@ -172,41 +176,51 @@ export default async function LandingActivityPage() {
 
   // ── Compute session-based KPIs ──
 
-  const todaySessions = sessionsToday ?? [];
-  const weekSessions = sessions7d ?? [];
+  // Type aliases for untyped query results (pending database.types.ts regeneration)
+  type SessionTodayRow = {
+    duration_seconds: number | null;
+    max_scroll_depth: number;
+    visitor_id: string;
+  };
+  type SessionWeekRow = { visitor_id: string; visitor: { visit_count: number } | null };
+
+  const todaySessions = (sessionsToday ?? []) as SessionTodayRow[];
+  const weekSessions = (sessions7d ?? []) as SessionWeekRow[];
 
   // Unique visitors today: count distinct visitor_ids from today's sessions
   const uniqueVisitorsToday = new Set(
-    todaySessions.map((s) => s.visitor_id).filter(Boolean),
+    todaySessions.map((s: SessionTodayRow) => s.visitor_id).filter(Boolean),
   ).size;
 
   // Returning visitors (7d): unique visitor_ids where visit_count > 1
   const returningVisitors7d = new Set(
     weekSessions
-      .filter((s) => {
+      .filter((s: SessionWeekRow) => {
         const visitor = s.visitor as { visit_count: number } | null;
         return visitor && visitor.visit_count > 1;
       })
-      .map((s) => s.visitor_id)
+      .map((s: SessionWeekRow) => s.visitor_id)
       .filter(Boolean),
   ).size;
 
   // Average duration today (seconds)
   const durationsToday = todaySessions
-    .map((s) => s.duration_seconds as number | null)
-    .filter((d): d is number => d !== null && d > 0);
+    .map((s: SessionTodayRow) => s.duration_seconds as number | null)
+    .filter((d: number | null): d is number => d !== null && d > 0);
   const avgDurationToday =
     durationsToday.length > 0
-      ? Math.round(durationsToday.reduce((a, b) => a + b, 0) / durationsToday.length)
+      ? Math.round(
+          durationsToday.reduce((a: number, b: number) => a + b, 0) / durationsToday.length,
+        )
       : 0;
 
   // Average scroll depth today (0-100)
   const scrollsToday = todaySessions
-    .map((s) => s.max_scroll_depth as number)
-    .filter((d) => d > 0);
+    .map((s: SessionTodayRow) => s.max_scroll_depth as number)
+    .filter((d: number) => d > 0);
   const avgScrollToday =
     scrollsToday.length > 0
-      ? Math.round(scrollsToday.reduce((a, b) => a + b, 0) / scrollsToday.length)
+      ? Math.round(scrollsToday.reduce((a: number, b: number) => a + b, 0) / scrollsToday.length)
       : 0;
 
   return (
