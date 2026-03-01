@@ -39,9 +39,11 @@ function getIpAddress(req: NextRequest): string | null {
   const forwarded = req.headers.get("x-forwarded-for");
   if (forwarded) {
     // x-forwarded-for can contain multiple IPs — take the first (original client)
-    return forwarded.split(",")[0]?.trim() ?? null;
+    const forwardedIp = forwarded.split(",")[0]?.trim();
+    return forwardedIp === "" ? null : (forwardedIp ?? null);
   }
-  return req.headers.get("x-real-ip");
+  const realIp = req.headers.get("x-real-ip")?.trim();
+  return realIp === "" ? null : (realIp ?? null);
 }
 
 export async function POST(request: NextRequest) {

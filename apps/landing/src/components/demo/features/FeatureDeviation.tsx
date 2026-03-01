@@ -24,7 +24,7 @@ import type { DemoFeatureProps } from "../journeys/types";
  * - phase: "empty" | "building" | "submitted"
  * - fields: object with filled-in report fields
  */
-export function FeatureDeviation({ currentStepId, uiState, onInteraction }: DemoFeatureProps) {
+export function FeatureDeviation({ uiState }: DemoFeatureProps) {
   const phase = (uiState.phase as string) ?? "empty";
   const fields = (uiState.fields as Record<string, string>) ?? {};
 

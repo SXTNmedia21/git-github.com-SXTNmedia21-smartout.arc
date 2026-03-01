@@ -127,11 +127,7 @@ const STATUS_STYLES: Record<
  * - showApproved: turn suggestions green (approved)
  * - showStats: show the stats panel at bottom
  */
-export function FeatureSchedule({
-  currentStepId: _currentStepId,
-  uiState,
-  onInteraction,
-}: DemoFeatureProps) {
+export function FeatureSchedule({ uiState, onInteraction }: DemoFeatureProps) {
   const showGapHighlight = uiState.showGapHighlight === true;
   const showAiSuggestion = uiState.showAiSuggestion === true;
   const showApproved = uiState.showApproved === true;

@@ -30,18 +30,24 @@ export async function POST(request: NextRequest) {
 
     // Build templateContext from variant info if provided.
     // Ultravox replaces {{variant_context}} in the system prompt.
-    const templateContext = body.template_context
-      ? {
-          variant_context: [
-            `Du snakker med en bes\u00f8kende som er ${body.template_context.personaRole}.`,
-            body.template_context.personaName
-              ? `Personaen heter ${body.template_context.personaName}.`
-              : "",
-          ]
-            .filter(Boolean)
-            .join(" "),
-        }
-      : undefined;
+    const personaRole =
+      typeof body.template_context?.personaRole === "string"
+        ? body.template_context.personaRole.trim()
+        : "";
+    const personaName =
+      typeof body.template_context?.personaName === "string"
+        ? body.template_context.personaName.trim()
+        : "";
+    const variantContextParts = [
+      personaRole ? `Du snakker med en bes\u00f8kende som er ${personaRole}.` : "",
+      personaName ? `Personaen heter ${personaName}.` : "",
+    ].filter(Boolean);
+    const templateContext =
+      variantContextParts.length > 0
+        ? {
+            variant_context: variantContextParts.join(" "),
+          }
+        : undefined;
 
     const result = await startMissionCall({
       missionId,
@@ -94,9 +100,14 @@ async function logVoiceSessionStarted(
 
     // Extract server-side metadata from request headers
     const forwarded = request.headers.get("x-forwarded-for");
-    const ip_address = forwarded
-      ? forwarded.split(",")[0]?.trim()
-      : request.headers.get("x-real-ip");
+    let ip_address: string | null;
+    if (forwarded) {
+      const forwardedIp = forwarded.split(",")[0]?.trim();
+      ip_address = forwardedIp === "" ? null : (forwardedIp ?? null);
+    } else {
+      const realIp = request.headers.get("x-real-ip")?.trim();
+      ip_address = realIp === "" ? null : (realIp ?? null);
+    }
     const user_agent = request.headers.get("user-agent");
 
     await admin.from("landing_event").insert({

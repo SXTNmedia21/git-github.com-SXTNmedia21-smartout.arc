@@ -62,11 +62,7 @@ const UNITS: CoolingUnit[] = [
  * - checkedUnits: number of units checked so far (0–3)
  * - showAlert: whether the avvik alert is visible
  */
-export function FeatureHaccp({
-  currentStepId: _currentStepId,
-  uiState,
-  onInteraction,
-}: DemoFeatureProps) {
+export function FeatureHaccp({ uiState, onInteraction }: DemoFeatureProps) {
   const phase = (uiState.phase as string) ?? "checklist";
   const checkedUnits = (uiState.checkedUnits as number) ?? 0;
   const showAlert = uiState.showAlert === true;

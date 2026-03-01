@@ -57,11 +57,7 @@ const PROTOCOL_ITEMS: ProtocolItem[] = [
  * - termsAccepted: whether terms toggle is on
  * - completedItems: number of protocol items read
  */
-export function FeatureOnboarding({
-  currentStepId: _currentStepId,
-  uiState,
-  onInteraction,
-}: DemoFeatureProps) {
+export function FeatureOnboarding({ uiState, onInteraction }: DemoFeatureProps) {
   const phase = (uiState.phase as string) ?? "welcome";
   const termsAccepted = uiState.termsAccepted === true;
   const completedItems = (uiState.completedItems as number) ?? 0;

@@ -67,10 +67,31 @@ export function useDemoJourney(config: JourneyConfig): DemoJourneyState & DemoJo
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoAdvanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Ref so advanceToNextStep can always call the latest playStep
+  // without a direct circular reference between two memoized callbacks.
+  // Pattern: declare advanceToNextStep before playStep, call playStep via ref.
+  const playStepRef = useRef<((step: JourneyStep) => void) | null>(null);
+
   /** Generate a unique message ID */
   function nextMessageId(): string {
     messageCounter.current += 1;
     return `msg-${messageCounter.current}`;
+  }
+
+  /**
+   * Internal: advance to the next sequential step.
+   * Declared before playStep to avoid accessing it before declaration.
+   * Calls playStep via playStepRef to avoid a circular useCallback dependency.
+   */
+  function advanceToNextStep() {
+    setCurrentStepIndex((prev) => {
+      const next = prev + 1;
+      if (next < config.steps.length) {
+        playStepRef.current?.(config.steps[next]!);
+        return next;
+      }
+      return prev;
+    });
   }
 
   /**
@@ -116,6 +137,9 @@ export function useDemoJourney(config: JourneyConfig): DemoJourneyState & DemoJo
     [config.steps],
   );
 
+  // Keep the ref in sync so advanceToNextStep always calls the latest playStep
+  playStepRef.current = playStep;
+
   /**
    * Advance to the next sequential step or to a specific step by ID.
    */
@@ -133,18 +157,6 @@ export function useDemoJourney(config: JourneyConfig): DemoJourneyState & DemoJo
     },
     [config.steps, playStep],
   );
-
-  /** Internal: advance to index + 1 */
-  function advanceToNextStep() {
-    setCurrentStepIndex((prev) => {
-      const next = prev + 1;
-      if (next < config.steps.length) {
-        playStep(config.steps[next]!);
-        return next;
-      }
-      return prev;
-    });
-  }
 
   /** Handle quick reply — add user message, then advance */
   const handleQuickReply = useCallback(
@@ -177,13 +189,10 @@ export function useDemoJourney(config: JourneyConfig): DemoJourneyState & DemoJo
    * Some steps wait for the user to interact with the product UI
    * (e.g., clicking a button) before advancing.
    */
-  const handleInteraction = useCallback(
-    (_action: string) => {
-      // Advance to next step when the user interacts with the feature UI
-      advanceToStep();
-    },
-    [advanceToStep],
-  );
+  const handleInteraction = useCallback(() => {
+    // Advance to next step when the user interacts with the feature UI
+    advanceToStep();
+  }, [advanceToStep]);
 
   /** Reset the journey back to the start */
   const reset = useCallback(() => {
@@ -208,7 +217,7 @@ export function useDemoJourney(config: JourneyConfig): DemoJourneyState & DemoJo
       if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
       if (autoAdvanceTimerRef.current) clearTimeout(autoAdvanceTimerRef.current);
     };
-  }, [config]);
+  }, [config, playStep]);
 
   const currentStep = config.steps[Math.max(0, currentStepIndex)];
   const isComplete = currentStepIndex >= config.steps.length - 1 && !isTyping;

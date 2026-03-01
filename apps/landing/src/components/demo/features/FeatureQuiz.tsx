@@ -61,11 +61,7 @@ const QUESTIONS: QuizQuestion[] = [
  * - answers: array of selected answer indices
  * - showFeedback: whether to show correct/wrong after selection
  */
-export function FeatureQuiz({
-  currentStepId: _currentStepId,
-  uiState,
-  onInteraction,
-}: DemoFeatureProps) {
+export function FeatureQuiz({ uiState, onInteraction }: DemoFeatureProps) {
   const phase = (uiState.phase as string) ?? "intro";
   const currentQuestion = (uiState.currentQuestion as number) ?? 0;
   const answers = (uiState.answers as number[]) ?? [];
