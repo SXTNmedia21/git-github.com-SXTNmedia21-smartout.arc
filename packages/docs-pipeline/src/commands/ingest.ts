@@ -15,8 +15,15 @@ import { findProjectRoot } from "../utils/root";
 import { hashString } from "../utils/hash";
 import { chunkDocument } from "../chunking/chunker";
 import { getServiceClient } from "../db/client";
-import { getExistingHashes, deleteChunksForPaths, insertChunks } from "../db/operations";
+import {
+  getExistingHashes,
+  deleteChunksForPaths,
+  insertChunks,
+  findExactDuplicates,
+  findSemanticDuplicates,
+} from "../db/operations";
 import { generateEmbeddings } from "../embedding/client";
+import { acquireLock, releaseLock } from "../locking/ingest-lock";
 import type { Chunk } from "../chunking/chunker";
 
 /**
@@ -100,10 +107,20 @@ async function discoverChangedDocs(gitRef: string): Promise<string[]> {
  * @param options - Ingest configuration options
  */
 export async function runIngest(options: IngestOptions): Promise<void> {
-  const { force, dryRun, mode, gitRef } = options;
+  const { force, dryRun, mode, gitRef, duplicateThreshold } = options;
 
   console.log(`\n📚 Documentation Ingestion Pipeline`);
   console.log(`   Mode: ${mode} | Force: ${force} | Dry Run: ${dryRun}\n`);
+
+  // Acquire lock for write operations (skip for dry-run)
+  if (!dryRun) {
+    const lockAcquired = acquireLock(`ingest --mode ${mode}${force ? " --force" : ""}`);
+    if (!lockAcquired) {
+      console.log("   Cannot acquire lock. Another ingest process is running.\n");
+      process.exitCode = 1;
+      return;
+    }
+  }
 
   // Step 1: Discover files
   let files: string[];
@@ -201,6 +218,36 @@ export async function runIngest(options: IngestOptions): Promise<void> {
 
   console.log(`   Inserting ${chunksWithEmbeddings.length} chunks...`);
   await insertChunks(supabase, chunksWithEmbeddings);
+
+  // Step 6: Check for duplicates
+  console.log("   Checking for duplicates...");
+  const exactDupes = await findExactDuplicates(supabase);
+  if (exactDupes.length > 0) {
+    console.log(`\n   ⚠ Found ${exactDupes.length} exact duplicate groups:`);
+    for (const dupe of exactDupes) {
+      console.log(`     Content hash ${dupe.contentHash.slice(0, 12)}... appears in:`);
+      for (const path of dupe.paths) {
+        console.log(`       - ${path}`);
+      }
+    }
+  }
+
+  const semanticDupes = await findSemanticDuplicates(supabase, duplicateThreshold);
+  if (semanticDupes.length > 0) {
+    console.log(
+      `\n   ⚠ Found ${semanticDupes.length} semantic duplicate pairs (>= ${duplicateThreshold}):`,
+    );
+    for (const dupe of semanticDupes) {
+      console.log(`     ${dupe.path1} <-> ${dupe.path2} (${dupe.similarity})`);
+    }
+  }
+
+  if (exactDupes.length === 0 && semanticDupes.length === 0) {
+    console.log("   No duplicates found.");
+  }
+
+  // Release lock
+  releaseLock();
 
   console.log(
     `\n   Done! Processed ${changedFiles.length} files into ${chunksWithEmbeddings.length} chunks.\n`,

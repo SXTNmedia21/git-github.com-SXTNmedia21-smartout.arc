@@ -2,7 +2,7 @@
 // operations.ts
 // Database operations for the docs pipeline.
 // Handles reading existing hashes, deleting stale chunks,
-// and batch-inserting new chunks.
+// batch-inserting new chunks, and duplicate detection.
 // Connected to: src/db/client.ts (Supabase client)
 // Connected to: src/commands/ingest.ts (orchestrates these operations)
 // ============================================
@@ -136,4 +136,160 @@ export async function insertChunks(
       throw new Error(`Failed to insert chunk batch (${i}-${i + batch.length}): ${error.message}`);
     }
   }
+}
+
+/**
+ * Exact duplicate: same content_hash, different source_path.
+ */
+export type ExactDuplicate = {
+  contentHash: string;
+  paths: string[];
+};
+
+/**
+ * Finds chunks with identical content_hash but different source paths.
+ *
+ * Why: Exact duplicates waste embedding storage and can confuse
+ * retrieval results. This helps identify copy-pasted content
+ * that should be consolidated.
+ *
+ * @param supabase - Service-role Supabase client
+ * @returns Array of duplicate groups (same content, different files)
+ */
+export async function findExactDuplicates(supabase: SupabaseClient): Promise<ExactDuplicate[]> {
+  // Fetch all content hashes and source paths
+  const allChunks: Array<{ content_hash: string; source_path: string }> = [];
+  let offset = 0;
+  const pageSize = 1000;
+
+  while (true) {
+    const { data, error } = await supabase
+      .from("platform_doc_chunk")
+      .select("content_hash, source_path")
+      .range(offset, offset + pageSize - 1);
+
+    if (error) {
+      throw new Error(`Failed to check for duplicates: ${error.message}`);
+    }
+
+    if (!data || data.length === 0) break;
+    allChunks.push(...data);
+    if (data.length < pageSize) break;
+    offset += pageSize;
+  }
+
+  // Group by content_hash, collecting unique source_paths
+  const groups = new Map<string, Set<string>>();
+  for (const chunk of allChunks) {
+    const existing = groups.get(chunk.content_hash) ?? new Set<string>();
+    existing.add(chunk.source_path);
+    groups.set(chunk.content_hash, existing);
+  }
+
+  // Return groups that appear in more than one source file
+  const duplicates: ExactDuplicate[] = [];
+  for (const [contentHash, paths] of groups) {
+    if (paths.size > 1) {
+      duplicates.push({ contentHash, paths: [...paths] });
+    }
+  }
+
+  return duplicates;
+}
+
+/**
+ * Semantic duplicate: high cosine similarity between chunks from different files.
+ */
+export type SemanticDuplicate = {
+  path1: string;
+  path2: string;
+  similarity: number;
+};
+
+/**
+ * Finds semantically similar chunks from different source files.
+ *
+ * Why: Even without identical content, very similar chunks
+ * (e.g., slightly reworded paragraphs) indicate potential
+ * doc consolidation opportunities.
+ *
+ * Note: This performs a pairwise comparison which is O(n^2).
+ * For large datasets (>1000 chunks), consider sampling.
+ *
+ * @param supabase - Service-role Supabase client
+ * @param threshold - Minimum similarity score (0-1, default 0.96)
+ * @returns Array of semantic duplicate pairs
+ */
+export async function findSemanticDuplicates(
+  supabase: SupabaseClient,
+  threshold: number = 0.96,
+): Promise<SemanticDuplicate[]> {
+  // Fetch a sample of chunks with embeddings for comparison
+  const { data, error } = await supabase
+    .from("platform_doc_chunk")
+    .select("chunk_id, source_path, embedding")
+    .not("embedding", "is", null)
+    .limit(500);
+
+  if (error) {
+    console.log(`   Semantic duplicate check failed: ${error.message}`);
+    return [];
+  }
+
+  if (!data || data.length < 2) return [];
+
+  // Pairwise cosine similarity comparison
+  const duplicates: SemanticDuplicate[] = [];
+
+  for (let i = 0; i < data.length; i++) {
+    for (let j = i + 1; j < data.length; j++) {
+      const a = data[i]!;
+      const b = data[j]!;
+
+      // Skip chunks from the same file
+      if (a.source_path === b.source_path) continue;
+
+      // Skip if embeddings are missing
+      if (!a.embedding || !b.embedding) continue;
+
+      const similarity = cosineSimilarity(
+        a.embedding as unknown as number[],
+        b.embedding as unknown as number[],
+      );
+
+      if (similarity >= threshold) {
+        duplicates.push({
+          path1: a.source_path,
+          path2: b.source_path,
+          similarity: Math.round(similarity * 1000) / 1000,
+        });
+      }
+    }
+  }
+
+  return duplicates;
+}
+
+/**
+ * Computes cosine similarity between two vectors.
+ *
+ * @returns Similarity score between 0 and 1
+ */
+function cosineSimilarity(a: number[], b: number[]): number {
+  let dotProduct = 0;
+  let normA = 0;
+  let normB = 0;
+
+  for (let i = 0; i < a.length; i++) {
+    const ai = a[i] ?? 0;
+    const bi = b[i] ?? 0;
+    dotProduct += ai * bi;
+    normA += ai * ai;
+    normB += bi * bi;
+  }
+
+  const denominator = Math.sqrt(normA) * Math.sqrt(normB);
+  if (denominator === 0) return 0;
+
+  return dotProduct / denominator;
 }

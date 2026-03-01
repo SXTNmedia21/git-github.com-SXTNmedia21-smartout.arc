@@ -36,6 +36,8 @@
     "docs:validate": "pnpm --filter @smartout/docs-pipeline validate",
     "docs:validate:strict": "pnpm --filter @smartout/docs-pipeline validate:strict",
     "docs:watch": "pnpm --filter @smartout/docs-pipeline watch",
+    "docs:ingest:git": "pnpm --filter @smartout/docs-pipeline ingest -- --mode git",
+    "docs:ingest:git:main": "pnpm --filter @smartout/docs-pipeline ingest -- --mode git --git-ref origin/main",
     "prepare": "husky"
   },
   "devDependencies": {
