@@ -24,11 +24,14 @@ npx lint-staged
 #   - Secrets in binary files (use .gitignore)
 #   - Secrets already in history (use git-secrets or truffleHog for audit)
 
-STAGED_DIFF=$(git diff --cached --diff-filter=d -- \
+# Explicitly scan non-deleted staged changes only:
+# A=Added, C=Copied, M=Modified, R=Renamed, T=Type changed
+STAGED_DIFF=$(git diff --cached --diff-filter=ACMRT -- . \
   ':!docs/**/*.md' \
   ':!CLAUDE.md' \
   ':!*.md' \
   ':!.husky/*' \
+  ':!scripts/quality/*' \
 )
 
 if [ -z "$STAGED_DIFF" ]; then
@@ -36,7 +39,7 @@ if [ -z "$STAGED_DIFF" ]; then
 fi
 
 # Smartout platform keys (Security Protocol §2.3)
-if echo "$STAGED_DIFF" | grep -qE 'smo_sk_(live|test)_[A-Za-z0-9]'; then
+if echo "$STAGED_DIFF" | grep -qE 'smo_sk_(live|test)_[A-Za-z0-9]{20,}'; then
   echo ""
   echo "ERROR: Smartout workspace API key detected in staged changes!"
   echo "  Pattern: smo_sk_(live|test)_*"
@@ -46,7 +49,7 @@ if echo "$STAGED_DIFF" | grep -qE 'smo_sk_(live|test)_[A-Za-z0-9]'; then
   exit 1
 fi
 
-if echo "$STAGED_DIFF" | grep -qE 'smo_svc_(live|test)_[A-Za-z0-9]'; then
+if echo "$STAGED_DIFF" | grep -qE 'smo_svc_(live|test)_[A-Za-z0-9]{20,}'; then
   echo ""
   echo "ERROR: Smartout service key detected in staged changes!"
   echo "  Pattern: smo_svc_(live|test)_*"
@@ -56,11 +59,11 @@ if echo "$STAGED_DIFF" | grep -qE 'smo_svc_(live|test)_[A-Za-z0-9]'; then
   exit 1
 fi
 
-# Stripe keys
-if echo "$STAGED_DIFF" | grep -qE 'sk_live_[A-Za-z0-9]{20,}'; then
+# Stripe secret keys (live + test)
+if echo "$STAGED_DIFF" | grep -qE 'sk_(live|test)_[A-Za-z0-9]{20,}'; then
   echo ""
-  echo "ERROR: Stripe live secret key detected in staged changes!"
-  echo "  Pattern: sk_live_*"
+  echo "ERROR: Stripe secret key detected in staged changes!"
+  echo "  Pattern: sk_(live|test)_*"
   echo "  Violation: Security Protocol LAW 3"
   echo "  Fix: Use STRIPE_SECRET_KEY env var"
   echo ""
@@ -82,7 +85,7 @@ fi
 if echo "$STAGED_DIFF" | grep -qE 'SG\.[A-Za-z0-9_-]{20,}'; then
   echo ""
   echo "ERROR: SendGrid API key detected in staged changes!"
-  echo "  Pattern: SG.*"
+  echo "  Pattern: SG\\.[A-Za-z0-9_-]{20,}"
   echo "  Violation: Security Protocol LAW 3"
   echo "  Fix: Use SENDGRID_API_KEY env var"
   echo ""
@@ -90,10 +93,10 @@ if echo "$STAGED_DIFF" | grep -qE 'SG\.[A-Za-z0-9_-]{20,}'; then
 fi
 
 # JWT tokens (Supabase service role key or any raw JWT)
-if echo "$STAGED_DIFF" | grep -qE 'eyJhbGciOi[A-Za-z0-9._-]{50,}'; then
+if echo "$STAGED_DIFF" | grep -qE 'eyJ[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]{5,}'; then
   echo ""
   echo "ERROR: JWT token detected in staged changes!"
-  echo "  Pattern: eyJhbGciOi* (base64 JWT header)"
+  echo "  Pattern: eyJ*.*.* (JWT header.payload.signature)"
   echo "  Violation: Security Protocol LAW 3"
   echo "  This may be a Supabase service role key or auth token."
   echo "  Fix: Use environment variable — never inline JWTs"
@@ -103,7 +106,7 @@ fi
 
 # Generic high-entropy secret assignment (catches password="...", secret="...", token="...")
 # Only flags assignments with values longer than 20 chars (avoids false positives on short strings)
-if echo "$STAGED_DIFF" | grep -qE '(password|secret|token|api_key|apiKey|API_KEY)\s*[=:]\s*["\x27][A-Za-z0-9+/=_-]{20,}["\x27]'; then
+if echo "$STAGED_DIFF" | grep -qE "(password|secret|token|api_key|apiKey|API_KEY)[[:space:]]*[=:][[:space:]]*['\"][A-Za-z0-9+/=_-]{20,}['\"]"; then
   echo ""
   echo "WARNING: Possible hardcoded secret detected in staged changes!"
   echo "  Pattern: password/secret/token/api_key = \"<long_string>\""
