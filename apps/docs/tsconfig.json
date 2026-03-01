@@ -1,9 +1,0 @@
-{
-  "extends": "@smartout/typescript-config/nextjs.json",
-  "compilerOptions": {
-    "outDir": "dist",
-    "rootDir": "."
-  },
-  "include": ["**/*.ts", "**/*.tsx", "**/*.mdx", "**/*.js", "**/*.jsx"],
-  "exclude": ["node_modules", "dist", ".next"]
-}

@@ -58,27 +58,27 @@ Master navigation map for all documentation. An agent reads this to find any doc
 
 ### Architecture (Layer 3)
 
-| id                | File                                                       | Status    |
-| ----------------- | ---------------------------------------------------------- | --------- |
-| CORE_ARCH_V2      | architecture/SMARTOUT_CORE_ARCHITECTURE_v2.md              | canonical |
-| UI_ARCH           | architecture/SMARTOUT_UI_ARCHITECTURE.md                   | draft     |
-| PROD_ARCH         | architecture/SMARTOUT_PRODUCTION_ARCHITECTURE.md           | canonical |
-| FOUND_ARCH        | architecture/SMARTOUT_FOUNDATION_ARCHITECTURE.md           | canonical |
-| FOUND_DATA_MODEL  | architecture/SMARTOUT_FOUNDATION_DATA_MODEL.md             | canonical |
-| FOUND_PRODUCT_ID  | architecture/SMARTOUT_FOUNDATION_PRODUCT_IDENTITY.md       | canonical |
-| IMPL_GUIDE        | architecture/SMARTOUT_IMPLEMENTATION_GUIDE.md              | canonical |
-| PACKAGES_ARCH     | architecture/SMARTOUT_PACKAGES_ARCHITECTURE.md             | canonical |
-| CONTRACT_ARCH     | architecture/SMARTOUT_CONTRACT_SYSTEM.md                   | canonical |
-| TELEMETRY_ARCH    | architecture/SMARTOUT_TELEMETRY_ARCHITECTURE.md            | canonical |
-| SUBDOMAIN_ARCH    | architecture/SMARTOUT_Subdomain_Routing_Architecture.md    | canonical |
-| WS_ONBOARD_ARCH   | architecture/SMARTOUT_WORKSPACE_ONBOARDING_ARCHITECTURE.md | canonical |
-| NEXTRA_ARCH       | architecture/SMARTOUT_docs_NEXTRA_architecture.md          | draft     |
-| ORG_ROADMAP       | architecture/SMARTOUT_ORG_STRUCTURE_ROADMAP.md             | canonical |
-| APPENDIX_ENUMS    | architecture/SMARTOUT_APPENDIX_ENUMS.md                    | canonical |
-| ARCH_REPORTS_KPIS | architecture/SMARTOUT_MODULE_10_REPORTS_AND_KPIS.md        | canonical |
-| PERF_GOVERNANCE   | architecture/PERFORMANCE_BUILD_GOVERNANCE.md               | canonical |
-| PRD_03            | architecture/PRD-03_Avstemmingssystem.md                   | canonical |
-| SCHED_UX_AUDIT    | architecture/SCHEDULE_PAGE_UX_AUDIT_AND_WORKFLOWS.md       | canonical |
+| id                | File                                                       | Status                |
+| ----------------- | ---------------------------------------------------------- | --------------------- |
+| CORE_ARCH_V2      | architecture/SMARTOUT_CORE_ARCHITECTURE_v2.md              | canonical             |
+| UI_ARCH           | architecture/SMARTOUT_UI_ARCHITECTURE.md                   | draft                 |
+| PROD_ARCH         | architecture/SMARTOUT_PRODUCTION_ARCHITECTURE.md           | canonical             |
+| FOUND_ARCH        | architecture/SMARTOUT_FOUNDATION_ARCHITECTURE.md           | canonical             |
+| FOUND_DATA_MODEL  | architecture/SMARTOUT_FOUNDATION_DATA_MODEL.md             | canonical             |
+| FOUND_PRODUCT_ID  | architecture/SMARTOUT_FOUNDATION_PRODUCT_IDENTITY.md       | canonical             |
+| IMPL_GUIDE        | architecture/SMARTOUT_IMPLEMENTATION_GUIDE.md              | canonical             |
+| PACKAGES_ARCH     | architecture/SMARTOUT_PACKAGES_ARCHITECTURE.md             | canonical             |
+| CONTRACT_ARCH     | architecture/SMARTOUT_CONTRACT_SYSTEM.md                   | canonical             |
+| TELEMETRY_ARCH    | architecture/SMARTOUT_TELEMETRY_ARCHITECTURE.md            | canonical             |
+| SUBDOMAIN_ARCH    | architecture/SMARTOUT_Subdomain_Routing_Architecture.md    | canonical             |
+| WS_ONBOARD_ARCH   | architecture/SMARTOUT_WORKSPACE_ONBOARDING_ARCHITECTURE.md | canonical             |
+| NEXTRA_ARCH       | architecture/SMARTOUT_docs_NEXTRA_architecture.md          | superseded (ADR-0030) |
+| ORG_ROADMAP       | architecture/SMARTOUT_ORG_STRUCTURE_ROADMAP.md             | canonical             |
+| APPENDIX_ENUMS    | architecture/SMARTOUT_APPENDIX_ENUMS.md                    | canonical             |
+| ARCH_REPORTS_KPIS | architecture/SMARTOUT_MODULE_10_REPORTS_AND_KPIS.md        | canonical             |
+| PERF_GOVERNANCE   | architecture/PERFORMANCE_BUILD_GOVERNANCE.md               | canonical             |
+| PRD_03            | architecture/PRD-03_Avstemmingssystem.md                   | canonical             |
+| SCHED_UX_AUDIT    | architecture/SCHEDULE_PAGE_UX_AUDIT_AND_WORKFLOWS.md       | canonical             |
 
 ### Cross-Cutting
 
@@ -173,13 +173,13 @@ See `docs/learnings/0000-learning-log.md` -- 11 learning records.
 
 Active plans in `docs/plans/`. Completed plans in `docs/plans/completed/`.
 
-| id                 | File                                            | Status    |
-| ------------------ | ----------------------------------------------- | --------- |
-| PLAN_BUILD_ORDER   | plans/BUILD_ORDER.md                            | canonical |
-| PLAN_KNOWLEDGE_SYS | plans/2026-02-27-docs-knowledge-system.md       | canonical |
-| PLAN_NEXTRA        | plans/2026-02-28-docs-nextra-system.md          | draft     |
-| PLAN_SUBDOMAIN     | plans/2026-02-28-subdomain-workspace-routing.md | canonical |
-| PLAN_AUTH_KEY_MGMT | plans/2026-02-28-auth-key-management.md         | draft     |
+| id                 | File                                            | Status              |
+| ------------------ | ----------------------------------------------- | ------------------- |
+| PLAN_BUILD_ORDER   | plans/BUILD_ORDER.md                            | canonical           |
+| PLAN_KNOWLEDGE_SYS | plans/2026-02-27-docs-knowledge-system.md       | canonical           |
+| PLAN_NEXTRA        | plans/2026-02-28-docs-nextra-system.md          | accepted (ADR-0030) |
+| PLAN_SUBDOMAIN     | plans/2026-02-28-subdomain-workspace-routing.md | canonical           |
+| PLAN_AUTH_KEY_MGMT | plans/2026-02-28-auth-key-management.md         | draft               |
 
 Completed plans (historical, not loaded actively):
 

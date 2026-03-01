@@ -60,7 +60,7 @@ Chosen option: "Option 1 — YAML frontmatter + reference layer + archive", beca
 - SMARTOUT_REBUILD_STRATEGY.md (absorbed into CLAUDE.md)
 - smartout-full-index-v2.md (replaced by docs/INDEX.md)
 
-**Nextra scaffold:** `apps/docs/` created for public documentation site (docs.smartout.ai).
+**Nextra scaffold:** `apps/docs/` was created for public documentation site (docs.smartout.ai) but later removed (ADR-0030). Customer-facing docs live in `apps/landing/src/app/docs/` instead.
 
 **CLAUDE.md trimmed:** Removed Key Enums section (→ DATABASE.md) and Module Documentation table (→ INDEX.md). Added Source of Truth hierarchy and trigger lines.
 

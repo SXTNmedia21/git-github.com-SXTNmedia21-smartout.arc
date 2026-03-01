@@ -1,11 +1,11 @@
 ---
 title: "Documentation System — Landing App Expansion Plan"
-id: PLAN_NEXTRA
-version: "1.1"
-status: draft
+id: PLAN_DOCS_LANDING
+version: "1.2"
+status: accepted
 layer: plan
 created: 2026-02-28
-updated: 2026-02-28
+updated: 2026-03-01
 author: claude
 supersedes: []
 superseded_by: null
@@ -13,15 +13,14 @@ depends_on: []
 tags:
   - plan
   - documentation
-  - nextra
   - landing
   - docs-system
 tables: []
 changelog:
+  - date: 2026-03-01
+    change: "Decision finalized: Nextra app (apps/docs/) deleted. All public docs live in apps/landing/. Removed nextra tag, updated ID."
   - date: 2026-02-28
-    change: "Status → draft. This plan targets apps/landing/ docs expansion. A separate Nextra v4 app was scaffolded at apps/docs/ (ADR-0025). The two approaches coexist: apps/landing/docs/ has existing hardcoded doc pages, apps/docs/ is the new Nextra-powered public docs site. This plan needs revision to decide which approach wins for public documentation."
-  - date: 2026-02-28
-    change: "Added YAML frontmatter"
+    change: "Initial plan created targeting apps/landing/ expansion with audience grouping and content lifecycle."
 ---
 
 # Smartout Documentation System — Landing App Expansion Plan

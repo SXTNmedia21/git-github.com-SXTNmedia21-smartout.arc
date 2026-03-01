@@ -41,7 +41,6 @@ Integrations: Stripe (billing), DocuSign/DocuSeal (contracts), SendGrid (email),
 smartout_v3/
 ├── apps/web/          → Dashboard (port 3050)
 ├── apps/landing/      → Landing page (port 3055)
-├── apps/docs/         → Nextra docs site (port 3060)
 ├── apps/e2e/          → Playwright tests
 ├── packages/          → ai, design-tokens, eslint-config, notifications,
 │                        supabase, telemetry, types, typescript-config, ui, utils
@@ -287,7 +286,6 @@ npx supabase start                    # Start local Supabase
 npx supabase status                   # Get credentials
 pnpm --filter web dev                 # Dashboard (3050)
 pnpm --filter landing dev             # Landing (3055)
-pnpm --filter docs dev                # Docs (3060)
 pnpm dev                              # All (requires 1Password)
 pnpm dev:local                        # All (no 1Password)
 pnpm typecheck                        # Type check all

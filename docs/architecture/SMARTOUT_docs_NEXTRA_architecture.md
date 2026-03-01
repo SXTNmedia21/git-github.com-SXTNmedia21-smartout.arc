@@ -2,13 +2,13 @@
 title: "Documentation System Architecture (Nextra)"
 id: NEXTRA_ARCH
 version: "1.1"
-status: draft
+status: superseded
 layer: architecture
 created: 2026-02-28
 updated: 2026-02-28
 author: pontus
 supersedes: []
-superseded_by: null
+superseded_by: ADR_0030
 depends_on:
   - CORE_ARCH_V2
   - SUBDOMAIN_ARCH
@@ -26,7 +26,7 @@ changelog:
 
 # Smartout — Documentation System Architecture
 
-> **Status:** Draft — needs revision (v1.1)
+> **Status:** Superseded by ADR-0030 — documentation lives in `apps/landing/src/app/docs/`, not a separate Nextra app
 > **Updated:** February 28, 2026
 > **Depends on:** Core Architecture v2 (Monorepo structure), Subdomain Architecture (docs.smartout.ai)
 > **Cross-reference:** `SMARTOUT_SUBDOMAIN_ARCHITECTURE.md`, ADR-0025
