@@ -16,6 +16,7 @@ export const env = createEnv({
     STAGE_ENGINE_URL: z.string().url().optional(),
     STAGE_ENGINE_API_KEY: z.string().optional(),
     INTERVJU_MCP_WEBHOOK_SECRET: z.string().optional(),
+    REVALIDATION_SECRET: z.string().min(16).optional(),
     // Allow overriding Node environment for testing
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   },
