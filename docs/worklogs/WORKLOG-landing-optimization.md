@@ -22,7 +22,7 @@ tags: []
 
 ## Remaining
 
-- [ ] Phase 5: Admin UI
+- [ ] Phase 5: Admin UI (block-specific forms, pickers, autosave, preview)
 - [ ] Phase 6: Seed existing variants
 - [ ] Phase 7: Remove old code
 
@@ -37,13 +37,14 @@ tags: []
 
 ## Log
 
-| Date       | Time  | Event                                                                              |
-| ---------- | ----- | ---------------------------------------------------------------------------------- |
-| 2026-03-01 | 22:27 | Feature started                                                                    |
-| 2026-03-01 | 22:50 | Codebase exploration complete — 7 variants, 66.5 KB page.tsx, all hardcoded        |
-| 2026-03-01 | 23:00 | Design approved — block-based page builder with admin UI                           |
-| 2026-03-01 | 23:05 | Design doc saved to docs/plans/                                                    |
-| 2026-03-01 | 23:30 | Implementation plan written — 27 tasks across 7 phases                             |
-| 2026-03-01 | --    | Task 12: Created get-variant.ts — server-side variant fetching with unstable_cache |
-| 2026-03-01 | --    | Task 13: Created /v/page.tsx — DB-driven landing route with ?v=slug and preview    |
-| 2026-03-01 | --    | Task 14: Created /api/revalidate/route.ts + added REVALIDATION_SECRET to env.ts    |
+| Date       | Time  | Event                                                                                                                                                            |
+| ---------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-03-01 | 22:27 | Feature started                                                                                                                                                  |
+| 2026-03-01 | 22:50 | Codebase exploration complete — 7 variants, 66.5 KB page.tsx, all hardcoded                                                                                      |
+| 2026-03-01 | 23:00 | Design approved — block-based page builder with admin UI                                                                                                         |
+| 2026-03-01 | 23:05 | Design doc saved to docs/plans/                                                                                                                                  |
+| 2026-03-01 | 23:30 | Implementation plan written — 27 tasks across 7 phases                                                                                                           |
+| 2026-03-01 | --    | Task 12: Created get-variant.ts — server-side variant fetching with unstable_cache                                                                               |
+| 2026-03-01 | --    | Task 13: Created /v/page.tsx — DB-driven landing route with ?v=slug and preview                                                                                  |
+| 2026-03-01 | --    | Task 14: Created /api/revalidate/route.ts + added REVALIDATION_SECRET to env.ts                                                                                  |
+| 2026-03-01 | --    | Task 18: Created block editor — server page, BlockEditorClient, BlockCard (dnd-kit sortable), VariantMetadataForm, AddBlockDialog. Fixed variant list edit link. |

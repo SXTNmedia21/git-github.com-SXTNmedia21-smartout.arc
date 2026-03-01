@@ -51,7 +51,7 @@ export function VariantList({ variants: initialVariants }: VariantListProps) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem asChild>
-                <Link href={`/platform-admin/landing/variants/${variant.id}/edit`}>
+                <Link href={`/platform-admin/landing/variants/${variant.id}`}>
                   <Pencil className="h-4 w-4" />
                   Edit
                 </Link>
