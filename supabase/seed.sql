@@ -294,3 +294,1147 @@ INSERT INTO public.invitation (
    'a0000000-0000-0000-0000-000000000000', 'ingrid@example.com', 'Ingrid', 'Larsen',
    'employee', ARRAY['d0000000-0000-0000-0000-000000000003']::uuid[], 'pending',
    'f0000000-0000-0000-0000-000000000000');
+
+-- ============================================
+-- Journey Seed Data (68 journeys)
+-- ============================================
+-- ============================================
+-- 20260301150000_journey_seed_data.sql
+-- Seeds all 68 journeys from the Smartout Journey Registry
+-- into the journey and journey_step tables.
+-- Each journey starts with status 'idea' and belongs
+-- to the seed workspace b0000000-0000-0000-0000-000000000000.
+-- Connected to: docs/modules/journey/SMARTOUT_JOURNEY_REGISTRY.md
+-- ============================================
+
+-- ─── Helper: workspace UUID constant ───────────────────────────
+-- Using a CTE so we define the workspace UUID once.
+-- All 68 journeys share this workspace.
+
+DO $$
+DECLARE
+  ws_id uuid := 'b0000000-0000-0000-0000-000000000000';
+BEGIN
+
+-- ─────────────────────────────────────────────────────────────────
+-- CORE (3 journeys: J-001 to J-003)
+-- ─────────────────────────────────────────────────────────────────
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-001', 'Sign Up & Create Workspace', 'sign-up-create-workspace', 'core', 'owner', 'desktop', 'P0', 'idea',
+  ARRAY['write', 'ai-assisted', 'stripe'],
+  'Landing page → "Start gratis prøveperiode"',
+  'signup → workspace exists → setup wizard completes → can invite',
+  'Dine første 10 minutter med Smartout');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-001' AND workspace_id = ws_id), ws_id, 1,
+   'Create Account', 'Enter email/password or SSO → Create account', 'Account created, redirect to workspace setup',
+   '/auth/signup', 'SignupForm', ARRAY[]::text[], ARRAY['auth.users', 'user_identity']::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-001' AND workspace_id = ws_id), ws_id, 2,
+   'AI Scrape & Prepopulate', 'AI scrapes website + Brønnøysundregistrene → Prepopulate workspace', 'Company details auto-filled',
+   '/onboarding/setup', 'SetupWizard', ARRAY[]::text[], ARRAY['company', 'workspace']::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-001' AND workspace_id = ws_id), ws_id, 3,
+   'Confirm Company Details', 'Confirm/adjust company details (name, org number, industry)', 'Details saved correctly',
+   '/onboarding/setup', 'CompanyDetailsForm', ARRAY['company']::text[], ARRAY['company']::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-001' AND workspace_id = ws_id), ws_id, 4,
+   'Setup Wizard', 'Mr. Botsson guides 7-stage setup wizard', 'All 7 stages completed',
+   '/onboarding/setup', 'SetupWizard', ARRAY['workspace']::text[], ARRAY['department', 'location', 'team', 'position']::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-001' AND workspace_id = ws_id), ws_id, 5,
+   'Invite Employees', 'Workspace ready → Invite first employees', 'Invitations sent successfully',
+   '/onboarding/invite', 'InviteForm', ARRAY['workspace']::text[], ARRAY['invite']::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-002', 'Employee Accepts Invite', 'employee-accepts-invite', 'core', 'employee', 'mobile', 'P0', 'idea',
+  ARRAY['write', 'ai-assisted', 'sandbox'],
+  'Email/SMS invite link',
+  'invite → account created → trainee mode → AI greeting',
+  'Velkommen til din nye arbeidsplass');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-002' AND workspace_id = ws_id), ws_id, 1,
+   'Accept Invite', 'Click invite → Create account (or link existing)', 'Account created and linked to workspace',
+   '/auth/invite', 'InviteAcceptForm', ARRAY['invite']::text[], ARRAY['auth.users', 'user_identity', 'profile']::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-002' AND workspace_id = ws_id), ws_id, 2,
+   'Enter Trainee Mode', 'Land in Trainee Mode (sandbox)', 'Sandbox environment loaded',
+   '/home', 'TraineeShell', ARRAY['profile']::text[], ARRAY['profile']::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-002' AND workspace_id = ws_id), ws_id, 3,
+   'AI Greeting & Profile Setup', 'Mr. Botsson greets → Profile setup (photo, language, emergency contact)', 'Profile completed',
+   '/onboarding/profile', 'ProfileSetup', ARRAY['profile']::text[], ARRAY['profile']::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-002' AND workspace_id = ws_id), ws_id, 4,
+   'Navigation Tour', 'Navigation tour → Core concepts intro', 'Tour completed, concepts understood',
+   '/home', 'NavigationTour', ARRAY[]::text[], ARRAY[]::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-002' AND workspace_id = ws_id), ws_id, 5,
+   'Begin Module Journeys', 'Module journeys begin based on first shift', 'First module journey started',
+   '/training', 'ModuleJourneyList', ARRAY['profile', 'schedule_shift']::text[], ARRAY[]::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-003', 'Login & Route to Context', 'login-route-to-context', 'core', 'all', 'both', 'P0', 'idea',
+  ARRAY['read-only'],
+  'Open app / navigate to site',
+  'login each role → correct screen → context matches',
+  NULL);
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-003' AND workspace_id = ws_id), ws_id, 1,
+   'Auth Check', 'Auth check → Session validation', 'Session validated or redirect to login',
+   '/auth/login', 'AuthGuard', ARRAY['auth.users']::text[], ARRAY[]::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-003' AND workspace_id = ws_id), ws_id, 2,
+   'Load Profile', 'Load profile → Determine role, status, session', 'Profile loaded with correct role',
+   NULL, 'ProfileLoader', ARRAY['profile', 'workspace']::text[], ARRAY[]::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-003' AND workspace_id = ws_id), ws_id, 3,
+   'Route to Context', 'Route: Employee on shift → Feed | Off shift → Schedule | Admin → Dashboard | Trainee → Onboarding', 'Correct screen for role and context',
+   NULL, 'ContextRouter', ARRAY['profile', 'schedule_shift', 'department_session']::text[], ARRAY[]::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-003' AND workspace_id = ws_id), ws_id, 4,
+   'Load Workspace Context', 'Load workspace context (season, modules, permissions)', 'All context loaded correctly',
+   NULL, 'WorkspaceProvider', ARRAY['workspace', 'season']::text[], ARRAY[]::text[], NULL);
+
+-- ─────────────────────────────────────────────────────────────────
+-- ONBOARDING (5 journeys: J-004 to J-008)
+-- ─────────────────────────────────────────────────────────────────
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-004', 'Complete Trainee Core Journey', 'complete-trainee-core-journey', 'onboarding', 'trainee', 'mobile', 'P0', 'idea',
+  ARRAY['write', 'ai-assisted', 'sandbox', 'gamification'],
+  'First login after invite acceptance',
+  'trainee login → AI greets → profile done → tour → checkpoints marked',
+  'Bli kjent med Smartout');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-004' AND workspace_id = ws_id), ws_id, 1,
+   'AI Introduction', 'Mr. Botsson introduces Smartout and the restaurant', 'Welcome message displayed',
+   '/onboarding', 'BotssonIntro', ARRAY['workspace']::text[], ARRAY[]::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-004' AND workspace_id = ws_id), ws_id, 2,
+   'Profile Completion', 'Profile completion: photo, emergency contact, language', 'Profile fields filled',
+   '/onboarding/profile', 'ProfileSetup', ARRAY['profile']::text[], ARRAY['profile']::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-004' AND workspace_id = ws_id), ws_id, 3,
+   'Navigation Tour', 'Navigation tour: Home, Vakter, Chat, Meg tabs', 'Tour completed',
+   '/home', 'NavigationTour', ARRAY[]::text[], ARRAY[]::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-004' AND workspace_id = ws_id), ws_id, 4,
+   'Core Concepts', 'Core concept intro: shifts, tasks, points', 'Concepts understood',
+   '/onboarding/concepts', 'ConceptIntro', ARRAY[]::text[], ARRAY[]::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-004' AND workspace_id = ws_id), ws_id, 5,
+   'AI Verification', 'Each checkpoint AI-verified → Progress bar updates', 'All checkpoints marked complete',
+   '/onboarding', 'ProgressTracker', ARRAY['profile']::text[], ARRAY['profile']::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-005', 'Complete Module Journey', 'complete-module-journey', 'onboarding', 'all', 'mobile', 'P0', 'idea',
+  ARRAY['sandbox', 'ai-assisted', 'gamification'],
+  'Core journey complete OR new module activated',
+  'module journey → spotlight → sandbox → checkpoint → complete',
+  'Laer [Modulnavn]');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-005' AND workspace_id = ws_id), ws_id, 1,
+   'Determine Module Order', 'AI determines module order (based on first shift)', 'Module order calculated',
+   '/training', 'ModuleOrder', ARRAY['profile', 'schedule_shift']::text[], ARRAY[]::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-005' AND workspace_id = ws_id), ws_id, 2,
+   'AI Spotlight', 'Open module → AI spotlight on key elements', 'Key elements highlighted',
+   '/training/module', 'AISpotlight', ARRAY[]::text[], ARRAY[]::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-005' AND workspace_id = ws_id), ws_id, 3,
+   'Sandbox Activity', 'Sandbox activity (test punch-in, test task)', 'Sandbox actions completed',
+   '/training/sandbox', 'SandboxActivity', ARRAY[]::text[], ARRAY[]::text[], 'Sandbox mode — no live impact'),
+  ((SELECT journey_id FROM journey WHERE code = 'J-005' AND workspace_id = ws_id), ws_id, 4,
+   'Checkpoint Quiz', 'Checkpoint quiz or confirmation', 'Quiz passed',
+   '/training/checkpoint', 'CheckpointQuiz', ARRAY[]::text[], ARRAY['protocol_assignment']::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-005' AND workspace_id = ws_id), ws_id, 5,
+   'Module Complete', 'Module marked learned → Next unlocked', 'Module marked complete, next module available',
+   '/training', 'ModuleProgress', ARRAY['protocol_assignment']::text[], ARRAY['protocol_assignment']::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-006', 'Admin Reviews Trainee Progress', 'admin-reviews-trainee-progress', 'onboarding', 'admin', 'desktop', 'P0', 'idea',
+  ARRAY['read-only', 'ai-assisted', 'approval-flow'],
+  'People → Trainees',
+  'trainees → progress → approve → status = active → points transferred',
+  'Godkjenn nye ansatte');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-006' AND workspace_id = ws_id), ws_id, 1,
+   'Trainee Dashboard', 'Trainee dashboard → All trainees with progress bars', 'All trainees listed with progress',
+   '/admin/people/trainees', 'TraineeDashboard', ARRAY['profile']::text[], ARRAY[]::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-006' AND workspace_id = ws_id), ws_id, 2,
+   'View Trainee Detail', 'Click trainee → Detailed checkpoint view', 'Checkpoint details displayed',
+   '/admin/people/trainees/:id', 'TraineeDetail', ARRAY['profile', 'protocol_assignment']::text[], ARRAY[]::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-006' AND workspace_id = ws_id), ws_id, 3,
+   'AI Risk Alerts', 'See AI risk alerts (behind schedule, first shift approaching)', 'Alerts displayed if applicable',
+   '/admin/people/trainees/:id', 'RiskAlerts', ARRAY['profile', 'schedule_shift']::text[], ARRAY[]::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-006' AND workspace_id = ws_id), ws_id, 4,
+   'Approve Trainee', 'Decision: Approve → active | Extend | Reschedule', 'Status updated correctly',
+   '/admin/people/trainees/:id', 'TraineeActions', ARRAY['profile']::text[], ARRAY['profile']::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-006' AND workspace_id = ws_id), ws_id, 5,
+   'Points Transfer', 'If approved → Status trainee → active, points carry to season', 'Points transferred to active season',
+   '/admin/people/trainees/:id', 'PointsTransfer', ARRAY['profile']::text[], ARRAY['profile']::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-007', 'Bulk Invite Employees (CSV)', 'bulk-invite-employees-csv', 'onboarding', 'admin', 'desktop', 'P1', 'idea',
+  ARRAY['write', 'bulk'],
+  'People → Invite → Bulk',
+  'upload CSV → validate → confirm → invites sent → tracking',
+  'Inviter mange ansatte på en gang');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-007' AND workspace_id = ws_id), ws_id, 1,
+   'Download Template', 'Download CSV template', 'Template downloaded',
+   '/admin/people/invite', 'CSVTemplateDownload', ARRAY[]::text[], ARRAY[]::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-007' AND workspace_id = ws_id), ws_id, 2,
+   'Fill Template', 'Fill: name, email, phone, department, position', 'CSV filled with employee data',
+   NULL, NULL, ARRAY[]::text[], ARRAY[]::text[], 'Done outside the app'),
+  ((SELECT journey_id FROM journey WHERE code = 'J-007' AND workspace_id = ws_id), ws_id, 3,
+   'Upload & Validate', 'Upload → Validate (duplicates, format, plan limit)', 'Validation results shown',
+   '/admin/people/invite/bulk', 'BulkUploadValidator', ARRAY['profile']::text[], ARRAY[]::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-007' AND workspace_id = ws_id), ws_id, 4,
+   'Preview & Confirm', 'Preview → Confirm', 'Preview shows correct data',
+   '/admin/people/invite/bulk', 'BulkPreview', ARRAY[]::text[], ARRAY[]::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-007' AND workspace_id = ws_id), ws_id, 5,
+   'Send Invites', 'Batch invites sent → Track acceptance', 'All invites sent, tracking active',
+   '/admin/people/invite/bulk', 'BulkInviteTracker', ARRAY[]::text[], ARRAY['invite']::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-008', 'Employee Offboarding', 'employee-offboarding', 'onboarding', 'admin', 'desktop', 'P1', 'idea',
+  ARRAY['write', 'compliance'],
+  'People → Employee → "Start offboarding"',
+  'offboarding → all items resolved → inactive → data preserved',
+  'Avslutte et arbeidsforhold');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-008' AND workspace_id = ws_id), ws_id, 1,
+   'Set Offboarding Status', 'Set status → offboarding', 'Status changed to offboarding',
+   '/admin/people/:id', 'EmployeeActions', ARRAY['profile']::text[], ARRAY['profile']::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-008' AND workspace_id = ws_id), ws_id, 2,
+   'Review Open Items', 'System shows: open shifts, active contracts, pending tasks', 'All open items listed',
+   '/admin/people/:id/offboarding', 'OffboardingChecklist', ARRAY['schedule_shift', 'employment_contract']::text[], ARRAY[]::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-008' AND workspace_id = ws_id), ws_id, 3,
+   'Handle Items', 'Handle each: reassign, terminate, cancel', 'All items resolved',
+   '/admin/people/:id/offboarding', 'OffboardingActions', ARRAY[]::text[], ARRAY['schedule_shift', 'employment_contract']::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-008' AND workspace_id = ws_id), ws_id, 4,
+   'GDPR Export', 'GDPR export offered', 'Export generated if requested',
+   '/admin/people/:id/offboarding', 'GDPRExport', ARRAY['profile']::text[], ARRAY[]::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-008' AND workspace_id = ws_id), ws_id, 5,
+   'Final Deactivation', 'Final deactivation → inactive, data preserved', 'Profile set to inactive, data preserved',
+   '/admin/people/:id/offboarding', 'Deactivation', ARRAY['profile']::text[], ARRAY['profile']::text[], NULL);
+
+-- ─────────────────────────────────────────────────────────────────
+-- ORG STRUCTURE (2 journeys: J-009 to J-010)
+-- ─────────────────────────────────────────────────────────────────
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-009', 'Configure Organization (Setup Wizard)', 'configure-organization-setup-wizard', 'org', 'admin', 'desktop', 'P0', 'idea',
+  ARRAY['write', 'ai-assisted'],
+  'First login → Mr. Botsson wizard',
+  'wizard → each stage creates entities → org structure complete',
+  'Sett opp restaurantens struktur');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-009' AND workspace_id = ws_id), ws_id, 1,
+   'Setup Wizard - 7 Stages', '7 stages: Departments → Locations → Zones → Assets → Positions → Teams → Settings', 'All 7 stages completed, entities created',
+   '/onboarding/setup', 'SetupWizard', ARRAY['workspace']::text[], ARRAY['department', 'location', 'team', 'position']::text[], 'Mr. Botsson guides through each stage');
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-010', 'Edit Org Structure', 'edit-org-structure', 'org', 'admin', 'desktop', 'P1', 'idea',
+  ARRAY['write', 'season-aware'],
+  'Settings → Org Structure',
+  'edit → saved → scheduling reflects → season items correct',
+  'Endre organisasjonsstruktur');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-010' AND workspace_id = ws_id), ws_id, 1,
+   'Navigate to Section', 'Navigate to section', 'Org structure section loaded',
+   '/admin/settings/org', 'OrgStructure', ARRAY['department', 'location', 'team']::text[], ARRAY[]::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-010' AND workspace_id = ws_id), ws_id, 2,
+   'Add/Edit/Deactivate', 'Add/edit/deactivate entities', 'Changes saved',
+   '/admin/settings/org', 'OrgEditor', ARRAY[]::text[], ARRAY['department', 'location', 'team', 'position']::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-010' AND workspace_id = ws_id), ws_id, 3,
+   'Drag and Drop Reorder', 'Drag-and-drop reorder', 'Order updated',
+   '/admin/settings/org', 'OrgEditor', ARRAY[]::text[], ARRAY['department', 'location', 'team']::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-010' AND workspace_id = ws_id), ws_id, 4,
+   'Season-Aware Variants', 'Season-aware variants (summer zones, event positions)', 'Season variants configured',
+   '/admin/settings/org', 'SeasonVariants', ARRAY['season']::text[], ARRAY['department', 'location', 'team', 'position']::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-010' AND workspace_id = ws_id), ws_id, 5,
+   'Verify Cross-Module', 'Changes reflected across all modules', 'Scheduling and operations reflect changes',
+   NULL, NULL, ARRAY[]::text[], ARRAY[]::text[], 'Verification step');
+
+-- ─────────────────────────────────────────────────────────────────
+-- SCHEDULING (8 journeys: J-011 to J-018)
+-- ─────────────────────────────────────────────────────────────────
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-011', 'Check My Schedule', 'check-my-schedule', 'scheduling', 'employee', 'mobile', 'P0', 'idea',
+  ARRAY['read-only'],
+  'Vakter tab',
+  'schedule → shifts visible → detail correct',
+  'Sjekk vaktplanen din');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-011' AND workspace_id = ws_id), ws_id, 1,
+   'View Calendar', 'Calendar view → Tap shift → Detail (time, location, role, colleagues)', 'Shift details displayed correctly',
+   '/shifts', 'ShiftCalendar', ARRAY['schedule_shift', 'profile']::text[], ARRAY[]::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-012', 'Register Availability / Request Time Off', 'register-availability-request-time-off', 'scheduling', 'employee', 'mobile', 'P0', 'idea',
+  ARRAY['write', 'approval-flow'],
+  'Vakter → Min tilgjengelighet',
+  'mark unavailable → saved → visible in admin grid → conflicts detected',
+  'Si fra når du ikke kan jobbe');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-012' AND workspace_id = ws_id), ws_id, 1,
+   'Mark Availability', 'Open calendar → Mark unavailable → Or request time off → Submit → Track status', 'Availability saved and visible to admin',
+   '/shifts/availability', 'AvailabilityCalendar', ARRAY['schedule_shift']::text[], ARRAY['schedule_shift']::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-013', 'Claim Open Shift', 'claim-open-shift', 'scheduling', 'employee', 'mobile', 'P1', 'idea',
+  ARRAY['write', 'push-notification'],
+  'Push or Vakter → Ledige vakter',
+  'open shift → claim → approve → assigned',
+  'Ta en ekstra vakt');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-013' AND workspace_id = ws_id), ws_id, 1,
+   'Claim Shift', 'See open shifts → Filter → Tap "Ta vakten" → Manager approves → Shift assigned', 'Shift claimed and assigned after approval',
+   '/shifts/open', 'OpenShiftList', ARRAY['schedule_shift']::text[], ARRAY['schedule_shift']::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-014', 'Request Shift Swap', 'request-shift-swap', 'scheduling', 'employee', 'mobile', 'P1', 'idea',
+  ARRAY['write', 'approval-flow', 'push-notification'],
+  'Shift detail → Foreslå bytte',
+  'request → colleague accepts → manager approves → schedules updated',
+  'Bytt vakt med en kollega');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-014' AND workspace_id = ws_id), ws_id, 1,
+   'Request Swap', 'Select shift → See eligible colleagues → Send request → Colleague accepts → Manager approves', 'Swap approved and schedules updated',
+   '/shifts/:id/swap', 'ShiftSwapFlow', ARRAY['schedule_shift', 'profile']::text[], ARRAY['schedule_shift']::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-015', 'Build Weekly Schedule', 'build-weekly-schedule', 'scheduling', 'admin', 'desktop', 'P0', 'idea',
+  ARRAY['write', 'ai-assisted', 'norwegian-law'],
+  'Schedule Builder',
+  'create → assign → validate → publish → employees notified',
+  'Planlegg neste ukes vakter');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-015' AND workspace_id = ws_id), ws_id, 1,
+   'Build Schedule', 'Drag-and-drop grid → Create/assign shifts → Compliance check → Cost overlay → Publish', 'Schedule published, employees notified',
+   '/admin/scheduling/builder', 'ScheduleBuilder', ARRAY['profile', 'department', 'position']::text[], ARRAY['schedule_shift']::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-016', 'Handle Sick Call', 'handle-sick-call', 'scheduling', 'admin', 'both', 'P0', 'idea',
+  ARRAY['write', 'ai-assisted', 'push-notification'],
+  'Notification: syk',
+  'sick call → replacement → confirmed → schedule updated',
+  'Dekk et sykefravær på 2 minutter');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-016' AND workspace_id = ws_id), ws_id, 1,
+   'Handle Sick Call', 'See affected shift → AI suggests replacement → Send request → Confirmed → Or post open shift', 'Replacement confirmed or open shift posted',
+   '/admin/scheduling/sick', 'SickCallHandler', ARRAY['schedule_shift', 'profile']::text[], ARRAY['schedule_shift']::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-017', 'Copy / Template Schedule', 'copy-template-schedule', 'scheduling', 'admin', 'desktop', 'P1', 'idea',
+  ARRAY['write'],
+  'Schedule Builder → Kopier forrige uke',
+  'copy → preview → conflicts shown → confirm → shifts created',
+  'Gjenbruk en vaktplan');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-017' AND workspace_id = ws_id), ws_id, 1,
+   'Copy Schedule', 'Select source → Preview → Auto-adjust dates → Handle conflicts → Confirm', 'Schedule copied with conflicts resolved',
+   '/admin/scheduling/builder', 'ScheduleCopy', ARRAY['schedule_shift']::text[], ARRAY['schedule_shift']::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-018', 'View Shift History & Hours', 'view-shift-history-hours', 'scheduling', 'employee', 'both', 'P1', 'idea',
+  ARRAY['read-only', 'export'],
+  'Vakter → Historikk',
+  'history → hours calculated → overtime marked → export works',
+  'Se arbeidstimene dine');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-018' AND workspace_id = ws_id), ws_id, 1,
+   'View History', 'Past shifts with punch data → Hours breakdown → Overtime highlighted → Export', 'Hours and overtime displayed, export available',
+   '/shifts/history', 'ShiftHistory', ARRAY['schedule_shift', 'punch_record']::text[], ARRAY[]::text[], NULL);
+
+-- ─────────────────────────────────────────────────────────────────
+-- OPERATIONS (7 journeys: J-019 to J-025)
+-- ─────────────────────────────────────────────────────────────────
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-019', 'Punch Into Shift', 'punch-into-shift', 'operations', 'employee', 'mobile', 'P0', 'idea',
+  ARRAY['write', 'gps', 'gamification', 'real-time'],
+  'Home → Stemple inn',
+  'punch → GPS → session active → feed loads → record created',
+  'Stemple inn på jobb');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-019' AND workspace_id = ws_id), ws_id, 1,
+   'Punch In', 'Tap punch → GPS check → Session context switches → Feed loads → Points for on-time', 'Punched in, session active, feed loaded',
+   '/home', 'PunchButton', ARRAY['schedule_shift', 'department_session']::text[], ARRAY['punch_record']::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-020', 'Work Through Feed Tasks', 'work-through-feed-tasks', 'operations', 'employee', 'mobile', 'P0', 'idea',
+  ARRAY['write', 'real-time', 'gamification'],
+  'On shift → Feed items',
+  'feed → task → steps → complete → points',
+  'Gjør oppgavene dine');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-020' AND workspace_id = ws_id), ws_id, 1,
+   'Work Through Tasks', 'Feed → Tap task → Procedure stepper → Complete (photo/data) → Points → Next task', 'Task completed, points awarded',
+   '/feed', 'FeedTaskList', ARRAY['department_session']::text[], ARRAY['department_session']::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-021', 'View Day Brief', 'view-day-brief', 'operations', 'employee', 'mobile', 'P0', 'idea',
+  ARRAY['read-only', 'ai-assisted'],
+  'Feed → Pinned Day Brief',
+  'session start → brief pinned → expand → acknowledge tracked',
+  'Dagens oppdatering');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-021' AND workspace_id = ws_id), ws_id, 1,
+   'View Brief', 'AI-compiled brief → Expand → Action items → Acknowledge', 'Brief displayed and acknowledged',
+   '/feed', 'DayBrief', ARRAY['department_session']::text[], ARRAY['department_session']::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-022', 'Create Ad-Hoc Task', 'create-ad-hoc-task', 'operations', 'manager', 'mobile', 'P1', 'idea',
+  ARRAY['write', 'real-time', 'push-notification'],
+  'Feed "+" or Session Board',
+  'create → employee sees → push → completion tracked',
+  'Lag en oppgave på stedet');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-022' AND workspace_id = ws_id), ws_id, 1,
+   'Create Task', 'Quick-create → Assign → Push sent → Track completion', 'Task created, assigned employee notified',
+   '/feed', 'QuickTaskCreate', ARRAY['profile', 'department_session']::text[], ARRAY['department_session']::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-023', 'Record Handoff', 'record-handoff', 'operations', 'employee', 'mobile', 'P1', 'idea',
+  ARRAY['write', 'ai-assisted'],
+  'Shift ending → Handoff prompt',
+  'handoff → record → submit → visible in next Day Brief',
+  'Overlever til neste skift');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-023' AND workspace_id = ws_id), ws_id, 1,
+   'Record Handoff', 'Choose method (text/voice/AI) → Record notes → AI extracts → Submit → Next shift sees in brief', 'Handoff recorded and visible in next brief',
+   '/feed/handoff', 'HandoffRecorder', ARRAY['department_session']::text[], ARRAY['department_session']::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-024', 'Punch Out & See Summary', 'punch-out-see-summary', 'operations', 'employee', 'mobile', 'P0', 'idea',
+  ARRAY['write', 'gamification'],
+  'End of shift',
+  'punch out → hours calculated → summary → overtime detected',
+  'Avslutt skiftet ditt');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-024' AND workspace_id = ws_id), ws_id, 1,
+   'Punch Out', 'Complete remaining tasks → Punch out → Summary (hours, tasks, points) → Overtime flagged', 'Punched out, summary displayed',
+   '/home', 'PunchOutSummary', ARRAY['punch_record', 'department_session']::text[], ARRAY['punch_record']::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-025', 'Sign Off Department Session', 'sign-off-department-session', 'operations', 'manager', 'desktop', 'P1', 'idea',
+  ARRAY['write', 'audit-trail'],
+  'End of day → Session Board',
+  'session board → review → sign off → status = closed',
+  'Lukk dagens drift');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-025' AND workspace_id = ws_id), ws_id, 1,
+   'Sign Off Session', 'Review completion rates → Check HACCP → Review handoffs → Sign off → Day closed', 'Session signed off and closed',
+   '/admin/operations/session', 'SessionBoard', ARRAY['department_session']::text[], ARRAY['department_session']::text[], NULL);
+
+-- ─────────────────────────────────────────────────────────────────
+-- HACCP (4 journeys: J-026 to J-029)
+-- ─────────────────────────────────────────────────────────────────
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-026', 'Log Temperature Reading', 'log-temperature-reading', 'haccp', 'employee', 'mobile', 'P0', 'idea',
+  ARRAY['write', 'compliance', 'audit-trail'],
+  'Feed task: Temperaturkontroll',
+  'HACCP task → readings → in-range green → out-of-range deviation → audit saved',
+  'Daglig temperaturlogging');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-026' AND workspace_id = ws_id), ws_id, 1,
+   'Log Temperature', 'Open task → See assets with limits → Enter readings → Auto-validate → Submit → Audit trail', 'Readings logged with audit trail',
+   '/feed/haccp/temperature', 'TemperatureLogger', ARRAY['haccp_log']::text[], ARRAY['haccp_log']::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-027', 'Handle Deviation', 'handle-deviation', 'haccp', 'employee', 'mobile', 'P0', 'idea',
+  ARRAY['write', 'compliance', 'audit-trail'],
+  'Temperature out of range / hygiene fail',
+  'deviation → runbook → corrective action → documented → resolution',
+  'Når noe er utenfor grenseverdiene');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-027' AND workspace_id = ws_id), ws_id, 1,
+   'Handle Deviation', 'Auto-flagged → Runbook triggered → Follow corrective steps → Document (text+photo) → Escalate if needed → Manager reviews', 'Deviation handled and documented',
+   '/feed/haccp/deviation', 'DeviationHandler', ARRAY['haccp_log']::text[], ARRAY['haccp_log']::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-028', 'Complete Hygiene Checklist', 'complete-hygiene-checklist', 'haccp', 'employee', 'mobile', 'P0', 'idea',
+  ARRAY['write', 'compliance', 'audit-trail'],
+  'Session hook at open/close',
+  'checklist opens → items checked → photo attached → submitted → audit',
+  'Hygienekontroll');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-028' AND workspace_id = ws_id), ws_id, 1,
+   'Complete Checklist', 'Open checklist → Check each item → Photo evidence if required → Flag issues → Submit → Audit trail', 'Checklist completed with audit trail',
+   '/feed/haccp/checklist', 'HygieneChecklist', ARRAY['haccp_log']::text[], ARRAY['haccp_log']::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-029', 'Export HACCP Compliance Report', 'export-haccp-compliance-report', 'haccp', 'admin', 'desktop', 'P1', 'idea',
+  ARRAY['read-only', 'export', 'compliance'],
+  'Reports → HACCP or Mattilsynet inspection',
+  'HACCP report → filter → all records → export PDF valid',
+  'Forbered deg til Mattilsynet');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-029' AND workspace_id = ws_id), ws_id, 1,
+   'Export Report', 'Select date range → See readings, deviations, corrective actions → Full audit trail → Export PDF', 'Report exported as PDF',
+   '/admin/reports/haccp', 'HACCPReport', ARRAY['haccp_log']::text[], ARRAY[]::text[], NULL);
+
+-- ─────────────────────────────────────────────────────────────────
+-- TRAINING (5 journeys: J-030 to J-034)
+-- ─────────────────────────────────────────────────────────────────
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-030', 'Complete Training Protocol', 'complete-training-protocol', 'training', 'employee', 'both', 'P0', 'idea',
+  ARRAY['write', 'gamification'],
+  'Assigned training or Me → Opplæring',
+  'training → steps → test → pass → readiness increases → certificate',
+  'Fullfør opplæringen din');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-030' AND workspace_id = ws_id), ws_id, 1,
+   'Complete Training', 'See protocols → Open → Procedure steps with media → Knowledge test → Pass → Readiness updated → Points', 'Training completed, readiness updated',
+   '/training', 'TrainingHub', ARRAY['protocol', 'protocol_assignment']::text[], ARRAY['protocol_assignment']::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-031', 'Sign Confirmation / Contract', 'sign-confirmation-contract', 'training', 'employee', 'both', 'P0', 'idea',
+  ARRAY['write', 'docuseal', 'compliance'],
+  'Notification: new document',
+  'assigned → opened → signed → readiness updated',
+  'Signer dokumenter digitalt');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-031' AND workspace_id = ws_id), ws_id, 1,
+   'Sign Document', 'Open → Read → Digital signature (DocuSeal) → Confirmation recorded → Readiness updated', 'Document signed, readiness updated',
+   '/training/sign', 'DocumentSigner', ARRAY['protocol_assignment']::text[], ARRAY['protocol_assignment']::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-032', 'Take Knowledge Test', 'take-knowledge-test', 'training', 'employee', 'both', 'P0', 'idea',
+  ARRAY['write', 'gamification'],
+  'End of training procedure or refresher due',
+  'open test → answer → submit → score shown → pass updates readiness',
+  'Kunnskapstest');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-032' AND workspace_id = ws_id), ws_id, 1,
+   'Take Test', 'Open test → Multiple choice / true-false → Submit → See score → Pass/fail → Retry if failed', 'Test completed, score shown',
+   '/training/test', 'KnowledgeTest', ARRAY['knowledge_test']::text[], ARRAY['knowledge_test']::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-033', 'Check Readiness Dashboard (Admin)', 'check-readiness-dashboard-admin', 'training', 'admin', 'desktop', 'P0', 'idea',
+  ARRAY['read-only'],
+  'People → Employee profile or Training Hub',
+  'profile → readiness score → breakdown matches → can assign',
+  'Sjekk om teamet ditt er klart');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-033' AND workspace_id = ws_id), ws_id, 1,
+   'Check Readiness', 'See readiness score (0-100%) → Breakdown per policy → Overdue deadlines → Assign additional training', 'Readiness dashboard with accurate data',
+   '/admin/training', 'ReadinessDashboard', ARRAY['profile', 'protocol_assignment']::text[], ARRAY['protocol_assignment']::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-034', 'Cross-Training Request', 'cross-training-request', 'training', 'employee', 'desktop', 'P2', 'idea',
+  ARRAY['write', 'gamification'],
+  'Me → Utvikling → "Lær noe nytt"',
+  'browse → select → request → approved → assigned',
+  'Utvid kompetansen din');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-034' AND workspace_id = ws_id), ws_id, 1,
+   'Request Cross-Training', 'Browse available cross-training → Select → Request → Manager approves → Training assigned', 'Cross-training requested and assigned',
+   '/me/development', 'CrossTrainingBrowser', ARRAY['protocol']::text[], ARRAY['protocol_assignment']::text[], NULL);
+
+-- ─────────────────────────────────────────────────────────────────
+-- ABSENCE (3 journeys: J-035 to J-037)
+-- ─────────────────────────────────────────────────────────────────
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-035', 'Report Sick (Egenmelding)', 'report-sick-egenmelding', 'absence', 'employee', 'mobile', 'P0', 'idea',
+  ARRAY['write', 'push-notification', 'norwegian-law'],
+  'Wake up sick → Open app',
+  'report sick → saved → manager notified → shifts flagged for replacement',
+  'Meld deg syk');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-035' AND workspace_id = ws_id), ws_id, 1,
+   'Report Sick', 'Tap "Meld fravær" → Select: egenmelding → Select dates → Submit → Manager notified → Shifts flagged', 'Sick report saved, manager notified',
+   '/absence/report', 'SickReportForm', ARRAY['schedule_shift']::text[], ARRAY['schedule_shift']::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-036', 'Request Vacation', 'request-vacation', 'absence', 'employee', 'both', 'P1', 'idea',
+  ARRAY['write', 'approval-flow', 'norwegian-law'],
+  'Vakter → Be om ferie',
+  'request → balance checked → submitted → approved → calendar updated',
+  'Søk om ferie');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-036' AND workspace_id = ws_id), ws_id, 1,
+   'Request Vacation', 'Select dates → See remaining vacation days → Submit request → Manager approves/rejects → Calendar updated', 'Vacation requested and processed',
+   '/absence/vacation', 'VacationRequestForm', ARRAY['schedule_shift']::text[], ARRAY['schedule_shift']::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-037', 'View Absence Balance', 'view-absence-balance', 'absence', 'employee', 'both', 'P1', 'idea',
+  ARRAY['read-only'],
+  'Me → Fravær',
+  'absence view → balances correct → history listed',
+  'Se fraværsoversikten din');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-037' AND workspace_id = ws_id), ws_id, 1,
+   'View Balance', 'See: vacation days remaining, sick leave used (egenmelding count), other leave → History list', 'Balances and history displayed',
+   '/me/absence', 'AbsenceBalance', ARRAY['schedule_shift']::text[], ARRAY[]::text[], NULL);
+
+-- ─────────────────────────────────────────────────────────────────
+-- PAYROLL (3 journeys: J-038 to J-040)
+-- ─────────────────────────────────────────────────────────────────
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-038', 'View My Salary', 'view-my-salary', 'payroll', 'employee', 'both', 'P1', 'idea',
+  ARRAY['read-only'],
+  'Me → Lønn',
+  'salary → hours match punches → supplements calculated → history',
+  'Se lønnen din');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-038' AND workspace_id = ws_id), ws_id, 1,
+   'View Salary', 'Current period hours → Breakdown (regular, overtime, supplements) → Tips → Historical payslips', 'Salary data displayed correctly',
+   '/me/salary', 'SalaryView', ARRAY['punch_record', 'schedule_shift']::text[], ARRAY[]::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-039', 'Run Payroll Period', 'run-payroll-period', 'payroll', 'admin', 'desktop', 'P1', 'idea',
+  ARRAY['write', 'norwegian-law', 'export'],
+  'Payroll → Kjør lønnsperiode',
+  'run → calculations correct → anomalies flagged → export valid',
+  'Kjør lønnsberegning');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-039' AND workspace_id = ws_id), ws_id, 1,
+   'Run Payroll', 'Select period → Auto-calculate → Review (hours, overtime 40%/50%, supplements) → Flag anomalies → Approve → Export', 'Payroll calculated and exported',
+   '/admin/payroll', 'PayrollRunner', ARRAY['punch_record', 'schedule_shift', 'profile']::text[], ARRAY[]::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-040', 'Review Wage Cost Report', 'review-wage-cost-report', 'payroll', 'admin', 'desktop', 'P2', 'idea',
+  ARRAY['read-only', 'export'],
+  'Reports → Lønnskostnad',
+  'report → per department → budget comparison → export',
+  'Lønnskostnadsrapport');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-040' AND workspace_id = ws_id), ws_id, 1,
+   'Review Report', 'See wage cost per department → Per day/week/month → Budget vs actual → Overtime analysis → Export', 'Wage cost report displayed and exportable',
+   '/admin/reports/wages', 'WageCostReport', ARRAY['punch_record', 'schedule_shift', 'department']::text[], ARRAY[]::text[], NULL);
+
+-- ─────────────────────────────────────────────────────────────────
+-- COMMUNICATION (4 journeys: J-041 to J-044)
+-- ─────────────────────────────────────────────────────────────────
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-041', 'Receive & Act on Push Notification', 'receive-act-on-push-notification', 'communication', 'employee', 'mobile', 'P0', 'idea',
+  ARRAY['push-notification'],
+  'Push notification arrives',
+  'trigger → push → tap → correct screen → action possible',
+  'Forstå varslene dine');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-041' AND workspace_id = ws_id), ws_id, 1,
+   'Act on Notification', 'See notification → Tap → Deep link to correct screen → Act on content → Mark as read', 'Notification handled, correct screen loaded',
+   NULL, 'NotificationHandler', ARRAY[]::text[], ARRAY[]::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-042', 'Team Chat During Shift', 'team-chat-during-shift', 'communication', 'employee', 'mobile', 'P1', 'idea',
+  ARRAY['write', 'real-time'],
+  'Chat tab → Team channel',
+  'send → received real-time → read receipt',
+  'Chat med teamet');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-042' AND workspace_id = ws_id), ws_id, 1,
+   'Team Chat', 'Open channel → Send message (text/photo) → Real-time delivery → Read receipts', 'Message sent and received in real-time',
+   '/chat', 'TeamChat', ARRAY[]::text[], ARRAY[]::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-043', 'Send Workspace Announcement', 'send-workspace-announcement', 'communication', 'admin', 'desktop', 'P1', 'idea',
+  ARRAY['write', 'push-notification'],
+  'Communication → Ny kunngjøring',
+  'create → target → send → received → read tracking',
+  'Send en kunngjøring');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-043' AND workspace_id = ws_id), ws_id, 1,
+   'Send Announcement', 'Write content → Target (all/dept/team) → Choose channels → Schedule or send → Track read receipts', 'Announcement sent, read tracking active',
+   '/admin/communication/announce', 'AnnouncementEditor', ARRAY['department', 'team']::text[], ARRAY[]::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-044', 'Configure Notification Preferences', 'configure-notification-preferences', 'communication', 'employee', 'both', 'P2', 'idea',
+  ARRAY['write'],
+  'Me → Innstillinger → Varsler',
+  'open prefs → change → save → next notification uses new preference',
+  'Tilpass varslene dine');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-044' AND workspace_id = ws_id), ws_id, 1,
+   'Configure Preferences', 'See channel preferences per notification type → Toggle push/SMS/email → Set quiet hours → Save', 'Preferences saved',
+   '/me/settings/notifications', 'NotificationPreferences', ARRAY[]::text[], ARRAY[]::text[], NULL);
+
+-- ─────────────────────────────────────────────────────────────────
+-- REPORTS (4 journeys: J-045 to J-048)
+-- ─────────────────────────────────────────────────────────────────
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-045', 'View Admin Dashboard', 'view-admin-dashboard', 'reports', 'admin', 'desktop', 'P0', 'idea',
+  ARRAY['read-only'],
+  'Login → Dashboard',
+  'dashboard → KPIs correct → drill down works',
+  'Dashboardet ditt');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-045' AND workspace_id = ws_id), ws_id, 1,
+   'View Dashboard', 'See KPIs → Staff on shift → Task progress → Deviations → Alerts → Drill down', 'Dashboard KPIs displayed correctly',
+   '/admin/dashboard', 'AdminDashboard', ARRAY['department_session', 'profile', 'schedule_shift']::text[], ARRAY[]::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-046', 'View Employee Dashboard', 'view-employee-dashboard', 'reports', 'employee', 'desktop', 'P1', 'idea',
+  ARRAY['read-only'],
+  'Desktop login (employee mode)',
+  'employee dashboard → all personal data correct',
+  'Din personlige oversikt');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-046' AND workspace_id = ws_id), ws_id, 1,
+   'View Employee Dashboard', 'My shifts → My tasks → Training progress → Readiness score → Points → Messages', 'All personal data displayed correctly',
+   '/dashboard', 'EmployeeDashboard', ARRAY['schedule_shift', 'protocol_assignment', 'profile']::text[], ARRAY[]::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-047', 'Generate Operations Report', 'generate-operations-report', 'reports', 'admin', 'desktop', 'P1', 'idea',
+  ARRAY['read-only', 'export'],
+  'Reports → Drift',
+  'report → filter → data correct → export',
+  'Driftsrapport');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-047' AND workspace_id = ws_id), ws_id, 1,
+   'Generate Report', 'Select period → Task completion rates → Session sign-offs → Deviation history → Export', 'Operations report generated and exportable',
+   '/admin/reports/operations', 'OperationsReport', ARRAY['department_session']::text[], ARRAY[]::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-048', 'Generate HR Report', 'generate-hr-report', 'reports', 'admin', 'desktop', 'P2', 'idea',
+  ARRAY['read-only', 'export'],
+  'Reports → HR',
+  'HR report → turnover correct → absence stats → export',
+  'HR-rapport');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-048' AND workspace_id = ws_id), ws_id, 1,
+   'Generate HR Report', 'Turnover analysis → Absence stats → Competence matrix → Onboarding progress → Export', 'HR report generated and exportable',
+   '/admin/reports/hr', 'HRReport', ARRAY['profile', 'protocol_assignment']::text[], ARRAY[]::text[], NULL);
+
+-- ─────────────────────────────────────────────────────────────────
+-- SETTINGS (3 journeys: J-049 to J-051)
+-- ─────────────────────────────────────────────────────────────────
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-049', 'Configure Workspace Settings', 'configure-workspace-settings', 'settings', 'admin', 'desktop', 'P0', 'idea',
+  ARRAY['write'],
+  'Settings → Arbeidsområde',
+  'settings → change → save → reflected across workspace',
+  'Konfigurer arbeidsområdet');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-049' AND workspace_id = ws_id), ws_id, 1,
+   'Configure Settings', 'Branding (name, logo) → Timezone/locale → Module activation → Default policies → Save', 'Settings saved and reflected',
+   '/admin/settings', 'WorkspaceSettings', ARRAY['workspace']::text[], ARRAY['workspace']::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-050', 'Manage Billing & Subscription', 'manage-billing-subscription', 'settings', 'owner', 'desktop', 'P0', 'idea',
+  ARRAY['write', 'stripe'],
+  'Settings → Fakturering',
+  'billing → plan correct → upgrade → Stripe reflects',
+  'Administrer abonnementet');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-050' AND workspace_id = ws_id), ws_id, 1,
+   'Manage Billing', 'See current plan → Employee count vs limit → Upgrade/downgrade → Payment method → Invoices', 'Billing managed, Stripe synced',
+   '/admin/settings/billing', 'BillingManager', ARRAY['company']::text[], ARRAY['company']::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-051', 'GDPR Data Export', 'gdpr-data-export', 'settings', 'admin', 'desktop', 'P1', 'idea',
+  ARRAY['read-only', 'compliance', 'export'],
+  'Settings → Data → GDPR Export or employee self-service',
+  'export → all PII included → download works',
+  'Eksporter persondata (GDPR)');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-051' AND workspace_id = ws_id), ws_id, 1,
+   'GDPR Export', 'Select user → Generate export → Download all personal data → Format: JSON + PDF', 'All PII exported and downloadable',
+   '/admin/settings/data', 'GDPRExport', ARRAY['profile', 'user_identity']::text[], ARRAY[]::text[], NULL);
+
+-- ─────────────────────────────────────────────────────────────────
+-- AI / MR. BOTSSON (3 journeys: J-052 to J-054)
+-- ─────────────────────────────────────────────────────────────────
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-052', 'Chat with Mr. Botsson', 'chat-with-mr-botsson', 'ai', 'all', 'both', 'P0', 'idea',
+  ARRAY['ai-assisted', 'real-time'],
+  'Tap AI FAB (mobile) or sidebar (desktop)',
+  'open chat → send message → contextual response → suggestions shown',
+  'Snakk med Mr. Botsson');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-052' AND workspace_id = ws_id), ws_id, 1,
+   'Chat with AI', 'Open chat overlay → Ask question → AI responds with context → Suggested actions → Tool calling if needed', 'Contextual AI response displayed',
+   NULL, 'BotssonChat', ARRAY[]::text[], ARRAY[]::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-053', 'Voice Conversation with Mr. Botsson', 'voice-conversation-with-mr-botsson', 'ai', 'all', 'mobile', 'P1', 'idea',
+  ARRAY['ai-assisted', 'real-time'],
+  'Long-press AI FAB',
+  'long press → voice active → speech recognized → response → end',
+  'Snakk med stemmen');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-053' AND workspace_id = ws_id), ws_id, 1,
+   'Voice Chat', 'Voice activated → Speak naturally → AI responds in Norwegian → Conversation continues → End by tap', 'Voice conversation completed',
+   NULL, 'BotssonVoice', ARRAY[]::text[], ARRAY[]::text[], 'Uses Ultravox for voice');
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-054', 'AI-Assisted Procedure Help', 'ai-assisted-procedure-help', 'ai', 'employee', 'mobile', 'P1', 'idea',
+  ARRAY['ai-assisted'],
+  'During task → "Trenger hjelp" button',
+  'help → AI knows context → explains → return to task',
+  'Få hjelp med en oppgave');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-054' AND workspace_id = ws_id), ws_id, 1,
+   'Get AI Help', 'Open AI in task context → AI knows which procedure/step → Explains in simple terms → Can demonstrate → Back to task', 'AI explains in context, return to task',
+   '/feed/task', 'BotssonHelp', ARRAY['protocol']::text[], ARRAY[]::text[], NULL);
+
+-- ─────────────────────────────────────────────────────────────────
+-- SEASON & GAMIFICATION (3 journeys: J-055 to J-057)
+-- ─────────────────────────────────────────────────────────────────
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-055', 'Set Up Season', 'set-up-season', 'season', 'admin', 'desktop', 'P1', 'idea',
+  ARRAY['write', 'season-aware', 'gamification'],
+  'Season Manager → Opprett',
+  'create → configure → activate → season-aware entities reflect',
+  'Sett opp en sesong');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-055' AND workspace_id = ws_id), ws_id, 1,
+   'Set Up Season', 'Name → Configure (departments, zones, teams) → Season-specific policies → Gamification settings (points, boosters) → Review → Activate', 'Season created and activated',
+   '/admin/seasons/new', 'SeasonSetup', ARRAY['department', 'team']::text[], ARRAY['season']::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-056', 'Check Leaderboard & Points', 'check-leaderboard-points', 'season', 'employee', 'both', 'P2', 'idea',
+  ARRAY['read-only', 'gamification'],
+  'Me → Poeng',
+  'leaderboard → points match → rankings calculated',
+  'Dine poeng og prestasjoner');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-056' AND workspace_id = ws_id), ws_id, 1,
+   'Check Leaderboard', 'Personal total → Breakdown (tasks, training, HACCP, on-time) → Team ranking → Department → Achievements', 'Points and rankings displayed',
+   '/me/points', 'Leaderboard', ARRAY['profile', 'season']::text[], ARRAY[]::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-057', 'Configure Gamification Settings', 'configure-gamification-settings', 'season', 'admin', 'desktop', 'P2', 'idea',
+  ARRAY['write', 'gamification', 'season-aware'],
+  'Season Manager → Gamification',
+  'configure → save → point awards match settings',
+  'Tilpass gamification');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-057' AND workspace_id = ws_id), ws_id, 1,
+   'Configure Gamification', 'Set point rates per action → Configure boosters/penalties → Leaderboard scope → Visibility mode → Save', 'Gamification settings saved',
+   '/admin/seasons/gamification', 'GamificationSettings', ARRAY['season']::text[], ARRAY['season']::text[], NULL);
+
+-- ─────────────────────────────────────────────────────────────────
+-- GOVERNANCE (2 journeys: J-058 to J-059)
+-- ─────────────────────────────────────────────────────────────────
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-058', 'Create Policy & Protocol', 'create-policy-protocol', 'governance', 'admin', 'desktop', 'P0', 'idea',
+  ARRAY['write', 'ai-assisted'],
+  'Governance Studio',
+  'policy → protocol → procedure + test → assign → visible in training',
+  'Lag regler teamet ditt kan følge');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-058' AND workspace_id = ws_id), ws_id, 1,
+   'Create Policy & Protocol', 'Create Policy (name, scope, category) → Attach Protocol → Build Procedure (steps+media) → Add Knowledge Test → Add Confirmation (DocuSeal) → Assign → Publish', 'Policy chain created and published',
+   '/admin/governance/studio', 'GovernanceStudio', ARRAY[]::text[], ARRAY['policy', 'protocol']::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-059', 'AI-Assisted Governance', 'ai-assisted-governance', 'governance', 'admin', 'desktop', 'P1', 'idea',
+  ARRAY['write', 'ai-assisted'],
+  'Governance Studio → "La AI hjelpe"',
+  'describe rule → AI generates → review → publish → complete chain',
+  'La AI bygge reglene for deg');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-059' AND workspace_id = ws_id), ws_id, 1,
+   'AI-Assisted Creation', 'Describe the rule in plain Norwegian → AI suggests policy structure → AI generates procedure steps → AI creates test questions → Admin reviews → Publish', 'AI-generated policy chain published',
+   '/admin/governance/studio', 'AIGovernanceWizard', ARRAY[]::text[], ARRAY['policy', 'protocol']::text[], NULL);
+
+-- ─────────────────────────────────────────────────────────────────
+-- CONTRACTS (3 journeys: J-060 to J-062)
+-- ─────────────────────────────────────────────────────────────────
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-060', 'Create Employment Contract', 'create-employment-contract', 'contracts', 'admin', 'desktop', 'P1', 'idea',
+  ARRAY['write', 'docuseal', 'compliance', 'norwegian-law'],
+  'People → Employee → Ny kontrakt',
+  'template → fill → preview → send → DocuSeal initiated',
+  'Opprett en arbeidsavtale');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-060' AND workspace_id = ws_id), ws_id, 1,
+   'Create Contract', 'Select template → Fill details (position, salary, hours, start date) → Merge fields auto-populated → Preview → Send for signing via DocuSeal', 'Contract created and sent for signing',
+   '/admin/people/:id/contract/new', 'ContractBuilder', ARRAY['profile', 'employment_contract']::text[], ARRAY['employment_contract']::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-061', 'Sign Employment Contract', 'sign-employment-contract', 'contracts', 'employee', 'both', 'P1', 'idea',
+  ARRAY['write', 'docuseal', 'compliance'],
+  'Notification: "Ny kontrakt å signere"',
+  'open → read → sign → status = active → profile updated',
+  'Signer arbeidsavtalen din');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-061' AND workspace_id = ws_id), ws_id, 1,
+   'Sign Contract', 'Open → Read contract → Digital signature via DocuSeal → Both parties signed → Contract active → Profile synced', 'Contract signed and profile updated',
+   '/contracts/:id/sign', 'ContractSigner', ARRAY['employment_contract']::text[], ARRAY['employment_contract', 'profile']::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-062', 'Amend Contract', 'amend-contract', 'contracts', 'admin', 'desktop', 'P2', 'idea',
+  ARRAY['write', 'docuseal', 'compliance'],
+  'People → Employee → Kontrakt → Endre',
+  'amend → new doc → sign → profile reflects changes',
+  'Endre en arbeidsavtale');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-062' AND workspace_id = ws_id), ws_id, 1,
+   'Amend Contract', 'Select amendment type (salary, role, hours) → Enter changes → Create amendment document → Send for signing → Profile auto-updates', 'Amendment created and sent for signing',
+   '/admin/people/:id/contract/amend', 'ContractAmendment', ARRAY['employment_contract', 'profile']::text[], ARRAY['employment_contract', 'profile']::text[], NULL);
+
+-- ─────────────────────────────────────────────────────────────────
+-- CERTIFICATIONS (2 journeys: J-063 to J-064)
+-- ─────────────────────────────────────────────────────────────────
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-063', 'Upload / Register Certification', 'upload-register-certification', 'certifications', 'employee', 'both', 'P1', 'idea',
+  ARRAY['write', 'compliance'],
+  'Me → Sertifikater → Legg til or Admin uploads',
+  'upload → details → submit → visible → expiry tracking active',
+  'Registrer sertifikatene dine');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-063' AND workspace_id = ws_id), ws_id, 1,
+   'Upload Certification', 'Select type (food safety, first aid, alcohol, etc.) → Upload document → Enter details (issuer, date, expiry) → Submit → Verified by manager', 'Certification uploaded and tracking active',
+   '/me/certifications/add', 'CertificationUpload', ARRAY[]::text[], ARRAY[]::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-064', 'Certification Expiry Alert & Renewal', 'certification-expiry-alert-renewal', 'certifications', 'employee', 'both', 'P1', 'idea',
+  ARRAY['push-notification', 'compliance'],
+  'Auto: 90/30/7 days before expiry',
+  'expiry approaching → notification → renewal uploaded → status updated',
+  'Forny sertifikatene dine');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-064' AND workspace_id = ws_id), ws_id, 1,
+   'Renew Certification', 'Notification: "Sertifikat utløper snart" → View details → Upload renewal → Or: schedule re-certification → Manager notified', 'Certification renewed or re-certification scheduled',
+   '/me/certifications/:id', 'CertificationRenewal', ARRAY[]::text[], ARRAY[]::text[], NULL);
+
+-- ─────────────────────────────────────────────────────────────────
+-- JOURNEY PORTAL — META (4 journeys: J-065 to J-068)
+-- ─────────────────────────────────────────────────────────────────
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-065', 'Browse & Filter Journeys', 'browse-filter-journeys', 'meta', 'admin', 'desktop', 'P0', 'idea',
+  ARRAY['read-only'],
+  'Admin → /admin/journeys',
+  'open portal → pipeline visible → filter works → detail loads → outputs shown',
+  'Bruk Journey-portalen');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-065' AND workspace_id = ws_id), ws_id, 1,
+   'Pipeline Overview', 'See pipeline overview (status counts with progress bars)', 'Pipeline statistics displayed',
+   '/admin/journeys', 'JourneyPipeline', ARRAY['journey']::text[], ARRAY[]::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-065' AND workspace_id = ws_id), ws_id, 2,
+   'Filter Journeys', 'Filter by: module, status, actor, priority, search', 'Filtered results displayed',
+   '/admin/journeys', 'JourneyFilters', ARRAY['journey']::text[], ARRAY[]::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-065' AND workspace_id = ws_id), ws_id, 3,
+   'Sort Journeys', 'Sort by: created, updated, priority, status', 'Sorted results displayed',
+   '/admin/journeys', 'JourneySort', ARRAY['journey']::text[], ARRAY[]::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-065' AND workspace_id = ws_id), ws_id, 4,
+   'View Detail', 'Click journey → Detail view with all tabs', 'Journey detail loaded',
+   '/admin/journeys/:id', 'JourneyDetail', ARRAY['journey', 'journey_step']::text[], ARRAY[]::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-065' AND workspace_id = ws_id), ws_id, 5,
+   'View Outputs', 'See outputs: which are generated, which are pending', 'Output status displayed',
+   '/admin/journeys/:id', 'JourneyOutputs', ARRAY['journey']::text[], ARRAY[]::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-066', 'Create Journey via Agent Wizard', 'create-journey-via-agent-wizard', 'meta', 'admin', 'desktop', 'P0', 'idea',
+  ARRAY['write', 'ai-assisted'],
+  'Journey Portal → "Ny Journey" → "Start Wizard"',
+  'start wizard → complete all phases → journey created → status = defined',
+  'Definer en ny journey med AI-hjelp');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-066' AND workspace_id = ws_id), ws_id, 1,
+   'Start Wizard', 'Journey Agent opens wizard chat', 'Wizard chat opened',
+   '/admin/journeys/new', 'JourneyWizard', ARRAY[]::text[], ARRAY[]::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-066' AND workspace_id = ws_id), ws_id, 2,
+   'Phase 1 - Discovery', 'Agent asks what, who, when, why', 'Goal and context captured',
+   '/admin/journeys/new', 'WizardDiscovery', ARRAY[]::text[], ARRAY[]::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-066' AND workspace_id = ws_id), ws_id, 3,
+   'Phase 2 - Classification', 'Agent suggests module, actor, platform, tags', 'Classification confirmed',
+   '/admin/journeys/new', 'WizardClassification', ARRAY['journey']::text[], ARRAY[]::text[], 'Checks for duplicates'),
+  ((SELECT journey_id FROM journey WHERE code = 'J-066' AND workspace_id = ws_id), ws_id, 4,
+   'Phase 3 - Steps', 'Agent helps define step-by-step flow', 'Steps defined',
+   '/admin/journeys/new', 'WizardSteps', ARRAY[]::text[], ARRAY[]::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-066' AND workspace_id = ws_id), ws_id, 5,
+   'Phase 4 - Testing', 'Agent generates test assertion', 'Test assertion created',
+   '/admin/journeys/new', 'WizardTesting', ARRAY[]::text[], ARRAY[]::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-066' AND workspace_id = ws_id), ws_id, 6,
+   'Phase 5 - Documentation', 'Agent generates Norwegian doc + Botsson script', 'Documentation generated',
+   '/admin/journeys/new', 'WizardDocumentation', ARRAY[]::text[], ARRAY[]::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-066' AND workspace_id = ws_id), ws_id, 7,
+   'Phase 6 - Review', 'Full summary → Confirm → Journey saved as "Defined"', 'Journey created with status defined',
+   '/admin/journeys/new', 'WizardReview', ARRAY[]::text[], ARRAY['journey', 'journey_step']::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-067', 'Run E2E Tests from Portal', 'run-e2e-tests-from-portal', 'meta', 'admin', 'desktop', 'P1', 'idea',
+  ARRAY['read-only'],
+  'Journey Portal → Journey detail → "Kjør test" or "Kjør alle tester"',
+  'run test → indicator → result → history updated',
+  'Kjør automatiske tester');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-067' AND workspace_id = ws_id), ws_id, 1,
+   'Trigger Test', 'Click "Kjør test" on single journey OR "Kjør alle" for Live/Testing journeys', 'Test triggered',
+   '/admin/journeys/:id', 'TestTrigger', ARRAY['journey']::text[], ARRAY['journey_test_run']::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-067' AND workspace_id = ws_id), ws_id, 2,
+   'View Progress', 'See running indicator', 'Running indicator displayed',
+   '/admin/journeys/:id', 'TestProgress', ARRAY['journey_test_run']::text[], ARRAY[]::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-067' AND workspace_id = ws_id), ws_id, 3,
+   'View Results', 'Results: pass/fail per journey with timestamp', 'Test results displayed',
+   '/admin/journeys/:id', 'TestResults', ARRAY['journey_test_run']::text[], ARRAY[]::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-067' AND workspace_id = ws_id), ws_id, 4,
+   'View Error Details', 'Failed tests link to error details', 'Error details accessible',
+   '/admin/journeys/:id/tests', 'TestErrorDetails', ARRAY['journey_test_run']::text[], ARRAY[]::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-067' AND workspace_id = ws_id), ws_id, 5,
+   'View History', 'History of test runs over time', 'Test history displayed',
+   '/admin/journeys/:id/tests', 'TestHistory', ARRAY['journey_test_run']::text[], ARRAY[]::text[], NULL);
+
+INSERT INTO journey (workspace_id, code, title, slug, module, actor, platform, priority, status, tags, trigger_description, test_assertion, doc_title)
+VALUES (ws_id, 'J-068', 'Move Journey Through Lifecycle', 'move-journey-through-lifecycle', 'meta', 'admin', 'desktop', 'P0', 'idea',
+  ARRAY['write'],
+  'Journey detail → Status dropdown',
+  'change status → valid transition → Linear offered → outputs generated → event logged',
+  'Flytt en journey gjennom livssyklusen');
+
+INSERT INTO journey_step (journey_id, workspace_id, step_order, title, action, expects, screen, component, data_reads, data_writes, notes)
+VALUES
+  ((SELECT journey_id FROM journey WHERE code = 'J-068' AND workspace_id = ws_id), ws_id, 1,
+   'View Transitions', 'See current status and allowed transitions', 'Allowed transitions displayed',
+   '/admin/journeys/:id', 'StatusTransition', ARRAY['journey']::text[], ARRAY[]::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-068' AND workspace_id = ws_id), ws_id, 2,
+   'Change Status', 'Select new status → System validates transition rules', 'Status changed if valid',
+   '/admin/journeys/:id', 'StatusTransition', ARRAY['journey']::text[], ARRAY['journey', 'journey_event']::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-068' AND workspace_id = ws_id), ws_id, 3,
+   'Linear Integration', 'If moving to "Ready for Implementation" → Offer to create Linear issue', 'Linear issue created if accepted',
+   '/admin/journeys/:id', 'LinearIntegration', ARRAY['journey']::text[], ARRAY['journey']::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-068' AND workspace_id = ws_id), ws_id, 4,
+   'Auto-Generate Outputs', 'If moving to "Active" → All outputs auto-generated', 'Outputs generated',
+   '/admin/journeys/:id', 'OutputGenerator', ARRAY['journey']::text[], ARRAY['journey']::text[], NULL),
+  ((SELECT journey_id FROM journey WHERE code = 'J-068' AND workspace_id = ws_id), ws_id, 5,
+   'Event Logging', 'Status change logged in journey event history', 'Event logged',
+   '/admin/journeys/:id', 'EventLog', ARRAY['journey_event']::text[], ARRAY['journey_event']::text[], NULL);
+
+END $$;
+
+-- ─────────────────────────────────────────────────────────────────
+-- Verification: Count should be exactly 68
+-- SELECT count(*) FROM journey WHERE workspace_id = 'b0000000-0000-0000-0000-000000000000';
+-- Expected: 68
+-- ─────────────────────────────────────────────────────────────────

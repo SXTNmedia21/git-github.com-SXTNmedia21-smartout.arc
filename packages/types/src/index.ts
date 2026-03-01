@@ -4,4 +4,4 @@ export * from "./structure";
 export * from "./governance";
 export * from "./time";
 export * from "./platform";
-export * from "./enums";
+export * from "./journey";

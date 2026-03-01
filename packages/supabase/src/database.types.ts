@@ -1098,6 +1098,309 @@ export type Database = {
           },
         ]
       }
+      journey: {
+        Row: {
+          actor: Database["public"]["Enums"]["journey_actor"]
+          assignee_id: string | null
+          blocked_by: string[]
+          code: string
+          created_at: string
+          created_by: string | null
+          doc_title: string | null
+          journey_id: string
+          last_test_result:
+            | Database["public"]["Enums"]["journey_test_result"]
+            | null
+          last_test_run_at: string | null
+          linear_issue_id: string | null
+          module: Database["public"]["Enums"]["journey_module"]
+          outcomes_empty: string | null
+          outcomes_error: string | null
+          outcomes_success: string | null
+          platform: Database["public"]["Enums"]["journey_platform"]
+          preconditions: string[]
+          priority: Database["public"]["Enums"]["journey_priority"]
+          related_journeys: string[]
+          slug: string
+          status: Database["public"]["Enums"]["journey_status"]
+          tags: string[]
+          test_assertion: string | null
+          title: string
+          trigger_description: string | null
+          updated_at: string
+          version: number
+          workspace_id: string
+        }
+        Insert: {
+          actor: Database["public"]["Enums"]["journey_actor"]
+          assignee_id?: string | null
+          blocked_by?: string[]
+          code: string
+          created_at?: string
+          created_by?: string | null
+          doc_title?: string | null
+          journey_id?: string
+          last_test_result?:
+            | Database["public"]["Enums"]["journey_test_result"]
+            | null
+          last_test_run_at?: string | null
+          linear_issue_id?: string | null
+          module: Database["public"]["Enums"]["journey_module"]
+          outcomes_empty?: string | null
+          outcomes_error?: string | null
+          outcomes_success?: string | null
+          platform?: Database["public"]["Enums"]["journey_platform"]
+          preconditions?: string[]
+          priority?: Database["public"]["Enums"]["journey_priority"]
+          related_journeys?: string[]
+          slug: string
+          status?: Database["public"]["Enums"]["journey_status"]
+          tags?: string[]
+          test_assertion?: string | null
+          title: string
+          trigger_description?: string | null
+          updated_at?: string
+          version?: number
+          workspace_id: string
+        }
+        Update: {
+          actor?: Database["public"]["Enums"]["journey_actor"]
+          assignee_id?: string | null
+          blocked_by?: string[]
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          doc_title?: string | null
+          journey_id?: string
+          last_test_result?:
+            | Database["public"]["Enums"]["journey_test_result"]
+            | null
+          last_test_run_at?: string | null
+          linear_issue_id?: string | null
+          module?: Database["public"]["Enums"]["journey_module"]
+          outcomes_empty?: string | null
+          outcomes_error?: string | null
+          outcomes_success?: string | null
+          platform?: Database["public"]["Enums"]["journey_platform"]
+          preconditions?: string[]
+          priority?: Database["public"]["Enums"]["journey_priority"]
+          related_journeys?: string[]
+          slug?: string
+          status?: Database["public"]["Enums"]["journey_status"]
+          tags?: string[]
+          test_assertion?: string | null
+          title?: string
+          trigger_description?: string | null
+          updated_at?: string
+          version?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_assignee_id_fkey"
+            columns: ["assignee_id"]
+            isOneToOne: false
+            referencedRelation: "user_identity"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "journey_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_identity"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "journey_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      journey_event: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          event_type: Database["public"]["Enums"]["journey_event_type"]
+          from_status: Database["public"]["Enums"]["journey_status"] | null
+          journey_event_id: string
+          journey_id: string
+          metadata: Json
+          to_status: Database["public"]["Enums"]["journey_status"] | null
+          workspace_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          event_type: Database["public"]["Enums"]["journey_event_type"]
+          from_status?: Database["public"]["Enums"]["journey_status"] | null
+          journey_event_id?: string
+          journey_id: string
+          metadata?: Json
+          to_status?: Database["public"]["Enums"]["journey_status"] | null
+          workspace_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          event_type?: Database["public"]["Enums"]["journey_event_type"]
+          from_status?: Database["public"]["Enums"]["journey_status"] | null
+          journey_event_id?: string
+          journey_id?: string
+          metadata?: Json
+          to_status?: Database["public"]["Enums"]["journey_status"] | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_event_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "user_identity"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "journey_event_journey_id_fkey"
+            columns: ["journey_id"]
+            isOneToOne: false
+            referencedRelation: "journey"
+            referencedColumns: ["journey_id"]
+          },
+          {
+            foreignKeyName: "journey_event_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      journey_step: {
+        Row: {
+          action: string
+          component: string | null
+          created_at: string
+          data_reads: string[]
+          data_writes: string[]
+          expects: string | null
+          journey_id: string
+          journey_step_id: string
+          notes: string | null
+          screen: string | null
+          step_order: number
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          action: string
+          component?: string | null
+          created_at?: string
+          data_reads?: string[]
+          data_writes?: string[]
+          expects?: string | null
+          journey_id: string
+          journey_step_id?: string
+          notes?: string | null
+          screen?: string | null
+          step_order: number
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          action?: string
+          component?: string | null
+          created_at?: string
+          data_reads?: string[]
+          data_writes?: string[]
+          expects?: string | null
+          journey_id?: string
+          journey_step_id?: string
+          notes?: string | null
+          screen?: string | null
+          step_order?: number
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_step_journey_id_fkey"
+            columns: ["journey_id"]
+            isOneToOne: false
+            referencedRelation: "journey"
+            referencedColumns: ["journey_id"]
+          },
+          {
+            foreignKeyName: "journey_step_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      journey_test_run: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          error_message: string | null
+          journey_id: string
+          journey_test_run_id: string
+          result: Database["public"]["Enums"]["journey_test_result"]
+          test_output: Json | null
+          triggered_by: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          journey_id: string
+          journey_test_run_id?: string
+          result: Database["public"]["Enums"]["journey_test_result"]
+          test_output?: Json | null
+          triggered_by?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          journey_id?: string
+          journey_test_run_id?: string
+          result?: Database["public"]["Enums"]["journey_test_result"]
+          test_output?: Json | null
+          triggered_by?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_test_run_journey_id_fkey"
+            columns: ["journey_id"]
+            isOneToOne: false
+            referencedRelation: "journey"
+            referencedColumns: ["journey_id"]
+          },
+          {
+            foreignKeyName: "journey_test_run_triggered_by_fkey"
+            columns: ["triggered_by"]
+            isOneToOne: false
+            referencedRelation: "user_identity"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "journey_test_run_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       knowledge_test: {
         Row: {
           created_at: string
@@ -3476,6 +3779,7 @@ export type Database = {
           }
       delete_vault_secret: { Args: { secret_name: string }; Returns: boolean }
       generate_contract_number: { Args: never; Returns: string }
+      get_api_workspace_id: { Args: never; Returns: string }
       get_secret: { Args: { secret_name: string }; Returns: string }
       get_workspace_ids_for_user: { Args: { uid: string }; Returns: string[] }
       is_admin_in_workspace: {
@@ -3534,6 +3838,55 @@ export type Database = {
       enforcement_status: "aspirational" | "enforced"
       industry: "restaurant" | "hotel" | "cafe" | "bar" | "catering" | "other"
       invite_status: "pending" | "accepted" | "expired" | "cancelled"
+      journey_actor:
+        | "employee"
+        | "trainee"
+        | "manager"
+        | "admin"
+        | "owner"
+        | "all"
+      journey_event_type:
+        | "status_change"
+        | "test_run"
+        | "output_generated"
+        | "edit"
+        | "comment"
+      journey_module:
+        | "core"
+        | "onboarding"
+        | "org"
+        | "scheduling"
+        | "operations"
+        | "haccp"
+        | "training"
+        | "absence"
+        | "payroll"
+        | "communication"
+        | "reports"
+        | "settings"
+        | "ai"
+        | "season"
+        | "governance"
+        | "contracts"
+        | "certifications"
+        | "meta"
+      journey_platform: "mobile" | "desktop" | "both"
+      journey_priority: "P0" | "P1" | "P2" | "P3"
+      journey_status:
+        | "idea"
+        | "wizard"
+        | "defined"
+        | "ready_impl"
+        | "building"
+        | "review"
+        | "ready_test"
+        | "testing"
+        | "ready_validation"
+        | "implemented"
+        | "active"
+        | "inactive"
+        | "broken"
+      journey_test_result: "pass" | "fail" | "skip" | "running"
       location_type:
         | "main"
         | "outdoor"
@@ -3743,6 +4096,59 @@ export const Constants = {
       enforcement_status: ["aspirational", "enforced"],
       industry: ["restaurant", "hotel", "cafe", "bar", "catering", "other"],
       invite_status: ["pending", "accepted", "expired", "cancelled"],
+      journey_actor: [
+        "employee",
+        "trainee",
+        "manager",
+        "admin",
+        "owner",
+        "all",
+      ],
+      journey_event_type: [
+        "status_change",
+        "test_run",
+        "output_generated",
+        "edit",
+        "comment",
+      ],
+      journey_module: [
+        "core",
+        "onboarding",
+        "org",
+        "scheduling",
+        "operations",
+        "haccp",
+        "training",
+        "absence",
+        "payroll",
+        "communication",
+        "reports",
+        "settings",
+        "ai",
+        "season",
+        "governance",
+        "contracts",
+        "certifications",
+        "meta",
+      ],
+      journey_platform: ["mobile", "desktop", "both"],
+      journey_priority: ["P0", "P1", "P2", "P3"],
+      journey_status: [
+        "idea",
+        "wizard",
+        "defined",
+        "ready_impl",
+        "building",
+        "review",
+        "ready_test",
+        "testing",
+        "ready_validation",
+        "implemented",
+        "active",
+        "inactive",
+        "broken",
+      ],
+      journey_test_result: ["pass", "fail", "skip", "running"],
       location_type: [
         "main",
         "outdoor",
