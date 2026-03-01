@@ -27,6 +27,8 @@ routes["GET /v1/departments"] = handleGetDepartments;
 routes["GET /v1/teams"] = handleGetTeams;
 routes["GET /v1/locations"] = handleGetLocations;
 routes["GET /v1/contracts"] = handleGetContracts;
+routes["GET /v1/protocols"] = handleGetProtocols;
+routes["GET /v1/assignments"] = handleGetAssignments;
 
 // ── Main router ──
 
@@ -62,6 +64,12 @@ Deno.serve(async (req) => {
         400,
         "Workspace context required. Use a workspace API key, not a service key.",
       );
+    }
+
+    // 3b. Environment check: test keys cannot access workspace-api in production
+    const isProduction = Deno.env.get("ENVIRONMENT") === "production";
+    if (auth.method === "api_key" && auth.environment === "test" && isProduction) {
+      return jsonError(403, "Test keys cannot access production data. Use a live key.");
     }
 
     // 4. Route

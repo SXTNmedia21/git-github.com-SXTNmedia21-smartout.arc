@@ -11,6 +11,7 @@ export interface AuthContext {
   keyId: string | null;
   rateLimitKey: string;
   rateLimitPerMinute: number;
+  environment: "live" | "test" | null;
 }
 
 export async function resolveAuth(req: Request): Promise<AuthContext | null> {
@@ -27,6 +28,7 @@ export async function resolveAuth(req: Request): Promise<AuthContext | null> {
       keyId: keyCtx.keyId,
       rateLimitKey: `key:${keyCtx.keyId}`,
       rateLimitPerMinute: keyCtx.rateLimitPerMinute,
+      environment: keyCtx.environment,
     };
   }
 
@@ -45,6 +47,7 @@ export async function resolveAuth(req: Request): Promise<AuthContext | null> {
         keyId: keyCtx.keyId,
         rateLimitKey: `key:${keyCtx.keyId}`,
         rateLimitPerMinute: keyCtx.rateLimitPerMinute,
+        environment: keyCtx.environment,
       };
     }
 
@@ -70,6 +73,7 @@ export async function resolveAuth(req: Request): Promise<AuthContext | null> {
       keyId: null,
       rateLimitKey: `user:${user.id}`,
       rateLimitPerMinute: 120,
+      environment: null,
     };
   }
 
