@@ -64,6 +64,14 @@
     "./agents/reports": {
       "types": "./dist/agents/reports.d.ts",
       "default": "./dist/agents/reports.js"
+    },
+    "./tools/journey": {
+      "types": "./dist/tools/journey/index.d.ts",
+      "default": "./dist/tools/journey/index.js"
+    },
+    "./agents/journey": {
+      "types": "./dist/agents/journey.d.ts",
+      "default": "./dist/agents/journey.js"
     }
   },
   "scripts": {
@@ -75,6 +83,7 @@
   "dependencies": {
     "@openrouter/ai-sdk-provider": "^2.2.3",
     "@smartout/supabase": "workspace:*",
+    "@smartout/types": "workspace:*",
     "@supabase/supabase-js": "2.49.4",
     "ai": "^6.0.103",
     "zod": "^3.25.76"

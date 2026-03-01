@@ -22,6 +22,10 @@ export type { EditorAction, ContractEditorState, ContractToolContext } from "./t
 export { REPORT_TOOLS } from "./tools/report";
 export type { ReportConfig, ReportToolContext } from "./tools/report";
 
+// Journey tools
+export { JOURNEY_TOOLS } from "./tools/journey";
+export type { JourneyToolContext } from "./tools/journey";
+
 // Doc retrieval tools (RAG)
 export { DOC_TOOLS, searchPlatformDocs, getDocByPath } from "./tools/docs";
 export type { DocToolContext } from "./tools/docs";
