@@ -1,6 +1,6 @@
 ---
 title: "Smartout Documentation Index"
-updated: 2026-02-28
+updated: 2026-03-01
 ---
 
 # Smartout Documentation Index
@@ -40,7 +40,7 @@ Master navigation map for all documentation. An agent reads this to find any doc
 | --------- | --------------------------------------------- | --------- | ---------------------------------------------------------- |
 | MODULE_01 | modules/SMARTOUT_MODULE_1_ONBOARDING.md       | canonical | onboarding_session                                         |
 | MODULE_02 | modules/SMARTOUT_MODULE_2_ORG_STRUCTURE.md    | canonical | department, location, team                                 |
-| MODULE_03 | modules/SMARTOUT_MODULE_3_SCHEDULING.md       | canonical | shift, schedule                                            |
+| MODULE_03 | modules/SMARTOUT_MODULE_3_SCHEDULING.md       | canonical | schedule_shift                                             |
 | MODULE_04 | modules/SMARTOUT_MODULE_4_OPERATIONS.md       | canonical | department_session, session_task                           |
 | MODULE_05 | modules/SMARTOUT_MODULE_5_HACCP.md            | canonical | asset, control_list                                        |
 | MODULE_06 | modules/SMARTOUT_MODULE_6_TRAINING.md         | canonical | procedure, knowledge_test                                  |
@@ -119,7 +119,7 @@ Reusable document templates in `docs/templates/`.
 
 ### Decisions (ADRs)
 
-See `docs/decisions/0000-decision-log.md` -- 31 accepted ADRs (0001-0031).
+See `docs/decisions/0000-decision-log.md` -- 38 ADRs (0001-0038).
 
 | id       | File                                                     | Subject                                    |
 | -------- | -------------------------------------------------------- | ------------------------------------------ |
@@ -154,10 +154,17 @@ See `docs/decisions/0000-decision-log.md` -- 31 accepted ADRs (0001-0031).
 | ADR_0029 | decisions/0029-workspace-api-gateway.md                  | Workspace API gateway                      |
 | ADR_0030 | decisions/0030-documentation-in-landing-app.md           | Documentation in landing app               |
 | ADR_0031 | decisions/0031-journey-portal-system.md                  | Journey portal system                      |
+| ADR_0032 | decisions/0032-schedule-local-state-architecture.md      | Schedule local state architecture          |
+| ADR_0033 | decisions/0033-documentation-rag-pgvector.md             | Documentation RAG with pgvector            |
+| ADR_0034 | decisions/0034-documentation-enforcement-pipeline.md     | Documentation enforcement pipeline         |
+| ADR_0035 | decisions/0035-docker-network-infra.md                   | Docker network infrastructure              |
+| ADR_0036 | decisions/0036-shift-mcp-server.md                       | Shift MCP server                           |
+| ADR_0037 | decisions/0037-landing-event-tracking.md                 | Landing page event tracking                |
+| ADR_0038 | decisions/0038-journey-agent-output-generators.md        | Journey agent & output generators          |
 
 ### Learnings
 
-See `docs/learnings/0000-learning-log.md` -- 11 learning records.
+See `docs/learnings/0000-learning-log.md` -- 12 learning records.
 
 | id         | File                                                       | Subject                          |
 | ---------- | ---------------------------------------------------------- | -------------------------------- |
@@ -172,6 +179,7 @@ See `docs/learnings/0000-learning-log.md` -- 11 learning records.
 | LEARN_0009 | learnings/0009-vercelignore-depth-matching.md              | .vercelignore depth matching     |
 | LEARN_0010 | learnings/0010-vercel-turborepo-root-directory.md          | Vercel Turborepo root directory  |
 | LEARN_0011 | learnings/0011-framer-motion-landing-animation-patterns.md | Framer Motion animation patterns |
+| LEARN_0012 | learnings/0012-mcp-sdk-package-structure.md                | MCP SDK package structure        |
 
 ### Plans
 
@@ -184,7 +192,10 @@ Active plans in `docs/plans/`. Completed plans in `docs/plans/completed/`.
 | PLAN_NEXTRA        | plans/2026-02-28-docs-nextra-system.md          | accepted (ADR-0030) |
 | PLAN_SUBDOMAIN     | plans/2026-02-28-subdomain-workspace-routing.md | canonical           |
 | PLAN_AUTH_KEY_MGMT | plans/2026-02-28-auth-key-management.md         | draft               |
-| PLAN_JOURNEY_P1    | plans/2026-03-01-journey-portal-phase-1.md      | in-progress         |
+| PLAN_JOURNEY_P1    | plans/2026-03-01-journey-portal-phase-1.md      | completed           |
+| PLAN_JOURNEY_P2    | plans/2026-03-01-journey-portal-phase-2.md      | in-progress         |
+| PLAN_GUIDED_DEMO   | plans/2026-03-01-guided-demo-experience.md      | draft               |
+| PLAN_DOCKER_INFRA  | plans/2026-03-01-docker-network-infra.md        | in-progress         |
 
 Completed plans (historical, not loaded actively):
 
