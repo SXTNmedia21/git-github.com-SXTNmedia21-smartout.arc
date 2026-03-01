@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import type { Variants } from "framer-motion";
@@ -32,6 +32,8 @@ import Navigation from "../components/navigation";
 import Footer from "../components/footer";
 import WorkspaceAnalyzer from "../components/workspace-analyzer";
 import { WEB_APP_LINKS } from "../lib/web-app-url";
+import VariantELanding from "../components/landing/VariantELanding";
+import { getEnvVariant, getDevOverride } from "../lib/landing-variant";
 
 const VoiceAssistant = dynamic(() => import("../components/voice-assistant"), {
   ssr: false,
@@ -130,9 +132,17 @@ const MOCK_SEASONS = [
 ];
 
 export default function SmartoutLandingPage() {
+  const [variant, setVariant] = useState(getEnvVariant);
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("locations");
   const onboardingHref = WEB_APP_LINKS.onboarding;
+
+  useEffect(() => {
+    const override = getDevOverride();
+    if (override && override !== variant) setVariant(override);
+  }, []);
+
+  if (variant === "E") return <VariantELanding />;
 
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
