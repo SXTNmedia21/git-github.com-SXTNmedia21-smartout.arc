@@ -3,7 +3,35 @@
  * Spec: docs/architecture/SMARTOUT_Subdomain_Routing_Architecture.md
  */
 
-const RESERVED_SUBDOMAINS = new Set(["app", "api", "docs", "www", "status", "voice"]);
+/**
+ * Reserved subdomains that cannot be used as workspace slugs.
+ * Must stay in sync with the `reserved_slug` table
+ * (migration: 20260228200000_workspace_slug_constraints.sql).
+ */
+const RESERVED_SUBDOMAINS = new Set([
+  // Infrastructure
+  "app",
+  "api",
+  "docs",
+  "www",
+  "admin",
+  "status",
+  "voice",
+  "staging",
+  "dev",
+  // Services
+  "mail",
+  "smtp",
+  "ftp",
+  "cdn",
+  // Content
+  "assets",
+  "static",
+  "media",
+  "blog",
+  "help",
+  "support",
+]);
 
 type SubdomainResult =
   | { type: "workspace"; slug: string }
