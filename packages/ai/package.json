@@ -88,6 +88,18 @@
     "./capabilities/profile": {
       "types": "./dist/capabilities/profile/index.d.ts",
       "default": "./dist/capabilities/profile/index.js"
+    },
+    "./router/intent-classifier": {
+      "types": "./dist/router/intent-classifier.d.ts",
+      "default": "./dist/router/intent-classifier.js"
+    },
+    "./router/tool-selector": {
+      "types": "./dist/router/tool-selector.d.ts",
+      "default": "./dist/router/tool-selector.js"
+    },
+    "./prompts/mr-botsson": {
+      "types": "./dist/prompts/mr-botsson.d.ts",
+      "default": "./dist/prompts/mr-botsson.js"
     }
   },
   "scripts": {
