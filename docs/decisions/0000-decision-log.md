@@ -43,3 +43,4 @@ This document serves as the central index of all Architecture Decision Records (
 | ADR-0032 | 01-03-2026 | [Schedule Page Local State Architecture](./0032-schedule-local-state-architecture.md)                        | **Accepted** |
 | ADR-0033 | 01-03-2026 | [Documentation RAG with pgvector](./0033-documentation-rag-pgvector.md)                                      | **Accepted** |
 | ADR-0034 | 01-03-2026 | [Documentation Enforcement Pipeline](./0034-documentation-enforcement-pipeline.md)                           | **Accepted** |
+| ADR-0035 | 01-03-2026 | [Docker Network Infrastructure](./0035-docker-network-infra.md)                                              | **Active**   |
