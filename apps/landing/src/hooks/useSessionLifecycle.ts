@@ -18,12 +18,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import {
-  postEvent,
-  beaconEvent,
-  getOrCreateSessionId,
-  getCurrentVariant,
-} from "./useTracking";
+import { postEvent, beaconEvent, getOrCreateSessionId, getCurrentVariant } from "./useTracking";
 import { getOrCreateVisitorId } from "../lib/visitor-cookie";
 
 /** Heartbeat interval in milliseconds (30 seconds). */
@@ -51,12 +46,13 @@ function getScrollPercent(): number {
  * Call this hook once in the top-level page component.
  */
 export function useSessionLifecycle(): void {
-  const startTime = useRef(Date.now());
+  const startTime = useRef(0);
   const maxScroll = useRef(0);
   const clickCount = useRef(0);
   const sessionEndSent = useRef(false);
 
   useEffect(() => {
+    startTime.current = Date.now();
     // --- Internal trackers ---
 
     /** Update max scroll on every scroll event. */
