@@ -11,9 +11,7 @@ import {
   AlertCircle,
   PanelLeftClose,
   PanelLeftOpen,
-  MoreVertical,
   Printer,
-  Ban,
 } from "lucide-react";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import {
@@ -42,6 +40,12 @@ import {
   dailyShifts,
   openShiftItems,
 } from "./_components/schedule-data";
+import { ScheduleProvider, useSchedule } from "./_components/schedule-context";
+import { OpenShiftDialog } from "./_components/open-shift-dialog";
+import { ShiftModal } from "./_components/shift-modal";
+import { BatchActionBar } from "./_components/batch-action-bar";
+import { AbsencePopover } from "./_components/absence-popover";
+import { useScheduleToast } from "./_components/schedule-toasts";
 
 // ---------------------------------------------------------------------------
 // Collision detection: pointer-first, rect fallback
@@ -56,6 +60,18 @@ const scheduleCollisionDetection: CollisionDetection = (args) => {
 // SchedulePage — thin composition layer
 // ---------------------------------------------------------------------------
 export default function SchedulePage() {
+  return (
+    <ScheduleProvider legacyShifts={dailyShifts}>
+      <SchedulePageInner />
+    </ScheduleProvider>
+  );
+}
+
+/**
+ * Inner schedule page that has access to the ScheduleProvider context.
+ * Separated from the default export so useSchedule() works correctly.
+ */
+function SchedulePageInner() {
   const { isDark, scheduleLayout } = useContext(DashboardContext);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -68,31 +84,68 @@ export default function SchedulePage() {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
-  const statusSummary = React.useMemo(() => {
-    const coverageRisks = dummyDays.filter((day) => Boolean(day.coverageAlert)).length;
-    const overtimeRisks = dummyEmployees.filter(
-      (employee) => Number.parseFloat(employee.hours) > 37.5,
-    ).length;
-    const complianceRisks = dailyShifts.filter((shift) => shift.type === "absence").length;
-    const openShiftQueue = openShiftItems.length;
-    const draftCount = dailyShifts.filter((shift) => shift.status === "draft").length;
-    const publishedCount = dailyShifts.filter((shift) => shift.status === "published").length;
-    const activeCount = dailyShifts.filter((shift) => shift.status === "active").length;
-    const completedCount = dailyShifts.filter((shift) => shift.status === "completed").length;
-    const publishedState = draftCount > 0 ? "Draft endringer" : "Publisert";
+  const { state, dispatch, computed } = useSchedule();
+  const dispatchWithToast = useScheduleToast();
+  const statusSummary = computed.getStatusSummary();
 
-    return {
-      coverageRisks,
-      overtimeRisks,
-      complianceRisks,
-      openShiftQueue,
-      draftCount,
-      publishedCount,
-      activeCount,
-      completedCount,
-      publishedState,
-    };
-  }, []);
+  /**
+   * Handles DnD drop events.
+   * Parses droppable ID format: "cell::employeeId::dateId" or "day-header::dateId"
+   * and dispatches the appropriate action based on drag source type.
+   * Uses dispatchWithToast so DnD actions get toast feedback.
+   */
+  const handleDragEnd = (event: import("@dnd-kit/core").DragEndEvent) => {
+    const { active, over } = event;
+    if (!over) return;
+
+    const sourceType = active.data.current?.type as string | undefined;
+    const droppableId = String(over.id);
+
+    // Parse droppable ID
+    const cellMatch = droppableId.match(/^cell::(.+)::(.+)$/);
+    const dayHeaderMatch = droppableId.match(/^day-header::(.+)$/);
+
+    if (cellMatch && sourceType === "shift") {
+      // Shift dropped on employee cell → move shift
+      const [, toEmployeeId, toDateId] = cellMatch;
+      const shiftId = active.data.current?.shiftId as string | undefined;
+      if (shiftId && toEmployeeId && toDateId) {
+        dispatchWithToast({
+          type: "MOVE_SHIFT",
+          payload: { shiftId, toEmployeeId, toDateId },
+        });
+      }
+    } else if (cellMatch && sourceType === "open-shift") {
+      // Open shift dropped on employee cell → assign
+      const [, employeeId, dateId] = cellMatch;
+      if (employeeId && dateId) {
+        dispatchWithToast({
+          type: "ASSIGN_OPEN_SHIFT",
+          payload: { openShiftId: String(active.id), employeeId, dateId },
+        });
+      }
+    } else if (cellMatch && sourceType === "shift-template") {
+      // Template dropped on employee cell → create shift from template
+      const templateId = active.data.current?.templateId as string | undefined;
+      const [, _employeeId, dateId] = cellMatch;
+      if (templateId && dateId) {
+        dispatchWithToast({
+          type: "LOAD_TEMPLATE",
+          payload: { templateId, targetDateId: dateId },
+        });
+      }
+    } else if (dayHeaderMatch && sourceType === "shift-template") {
+      // Template dropped on day header → apply whole template to day
+      const templateId = active.data.current?.templateId as string | undefined;
+      const [, dateId] = dayHeaderMatch;
+      if (templateId && dateId) {
+        dispatchWithToast({
+          type: "LOAD_TEMPLATE",
+          payload: { templateId, targetDateId: dateId },
+        });
+      }
+    }
+  };
 
   return (
     <div
@@ -118,6 +171,7 @@ export default function SchedulePage() {
         sensors={sensors}
         collisionDetection={scheduleCollisionDetection}
         autoScroll={false}
+        onDragEnd={handleDragEnd}
       >
         <GridSurface
           isDark={isDark}
@@ -164,6 +218,11 @@ export default function SchedulePage() {
 
         <ScheduleDragOverlay isDark={isDark} />
       </DndContext>
+
+      {/* Global modals and overlays rendered at the page level */}
+      <ShiftModal />
+      <BatchActionBar />
+      <AbsencePopover />
     </div>
   );
 }
@@ -182,6 +241,20 @@ function ScheduleSidebar({
   sidebarMode: "open" | "templates";
   setSidebarMode: (m: "open" | "templates") => void;
 }) {
+  const { state } = useSchedule();
+  const [openShiftDialogOpen, setOpenShiftDialogOpen] = React.useState(false);
+
+  // Group templates by department
+  const templatesByDept = React.useMemo(() => {
+    const map = new Map<string, typeof state.templates>();
+    for (const t of state.templates) {
+      const existing = map.get(t.department) ?? [];
+      existing.push(t);
+      map.set(t.department, existing);
+    }
+    return map;
+  }, [state.templates]);
+
   return (
     <aside
       className={`border-r border-white/[0.04] ${isDark ? "bg-[#0a0a0c]/40" : "bg-white/60"} z-20 hidden shrink-0 flex-col backdrop-blur-md transition-all duration-300 ease-in-out lg:flex ${isSidebarOpen ? "w-64 opacity-100 xl:w-72" : "w-0 overflow-hidden border-none opacity-0"} print:hidden`}
@@ -211,6 +284,7 @@ function ScheduleSidebar({
                 Åpen Vakt
               </h3>
               <button
+                onClick={() => setOpenShiftDialogOpen(true)}
                 className="rounded-md bg-orange-500/10 p-1 text-orange-400 transition-colors hover:text-orange-300"
                 title="Opprett ny åpen vakt"
               >
@@ -218,10 +292,14 @@ function ScheduleSidebar({
               </button>
             </div>
             <div className="space-y-3">
-              {openShiftItems.map((shift) => (
+              {state.openShifts.map((shift) => (
                 <OpenShiftCard key={shift.id} id={shift.id} title={shift.title} time={shift.time} />
               ))}
+              {state.openShifts.length === 0 && (
+                <p className="text-center text-[10px] text-zinc-500">Ingen åpne vakter</p>
+              )}
             </div>
+            <OpenShiftDialog open={openShiftDialogOpen} onOpenChange={setOpenShiftDialogOpen} />
           </>
         ) : (
           <>
@@ -229,38 +307,22 @@ function ScheduleSidebar({
               Maler per avdeling
             </h3>
             <div className="space-y-6">
-              {["Servering", "Kjøkken"].map((team) => (
-                <div key={team}>
+              {Array.from(templatesByDept.entries()).map(([dept, templates]) => (
+                <div key={dept}>
                   <h4 className="mb-3 flex items-center gap-1.5 border-b border-white/5 pb-1 text-[10px] font-black tracking-widest text-zinc-400 uppercase">
-                    <Briefcase className="h-3.5 w-3.5" /> {team}
+                    <Briefcase className="h-3.5 w-3.5" /> {dept}
                   </h4>
                   <div className="space-y-2">
-                    {team === "Servering" ? (
-                      <>
-                        <TemplateCard
-                          id={`tpl-${team}-1`}
-                          title="Åpningsvakt"
-                          team={team}
-                          hours="08:00 - 16:00"
-                          routines={3}
-                        />
-                        <TemplateCard
-                          id={`tpl-${team}-2`}
-                          title="Stengevakt"
-                          team={team}
-                          hours="16:00 - 00:00"
-                          routines={5}
-                        />
-                      </>
-                    ) : (
+                    {templates.map((t) => (
                       <TemplateCard
-                        id={`tpl-${team}-3`}
-                        title="Kjøkkensjef"
-                        team={team}
-                        hours="10:00 - 18:00"
-                        routines={8}
+                        key={t.id}
+                        id={t.id}
+                        title={t.name}
+                        team={t.department}
+                        hours={t.shifts[0]?.time ?? ""}
+                        routines={t.shifts.length}
                       />
-                    )}
+                    ))}
                   </div>
                 </div>
               ))}
@@ -716,6 +778,7 @@ function HeatmapCell({ colorClass }: { colorClass: string }) {
 // ═══════════════════════════════════════════════════════════════════════════
 function ListGridContent({ onDateClick }: { onDateClick: (d: string) => void }) {
   const { isDark } = useContext(DashboardContext);
+  const { state, computed } = useSchedule();
 
   return (
     <div
@@ -743,9 +806,9 @@ function ListGridContent({ onDateClick }: { onDateClick: (d: string) => void }) 
 
       <div className="space-y-8 print:space-y-4">
         {dummyDays.map((day) => {
-          const dayShifts = dailyShifts
-            .filter((s) => s.dateId === day.id)
-            .sort((a, b) => (a.time || "").localeCompare(b.time || ""));
+          const dayShifts = computed
+            .getShiftsForDay(day.id)
+            .sort((a, b) => a.time.localeCompare(b.time));
 
           if (dayShifts.length === 0) return null;
 
@@ -810,7 +873,7 @@ function ListGridContent({ onDateClick }: { onDateClick: (d: string) => void }) 
                             className={`shrink-0 text-[10px] font-black tracking-widest ${isDark ? "text-orange-400" : "text-orange-600"} flex items-center gap-1 print:text-black`}
                           >
                             <Clock className="h-3 w-3 text-orange-500/50" />{" "}
-                            {shift.time || shift.absenceType || "Hele Dagen"}
+                            {shift.time || "Hele Dagen"}
                           </span>
                         </div>
                       </div>

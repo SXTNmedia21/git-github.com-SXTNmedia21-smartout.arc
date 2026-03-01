@@ -1,16 +1,6 @@
 "use client";
 
-type StatusSummary = {
-  coverageRisks: number;
-  overtimeRisks: number;
-  complianceRisks: number;
-  openShiftQueue: number;
-  draftCount: number;
-  publishedCount: number;
-  activeCount: number;
-  completedCount: number;
-  publishedState: string;
-};
+import type { StatusSummary } from "./schedule-context";
 
 type StatusStripProps = {
   isDark: boolean;
@@ -77,11 +67,12 @@ export function StatusStrip({ isDark, statusSummary }: StatusStripProps) {
         <span className="rounded-md border border-zinc-500/8 bg-zinc-500/[0.03] px-2 py-0.5 text-[11px] font-medium text-zinc-500">
           Completed {statusSummary.completedCount}
         </span>
-        <span className="rounded-md border border-zinc-500/8 bg-zinc-500/[0.03] px-2 py-0.5 text-[11px] font-medium text-zinc-500">
-          Absence
-        </span>
-        <span className="rounded-md border border-zinc-500/8 bg-zinc-500/[0.03] px-2 py-0.5 text-[11px] font-medium text-zinc-500">
-          Risk
+        <span className={`rounded-md border px-2 py-0.5 text-[11px] font-medium ${
+          statusSummary.absenceCount > 0
+            ? "border-rose-500/20 bg-rose-500/5 text-rose-400"
+            : "border-zinc-500/8 bg-zinc-500/[0.03] text-zinc-500"
+        }`}>
+          Fravær {statusSummary.absenceCount}
         </span>
       </div>
     </div>
