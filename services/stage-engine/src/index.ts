@@ -14,6 +14,9 @@ import { authMiddleware } from "./middleware/auth.js";
 import { onError } from "./middleware/error-handler.js";
 import { health } from "./routes/health.js";
 import { sessions } from "./routes/sessions.js";
+import { store } from "./routes/store.js";
+import { fetchRoute } from "./routes/fetch.js";
+import { advance } from "./routes/advance.js";
 import { expireStaleSession } from "./core/session-manager.js";
 
 const app = new Hono();
@@ -28,6 +31,9 @@ app.onError(onError);
 // Routes
 app.route("/", health);
 app.route("/", sessions);
+app.route("/", store);
+app.route("/", fetchRoute);
+app.route("/", advance);
 
 // Start server
 const port = config.PORT;
