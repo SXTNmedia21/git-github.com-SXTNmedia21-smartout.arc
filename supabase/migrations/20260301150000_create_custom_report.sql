@@ -41,4 +41,4 @@ CREATE POLICY "workspace_member_delete" ON custom_report
 -- Auto-update updated_at on row changes
 CREATE TRIGGER set_updated_at
   BEFORE UPDATE ON custom_report
-  FOR EACH ROW EXECUTE FUNCTION moddatetime(updated_at);
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
