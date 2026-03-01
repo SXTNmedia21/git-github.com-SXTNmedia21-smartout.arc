@@ -54,7 +54,7 @@ export function SaveTemplateDialog({ dateId, open, onOpenChange }: SaveTemplateD
   const [department, setDepartment] = useState("");
   const [includeAssignments, setIncludeAssignments] = useState(false);
 
-  const dayShifts = shifts.filter((s) => s.dateId === dateId);
+  const dayShifts = shifts.filter((s: Shift) => s.dateId === dateId);
   const shiftCount = dayShifts.length;
 
   /** Resets form fields to defaults. */
@@ -69,7 +69,14 @@ export function SaveTemplateDialog({ dateId, open, onOpenChange }: SaveTemplateD
     if (!name.trim()) return;
 
     const templateShifts = dayShifts.map(
-      ({ id: _id, dateId: _dateId, createdAt: _c, updatedAt: _u, isPublished: _p, ...rest }) => ({
+      ({
+        id: _id,
+        dateId: _dateId,
+        createdAt: _c,
+        updatedAt: _u,
+        isPublished: _p,
+        ...rest
+      }: Shift) => ({
         ...rest,
         employeeId: includeAssignments ? rest.employeeId : null,
         status: "created" as const,

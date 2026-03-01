@@ -33,7 +33,7 @@ import { GridSurface } from "./_components/grid-surface";
 import { DayInspector } from "./_components/day-inspector";
 import { GridContent } from "./_components/daily-grid";
 import { ShiftCard, OpenShiftCard, TemplateCard, AbsenceCard } from "./_components/grid-cards";
-import type { ShiftTemplate } from "./_components/schedule-types";
+import type { Shift, OpenShift, ShiftTemplate } from "./_components/schedule-types";
 import { ScheduleDragOverlay } from "./_components/schedule-drag-overlay";
 import { DailyBriefingPanel } from "./_components/daily-briefing";
 import { OpenShiftDialog } from "./_components/open-shift-dialog";
@@ -96,8 +96,8 @@ function getWeekRange(): { weekStart: string; weekEnd: string } {
   const sunday = new Date(monday);
   sunday.setDate(monday.getDate() + 6);
   return {
-    weekStart: monday.toISOString().split("T")[0],
-    weekEnd: sunday.toISOString().split("T")[0],
+    weekStart: monday.toISOString().split("T")[0] ?? "",
+    weekEnd: sunday.toISOString().split("T")[0] ?? "",
   };
 }
 
@@ -114,7 +114,7 @@ function generateDayColumns(weekStart: string): DayColumn[] {
   return DAY_LABELS.map((label, i) => {
     const date = new Date(start);
     date.setDate(start.getDate() + i);
-    const dateStr = date.toISOString().split("T")[0];
+    const dateStr = date.toISOString().split("T")[0] ?? "";
     const dayNum = date.getDate();
     const month = date.getMonth() + 1;
 
@@ -232,13 +232,15 @@ function SchedulePageContent() {
   const statusSummary = computed.getStatusSummary();
 
   // Register the publish-all callback and draft count with the DashboardShell header
-  const draftCount = shifts.filter((s) => s.status === "created" || s.status === "assigned").length;
+  const draftCount = shifts.filter(
+    (s: Shift) => s.status === "created" || s.status === "assigned",
+  ).length;
 
   useEffect(() => {
     setScheduleDraftCount(draftCount);
     const draftIds = shifts
-      .filter((s) => s.status === "created" || s.status === "assigned")
-      .map((s) => s.id);
+      .filter((s: Shift) => s.status === "created" || s.status === "assigned")
+      .map((s: Shift) => s.id);
     setOnPublishAll(() => publishShifts.mutate(draftIds));
     return () => {
       setOnPublishAll(null);
@@ -282,7 +284,7 @@ function SchedulePageContent() {
       // Open shift dropped on employee cell -> assign
       const [, employeeId, dateId] = cellMatch;
       if (employeeId && dateId) {
-        const openShift = openShifts.find((os) => os.id === String(active.id));
+        const openShift = openShifts.find((os: OpenShift) => os.id === String(active.id));
         if (openShift) {
           assignOpenShift.mutate({
             openShiftId: String(active.id),

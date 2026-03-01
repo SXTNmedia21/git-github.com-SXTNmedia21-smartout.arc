@@ -83,10 +83,12 @@ export function DayContextMenu({ dateId, dateLabel, isDark }: DayContextMenuProp
   const [broadcastOpen, setBroadcastOpen] = useState(false);
 
   // Derived conditions for enabling/disabling menu items
-  const dayShifts = shifts.filter((s) => s.dateId === dateId);
+  const dayShifts = shifts.filter((s: Shift) => s.dateId === dateId);
   const hasShifts = dayShifts.length > 0;
-  const hasUnpublished = dayShifts.some((s) => s.status === "created" || s.status === "assigned");
-  const hasPublished = dayShifts.some((s) => s.status === "published");
+  const hasUnpublished = dayShifts.some(
+    (s: Shift) => s.status === "created" || s.status === "assigned",
+  );
+  const hasPublished = dayShifts.some((s: Shift) => s.status === "published");
   const hasClipboard = clipboard !== null;
   const isSelected = selectedDays.has(dateId);
 
@@ -128,8 +130,8 @@ export function DayContextMenu({ dateId, dateLabel, isDark }: DayContextMenuProp
             disabled={!hasUnpublished}
             onClick={() => {
               const draftIds = dayShifts
-                .filter((s) => s.status === "created" || s.status === "assigned")
-                .map((s) => s.id);
+                .filter((s: Shift) => s.status === "created" || s.status === "assigned")
+                .map((s: Shift) => s.id);
               if (draftIds.length > 0) publishShifts.mutate(draftIds);
             }}
           >
@@ -141,8 +143,8 @@ export function DayContextMenu({ dateId, dateLabel, isDark }: DayContextMenuProp
             disabled={!hasPublished}
             onClick={() => {
               const publishedIds = dayShifts
-                .filter((s) => s.status === "published")
-                .map((s) => s.id);
+                .filter((s: Shift) => s.status === "published")
+                .map((s: Shift) => s.id);
               if (publishedIds.length > 0) unpublishShifts.mutate(publishedIds);
             }}
           >

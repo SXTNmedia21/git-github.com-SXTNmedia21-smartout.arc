@@ -38,9 +38,10 @@ export function BatchActionBar() {
   function handlePublishAll() {
     const draftIds = shifts
       .filter(
-        (s) => selectedDays.has(s.dateId) && (s.status === "created" || s.status === "assigned"),
+        (s: Shift) =>
+          selectedDays.has(s.dateId) && (s.status === "created" || s.status === "assigned"),
       )
-      .map((s) => s.id);
+      .map((s: Shift) => s.id);
     if (draftIds.length > 0) {
       publishShifts.mutate(draftIds);
     }
@@ -52,8 +53,8 @@ export function BatchActionBar() {
    */
   function handleUnpublishAll() {
     const publishedIds = shifts
-      .filter((s) => selectedDays.has(s.dateId) && s.status === "published")
-      .map((s) => s.id);
+      .filter((s: Shift) => selectedDays.has(s.dateId) && s.status === "published")
+      .map((s: Shift) => s.id);
     if (publishedIds.length > 0) {
       unpublishShifts.mutate(publishedIds);
     }

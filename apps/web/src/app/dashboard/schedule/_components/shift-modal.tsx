@@ -237,7 +237,7 @@ export function ShiftModal() {
   // Determine mode: edit (existing shift) or create (new shift)
   const isOpen = selectedShiftId !== null || createShiftContext !== null;
   const isEditMode = selectedShiftId !== null;
-  const existingShift = isEditMode ? shifts.find((s) => s.id === selectedShiftId) : null;
+  const existingShift = isEditMode ? shifts.find((s: Shift) => s.id === selectedShiftId) : null;
 
   // ── Form state ──────────────────────────────────────────
 

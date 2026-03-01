@@ -61,7 +61,7 @@ export function LoadTemplateSheet({ dateId, open, onOpenChange }: LoadTemplateSh
   // Confirmation dialog state for conflict warning
   const [confirmTemplateId, setConfirmTemplateId] = useState<string | null>(null);
 
-  const existingShifts = shifts.filter((s) => s.dateId === dateId);
+  const existingShifts = shifts.filter((s: Shift) => s.dateId === dateId);
   const hasExistingShifts = existingShifts.length > 0;
 
   // Group templates by department

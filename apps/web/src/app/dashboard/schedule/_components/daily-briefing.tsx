@@ -220,8 +220,8 @@ function FooterBroadcast({ isDark, dateId }: { isDark: boolean; dateId: string |
   const staffCount = dateId
     ? new Set(
         shifts
-          .filter((s) => s.dateId === dateId)
-          .map((s) => s.employeeId)
+          .filter((s: Shift) => s.dateId === dateId)
+          .map((s: Shift) => s.employeeId)
           .filter(Boolean),
       ).size
     : 0;
@@ -412,7 +412,7 @@ function MeldingerTab({ isDark, dateId }: { isDark: boolean; dateId: string | nu
   const [visibility, setVisibility] = useState<"all_day" | "until_16" | "permanent">("all_day");
 
   // Get messages for this day from query data
-  const messages = dateId ? dayMessagesData.filter((m) => m.dateId === dateId) : [];
+  const messages = dateId ? dayMessagesData.filter((m: DayMessage) => m.dateId === dateId) : [];
 
   /**
    * Publishes a new day message via dispatch.
@@ -532,7 +532,7 @@ function MeldingerTab({ isDark, dateId }: { isDark: boolean; dateId: string | nu
         {messages.length === 0 ? (
           <p className="py-4 text-center text-xs text-zinc-500">Ingen oppslag for denne dagen</p>
         ) : (
-          messages.map((msg) => (
+          messages.map((msg: DayMessage) => (
             <MessageCard
               key={msg.id}
               title={msg.title}
@@ -568,7 +568,7 @@ function BookingsTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
   const [expandedBookingId, setExpandedBookingId] = useState<string | null>(null);
 
   // Get bookings for this day from query data
-  const bookings = dateId ? dayBookingsData.filter((b) => b.dateId === dateId) : [];
+  const bookings = dateId ? dayBookingsData.filter((b: DayBooking) => b.dateId === dateId) : [];
 
   /**
    * Maps booking status to display badge styling.
@@ -618,7 +618,7 @@ function BookingsTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
         <p className="py-8 text-center text-xs text-zinc-500">Ingen bookinger for denne dagen</p>
       ) : (
         <div className="space-y-3">
-          {bookings.map((booking) => {
+          {bookings.map((booking: DayBooking) => {
             const isExpanded = expandedBookingId === booking.id;
 
             return (
@@ -710,16 +710,17 @@ function OppgaverTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
   const [filter, setFilter] = useState<"all" | "routine" | "delegated">("all");
 
   // Get tasks for this day from query data, filtered by category
-  const allTasks = dateId ? dayTasksData.filter((t) => t.dateId === dateId) : [];
-  const filteredTasks = filter === "all" ? allTasks : allTasks.filter((t) => t.category === filter);
+  const allTasks = dateId ? dayTasksData.filter((t: DayTask) => t.dateId === dateId) : [];
+  const filteredTasks =
+    filter === "all" ? allTasks : allTasks.filter((t: DayTask) => t.category === filter);
 
   // Compute completion stats
-  const completedCount = allTasks.filter((t) => t.status === "completed").length;
+  const completedCount = allTasks.filter((t: DayTask) => t.status === "completed").length;
   const totalCount = allTasks.length;
 
   // Category counts for filter chips
-  const routineCount = allTasks.filter((t) => t.category === "routine").length;
-  const delegatedCount = allTasks.filter((t) => t.category === "delegated").length;
+  const routineCount = allTasks.filter((t: DayTask) => t.category === "routine").length;
+  const delegatedCount = allTasks.filter((t: DayTask) => t.category === "delegated").length;
 
   /**
    * Adds a new task via dispatch. Defaults to "all" category and "pending" status.
@@ -848,7 +849,7 @@ function OppgaverTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
               : "Ingen oppgaver i denne kategorien"}
           </p>
         ) : (
-          filteredTasks.map((task) => {
+          filteredTasks.map((task: DayTask) => {
             const { icon, classes } = statusIcon(task.status);
             const isDone = task.status === "completed";
             const isInProgress = task.status === "in_progress";
