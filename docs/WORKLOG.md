@@ -19,12 +19,13 @@ tags: [schedule, ui, persistence, realtime]
 - [x] Task 8: schedule-ui-context.tsx — lightweight UI state context (selection, clipboard, modals)
 - [x] Task 8: use-schedule-computed.ts — memoized computed getters (stats, coverage, filtering)
 - [x] Task 6: Entity hooks — use-absences.ts, use-templates.ts, use-open-shifts.ts, use-day-content.ts, use-audit-log.ts
+- [x] Task 9: Refactored page.tsx — replaced ScheduleProvider/useSchedule with ScheduleUIProvider + TanStack Query hooks
 
 ## Remaining
 
-- [ ] Phase 1: DB persistence with TanStack Query (remaining tasks)
-- [ ] Supabase Realtime sync
-- [ ] Hook up components to new hooks (replace context-based state)
+- [ ] Task 10: Update all child components — replace dispatch() with mutation hooks
+- [ ] Task 11: Delete old files (schedule-context.tsx, schedule-toasts.tsx, schedule-data.ts dummy exports)
+- [ ] Task 12: Final verification and docs
 
 ## Decisions
 
@@ -33,9 +34,10 @@ tags: [schedule, ui, persistence, realtime]
 
 ## Log
 
-| Date       | Time | Event                                                                                          |
-| ---------- | ---- | ---------------------------------------------------------------------------------------------- |
-| 2026-03-01 | —    | Session started, brainstorming Phase 1 design                                                  |
-| 2026-03-01 | —    | Created migration 20260301600000_schedule_persistence_tables.sql (Task 3)                      |
-| 2026-03-01 | —    | Task 8: Created schedule-ui-context.tsx and use-schedule-computed.ts                           |
-| 2026-03-01 | —    | Task 6: Created 5 entity hook files (absences, templates, open shifts, day content, audit log) |
+| Date       | Time | Event                                                                                                    |
+| ---------- | ---- | -------------------------------------------------------------------------------------------------------- |
+| 2026-03-01 | —    | Session started, brainstorming Phase 1 design                                                            |
+| 2026-03-01 | —    | Created migration 20260301600000_schedule_persistence_tables.sql (Task 3)                                |
+| 2026-03-01 | —    | Task 8: Created schedule-ui-context.tsx and use-schedule-computed.ts                                     |
+| 2026-03-01 | —    | Task 6: Created 5 entity hook files (absences, templates, open shifts, day content, audit log)           |
+| 2026-03-01 | —    | Task 9: Refactored page.tsx — swapped ScheduleProvider for ScheduleUIProvider + all TanStack Query hooks |

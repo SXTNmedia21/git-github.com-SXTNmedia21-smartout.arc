@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useMemo, useState } from "react";
 import {
   Users,
   Briefcase,
@@ -13,6 +13,7 @@ import {
   Printer,
 } from "lucide-react";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
+import { useWorkspace } from "@/lib/workspace-context";
 import {
   DndContext,
   type CollisionDetection,
@@ -35,15 +36,100 @@ import { ShiftCard, OpenShiftCard, TemplateCard, AbsenceCard } from "./_componen
 import type { ShiftTemplate } from "./_components/schedule-types";
 import { ScheduleDragOverlay } from "./_components/schedule-drag-overlay";
 import { DailyBriefingPanel } from "./_components/daily-briefing";
-import { dummyEmployees, dummyDays, dailyShifts } from "./_components/schedule-data";
-import { ScheduleProvider, useSchedule } from "./_components/schedule-context";
 import { OpenShiftDialog } from "./_components/open-shift-dialog";
 import { CreateTemplateDialog } from "./_components/create-template-dialog";
 import { EditTemplateDialog } from "./_components/edit-template-dialog";
 import { ShiftModal } from "./_components/shift-modal";
 import { BatchActionBar } from "./_components/batch-action-bar";
 import { AbsencePopover } from "./_components/absence-popover";
-import { useScheduleToast } from "./_components/schedule-toasts";
+
+// TODO: Replace dummyEmployees with profile query when ready
+import { dummyEmployees, type DayColumn } from "./_components/schedule-data";
+
+// ── New TanStack Query hooks ────────────────────────────────
+import { ScheduleUIProvider, useScheduleUI } from "./_components/schedule-ui-context";
+import {
+  useShifts,
+  useCreateShift,
+  useUpdateShift,
+  useMoveShift,
+  useDeleteShift,
+  usePublishShifts,
+  useUnpublishShifts,
+} from "./_hooks/use-shifts";
+import { useAbsences, useCreateAbsence, useDeleteAbsence } from "./_hooks/use-absences";
+import {
+  useTemplates,
+  useSaveTemplate,
+  useUpdateTemplate,
+  useDeleteTemplate,
+  useLoadTemplate,
+} from "./_hooks/use-templates";
+import {
+  useOpenShifts,
+  useCreateOpenShift,
+  useDeleteOpenShift,
+  useAssignOpenShift,
+} from "./_hooks/use-open-shifts";
+import {
+  useDayMessages,
+  useCreateDayMessage,
+  useDeleteDayMessage,
+  useDayTasks,
+  useCreateDayTask,
+  useUpdateDayTaskStatus,
+  useDeleteDayTask,
+  useDayBookings,
+  useCreateDayBooking,
+} from "./_hooks/use-day-content";
+import { useScheduleRealtime } from "./_hooks/use-schedule-realtime";
+import { useScheduleComputed } from "./_hooks/use-schedule-computed";
+
+// ---------------------------------------------------------------------------
+// Week range helper
+// ---------------------------------------------------------------------------
+function getWeekRange(): { weekStart: string; weekEnd: string } {
+  const now = new Date();
+  const day = now.getDay();
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - ((day + 6) % 7));
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  return {
+    weekStart: monday.toISOString().split("T")[0],
+    weekEnd: sunday.toISOString().split("T")[0],
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Generate day columns from week range
+// ---------------------------------------------------------------------------
+const DAY_LABELS = ["Man", "Tir", "Ons", "Tor", "Fre", "Lør", "Søn"];
+
+function generateDayColumns(weekStart: string): DayColumn[] {
+  const start = new Date(weekStart + "T00:00:00");
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return DAY_LABELS.map((label, i) => {
+    const date = new Date(start);
+    date.setDate(start.getDate() + i);
+    const dateStr = date.toISOString().split("T")[0];
+    const dayNum = date.getDate();
+    const month = date.getMonth() + 1;
+
+    return {
+      id: dateStr,
+      label: `${label} ${dayNum}/${month}`,
+      staff: 0,
+      shifts: 0,
+      cost: "0",
+      isToday: date.getTime() === today.getTime(),
+      isHoliday: i >= 5,
+      situation: "Normal",
+    };
+  });
+}
 
 // ---------------------------------------------------------------------------
 // Collision detection: pointer-first, rect fallback
@@ -55,21 +141,20 @@ const scheduleCollisionDetection: CollisionDetection = (args) => {
 };
 
 // ---------------------------------------------------------------------------
-// SchedulePage — thin composition layer
+// SchedulePage — thin composition layer with providers
 // ---------------------------------------------------------------------------
 export default function SchedulePage() {
   return (
-    <ScheduleProvider legacyShifts={dailyShifts}>
-      <SchedulePageInner />
-    </ScheduleProvider>
+    <ScheduleUIProvider>
+      <SchedulePageContent />
+    </ScheduleUIProvider>
   );
 }
 
-/**
- * Inner schedule page that has access to the ScheduleProvider context.
- * Separated from the default export so useSchedule() works correctly.
- */
-function SchedulePageInner() {
+// ---------------------------------------------------------------------------
+// SchedulePageContent — query hooks + rendering
+// ---------------------------------------------------------------------------
+function SchedulePageContent() {
   const { isDark, scheduleLayout, setOnPublishAll, setScheduleDraftCount } =
     useContext(DashboardContext);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -84,29 +169,96 @@ function SchedulePageInner() {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
-  const { state, dispatch, computed } = useSchedule();
-  const dispatchWithToast = useScheduleToast();
+  // ── Week range and day columns ──────────────────────────────
+  const { weekStart, weekEnd } = useMemo(() => getWeekRange(), []);
+  const days = useMemo(() => generateDayColumns(weekStart), [weekStart]);
+
+  // ── Workspace context ───────────────────────────────────────
+  const { workspace } = useWorkspace();
+
+  // ── TanStack Query hooks ────────────────────────────────────
+  const shiftsQuery = useShifts(weekStart, weekEnd);
+  const absencesQuery = useAbsences(weekStart, weekEnd);
+  const templatesQuery = useTemplates();
+  const openShiftsQuery = useOpenShifts();
+  const dayMessagesQuery = useDayMessages(weekStart, weekEnd);
+  const dayTasksQuery = useDayTasks(weekStart, weekEnd);
+  const dayBookingsQuery = useDayBookings(weekStart, weekEnd);
+
+  // ── Realtime subscription ───────────────────────────────────
+  useScheduleRealtime(weekStart);
+
+  // ── Computed values ─────────────────────────────────────────
+  const computed = useScheduleComputed(
+    shiftsQuery.data ?? [],
+    absencesQuery.data ?? [],
+    (openShiftsQuery.data ?? []).length,
+    templatesQuery.data ?? [],
+    dayMessagesQuery.data ?? [],
+    dayTasksQuery.data ?? [],
+    dayBookingsQuery.data ?? [],
+  );
+
+  // ── Mutation hooks ──────────────────────────────────────────
+  const createShift = useCreateShift(weekStart);
+  const updateShift = useUpdateShift(weekStart);
+  const moveShift = useMoveShift(weekStart);
+  const deleteShift = useDeleteShift(weekStart);
+  const publishShifts = usePublishShifts(weekStart);
+  const unpublishShifts = useUnpublishShifts(weekStart);
+  const createAbsence = useCreateAbsence(weekStart);
+  const deleteAbsence = useDeleteAbsence(weekStart);
+  const saveTemplate = useSaveTemplate();
+  const updateTemplate = useUpdateTemplate();
+  const deleteTemplate = useDeleteTemplate();
+  const loadTemplate = useLoadTemplate(weekStart);
+  const createOpenShift = useCreateOpenShift();
+  const deleteOpenShift = useDeleteOpenShift();
+  const assignOpenShift = useAssignOpenShift(weekStart);
+  const createDayMessage = useCreateDayMessage(weekStart);
+  const deleteDayMessage = useDeleteDayMessage(weekStart);
+  const createDayTask = useCreateDayTask(weekStart);
+  const updateDayTaskStatus = useUpdateDayTaskStatus(weekStart);
+  const deleteDayTask = useDeleteDayTask(weekStart);
+  const createDayBooking = useCreateDayBooking(weekStart);
+
+  // ── UI-only context ─────────────────────────────────────────
+  const scheduleUI = useScheduleUI();
+
+  // ── Derived values ──────────────────────────────────────────
+  const shifts = shiftsQuery.data ?? [];
+  const templates = templatesQuery.data ?? [];
+  const openShifts = openShiftsQuery.data ?? [];
   const statusSummary = computed.getStatusSummary();
 
   // Register the publish-all callback and draft count with the DashboardShell header
-  const draftCount = state.shifts.filter(
-    (s) => s.status === "created" || s.status === "assigned",
-  ).length;
+  const draftCount = shifts.filter((s) => s.status === "created" || s.status === "assigned").length;
 
   useEffect(() => {
     setScheduleDraftCount(draftCount);
-    setOnPublishAll(() => dispatch({ type: "PUBLISH_ALL_DRAFTS" }));
+    const draftIds = shifts
+      .filter((s) => s.status === "created" || s.status === "assigned")
+      .map((s) => s.id);
+    setOnPublishAll(() => publishShifts.mutate(draftIds));
     return () => {
       setOnPublishAll(null);
       setScheduleDraftCount(0);
     };
-  }, [draftCount, dispatch, setOnPublishAll, setScheduleDraftCount]);
+  }, [draftCount, shifts, publishShifts, setOnPublishAll, setScheduleDraftCount]);
+
+  // ── Loading state ───────────────────────────────────────────
+  if (shiftsQuery.isLoading) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <p className="text-sm text-zinc-500">Laster vaktplan...</p>
+      </div>
+    );
+  }
 
   /**
    * Handles DnD drop events.
    * Parses droppable ID format: "cell::employeeId::dateId" or "day-header::dateId"
-   * and dispatches the appropriate action based on drag source type.
-   * Uses dispatchWithToast so DnD actions get toast feedback.
+   * and calls the appropriate mutation based on drag source type.
    */
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -120,43 +272,92 @@ function SchedulePageInner() {
     const dayHeaderMatch = droppableId.match(/^day-header::(.+)$/);
 
     if (cellMatch && sourceType === "shift") {
-      // Shift dropped on employee cell → move shift
+      // Shift dropped on employee cell -> move shift
       const [, toEmployeeId, toDateId] = cellMatch;
       const shiftId = active.data.current?.shiftId as string | undefined;
       if (shiftId && toEmployeeId && toDateId) {
-        dispatchWithToast({
-          type: "MOVE_SHIFT",
-          payload: { shiftId, toEmployeeId, toDateId },
-        });
+        moveShift.mutate({ id: shiftId, employeeId: toEmployeeId, dateId: toDateId });
       }
     } else if (cellMatch && sourceType === "open-shift") {
-      // Open shift dropped on employee cell → assign
+      // Open shift dropped on employee cell -> assign
       const [, employeeId, dateId] = cellMatch;
       if (employeeId && dateId) {
-        dispatchWithToast({
-          type: "ASSIGN_OPEN_SHIFT",
-          payload: { openShiftId: String(active.id), employeeId, dateId },
-        });
+        const openShift = openShifts.find((os) => os.id === String(active.id));
+        if (openShift) {
+          assignOpenShift.mutate({
+            openShiftId: String(active.id),
+            shift: {
+              id: crypto.randomUUID(),
+              employeeId,
+              dateId,
+              role: openShift.role ?? "",
+              startTime: openShift.startTime,
+              endTime: openShift.endTime,
+              workHours: 0,
+              status: "assigned",
+              dayCategory: openShift.dayCategory ?? "morning",
+              indicator: "orange",
+              isPublished: false,
+              breaks: 0,
+            },
+          });
+        }
       }
     } else if (cellMatch && sourceType === "shift-template") {
-      // Template dropped on employee cell → create shift from template
+      // Template dropped on employee cell -> create shifts from template
       const templateId = active.data.current?.templateId as string | undefined;
       const [, , dateId] = cellMatch;
       if (templateId && dateId) {
-        dispatchWithToast({
-          type: "LOAD_TEMPLATE",
-          payload: { templateId, targetDateId: dateId },
-        });
+        const template = templates.find((t) => t.id === templateId);
+        if (template) {
+          const shiftsToCreate = template.shifts.map((s) => ({
+            id: crypto.randomUUID(),
+            employeeId: s.employeeId,
+            dateId,
+            role: s.role,
+            startTime: s.startTime,
+            endTime: s.endTime,
+            workHours: s.workHours,
+            status: s.status,
+            dayCategory: s.dayCategory,
+            indicator: s.indicator,
+            isPublished: false,
+            breaks: s.breaks,
+            positionId: s.positionId,
+            teamId: s.teamId,
+            zone: s.zone,
+            notes: s.notes,
+          }));
+          loadTemplate.mutate({ template, shifts: shiftsToCreate });
+        }
       }
     } else if (dayHeaderMatch && sourceType === "shift-template") {
-      // Template dropped on day header → apply whole template to day
+      // Template dropped on day header -> apply whole template to day
       const templateId = active.data.current?.templateId as string | undefined;
       const [, dateId] = dayHeaderMatch;
       if (templateId && dateId) {
-        dispatchWithToast({
-          type: "LOAD_TEMPLATE",
-          payload: { templateId, targetDateId: dateId },
-        });
+        const template = templates.find((t) => t.id === templateId);
+        if (template) {
+          const shiftsToCreate = template.shifts.map((s) => ({
+            id: crypto.randomUUID(),
+            employeeId: s.employeeId,
+            dateId,
+            role: s.role,
+            startTime: s.startTime,
+            endTime: s.endTime,
+            workHours: s.workHours,
+            status: s.status,
+            dayCategory: s.dayCategory,
+            indicator: s.indicator,
+            isPublished: false,
+            breaks: s.breaks,
+            positionId: s.positionId,
+            teamId: s.teamId,
+            zone: s.zone,
+            notes: s.notes,
+          }));
+          loadTemplate.mutate({ template, shifts: shiftsToCreate });
+        }
       }
     }
   };
@@ -184,6 +385,8 @@ function SchedulePageInner() {
             isSidebarOpen={isSidebarOpen}
             sidebarMode={sidebarMode}
             setSidebarMode={setSidebarMode}
+            templates={templates}
+            openShifts={openShifts}
           />
 
           {/* Main content column — command bar, status strip, then grid */}
@@ -221,15 +424,29 @@ function SchedulePageInner() {
                       setIsSidebarOpen={setIsSidebarOpen}
                       onDateClick={setSelectedDate}
                       filterSituation={filterSituation}
+                      shifts={shifts}
+                      computed={computed}
+                      scheduleUI={scheduleUI}
                     />
                   )}
                   {scheduleLayout === "monthly" && (
                     <MonthlyGridContent
                       onDateClick={setSelectedDate}
                       filterSituation={filterSituation}
+                      shifts={shifts}
+                      computed={computed}
+                      days={days}
+                      scheduleUI={scheduleUI}
                     />
                   )}
-                  {scheduleLayout === "list" && <ListGridContent onDateClick={setSelectedDate} />}
+                  {scheduleLayout === "list" && (
+                    <ListGridContent
+                      onDateClick={setSelectedDate}
+                      shifts={shifts}
+                      computed={computed}
+                      days={days}
+                    />
+                  )}
                 </>
               }
               dayInspector={
@@ -260,15 +477,16 @@ function ScheduleSidebar({
   isSidebarOpen,
   sidebarMode,
   setSidebarMode,
+  templates,
+  openShifts,
 }: {
   isDark: boolean;
   isSidebarOpen: boolean;
   sidebarMode: "open" | "templates";
   setSidebarMode: (m: "open" | "templates") => void;
+  templates: ShiftTemplate[];
+  openShifts: { id: string; title: string; time: string }[];
 }) {
-  const { state } = useSchedule();
-  const templates = state.templates;
-  const openShifts = state.openShifts;
   const [openShiftDialogOpen, setOpenShiftDialogOpen] = React.useState(false);
   const [createTemplateOpen, setCreateTemplateOpen] = React.useState(false);
   const [editingTemplate, setEditingTemplate] = React.useState<ShiftTemplate | null>(null);
@@ -392,14 +610,19 @@ function WeeklyGridContent({
   setIsSidebarOpen,
   onDateClick,
   filterSituation,
+  shifts,
+  computed,
+  scheduleUI,
 }: {
   isSidebarOpen: boolean;
   setIsSidebarOpen: (v: boolean) => void;
   onDateClick?: (d: string) => void;
   filterSituation: string;
+  shifts: import("./_components/schedule-types").Shift[];
+  computed: import("./_hooks/use-schedule-computed").ScheduleComputed;
+  scheduleUI: ReturnType<typeof useScheduleUI>;
 }) {
   const { isDark, scheduleView, weeklyPeriodCount } = useContext(DashboardContext);
-  const { dispatch } = useSchedule();
   const columns = Array.from({ length: weeklyPeriodCount }, (_, i) => i + 1);
 
   /**
@@ -529,12 +752,7 @@ function WeeklyGridContent({
                 <ShiftCard role="Sous Chef" time="5 vakter" status="published" indicator="blue" />
               ) : (
                 <WeeklyEmptyCell
-                  onClick={() =>
-                    dispatch({
-                      type: "SET_CREATE_SHIFT_CONTEXT",
-                      payload: { dateId: `week::${col}` },
-                    })
-                  }
+                  onClick={() => scheduleUI.setCreateShiftContext({ dateId: `week::${col}` })}
                 />
               )}
             </WeeklyGridCell>
@@ -699,21 +917,28 @@ function WeeklyEmptyCell({ onClick }: { onClick?: () => void }) {
 function MonthlyGridContent({
   onDateClick,
   filterSituation,
+  shifts,
+  computed,
+  days,
+  scheduleUI,
 }: {
   onDateClick?: (d: string) => void;
   filterSituation: string;
+  shifts: import("./_components/schedule-types").Shift[];
+  computed: import("./_hooks/use-schedule-computed").ScheduleComputed;
+  days: DayColumn[];
+  scheduleUI: ReturnType<typeof useScheduleUI>;
 }) {
   const { isDark } = useContext(DashboardContext);
-  const { state, dispatch, computed } = useSchedule();
   const columns = Array.from({ length: 31 }, (_, i) => i + 1);
 
   /** Estimated total wage cost across all shifts */
-  const estimatedWageCost = state.shifts.reduce((sum, s) => sum + s.workHours * 250, 0);
+  const estimatedWageCost = shifts.reduce((sum, s) => sum + s.workHours * 250, 0);
   const statusSummary = computed.getStatusSummary();
 
   /** Aggregate team coverage across all days with data */
   const teamCoverageData = React.useMemo(() => {
-    const uniqueDays = new Set(state.shifts.map((s) => s.dateId));
+    const uniqueDays = new Set(shifts.map((s) => s.dateId));
     const teamTotals = new Map<string, { target: number; current: number }>();
 
     for (const dateId of uniqueDays) {
@@ -731,7 +956,7 @@ function MonthlyGridContent({
       target: data.target,
       current: data.current,
     }));
-  }, [state.shifts, computed]);
+  }, [shifts, computed]);
 
   return (
     <div
@@ -800,8 +1025,8 @@ function MonthlyGridContent({
             const isWeekend = col % 7 === 6 || col % 7 === 0;
             const isToday = col === 15;
 
-            /** Map column index to a dummyDay dateId if within range */
-            const dateId = col <= dummyDays.length ? dummyDays[col - 1]?.id : undefined;
+            /** Map column index to a day dateId if within range */
+            const dateId = col <= days.length ? days[col - 1]?.id : undefined;
 
             /**
              * Returns coverage-based heatmap color for a team row.
@@ -824,7 +1049,7 @@ function MonthlyGridContent({
             };
 
             /** All shifts for this day — used to compute per-cell info */
-            const dayShifts = dateId ? state.shifts.filter((s) => s.dateId === dateId) : [];
+            const dayShifts = dateId ? shifts.filter((s) => s.dateId === dateId) : [];
             const teamCount = Math.max(teamCoverageData.length, 1);
 
             /**
@@ -866,10 +1091,10 @@ function MonthlyGridContent({
                 <div
                   onClick={() => {
                     if (!dateId) return;
-                    onDateClick?.(dummyDays[col - 1]?.label ?? `Dag ${col}`);
+                    onDateClick?.(days[col - 1]?.label ?? `Dag ${col}`);
                     // Open shift creation modal when clicking an empty date
                     if (dayShifts.length === 0) {
-                      dispatch({ type: "SET_CREATE_SHIFT_CONTEXT", payload: { dateId } });
+                      scheduleUI.setCreateShiftContext({ dateId });
                     }
                   }}
                   className={`sticky top-16 h-[60px] border-b border-white/5 p-1 ${isDark ? "bg-[#0a0a0c]/80" : "bg-white/90"} group relative z-10 flex cursor-pointer flex-col items-center justify-end pb-2 backdrop-blur-xl hover:bg-white/5`}
@@ -898,7 +1123,7 @@ function MonthlyGridContent({
                         shiftCount={cellInfo.shiftCount}
                         timeRange={cellInfo.timeRange}
                         onClick={() =>
-                          dateId && onDateClick?.(dummyDays[col - 1]?.label ?? `Dag ${col}`)
+                          dateId && onDateClick?.(days[col - 1]?.label ?? `Dag ${col}`)
                         }
                       />
                     );
@@ -996,9 +1221,18 @@ function HeatmapCell({
 // ═══════════════════════════════════════════════════════════════════════════
 // LIST VIEW (Printable Weekly)
 // ═══════════════════════════════════════════════════════════════════════════
-function ListGridContent({ onDateClick }: { onDateClick: (d: string) => void }) {
+function ListGridContent({
+  onDateClick,
+  shifts,
+  computed,
+  days,
+}: {
+  onDateClick: (d: string) => void;
+  shifts: import("./_components/schedule-types").Shift[];
+  computed: import("./_hooks/use-schedule-computed").ScheduleComputed;
+  days: DayColumn[];
+}) {
   const { isDark } = useContext(DashboardContext);
-  const { computed } = useSchedule();
 
   return (
     <div
@@ -1025,7 +1259,7 @@ function ListGridContent({ onDateClick }: { onDateClick: (d: string) => void }) 
       </div>
 
       <div className="space-y-8 print:space-y-4">
-        {dummyDays.map((day) => {
+        {days.map((day) => {
           const dayShifts = computed
             .getShiftsForDay(day.id)
             .sort((a, b) => a.time.localeCompare(b.time));
