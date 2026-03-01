@@ -1,10 +1,10 @@
 ---
 title: "Auth Key Management System — Implementation Plan"
 id: PLAN_AUTH_KEY_MGMT
-status: draft
+status: completed
 layer: plan
 created: 2026-02-28
-updated: 2026-02-28
+updated: 2026-03-01
 depends_on:
   - ARCH_SECRET_API_INFRA
   - ARCH_ADMIN_KEY_MGMT
