@@ -35,7 +35,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { JourneyStatusChanger } from "./journey-status-changer";
-import { Search, Smartphone, Monitor, Laptop, ArrowUpDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Search, Smartphone, Monitor, Laptop, ArrowUpDown, Wand2 } from "lucide-react";
+import Link from "next/link";
 
 const PLATFORM_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   Smartphone,
@@ -183,11 +185,19 @@ export function JourneyListClient({ initialJourneys }: JourneyListClientProps) {
   return (
     <div className="space-y-6">
       {/* Page title */}
-      <div>
-        <h1 className="text-foreground text-2xl font-bold tracking-tight">Journey Portal</h1>
-        <p className="text-muted-foreground text-sm">
-          {journeys.length} journeys tracked across {Object.keys(MODULE_META).length} modules
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-foreground text-2xl font-bold tracking-tight">Journey Portal</h1>
+          <p className="text-muted-foreground text-sm">
+            {journeys.length} journeys tracked across {Object.keys(MODULE_META).length} modules
+          </p>
+        </div>
+        <Link href="/platform-admin/journeys/wizard">
+          <Button>
+            <Wand2 className="mr-1.5 h-4 w-4" />
+            New Journey (Wizard)
+          </Button>
+        </Link>
       </div>
 
       {/* Pipeline stats header */}

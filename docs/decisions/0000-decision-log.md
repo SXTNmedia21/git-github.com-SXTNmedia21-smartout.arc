@@ -44,3 +44,7 @@ This document serves as the central index of all Architecture Decision Records (
 | ADR-0033 | 01-03-2026 | [Documentation RAG with pgvector](./0033-documentation-rag-pgvector.md)                                      | **Accepted** |
 | ADR-0034 | 01-03-2026 | [Documentation Enforcement Pipeline](./0034-documentation-enforcement-pipeline.md)                           | **Accepted** |
 | ADR-0035 | 01-03-2026 | [Docker Network Infrastructure](./0035-docker-network-infra.md)                                              | **Active**   |
+| ADR-0036 | 01-03-2026 | [Shift MCP Server](./0036-shift-mcp-server.md)                                                               | **Accepted** |
+| ADR-0037 | 01-03-2026 | [Landing Page Event Tracking](./0037-landing-event-tracking.md)                                              | **Accepted** |
+| ADR-0038 | 01-03-2026 | [Journey Agent & Output Generators](./0038-journey-agent-output-generators.md)                               | **Accepted** |
+| ADR-0039 | 01-03-2026 | [Infrastructure Consolidation](./0039-infra-consolidation.md)                                                | **Active**   |
