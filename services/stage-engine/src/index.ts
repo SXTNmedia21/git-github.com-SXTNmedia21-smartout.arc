@@ -13,6 +13,8 @@ import { config } from "./config.js";
 import { authMiddleware } from "./middleware/auth.js";
 import { onError } from "./middleware/error-handler.js";
 import { health } from "./routes/health.js";
+import { sessions } from "./routes/sessions.js";
+import { expireStaleSession } from "./core/session-manager.js";
 
 const app = new Hono();
 
@@ -25,6 +27,7 @@ app.onError(onError);
 
 // Routes
 app.route("/", health);
+app.route("/", sessions);
 
 // Start server
 const port = config.PORT;
@@ -32,5 +35,16 @@ const port = config.PORT;
 serve({ fetch: app.fetch, port }, (info) => {
   console.log(`Stage Engine running on port ${info.port}`);
 });
+
+// Session expiry cleanup — runs on a configurable interval
+const cleanupMs = config.CLEANUP_INTERVAL_MINUTES * 60 * 1000;
+setInterval(async () => {
+  const count = await expireStaleSession();
+  if (count > 0) {
+    console.log(`[cleanup] Expired ${count} stale session(s)`);
+  }
+}, cleanupMs);
+
+console.log(`[cleanup] Session cleanup running every ${config.CLEANUP_INTERVAL_MINUTES} minutes`);
 
 export { app };
