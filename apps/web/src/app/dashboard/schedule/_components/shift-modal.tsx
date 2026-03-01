@@ -50,7 +50,10 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 
-import { useSchedule } from "./schedule-context";
+import type { Shift } from "./schedule-types";
+import { useScheduleUI } from "./schedule-ui-context";
+import { useShifts, useCreateShift, useUpdateShift, useDeleteShift } from "../_hooks/use-shifts";
+import { useWeekRange } from "../_hooks/use-week-range";
 import { AVAILABLE_ROLES, AVAILABLE_TEAMS, AVAILABLE_ZONES, dummyEmployees } from "./schedule-data";
 import type { DayCategory, ShiftStatus } from "./schedule-types";
 
@@ -162,6 +165,8 @@ function getStatusBadgeVariant(
       return "secondary";
     case "unpublished":
       return "destructive";
+    case "created":
+    case "assigned":
     default:
       return "outline";
   }
@@ -184,6 +189,8 @@ function getStatusLabel(status: ShiftStatus): string {
       return "Fullført";
     case "unpublished":
       return "Avpublisert";
+    default:
+      return status;
   }
 }
 
@@ -219,14 +226,18 @@ type ShiftFormState = {
  * 6. Innstillinger — Break duration, special conditions
  */
 export function ShiftModal() {
-  const { state, dispatch, computed } = useSchedule();
+  const { selectedShiftId, createShiftContext, setSelectedShift, setCreateShiftContext } =
+    useScheduleUI();
+  const { weekStart, weekEnd } = useWeekRange();
+  const { data: shifts = [] as Shift[] } = useShifts(weekStart, weekEnd);
+  const createShiftMutation = useCreateShift(weekStart);
+  const updateShiftMutation = useUpdateShift(weekStart);
+  const deleteShiftMutation = useDeleteShift(weekStart);
 
   // Determine mode: edit (existing shift) or create (new shift)
-  const isOpen = state.selectedShiftId !== null || state.createShiftContext !== null;
-  const isEditMode = state.selectedShiftId !== null;
-  const existingShift = isEditMode
-    ? state.shifts.find((s) => s.id === state.selectedShiftId)
-    : null;
+  const isOpen = selectedShiftId !== null || createShiftContext !== null;
+  const isEditMode = selectedShiftId !== null;
+  const existingShift = isEditMode ? shifts.find((s) => s.id === selectedShiftId) : null;
 
   // ── Form state ──────────────────────────────────────────
 
@@ -266,14 +277,14 @@ export function ShiftModal() {
         breaks: existingShift.breaks,
         specialConditions: existingShift.notes ?? "",
       });
-    } else if (state.createShiftContext) {
+    } else if (createShiftContext) {
       // Create mode: pre-fill from context, rest is empty
-      const employee = state.createShiftContext.employeeId
-        ? dummyEmployees.find((e) => e.id === state.createShiftContext?.employeeId)
+      const employee = createShiftContext.employeeId
+        ? dummyEmployees.find((e) => e.id === createShiftContext?.employeeId)
         : null;
 
       setForm({
-        employeeId: state.createShiftContext.employeeId ?? "",
+        employeeId: createShiftContext.employeeId ?? "",
         role: employee?.role ?? "",
         team: employee?.team ?? "",
         startTime: "08:00",
@@ -288,7 +299,7 @@ export function ShiftModal() {
     }
     setShiftTasks([]);
     setNewTaskLabel("");
-  }, [existingShift, state.createShiftContext]);
+  }, [existingShift, createShiftContext]);
 
   // ── Computed values ─────────────────────────────────────
 
@@ -297,15 +308,15 @@ export function ShiftModal() {
     [form.startTime, form.endTime, form.breaks],
   );
 
-  const dateId = isEditMode ? existingShift?.dateId : state.createShiftContext?.dateId;
+  const dateId = isEditMode ? existingShift?.dateId : createShiftContext?.dateId;
 
   // ── Handlers ────────────────────────────────────────────
 
   /** Closes the modal and resets both selectedShiftId and createShiftContext */
   const handleClose = useCallback(() => {
-    dispatch({ type: "SET_SELECTED_SHIFT", payload: null });
-    dispatch({ type: "SET_CREATE_SHIFT_CONTEXT", payload: null });
-  }, [dispatch]);
+    setSelectedShift(null);
+    setCreateShiftContext(null);
+  }, [setSelectedShift, setCreateShiftContext]);
 
   /** Updates a single form field */
   const updateField = useCallback(
@@ -350,68 +361,68 @@ export function ShiftModal() {
 
   /** Save shift (create or update) */
   const handleSave = useCallback(() => {
-    const timeDisplay = `${form.startTime} - ${form.endTime}`;
     const hours = calculateWorkHours(form.startTime, form.endTime, form.breaks);
     const status: ShiftStatus =
       form.employeeId && form.isPublished ? "published" : form.employeeId ? "assigned" : "created";
 
     if (isEditMode && existingShift) {
       // Update existing shift
-      dispatch({
-        type: "UPDATE_SHIFT",
-        payload: {
-          id: existingShift.id,
-          changes: {
-            employeeId: form.employeeId || null,
-            role: form.role,
-            time: timeDisplay,
-            startTime: form.startTime,
-            endTime: form.endTime,
-            workHours: hours,
-            dayCategory: form.dayCategory,
-            zone: form.zone || undefined,
-            status,
-            isPublished: form.isPublished,
-            breaks: form.breaks,
-            notes: form.specialConditions || undefined,
-          },
-        },
-      });
-    } else if (dateId) {
-      // Create new shift
-      dispatch({
-        type: "ADD_SHIFT",
-        payload: {
+      updateShiftMutation.mutate({
+        id: existingShift.id,
+        patch: {
           employeeId: form.employeeId || null,
-          dateId,
           role: form.role,
-          time: timeDisplay,
           startTime: form.startTime,
           endTime: form.endTime,
           workHours: hours,
-          status,
           dayCategory: form.dayCategory,
           zone: form.zone || undefined,
-          indicator: "blue",
+          status,
           isPublished: form.isPublished,
           breaks: form.breaks,
           notes: form.specialConditions || undefined,
         },
       });
+    } else if (dateId) {
+      // Create new shift
+      createShiftMutation.mutate({
+        id: `shift_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        employeeId: form.employeeId || null,
+        dateId,
+        role: form.role,
+        startTime: form.startTime,
+        endTime: form.endTime,
+        workHours: hours,
+        status,
+        dayCategory: form.dayCategory,
+        zone: form.zone || undefined,
+        indicator: "blue",
+        isPublished: form.isPublished,
+        breaks: form.breaks,
+        notes: form.specialConditions || undefined,
+      });
     }
 
     handleClose();
-  }, [form, isEditMode, existingShift, dateId, dispatch, handleClose]);
+  }, [
+    form,
+    isEditMode,
+    existingShift,
+    dateId,
+    createShiftMutation,
+    updateShiftMutation,
+    handleClose,
+  ]);
 
   /** Delete shift with confirmation */
   const handleDelete = useCallback(() => {
     if (!existingShift) return;
     const confirmed = window.confirm("Er du sikker på at du vil slette dette skiftet?");
     if (confirmed) {
-      dispatch({ type: "DELETE_SHIFT", payload: { id: existingShift.id } });
+      deleteShiftMutation.mutate(existingShift.id);
       handleClose();
     }
-  }, [existingShift, dispatch, handleClose]);
+  }, [existingShift, deleteShiftMutation, handleClose]);
 
   /** Add a local task to the shift */
   const handleAddTask = useCallback(() => {
@@ -463,9 +474,19 @@ export function ShiftModal() {
   // ── History entries for Historie tab ────────────────────
 
   const historyEntries = useMemo(() => {
-    if (!existingShift) return [];
-    return computed.getHistoryForShift(existingShift.id);
-  }, [existingShift, computed]);
+    // History is now handled by the database audit log.
+    // Placeholder: return empty array. The audit log hook
+    // can be wired in when the shift is persisted.
+    return [] as {
+      id: string;
+      eventType: string;
+      field?: string;
+      oldValue?: string;
+      newValue?: string;
+      actor: string;
+      timestamp: string;
+    }[];
+  }, [existingShift]);
 
   // ── Render ──────────────────────────────────────────────
 

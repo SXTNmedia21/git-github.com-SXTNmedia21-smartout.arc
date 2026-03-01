@@ -16,7 +16,10 @@ import { useDroppable } from "@dnd-kit/core";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { ShiftCard, AbsenceCard } from "./grid-cards";
 import { dummyEmployees, dummyDays, type Employee, type DayColumn } from "./schedule-data";
-import { useSchedule, type ScheduleAction } from "./schedule-context";
+import { useScheduleUI } from "./schedule-ui-context";
+import { useShifts } from "../_hooks/use-shifts";
+import { useAbsences } from "../_hooks/use-absences";
+import { useWeekRange } from "../_hooks/use-week-range";
 import { DayContextMenu } from "./day-context-menu";
 import type { Shift as ScheduleShift, Absence } from "./schedule-types";
 
@@ -35,7 +38,10 @@ export function GridContent({
   filterSituation?: string;
 }) {
   const { isDark, scheduleView } = useContext(DashboardContext);
-  const { state, dispatch } = useSchedule();
+  const { weekStart, weekEnd } = useWeekRange();
+  const { data: shiftsData = [] } = useShifts(weekStart, weekEnd);
+  const { data: absencesData = [] } = useAbsences(weekStart, weekEnd);
+  const { setCreateShiftContext, setAbsencePopover, setSelectedShift } = useScheduleUI();
 
   const visibleDays = React.useMemo(
     () =>
@@ -46,7 +52,7 @@ export function GridContent({
   /** Index shifts by employee::day key for O(1) lookup in grid cells */
   const shiftsByEmployeeDay = React.useMemo(() => {
     const index = new Map<string, ScheduleShift[]>();
-    for (const shift of state.shifts) {
+    for (const shift of shiftsData) {
       if (!shift.employeeId) continue;
       const key = `${shift.employeeId}::${shift.dateId}`;
       const existing = index.get(key);
@@ -57,12 +63,12 @@ export function GridContent({
       }
     }
     return index;
-  }, [state.shifts]);
+  }, [shiftsData]);
 
   /** Index absences by employee::day key */
   const absencesByEmployeeDay = React.useMemo(() => {
     const index = new Map<string, Absence[]>();
-    for (const absence of state.absences) {
+    for (const absence of absencesData) {
       const key = `${absence.employeeId}::${absence.dateId}`;
       const existing = index.get(key);
       if (existing) {
@@ -72,7 +78,7 @@ export function GridContent({
       }
     }
     return index;
-  }, [state.absences]);
+  }, [absencesData]);
 
   return (
     <div className="flex w-full flex-col">
@@ -95,7 +101,9 @@ export function GridContent({
                 days={visibleDays}
                 shiftsByEmployeeDay={shiftsByEmployeeDay}
                 absencesByEmployeeDay={absencesByEmployeeDay}
-                dispatch={dispatch}
+                onCreateShift={setCreateShiftContext}
+                onAbsencePopover={setAbsencePopover}
+                onSelectShift={setSelectedShift}
               />
             ))}
           </div>
@@ -115,7 +123,9 @@ export function GridContent({
                       days={visibleDays}
                       shiftsByEmployeeDay={shiftsByEmployeeDay}
                       absencesByEmployeeDay={absencesByEmployeeDay}
-                      dispatch={dispatch}
+                      onCreateShift={setCreateShiftContext}
+                      onAbsencePopover={setAbsencePopover}
+                      onSelectShift={setSelectedShift}
                       subtitle={emp.team}
                     />
                   ))}
@@ -139,7 +149,9 @@ export function GridContent({
                       days={visibleDays}
                       shiftsByEmployeeDay={shiftsByEmployeeDay}
                       absencesByEmployeeDay={absencesByEmployeeDay}
-                      dispatch={dispatch}
+                      onCreateShift={setCreateShiftContext}
+                      onAbsencePopover={setAbsencePopover}
+                      onSelectShift={setSelectedShift}
                       subtitle={emp.role}
                     />
                   ))}
@@ -341,14 +353,18 @@ export const EmployeeRow = React.memo(function EmployeeRow({
   days,
   shiftsByEmployeeDay,
   absencesByEmployeeDay,
-  dispatch,
+  onCreateShift,
+  onAbsencePopover,
+  onSelectShift,
 }: {
   employee: Employee;
   subtitle?: string;
   days: DayColumn[];
   shiftsByEmployeeDay: Map<string, ScheduleShift[]>;
   absencesByEmployeeDay: Map<string, Absence[]>;
-  dispatch: React.Dispatch<ScheduleAction>;
+  onCreateShift: (ctx: { dateId?: string; employeeId?: string } | null) => void;
+  onAbsencePopover: (ctx: { employeeId: string; dateId: string } | null) => void;
+  onSelectShift: (id: string | null) => void;
 }) {
   const { isDark } = useContext(DashboardContext);
   const scheduledHours = parseFloat(employee.hours) || 0;
@@ -427,18 +443,10 @@ export const EmployeeRow = React.memo(function EmployeeRow({
             key={day.id}
             isToday={day.isToday}
             id={`cell::${employee.id}::${day.id}`}
-            onAddClick={() =>
-              dispatch({
-                type: "SET_CREATE_SHIFT_CONTEXT",
-                payload: { dateId: day.id, employeeId: employee.id },
-              })
-            }
+            onAddClick={() => onCreateShift({ dateId: day.id, employeeId: employee.id })}
             onContextMenu={(e) => {
               e.preventDefault();
-              dispatch({
-                type: "SET_ABSENCE_POPOVER",
-                payload: { employeeId: employee.id, dateId: day.id },
-              });
+              onAbsencePopover({ employeeId: employee.id, dateId: day.id });
             }}
           >
             {hasContent ? (
@@ -459,7 +467,7 @@ export const EmployeeRow = React.memo(function EmployeeRow({
                     indicator={shift.indicator}
                     zone={shift.zone}
                     id={shift.id}
-                    onClick={() => dispatch({ type: "SET_SELECTED_SHIFT", payload: shift.id })}
+                    onClick={() => onSelectShift(shift.id)}
                   />
                 ))}
               </div>

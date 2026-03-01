@@ -32,7 +32,8 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 
-import { useSchedule } from "./schedule-context";
+import { useCreateDayMessage } from "../_hooks/use-day-content";
+import { useWeekRange } from "../_hooks/use-week-range";
 
 // ── Props ───────────────────────────────────────────────────
 
@@ -53,7 +54,8 @@ type DayMessageDialogProps = {
  * @returns shadcn Dialog component
  */
 export function DayMessageDialog({ dateId, open, onOpenChange }: DayMessageDialogProps) {
-  const { dispatch } = useSchedule();
+  const { weekStart } = useWeekRange();
+  const createDayMessage = useCreateDayMessage(weekStart);
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -74,17 +76,15 @@ export function DayMessageDialog({ dateId, open, onOpenChange }: DayMessageDialo
   function handleSubmit() {
     if (!title.trim()) return;
 
-    dispatch({
-      type: "ADD_MESSAGE",
-      payload: {
-        dateId,
-        title: title.trim(),
-        content: content.trim(),
-        audience: audience as "all" | "leaders" | string,
-        visibility: visibility as "all_day" | "until_16" | "permanent",
-        author: "System",
-        isAlert,
-      },
+    createDayMessage.mutate({
+      id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      dateId,
+      title: title.trim(),
+      content: content.trim(),
+      audience: audience as "all" | "leaders" | string,
+      visibility: visibility as "all_day" | "until_16" | "permanent",
+      author: "System",
+      isAlert,
     });
 
     resetForm();

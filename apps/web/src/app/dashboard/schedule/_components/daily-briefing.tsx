@@ -35,7 +35,32 @@ import {
 import { toast } from "sonner";
 
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { useSchedule } from "./schedule-context";
+import type {
+  Shift,
+  Absence,
+  DayMessage,
+  DayTask,
+  DayBooking,
+  OpenShift,
+  ShiftTemplate,
+} from "./schedule-types";
+import { useScheduleUI } from "./schedule-ui-context";
+import { useShifts } from "../_hooks/use-shifts";
+import { useAbsences } from "../_hooks/use-absences";
+import { useOpenShifts } from "../_hooks/use-open-shifts";
+import { useTemplates } from "../_hooks/use-templates";
+import {
+  useDayMessages,
+  useCreateDayMessage,
+  useDeleteDayMessage,
+  useDayTasks,
+  useCreateDayTask,
+  useUpdateDayTaskStatus,
+  useDeleteDayTask,
+  useDayBookings,
+} from "../_hooks/use-day-content";
+import { useScheduleComputed } from "../_hooks/use-schedule-computed";
+import { useWeekRange } from "../_hooks/use-week-range";
 import { dummyDays, dummyEmployees } from "./schedule-data";
 import { BookingDialog } from "./booking-dialog";
 import type { TaskStatus } from "./schedule-types";
@@ -190,8 +215,16 @@ export function DailyBriefingPanel({
  * Staff count comes from the schedule context.
  */
 function FooterBroadcast({ isDark, dateId }: { isDark: boolean; dateId: string | null }) {
-  const { computed } = useSchedule();
-  const staffCount = dateId ? computed.getDayStats(dateId).staffCount : 0;
+  const { weekStart, weekEnd } = useWeekRange();
+  const { data: shifts = [] as Shift[] } = useShifts(weekStart, weekEnd);
+  const staffCount = dateId
+    ? new Set(
+        shifts
+          .filter((s) => s.dateId === dateId)
+          .map((s) => s.employeeId)
+          .filter(Boolean),
+      ).size
+    : 0;
 
   return (
     <div className={`border-t border-white/10 p-5 ${isDark ? "bg-[#0a0a0c]" : "bg-white"}`}>
@@ -227,9 +260,27 @@ function FooterBroadcast({ isDark, dateId }: { isDark: boolean; dateId: string |
  * Overview tab showing shift manager and key metrics from context state.
  */
 function OversiktTab({ isDark, dateId }: { isDark: boolean; dateId: string | null }) {
-  const { computed, dispatch } = useSchedule();
+  const { weekStart, weekEnd } = useWeekRange();
+  const { data: shifts = [] as Shift[] } = useShifts(weekStart, weekEnd);
+  const { data: absences = [] as Absence[] } = useAbsences(weekStart, weekEnd);
+  const { data: openShiftsData = [] as OpenShift[] } = useOpenShifts();
+  const { data: templates = [] as ShiftTemplate[] } = useTemplates();
+  const { data: dayMessages = [] as DayMessage[] } = useDayMessages(weekStart, weekEnd);
+  const { data: dayTasks = [] as DayTask[] } = useDayTasks(weekStart, weekEnd);
+  const { data: dayBookings = [] as DayBooking[] } = useDayBookings(weekStart, weekEnd);
+  const { setSelectedShift } = useScheduleUI();
 
-  // Get stats and shifts for this day from context
+  const computed = useScheduleComputed(
+    shifts,
+    absences,
+    openShiftsData.length,
+    templates,
+    dayMessages,
+    dayTasks,
+    dayBookings,
+  );
+
+  // Get stats and shifts for this day from computed
   const stats = dateId ? computed.getDayStats(dateId) : null;
   const dayShifts = dateId ? computed.getShiftsForDay(dateId) : [];
 
@@ -260,7 +311,7 @@ function OversiktTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
         </div>
         {managerEmployee && managerShift ? (
           <div
-            onClick={() => dispatch({ type: "SET_SELECTED_SHIFT", payload: managerShift.id })}
+            onClick={() => setSelectedShift(managerShift.id)}
             className={`p-4 ${isDark ? "bg-white/5" : "bg-zinc-100"} group flex cursor-pointer items-center justify-between rounded-2xl border border-white/10 transition-colors hover:border-white/20`}
           >
             <div className="flex items-center gap-3">
@@ -350,15 +401,18 @@ function OversiktTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
  * and a list of active messages from context.
  */
 function MeldingerTab({ isDark, dateId }: { isDark: boolean; dateId: string | null }) {
-  const { computed, dispatch } = useSchedule();
+  const { weekStart, weekEnd } = useWeekRange();
+  const { data: dayMessagesData = [] as DayMessage[] } = useDayMessages(weekStart, weekEnd);
+  const createDayMessage = useCreateDayMessage(weekStart);
+  const deleteDayMessage = useDeleteDayMessage(weekStart);
 
   // Form state
   const [content, setContent] = useState("");
   const [audience, setAudience] = useState<"all" | "leaders" | string>("all");
   const [visibility, setVisibility] = useState<"all_day" | "until_16" | "permanent">("all_day");
 
-  // Get messages for this day from context
-  const messages = dateId ? computed.getMessagesForDay(dateId) : [];
+  // Get messages for this day from query data
+  const messages = dateId ? dayMessagesData.filter((m) => m.dateId === dateId) : [];
 
   /**
    * Publishes a new day message via dispatch.
@@ -371,17 +425,15 @@ function MeldingerTab({ isDark, dateId }: { isDark: boolean; dateId: string | nu
       return;
     }
 
-    dispatch({
-      type: "ADD_MESSAGE",
-      payload: {
-        dateId,
-        title: content.trim().slice(0, 50),
-        content: content.trim(),
-        audience,
-        visibility,
-        author: "Du",
-        isAlert: false,
-      },
+    createDayMessage.mutate({
+      id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      dateId,
+      title: content.trim().slice(0, 50),
+      content: content.trim(),
+      audience,
+      visibility,
+      author: "Du",
+      isAlert: false,
     });
 
     toast.success("Oppslag publisert");
@@ -490,7 +542,7 @@ function MeldingerTab({ isDark, dateId }: { isDark: boolean; dateId: string | nu
               content={msg.content}
               alert={msg.isAlert}
               onDelete={() => {
-                dispatch({ type: "DELETE_MESSAGE", payload: { id: msg.id } });
+                deleteDayMessage.mutate(msg.id);
                 toast("Oppslag slettet");
               }}
             />
@@ -510,12 +562,13 @@ function MeldingerTab({ isDark, dateId }: { isDark: boolean; dateId: string | nu
  * Includes inline detail expansion and a dialog for adding new bookings.
  */
 function BookingsTab({ isDark, dateId }: { isDark: boolean; dateId: string | null }) {
-  const { computed } = useSchedule();
+  const { weekStart, weekEnd } = useWeekRange();
+  const { data: dayBookingsData = [] as DayBooking[] } = useDayBookings(weekStart, weekEnd);
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
   const [expandedBookingId, setExpandedBookingId] = useState<string | null>(null);
 
-  // Get bookings for this day from context
-  const bookings = dateId ? computed.getBookingsForDay(dateId) : [];
+  // Get bookings for this day from query data
+  const bookings = dateId ? dayBookingsData.filter((b) => b.dateId === dateId) : [];
 
   /**
    * Maps booking status to display badge styling.
@@ -646,14 +699,18 @@ function BookingsTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
  * and task deletion. All data from schedule context.
  */
 function OppgaverTab({ isDark, dateId }: { isDark: boolean; dateId: string | null }) {
-  const { computed, dispatch } = useSchedule();
+  const { weekStart, weekEnd } = useWeekRange();
+  const { data: dayTasksData = [] as DayTask[] } = useDayTasks(weekStart, weekEnd);
+  const createDayTask = useCreateDayTask(weekStart);
+  const updateDayTaskStatus = useUpdateDayTaskStatus(weekStart);
+  const deleteDayTask = useDeleteDayTask(weekStart);
 
   // Local state for task creation and filtering
   const [newTaskLabel, setNewTaskLabel] = useState("");
   const [filter, setFilter] = useState<"all" | "routine" | "delegated">("all");
 
-  // Get tasks for this day from context, filtered by category
-  const allTasks = dateId ? computed.getTasksForDay(dateId) : [];
+  // Get tasks for this day from query data, filtered by category
+  const allTasks = dateId ? dayTasksData.filter((t) => t.dateId === dateId) : [];
   const filteredTasks = filter === "all" ? allTasks : allTasks.filter((t) => t.category === filter);
 
   // Compute completion stats
@@ -674,15 +731,13 @@ function OppgaverTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
       return;
     }
 
-    dispatch({
-      type: "ADD_TASK",
-      payload: {
-        dateId,
-        label: newTaskLabel.trim(),
-        status: "pending",
-        category: "all",
-        highlight: false,
-      },
+    createDayTask.mutate({
+      id: `task_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      dateId,
+      label: newTaskLabel.trim(),
+      status: "pending",
+      category: "all",
+      highlight: false,
     });
 
     toast.success("Oppgave lagt til");
@@ -814,9 +869,9 @@ function OppgaverTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
                 {/* Status toggle button */}
                 <button
                   onClick={() =>
-                    dispatch({
-                      type: "UPDATE_TASK_STATUS",
-                      payload: { id: task.id, status: nextTaskStatus(task.status) },
+                    updateDayTaskStatus.mutate({
+                      id: task.id,
+                      patch: { status: nextTaskStatus(task.status) },
                     })
                   }
                   className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors ${classes}`}
@@ -839,7 +894,7 @@ function OppgaverTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
                 {/* Delete button */}
                 <button
                   onClick={() => {
-                    dispatch({ type: "DELETE_TASK", payload: { id: task.id } });
+                    deleteDayTask.mutate(task.id);
                     toast("Oppgave slettet");
                   }}
                   className="ml-auto shrink-0 text-zinc-600 transition-colors hover:text-rose-400"

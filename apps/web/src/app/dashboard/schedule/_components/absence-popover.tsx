@@ -21,7 +21,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useSchedule } from "./schedule-context";
+import { useScheduleUI } from "./schedule-ui-context";
+import { useCreateAbsence } from "../_hooks/use-absences";
+import { useWeekRange } from "../_hooks/use-week-range";
 import type { AbsenceType } from "./schedule-types";
 
 /** Norwegian labels for absence types */
@@ -41,43 +43,44 @@ const ABSENCE_OPTIONS: { value: AbsenceType; label: string }[] = [
  * Dispatches ADD_ABSENCE which auto-removes conflicting shifts.
  */
 export function AbsencePopover() {
-  const { state, dispatch } = useSchedule();
+  const { absencePopover, setAbsencePopover } = useScheduleUI();
+  const { weekStart } = useWeekRange();
+  const createAbsence = useCreateAbsence(weekStart);
   const [absenceType, setAbsenceType] = useState<AbsenceType>("sick_leave");
   const [isFullDay, setIsFullDay] = useState(true);
   const [reason, setReason] = useState("");
 
-  const isOpen = state.absencePopover !== null;
+  const isOpen = absencePopover !== null;
 
   /**
    * Handles form submission.
    * Creates absence and closes popover.
    */
   const handleSubmit = () => {
-    if (!state.absencePopover) return;
+    if (!absencePopover) return;
 
-    const now = new Date().toISOString();
-    dispatch({
-      type: "ADD_ABSENCE",
-      payload: {
-        employeeId: state.absencePopover.employeeId,
-        dateId: state.absencePopover.dateId,
-        type: absenceType,
-        reason: reason || undefined,
-        startDate: now,
-        endDate: now,
-        isFullDay,
-        status: "approved",
-      },
+    const nowStr = new Date().toISOString();
+    createAbsence.mutate({
+      id: `abs_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      employeeId: absencePopover.employeeId,
+      dateId: absencePopover.dateId,
+      type: absenceType,
+      reason: reason || undefined,
+      startDate: nowStr,
+      endDate: nowStr,
+      isFullDay,
+      status: "approved",
     });
 
     // Reset form
     setAbsenceType("sick_leave");
     setIsFullDay(true);
     setReason("");
+    setAbsencePopover(null);
   };
 
   const handleClose = () => {
-    dispatch({ type: "SET_ABSENCE_POPOVER", payload: null });
+    setAbsencePopover(null);
   };
 
   return (

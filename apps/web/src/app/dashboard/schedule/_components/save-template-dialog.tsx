@@ -22,7 +22,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
-import { useSchedule } from "./schedule-context";
+import type { Shift } from "./schedule-types";
+import { useShifts } from "../_hooks/use-shifts";
+import { useSaveTemplate } from "../_hooks/use-templates";
+import { useWeekRange } from "../_hooks/use-week-range";
 
 // ── Props ───────────────────────────────────────────────────
 
@@ -43,13 +46,15 @@ type SaveTemplateDialogProps = {
  * @returns shadcn Dialog component
  */
 export function SaveTemplateDialog({ dateId, open, onOpenChange }: SaveTemplateDialogProps) {
-  const { dispatch, computed } = useSchedule();
+  const { weekStart, weekEnd } = useWeekRange();
+  const { data: shifts = [] as Shift[] } = useShifts(weekStart, weekEnd);
+  const saveTemplateMutation = useSaveTemplate();
 
   const [name, setName] = useState("");
   const [department, setDepartment] = useState("");
   const [includeAssignments, setIncludeAssignments] = useState(false);
 
-  const dayShifts = computed.getShiftsForDay(dateId);
+  const dayShifts = shifts.filter((s) => s.dateId === dateId);
   const shiftCount = dayShifts.length;
 
   /** Resets form fields to defaults. */
@@ -59,18 +64,25 @@ export function SaveTemplateDialog({ dateId, open, onOpenChange }: SaveTemplateD
     setIncludeAssignments(false);
   }
 
-  /** Dispatches the save action and closes the dialog. */
+  /** Creates a template from the day's shifts and saves via mutation. */
   function handleSave() {
     if (!name.trim()) return;
 
-    dispatch({
-      type: "SAVE_DAY_AS_TEMPLATE",
-      payload: {
-        dateId,
-        name: name.trim(),
-        department: department.trim(),
-        includeAssignments,
-      },
+    const templateShifts = dayShifts.map(
+      ({ id: _id, dateId: _dateId, createdAt: _c, updatedAt: _u, isPublished: _p, ...rest }) => ({
+        ...rest,
+        employeeId: includeAssignments ? rest.employeeId : null,
+        status: "created" as const,
+      }),
+    );
+
+    saveTemplateMutation.mutate({
+      id: `tmpl_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      name: name.trim(),
+      department: department.trim(),
+      shifts: templateShifts,
+      includeAssignments,
+      createdBy: "System",
     });
 
     resetForm();

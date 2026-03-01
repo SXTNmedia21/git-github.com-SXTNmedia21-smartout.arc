@@ -4,7 +4,7 @@
 // These types are designed to map 1:1 to the future database
 // tables (MODULE_03 §15) so the migration is a drop-in replacement.
 // Connected to: packages/types/src/enums.ts (shared enums)
-// Connected to: schedule-context.tsx (state consumer)
+// Connected to: _hooks/use-shifts.ts, _hooks/use-schedule-computed.ts (data consumers)
 // ============================================
 
 import type {

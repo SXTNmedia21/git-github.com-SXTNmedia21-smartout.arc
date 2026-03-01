@@ -8,7 +8,7 @@
 // ============================================
 "use client";
 
-import type { StatusSummary } from "./schedule-context";
+import type { StatusSummary } from "../_hooks/use-schedule-computed";
 
 type StatusStripProps = {
   isDark: boolean;

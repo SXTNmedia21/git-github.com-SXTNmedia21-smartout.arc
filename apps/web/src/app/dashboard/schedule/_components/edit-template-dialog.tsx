@@ -20,7 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useSchedule } from "./schedule-context";
+import { useUpdateTemplate, useDeleteTemplate } from "../_hooks/use-templates";
 import type { ShiftTemplate } from "./schedule-types";
 
 type TemplateShiftRow = {
@@ -45,7 +45,8 @@ type EditTemplateDialogProps = {
  * @param template - The template to edit
  */
 export function EditTemplateDialog({ open, onOpenChange, template }: EditTemplateDialogProps) {
-  const { dispatch } = useSchedule();
+  const updateTemplate = useUpdateTemplate();
+  const deleteTemplate = useDeleteTemplate();
 
   // Pre-fill form state from existing template
   const [name, setName] = useState(template.name);
@@ -108,26 +109,11 @@ export function EditTemplateDialog({ open, onOpenChange, template }: EditTemplat
     const validShifts = shifts.filter((s) => s.role.trim());
     if (validShifts.length === 0) return;
 
-    dispatch({
-      type: "UPDATE_TEMPLATE",
-      payload: {
-        id: template.id,
-        changes: {
-          name: name.trim(),
-          department: department.trim(),
-          shifts: validShifts.map((s) => ({
-            employeeId: null,
-            role: s.role.trim(),
-            time: `${s.startTime} - ${s.endTime}`,
-            startTime: s.startTime,
-            endTime: s.endTime,
-            workHours: calculateWorkHours(s.startTime, s.endTime),
-            status: "created" as const,
-            dayCategory: inferDayCategory(s.startTime),
-            indicator: "orange",
-            breaks: 30,
-          })),
-        },
+    updateTemplate.mutate({
+      id: template.id,
+      patch: {
+        name: name.trim(),
+        department: department.trim(),
       },
     });
     onOpenChange(false);
@@ -135,7 +121,7 @@ export function EditTemplateDialog({ open, onOpenChange, template }: EditTemplat
 
   /** Deletes the template after confirmation. */
   const handleDelete = () => {
-    dispatch({ type: "DELETE_TEMPLATE", payload: { id: template.id } });
+    deleteTemplate.mutate(template.id);
     onOpenChange(false);
   };
 

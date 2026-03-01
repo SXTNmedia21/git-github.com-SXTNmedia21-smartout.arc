@@ -3,7 +3,7 @@
 // Pure computation hook — derives stats, coverage, and
 // filtered lists from query data. No side effects.
 // Connected to: schedule-types.ts (type definitions)
-// Connected to: schedule-context.tsx (original buildComputed logic)
+// Connected to: page.tsx (consumes query data)
 // ============================================
 
 import { useMemo } from "react";
