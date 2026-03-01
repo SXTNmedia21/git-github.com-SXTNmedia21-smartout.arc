@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import type { Variants } from "framer-motion";
@@ -132,15 +132,13 @@ const MOCK_SEASONS = [
 ];
 
 export default function SmartoutLandingPage() {
-  const [variant, setVariant] = useState(getEnvVariant);
+  const [variant, setVariant] = useState(() => {
+    const override = getDevOverride();
+    return override || getEnvVariant();
+  });
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("locations");
   const onboardingHref = WEB_APP_LINKS.onboarding;
-
-  useEffect(() => {
-    const override = getDevOverride();
-    if (override && override !== variant) setVariant(override);
-  }, []);
 
   if (variant === "E") return <VariantELanding />;
 
