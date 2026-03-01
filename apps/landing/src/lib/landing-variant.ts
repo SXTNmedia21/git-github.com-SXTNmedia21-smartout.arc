@@ -1,35 +1,84 @@
+// ============================================
+// landing-variant.ts
+// Reactive store for switching landing page variants.
+// Persists choice to localStorage, syncs all
+// components via useSyncExternalStore.
+// Connected to: page.tsx (renders variant), footer.tsx (switcher)
+// ============================================
+
+"use client";
+
+import { useSyncExternalStore } from "react";
+
 export type LandingVariant = "B" | "E";
 
 const DEFAULT_VARIANT: LandingVariant = "B";
 const STORAGE_KEY = "landing_variant";
+const VALID_VARIANTS: LandingVariant[] = ["B", "E"];
+
+/** Display metadata for each variant, shown in the switcher. */
+export const VARIANT_META: Record<LandingVariant, { label: string; description: string }> = {
+  B: { label: "Standard", description: "Fullverdig oversikt" },
+  E: { label: "Action", description: "Rett på sak" },
+};
 
 function isValidVariant(v: string | null | undefined): v is LandingVariant {
-  return v === "B" || v === "E";
+  return typeof v === "string" && VALID_VARIANTS.includes(v as LandingVariant);
 }
 
-/** Returns the env-var-based variant (safe for SSR). */
-export function getEnvVariant(): LandingVariant {
+/* ---------- Module-level reactive store ---------- */
+
+let current: LandingVariant = DEFAULT_VARIANT;
+const listeners = new Set<() => void>();
+
+/**
+ * Initialize from env var, then check localStorage override.
+ * Env var sets the default; localStorage lets users override.
+ */
+if (typeof window !== "undefined") {
+  const envVal = process.env.NEXT_PUBLIC_LANDING_VARIANT;
+  if (isValidVariant(envVal)) {
+    current = envVal;
+  }
+
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (isValidVariant(stored)) {
+    current = stored;
+  }
+}
+
+function subscribe(fn: () => void) {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
+}
+
+function getSnapshot(): LandingVariant {
+  return current;
+}
+
+function getServerSnapshot(): LandingVariant {
   const envVal = process.env.NEXT_PUBLIC_LANDING_VARIANT;
   return isValidVariant(envVal) ? envVal : DEFAULT_VARIANT;
 }
 
 /**
- * Returns the dev override variant from query param or localStorage.
- * Client-only. Returns null in production or on server.
+ * Sets the active landing variant.
+ * Persists to localStorage and notifies all subscribers
+ * so the page re-renders with the new variant.
  */
-export function getDevOverride(): LandingVariant | null {
-  if (typeof window === "undefined") return null;
-  if (process.env.NODE_ENV !== "development") return null;
-
-  const params = new URLSearchParams(window.location.search);
-  const qp = params.get("variant");
-  if (isValidVariant(qp)) {
-    localStorage.setItem(STORAGE_KEY, qp);
-    return qp;
+export function setVariant(variant: LandingVariant) {
+  current = variant;
+  if (typeof window !== "undefined") {
+    localStorage.setItem(STORAGE_KEY, variant);
   }
+  listeners.forEach((fn) => fn());
+}
 
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (isValidVariant(stored)) return stored;
-
-  return null;
+/**
+ * React hook to read and set the current landing variant.
+ * All components using this hook stay in sync automatically.
+ */
+export function useVariant() {
+  const variant = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  return { variant, setVariant } as const;
 }

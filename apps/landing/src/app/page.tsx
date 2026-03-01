@@ -33,7 +33,7 @@ import Footer from "../components/footer";
 import WorkspaceAnalyzer from "../components/workspace-analyzer";
 import { WEB_APP_LINKS } from "../lib/web-app-url";
 import VariantELanding from "../components/landing/VariantELanding";
-import { getEnvVariant, getDevOverride } from "../lib/landing-variant";
+import { useVariant } from "../lib/landing-variant";
 
 const VoiceAssistant = dynamic(() => import("../components/voice-assistant"), {
   ssr: false,
@@ -132,10 +132,7 @@ const MOCK_SEASONS = [
 ];
 
 export default function SmartoutLandingPage() {
-  const [variant, setVariant] = useState(() => {
-    const override = getDevOverride();
-    return override || getEnvVariant();
-  });
+  const { variant } = useVariant();
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("locations");
   const onboardingHref = WEB_APP_LINKS.onboarding;
