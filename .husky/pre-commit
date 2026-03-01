@@ -1,1 +1,126 @@
+# ============================================================
+# PRE-COMMIT HOOK — Security Protocol Enforcement
+# Source of truth: docs/protocols/SECURITY.md
+# Enforces: LAW 3 (never commit secrets to Git)
+# ============================================================
+
+# 1. Run lint-staged (eslint + prettier on staged files)
 npx lint-staged
+
+# 2. Secret detection — scan staged diff for known key patterns
+#
+# Patterns derived from:
+#   - Security Protocol §2.3 (Key Format): smo_sk_, smo_svc_
+#   - Security Protocol §4.3 (Deployment Checklist): sk_live_, sk_test_
+#   - env.ts Zod validation: whsec_, SG.
+#   - JWT detection: eyJhbGciOi (base64 of {"alg":)
+#
+# Allowlisted file patterns (docs that reference key formats):
+#   - docs/**/*.md, CLAUDE.md, *.md in docs/
+#   - .husky/* (this hook itself contains detection patterns)
+#   - These legitimately show key format examples like smo_sk_live_k7HjQ9...
+#
+# This hook does NOT catch:
+#   - Secrets in binary files (use .gitignore)
+#   - Secrets already in history (use git-secrets or truffleHog for audit)
+
+STAGED_DIFF=$(git diff --cached --diff-filter=d -- \
+  ':!docs/**/*.md' \
+  ':!CLAUDE.md' \
+  ':!*.md' \
+  ':!.husky/*' \
+)
+
+if [ -z "$STAGED_DIFF" ]; then
+  exit 0
+fi
+
+# Smartout platform keys (Security Protocol §2.3)
+if echo "$STAGED_DIFF" | grep -qE 'smo_sk_(live|test)_[A-Za-z0-9]'; then
+  echo ""
+  echo "ERROR: Smartout workspace API key detected in staged changes!"
+  echo "  Pattern: smo_sk_(live|test)_*"
+  echo "  Violation: Security Protocol LAW 3"
+  echo "  Fix: Use environment variable or op:// reference"
+  echo ""
+  exit 1
+fi
+
+if echo "$STAGED_DIFF" | grep -qE 'smo_svc_(live|test)_[A-Za-z0-9]'; then
+  echo ""
+  echo "ERROR: Smartout service key detected in staged changes!"
+  echo "  Pattern: smo_svc_(live|test)_*"
+  echo "  Violation: Security Protocol LAW 3"
+  echo "  Fix: Use environment variable or op:// reference"
+  echo ""
+  exit 1
+fi
+
+# Stripe keys
+if echo "$STAGED_DIFF" | grep -qE 'sk_live_[A-Za-z0-9]{20,}'; then
+  echo ""
+  echo "ERROR: Stripe live secret key detected in staged changes!"
+  echo "  Pattern: sk_live_*"
+  echo "  Violation: Security Protocol LAW 3"
+  echo "  Fix: Use STRIPE_SECRET_KEY env var"
+  echo ""
+  exit 1
+fi
+
+# Stripe webhook secrets
+if echo "$STAGED_DIFF" | grep -qE 'whsec_[A-Za-z0-9]{20,}'; then
+  echo ""
+  echo "ERROR: Stripe webhook secret detected in staged changes!"
+  echo "  Pattern: whsec_*"
+  echo "  Violation: Security Protocol LAW 3"
+  echo "  Fix: Use STRIPE_WEBHOOK_SECRET env var"
+  echo ""
+  exit 1
+fi
+
+# SendGrid keys
+if echo "$STAGED_DIFF" | grep -qE 'SG\.[A-Za-z0-9_-]{20,}'; then
+  echo ""
+  echo "ERROR: SendGrid API key detected in staged changes!"
+  echo "  Pattern: SG.*"
+  echo "  Violation: Security Protocol LAW 3"
+  echo "  Fix: Use SENDGRID_API_KEY env var"
+  echo ""
+  exit 1
+fi
+
+# JWT tokens (Supabase service role key or any raw JWT)
+if echo "$STAGED_DIFF" | grep -qE 'eyJhbGciOi[A-Za-z0-9._-]{50,}'; then
+  echo ""
+  echo "ERROR: JWT token detected in staged changes!"
+  echo "  Pattern: eyJhbGciOi* (base64 JWT header)"
+  echo "  Violation: Security Protocol LAW 3"
+  echo "  This may be a Supabase service role key or auth token."
+  echo "  Fix: Use environment variable — never inline JWTs"
+  echo ""
+  exit 1
+fi
+
+# Generic high-entropy secret assignment (catches password="...", secret="...", token="...")
+# Only flags assignments with values longer than 20 chars (avoids false positives on short strings)
+if echo "$STAGED_DIFF" | grep -qE '(password|secret|token|api_key|apiKey|API_KEY)\s*[=:]\s*["\x27][A-Za-z0-9+/=_-]{20,}["\x27]'; then
+  echo ""
+  echo "WARNING: Possible hardcoded secret detected in staged changes!"
+  echo "  Pattern: password/secret/token/api_key = \"<long_string>\""
+  echo "  Violation: Security Protocol LAW 1 + LAW 3"
+  echo "  Review with: git diff --cached"
+  echo "  If this is a false positive, use: git commit --no-verify (document why)"
+  echo ""
+  exit 1
+fi
+
+# .env file content in non-.env files (catches copy-paste accidents)
+if echo "$STAGED_DIFF" | grep -qE '^[+].*SUPABASE_SERVICE_ROLE_KEY=ey'; then
+  echo ""
+  echo "ERROR: Supabase service role key assignment detected!"
+  echo "  Pattern: SUPABASE_SERVICE_ROLE_KEY=ey*"
+  echo "  Violation: Security Protocol LAW 3"
+  echo "  Service role key MUST be in .env.local (gitignored)"
+  echo ""
+  exit 1
+fi
