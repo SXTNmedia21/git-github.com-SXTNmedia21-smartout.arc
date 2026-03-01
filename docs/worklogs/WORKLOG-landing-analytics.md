@@ -13,10 +13,10 @@ tags: []
 - [x] Task 1: Database migration — landing_visitor + landing_session + extend landing_event
 - [x] Task 2: Visitor cookie manager (smo_vid)
 - [x] Task 3: Enhanced client-side tracking hooks
+- [x] Task 4: Enhanced /api/track endpoint
+- [x] Task 5: Wire up tracking in landing page components
 
 ## Remaining
-- [ ] Task 4: Enhanced /api/track endpoint
-- [ ] Task 5: Wire up tracking in landing page components
 - [ ] Task 6: Admin page.tsx — session data fetching
 - [ ] Task 7: Admin sessions tab + columns + tab container
 - [ ] Task 8: Admin session detail sheet
@@ -44,3 +44,5 @@ tags: []
 | 2026-03-01 | 22:30 | Task 1: Created migration 20260301600000_landing_session_tracking.sql |
 | 2026-03-01 | 22:45 | Task 2: Created visitor-cookie.ts with getOrCreateVisitorId + getVisitorId |
 | 2026-03-01 | 22:50 | Task 3: Enhanced useTracking.ts (exports, visitor_id, beaconEvent), created useScrollTracking, useClickTracking, useSessionLifecycle |
+| 2026-03-01 | 23:10 | Task 4: Enhanced /api/track with visitor/session upsert, 7 event types, device detection |
+| 2026-03-01 | 23:15 | Task 5: Created FullTracker component, replaced PageTracker in 5 pages (kept in signup) |
