@@ -42,11 +42,12 @@ smartout_v3/
 ├── apps/web/          → Dashboard (port 3050)
 ├── apps/landing/      → Landing page (port 3055)
 ├── apps/e2e/          → Playwright tests
-├── packages/          → ai, design-tokens, docs-pipeline, eslint-config, notifications,
-│                        supabase, telemetry, types, typescript-config, ui, utils
-├── services/          → contract-service (Fastify, port 3100), shift-mcp (MCP, port 3001), scrapling (Python)
-├── supabase/          → migrations, 15 Edge Functions, seed.sql
-├── agents/            → Pydantic AI agents (Python)
+├── packages/          → ai, design-tokens, docs-pipeline, eslint-config, i18n, notifications,
+│                        supabase, tailwind-config, telemetry, types, typescript-config, ui, utils
+├── services/          → contract-service (Fastify, 3100), interview-mcp (anchor), scrapling (Python),
+│                        shift-mcp (MCP, 3001), stage-engine (Hono, 3000)
+├── infra/             → Unified Docker Compose + Caddy reverse proxy (ADR-0039)
+├── supabase/          → migrations, 16 Edge Functions, seed.sql
 └── docs/              → INDEX.md + reference/ modules/ architecture/ decisions/ learnings/
 ```
 
@@ -304,6 +305,7 @@ cd apps/web && npx shadcn@latest add <component>
 
 | Date       | Version | Change                                                                                    | Author |
 | ---------- | ------- | ----------------------------------------------------------------------------------------- | ------ |
+| 2026-03-01 | 7.8.0   | Doc audit: add infra/, stage-engine, interview-mcp, i18n, tailwind-config; fix counts     | Claude |
 | 2026-03-01 | 7.7.0   | shift-mcp service, schedule_shift table, ADR-0036, schedules scope active                 | Claude |
 | 2026-03-01 | 7.6.0   | workspace-api gateway: 7 endpoints, usage tracking, env enforcement, 15 Edge Functions    | Claude |
 | 2026-03-01 | 7.5.0   | API Gateway enforcement: mandatory checklists, scope table, service auth, env enforcement | Claude |

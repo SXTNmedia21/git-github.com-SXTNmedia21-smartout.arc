@@ -66,6 +66,8 @@ export function useDemoJourney(config: JourneyConfig): DemoJourneyState & DemoJo
   // Timer refs for cleanup
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoAdvanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Guard to avoid replaying the initial step when callback dependencies refresh.
+  const hasStartedInitialStepRef = useRef(false);
 
   // Ref so advanceToNextStep can always call the latest playStep
   // without a direct circular reference between two memoized callbacks.
@@ -200,6 +202,7 @@ export function useDemoJourney(config: JourneyConfig): DemoJourneyState & DemoJo
   const reset = useCallback(() => {
     if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
     if (autoAdvanceTimerRef.current) clearTimeout(autoAdvanceTimerRef.current);
+    hasStartedInitialStepRef.current = false;
     setCurrentStepIndex(-1);
     setMessages([]);
     setIsTyping(false);
@@ -210,16 +213,21 @@ export function useDemoJourney(config: JourneyConfig): DemoJourneyState & DemoJo
 
   // Start the first step automatically when the journey loads
   useEffect(() => {
-    if (config.steps.length > 0 && currentStepIndex === -1) {
-      setCurrentStepIndex(0);
-      playStep(config.steps[0]!);
-    }
-    // Cleanup timers on unmount
+    if (hasStartedInitialStepRef.current) return;
+    if (config.steps.length === 0 || currentStepIndex !== -1) return;
+
+    hasStartedInitialStepRef.current = true;
+    setCurrentStepIndex(0);
+    playStep(config.steps[0]!);
+  }, [config.steps, playStep, currentStepIndex]);
+
+  // Cleanup timers on unmount only.
+  useEffect(() => {
     return () => {
       if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
       if (autoAdvanceTimerRef.current) clearTimeout(autoAdvanceTimerRef.current);
     };
-  }, [config, playStep, currentStepIndex]);
+  }, []);
 
   const currentStep = config.steps[Math.max(0, currentStepIndex)];
   const isComplete = currentStepIndex >= config.steps.length - 1 && !isTyping;

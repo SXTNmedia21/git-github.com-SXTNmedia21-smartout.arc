@@ -63,11 +63,14 @@ export async function POST(request: NextRequest) {
 
     // Log the voice session start to platform admin tracking.
     // Fire-and-forget: tracking failures must never block the demo experience.
+    // Extra catch at call site prevents unhandled rejections if internals change.
     void logVoiceSessionStarted(request, {
       callId: result.callId,
       mission: result.mission.name,
       voiceFallbackUsed: result.voiceFallbackUsed,
       variant: body.template_context?.variant ?? null,
+    }).catch((error) => {
+      console.warn("[wizard/start] Voice session event logging failed:", error);
     });
 
     return NextResponse.json({

@@ -19,3 +19,7 @@
 :3073 {
 	reverse_proxy scrapling:8000
 }
+
+:3074 {
+	reverse_proxy n8n:5678
+}

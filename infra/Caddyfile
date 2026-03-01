@@ -3,7 +3,7 @@
 # Auto-provisions HTTPS via Let's Encrypt.
 # Internal services (scrapling) have no route — network-isolated.
 # Connected to: infra/docker-compose.yml (caddy service)
-# Connected to: ADR-0035 (infrastructure decisions)
+# Connected to: ADR-0040 (Infrastructure stays in monorepo)
 # ============================================
 
 # Stage Engine — AI agent orchestration gateway
@@ -19,4 +19,9 @@ schedule-mcp.smartout.ai {
 # Contract Service — DocuSeal e-signature management
 contract.smartout.ai {
 	reverse_proxy contract-service:3100
+}
+
+# n8n — Workflow automation (when deployed)
+n8n.smartout.ai {
+	reverse_proxy n8n:5678
 }

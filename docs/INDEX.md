@@ -119,7 +119,7 @@ Reusable document templates in `docs/templates/`.
 
 ### Decisions (ADRs)
 
-See `docs/decisions/0000-decision-log.md` -- 38 ADRs (0001-0038).
+See `docs/decisions/0000-decision-log.md` -- 39 ADRs (0001-0039).
 
 | id       | File                                                     | Subject                                    |
 | -------- | -------------------------------------------------------- | ------------------------------------------ |
@@ -161,10 +161,11 @@ See `docs/decisions/0000-decision-log.md` -- 38 ADRs (0001-0038).
 | ADR_0036 | decisions/0036-shift-mcp-server.md                       | Shift MCP server                           |
 | ADR_0037 | decisions/0037-landing-event-tracking.md                 | Landing page event tracking                |
 | ADR_0038 | decisions/0038-journey-agent-output-generators.md        | Journey agent & output generators          |
+| ADR_0039 | decisions/0039-infra-consolidation.md                    | Infrastructure consolidation               |
 
 ### Learnings
 
-See `docs/learnings/0000-learning-log.md` -- 12 learning records.
+See `docs/learnings/0000-learning-log.md` -- 13 learning records.
 
 | id         | File                                                       | Subject                          |
 | ---------- | ---------------------------------------------------------- | -------------------------------- |
@@ -180,6 +181,7 @@ See `docs/learnings/0000-learning-log.md` -- 12 learning records.
 | LEARN_0010 | learnings/0010-vercel-turborepo-root-directory.md          | Vercel Turborepo root directory  |
 | LEARN_0011 | learnings/0011-framer-motion-landing-animation-patterns.md | Framer Motion animation patterns |
 | LEARN_0012 | learnings/0012-mcp-sdk-package-structure.md                | MCP SDK package structure        |
+| LEARN_0013 | learnings/0013-ultravox-http-tool-parameters.md            | Ultravox HTTP tool parameters    |
 
 ### Plans
 

@@ -46,11 +46,36 @@ function generateSessionId(): string {
  * The same ID is reused across all events in a single browser tab session.
  */
 function getOrCreateSessionId(): string {
-  const existing = sessionStorage.getItem(SESSION_ID_KEY);
+  const existing = getSessionStorageItem(SESSION_ID_KEY);
   if (existing) return existing;
   const id = generateSessionId();
-  sessionStorage.setItem(SESSION_ID_KEY, id);
+  setSessionStorageItem(SESSION_ID_KEY, id);
   return id;
+}
+
+/**
+ * Safely reads a value from sessionStorage.
+ * Returns undefined when storage is unavailable (private mode/blocked storage).
+ */
+function getSessionStorageItem(key: string): string | undefined {
+  try {
+    return sessionStorage.getItem(key) ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Safely writes a value to sessionStorage.
+ * Returns false when storage is unavailable (private mode/blocked storage).
+ */
+function setSessionStorageItem(key: string, value: string): boolean {
+  try {
+    sessionStorage.setItem(key, value);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /** Returns the currently active landing variant, or undefined if not set. */
@@ -94,8 +119,8 @@ async function postEvent(payload: {
 export function usePageTracking(): void {
   useEffect(() => {
     // Guard: only track once per browser tab session
-    if (sessionStorage.getItem(SESSION_TRACKED_KEY)) return;
-    sessionStorage.setItem(SESSION_TRACKED_KEY, "1");
+    if (getSessionStorageItem(SESSION_TRACKED_KEY)) return;
+    setSessionStorageItem(SESSION_TRACKED_KEY, "1");
 
     const session_id = getOrCreateSessionId();
     const variant = getCurrentVariant();
