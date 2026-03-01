@@ -99,6 +99,30 @@ export const DayCategoryEnum = z.enum([
 ]);
 export type DayCategory = z.infer<typeof DayCategoryEnum>;
 
+export const ShiftStatusEnum = z.enum([
+  "created",
+  "assigned",
+  "published",
+  "active",
+  "completed",
+  "unpublished",
+]);
+export type ShiftStatus = z.infer<typeof ShiftStatusEnum>;
+
+export const AbsenceTypeEnum = z.enum([
+  "sick_leave",
+  "parental_leave",
+  "vacation",
+  "unpaid_leave",
+  "military",
+  "training",
+  "welfare",
+]);
+export type AbsenceType = z.infer<typeof AbsenceTypeEnum>;
+
+export const RequestTypeEnum = z.enum(["available", "not_available", "prefer_not", "prefer"]);
+export type RequestType = z.infer<typeof RequestTypeEnum>;
+
 export const IndustryEnum = z.enum(["restaurant", "hotel", "cafe", "bar", "catering", "other"]);
 export type Industry = z.infer<typeof IndustryEnum>;
 
@@ -192,3 +216,17 @@ export type JourneyTestResult = z.infer<typeof JourneyTestResultEnum>;
 
 export const JourneyPhaseEnum = z.enum(["definition", "planning", "build", "test", "release"]);
 export type JourneyPhase = z.infer<typeof JourneyPhaseEnum>;
+
+// Wizard session enums
+export const WizardSessionStatusEnum = z.enum(["active", "completed", "abandoned"]);
+export type WizardSessionStatus = z.infer<typeof WizardSessionStatusEnum>;
+
+export const WizardPhaseEnum = z.enum([
+  "discovery",
+  "classification",
+  "steps",
+  "testing",
+  "documentation",
+  "review",
+]);
+export type WizardPhase = z.infer<typeof WizardPhaseEnum>;

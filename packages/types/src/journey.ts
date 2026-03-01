@@ -18,8 +18,17 @@ import {
   JourneyEventTypeEnum,
   JourneyTestResultEnum,
   JourneyPhaseEnum,
+  WizardSessionStatusEnum,
+  WizardPhaseEnum,
 } from "./enums";
-import type { JourneyStatus, JourneyModule } from "./enums";
+import type {
+  JourneyStatus,
+  JourneyModule,
+  JourneyActor,
+  JourneyPlatform,
+  JourneyPriority,
+  WizardPhase,
+} from "./enums";
 
 // ─── Journey ──────────────────────────────────────────────
 export const JourneySchema = z.object({
@@ -130,3 +139,68 @@ export type JourneyWithEvents = Journey & {
 
 // Re-export enum types used in this module for convenience
 export type { JourneyStatus, JourneyModule } from "./enums";
+
+// ─── Wizard Session ──────────────────────────────────────
+export const WizardSessionSchema = z.object({
+  wizard_session_id: z.string().uuid(),
+  workspace_id: z.string().uuid(),
+  journey_id: z.string().uuid().nullable(),
+  status: WizardSessionStatusEnum,
+  current_phase: WizardPhaseEnum,
+  messages: z.array(
+    z.object({
+      role: z.enum(["user", "assistant"]),
+      content: z.string(),
+      phase: WizardPhaseEnum.optional(),
+      timestamp: z.string(),
+    }),
+  ),
+  draft_journey: z.record(z.unknown()),
+  created_by: z.string().uuid(),
+  created_at: z.string(),
+  updated_at: z.string(),
+  completed_at: z.string().nullable(),
+});
+export type WizardSession = z.infer<typeof WizardSessionSchema>;
+
+// ─── Wizard Message ──────────────────────────────────────
+export type WizardMessage = {
+  role: "user" | "assistant";
+  content: string;
+  phase?: WizardPhase;
+  timestamp: string;
+};
+
+// ─── Draft Journey (progressive build during wizard) ─────
+export type DraftJourney = {
+  title?: string;
+  slug?: string;
+  module?: JourneyModule;
+  actor?: JourneyActor;
+  platform?: JourneyPlatform;
+  priority?: JourneyPriority;
+  tags?: string[];
+  trigger_description?: string;
+  preconditions?: string[];
+  test_assertion?: string;
+  doc_title?: string;
+  outcomes_success?: string;
+  outcomes_empty?: string;
+  outcomes_error?: string;
+  steps?: Array<{
+    title: string;
+    action: string;
+    expects?: string;
+    screen?: string;
+    component?: string;
+  }>;
+};
+
+// ─── Output Generator Types ──────────────────────────────
+export type JourneyOutputType = "e2e" | "doc" | "linear" | "botsson";
+
+export type JourneyOutput = {
+  type: JourneyOutputType;
+  content: string;
+  generated_at: string;
+};
