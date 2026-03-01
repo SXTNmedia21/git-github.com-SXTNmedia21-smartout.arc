@@ -17,7 +17,9 @@ import {
   History,
   Wallet,
 } from "lucide-react";
-import { useState, useContext } from "react";
+import { useState, useEffect, useContext } from "react";
+import { toast } from "sonner";
+import { createClient } from "@smartout/supabase/client";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import type { Employee, Department } from "./types";
 
@@ -40,6 +42,48 @@ export function EmployeeProfileCard({
   const [activeTab, setActiveTab] = useState<"overview" | "competence" | "hr" | "settings">(
     "overview",
   );
+  const [editRole, setEditRole] = useState(employee?.role ?? "");
+  const [editDeptId, setEditDeptId] = useState(employee?.departmentId ?? "");
+  const [editStatus, setEditStatus] = useState(employee?.status ?? "active");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (employee) {
+      setEditRole(employee.role.toLowerCase());
+      setEditDeptId(employee.departmentId ?? "");
+      setEditStatus(employee.status);
+      setActiveTab("overview");
+    }
+  }, [employee]);
+
+  async function handleSettingsSave() {
+    if (!employee?.profileId) return;
+    setSaving(true);
+    const supabase = createClient();
+
+    const updates: Record<string, unknown> = {};
+    if (editRole !== employee.role.toLowerCase()) updates.role = editRole;
+    if (editDeptId !== (employee.departmentId ?? "")) updates.department_id = editDeptId || null;
+    if (editStatus !== employee.status) {
+      updates.status = editStatus;
+      if (editStatus === "offboarding" || editStatus === "inactive") updates.is_active = false;
+      else updates.is_active = true;
+    }
+
+    if (Object.keys(updates).length > 0) {
+      const { error } = await supabase
+        .from("profile")
+        .update(updates)
+        .eq("profile_id", employee.profileId);
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success("Profile updated");
+        onRefresh();
+      }
+    }
+    setSaving(false);
+  }
 
   if (!isOpen || !employee) return null;
 
@@ -477,12 +521,20 @@ export function EmployeeProfileCard({
                     Primary Department
                   </label>
                   <select
-                    className="w-full appearance-none rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-white focus:border-orange-500/50 focus:outline-none"
-                    defaultValue={employee.department}
+                    value={editDeptId}
+                    onChange={(e) => setEditDeptId(e.target.value)}
+                    className={`w-full appearance-none rounded-lg border px-3 py-2 text-sm focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none ${
+                      isDark
+                        ? "border-zinc-800 bg-zinc-900 text-white"
+                        : "border-zinc-200 bg-zinc-50 text-zinc-900"
+                    }`}
                   >
-                    <option>Kitchen</option>
-                    <option>Service</option>
-                    <option>Bar</option>
+                    <option value="">No department</option>
+                    {departments.map((dept) => (
+                      <option key={dept.department_id} value={dept.department_id}>
+                        {dept.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -491,24 +543,76 @@ export function EmployeeProfileCard({
                     System Role
                   </label>
                   <select
-                    className="w-full appearance-none rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-white focus:border-orange-500/50 focus:outline-none"
-                    defaultValue={employee.role === "Manager" ? "Manager" : "Employee"}
+                    value={editRole}
+                    onChange={(e) => setEditRole(e.target.value)}
+                    className={`w-full appearance-none rounded-lg border px-3 py-2 text-sm focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none ${
+                      isDark
+                        ? "border-zinc-800 bg-zinc-900 text-white"
+                        : "border-zinc-200 bg-zinc-50 text-zinc-900"
+                    }`}
                   >
-                    <option>Employee</option>
-                    <option>Manager</option>
-                    <option>Admin</option>
+                    <option value="employee">Employee</option>
+                    <option value="manager">Manager</option>
+                    <option value="admin">Admin</option>
+                    <option value="owner">Owner</option>
                   </select>
                   <p className="pt-1 text-xs text-zinc-500">
                     Defines what this user can see and do in the system, like signing off sessions.
                   </p>
                 </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold tracking-wider text-zinc-500 uppercase">
+                    Status
+                  </label>
+                  <select
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value as typeof editStatus)}
+                    className={`w-full appearance-none rounded-lg border px-3 py-2 text-sm focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none ${
+                      isDark
+                        ? "border-zinc-800 bg-zinc-900 text-white"
+                        : "border-zinc-200 bg-zinc-50 text-zinc-900"
+                    }`}
+                  >
+                    <option value="active">Active</option>
+                    <option value="trainee">Trainee</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="offboarding">Offboarding</option>
+                  </select>
+                </div>
               </div>
 
-              <div className="space-y-3 border-t border-zinc-800/50 pt-4">
-                <button className="w-full rounded-lg border border-zinc-800 bg-zinc-900 py-2.5 text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-white">
+              <button
+                onClick={handleSettingsSave}
+                disabled={saving}
+                className={`w-full rounded-lg py-2.5 text-sm font-semibold transition-all disabled:opacity-50 ${
+                  isDark
+                    ? "bg-orange-500 text-white hover:bg-orange-600"
+                    : "bg-orange-500 text-white hover:bg-orange-600"
+                }`}
+              >
+                {saving ? "Saving..." : "Save Changes"}
+              </button>
+
+              <div
+                className={`space-y-3 border-t pt-4 ${isDark ? "border-zinc-800/50" : "border-zinc-200"}`}
+              >
+                <button
+                  className={`w-full rounded-lg border py-2.5 text-sm font-medium transition-colors ${
+                    isDark
+                      ? "border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-white"
+                      : "border-zinc-200 bg-zinc-50 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+                  }`}
+                >
                   Reset Password
                 </button>
-                <button className="w-full rounded-lg border border-rose-500/20 bg-rose-500/10 py-2.5 text-sm font-medium text-rose-500 transition-colors hover:bg-rose-500/20 hover:text-rose-400">
+                <button
+                  className={`w-full rounded-lg border py-2.5 text-sm font-medium transition-colors ${
+                    isDark
+                      ? "border-rose-500/20 bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 hover:text-rose-400"
+                      : "border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700"
+                  }`}
+                >
                   Deactivate Account
                 </button>
               </div>
