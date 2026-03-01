@@ -72,7 +72,7 @@ export function CreateAssetDialog({
       name: name.trim(),
       slug: toSlug(name),
       description: description.trim() || null,
-      asset_type: assetType,
+      asset_type: assetType as "equipment" | "safety" | "storage" | "station" | "other",
       icon: selectedIcon,
       requires_training: requiresTraining,
       requires_routine: requiresRoutine,

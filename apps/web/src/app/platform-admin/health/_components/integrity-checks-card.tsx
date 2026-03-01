@@ -51,7 +51,8 @@ export function IntegrityChecksCard({ checks, loading, onRun }: IntegrityChecksC
         </div>
       ) : (
         <p className="text-muted-foreground text-xs">
-          Click "Run Checks" to verify data integrity via watchdog-integrity edge function.
+          Click &ldquo;Run Checks&rdquo; to verify data integrity via watchdog-integrity edge
+          function.
         </p>
       )}
     </Card>

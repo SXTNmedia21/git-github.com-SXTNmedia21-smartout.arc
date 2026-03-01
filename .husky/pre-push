@@ -1,0 +1,6 @@
+# ============================================================
+# PRE-PUSH HOOK — Type Safety Enforcement
+# Mirrors: .github/workflows/ci.yml → typecheck job
+# ============================================================
+
+pnpm typecheck

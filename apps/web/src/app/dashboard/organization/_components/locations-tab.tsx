@@ -115,7 +115,7 @@ export function LocationsTab({
       name: name.trim(),
       slug: toSlug(name),
       description: description.trim() || null,
-      location_type: locationType,
+      location_type: locationType as "main" | "outdoor" | "kitchen" | "event" | "storage" | "other",
       address: address.trim() || null,
       capacity: capacity ? parseInt(capacity, 10) : null,
       workspace_id: workspaceId,

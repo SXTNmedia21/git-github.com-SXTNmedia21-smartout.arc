@@ -61,7 +61,12 @@ export function EditTeamDialog({
         name: name.trim(),
         slug: toSlug(name),
         description: description.trim() || null,
-        team_type: teamType,
+        team_type: teamType as
+          | "operational"
+          | "access"
+          | "cross_department"
+          | "seasonal"
+          | "custom",
         department_id: departmentId || null,
         color: selectedColor,
       })

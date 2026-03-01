@@ -32,10 +32,7 @@ export async function POST(request: NextRequest) {
 
   // Prevent self-demotion
   if (body.userId === adminId && !body.isGodmode) {
-    return NextResponse.json(
-      { error: "Cannot revoke your own godmode access" },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "Cannot revoke your own godmode access" }, { status: 400 });
   }
 
   const admin = createAdminClient();
