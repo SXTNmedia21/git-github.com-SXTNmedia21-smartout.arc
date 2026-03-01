@@ -6,6 +6,7 @@ import { requireScope } from "../_shared/scope-middleware.ts";
 
 import { handleGetProfiles } from "./handlers/profiles.ts";
 import {
+import { handleGetContracts } from "./handlers/contracts.ts";
   handleGetDepartments,
   handleGetTeams,
   handleGetLocations,
