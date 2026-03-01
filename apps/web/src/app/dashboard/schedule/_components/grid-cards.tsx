@@ -146,25 +146,25 @@ export const AbsenceCard = React.memo(function AbsenceCard({
     <div
       className={`relative flex h-[38px] w-full shrink-0 items-center rounded-md border px-1.5 py-1 transition-all xl:h-[42px] ${
         isSick
-          ? 'border-rose-500/30 bg-rose-500/10 bg-[url("/diagonal-stripes-rose.svg")] bg-repeat'
-          : 'border-blue-500/30 bg-blue-500/10 bg-[url("/diagonal-stripes-blue.svg")] bg-repeat'
+          ? 'border-rose-500/40 bg-rose-500/15 bg-[url("/diagonal-stripes-rose.svg")] bg-repeat shadow-[0_0_10px_rgba(244,63,94,0.1)]'
+          : 'border-blue-500/15 bg-blue-500/[0.04] bg-[url("/diagonal-stripes-blue.svg")] bg-repeat'
       }`}
     >
       {isSick ? (
         <AlertCircle className="mr-1.5 h-3.5 w-3.5 shrink-0 text-rose-400 xl:h-4 xl:w-4" />
       ) : (
-        <Ban className="mr-1.5 h-3.5 w-3.5 shrink-0 text-blue-400 xl:h-4 xl:w-4" />
+        <Ban className="mr-1.5 h-3.5 w-3.5 shrink-0 text-blue-400/50 xl:h-4 xl:w-4" />
       )}
 
       <div className="flex min-w-0 flex-col truncate pr-1">
         <h4
-          className={`truncate text-[10px] leading-none font-black tracking-tight xl:text-[11px] ${isSick ? "text-rose-400" : "text-blue-400"}`}
+          className={`truncate text-[11px] leading-none font-black tracking-tight xl:text-xs ${isSick ? "text-rose-400" : "text-blue-400/70"}`}
         >
           {type}
         </h4>
         {reason ? (
           <p
-            className={`mt-0.5 truncate text-[7px] leading-none font-bold tracking-widest uppercase xl:text-[8px] ${isSick ? "text-rose-500/80" : "text-blue-500/80"}`}
+            className={`mt-0.5 truncate text-[8px] leading-none font-bold tracking-widest uppercase xl:text-[9px] ${isSick ? "text-rose-500/80" : "text-blue-500/50"}`}
           >
             {reason}
           </p>

@@ -26,14 +26,14 @@ export const OpenShiftCardView = React.memo(function OpenShiftCardView({
 }: OpenShiftCardViewProps) {
   return (
     <div
-      className={`p-3 ${isDark ? "bg-[#0a0a0c]" : "bg-white"} group cursor-grab rounded-xl border border-white/5 shadow-sm transition-[opacity,transform,background-color,border-color] duration-200 ease-out will-change-transform hover:border-white/10 hover:bg-white/5 active:cursor-grabbing ${isDragging ? "scale-[0.98] opacity-35" : "scale-100 opacity-100"}`}
+      className={`p-3 ${isDark ? "bg-amber-500/[0.03]" : "bg-white"} group cursor-grab rounded-xl border border-dashed border-amber-500/25 shadow-sm transition-[opacity,transform,background-color,border-color] duration-200 ease-out will-change-transform hover:border-amber-500/40 hover:bg-amber-500/[0.06] active:cursor-grabbing ${isDragging ? "scale-[0.98] opacity-35" : "scale-100 opacity-100"}`}
     >
       <h4
-        className={`text-[13px] font-bold ${isDark ? "text-white" : "text-zinc-900"} mb-1 transition-colors group-hover:text-orange-400`}
+        className={`text-sm font-bold ${isDark ? "text-white" : "text-zinc-900"} mb-1 transition-colors group-hover:text-zinc-300`}
       >
         {title}
       </h4>
-      <div className="flex items-center gap-1.5 text-[11px] font-medium text-zinc-500">
+      <div className="flex items-center gap-1.5 text-xs font-medium text-zinc-500">
         <Clock className="h-3 w-3" />
         {time}
       </div>
@@ -55,17 +55,17 @@ type ShiftCardViewProps = {
 };
 
 const SHIFT_STATUS_STYLES: Record<ShiftStatus, string> = {
-  draft: "border-orange-500/30 bg-orange-500/5",
-  published: "border-white/10 bg-[#0a0a0c]",
-  active: "border-emerald-500/50 bg-emerald-500/10 shadow-[0_0_15px_rgba(16,185,129,0.1)]",
-  completed: "border-white/5 bg-[#050505] opacity-60",
+  draft: "border-dashed border-orange-500/20 bg-orange-500/[0.03]",
+  published: "border-white/[0.06] bg-white/[0.015]",
+  active: "border-emerald-500/40 bg-emerald-500/8 shadow-[0_0_15px_rgba(16,185,129,0.1)]",
+  completed: "border-white/[0.03] bg-transparent opacity-50",
 };
 
 const SHIFT_INDICATOR_STYLES: Record<ShiftIndicator, string> = {
-  blue: "bg-blue-400 shadow-[0_0_10px_rgba(96,165,250,0.5)]",
-  emerald: "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.5)]",
-  purple: "bg-purple-400 shadow-[0_0_10px_rgba(167,139,250,0.5)]",
-  orange: "bg-orange-400 shadow-[0_0_10px_rgba(251,146,60,0.5)]",
+  blue: "bg-blue-400/40",
+  emerald: "bg-emerald-400/40",
+  purple: "bg-purple-400/40",
+  orange: "bg-orange-400/40",
 };
 
 function normalizeShiftStatus(status: string): ShiftStatus {
@@ -93,10 +93,10 @@ function normalizeShiftIndicator(indicator: string): ShiftIndicator {
 }
 
 function ShiftStatusIcon({ status, isDark }: { status: ShiftStatus; isDark: boolean }) {
-  if (status === "draft") return <AlertCircle className="h-3 w-3 text-orange-400" />;
+  if (status === "draft") return <AlertCircle className="h-3 w-3 text-orange-400/60" />;
   if (status === "published")
-    return <Circle className={`h-3 w-3 ${isDark ? "text-zinc-400" : "text-zinc-600"}`} />;
-  if (status === "active") return <PlayCircle className="h-3 w-3 text-emerald-400" />;
+    return <Circle className={`h-3 w-3 ${isDark ? "text-zinc-500" : "text-zinc-400"}`} />;
+  if (status === "active") return <PlayCircle className="h-3 w-3 text-emerald-400/60" />;
   return <CheckCircle2 className="h-3 w-3 text-zinc-600" />;
 }
 
@@ -114,7 +114,7 @@ export const ShiftCardView = React.memo(function ShiftCardView({
 
   return (
     <div
-      className={`group relative flex cursor-grab flex-col gap-2 rounded-lg border p-2 transition-[opacity,transform,background-color,border-color] duration-200 ease-out hover:border-white/30 active:cursor-grabbing xl:p-2.5 ${isDark ? "hover:bg-white/5" : "hover:bg-zinc-100"} select-none ${SHIFT_STATUS_STYLES[normalizedStatus]} overflow-visible will-change-transform ${isDragging ? "scale-[0.98] opacity-35" : "scale-100 opacity-100"}`}
+      className={`group relative flex cursor-grab flex-col gap-2 rounded-lg border p-2 transition-[opacity,transform,background-color,border-color] duration-200 ease-out hover:border-white/15 active:cursor-grabbing xl:p-2.5 ${isDark ? "hover:bg-white/5" : "hover:bg-zinc-100"} select-none ${SHIFT_STATUS_STYLES[normalizedStatus]} overflow-visible will-change-transform ${isDragging ? "scale-[0.98] opacity-35" : "scale-100 opacity-100"}`}
     >
       <div
         className={`absolute top-2 bottom-2 left-0 w-0.5 rounded-r-full ${SHIFT_INDICATOR_STYLES[normalizedIndicator]}`}
@@ -123,13 +123,13 @@ export const ShiftCardView = React.memo(function ShiftCardView({
       <div className="relative z-10 flex w-full items-start justify-between">
         <div className="min-w-0 pr-2">
           <span
-            className={`text-[10px] font-bold xl:text-xs ${isDark ? "text-white" : "text-zinc-900"} line-clamp-1 block truncate leading-tight transition-colors group-hover:text-amber-400`}
+            className={`text-xs font-semibold xl:text-[13px] ${isDark ? "text-white" : "text-zinc-900"} line-clamp-1 block truncate leading-tight transition-colors group-hover:text-zinc-300`}
           >
             {role}
           </span>
           {zone ? (
             <div
-              className={`text-[9px] ${isDark ? "text-zinc-400" : "text-zinc-600"} mt-0.5 flex items-center gap-1 whitespace-nowrap`}
+              className={`text-[10px] ${isDark ? "text-zinc-500" : "text-zinc-500"} mt-0.5 flex items-center gap-1 whitespace-nowrap`}
             >
               <MapPin className="h-2.5 w-2.5 shrink-0" />
               <span className="truncate">{zone}</span>
@@ -143,7 +143,7 @@ export const ShiftCardView = React.memo(function ShiftCardView({
       </div>
 
       <div
-        className={`flex items-center gap-1.5 text-[9px] xl:text-[10px] ${isDark ? "text-zinc-400" : "text-zinc-600"} relative z-10 mt-auto font-medium`}
+        className={`flex items-center gap-1.5 text-[10px] xl:text-[11px] ${isDark ? "text-zinc-500" : "text-zinc-500"} relative z-10 mt-auto font-medium`}
       >
         <Clock
           className={`h-3 w-3 text-zinc-500 group-hover:${isDark ? "text-zinc-400" : "text-zinc-600"}`}

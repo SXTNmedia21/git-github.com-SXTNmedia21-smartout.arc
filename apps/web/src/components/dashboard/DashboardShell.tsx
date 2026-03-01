@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, createContext, useMemo } from "react";
+import { useState, useRef, useEffect, createContext, useMemo } from "react";
 import dynamic from "next/dynamic";
 import type { MissionId } from "@smartout/ai/missions";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
@@ -105,12 +105,7 @@ import {
 } from "lucide-react";
 
 import { UserMenu } from "@/components/dashboard/UserMenu";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const LazyVoiceAssistant = dynamic(() => import("@/components/voice-assistant"), {
   ssr: false,
@@ -162,15 +157,41 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       setWeeklyPeriodCount,
       workspaceData,
     }),
-    [isAdminMode, isDark, adminView, scheduleLayout, scheduleView, activeLocation, isSidebarCollapsed, weeklyPeriodCount, workspaceData],
+    [
+      isAdminMode,
+      isDark,
+      adminView,
+      scheduleLayout,
+      scheduleView,
+      activeLocation,
+      isSidebarCollapsed,
+      weeklyPeriodCount,
+      workspaceData,
+    ],
   );
 
   const isDashboardPage = pathname === "/dashboard";
 
-  // Auto-collapse sidebar when navigating or clicking main content
-  const collapseSidebar = () => {
-    if (!isSidebarCollapsed) setIsSidebarCollapsed(true);
-  };
+  const isSchedulePage = pathname?.startsWith("/dashboard/schedule");
+
+  // Auto-collapse sidebar when entering schedule, restore when leaving
+  const prevIsSchedule = useRef(isSchedulePage);
+  const sidebarStateBeforeAutoCollapse = useRef<boolean | null>(null);
+
+  useEffect(() => {
+    if (isSchedulePage && !prevIsSchedule.current) {
+      // Entering schedule — remember state and collapse
+      sidebarStateBeforeAutoCollapse.current = isSidebarCollapsed;
+      if (!isSidebarCollapsed) setIsSidebarCollapsed(true);
+    } else if (!isSchedulePage && prevIsSchedule.current) {
+      // Leaving schedule — restore previous state
+      if (sidebarStateBeforeAutoCollapse.current === false) {
+        setIsSidebarCollapsed(false);
+      }
+      sidebarStateBeforeAutoCollapse.current = null;
+    }
+    prevIsSchedule.current = isSchedulePage;
+  }, [isSchedulePage]);
 
   // Helper to determine if a link is active
   const isActive = (path: string) => {
@@ -251,288 +272,283 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       <div className="relative flex flex-1 overflow-hidden">
         {/* LEFT SIDEBAR NAVIGATION */}
         <aside
-          className={`z-20 flex flex-col border-r overflow-hidden transition-[width] duration-200 ${
+          className={`z-20 flex flex-col overflow-hidden border-r transition-[width] duration-200 ${
             isSidebarCollapsed ? "w-16" : "w-64"
           } ${
             isDark ? "border-zinc-800 bg-[#0c0c0e]" : "border-zinc-200 bg-white shadow-sm"
           } print:hidden`}
         >
           <TooltipProvider delayDuration={0}>
-          <nav className={`hide-scrollbar relative flex-1 space-y-1 overflow-y-auto py-8 ${isSidebarCollapsed ? "px-2" : "px-4"}`}>
-            {isAdminMode ? (
-              <>
-                {!isSidebarCollapsed && (
-                  <div
-                    className={`mt-2 mb-3 px-3 text-[10px] font-bold tracking-widest uppercase ${
-                      isDark ? "text-zinc-500" : "text-zinc-400"
-                    }`}
-                  >
-                    Management
-                  </div>
-                )}
-                <NavItem
-                  href="/dashboard"
-                  icon={LayoutDashboard}
-                  label="Dashboard"
-                  isDark={isDark}
-                  active={isActive("/dashboard")}
-                  isCollapsed={isSidebarCollapsed}
-                  onNavigate={collapseSidebar}
-                />
-                <NavItem
-                  href="/dashboard/people"
-                  icon={Users}
-                  label="People"
-                  isDark={isDark}
-                  badge="2 Req"
-                  active={isActive("/dashboard/people")}
-                  isCollapsed={isSidebarCollapsed}
-                  onNavigate={collapseSidebar}
-                />
-                <NavItem
-                  href="/dashboard/schedule"
-                  icon={CalendarDays}
-                  label="Schedule"
-                  isDark={isDark}
-                  active={isActive("/dashboard/schedule")}
-                  isCollapsed={isSidebarCollapsed}
-                  onNavigate={collapseSidebar}
-                />
-
-                {!isSidebarCollapsed && (
-                  <div
-                    className={`mt-6 mb-3 px-3 text-[10px] font-bold tracking-widest uppercase ${
-                      isDark ? "text-zinc-500" : "text-zinc-400"
-                    }`}
-                  >
-                    Operations
-                  </div>
-                )}
-                {isSidebarCollapsed && <div className="mt-4" />}
-                <NavItem
-                  href="/dashboard/operations"
-                  icon={Activity}
-                  label="Live Operations"
-                  isDark={isDark}
-                  active={isActive("/dashboard/operations")}
-                  isCollapsed={isSidebarCollapsed}
-                  onNavigate={collapseSidebar}
-                />
-                <NavItem
-                  href="/dashboard/reports"
-                  icon={TrendingUp}
-                  label="Reports"
-                  isDark={isDark}
-                  active={isActive("/dashboard/reports")}
-                  isCollapsed={isSidebarCollapsed}
-                  onNavigate={collapseSidebar}
-                />
-
-                {!isSidebarCollapsed && (
-                  <div
-                    className={`mt-6 mb-3 px-3 text-[10px] font-bold tracking-widest uppercase ${
-                      isDark ? "text-zinc-500" : "text-zinc-400"
-                    }`}
-                  >
-                    Administration
-                  </div>
-                )}
-                {isSidebarCollapsed && <div className="mt-4" />}
-                <NavItem
-                  href="/dashboard/governance"
-                  icon={ShieldCheck}
-                  label="Governance"
-                  isDark={isDark}
-                  active={isActive("/dashboard/governance")}
-                  isCollapsed={isSidebarCollapsed}
-                  onNavigate={collapseSidebar}
-                />
-                <NavItem
-                  href="/dashboard/season"
-                  icon={Gamepad2}
-                  label="Season"
-                  isDark={isDark}
-                  active={isActive("/dashboard/season")}
-                  isCollapsed={isSidebarCollapsed}
-                  onNavigate={collapseSidebar}
-                />
-                <NavItem
-                  href="/dashboard/organization"
-                  icon={Building2}
-                  label="Organization"
-                  isDark={isDark}
-                  active={isActive("/dashboard/organization")}
-                  isCollapsed={isSidebarCollapsed}
-                  onNavigate={collapseSidebar}
-                />
-              </>
-            ) : (
-              <>
-                {!isSidebarCollapsed && (
-                  <div
-                    className={`mt-2 mb-3 px-3 text-[10px] font-bold tracking-widest uppercase ${
-                      isDark ? "text-zinc-500" : "text-zinc-400"
-                    }`}
-                  >
-                    My Workspace
-                  </div>
-                )}
-                <NavItem
-                  href="/dashboard"
-                  icon={LayoutDashboard}
-                  label="Dashboard"
-                  isDark={isDark}
-                  active={isActive("/dashboard")}
-                  isCollapsed={isSidebarCollapsed}
-                  onNavigate={collapseSidebar}
-                />
-                <NavItem
-                  href="/dashboard/my-schedule"
-                  icon={Calendar}
-                  label="My Schedule"
-                  isDark={isDark}
-                  active={isActive("/dashboard/my-schedule")}
-                  isCollapsed={isSidebarCollapsed}
-                  onNavigate={collapseSidebar}
-                />
-                <NavItem
-                  href="/dashboard/my-training"
-                  icon={GraduationCap}
-                  label="My Training"
-                  isDark={isDark}
-                  badge="1 Due"
-                  active={isActive("/dashboard/my-training")}
-                  isCollapsed={isSidebarCollapsed}
-                  onNavigate={collapseSidebar}
-                />
-                <NavItem
-                  href="/dashboard/my-cv"
-                  icon={FileText}
-                  label="My CV & Profile"
-                  isDark={isDark}
-                  active={isActive("/dashboard/my-cv")}
-                  isCollapsed={isSidebarCollapsed}
-                  onNavigate={collapseSidebar}
-                />
-                <NavItem
-                  href="/dashboard/my-salary"
-                  icon={Banknote}
-                  label="My Salary"
-                  isDark={isDark}
-                  active={isActive("/dashboard/my-salary")}
-                  isCollapsed={isSidebarCollapsed}
-                  onNavigate={collapseSidebar}
-                />
-              </>
-            )}
-
-            {!isSidebarCollapsed && (
-              <div
-                className={`mt-6 mb-3 px-3 text-[10px] font-bold tracking-widest uppercase ${
-                  isDark ? "text-zinc-500" : "text-zinc-400"
+            {/* Sidebar collapse toggle — top */}
+            <div
+              className={`flex items-center border-b ${isSidebarCollapsed ? "justify-center px-2" : "justify-end px-4"} py-3 ${
+                isDark ? "border-zinc-800" : "border-zinc-200"
+              }`}
+            >
+              <button
+                onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                className={`rounded-lg p-1.5 transition-colors ${
+                  isDark
+                    ? "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
+                    : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
                 }`}
               >
-                Communication
-              </div>
-            )}
-            {isSidebarCollapsed && <div className="mt-4" />}
-            <NavItem
-              href="/dashboard/chat"
-              icon={MessageSquare}
-              label="Chat"
-              isDark={isDark}
-              badge="3"
-              active={isActive("/dashboard/chat")}
-              isCollapsed={isSidebarCollapsed}
-            />
-            <NavItem
-              href="/dashboard/ai"
-              icon={Bot}
-              label="Mr. Botsson"
-              isDark={isDark}
-              ai
-              active={isActive("/dashboard/ai")}
-              isCollapsed={isSidebarCollapsed}
-            />
-            <NavItem
-              href="/dashboard/onboarding-assistant"
-              icon={Bot}
-              label="Onboarding Copilot"
-              isDark={isDark}
-              ai
-              active={isActive("/dashboard/onboarding-assistant")}
-              isCollapsed={isSidebarCollapsed}
-            />
-
-            <div className="mt-8 space-y-1 pt-4">
-              <NavItem
-                href="/dashboard/settings"
-                icon={Settings}
-                label="Settings"
-                isDark={isDark}
-                active={isActive("/dashboard/settings")}
-                isCollapsed={isSidebarCollapsed}
-              />
-              <NavItem
-                href="/dashboard/help"
-                icon={HelpCircle}
-                label="Help"
-                isDark={isDark}
-                active={isActive("/dashboard/help")}
-                isCollapsed={isSidebarCollapsed}
-              />
+                {isSidebarCollapsed ? (
+                  <ChevronRight className="h-4 w-4" />
+                ) : (
+                  <ChevronLeft className="h-4 w-4" />
+                )}
+              </button>
             </div>
-          </nav>
 
-          {/* Sidebar bottom controls */}
-          <div
-            className={`border-t ${isSidebarCollapsed ? "p-2" : "p-4"} ${
-              isDark ? "border-zinc-800 bg-[#0a0a0c]" : "border-zinc-200 bg-zinc-50/50"
-            } space-y-2`}
-          >
-            {/* Admin/Employee toggle */}
-            <button
-              onClick={() => setIsAdminMode(!isAdminMode)}
-              className={`flex w-full items-center ${isSidebarCollapsed ? "justify-center" : "justify-between"} rounded-lg border ${isSidebarCollapsed ? "px-0 py-2" : "px-3 py-2"} text-sm font-semibold transition-all ${
-                isAdminMode
-                  ? isDark
-                    ? "border-orange-500/20 bg-orange-500/10 text-orange-500"
-                    : "border-orange-200 bg-orange-50 text-orange-600"
-                  : isDark
-                    ? "border-zinc-700 bg-zinc-800 text-zinc-300"
-                    : "border-zinc-200 bg-white text-zinc-700 shadow-sm"
-              }`}
+            <nav
+              className={`hide-scrollbar relative flex-1 space-y-1 overflow-y-auto py-4 ${isSidebarCollapsed ? "px-2" : "px-4"}`}
             >
-              {!isSidebarCollapsed && <span>{isAdminMode ? "Admin Mode" : "Employee Mode"}</span>}
-              <div
-                className={`flex h-4 w-8 items-center rounded-full p-0.5 transition-colors ${
-                  isAdminMode ? "bg-orange-500" : "bg-zinc-400"
-                }`}
-              >
+              {isAdminMode ? (
+                <>
+                  {!isSidebarCollapsed && (
+                    <div
+                      className={`mt-2 mb-3 px-3 text-[10px] font-bold tracking-widest uppercase ${
+                        isDark ? "text-zinc-500" : "text-zinc-400"
+                      }`}
+                    >
+                      Management
+                    </div>
+                  )}
+                  <NavItem
+                    href="/dashboard"
+                    icon={LayoutDashboard}
+                    label="Dashboard"
+                    isDark={isDark}
+                    active={isActive("/dashboard")}
+                    isCollapsed={isSidebarCollapsed}
+                  />
+                  <NavItem
+                    href="/dashboard/people"
+                    icon={Users}
+                    label="People"
+                    isDark={isDark}
+                    badge="2 Req"
+                    active={isActive("/dashboard/people")}
+                    isCollapsed={isSidebarCollapsed}
+                  />
+                  <NavItem
+                    href="/dashboard/schedule"
+                    icon={CalendarDays}
+                    label="Schedule"
+                    isDark={isDark}
+                    active={isActive("/dashboard/schedule")}
+                    isCollapsed={isSidebarCollapsed}
+                  />
+
+                  {!isSidebarCollapsed && (
+                    <div
+                      className={`mt-6 mb-3 px-3 text-[10px] font-bold tracking-widest uppercase ${
+                        isDark ? "text-zinc-500" : "text-zinc-400"
+                      }`}
+                    >
+                      Operations
+                    </div>
+                  )}
+                  {isSidebarCollapsed && <div className="mt-4" />}
+                  <NavItem
+                    href="/dashboard/operations"
+                    icon={Activity}
+                    label="Live Operations"
+                    isDark={isDark}
+                    active={isActive("/dashboard/operations")}
+                    isCollapsed={isSidebarCollapsed}
+                  />
+                  <NavItem
+                    href="/dashboard/reports"
+                    icon={TrendingUp}
+                    label="Reports"
+                    isDark={isDark}
+                    active={isActive("/dashboard/reports")}
+                    isCollapsed={isSidebarCollapsed}
+                  />
+
+                  {!isSidebarCollapsed && (
+                    <div
+                      className={`mt-6 mb-3 px-3 text-[10px] font-bold tracking-widest uppercase ${
+                        isDark ? "text-zinc-500" : "text-zinc-400"
+                      }`}
+                    >
+                      Administration
+                    </div>
+                  )}
+                  {isSidebarCollapsed && <div className="mt-4" />}
+                  <NavItem
+                    href="/dashboard/governance"
+                    icon={ShieldCheck}
+                    label="Governance"
+                    isDark={isDark}
+                    active={isActive("/dashboard/governance")}
+                    isCollapsed={isSidebarCollapsed}
+                  />
+                  <NavItem
+                    href="/dashboard/season"
+                    icon={Gamepad2}
+                    label="Season"
+                    isDark={isDark}
+                    active={isActive("/dashboard/season")}
+                    isCollapsed={isSidebarCollapsed}
+                  />
+                  <NavItem
+                    href="/dashboard/organization"
+                    icon={Building2}
+                    label="Organization"
+                    isDark={isDark}
+                    active={isActive("/dashboard/organization")}
+                    isCollapsed={isSidebarCollapsed}
+                  />
+                </>
+              ) : (
+                <>
+                  {!isSidebarCollapsed && (
+                    <div
+                      className={`mt-2 mb-3 px-3 text-[10px] font-bold tracking-widest uppercase ${
+                        isDark ? "text-zinc-500" : "text-zinc-400"
+                      }`}
+                    >
+                      My Workspace
+                    </div>
+                  )}
+                  <NavItem
+                    href="/dashboard"
+                    icon={LayoutDashboard}
+                    label="Dashboard"
+                    isDark={isDark}
+                    active={isActive("/dashboard")}
+                    isCollapsed={isSidebarCollapsed}
+                  />
+                  <NavItem
+                    href="/dashboard/my-schedule"
+                    icon={Calendar}
+                    label="My Schedule"
+                    isDark={isDark}
+                    active={isActive("/dashboard/my-schedule")}
+                    isCollapsed={isSidebarCollapsed}
+                  />
+                  <NavItem
+                    href="/dashboard/my-training"
+                    icon={GraduationCap}
+                    label="My Training"
+                    isDark={isDark}
+                    badge="1 Due"
+                    active={isActive("/dashboard/my-training")}
+                    isCollapsed={isSidebarCollapsed}
+                  />
+                  <NavItem
+                    href="/dashboard/my-cv"
+                    icon={FileText}
+                    label="My CV & Profile"
+                    isDark={isDark}
+                    active={isActive("/dashboard/my-cv")}
+                    isCollapsed={isSidebarCollapsed}
+                  />
+                  <NavItem
+                    href="/dashboard/my-salary"
+                    icon={Banknote}
+                    label="My Salary"
+                    isDark={isDark}
+                    active={isActive("/dashboard/my-salary")}
+                    isCollapsed={isSidebarCollapsed}
+                  />
+                </>
+              )}
+
+              {!isSidebarCollapsed && (
                 <div
-                  className={`h-3 w-3 rounded-full bg-white shadow-sm transition-transform ${
-                    isAdminMode ? "translate-x-4" : "translate-x-0"
+                  className={`mt-6 mb-3 px-3 text-[10px] font-bold tracking-widest uppercase ${
+                    isDark ? "text-zinc-500" : "text-zinc-400"
                   }`}
+                >
+                  Communication
+                </div>
+              )}
+              {isSidebarCollapsed && <div className="mt-4" />}
+              <NavItem
+                href="/dashboard/chat"
+                icon={MessageSquare}
+                label="Chat"
+                isDark={isDark}
+                badge="3"
+                active={isActive("/dashboard/chat")}
+                isCollapsed={isSidebarCollapsed}
+              />
+              <NavItem
+                href="/dashboard/ai"
+                icon={Bot}
+                label="Mr. Botsson"
+                isDark={isDark}
+                ai
+                active={isActive("/dashboard/ai")}
+                isCollapsed={isSidebarCollapsed}
+              />
+              <NavItem
+                href="/dashboard/onboarding-assistant"
+                icon={Bot}
+                label="Onboarding Copilot"
+                isDark={isDark}
+                ai
+                active={isActive("/dashboard/onboarding-assistant")}
+                isCollapsed={isSidebarCollapsed}
+              />
+
+              <div className="mt-8 space-y-1 pt-4">
+                <NavItem
+                  href="/dashboard/settings"
+                  icon={Settings}
+                  label="Settings"
+                  isDark={isDark}
+                  active={isActive("/dashboard/settings")}
+                  isCollapsed={isSidebarCollapsed}
+                />
+                <NavItem
+                  href="/dashboard/help"
+                  icon={HelpCircle}
+                  label="Help"
+                  isDark={isDark}
+                  active={isActive("/dashboard/help")}
+                  isCollapsed={isSidebarCollapsed}
                 />
               </div>
-            </button>
+            </nav>
 
-            {/* Collapse toggle */}
-            <button
-              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              className={`flex w-full items-center justify-center rounded-lg py-1.5 transition-colors ${
-                isDark
-                  ? "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
-                  : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
-              }`}
+            {/* Sidebar bottom controls */}
+            <div
+              className={`border-t ${isSidebarCollapsed ? "p-2" : "p-4"} ${
+                isDark ? "border-zinc-800 bg-[#0a0a0c]" : "border-zinc-200 bg-zinc-50/50"
+              } space-y-2`}
             >
-              {isSidebarCollapsed ? (
-                <ChevronRight className="h-4 w-4" />
-              ) : (
-                <ChevronLeft className="h-4 w-4" />
-              )}
-            </button>
-          </div>
+              {/* Admin/Employee toggle */}
+              <button
+                onClick={() => setIsAdminMode(!isAdminMode)}
+                className={`flex w-full items-center ${isSidebarCollapsed ? "justify-center" : "justify-between"} rounded-lg border ${isSidebarCollapsed ? "px-0 py-2" : "px-3 py-2"} text-sm font-semibold transition-all ${
+                  isAdminMode
+                    ? isDark
+                      ? "border-orange-500/20 bg-orange-500/10 text-orange-500"
+                      : "border-orange-200 bg-orange-50 text-orange-600"
+                    : isDark
+                      ? "border-zinc-700 bg-zinc-800 text-zinc-300"
+                      : "border-zinc-200 bg-white text-zinc-700 shadow-sm"
+                }`}
+              >
+                {!isSidebarCollapsed && <span>{isAdminMode ? "Admin Mode" : "Employee Mode"}</span>}
+                <div
+                  className={`flex h-4 w-8 items-center rounded-full p-0.5 transition-colors ${
+                    isAdminMode ? "bg-orange-500" : "bg-zinc-400"
+                  }`}
+                >
+                  <div
+                    className={`h-3 w-3 rounded-full bg-white shadow-sm transition-transform ${
+                      isAdminMode ? "translate-x-4" : "translate-x-0"
+                    }`}
+                  />
+                </div>
+              </button>
+            </div>
           </TooltipProvider>
         </aside>
 
@@ -794,11 +810,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <DashboardContext.Provider value={dashboardContextValue}>
-            {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
-            <div
-              className="flex min-h-0 flex-1 flex-col overflow-hidden p-6 md:p-8 print:block print:h-auto print:overflow-visible print:p-0"
-              onClick={!isSidebarCollapsed ? collapseSidebar : undefined}
-            >
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-6 md:p-8 print:block print:h-auto print:overflow-visible print:p-0">
               {children}
             </div>
           </DashboardContext.Provider>
@@ -819,14 +831,21 @@ interface NavItemProps {
   isDark?: boolean;
   ai?: boolean;
   isCollapsed?: boolean;
-  onNavigate?: () => void;
 }
 
-function NavItem({ icon: Icon, label, href, active, badge, isDark, ai, isCollapsed, onNavigate }: NavItemProps) {
+function NavItem({
+  icon: Icon,
+  label,
+  href,
+  active,
+  badge,
+  isDark,
+  ai,
+  isCollapsed,
+}: NavItemProps) {
   const content = (
     <Link
       href={href}
-      onClick={onNavigate}
       className={`group flex items-center rounded-xl transition-all ${
         isCollapsed ? "justify-center px-0 py-2.5" : "justify-between px-3 py-2.5"
       } ${

@@ -62,7 +62,7 @@ export function GridContent({
   }, []);
 
   return (
-    <div className="flex w-full min-w-fit flex-col">
+    <div className="flex w-full flex-col">
       <DayHeaders
         isDark={isDark}
         scheduleView={scheduleView}
@@ -72,7 +72,7 @@ export function GridContent({
         onDateClick={onDateClick}
       />
 
-      <div className="w-fit min-w-full flex-1 pb-20">
+      <div className="w-full flex-1 pb-20">
         {scheduleView === "ansatt" && (
           <div className="flex flex-col">
             {dummyEmployees.map((emp) => (
@@ -153,12 +153,12 @@ const DayHeaders = React.memo(function DayHeaders({
   onDateClick: (d: string) => void;
 }) {
   return (
-    <div className="sticky top-0 z-40 flex w-fit min-w-full">
+    <div className="sticky top-0 z-40 flex w-full">
       <div
-        className={`w-[200px] shrink-0 border-r border-b border-white/5 xl:w-[250px] ${isDark ? "bg-[#0a0a0c]/95" : "bg-white/95"} sticky left-0 z-50 flex h-24 flex-col justify-between p-4 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)] backdrop-blur-xl xl:h-28`}
+        className={`w-[200px] shrink-0 border-r border-b border-white/[0.04] xl:w-[250px] ${isDark ? "bg-[#0a0a0c]/95" : "bg-white/95"} sticky left-0 z-50 flex h-24 flex-col justify-between p-4 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)] backdrop-blur-xl xl:h-28`}
       >
         <div className="flex w-full items-center justify-between">
-          <div className="flex items-center gap-1.5 text-[9px] font-bold tracking-widest text-zinc-500 uppercase xl:text-[10px]">
+          <div className="flex items-center gap-1.5 text-[10px] font-bold tracking-widest text-zinc-500 uppercase xl:text-[11px]">
             <Users className={`h-3.5 w-3.5 ${isDark ? "text-zinc-400" : "text-zinc-600"}`} />
             Grupper
           </div>
@@ -176,7 +176,7 @@ const DayHeaders = React.memo(function DayHeaders({
         <div
           className={`mt-auto rounded-lg border border-white/5 px-2 py-1 ${isDark ? "bg-[#050505]" : "bg-zinc-50"}`}
         >
-          <span className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase">
+          <span className="text-[11px] font-bold tracking-widest text-zinc-500 uppercase">
             Visning:{" "}
             {scheduleView === "ansatt" ? "Ansatt" : scheduleView === "jobb" ? "Rolle" : "Team"}
           </span>
@@ -186,18 +186,18 @@ const DayHeaders = React.memo(function DayHeaders({
       {visibleDays.map((day) => (
         <div
           key={day.id}
-          className={`w-[280px] shrink-0 border-r border-b border-white/5 sm:w-[320px] lg:w-[400px] ${isDark ? "bg-[#0a0a0c]/90" : "bg-white/95"} group/day flex h-24 cursor-pointer flex-col justify-between p-2 backdrop-blur-xl transition-colors hover:bg-white/5 xl:h-28 ${day.isToday ? "bg-orange-500/[0.02]" : ""}`}
+          className={`min-w-0 flex-1 border-r border-b border-white/[0.03] ${isDark ? "bg-[#0a0a0c]/90" : "bg-white/95"} group/day flex h-24 cursor-pointer flex-col justify-between p-2 backdrop-blur-xl transition-colors hover:bg-white/5 xl:h-28 ${day.isToday ? "bg-orange-500/[0.06]" : ""}`}
           onClick={() => onDateClick(day.label)}
         >
           {day.coverageAlert ? (
-            <div className="absolute top-0 left-0 h-1 w-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)]" />
+            <div className="absolute top-0 left-0 h-1 w-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.6)]" />
           ) : (
-            <div className="absolute top-0 left-0 h-1 w-full bg-green-500/20" />
+            <div className="absolute top-0 left-0 h-0.5 w-full bg-emerald-500/10" />
           )}
 
           <div className="flex items-start justify-between">
             <h2
-              className={`flex items-center gap-1.5 truncate text-[11px] font-black tracking-tight sm:text-xs ${day.isToday ? "text-orange-400" : day.isHoliday ? "text-rose-400" : isDark ? "text-zinc-300" : "text-zinc-700"}`}
+              className={`flex items-center gap-1.5 truncate text-xs tracking-tight sm:text-sm ${day.isToday ? "font-black text-orange-400" : day.isHoliday ? "font-black text-rose-400" : isDark ? "font-semibold text-zinc-400" : "font-semibold text-zinc-700"}`}
             >
               {day.label}
               {day.isToday ? (
@@ -212,7 +212,7 @@ const DayHeaders = React.memo(function DayHeaders({
           </div>
 
           <div className="mt-auto flex flex-col gap-1.5">
-            <div className="flex flex-wrap items-center gap-1.5 text-[10px] leading-none font-bold tracking-widest text-zinc-500 uppercase xl:gap-2 xl:text-[11px]">
+            <div className="flex flex-wrap items-center gap-1.5 text-[11px] leading-none font-medium tracking-widest text-zinc-500/70 uppercase xl:gap-2 xl:text-xs">
               <span className="flex items-center gap-0.5" title="Ansatte">
                 <Users className="h-2.5 w-2.5 xl:h-3 xl:w-3" /> {day.staff}
               </span>
@@ -221,7 +221,7 @@ const DayHeaders = React.memo(function DayHeaders({
               </span>
               {day.messages !== undefined ? (
                 <span
-                  className={`flex items-center gap-0.5 ${day.messages > 0 ? "text-blue-400" : ""}`}
+                  className={`flex items-center gap-0.5 ${day.messages > 0 ? "text-blue-400/50" : ""}`}
                   title="Meldinger for dagen"
                 >
                   <MessageSquare className="h-2.5 w-2.5 xl:h-3 xl:w-3" /> {day.messages}
@@ -229,7 +229,7 @@ const DayHeaders = React.memo(function DayHeaders({
               ) : null}
               {day.tasks ? (
                 <span
-                  className={`flex items-center gap-0.5 ${day.tasks.done < day.tasks.total ? "text-orange-400" : "text-emerald-400"}`}
+                  className={`flex items-center gap-0.5 ${day.tasks.done < day.tasks.total ? "text-orange-400/50" : "text-zinc-500/70"}`}
                   title="Oppmøte / Gjøremål"
                 >
                   <ListTodo className="h-2.5 w-2.5 xl:h-3 xl:w-3" /> {day.tasks.done}/
@@ -238,13 +238,13 @@ const DayHeaders = React.memo(function DayHeaders({
               ) : null}
             </div>
             {day.coverageAlert ? (
-              <div className="flex w-fit max-w-full items-center gap-1 rounded border border-red-500/20 bg-red-500/10 px-1 py-0.5 text-[10px] font-bold text-red-500">
+              <div className="flex w-fit max-w-full items-center gap-1 rounded border border-red-500/20 bg-red-500/10 px-1 py-0.5 text-[11px] font-bold text-red-500">
                 <AlertCircle className="h-2.5 w-2.5 shrink-0" />{" "}
                 <span className="truncate">{day.coverageAlert}</span>
               </div>
             ) : (
-              <div className="flex w-fit max-w-full items-center gap-1 rounded px-1 py-0.5 text-[10px] font-bold text-zinc-500">
-                <CheckCircle2 className="h-2.5 w-2.5 shrink-0 text-green-500/50" />{" "}
+              <div className="flex w-fit max-w-full items-center gap-1 rounded px-1 py-0.5 text-[11px] font-medium text-zinc-600">
+                <CheckCircle2 className="h-2.5 w-2.5 shrink-0 text-zinc-600" />{" "}
                 <span className="truncate">Optimal dekning</span>
               </div>
             )}
@@ -269,17 +269,17 @@ export const GroupHeader = React.memo(function GroupHeader({
 }) {
   const { isDark } = useContext(DashboardContext);
   return (
-    <div className="group/header flex w-fit min-w-full">
+    <div className="group/header flex w-full">
       <div
-        className={`w-[200px] shrink-0 border-r border-b border-white/5 xl:w-[250px] ${isDark ? "bg-white/5" : "bg-zinc-100"} relative sticky left-0 z-30 flex h-8 items-center justify-between px-3 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)]`}
+        className={`w-[200px] shrink-0 border-r border-b border-white/[0.04] xl:w-[250px] ${isDark ? "bg-white/[0.03]" : "bg-zinc-100"} relative sticky left-0 z-30 flex h-8 items-center justify-between px-3 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)]`}
       >
         <span
-          className={`text-[10px] font-bold xl:text-xs ${isDark ? "text-white" : "text-zinc-900"} tracking-wider uppercase`}
+          className={`text-xs font-bold xl:text-[13px] ${isDark ? "text-white" : "text-zinc-900"} tracking-wider uppercase`}
         >
           {title}
         </span>
         <span
-          className={`text-[9px] font-medium text-zinc-400 ${isDark ? "bg-white/10" : "bg-zinc-200"} rounded px-1.5 py-0.5`}
+          className={`text-[10px] font-medium text-zinc-400 ${isDark ? "bg-white/10" : "bg-zinc-200"} rounded px-1.5 py-0.5`}
         >
           {count}
         </span>
@@ -287,7 +287,7 @@ export const GroupHeader = React.memo(function GroupHeader({
       {days.map((day) => (
         <div
           key={day.id}
-          className={`w-[280px] shrink-0 border-r border-b sm:w-[320px] lg:w-[400px] ${isDark ? "border-white/5" : "border-zinc-200"} h-8 bg-white/[0.02]`}
+          className={`min-w-0 flex-1 border-r border-b ${isDark ? "border-white/[0.04]" : "border-zinc-200"} h-8 bg-white/[0.01]`}
         />
       ))}
     </div>
@@ -314,16 +314,16 @@ export const EmployeeRow = React.memo(function EmployeeRow({
   const percentage = Math.min((scheduledHours / contractedHours) * 100, 100);
   const isOvertime = scheduledHours > contractedHours;
 
-  let barColor = "bg-zinc-500";
-  if (isOvertime) barColor = "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]";
-  else if (percentage >= 95) barColor = "bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]";
-  else if (percentage >= 70) barColor = "bg-orange-500";
+  let barColor = "bg-zinc-600";
+  if (isOvertime) barColor = "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.4)]";
+  else if (percentage >= 95) barColor = "bg-emerald-500/80";
+  else if (percentage >= 70) barColor = "bg-zinc-500";
 
   return (
-    <div className="group/row flex w-fit min-w-full">
+    <div className="group/row flex w-full">
       {/* Sticky employee info panel */}
       <div
-        className={`w-[200px] shrink-0 border-r border-b border-white/5 xl:w-[250px] ${isDark ? "bg-[#0a0a0c]" : "bg-white"} sticky left-0 z-30 flex h-28 items-center gap-2 p-2 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)] transition-colors group-hover/row:bg-white/[0.02]`}
+        className={`w-[200px] shrink-0 border-r border-b border-white/[0.04] xl:w-[250px] ${isDark ? "bg-[#0a0a0c]" : "bg-white"} sticky left-0 z-30 flex h-28 items-center gap-2 p-2 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)] transition-colors group-hover/row:bg-white/[0.02]`}
       >
         <div
           className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border text-[9px] font-black ${employee.avatarColor}`}
@@ -332,23 +332,19 @@ export const EmployeeRow = React.memo(function EmployeeRow({
         </div>
         <div className="min-w-0 flex-1">
           <h3
-            className={`text-[11px] font-bold xl:text-[12px] ${isDark ? "text-white" : "text-zinc-900"} truncate leading-tight transition-colors group-hover/row:text-orange-400`}
+            className={`text-xs font-bold xl:text-[13px] ${isDark ? "text-white" : "text-zinc-900"} truncate leading-tight transition-colors group-hover/row:text-zinc-300`}
           >
             {employee.name}
           </h3>
-          <p className="mb-1 truncate text-[10px] leading-tight text-zinc-500 xl:text-[11px]">
+          <p className="mb-1 truncate text-[11px] leading-tight text-zinc-500 xl:text-xs">
             {subtitle || employee.role}
           </p>
           <div className="mt-1 space-y-1 pr-2">
-            <div className="flex items-center justify-between text-[9px] font-bold tracking-widest uppercase">
+            <div className="flex items-center justify-between text-[10px] font-bold tracking-widest uppercase">
               <span className="text-zinc-500">{employee.shifts} vakter</span>
               <span
                 className={
-                  isOvertime
-                    ? "text-red-400"
-                    : percentage >= 95
-                      ? "text-green-400"
-                      : "text-zinc-400"
+                  isOvertime ? "text-red-400" : percentage >= 95 ? "text-zinc-400" : "text-zinc-400"
                 }
               >
                 {employee.hours} <span className="text-zinc-600">/{contractedHours}</span>
@@ -422,13 +418,13 @@ function MatrixCell({
   return (
     <div
       ref={setNodeRef}
-      className={`w-[280px] shrink-0 border-r border-b border-white/5 sm:w-[320px] lg:w-[400px] ${isDark ? "bg-[#050505]" : "bg-zinc-50"}/40 relative flex h-28 flex-col gap-1 overflow-hidden p-1.5 shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] transition-colors ${isOver ? "z-10 scale-[1.02] rounded-lg border border-dashed border-orange-500/50 bg-orange-500/20" : "group-hover/row:bg-white/[0.02] hover:bg-white/[0.04]"} ${isToday ? "bg-orange-500/[0.02]" : ""}`}
+      className={`min-w-0 flex-1 border-r border-b border-white/[0.03] ${isDark ? "bg-[#050505]" : "bg-zinc-50"}/40 relative flex h-28 flex-col gap-1 overflow-hidden p-1.5 shadow-[inset_0_1px_6px_rgba(0,0,0,0.3)] transition-colors ${isOver ? "z-10 scale-[1.02] rounded-lg border border-dashed border-orange-500/50 bg-orange-500/20" : "group-hover/row:bg-white/[0.02] hover:bg-white/[0.04]"} ${isToday ? "bg-orange-500/[0.06]" : ""}`}
     >
       {children ? (
         children
       ) : (
         <button
-          className={`absolute inset-x-1.5 inset-y-1.5 rounded-md border border-dashed ${isDark ? "border-white/10" : "border-zinc-300"} flex cursor-pointer items-center justify-center bg-white/[0.01] text-orange-500/0 opacity-0 transition-all hover:border-orange-500/30 hover:bg-white/[0.03] hover:text-orange-500/50 hover:opacity-100`}
+          className={`absolute inset-x-1.5 inset-y-1.5 rounded-md border border-dashed ${isDark ? "border-white/[0.06]" : "border-zinc-300"} flex cursor-pointer items-center justify-center bg-transparent text-orange-500/0 opacity-0 transition-all hover:border-orange-500/30 hover:bg-white/[0.03] hover:text-orange-500/50 hover:opacity-100`}
         >
           <Plus className="h-4 w-4" />
         </button>

@@ -19,7 +19,7 @@ export function PlannerCommandBar({
 }: PlannerCommandBarProps) {
   return (
     <div
-      className={`z-20 flex shrink-0 flex-wrap items-center justify-between border-b border-white/5 px-6 py-3 ${isDark ? "bg-[#0a0a0c]/80" : "bg-white/80"} backdrop-blur-md print:hidden`}
+      className={`z-20 flex shrink-0 flex-wrap items-center justify-between border-b border-white/[0.04] px-6 py-3 ${isDark ? "bg-[#0a0a0c]/80" : "bg-white/80"} backdrop-blur-md print:hidden`}
     >
       <div className="flex flex-wrap items-center gap-4">
         <h1 className="flex items-center gap-2 text-sm font-black tracking-tight xl:text-base">
@@ -38,7 +38,7 @@ export function PlannerCommandBar({
                 className={`rounded-md px-2.5 py-1 text-[10px] font-bold transition-all ${
                   filterSituation === situation
                     ? isDark
-                      ? "bg-zinc-800 text-white shadow-sm"
+                      ? "bg-zinc-800/80 text-zinc-200 shadow-sm"
                       : "bg-white text-zinc-900 shadow-sm"
                     : "text-zinc-500 hover:text-zinc-300"
                 }`}
