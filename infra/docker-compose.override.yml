@@ -1,0 +1,35 @@
+# ============================================
+# docker-compose.override.yml — Development overrides
+# Exposes service ports directly for local debugging.
+# Mounts Caddyfile.dev instead of production Caddyfile.
+# Auto-applied by `docker compose up` (no -f flag needed).
+# ============================================
+
+services:
+  caddy:
+    volumes:
+      - ./Caddyfile.dev:/etc/caddy/Caddyfile
+    ports:
+      - "3070:3070"
+      - "3071:3071"
+      - "3072:3072"
+      - "3073:3073"
+      - "80:80"
+
+  stage-engine:
+    environment:
+      - ENGINE_URL=http://localhost:3070
+      - LOG_LEVEL=debug
+
+  shift-mcp:
+    environment:
+      - LOG_LEVEL=debug
+
+  contract-service:
+    environment:
+      - NODE_ENV=development
+      - APP_URL=http://localhost:3050
+
+  scrapling:
+    ports:
+      - "8000:8000"

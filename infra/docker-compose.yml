@@ -1,0 +1,129 @@
+# ============================================
+# docker-compose.yml — Smartout Infrastructure (base)
+# Defines all services on a shared Docker network.
+# Caddy handles HTTPS for external-facing services.
+# Override with docker-compose.override.yml (dev) or
+# docker-compose.prod.yml (production).
+#
+# Build context for Node services: monorepo root (../)
+# Build context for Python services: service directory
+#
+# Connected to: ADR-0035 (Docker Network Infrastructure)
+# ============================================
+
+networks:
+  smartout-internal:
+    driver: bridge
+
+services:
+  # ── Reverse Proxy ─────────────────────────────────────────
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - smartout-internal
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ── Stage Engine (AI agent orchestration) ─────────────────
+  stage-engine:
+    build:
+      context: ../
+      dockerfile: services/stage-engine/Dockerfile
+    environment:
+      - PORT=3000
+      - ENGINE_URL=${ENGINE_URL}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - ULTRAVOX_API_KEY=${ULTRAVOX_API_KEY}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - SESSION_EXPIRY_HOURS=${SESSION_EXPIRY_HOURS:-24}
+      - CLEANUP_INTERVAL_MINUTES=${CLEANUP_INTERVAL_MINUTES:-5}
+    networks:
+      - smartout-internal
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      - caddy
+
+  # ── Shift MCP (schedule management tools for AI) ──────────
+  shift-mcp:
+    build:
+      context: ../
+      dockerfile: services/shift-mcp/Dockerfile
+    environment:
+      - PORT=3001
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    networks:
+      - smartout-internal
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      - caddy
+
+  # ── Contract Service (DocuSeal e-signatures) ──────────────
+  contract-service:
+    build:
+      context: ../
+      dockerfile: services/contract-service/Dockerfile
+    environment:
+      - PORT=3100
+      - SERVICE_KEY=${CONTRACT_SERVICE_KEY}
+      - NODE_ENV=production
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - DOCUSEAL_API_KEY=${DOCUSEAL_API_KEY}
+      - DOCUSEAL_API_URL=${DOCUSEAL_API_URL:-https://api.docuseal.com}
+      - DOCUSEAL_WEBHOOK_SECRET=${DOCUSEAL_WEBHOOK_SECRET}
+      - SMARTOUT_COMPANY_NAME=${SMARTOUT_COMPANY_NAME:-Smartout AS}
+      - SMARTOUT_ORG_NUMBER=${SMARTOUT_ORG_NUMBER:-}
+      - SMARTOUT_CONTACT_EMAIL=${SMARTOUT_CONTACT_EMAIL:-pontus@smartout.io}
+      - APP_URL=${APP_URL:-https://app.smartout.ai}
+    networks:
+      - smartout-internal
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3100/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      - caddy
+
+  # ── Scrapling (web scraping — internal only) ──────────────
+  scrapling:
+    build:
+      context: ../services/scrapling
+      dockerfile: Dockerfile
+    environment:
+      - PORT=8000
+    networks:
+      - smartout-internal
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  caddy_data:
+  caddy_config:
