@@ -1,3 +1,4 @@
+#!/bin/sh
 # ============================================================
 # PRE-COMMIT HOOK — Security Protocol Enforcement
 # Source of truth: docs/protocols/SECURITY.md
