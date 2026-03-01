@@ -37,7 +37,7 @@ import {
 
 import type { Shift } from "./schedule-types";
 import { useScheduleUI } from "./schedule-ui-context";
-import { useShifts, usePublishShifts, useUnpublishShifts } from "../_hooks/use-shifts";
+import { useShifts, usePublishShifts, useUnpublishShifts, usePasteDay } from "../_hooks/use-shifts";
 import { useWeekRange } from "../_hooks/use-week-range";
 import { SaveTemplateDialog } from "./save-template-dialog";
 import { LoadTemplateSheet } from "./load-template-sheet";
@@ -69,12 +69,14 @@ export function DayContextMenu({ dateId, dateLabel, isDark }: DayContextMenuProp
     toggleDaySelection,
     setCreateShiftContext,
     setSelectedDay,
+    setClipboard,
     copyDay,
   } = useScheduleUI();
   const { weekStart, weekEnd } = useWeekRange();
   const { data: shifts = [] as Shift[] } = useShifts(weekStart, weekEnd);
   const publishShifts = usePublishShifts(weekStart);
   const unpublishShifts = useUnpublishShifts(weekStart);
+  const pasteDay = usePasteDay(weekStart);
 
   // Local dialog/sheet state
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
@@ -164,9 +166,14 @@ export function DayContextMenu({ dateId, dateLabel, isDark }: DayContextMenuProp
           </DropdownMenuItem>
 
           <DropdownMenuItem
-            disabled={!hasClipboard}
+            disabled={!hasClipboard || pasteDay.isPending}
             onClick={() => {
-              // TODO: Paste day via mutations (requires creating shifts from clipboard)
+              if (clipboard) {
+                pasteDay.mutate(
+                  { targetDateId: dateId, shifts: clipboard.shifts },
+                  { onSuccess: () => setClipboard(null) },
+                );
+              }
             }}
           >
             <ClipboardPaste className="mr-2 h-4 w-4" />

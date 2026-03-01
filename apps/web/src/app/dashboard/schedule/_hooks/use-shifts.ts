@@ -326,6 +326,75 @@ export function usePublishShifts(weekStart: string) {
 }
 
 // ══════════════════════════════════════════════════════════════
+// Mutation: Paste day (batch insert shifts from clipboard)
+// ══════════════════════════════════════════════════════════════
+
+type PasteDayInput = {
+  targetDateId: string;
+  shifts: Omit<Shift, "id" | "dateId" | "createdAt" | "updatedAt">[];
+};
+
+export function usePasteDay(weekStart: string) {
+  const queryClient = useQueryClient();
+  const { workspace } = useWorkspace();
+  const workspaceId = workspace.workspace_id;
+  const queryKey = scheduleKeys.shifts(workspaceId, weekStart);
+
+  return useMutation({
+    mutationFn: async ({ targetDateId, shifts }: PasteDayInput) => {
+      const supabase = createClient();
+
+      const inserts = shifts.map((shift) =>
+        toDbShiftInsert(
+          {
+            ...shift,
+            id: crypto.randomUUID(),
+            dateId: targetDateId,
+          },
+          workspaceId,
+        ),
+      );
+
+      const { data, error } = await supabase.from("schedule_shift").insert(inserts).select();
+
+      if (error) throw error;
+
+      return data.map(fromDbShift);
+    },
+
+    onMutate: async ({ targetDateId, shifts }: PasteDayInput) => {
+      await queryClient.cancelQueries({ queryKey });
+
+      const previous = queryClient.getQueryData<Shift[]>(queryKey);
+
+      const optimisticShifts: Shift[] = shifts.map((s, i) => ({
+        ...s,
+        id: `paste_${Date.now()}_${i}`,
+        dateId: targetDateId,
+        time: `${s.startTime} - ${s.endTime}`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }));
+
+      queryClient.setQueryData<Shift[]>(queryKey, (old) => [...(old ?? []), ...optimisticShifts]);
+
+      return { previous };
+    },
+
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKey, context.previous);
+      }
+      toast.error("Kunne ikke lime inn vakter");
+    },
+
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey });
+    },
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
 // Mutation: Batch unpublish shifts
 // ══════════════════════════════════════════════════════════════
 

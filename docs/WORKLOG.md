@@ -30,7 +30,7 @@ tags: [schedule, ui, persistence, realtime, tanstack-query, audit-log]
 ## Remaining
 
 - [ ] Replace dummyEmployees with profile query (schedule-data.ts still provides employee grid data)
-- [ ] Paste-day operation (batch shift creation from clipboard — left as TODO)
+- [x] Paste-day operation (batch shift creation from clipboard — usePasteDay hook)
 - [ ] schedule-toasts.tsx cleanup (deprecated, mutations handle own toasts)
 
 ## Decisions
@@ -56,3 +56,4 @@ tags: [schedule, ui, persistence, realtime, tanstack-query, audit-log]
 | 2026-03-01 | —    | Task 10: All 15 components migrated                                       |
 | 2026-03-01 | —    | Task 11: Deleted schedule-context.tsx, fixed 40 type errors               |
 | 2026-03-01 | —    | Task 12: Verification passed, ADR-0037 written                            |
+| 2026-03-01 | —    | Paste-day: usePasteDay hook + wired into day-context-menu.tsx             |
