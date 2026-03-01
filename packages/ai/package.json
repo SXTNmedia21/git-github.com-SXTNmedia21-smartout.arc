@@ -72,6 +72,10 @@
     "./agents/journey": {
       "types": "./dist/agents/journey.d.ts",
       "default": "./dist/agents/journey.js"
+    },
+    "./agents/schedule": {
+      "types": "./dist/agents/schedule.d.ts",
+      "default": "./dist/agents/schedule.js"
     }
   },
   "scripts": {
@@ -81,6 +85,7 @@
     "clean": "rimraf dist .turbo"
   },
   "dependencies": {
+    "@ai-sdk/mcp": "^1.0.8",
     "@openrouter/ai-sdk-provider": "^2.2.3",
     "@smartout/supabase": "workspace:*",
     "@smartout/types": "workspace:*",

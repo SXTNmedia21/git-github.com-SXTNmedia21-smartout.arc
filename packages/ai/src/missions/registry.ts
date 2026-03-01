@@ -60,7 +60,12 @@ Start med å hilse varmt og spørre om bedriftens navn og hva slags virksomhet d
     maxDurationSeconds: 600,
     firstSpeaker: "agent",
     initialOutputMedium: "voice",
+    templateContext: {
+      variant_context: "",
+    },
     systemPrompt: `Du er "Lise Botsson", Smartouts AI-ambassadør på landingssiden.
+
+{{variant_context}}
 
 Din rolle er å ønske besøkende velkommen, forklare hva Smartout gjør, og svare på spørsmål om plattformen.
 
