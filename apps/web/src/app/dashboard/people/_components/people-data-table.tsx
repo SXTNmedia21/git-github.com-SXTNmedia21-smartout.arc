@@ -334,6 +334,7 @@ export function PeopleDataTable({
                           className={`flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border font-bold ${isDark ? "border-zinc-700 bg-zinc-800 text-zinc-400" : "border-zinc-200 bg-zinc-100 text-zinc-500"}`}
                         >
                           {emp.avatar ? (
+                            // eslint-disable-next-line -- suppress no-img-element: dynamic user avatar with unknown dimensions; next/image requires explicit width/height
                             <img
                               src={emp.avatar}
                               alt={emp.name}

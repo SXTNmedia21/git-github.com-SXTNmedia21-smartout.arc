@@ -2,7 +2,24 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
+**Status:** Partially implemented — core routing done, missing test key seed and tunnel docs.
+
+**Last verified:** 2026-03-01
+
 **Goal:** Wire the landing page voice agent through the local stage-engine (Docker) and test the full end-to-end flow: landing page → stage-engine → Ultravox → voice call with tools.
+
+## Implementation Status
+
+| Component                        | Status     | Notes                                                |
+| -------------------------------- | ---------- | ---------------------------------------------------- |
+| Landing voice component          | ✅ Done    | `apps/landing/src/components/voice-assistant.tsx`    |
+| `/api/wizard/start` route        | ✅ Done    | Direct Ultravox route                                |
+| `/api/wizard/engine-start` route | ✅ Done    | Stage Engine proxy route                             |
+| Platform admin tracking          | ✅ Done    | `landing_event` table + tracking route               |
+| Test API key seeded              | ❌ Missing | `platform_api_key` table has no test key in seed.sql |
+| Tunnel/ngrok documentation       | ❌ Missing | No dev setup docs for Ultravox callback              |
+
+---
 
 **Architecture:** Landing page `/api/wizard/start` calls stage-engine `/adapters/ultravox/create-call` instead of Ultravox directly. Stage-engine creates a session, builds Ultravox tools (store/fetch/advance) pointing back to itself via a public tunnel, then calls Ultravox API. Ultravox returns a joinUrl that the browser joins via WebRTC.
 

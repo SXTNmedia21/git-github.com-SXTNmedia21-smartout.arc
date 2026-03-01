@@ -134,7 +134,7 @@ function calculateWorkHours(startTime: string, endTime: string, breakMinutes: nu
   const [startH, startM] = startTime.split(":").map(Number);
   const [endH, endM] = endTime.split(":").map(Number);
 
-  let startTotal = (startH ?? 0) * 60 + (startM ?? 0);
+  const startTotal = (startH ?? 0) * 60 + (startM ?? 0);
   let endTotal = (endH ?? 0) * 60 + (endM ?? 0);
 
   // Handle overnight shifts

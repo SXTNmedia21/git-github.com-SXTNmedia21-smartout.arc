@@ -243,6 +243,7 @@ export default function ScrapeTestPage() {
                         key={i}
                         className="group relative flex aspect-square items-center justify-center overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900"
                       >
+                        {/* eslint-disable-next-line -- suppress no-img-element: dynamic user content with unknown dimensions from external scraped URLs */}
                         <img
                           src={img.src}
                           alt={img.alt || "Scraped image"}

@@ -17,7 +17,6 @@ import {
   JourneyModuleEnum,
   JourneyEventTypeEnum,
   JourneyTestResultEnum,
-  JourneyPhaseEnum,
   WizardSessionStatusEnum,
   WizardPhaseEnum,
 } from "./enums";

@@ -7,7 +7,6 @@ import {
   Network,
   Plus,
   Clock,
-  CheckCircle2,
   AlertCircle,
   PanelLeftClose,
   PanelLeftOpen,
@@ -17,6 +16,7 @@ import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import {
   DndContext,
   type CollisionDetection,
+  type DragEndEvent,
   KeyboardSensor,
   PointerSensor,
   pointerWithin,
@@ -35,12 +35,7 @@ import { ShiftCard, OpenShiftCard, TemplateCard, AbsenceCard } from "./_componen
 import type { ShiftTemplate } from "./_components/schedule-types";
 import { ScheduleDragOverlay } from "./_components/schedule-drag-overlay";
 import { DailyBriefingPanel } from "./_components/daily-briefing";
-import {
-  dummyEmployees,
-  dummyDays,
-  dailyShifts,
-  openShiftItems,
-} from "./_components/schedule-data";
+import { dummyEmployees, dummyDays, dailyShifts } from "./_components/schedule-data";
 import { ScheduleProvider, useSchedule } from "./_components/schedule-context";
 import { OpenShiftDialog } from "./_components/open-shift-dialog";
 import { CreateTemplateDialog } from "./_components/create-template-dialog";
@@ -113,7 +108,7 @@ function SchedulePageInner() {
    * and dispatches the appropriate action based on drag source type.
    * Uses dispatchWithToast so DnD actions get toast feedback.
    */
-  const handleDragEnd = (event: import("@dnd-kit/core").DragEndEvent) => {
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over) return;
 
@@ -146,7 +141,7 @@ function SchedulePageInner() {
     } else if (cellMatch && sourceType === "shift-template") {
       // Template dropped on employee cell → create shift from template
       const templateId = active.data.current?.templateId as string | undefined;
-      const [, _employeeId, dateId] = cellMatch;
+      const [, , dateId] = cellMatch;
       if (templateId && dateId) {
         dispatchWithToast({
           type: "LOAD_TEMPLATE",
@@ -230,8 +225,6 @@ function SchedulePageInner() {
                   )}
                   {scheduleLayout === "monthly" && (
                     <MonthlyGridContent
-                      isSidebarOpen={isSidebarOpen}
-                      setIsSidebarOpen={setIsSidebarOpen}
                       onDateClick={setSelectedDate}
                       filterSituation={filterSituation}
                     />
@@ -274,20 +267,22 @@ function ScheduleSidebar({
   setSidebarMode: (m: "open" | "templates") => void;
 }) {
   const { state } = useSchedule();
+  const templates = state.templates;
+  const openShifts = state.openShifts;
   const [openShiftDialogOpen, setOpenShiftDialogOpen] = React.useState(false);
   const [createTemplateOpen, setCreateTemplateOpen] = React.useState(false);
   const [editingTemplate, setEditingTemplate] = React.useState<ShiftTemplate | null>(null);
 
   // Group templates by department
   const templatesByDept = React.useMemo(() => {
-    const map = new Map<string, typeof state.templates>();
-    for (const t of state.templates) {
+    const map = new Map<string, typeof templates>();
+    for (const t of templates) {
       const existing = map.get(t.department) ?? [];
       existing.push(t);
       map.set(t.department, existing);
     }
     return map;
-  }, [state.templates]);
+  }, [templates]);
 
   return (
     <aside
@@ -326,10 +321,10 @@ function ScheduleSidebar({
               </button>
             </div>
             <div className="space-y-3">
-              {state.openShifts.map((shift) => (
+              {openShifts.map((shift) => (
                 <OpenShiftCard key={shift.id} id={shift.id} title={shift.title} time={shift.time} />
               ))}
-              {state.openShifts.length === 0 && (
+              {openShifts.length === 0 && (
                 <p className="text-center text-xs text-zinc-500">Ingen åpne vakter</p>
               )}
             </div>
@@ -702,13 +697,9 @@ function WeeklyEmptyCell({ onClick }: { onClick?: () => void }) {
 // MONTHLY HEATMAP (Strategic View)
 // ═══════════════════════════════════════════════════════════════════════════
 function MonthlyGridContent({
-  isSidebarOpen,
-  setIsSidebarOpen,
   onDateClick,
   filterSituation,
 }: {
-  isSidebarOpen: boolean;
-  setIsSidebarOpen: (v: boolean) => void;
   onDateClick?: (d: string) => void;
   filterSituation: string;
 }) {
@@ -1007,7 +998,7 @@ function HeatmapCell({
 // ═══════════════════════════════════════════════════════════════════════════
 function ListGridContent({ onDateClick }: { onDateClick: (d: string) => void }) {
   const { isDark } = useContext(DashboardContext);
-  const { state, computed } = useSchedule();
+  const { computed } = useSchedule();
 
   return (
     <div

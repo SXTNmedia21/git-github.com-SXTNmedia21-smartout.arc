@@ -145,6 +145,7 @@ function OnboardingContent() {
         handleStartCrawling(undefined, urlParam);
       }, 100);
     }
+    // eslint-disable-next-line -- suppress exhaustive-deps: handleStartCrawling excluded; ref guard ensures single execution
   }, [searchParams, step]);
 
   const handleStartCrawling = async (e?: React.FormEvent, overrideUrl?: string) => {

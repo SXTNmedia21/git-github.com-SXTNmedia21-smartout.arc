@@ -60,6 +60,7 @@ export function EmployeeProfileCard({ employee, isOpen, onClose }: EmployeeProfi
               className={`relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-4 text-2xl font-bold shadow-xl ${isDark ? "border-[#0a0a0c] bg-zinc-800 text-zinc-300" : "border-white bg-zinc-100 text-zinc-600"}`}
             >
               {employee.avatar ? (
+                // eslint-disable-next-line -- suppress no-img-element: dynamic user avatar with unknown dimensions; next/image requires explicit width/height
                 <img
                   src={employee.avatar}
                   alt={employee.name}

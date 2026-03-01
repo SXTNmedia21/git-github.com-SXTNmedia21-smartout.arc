@@ -133,6 +133,7 @@ export default function VoiceAssistant({
       clearTimeout(timer);
       endSession();
     };
+    // eslint-disable-next-line -- suppress exhaustive-deps: only fire on autoStart change
   }, [autoStart]);
 
   const isConnected = ["listening", "thinking", "speaking"].includes(status);

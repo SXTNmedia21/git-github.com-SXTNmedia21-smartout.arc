@@ -80,10 +80,9 @@ export function useDemoJourney(config: JourneyConfig): DemoJourneyState & DemoJo
 
   /**
    * Internal: advance to the next sequential step.
-   * Declared before playStep to avoid accessing it before declaration.
    * Calls playStep via playStepRef to avoid a circular useCallback dependency.
    */
-  function advanceToNextStep() {
+  const advanceToNextStep = useCallback(() => {
     setCurrentStepIndex((prev) => {
       const next = prev + 1;
       if (next < config.steps.length) {
@@ -92,7 +91,7 @@ export function useDemoJourney(config: JourneyConfig): DemoJourneyState & DemoJo
       }
       return prev;
     });
-  }
+  }, [config.steps]);
 
   /**
    * Plays a step: shows typing indicator, then reveals the
@@ -134,11 +133,14 @@ export function useDemoJourney(config: JourneyConfig): DemoJourneyState & DemoJo
         }
       }, delay);
     },
-    [config.steps],
+    [advanceToNextStep],
   );
 
-  // Keep the ref in sync so advanceToNextStep always calls the latest playStep
-  playStepRef.current = playStep;
+  // Keep the ref in sync so advanceToNextStep always calls the latest playStep.
+  // Must be in useEffect — refs cannot be updated during render in React 19.
+  useEffect(() => {
+    playStepRef.current = playStep;
+  }, [playStep]);
 
   /**
    * Advance to the next sequential step or to a specific step by ID.
@@ -155,7 +157,7 @@ export function useDemoJourney(config: JourneyConfig): DemoJourneyState & DemoJo
         advanceToNextStep();
       }
     },
-    [config.steps, playStep],
+    [config.steps, playStep, advanceToNextStep],
   );
 
   /** Handle quick reply — add user message, then advance */
@@ -217,7 +219,7 @@ export function useDemoJourney(config: JourneyConfig): DemoJourneyState & DemoJo
       if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
       if (autoAdvanceTimerRef.current) clearTimeout(autoAdvanceTimerRef.current);
     };
-  }, [config, playStep]);
+  }, [config, playStep, currentStepIndex]);
 
   const currentStep = config.steps[Math.max(0, currentStepIndex)];
   const isComplete = currentStepIndex >= config.steps.length - 1 && !isTyping;

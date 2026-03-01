@@ -16,7 +16,7 @@ import { useDroppable } from "@dnd-kit/core";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { ShiftCard, AbsenceCard } from "./grid-cards";
 import { dummyEmployees, dummyDays, type Employee, type DayColumn } from "./schedule-data";
-import { useSchedule } from "./schedule-context";
+import { useSchedule, type ScheduleAction } from "./schedule-context";
 import { DayContextMenu } from "./day-context-menu";
 import type { Shift as ScheduleShift, Absence } from "./schedule-types";
 
@@ -35,7 +35,7 @@ export function GridContent({
   filterSituation?: string;
 }) {
   const { isDark, scheduleView } = useContext(DashboardContext);
-  const { state, dispatch, computed } = useSchedule();
+  const { state, dispatch } = useSchedule();
 
   const visibleDays = React.useMemo(
     () =>
@@ -348,7 +348,7 @@ export const EmployeeRow = React.memo(function EmployeeRow({
   days: DayColumn[];
   shiftsByEmployeeDay: Map<string, ScheduleShift[]>;
   absencesByEmployeeDay: Map<string, Absence[]>;
-  dispatch: React.Dispatch<import("./schedule-context").ScheduleAction>;
+  dispatch: React.Dispatch<ScheduleAction>;
 }) {
   const { isDark } = useContext(DashboardContext);
   const scheduledHours = parseFloat(employee.hours) || 0;

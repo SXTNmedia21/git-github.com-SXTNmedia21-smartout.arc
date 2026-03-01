@@ -146,6 +146,7 @@ export default function VoiceAssistant({
     return () => {
       endSession();
     };
+    // eslint-disable-next-line -- suppress exhaustive-deps: startSession/endSession excluded; only fire on autoStart change
   }, [autoStart]);
 
   const isConnected = ["listening", "thinking", "speaking"].includes(status);

@@ -78,7 +78,7 @@ export function CreateTemplateDialog({ open, onOpenChange }: CreateTemplateDialo
   const calculateWorkHours = (startTime: string, endTime: string): number => {
     const startParts = startTime.split(":").map(Number);
     const endParts = endTime.split(":").map(Number);
-    let startMinutes = (startParts[0] ?? 0) * 60 + (startParts[1] ?? 0);
+    const startMinutes = (startParts[0] ?? 0) * 60 + (startParts[1] ?? 0);
     let endMinutes = (endParts[0] ?? 0) * 60 + (endParts[1] ?? 0);
     if (endMinutes <= startMinutes) endMinutes += 24 * 60;
     return Math.max(0, (endMinutes - startMinutes) / 60);

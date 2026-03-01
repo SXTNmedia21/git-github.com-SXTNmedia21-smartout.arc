@@ -223,6 +223,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       sidebarStateBeforeAutoCollapse.current = null;
     }
     prevIsSchedule.current = isSchedulePage;
+    // eslint-disable-next-line -- suppress exhaustive-deps: isSidebarCollapsed excluded; this effect sets it, adding it would cause infinite loop
   }, [isSchedulePage]);
 
   // Helper to determine if a link is active

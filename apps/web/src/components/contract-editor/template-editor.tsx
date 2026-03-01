@@ -5,7 +5,6 @@ import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import TiptapPlaceholder from "@tiptap/extension-placeholder";
 import { useState, useCallback, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { ArrowLeft, Save, Loader2, Upload } from "lucide-react";
 import Link from "next/link";
 
@@ -48,8 +47,6 @@ type TemplateEditorProps = {
 };
 
 export function TemplateEditor({ templateId, initialData, onSave }: TemplateEditorProps) {
-  const router = useRouter();
-
   // Core state
   const [name, setName] = useState(initialData.name);
   const [contractType, setContractType] = useState(initialData.contract_type);

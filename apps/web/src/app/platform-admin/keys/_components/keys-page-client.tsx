@@ -390,6 +390,7 @@ export function KeysPageClient() {
         enableSorting: false,
       },
     ],
+    // eslint-disable-next-line -- suppress exhaustive-deps: handleRevoke/handleRotate are stable, don't need to trigger column re-creation
     [],
   );
 
