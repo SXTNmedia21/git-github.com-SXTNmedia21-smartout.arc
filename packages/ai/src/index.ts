@@ -33,6 +33,14 @@ export type { DocToolContext } from "./tools/docs";
 // Embedding
 export { getQueryEmbedding } from "./embedding";
 
+// Journey output generators
+export {
+  generateE2ETest,
+  generateOnboardingDoc,
+  generateLinearSpec,
+  generateBotssonScript,
+} from "./generators";
+
 // Agents — import via subpath: @smartout/ai/agents/onboarding, @smartout/ai/agents/docs, @smartout/ai/agents/contract, @smartout/ai/agents/reports
 // (not re-exported from barrel to avoid pulling heavy deps into unrelated routes)
 
