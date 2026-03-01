@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { Loader2 } from "lucide-react";
 import { useOnboardingWizard } from "./hooks/useOnboardingWizard";
 import { WizardProvider } from "./WizardContext";
+import { StepProgress } from "./StepProgress";
 import type { WizardStep } from "./types";
 
 // Step components
@@ -55,8 +56,11 @@ function OnboardingContent() {
           <div className="absolute bottom-0 left-1/4 h-[800px] w-[800px] translate-y-1/2 rounded-full bg-purple-600/10 blur-[120px]" />
         </div>
 
-        <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-col justify-center px-6 py-12">
-          <StepComponent />
+        <div className="relative z-10 flex w-full flex-col items-center">
+          <StepProgress currentStep={wizard.step} />
+          <div className="mx-auto flex w-full max-w-5xl flex-col justify-center px-6 py-12">
+            <StepComponent />
+          </div>
         </div>
       </div>
     </WizardProvider>

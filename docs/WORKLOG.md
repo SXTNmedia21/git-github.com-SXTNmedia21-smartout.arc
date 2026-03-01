@@ -32,6 +32,7 @@ tags: [wizard, refactor, steps, progressive-save]
 ## Remaining
 
 - [ ] Manual E2E verification (requires local Supabase + migration apply)
+- [ ] Onboarding polish: remaining tasks from completion plan
 
 ## Decisions
 
@@ -44,15 +45,22 @@ tags: [wizard, refactor, steps, progressive-save]
 
 ## Log
 
-| Date       | Time          | Event                                                                                                 |
-| ---------- | ------------- | ----------------------------------------------------------------------------------------------------- |
-| 2026-03-01 | session start | Started onboarding wizard refactor on feat/onboarding-wizard branch (wt-3)                            |
-| 2026-03-01 | -             | Created types.ts, useOnboardingWizard.ts, WizardContext.tsx                                           |
-| 2026-03-01 | -             | Extracted all 15 step components + 4 drawers from 1,882-line monolith                                 |
-| 2026-03-01 | -             | Created new AuthStep and InviteStep components                                                        |
-| 2026-03-01 | -             | Replaced page.tsx with shell, typecheck passes                                                        |
-| 2026-03-01 | -             | Created DB migration: invitation_sms_support (phone, invite_type, relaxed constraints)                |
-| 2026-03-01 | -             | Updated create-invitation Edge Function: single + batch mode, SendGrid email, Twilio SMS              |
-| 2026-03-01 | -             | Full typecheck (0 errors), lint (0 errors, 11 pre-existing warnings)                                  |
-| 2026-03-01 | -             | Created docs/journeys/trainee-mode-core.md — Trainee Mode & Core Journey user journey                 |
-| 2026-03-01 | -             | Created docs/journeys/admin-workspace-setup.md — Admin Workspace Setup Wizard user journey (15 steps) |
+| Date       | Time          | Event                                                                                                                                         |
+| ---------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-03-01 | session start | Started onboarding wizard refactor on feat/onboarding-wizard branch (wt-3)                                                                    |
+| 2026-03-01 | -             | Created types.ts, useOnboardingWizard.ts, WizardContext.tsx                                                                                   |
+| 2026-03-01 | -             | Extracted all 15 step components + 4 drawers from 1,882-line monolith                                                                         |
+| 2026-03-01 | -             | Created new AuthStep and InviteStep components                                                                                                |
+| 2026-03-01 | -             | Replaced page.tsx with shell, typecheck passes                                                                                                |
+| 2026-03-01 | -             | Created DB migration: invitation_sms_support (phone, invite_type, relaxed constraints)                                                        |
+| 2026-03-01 | -             | Updated create-invitation Edge Function: single + batch mode, SendGrid email, Twilio SMS                                                      |
+| 2026-03-01 | -             | Full typecheck (0 errors), lint (0 errors, 11 pre-existing warnings)                                                                          |
+| 2026-03-01 | -             | Created docs/journeys/trainee-mode-core.md — Trainee Mode & Core Journey user journey                                                         |
+| 2026-03-01 | -             | Created docs/journeys/admin-workspace-setup.md — Admin Workspace Setup Wizard user journey (15 steps)                                         |
+| 2026-03-01 | -             | Polish Task 1: Added StepProgress bar component to wizard shell (11 visible steps, progress bar + step counter)                               |
+| 2026-03-01 | -             | Polish Task 2: Added keyboard handlers (Escape to close) and ARIA attributes (role=dialog, aria-modal, aria-label) to all 4 drawer components |
+| 2026-03-01 | -             | Polish Task 6: Updated CLAUDE.md — onboarding dir in monorepo structure + changelog v7.9.0                                                    |
+| 2026-03-01 | -             | Polish Task 7: Updated docs/INDEX.md — 4 plan entries + User Journeys section with 3 journey docs                                             |
+| 2026-03-01 | -             | Polish Task 8: Created ADR-0041 (Onboarding Wizard Step Architecture) + registered in decision log                                            |
+| 2026-03-01 | -             | Polish Task 3: Fixed dashboard.spec.ts — replaced `text=Operations` selector with `main` to avoid Playwright strict mode violation            |
+| 2026-03-01 | -             | Polish Task 4: Expanded auth.spec.ts — added "should show login form elements" and "should show all signup form fields" test cases            |

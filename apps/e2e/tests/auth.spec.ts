@@ -9,6 +9,15 @@ test.describe("Authentication Flow", () => {
     });
   });
 
+  test("should show login form elements", async ({ page }) => {
+    await page.goto("/login");
+    await expect(
+      page.locator('input[type="email"]').or(page.locator('input[name="email"]')),
+    ).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('input[type="password"]')).toBeVisible();
+    await expect(page.locator('button[type="submit"]')).toBeVisible();
+  });
+
   // Adding actual authentication testing would require a test user or bypass
   // so keeping it simple for now verifying the UI loads.
 });
@@ -19,6 +28,14 @@ test.describe("Signup Page", () => {
     await expect(page.locator('h2:has-text("Create your account")')).toBeVisible({
       timeout: 10000,
     });
+  });
+
+  test("should show all signup form fields", async ({ page }) => {
+    await page.goto("/signup");
+    await expect(
+      page.locator('input[type="email"]').or(page.locator('input[name="email"]')),
+    ).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('input[type="password"]').first()).toBeVisible();
   });
 
   test("should show password mismatch error", async ({ page }) => {

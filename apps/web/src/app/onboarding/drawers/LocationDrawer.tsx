@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useRef } from "react";
+
 import type { CoreLocation } from "../types";
 
 interface LocationDrawerProps {
@@ -17,10 +19,28 @@ export function LocationDrawer({
   onUpdate,
   onRemove,
 }: LocationDrawerProps) {
+  const firstInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    firstInputRef.current?.focus();
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="animate-in fade-in fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm duration-300">
+    <div
+      role="dialog"
+      aria-modal={true}
+      aria-label="Edit Location"
+      className="animate-in fade-in fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm duration-300"
+    >
       <div className="animate-in slide-in-from-right h-full w-full max-w-sm overflow-y-auto border-l border-white/10 bg-[#111] shadow-2xl duration-300 sm:max-w-md">
         <div className="p-6">
           <div className="mb-6 flex items-center justify-between">
@@ -38,6 +58,7 @@ export function LocationDrawer({
                 Location Name
               </label>
               <input
+                ref={firstInputRef}
                 value={location.name}
                 onChange={(e) => onUpdate({ ...location, name: e.target.value })}
                 className="w-full rounded-xl border border-white/10 bg-black/50 px-4 py-3 text-white transition-colors outline-none focus:border-red-500"

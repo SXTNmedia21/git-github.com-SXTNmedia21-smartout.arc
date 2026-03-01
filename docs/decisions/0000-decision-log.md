@@ -49,3 +49,4 @@ This document serves as the central index of all Architecture Decision Records (
 | ADR-0038 | 01-03-2026 | [Journey Agent & Output Generators](./0038-journey-agent-output-generators.md)                               | **Accepted**               |
 | ADR-0039 | 01-03-2026 | [Infrastructure Consolidation](./0039-infra-consolidation.md)                                                | **Active**                 |
 | ADR-0040 | 01-03-2026 | [Infrastructure stays in monorepo](./0040-infrastructure-in-monorepo.md)                                     | **Accepted**               |
+| ADR-0041 | 01-03-2026 | [Onboarding Wizard Step Architecture](./ADR-0041-onboarding-wizard-step-architecture.md)                     | **Accepted**               |
