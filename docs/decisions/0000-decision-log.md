@@ -41,3 +41,5 @@ This document serves as the central index of all Architecture Decision Records (
 | ADR-0030 | 01-03-2026 | [Documentation System in Landing App (Nextra Removal)](./0030-documentation-in-landing-app.md)               | **Accepted** |
 | ADR-0031 | 01-03-2026 | [Journey Portal System](./0031-journey-portal-system.md)                                                     | **Accepted** |
 | ADR-0032 | 01-03-2026 | [Schedule Page Local State Architecture](./0032-schedule-local-state-architecture.md)                        | **Accepted** |
+| ADR-0033 | 01-03-2026 | [Documentation RAG with pgvector](./0033-documentation-rag-pgvector.md)                                      | **Accepted** |
+| ADR-0034 | 01-03-2026 | [Documentation Enforcement Pipeline](./0034-documentation-enforcement-pipeline.md)                           | **Accepted** |

@@ -1,0 +1,34 @@
+{
+  "name": "@smartout/docs-pipeline",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "docs-pipeline": "./src/index.ts"
+  },
+  "scripts": {
+    "ingest": "tsx src/index.ts ingest",
+    "ingest:force": "tsx src/index.ts ingest --force",
+    "ingest:dry-run": "tsx src/index.ts ingest --dry-run",
+    "validate": "tsx src/index.ts validate",
+    "validate:strict": "tsx src/index.ts validate --strict",
+    "watch": "tsx src/index.ts watch",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf dist .turbo"
+  },
+  "dependencies": {
+    "@openrouter/ai-sdk-provider": "^2.2.3",
+    "@supabase/supabase-js": "2.49.4",
+    "ai": "^6.0.103",
+    "chokidar": "^4.0.3",
+    "commander": "^13.1.0",
+    "fast-glob": "^3.3.3",
+    "gray-matter": "^4.0.3",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@smartout/typescript-config": "workspace:*",
+    "tsx": "^4.19.4",
+    "typescript": "^5"
+  }
+}

@@ -23,6 +23,12 @@
     },
     "clean": {
       "cache": false
+    },
+    "docs:ingest": {
+      "cache": false
+    },
+    "docs:validate": {
+      "cache": false
     }
   }
 }

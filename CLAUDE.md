@@ -42,7 +42,7 @@ smartout_v3/
 ├── apps/web/          → Dashboard (port 3050)
 ├── apps/landing/      → Landing page (port 3055)
 ├── apps/e2e/          → Playwright tests
-├── packages/          → ai, design-tokens, eslint-config, notifications,
+├── packages/          → ai, design-tokens, docs-pipeline, eslint-config, notifications,
 │                        supabase, telemetry, types, typescript-config, ui, utils
 ├── services/          → contract-service (Fastify, port 3100), scrapling (Python)
 ├── supabase/          → migrations, 15 Edge Functions, seed.sql
@@ -136,7 +136,7 @@ smartout_v3/
 ## Modules & ADRs
 
 > 17 modules (1-15, 17-18). Load `docs/modules/MODULE_*.md` BEFORE implementing.
-> 28 ADRs in `docs/decisions/`. Read before making changes in the same area.
+> 32 ADRs in `docs/decisions/`. Read before making changes in the same area.
 > Full lists: `docs/INDEX.md`
 
 **ADR Enforcement:** Create an ADR when adding dependencies, choosing between approaches, changing schema patterns, adding integrations, or modifying build/deploy. Template: `docs/templates/decision.md`. Register in `0000-decision-log.md`.

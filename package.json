@@ -30,6 +30,14 @@
     "api:docs:public": "node scripts/api-docs/build-openapi-profile.mjs --profile public --output docs/reference/openapi.smartout.public.yaml",
     "api:docs:go-live": "node scripts/api-docs/build-openapi-profile.mjs --profile go-live --output docs/reference/openapi.smartout.go-live.yaml",
     "api:docs:verify-go-live": "node scripts/api-docs/build-openapi-profile.mjs --profile go-live --output docs/reference/openapi.smartout.go-live.yaml && git diff --exit-code -- docs/reference/openapi.smartout.go-live.yaml",
+    "docs:ingest": "pnpm --filter @smartout/docs-pipeline ingest",
+    "docs:ingest:force": "pnpm --filter @smartout/docs-pipeline ingest:force",
+    "docs:ingest:dry-run": "pnpm --filter @smartout/docs-pipeline ingest:dry-run",
+    "docs:validate": "pnpm --filter @smartout/docs-pipeline validate",
+    "docs:validate:strict": "pnpm --filter @smartout/docs-pipeline validate:strict",
+    "docs:watch": "pnpm --filter @smartout/docs-pipeline watch",
+    "docs:ingest:git": "pnpm --filter @smartout/docs-pipeline ingest -- --mode git",
+    "docs:ingest:git:main": "pnpm --filter @smartout/docs-pipeline ingest -- --mode git --git-ref origin/main",
     "prepare": "husky"
   },
   "devDependencies": {

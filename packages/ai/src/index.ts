@@ -22,6 +22,13 @@ export type { EditorAction, ContractEditorState, ContractToolContext } from "./t
 export { REPORT_TOOLS } from "./tools/report";
 export type { ReportConfig, ReportToolContext } from "./tools/report";
 
+// Doc retrieval tools (RAG)
+export { DOC_TOOLS, searchPlatformDocs, getDocByPath } from "./tools/docs";
+export type { DocToolContext } from "./tools/docs";
+
+// Embedding
+export { getQueryEmbedding } from "./embedding";
+
 // Agents — import via subpath: @smartout/ai/agents/onboarding, @smartout/ai/agents/docs, @smartout/ai/agents/contract, @smartout/ai/agents/reports
 // (not re-exported from barrel to avoid pulling heavy deps into unrelated routes)
 

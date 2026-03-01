@@ -33,6 +33,14 @@
       "types": "./dist/adapters/vercel-ai.d.ts",
       "default": "./dist/adapters/vercel-ai.js"
     },
+    "./embedding": {
+      "types": "./dist/embedding.d.ts",
+      "default": "./dist/embedding.js"
+    },
+    "./tools/docs": {
+      "types": "./dist/tools/docs.d.ts",
+      "default": "./dist/tools/docs.js"
+    },
     "./adapters/livekit": {
       "types": "./dist/adapters/livekit.d.ts",
       "default": "./dist/adapters/livekit.js"
