@@ -1,6 +1,6 @@
 ---
 title: "Worklog — schedule-ui"
-status: in_progress
+status: done
 updated: 2026-03-01
 created: 2026-03-01
 module: schedule
@@ -11,10 +11,11 @@ tags: [schedule, ui, persistence, realtime]
 
 > Branch: `feat/schedule-ui` | Worktree: wt-2
 
-## Status: 🟡 In Progress
+## Status: ✅ Done
 
 ## Log
 
-| Date       | Time  | Event                         |
-| ---------- | ----- | ----------------------------- |
-| 2026-03-01 | 22:00 | Worklog created retroactively |
+| Date       | Time  | Event                                    |
+| ---------- | ----- | ---------------------------------------- |
+| 2026-03-01 | 22:00 | Worklog created retroactively            |
+| 2026-03-01 | 23:36 | Feature closed and merged to development |
