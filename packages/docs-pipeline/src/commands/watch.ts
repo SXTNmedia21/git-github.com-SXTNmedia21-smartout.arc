@@ -7,6 +7,7 @@
 
 import { watch } from "chokidar";
 import { resolve } from "node:path";
+import { findProjectRoot } from "../utils/root";
 import { runIngest } from "./ingest";
 
 /** Debounce delay in milliseconds to batch rapid file changes */
@@ -20,7 +21,7 @@ const DEBOUNCE_MS = 3000;
  * re-ingesting on every keystroke when editing files.
  */
 export async function runWatch(): Promise<void> {
-  const docsDir = resolve(process.cwd(), "docs");
+  const docsDir = resolve(findProjectRoot(), "docs");
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
   let isIngesting = false;
 

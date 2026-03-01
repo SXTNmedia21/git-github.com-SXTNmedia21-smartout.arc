@@ -11,6 +11,7 @@
 import fg from "fast-glob";
 import { readFile } from "node:fs/promises";
 import { resolve, relative } from "node:path";
+import { findProjectRoot } from "../utils/root";
 import { hashString } from "../utils/hash";
 import { chunkDocument } from "../chunking/chunker";
 import { getServiceClient } from "../db/client";
@@ -44,7 +45,7 @@ export type IngestOptions = {
  * @returns Array of absolute file paths
  */
 async function discoverDocs(): Promise<string[]> {
-  const docsDir = resolve(process.cwd(), "docs");
+  const docsDir = resolve(findProjectRoot(), "docs");
   const patterns = ["**/*.md"];
   const ignore = ["**/archive/**", "**/templates/**", "**/node_modules/**"];
 
@@ -68,7 +69,7 @@ async function discoverDocs(): Promise<string[]> {
  */
 async function discoverChangedDocs(gitRef: string): Promise<string[]> {
   const { execSync } = await import("node:child_process");
-  const cwd = process.cwd();
+  const cwd = findProjectRoot();
 
   // Get list of changed files under docs/
   const output = execSync(`git diff --name-only ${gitRef} -- docs/`, {
@@ -121,7 +122,7 @@ export async function runIngest(options: IngestOptions): Promise<void> {
   }
 
   // Step 2: Hash files and determine what changed
-  const projectRoot = resolve(process.cwd());
+  const projectRoot = resolve(findProjectRoot());
   const fileData: Array<{ path: string; relativePath: string; content: string; hash: string }> = [];
 
   for (const filePath of files) {
