@@ -22,3 +22,4 @@ This document serves as the central index of all Learning Records within the Sma
 | 0011 | 28-02-2026 | [Framer Motion Landing Page Animation Patterns](./0011-framer-motion-landing-animation-patterns.md)                                   | framer-motion, animation, landing, ux       |
 | 0012 | 01-03-2026 | [MCP TypeScript SDK uses single package with deep imports](./0012-mcp-sdk-package-structure.md)                                       | mcp, sdk, npm, imports, ai-agents           |
 | 0013 | 01-03-2026 | [Ultravox HTTP tools: no headers on http object, use staticParameters](./0013-ultravox-http-tool-parameters.md)                       | ultravox, voice-ai, stage-engine, api       |
+| 0014 | 01-03-2026 | [Supabase gen types prints debug line to stdout](./0014-supabase-gen-types-stdout-noise.md)                                           | supabase, types, cli, gotcha                |

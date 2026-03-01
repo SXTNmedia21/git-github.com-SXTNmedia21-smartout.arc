@@ -1,6 +1,6 @@
 ---
 title: "Worklog — schedule-ui"
-status: in_progress
+status: done
 updated: 2026-03-01
 created: 2026-03-01
 module: schedule
@@ -9,7 +9,7 @@ tags: [schedule, ui, persistence, realtime, tanstack-query, audit-log]
 
 # Worklog — schedule-ui
 
-## Status: 🟢 Phase 1 Complete
+## Status: 🟢 Done
 
 ## Done
 
@@ -25,13 +25,13 @@ tags: [schedule, ui, persistence, realtime, tanstack-query, audit-log]
 - [x] Task 9: Refactored page.tsx — ScheduleUIProvider + TanStack Query hooks replace old ScheduleProvider
 - [x] Task 10: Migrated all 15 child components from dispatch() to mutation hooks + useScheduleUI
 - [x] Task 11: Deleted old schedule-context.tsx (1283 lines), fixed all 40 type errors
-- [x] Task 12: Final verification — zero schedule type errors, ADR written
-
-## Remaining
-
+- [x] Task 12: Final verification — zero schedule type errors, ADR-0041 written
 - [x] Replace dummyEmployees with Supabase profile query (use-employees.ts hook)
 - [x] Paste-day operation (batch shift creation from clipboard — usePasteDay hook)
-- [ ] schedule-toasts.tsx cleanup (deprecated, mutations handle own toasts)
+- [x] Removed deprecated schedule-toasts.tsx
+- [x] Learning 0014: supabase gen types stdout noise
+- [x] User journeys documented (17 journeys)
+- [x] Feature closure checklist verified
 
 ## Decisions
 
@@ -55,6 +55,7 @@ tags: [schedule, ui, persistence, realtime, tanstack-query, audit-log]
 | 2026-03-01 | —    | Task 9: page.tsx provider swap                                             |
 | 2026-03-01 | —    | Task 10: All 15 components migrated                                        |
 | 2026-03-01 | —    | Task 11: Deleted schedule-context.tsx, fixed 40 type errors                |
-| 2026-03-01 | —    | Task 12: Verification passed, ADR-0037 written                             |
+| 2026-03-01 | —    | Task 12: Verification passed, ADR-0041 written                             |
 | 2026-03-01 | —    | Paste-day: usePasteDay hook + wired into day-context-menu.tsx              |
 | 2026-03-01 | —    | Replace dummyEmployees with real Supabase profile query (use-employees.ts) |
+| 2026-03-01 | —    | Removed schedule-toasts.tsx, learning 0014, user journeys, feature closure |
