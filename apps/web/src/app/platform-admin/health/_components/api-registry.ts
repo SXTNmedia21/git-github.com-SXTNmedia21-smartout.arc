@@ -8,8 +8,9 @@ export type ApiEndpoint = {
     | "webhook"
     | "system"
     | "contract-service"
-    | "edge-function";
-  service: "web" | "contract-service" | "supabase";
+    | "edge-function"
+    | "public-api";
+  service: "web" | "contract-service" | "supabase" | "workspace-api";
   description: string;
   auth: "public" | "anon" | "authenticated" | "super-admin" | "service-role" | "api-key";
   status: "active" | "planned" | "deprecated";
@@ -551,6 +552,71 @@ export const apiRegistry: ApiEndpoint[] = [
     auth: "api-key",
     status: "active",
   },
+
+  // ── Public API (workspace-api Edge Function) ──
+  {
+    path: "/functions/v1/workspace-api/v1/profiles",
+    method: "GET",
+    category: "public-api",
+    service: "workspace-api",
+    description: "List employees in workspace",
+    auth: "api-key",
+    status: "active",
+  },
+  {
+    path: "/functions/v1/workspace-api/v1/departments",
+    method: "GET",
+    category: "public-api",
+    service: "workspace-api",
+    description: "List departments",
+    auth: "api-key",
+    status: "active",
+  },
+  {
+    path: "/functions/v1/workspace-api/v1/teams",
+    method: "GET",
+    category: "public-api",
+    service: "workspace-api",
+    description: "List teams",
+    auth: "api-key",
+    status: "active",
+  },
+  {
+    path: "/functions/v1/workspace-api/v1/locations",
+    method: "GET",
+    category: "public-api",
+    service: "workspace-api",
+    description: "List locations",
+    auth: "api-key",
+    status: "active",
+  },
+  {
+    path: "/functions/v1/workspace-api/v1/protocols",
+    method: "GET",
+    category: "public-api",
+    service: "workspace-api",
+    description: "List training protocols",
+    auth: "api-key",
+    status: "active",
+  },
+  {
+    path: "/functions/v1/workspace-api/v1/assignments",
+    method: "GET",
+    category: "public-api",
+    service: "workspace-api",
+    description: "List protocol assignments",
+    auth: "api-key",
+    status: "active",
+  },
+  {
+    path: "/functions/v1/workspace-api/v1/contracts",
+    method: "GET",
+    category: "public-api",
+    service: "workspace-api",
+    description: "List employment contracts (metadata only)",
+    auth: "api-key",
+    status: "active",
+  },
 ];
 
 export const categoryLabels: Record<ApiEndpoint["category"], string> = {
@@ -561,10 +627,12 @@ export const categoryLabels: Record<ApiEndpoint["category"], string> = {
   system: "System",
   "contract-service": "Contract Service",
   "edge-function": "Edge Function",
+  "public-api": "Public API",
 };
 
 export const serviceLabels: Record<ApiEndpoint["service"], string> = {
   web: "Next.js (web)",
   "contract-service": "Fastify (contract-service)",
   supabase: "Supabase Edge Functions",
+  "workspace-api": "Workspace API (Edge Function)",
 };

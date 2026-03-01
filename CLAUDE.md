@@ -46,7 +46,7 @@ smartout_v3/
 ├── packages/          → ai, design-tokens, eslint-config, notifications,
 │                        supabase, telemetry, types, typescript-config, ui, utils
 ├── services/          → contract-service (Fastify, port 3100), scrapling (Python)
-├── supabase/          → migrations, 14 Edge Functions, seed.sql
+├── supabase/          → migrations, 15 Edge Functions, seed.sql
 ├── agents/            → Pydantic AI agents (Python)
 └── docs/              → INDEX.md + reference/ modules/ architecture/ decisions/ learnings/
 ```
@@ -305,6 +305,7 @@ cd apps/web && npx shadcn@latest add <component>
 
 | Date       | Version | Change                                                                                    | Author |
 | ---------- | ------- | ----------------------------------------------------------------------------------------- | ------ |
+| 2026-03-01 | 7.6.0   | workspace-api gateway: 7 endpoints, usage tracking, env enforcement, 15 Edge Functions    | Claude |
 | 2026-03-01 | 7.5.0   | API Gateway enforcement: mandatory checklists, scope table, service auth, env enforcement | Claude |
 | 2026-03-01 | 7.4.0   | Inline security summary: Three Laws, API key tiers, env vars always in context            | Claude |
 | 2026-03-01 | 7.3.0   | Protocols folder, templates folder, security protocol populated                           | Claude |
