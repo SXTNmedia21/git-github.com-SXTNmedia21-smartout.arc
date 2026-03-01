@@ -76,6 +76,18 @@
     "./agents/schedule": {
       "types": "./dist/agents/schedule.d.ts",
       "default": "./dist/agents/schedule.js"
+    },
+    "./capabilities/types": {
+      "types": "./dist/capabilities/types.d.ts",
+      "default": "./dist/capabilities/types.js"
+    },
+    "./capabilities": {
+      "types": "./dist/capabilities/registry.d.ts",
+      "default": "./dist/capabilities/registry.js"
+    },
+    "./capabilities/profile": {
+      "types": "./dist/capabilities/profile/index.d.ts",
+      "default": "./dist/capabilities/profile/index.js"
     }
   },
   "scripts": {
