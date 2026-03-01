@@ -1,0 +1,46 @@
+# ============================================
+# docker-compose.yml — Stage Engine stack
+# Runs Caddy (HTTPS reverse proxy) + Stage Engine on a shared Docker network.
+# Connected to: Caddyfile (Caddy config)
+# Connected to: Dockerfile (engine build)
+# ============================================
+
+version: "3.8"
+
+networks:
+  smartout-internal:
+    driver: bridge
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - smartout-internal
+    restart: unless-stopped
+
+  stage-engine:
+    build: .
+    environment:
+      - PORT=3000
+      - ENGINE_URL=${ENGINE_URL}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - ULTRAVOX_API_KEY=${ULTRAVOX_API_KEY}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - SESSION_EXPIRY_HOURS=${SESSION_EXPIRY_HOURS:-24}
+      - CLEANUP_INTERVAL_MINUTES=${CLEANUP_INTERVAL_MINUTES:-5}
+    networks:
+      - smartout-internal
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:
