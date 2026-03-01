@@ -22,8 +22,8 @@ tags: []
 - [x] Task 10: Visitor tag dialog + API (Dialog + POST /api/admin/tag-visitor)
 
 ## Remaining
-- [ ] Task 11: Auto-link visitor at signup
-- [ ] Task 12: Update landing event columns for new event types
+- [x] Task 11: Auto-link visitor at signup
+- [x] Task 12: Update landing event columns for new event types
 - [ ] Task 13: Type check + build verification
 - [ ] Task 14: Update documentation
 
@@ -48,3 +48,4 @@ tags: []
 | 2026-03-01 | 23:15 | Task 5: Created FullTracker component, replaced PageTracker in 5 pages (kept in signup) |
 | 2026-03-01 | 23:30 | Task 6+7: Rewrote page.tsx with session data fetches + KPIs; created landing-tabs.tsx, session-columns.tsx, sessions-tab.tsx |
 | 2026-03-01 | 23:45 | Task 8+9+10: Created session-detail.tsx (Sheet panel), session-events API route, visitor-tag-dialog.tsx + tag-visitor API route. Wired into sessions-tab.tsx |
+| 2026-03-01 | 23:55 | Task 11+12: Created signup-visitor-linker.tsx, wired into signup page. Updated landing-columns.tsx with 4 new event types (click, scroll_depth, session_heartbeat, session_end) |

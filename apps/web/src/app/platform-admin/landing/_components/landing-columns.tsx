@@ -31,6 +31,10 @@ const eventColors: Record<string, string> = {
   page_view: "bg-blue-500/10 text-blue-400 border-blue-500/20",
   voice_session_started: "bg-violet-500/10 text-violet-400 border-violet-500/20",
   cta_click: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+  click: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
+  scroll_depth: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+  session_heartbeat: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
+  session_end: "bg-red-500/10 text-red-400 border-red-500/20",
 };
 
 /** Human-readable label for each event type. */
@@ -38,6 +42,10 @@ const eventLabels: Record<string, string> = {
   page_view: "Page View",
   voice_session_started: "Voice Session",
   cta_click: "CTA Click",
+  click: "Click",
+  scroll_depth: "Scroll",
+  session_heartbeat: "Heartbeat",
+  session_end: "Session End",
 };
 
 /**
@@ -50,17 +58,35 @@ function formatDetails(row: LandingEventRow): string {
   const d = row.details;
   if (!d || typeof d !== "object") return "—";
 
-  if (row.event_type === "cta_click" && typeof d.label === "string") {
-    return d.label;
-  }
+  switch (row.event_type) {
+    case "cta_click":
+      return typeof d.label === "string" ? d.label : "—";
 
-  if (row.event_type === "voice_session_started") {
-    const callId = typeof d.callId === "string" ? d.callId.slice(0, 8) + "…" : null;
-    const mission = typeof d.mission === "string" ? d.mission : null;
-    return [mission, callId].filter(Boolean).join(" · ");
-  }
+    case "voice_session_started": {
+      const callId = typeof d.callId === "string" ? d.callId.slice(0, 8) + "…" : null;
+      const mission = typeof d.mission === "string" ? d.mission : null;
+      return [mission, callId].filter(Boolean).join(" · ") || "—";
+    }
 
-  return "—";
+    case "click": {
+      if (typeof d.text === "string" && typeof d.tagName === "string") {
+        return `${d.text} · ${d.tagName}`;
+      }
+      return typeof d.selector === "string" ? d.selector : "—";
+    }
+
+    case "scroll_depth":
+      return typeof d.percent === "number" ? `${d.percent}%` : "—";
+
+    case "session_heartbeat":
+      return typeof d.timeOnPage === "number" ? `${d.timeOnPage}s on page` : "—";
+
+    case "session_end":
+      return typeof d.timeOnPage === "number" ? `${d.timeOnPage}s total` : "—";
+
+    default:
+      return "—";
+  }
 }
 
 export const landingColumns: ColumnDef<LandingEventRow>[] = [
