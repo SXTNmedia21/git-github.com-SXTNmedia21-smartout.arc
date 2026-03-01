@@ -108,6 +108,7 @@ export type ScheduleAction =
     }
   | { type: "LOAD_TEMPLATE"; payload: { templateId: string; targetDateId: string } }
   | { type: "ADD_TEMPLATE"; payload: ShiftTemplate }
+  | { type: "UPDATE_TEMPLATE"; payload: { id: string; changes: Partial<ShiftTemplate> } }
   | { type: "DELETE_TEMPLATE"; payload: { id: string } }
   // Open shifts
   | { type: "ADD_OPEN_SHIFT"; payload: Omit<OpenShift, "id"> }
@@ -123,6 +124,8 @@ export type ScheduleAction =
   | { type: "UPDATE_TASK_STATUS"; payload: { id: string; status: TaskStatus } }
   | { type: "DELETE_TASK"; payload: { id: string } }
   | { type: "ADD_BOOKING"; payload: Omit<DayBooking, "id"> }
+  // Bulk operations
+  | { type: "PUBLISH_ALL_DRAFTS" }
   // UI state
   | { type: "SET_SELECTED_SHIFT"; payload: string | null }
   | { type: "SET_SELECTED_DAY"; payload: string | null }
@@ -343,6 +346,26 @@ function scheduleReducer(state: ScheduleState, action: ScheduleAction): Schedule
       };
     }
 
+    case "PUBLISH_ALL_DRAFTS": {
+      const draftShifts = state.shifts.filter(
+        (s) => s.status === "created" || s.status === "assigned",
+      );
+
+      const historyEntries = draftShifts.map((s) =>
+        createHistoryEntry(s.id, "status_changed", "status", s.status, "published"),
+      );
+
+      return {
+        ...state,
+        shifts: state.shifts.map((s) =>
+          s.status === "created" || s.status === "assigned"
+            ? { ...s, status: "published", isPublished: true, updatedAt: timestamp }
+            : s,
+        ),
+        shiftHistory: [...state.shiftHistory, ...historyEntries],
+      };
+    }
+
     // ── Day operations ────────────────────────────────────
 
     case "COPY_DAY": {
@@ -488,6 +511,14 @@ function scheduleReducer(state: ScheduleState, action: ScheduleAction): Schedule
 
     case "ADD_TEMPLATE":
       return { ...state, templates: [...state.templates, action.payload] };
+
+    case "UPDATE_TEMPLATE": {
+      const { id, changes } = action.payload;
+      return {
+        ...state,
+        templates: state.templates.map((t) => (t.id === id ? { ...t, ...changes } : t)),
+      };
+    }
 
     case "DELETE_TEMPLATE":
       return {
@@ -760,6 +791,7 @@ function buildComputed(state: ScheduleState) {
   const TEAM_TARGETS: Record<string, number> = {
     Kjøkken: 3,
     "Sal & Service": 2,
+    Bar: 2,
     Drift: 1,
   };
 

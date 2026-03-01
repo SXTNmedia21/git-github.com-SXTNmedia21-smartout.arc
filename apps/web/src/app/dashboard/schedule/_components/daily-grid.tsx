@@ -177,7 +177,7 @@ const DayHeaders = React.memo(function DayHeaders({
         className={`w-[200px] shrink-0 border-r border-b border-white/[0.04] xl:w-[250px] ${isDark ? "bg-[#0a0a0c]/95" : "bg-white/95"} sticky left-0 z-50 flex h-24 flex-col justify-between p-4 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)] backdrop-blur-xl xl:h-28`}
       >
         <div className="flex w-full items-center justify-between">
-          <div className="flex items-center gap-1.5 text-[10px] font-bold tracking-widest text-zinc-500 uppercase xl:text-[11px]">
+          <div className="flex items-center gap-1.5 text-[11px] font-bold tracking-widest text-zinc-500 uppercase xl:text-xs">
             <Users className={`h-3.5 w-3.5 ${isDark ? "text-zinc-400" : "text-zinc-600"}`} />
             Grupper
           </div>
@@ -203,75 +203,95 @@ const DayHeaders = React.memo(function DayHeaders({
       </div>
 
       {visibleDays.map((day) => (
-        <div
-          key={day.id}
-          className={`min-w-0 flex-1 border-r border-b border-white/[0.03] ${isDark ? "bg-[#0a0a0c]/90" : "bg-white/95"} group/day flex h-24 cursor-pointer flex-col justify-between p-2 backdrop-blur-xl transition-colors hover:bg-white/5 xl:h-28 ${day.isToday ? "bg-orange-500/[0.06]" : ""}`}
-          onClick={() => onDateClick(day.label)}
-        >
-          {day.coverageAlert ? (
-            <div className="absolute top-0 left-0 h-1 w-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.6)]" />
-          ) : (
-            <div className="absolute top-0 left-0 h-0.5 w-full bg-emerald-500/10" />
-          )}
-
-          <div className="flex items-start justify-between">
-            <h2
-              className={`flex items-center gap-1.5 truncate text-xs tracking-tight sm:text-sm ${day.isToday ? "font-black text-orange-400" : day.isHoliday ? "font-black text-rose-400" : isDark ? "font-semibold text-zinc-400" : "font-semibold text-zinc-700"}`}
-            >
-              {day.label}
-              {day.isToday ? (
-                <span className="h-1 w-1 shrink-0 rounded-full bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.8)]" />
-              ) : null}
-            </h2>
-            {/* Stop propagation so the DayContextMenu doesn't trigger onDateClick */}
-            <div onClick={(e) => e.stopPropagation()}>
-              <DayContextMenu dateId={day.id} dateLabel={day.label} isDark={isDark} />
-            </div>
-          </div>
-
-          <div className="mt-auto flex flex-col gap-1.5">
-            <div className="flex flex-wrap items-center gap-1.5 text-[11px] leading-none font-medium tracking-widest text-zinc-500/70 uppercase xl:gap-2 xl:text-xs">
-              <span className="flex items-center gap-0.5" title="Ansatte">
-                <Users className="h-2.5 w-2.5 xl:h-3 xl:w-3" /> {day.staff}
-              </span>
-              <span className="flex items-center gap-0.5" title="Vakter">
-                <Briefcase className="h-2.5 w-2.5 xl:h-3 xl:w-3" /> {day.shifts}
-              </span>
-              {day.messages !== undefined ? (
-                <span
-                  className={`flex items-center gap-0.5 ${day.messages > 0 ? "text-blue-400/50" : ""}`}
-                  title="Meldinger for dagen"
-                >
-                  <MessageSquare className="h-2.5 w-2.5 xl:h-3 xl:w-3" /> {day.messages}
-                </span>
-              ) : null}
-              {day.tasks ? (
-                <span
-                  className={`flex items-center gap-0.5 ${day.tasks.done < day.tasks.total ? "text-orange-400/50" : "text-zinc-500/70"}`}
-                  title="Oppmøte / Gjøremål"
-                >
-                  <ListTodo className="h-2.5 w-2.5 xl:h-3 xl:w-3" /> {day.tasks.done}/
-                  {day.tasks.total}
-                </span>
-              ) : null}
-            </div>
-            {day.coverageAlert ? (
-              <div className="flex w-fit max-w-full items-center gap-1 rounded border border-red-500/20 bg-red-500/10 px-1 py-0.5 text-[11px] font-bold text-red-500">
-                <AlertCircle className="h-2.5 w-2.5 shrink-0" />{" "}
-                <span className="truncate">{day.coverageAlert}</span>
-              </div>
-            ) : (
-              <div className="flex w-fit max-w-full items-center gap-1 rounded px-1 py-0.5 text-[11px] font-medium text-zinc-600">
-                <CheckCircle2 className="h-2.5 w-2.5 shrink-0 text-zinc-600" />{" "}
-                <span className="truncate">Optimal dekning</span>
-              </div>
-            )}
-          </div>
-        </div>
+        <DroppableDayHeader key={day.id} day={day} isDark={isDark} onDateClick={onDateClick} />
       ))}
     </div>
   );
 });
+
+// ---------------------------------------------------------------------------
+// DroppableDayHeader — single day column header with DnD drop target
+// Extracted so useDroppable can be called per-day (hooks can't be in loops).
+// Drop ID format: "day-header::dateId" — parsed in handleDragEnd.
+// ---------------------------------------------------------------------------
+function DroppableDayHeader({
+  day,
+  isDark,
+  onDateClick,
+}: {
+  day: DayColumn;
+  isDark: boolean;
+  onDateClick: (d: string) => void;
+}) {
+  const { isOver, setNodeRef } = useDroppable({ id: `day-header::${day.id}` });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`min-w-0 flex-1 border-r border-b border-white/[0.03] ${isDark ? "bg-[#0a0a0c]/90" : "bg-white/95"} group/day flex h-24 cursor-pointer flex-col justify-between p-2 backdrop-blur-xl transition-colors hover:bg-white/5 xl:h-28 ${day.isToday ? "bg-orange-500/[0.06]" : ""} ${isOver ? "rounded-lg border-dashed border-orange-500/50 bg-orange-500/20" : ""}`}
+      onClick={() => onDateClick(day.label)}
+    >
+      {day.coverageAlert ? (
+        <div className="absolute top-0 left-0 h-1 w-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.6)]" />
+      ) : (
+        <div className="absolute top-0 left-0 h-0.5 w-full bg-emerald-500/10" />
+      )}
+
+      <div className="flex items-start justify-between">
+        <h2
+          className={`flex items-center gap-1.5 truncate text-xs tracking-tight sm:text-sm ${day.isToday ? "font-black text-orange-400" : day.isHoliday ? "font-black text-rose-400" : isDark ? "font-semibold text-zinc-400" : "font-semibold text-zinc-700"}`}
+        >
+          {day.label}
+          {day.isToday ? (
+            <span className="h-1 w-1 shrink-0 rounded-full bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.8)]" />
+          ) : null}
+        </h2>
+        {/* Stop propagation so the DayContextMenu doesn't trigger onDateClick */}
+        <div onClick={(e) => e.stopPropagation()}>
+          <DayContextMenu dateId={day.id} dateLabel={day.label} isDark={isDark} />
+        </div>
+      </div>
+
+      <div className="mt-auto flex flex-col gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5 text-[11px] leading-none font-medium tracking-widest text-zinc-500/70 uppercase xl:gap-2 xl:text-xs">
+          <span className="flex items-center gap-0.5" title="Ansatte">
+            <Users className="h-2.5 w-2.5 xl:h-3 xl:w-3" /> {day.staff}
+          </span>
+          <span className="flex items-center gap-0.5" title="Vakter">
+            <Briefcase className="h-2.5 w-2.5 xl:h-3 xl:w-3" /> {day.shifts}
+          </span>
+          {day.messages !== undefined ? (
+            <span
+              className={`flex items-center gap-0.5 ${day.messages > 0 ? "text-blue-400/50" : ""}`}
+              title="Meldinger for dagen"
+            >
+              <MessageSquare className="h-2.5 w-2.5 xl:h-3 xl:w-3" /> {day.messages}
+            </span>
+          ) : null}
+          {day.tasks ? (
+            <span
+              className={`flex items-center gap-0.5 ${day.tasks.done < day.tasks.total ? "text-orange-400/50" : "text-zinc-500/70"}`}
+              title="Oppmøte / Gjøremål"
+            >
+              <ListTodo className="h-2.5 w-2.5 xl:h-3 xl:w-3" /> {day.tasks.done}/{day.tasks.total}
+            </span>
+          ) : null}
+        </div>
+        {day.coverageAlert ? (
+          <div className="flex w-fit max-w-full items-center gap-1 rounded border border-red-500/20 bg-red-500/10 px-1 py-0.5 text-[11px] font-bold text-red-500">
+            <AlertCircle className="h-2.5 w-2.5 shrink-0" />{" "}
+            <span className="truncate">{day.coverageAlert}</span>
+          </div>
+        ) : (
+          <div className="flex w-fit max-w-full items-center gap-1 rounded px-1 py-0.5 text-[11px] font-medium text-zinc-600">
+            <CheckCircle2 className="h-2.5 w-2.5 shrink-0 text-zinc-600" />{" "}
+            <span className="truncate">Optimal dekning</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // GroupHeader — team/role divider row (memoized)
@@ -297,7 +317,7 @@ export const GroupHeader = React.memo(function GroupHeader({
           {title}
         </span>
         <span
-          className={`text-[10px] font-medium text-zinc-400 ${isDark ? "bg-white/10" : "bg-zinc-200"} rounded px-1.5 py-0.5`}
+          className={`text-[11px] font-medium text-zinc-400 ${isDark ? "bg-white/10" : "bg-zinc-200"} rounded px-1.5 py-0.5`}
         >
           {count}
         </span>
@@ -348,7 +368,7 @@ export const EmployeeRow = React.memo(function EmployeeRow({
         className={`w-[200px] shrink-0 border-r border-b border-white/[0.04] xl:w-[250px] ${isDark ? "bg-[#0a0a0c]" : "bg-white"} sticky left-0 z-30 flex h-28 items-center gap-2 p-2 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)] transition-colors group-hover/row:bg-white/[0.02]`}
       >
         <div
-          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border text-[9px] font-black ${employee.avatarColor}`}
+          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border text-[10px] font-black ${employee.avatarColor}`}
         >
           {employee.initials}
         </div>
@@ -413,6 +433,13 @@ export const EmployeeRow = React.memo(function EmployeeRow({
                 payload: { dateId: day.id, employeeId: employee.id },
               })
             }
+            onContextMenu={(e) => {
+              e.preventDefault();
+              dispatch({
+                type: "SET_ABSENCE_POPOVER",
+                payload: { employeeId: employee.id, dateId: day.id },
+              });
+            }}
           >
             {hasContent ? (
               <div className="flex h-full w-full flex-col gap-1 pb-1">
@@ -456,12 +483,15 @@ function MatrixCell({
   isToday,
   id,
   onAddClick,
+  onContextMenu,
 }: {
   children?: React.ReactNode;
   isToday?: boolean;
   id?: string;
   /** Called when the "+" button is clicked in an empty cell */
   onAddClick?: () => void;
+  /** Called on right-click to open absence popover */
+  onContextMenu?: (e: React.MouseEvent) => void;
 }) {
   const { isDark } = useContext(DashboardContext);
   const defaultId = React.useId();
@@ -471,6 +501,7 @@ function MatrixCell({
   return (
     <div
       ref={setNodeRef}
+      onContextMenu={onContextMenu}
       className={`min-w-0 flex-1 border-r border-b border-white/[0.03] ${isDark ? "bg-[#050505]" : "bg-zinc-50"}/40 relative flex h-28 flex-col gap-1 overflow-hidden p-1.5 shadow-[inset_0_1px_6px_rgba(0,0,0,0.3)] transition-colors ${isOver ? "z-10 scale-[1.02] rounded-lg border border-dashed border-orange-500/50 bg-orange-500/20" : "group-hover/row:bg-white/[0.02] hover:bg-white/[0.04]"} ${isToday ? "bg-orange-500/[0.06]" : ""}`}
     >
       {children ? (

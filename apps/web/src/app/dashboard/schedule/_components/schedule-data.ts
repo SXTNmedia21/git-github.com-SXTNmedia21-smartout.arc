@@ -109,6 +109,23 @@ export const dummyEmployees: Employee[] = [
   },
 ];
 
+/** Unique roles derived from employee data, for dropdown selects */
+export const AVAILABLE_ROLES = [...new Set(dummyEmployees.map((e) => e.role))];
+
+/** Unique teams derived from employee data, for dropdown selects */
+export const AVAILABLE_TEAMS = [...new Set(dummyEmployees.map((e) => e.team))];
+
+/** Physical zones within the venue, for shift assignment dropdowns */
+export const AVAILABLE_ZONES = [
+  "Hovedkjøkken",
+  "Kaldt kjøkken",
+  "Bar",
+  "Sal 1",
+  "Sal 2",
+  "Uteservering",
+  "Resepsjon",
+];
+
 export const openShiftItems = [
   { id: "open-1", title: "Ekstra Servitør", time: "17:00-23:00" },
   { id: "open-2", title: "Vaskevakt", time: "22:00-02:00" },

@@ -186,7 +186,7 @@ export const AbsenceCard = React.memo(function AbsenceCard({
         </h4>
         {reason ? (
           <p
-            className={`mt-0.5 truncate text-[8px] leading-none font-bold tracking-widest uppercase xl:text-[9px] ${isSick ? "text-rose-500/80" : "text-blue-500/50"}`}
+            className={`mt-0.5 truncate text-[10px] leading-none font-bold tracking-widest uppercase xl:text-[11px] ${isSick ? "text-rose-500/80" : "text-blue-500/50"}`}
           >
             {reason}
           </p>

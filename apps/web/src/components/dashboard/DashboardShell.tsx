@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, createContext, useMemo } from "react";
+import { useState, useRef, useEffect, useCallback, createContext, useMemo } from "react";
 import dynamic from "next/dynamic";
 import type { MissionId } from "@smartout/ai/missions";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
@@ -71,6 +71,18 @@ export const DashboardContext = createContext({
   setWeeklyPeriodCount: (_val: number) => {
     void _val;
   },
+  scheduleDateOffset: 0,
+  setScheduleDateOffset: (_val: number) => {
+    void _val;
+  },
+  onPublishAll: null as (() => void) | null,
+  setOnPublishAll: (_val: (() => void) | null) => {
+    void _val;
+  },
+  scheduleDraftCount: 0,
+  setScheduleDraftCount: (_val: number) => {
+    void _val;
+  },
   workspaceData: null as { workspace_id: string; company_id: string; name: string } | null,
 });
 import Link from "next/link";
@@ -105,6 +117,7 @@ import {
 } from "lucide-react";
 
 import { UserMenu } from "@/components/dashboard/UserMenu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const LazyVoiceAssistant = dynamic(() => import("@/components/voice-assistant"), {
@@ -114,6 +127,9 @@ const LazyVoiceAssistant = dynamic(() => import("@/components/voice-assistant"),
   ),
 });
 
+/** Demo location options for the schedule page location selector */
+const LOCATIONS = ["Alle Lokasjoner", "Hovedrestaurant", "Bar & Lounge", "Uteservering", "Kjøkken"];
+
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [isDark, setIsDark] = useState(true);
   const [isAdminMode, setIsAdminMode] = useState(true);
@@ -121,8 +137,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [scheduleLayout, setScheduleLayout] = useState<ScheduleLayoutMode>("daily");
   const [scheduleView, setScheduleView] = useState<ScheduleViewMode>("ansatt");
   const [activeLocation, setActiveLocation] = useState("Alle Lokasjoner");
+  const [locationMenuOpen, setLocationMenuOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [weeklyPeriodCount, setWeeklyPeriodCount] = useState(4);
+  const [scheduleDateOffset, setScheduleDateOffset] = useState(0);
+  const [onPublishAllRef, setOnPublishAllRef] = useState<(() => void) | null>(null);
+  const [scheduleDraftCount, setScheduleDraftCount] = useState(0);
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const pathname = usePathname();
   const workspaceCtx = useWorkspaceOptional();
@@ -137,6 +157,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         : null,
     [workspaceCtx],
   );
+  /** Stable setter that schedule page calls to register the publish callback */
+  const setOnPublishAll = useCallback((fn: (() => void) | null) => {
+    setOnPublishAllRef(() => fn);
+  }, []);
   const dashboardContextValue = useMemo(
     () => ({
       isAdminMode,
@@ -155,6 +179,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       setIsSidebarCollapsed,
       weeklyPeriodCount,
       setWeeklyPeriodCount,
+      scheduleDateOffset,
+      setScheduleDateOffset,
+      onPublishAll: onPublishAllRef,
+      setOnPublishAll,
+      scheduleDraftCount,
+      setScheduleDraftCount,
       workspaceData,
     }),
     [
@@ -166,6 +196,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       activeLocation,
       isSidebarCollapsed,
       weeklyPeriodCount,
+      scheduleDateOffset,
+      onPublishAllRef,
+      setOnPublishAll,
+      scheduleDraftCount,
       workspaceData,
     ],
   );
@@ -601,10 +635,34 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                       <span className="mb-0.5 block text-[10px] leading-none font-black tracking-widest text-zinc-500 uppercase">
                         Lokasjon
                       </span>
-                      <button className="group flex items-center gap-1.5 text-xs font-bold text-white transition-colors hover:text-orange-400">
-                        {activeLocation}
-                        <ChevronDown className="h-3.5 w-3.5 text-zinc-500 transition-colors group-hover:text-orange-400" />
-                      </button>
+                      <Popover open={locationMenuOpen} onOpenChange={setLocationMenuOpen}>
+                        <PopoverTrigger asChild>
+                          <button className="group flex items-center gap-1.5 text-xs font-bold text-white transition-colors hover:text-orange-400">
+                            {activeLocation}
+                            <ChevronDown
+                              className={`h-3.5 w-3.5 transition-transform ${locationMenuOpen ? "rotate-180" : ""} text-zinc-500 group-hover:text-orange-400`}
+                            />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent align="start" className="w-48 p-1">
+                          {LOCATIONS.map((loc) => (
+                            <button
+                              key={loc}
+                              onClick={() => {
+                                setActiveLocation(loc);
+                                setLocationMenuOpen(false);
+                              }}
+                              className={`w-full rounded-md px-3 py-1.5 text-left text-xs font-medium transition-colors ${
+                                activeLocation === loc
+                                  ? "bg-orange-500/20 text-orange-400"
+                                  : "text-foreground hover:bg-muted"
+                              }`}
+                            >
+                              {loc}
+                            </button>
+                          ))}
+                        </PopoverContent>
+                      </Popover>
                     </div>
                   </div>
 
@@ -655,7 +713,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                       onClick={() => setScheduleLayout("weekly")}
                       className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "weekly" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : isDark ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
                     >
-                      Rullerende ({weeklyPeriodCount})
+                      Rullerende
                     </button>
                     <button
                       onClick={() => setScheduleLayout("monthly")}
@@ -676,13 +734,18 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                     <div
                       className={`hidden items-center gap-0.5 rounded-xl border p-1 shadow-sm md:flex ${isDark ? "border-zinc-800 bg-[#0a0a0c]" : "border-zinc-200 bg-zinc-100"} mr-2`}
                     >
-                      {[3, 4, 5, 6, 8].map((count) => (
+                      {[
+                        { label: "3d", count: 3 },
+                        { label: "1u", count: 7 },
+                        { label: "2u", count: 10 },
+                        { label: "3u", count: 14 },
+                      ].map(({ label, count }) => (
                         <button
-                          key={count}
+                          key={label}
                           onClick={() => setWeeklyPeriodCount(count)}
                           className={`rounded-lg px-2.5 py-1.5 text-xs font-bold tabular-nums transition-all ${weeklyPeriodCount === count ? (isDark ? "bg-zinc-800 text-white shadow-sm" : "bg-white text-zinc-900 shadow-sm") : isDark ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
                         >
-                          {count}
+                          {label}
                         </button>
                       ))}
                     </div>
@@ -693,6 +756,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                     className={`flex items-center gap-2 rounded-xl border p-1 pr-3 ${isDark ? "border-zinc-800 bg-[#0a0a0c]" : "border-zinc-200 bg-zinc-100"} mr-2`}
                   >
                     <button
+                      onClick={() => setScheduleDateOffset((prev) => prev - 1)}
                       className={`rounded-md p-1.5 transition-colors ${isDark ? "text-zinc-400 hover:bg-zinc-800 hover:text-white" : "text-zinc-500 hover:bg-zinc-200 hover:text-zinc-900"}`}
                     >
                       <ChevronLeft className="h-3.5 w-3.5" />
@@ -700,21 +764,61 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                     <span
                       className={`text-[13px] font-bold ${isDark ? "text-white" : "text-zinc-900"}`}
                     >
-                      {scheduleLayout === "daily"
-                        ? "Uke 52, 2026"
-                        : scheduleLayout === "weekly"
-                          ? "Aktiv syklus"
-                          : "Desember 2026"}
+                      {(() => {
+                        const baseWeek = 52;
+                        if (scheduleLayout === "daily") {
+                          const w = baseWeek + scheduleDateOffset;
+                          return `Uke ${w}, 2026`;
+                        }
+                        if (scheduleLayout === "weekly") {
+                          return scheduleDateOffset === 0
+                            ? "Aktiv syklus"
+                            : `Syklus ${scheduleDateOffset > 0 ? "+" : ""}${scheduleDateOffset}`;
+                        }
+                        const months = [
+                          "Januar",
+                          "Februar",
+                          "Mars",
+                          "April",
+                          "Mai",
+                          "Juni",
+                          "Juli",
+                          "August",
+                          "September",
+                          "Oktober",
+                          "November",
+                          "Desember",
+                        ];
+                        const monthIdx = (((11 + scheduleDateOffset) % 12) + 12) % 12;
+                        return `${months[monthIdx]} 2026`;
+                      })()}
                     </span>
+                    {scheduleDateOffset !== 0 && (
+                      <button
+                        onClick={() => setScheduleDateOffset(0)}
+                        className="rounded-md px-2 py-0.5 text-[10px] font-bold text-orange-400 transition-colors hover:bg-orange-500/10"
+                      >
+                        I dag
+                      </button>
+                    )}
                     <button
+                      onClick={() => setScheduleDateOffset((prev) => prev + 1)}
                       className={`rounded-md p-1.5 transition-colors ${isDark ? "text-zinc-400 hover:bg-zinc-800 hover:text-white" : "text-zinc-500 hover:bg-zinc-200 hover:text-zinc-900"}`}
                     >
                       <ChevronRight className="h-3.5 w-3.5" />
                     </button>
                   </div>
 
-                  <button className="mr-2 hidden rounded-lg bg-gradient-to-r from-orange-600 to-rose-600 px-4 py-1.5 text-[13px] font-bold text-white shadow-sm transition-all hover:from-orange-500 hover:to-rose-500 sm:block">
-                    Publiser (4)
+                  <button
+                    onClick={() => onPublishAllRef?.()}
+                    disabled={scheduleDraftCount === 0}
+                    className={`mr-2 hidden rounded-lg px-4 py-1.5 text-[13px] font-bold text-white shadow-sm transition-all sm:block ${
+                      scheduleDraftCount > 0
+                        ? "bg-gradient-to-r from-orange-600 to-rose-600 hover:from-orange-500 hover:to-rose-500"
+                        : "cursor-not-allowed bg-zinc-700 opacity-50"
+                    }`}
+                  >
+                    Publiser ({scheduleDraftCount})
                   </button>
                 </>
               )}

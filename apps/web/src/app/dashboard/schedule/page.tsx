@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useContext, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
   Users,
   Briefcase,
@@ -32,6 +32,7 @@ import { GridSurface } from "./_components/grid-surface";
 import { DayInspector } from "./_components/day-inspector";
 import { GridContent } from "./_components/daily-grid";
 import { ShiftCard, OpenShiftCard, TemplateCard, AbsenceCard } from "./_components/grid-cards";
+import type { ShiftTemplate } from "./_components/schedule-types";
 import { ScheduleDragOverlay } from "./_components/schedule-drag-overlay";
 import { DailyBriefingPanel } from "./_components/daily-briefing";
 import {
@@ -42,6 +43,8 @@ import {
 } from "./_components/schedule-data";
 import { ScheduleProvider, useSchedule } from "./_components/schedule-context";
 import { OpenShiftDialog } from "./_components/open-shift-dialog";
+import { CreateTemplateDialog } from "./_components/create-template-dialog";
+import { EditTemplateDialog } from "./_components/edit-template-dialog";
 import { ShiftModal } from "./_components/shift-modal";
 import { BatchActionBar } from "./_components/batch-action-bar";
 import { AbsencePopover } from "./_components/absence-popover";
@@ -72,12 +75,14 @@ export default function SchedulePage() {
  * Separated from the default export so useSchedule() works correctly.
  */
 function SchedulePageInner() {
-  const { isDark, scheduleLayout } = useContext(DashboardContext);
+  const { isDark, scheduleLayout, setOnPublishAll, setScheduleDraftCount } =
+    useContext(DashboardContext);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [filterSituation, setFilterSituation] = useState("Alle");
   const [showGuide, setShowGuide] = useState(false);
   const [sidebarMode, setSidebarMode] = useState<"open" | "templates">("open");
+  const [activeStatusFilter, setActiveStatusFilter] = useState<string | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 1 } }),
@@ -87,6 +92,20 @@ function SchedulePageInner() {
   const { state, dispatch, computed } = useSchedule();
   const dispatchWithToast = useScheduleToast();
   const statusSummary = computed.getStatusSummary();
+
+  // Register the publish-all callback and draft count with the DashboardShell header
+  const draftCount = state.shifts.filter(
+    (s) => s.status === "created" || s.status === "assigned",
+  ).length;
+
+  useEffect(() => {
+    setScheduleDraftCount(draftCount);
+    setOnPublishAll(() => dispatch({ type: "PUBLISH_ALL_DRAFTS" }));
+    return () => {
+      setOnPublishAll(null);
+      setScheduleDraftCount(0);
+    };
+  }, [draftCount, dispatch, setOnPublishAll, setScheduleDraftCount]);
 
   /**
    * Handles DnD drop events.
@@ -156,65 +175,78 @@ function SchedulePageInner() {
         <div className="absolute top-[-10%] left-[-10%] h-[500px] w-[500px] rounded-full bg-orange-600/20 mix-blend-screen blur-[120px]" />
       </div>
 
-      <PlannerCommandBar
-        isDark={isDark}
-        filterSituation={filterSituation}
-        setFilterSituation={setFilterSituation}
-        showGuide={showGuide}
-        setShowGuide={setShowGuide}
-      />
-
-      <StatusStrip isDark={isDark} statusSummary={statusSummary} />
-
-      {/* MAIN CONTENT AREA */}
+      {/* MAIN CONTENT AREA — sidebar spans full height alongside command bar, status strip, and grid */}
       <DndContext
         sensors={sensors}
         collisionDetection={scheduleCollisionDetection}
         autoScroll={false}
         onDragEnd={handleDragEnd}
       >
-        <GridSurface
-          isDark={isDark}
-          leftSidebar={
-            <ScheduleSidebar
+        <div className="flex flex-1 overflow-hidden">
+          {/* Sidebar — full height from top of schedule container to bottom */}
+          <ScheduleSidebar
+            isDark={isDark}
+            isSidebarOpen={isSidebarOpen}
+            sidebarMode={sidebarMode}
+            setSidebarMode={setSidebarMode}
+          />
+
+          {/* Main content column — command bar, status strip, then grid */}
+          <div className="flex min-w-0 flex-1 flex-col">
+            <PlannerCommandBar
               isDark={isDark}
-              isSidebarOpen={isSidebarOpen}
-              sidebarMode={sidebarMode}
-              setSidebarMode={setSidebarMode}
+              filterSituation={filterSituation}
+              setFilterSituation={setFilterSituation}
+              showGuide={showGuide}
+              setShowGuide={setShowGuide}
             />
-          }
-          centerContent={
-            <>
-              {scheduleLayout === "daily" && (
-                <GridContent
-                  isSidebarOpen={isSidebarOpen}
-                  setIsSidebarOpen={setIsSidebarOpen}
-                  onDateClick={setSelectedDate}
-                  filterSituation={filterSituation}
-                />
-              )}
-              {scheduleLayout === "weekly" && (
-                <WeeklyGridContent
-                  isSidebarOpen={isSidebarOpen}
-                  setIsSidebarOpen={setIsSidebarOpen}
-                  onDateClick={setSelectedDate}
-                />
-              )}
-              {scheduleLayout === "monthly" && (
-                <MonthlyGridContent
-                  isSidebarOpen={isSidebarOpen}
-                  setIsSidebarOpen={setIsSidebarOpen}
-                />
-              )}
-              {scheduleLayout === "list" && <ListGridContent onDateClick={setSelectedDate} />}
-            </>
-          }
-          dayInspector={
-            <DayInspector isDark={isDark} selectedDate={selectedDate}>
-              <DailyBriefingPanel date={selectedDate} onClose={() => setSelectedDate(null)} />
-            </DayInspector>
-          }
-        />
+
+            <StatusStrip
+              isDark={isDark}
+              statusSummary={statusSummary}
+              activeFilter={activeStatusFilter}
+              onFilterClick={setActiveStatusFilter}
+            />
+
+            <GridSurface
+              isDark={isDark}
+              centerContent={
+                <>
+                  {scheduleLayout === "daily" && (
+                    <GridContent
+                      isSidebarOpen={isSidebarOpen}
+                      setIsSidebarOpen={setIsSidebarOpen}
+                      onDateClick={setSelectedDate}
+                      filterSituation={filterSituation}
+                    />
+                  )}
+                  {scheduleLayout === "weekly" && (
+                    <WeeklyGridContent
+                      isSidebarOpen={isSidebarOpen}
+                      setIsSidebarOpen={setIsSidebarOpen}
+                      onDateClick={setSelectedDate}
+                      filterSituation={filterSituation}
+                    />
+                  )}
+                  {scheduleLayout === "monthly" && (
+                    <MonthlyGridContent
+                      isSidebarOpen={isSidebarOpen}
+                      setIsSidebarOpen={setIsSidebarOpen}
+                      onDateClick={setSelectedDate}
+                      filterSituation={filterSituation}
+                    />
+                  )}
+                  {scheduleLayout === "list" && <ListGridContent onDateClick={setSelectedDate} />}
+                </>
+              }
+              dayInspector={
+                <DayInspector isDark={isDark} selectedDate={selectedDate}>
+                  <DailyBriefingPanel date={selectedDate} onClose={() => setSelectedDate(null)} />
+                </DayInspector>
+              }
+            />
+          </div>
+        </div>
 
         <ScheduleDragOverlay isDark={isDark} />
       </DndContext>
@@ -243,6 +275,8 @@ function ScheduleSidebar({
 }) {
   const { state } = useSchedule();
   const [openShiftDialogOpen, setOpenShiftDialogOpen] = React.useState(false);
+  const [createTemplateOpen, setCreateTemplateOpen] = React.useState(false);
+  const [editingTemplate, setEditingTemplate] = React.useState<ShiftTemplate | null>(null);
 
   // Group templates by department
   const templatesByDept = React.useMemo(() => {
@@ -265,13 +299,13 @@ function ScheduleSidebar({
         >
           <button
             onClick={() => setSidebarMode("open")}
-            className={`flex-1 rounded-lg py-1.5 text-[10px] font-bold transition-all ${sidebarMode === "open" ? (isDark ? "bg-zinc-800 text-white shadow-sm" : "bg-white text-zinc-900 shadow-sm") : "text-zinc-500 hover:text-zinc-400"}`}
+            className={`flex-1 rounded-lg py-1.5 text-xs font-bold transition-all ${sidebarMode === "open" ? (isDark ? "bg-zinc-800 text-white shadow-sm" : "bg-white text-zinc-900 shadow-sm") : "text-zinc-500 hover:text-zinc-400"}`}
           >
             Ledige vakter
           </button>
           <button
             onClick={() => setSidebarMode("templates")}
-            className={`flex-1 rounded-lg py-1.5 text-[10px] font-bold transition-all ${sidebarMode === "templates" ? (isDark ? "bg-zinc-800 text-white shadow-sm" : "bg-white text-zinc-900 shadow-sm") : "text-zinc-500 hover:text-zinc-400"}`}
+            className={`flex-1 rounded-lg py-1.5 text-xs font-bold transition-all ${sidebarMode === "templates" ? (isDark ? "bg-zinc-800 text-white shadow-sm" : "bg-white text-zinc-900 shadow-sm") : "text-zinc-500 hover:text-zinc-400"}`}
           >
             Vaktmaler
           </button>
@@ -280,7 +314,7 @@ function ScheduleSidebar({
         {sidebarMode === "open" ? (
           <>
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-[10px] font-black tracking-widest text-zinc-500 uppercase xl:text-xs">
+              <h3 className="text-xs font-black tracking-widest text-zinc-500 uppercase">
                 Åpen Vakt
               </h3>
               <button
@@ -296,42 +330,58 @@ function ScheduleSidebar({
                 <OpenShiftCard key={shift.id} id={shift.id} title={shift.title} time={shift.time} />
               ))}
               {state.openShifts.length === 0 && (
-                <p className="text-center text-[10px] text-zinc-500">Ingen åpne vakter</p>
+                <p className="text-center text-xs text-zinc-500">Ingen åpne vakter</p>
               )}
             </div>
             <OpenShiftDialog open={openShiftDialogOpen} onOpenChange={setOpenShiftDialogOpen} />
           </>
         ) : (
           <>
-            <h3 className="mb-4 text-[10px] font-black tracking-widest text-zinc-500 uppercase xl:text-xs">
+            <h3 className="mb-4 text-xs font-black tracking-widest text-zinc-500 uppercase">
               Maler per avdeling
             </h3>
             <div className="space-y-6">
               {Array.from(templatesByDept.entries()).map(([dept, templates]) => (
                 <div key={dept}>
-                  <h4 className="mb-3 flex items-center gap-1.5 border-b border-white/5 pb-1 text-[10px] font-black tracking-widest text-zinc-400 uppercase">
+                  <h4 className="mb-3 flex items-center gap-1.5 border-b border-white/5 pb-1 text-xs font-black tracking-widest text-zinc-400 uppercase">
                     <Briefcase className="h-3.5 w-3.5" /> {dept}
                   </h4>
                   <div className="space-y-2">
                     {templates.map((t) => (
-                      <TemplateCard
+                      <div
                         key={t.id}
-                        id={t.id}
-                        title={t.name}
-                        team={t.department}
-                        hours={t.shifts[0]?.time ?? ""}
-                        routines={t.shifts.length}
-                      />
+                        onClick={() => setEditingTemplate(t)}
+                        className="cursor-pointer"
+                      >
+                        <TemplateCard
+                          id={t.id}
+                          title={t.name}
+                          team={t.department}
+                          hours={t.shifts[0]?.time ?? ""}
+                          routines={t.shifts.length}
+                        />
+                      </div>
                     ))}
                   </div>
                 </div>
               ))}
               <button
+                onClick={() => setCreateTemplateOpen(true)}
                 className={`flex w-full items-center justify-center gap-2 border border-dashed py-2 ${isDark ? "border-zinc-500/30 text-zinc-500 hover:bg-white/5 hover:text-white" : "border-zinc-300 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"} rounded-xl text-xs font-bold transition-all`}
               >
                 <Plus className="h-3.5 w-3.5" /> Opprett ny mal
               </button>
             </div>
+            <CreateTemplateDialog open={createTemplateOpen} onOpenChange={setCreateTemplateOpen} />
+            {editingTemplate && (
+              <EditTemplateDialog
+                open={!!editingTemplate}
+                onOpenChange={(o) => {
+                  if (!o) setEditingTemplate(null);
+                }}
+                template={editingTemplate}
+              />
+            )}
           </>
         )}
       </div>
@@ -346,24 +396,56 @@ function WeeklyGridContent({
   isSidebarOpen,
   setIsSidebarOpen,
   onDateClick,
+  filterSituation,
 }: {
   isSidebarOpen: boolean;
   setIsSidebarOpen: (v: boolean) => void;
   onDateClick?: (d: string) => void;
+  filterSituation: string;
 }) {
   const { isDark, scheduleView, weeklyPeriodCount } = useContext(DashboardContext);
+  const { dispatch } = useSchedule();
   const columns = Array.from({ length: weeklyPeriodCount }, (_, i) => i + 1);
 
+  /**
+   * Groups employees dynamically based on the current scheduleView.
+   * - "team": grouped by team name (Kjokken, Sal & Service, Drift)
+   * - "jobb": grouped by role (Sous Chef, Kokk, Manager, etc.)
+   * - "ansatt": flat list with no grouping headers
+   */
+  const groupedEmployees = React.useMemo(() => {
+    if (scheduleView === "team") {
+      const map = new Map<string, typeof dummyEmployees>();
+      for (const emp of dummyEmployees) {
+        const list = map.get(emp.team) ?? [];
+        list.push(emp);
+        map.set(emp.team, list);
+      }
+      return Array.from(map.entries());
+    }
+    if (scheduleView === "jobb") {
+      const map = new Map<string, typeof dummyEmployees>();
+      for (const emp of dummyEmployees) {
+        const list = map.get(emp.role) ?? [];
+        list.push(emp);
+        map.set(emp.role, list);
+      }
+      return Array.from(map.entries());
+    }
+    // "ansatt" — flat list, single group
+    return [["Alle ansatte", dummyEmployees] as [string, typeof dummyEmployees]];
+  }, [scheduleView]);
+
   return (
-    <div className="flex w-full">
+    <div className="flex h-full w-full overflow-y-auto">
       <div
         className={`w-[200px] shrink-0 border-r border-white/5 xl:w-[250px] ${isDark ? "bg-[#0a0a0c]/60" : "bg-white/80"} sticky left-0 z-30 flex flex-col shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)] backdrop-blur-md`}
       >
         <div
-          className={`h-24 border-b xl:h-28 ${isDark ? "border-white/5" : "border-zinc-200"} relative flex flex-col justify-between p-4`}
+          className={`sticky top-0 z-30 h-24 border-b xl:h-28 ${isDark ? "border-white/5 bg-[#0a0a0c]" : "border-zinc-200 bg-white"} relative flex flex-col justify-between p-4`}
         >
           <div className="flex w-full items-center justify-between">
-            <div className="flex items-center gap-1.5 text-[9px] font-bold tracking-widest text-zinc-500 uppercase xl:text-[10px]">
+            <div className="flex items-center gap-1.5 text-[11px] font-bold tracking-widest text-zinc-500 uppercase xl:text-xs">
               <Network className="h-3.5 w-3.5 text-orange-500" />
               Rullerende
             </div>
@@ -381,7 +463,7 @@ function WeeklyGridContent({
           <div
             className={`mt-auto rounded-lg border border-white/5 px-2 py-1 ${isDark ? "bg-[#050505]" : "bg-zinc-50"}`}
           >
-            <span className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase">
+            <span className="text-xs font-bold tracking-widest text-zinc-500 uppercase">
               Visning:{" "}
               {scheduleView === "ansatt" ? "Ansatt" : scheduleView === "jobb" ? "Rolle" : "Team"}
             </span>
@@ -389,98 +471,104 @@ function WeeklyGridContent({
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          <TeamGroup title="Kjøkken" count={2}>
-            <EntityRow
-              name="Lars Erik Johansen"
-              subtitle="Sous Chef"
-              hours="38.5"
-              shifts="5"
-              avatarColor="bg-blue-500/20 text-blue-400 border-blue-500/30"
-              initials="LJ"
-            />
-            <EntityRow
-              name="Ahmad Reza"
-              subtitle="Kokk"
-              hours="30"
-              shifts="4"
-              avatarColor="bg-orange-500/20 text-orange-400 border-orange-500/30"
-              initials="AR"
-            />
-          </TeamGroup>
-          <TeamGroup title="Sal & Service" count={1}>
-            <EntityRow
-              name="Ingrid Haugen"
-              subtitle="Manager"
-              hours="40"
-              shifts="5"
-              avatarColor="bg-purple-500/20 text-purple-400 border-purple-500/30"
-              initials="IH"
-            />
-          </TeamGroup>
-          <TeamGroup title="Drift" count={1}>
-            <EntityRow
-              name="Fatima Abdi"
-              subtitle="Housekeeping"
-              hours="24"
-              shifts="4"
-              avatarColor="bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-              initials="FA"
-            />
-          </TeamGroup>
+          {groupedEmployees.map(([groupName, employees]) => (
+            <TeamGroup key={groupName} title={groupName} count={employees.length}>
+              {employees.map((emp) => (
+                <EntityRow
+                  key={emp.id}
+                  name={emp.name}
+                  subtitle={scheduleView === "jobb" ? emp.team : emp.role}
+                  hours={emp.hours}
+                  shifts={emp.shifts}
+                  avatarColor={emp.avatarColor}
+                  initials={emp.initials}
+                />
+              ))}
+            </TeamGroup>
+          ))}
         </div>
       </div>
 
-      {columns.map((col) => (
-        <div
-          key={col}
-          className={`min-w-0 flex-1 border-r ${isDark ? "border-white/5" : "border-zinc-200"} flex flex-col transition-colors hover:bg-white/[0.02] ${col === 3 ? "bg-orange-500/[0.02]" : ""}`}
-        >
-          <div
-            onClick={() => onDateClick && onDateClick(`Uke ${col}`)}
-            className={`sticky top-0 h-24 border-b border-white/5 p-3 xl:h-28 xl:p-4 ${isDark ? "bg-[#0a0a0c]/80" : "bg-white/90"} relative z-20 flex cursor-pointer flex-col items-center justify-center backdrop-blur-xl hover:bg-white/5`}
-          >
-            {col === 3 && (
-              <div className="absolute top-2 right-2 rounded border border-orange-500/30 bg-orange-500/20 px-1.5 py-0.5 text-[9px] font-black text-orange-400 uppercase">
-                Aktiv
-              </div>
-            )}
-            <h2
-              className={`font-black tracking-tighter ${weeklyPeriodCount > 5 ? "text-lg xl:text-xl" : "text-xl xl:text-3xl"} ${col === 3 ? "text-orange-400" : isDark ? "text-white" : "text-zinc-900"}`}
-            >
-              {col}
-            </h2>
-            <span className="mt-1 text-[9px] font-bold tracking-widest text-zinc-500 uppercase xl:text-[10px]">
-              Uke / Periode
-            </span>
-          </div>
+      {columns.map((col) => {
+        /**
+         * Determines the situation-based background tint for this column.
+         * - "Selskap": even columns get an orange tint (simulating booking days)
+         * - "Krise": every 3rd column gets a red tint (simulating coverage risk days)
+         * - "Normal" / "Alle": only the active column (3) gets a subtle orange tint
+         */
+        const situationTint =
+          filterSituation === "Selskap" && col % 2 === 0
+            ? "bg-orange-500/[0.04]"
+            : filterSituation === "Krise" && col % 3 === 0
+              ? "bg-rose-500/[0.04]"
+              : col === 3
+                ? "bg-orange-500/[0.02]"
+                : "";
 
-          <WeeklyGridCell>
-            {col % 2 !== 0 ? (
-              <ShiftCard role="Sous Chef" time="5 vakter" status="published" indicator="blue" />
-            ) : (
-              <WeeklyEmptyCell />
-            )}
-          </WeeklyGridCell>
-          <WeeklyGridCell>
-            <ShiftCard
-              role="Manager"
-              time="5 vakter"
-              status={col === 3 ? "active" : "published"}
-              indicator="purple"
-            />
-          </WeeklyGridCell>
-          <WeeklyGridCell>
-            {col % 4 === 0 ? (
-              <AbsenceCard type="Avspasering" reason="Rotasjon" />
-            ) : (
-              <ShiftCard role="Kokk" time="4 vakter" status="draft" indicator="orange" />
-            )}
-          </WeeklyGridCell>
-          <WeeklyGridCell>
-            <ShiftCard role="Housekeeping" time="4 vakter" status="published" indicator="emerald" />
-          </WeeklyGridCell>
-        </div>
-      ))}
+        return (
+          <div
+            key={col}
+            className={`min-w-0 flex-1 border-r ${isDark ? "border-white/5" : "border-zinc-200"} flex flex-col transition-colors hover:bg-white/[0.02] ${situationTint}`}
+          >
+            <div
+              onClick={() => onDateClick && onDateClick(`Uke ${col}`)}
+              className={`sticky top-0 h-24 border-b border-white/5 p-3 xl:h-28 xl:p-4 ${isDark ? "bg-[#0a0a0c]/80" : "bg-white/90"} relative z-20 flex cursor-pointer flex-col items-center justify-center backdrop-blur-xl hover:bg-white/5`}
+            >
+              {col === 3 && (
+                <div className="absolute top-2 right-2 rounded border border-orange-500/30 bg-orange-500/20 px-1.5 py-0.5 text-[11px] font-black text-orange-400 uppercase">
+                  Aktiv
+                </div>
+              )}
+              <h2
+                className={`font-black tracking-tighter ${weeklyPeriodCount > 5 ? "text-lg xl:text-xl" : "text-xl xl:text-3xl"} ${col === 3 ? "text-orange-400" : isDark ? "text-white" : "text-zinc-900"}`}
+              >
+                {col}
+              </h2>
+              <span className="mt-1 text-[11px] font-bold tracking-widest text-zinc-500 uppercase xl:text-xs">
+                Uke / Periode
+              </span>
+            </div>
+
+            <WeeklyGridCell>
+              {col % 2 !== 0 ? (
+                <ShiftCard role="Sous Chef" time="5 vakter" status="published" indicator="blue" />
+              ) : (
+                <WeeklyEmptyCell
+                  onClick={() =>
+                    dispatch({
+                      type: "SET_CREATE_SHIFT_CONTEXT",
+                      payload: { dateId: `week::${col}` },
+                    })
+                  }
+                />
+              )}
+            </WeeklyGridCell>
+            <WeeklyGridCell>
+              <ShiftCard
+                role="Manager"
+                time="5 vakter"
+                status={col === 3 ? "active" : "published"}
+                indicator="purple"
+              />
+            </WeeklyGridCell>
+            <WeeklyGridCell>
+              {col % 4 === 0 ? (
+                <AbsenceCard type="Avspasering" reason="Rotasjon" />
+              ) : (
+                <ShiftCard role="Kokk" time="4 vakter" status="draft" indicator="orange" />
+              )}
+            </WeeklyGridCell>
+            <WeeklyGridCell>
+              <ShiftCard
+                role="Housekeeping"
+                time="4 vakter"
+                status="published"
+                indicator="emerald"
+              />
+            </WeeklyGridCell>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -506,7 +594,7 @@ function TeamGroup({
           {title}
         </span>
         <span
-          className={`text-[9px] font-medium text-zinc-400 ${isDark ? "bg-white/10" : "bg-zinc-200"} rounded px-1.5 py-0.5`}
+          className={`text-[10px] font-medium text-zinc-400 ${isDark ? "bg-white/10" : "bg-zinc-200"} rounded px-1.5 py-0.5`}
         >
           {count}
         </span>
@@ -548,21 +636,21 @@ function EntityRow({
       className={`group flex h-24 cursor-pointer items-center gap-2 border-b border-white/5 p-2 transition-colors hover:bg-white/[0.02] ${isDark ? "bg-[#0a0a0c]" : "bg-white"}`}
     >
       <div
-        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border text-[9px] font-black ${avatarColor}`}
+        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border text-[10px] font-black ${avatarColor}`}
       >
         {initials}
       </div>
       <div className="min-w-0 flex-1">
         <h3
-          className={`text-[11px] font-bold xl:text-xs ${isDark ? "text-white" : "text-zinc-900"} truncate leading-tight transition-colors group-hover:text-zinc-300`}
+          className={`text-xs font-bold xl:text-[13px] ${isDark ? "text-white" : "text-zinc-900"} truncate leading-tight transition-colors group-hover:text-zinc-300`}
         >
           {name}
         </h3>
-        <p className="mb-1 truncate text-[9px] leading-tight text-zinc-500 xl:text-[10px]">
+        <p className="mb-1 truncate text-[11px] leading-tight text-zinc-500 xl:text-xs">
           {subtitle}
         </p>
         <div className="mt-1 space-y-1">
-          <div className="flex items-center justify-between text-[8px] font-bold tracking-widest uppercase">
+          <div className="flex items-center justify-between text-[10px] font-bold tracking-widest uppercase">
             <span className="text-zinc-500">{shifts} vakter</span>
             <span className={isOvertime ? "text-red-400" : "text-zinc-400"}>
               {hours} <span className="text-zinc-600">/{contractedHours}</span>
@@ -598,10 +686,11 @@ function WeeklyGridCell({ children, id }: { children?: React.ReactNode; id?: str
   );
 }
 
-function WeeklyEmptyCell() {
+function WeeklyEmptyCell({ onClick }: { onClick?: () => void }) {
   const { isDark } = useContext(DashboardContext);
   return (
     <button
+      onClick={onClick}
       className={`absolute inset-x-1 inset-y-1 rounded-md border border-dashed ${isDark ? "border-white/10" : "border-zinc-300"} flex cursor-pointer items-center justify-center bg-white/[0.01] text-orange-500/0 opacity-0 transition-all hover:border-orange-500/30 hover:bg-white/[0.03] hover:text-orange-500/50 hover:opacity-100`}
     >
       <Plus className="h-4 w-4" />
@@ -615,12 +704,43 @@ function WeeklyEmptyCell() {
 function MonthlyGridContent({
   isSidebarOpen,
   setIsSidebarOpen,
+  onDateClick,
+  filterSituation,
 }: {
   isSidebarOpen: boolean;
   setIsSidebarOpen: (v: boolean) => void;
+  onDateClick?: (d: string) => void;
+  filterSituation: string;
 }) {
   const { isDark } = useContext(DashboardContext);
+  const { state, dispatch, computed } = useSchedule();
   const columns = Array.from({ length: 31 }, (_, i) => i + 1);
+
+  /** Estimated total wage cost across all shifts */
+  const estimatedWageCost = state.shifts.reduce((sum, s) => sum + s.workHours * 250, 0);
+  const statusSummary = computed.getStatusSummary();
+
+  /** Aggregate team coverage across all days with data */
+  const teamCoverageData = React.useMemo(() => {
+    const uniqueDays = new Set(state.shifts.map((s) => s.dateId));
+    const teamTotals = new Map<string, { target: number; current: number }>();
+
+    for (const dateId of uniqueDays) {
+      const coverage = computed.getCoverageForDay(dateId);
+      for (const [team, data] of Object.entries(coverage.byTeam)) {
+        const existing = teamTotals.get(team) ?? { target: 0, current: 0 };
+        existing.target += data.target;
+        existing.current += data.current;
+        teamTotals.set(team, existing);
+      }
+    }
+
+    return Array.from(teamTotals.entries()).map(([title, data]) => ({
+      title,
+      target: data.target,
+      current: data.current,
+    }));
+  }, [state.shifts, computed]);
 
   return (
     <div
@@ -629,50 +749,58 @@ function MonthlyGridContent({
       <div
         className={`h-16 shrink-0 border-b border-white/5 ${isDark ? "bg-[#0a0a0c]/80" : "bg-white/90"} sticky top-0 z-30 flex items-center gap-6 px-6`}
       >
-        <div className="flex w-[200px] items-center gap-1.5 text-[10px] font-bold tracking-widest text-zinc-500 uppercase">
+        <div className="flex w-[200px] items-center gap-1.5 text-xs font-bold tracking-widest text-zinc-500 uppercase">
           <Clock className="h-3.5 w-3.5 text-orange-500" />
           Måned: Dekning &amp; Kostnad
         </div>
         <div className="flex flex-1 gap-8">
           <div className="flex flex-col">
-            <span className="mb-0.5 text-[9px] font-bold tracking-wider text-zinc-500 uppercase">
+            <span className="mb-0.5 text-[11px] font-bold tracking-wider text-zinc-500 uppercase">
               Est. Lønnskostnad
             </span>
             <span className={`text-sm font-black ${isDark ? "text-white" : "text-zinc-900"}`}>
-              482,500 <span className="text-[10px] font-medium text-zinc-500">NOK</span>
+              {estimatedWageCost.toLocaleString("nb-NO")}{" "}
+              <span className="text-[10px] font-medium text-zinc-500">NOK</span>
             </span>
           </div>
           <div className="flex flex-col">
-            <span className="mb-0.5 text-[9px] font-bold tracking-wider text-zinc-500 uppercase">
+            <span className="mb-0.5 text-[11px] font-bold tracking-wider text-zinc-500 uppercase">
               Lønn % av Salg
             </span>
             <span className="text-sm font-black text-green-400">
-              28.4% <span className="text-[10px] font-medium text-zinc-500">(Mål 30%)</span>
+              – <span className="text-[10px] font-medium text-zinc-500">(ingen salgsdata)</span>
             </span>
           </div>
           <div className="flex flex-col">
-            <span className="mb-0.5 text-[9px] font-bold tracking-wider text-zinc-500 uppercase">
+            <span className="mb-0.5 text-[11px] font-bold tracking-wider text-zinc-500 uppercase">
               Underbemannede Vakter
             </span>
             <span className="text-sm font-black text-rose-400">
-              12 <span className="text-[10px] font-medium text-zinc-500">denne måneden</span>
+              {statusSummary.coverageRisks}{" "}
+              <span className="text-[10px] font-medium text-zinc-500">denne måneden</span>
             </span>
           </div>
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-1">
+      <div className="flex min-h-0 flex-1 overflow-y-auto">
         <div
           className={`w-[200px] shrink-0 border-r border-white/5 xl:w-[250px] ${isDark ? "bg-[#0a0a0c]/60" : "bg-white/80"} sticky left-0 z-20 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)]`}
         >
           <div
-            className={`h-[60px] border-b ${isDark ? "border-white/5" : "border-zinc-200"} bg-transparent`}
+            className={`sticky top-16 z-20 h-[60px] border-b ${isDark ? "border-white/5" : "border-zinc-200"} ${isDark ? "bg-[#0a0a0c]/80" : "bg-white/90"} backdrop-blur-xl`}
           />
           <div className="flex-1 overflow-y-auto">
-            <TeamCoverageRow title="Kjøkken" target={8} current={7} />
-            <TeamCoverageRow title="Sal & Service" target={12} current={12} isPerfect />
-            <TeamCoverageRow title="Bar" target={4} current={3} isWarning />
-            <TeamCoverageRow title="Drift / Renhold" target={3} current={3} isPerfect />
+            {teamCoverageData.map((team) => (
+              <TeamCoverageRow
+                key={team.title}
+                title={team.title}
+                target={team.target}
+                current={team.current}
+                isPerfect={team.current >= team.target}
+                isWarning={team.current < team.target - 1}
+              />
+            ))}
           </div>
         </div>
 
@@ -681,38 +809,117 @@ function MonthlyGridContent({
             const isWeekend = col % 7 === 6 || col % 7 === 0;
             const isToday = col === 15;
 
+            /** Map column index to a dummyDay dateId if within range */
+            const dateId = col <= dummyDays.length ? dummyDays[col - 1]?.id : undefined;
+
+            /**
+             * Returns coverage-based heatmap color for a team row.
+             * Green = at or above target, orange = 1 below, red = 2+ below, neutral = no data.
+             */
             const getHeatmapColor = (rowIdx: number) => {
-              if (isWeekend && rowIdx === 2) return "bg-rose-500/20 border-rose-500/50";
-              if (rowIdx === 0 && col % 5 === 0) return "bg-orange-500/20 border-orange-500/50";
-              return "bg-emerald-500/10 border-emerald-500/20";
+              if (!dateId || rowIdx >= teamCoverageData.length) {
+                return "bg-zinc-500/5 border-zinc-500/10";
+              }
+              const team = teamCoverageData[rowIdx];
+              if (!team) return "bg-zinc-500/5 border-zinc-500/10";
+              const coverage = computed.getCoverageForDay(dateId);
+              const teamName = team.title;
+              const teamData = coverage.byTeam[teamName];
+              if (!teamData) return "bg-zinc-500/5 border-zinc-500/10";
+              const { target, current } = teamData;
+              if (current >= target) return "bg-emerald-500/10 border-emerald-500/20";
+              if (current >= target - 1) return "bg-orange-500/20 border-orange-500/50";
+              return "bg-rose-500/20 border-rose-500/50";
+            };
+
+            /** All shifts for this day — used to compute per-cell info */
+            const dayShifts = dateId ? state.shifts.filter((s) => s.dateId === dateId) : [];
+            const teamCount = Math.max(teamCoverageData.length, 1);
+
+            /**
+             * Returns shift count and time range for a team row.
+             * Distributes day shifts evenly across team rows since
+             * shifts don't carry team info in local state.
+             */
+            const getCellInfo = (rowIdx: number) => {
+              if (dayShifts.length === 0) return { shiftCount: 0, timeRange: undefined };
+              // Distribute shifts across team rows
+              const base = Math.floor(dayShifts.length / teamCount);
+              const remainder = dayShifts.length % teamCount;
+              const shiftCount = base + (rowIdx < remainder ? 1 : 0);
+              if (shiftCount === 0) return { shiftCount: 0, timeRange: undefined };
+              // Compute time range from earliest start to latest end across all day shifts
+              const sorted = [...dayShifts].sort((a, b) => a.startTime.localeCompare(b.startTime));
+              const earliest = sorted[0]?.startTime;
+              const latest = [...dayShifts].sort((a, b) => b.endTime.localeCompare(a.endTime))[0]
+                ?.endTime;
+              const timeRange = earliest && latest ? `${earliest}-${latest}` : undefined;
+              return { shiftCount, timeRange };
             };
 
             return (
               <div
                 key={col}
-                className={`min-w-[32px] flex-1 border-r sm:min-w-[40px] ${isDark ? "border-white/5" : "border-zinc-200"} flex flex-col transition-colors ${isToday ? "bg-orange-500/[0.04]" : isWeekend ? "bg-indigo-500/[0.02]" : ""}`}
+                className={`min-w-[32px] flex-1 border-r sm:min-w-[40px] ${isDark ? "border-white/5" : "border-zinc-200"} flex flex-col transition-colors ${
+                  filterSituation === "Selskap" && col % 5 === 0
+                    ? "bg-orange-500/[0.06]"
+                    : filterSituation === "Krise" && col % 7 === 0
+                      ? "bg-rose-500/[0.06]"
+                      : isToday
+                        ? "bg-orange-500/[0.04]"
+                        : isWeekend
+                          ? "bg-indigo-500/[0.02]"
+                          : ""
+                }`}
               >
                 <div
-                  className={`sticky top-0 h-[60px] border-b border-white/5 p-1 ${isDark ? "bg-[#0a0a0c]/80" : "bg-white/90"} group relative z-10 flex cursor-pointer flex-col items-center justify-end pb-2 backdrop-blur-xl hover:bg-white/5`}
+                  onClick={() => {
+                    if (!dateId) return;
+                    onDateClick?.(dummyDays[col - 1]?.label ?? `Dag ${col}`);
+                    // Open shift creation modal when clicking an empty date
+                    if (dayShifts.length === 0) {
+                      dispatch({ type: "SET_CREATE_SHIFT_CONTEXT", payload: { dateId } });
+                    }
+                  }}
+                  className={`sticky top-16 h-[60px] border-b border-white/5 p-1 ${isDark ? "bg-[#0a0a0c]/80" : "bg-white/90"} group relative z-10 flex cursor-pointer flex-col items-center justify-end pb-2 backdrop-blur-xl hover:bg-white/5`}
                 >
                   {isToday && (
                     <div className="absolute top-1 right-1/2 h-1.5 w-1.5 translate-x-1/2 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.8)]" />
                   )}
                   <h2
-                    className={`text-[11px] font-black tracking-tight xl:text-xs ${isToday ? "text-orange-400" : isWeekend ? "text-indigo-400" : isDark ? "text-white" : "text-zinc-900"}`}
+                    className={`text-xs font-black tracking-tight xl:text-sm ${isToday ? "text-orange-400" : isWeekend ? "text-indigo-400" : isDark ? "text-white" : "text-zinc-900"}`}
                   >
                     {col}
                   </h2>
                   <span
-                    className={`mt-0.5 text-[6px] font-bold tracking-widest uppercase ${isWeekend ? "text-indigo-500" : "text-zinc-600"}`}
+                    className={`mt-0.5 text-[10px] font-bold tracking-widest uppercase ${isWeekend ? "text-indigo-500" : "text-zinc-600"}`}
                   >
                     {isWeekend ? "Heg" : "Hvd"}
                   </span>
                 </div>
-                <HeatmapCell colorClass={getHeatmapColor(0)} />
-                <HeatmapCell colorClass={getHeatmapColor(1)} />
-                <HeatmapCell colorClass={getHeatmapColor(2)} />
-                <HeatmapCell colorClass={getHeatmapColor(3)} />
+                {teamCoverageData.length > 0 ? (
+                  teamCoverageData.map((_, rowIdx) => {
+                    const cellInfo = getCellInfo(rowIdx);
+                    return (
+                      <HeatmapCell
+                        key={rowIdx}
+                        colorClass={getHeatmapColor(rowIdx)}
+                        shiftCount={cellInfo.shiftCount}
+                        timeRange={cellInfo.timeRange}
+                        onClick={() =>
+                          dateId && onDateClick?.(dummyDays[col - 1]?.label ?? `Dag ${col}`)
+                        }
+                      />
+                    );
+                  })
+                ) : (
+                  <>
+                    <HeatmapCell colorClass="bg-zinc-500/5 border-zinc-500/10" />
+                    <HeatmapCell colorClass="bg-zinc-500/5 border-zinc-500/10" />
+                    <HeatmapCell colorClass="bg-zinc-500/5 border-zinc-500/10" />
+                    <HeatmapCell colorClass="bg-zinc-500/5 border-zinc-500/10" />
+                  </>
+                )}
               </div>
             );
           })}
@@ -747,7 +954,7 @@ function TeamCoverageRow({
       </h3>
       <div className="flex items-center gap-2">
         <span
-          className={`text-[10px] font-black ${isPerfect ? "text-emerald-400" : isWarning ? "text-rose-400" : "text-orange-400"}`}
+          className={`text-[11px] font-black ${isPerfect ? "text-emerald-400" : isWarning ? "text-rose-400" : "text-orange-400"}`}
         >
           {current} <span className="font-medium text-zinc-500">/ {target} dekket</span>
         </span>
@@ -761,14 +968,36 @@ function TeamCoverageRow({
   );
 }
 
-function HeatmapCell({ colorClass }: { colorClass: string }) {
+function HeatmapCell({
+  colorClass,
+  onClick,
+  shiftCount,
+  timeRange,
+}: {
+  colorClass: string;
+  onClick?: () => void;
+  /** Number of shifts in this cell (team + day combination) */
+  shiftCount?: number;
+  /** Earliest start to latest end, e.g. "08:00-22:00" */
+  timeRange?: string;
+}) {
   const { isDark } = useContext(DashboardContext);
   return (
     <div className={`h-16 border-b ${isDark ? "border-white/5" : "border-zinc-200"} px-0.5 py-1`}>
       <div
-        className={`h-full w-full rounded-sm border ${colorClass} cursor-pointer opacity-80 transition-opacity hover:opacity-100`}
+        onClick={onClick}
+        className={`flex h-full w-full flex-col items-center justify-center rounded-sm border ${colorClass} cursor-pointer opacity-80 transition-opacity hover:opacity-100`}
         title="Klikk for detaljer"
-      />
+      >
+        {shiftCount !== undefined && shiftCount > 0 && (
+          <>
+            <span className="text-[10px] leading-none font-black">{shiftCount}</span>
+            {timeRange && (
+              <span className="mt-0.5 text-[7px] leading-none text-zinc-500">{timeRange}</span>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -828,12 +1057,12 @@ function ListGridContent({ onDateClick }: { onDateClick: (d: string) => void }) 
                     {day.label}
                   </h3>
                   {day.isToday && (
-                    <span className="rounded-md border border-orange-500/20 bg-orange-500/10 px-2 py-0.5 text-[10px] font-bold tracking-widest text-orange-400 uppercase print:border-gray-300">
+                    <span className="rounded-md border border-orange-500/20 bg-orange-500/10 px-2 py-0.5 text-xs font-bold tracking-widest text-orange-400 uppercase print:border-gray-300">
                       I Dag
                     </span>
                   )}
                 </div>
-                <div className="hidden gap-3 text-[10px] font-bold tracking-widest text-zinc-500 uppercase sm:flex print:hidden">
+                <div className="hidden gap-3 text-xs font-bold tracking-widest text-zinc-500 uppercase sm:flex print:hidden">
                   <span className="flex items-center gap-1">
                     <Users className="h-3.5 w-3.5" /> {day.staff} Ansatte
                   </span>
@@ -866,11 +1095,11 @@ function ListGridContent({ onDateClick }: { onDateClick: (d: string) => void }) 
                           {emp.name}
                         </span>
                         <div className="mt-0.5 flex items-center justify-between">
-                          <span className="truncate text-[10px] font-bold tracking-widest text-[#a1a1aa] uppercase print:text-gray-600">
+                          <span className="truncate text-xs font-bold tracking-widest text-[#a1a1aa] uppercase print:text-gray-600">
                             {shift.role}
                           </span>
                           <span
-                            className={`shrink-0 text-[10px] font-black tracking-widest ${isDark ? "text-orange-400" : "text-orange-600"} flex items-center gap-1 print:text-black`}
+                            className={`shrink-0 text-xs font-black tracking-widest ${isDark ? "text-orange-400" : "text-orange-600"} flex items-center gap-1 print:text-black`}
                           >
                             <Clock className="h-3 w-3 text-orange-500/50" />{" "}
                             {shift.time || "Hele Dagen"}

@@ -51,7 +51,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 
 import { useSchedule } from "./schedule-context";
-import { dummyEmployees } from "./schedule-data";
+import { AVAILABLE_ROLES, AVAILABLE_TEAMS, AVAILABLE_ZONES, dummyEmployees } from "./schedule-data";
 import type { DayCategory, ShiftStatus } from "./schedule-types";
 
 // ── Constants ───────────────────────────────────────────────
@@ -71,6 +71,20 @@ const DAY_CATEGORY_OPTIONS: { value: DayCategory; label: string }[] = [
   { value: "evening", label: "Kveld" },
   { value: "night", label: "Natt" },
   { value: "weekend", label: "Helg" },
+];
+
+/** Common shift time presets for quick-fill buttons */
+const SHIFT_PRESETS: {
+  label: string;
+  startTime: string;
+  endTime: string;
+  dayCategory: DayCategory;
+}[] = [
+  { label: "Morgenvakt", startTime: "06:00", endTime: "14:00", dayCategory: "morning" },
+  { label: "Dagvakt", startTime: "08:00", endTime: "16:00", dayCategory: "morning" },
+  { label: "Kveldsvakt", startTime: "15:00", endTime: "23:00", dayCategory: "evening" },
+  { label: "Nattvakt", startTime: "22:00", endTime: "06:00", dayCategory: "night" },
+  { label: "Delt vakt", startTime: "10:00", endTime: "14:00", dayCategory: "midday" },
 ];
 
 /** Notification channel options */
@@ -459,7 +473,7 @@ export function ShiftModal() {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
+      <DialogContent className="max-h-[85vh] max-w-xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEditMode ? "Rediger skift" : "Nytt skift"}</DialogTitle>
           <DialogDescription>
@@ -498,7 +512,7 @@ export function ShiftModal() {
           </TabsList>
 
           {/* ── Tab 1: Detaljer ─────────────────────────────── */}
-          <TabsContent value="detaljer" className="mt-4 space-y-4">
+          <TabsContent value="detaljer" className="mt-4 space-y-3">
             {/* Employee select */}
             <div className="space-y-2">
               <Label htmlFor="employee">Ansatt</Label>
@@ -520,21 +534,33 @@ export function ShiftModal() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="role">Rolle</Label>
-                <Input
-                  id="role"
-                  value={form.role}
-                  onChange={(e) => updateField("role", e.target.value)}
-                  placeholder="f.eks. Sous Chef"
-                />
+                <Select value={form.role} onValueChange={(v) => updateField("role", v)}>
+                  <SelectTrigger id="role">
+                    <SelectValue placeholder="Velg rolle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {AVAILABLE_ROLES.map((r) => (
+                      <SelectItem key={r} value={r}>
+                        {r}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="team">Team</Label>
-                <Input
-                  id="team"
-                  value={form.team}
-                  onChange={(e) => updateField("team", e.target.value)}
-                  placeholder="f.eks. Kjøkken"
-                />
+                <Select value={form.team} onValueChange={(v) => updateField("team", v)}>
+                  <SelectTrigger id="team">
+                    <SelectValue placeholder="Velg team" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {AVAILABLE_TEAMS.map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {t}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -549,10 +575,38 @@ export function ShiftModal() {
               </div>
             )}
 
-            {/* Start + End time row */}
+            {/* Shift time presets for quick-fill */}
+            <div className="space-y-1.5">
+              <Label className="text-muted-foreground text-xs">Hurtigvalg</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {SHIFT_PRESETS.map((preset) => (
+                  <Button
+                    key={preset.label}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-[11px]"
+                    onClick={() => {
+                      setForm((prev) => ({
+                        ...prev,
+                        startTime: preset.startTime,
+                        endTime: preset.endTime,
+                        dayCategory: preset.dayCategory,
+                      }));
+                    }}
+                  >
+                    {preset.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Start + End time row with inline work hours */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="startTime">Starttid</Label>
+              <div className="space-y-1">
+                <Label htmlFor="startTime" className="text-xs">
+                  Starttid
+                </Label>
                 <Input
                   id="startTime"
                   type="time"
@@ -560,8 +614,10 @@ export function ShiftModal() {
                   onChange={(e) => handleStartTimeChange(e.target.value)}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="endTime">Sluttid</Label>
+              <div className="space-y-1">
+                <Label htmlFor="endTime" className="text-xs">
+                  Sluttid
+                </Label>
                 <Input
                   id="endTime"
                   type="time"
@@ -570,10 +626,8 @@ export function ShiftModal() {
                 />
               </div>
             </div>
-
-            {/* Work hours display */}
-            <div className="text-muted-foreground text-sm">
-              Arbeidstimer: {workHours.toFixed(1)}t (inkl. {form.breaks} min pause)
+            <div className="text-muted-foreground -mt-1 text-xs">
+              {workHours.toFixed(1)}t arbeid (inkl. {form.breaks} min pause)
             </div>
 
             {/* Day category + Zone row */}
@@ -598,12 +652,18 @@ export function ShiftModal() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="zone">Sone</Label>
-                <Input
-                  id="zone"
-                  value={form.zone}
-                  onChange={(e) => updateField("zone", e.target.value)}
-                  placeholder="f.eks. Hovedkjøkken"
-                />
+                <Select value={form.zone} onValueChange={(v) => updateField("zone", v)}>
+                  <SelectTrigger id="zone">
+                    <SelectValue placeholder="Velg sone" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {AVAILABLE_ZONES.map((z) => (
+                      <SelectItem key={z} value={z}>
+                        {z}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
