@@ -24,7 +24,7 @@
 // ============================================
 
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Playfair_Display } from "next/font/google";
 import { Wine, BookOpen, Award, Star, Utensils, GlassWater } from "lucide-react";
 import Navigation from "../navigation";
@@ -215,29 +215,29 @@ export default function VariantSLanding() {
         <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/60 to-transparent" />
 
         {/* Hero content — centered, generous spacing */}
-        <motion.div
+        <m.div
           className="relative z-10 mx-auto max-w-3xl text-center"
           initial="hidden"
           animate="visible"
           variants={staggerContainer}
         >
-          <motion.h1
+          <m.h1
             className="font-[family-name:var(--font-playfair)] text-4xl leading-tight font-light tracking-tight text-white sm:text-5xl md:text-6xl lg:text-7xl"
             variants={fadeUpSlow}
           >
             {/* "Håndverk møter teknologi." */}H{"\u00e5"}ndverk m{"\u00f8"}ter teknologi.
-          </motion.h1>
+          </m.h1>
 
-          <motion.p
+          <m.p
             className="mx-auto mt-8 max-w-md text-base leading-relaxed text-zinc-400 sm:text-lg"
             variants={fadeUp}
           >
             {/* "SmartOut gjør dine ansatte klare fra dag én" */}
             SmartOut gj{"\u00f8"}r dine ansatte klare fra dag {"\u00e9"}n{" \u2014 "}med presisjon,
             respekt og teknologi i balanse.
-          </motion.p>
+          </m.p>
 
-          <motion.div className="mt-12" variants={fadeUp}>
+          <m.div className="mt-12" variants={fadeUp}>
             <Link
               href={WEB_APP_LINKS.onboarding}
               onClick={() => trackCta("Utforsk SmartOut")}
@@ -245,8 +245,8 @@ export default function VariantSLanding() {
             >
               Utforsk SmartOut
             </Link>
-          </motion.div>
-        </motion.div>
+          </m.div>
+        </m.div>
       </section>
 
       {/* ============================================
@@ -255,7 +255,7 @@ export default function VariantSLanding() {
           serif italic. Right: four principles with rose-gold markers.
           ============================================ */}
       <section className="px-6 py-24 lg:py-32">
-        <motion.div
+        <m.div
           className="mx-auto grid max-w-6xl gap-16 lg:grid-cols-2 lg:gap-24"
           initial="hidden"
           whileInView="visible"
@@ -263,34 +263,34 @@ export default function VariantSLanding() {
           variants={staggerContainer}
         >
           {/* Left — Editorial pull quote */}
-          <motion.div variants={fadeUp}>
+          <m.div variants={fadeUp}>
             <blockquote className="font-[family-name:var(--font-playfair)] text-2xl leading-relaxed font-light text-zinc-300 italic sm:text-3xl lg:text-4xl">
               {"\u201C"}Ekte kvalitet oppst{"\u00e5"}r n{"\u00e5"}r tradisjon og innovasjon finner
               balanse. Teknologi skal ikke erstatte h{"\u00e5"}ndverket {"\u2014"} den skal l
               {"\u00f8"}fte det. Slik skaper vi en ny standard for oppl{"\u00e6"}ring og utvikling i
               bransjen.{"\u201D"}
             </blockquote>
-          </motion.div>
+          </m.div>
 
           {/* Right — Principles list */}
-          <motion.div className="flex flex-col justify-center" variants={staggerContainer}>
-            <motion.p
+          <m.div className="flex flex-col justify-center" variants={staggerContainer}>
+            <m.p
               className="mb-8 text-xs font-medium tracking-[0.2em] text-zinc-500 uppercase"
               variants={fadeIn}
             >
               {/* "Våre prinsipper" */}V{"\u00e5"}re prinsipper
-            </motion.p>
+            </m.p>
             <ul className="space-y-6">
               {PHILOSOPHY_PRINCIPLES.map((principle) => (
-                <motion.li key={principle} className="flex items-center gap-4" variants={fadeUp}>
+                <m.li key={principle} className="flex items-center gap-4" variants={fadeUp}>
                   {/* Rose-gold bullet marker */}
                   <span className="h-2 w-2 flex-shrink-0 rounded-full bg-rose-400/70" />
                   <span className="text-lg text-zinc-200">{principle}</span>
-                </motion.li>
+                </m.li>
               ))}
             </ul>
-          </motion.div>
-        </motion.div>
+          </m.div>
+        </m.div>
       </section>
 
       {/* Thin divider */}
@@ -304,7 +304,7 @@ export default function VariantSLanding() {
           with rose-gold icons.
           ============================================ */}
       <section className="px-6 py-24 lg:py-32">
-        <motion.div
+        <m.div
           className="mx-auto max-w-6xl"
           initial="hidden"
           whileInView="visible"
@@ -312,7 +312,7 @@ export default function VariantSLanding() {
           variants={staggerContainer}
         >
           {/* Section heading */}
-          <motion.div className="mb-20 max-w-2xl" variants={fadeUp}>
+          <m.div className="mb-20 max-w-2xl" variants={fadeUp}>
             <p className="mb-4 text-xs font-medium tracking-[0.2em] text-rose-400/80 uppercase">
               {/* "Opplæring" */}
               Oppl{"\u00e6"}ring
@@ -321,15 +321,12 @@ export default function VariantSLanding() {
               {/* "Opplæring skreddersydd til ditt håndverk." */}
               Oppl{"\u00e6"}ring skreddersydd til ditt h{"\u00e5"}ndverk.
             </h2>
-          </motion.div>
+          </m.div>
 
           {/* Elegant stepped training path visualization —
               ascending bars suggesting progressive mastery, like a
               sommelier's tasting flight from light to full-bodied. */}
-          <motion.div
-            className="mb-20 flex items-end justify-center gap-3 sm:gap-4"
-            variants={fadeIn}
-          >
+          <m.div className="mb-20 flex items-end justify-center gap-3 sm:gap-4" variants={fadeIn}>
             {[1, 2, 3, 4, 5].map((step) => (
               <div key={step} className="flex flex-col items-center gap-2">
                 <div
@@ -342,24 +339,24 @@ export default function VariantSLanding() {
                 <span className="text-[10px] text-zinc-600">{step}</span>
               </div>
             ))}
-          </motion.div>
+          </m.div>
 
           {/* Feature items */}
-          <motion.div
+          <m.div
             className="grid gap-12 md:grid-cols-3 md:gap-8 lg:gap-12"
             variants={staggerContainer}
           >
             {TRAINING_FEATURES.map((feature) => (
-              <motion.div key={feature.title} variants={fadeUp}>
+              <m.div key={feature.title} variants={fadeUp}>
                 <feature.icon className="mb-5 h-6 w-6 text-rose-400/70" strokeWidth={1.5} />
                 <h3 className="mb-3 font-[family-name:var(--font-playfair)] text-xl font-light text-white">
                   {feature.title}
                 </h3>
                 <p className="text-sm leading-relaxed text-zinc-400">{feature.description}</p>
-              </motion.div>
+              </m.div>
             ))}
-          </motion.div>
-        </motion.div>
+          </m.div>
+        </m.div>
       </section>
 
       {/* Thin divider */}
@@ -373,24 +370,24 @@ export default function VariantSLanding() {
           Rose-gold accent on the final "Ekspert" stage.
           ============================================ */}
       <section className="px-6 py-24 lg:py-32">
-        <motion.div
+        <m.div
           className="mx-auto max-w-4xl"
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-80px" }}
           variants={staggerContainer}
         >
-          <motion.div className="mb-16 text-center" variants={fadeUp}>
+          <m.div className="mb-16 text-center" variants={fadeUp}>
             <p className="mb-4 text-xs font-medium tracking-[0.2em] text-rose-400/80 uppercase">
               Utvikling
             </p>
             <h2 className="font-[family-name:var(--font-playfair)] text-3xl leading-tight font-light tracking-tight text-white sm:text-4xl">
               Fra ny ansatt til ekspert.
             </h2>
-          </motion.div>
+          </m.div>
 
           {/* Timeline — horizontal with connecting line and 4 stage circles */}
-          <motion.div className="relative flex items-center justify-between" variants={fadeIn}>
+          <m.div className="relative flex items-center justify-between" variants={fadeIn}>
             {/* Connecting line behind the circles */}
             <div className="absolute top-1/2 right-0 left-0 h-px -translate-y-1/2 bg-zinc-800" />
 
@@ -423,8 +420,8 @@ export default function VariantSLanding() {
                 </span>
               </div>
             ))}
-          </motion.div>
-        </motion.div>
+          </m.div>
+        </m.div>
       </section>
 
       {/* Thin divider */}
@@ -439,14 +436,14 @@ export default function VariantSLanding() {
           1-2 lines of body text.
           ============================================ */}
       <section className="px-6 py-24 lg:py-32">
-        <motion.div
+        <m.div
           className="mx-auto max-w-6xl"
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-80px" }}
           variants={staggerContainer}
         >
-          <motion.div className="mb-16" variants={fadeUp}>
+          <m.div className="mb-16" variants={fadeUp}>
             <p className="mb-4 text-xs font-medium tracking-[0.2em] text-rose-400/80 uppercase">
               Kvalitet
             </p>
@@ -454,11 +451,11 @@ export default function VariantSLanding() {
               {/* "Detaljer som gjør forskjellen." */}
               Detaljer som gj{"\u00f8"}r forskjellen.
             </h2>
-          </motion.div>
+          </m.div>
 
-          <motion.div className="grid gap-6 md:grid-cols-3" variants={staggerContainer}>
+          <m.div className="grid gap-6 md:grid-cols-3" variants={staggerContainer}>
             {DETAIL_CARDS.map((card) => (
-              <motion.div
+              <m.div
                 key={card.title}
                 className="border border-white/[0.06] p-8 sm:p-10 lg:p-12"
                 variants={fadeUp}
@@ -468,10 +465,10 @@ export default function VariantSLanding() {
                   {card.title}
                 </h3>
                 <p className="text-sm leading-relaxed text-zinc-400">{card.description}</p>
-              </motion.div>
+              </m.div>
             ))}
-          </motion.div>
-        </motion.div>
+          </m.div>
+        </m.div>
       </section>
 
       {/* Thin divider */}
@@ -485,36 +482,36 @@ export default function VariantSLanding() {
           No logos — just names, because restraint is the point.
           ============================================ */}
       <section className="px-6 py-24 lg:py-32">
-        <motion.div
+        <m.div
           className="mx-auto max-w-4xl text-center"
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-80px" }}
           variants={staggerContainer}
         >
-          <motion.p
+          <m.p
             className="mb-12 text-xs font-medium tracking-[0.2em] text-zinc-500 uppercase"
             variants={fadeIn}
           >
             Anerkjent av bransjens beste
-          </motion.p>
+          </m.p>
 
-          <motion.div
+          <m.div
             className="flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-6"
             variants={staggerContainer}
           >
             {NETWORK_BADGES.map((badge) => (
-              <motion.div
+              <m.div
                 key={badge}
                 className="flex items-center gap-2.5 border border-white/[0.06] px-6 py-3"
                 variants={fadeUp}
               >
                 <Star className="h-3.5 w-3.5 text-rose-400/50" strokeWidth={1.5} />
                 <span className="text-sm text-zinc-300">{badge}</span>
-              </motion.div>
+              </m.div>
             ))}
-          </motion.div>
-        </motion.div>
+          </m.div>
+        </m.div>
       </section>
 
       {/* Thin divider */}
@@ -529,7 +526,7 @@ export default function VariantSLanding() {
           Rose-gold accents, serif headings, no glow or pulse.
           ============================================ */}
       <section id="smartout-ai" className="px-6 py-24 lg:py-32">
-        <motion.div
+        <m.div
           className="mx-auto max-w-6xl"
           initial="hidden"
           whileInView="visible"
@@ -537,39 +534,35 @@ export default function VariantSLanding() {
           variants={staggerContainer}
         >
           {/* Section heading — left-aligned editorial style */}
-          <motion.div className="mb-20 max-w-2xl" variants={fadeUp}>
+          <m.div className="mb-20 max-w-2xl" variants={fadeUp}>
             <p className="mb-4 text-xs font-medium tracking-[0.2em] text-rose-400/80 uppercase">
               Intelligens
             </p>
             <h2 className="font-[family-name:var(--font-playfair)] text-3xl leading-tight font-light tracking-tight text-white sm:text-4xl lg:text-5xl">
               {VARIANT_AI_SECTION.S.heading}
             </h2>
-          </motion.div>
+          </m.div>
 
           {/* Two-column: capabilities on left, voice widget on right */}
           <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
             {/* Left — 3 thin-bordered capability cards */}
-            <motion.div className="space-y-6" variants={staggerContainer}>
+            <m.div className="space-y-6" variants={staggerContainer}>
               {VARIANT_AI_SECTION.S.capabilities.map((cap) => (
-                <motion.div
-                  key={cap.title}
-                  className="border border-white/[0.06] p-8"
-                  variants={fadeUp}
-                >
+                <m.div key={cap.title} className="border border-white/[0.06] p-8" variants={fadeUp}>
                   <h3 className="mb-3 font-[family-name:var(--font-playfair)] text-lg font-light text-white">
                     {cap.title}
                   </h3>
                   <p className="text-sm leading-relaxed text-zinc-400">{cap.description}</p>
-                </motion.div>
+                </m.div>
               ))}
-            </motion.div>
+            </m.div>
 
             {/* Right — Voice demo widget */}
-            <motion.div variants={fadeUp}>
+            <m.div variants={fadeUp}>
               <VoiceDemoWidget config={VARIANT_VOICE_CONFIG.S} height="460px" />
-            </motion.div>
+            </m.div>
           </div>
-        </motion.div>
+        </m.div>
       </section>
 
       {/* Thin divider */}
@@ -583,22 +576,22 @@ export default function VariantSLanding() {
           No glow effects, no gradients, no embellishments.
           ============================================ */}
       <section className="px-6 py-32 lg:py-40">
-        <motion.div
+        <m.div
           className="mx-auto max-w-2xl text-center"
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-80px" }}
           variants={staggerContainer}
         >
-          <motion.h2
+          <m.h2
             className="font-[family-name:var(--font-playfair)] text-3xl leading-tight font-light tracking-tight text-white sm:text-4xl lg:text-5xl"
             variants={fadeUpSlow}
           >
             {/* "Er du klar til å sette en ny standard?" */}
             Er du klar til {"\u00e5"} sette en ny standard?
-          </motion.h2>
+          </m.h2>
 
-          <motion.div className="mt-12" variants={fadeUp}>
+          <m.div className="mt-12" variants={fadeUp}>
             <Link
               href={WEB_APP_LINKS.onboarding}
               onClick={() => trackCta("Kom i gang")}
@@ -606,8 +599,8 @@ export default function VariantSLanding() {
             >
               Kom i gang
             </Link>
-          </motion.div>
-        </motion.div>
+          </m.div>
+        </m.div>
       </section>
 
       {/* Shared Footer */}

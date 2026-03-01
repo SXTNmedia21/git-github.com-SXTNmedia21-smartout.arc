@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import {
   Sparkles,
   ArrowRight,
@@ -107,7 +107,7 @@ export default function VariantELanding() {
           </div>
 
           {/* Animated Hero Graphic / Dashboard Prototype */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8 }}
@@ -222,7 +222,7 @@ export default function VariantELanding() {
             </div>
 
             {/* Floating Element 1 - Tactile Card */}
-            <motion.div
+            <m.div
               initial={{ opacity: 0, x: 20, y: -20 }}
               animate={{ opacity: 1, x: 0, y: 0 }}
               transition={{ duration: 0.6, delay: 0.6 }}
@@ -239,10 +239,10 @@ export default function VariantELanding() {
                   Automatisk fördelning via AI
                 </div>
               </div>
-            </motion.div>
+            </m.div>
 
             {/* Floating Element 2 - New Contract */}
-            <motion.div
+            <m.div
               initial={{ opacity: 0, x: -20, y: 20 }}
               animate={{ opacity: 1, x: 0, y: 0 }}
               transition={{ duration: 0.6, delay: 0.8 }}
@@ -265,8 +265,8 @@ export default function VariantELanding() {
                   </div>
                 </div>
               </div>
-            </motion.div>
-          </motion.div>
+            </m.div>
+          </m.div>
         </div>
       </section>
 
@@ -275,7 +275,7 @@ export default function VariantELanding() {
         <div className="pointer-events-none absolute top-1/2 left-1/2 h-[400px] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-full bg-red-500/5 blur-[120px]"></div>
 
         <div className="relative z-10 mx-auto max-w-7xl text-center">
-          <motion.div
+          <m.div
             initial={{ opacity: 0, scale: 0.9 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
@@ -288,7 +288,7 @@ export default function VariantELanding() {
               Regneark, Facebook-grupper og gule lapper. Det er ikke bare utmattende – det er et
               massivt, usynlig inntektstap hver eneste måned.
             </p>
-          </motion.div>
+          </m.div>
 
           <div className="grid gap-6 md:grid-cols-3">
             {[
@@ -311,7 +311,7 @@ export default function VariantELanding() {
                 icon: <Users className="h-5 w-5 text-red-500" />,
               },
             ].map((stat, idx) => (
-              <motion.div
+              <m.div
                 key={idx}
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -325,7 +325,7 @@ export default function VariantELanding() {
                 <div className="mb-2 text-4xl font-black text-white">{stat.value}</div>
                 <div className="mb-2 text-lg font-bold text-zinc-200">{stat.title}</div>
                 <p className="text-sm leading-relaxed text-zinc-500">{stat.desc}</p>
-              </motion.div>
+              </m.div>
             ))}
           </div>
         </div>
@@ -370,7 +370,7 @@ export default function VariantELanding() {
                 icon: <Building className="h-5 w-5 text-zinc-300" />,
               },
             ].map((feature, i) => (
-              <motion.div
+              <m.div
                 key={i}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -383,7 +383,7 @@ export default function VariantELanding() {
                 </div>
                 <h3 className="mb-2 text-lg font-bold">{feature.title}</h3>
                 <p className="text-sm leading-relaxed text-zinc-400">{feature.desc}</p>
-              </motion.div>
+              </m.div>
             ))}
           </div>
         </div>
@@ -404,7 +404,7 @@ export default function VariantELanding() {
               { value: "0", label: "Lovbrudd / Bøter" },
               { value: "99.9%", label: "Plattform Oppetid" },
             ].map((stat, i) => (
-              <motion.div
+              <m.div
                 key={i}
                 initial={{ opacity: 0, scale: 0.9 }}
                 whileInView={{ opacity: 1, scale: 1 }}
@@ -416,7 +416,7 @@ export default function VariantELanding() {
                 <div className="text-sm font-semibold tracking-widest text-zinc-500 uppercase">
                   {stat.label}
                 </div>
-              </motion.div>
+              </m.div>
             ))}
           </div>
         </div>
@@ -427,7 +427,7 @@ export default function VariantELanding() {
         <div className="pointer-events-none absolute top-1/2 left-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-orange-500/5 blur-[120px]"></div>
         <div className="relative z-10 mx-auto max-w-7xl">
           <div className="mb-24 text-center">
-            <motion.div
+            <m.div
               initial={{ scale: 0 }}
               whileInView={{ scale: 1 }}
               viewport={{ once: true }}
@@ -435,7 +435,7 @@ export default function VariantELanding() {
               className="mx-auto mb-8 flex h-16 w-16 items-center justify-center rounded-full border border-zinc-800 bg-zinc-900 shadow-[0_0_30px_rgba(249,115,22,0.2)]"
             >
               <Sparkles className="h-6 w-6 text-orange-500" />
-            </motion.div>
+            </m.div>
             <h2 className="mb-6 text-4xl font-black tracking-tight text-white md:text-6xl">
               Tre steg til fred i{" "}
               <span className="bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent">
@@ -480,7 +480,7 @@ export default function VariantELanding() {
                 border: "border-emerald-500/20",
               },
             ].map((item, idx) => (
-              <motion.div
+              <m.div
                 key={idx}
                 initial={{ opacity: 0, scale: 0.9, y: 30 }}
                 whileInView={{ opacity: 1, scale: 1, y: 0 }}
@@ -499,7 +499,7 @@ export default function VariantELanding() {
                 </div>
                 <h3 className="mb-4 text-2xl font-bold text-white">{item.title}</h3>
                 <p className="leading-relaxed font-medium text-zinc-400">{item.desc}</p>
-              </motion.div>
+              </m.div>
             ))}
           </div>
         </div>
@@ -532,7 +532,7 @@ export default function VariantELanding() {
               </div>
 
               {/* Orbiting Elements */}
-              <motion.div
+              <m.div
                 animate={{ rotate: 360 }}
                 transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
                 className="absolute top-1/2 left-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full border border-zinc-800"
@@ -543,9 +543,9 @@ export default function VariantELanding() {
                 <div className="absolute bottom-0 left-1/2 flex h-12 w-12 -translate-x-1/2 translate-y-1/2 items-center justify-center rounded-xl border border-zinc-700 bg-zinc-900">
                   <Users className="h-5 w-5 rotate-[20deg] text-zinc-400" />
                 </div>
-              </motion.div>
+              </m.div>
 
-              <motion.div
+              <m.div
                 animate={{ rotate: -360 }}
                 transition={{ repeat: Infinity, duration: 25, ease: "linear" }}
                 className="absolute top-1/2 left-1/2 hidden h-96 w-96 -translate-x-1/2 -translate-y-1/2 rounded-full border border-zinc-800/50 sm:block"
@@ -556,7 +556,7 @@ export default function VariantELanding() {
                 <div className="absolute top-1/2 right-0 flex h-14 w-14 translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-xl border border-zinc-700 bg-zinc-900">
                   <Building className="h-6 w-6 text-zinc-400" />
                 </div>
-              </motion.div>
+              </m.div>
             </div>
           </div>
         </div>
@@ -629,7 +629,7 @@ export default function VariantELanding() {
                 "Se opptjent lønn og estimater live",
                 "Søk om ferie og fravær direkte i appen",
               ].map((item, i) => (
-                <motion.li
+                <m.li
                   key={i}
                   initial={{ opacity: 0, x: -20 }}
                   whileInView={{ opacity: 1, x: 0 }}
@@ -641,7 +641,7 @@ export default function VariantELanding() {
                     <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                   </div>
                   <span className="text-zinc-300">{item}</span>
-                </motion.li>
+                </m.li>
               ))}
             </ul>
           </div>
@@ -697,7 +697,7 @@ export default function VariantELanding() {
                   </div>
                 </div>
 
-                <motion.div
+                <m.div
                   initial={{ y: 50, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 1, duration: 0.5 }}
@@ -712,7 +712,7 @@ export default function VariantELanding() {
                       <div className="text-[10px] text-zinc-400">Anna tar vakten din fredag.</div>
                     </div>
                   </div>
-                </motion.div>
+                </m.div>
               </div>
             </div>
 
@@ -753,7 +753,7 @@ export default function VariantELanding() {
                     desc: "Enterprise-grade infrastruktur med Rollebasert tilgangskontroll (RBAC), SSO-integrasjon og full revisjonslogg for alle handlinger.",
                   },
                 ].map((item, idx) => (
-                  <motion.div
+                  <m.div
                     key={idx}
                     initial={{ opacity: 0, x: -20 }}
                     whileInView={{ opacity: 1, x: 0 }}
@@ -768,7 +768,7 @@ export default function VariantELanding() {
                       <h4 className="mb-1 text-lg font-bold text-zinc-200">{item.title}</h4>
                       <p className="text-sm leading-relaxed text-zinc-500">{item.desc}</p>
                     </div>
-                  </motion.div>
+                  </m.div>
                 ))}
               </div>
             </div>
@@ -881,7 +881,7 @@ export default function VariantELanding() {
       <section id="smartout-ai" className="px-6 py-20 lg:py-32">
         <div className="mx-auto max-w-7xl">
           {/* Badge + heading */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -900,7 +900,7 @@ export default function VariantELanding() {
             <p className="mx-auto max-w-2xl text-xl font-medium text-zinc-400">
               {VARIANT_AI_SECTION.E.subheading}
             </p>
-          </motion.div>
+          </m.div>
 
           <div className="grid gap-8 lg:grid-cols-2">
             {/* Left: 3 compact capability cards */}
@@ -912,7 +912,7 @@ export default function VariantELanding() {
                   <CheckCircle2 key="check" className="h-5 w-5 text-orange-400" />,
                 ];
                 return (
-                  <motion.div
+                  <m.div
                     key={cap.title}
                     initial={{ opacity: 0, x: -20 }}
                     whileInView={{ opacity: 1, x: 0 }}
@@ -927,7 +927,7 @@ export default function VariantELanding() {
                       <h3 className="font-bold text-white">{cap.title}</h3>
                       <p className="text-sm text-zinc-400">{cap.description}</p>
                     </div>
-                  </motion.div>
+                  </m.div>
                 );
               })}
             </div>

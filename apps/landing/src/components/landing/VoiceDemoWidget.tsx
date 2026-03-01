@@ -12,7 +12,7 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { Mic, ArrowRight } from "lucide-react";
 import type { VariantVoiceConfig } from "../../lib/variant-voice-config";
 import { ACCENT_COLORS } from "../../lib/variant-voice-config";
@@ -59,7 +59,7 @@ export default function VoiceDemoWidget({ config, className = "", height }: Voic
     <div className={`w-full ${className}`}>
       <AnimatePresence mode="wait">
         {isOpen ? (
-          <motion.div
+          <m.div
             key="assistant"
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -77,9 +77,9 @@ export default function VoiceDemoWidget({ config, className = "", height }: Voic
                 personaRole: config.personaRole,
               }}
             />
-          </motion.div>
+          </m.div>
         ) : (
-          <motion.div
+          <m.div
             key="placeholder"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -97,7 +97,7 @@ export default function VoiceDemoWidget({ config, className = "", height }: Voic
             />
 
             {/* Mic icon with optional pulse */}
-            <motion.div
+            <m.div
               animate={
                 config.usePulse
                   ? {
@@ -123,7 +123,7 @@ export default function VoiceDemoWidget({ config, className = "", height }: Voic
               <Mic
                 className={`h-7 w-7 text-zinc-500 transition-colors sm:h-10 sm:w-10 group-hover:${colors.text}`}
               />
-            </motion.div>
+            </m.div>
 
             {/* Title */}
             <h3 className="relative z-20 mb-1 text-lg font-bold text-white sm:mb-2 sm:text-2xl">
@@ -141,7 +141,7 @@ export default function VoiceDemoWidget({ config, className = "", height }: Voic
             <div className="relative z-20 flex items-center gap-2 rounded-full border border-zinc-700/50 bg-zinc-800/80 px-4 py-2 text-xs font-bold text-zinc-400 shadow-xl transition-colors group-hover:bg-zinc-800 group-hover:text-zinc-300">
               Trykk for \u00e5 koble til <ArrowRight className="h-3 w-3" />
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </div>
