@@ -502,11 +502,7 @@ function EntityRow({
         <div className="mt-1 space-y-1">
           <div className="flex items-center justify-between text-[8px] font-bold tracking-widest uppercase">
             <span className="text-zinc-500">{shifts} vakter</span>
-            <span
-              className={
-                isOvertime ? "text-red-400" : "text-zinc-400"
-              }
-            >
+            <span className={isOvertime ? "text-red-400" : "text-zinc-400"}>
               {hours} <span className="text-zinc-600">/{contractedHours}</span>
             </span>
           </div>

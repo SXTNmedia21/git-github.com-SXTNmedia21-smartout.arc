@@ -20,7 +20,20 @@ export async function handleGetContracts(
   auth: { workspaceId: string; scopes: string[] },
   url: URL,
 ): Promise<Response> {
-  if (!requireScope({ method: "api_key", scopes: auth.scopes, userId: null, workspaceId: auth.workspaceId, keyId: null, rateLimitKey: "", rateLimitPerMinute: 0 }, "contracts:read")) {
+  if (
+    !requireScope(
+      {
+        method: "api_key",
+        scopes: auth.scopes,
+        userId: null,
+        workspaceId: auth.workspaceId,
+        keyId: null,
+        rateLimitKey: "",
+        rateLimitPerMinute: 0,
+      },
+      "contracts:read",
+    )
+  ) {
     return new Response(JSON.stringify({ error: "Missing scope: contracts:read" }), {
       status: 403,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -57,11 +70,7 @@ export async function handleGetContracts(
   params.push(limit, offset);
 
   // Intentionally excludes document_url and signature_id (sensitive fields)
-  const rows = await executeWithWorkspaceContext<ContractRow>(
-    auth.workspaceId,
-    query,
-    params,
-  );
+  const rows = await executeWithWorkspaceContext<ContractRow>(auth.workspaceId, query, params);
 
   return jsonOk({ contracts: rows, limit, offset });
 }
