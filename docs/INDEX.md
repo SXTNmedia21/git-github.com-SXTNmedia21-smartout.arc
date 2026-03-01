@@ -119,7 +119,7 @@ Reusable document templates in `docs/templates/`.
 
 ### Decisions (ADRs)
 
-See `docs/decisions/0000-decision-log.md` -- 27 accepted ADRs (0001-0027).
+See `docs/decisions/0000-decision-log.md` -- 31 accepted ADRs (0001-0031).
 
 | id       | File                                                     | Subject                                    |
 | -------- | -------------------------------------------------------- | ------------------------------------------ |
@@ -150,6 +150,10 @@ See `docs/decisions/0000-decision-log.md` -- 27 accepted ADRs (0001-0027).
 | ADR_0025 | decisions/0025-documentation-restructuring.md            | Docs restructuring (YAML, layers, archive) |
 | ADR_0026 | decisions/0026-template-editor-redesign-attachments.md   | Template editor redesign                   |
 | ADR_0027 | decisions/0027-pricing-terms-table.md                    | Pricing terms table                        |
+| ADR_0028 | decisions/0028-api-key-management-system.md              | API key management system                  |
+| ADR_0029 | decisions/0029-workspace-api-gateway.md                  | Workspace API gateway                      |
+| ADR_0030 | decisions/0030-documentation-in-landing-app.md           | Documentation in landing app               |
+| ADR_0031 | decisions/0031-journey-portal-system.md                  | Journey portal system                      |
 
 ### Learnings
 
@@ -180,6 +184,7 @@ Active plans in `docs/plans/`. Completed plans in `docs/plans/completed/`.
 | PLAN_NEXTRA        | plans/2026-02-28-docs-nextra-system.md          | accepted (ADR-0030) |
 | PLAN_SUBDOMAIN     | plans/2026-02-28-subdomain-workspace-routing.md | canonical           |
 | PLAN_AUTH_KEY_MGMT | plans/2026-02-28-auth-key-management.md         | draft               |
+| PLAN_JOURNEY_P1    | plans/2026-03-01-journey-portal-phase-1.md      | in-progress         |
 
 Completed plans (historical, not loaded actively):
 

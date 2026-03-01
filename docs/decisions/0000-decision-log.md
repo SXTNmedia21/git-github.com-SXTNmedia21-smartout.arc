@@ -39,3 +39,4 @@ This document serves as the central index of all Architecture Decision Records (
 | ADR-0028 | 28-02-2026 | [API Key Management System](./0028-api-key-management-system.md)                                             | **Accepted** |
 | ADR-0029 | 01-03-2026 | [Workspace API Gateway](./0029-workspace-api-gateway.md)                                                     | **Accepted** |
 | ADR-0030 | 01-03-2026 | [Documentation System in Landing App (Nextra Removal)](./0030-documentation-in-landing-app.md)               | **Accepted** |
+| ADR-0031 | 01-03-2026 | [Journey Portal System](./0031-journey-portal-system.md)                                                     | **Accepted** |
