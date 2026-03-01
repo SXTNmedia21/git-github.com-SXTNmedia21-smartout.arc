@@ -41,7 +41,7 @@ const navItems = [
     icon: FileText,
   },
   { href: "/platform-admin/health", label: "Health", icon: Activity },
-  { href: "/platform-admin/journeys", label: "Journeys", icon: Map },
+  { href: "/platform-admin/journeys", label: "Journey", icon: Map },
   { href: "/platform-admin/keys", label: "Keys & Secrets", icon: KeyRound },
   { href: "/platform-admin/users", label: "Users", icon: Users },
   { href: "/platform-admin/audit", label: "Audit Log", icon: ScrollText },
