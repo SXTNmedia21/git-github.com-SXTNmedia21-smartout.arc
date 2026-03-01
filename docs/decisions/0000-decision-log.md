@@ -1,6 +1,6 @@
 ---
 title: "Decision Log"
-updated: 2026-02-28
+updated: 2026-03-01
 ---
 
 # Architecture Decision Log
@@ -40,3 +40,4 @@ This document serves as the central index of all Architecture Decision Records (
 | ADR-0029 | 01-03-2026 | [Workspace API Gateway](./0029-workspace-api-gateway.md)                                                     | **Accepted** |
 | ADR-0030 | 01-03-2026 | [Documentation System in Landing App (Nextra Removal)](./0030-documentation-in-landing-app.md)               | **Accepted** |
 | ADR-0031 | 01-03-2026 | [Journey Portal System](./0031-journey-portal-system.md)                                                     | **Accepted** |
+| ADR-0032 | 01-03-2026 | [Schedule Page Local State Architecture](./0032-schedule-local-state-architecture.md)                        | **Accepted** |

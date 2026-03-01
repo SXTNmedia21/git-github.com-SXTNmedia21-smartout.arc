@@ -4,7 +4,6 @@ import React, { useContext } from "react";
 import {
   Users,
   Briefcase,
-  MoreVertical,
   Plus,
   PanelLeftClose,
   PanelLeftOpen,
@@ -16,14 +15,10 @@ import {
 import { useDroppable } from "@dnd-kit/core";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { ShiftCard, AbsenceCard } from "./grid-cards";
-import {
-  dummyEmployees,
-  dummyDays,
-  dailyShifts,
-  type Employee,
-  type DayColumn,
-  type Shift,
-} from "./schedule-data";
+import { dummyEmployees, dummyDays, type Employee, type DayColumn } from "./schedule-data";
+import { useSchedule } from "./schedule-context";
+import { DayContextMenu } from "./day-context-menu";
+import type { Shift as ScheduleShift, Absence } from "./schedule-types";
 
 // ---------------------------------------------------------------------------
 // GridContent — daily schedule grid (the perf-critical DnD subtree)
@@ -40,6 +35,7 @@ export function GridContent({
   filterSituation?: string;
 }) {
   const { isDark, scheduleView } = useContext(DashboardContext);
+  const { state, dispatch, computed } = useSchedule();
 
   const visibleDays = React.useMemo(
     () =>
@@ -47,9 +43,11 @@ export function GridContent({
     [filterSituation],
   );
 
+  /** Index shifts by employee::day key for O(1) lookup in grid cells */
   const shiftsByEmployeeDay = React.useMemo(() => {
-    const index = new Map<string, Shift[]>();
-    for (const shift of dailyShifts) {
+    const index = new Map<string, ScheduleShift[]>();
+    for (const shift of state.shifts) {
+      if (!shift.employeeId) continue;
       const key = `${shift.employeeId}::${shift.dateId}`;
       const existing = index.get(key);
       if (existing) {
@@ -59,7 +57,22 @@ export function GridContent({
       }
     }
     return index;
-  }, []);
+  }, [state.shifts]);
+
+  /** Index absences by employee::day key */
+  const absencesByEmployeeDay = React.useMemo(() => {
+    const index = new Map<string, Absence[]>();
+    for (const absence of state.absences) {
+      const key = `${absence.employeeId}::${absence.dateId}`;
+      const existing = index.get(key);
+      if (existing) {
+        existing.push(absence);
+      } else {
+        index.set(key, [absence]);
+      }
+    }
+    return index;
+  }, [state.absences]);
 
   return (
     <div className="flex w-full flex-col">
@@ -81,6 +94,8 @@ export function GridContent({
                 employee={emp}
                 days={visibleDays}
                 shiftsByEmployeeDay={shiftsByEmployeeDay}
+                absencesByEmployeeDay={absencesByEmployeeDay}
+                dispatch={dispatch}
               />
             ))}
           </div>
@@ -99,6 +114,8 @@ export function GridContent({
                       employee={emp}
                       days={visibleDays}
                       shiftsByEmployeeDay={shiftsByEmployeeDay}
+                      absencesByEmployeeDay={absencesByEmployeeDay}
+                      dispatch={dispatch}
                       subtitle={emp.team}
                     />
                   ))}
@@ -121,6 +138,8 @@ export function GridContent({
                       employee={emp}
                       days={visibleDays}
                       shiftsByEmployeeDay={shiftsByEmployeeDay}
+                      absencesByEmployeeDay={absencesByEmployeeDay}
+                      dispatch={dispatch}
                       subtitle={emp.role}
                     />
                   ))}
@@ -204,11 +223,10 @@ const DayHeaders = React.memo(function DayHeaders({
                 <span className="h-1 w-1 shrink-0 rounded-full bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.8)]" />
               ) : null}
             </h2>
-            <button
-              className={`shrink-0 p-1 text-zinc-500 hover:text-white ${isDark ? "hover:bg-white/10" : "hover:bg-zinc-200"} rounded-md transition-colors`}
-            >
-              <MoreVertical className="h-3 w-3" />
-            </button>
+            {/* Stop propagation so the DayContextMenu doesn't trigger onDateClick */}
+            <div onClick={(e) => e.stopPropagation()}>
+              <DayContextMenu dateId={day.id} dateLabel={day.label} isDark={isDark} />
+            </div>
           </div>
 
           <div className="mt-auto flex flex-col gap-1.5">
@@ -302,11 +320,15 @@ export const EmployeeRow = React.memo(function EmployeeRow({
   subtitle,
   days,
   shiftsByEmployeeDay,
+  absencesByEmployeeDay,
+  dispatch,
 }: {
   employee: Employee;
   subtitle?: string;
   days: DayColumn[];
-  shiftsByEmployeeDay: Map<string, Shift[]>;
+  shiftsByEmployeeDay: Map<string, ScheduleShift[]>;
+  absencesByEmployeeDay: Map<string, Absence[]>;
+  dispatch: React.Dispatch<import("./schedule-context").ScheduleAction>;
 }) {
   const { isDark } = useContext(DashboardContext);
   const scheduledHours = parseFloat(employee.hours) || 0;
@@ -364,31 +386,55 @@ export const EmployeeRow = React.memo(function EmployeeRow({
 
       {/* Day cells */}
       {days.map((day) => {
-        const dayShifts = shiftsByEmployeeDay.get(`${employee.id}::${day.id}`) ?? [];
+        const cellShifts = shiftsByEmployeeDay.get(`${employee.id}::${day.id}`) ?? [];
+        const cellAbsences = absencesByEmployeeDay.get(`${employee.id}::${day.id}`) ?? [];
+        const hasContent = cellShifts.length > 0 || cellAbsences.length > 0;
+
+        /** Map absence type enum to Norwegian display label */
+        const absenceLabel = (type: string): "Sykdom" | "Ferie" | "Avspasering" => {
+          switch (type) {
+            case "sick_leave":
+              return "Sykdom";
+            case "vacation":
+              return "Ferie";
+            default:
+              return "Avspasering";
+          }
+        };
 
         return (
-          <MatrixCell key={day.id} isToday={day.isToday}>
-            {dayShifts.length > 0 ? (
+          <MatrixCell
+            key={day.id}
+            isToday={day.isToday}
+            id={`cell::${employee.id}::${day.id}`}
+            onAddClick={() =>
+              dispatch({
+                type: "SET_CREATE_SHIFT_CONTEXT",
+                payload: { dateId: day.id, employeeId: employee.id },
+              })
+            }
+          >
+            {hasContent ? (
               <div className="flex h-full w-full flex-col gap-1 pb-1">
-                {dayShifts.map((shift) =>
-                  shift.type === "absence" ? (
-                    <AbsenceCard
-                      key={shift.id}
-                      type={shift.absenceType as "Sykdom" | "Ferie" | "Avspasering"}
-                      reason={shift.reason}
-                    />
-                  ) : (
-                    <ShiftCard
-                      key={shift.id}
-                      role={shift.role!}
-                      time={shift.time!}
-                      status={shift.status!}
-                      indicator={shift.indicator!}
-                      zone={shift.zone}
-                      id={shift.id}
-                    />
-                  ),
-                )}
+                {cellAbsences.map((absence) => (
+                  <AbsenceCard
+                    key={absence.id}
+                    type={absenceLabel(absence.type)}
+                    reason={absence.reason}
+                  />
+                ))}
+                {cellShifts.map((shift) => (
+                  <ShiftCard
+                    key={shift.id}
+                    role={shift.role}
+                    time={shift.time}
+                    status={shift.status}
+                    indicator={shift.indicator}
+                    zone={shift.zone}
+                    id={shift.id}
+                    onClick={() => dispatch({ type: "SET_SELECTED_SHIFT", payload: shift.id })}
+                  />
+                ))}
               </div>
             ) : null}
           </MatrixCell>
@@ -401,14 +447,21 @@ export const EmployeeRow = React.memo(function EmployeeRow({
 // ---------------------------------------------------------------------------
 // MatrixCell — single droppable cell in the employee×day grid
 // ---------------------------------------------------------------------------
+/**
+ * Single droppable cell in the employee×day grid.
+ * ID format: cell::employeeId::dateId for DnD target parsing.
+ */
 function MatrixCell({
   children,
   isToday,
   id,
+  onAddClick,
 }: {
   children?: React.ReactNode;
   isToday?: boolean;
   id?: string;
+  /** Called when the "+" button is clicked in an empty cell */
+  onAddClick?: () => void;
 }) {
   const { isDark } = useContext(DashboardContext);
   const defaultId = React.useId();
@@ -424,6 +477,7 @@ function MatrixCell({
         children
       ) : (
         <button
+          onClick={onAddClick}
           className={`absolute inset-x-1.5 inset-y-1.5 rounded-md border border-dashed ${isDark ? "border-white/[0.06]" : "border-zinc-300"} flex cursor-pointer items-center justify-center bg-transparent text-orange-500/0 opacity-0 transition-all hover:border-orange-500/30 hover:bg-white/[0.03] hover:text-orange-500/50 hover:opacity-100`}
         >
           <Plus className="h-4 w-4" />
