@@ -18,6 +18,8 @@ import type {
   PolicyRef,
   CountMap,
   PositionRow,
+  ZoneRow,
+  AssetRow,
   SetupCheckItem,
 } from "./_components/types";
 
@@ -35,6 +37,8 @@ export default function OrganizationPage() {
 
   const [positions, setPositions] = useState<PositionRow[]>([]);
   const [positionCounts, setPositionCounts] = useState<CountMap>({});
+  const [zones, setZones] = useState<ZoneRow[]>([]);
+  const [assets, setAssets] = useState<AssetRow[]>([]);
   const [zoneCounts, setZoneCounts] = useState<CountMap>({});
   const [assetCounts, setAssetCounts] = useState<CountMap>({});
   const [memberCounts, setMemberCounts] = useState<CountMap>({});
@@ -68,11 +72,11 @@ export default function OrganizationPage() {
       supabase
         .from("position")
         .select(
-          "position_id, name, department_id, is_active, minimum_role, color, icon, sort_order",
+          "position_id, name, slug, department_id, description, is_active, minimum_role, color, icon, sort_order",
         )
         .eq("workspace_id", wid),
-      supabase.from("zone").select("zone_id, location_id").eq("workspace_id", wid),
-      supabase.from("asset").select("asset_id, location_id").eq("workspace_id", wid),
+      supabase.from("zone").select("*").eq("workspace_id", wid).order("sort_order"),
+      supabase.from("asset").select("*").eq("workspace_id", wid).order("sort_order"),
       supabase
         .from("profile")
         .select("profile_id", { count: "exact", head: true })
@@ -105,22 +109,24 @@ export default function OrganizationPage() {
       setPositionCounts(map);
     }
 
-    // Build zone count map
-    if (zonesRes.data) {
+    // Store zones and build count map
+    const fetchedZones = (zonesRes.data ?? []) as ZoneRow[];
+    setZones(fetchedZones);
+    {
       const map: CountMap = {};
-      for (const z of zonesRes.data) {
-        const lid = (z as { location_id: string }).location_id;
-        map[lid] = (map[lid] ?? 0) + 1;
+      for (const z of fetchedZones) {
+        map[z.location_id] = (map[z.location_id] ?? 0) + 1;
       }
       setZoneCounts(map);
     }
 
-    // Build asset count map
-    if (assetsRes.data) {
+    // Store assets and build count map
+    const fetchedAssets = (assetsRes.data ?? []) as AssetRow[];
+    setAssets(fetchedAssets);
+    {
       const map: CountMap = {};
-      for (const a of assetsRes.data) {
-        const lid = (a as { location_id: string }).location_id;
-        map[lid] = (map[lid] ?? 0) + 1;
+      for (const a of fetchedAssets) {
+        map[a.location_id] = (map[a.location_id] ?? 0) + 1;
       }
       setAssetCounts(map);
     }
@@ -178,6 +184,32 @@ export default function OrganizationPage() {
     }
     return map;
   }, [positions]);
+
+  // Group zones by location
+  const zonesByLocation = useMemo(() => {
+    const map: Record<string, ZoneRow[]> = {};
+    for (const z of zones) {
+      const arr = map[z.location_id] ?? (map[z.location_id] = []);
+      arr.push(z);
+    }
+    for (const arr of Object.values(map)) {
+      arr.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+    }
+    return map;
+  }, [zones]);
+
+  // Group assets by location
+  const assetsByLocation = useMemo(() => {
+    const map: Record<string, AssetRow[]> = {};
+    for (const a of assets) {
+      const arr = map[a.location_id] ?? (map[a.location_id] = []);
+      arr.push(a);
+    }
+    for (const arr of Object.values(map)) {
+      arr.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+    }
+    return map;
+  }, [assets]);
 
   // Setup checklist
   const activeDepts = departments.filter((d) => d.is_active);
@@ -280,6 +312,8 @@ export default function OrganizationPage() {
             zoneCounts={zoneCounts}
             assetCounts={assetCounts}
             policyCounts={entityPolicyCounts}
+            zonesByLocation={zonesByLocation}
+            assetsByLocation={assetsByLocation}
             isDark={isDark}
             workspaceId={workspaceData?.workspace_id ?? ""}
             onRefresh={fetchData}

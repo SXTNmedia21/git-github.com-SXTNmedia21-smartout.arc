@@ -8,18 +8,7 @@ import {
   GripVertical,
   ChevronDown,
   AlertTriangle,
-  UtensilsCrossed,
-  Wine,
-  Coffee,
-  ConciergeBell,
-  Users,
-  Truck,
-  ShieldCheck,
-  Wrench,
-  BookOpen,
-  Music,
-  Sparkles,
-  HeartPulse,
+  Pencil,
 } from "lucide-react";
 import { createClient } from "@smartout/supabase/client";
 import { toast } from "sonner";
@@ -35,25 +24,15 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { DepartmentRow, PositionRow, CountMap } from "./types";
 import { COLOR_PRESETS, ICON_PRESETS, toSlug } from "./types";
-
-const ICON_COMPONENTS: Record<string, React.ElementType> = {
-  "utensils-crossed": UtensilsCrossed,
-  wine: Wine,
-  coffee: Coffee,
-  "concierge-bell": ConciergeBell,
-  users: Users,
-  truck: Truck,
-  "shield-check": ShieldCheck,
-  wrench: Wrench,
-  "book-open": BookOpen,
-  music: Music,
-  sparkles: Sparkles,
-  "heart-pulse": HeartPulse,
-};
+import { ICON_COMPONENTS } from "./constants";
+import { EditDepartmentDialog } from "./EditDepartmentDialog";
+import { CreatePositionDialog } from "./CreatePositionDialog";
+import { EditPositionDialog } from "./EditPositionDialog";
 
 type DepartmentsTabProps = {
   departments: DepartmentRow[];
@@ -83,6 +62,13 @@ export function DepartmentsTab({
   const [selectedIcon, setSelectedIcon] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [expandedDepts, setExpandedDepts] = useState<Set<string>>(new Set());
+
+  // Edit department state
+  const [editDept, setEditDept] = useState<DepartmentRow | null>(null);
+
+  // Position CRUD state
+  const [createPosDeptId, setCreatePosDeptId] = useState<string | null>(null);
+  const [editPosition, setEditPosition] = useState<PositionRow | null>(null);
 
   const cardBase = `rounded-2xl border p-5 transition-all ${
     isDark
@@ -146,6 +132,21 @@ export function DepartmentsTab({
     }
   }
 
+  async function togglePositionActive(pos: PositionRow) {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("position")
+      .update({ is_active: !pos.is_active })
+      .eq("position_id", pos.position_id);
+
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success(pos.is_active ? `"${pos.name}" deactivated` : `"${pos.name}" reactivated`);
+      await onRefresh();
+    }
+  }
+
   function resetForm() {
     setName("");
     setDescription("");
@@ -161,6 +162,11 @@ export function DepartmentsTab({
       return next;
     });
   }
+
+  // Find the department for create position dialog
+  const createPosDept = createPosDeptId
+    ? departments.find((d) => d.department_id === createPosDeptId)
+    : null;
 
   if (loading) {
     return (
@@ -274,7 +280,7 @@ export function DepartmentsTab({
                         className="h-3 w-3 rounded-full ring-2 ring-offset-1"
                         style={{
                           backgroundColor: dept.color,
-                          ringColor: dept.color,
+                          ["--tw-ring-color" as string]: dept.color,
                           ["--tw-ring-offset-color" as string]: isDark ? "#09090b" : "#ffffff",
                         }}
                       />
@@ -300,6 +306,11 @@ export function DepartmentsTab({
                       align="end"
                       className={isDark ? "border-zinc-800 bg-zinc-900" : ""}
                     >
+                      <DropdownMenuItem onClick={() => setEditDept(dept)}>
+                        <Pencil className="mr-2 h-3.5 w-3.5" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator className={isDark ? "bg-zinc-800" : ""} />
                       <DropdownMenuItem onClick={() => toggleActive(dept)}>
                         {dept.is_active ? "Deactivate" : "Reactivate"}
                       </DropdownMenuItem>
@@ -378,7 +389,7 @@ export function DepartmentsTab({
                       deptPositions.map((pos) => (
                         <div
                           key={pos.position_id}
-                          className="flex items-center justify-between py-1"
+                          className="group/pos flex items-center justify-between py-1"
                         >
                           <div className="flex items-center gap-2">
                             <div
@@ -404,12 +415,53 @@ export function DepartmentsTab({
                               </span>
                             )}
                           </div>
-                          <div
-                            className={`h-1.5 w-1.5 rounded-full ${pos.is_active ? "bg-emerald-500" : "bg-zinc-500"}`}
-                          />
+                          <div className="flex items-center gap-1.5">
+                            <div
+                              className={`h-1.5 w-1.5 rounded-full ${pos.is_active ? "bg-emerald-500" : "bg-zinc-500"}`}
+                            />
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button
+                                  className={`rounded p-0.5 opacity-0 transition-all group-hover/pos:opacity-100 ${
+                                    isDark
+                                      ? "text-zinc-600 hover:bg-zinc-800"
+                                      : "text-zinc-400 hover:bg-zinc-200"
+                                  }`}
+                                >
+                                  <MoreVertical className="h-3 w-3" />
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent
+                                align="end"
+                                className={isDark ? "border-zinc-800 bg-zinc-900" : ""}
+                              >
+                                <DropdownMenuItem onClick={() => setEditPosition(pos)}>
+                                  <Pencil className="mr-2 h-3.5 w-3.5" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator className={isDark ? "bg-zinc-800" : ""} />
+                                <DropdownMenuItem onClick={() => togglePositionActive(pos)}>
+                                  {pos.is_active ? "Deactivate" : "Reactivate"}
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
                         </div>
                       ))
                     )}
+
+                    {/* Add Position button */}
+                    <button
+                      onClick={() => setCreatePosDeptId(dept.department_id)}
+                      className={`mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed py-1.5 text-xs font-medium transition-colors ${
+                        isDark
+                          ? "border-zinc-700 text-zinc-500 hover:border-zinc-600 hover:text-zinc-400"
+                          : "border-zinc-300 text-zinc-400 hover:border-zinc-400 hover:text-zinc-500"
+                      }`}
+                    >
+                      <Plus className="h-3 w-3" />
+                      Add Position
+                    </button>
                   </div>
                 )}
 
@@ -581,6 +633,48 @@ export function DepartmentsTab({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Department Dialog */}
+      {editDept && (
+        <EditDepartmentDialog
+          department={editDept}
+          isDark={isDark}
+          open={!!editDept}
+          onOpenChange={(open) => {
+            if (!open) setEditDept(null);
+          }}
+          onSave={onRefresh}
+        />
+      )}
+
+      {/* Create Position Dialog */}
+      {createPosDept && (
+        <CreatePositionDialog
+          departmentId={createPosDept.department_id}
+          departmentName={createPosDept.name}
+          workspaceId={workspaceId}
+          existingCount={(positionsByDept[createPosDept.department_id] ?? []).length}
+          isDark={isDark}
+          open={!!createPosDeptId}
+          onOpenChange={(open) => {
+            if (!open) setCreatePosDeptId(null);
+          }}
+          onSave={onRefresh}
+        />
+      )}
+
+      {/* Edit Position Dialog */}
+      {editPosition && (
+        <EditPositionDialog
+          position={editPosition}
+          isDark={isDark}
+          open={!!editPosition}
+          onOpenChange={(open) => {
+            if (!open) setEditPosition(null);
+          }}
+          onSave={onRefresh}
+        />
+      )}
     </div>
   );
 }

@@ -93,12 +93,40 @@ export type TeamRow = {
 export type PositionRow = {
   position_id: string;
   name: string;
+  slug: string;
   department_id: string;
+  description: string | null;
   is_active: boolean;
   minimum_role: string | null;
   color: string | null;
   icon: string | null;
   sort_order: number | null;
+};
+
+export type ZoneRow = {
+  zone_id: string;
+  location_id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  capacity: number | null;
+  color: string | null;
+  sort_order: number | null;
+  is_active: boolean;
+};
+
+export type AssetRow = {
+  asset_id: string;
+  location_id: string;
+  name: string;
+  slug: string | null;
+  description: string | null;
+  asset_type: string;
+  icon: string | null;
+  requires_training: boolean;
+  requires_routine: boolean;
+  sort_order: number | null;
+  is_active: boolean;
 };
 
 export type PolicyRef = {

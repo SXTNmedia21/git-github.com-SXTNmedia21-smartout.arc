@@ -4,16 +4,13 @@ import {
   Plus,
   MoreVertical,
   FileText,
-  Building2,
-  Sun,
-  UtensilsCrossed,
-  Calendar,
-  Archive,
   Users,
   Layers,
   Package,
   GripVertical,
   AlertTriangle,
+  ChevronDown,
+  Pencil,
 } from "lucide-react";
 import { createClient } from "@smartout/supabase/client";
 import { toast } from "sonner";
@@ -29,58 +26,25 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { LocationRow, CountMap } from "./types";
+import type { LocationRow, ZoneRow, AssetRow, CountMap } from "./types";
 import { toSlug } from "./types";
-
-const LOCATION_TYPE_CONFIG: Record<
-  string,
-  { label: string; icon: React.ElementType; color: string; bg: string }
-> = {
-  main: {
-    label: "Main",
-    icon: Building2,
-    color: "text-blue-400",
-    bg: "bg-blue-500/10 border-blue-500/20",
-  },
-  outdoor: {
-    label: "Outdoor",
-    icon: Sun,
-    color: "text-emerald-400",
-    bg: "bg-emerald-500/10 border-emerald-500/20",
-  },
-  kitchen: {
-    label: "Kitchen",
-    icon: UtensilsCrossed,
-    color: "text-amber-400",
-    bg: "bg-amber-500/10 border-amber-500/20",
-  },
-  event: {
-    label: "Event",
-    icon: Calendar,
-    color: "text-violet-400",
-    bg: "bg-violet-500/10 border-violet-500/20",
-  },
-  storage: {
-    label: "Storage",
-    icon: Archive,
-    color: "text-zinc-400",
-    bg: "bg-zinc-500/10 border-zinc-500/20",
-  },
-  other: {
-    label: "Other",
-    icon: MapPin,
-    color: "text-zinc-400",
-    bg: "bg-zinc-500/10 border-zinc-500/20",
-  },
-};
+import { LOCATION_TYPE_CONFIG } from "./constants";
+import { EditLocationDialog } from "./EditLocationDialog";
+import { CreateZoneDialog } from "./CreateZoneDialog";
+import { EditZoneDialog } from "./EditZoneDialog";
+import { CreateAssetDialog } from "./CreateAssetDialog";
+import { EditAssetDialog } from "./EditAssetDialog";
 
 type LocationsTabProps = {
   locations: LocationRow[];
   zoneCounts: CountMap;
   assetCounts: CountMap;
   policyCounts: CountMap;
+  zonesByLocation: Record<string, ZoneRow[]>;
+  assetsByLocation: Record<string, AssetRow[]>;
   isDark: boolean;
   workspaceId: string;
   onRefresh: () => Promise<void>;
@@ -92,6 +56,8 @@ export function LocationsTab({
   zoneCounts,
   assetCounts,
   policyCounts,
+  zonesByLocation,
+  assetsByLocation,
   isDark,
   workspaceId,
   onRefresh,
@@ -104,6 +70,21 @@ export function LocationsTab({
   const [address, setAddress] = useState("");
   const [capacity, setCapacity] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // Edit location state
+  const [editLoc, setEditLoc] = useState<LocationRow | null>(null);
+
+  // Expandable sections
+  const [expandedZones, setExpandedZones] = useState<Set<string>>(new Set());
+  const [expandedAssets, setExpandedAssets] = useState<Set<string>>(new Set());
+
+  // Zone CRUD state
+  const [createZoneLocId, setCreateZoneLocId] = useState<string | null>(null);
+  const [editZone, setEditZone] = useState<ZoneRow | null>(null);
+
+  // Asset CRUD state
+  const [createAssetLocId, setCreateAssetLocId] = useState<string | null>(null);
+  const [editAsset, setEditAsset] = useState<AssetRow | null>(null);
 
   const cardBase = `rounded-2xl border p-5 transition-all ${
     isDark
@@ -168,6 +149,38 @@ export function LocationsTab({
     }
   }
 
+  async function toggleZoneActive(zone: ZoneRow) {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("zone")
+      .update({ is_active: !zone.is_active })
+      .eq("zone_id", zone.zone_id);
+
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success(zone.is_active ? `"${zone.name}" deactivated` : `"${zone.name}" reactivated`);
+      await onRefresh();
+    }
+  }
+
+  async function toggleAssetActive(asset: AssetRow) {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("asset")
+      .update({ is_active: !asset.is_active })
+      .eq("asset_id", asset.asset_id);
+
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success(
+        asset.is_active ? `"${asset.name}" deactivated` : `"${asset.name}" reactivated`,
+      );
+      await onRefresh();
+    }
+  }
+
   function resetForm() {
     setName("");
     setDescription("");
@@ -175,6 +188,32 @@ export function LocationsTab({
     setAddress("");
     setCapacity("");
   }
+
+  function toggleExpandedZones(locId: string) {
+    setExpandedZones((prev) => {
+      const next = new Set(prev);
+      if (next.has(locId)) next.delete(locId);
+      else next.add(locId);
+      return next;
+    });
+  }
+
+  function toggleExpandedAssets(locId: string) {
+    setExpandedAssets((prev) => {
+      const next = new Set(prev);
+      if (next.has(locId)) next.delete(locId);
+      else next.add(locId);
+      return next;
+    });
+  }
+
+  // Find location for create dialogs
+  const createZoneLoc = createZoneLocId
+    ? locations.find((l) => l.location_id === createZoneLocId)
+    : null;
+  const createAssetLoc = createAssetLocId
+    ? locations.find((l) => l.location_id === createAssetLocId)
+    : null;
 
   if (loading) {
     return (
@@ -258,9 +297,13 @@ export function LocationsTab({
             const zones = zoneCounts[loc.location_id] ?? 0;
             const assets = assetCounts[loc.location_id] ?? 0;
             const policies = policyCounts[loc.location_id] ?? 0;
-            const typeConfig =
-              LOCATION_TYPE_CONFIG[loc.location_type] ?? LOCATION_TYPE_CONFIG.other;
+            const fallback = LOCATION_TYPE_CONFIG["other"]!;
+            const typeConfig = LOCATION_TYPE_CONFIG[loc.location_type] ?? fallback;
             const TypeIcon = typeConfig.icon;
+            const isZonesExpanded = expandedZones.has(loc.location_id);
+            const isAssetsExpanded = expandedAssets.has(loc.location_id);
+            const locZones = zonesByLocation[loc.location_id] ?? [];
+            const locAssets = assetsByLocation[loc.location_id] ?? [];
 
             return (
               <div key={loc.location_id} className={`group relative ${cardBase}`}>
@@ -304,6 +347,11 @@ export function LocationsTab({
                       align="end"
                       className={isDark ? "border-zinc-800 bg-zinc-900" : ""}
                     >
+                      <DropdownMenuItem onClick={() => setEditLoc(loc)}>
+                        <Pencil className="mr-2 h-3.5 w-3.5" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator className={isDark ? "bg-zinc-800" : ""} />
                       <DropdownMenuItem onClick={() => toggleActive(loc)}>
                         {loc.is_active ? "Deactivate" : "Reactivate"}
                       </DropdownMenuItem>
@@ -352,23 +400,35 @@ export function LocationsTab({
                     </div>
                   )}
 
-                  <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => toggleExpandedZones(loc.location_id)}
+                    className="flex items-center gap-1.5 transition-colors hover:opacity-80"
+                  >
                     <Layers className={`h-3 w-3 ${isDark ? "text-zinc-600" : "text-zinc-400"}`} />
                     <span
                       className={`text-xs font-medium ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
                     >
                       {zones} {zones === 1 ? "zone" : "zones"}
                     </span>
-                  </div>
+                    <ChevronDown
+                      className={`h-3 w-3 transition-transform ${isDark ? "text-zinc-600" : "text-zinc-400"} ${isZonesExpanded ? "rotate-180" : ""}`}
+                    />
+                  </button>
 
-                  <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => toggleExpandedAssets(loc.location_id)}
+                    className="flex items-center gap-1.5 transition-colors hover:opacity-80"
+                  >
                     <Package className={`h-3 w-3 ${isDark ? "text-zinc-600" : "text-zinc-400"}`} />
                     <span
                       className={`text-xs font-medium ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
                     >
                       {assets} {assets === 1 ? "asset" : "assets"}
                     </span>
-                  </div>
+                    <ChevronDown
+                      className={`h-3 w-3 transition-transform ${isDark ? "text-zinc-600" : "text-zinc-400"} ${isAssetsExpanded ? "rotate-180" : ""}`}
+                    />
+                  </button>
 
                   {policies > 0 && (
                     <div className="flex items-center gap-1.5">
@@ -383,6 +443,197 @@ export function LocationsTab({
                     </div>
                   )}
                 </div>
+
+                {/* Zone drill-down */}
+                {isZonesExpanded && (
+                  <div
+                    className={`mt-3 space-y-1.5 rounded-lg border p-3 ${
+                      isDark ? "border-zinc-800/50 bg-zinc-900/50" : "border-zinc-100 bg-zinc-50"
+                    }`}
+                  >
+                    <div className="mb-1 flex items-center gap-1.5">
+                      <Layers className={`h-3 w-3 ${isDark ? "text-zinc-500" : "text-zinc-400"}`} />
+                      <span
+                        className={`text-[10px] font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+                      >
+                        Zones
+                      </span>
+                    </div>
+                    {locZones.length === 0 ? (
+                      <p className={`text-xs italic ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
+                        No zones yet. Add zones to define service sections.
+                      </p>
+                    ) : (
+                      locZones.map((zone) => (
+                        <div
+                          key={zone.zone_id}
+                          className="group/zone flex items-center justify-between py-1"
+                        >
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="h-2 w-2 rounded-full"
+                              style={{
+                                backgroundColor: zone.color ?? (isDark ? "#52525b" : "#a1a1aa"),
+                              }}
+                            />
+                            <span
+                              className={`text-xs font-medium ${isDark ? "text-zinc-300" : "text-zinc-700"}`}
+                            >
+                              {zone.name}
+                            </span>
+                            {zone.capacity !== null && (
+                              <span
+                                className={`rounded border px-1.5 py-0.5 text-[9px] font-bold ${
+                                  isDark
+                                    ? "border-zinc-700 bg-zinc-800 text-zinc-500"
+                                    : "border-zinc-200 bg-zinc-100 text-zinc-400"
+                                }`}
+                              >
+                                cap {zone.capacity}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <div
+                              className={`h-1.5 w-1.5 rounded-full ${zone.is_active ? "bg-emerald-500" : "bg-zinc-500"}`}
+                            />
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button
+                                  className={`rounded p-0.5 opacity-0 transition-all group-hover/zone:opacity-100 ${
+                                    isDark
+                                      ? "text-zinc-600 hover:bg-zinc-800"
+                                      : "text-zinc-400 hover:bg-zinc-200"
+                                  }`}
+                                >
+                                  <MoreVertical className="h-3 w-3" />
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent
+                                align="end"
+                                className={isDark ? "border-zinc-800 bg-zinc-900" : ""}
+                              >
+                                <DropdownMenuItem onClick={() => setEditZone(zone)}>
+                                  <Pencil className="mr-2 h-3.5 w-3.5" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator className={isDark ? "bg-zinc-800" : ""} />
+                                <DropdownMenuItem onClick={() => toggleZoneActive(zone)}>
+                                  {zone.is_active ? "Deactivate" : "Reactivate"}
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                    <button
+                      onClick={() => setCreateZoneLocId(loc.location_id)}
+                      className={`mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed py-1.5 text-xs font-medium transition-colors ${
+                        isDark
+                          ? "border-zinc-700 text-zinc-500 hover:border-zinc-600 hover:text-zinc-400"
+                          : "border-zinc-300 text-zinc-400 hover:border-zinc-400 hover:text-zinc-500"
+                      }`}
+                    >
+                      <Plus className="h-3 w-3" />
+                      Add Zone
+                    </button>
+                  </div>
+                )}
+
+                {/* Asset drill-down */}
+                {isAssetsExpanded && (
+                  <div
+                    className={`mt-3 space-y-1.5 rounded-lg border p-3 ${
+                      isDark ? "border-zinc-800/50 bg-zinc-900/50" : "border-zinc-100 bg-zinc-50"
+                    }`}
+                  >
+                    <div className="mb-1 flex items-center gap-1.5">
+                      <Package
+                        className={`h-3 w-3 ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+                      />
+                      <span
+                        className={`text-[10px] font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+                      >
+                        Assets
+                      </span>
+                    </div>
+                    {locAssets.length === 0 ? (
+                      <p className={`text-xs italic ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
+                        No assets yet. Add equipment, safety items, or stations.
+                      </p>
+                    ) : (
+                      locAssets.map((asset) => (
+                        <div
+                          key={asset.asset_id}
+                          className="group/asset flex items-center justify-between py-1"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Package
+                              className={`h-2.5 w-2.5 ${isDark ? "text-zinc-600" : "text-zinc-400"}`}
+                            />
+                            <span
+                              className={`text-xs font-medium ${isDark ? "text-zinc-300" : "text-zinc-700"}`}
+                            >
+                              {asset.name}
+                            </span>
+                            <span
+                              className={`rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase ${
+                                isDark
+                                  ? "border-zinc-700 bg-zinc-800 text-zinc-500"
+                                  : "border-zinc-200 bg-zinc-100 text-zinc-400"
+                              }`}
+                            >
+                              {asset.asset_type}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <div
+                              className={`h-1.5 w-1.5 rounded-full ${asset.is_active ? "bg-emerald-500" : "bg-zinc-500"}`}
+                            />
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button
+                                  className={`rounded p-0.5 opacity-0 transition-all group-hover/asset:opacity-100 ${
+                                    isDark
+                                      ? "text-zinc-600 hover:bg-zinc-800"
+                                      : "text-zinc-400 hover:bg-zinc-200"
+                                  }`}
+                                >
+                                  <MoreVertical className="h-3 w-3" />
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent
+                                align="end"
+                                className={isDark ? "border-zinc-800 bg-zinc-900" : ""}
+                              >
+                                <DropdownMenuItem onClick={() => setEditAsset(asset)}>
+                                  <Pencil className="mr-2 h-3.5 w-3.5" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator className={isDark ? "bg-zinc-800" : ""} />
+                                <DropdownMenuItem onClick={() => toggleAssetActive(asset)}>
+                                  {asset.is_active ? "Deactivate" : "Reactivate"}
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                    <button
+                      onClick={() => setCreateAssetLocId(loc.location_id)}
+                      className={`mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed py-1.5 text-xs font-medium transition-colors ${
+                        isDark
+                          ? "border-zinc-700 text-zinc-500 hover:border-zinc-600 hover:text-zinc-400"
+                          : "border-zinc-300 text-zinc-400 hover:border-zinc-400 hover:text-zinc-500"
+                      }`}
+                    >
+                      <Plus className="h-3 w-3" />
+                      Add Asset
+                    </button>
+                  </div>
+                )}
 
                 <div className="mt-3 flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
@@ -421,7 +672,7 @@ export function LocationsTab({
         </div>
       )}
 
-      {/* Create Dialog */}
+      {/* Create Location Dialog */}
       <Dialog
         open={dialogOpen}
         onOpenChange={(open) => {
@@ -531,6 +782,85 @@ export function LocationsTab({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Location Dialog */}
+      {editLoc && (
+        <EditLocationDialog
+          location={editLoc}
+          isDark={isDark}
+          open={!!editLoc}
+          onOpenChange={(open) => {
+            if (!open) setEditLoc(null);
+          }}
+          onSave={onRefresh}
+        />
+      )}
+
+      {/* Create Zone Dialog */}
+      {createZoneLoc && (
+        <CreateZoneDialog
+          locationId={createZoneLoc.location_id}
+          locationName={createZoneLoc.name}
+          workspaceId={workspaceId}
+          existingCount={locZonesCount(createZoneLoc.location_id)}
+          isDark={isDark}
+          open={!!createZoneLocId}
+          onOpenChange={(open) => {
+            if (!open) setCreateZoneLocId(null);
+          }}
+          onSave={onRefresh}
+        />
+      )}
+
+      {/* Edit Zone Dialog */}
+      {editZone && (
+        <EditZoneDialog
+          zone={editZone}
+          isDark={isDark}
+          open={!!editZone}
+          onOpenChange={(open) => {
+            if (!open) setEditZone(null);
+          }}
+          onSave={onRefresh}
+        />
+      )}
+
+      {/* Create Asset Dialog */}
+      {createAssetLoc && (
+        <CreateAssetDialog
+          locationId={createAssetLoc.location_id}
+          locationName={createAssetLoc.name}
+          workspaceId={workspaceId}
+          existingCount={locAssetsCount(createAssetLoc.location_id)}
+          isDark={isDark}
+          open={!!createAssetLocId}
+          onOpenChange={(open) => {
+            if (!open) setCreateAssetLocId(null);
+          }}
+          onSave={onRefresh}
+        />
+      )}
+
+      {/* Edit Asset Dialog */}
+      {editAsset && (
+        <EditAssetDialog
+          asset={editAsset}
+          isDark={isDark}
+          open={!!editAsset}
+          onOpenChange={(open) => {
+            if (!open) setEditAsset(null);
+          }}
+          onSave={onRefresh}
+        />
+      )}
     </div>
   );
+
+  function locZonesCount(locId: string) {
+    return (zonesByLocation[locId] ?? []).length;
+  }
+
+  function locAssetsCount(locId: string) {
+    return (assetsByLocation[locId] ?? []).length;
+  }
 }

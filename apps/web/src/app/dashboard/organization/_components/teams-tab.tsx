@@ -1,5 +1,14 @@
 import { useState } from "react";
-import { Network, Plus, MoreVertical, FileText, Users, Building2, UserCircle } from "lucide-react";
+import {
+  Network,
+  Plus,
+  MoreVertical,
+  FileText,
+  Users,
+  Building2,
+  UserCircle,
+  Pencil,
+} from "lucide-react";
 import { createClient } from "@smartout/supabase/client";
 import { toast } from "sonner";
 import {
@@ -14,46 +23,13 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { TeamRow, DepartmentRow, CountMap } from "./types";
 import { COLOR_PRESETS, toSlug } from "./types";
-
-const TEAM_TYPE_CONFIG: Record<
-  string,
-  { label: string; border: string; bg: string; text: string }
-> = {
-  operational: {
-    label: "Operational",
-    border: "border-blue-500/30",
-    bg: "bg-blue-500/10",
-    text: "text-blue-400",
-  },
-  access: {
-    label: "Access",
-    border: "border-emerald-500/30",
-    bg: "bg-emerald-500/10",
-    text: "text-emerald-400",
-  },
-  cross_department: {
-    label: "Cross-dept",
-    border: "border-violet-500/30",
-    bg: "bg-violet-500/10",
-    text: "text-violet-400",
-  },
-  seasonal: {
-    label: "Seasonal",
-    border: "border-amber-500/30",
-    bg: "bg-amber-500/10",
-    text: "text-amber-400",
-  },
-  custom: {
-    label: "Custom",
-    border: "border-zinc-500/30",
-    bg: "bg-zinc-500/10",
-    text: "text-zinc-400",
-  },
-};
+import { TEAM_TYPE_CONFIG } from "./constants";
+import { EditTeamDialog } from "./EditTeamDialog";
 
 type TeamsTabProps = {
   teams: TeamRow[];
@@ -83,6 +59,9 @@ export function TeamsTab({
   const [departmentId, setDepartmentId] = useState("");
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // Edit team state
+  const [editTeam, setEditTeam] = useState<TeamRow | null>(null);
 
   const deptMap = new Map(departments.map((d) => [d.department_id, d.name]));
 
@@ -234,7 +213,8 @@ export function TeamsTab({
           {teams.map((team) => {
             const members = memberCounts[team.team_id] ?? 0;
             const policies = policyCounts[team.team_id] ?? 0;
-            const typeConfig = TEAM_TYPE_CONFIG[team.team_type] ?? TEAM_TYPE_CONFIG.custom;
+            const teamFallback = TEAM_TYPE_CONFIG["custom"]!;
+            const typeConfig = TEAM_TYPE_CONFIG[team.team_type] ?? teamFallback;
             const deptName = team.department_id ? deptMap.get(team.department_id) : null;
 
             return (
@@ -254,7 +234,7 @@ export function TeamsTab({
                         className="h-3 w-3 rounded-full ring-2 ring-offset-1"
                         style={{
                           backgroundColor: team.color,
-                          ringColor: team.color,
+                          ["--tw-ring-color" as string]: team.color,
                           ["--tw-ring-offset-color" as string]: isDark ? "#09090b" : "#ffffff",
                         }}
                       />
@@ -289,6 +269,11 @@ export function TeamsTab({
                       align="end"
                       className={isDark ? "border-zinc-800 bg-zinc-900" : ""}
                     >
+                      <DropdownMenuItem onClick={() => setEditTeam(team)}>
+                        <Pencil className="mr-2 h-3.5 w-3.5" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator className={isDark ? "bg-zinc-800" : ""} />
                       <DropdownMenuItem onClick={() => toggleActive(team)}>
                         {team.is_active ? "Deactivate" : "Reactivate"}
                       </DropdownMenuItem>
@@ -522,6 +507,20 @@ export function TeamsTab({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Team Dialog */}
+      {editTeam && (
+        <EditTeamDialog
+          team={editTeam}
+          departments={departments}
+          isDark={isDark}
+          open={!!editTeam}
+          onOpenChange={(open) => {
+            if (!open) setEditTeam(null);
+          }}
+          onSave={onRefresh}
+        />
+      )}
     </div>
   );
 }
