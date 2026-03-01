@@ -2,12 +2,12 @@ import { ArrowRight, CheckCircle2, Zap, Star } from "lucide-react";
 import Navigation from "../../components/navigation";
 import Footer from "../../components/footer";
 import { WEB_APP_LINKS } from "../../lib/web-app-url";
-import { PageTracker, TrackedCta } from "../../components/tracking";
+import { FullTracker, TrackedCta } from "../../components/tracking";
 
 export default function PricingPage() {
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-[#050505] font-sans text-white selection:bg-orange-500/30">
-      <PageTracker />
+      <FullTracker />
       {/* Dynamic Premium Background */}
       <div className="pointer-events-none fixed inset-0 z-0 bg-[#050505]">
         {/* Subtle Grid Pattern */}

@@ -3,7 +3,7 @@ import { Sparkles, ArrowRight } from "lucide-react";
 import Navigation from "../../components/navigation";
 import Footer from "../../components/footer";
 import { WEB_APP_LINKS } from "../../lib/web-app-url";
-import { PageTracker, TrackedCta } from "../../components/tracking";
+import { FullTracker, TrackedCta } from "../../components/tracking";
 
 export const metadata: Metadata = {
   title: "Venteliste — SmartOut",
@@ -39,7 +39,7 @@ export default function WaitlistPage() {
       </div>
 
       {/* Navigation */}
-      <PageTracker />
+      <FullTracker />
       <Navigation />
 
       {/* Main Content — centered card */}
