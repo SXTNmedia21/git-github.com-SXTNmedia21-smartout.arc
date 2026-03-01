@@ -17,6 +17,7 @@ export function ShiftCard({
   indicator,
   zone,
   id,
+  onClick,
 }: {
   role: string;
   time: string;
@@ -24,6 +25,8 @@ export function ShiftCard({
   indicator: string;
   zone?: string;
   id?: string;
+  /** Called when the card is clicked (not dragged). Opens shift detail modal. */
+  onClick?: () => void;
 }) {
   const { isDark } = useContext(DashboardContext);
   const defaultId = React.useId();
@@ -31,7 +34,7 @@ export function ShiftCard({
 
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: draggableId,
-    data: { role, time, status, indicator, type: "shift" },
+    data: { role, time, status, indicator, type: "shift", shiftId: id },
   });
 
   const style = transform
@@ -42,8 +45,26 @@ export function ShiftCard({
       }
     : undefined;
 
+  /**
+   * Handles click on the shift card.
+   * Only fires if the card wasn't dragged (no transform).
+   */
+  const handleClick = (e: React.MouseEvent) => {
+    if (!isDragging && !transform && onClick) {
+      e.stopPropagation();
+      onClick();
+    }
+  };
+
   return (
-    <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      onClick={handleClick}
+      className="cursor-pointer"
+    >
       <ShiftCardView
         isDark={isDark}
         isDragging={isDragging}
@@ -106,6 +127,7 @@ export function TemplateCard({
       status: "draft",
       indicator: "yellow",
       type: "shift-template",
+      templateId: id,
     },
   });
 
