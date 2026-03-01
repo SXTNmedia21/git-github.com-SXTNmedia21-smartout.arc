@@ -44,13 +44,15 @@ tags: [wizard, refactor, steps, progressive-save]
 
 ## Log
 
-| Date       | Time          | Event                                                                                    |
-| ---------- | ------------- | ---------------------------------------------------------------------------------------- |
-| 2026-03-01 | session start | Started onboarding wizard refactor on feat/onboarding-wizard branch (wt-3)               |
-| 2026-03-01 | -             | Created types.ts, useOnboardingWizard.ts, WizardContext.tsx                              |
-| 2026-03-01 | -             | Extracted all 15 step components + 4 drawers from 1,882-line monolith                    |
-| 2026-03-01 | -             | Created new AuthStep and InviteStep components                                           |
-| 2026-03-01 | -             | Replaced page.tsx with shell, typecheck passes                                           |
-| 2026-03-01 | -             | Created DB migration: invitation_sms_support (phone, invite_type, relaxed constraints)   |
-| 2026-03-01 | -             | Updated create-invitation Edge Function: single + batch mode, SendGrid email, Twilio SMS |
-| 2026-03-01 | -             | Full typecheck (0 errors), lint (0 errors, 11 pre-existing warnings)                     |
+| Date       | Time          | Event                                                                                                 |
+| ---------- | ------------- | ----------------------------------------------------------------------------------------------------- |
+| 2026-03-01 | session start | Started onboarding wizard refactor on feat/onboarding-wizard branch (wt-3)                            |
+| 2026-03-01 | -             | Created types.ts, useOnboardingWizard.ts, WizardContext.tsx                                           |
+| 2026-03-01 | -             | Extracted all 15 step components + 4 drawers from 1,882-line monolith                                 |
+| 2026-03-01 | -             | Created new AuthStep and InviteStep components                                                        |
+| 2026-03-01 | -             | Replaced page.tsx with shell, typecheck passes                                                        |
+| 2026-03-01 | -             | Created DB migration: invitation_sms_support (phone, invite_type, relaxed constraints)                |
+| 2026-03-01 | -             | Updated create-invitation Edge Function: single + batch mode, SendGrid email, Twilio SMS              |
+| 2026-03-01 | -             | Full typecheck (0 errors), lint (0 errors, 11 pre-existing warnings)                                  |
+| 2026-03-01 | -             | Created docs/journeys/trainee-mode-core.md — Trainee Mode & Core Journey user journey                 |
+| 2026-03-01 | -             | Created docs/journeys/admin-workspace-setup.md — Admin Workspace Setup Wizard user journey (15 steps) |
