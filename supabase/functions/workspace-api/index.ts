@@ -4,6 +4,8 @@ import { checkRateLimit } from "../_shared/rate-limit.ts";
 import { executeWithWorkspaceContext } from "../_shared/api-key-auth.ts";
 import { requireScope } from "../_shared/scope-middleware.ts";
 
+import { handleGetProfiles } from "./handlers/profiles.ts";
+
 // ── Route handlers ──
 
 type RouteHandler = (
@@ -13,8 +15,7 @@ type RouteHandler = (
 
 const routes: Record<string, RouteHandler> = {};
 
-// Handlers are registered in subsequent tasks.
-// Pattern: routes["GET /v1/profiles"] = handleGetProfiles;
+routes["GET /v1/profiles"] = handleGetProfiles;
 
 // ── Main router ──
 
