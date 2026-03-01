@@ -1,9 +1,0 @@
-# ============================================
-# Caddyfile — reverse proxy for Stage Engine
-# Caddy auto-provisions HTTPS via Let's Encrypt.
-# Connected to: docker-compose.yml (caddy service)
-# ============================================
-
-engine.smartout.ai {
-  reverse_proxy stage-engine:3000
-}
