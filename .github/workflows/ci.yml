@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [SmartOut.ai]
+    branches: [main, development]
   pull_request:
-    branches: [SmartOut.ai]
+    branches: [main, development]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
