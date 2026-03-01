@@ -1,7 +1,7 @@
 # ============================================
 # Dockerfile — Stage Engine
 # Multi-stage build: compile TypeScript, then run minimal Node.js image.
-# Connected to: docker-compose.yml (orchestration)
+# Connected to: infra/docker-compose.yml (orchestration)
 # ============================================
 
 # Build stage — compile TypeScript to JavaScript
