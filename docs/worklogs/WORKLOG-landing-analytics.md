@@ -15,10 +15,10 @@ tags: []
 - [x] Task 3: Enhanced client-side tracking hooks
 - [x] Task 4: Enhanced /api/track endpoint
 - [x] Task 5: Wire up tracking in landing page components
+- [x] Task 6: Admin page.tsx — session data fetching
+- [x] Task 7: Admin sessions tab + columns + tab container
 
 ## Remaining
-- [ ] Task 6: Admin page.tsx — session data fetching
-- [ ] Task 7: Admin sessions tab + columns + tab container
 - [ ] Task 8: Admin session detail sheet
 - [ ] Task 9: Session events API route
 - [ ] Task 10: Visitor tag dialog + API
@@ -46,3 +46,4 @@ tags: []
 | 2026-03-01 | 22:50 | Task 3: Enhanced useTracking.ts (exports, visitor_id, beaconEvent), created useScrollTracking, useClickTracking, useSessionLifecycle |
 | 2026-03-01 | 23:10 | Task 4: Enhanced /api/track with visitor/session upsert, 7 event types, device detection |
 | 2026-03-01 | 23:15 | Task 5: Created FullTracker component, replaced PageTracker in 5 pages (kept in signup) |
+| 2026-03-01 | 23:30 | Task 6+7: Rewrote page.tsx with session data fetches + KPIs; created landing-tabs.tsx, session-columns.tsx, sessions-tab.tsx |
