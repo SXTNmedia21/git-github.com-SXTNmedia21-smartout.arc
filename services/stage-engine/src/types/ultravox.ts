@@ -35,6 +35,7 @@ export type UltravoxHttpTool = {
     http: {
       baseUrlPattern: string;
       httpMethod: "POST";
+      headers?: Record<string, string>;
     };
   };
 };

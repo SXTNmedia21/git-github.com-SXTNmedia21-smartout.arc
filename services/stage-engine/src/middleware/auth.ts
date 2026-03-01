@@ -69,12 +69,12 @@ async function validateApiKey(key: string): Promise<AuthContext | null> {
 
   const { data, error } = await supabaseAdmin
     .from("platform_api_key")
-    .select("workspace_id, scopes, is_active, environment")
+    .select("workspace_id, scopes, environment")
     .eq("key_hash", hash)
-    .eq("version_status", "current")
+    .eq("version", "current")
     .single();
 
-  if (error || !data || !data.is_active) {
+  if (error || !data) {
     return null;
   }
 

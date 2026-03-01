@@ -10,10 +10,11 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
-import { getSession } from "../core/session-manager.js";
+import { loadAuthorizedSession } from "../core/session-manager.js";
 import { validateStoreData, writeToInbox } from "../core/inbox-writer.js";
+import type { AuthContext } from "../types/auth.js";
 
-const store = new Hono();
+const store = new Hono<{ Variables: { auth: AuthContext } }>();
 
 const storeSchema = z.object({
   entity_type: z.string().min(1),
@@ -28,17 +29,26 @@ const storeSchema = z.object({
 store.post("/sessions/:id/store", zValidator("json", storeSchema), async (c) => {
   const sessionId = c.req.param("id");
   const body = c.req.valid("json");
+  const auth = c.get("auth");
 
-  // Load session
-  const session = await getSession(sessionId);
-  if (!session || session.status !== "active") {
+  // Load session with workspace authorization
+  const result = await loadAuthorizedSession(sessionId, auth);
+  if (!result.ok) {
     return c.json(
       {
-        error: "SESSION_NOT_ACTIVE",
-        message: session ? `Session is "${session.status}"` : "Session not found",
-        status: session ? 409 : 404,
+        error: result.status === 404 ? "NOT_FOUND" : "FORBIDDEN",
+        message: result.message,
+        status: result.status,
       },
-      session ? 409 : 404,
+      result.status,
+    );
+  }
+
+  const session = result.session;
+  if (session.status !== "active") {
+    return c.json(
+      { error: "SESSION_NOT_ACTIVE", message: `Session is "${session.status}"`, status: 409 },
+      409,
     );
   }
 

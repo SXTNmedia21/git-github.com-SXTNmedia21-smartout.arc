@@ -11,11 +11,12 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
-import { createSession, getSession } from "../../core/session-manager.js";
+import { createSession, loadAuthorizedSession } from "../../core/session-manager.js";
 import { advanceStage } from "../../core/stage-manager.js";
 import { validateStoreData, writeToInbox } from "../../core/inbox-writer.js";
 import { loadMission } from "../../core/session-manager.js";
 import { buildStagePrompt } from "../../core/prompt-builder.js";
+import { supabaseAdmin } from "../../lib/supabase.js";
 import { createUltravoxCall, buildUltravoxTools } from "../../lib/ultravox.js";
 import { config } from "../../config.js";
 import type { AuthContext } from "../../types/auth.js";
@@ -107,11 +108,24 @@ ultravox.post("/adapters/ultravox/store", zValidator("json", uvStoreSchema), asy
   }
 
   const body = c.req.valid("json");
-  const session = await getSession(sessionId);
+  const auth = c.get("auth");
+  const result = await loadAuthorizedSession(sessionId, auth);
 
-  if (!session || session.status !== "active") {
+  if (!result.ok) {
     return c.json(
-      { error: "SESSION_NOT_ACTIVE", message: "Session not found or not active", status: 409 },
+      {
+        error: result.status === 404 ? "NOT_FOUND" : "FORBIDDEN",
+        message: result.message,
+        status: result.status,
+      },
+      result.status,
+    );
+  }
+
+  const session = result.session;
+  if (session.status !== "active") {
+    return c.json(
+      { error: "SESSION_NOT_ACTIVE", message: "Session is not active", status: 409 },
       409,
     );
   }
@@ -157,11 +171,21 @@ ultravox.post("/adapters/ultravox/fetch", zValidator("json", uvFetchSchema), asy
   }
 
   const body = c.req.valid("json");
-  const session = await getSession(sessionId);
+  const auth = c.get("auth");
+  const result = await loadAuthorizedSession(sessionId, auth);
 
-  if (!session) {
-    return c.json({ error: "NOT_FOUND", message: "Session not found", status: 404 }, 404);
+  if (!result.ok) {
+    return c.json(
+      {
+        error: result.status === 404 ? "NOT_FOUND" : "FORBIDDEN",
+        message: result.message,
+        status: result.status,
+      },
+      result.status,
+    );
   }
+
+  const session = result.session;
 
   // Simplified fetch — returns JSON as text for the agent to parse
   let data: unknown;
@@ -174,7 +198,7 @@ ultravox.post("/adapters/ultravox/fetch", zValidator("json", uvFetchSchema), asy
       data = session.collected_data;
       break;
     case "inbox": {
-      const { data: entries } = await (await import("../../lib/supabase.js")).supabaseAdmin
+      const { data: entries } = await supabaseAdmin
         .from("engine_inbox")
         .select("entity_type, data, stage_id, created_at")
         .eq("session_id", sessionId)
@@ -221,11 +245,24 @@ ultravox.post("/adapters/ultravox/advance", zValidator("json", uvAdvanceSchema),
   }
 
   const body = c.req.valid("json");
-  const session = await getSession(sessionId);
+  const auth = c.get("auth");
+  const loadResult = await loadAuthorizedSession(sessionId, auth);
 
-  if (!session || session.status !== "active") {
+  if (!loadResult.ok) {
     return c.json(
-      { error: "SESSION_NOT_ACTIVE", message: "Session not found or not active", status: 409 },
+      {
+        error: loadResult.status === 404 ? "NOT_FOUND" : "FORBIDDEN",
+        message: loadResult.message,
+        status: loadResult.status,
+      },
+      loadResult.status,
+    );
+  }
+
+  const session = loadResult.session;
+  if (session.status !== "active") {
+    return c.json(
+      { error: "SESSION_NOT_ACTIVE", message: "Session is not active", status: 409 },
       409,
     );
   }

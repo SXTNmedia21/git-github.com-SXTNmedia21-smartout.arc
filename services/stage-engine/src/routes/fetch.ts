@@ -8,10 +8,11 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
-import { getSession, loadMission } from "../core/session-manager.js";
+import { loadAuthorizedSession, loadMission } from "../core/session-manager.js";
 import { supabaseAdmin } from "../lib/supabase.js";
+import type { AuthContext } from "../types/auth.js";
 
-const fetchRoute = new Hono();
+const fetchRoute = new Hono<{ Variables: { auth: AuthContext } }>();
 
 const fetchSchema = z.object({
   query_type: z.enum(["context", "inbox", "stage", "history"]),
@@ -34,15 +35,22 @@ const fetchSchema = z.object({
 fetchRoute.post("/sessions/:id/fetch", zValidator("json", fetchSchema), async (c) => {
   const sessionId = c.req.param("id");
   const body = c.req.valid("json");
+  const auth = c.get("auth");
 
-  // Load session
-  const session = await getSession(sessionId);
-  if (!session) {
+  // Load session with workspace authorization
+  const result = await loadAuthorizedSession(sessionId, auth);
+  if (!result.ok) {
     return c.json(
-      { error: "NOT_FOUND", message: `Session "${sessionId}" not found`, status: 404 },
-      404,
+      {
+        error: result.status === 404 ? "NOT_FOUND" : "FORBIDDEN",
+        message: result.message,
+        status: result.status,
+      },
+      result.status,
     );
   }
+
+  const session = result.session;
 
   let data: Record<string, unknown> = {};
 

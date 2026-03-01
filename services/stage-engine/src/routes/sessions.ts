@@ -11,7 +11,7 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
-import { createSession, getSession, abandonSession } from "../core/session-manager.js";
+import { createSession, loadAuthorizedSession, abandonSession } from "../core/session-manager.js";
 import { sendWebhook } from "../core/webhook-sender.js";
 import type { AuthContext } from "../types/auth.js";
 
@@ -65,21 +65,27 @@ sessions.post("/sessions", zValidator("json", createSessionSchema), async (c) =>
 
 sessions.get("/sessions/:id", async (c) => {
   const sessionId = c.req.param("id");
-  const session = await getSession(sessionId);
+  const auth = c.get("auth") as AuthContext;
+  const result = await loadAuthorizedSession(sessionId, auth);
 
-  if (!session) {
+  if (!result.ok) {
     return c.json(
-      { error: "NOT_FOUND", message: `Session "${sessionId}" not found`, status: 404 },
-      404,
+      {
+        error: result.status === 404 ? "NOT_FOUND" : "FORBIDDEN",
+        message: result.message,
+        status: result.status,
+      },
+      result.status,
     );
   }
+
+  const session = result.session;
 
   return c.json({
     session_id: session.id,
     status: session.status,
     current_stage_id: session.current_stage_id,
     stage_index: session.stage_index,
-    progress: `${session.stage_index + 1}/?`,
     collected_data: session.collected_data,
     context: session.context,
     summary: session.summary,
@@ -93,14 +99,21 @@ sessions.get("/sessions/:id", async (c) => {
 
 sessions.post("/sessions/:id/abandon", async (c) => {
   const sessionId = c.req.param("id");
-  const session = await getSession(sessionId);
+  const auth = c.get("auth") as AuthContext;
+  const result = await loadAuthorizedSession(sessionId, auth);
 
-  if (!session) {
+  if (!result.ok) {
     return c.json(
-      { error: "NOT_FOUND", message: `Session "${sessionId}" not found`, status: 404 },
-      404,
+      {
+        error: result.status === 404 ? "NOT_FOUND" : "FORBIDDEN",
+        message: result.message,
+        status: result.status,
+      },
+      result.status,
     );
   }
+
+  const session = result.session;
 
   if (session.status !== "active") {
     return c.json(
@@ -113,7 +126,7 @@ sessions.post("/sessions/:id/abandon", async (c) => {
     );
   }
 
-  const updated = await abandonSession(sessionId);
+  await abandonSession(sessionId);
 
   // Fire webhook
   if (session.callback_url) {

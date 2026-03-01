@@ -8,9 +8,37 @@
 // ============================================
 
 import { supabaseAdmin } from "../lib/supabase.js";
+import { buildStagePrompt } from "./prompt-builder.js";
 import type { Mission, Stage, Session } from "../types/session.js";
 import type { CreateSessionRequest, CreateSessionResponse } from "../types/api.js";
 import type { AuthContext } from "../types/auth.js";
+
+/** Result of loading a session with workspace authorization */
+export type SessionLoadResult =
+  | { ok: true; session: Session }
+  | { ok: false; status: 404 | 403; message: string };
+
+/**
+ * Loads a session and verifies the caller has access to it.
+ * Checks that the authenticated user/key belongs to the session's workspace.
+ * This prevents cross-workspace data access.
+ */
+export async function loadAuthorizedSession(
+  sessionId: string,
+  auth: AuthContext,
+): Promise<SessionLoadResult> {
+  const session = await getSession(sessionId);
+  if (!session) {
+    return { ok: false, status: 404, message: `Session "${sessionId}" not found` };
+  }
+
+  // Workspace authorization — prevent cross-workspace access
+  if (auth.workspaceId && auth.workspaceId !== session.workspace_id) {
+    return { ok: false, status: 403, message: "Access denied: workspace mismatch" };
+  }
+
+  return { ok: true, session };
+}
 
 /**
  * Loads a mission and all its stages from the database.
@@ -155,8 +183,6 @@ export async function createSession(
   const current = firstStage ? 1 : 0;
   const progress = `${current}/${total}`;
 
-  // Import prompt builder dynamically to avoid circular dependency
-  const { buildStagePrompt } = await import("./prompt-builder.js");
   const systemPrompt = firstStage
     ? buildStagePrompt(firstStage, context, {})
     : "You are a helpful assistant. The mission is in free mode — choose a stage to start.";

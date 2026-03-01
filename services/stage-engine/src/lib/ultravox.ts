@@ -61,6 +61,10 @@ export function buildUltravoxTools(
   sessionId: string,
   apiKey: string,
 ): UltravoxHttpTool[] {
+  // API key sent via x-api-key header — never in URL query params.
+  // Keys in URLs leak via logs, referrer headers, and proxy caches.
+  const authHeaders: Record<string, string> = apiKey ? { "x-api-key": apiKey } : {};
+
   return [
     {
       temporaryTool: {
@@ -82,8 +86,9 @@ export function buildUltravoxTools(
           },
         ],
         http: {
-          baseUrlPattern: `${engineUrl}/adapters/ultravox/store?session_id=${sessionId}&api_key=${apiKey}`,
+          baseUrlPattern: `${engineUrl}/adapters/ultravox/store?session_id=${sessionId}`,
           httpMethod: "POST",
+          headers: authHeaders,
         },
       },
     },
@@ -105,8 +110,9 @@ export function buildUltravoxTools(
           },
         ],
         http: {
-          baseUrlPattern: `${engineUrl}/adapters/ultravox/fetch?session_id=${sessionId}&api_key=${apiKey}`,
+          baseUrlPattern: `${engineUrl}/adapters/ultravox/fetch?session_id=${sessionId}`,
           httpMethod: "POST",
+          headers: authHeaders,
         },
       },
     },
@@ -124,8 +130,9 @@ export function buildUltravoxTools(
           },
         ],
         http: {
-          baseUrlPattern: `${engineUrl}/adapters/ultravox/advance?session_id=${sessionId}&api_key=${apiKey}`,
+          baseUrlPattern: `${engineUrl}/adapters/ultravox/advance?session_id=${sessionId}`,
           httpMethod: "POST",
+          headers: authHeaders,
         },
       },
     },

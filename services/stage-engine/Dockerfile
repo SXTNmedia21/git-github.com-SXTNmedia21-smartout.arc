@@ -5,20 +5,24 @@
 # ============================================
 
 # Build stage — compile TypeScript to JavaScript
+# Build context is the monorepo root (set in docker-compose.yml).
+# This lets us access the root pnpm-lock.yaml for deterministic installs.
 FROM node:22-alpine AS builder
 WORKDIR /app
 RUN corepack enable
-COPY package.json pnpm-lock.yaml ./
+COPY pnpm-lock.yaml ./
+COPY services/stage-engine/package.json ./
 RUN pnpm install --frozen-lockfile
-COPY tsconfig.json ./
-COPY src ./src
+COPY services/stage-engine/tsconfig.json ./
+COPY services/stage-engine/src ./src
 RUN pnpm build
 
 # Runtime stage — minimal image with only compiled output
 FROM node:22-alpine
 WORKDIR /app
 RUN corepack enable
-COPY package.json pnpm-lock.yaml ./
+COPY pnpm-lock.yaml ./
+COPY services/stage-engine/package.json ./
 RUN pnpm install --frozen-lockfile --prod
 COPY --from=builder /app/dist ./dist
 EXPOSE 3000

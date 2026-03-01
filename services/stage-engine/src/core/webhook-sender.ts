@@ -41,12 +41,13 @@ export function sendWebhook(callbackUrl: string, payload: WebhookPayload): void 
 
 /**
  * Internal: attempts to POST the payload with exponential backoff.
- * Retries 3 times: 1s, 4s, 16s delays between attempts.
+ * 3 total attempts: initial + 2 retries at 1s, 4s delays.
  */
 async function fireWithRetry(url: string, payload: WebhookPayload): Promise<void> {
-  const delays = [1000, 4000, 16000];
+  const maxAttempts = 3;
+  const delays = [1000, 4000];
 
-  for (let attempt = 0; attempt <= delays.length; attempt++) {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
       const res = await fetch(url, {
         method: "POST",
@@ -60,10 +61,10 @@ async function fireWithRetry(url: string, payload: WebhookPayload): Promise<void
         return;
       }
 
-      console.warn(`[webhook] Attempt ${attempt + 1} failed: HTTP ${res.status}`);
+      console.warn(`[webhook] Attempt ${attempt + 1}/${maxAttempts} failed: HTTP ${res.status}`);
     } catch (err) {
       const message = err instanceof Error ? err.message : "unknown error";
-      console.warn(`[webhook] Attempt ${attempt + 1} error: ${message}`);
+      console.warn(`[webhook] Attempt ${attempt + 1}/${maxAttempts} error: ${message}`);
     }
 
     // Wait before retry (skip wait after last attempt)

@@ -8,10 +8,11 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
-import { getSession } from "../core/session-manager.js";
+import { loadAuthorizedSession } from "../core/session-manager.js";
 import { advanceStage } from "../core/stage-manager.js";
+import type { AuthContext } from "../types/auth.js";
 
-const advance = new Hono();
+const advance = new Hono<{ Variables: { auth: AuthContext } }>();
 
 const advanceSchema = z.object({
   result: z.record(z.unknown()).optional(),
@@ -27,15 +28,22 @@ const advanceSchema = z.object({
 advance.post("/sessions/:id/advance", zValidator("json", advanceSchema), async (c) => {
   const sessionId = c.req.param("id");
   const body = c.req.valid("json");
+  const auth = c.get("auth");
 
-  // Load session
-  const session = await getSession(sessionId);
-  if (!session) {
+  // Load session with workspace authorization
+  const loadResult = await loadAuthorizedSession(sessionId, auth);
+  if (!loadResult.ok) {
     return c.json(
-      { error: "NOT_FOUND", message: `Session "${sessionId}" not found`, status: 404 },
-      404,
+      {
+        error: loadResult.status === 404 ? "NOT_FOUND" : "FORBIDDEN",
+        message: loadResult.message,
+        status: loadResult.status,
+      },
+      loadResult.status,
     );
   }
+
+  const session = loadResult.session;
 
   if (session.status !== "active") {
     return c.json(

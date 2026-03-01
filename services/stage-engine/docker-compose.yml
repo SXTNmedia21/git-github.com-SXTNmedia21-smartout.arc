@@ -5,8 +5,6 @@
 # Connected to: Dockerfile (engine build)
 # ============================================
 
-version: "3.8"
-
 networks:
   smartout-internal:
     driver: bridge
@@ -18,7 +16,7 @@ services:
       - "443:443"
       - "80:80"
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
+      - ./services/stage-engine/Caddyfile:/etc/caddy/Caddyfile
       - caddy_data:/data
       - caddy_config:/config
     networks:
@@ -26,7 +24,9 @@ services:
     restart: unless-stopped
 
   stage-engine:
-    build: .
+    build:
+      context: ../..
+      dockerfile: services/stage-engine/Dockerfile
     environment:
       - PORT=3000
       - ENGINE_URL=${ENGINE_URL}
