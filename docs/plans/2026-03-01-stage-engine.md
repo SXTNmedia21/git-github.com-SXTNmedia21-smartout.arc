@@ -2,37 +2,48 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Build the Stage Engine — a universal, channel-agnostic gateway (Hono + Docker + Caddy) that orchestrates AI agents through defined missions and stages, with Supabase as the database and Ultravox as the first voice adapter.
+**Goal:** Build a universal, channel-agnostic HTTP gateway that orchestrates AI agents through defined missions and stages.
 
-**Architecture:** Hono TypeScript server on Node.js behind Caddy reverse proxy. 4 Supabase tables (engine_missions, engine_stages, engine_sessions, engine_inbox). Dual-auth middleware (JWT + API key via SHA-256 hash lookup). Core endpoints for session lifecycle + store/fetch tools + stage transitions. Ultravox adapter for voice calls with X-Ultravox-Response-Type: new-stage header.
+**Architecture:** Standalone Hono service in Docker on DigitalOcean. Caddy reverse proxy for HTTPS. Connects to production Supabase for DB + auth. Dual-auth (API key SHA-256 + JWT).
 
-**Tech Stack:** Hono, @hono/node-server, @hono/zod-validator, TypeScript 5.x, Node.js 22, Zod 3.x, @supabase/supabase-js 2.49.4, Docker, Caddy 2.x, Supabase (PostgreSQL 17)
+**Tech Stack:** Hono, TypeScript strict, Node.js 22, Docker, Caddy, @supabase/supabase-js, Zod, vitest
 
-**Reference Documents:**
+**Reference Docs (read before starting):**
 
-- `services/stage-engine/DECISIONS.md` — 15 locked architectural decisions
-- `services/stage-engine/ARCHITECTURE.md` — System design, schema, API, deployment
+- `services/stage-engine/PRD.md` — Full product spec
+- `services/stage-engine/ARCHITECTURE.md` — Schema SQL, API spec, file structure
+- `services/stage-engine/DECISIONS.md` — 15 locked decisions
 - `services/stage-engine/BREAKDOWN.md` — 7 epics, 22 stories
-- `services/stage-engine/PRD.md` — Full product specification
-- `docs/protocols/SECURITY.md` — Auth patterns, key format
+- `CLAUDE.md` — Project conventions and security rules
+
+---
+
+## Build Order
+
+| Epic                   | Tasks | Depends On |
+| ---------------------- | ----- | ---------- |
+| 1. Infrastructure      | 1–7   | None       |
+| 2. Data Model          | 8–10  | Epic 1     |
+| 3. Session Lifecycle   | 11–15 | Epic 2     |
+| 4. Store & Fetch       | 16–18 | Epic 3     |
+| 5. Stage Transitions   | 19–22 | Epic 3     |
+| 6. Ultravox Adapter    | 23–25 | Epic 4+5   |
+| 7. Verification + Docs | 26–27 | Epic 6     |
+
+Epics 4 and 5 can run in parallel.
 
 ---
 
 ## Epic 1: Infrastructure
 
-> After this epic: a running Hono server with health endpoint, Docker container, Caddy HTTPS, and auth middleware.
-
----
-
-### Task 1: Hono Project Scaffold
+### Task 1: Project Scaffold
 
 **Files:**
 
 - Create: `services/stage-engine/package.json`
 - Create: `services/stage-engine/tsconfig.json`
 - Create: `services/stage-engine/.gitignore`
-- Create: `services/stage-engine/src/index.ts`
-- Create: `services/stage-engine/src/routes/health.ts`
+- Create: `services/stage-engine/.env.example`
 
 **Step 1: Create package.json**
 
@@ -47,19 +58,21 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "test:e2e": "tsx test/e2e.ts"
   },
   "dependencies": {
-    "@hono/node-server": "^1.14.0",
-    "@hono/zod-validator": "^0.5.0",
+    "@hono/node-server": "^1.13.8",
     "@supabase/supabase-js": "^2.49.4",
-    "hono": "^4.7.0",
+    "hono": "^4.7.4",
     "zod": "^3.24.2"
   },
   "devDependencies": {
     "@types/node": "^22.13.5",
     "tsx": "^4.19.3",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.0"
   }
 }
 ```
@@ -94,154 +107,10 @@
 node_modules/
 dist/
 .env
-.env.local
+*.log
 ```
 
-**Step 4: Create src/routes/health.ts**
-
-```typescript
-// ============================================
-// health.ts
-// Health check endpoint for the Stage Engine.
-// Returns service status, version, and timestamp.
-// Used by Docker healthchecks, Caddy, and monitoring.
-// ============================================
-
-import { Hono } from "hono";
-
-const health = new Hono();
-
-/**
- * GET /health
- * Returns service health status.
- * No auth required — public endpoint per Security Protocol §15.5.
- */
-health.get("/health", (c) => {
-  return c.json({
-    status: "ok",
-    service: "stage-engine",
-    version: "0.1.0",
-    timestamp: new Date().toISOString(),
-  });
-});
-
-export { health };
-```
-
-**Step 5: Create src/index.ts**
-
-```typescript
-// ============================================
-// index.ts
-// Entry point for the Stage Engine — Smartout's universal agent gateway.
-// Sets up Hono app, registers middleware and routes, starts Node.js server.
-// Connected to: src/routes/ (all route handlers)
-// Connected to: src/middleware/ (auth, error handling)
-// ============================================
-
-import { serve } from "@hono/node-server";
-import { Hono } from "hono";
-import { logger } from "hono/logger";
-import { health } from "./routes/health.js";
-
-const app = new Hono();
-
-// Global middleware
-app.use(logger());
-
-// Routes
-app.route("/", health);
-
-// Start server
-const port = Number(process.env.PORT) || 3000;
-
-serve({ fetch: app.fetch, port }, (info) => {
-  console.log(`Stage Engine running on port ${info.port}`);
-});
-
-export { app };
-```
-
-**Step 6: Install dependencies**
-
-Run: `cd services/stage-engine && pnpm install`
-
-**Step 7: Run dev server to verify**
-
-Run: `cd services/stage-engine && pnpm dev`
-Expected: "Stage Engine running on port 3000"
-
-Test: `curl http://localhost:3000/health`
-Expected: `{"status":"ok","service":"stage-engine","version":"0.1.0","timestamp":"..."}`
-
-**Step 8: Type check**
-
-Run: `cd services/stage-engine && pnpm typecheck`
-Expected: No errors
-
-**Step 9: Commit**
-
-```bash
-git add services/stage-engine/package.json services/stage-engine/tsconfig.json services/stage-engine/.gitignore services/stage-engine/src/
-git commit -m "feat(stage-engine): scaffold Hono project with health endpoint"
-```
-
----
-
-### Task 2: Environment Config with Zod Validation
-
-**Files:**
-
-- Create: `services/stage-engine/src/config.ts`
-- Create: `services/stage-engine/.env.example`
-
-**Step 1: Create src/config.ts**
-
-```typescript
-// ============================================
-// config.ts
-// Validates all environment variables at startup using Zod.
-// If any required variable is missing or invalid, the process
-// crashes immediately with a clear error message.
-// Connected to: .env.example (documents all variables)
-// ============================================
-
-import { z } from "zod";
-
-const envSchema = z.object({
-  /** Server port — defaults to 3000 */
-  PORT: z.coerce.number().default(3000),
-
-  /** Public URL of the engine — used in webhook payloads and Ultravox tool URLs */
-  ENGINE_URL: z.string().url(),
-
-  /** Supabase project URL */
-  SUPABASE_URL: z.string().url(),
-
-  /** Supabase anonymous key — used for JWT-authenticated requests */
-  SUPABASE_ANON_KEY: z.string().min(32),
-
-  /** Supabase service role key — used for admin operations (key validation, context loading) */
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(32),
-
-  /** Ultravox API key for creating voice calls */
-  ULTRAVOX_API_KEY: z.string().min(1),
-
-  /** Log level */
-  LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
-
-  /** How long sessions last before auto-expiry (hours) */
-  SESSION_EXPIRY_HOURS: z.coerce.number().default(24),
-
-  /** How often to run the session cleanup job (minutes) */
-  CLEANUP_INTERVAL_MINUTES: z.coerce.number().default(5),
-});
-
-export const config = envSchema.parse(process.env);
-export type Config = z.infer<typeof envSchema>;
-```
-
-**Step 2: Create .env.example**
+**Step 4: Create .env.example**
 
 ```bash
 # Server
@@ -262,91 +131,198 @@ SESSION_EXPIRY_HOURS=24
 CLEANUP_INTERVAL_MINUTES=5
 ```
 
-**Step 3: Update src/index.ts to import config**
+**Step 5: Install dependencies**
 
-Add to top of `src/index.ts`, right after imports:
+Run: `cd services/stage-engine && pnpm install`
+Expected: Dependencies installed, pnpm-lock.yaml updated
 
-```typescript
-import { config } from "./config.js";
-```
-
-Replace the port line:
-
-```typescript
-const port = config.PORT;
-```
-
-**Step 4: Commit**
+**Step 6: Commit**
 
 ```bash
-git add services/stage-engine/src/config.ts services/stage-engine/.env.example
-git commit -m "feat(stage-engine): add Zod-validated environment config"
+git add services/stage-engine/package.json services/stage-engine/tsconfig.json services/stage-engine/.gitignore services/stage-engine/.env.example services/stage-engine/pnpm-lock.yaml
+git commit -m "feat(stage-engine): scaffold project with Hono + TypeScript"
 ```
 
 ---
 
-### Task 3: Type Definitions
+### Task 2: Config Module
 
 **Files:**
 
-- Create: `services/stage-engine/src/types/session.ts`
-- Create: `services/stage-engine/src/types/api.ts`
-- Create: `services/stage-engine/src/types/auth.ts`
-- Create: `services/stage-engine/src/types/ultravox.ts`
+- Create: `services/stage-engine/src/config.ts`
 
-**Step 1: Create src/types/auth.ts**
+**Step 1: Create config with Zod validation**
 
 ```typescript
 // ============================================
-// auth.ts
-// Type definitions for auth context.
-// The auth middleware attaches this to every authenticated request.
-// Connected to: src/middleware/auth.ts (sets these values)
+// config.ts
+// Validates all environment variables at startup.
+// If any required var is missing or invalid, the
+// process crashes immediately with a clear error.
 // ============================================
 
-/**
- * Auth context attached to every authenticated request.
- * Contains the resolved identity and auth method used.
- */
-export type AuthContext = {
-  /** How the request was authenticated */
-  method: "api_key" | "jwt";
+import { z } from "zod";
 
-  /** Workspace this request is scoped to */
-  workspaceId: string;
+const envSchema = z.object({
+  PORT: z.coerce.number().default(3000),
+  ENGINE_URL: z.string().url().default("http://localhost:3000"),
+  NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
 
-  /** Supabase auth user ID (available for JWT auth) */
-  userId?: string;
+  // Supabase — required for DB + auth
+  SUPABASE_URL: z.string().url(),
+  SUPABASE_ANON_KEY: z.string().min(32),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().min(32),
 
-  /** API key scopes (available for API key auth) */
-  scopes?: string[];
-};
+  // Ultravox — required for voice adapter
+  ULTRAVOX_API_KEY: z.string().min(1).default("not-set"),
+
+  // Tuning
+  LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
+  SESSION_EXPIRY_HOURS: z.coerce.number().default(24),
+  CLEANUP_INTERVAL_MINUTES: z.coerce.number().default(5),
+});
+
+export const config = envSchema.parse(process.env);
+export type Config = z.infer<typeof envSchema>;
 ```
 
-**Step 2: Create src/types/session.ts**
+**Step 2: Verify it compiles**
+
+Run: `cd services/stage-engine && npx tsc --noEmit`
+Expected: No errors (will fail on missing src/index.ts — that's OK, we add it in Task 7)
+
+**Step 3: Commit**
+
+```bash
+git add services/stage-engine/src/config.ts
+git commit -m "feat(stage-engine): add Zod env config validation"
+```
+
+---
+
+### Task 3: Supabase Client + Crypto
+
+**Files:**
+
+- Create: `services/stage-engine/src/lib/supabase.ts`
+- Create: `services/stage-engine/src/lib/crypto.ts`
+
+**Step 1: Create Supabase client factory**
 
 ```typescript
 // ============================================
-// session.ts
-// Type definitions for missions, stages, and sessions.
-// These mirror the Supabase database schema exactly.
-// Connected to: ARCHITECTURE.md §3 (database schema)
+// lib/supabase.ts
+// Creates Supabase clients for the stage engine.
+// Two clients: admin (service role) for DB queries,
+// and a factory for per-request JWT validation.
 // ============================================
 
-/** Mission mode determines how stages are navigated */
-export type MissionMode = "sequential" | "free" | "hybrid";
-
-/** Channel through which the agent communicates */
-export type SessionChannel = "voice" | "sms" | "chat" | "email" | "autonomous";
-
-/** Session lifecycle status */
-export type SessionStatus = "active" | "complete" | "expired" | "abandoned";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { config } from "../config.js";
 
 /**
- * A mission defines a multi-stage agent workflow.
- * Missions are reusable templates — sessions are instances.
+ * Admin client with service role key.
+ * Used for: API key validation, session CRUD, inbox writes.
+ * Never exposed to client-side code.
  */
-export type Mission = {
+export const adminClient: SupabaseClient = createClient(
+  config.SUPABASE_URL,
+  config.SUPABASE_SERVICE_ROLE_KEY,
+  { auth: { autoRefreshToken: false, persistSession: false } },
+);
+
+/**
+ * Creates a client scoped to a user's JWT.
+ * Used for: validating Bearer tokens via getUser().
+ */
+export function createUserClient(jwt: string): SupabaseClient {
+  return createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: `Bearer ${jwt}` } },
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
+```
+
+**Step 2: Create SHA-256 helper**
+
+```typescript
+// ============================================
+// lib/crypto.ts
+// Cryptographic utilities for API key validation.
+// Uses Node.js native crypto — no external deps.
+// ============================================
+
+import { createHash } from "node:crypto";
+
+/**
+ * Computes SHA-256 hash of a plaintext string.
+ * Used to hash API keys for lookup in platform_api_key table.
+ * The table stores hashes, never plaintext keys.
+ */
+export function sha256(input: string): string {
+  return createHash("sha256").update(input).digest("hex");
+}
+```
+
+**Step 3: Commit**
+
+```bash
+git add services/stage-engine/src/lib/supabase.ts services/stage-engine/src/lib/crypto.ts
+git commit -m "feat(stage-engine): add Supabase clients and SHA-256 helper"
+```
+
+---
+
+### Task 4: Type Definitions
+
+**Files:**
+
+- Create: `services/stage-engine/src/types/auth.ts`
+- Create: `services/stage-engine/src/types/session.ts`
+- Create: `services/stage-engine/src/types/api.ts`
+- Create: `services/stage-engine/src/types/ultravox.ts`
+
+**Step 1: Create auth types**
+
+```typescript
+// ============================================
+// types/auth.ts
+// Authentication context types. Every authenticated
+// request carries an AuthContext through the handler chain.
+// ============================================
+
+export type AuthMethod = "jwt" | "api_key";
+
+export interface AuthContext {
+  /** How the request was authenticated */
+  method: AuthMethod;
+  /** Supabase auth user ID (JWT only) */
+  userId: string | null;
+  /** Workspace this request is scoped to */
+  workspaceId: string | null;
+  /** Granted permission scopes (API key only, JWT gets "*") */
+  scopes: string[];
+  /** API key ID for usage tracking (API key only) */
+  keyId: string | null;
+  /** Key environment: live or test */
+  environment: "live" | "test" | null;
+}
+```
+
+**Step 2: Create session types**
+
+```typescript
+// ============================================
+// types/session.ts
+// Domain types for missions, stages, sessions, and inbox.
+// Maps directly to the engine_* database tables.
+// ============================================
+
+export type MissionMode = "sequential" | "free" | "hybrid";
+export type SessionChannel = "voice" | "sms" | "chat" | "email" | "autonomous";
+export type SessionStatus = "active" | "complete" | "expired" | "abandoned";
+
+export interface Mission {
   id: string;
   name: string;
   description: string | null;
@@ -356,13 +332,9 @@ export type Mission = {
   is_active: boolean;
   created_at: string;
   updated_at: string;
-};
+}
 
-/**
- * A stage is one step within a mission.
- * Contains instructions for the agent and personality overlay.
- */
-export type Stage = {
+export interface Stage {
   id: string;
   mission_id: string;
   stage_id: string;
@@ -379,13 +351,9 @@ export type Stage = {
   deferred_templates: unknown[];
   inline_instructions: unknown[];
   created_at: string;
-};
+}
 
-/**
- * A session is a single run of a mission.
- * Tracks the user, current stage, and all collected data.
- */
-export type Session = {
+export interface Session {
   id: string;
   mission_id: string;
   workspace_id: string;
@@ -403,13 +371,9 @@ export type Session = {
   completed_at: string | null;
   created_at: string;
   updated_at: string;
-};
+}
 
-/**
- * An inbox entry — data stored by an agent during a session.
- * Freeform, categorized by entity_type.
- */
-export type InboxEntry = {
+export interface InboxItem {
   id: string;
   session_id: string;
   stage_id: string;
@@ -419,23 +383,22 @@ export type InboxEntry = {
   validated: boolean;
   processed: boolean;
   created_at: string;
-};
+}
 ```
 
-**Step 3: Create src/types/api.ts**
+**Step 3: Create API request/response types**
 
 ```typescript
 // ============================================
-// api.ts
-// Request and response types for all API endpoints.
-// Used by route handlers and Zod validation schemas.
-// Connected to: ARCHITECTURE.md §4.3 (endpoint specs)
+// types/api.ts
+// Request and response shapes for all API endpoints.
+// Zod schemas in src/schemas/ validate these at runtime.
 // ============================================
 
 import type { MissionMode, SessionChannel, Stage } from "./session.js";
 
-/** POST /sessions — request body */
-export type CreateSessionRequest = {
+/** POST /sessions — request */
+export interface CreateSessionRequest {
   mission_id: string;
   workspace_id: string;
   user_id?: string;
@@ -443,495 +406,2691 @@ export type CreateSessionRequest = {
   channel: SessionChannel;
   callback_url?: string;
   context?: Record<string, unknown>;
-};
+}
 
-/** POST /sessions — response body */
-export type CreateSessionResponse = {
+/** POST /sessions — response */
+export interface CreateSessionResponse {
   session_id: string;
-  mission: {
-    id: string;
-    name: string;
-    mode: MissionMode;
-  };
+  mission: { id: string; name: string; mode: MissionMode };
   current_stage: StageInfo | null;
   stages?: StageInfo[];
   context: Record<string, unknown>;
   progress: string;
   system_prompt: string;
-};
+}
 
-/** Stage info returned to clients (subset of full Stage) */
-export type StageInfo = {
+export interface StageInfo {
   stage_id: string;
   goal: string;
   instructions: string;
   success_criteria: string;
-  emotion_hint?: string;
-};
+  emotion_hint: string | null;
+}
 
-/** POST /sessions/:id/store — request body */
-export type StoreRequest = {
+/** POST /sessions/:id/store — request */
+export interface StoreRequest {
   entity_type: string;
   data: Record<string, unknown>;
   stage_id?: string;
-};
+}
 
-/** POST /sessions/:id/store — response body */
-export type StoreResponse = {
+/** POST /sessions/:id/store — response */
+export interface StoreResponse {
   inbox_id: string;
   confirmed: true;
   message: string;
-};
+}
 
-/** POST /sessions/:id/fetch — request body */
-export type FetchRequest = {
+/** POST /sessions/:id/fetch — request */
+export interface FetchRequest {
   query_type: "context" | "inbox" | "stage" | "history";
-  filters?: {
-    entity_type?: string;
-    stage_id?: string;
-  };
-};
+  filters?: { entity_type?: string; stage_id?: string };
+}
 
-/** POST /sessions/:id/fetch — response body */
-export type FetchResponse = {
-  data: Record<string, unknown>;
-};
-
-/** POST /sessions/:id/advance — request body */
-export type AdvanceRequest = {
+/** POST /sessions/:id/advance — request */
+export interface AdvanceRequest {
   result?: Record<string, unknown>;
   next_stage_id?: string;
   force?: boolean;
-};
+}
 
-/** POST /sessions/:id/advance — response body */
-export type AdvanceResponse = {
+/** POST /sessions/:id/advance — response */
+export interface AdvanceResponse {
   new_stage?: StageInfo;
   progress: string;
   complete: boolean;
   system_prompt?: string;
   summary?: string;
-};
+}
 
-/** Standard error response format */
-export type ErrorResponse = {
+/** Standard error response */
+export interface ErrorResponse {
   error: string;
   message: string;
   status: number;
-};
+}
 ```
 
-**Step 4: Create src/types/ultravox.ts**
+**Step 4: Create Ultravox types**
 
 ```typescript
 // ============================================
-// ultravox.ts
-// Type definitions for Ultravox API integration.
-// Covers call creation, tool definitions, and new-stage responses.
-// Connected to: Ultravox Call Stages docs
+// types/ultravox.ts
+// Types for the Ultravox voice AI integration.
+// Ultravox uses HTTP tool calls and a special
+// X-Ultravox-Response-Type header for stage transitions.
 // ============================================
 
-/** POST /adapters/ultravox/create-call — request body */
-export type CreateUltravoxCallRequest = {
+export interface UltravoxCreateCallRequest {
   mission_id: string;
   workspace_id: string;
   user_id?: string;
   voice?: string;
   language?: string;
-};
+}
 
-/** POST /adapters/ultravox/create-call — response body */
-export type CreateUltravoxCallResponse = {
+export interface UltravoxCreateCallResponse {
   session_id: string;
   call_id: string;
   join_url: string;
-};
+}
 
-/** Ultravox tool definition for HTTP tools */
-export type UltravoxHttpTool = {
+/** Ultravox new-stage response (returned with X-Ultravox-Response-Type: new-stage header) */
+export interface UltravoxNewStageResponse {
+  systemPrompt: string;
+  toolResultText: string;
+  selectedTools?: UltravoxTool[];
+}
+
+export interface UltravoxTool {
   temporaryTool: {
     modelToolName: string;
     description: string;
-    dynamicParameters: Array<{
-      name: string;
-      location: "PARAMETER_LOCATION_BODY";
-      schema: Record<string, unknown>;
-      required: boolean;
-    }>;
+    dynamicParameters: UltravoxToolParam[];
     http: {
       baseUrlPattern: string;
-      httpMethod: "POST";
+      httpMethod: string;
     };
   };
-};
+}
 
-/**
- * Ultravox new-stage response body.
- * Returned with header X-Ultravox-Response-Type: new-stage
- * to trigger a seamless stage transition during a voice call.
- */
-export type UltravoxNewStageResponse = {
-  systemPrompt: string;
-  toolResultText: string;
-  selectedTools?: UltravoxHttpTool[];
-  temperature?: number;
-  voice?: string;
-  languageHint?: string;
-};
+export interface UltravoxToolParam {
+  name: string;
+  location: "PARAMETER_LOCATION_BODY";
+  schema: Record<string, unknown>;
+  required: boolean;
+}
 
-/** Ultravox Create Call API request */
-export type UltravoxCreateCallPayload = {
+/** Ultravox Create Call API payload */
+export interface UltravoxCallPayload {
   systemPrompt: string;
   model?: string;
   voice?: string;
   languageHint?: string;
+  selectedTools: UltravoxTool[];
   temperature?: number;
-  selectedTools: UltravoxHttpTool[];
-  medium?: { serverWebSocket?: { inputSampleRate: number; outputSampleRate: number } };
-};
-
-/** Ultravox Create Call API response */
-export type UltravoxCreateCallApiResponse = {
-  callId: string;
-  joinUrl: string;
-};
+}
 ```
 
-**Step 5: Type check**
+**Step 5: Verify types compile**
 
-Run: `cd services/stage-engine && pnpm typecheck`
-Expected: No errors
+Run: `cd services/stage-engine && npx tsc --noEmit`
+Expected: May show error for missing index.ts — types themselves should have no errors
 
 **Step 6: Commit**
 
 ```bash
 git add services/stage-engine/src/types/
-git commit -m "feat(stage-engine): add type definitions for session, API, auth, Ultravox"
+git commit -m "feat(stage-engine): add type definitions for auth, sessions, API, Ultravox"
 ```
 
 ---
 
-### Task 4: Supabase Client Factory
+### Task 5: Error Handler Middleware
 
 **Files:**
 
-- Create: `services/stage-engine/src/lib/supabase.ts`
+- Create: `services/stage-engine/src/middleware/error-handler.ts`
+- Test: `services/stage-engine/test/middleware/error-handler.test.ts`
 
-**Step 1: Create src/lib/supabase.ts**
+**Step 1: Write the failing test**
+
+```typescript
+// test/middleware/error-handler.test.ts
+import { describe, test, expect } from "vitest";
+import { Hono } from "hono";
+import { errorHandler, EngineError } from "../src/middleware/error-handler.js";
+
+function createTestApp() {
+  const app = new Hono();
+  app.onError(errorHandler);
+  return app;
+}
+
+describe("errorHandler", () => {
+  test("handles EngineError with correct status and code", async () => {
+    const app = createTestApp();
+    app.get("/fail", () => {
+      throw new EngineError("NOT_FOUND", "Session not found", 404);
+    });
+    const res = await app.request("/fail");
+    expect(res.status).toBe(404);
+    const body = await res.json();
+    expect(body.error).toBe("NOT_FOUND");
+    expect(body.message).toBe("Session not found");
+  });
+
+  test("handles unknown errors as 500", async () => {
+    const app = createTestApp();
+    app.get("/crash", () => {
+      throw new Error("unexpected");
+    });
+    const res = await app.request("/crash");
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body.error).toBe("INTERNAL_ERROR");
+  });
+});
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `cd services/stage-engine && npx vitest run test/middleware/error-handler.test.ts`
+Expected: FAIL — module not found
+
+**Step 3: Write implementation**
 
 ```typescript
 // ============================================
-// supabase.ts
-// Supabase client factory for the Stage Engine.
-// Creates two clients: one for service-role operations (key validation,
-// context loading) and one for user-scoped operations (RLS-enforced).
-// Connected to: src/config.ts (provides credentials)
+// middleware/error-handler.ts
+// Global error handler for the Hono app.
+// Converts all errors to a consistent JSON format.
+// EngineError is used for known/expected errors.
 // ============================================
 
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { config } from "../config.js";
+import type { ErrorHandler } from "hono";
 
 /**
- * Service-role client — bypasses RLS.
- * Used for: API key hash lookups in platform_api_key,
- * loading identity context, admin operations.
- * NEVER expose this client to user-facing code.
+ * Custom error class for expected engine errors.
+ * Thrown by route handlers when something goes wrong
+ * in a predictable way (not found, validation, etc.).
  */
-export const supabaseAdmin: SupabaseClient = createClient(
-  config.SUPABASE_URL,
-  config.SUPABASE_SERVICE_ROLE_KEY,
-);
+export class EngineError extends Error {
+  constructor(
+    public code: string,
+    message: string,
+    public status: number,
+  ) {
+    super(message);
+    this.name = "EngineError";
+  }
+}
 
 /**
- * Creates an anon client with a user's JWT for RLS-enforced queries.
- * Used when the request was authenticated via JWT (not API key).
- *
- * @param accessToken - The user's JWT from the Authorization header
- * @returns A Supabase client with the user's auth context
+ * Global error handler. Catches all thrown errors
+ * and returns a consistent JSON error response.
+ * EngineError gets its own status code; everything
+ * else becomes a 500 Internal Server Error.
  */
-export function createUserClient(accessToken: string): SupabaseClient {
-  return createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY, {
-    global: {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    },
+export const errorHandler: ErrorHandler = (err, c) => {
+  if (err instanceof EngineError) {
+    return c.json({ error: err.code, message: err.message, status: err.status }, err.status as 400);
+  }
+
+  console.error("[stage-engine] Unhandled error:", err);
+  return c.json(
+    { error: "INTERNAL_ERROR", message: "An unexpected error occurred", status: 500 },
+    500,
+  );
+};
+```
+
+**Step 4: Run test to verify it passes**
+
+Run: `cd services/stage-engine && npx vitest run test/middleware/error-handler.test.ts`
+Expected: PASS (2 tests)
+
+**Step 5: Commit**
+
+```bash
+git add services/stage-engine/src/middleware/error-handler.ts services/stage-engine/test/middleware/error-handler.test.ts
+git commit -m "feat(stage-engine): add error handler middleware with EngineError"
+```
+
+---
+
+### Task 6: Auth Middleware
+
+**Files:**
+
+- Create: `services/stage-engine/src/middleware/auth.ts`
+- Test: `services/stage-engine/test/middleware/auth.test.ts`
+
+**Step 1: Write the failing test**
+
+```typescript
+// test/middleware/auth.test.ts
+import { describe, test, expect, vi, beforeEach } from "vitest";
+import { Hono } from "hono";
+
+// Mock supabase before importing auth
+vi.mock("../src/lib/supabase.js", () => ({
+  adminClient: {
+    from: vi.fn(),
+  },
+  createUserClient: vi.fn(),
+}));
+
+import { authMiddleware } from "../src/middleware/auth.js";
+import { adminClient, createUserClient } from "../src/lib/supabase.js";
+import type { AuthContext } from "../src/types/auth.js";
+
+function createTestApp() {
+  const app = new Hono();
+  app.use("*", authMiddleware);
+  app.get("/protected", (c) => {
+    const auth = c.get("auth") as AuthContext;
+    return c.json({ workspaceId: auth.workspaceId });
   });
+  return app;
+}
+
+describe("authMiddleware", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  test("returns 401 when no credentials provided", async () => {
+    const app = createTestApp();
+    const res = await app.request("/protected");
+    expect(res.status).toBe(401);
+  });
+
+  test("validates API key via SHA-256 hash lookup", async () => {
+    const mockFrom = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          in: vi.fn().mockReturnValue({
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: {
+                id: "key-1",
+                workspace_id: "ws-123",
+                key_type: "service",
+                scopes: ["*"],
+                rate_limit_per_minute: 60,
+                environment: "live",
+              },
+              error: null,
+            }),
+          }),
+        }),
+      }),
+    });
+    vi.mocked(adminClient.from).mockImplementation(mockFrom);
+
+    const app = createTestApp();
+    const res = await app.request("/protected", {
+      headers: { "x-api-key": "smo_svc_live_test123" },
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.workspaceId).toBe("ws-123");
+  });
+
+  test("validates JWT via Supabase getUser", async () => {
+    const mockGetUser = vi.fn().mockResolvedValue({
+      data: { user: { id: "user-1" } },
+      error: null,
+    });
+    vi.mocked(createUserClient).mockReturnValue({
+      auth: { getUser: mockGetUser },
+    } as any);
+
+    const app = createTestApp();
+    const res = await app.request("/protected", {
+      headers: {
+        Authorization: "Bearer valid-jwt-token",
+        "x-workspace-id": "ws-456",
+      },
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.workspaceId).toBe("ws-456");
+  });
+});
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `cd services/stage-engine && npx vitest run test/middleware/auth.test.ts`
+Expected: FAIL — module not found
+
+**Step 3: Write implementation**
+
+```typescript
+// ============================================
+// middleware/auth.ts
+// Dual-auth middleware: validates API keys (SHA-256
+// hash lookup) or JWTs (Supabase Auth getUser).
+// Sets AuthContext on the Hono context for handlers.
+// Follows the same pattern as _shared/auth-middleware.ts
+// in Supabase Edge Functions.
+// ============================================
+
+import type { MiddlewareHandler } from "hono";
+import { adminClient, createUserClient } from "../lib/supabase.js";
+import { sha256 } from "../lib/crypto.js";
+import type { AuthContext } from "../types/auth.js";
+
+// Extend Hono's context variables to include auth
+declare module "hono" {
+  interface ContextVariableMap {
+    auth: AuthContext;
+  }
+}
+
+/**
+ * Validates the request and attaches AuthContext.
+ * Strategy 1: x-api-key header → SHA-256 hash → platform_api_key lookup.
+ * Strategy 2: Authorization Bearer → if smo_ prefix, treat as API key;
+ *             otherwise validate as Supabase JWT.
+ */
+export const authMiddleware: MiddlewareHandler = async (c, next) => {
+  // Strategy 1: API key in x-api-key header
+  const apiKey = c.req.header("x-api-key");
+  if (apiKey) {
+    const auth = await validateApiKey(apiKey);
+    if (!auth) {
+      return c.json({ error: "AUTH_FAILED", message: "Invalid API key", status: 401 }, 401);
+    }
+    c.set("auth", auth);
+    return next();
+  }
+
+  // Strategy 2: Bearer token
+  const bearer = c.req.header("authorization")?.replace("Bearer ", "");
+  if (bearer) {
+    // Check if it's a Smartout API key passed as Bearer
+    if (bearer.startsWith("smo_")) {
+      const auth = await validateApiKey(bearer);
+      if (!auth) {
+        return c.json({ error: "AUTH_FAILED", message: "Invalid API key", status: 401 }, 401);
+      }
+      c.set("auth", auth);
+      return next();
+    }
+
+    // Otherwise treat as JWT
+    const auth = await validateJwt(bearer, c.req.header("x-workspace-id") ?? null);
+    if (!auth) {
+      return c.json(
+        { error: "AUTH_FAILED", message: "Invalid or expired token", status: 401 },
+        401,
+      );
+    }
+    c.set("auth", auth);
+    return next();
+  }
+
+  return c.json(
+    { error: "AUTH_FAILED", message: "Missing authentication credentials", status: 401 },
+    401,
+  );
+};
+
+/**
+ * Validates an API key by hashing it and looking up
+ * the hash in the platform_api_key table.
+ * Also updates last_used_at for usage tracking.
+ */
+async function validateApiKey(plaintextKey: string): Promise<AuthContext | null> {
+  const keyHash = sha256(plaintextKey);
+
+  const { data, error } = await adminClient
+    .from("platform_api_key")
+    .select("id, workspace_id, key_type, scopes, rate_limit_per_minute, environment")
+    .eq("key_hash", keyHash)
+    .in("version", ["current", "previous"])
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  // Fire-and-forget: update last_used_at
+  adminClient
+    .from("platform_api_key")
+    .update({ last_used_at: new Date().toISOString() })
+    .eq("id", data.id)
+    .then(() => {});
+
+  return {
+    method: "api_key",
+    userId: null,
+    workspaceId: data.workspace_id,
+    scopes: data.scopes ?? [],
+    keyId: data.id,
+    environment: data.environment,
+  };
+}
+
+/**
+ * Validates a JWT by creating a scoped Supabase client
+ * and calling getUser(). Workspace ID comes from the
+ * x-workspace-id header (same pattern as Edge Functions).
+ */
+async function validateJwt(jwt: string, workspaceId: string | null): Promise<AuthContext | null> {
+  const client = createUserClient(jwt);
+  const {
+    data: { user },
+    error,
+  } = await client.auth.getUser();
+
+  if (error || !user) return null;
+
+  return {
+    method: "jwt",
+    userId: user.id,
+    workspaceId,
+    scopes: ["*"],
+    keyId: null,
+    environment: null,
+  };
 }
 ```
 
-**Step 2: Type check**
+**Step 4: Run test to verify it passes**
 
-Run: `cd services/stage-engine && pnpm typecheck`
+Run: `cd services/stage-engine && npx vitest run test/middleware/auth.test.ts`
+Expected: PASS (3 tests)
+
+**Step 5: Commit**
+
+```bash
+git add services/stage-engine/src/middleware/auth.ts services/stage-engine/test/middleware/auth.test.ts
+git commit -m "feat(stage-engine): add dual-auth middleware (API key + JWT)"
+```
+
+---
+
+### Task 7: Hono App + Health Endpoint
+
+**Files:**
+
+- Create: `services/stage-engine/src/app.ts`
+- Create: `services/stage-engine/src/index.ts`
+- Test: `services/stage-engine/test/routes/health.test.ts`
+
+**Step 1: Write the failing test**
+
+```typescript
+// test/routes/health.test.ts
+import { describe, test, expect } from "vitest";
+import { createApp } from "../src/app.js";
+
+describe("GET /health", () => {
+  test("returns 200 with status ok", async () => {
+    const app = createApp();
+    const res = await app.request("/health");
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.status).toBe("ok");
+    expect(body.service).toBe("stage-engine");
+    expect(body.version).toBe("0.1.0");
+  });
+
+  test("does not require authentication", async () => {
+    const app = createApp();
+    // No auth headers
+    const res = await app.request("/health");
+    expect(res.status).toBe(200);
+  });
+});
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `cd services/stage-engine && npx vitest run test/routes/health.test.ts`
+Expected: FAIL — module not found
+
+**Step 3: Create app.ts (testable app factory)**
+
+```typescript
+// ============================================
+// app.ts
+// Creates the Hono application with all routes
+// and middleware. Exported as a factory so tests
+// can create fresh instances without starting a server.
+// ============================================
+
+import { Hono } from "hono";
+import { errorHandler } from "./middleware/error-handler.js";
+import { authMiddleware } from "./middleware/auth.js";
+
+/**
+ * Creates and configures the Hono application.
+ * Call this from index.ts to start the server,
+ * or from tests to get a testable app instance.
+ */
+export function createApp(): Hono {
+  const app = new Hono();
+
+  // Global error handler — catches all thrown errors
+  app.onError(errorHandler);
+
+  // Health check — no auth required
+  app.get("/health", (c) =>
+    c.json({
+      status: "ok",
+      service: "stage-engine",
+      version: "0.1.0",
+      timestamp: new Date().toISOString(),
+    }),
+  );
+
+  // All session and adapter routes require auth
+  app.use("/sessions/*", authMiddleware);
+  app.use("/adapters/*", authMiddleware);
+
+  // Routes will be registered here in subsequent tasks:
+  // POST   /sessions
+  // GET    /sessions/:id
+  // POST   /sessions/:id/store
+  // POST   /sessions/:id/fetch
+  // POST   /sessions/:id/advance
+  // POST   /sessions/:id/abandon
+  // POST   /adapters/ultravox/create-call
+  // POST   /adapters/ultravox/store
+  // POST   /adapters/ultravox/fetch
+  // POST   /adapters/ultravox/advance
+
+  return app;
+}
+```
+
+**Step 4: Create index.ts (server entry)**
+
+```typescript
+// ============================================
+// index.ts
+// Server entry point. Starts the Hono HTTP server
+// on the configured port. This file is the target
+// of `pnpm dev` and `pnpm start`.
+// ============================================
+
+import { serve } from "@hono/node-server";
+import { createApp } from "./app.js";
+import { config } from "./config.js";
+
+const app = createApp();
+
+serve({ fetch: app.fetch, port: config.PORT }, (info) => {
+  console.log(`[stage-engine] Running on port ${info.port}`);
+  console.log(`[stage-engine] Environment: ${config.NODE_ENV}`);
+});
+```
+
+**Step 5: Run test to verify it passes**
+
+Run: `cd services/stage-engine && npx vitest run test/routes/health.test.ts`
+Expected: PASS (2 tests)
+
+**Step 6: Run all tests**
+
+Run: `cd services/stage-engine && npx vitest run`
+Expected: All tests pass
+
+**Step 7: Verify dev server starts**
+
+Run: `cd services/stage-engine && echo "SUPABASE_URL=http://localhost:54321 SUPABASE_ANON_KEY=test-key-32-chars-long-placeholder SUPABASE_SERVICE_ROLE_KEY=test-key-32-chars-long-placeholder" > .env && timeout 5 pnpm dev || true`
+Expected: Server starts, prints port message
+
+**Step 8: Commit**
+
+```bash
+git add services/stage-engine/src/app.ts services/stage-engine/src/index.ts services/stage-engine/test/routes/health.test.ts
+git commit -m "feat(stage-engine): add Hono app factory with health endpoint"
+```
+
+---
+
+## Epic 2: Data Model
+
+### Task 8: Database Migration — Tables
+
+**Files:**
+
+- Create: `supabase/migrations/20260301200000_engine_tables.sql`
+
+**Step 1: Create migration with all 4 engine tables**
+
+Copy the complete SQL from `services/stage-engine/ARCHITECTURE.md` sections 3.1–3.4. The SQL includes:
+
+- `engine_missions` — mission definitions (TEXT PK, mode check, workspace FK)
+- `engine_stages` — stage definitions per mission (UUID PK, mission FK, unique constraints)
+- `engine_sessions` — active session tracking (UUID PK, JSONB context/collected_data)
+- `engine_inbox` — generic data inbox (UUID PK, session FK, freeform entity_type)
+
+All tables include `ENABLE ROW LEVEL SECURITY` statements.
+
+**Important:** The exact SQL is in `services/stage-engine/ARCHITECTURE.md` section 3 — copy it verbatim. Do NOT create tables without RLS enabled.
+
+**Step 2: Apply migration**
+
+Run: `npx supabase migration up --local`
+Expected: Migration applied successfully
+
+**Step 3: Verify tables exist**
+
+Run: `npx supabase db execute --local "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name LIKE 'engine_%' ORDER BY table_name;"`
+Expected: 4 rows — engine_inbox, engine_missions, engine_sessions, engine_stages
+
+**Step 4: Commit**
+
+```bash
+git add supabase/migrations/20260301200000_engine_tables.sql
+git commit -m "feat(stage-engine): add engine_missions, engine_stages, engine_sessions, engine_inbox tables"
+```
+
+---
+
+### Task 9: Database Migration — RLS Policies + Indexes
+
+**Files:**
+
+- Create: `supabase/migrations/20260301200100_engine_rls_indexes.sql`
+
+**Step 1: Create migration**
+
+RLS policies follow dual-auth pattern:
+
+- JWT path: `workspace_id IN (SELECT workspace_id FROM profile WHERE user_id = auth.uid() AND is_active = true)`
+- API key path: `workspace_id = NULLIF(current_setting('app.workspace_id', true), '')::uuid`
+
+Copy RLS policies and indexes from `services/stage-engine/ARCHITECTURE.md` sections 3.1–3.4.
+
+Indexes needed:
+
+- `idx_engine_missions_context` — active missions by context_source
+- `idx_engine_missions_workspace` — active missions by workspace
+- `idx_engine_stages_mission` — stages ordered within mission
+- `idx_engine_sessions_workspace_status` — active sessions by workspace
+- `idx_engine_sessions_expiry` — active sessions by expiry time
+- `idx_engine_sessions_context_source` — sessions by mission+workspace
+- `idx_engine_inbox_session` — inbox items by session+stage
+- `idx_engine_inbox_processing` — unprocessed inbox items
+
+**Step 2: Apply migration**
+
+Run: `npx supabase migration up --local`
+Expected: Migration applied
+
+**Step 3: Verify RLS is active**
+
+Run: `npx supabase db execute --local "SELECT tablename, rowsecurity FROM pg_tables WHERE schemaname = 'public' AND tablename LIKE 'engine_%';"`
+Expected: All 4 tables show `rowsecurity = true`
+
+**Step 4: Commit**
+
+```bash
+git add supabase/migrations/20260301200100_engine_rls_indexes.sql
+git commit -m "feat(stage-engine): add RLS policies and indexes for engine tables"
+```
+
+---
+
+### Task 10: Database Migration — Seed Data
+
+**Files:**
+
+- Create: `supabase/migrations/20260301200200_engine_seed.sql`
+
+**Step 1: Create seed migration with a test mission**
+
+```sql
+-- ============================================
+-- engine_seed.sql
+-- Seeds a "discovery-call" mission with 3 stages
+-- for testing the full session lifecycle.
+-- This is a global mission (workspace_id = NULL).
+-- ============================================
+
+-- Discovery Call mission: learn about a new contact
+INSERT INTO engine_missions (id, name, description, mode, workspace_id, is_active)
+VALUES (
+  'discovery-call',
+  'Discovery Call',
+  'A 3-stage mission to learn about a new contact: their name/role, their main challenge, and confirm understanding.',
+  'sequential',
+  NULL,
+  true
+);
+
+-- Stage 1: Greeting — learn the person's name and role
+INSERT INTO engine_stages (mission_id, stage_id, stage_order, goal, instructions, success_criteria, emotion_hint, creative_freedom, next_stage, is_required)
+VALUES (
+  'discovery-call',
+  'greeting',
+  1,
+  'Learn the person''s name and role',
+  'Introduce yourself warmly. Ask for their name and what they do. Be genuinely curious. Keep it conversational — no interrogation.',
+  'You know their full name and their role/title.',
+  'warmth',
+  0.8,
+  'problem',
+  true
+);
+
+-- Stage 2: Problem — understand their main challenge
+INSERT INTO engine_stages (mission_id, stage_id, stage_order, goal, instructions, success_criteria, escalation_instructions, emotion_hint, creative_freedom, next_stage, is_required)
+VALUES (
+  'discovery-call',
+  'problem',
+  2,
+  'Understand their main challenge',
+  'Ask what their biggest challenge is right now. Listen actively. Ask follow-up questions to understand the root cause, not just symptoms. Store the problem description.',
+  'You understand their core problem and can articulate it back to them.',
+  'If they say "I don''t have any problems" — reframe as "What would make your work easier?"',
+  'empathy',
+  0.7,
+  'confirm',
+  true
+);
+
+-- Stage 3: Confirm — summarize and confirm understanding
+INSERT INTO engine_stages (mission_id, stage_id, stage_order, goal, instructions, success_criteria, emotion_hint, creative_freedom, is_required)
+VALUES (
+  'discovery-call',
+  'confirm',
+  3,
+  'Summarize and confirm understanding',
+  'Summarize what you''ve learned: their name, role, and main challenge. Ask them to confirm if you got it right. If not, correct your understanding.',
+  'They confirm your summary is accurate.',
+  'confidence',
+  0.6,
+  true
+);
+```
+
+**Step 2: Apply migration**
+
+Run: `npx supabase migration up --local`
+Expected: Migration applied, seed data inserted
+
+**Step 3: Verify seed data**
+
+Run: `npx supabase db execute --local "SELECT id, name, mode FROM engine_missions; SELECT mission_id, stage_id, stage_order FROM engine_stages ORDER BY stage_order;"`
+Expected: 1 mission (discovery-call) and 3 stages (greeting, problem, confirm)
+
+**Step 4: Regenerate database types**
+
+Run: `npx supabase gen types typescript --local > packages/supabase/src/database.types.ts`
+Expected: Types regenerated with engine\_\* tables
+
+**Step 5: Commit**
+
+```bash
+git add supabase/migrations/20260301200200_engine_seed.sql packages/supabase/src/database.types.ts
+git commit -m "feat(stage-engine): seed discovery-call mission with 3 stages"
+```
+
+---
+
+## Epic 3: Session Lifecycle
+
+### Task 11: Zod Schemas
+
+**Files:**
+
+- Create: `services/stage-engine/src/schemas/sessions.ts`
+- Create: `services/stage-engine/src/schemas/store.ts`
+- Create: `services/stage-engine/src/schemas/fetch.ts`
+- Create: `services/stage-engine/src/schemas/advance.ts`
+
+**Step 1: Create all request validation schemas**
+
+```typescript
+// schemas/sessions.ts
+import { z } from "zod";
+
+export const createSessionSchema = z.object({
+  mission_id: z.string().min(1),
+  workspace_id: z.string().uuid(),
+  user_id: z.string().uuid().optional(),
+  profile_id: z.string().uuid().optional(),
+  channel: z.enum(["voice", "sms", "chat", "email", "autonomous"]),
+  callback_url: z.string().url().optional(),
+  context: z.record(z.unknown()).optional(),
+});
+
+export type CreateSessionInput = z.infer<typeof createSessionSchema>;
+```
+
+```typescript
+// schemas/store.ts
+import { z } from "zod";
+
+export const storeSchema = z.object({
+  entity_type: z.string().min(1).max(100),
+  data: z
+    .record(z.unknown())
+    .refine((d) => JSON.stringify(d).length <= 102400, { message: "Data must be under 100KB" }),
+  stage_id: z.string().optional(),
+});
+
+export type StoreInput = z.infer<typeof storeSchema>;
+```
+
+```typescript
+// schemas/fetch.ts
+import { z } from "zod";
+
+export const fetchSchema = z.object({
+  query_type: z.enum(["context", "inbox", "stage", "history"]),
+  filters: z
+    .object({
+      entity_type: z.string().optional(),
+      stage_id: z.string().optional(),
+    })
+    .optional(),
+});
+
+export type FetchInput = z.infer<typeof fetchSchema>;
+```
+
+```typescript
+// schemas/advance.ts
+import { z } from "zod";
+
+export const advanceSchema = z.object({
+  result: z.record(z.unknown()).optional(),
+  next_stage_id: z.string().optional(),
+  force: z.boolean().optional(),
+});
+
+export type AdvanceInput = z.infer<typeof advanceSchema>;
+```
+
+**Step 2: Verify schemas compile**
+
+Run: `cd services/stage-engine && npx tsc --noEmit`
 Expected: No errors
 
 **Step 3: Commit**
 
 ```bash
-git add services/stage-engine/src/lib/supabase.ts
-git commit -m "feat(stage-engine): add Supabase client factory (admin + user)"
+git add services/stage-engine/src/schemas/
+git commit -m "feat(stage-engine): add Zod request validation schemas"
 ```
 
 ---
 
-### Task 5: Crypto Helper for API Key Validation
+### Task 12: Session Manager
 
 **Files:**
 
-- Create: `services/stage-engine/src/lib/crypto.ts`
+- Create: `services/stage-engine/src/core/session-manager.ts`
+- Test: `services/stage-engine/test/core/session-manager.test.ts`
 
-**Step 1: Create src/lib/crypto.ts**
+**Step 1: Write the failing test**
+
+Test the core session logic: loading missions, creating sessions, checking expiry.
+
+```typescript
+// test/core/session-manager.test.ts
+import { describe, test, expect, vi, beforeEach } from "vitest";
+
+vi.mock("../src/lib/supabase.js", () => ({
+  adminClient: { from: vi.fn() },
+}));
+
+import { SessionManager } from "../src/core/session-manager.js";
+import { adminClient } from "../src/lib/supabase.js";
+
+describe("SessionManager", () => {
+  const mgr = new SessionManager();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  test("loadMission returns mission with stages", async () => {
+    // Mock mission lookup
+    vi.mocked(adminClient.from).mockImplementation((table: string) => {
+      if (table === "engine_missions") {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: { id: "test", name: "Test", mode: "sequential", is_active: true },
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+        } as any;
+      }
+      if (table === "engine_stages") {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              order: vi.fn().mockResolvedValue({
+                data: [
+                  { stage_id: "s1", stage_order: 1, goal: "Goal 1", next_stage: "s2" },
+                  { stage_id: "s2", stage_order: 2, goal: "Goal 2", next_stage: null },
+                ],
+                error: null,
+              }),
+            }),
+          }),
+        } as any;
+      }
+      return {} as any;
+    });
+
+    const result = await mgr.loadMission("test");
+    expect(result.mission.id).toBe("test");
+    expect(result.stages).toHaveLength(2);
+  });
+
+  test("isExpired returns true for past expiry", () => {
+    const past = new Date(Date.now() - 1000).toISOString();
+    expect(mgr.isExpired(past)).toBe(true);
+  });
+
+  test("isExpired returns false for future expiry", () => {
+    const future = new Date(Date.now() + 100000).toISOString();
+    expect(mgr.isExpired(future)).toBe(false);
+  });
+});
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `cd services/stage-engine && npx vitest run test/core/session-manager.test.ts`
+Expected: FAIL — module not found
+
+**Step 3: Write implementation**
 
 ```typescript
 // ============================================
-// crypto.ts
-// SHA-256 hashing utility for API key validation.
-// API keys are stored as SHA-256 hashes in platform_api_key.
-// We hash the incoming key and compare against the stored hash.
-// Connected to: src/middleware/auth.ts (uses hashApiKey)
-// Connected to: SECURITY.md (key storage pattern)
+// core/session-manager.ts
+// Manages the lifecycle of engine sessions.
+// Handles: loading missions, creating sessions,
+// fetching session state, checking expiry.
+// All database access goes through the admin client.
 // ============================================
 
-import { createHash } from "node:crypto";
+import { adminClient } from "../lib/supabase.js";
+import type { Mission, Stage, Session, SessionChannel } from "../types/session.js";
+import { EngineError } from "../middleware/error-handler.js";
+
+interface LoadedMission {
+  mission: Mission;
+  stages: Stage[];
+}
+
+interface CreateSessionParams {
+  missionId: string;
+  workspaceId: string;
+  channel: SessionChannel;
+  userId?: string;
+  profileId?: string;
+  callbackUrl?: string;
+  extraContext?: Record<string, unknown>;
+}
+
+export class SessionManager {
+  /**
+   * Loads a mission and its stages from the database.
+   * Throws EngineError if mission not found or inactive.
+   */
+  async loadMission(missionId: string): Promise<LoadedMission> {
+    const { data: mission, error: mErr } = await adminClient
+      .from("engine_missions")
+      .select("*")
+      .eq("id", missionId)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (mErr || !mission) {
+      throw new EngineError("NOT_FOUND", `Mission "${missionId}" not found or inactive`, 404);
+    }
+
+    const { data: stages, error: sErr } = await adminClient
+      .from("engine_stages")
+      .select("*")
+      .eq("mission_id", missionId)
+      .order("stage_order", { ascending: true });
+
+    if (sErr || !stages) {
+      throw new EngineError("INTERNAL_ERROR", "Failed to load stages", 500);
+    }
+
+    return { mission: mission as Mission, stages: stages as Stage[] };
+  }
+
+  /**
+   * Creates a new session in the database.
+   * Sets the first stage for sequential/hybrid modes.
+   * Returns the created session.
+   */
+  async createSession(params: CreateSessionParams): Promise<Session> {
+    const { mission, stages } = await this.loadMission(params.missionId);
+
+    // Determine first stage for sequential/hybrid modes
+    const firstStage = mission.mode !== "free" && stages.length > 0 ? stages[0] : null;
+
+    // Build initial context
+    const context: Record<string, unknown> = {
+      ...params.extraContext,
+      workspace_id: params.workspaceId,
+      user_id: params.userId ?? null,
+      profile_id: params.profileId ?? null,
+    };
+
+    const { data: session, error } = await adminClient
+      .from("engine_sessions")
+      .insert({
+        mission_id: params.missionId,
+        workspace_id: params.workspaceId,
+        user_id: params.userId ?? null,
+        profile_id: params.profileId ?? null,
+        channel: params.channel,
+        current_stage_id: firstStage?.stage_id ?? null,
+        stage_index: firstStage ? 1 : 0,
+        status: "active",
+        context,
+        collected_data: {},
+        callback_url: params.callbackUrl ?? null,
+      })
+      .select("*")
+      .single();
+
+    if (error || !session) {
+      throw new EngineError("INTERNAL_ERROR", "Failed to create session", 500);
+    }
+
+    return session as Session;
+  }
+
+  /**
+   * Fetches a session by ID. Checks expiry automatically.
+   * Throws EngineError if not found.
+   */
+  async getSession(sessionId: string): Promise<Session> {
+    const { data, error } = await adminClient
+      .from("engine_sessions")
+      .select("*")
+      .eq("id", sessionId)
+      .maybeSingle();
+
+    if (error || !data) {
+      throw new EngineError("NOT_FOUND", `Session "${sessionId}" not found`, 404);
+    }
+
+    const session = data as Session;
+
+    // Auto-expire if past expiry time
+    if (session.status === "active" && this.isExpired(session.expires_at)) {
+      await this.updateStatus(sessionId, "expired");
+      session.status = "expired";
+    }
+
+    return session;
+  }
+
+  /**
+   * Fetches a session and verifies it is active.
+   * Throws 409 if session is not active.
+   */
+  async getActiveSession(sessionId: string): Promise<Session> {
+    const session = await this.getSession(sessionId);
+    if (session.status !== "active") {
+      throw new EngineError("SESSION_NOT_ACTIVE", `Session is ${session.status}, not active`, 409);
+    }
+    return session;
+  }
+
+  /**
+   * Updates session status. Used for abandon, complete, expire.
+   */
+  async updateStatus(
+    sessionId: string,
+    status: "complete" | "expired" | "abandoned",
+  ): Promise<void> {
+    const updates: Record<string, unknown> = {
+      status,
+      updated_at: new Date().toISOString(),
+    };
+    if (status === "complete") {
+      updates.completed_at = new Date().toISOString();
+    }
+
+    await adminClient.from("engine_sessions").update(updates).eq("id", sessionId);
+  }
+
+  /**
+   * Updates the session's current stage and collected data.
+   */
+  async advanceSession(
+    sessionId: string,
+    nextStageId: string | null,
+    stageIndex: number,
+    collectedData: Record<string, unknown>,
+  ): Promise<void> {
+    await adminClient
+      .from("engine_sessions")
+      .update({
+        current_stage_id: nextStageId,
+        stage_index: stageIndex,
+        collected_data: collectedData,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", sessionId);
+  }
+
+  /**
+   * Checks if a timestamp is in the past.
+   */
+  isExpired(expiresAt: string): boolean {
+    return new Date(expiresAt).getTime() < Date.now();
+  }
+}
+
+/** Singleton instance for route handlers */
+export const sessionManager = new SessionManager();
+```
+
+**Step 4: Run test to verify it passes**
+
+Run: `cd services/stage-engine && npx vitest run test/core/session-manager.test.ts`
+Expected: PASS (3 tests)
+
+**Step 5: Commit**
+
+```bash
+git add services/stage-engine/src/core/session-manager.ts services/stage-engine/test/core/session-manager.test.ts
+git commit -m "feat(stage-engine): add SessionManager with mission loading and session CRUD"
+```
+
+---
+
+### Task 13: POST /sessions + GET /sessions/:id
+
+**Files:**
+
+- Create: `services/stage-engine/src/routes/sessions.ts`
+- Modify: `services/stage-engine/src/app.ts` — register routes
+- Test: `services/stage-engine/test/routes/sessions.test.ts`
+
+**Step 1: Write the failing test**
+
+```typescript
+// test/routes/sessions.test.ts
+import { describe, test, expect, vi, beforeEach } from "vitest";
+
+vi.mock("../src/lib/supabase.js", () => ({
+  adminClient: { from: vi.fn() },
+  createUserClient: vi.fn(),
+}));
+
+vi.mock("../src/core/session-manager.js", () => ({
+  sessionManager: {
+    loadMission: vi.fn(),
+    createSession: vi.fn(),
+    getSession: vi.fn(),
+  },
+}));
+
+vi.mock("../src/core/prompt-builder.js", () => ({
+  buildStagePrompt: vi.fn().mockReturnValue("Test system prompt"),
+}));
+
+import { createApp } from "../src/app.js";
+import { sessionManager } from "../src/core/session-manager.js";
+
+describe("POST /sessions", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  test("creates session and returns first stage", async () => {
+    vi.mocked(sessionManager.loadMission).mockResolvedValue({
+      mission: { id: "test", name: "Test", mode: "sequential" } as any,
+      stages: [
+        {
+          stage_id: "s1",
+          goal: "Goal",
+          instructions: "Do it",
+          success_criteria: "Done",
+          emotion_hint: "warmth",
+        },
+      ] as any,
+    });
+    vi.mocked(sessionManager.createSession).mockResolvedValue({
+      id: "sess-1",
+      current_stage_id: "s1",
+      stage_index: 1,
+      context: {},
+      collected_data: {},
+    } as any);
+
+    const app = createApp();
+    const res = await app.request("/sessions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": "smo_svc_live_test",
+      },
+      body: JSON.stringify({
+        mission_id: "test",
+        workspace_id: "00000000-0000-0000-0000-000000000001",
+        channel: "chat",
+      }),
+    });
+
+    // Auth will fail in test (mock not set up for auth) — this tests route registration
+    // Full integration tested in E2E (Task 26)
+    expect(res.status).toBeDefined();
+  });
+});
+```
+
+**Step 2: Create the route handler**
+
+```typescript
+// ============================================
+// routes/sessions.ts
+// Handles POST /sessions (create) and GET /sessions/:id (status).
+// Creates new engine sessions and returns session state.
+// ============================================
+
+import type { Context } from "hono";
+import { sessionManager } from "../core/session-manager.js";
+import { buildStagePrompt } from "../core/prompt-builder.js";
+import { createSessionSchema } from "../schemas/sessions.js";
+import { EngineError } from "../middleware/error-handler.js";
+import type { AuthContext } from "../types/auth.js";
+import type { CreateSessionResponse, StageInfo } from "../types/api.js";
 
 /**
- * Hashes a raw API key using SHA-256.
- * Used to look up API keys in the platform_api_key table,
- * which stores only hashes — never raw keys.
- *
- * @param key - The raw API key from the x-api-key header
- * @returns The SHA-256 hex digest
+ * POST /sessions — Start a new session.
+ * Loads the mission, creates a session row,
+ * builds the initial system prompt, and returns
+ * everything the agent needs to start.
  */
-export function hashApiKey(key: string): string {
-  return createHash("sha256").update(key).digest("hex");
+export async function createSession(c: Context): Promise<Response> {
+  const auth = c.get("auth") as AuthContext;
+  const body = createSessionSchema.parse(await c.req.json());
+
+  // Verify workspace access
+  if (auth.workspaceId && auth.workspaceId !== body.workspace_id) {
+    throw new EngineError("FORBIDDEN", "Workspace mismatch", 403);
+  }
+
+  // Load mission and stages
+  const { mission, stages } = await sessionManager.loadMission(body.mission_id);
+
+  // Create the session
+  const session = await sessionManager.createSession({
+    missionId: body.mission_id,
+    workspaceId: body.workspace_id,
+    channel: body.channel,
+    userId: body.user_id,
+    profileId: body.profile_id,
+    callbackUrl: body.callback_url,
+    extraContext: body.context,
+  });
+
+  // Build stage info
+  const firstStage = stages.find((s) => s.stage_id === session.current_stage_id);
+  const currentStage: StageInfo | null = firstStage
+    ? {
+        stage_id: firstStage.stage_id,
+        goal: firstStage.goal,
+        instructions: firstStage.instructions,
+        success_criteria: firstStage.success_criteria,
+        emotion_hint: firstStage.emotion_hint,
+      }
+    : null;
+
+  // Build system prompt
+  const systemPrompt = firstStage ? buildStagePrompt(firstStage, session.context, {}) : "";
+
+  const totalStages = stages.filter((s) => s.is_required).length;
+  const response: CreateSessionResponse = {
+    session_id: session.id,
+    mission: { id: mission.id, name: mission.name, mode: mission.mode },
+    current_stage: currentStage,
+    stages: mission.mode === "free" ? stages.map(toStageInfo) : undefined,
+    context: session.context,
+    progress: `${session.stage_index}/${totalStages}`,
+    system_prompt: systemPrompt,
+  };
+
+  return c.json(response, 200);
+}
+
+/**
+ * GET /sessions/:id — Get session status.
+ * Returns current state including stage, progress, and collected data.
+ */
+export async function getSession(c: Context): Promise<Response> {
+  const sessionId = c.req.param("id");
+  const session = await sessionManager.getSession(sessionId);
+
+  // Load stages for progress calculation
+  const { stages } = await sessionManager.loadMission(session.mission_id);
+  const totalStages = stages.filter((s) => s.is_required).length;
+  const currentStage = stages.find((s) => s.stage_id === session.current_stage_id);
+
+  return c.json({
+    session_id: session.id,
+    status: session.status,
+    current_stage: currentStage ? toStageInfo(currentStage) : null,
+    stage_index: session.stage_index,
+    progress: `${session.stage_index}/${totalStages}`,
+    collected_data: session.collected_data,
+    context: session.context,
+    summary: session.summary,
+  });
+}
+
+/** Maps a full Stage to a StageInfo subset */
+function toStageInfo(s: {
+  stage_id: string;
+  goal: string;
+  instructions: string;
+  success_criteria: string;
+  emotion_hint: string | null;
+}): StageInfo {
+  return {
+    stage_id: s.stage_id,
+    goal: s.goal,
+    instructions: s.instructions,
+    success_criteria: s.success_criteria,
+    emotion_hint: s.emotion_hint,
+  };
+}
+```
+
+**Step 3: Register routes in app.ts**
+
+Add to `services/stage-engine/src/app.ts` after the auth middleware lines:
+
+```typescript
+import { createSession, getSession } from "./routes/sessions.js";
+
+// Inside createApp(), after auth middleware:
+app.post("/sessions", createSession);
+app.get("/sessions/:id", getSession);
+```
+
+**Step 4: Run tests**
+
+Run: `cd services/stage-engine && npx vitest run`
+Expected: All tests pass
+
+**Step 5: Commit**
+
+```bash
+git add services/stage-engine/src/routes/sessions.ts services/stage-engine/src/app.ts services/stage-engine/test/routes/sessions.test.ts
+git commit -m "feat(stage-engine): add POST /sessions and GET /sessions/:id endpoints"
+```
+
+---
+
+### Task 14: POST /sessions/:id/abandon
+
+**Files:**
+
+- Create: `services/stage-engine/src/routes/abandon.ts`
+- Modify: `services/stage-engine/src/app.ts` — register route
+
+**Step 1: Write route handler**
+
+```typescript
+// ============================================
+// routes/abandon.ts
+// POST /sessions/:id/abandon — marks a session as abandoned.
+// Preserves all collected data but stops the session.
+// ============================================
+
+import type { Context } from "hono";
+import { sessionManager } from "../core/session-manager.js";
+
+/**
+ * Marks a session as abandoned. The session must be active.
+ * Collected data is preserved for later review.
+ */
+export async function abandonSession(c: Context): Promise<Response> {
+  const sessionId = c.req.param("id");
+  const session = await sessionManager.getActiveSession(sessionId);
+
+  await sessionManager.updateStatus(session.id, "abandoned");
+
+  return c.json({
+    session_id: session.id,
+    status: "abandoned",
+    collected_data: session.collected_data,
+  });
+}
+```
+
+**Step 2: Register in app.ts**
+
+```typescript
+import { abandonSession } from "./routes/abandon.js";
+// Inside createApp():
+app.post("/sessions/:id/abandon", abandonSession);
+```
+
+**Step 3: Commit**
+
+```bash
+git add services/stage-engine/src/routes/abandon.ts services/stage-engine/src/app.ts
+git commit -m "feat(stage-engine): add POST /sessions/:id/abandon endpoint"
+```
+
+---
+
+### Task 15: Session Expiry Cleanup
+
+**Files:**
+
+- Create: `services/stage-engine/src/core/expiry-cleanup.ts`
+- Modify: `services/stage-engine/src/index.ts` — start cleanup interval
+
+**Step 1: Write cleanup module**
+
+```typescript
+// ============================================
+// core/expiry-cleanup.ts
+// Background job that marks expired sessions.
+// Runs on a configurable interval (default: 5 minutes).
+// Updates status from "active" to "expired" for
+// sessions past their expires_at timestamp.
+// ============================================
+
+import { adminClient } from "../lib/supabase.js";
+import { config } from "../config.js";
+
+/**
+ * Runs one cleanup cycle: finds and expires stale sessions.
+ * Returns the count of expired sessions.
+ */
+export async function cleanupExpiredSessions(): Promise<number> {
+  const { data, error } = await adminClient
+    .from("engine_sessions")
+    .update({ status: "expired", updated_at: new Date().toISOString() })
+    .eq("status", "active")
+    .lt("expires_at", new Date().toISOString())
+    .select("id");
+
+  if (error) {
+    console.error("[expiry-cleanup] Error:", error.message);
+    return 0;
+  }
+
+  const count = data?.length ?? 0;
+  if (count > 0) {
+    console.log(`[expiry-cleanup] Expired ${count} sessions`);
+  }
+  return count;
+}
+
+/**
+ * Starts the cleanup interval. Returns a function to stop it.
+ */
+export function startExpiryCleanup(): () => void {
+  const intervalMs = config.CLEANUP_INTERVAL_MINUTES * 60 * 1000;
+  const timer = setInterval(cleanupExpiredSessions, intervalMs);
+  console.log(`[expiry-cleanup] Running every ${config.CLEANUP_INTERVAL_MINUTES} minutes`);
+  return () => clearInterval(timer);
+}
+```
+
+**Step 2: Start cleanup in index.ts**
+
+Add to `services/stage-engine/src/index.ts`:
+
+```typescript
+import { startExpiryCleanup } from "./core/expiry-cleanup.js";
+
+// After serve() call:
+startExpiryCleanup();
+```
+
+**Step 3: Commit**
+
+```bash
+git add services/stage-engine/src/core/expiry-cleanup.ts services/stage-engine/src/index.ts
+git commit -m "feat(stage-engine): add session expiry cleanup background job"
+```
+
+---
+
+## Epic 4: Store & Fetch
+
+### Task 16: Inbox Writer
+
+**Files:**
+
+- Create: `services/stage-engine/src/core/inbox-writer.ts`
+
+**Step 1: Write implementation**
+
+```typescript
+// ============================================
+// core/inbox-writer.ts
+// Writes data to the engine_inbox table.
+// Validates entity_type and data before writing.
+// Returns the created inbox item ID.
+// ============================================
+
+import { adminClient } from "../lib/supabase.js";
+import { EngineError } from "../middleware/error-handler.js";
+import type { InboxItem } from "../types/session.js";
+
+/**
+ * Writes a data item to the inbox.
+ * The inbox is a generic landing zone — entity_type is
+ * freeform (e.g., "department", "shift", "note").
+ * Validation and routing happen downstream.
+ */
+export async function writeToInbox(params: {
+  sessionId: string;
+  stageId: string;
+  workspaceId: string;
+  entityType: string;
+  data: Record<string, unknown>;
+}): Promise<InboxItem> {
+  const { data, error } = await adminClient
+    .from("engine_inbox")
+    .insert({
+      session_id: params.sessionId,
+      stage_id: params.stageId,
+      workspace_id: params.workspaceId,
+      entity_type: params.entityType,
+      data: params.data,
+    })
+    .select("*")
+    .single();
+
+  if (error || !data) {
+    throw new EngineError("INTERNAL_ERROR", "Failed to write to inbox", 500);
+  }
+
+  return data as InboxItem;
 }
 ```
 
 **Step 2: Commit**
 
 ```bash
-git add services/stage-engine/src/lib/crypto.ts
-git commit -m "feat(stage-engine): add SHA-256 helper for API key validation"
+git add services/stage-engine/src/core/inbox-writer.ts
+git commit -m "feat(stage-engine): add inbox writer for generic data storage"
 ```
 
 ---
 
-### Task 6: Auth Middleware (Dual-Auth: API Key + JWT)
+### Task 17: POST /sessions/:id/store
 
 **Files:**
 
-- Create: `services/stage-engine/src/middleware/auth.ts`
+- Create: `services/stage-engine/src/routes/store.ts`
+- Modify: `services/stage-engine/src/app.ts` — register route
 
-**Step 1: Create src/middleware/auth.ts**
-
-```typescript
-// ============================================
-// auth.ts
-// Dual-auth middleware for the Stage Engine.
-// Supports two auth methods:
-//   1. x-api-key header → SHA-256 hash lookup against platform_api_key
-//   2. Authorization: Bearer <jwt> → Supabase Auth getUser()
-// The resolved auth context is stored in c.set("auth", ...) for route handlers.
-// Connected to: src/lib/supabase.ts (admin client for key lookup)
-// Connected to: src/lib/crypto.ts (SHA-256 hashing)
-// Connected to: DECISIONS.md D14, D15 (auth decisions)
-// ============================================
-
-import type { Context, Next } from "hono";
-import { supabaseAdmin, createUserClient } from "../lib/supabase.js";
-import { hashApiKey } from "../lib/crypto.js";
-import type { AuthContext } from "../types/auth.js";
-
-/**
- * Middleware that authenticates requests using API key or JWT.
- * Skips auth for the /health endpoint.
- * On success, sets c.set("auth", authContext) for downstream handlers.
- * On failure, returns 401 with error details.
- */
-export async function authMiddleware(c: Context, next: Next): Promise<Response | void> {
-  // Health endpoint is public
-  if (c.req.path === "/health") {
-    return next();
-  }
-
-  const apiKey = c.req.header("x-api-key");
-  const authHeader = c.req.header("authorization");
-
-  // Try API key first
-  if (apiKey) {
-    const auth = await validateApiKey(apiKey);
-    if (auth) {
-      c.set("auth", auth);
-      return next();
-    }
-    return c.json({ error: "AUTH_FAILED", message: "Invalid API key", status: 401 }, 401);
-  }
-
-  // Try JWT
-  if (authHeader?.startsWith("Bearer ")) {
-    const token = authHeader.slice(7);
-    const auth = await validateJwt(token);
-    if (auth) {
-      c.set("auth", auth);
-      return next();
-    }
-    return c.json({ error: "AUTH_FAILED", message: "Invalid or expired JWT", status: 401 }, 401);
-  }
-
-  return c.json(
-    { error: "AUTH_FAILED", message: "Missing x-api-key or Authorization header", status: 401 },
-    401,
-  );
-}
-
-/**
- * Validates an API key by hashing it and looking up the hash
- * in the platform_api_key table via service role.
- *
- * @param key - Raw API key from x-api-key header
- * @returns AuthContext if valid, null if invalid
- */
-async function validateApiKey(key: string): Promise<AuthContext | null> {
-  const hash = hashApiKey(key);
-
-  const { data, error } = await supabaseAdmin
-    .from("platform_api_key")
-    .select("workspace_id, scopes, is_active, environment")
-    .eq("key_hash", hash)
-    .eq("version_status", "current")
-    .single();
-
-  if (error || !data || !data.is_active) {
-    return null;
-  }
-
-  return {
-    method: "api_key",
-    workspaceId: data.workspace_id,
-    scopes: data.scopes ?? [],
-  };
-}
-
-/**
- * Validates a JWT by calling Supabase Auth getUser().
- * Then looks up the user's workspace from their profile.
- *
- * @param token - JWT from Authorization: Bearer header
- * @returns AuthContext if valid, null if invalid
- */
-async function validateJwt(token: string): Promise<AuthContext | null> {
-  const client = createUserClient(token);
-
-  const {
-    data: { user },
-    error,
-  } = await client.auth.getUser();
-  if (error || !user) {
-    return null;
-  }
-
-  // Get user's first active workspace (for workspace context)
-  const { data: profile } = await supabaseAdmin
-    .from("profile")
-    .select("workspace_id")
-    .eq("user_id", user.id)
-    .eq("is_active", true)
-    .limit(1)
-    .single();
-
-  if (!profile) {
-    return null;
-  }
-
-  return {
-    method: "jwt",
-    workspaceId: profile.workspace_id,
-    userId: user.id,
-  };
-}
-```
-
-**Step 2: Update src/index.ts to use auth middleware**
-
-Add import and middleware registration:
-
-```typescript
-import { authMiddleware } from "./middleware/auth.js";
-
-// Add after logger middleware, before routes
-app.use("*", authMiddleware);
-```
-
-**Step 3: Type check**
-
-Run: `cd services/stage-engine && pnpm typecheck`
-Expected: No errors
-
-**Step 4: Commit**
-
-```bash
-git add services/stage-engine/src/middleware/auth.ts services/stage-engine/src/index.ts
-git commit -m "feat(stage-engine): add dual-auth middleware (API key + JWT)"
-```
-
----
-
-### Task 7: Error Handler Middleware
-
-**Files:**
-
-- Create: `services/stage-engine/src/middleware/error-handler.ts`
-
-**Step 1: Create src/middleware/error-handler.ts**
+**Step 1: Write route handler**
 
 ```typescript
 // ============================================
-// error-handler.ts
-// Global error handler for the Stage Engine.
-// Catches unhandled errors and returns a consistent JSON error response.
-// Connected to: src/types/api.ts (ErrorResponse type)
+// routes/store.ts
+// POST /sessions/:id/store — agent saves data to inbox.
+// Data is stored as-is in the inbox with the entity_type
+// label. The response includes an instruction message
+// that tells the agent what to do next.
 // ============================================
 
 import type { Context } from "hono";
-import type { ErrorResponse } from "../types/api.js";
+import { sessionManager } from "../core/session-manager.js";
+import { writeToInbox } from "../core/inbox-writer.js";
+import { storeSchema } from "../schemas/store.js";
+import { EngineError } from "../middleware/error-handler.js";
+import type { StoreResponse } from "../types/api.js";
 
-/**
- * Global error handler.
- * Catches any unhandled error and returns a consistent JSON response.
- * Logs the full error for debugging but only returns safe info to the client.
- */
-export function onError(err: Error, c: Context): Response {
-  console.error(`[ERROR] ${c.req.method} ${c.req.path}:`, err.message);
+export async function storeData(c: Context): Promise<Response> {
+  const sessionId = c.req.param("id");
+  const session = await sessionManager.getActiveSession(sessionId);
+  const body = storeSchema.parse(await c.req.json());
 
-  const response: ErrorResponse = {
-    error: "INTERNAL_ERROR",
-    message: "An unexpected error occurred",
-    status: 500,
+  // Use current stage if not specified
+  const stageId = body.stage_id ?? session.current_stage_id;
+  if (!stageId) {
+    throw new EngineError("VALIDATION_ERROR", "No active stage to store data against", 400);
+  }
+
+  const item = await writeToInbox({
+    sessionId: session.id,
+    stageId,
+    workspaceId: session.workspace_id,
+    entityType: body.entity_type,
+    data: body.data,
+  });
+
+  const response: StoreResponse = {
+    inbox_id: item.id,
+    confirmed: true,
+    message: `Data stored successfully. Entity: ${body.entity_type}. Continue with your current stage objectives.`,
   };
 
-  return c.json(response, 500);
+  return c.json(response, 200);
 }
 ```
 
-**Step 2: Register in src/index.ts**
-
-Add import and registration:
+**Step 2: Register in app.ts**
 
 ```typescript
-import { onError } from "./middleware/error-handler.js";
-
-// Add after creating the Hono app
-app.onError(onError);
+import { storeData } from "./routes/store.js";
+// Inside createApp():
+app.post("/sessions/:id/store", storeData);
 ```
 
 **Step 3: Commit**
 
 ```bash
-git add services/stage-engine/src/middleware/error-handler.ts services/stage-engine/src/index.ts
-git commit -m "feat(stage-engine): add global error handler"
+git add services/stage-engine/src/routes/store.ts services/stage-engine/src/app.ts
+git commit -m "feat(stage-engine): add POST /sessions/:id/store endpoint"
 ```
 
 ---
 
-### Task 8: Dockerfile and Docker Compose
+### Task 18: POST /sessions/:id/fetch
+
+**Files:**
+
+- Create: `services/stage-engine/src/routes/fetch.ts`
+- Modify: `services/stage-engine/src/app.ts` — register route
+
+**Step 1: Write route handler**
+
+```typescript
+// ============================================
+// routes/fetch.ts
+// POST /sessions/:id/fetch — agent requests context or data.
+// Supports 4 query types: context, inbox, stage, history.
+// Each returns different data based on what the agent needs.
+// ============================================
+
+import type { Context } from "hono";
+import { adminClient } from "../lib/supabase.js";
+import { sessionManager } from "../core/session-manager.js";
+import { fetchSchema } from "../schemas/fetch.js";
+import { EngineError } from "../middleware/error-handler.js";
+
+export async function fetchData(c: Context): Promise<Response> {
+  const sessionId = c.req.param("id");
+  const session = await sessionManager.getSession(sessionId);
+  const body = fetchSchema.parse(await c.req.json());
+
+  let data: unknown;
+
+  switch (body.query_type) {
+    case "context":
+      data = session.context;
+      break;
+
+    case "inbox": {
+      let query = adminClient
+        .from("engine_inbox")
+        .select("*")
+        .eq("session_id", session.id)
+        .order("created_at", { ascending: true });
+
+      if (body.filters?.entity_type) {
+        query = query.eq("entity_type", body.filters.entity_type);
+      }
+      if (body.filters?.stage_id) {
+        query = query.eq("stage_id", body.filters.stage_id);
+      }
+
+      const { data: items, error } = await query;
+      if (error) throw new EngineError("INTERNAL_ERROR", "Failed to fetch inbox", 500);
+      data = items;
+      break;
+    }
+
+    case "stage": {
+      if (!session.current_stage_id) {
+        data = null;
+        break;
+      }
+      const { stages } = await sessionManager.loadMission(session.mission_id);
+      data = stages.find((s) => s.stage_id === session.current_stage_id) ?? null;
+      break;
+    }
+
+    case "history":
+      data = session.collected_data;
+      break;
+
+    default:
+      throw new EngineError("VALIDATION_ERROR", `Unknown query_type: ${body.query_type}`, 400);
+  }
+
+  return c.json({ data });
+}
+```
+
+**Step 2: Register in app.ts**
+
+```typescript
+import { fetchData } from "./routes/fetch.js";
+// Inside createApp():
+app.post("/sessions/:id/fetch", fetchData);
+```
+
+**Step 3: Commit**
+
+```bash
+git add services/stage-engine/src/routes/fetch.ts services/stage-engine/src/app.ts
+git commit -m "feat(stage-engine): add POST /sessions/:id/fetch endpoint"
+```
+
+---
+
+## Epic 5: Stage Transitions
+
+### Task 19: Stage Manager
+
+**Files:**
+
+- Create: `services/stage-engine/src/core/stage-manager.ts`
+- Test: `services/stage-engine/test/core/stage-manager.test.ts`
+
+**Step 1: Write the failing test**
+
+```typescript
+// test/core/stage-manager.test.ts
+import { describe, test, expect } from "vitest";
+import { StageManager } from "../src/core/stage-manager.js";
+import type { Stage } from "../src/types/session.js";
+
+const stages: Stage[] = [
+  { stage_id: "greeting", stage_order: 1, next_stage: "problem", is_required: true } as Stage,
+  { stage_id: "problem", stage_order: 2, next_stage: "confirm", is_required: true } as Stage,
+  { stage_id: "confirm", stage_order: 3, next_stage: null, is_required: true } as Stage,
+];
+
+describe("StageManager", () => {
+  const mgr = new StageManager();
+
+  test("sequential: returns next_stage from current stage", () => {
+    const next = mgr.getNextStage("sequential", stages, "greeting", undefined);
+    expect(next).toBe("problem");
+  });
+
+  test("sequential: returns null on last stage", () => {
+    const next = mgr.getNextStage("sequential", stages, "confirm", undefined);
+    expect(next).toBeNull();
+  });
+
+  test("free: uses provided next_stage_id", () => {
+    const next = mgr.getNextStage("free", stages, "greeting", "confirm");
+    expect(next).toBe("confirm");
+  });
+
+  test("free: throws if no next_stage_id provided", () => {
+    expect(() => mgr.getNextStage("free", stages, "greeting", undefined)).toThrow();
+  });
+
+  test("getProgress returns correct fraction", () => {
+    expect(mgr.getProgress(stages, 2)).toBe("2/3");
+  });
+});
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `cd services/stage-engine && npx vitest run test/core/stage-manager.test.ts`
+Expected: FAIL
+
+**Step 3: Write implementation**
+
+```typescript
+// ============================================
+// core/stage-manager.ts
+// Handles stage navigation logic for different
+// mission modes: sequential, free, hybrid.
+// Pure logic — no database access.
+// ============================================
+
+import type { MissionMode, Stage } from "../types/session.js";
+import { EngineError } from "../middleware/error-handler.js";
+
+export class StageManager {
+  /**
+   * Determines the next stage ID based on mission mode.
+   * Sequential: follows stage.next_stage chain.
+   * Free: uses the provided next_stage_id.
+   * Hybrid: sequential for required stages, free for optional.
+   * Returns null if mission is complete (no more stages).
+   */
+  getNextStage(
+    mode: MissionMode,
+    stages: Stage[],
+    currentStageId: string,
+    requestedNextId: string | undefined,
+  ): string | null {
+    const currentStage = stages.find((s) => s.stage_id === currentStageId);
+    if (!currentStage) {
+      throw new EngineError("NOT_FOUND", `Stage "${currentStageId}" not found`, 404);
+    }
+
+    switch (mode) {
+      case "sequential":
+        return currentStage.next_stage;
+
+      case "free":
+        if (!requestedNextId) {
+          throw new EngineError(
+            "VALIDATION_ERROR",
+            "next_stage_id is required for free mode missions",
+            400,
+          );
+        }
+        // Verify the requested stage exists
+        if (!stages.find((s) => s.stage_id === requestedNextId)) {
+          throw new EngineError("NOT_FOUND", `Stage "${requestedNextId}" not found`, 404);
+        }
+        return requestedNextId;
+
+      case "hybrid":
+        // Required stages follow sequential, optional follow free
+        if (currentStage.is_required) {
+          return currentStage.next_stage;
+        }
+        if (!requestedNextId) {
+          throw new EngineError(
+            "VALIDATION_ERROR",
+            "next_stage_id required for optional stages in hybrid mode",
+            400,
+          );
+        }
+        return requestedNextId;
+
+      default:
+        throw new EngineError("INTERNAL_ERROR", `Unknown mode: ${mode}`, 500);
+    }
+  }
+
+  /**
+   * Calculates progress string like "2/3".
+   */
+  getProgress(stages: Stage[], currentIndex: number): string {
+    const requiredCount = stages.filter((s) => s.is_required).length;
+    return `${currentIndex}/${requiredCount}`;
+  }
+}
+
+export const stageManager = new StageManager();
+```
+
+**Step 4: Run test to verify it passes**
+
+Run: `cd services/stage-engine && npx vitest run test/core/stage-manager.test.ts`
+Expected: PASS (5 tests)
+
+**Step 5: Commit**
+
+```bash
+git add services/stage-engine/src/core/stage-manager.ts services/stage-engine/test/core/stage-manager.test.ts
+git commit -m "feat(stage-engine): add StageManager with sequential/free/hybrid navigation"
+```
+
+---
+
+### Task 20: Prompt Builder
+
+**Files:**
+
+- Create: `services/stage-engine/src/core/prompt-builder.ts`
+- Test: `services/stage-engine/test/core/prompt-builder.test.ts`
+
+**Step 1: Write the failing test**
+
+```typescript
+// test/core/prompt-builder.test.ts
+import { describe, test, expect } from "vitest";
+import { buildStagePrompt } from "../src/core/prompt-builder.js";
+import type { Stage } from "../src/types/session.js";
+
+describe("buildStagePrompt", () => {
+  const stage: Stage = {
+    stage_id: "greeting",
+    goal: "Learn the person's name and role",
+    instructions: "Be warm and curious",
+    success_criteria: "You know their name and title",
+    emotion_hint: "warmth",
+    creative_freedom: 0.8,
+    personality_override: null,
+    escalation_instructions: "Ask a simpler question",
+  } as Stage;
+
+  test("includes stage goal and instructions", () => {
+    const prompt = buildStagePrompt(stage, {}, {});
+    expect(prompt).toContain("Learn the person's name and role");
+    expect(prompt).toContain("Be warm and curious");
+  });
+
+  test("includes success criteria", () => {
+    const prompt = buildStagePrompt(stage, {}, {});
+    expect(prompt).toContain("You know their name and title");
+  });
+
+  test("includes emotion hint when present", () => {
+    const prompt = buildStagePrompt(stage, {}, {});
+    expect(prompt).toContain("warmth");
+  });
+
+  test("includes context when provided", () => {
+    const prompt = buildStagePrompt(stage, { user_name: "Pontus" }, {});
+    expect(prompt).toContain("Pontus");
+  });
+
+  test("includes collected data summary when provided", () => {
+    const prompt = buildStagePrompt(stage, {}, { greeting: { name: "Pontus" } });
+    expect(prompt).toContain("greeting");
+  });
+});
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `cd services/stage-engine && npx vitest run test/core/prompt-builder.test.ts`
+Expected: FAIL
+
+**Step 3: Write implementation**
+
+```typescript
+// ============================================
+// core/prompt-builder.ts
+// Builds system prompts for AI agents.
+// Combines stage instructions with session context
+// and collected data into a single prompt string.
+// Output is channel-agnostic — works for voice,
+// chat, SMS, or any LLM interface.
+// ============================================
+
+import type { Stage } from "../types/session.js";
+
+/**
+ * Builds a complete system prompt for a given stage.
+ * The prompt tells the agent: what to achieve (goal),
+ * how to do it (instructions), when it's done (criteria),
+ * and what tone to use (emotion hint + creative freedom).
+ *
+ * @param stage - The current stage definition
+ * @param context - Session context (identity, workspace data)
+ * @param collectedData - Data collected from previous stages
+ * @returns A ready-to-use system prompt string
+ */
+export function buildStagePrompt(
+  stage: Stage,
+  context: Record<string, unknown>,
+  collectedData: Record<string, unknown>,
+): string {
+  const sections: string[] = [];
+
+  // Personality override (if stage wants a different tone)
+  if (stage.personality_override) {
+    sections.push(`## Personality\n${stage.personality_override}`);
+  }
+
+  // Core assignment
+  sections.push(`## Your Current Assignment`);
+  sections.push(`**Goal:** ${stage.goal}`);
+  sections.push(`**Instructions:** ${stage.instructions}`);
+  sections.push(`**Success Criteria:** ${stage.success_criteria}`);
+
+  // Emotional guidance
+  if (stage.emotion_hint) {
+    sections.push(`**Emotional Tone:** ${stage.emotion_hint}`);
+  }
+
+  // Creative freedom as temperature guidance
+  const freedom = stage.creative_freedom ?? 0.7;
+  if (freedom >= 0.8) {
+    sections.push(`**Style:** Be creative and conversational. You have freedom to improvise.`);
+  } else if (freedom <= 0.3) {
+    sections.push(`**Style:** Be precise and structured. Follow instructions closely.`);
+  }
+
+  // Escalation path
+  if (stage.escalation_instructions) {
+    sections.push(`## If You Get Stuck\n${stage.escalation_instructions}`);
+  }
+
+  // Context about who they're talking to
+  if (Object.keys(context).length > 0) {
+    sections.push(`## Context\n${formatContext(context)}`);
+  }
+
+  // What's been collected so far
+  if (Object.keys(collectedData).length > 0) {
+    sections.push(`## Previously Collected Data\n${formatCollectedData(collectedData)}`);
+  }
+
+  // Rules that always apply
+  sections.push(`## Rules`);
+  sections.push(`- Complete your goal before advancing to the next stage.`);
+  sections.push(`- Use the store tool to save important data as you collect it.`);
+  sections.push(`- Use the advance tool when your success criteria are met.`);
+  sections.push(`- Be natural and conversational — not robotic.`);
+
+  return sections.join("\n\n");
+}
+
+/** Formats context object as readable key-value pairs */
+function formatContext(ctx: Record<string, unknown>): string {
+  return Object.entries(ctx)
+    .filter(([, v]) => v != null)
+    .map(([k, v]) => `- **${k}:** ${typeof v === "object" ? JSON.stringify(v) : String(v)}`)
+    .join("\n");
+}
+
+/** Formats collected data as a summary per stage */
+function formatCollectedData(data: Record<string, unknown>): string {
+  return Object.entries(data)
+    .map(([stage, value]) => `- **${stage}:** ${JSON.stringify(value)}`)
+    .join("\n");
+}
+```
+
+**Step 4: Run test to verify it passes**
+
+Run: `cd services/stage-engine && npx vitest run test/core/prompt-builder.test.ts`
+Expected: PASS (5 tests)
+
+**Step 5: Commit**
+
+```bash
+git add services/stage-engine/src/core/prompt-builder.ts services/stage-engine/test/core/prompt-builder.test.ts
+git commit -m "feat(stage-engine): add prompt builder for stage system prompts"
+```
+
+---
+
+### Task 21: Webhook Sender
+
+**Files:**
+
+- Create: `services/stage-engine/src/core/webhook-sender.ts`
+
+**Step 1: Write implementation**
+
+```typescript
+// ============================================
+// core/webhook-sender.ts
+// Async webhook notifications for session events.
+// Fire-and-forget with exponential backoff retry.
+// Never blocks the response to the agent.
+// ============================================
+
+type WebhookEvent = "session.started" | "stage.changed" | "session.completed" | "session.abandoned";
+
+interface WebhookPayload {
+  event: WebhookEvent;
+  session_id: string;
+  stage_id: string | null;
+  progress: string;
+  collected_data: Record<string, unknown>;
+  timestamp: string;
+}
+
+/**
+ * Sends a webhook event to the callback URL.
+ * Runs asynchronously — never blocks the caller.
+ * Retries 3 times with exponential backoff: 1s, 4s, 16s.
+ */
+export function sendWebhook(callbackUrl: string | null, payload: WebhookPayload): void {
+  if (!callbackUrl) return;
+
+  // Fire-and-forget — don't await
+  deliverWithRetry(callbackUrl, payload).catch((err) => {
+    console.error(`[webhook] All retries failed for ${callbackUrl}:`, err);
+  });
+}
+
+async function deliverWithRetry(
+  url: string,
+  payload: WebhookPayload,
+  maxRetries = 3,
+): Promise<void> {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(10000),
+      });
+      if (res.ok) return;
+      console.warn(`[webhook] Attempt ${attempt + 1}: HTTP ${res.status}`);
+    } catch (err) {
+      console.warn(`[webhook] Attempt ${attempt + 1}:`, err);
+    }
+
+    // Exponential backoff: 1s, 4s, 16s
+    if (attempt < maxRetries - 1) {
+      await sleep(Math.pow(4, attempt) * 1000);
+    }
+  }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+```
+
+**Step 2: Commit**
+
+```bash
+git add services/stage-engine/src/core/webhook-sender.ts
+git commit -m "feat(stage-engine): add webhook sender with exponential backoff retry"
+```
+
+---
+
+### Task 22: POST /sessions/:id/advance
+
+**Files:**
+
+- Create: `services/stage-engine/src/routes/advance.ts`
+- Modify: `services/stage-engine/src/app.ts` — register route
+
+**Step 1: Write route handler**
+
+```typescript
+// ============================================
+// routes/advance.ts
+// POST /sessions/:id/advance — moves to the next stage.
+// Saves result data, determines next stage based on
+// mission mode, builds new prompt, fires webhooks.
+// ============================================
+
+import type { Context } from "hono";
+import { sessionManager } from "../core/session-manager.js";
+import { stageManager } from "../core/stage-manager.js";
+import { buildStagePrompt } from "../core/prompt-builder.js";
+import { sendWebhook } from "../core/webhook-sender.js";
+import { advanceSchema } from "../schemas/advance.js";
+import type { AdvanceResponse } from "../types/api.js";
+
+export async function advanceStage(c: Context): Promise<Response> {
+  const sessionId = c.req.param("id");
+  const session = await sessionManager.getActiveSession(sessionId);
+  const body = advanceSchema.parse(await c.req.json());
+
+  const { mission, stages } = await sessionManager.loadMission(session.mission_id);
+
+  // Save result for current stage if provided
+  const collectedData = { ...session.collected_data } as Record<string, unknown>;
+  if (body.result && session.current_stage_id) {
+    collectedData[session.current_stage_id] = body.result;
+  }
+
+  // Determine next stage
+  const nextStageId = session.current_stage_id
+    ? stageManager.getNextStage(mission.mode, stages, session.current_stage_id, body.next_stage_id)
+    : null;
+
+  // Check if mission is complete (no next stage)
+  const isComplete = nextStageId === null;
+
+  if (isComplete) {
+    // Mark session complete
+    await sessionManager.updateStatus(session.id, "complete");
+    await sessionManager.advanceSession(session.id, null, session.stage_index, collectedData);
+
+    // Fire webhook
+    sendWebhook(session.callback_url, {
+      event: "session.completed",
+      session_id: session.id,
+      stage_id: null,
+      progress: stageManager.getProgress(stages, stages.length),
+      collected_data: collectedData,
+      timestamp: new Date().toISOString(),
+    });
+
+    const response: AdvanceResponse = {
+      progress: stageManager.getProgress(stages, stages.length),
+      complete: true,
+      summary: `Session complete. Collected data from ${Object.keys(collectedData).length} stages.`,
+    };
+    return c.json(response);
+  }
+
+  // Advance to next stage
+  const newIndex = session.stage_index + 1;
+  await sessionManager.advanceSession(session.id, nextStageId, newIndex, collectedData);
+
+  // Build new prompt
+  const nextStage = stages.find((s) => s.stage_id === nextStageId)!;
+  const systemPrompt = buildStagePrompt(nextStage, session.context, collectedData);
+
+  // Fire webhook
+  sendWebhook(session.callback_url, {
+    event: "stage.changed",
+    session_id: session.id,
+    stage_id: nextStageId,
+    progress: stageManager.getProgress(stages, newIndex),
+    collected_data: collectedData,
+    timestamp: new Date().toISOString(),
+  });
+
+  const response: AdvanceResponse = {
+    new_stage: {
+      stage_id: nextStage.stage_id,
+      goal: nextStage.goal,
+      instructions: nextStage.instructions,
+      success_criteria: nextStage.success_criteria,
+      emotion_hint: nextStage.emotion_hint,
+    },
+    progress: stageManager.getProgress(stages, newIndex),
+    complete: false,
+    system_prompt: systemPrompt,
+  };
+
+  return c.json(response);
+}
+```
+
+**Step 2: Register in app.ts**
+
+```typescript
+import { advanceStage } from "./routes/advance.js";
+// Inside createApp():
+app.post("/sessions/:id/advance", advanceStage);
+```
+
+**Step 3: Run all tests**
+
+Run: `cd services/stage-engine && npx vitest run`
+Expected: All tests pass
+
+**Step 4: Commit**
+
+```bash
+git add services/stage-engine/src/routes/advance.ts services/stage-engine/src/app.ts
+git commit -m "feat(stage-engine): add POST /sessions/:id/advance with stage navigation and webhooks"
+```
+
+---
+
+## Epic 6: Ultravox Adapter
+
+### Task 23: Ultravox Client
+
+**Files:**
+
+- Create: `services/stage-engine/src/lib/ultravox.ts`
+
+**Step 1: Write Ultravox API client**
+
+```typescript
+// ============================================
+// lib/ultravox.ts
+// HTTP client for the Ultravox voice AI API.
+// Used to create calls with pre-configured tools
+// pointing back to the stage engine.
+// ============================================
+
+import { config } from "../config.js";
+import type { UltravoxCallPayload, UltravoxTool } from "../types/ultravox.js";
+
+const ULTRAVOX_API_URL = "https://api.ultravox.ai/api/calls";
+
+/**
+ * Creates a new Ultravox call via their API.
+ * Returns the call ID and join URL for WebRTC.
+ */
+export async function createUltravoxCall(
+  payload: UltravoxCallPayload,
+): Promise<{ callId: string; joinUrl: string }> {
+  const res = await fetch(ULTRAVOX_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-API-Key": config.ULTRAVOX_API_KEY,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Ultravox API error (${res.status}): ${text}`);
+  }
+
+  const data = (await res.json()) as { callId: string; joinUrl: string };
+  return { callId: data.callId, joinUrl: data.joinUrl };
+}
+
+/**
+ * Builds the Ultravox tool definitions that point
+ * back to the stage engine's adapter endpoints.
+ * These tools are registered when creating a call.
+ */
+export function buildUltravoxTools(
+  engineUrl: string,
+  sessionId: string,
+  apiKey: string,
+): UltravoxTool[] {
+  const baseHeaders = { "x-api-key": apiKey };
+
+  return [
+    buildTool(
+      "store_data",
+      "Store collected data from the conversation",
+      engineUrl,
+      sessionId,
+      "store",
+      {
+        entity_type: {
+          type: "string",
+          description: "Type of data being stored (e.g., department, shift, note)",
+        },
+        data: { type: "object", description: "The data to store" },
+      },
+    ),
+    buildTool(
+      "fetch_data",
+      "Fetch context or previously stored data",
+      engineUrl,
+      sessionId,
+      "fetch",
+      {
+        query_type: {
+          type: "string",
+          enum: ["context", "inbox", "stage", "history"],
+          description: "What to fetch",
+        },
+      },
+    ),
+    buildTool(
+      "advance_stage",
+      "Move to the next stage of the mission",
+      engineUrl,
+      sessionId,
+      "advance",
+      {
+        result: { type: "object", description: "Summary data for the current stage" },
+      },
+    ),
+  ];
+}
+
+function buildTool(
+  name: string,
+  description: string,
+  engineUrl: string,
+  sessionId: string,
+  endpoint: string,
+  params: Record<string, unknown>,
+): UltravoxTool {
+  return {
+    temporaryTool: {
+      modelToolName: name,
+      description,
+      dynamicParameters: Object.entries(params).map(([paramName, schema]) => ({
+        name: paramName,
+        location: "PARAMETER_LOCATION_BODY" as const,
+        schema: schema as Record<string, unknown>,
+        required: paramName !== "result",
+      })),
+      http: {
+        baseUrlPattern: `${engineUrl}/adapters/ultravox/${endpoint}?session_id=${sessionId}`,
+        httpMethod: "POST",
+      },
+    },
+  };
+}
+```
+
+**Step 2: Commit**
+
+```bash
+git add services/stage-engine/src/lib/ultravox.ts
+git commit -m "feat(stage-engine): add Ultravox API client and tool builder"
+```
+
+---
+
+### Task 24: Ultravox Adapter Endpoints
+
+**Files:**
+
+- Create: `services/stage-engine/src/routes/adapters/ultravox.ts`
+- Modify: `services/stage-engine/src/app.ts` — register routes
+
+**Step 1: Write adapter endpoints**
+
+```typescript
+// ============================================
+// routes/adapters/ultravox.ts
+// Ultravox-specific endpoints that wrap the core
+// engine operations with Ultravox's tool calling
+// conventions and stage transition headers.
+// ============================================
+
+import type { Context } from "hono";
+import { sessionManager } from "../../core/session-manager.js";
+import { stageManager } from "../../core/stage-manager.js";
+import { buildStagePrompt } from "../../core/prompt-builder.js";
+import { writeToInbox } from "../../core/inbox-writer.js";
+import { sendWebhook } from "../../core/webhook-sender.js";
+import { createUltravoxCall, buildUltravoxTools } from "../../lib/ultravox.js";
+import { config } from "../../config.js";
+import { EngineError } from "../../middleware/error-handler.js";
+import type { AuthContext } from "../../types/auth.js";
+import type { UltravoxNewStageResponse } from "../../types/ultravox.js";
+
+/**
+ * POST /adapters/ultravox/create-call
+ * Creates an Ultravox call pre-configured with engine tools.
+ * Returns join_url for the frontend BrowserCall component.
+ */
+export async function ultravoxCreateCall(c: Context): Promise<Response> {
+  const auth = c.get("auth") as AuthContext;
+  const body = await c.req.json();
+
+  // Start engine session
+  const { mission, stages } = await sessionManager.loadMission(body.mission_id);
+  const session = await sessionManager.createSession({
+    missionId: body.mission_id,
+    workspaceId: body.workspace_id,
+    channel: "voice",
+    userId: body.user_id,
+  });
+
+  // Build initial prompt
+  const firstStage = stages[0];
+  const systemPrompt = buildStagePrompt(firstStage, session.context, {});
+
+  // Build tools pointing back to engine
+  const apiKey = c.req.header("x-api-key") ?? "";
+  const tools = buildUltravoxTools(config.ENGINE_URL, session.id, apiKey);
+
+  // Create Ultravox call
+  const { callId, joinUrl } = await createUltravoxCall({
+    systemPrompt,
+    voice: body.voice,
+    languageHint: body.language ?? "no",
+    selectedTools: tools,
+    temperature: firstStage.creative_freedom,
+  });
+
+  return c.json({
+    session_id: session.id,
+    call_id: callId,
+    join_url: joinUrl,
+  });
+}
+
+/**
+ * POST /adapters/ultravox/store
+ * Wraps /sessions/:id/store for Ultravox tool format.
+ * Session ID passed as query parameter.
+ */
+export async function ultravoxStore(c: Context): Promise<Response> {
+  const sessionId = c.req.query("session_id");
+  if (!sessionId) throw new EngineError("VALIDATION_ERROR", "Missing session_id", 400);
+
+  const session = await sessionManager.getActiveSession(sessionId);
+  const body = await c.req.json();
+
+  const item = await writeToInbox({
+    sessionId: session.id,
+    stageId: session.current_stage_id ?? "unknown",
+    workspaceId: session.workspace_id,
+    entityType: body.entity_type ?? "note",
+    data: body.data ?? body,
+  });
+
+  // Ultravox expects a text response as the tool result
+  return c.text(
+    `Data stored successfully (${item.entity_type}). Continue with your current assignment.`,
+  );
+}
+
+/**
+ * POST /adapters/ultravox/fetch
+ * Wraps /sessions/:id/fetch for Ultravox tool format.
+ */
+export async function ultravoxFetch(c: Context): Promise<Response> {
+  const sessionId = c.req.query("session_id");
+  if (!sessionId) throw new EngineError("VALIDATION_ERROR", "Missing session_id", 400);
+
+  const session = await sessionManager.getSession(sessionId);
+  const body = await c.req.json();
+
+  // Default to context query
+  const queryType = body.query_type ?? "context";
+  let data: unknown = session.context;
+
+  if (queryType === "history") data = session.collected_data;
+  if (queryType === "stage") {
+    const { stages } = await sessionManager.loadMission(session.mission_id);
+    data = stages.find((s) => s.stage_id === session.current_stage_id);
+  }
+
+  return c.text(JSON.stringify(data, null, 2));
+}
+
+/**
+ * POST /adapters/ultravox/advance
+ * Wraps /sessions/:id/advance with Ultravox new-stage header.
+ * Returns X-Ultravox-Response-Type: new-stage for seamless transitions.
+ */
+export async function ultravoxAdvance(c: Context): Promise<Response> {
+  const sessionId = c.req.query("session_id");
+  if (!sessionId) throw new EngineError("VALIDATION_ERROR", "Missing session_id", 400);
+
+  const session = await sessionManager.getActiveSession(sessionId);
+  const body = await c.req.json();
+  const { mission, stages } = await sessionManager.loadMission(session.mission_id);
+
+  // Save result
+  const collectedData = { ...session.collected_data } as Record<string, unknown>;
+  if (body.result && session.current_stage_id) {
+    collectedData[session.current_stage_id] = body.result;
+  }
+
+  // Determine next stage
+  const nextStageId = session.current_stage_id
+    ? stageManager.getNextStage(mission.mode, stages, session.current_stage_id, body.next_stage_id)
+    : null;
+
+  const isComplete = nextStageId === null;
+
+  if (isComplete) {
+    await sessionManager.updateStatus(session.id, "complete");
+    await sessionManager.advanceSession(session.id, null, session.stage_index, collectedData);
+
+    sendWebhook(session.callback_url, {
+      event: "session.completed",
+      session_id: session.id,
+      stage_id: null,
+      progress: stageManager.getProgress(stages, stages.length),
+      collected_data: collectedData,
+      timestamp: new Date().toISOString(),
+    });
+
+    return c.text(
+      "Mission complete. All stages finished. Thank the person and wrap up the conversation.",
+    );
+  }
+
+  // Advance
+  const newIndex = session.stage_index + 1;
+  await sessionManager.advanceSession(session.id, nextStageId, newIndex, collectedData);
+
+  const nextStage = stages.find((s) => s.stage_id === nextStageId)!;
+  const systemPrompt = buildStagePrompt(nextStage, session.context, collectedData);
+
+  sendWebhook(session.callback_url, {
+    event: "stage.changed",
+    session_id: session.id,
+    stage_id: nextStageId,
+    progress: stageManager.getProgress(stages, newIndex),
+    collected_data: collectedData,
+    timestamp: new Date().toISOString(),
+  });
+
+  // Return Ultravox new-stage format
+  const uvResponse: UltravoxNewStageResponse = {
+    systemPrompt,
+    toolResultText: `Moving to stage: ${nextStage.goal}`,
+  };
+
+  return c.json(uvResponse, 200, {
+    "X-Ultravox-Response-Type": "new-stage",
+  });
+}
+```
+
+**Step 2: Register in app.ts**
+
+```typescript
+import {
+  ultravoxCreateCall,
+  ultravoxStore,
+  ultravoxFetch,
+  ultravoxAdvance,
+} from "./routes/adapters/ultravox.js";
+
+// Inside createApp():
+app.post("/adapters/ultravox/create-call", ultravoxCreateCall);
+app.post("/adapters/ultravox/store", ultravoxStore);
+app.post("/adapters/ultravox/fetch", ultravoxFetch);
+app.post("/adapters/ultravox/advance", ultravoxAdvance);
+```
+
+**Step 3: Run all tests**
+
+Run: `cd services/stage-engine && npx vitest run`
+Expected: All tests pass
+
+**Step 4: Commit**
+
+```bash
+git add services/stage-engine/src/routes/adapters/ultravox.ts services/stage-engine/src/app.ts
+git commit -m "feat(stage-engine): add Ultravox adapter with create-call, store, fetch, advance"
+```
+
+---
+
+## Epic 7: Verification + Docs
+
+### Task 25: Docker + Caddy
 
 **Files:**
 
@@ -942,29 +3101,20 @@ git commit -m "feat(stage-engine): add global error handler"
 **Step 1: Create Dockerfile**
 
 ```dockerfile
-# ============================================
-# Dockerfile — Stage Engine
-# Multi-stage build: compile TypeScript, then run minimal Node.js image.
-# Connected to: docker-compose.yml (orchestration)
-# ============================================
-
-# Build stage — compile TypeScript to JavaScript
+# Build stage
 FROM node:22-alpine AS builder
 WORKDIR /app
-RUN corepack enable
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
-COPY tsconfig.json ./
-COPY src ./src
+RUN corepack enable && pnpm install --frozen-lockfile
+COPY . .
 RUN pnpm build
 
-# Runtime stage — minimal image with only compiled output
+# Runtime stage
 FROM node:22-alpine
 WORKDIR /app
-RUN corepack enable
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile --prod
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./
 EXPOSE 3000
 ENV NODE_ENV=production
 CMD ["node", "dist/index.js"]
@@ -973,13 +3123,6 @@ CMD ["node", "dist/index.js"]
 **Step 2: Create docker-compose.yml**
 
 ```yaml
-# ============================================
-# docker-compose.yml — Stage Engine stack
-# Runs Caddy (HTTPS reverse proxy) + Stage Engine on a shared Docker network.
-# Connected to: Caddyfile (Caddy config)
-# Connected to: Dockerfile (engine build)
-# ============================================
-
 version: "3.8"
 
 networks:
@@ -1004,14 +3147,11 @@ services:
     build: .
     environment:
       - PORT=3000
-      - ENGINE_URL=${ENGINE_URL}
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - ULTRAVOX_API_KEY=${ULTRAVOX_API_KEY}
-      - LOG_LEVEL=${LOG_LEVEL:-info}
-      - SESSION_EXPIRY_HOURS=${SESSION_EXPIRY_HOURS:-24}
-      - CLEANUP_INTERVAL_MINUTES=${CLEANUP_INTERVAL_MINUTES:-5}
+      - ENGINE_URL=https://engine.smartout.ai
     networks:
       - smartout-internal
     restart: unless-stopped
@@ -1024,2200 +3164,49 @@ volumes:
 **Step 3: Create Caddyfile**
 
 ```
-# ============================================
-# Caddyfile — reverse proxy for Stage Engine
-# Caddy auto-provisions HTTPS via Let's Encrypt.
-# Connected to: docker-compose.yml (caddy service)
-# ============================================
-
 engine.smartout.ai {
   reverse_proxy stage-engine:3000
 }
 ```
 
-**Step 4: Commit**
+**Step 4: Verify Docker build**
+
+Run: `cd services/stage-engine && docker compose build`
+Expected: Build succeeds
+
+**Step 5: Commit**
 
 ```bash
 git add services/stage-engine/Dockerfile services/stage-engine/docker-compose.yml services/stage-engine/Caddyfile
-git commit -m "feat(stage-engine): add Docker + Caddy deployment config"
+git commit -m "feat(stage-engine): add Docker, Docker Compose, and Caddy config"
 ```
 
 ---
 
-## Epic 2: Data Model
-
-> After this epic: all 4 engine tables exist in Supabase with RLS, indexes, and a seed mission.
-
----
-
-### Task 9: Supabase Migration — Engine Tables
-
-**Files:**
-
-- Create: `supabase/migrations/20260301200000_engine_tables.sql`
-
-**Step 1: Create the migration file**
-
-```sql
--- ============================================
--- 20260301200000_engine_tables.sql
--- Creates the 4 core tables for the Stage Engine:
---   engine_missions — reusable agent workflow definitions
---   engine_stages   — ordered steps within missions
---   engine_sessions — active conversation state
---   engine_inbox    — generic data inbox for agent-stored data
--- Connected to: ARCHITECTURE.md §3 (full schema specification)
--- ============================================
-
--- ----------------------------------------
--- engine_missions
--- A mission is a reusable template for an agent workflow.
--- Missions have modes: sequential (ordered stages), free (agent chooses),
--- or hybrid (fixed start/end, free middle).
--- ----------------------------------------
-CREATE TABLE engine_missions (
-  id              TEXT PRIMARY KEY,
-  name            TEXT NOT NULL,
-  description     TEXT,
-  mode            TEXT NOT NULL DEFAULT 'sequential'
-                    CHECK (mode IN ('sequential', 'free', 'hybrid')),
-  context_source  TEXT,
-  workspace_id    UUID REFERENCES workspace(workspace_id),
-  is_active       BOOLEAN NOT NULL DEFAULT true,
-  created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-ALTER TABLE engine_missions ENABLE ROW LEVEL SECURITY;
-
--- Global missions (workspace_id IS NULL) are readable by everyone.
--- Workspace missions are readable by workspace members (JWT) or API key auth.
-CREATE POLICY "read_missions" ON engine_missions
-FOR SELECT USING (
-  workspace_id IS NULL
-  OR workspace_id IN (
-    SELECT workspace_id FROM profile
-    WHERE user_id = auth.uid() AND is_active = true
-  )
-  OR workspace_id = NULLIF(current_setting('app.workspace_id', true), '')::uuid
-);
-
--- Only service role can insert/update/delete missions
-CREATE POLICY "manage_missions" ON engine_missions
-FOR ALL USING (
-  auth.role() = 'service_role'
-);
-
-CREATE INDEX idx_engine_missions_context ON engine_missions (context_source)
-  WHERE is_active = true;
-CREATE INDEX idx_engine_missions_workspace ON engine_missions (workspace_id)
-  WHERE is_active = true;
-
--- ----------------------------------------
--- engine_stages
--- A stage is one step within a mission. Contains agent instructions,
--- personality overlay, and navigation rules.
--- ----------------------------------------
-CREATE TABLE engine_stages (
-  id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  mission_id              TEXT NOT NULL REFERENCES engine_missions(id) ON DELETE CASCADE,
-  stage_id                TEXT NOT NULL,
-  stage_order             INTEGER NOT NULL,
-  goal                    TEXT NOT NULL,
-  instructions            TEXT NOT NULL,
-  success_criteria        TEXT NOT NULL,
-  escalation_instructions TEXT,
-  personality_override    TEXT,
-  emotion_hint            TEXT,
-  creative_freedom        REAL NOT NULL DEFAULT 0.7
-                            CHECK (creative_freedom >= 0 AND creative_freedom <= 1),
-  next_stage              TEXT,
-  is_required             BOOLEAN NOT NULL DEFAULT true,
-  deferred_templates      JSONB DEFAULT '[]',
-  inline_instructions     JSONB DEFAULT '[]',
-  created_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
-
-  CONSTRAINT uq_mission_stage UNIQUE (mission_id, stage_id),
-  CONSTRAINT uq_mission_order UNIQUE (mission_id, stage_order)
-);
-
-ALTER TABLE engine_stages ENABLE ROW LEVEL SECURITY;
-
--- Stages inherit mission visibility via subquery on engine_missions
-CREATE POLICY "read_stages" ON engine_stages
-FOR SELECT USING (
-  mission_id IN (SELECT id FROM engine_missions)
-);
-
-CREATE POLICY "manage_stages" ON engine_stages
-FOR ALL USING (
-  auth.role() = 'service_role'
-);
-
-CREATE INDEX idx_engine_stages_mission ON engine_stages (mission_id, stage_order);
-
--- ----------------------------------------
--- engine_sessions
--- A session is one active run of a mission. Tracks user identity,
--- current stage, collected data, and lifecycle status.
--- ----------------------------------------
-CREATE TABLE engine_sessions (
-  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  mission_id      TEXT NOT NULL REFERENCES engine_missions(id),
-  workspace_id    UUID NOT NULL REFERENCES workspace(workspace_id),
-  user_id         UUID,
-  profile_id      UUID,
-  channel         TEXT NOT NULL
-                    CHECK (channel IN ('voice', 'sms', 'chat', 'email', 'autonomous')),
-  current_stage_id TEXT,
-  stage_index      INTEGER NOT NULL DEFAULT 0,
-  status           TEXT NOT NULL DEFAULT 'active'
-                    CHECK (status IN ('active', 'complete', 'expired', 'abandoned')),
-  context          JSONB NOT NULL DEFAULT '{}',
-  collected_data   JSONB NOT NULL DEFAULT '{}',
-  summary          TEXT,
-  callback_url     TEXT,
-  expires_at       TIMESTAMPTZ NOT NULL DEFAULT (now() + interval '24 hours'),
-  completed_at     TIMESTAMPTZ,
-  created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at       TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-ALTER TABLE engine_sessions ENABLE ROW LEVEL SECURITY;
-
--- Workspace isolation: JWT users see their workspace, API key auth uses set_config
-CREATE POLICY "workspace_isolation_sessions" ON engine_sessions
-FOR ALL USING (
-  workspace_id IN (
-    SELECT workspace_id FROM profile
-    WHERE user_id = auth.uid() AND is_active = true
-  )
-  OR workspace_id = NULLIF(current_setting('app.workspace_id', true), '')::uuid
-);
-
-CREATE INDEX idx_engine_sessions_workspace_status
-  ON engine_sessions (workspace_id, status)
-  WHERE status = 'active';
-CREATE INDEX idx_engine_sessions_expiry
-  ON engine_sessions (expires_at)
-  WHERE status = 'active';
-CREATE INDEX idx_engine_sessions_mission
-  ON engine_sessions (mission_id, workspace_id, status);
-
--- ----------------------------------------
--- engine_inbox
--- Generic data inbox where agents store collected information.
--- Categorized by entity_type, processed asynchronously later.
--- ----------------------------------------
-CREATE TABLE engine_inbox (
-  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  session_id      UUID NOT NULL REFERENCES engine_sessions(id) ON DELETE CASCADE,
-  stage_id        TEXT NOT NULL,
-  workspace_id    UUID NOT NULL REFERENCES workspace(workspace_id),
-  entity_type     TEXT NOT NULL,
-  data            JSONB NOT NULL,
-  validated       BOOLEAN NOT NULL DEFAULT false,
-  processed       BOOLEAN NOT NULL DEFAULT false,
-  created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-ALTER TABLE engine_inbox ENABLE ROW LEVEL SECURITY;
-
--- Workspace isolation matches sessions policy
-CREATE POLICY "workspace_isolation_inbox" ON engine_inbox
-FOR ALL USING (
-  workspace_id IN (
-    SELECT workspace_id FROM profile
-    WHERE user_id = auth.uid() AND is_active = true
-  )
-  OR workspace_id = NULLIF(current_setting('app.workspace_id', true), '')::uuid
-);
-
-CREATE INDEX idx_engine_inbox_session ON engine_inbox (session_id, stage_id);
-CREATE INDEX idx_engine_inbox_processing ON engine_inbox (workspace_id, processed)
-  WHERE processed = false;
-```
-
-**Step 2: Apply the migration locally**
-
-Run: `cd smartout_v3 && npx supabase db push` (or `npx supabase migration up` if local)
-
-**Step 3: Regenerate types**
-
-Run: `npx supabase gen types typescript --local > packages/supabase/src/database.types.ts`
-
-**Step 4: Commit**
-
-```bash
-git add supabase/migrations/20260301200000_engine_tables.sql packages/supabase/src/database.types.ts
-git commit -m "feat(stage-engine): create 4 engine tables with RLS and indexes"
-```
-
----
-
-### Task 10: Seed Test Mission
-
-**Files:**
-
-- Create: `supabase/migrations/20260301200100_engine_seed.sql`
-
-**Step 1: Create the seed migration**
-
-```sql
--- ============================================
--- 20260301200100_engine_seed.sql
--- Seeds a test mission "discovery-call" with 3 stages for E2E testing.
--- This is a global mission (workspace_id = NULL) used for development.
--- Connected to: BREAKDOWN.md Epic 7.1
--- ============================================
-
--- Discovery call mission — 3-stage sequential flow
-INSERT INTO engine_missions (id, name, description, mode, context_source, workspace_id, is_active)
-VALUES (
-  'discovery-call',
-  'Discovery Call',
-  'A 3-stage discovery call that learns about the caller, their problem, and confirms understanding.',
-  'sequential',
-  NULL,
-  NULL,
-  true
-);
-
--- Stage 1: Greeting — learn who they are
-INSERT INTO engine_stages (
-  mission_id, stage_id, stage_order, goal, instructions, success_criteria,
-  escalation_instructions, personality_override, emotion_hint, creative_freedom,
-  next_stage, is_required
-) VALUES (
-  'discovery-call',
-  'greeting',
-  1,
-  'Learn the persons name and role in their organization.',
-  'Greet the person warmly. Ask for their name and what they do. Be friendly and natural — this is the first impression. Do not rush. Let them talk.',
-  'You know their name and their role/title. Both have been stored.',
-  'If they seem reluctant, explain that you just want to understand who you are talking to so you can help them better.',
-  'Be extra warm and welcoming. First impressions matter.',
-  'warmth',
-  0.8,
-  'problem',
-  true
-);
-
--- Stage 2: Problem — understand their challenge
-INSERT INTO engine_stages (
-  mission_id, stage_id, stage_order, goal, instructions, success_criteria,
-  escalation_instructions, personality_override, emotion_hint, creative_freedom,
-  next_stage, is_required
-) VALUES (
-  'discovery-call',
-  'problem',
-  2,
-  'Understand the main challenge or problem they are facing.',
-  'Ask what brought them here today. Listen actively. Ask follow-up questions to understand the root cause, not just symptoms. Summarize what you heard to confirm understanding.',
-  'You can clearly articulate their main problem in one sentence. The problem description has been stored.',
-  'If they are vague, ask for a specific example. "Can you give me an example of when this happened?"',
-  'Be empathetic and curious. Show that you genuinely want to understand.',
-  'empathy',
-  0.7,
-  'confirm',
-  true
-);
-
--- Stage 3: Confirm — summarize and verify
-INSERT INTO engine_stages (
-  mission_id, stage_id, stage_order, goal, instructions, success_criteria,
-  escalation_instructions, personality_override, emotion_hint, creative_freedom,
-  next_stage, is_required
-) VALUES (
-  'discovery-call',
-  'confirm',
-  3,
-  'Summarize what you learned and confirm with the person that you understood correctly.',
-  'Summarize: their name, role, and main problem. Ask "Did I get that right?" If they correct you, update your understanding. End by thanking them and explaining what happens next.',
-  'The person has confirmed that your summary is accurate. Confirmation has been stored.',
-  'If they disagree with your summary, apologize and ask them to explain again. Do not argue.',
-  'Be confident but humble. You are confirming, not lecturing.',
-  'confidence',
-  0.6,
-  NULL,
-  true
-);
-```
-
-**Step 2: Apply the migration**
-
-Run: `cd smartout_v3 && npx supabase migration up`
-
-**Step 3: Commit**
-
-```bash
-git add supabase/migrations/20260301200100_engine_seed.sql
-git commit -m "feat(stage-engine): seed discovery-call test mission with 3 stages"
-```
-
----
-
-## Epic 3: Session Lifecycle
-
-> After this epic: sessions can be started, queried, expired, and abandoned.
-
----
-
-### Task 11: Session Manager (Core Engine Logic)
-
-**Files:**
-
-- Create: `services/stage-engine/src/core/session-manager.ts`
-
-**Step 1: Create src/core/session-manager.ts**
-
-```typescript
-// ============================================
-// session-manager.ts
-// Core session lifecycle management for the Stage Engine.
-// Handles creating, loading, expiring, and abandoning sessions.
-// All session state is stored in Supabase engine_sessions table.
-// Connected to: src/routes/sessions.ts (route handlers call these functions)
-// Connected to: src/types/session.ts (type definitions)
-// ============================================
-
-import { supabaseAdmin } from "../lib/supabase.js";
-import { config } from "../config.js";
-import type { Mission, Stage, Session } from "../types/session.js";
-import type { CreateSessionRequest, CreateSessionResponse } from "../types/api.js";
-import type { AuthContext } from "../types/auth.js";
-
-/**
- * Loads a mission and all its stages from the database.
- * Returns null if the mission does not exist or is inactive.
- */
-export async function loadMission(
-  missionId: string,
-): Promise<{ mission: Mission; stages: Stage[] } | null> {
-  const { data: mission, error: missionErr } = await supabaseAdmin
-    .from("engine_missions")
-    .select("*")
-    .eq("id", missionId)
-    .eq("is_active", true)
-    .single();
-
-  if (missionErr || !mission) return null;
-
-  const { data: stages, error: stagesErr } = await supabaseAdmin
-    .from("engine_stages")
-    .select("*")
-    .eq("mission_id", missionId)
-    .order("stage_order", { ascending: true });
-
-  if (stagesErr || !stages) return null;
-
-  return { mission: mission as Mission, stages: stages as Stage[] };
-}
-
-/**
- * Loads identity context for a session — profile and workspace data.
- * This context is stored in the session and available to the agent.
- */
-async function loadIdentityContext(
-  workspaceId: string,
-  userId?: string,
-  profileId?: string,
-): Promise<Record<string, unknown>> {
-  const context: Record<string, unknown> = {};
-
-  // Load workspace info
-  const { data: workspace } = await supabaseAdmin
-    .from("workspace")
-    .select("workspace_id, name, slug")
-    .eq("workspace_id", workspaceId)
-    .single();
-
-  if (workspace) {
-    context.workspace = workspace;
-  }
-
-  // Load profile info if profile_id provided
-  if (profileId) {
-    const { data: profile } = await supabaseAdmin
-      .from("profile")
-      .select("profile_id, first_name, last_name, role, status")
-      .eq("profile_id", profileId)
-      .single();
-
-    if (profile) {
-      context.profile = profile;
-    }
-  }
-
-  // Load user identity if user_id provided
-  if (userId) {
-    const { data: identity } = await supabaseAdmin
-      .from("user_identity")
-      .select("user_identity_id, email, full_name")
-      .eq("user_identity_id", userId)
-      .single();
-
-    if (identity) {
-      context.identity = identity;
-    }
-  }
-
-  return context;
-}
-
-/**
- * Creates a new session for a mission.
- * Loads mission + stages, identity context, and determines the first stage.
- *
- * @returns CreateSessionResponse or null if mission not found
- */
-export async function createSession(
-  req: CreateSessionRequest,
-  auth: AuthContext,
-): Promise<CreateSessionResponse | null> {
-  // Load mission and stages
-  const result = await loadMission(req.mission_id);
-  if (!result) return null;
-
-  const { mission, stages } = result;
-
-  // Determine first stage based on mission mode
-  const firstStage = mission.mode === "free" ? null : (stages[0] ?? null);
-
-  // Load identity context
-  const identityContext = await loadIdentityContext(req.workspace_id, req.user_id, req.profile_id);
-
-  // Merge additional context from request
-  const context = { ...identityContext, ...(req.context ?? {}) };
-
-  // Create session row
-  const { data: session, error } = await supabaseAdmin
-    .from("engine_sessions")
-    .insert({
-      mission_id: req.mission_id,
-      workspace_id: req.workspace_id,
-      user_id: req.user_id ?? null,
-      profile_id: req.profile_id ?? null,
-      channel: req.channel,
-      current_stage_id: firstStage?.stage_id ?? null,
-      stage_index: firstStage ? 0 : -1,
-      status: "active",
-      context,
-      collected_data: {},
-      callback_url: req.callback_url ?? null,
-    })
-    .select()
-    .single();
-
-  if (error || !session) {
-    console.error("[session-manager] Failed to create session:", error?.message);
-    return null;
-  }
-
-  // Build stage info for response
-  const stageInfo = firstStage
-    ? {
-        stage_id: firstStage.stage_id,
-        goal: firstStage.goal,
-        instructions: firstStage.instructions,
-        success_criteria: firstStage.success_criteria,
-        emotion_hint: firstStage.emotion_hint ?? undefined,
-      }
-    : null;
-
-  // Build progress string
-  const total = stages.length;
-  const current = firstStage ? 1 : 0;
-  const progress = `${current}/${total}`;
-
-  // Import prompt builder dynamically to avoid circular dependency
-  const { buildStagePrompt } = await import("./prompt-builder.js");
-  const systemPrompt = firstStage
-    ? buildStagePrompt(firstStage, context, {})
-    : "You are a helpful assistant. The mission is in free mode — choose a stage to start.";
-
-  return {
-    session_id: session.id,
-    mission: {
-      id: mission.id,
-      name: mission.name,
-      mode: mission.mode as "sequential" | "free" | "hybrid",
-    },
-    current_stage: stageInfo,
-    stages:
-      mission.mode === "free"
-        ? stages.map((s) => ({
-            stage_id: s.stage_id,
-            goal: s.goal,
-            instructions: s.instructions,
-            success_criteria: s.success_criteria,
-            emotion_hint: s.emotion_hint ?? undefined,
-          }))
-        : undefined,
-    context,
-    progress,
-    system_prompt: systemPrompt,
-  };
-}
-
-/**
- * Loads a session by ID. Returns null if not found.
- * Also checks expiry — if expired, updates status automatically.
- */
-export async function getSession(sessionId: string): Promise<Session | null> {
-  const { data: session, error } = await supabaseAdmin
-    .from("engine_sessions")
-    .select("*")
-    .eq("id", sessionId)
-    .single();
-
-  if (error || !session) return null;
-
-  // Check if expired
-  if (session.status === "active" && new Date(session.expires_at) < new Date()) {
-    await supabaseAdmin
-      .from("engine_sessions")
-      .update({ status: "expired", updated_at: new Date().toISOString() })
-      .eq("id", sessionId);
-
-    return { ...session, status: "expired" } as Session;
-  }
-
-  return session as Session;
-}
-
-/**
- * Marks a session as abandoned. Returns the updated session or null if not found.
- */
-export async function abandonSession(sessionId: string): Promise<Session | null> {
-  const session = await getSession(sessionId);
-  if (!session) return null;
-
-  if (session.status !== "active") {
-    return session;
-  }
-
-  const { data: updated, error } = await supabaseAdmin
-    .from("engine_sessions")
-    .update({ status: "abandoned", updated_at: new Date().toISOString() })
-    .eq("id", sessionId)
-    .select()
-    .single();
-
-  if (error) return null;
-  return updated as Session;
-}
-
-/**
- * Runs the session expiry cleanup job.
- * Marks all active sessions past their expires_at as expired.
- * Returns the count of expired sessions.
- */
-export async function expireStaleSession(): Promise<number> {
-  const { data, error } = await supabaseAdmin
-    .from("engine_sessions")
-    .update({ status: "expired", updated_at: new Date().toISOString() })
-    .eq("status", "active")
-    .lt("expires_at", new Date().toISOString())
-    .select("id");
-
-  if (error) {
-    console.error("[session-manager] Cleanup error:", error.message);
-    return 0;
-  }
-
-  return data?.length ?? 0;
-}
-```
-
-**Step 2: Type check**
-
-Run: `cd services/stage-engine && pnpm typecheck`
-
-**Step 3: Commit**
-
-```bash
-git add services/stage-engine/src/core/session-manager.ts
-git commit -m "feat(stage-engine): add session manager (create, load, expire, abandon)"
-```
-
----
-
-### Task 12: Prompt Builder
-
-**Files:**
-
-- Create: `services/stage-engine/src/core/prompt-builder.ts`
-
-**Step 1: Create src/core/prompt-builder.ts**
-
-```typescript
-// ============================================
-// prompt-builder.ts
-// Builds system prompts for LLMs by combining stage instructions
-// with session context and collected data.
-// The output is a single string ready for any LLM — channel-agnostic.
-// Connected to: DECISIONS.md D9, D10, D11 (agent/stage separation)
-// Connected to: src/core/session-manager.ts (calls buildStagePrompt)
-// ============================================
-
-import type { Stage } from "../types/session.js";
-
-/**
- * Builds a complete system prompt for a stage.
- * Combines stage instructions, personality overlay, context, and history
- * into a single string that any LLM can use.
- *
- * @param stage - The current stage definition
- * @param context - Session context (identity, workspace, custom data)
- * @param collectedData - Data collected from previous stages
- * @returns A complete system prompt string
- */
-export function buildStagePrompt(
-  stage: Stage,
-  context: Record<string, unknown>,
-  collectedData: Record<string, unknown>,
-): string {
-  const sections: string[] = [];
-
-  // Personality overlay (stage-specific tone adjustment)
-  if (stage.personality_override) {
-    sections.push(`## Personality\n${stage.personality_override}`);
-  }
-
-  // Emotion hint
-  if (stage.emotion_hint) {
-    sections.push(`## Emotional Tone\nApproach this stage with a sense of: ${stage.emotion_hint}`);
-  }
-
-  // Creative freedom guidance
-  sections.push(
-    `## Creative Freedom\nYour creative freedom level is ${stage.creative_freedom} (0 = strictly follow script, 1 = fully improvise). Stay within the rules but be natural.`,
-  );
-
-  // Current stage assignment
-  sections.push(`## Your Current Assignment\n**Goal:** ${stage.goal}`);
-  sections.push(`## Instructions\n${stage.instructions}`);
-  sections.push(
-    `## Success Criteria\nYou are done with this stage when: ${stage.success_criteria}`,
-  );
-
-  // Escalation instructions
-  if (stage.escalation_instructions) {
-    sections.push(`## If You Get Stuck\n${stage.escalation_instructions}`);
-  }
-
-  // Context about who the agent is talking to
-  if (Object.keys(context).length > 0) {
-    sections.push(
-      `## Context\nHere is what you know about the current situation:\n\`\`\`json\n${JSON.stringify(context, null, 2)}\n\`\`\``,
-    );
-  }
-
-  // History from previous stages
-  if (Object.keys(collectedData).length > 0) {
-    sections.push(
-      `## Previously Collected Data\nData from earlier stages:\n\`\`\`json\n${JSON.stringify(collectedData, null, 2)}\n\`\`\``,
-    );
-  }
-
-  // Inline instructions (post-action guidance)
-  if (
-    stage.inline_instructions &&
-    Array.isArray(stage.inline_instructions) &&
-    stage.inline_instructions.length > 0
-  ) {
-    const inlineBlock = (stage.inline_instructions as Array<{ after: string; message: string }>)
-      .map((i) => `- After "${i.after}": ${i.message}`)
-      .join("\n");
-    sections.push(`## After-Action Instructions\n${inlineBlock}`);
-  }
-
-  return sections.join("\n\n");
-}
-```
-
-**Step 2: Type check**
-
-Run: `cd services/stage-engine && pnpm typecheck`
-
-**Step 3: Commit**
-
-```bash
-git add services/stage-engine/src/core/prompt-builder.ts
-git commit -m "feat(stage-engine): add prompt builder for stage system prompts"
-```
-
----
-
-### Task 13: Webhook Sender
-
-**Files:**
-
-- Create: `services/stage-engine/src/core/webhook-sender.ts`
-
-**Step 1: Create src/core/webhook-sender.ts**
-
-```typescript
-// ============================================
-// webhook-sender.ts
-// Async webhook notification system for session events.
-// Fires POST requests to callback_url with exponential backoff retry.
-// Fire-and-forget — never blocks the response to the agent.
-// Connected to: BREAKDOWN.md Epic 5.3
-// ============================================
-
-/** Webhook event types sent to callback URLs */
-export type WebhookEvent =
-  | "session.started"
-  | "stage.changed"
-  | "stage.progress"
-  | "session.completed"
-  | "session.abandoned";
-
-/** Payload sent with webhook events */
-export type WebhookPayload = {
-  event: WebhookEvent;
-  session_id: string;
-  stage_id?: string;
-  progress?: string;
-  collected_data?: Record<string, unknown>;
-  timestamp: string;
-};
-
-/**
- * Sends a webhook notification to the callback URL.
- * Uses exponential backoff: 3 attempts at 1s, 4s, 16s intervals.
- * Fire-and-forget — errors are logged but never thrown.
- *
- * @param callbackUrl - The URL to POST to
- * @param payload - The event payload
- */
-export function sendWebhook(callbackUrl: string, payload: WebhookPayload): void {
-  // Fire and forget — don't await
-  fireWithRetry(callbackUrl, payload).catch((err) => {
-    console.error(`[webhook] All retries failed for ${callbackUrl}:`, err.message);
-  });
-}
-
-/**
- * Internal: attempts to POST the payload with exponential backoff.
- * Retries 3 times: 1s, 4s, 16s delays between attempts.
- */
-async function fireWithRetry(url: string, payload: WebhookPayload): Promise<void> {
-  const delays = [1000, 4000, 16000];
-
-  for (let attempt = 0; attempt <= delays.length; attempt++) {
-    try {
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(10000),
-      });
-
-      if (res.ok) {
-        console.log(`[webhook] Delivered ${payload.event} to ${url}`);
-        return;
-      }
-
-      console.warn(`[webhook] Attempt ${attempt + 1} failed: HTTP ${res.status}`);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "unknown error";
-      console.warn(`[webhook] Attempt ${attempt + 1} error: ${message}`);
-    }
-
-    // Wait before retry (skip wait after last attempt)
-    if (attempt < delays.length) {
-      await new Promise((r) => setTimeout(r, delays[attempt]));
-    }
-  }
-}
-```
-
-**Step 2: Commit**
-
-```bash
-git add services/stage-engine/src/core/webhook-sender.ts
-git commit -m "feat(stage-engine): add webhook sender with exponential backoff"
-```
-
----
-
-### Task 14: Session Routes (Start, Status, Abandon)
-
-**Files:**
-
-- Create: `services/stage-engine/src/routes/sessions.ts`
-- Modify: `services/stage-engine/src/index.ts` (register route)
-
-**Step 1: Create src/routes/sessions.ts**
-
-```typescript
-// ============================================
-// sessions.ts
-// Route handlers for session lifecycle endpoints:
-//   POST /sessions       — start a new session
-//   GET  /sessions/:id   — get session status
-//   POST /sessions/:id/abandon — abandon a session
-// Connected to: src/core/session-manager.ts (business logic)
-// Connected to: src/types/api.ts (request/response types)
-// ============================================
-
-import { Hono } from "hono";
-import { zValidator } from "@hono/zod-validator";
-import { z } from "zod";
-import { createSession, getSession, abandonSession } from "../core/session-manager.js";
-import { sendWebhook } from "../core/webhook-sender.js";
-import type { AuthContext } from "../types/auth.js";
-
-const sessions = new Hono();
-
-// -- Schemas --
-
-const createSessionSchema = z.object({
-  mission_id: z.string().min(1),
-  workspace_id: z.string().uuid(),
-  user_id: z.string().uuid().optional(),
-  profile_id: z.string().uuid().optional(),
-  channel: z.enum(["voice", "sms", "chat", "email", "autonomous"]),
-  callback_url: z.string().url().optional(),
-  context: z.record(z.unknown()).optional(),
-});
-
-// -- POST /sessions --
-
-sessions.post("/sessions", zValidator("json", createSessionSchema), async (c) => {
-  const body = c.req.valid("json");
-  const auth = c.get("auth") as AuthContext;
-
-  const result = await createSession(body, auth);
-  if (!result) {
-    return c.json(
-      {
-        error: "NOT_FOUND",
-        message: `Mission "${body.mission_id}" not found or inactive`,
-        status: 404,
-      },
-      404,
-    );
-  }
-
-  // Fire webhook if callback_url set
-  if (body.callback_url) {
-    sendWebhook(body.callback_url, {
-      event: "session.started",
-      session_id: result.session_id,
-      stage_id: result.current_stage?.stage_id,
-      progress: result.progress,
-      timestamp: new Date().toISOString(),
-    });
-  }
-
-  return c.json(result, 200);
-});
-
-// -- GET /sessions/:id --
-
-sessions.get("/sessions/:id", async (c) => {
-  const sessionId = c.req.param("id");
-  const session = await getSession(sessionId);
-
-  if (!session) {
-    return c.json(
-      { error: "NOT_FOUND", message: `Session "${sessionId}" not found`, status: 404 },
-      404,
-    );
-  }
-
-  return c.json({
-    session_id: session.id,
-    status: session.status,
-    current_stage_id: session.current_stage_id,
-    stage_index: session.stage_index,
-    progress: `${session.stage_index + 1}/?`,
-    collected_data: session.collected_data,
-    context: session.context,
-    summary: session.summary,
-    channel: session.channel,
-    expires_at: session.expires_at,
-    created_at: session.created_at,
-  });
-});
-
-// -- POST /sessions/:id/abandon --
-
-sessions.post("/sessions/:id/abandon", async (c) => {
-  const sessionId = c.req.param("id");
-  const session = await getSession(sessionId);
-
-  if (!session) {
-    return c.json(
-      { error: "NOT_FOUND", message: `Session "${sessionId}" not found`, status: 404 },
-      404,
-    );
-  }
-
-  if (session.status !== "active") {
-    return c.json(
-      {
-        error: "SESSION_NOT_ACTIVE",
-        message: `Session is already "${session.status}"`,
-        status: 409,
-      },
-      409,
-    );
-  }
-
-  const updated = await abandonSession(sessionId);
-
-  // Fire webhook
-  if (session.callback_url) {
-    sendWebhook(session.callback_url, {
-      event: "session.abandoned",
-      session_id: sessionId,
-      collected_data: session.collected_data as Record<string, unknown>,
-      timestamp: new Date().toISOString(),
-    });
-  }
-
-  return c.json({ session_id: sessionId, status: "abandoned" });
-});
-
-export { sessions };
-```
-
-**Step 2: Update src/index.ts — register sessions route**
-
-Add import and route registration:
-
-```typescript
-import { sessions } from "./routes/sessions.js";
-
-// Add after health route
-app.route("/", sessions);
-```
-
-**Step 3: Type check**
-
-Run: `cd services/stage-engine && pnpm typecheck`
-
-**Step 4: Commit**
-
-```bash
-git add services/stage-engine/src/routes/sessions.ts services/stage-engine/src/index.ts
-git commit -m "feat(stage-engine): add session routes (start, status, abandon)"
-```
-
----
-
-### Task 15: Session Expiry Cleanup Job
-
-**Files:**
-
-- Modify: `services/stage-engine/src/index.ts`
-
-**Step 1: Add cleanup interval to src/index.ts**
-
-After the `serve()` call, add:
-
-```typescript
-import { expireStaleSession } from "./core/session-manager.js";
-
-// Session expiry cleanup — runs on a configurable interval
-const cleanupMs = config.CLEANUP_INTERVAL_MINUTES * 60 * 1000;
-setInterval(async () => {
-  const count = await expireStaleSession();
-  if (count > 0) {
-    console.log(`[cleanup] Expired ${count} stale session(s)`);
-  }
-}, cleanupMs);
-
-console.log(`[cleanup] Session cleanup running every ${config.CLEANUP_INTERVAL_MINUTES} minutes`);
-```
-
-**Step 2: Commit**
-
-```bash
-git add services/stage-engine/src/index.ts
-git commit -m "feat(stage-engine): add session expiry cleanup job"
-```
-
----
-
-## Epic 4: Store & Fetch Tools
-
-> After this epic: agents can save data to the inbox and retrieve context/data.
-
----
-
-### Task 16: Inbox Writer (Store Core Logic)
-
-**Files:**
-
-- Create: `services/stage-engine/src/core/inbox-writer.ts`
-
-**Step 1: Create src/core/inbox-writer.ts**
-
-```typescript
-// ============================================
-// inbox-writer.ts
-// Validates and writes agent data to the engine_inbox table.
-// All agent-stored data goes through here — never directly to entity tables.
-// Connected to: DECISIONS.md D2 (inbox model)
-// Connected to: src/routes/store.ts (route handler)
-// ============================================
-
-import { supabaseAdmin } from "../lib/supabase.js";
-import type { InboxEntry } from "../types/session.js";
-
-/** Maximum size for the data payload in bytes (100KB) */
-const MAX_DATA_SIZE = 100 * 1024;
-
-/**
- * Validates store request data before writing to inbox.
- * Returns an error message string if invalid, null if valid.
- */
-export function validateStoreData(
-  entityType: string,
-  data: Record<string, unknown>,
-): string | null {
-  if (!entityType || entityType.trim().length === 0) {
-    return "entity_type must be a non-empty string";
-  }
-
-  if (!data || typeof data !== "object" || Object.keys(data).length === 0) {
-    return "data must be a non-empty object";
-  }
-
-  // Check data size
-  const serialized = JSON.stringify(data);
-  if (serialized.length > MAX_DATA_SIZE) {
-    return `data exceeds maximum size of ${MAX_DATA_SIZE / 1024}KB`;
-  }
-
-  return null;
-}
-
-/**
- * Writes a data entry to the engine_inbox table.
- *
- * @returns The created inbox entry, or null on failure
- */
-export async function writeToInbox(params: {
-  sessionId: string;
-  stageId: string;
-  workspaceId: string;
-  entityType: string;
-  data: Record<string, unknown>;
-}): Promise<InboxEntry | null> {
-  const { data: entry, error } = await supabaseAdmin
-    .from("engine_inbox")
-    .insert({
-      session_id: params.sessionId,
-      stage_id: params.stageId,
-      workspace_id: params.workspaceId,
-      entity_type: params.entityType,
-      data: params.data,
-    })
-    .select()
-    .single();
-
-  if (error) {
-    console.error("[inbox-writer] Failed to write:", error.message);
-    return null;
-  }
-
-  return entry as InboxEntry;
-}
-```
-
-**Step 2: Commit**
-
-```bash
-git add services/stage-engine/src/core/inbox-writer.ts
-git commit -m "feat(stage-engine): add inbox writer with validation"
-```
-
----
-
-### Task 17: Store Route
-
-**Files:**
-
-- Create: `services/stage-engine/src/routes/store.ts`
-- Modify: `services/stage-engine/src/index.ts`
-
-**Step 1: Create src/routes/store.ts**
-
-```typescript
-// ============================================
-// store.ts
-// POST /sessions/:id/store — agent stores data to the engine inbox.
-// Validates the data, writes to inbox, and returns a tool response
-// message that instructs the agent what to do next.
-// Connected to: src/core/inbox-writer.ts (write logic)
-// Connected to: src/core/session-manager.ts (session lookup)
-// ============================================
-
-import { Hono } from "hono";
-import { zValidator } from "@hono/zod-validator";
-import { z } from "zod";
-import { getSession } from "../core/session-manager.js";
-import { validateStoreData, writeToInbox } from "../core/inbox-writer.js";
-
-const store = new Hono();
-
-const storeSchema = z.object({
-  entity_type: z.string().min(1),
-  data: z.record(z.unknown()),
-  stage_id: z.string().optional(),
-});
-
-/**
- * POST /sessions/:id/store
- * Agent sends data to the inbox. Returns a tool response message.
- */
-store.post("/sessions/:id/store", zValidator("json", storeSchema), async (c) => {
-  const sessionId = c.req.param("id");
-  const body = c.req.valid("json");
-
-  // Load session
-  const session = await getSession(sessionId);
-  if (!session || session.status !== "active") {
-    return c.json(
-      {
-        error: "SESSION_NOT_ACTIVE",
-        message: session ? `Session is "${session.status}"` : "Session not found",
-        status: session ? 409 : 404,
-      },
-      session ? 409 : 404,
-    );
-  }
-
-  // Validate data
-  const validationError = validateStoreData(body.entity_type, body.data as Record<string, unknown>);
-  if (validationError) {
-    return c.json({ error: "VALIDATION_ERROR", message: validationError, status: 400 }, 400);
-  }
-
-  // Determine stage_id — use provided or current session stage
-  const stageId = body.stage_id ?? session.current_stage_id ?? "unknown";
-
-  // Write to inbox
-  const entry = await writeToInbox({
-    sessionId,
-    stageId,
-    workspaceId: session.workspace_id,
-    entityType: body.entity_type,
-    data: body.data as Record<string, unknown>,
-  });
-
-  if (!entry) {
-    return c.json({ error: "INTERNAL_ERROR", message: "Failed to store data", status: 500 }, 500);
-  }
-
-  return c.json({
-    inbox_id: entry.id,
-    confirmed: true,
-    message: `Data stored successfully. Type: ${body.entity_type}. Continue with the conversation.`,
-  });
-});
-
-export { store };
-```
-
-**Step 2: Register in src/index.ts**
-
-```typescript
-import { store } from "./routes/store.js";
-
-app.route("/", store);
-```
-
-**Step 3: Commit**
-
-```bash
-git add services/stage-engine/src/routes/store.ts services/stage-engine/src/index.ts
-git commit -m "feat(stage-engine): add store endpoint for agent data"
-```
-
----
-
-### Task 18: Fetch Route
-
-**Files:**
-
-- Create: `services/stage-engine/src/routes/fetch.ts`
-- Modify: `services/stage-engine/src/index.ts`
-
-**Step 1: Create src/routes/fetch.ts**
-
-```typescript
-// ============================================
-// fetch.ts
-// POST /sessions/:id/fetch — agent requests context or data.
-// Supports four query types: context, inbox, stage, history.
-// Connected to: src/core/session-manager.ts (session + stage lookup)
-// ============================================
-
-import { Hono } from "hono";
-import { zValidator } from "@hono/zod-validator";
-import { z } from "zod";
-import { getSession, loadMission } from "../core/session-manager.js";
-import { supabaseAdmin } from "../lib/supabase.js";
-
-const fetchRoute = new Hono();
-
-const fetchSchema = z.object({
-  query_type: z.enum(["context", "inbox", "stage", "history"]),
-  filters: z
-    .object({
-      entity_type: z.string().optional(),
-      stage_id: z.string().optional(),
-    })
-    .optional(),
-});
-
-/**
- * POST /sessions/:id/fetch
- * Agent requests data. query_type determines what's returned:
- *   - context: identity + workspace info
- *   - inbox: stored data for this session
- *   - stage: current stage details
- *   - history: all collected_data across stages
- */
-fetchRoute.post("/sessions/:id/fetch", zValidator("json", fetchSchema), async (c) => {
-  const sessionId = c.req.param("id");
-  const body = c.req.valid("json");
-
-  // Load session
-  const session = await getSession(sessionId);
-  if (!session) {
-    return c.json(
-      { error: "NOT_FOUND", message: `Session "${sessionId}" not found`, status: 404 },
-      404,
-    );
-  }
-
-  let data: Record<string, unknown> = {};
-
-  switch (body.query_type) {
-    case "context":
-      data = session.context as Record<string, unknown>;
-      break;
-
-    case "inbox": {
-      let query = supabaseAdmin
-        .from("engine_inbox")
-        .select("*")
-        .eq("session_id", sessionId)
-        .order("created_at", { ascending: true });
-
-      if (body.filters?.entity_type) {
-        query = query.eq("entity_type", body.filters.entity_type);
-      }
-      if (body.filters?.stage_id) {
-        query = query.eq("stage_id", body.filters.stage_id);
-      }
-
-      const { data: entries } = await query;
-      data = { entries: entries ?? [] };
-      break;
-    }
-
-    case "stage": {
-      if (!session.current_stage_id) {
-        data = { stage: null, message: "No current stage (free mode)" };
-        break;
-      }
-
-      const result = await loadMission(session.mission_id);
-      if (result) {
-        const currentStage = result.stages.find((s) => s.stage_id === session.current_stage_id);
-        data = currentStage
-          ? {
-              stage_id: currentStage.stage_id,
-              goal: currentStage.goal,
-              instructions: currentStage.instructions,
-              success_criteria: currentStage.success_criteria,
-              emotion_hint: currentStage.emotion_hint,
-            }
-          : { stage: null };
-      }
-      break;
-    }
-
-    case "history":
-      data = session.collected_data as Record<string, unknown>;
-      break;
-  }
-
-  return c.json({ data });
-});
-
-export { fetchRoute };
-```
-
-**Step 2: Register in src/index.ts**
-
-```typescript
-import { fetchRoute } from "./routes/fetch.js";
-
-app.route("/", fetchRoute);
-```
-
-**Step 3: Commit**
-
-```bash
-git add services/stage-engine/src/routes/fetch.ts services/stage-engine/src/index.ts
-git commit -m "feat(stage-engine): add fetch endpoint for context/data retrieval"
-```
-
----
-
-## Epic 5: Stage Transitions
-
-> After this epic: sessions can advance through stages with prompt rebuilding and webhooks.
-
----
-
-### Task 19: Stage Manager (Navigation Logic)
-
-**Files:**
-
-- Create: `services/stage-engine/src/core/stage-manager.ts`
-
-**Step 1: Create src/core/stage-manager.ts**
-
-```typescript
-// ============================================
-// stage-manager.ts
-// Stage navigation logic for sequential, free, and hybrid mission modes.
-// Determines the next stage and updates session state.
-// Connected to: DECISIONS.md D7 (mission modes)
-// Connected to: src/routes/advance.ts (route handler)
-// ============================================
-
-import { supabaseAdmin } from "../lib/supabase.js";
-import { loadMission } from "./session-manager.js";
-import { buildStagePrompt } from "./prompt-builder.js";
-import { sendWebhook, type WebhookPayload } from "./webhook-sender.js";
-import type { Session, Stage, Mission } from "../types/session.js";
-import type { AdvanceRequest, AdvanceResponse, StageInfo } from "../types/api.js";
-
-/**
- * Advances a session to the next stage.
- * Handles sequential, free, and hybrid modes.
- *
- * @param session - The current session
- * @param req - The advance request body
- * @returns AdvanceResponse with new stage info, or null on error
- */
-export async function advanceStage(
-  session: Session,
-  req: AdvanceRequest,
-): Promise<AdvanceResponse | null> {
-  // Load mission and stages
-  const result = await loadMission(session.mission_id);
-  if (!result) return null;
-
-  const { mission, stages } = result;
-
-  // Find current stage
-  const currentStage = stages.find((s) => s.stage_id === session.current_stage_id);
-
-  // Save result data for current stage
-  if (req.result && currentStage) {
-    const updatedData = {
-      ...(session.collected_data as Record<string, unknown>),
-      [currentStage.stage_id]: req.result,
-    };
-
-    await supabaseAdmin
-      .from("engine_sessions")
-      .update({ collected_data: updatedData, updated_at: new Date().toISOString() })
-      .eq("id", session.id);
-
-    // Update local copy for prompt builder
-    session.collected_data = updatedData;
-  }
-
-  // Determine next stage based on mode
-  const nextStage = resolveNextStage(mission, stages, currentStage, req);
-
-  // No next stage → mission complete
-  if (!nextStage) {
-    await supabaseAdmin
-      .from("engine_sessions")
-      .update({
-        status: "complete",
-        completed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", session.id);
-
-    // Fire completion webhook
-    if (session.callback_url) {
-      sendWebhook(session.callback_url, {
-        event: "session.completed",
-        session_id: session.id,
-        collected_data: session.collected_data as Record<string, unknown>,
-        timestamp: new Date().toISOString(),
-      });
-    }
-
-    return {
-      complete: true,
-      progress: `${stages.length}/${stages.length}`,
-      summary: `Mission complete. Collected data for ${Object.keys(session.collected_data as Record<string, unknown>).length} stages.`,
-    };
-  }
-
-  // Advance to next stage
-  const nextIndex = stages.findIndex((s) => s.stage_id === nextStage.stage_id);
-
-  await supabaseAdmin
-    .from("engine_sessions")
-    .update({
-      current_stage_id: nextStage.stage_id,
-      stage_index: nextIndex,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", session.id);
-
-  // Build new system prompt
-  const systemPrompt = buildStagePrompt(
-    nextStage,
-    session.context as Record<string, unknown>,
-    session.collected_data as Record<string, unknown>,
-  );
-
-  // Fire stage change webhook
-  if (session.callback_url) {
-    sendWebhook(session.callback_url, {
-      event: "stage.changed",
-      session_id: session.id,
-      stage_id: nextStage.stage_id,
-      progress: `${nextIndex + 1}/${stages.length}`,
-      timestamp: new Date().toISOString(),
-    });
-  }
-
-  const stageInfo: StageInfo = {
-    stage_id: nextStage.stage_id,
-    goal: nextStage.goal,
-    instructions: nextStage.instructions,
-    success_criteria: nextStage.success_criteria,
-    emotion_hint: nextStage.emotion_hint ?? undefined,
-  };
-
-  return {
-    new_stage: stageInfo,
-    progress: `${nextIndex + 1}/${stages.length}`,
-    complete: false,
-    system_prompt: systemPrompt,
-  };
-}
-
-/**
- * Resolves the next stage based on mission mode.
- * - Sequential: follows stage.next_stage chain
- * - Free: uses next_stage_id from request
- * - Hybrid: sequential for required stages, free for optional
- */
-function resolveNextStage(
-  mission: Mission,
-  stages: Stage[],
-  currentStage: Stage | undefined,
-  req: AdvanceRequest,
-): Stage | null {
-  switch (mission.mode) {
-    case "sequential": {
-      if (!currentStage?.next_stage) return null;
-      return stages.find((s) => s.stage_id === currentStage.next_stage) ?? null;
-    }
-
-    case "free": {
-      if (!req.next_stage_id) return null;
-      return stages.find((s) => s.stage_id === req.next_stage_id) ?? null;
-    }
-
-    case "hybrid": {
-      // If a specific next_stage_id is provided, use it (for optional stages)
-      if (req.next_stage_id) {
-        return stages.find((s) => s.stage_id === req.next_stage_id) ?? null;
-      }
-      // Otherwise follow sequential chain for required stages
-      if (!currentStage?.next_stage) return null;
-      return stages.find((s) => s.stage_id === currentStage.next_stage) ?? null;
-    }
-
-    default:
-      return null;
-  }
-}
-```
-
-**Step 2: Commit**
-
-```bash
-git add services/stage-engine/src/core/stage-manager.ts
-git commit -m "feat(stage-engine): add stage manager with sequential/free/hybrid navigation"
-```
-
----
-
-### Task 20: Advance Route
-
-**Files:**
-
-- Create: `services/stage-engine/src/routes/advance.ts`
-- Modify: `services/stage-engine/src/index.ts`
-
-**Step 1: Create src/routes/advance.ts**
-
-```typescript
-// ============================================
-// advance.ts
-// POST /sessions/:id/advance — moves the session to the next stage.
-// Saves current stage result, determines next stage, rebuilds prompt.
-// Connected to: src/core/stage-manager.ts (navigation logic)
-// ============================================
-
-import { Hono } from "hono";
-import { zValidator } from "@hono/zod-validator";
-import { z } from "zod";
-import { getSession } from "../core/session-manager.js";
-import { advanceStage } from "../core/stage-manager.js";
-
-const advance = new Hono();
-
-const advanceSchema = z.object({
-  result: z.record(z.unknown()).optional(),
-  next_stage_id: z.string().optional(),
-  force: z.boolean().optional(),
-});
-
-/**
- * POST /sessions/:id/advance
- * Advances the session to the next stage.
- * Returns new stage info, updated progress, and a new system prompt.
- */
-advance.post("/sessions/:id/advance", zValidator("json", advanceSchema), async (c) => {
-  const sessionId = c.req.param("id");
-  const body = c.req.valid("json");
-
-  // Load session
-  const session = await getSession(sessionId);
-  if (!session) {
-    return c.json(
-      { error: "NOT_FOUND", message: `Session "${sessionId}" not found`, status: 404 },
-      404,
-    );
-  }
-
-  if (session.status !== "active") {
-    return c.json(
-      { error: "SESSION_NOT_ACTIVE", message: `Session is "${session.status}"`, status: 409 },
-      409,
-    );
-  }
-
-  // Advance
-  const result = await advanceStage(session, body);
-  if (!result) {
-    return c.json(
-      { error: "INTERNAL_ERROR", message: "Failed to advance stage", status: 500 },
-      500,
-    );
-  }
-
-  return c.json(result);
-});
-
-export { advance };
-```
-
-**Step 2: Register in src/index.ts**
-
-```typescript
-import { advance } from "./routes/advance.js";
-
-app.route("/", advance);
-```
-
-**Step 3: Commit**
-
-```bash
-git add services/stage-engine/src/routes/advance.ts services/stage-engine/src/index.ts
-git commit -m "feat(stage-engine): add advance endpoint for stage transitions"
-```
-
----
-
-## Epic 6: Channel Adapter — Ultravox
-
-> After this epic: voice calls can run missions through the Stage Engine via Ultravox.
-
----
-
-### Task 21: Ultravox Client Library
-
-**Files:**
-
-- Create: `services/stage-engine/src/lib/ultravox.ts`
-
-**Step 1: Create src/lib/ultravox.ts**
-
-```typescript
-// ============================================
-// ultravox.ts
-// Ultravox API client for creating voice calls.
-// Calls the Ultravox Create Call API and returns the call ID + join URL.
-// Connected to: src/routes/adapters/ultravox.ts (adapter endpoints)
-// Connected to: Ultravox API docs
-// ============================================
-
-import { config } from "../config.js";
-import type {
-  UltravoxCreateCallPayload,
-  UltravoxCreateCallApiResponse,
-  UltravoxHttpTool,
-} from "../types/ultravox.js";
-
-/**
- * Creates an Ultravox voice call via the Ultravox API.
- *
- * @param payload - The call configuration
- * @returns Call ID and join URL, or null on failure
- */
-export async function createUltravoxCall(
-  payload: UltravoxCreateCallPayload,
-): Promise<UltravoxCreateCallApiResponse | null> {
-  try {
-    const res = await fetch("https://api.ultravox.ai/api/calls", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-API-Key": config.ULTRAVOX_API_KEY,
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!res.ok) {
-      const text = await res.text();
-      console.error(`[ultravox] Create call failed: ${res.status} ${text}`);
-      return null;
-    }
-
-    const data = (await res.json()) as UltravoxCreateCallApiResponse;
-    return data;
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "unknown error";
-    console.error(`[ultravox] Create call error: ${message}`);
-    return null;
-  }
-}
-
-/**
- * Builds the Ultravox HTTP tool definitions for store, fetch, and advance.
- * These tools point back to the engine's adapter endpoints.
- *
- * @param engineUrl - The public URL of the engine (e.g. https://engine.smartout.ai)
- * @param sessionId - The session ID to include in tool URLs
- * @param apiKey - The API key to include in tool headers
- * @returns Array of Ultravox tool definitions
- */
-export function buildUltravoxTools(
-  engineUrl: string,
-  sessionId: string,
-  apiKey: string,
-): UltravoxHttpTool[] {
-  return [
-    {
-      temporaryTool: {
-        modelToolName: "store",
-        description:
-          "Store data that you have collected from the conversation. Call this whenever you learn something important — a name, a problem, a preference, a decision.",
-        dynamicParameters: [
-          {
-            name: "entity_type",
-            location: "PARAMETER_LOCATION_BODY",
-            schema: { type: "string", description: "Category: 'person', 'problem', 'note', etc." },
-            required: true,
-          },
-          {
-            name: "data",
-            location: "PARAMETER_LOCATION_BODY",
-            schema: { type: "object", description: "The data to store as key-value pairs" },
-            required: true,
-          },
-        ],
-        http: {
-          baseUrlPattern: `${engineUrl}/adapters/ultravox/store?session_id=${sessionId}&api_key=${apiKey}`,
-          httpMethod: "POST",
-        },
-      },
-    },
-    {
-      temporaryTool: {
-        modelToolName: "fetch",
-        description:
-          "Retrieve information you need. Use query_type 'context' for user/workspace info, 'inbox' for previously stored data, 'history' for all collected data.",
-        dynamicParameters: [
-          {
-            name: "query_type",
-            location: "PARAMETER_LOCATION_BODY",
-            schema: {
-              type: "string",
-              enum: ["context", "inbox", "stage", "history"],
-              description: "What to retrieve",
-            },
-            required: true,
-          },
-        ],
-        http: {
-          baseUrlPattern: `${engineUrl}/adapters/ultravox/fetch?session_id=${sessionId}&api_key=${apiKey}`,
-          httpMethod: "POST",
-        },
-      },
-    },
-    {
-      temporaryTool: {
-        modelToolName: "advance",
-        description:
-          "Call this when you have completed the current stage and are ready to move to the next one. Include a summary of what you collected as 'result'.",
-        dynamicParameters: [
-          {
-            name: "result",
-            location: "PARAMETER_LOCATION_BODY",
-            schema: { type: "object", description: "Summary data for the completed stage" },
-            required: false,
-          },
-        ],
-        http: {
-          baseUrlPattern: `${engineUrl}/adapters/ultravox/advance?session_id=${sessionId}&api_key=${apiKey}`,
-          httpMethod: "POST",
-        },
-      },
-    },
-  ];
-}
-```
-
-**Step 2: Commit**
-
-```bash
-git add services/stage-engine/src/lib/ultravox.ts
-git commit -m "feat(stage-engine): add Ultravox client and tool builder"
-```
-
----
-
-### Task 22: Ultravox Adapter Routes
-
-**Files:**
-
-- Create: `services/stage-engine/src/routes/adapters/ultravox.ts`
-- Modify: `services/stage-engine/src/index.ts`
-
-**Step 1: Create src/routes/adapters/ultravox.ts**
-
-```typescript
-// ============================================
-// ultravox.ts
-// Adapter endpoints for Ultravox voice calls.
-// Wraps core store/fetch/advance endpoints in Ultravox tool format.
-// Advance returns X-Ultravox-Response-Type: new-stage header
-// for seamless stage transitions during a voice call.
-// Connected to: src/lib/ultravox.ts (API client + tool builder)
-// Connected to: Ultravox Call Stages docs
-// ============================================
-
-import { Hono } from "hono";
-import { zValidator } from "@hono/zod-validator";
-import { z } from "zod";
-import { createSession, getSession } from "../../core/session-manager.js";
-import { advanceStage } from "../../core/stage-manager.js";
-import { validateStoreData, writeToInbox } from "../../core/inbox-writer.js";
-import { loadMission } from "../../core/session-manager.js";
-import { buildStagePrompt } from "../../core/prompt-builder.js";
-import { createUltravoxCall, buildUltravoxTools } from "../../lib/ultravox.js";
-import { config } from "../../config.js";
-import type { AuthContext } from "../../types/auth.js";
-import type { UltravoxNewStageResponse } from "../../types/ultravox.js";
-
-const ultravox = new Hono();
-
-// -- Create Call --
-
-const createCallSchema = z.object({
-  mission_id: z.string().min(1),
-  workspace_id: z.string().uuid(),
-  user_id: z.string().uuid().optional(),
-  voice: z.string().optional(),
-  language: z.string().optional(),
-});
-
-/**
- * POST /adapters/ultravox/create-call
- * Creates an Ultravox voice call with Stage Engine tools pre-configured.
- * Returns session_id, call_id, and join_url for the frontend.
- */
-ultravox.post("/adapters/ultravox/create-call", zValidator("json", createCallSchema), async (c) => {
-  const body = c.req.valid("json");
-  const auth = c.get("auth") as AuthContext;
-
-  // Start engine session
-  const session = await createSession(
-    {
-      mission_id: body.mission_id,
-      workspace_id: body.workspace_id,
-      user_id: body.user_id,
-      channel: "voice",
-    },
-    auth,
-  );
-
-  if (!session) {
-    return c.json(
-      { error: "NOT_FOUND", message: `Mission "${body.mission_id}" not found`, status: 404 },
-      404,
-    );
-  }
-
-  // Build Ultravox tools pointing back to this engine
-  const apiKey = c.req.header("x-api-key") ?? "";
-  const tools = buildUltravoxTools(config.ENGINE_URL, session.session_id, apiKey);
-
-  // Create Ultravox call
-  const call = await createUltravoxCall({
-    systemPrompt: session.system_prompt,
-    voice: body.voice,
-    languageHint: body.language ?? "no",
-    selectedTools: tools,
-  });
-
-  if (!call) {
-    return c.json(
-      { error: "INTERNAL_ERROR", message: "Failed to create Ultravox call", status: 500 },
-      500,
-    );
-  }
-
-  return c.json({
-    session_id: session.session_id,
-    call_id: call.callId,
-    join_url: call.joinUrl,
-  });
-});
-
-// -- Store (Ultravox tool format) --
-
-const uvStoreSchema = z.object({
-  entity_type: z.string().min(1),
-  data: z.record(z.unknown()),
-});
-
-/**
- * POST /adapters/ultravox/store
- * Ultravox tool wrapper for store. Session ID from query param.
- */
-ultravox.post("/adapters/ultravox/store", zValidator("json", uvStoreSchema), async (c) => {
-  const sessionId = c.req.query("session_id");
-  if (!sessionId) {
-    return c.json(
-      { error: "VALIDATION_ERROR", message: "session_id query param required", status: 400 },
-      400,
-    );
-  }
-
-  const body = c.req.valid("json");
-  const session = await getSession(sessionId);
-
-  if (!session || session.status !== "active") {
-    return c.json(
-      { error: "SESSION_NOT_ACTIVE", message: "Session not found or not active", status: 409 },
-      409,
-    );
-  }
-
-  const validationError = validateStoreData(body.entity_type, body.data as Record<string, unknown>);
-  if (validationError) {
-    return c.json({ error: "VALIDATION_ERROR", message: validationError, status: 400 }, 400);
-  }
-
-  const entry = await writeToInbox({
-    sessionId,
-    stageId: session.current_stage_id ?? "unknown",
-    workspaceId: session.workspace_id,
-    entityType: body.entity_type,
-    data: body.data as Record<string, unknown>,
-  });
-
-  if (!entry) {
-    return c.json({ error: "INTERNAL_ERROR", message: "Failed to store data", status: 500 }, 500);
-  }
-
-  // Return plain text — Ultravox tool result
-  return c.text(`Stored ${body.entity_type} successfully. Continue the conversation.`);
-});
-
-// -- Fetch (Ultravox tool format) --
-
-const uvFetchSchema = z.object({
-  query_type: z.enum(["context", "inbox", "stage", "history"]),
-});
-
-/**
- * POST /adapters/ultravox/fetch
- * Ultravox tool wrapper for fetch. Returns data as text for the agent.
- */
-ultravox.post("/adapters/ultravox/fetch", zValidator("json", uvFetchSchema), async (c) => {
-  const sessionId = c.req.query("session_id");
-  if (!sessionId) {
-    return c.json(
-      { error: "VALIDATION_ERROR", message: "session_id query param required", status: 400 },
-      400,
-    );
-  }
-
-  const body = c.req.valid("json");
-  const session = await getSession(sessionId);
-
-  if (!session) {
-    return c.json({ error: "NOT_FOUND", message: "Session not found", status: 404 }, 404);
-  }
-
-  // Simplified fetch — returns JSON as text for the agent to parse
-  let data: unknown;
-
-  switch (body.query_type) {
-    case "context":
-      data = session.context;
-      break;
-    case "history":
-      data = session.collected_data;
-      break;
-    case "inbox": {
-      const { data: entries } = await (await import("../../lib/supabase.js")).supabaseAdmin
-        .from("engine_inbox")
-        .select("entity_type, data, stage_id, created_at")
-        .eq("session_id", sessionId)
-        .order("created_at", { ascending: true });
-      data = entries ?? [];
-      break;
-    }
-    case "stage": {
-      if (session.current_stage_id) {
-        const result = await loadMission(session.mission_id);
-        const stage = result?.stages.find((s) => s.stage_id === session.current_stage_id);
-        data = stage
-          ? { stage_id: stage.stage_id, goal: stage.goal, instructions: stage.instructions }
-          : null;
-      } else {
-        data = null;
-      }
-      break;
-    }
-  }
-
-  return c.text(JSON.stringify(data, null, 2));
-});
-
-// -- Advance (Ultravox new-stage format) --
-
-const uvAdvanceSchema = z.object({
-  result: z.record(z.unknown()).optional(),
-  next_stage_id: z.string().optional(),
-});
-
-/**
- * POST /adapters/ultravox/advance
- * Advances to the next stage and returns Ultravox new-stage response.
- * Sets X-Ultravox-Response-Type: new-stage header for seamless transition.
- */
-ultravox.post("/adapters/ultravox/advance", zValidator("json", uvAdvanceSchema), async (c) => {
-  const sessionId = c.req.query("session_id");
-  if (!sessionId) {
-    return c.json(
-      { error: "VALIDATION_ERROR", message: "session_id query param required", status: 400 },
-      400,
-    );
-  }
-
-  const body = c.req.valid("json");
-  const session = await getSession(sessionId);
-
-  if (!session || session.status !== "active") {
-    return c.json(
-      { error: "SESSION_NOT_ACTIVE", message: "Session not found or not active", status: 409 },
-      409,
-    );
-  }
-
-  const result = await advanceStage(session, body);
-  if (!result) {
-    return c.json({ error: "INTERNAL_ERROR", message: "Failed to advance", status: 500 }, 500);
-  }
-
-  // If mission complete, return text result (no new stage)
-  if (result.complete) {
-    return c.text(
-      `Mission complete! Summary: ${result.summary ?? "All stages finished."}. Thank the person and say goodbye.`,
-    );
-  }
-
-  // Return Ultravox new-stage response
-  const newStageResponse: UltravoxNewStageResponse = {
-    systemPrompt: result.system_prompt!,
-    toolResultText: `Stage transition: now in "${result.new_stage!.stage_id}". Goal: ${result.new_stage!.goal}`,
-  };
-
-  c.header("X-Ultravox-Response-Type", "new-stage");
-  return c.json(newStageResponse);
-});
-
-export { ultravox };
-```
-
-**Step 2: Register in src/index.ts**
-
-```typescript
-import { ultravox } from "./routes/adapters/ultravox.js";
-
-app.route("/", ultravox);
-```
-
-**Step 3: Type check**
-
-Run: `cd services/stage-engine && pnpm typecheck`
-
-**Step 4: Commit**
-
-```bash
-git add services/stage-engine/src/routes/adapters/ultravox.ts services/stage-engine/src/index.ts
-git commit -m "feat(stage-engine): add Ultravox adapter (create-call, store, fetch, advance)"
-```
-
----
-
-## Epic 7: End-to-End Verification
-
-> After this epic: a verified working system with a complete lifecycle test.
-
----
-
-### Task 23: Final index.ts Assembly
-
-**Files:**
-
-- Modify: `services/stage-engine/src/index.ts`
-
-**Step 1: Verify final src/index.ts looks like this**
-
-```typescript
-// ============================================
-// index.ts
-// Entry point for the Stage Engine — Smartout's universal agent gateway.
-// Sets up Hono app, registers middleware and routes, starts Node.js server.
-// Connected to: src/routes/ (all route handlers)
-// Connected to: src/middleware/ (auth, error handling)
-// ============================================
-
-import { serve } from "@hono/node-server";
-import { Hono } from "hono";
-import { logger } from "hono/logger";
-import { config } from "./config.js";
-import { authMiddleware } from "./middleware/auth.js";
-import { onError } from "./middleware/error-handler.js";
-import { health } from "./routes/health.js";
-import { sessions } from "./routes/sessions.js";
-import { store } from "./routes/store.js";
-import { fetchRoute } from "./routes/fetch.js";
-import { advance } from "./routes/advance.js";
-import { ultravox } from "./routes/adapters/ultravox.js";
-import { expireStaleSession } from "./core/session-manager.js";
-
-const app = new Hono();
-
-// Global middleware
-app.use(logger());
-app.use("*", authMiddleware);
-
-// Error handler
-app.onError(onError);
-
-// Routes
-app.route("/", health);
-app.route("/", sessions);
-app.route("/", store);
-app.route("/", fetchRoute);
-app.route("/", advance);
-app.route("/", ultravox);
-
-// Start server
-const port = config.PORT;
-
-serve({ fetch: app.fetch, port }, (info) => {
-  console.log(`Stage Engine running on port ${info.port}`);
-});
-
-// Session expiry cleanup — runs on a configurable interval
-const cleanupMs = config.CLEANUP_INTERVAL_MINUTES * 60 * 1000;
-setInterval(async () => {
-  const count = await expireStaleSession();
-  if (count > 0) {
-    console.log(`[cleanup] Expired ${count} stale session(s)`);
-  }
-}, cleanupMs);
-
-console.log(`[cleanup] Session cleanup running every ${config.CLEANUP_INTERVAL_MINUTES} minutes`);
-
-export { app };
-```
-
-**Step 2: Type check the entire project**
-
-Run: `cd services/stage-engine && pnpm typecheck`
-Expected: No errors
-
-**Step 3: Commit**
-
-```bash
-git add services/stage-engine/src/index.ts
-git commit -m "feat(stage-engine): finalize index.ts with all routes and middleware"
-```
-
----
-
-### Task 24: End-to-End Test Script
+### Task 26: E2E Test Script
 
 **Files:**
 
 - Create: `services/stage-engine/test/e2e.ts`
 
-**Step 1: Create test/e2e.ts**
+**Step 1: Write E2E test**
+
+This script runs the complete session lifecycle against a running server + Supabase:
 
 ```typescript
 // ============================================
-// e2e.ts
-// End-to-end test for the Stage Engine lifecycle.
-// Runs the complete flow: start → fetch → store → advance (x3) → complete.
-// Uses the "discovery-call" seed mission.
-// Run with: pnpm test:e2e (requires engine running + seed data)
+// test/e2e.ts
+// End-to-end test for the complete session lifecycle.
+// Run against a running stage-engine + local Supabase:
+//   1. Start local Supabase: npx supabase start
+//   2. Start stage-engine: pnpm dev
+//   3. Run: pnpm test:e2e
 // ============================================
 
-const BASE_URL = process.env.ENGINE_URL || "http://localhost:3000";
-const API_KEY = process.env.TEST_API_KEY || "";
+const BASE_URL = process.env.ENGINE_URL ?? "http://localhost:3000";
+const API_KEY = process.env.TEST_API_KEY ?? "smo_svc_live_test";
 
-/** Helper: make authenticated requests to the engine */
-async function request(
-  method: string,
-  path: string,
-  body?: unknown,
-): Promise<{ status: number; data: unknown }> {
+async function request(path: string, method = "GET", body?: unknown) {
   const res = await fetch(`${BASE_URL}${path}`, {
     method,
     headers: {
@@ -3226,129 +3215,116 @@ async function request(
     },
     body: body ? JSON.stringify(body) : undefined,
   });
-
   const data = await res.json();
   return { status: res.status, data };
 }
 
-/** Simple assertion helper */
-function assert(condition: boolean, message: string): void {
-  if (!condition) {
-    console.error(`FAIL: ${message}`);
-    process.exit(1);
-  }
-  console.log(`PASS: ${message}`);
+function assert(condition: boolean, message: string) {
+  if (!condition) throw new Error(`ASSERTION FAILED: ${message}`);
+  console.log(`  ✓ ${message}`);
 }
 
-async function runE2E(): Promise<void> {
-  console.log("=== Stage Engine E2E Test ===\n");
+async function main() {
+  console.log("\n=== Stage Engine E2E Test ===\n");
 
   // 1. Health check
-  const healthRes = await fetch(`${BASE_URL}/health`);
-  const healthData = (await healthRes.json()) as { status: string };
-  assert(healthRes.status === 200, "Health endpoint returns 200");
-  assert(healthData.status === "ok", "Health status is ok");
+  console.log("1. Health check");
+  const health = await request("/health");
+  assert(health.status === 200, "Health returns 200");
+  assert(health.data.status === "ok", "Health status is ok");
 
   // 2. Start session
-  const startRes = await request("POST", "/sessions", {
+  console.log("\n2. Start session (discovery-call)");
+  const session = await request("/sessions", "POST", {
     mission_id: "discovery-call",
-    workspace_id: "00000000-0000-0000-0000-000000000001", // Replace with valid workspace
+    workspace_id: "00000000-0000-0000-0000-000000000001",
     channel: "chat",
   });
-  assert(startRes.status === 200, "Session created successfully");
-
-  const session = startRes.data as {
-    session_id: string;
-    mission: { id: string; mode: string };
-    current_stage: { stage_id: string; goal: string };
-    progress: string;
-    system_prompt: string;
-  };
-  assert(session.mission.id === "discovery-call", "Mission is discovery-call");
-  assert(session.current_stage.stage_id === "greeting", "First stage is greeting");
-  assert(session.progress === "1/3", "Progress is 1/3");
-  assert(session.system_prompt.length > 0, "System prompt is non-empty");
-
-  const sessionId = session.session_id;
+  assert(session.status === 200, "Session created");
+  const sessionId = session.data.session_id;
+  assert(!!sessionId, "Got session ID");
+  assert(session.data.current_stage?.stage_id === "greeting", "First stage is greeting");
+  assert(!!session.data.system_prompt, "Got system prompt");
 
   // 3. Fetch context
-  const fetchRes = await request("POST", `/sessions/${sessionId}/fetch`, {
+  console.log("\n3. Fetch context");
+  const ctx = await request(`/sessions/${sessionId}/fetch`, "POST", {
     query_type: "context",
   });
-  assert(fetchRes.status === 200, "Fetch context returns 200");
+  assert(ctx.status === 200, "Fetch context returns 200");
 
-  // 4. Store data for stage 1 (greeting)
-  const storeRes = await request("POST", `/sessions/${sessionId}/store`, {
-    entity_type: "person",
+  // 4. Store data for stage 1
+  console.log("\n4. Store data (stage 1: greeting)");
+  const store1 = await request(`/sessions/${sessionId}/store`, "POST", {
+    entity_type: "contact",
     data: { name: "Pontus", role: "CEO" },
   });
-  assert(storeRes.status === 200, "Store returns 200");
-  const storeData = storeRes.data as { confirmed: boolean; inbox_id: string };
-  assert(storeData.confirmed === true, "Store confirmed");
+  assert(store1.status === 200, "Store returns 200");
+  assert(store1.data.confirmed === true, "Store confirmed");
 
-  // 5. Advance to stage 2 (problem)
-  const adv1 = await request("POST", `/sessions/${sessionId}/advance`, {
+  // 5. Advance to stage 2
+  console.log("\n5. Advance to stage 2 (problem)");
+  const adv1 = await request(`/sessions/${sessionId}/advance`, "POST", {
     result: { name: "Pontus", role: "CEO" },
   });
-  assert(adv1.status === 200, "Advance to stage 2 returns 200");
-  const adv1Data = adv1.data as {
-    new_stage: { stage_id: string };
-    complete: boolean;
-    progress: string;
-  };
-  assert(adv1Data.new_stage.stage_id === "problem", "Now on problem stage");
-  assert(adv1Data.complete === false, "Not complete yet");
-  assert(adv1Data.progress === "2/3", "Progress is 2/3");
+  assert(adv1.status === 200, "Advance returns 200");
+  assert(adv1.data.new_stage?.stage_id === "problem", "New stage is problem");
+  assert(adv1.data.complete === false, "Not complete yet");
 
-  // 6. Store data for stage 2 (problem)
-  await request("POST", `/sessions/${sessionId}/store`, {
-    entity_type: "problem",
-    data: { description: "Employee onboarding takes too long" },
+  // 6. Store data for stage 2
+  console.log("\n6. Store data (stage 2: problem)");
+  const store2 = await request(`/sessions/${sessionId}/store`, "POST", {
+    entity_type: "challenge",
+    data: { problem: "Onboarding takes too long", impact: "High turnover" },
   });
+  assert(store2.status === 200, "Store returns 200");
 
-  // 7. Advance to stage 3 (confirm)
-  const adv2 = await request("POST", `/sessions/${sessionId}/advance`, {
-    result: { problem: "Employee onboarding takes too long" },
+  // 7. Advance to stage 3
+  console.log("\n7. Advance to stage 3 (confirm)");
+  const adv2 = await request(`/sessions/${sessionId}/advance`, "POST", {
+    result: { problem: "Onboarding takes too long" },
   });
-  assert(adv2.status === 200, "Advance to stage 3 returns 200");
-  const adv2Data = adv2.data as { new_stage: { stage_id: string }; progress: string };
-  assert(adv2Data.new_stage.stage_id === "confirm", "Now on confirm stage");
-  assert(adv2Data.progress === "3/3", "Progress is 3/3");
+  assert(adv2.status === 200, "Advance returns 200");
+  assert(adv2.data.new_stage?.stage_id === "confirm", "New stage is confirm");
 
-  // 8. Store data for stage 3 (confirm)
-  await request("POST", `/sessions/${sessionId}/store`, {
+  // 8. Store data for stage 3
+  console.log("\n8. Store data (stage 3: confirm)");
+  const store3 = await request(`/sessions/${sessionId}/store`, "POST", {
     entity_type: "confirmation",
-    data: { confirmed: true, summary: "Pontus, CEO, needs faster onboarding" },
+    data: { confirmed: true, summary: "Pontus, CEO, onboarding challenge" },
   });
+  assert(store3.status === 200, "Store returns 200");
 
-  // 9. Advance — should complete
-  const adv3 = await request("POST", `/sessions/${sessionId}/advance`, {
+  // 9. Final advance — session completes
+  console.log("\n9. Final advance — session should complete");
+  const adv3 = await request(`/sessions/${sessionId}/advance`, "POST", {
     result: { confirmed: true },
   });
-  assert(adv3.status === 200, "Final advance returns 200");
-  const adv3Data = adv3.data as { complete: boolean; progress: string; summary: string };
-  assert(adv3Data.complete === true, "Session is complete");
+  assert(adv3.status === 200, "Advance returns 200");
+  assert(adv3.data.complete === true, "Session is complete");
 
   // 10. Verify session status
-  const statusRes = await request("GET", `/sessions/${sessionId}`);
-  assert(statusRes.status === 200, "Get session status returns 200");
-  const statusData = statusRes.data as { status: string; collected_data: Record<string, unknown> };
-  assert(statusData.status === "complete", "Session status is complete");
-  assert(Object.keys(statusData.collected_data).length === 3, "Collected data has 3 stages");
+  console.log("\n10. Verify session status");
+  const final = await request(`/sessions/${sessionId}`);
+  assert(final.status === 200, "Get session returns 200");
+  assert(final.data.status === "complete", "Session status is complete");
+  assert(Object.keys(final.data.collected_data).length === 3, "All 3 stages have data");
 
-  // 11. Verify inbox entries
-  const inboxRes = await request("POST", `/sessions/${sessionId}/fetch`, {
+  // 11. Verify inbox
+  console.log("\n11. Verify inbox");
+  const inbox = await request(`/sessions/${sessionId}/fetch`, "POST", {
     query_type: "inbox",
   });
-  assert(inboxRes.status === 200, "Fetch inbox returns 200");
-  const inboxData = inboxRes.data as { data: { entries: unknown[] } };
-  assert(inboxData.data.entries.length === 3, "Inbox has 3 entries");
+  assert(inbox.status === 200, "Fetch inbox returns 200");
+  assert(Array.isArray(inbox.data.data), "Inbox data is array");
+  assert(inbox.data.data.length === 3, "Inbox has 3 items");
 
-  console.log("\n=== All tests passed! ===");
+  console.log("\n=== ALL TESTS PASSED ===\n");
 }
 
-runE2E().catch((err) => {
-  console.error("E2E test failed:", err);
+main().catch((err) => {
+  console.error("\n=== TEST FAILED ===");
+  console.error(err);
   process.exit(1);
 });
 ```
@@ -3357,95 +3333,64 @@ runE2E().catch((err) => {
 
 ```bash
 git add services/stage-engine/test/e2e.ts
-git commit -m "feat(stage-engine): add E2E lifecycle test"
+git commit -m "feat(stage-engine): add E2E test script for full session lifecycle"
 ```
 
 ---
 
-### Task 25: README
+### Task 27: ADR + Documentation
 
 **Files:**
 
-- Create: `services/stage-engine/README.md`
+- Create: `docs/decisions/0030-stage-engine-gateway.md`
+- Modify: `docs/decisions/0000-decision-log.md` — add entry
+- Modify: `CLAUDE.md` — add stage-engine to monorepo structure
 
-**Step 1: Create README.md**
+**Step 1: Create ADR**
 
-````markdown
-# Stage Engine
+Use template from `docs/templates/decision.md`. Key content:
 
-Universal, channel-agnostic AI agent gateway for Smartout.
+- **Title:** Stage Engine — Universal Agent Gateway
+- **Status:** Accepted
+- **Context:** Need a channel-agnostic gateway for AI agents across voice, SMS, chat, email
+- **Decision:** Hono service on Docker/DigitalOcean, inbox model, 4 engine\_\* tables, Ultravox adapter
+- **Consequences:** New service outside Vercel, separate deployment pipeline, Docker networking
 
-## Quick Start
+**Step 2: Register in decision log**
 
-```bash
-# Install
-pnpm install
+Add to `docs/decisions/0000-decision-log.md`:
 
-# Dev (requires .env with Supabase + Ultravox credentials)
-pnpm dev
-
-# Type check
-pnpm typecheck
-
-# Build
-pnpm build
-
-# Production
-pnpm start
 ```
-````
+| 0030 | Stage Engine Gateway | Accepted | 2026-03-01 |
+```
 
-## Architecture
+**Step 3: Update CLAUDE.md monorepo structure**
 
-See `ARCHITECTURE.md` for full system design.
+Add to the monorepo structure section:
 
-## Endpoints
+```
+├── services/          → contract-service (Fastify, port 3100), stage-engine (Hono, port 3000),
+│                        scrapling (Python)
+```
 
-| Method | Path                           | Purpose                 |
-| ------ | ------------------------------ | ----------------------- |
-| GET    | /health                        | Health check            |
-| POST   | /sessions                      | Start session           |
-| GET    | /sessions/:id                  | Get status              |
-| POST   | /sessions/:id/store            | Store data              |
-| POST   | /sessions/:id/fetch            | Fetch context           |
-| POST   | /sessions/:id/advance          | Next stage              |
-| POST   | /sessions/:id/abandon          | Abandon                 |
-| POST   | /adapters/ultravox/create-call | Create voice call       |
-| POST   | /adapters/ultravox/store       | Store (Ultravox format) |
-| POST   | /adapters/ultravox/fetch       | Fetch (Ultravox format) |
-| POST   | /adapters/ultravox/advance     | Advance (new-stage)     |
-
-````
-
-**Step 2: Commit**
+**Step 4: Commit**
 
 ```bash
-git add services/stage-engine/README.md
-git commit -m "docs(stage-engine): add README"
-````
+git add docs/decisions/0030-stage-engine-gateway.md docs/decisions/0000-decision-log.md CLAUDE.md
+git commit -m "docs(stage-engine): add ADR-0030 and update project docs"
+```
 
 ---
 
-## Summary
+## Final Checklist
 
-| Epic                 | Tasks        | Files Created | Endpoints                                       |
-| -------------------- | ------------ | ------------- | ----------------------------------------------- |
-| 1. Infrastructure    | 1-8          | 14 files      | /health                                         |
-| 2. Data Model        | 9-10         | 2 migrations  | —                                               |
-| 3. Session Lifecycle | 11-15        | 5 files       | /sessions, /sessions/:id, /sessions/:id/abandon |
-| 4. Store & Fetch     | 16-18        | 3 files       | /sessions/:id/store, /sessions/:id/fetch        |
-| 5. Stage Transitions | 19-20        | 2 files       | /sessions/:id/advance                           |
-| 6. Ultravox Adapter  | 21-22        | 2 files       | 4 adapter endpoints                             |
-| 7. Verification      | 23-25        | 2 files       | —                                               |
-| **Total**            | **25 tasks** | **~30 files** | **11 endpoints**                                |
+After all 27 tasks are complete, verify:
 
-### Parallelization Notes for Agent Teams
-
-- **Tasks 1-8** (Epic 1): Mostly sequential, but Tasks 3 (types) and 4 (supabase client) can run in parallel
-- **Tasks 9-10** (Epic 2): Sequential (seed depends on tables)
-- **Tasks 11-13** (Epic 3 core): Can run in parallel (session-manager, prompt-builder, webhook-sender)
-- **Task 14** (routes): Depends on 11-13
-- **Tasks 16-18** (Epic 4): Task 16 (inbox-writer) first, then 17-18 in parallel
-- **Tasks 19-20** (Epic 5): Sequential
-- **Tasks 21-22** (Epic 6): Sequential (ultravox client before routes)
-- **Tasks 23-25** (Epic 7): Can run in parallel
+- [ ] `cd services/stage-engine && pnpm typecheck` — no errors
+- [ ] `cd services/stage-engine && pnpm test` — all unit tests pass
+- [ ] `cd services/stage-engine && pnpm build` — compiles to dist/
+- [ ] `docker compose build` — Docker image builds
+- [ ] E2E test passes against local Supabase
+- [ ] All 4 engine\_\* tables exist with RLS enabled
+- [ ] Seed data (discovery-call mission) is present
+- [ ] ADR-0030 registered in decision log

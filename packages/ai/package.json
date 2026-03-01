@@ -48,6 +48,14 @@
     "./agents/contract": {
       "types": "./dist/agents/contract.d.ts",
       "default": "./dist/agents/contract.js"
+    },
+    "./tools/report": {
+      "types": "./dist/tools/report/index.d.ts",
+      "default": "./dist/tools/report/index.js"
+    },
+    "./agents/reports": {
+      "types": "./dist/agents/reports.d.ts",
+      "default": "./dist/agents/reports.js"
     }
   },
   "scripts": {

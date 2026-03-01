@@ -18,7 +18,11 @@ export { ONBOARDING_TOOLS } from "./tools/onboarding";
 export { CONTRACT_TOOLS } from "./tools/contract";
 export type { EditorAction, ContractEditorState, ContractToolContext } from "./tools/contract";
 
-// Agents — import via subpath: @smartout/ai/agents/onboarding, @smartout/ai/agents/docs, @smartout/ai/agents/contract
+// Report tools
+export { REPORT_TOOLS } from "./tools/report";
+export type { ReportConfig, ReportToolContext } from "./tools/report";
+
+// Agents — import via subpath: @smartout/ai/agents/onboarding, @smartout/ai/agents/docs, @smartout/ai/agents/contract, @smartout/ai/agents/reports
 // (not re-exported from barrel to avoid pulling heavy deps into unrelated routes)
 
 // Missions (Ultravox agent configurations)
