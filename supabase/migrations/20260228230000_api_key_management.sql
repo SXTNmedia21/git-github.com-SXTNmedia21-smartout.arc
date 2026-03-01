@@ -6,10 +6,25 @@
 
 -- Enable extensions
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
-CREATE EXTENSION IF NOT EXISTS supabase_vault CASCADE;
 
--- Revoke vault access from public roles
-REVOKE ALL ON vault.decrypted_secrets FROM anon, authenticated;
+-- Vault extension — may not be available on Supabase branch databases.
+-- Wrap in exception handler so enums + tables still get created.
+DO $$
+BEGIN
+  CREATE EXTENSION IF NOT EXISTS supabase_vault CASCADE;
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'supabase_vault extension not available, skipping: %', SQLERRM;
+END;
+$$;
+
+-- Revoke vault access from public roles (skip if vault not installed)
+DO $$
+BEGIN
+  REVOKE ALL ON vault.decrypted_secrets FROM anon, authenticated;
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'vault.decrypted_secrets not available, skipping REVOKE: %', SQLERRM;
+END;
+$$;
 
 -- ── Enums ──
 
@@ -135,58 +150,70 @@ CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.platform_external_secret
 
 -- ── Vault SECURITY DEFINER Wrappers ──
 -- PostgREST cannot call vault.create_secret (PGRST202). These allow supabase.rpc().
+-- Wrapped in exception handler: vault may not be available on branch databases.
 
-CREATE OR REPLACE FUNCTION public.get_secret(secret_name text)
-RETURNS text
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
-AS $$
-DECLARE result text;
+DO $$
 BEGIN
-  SELECT decrypted_secret INTO result
-  FROM vault.decrypted_secrets WHERE name = secret_name;
-  RETURN result;
-END;
-$$;
+  -- Only create vault wrappers if the vault schema exists
+  IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'vault') THEN
 
-CREATE OR REPLACE FUNCTION public.upsert_secret(
-  p_name text, p_secret text, p_description text DEFAULT NULL
-)
-RETURNS uuid
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
-AS $$
-DECLARE v_existing_id uuid; v_new_id uuid;
-BEGIN
-  SELECT id INTO v_existing_id FROM vault.secrets WHERE name = p_name;
-  IF v_existing_id IS NOT NULL THEN
-    UPDATE vault.secrets SET secret = p_secret WHERE id = v_existing_id;
-    RETURN v_existing_id;
+    CREATE OR REPLACE FUNCTION public.get_secret(secret_name text)
+    RETURNS text
+    LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+    AS $fn$
+    DECLARE result text;
+    BEGIN
+      SELECT decrypted_secret INTO result
+      FROM vault.decrypted_secrets WHERE name = secret_name;
+      RETURN result;
+    END;
+    $fn$;
+
+    CREATE OR REPLACE FUNCTION public.upsert_secret(
+      p_name text, p_secret text, p_description text DEFAULT NULL
+    )
+    RETURNS uuid
+    LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+    AS $fn$
+    DECLARE v_existing_id uuid; v_new_id uuid;
+    BEGIN
+      SELECT id INTO v_existing_id FROM vault.secrets WHERE name = p_name;
+      IF v_existing_id IS NOT NULL THEN
+        UPDATE vault.secrets SET secret = p_secret WHERE id = v_existing_id;
+        RETURN v_existing_id;
+      ELSE
+        SELECT vault.create_secret(p_secret, p_name, p_description) INTO v_new_id;
+        RETURN v_new_id;
+      END IF;
+    END;
+    $fn$;
+
+    CREATE OR REPLACE FUNCTION public.delete_vault_secret(secret_name text)
+    RETURNS boolean
+    LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+    AS $fn$
+    DECLARE v_id uuid;
+    BEGIN
+      SELECT id INTO v_id FROM vault.secrets WHERE name = secret_name;
+      IF v_id IS NULL THEN RETURN false; END IF;
+      DELETE FROM vault.secrets WHERE id = v_id;
+      RETURN true;
+    END;
+    $fn$;
+
+    -- Lock down Vault wrappers: only service_role
+    REVOKE EXECUTE ON FUNCTION get_secret FROM public, anon, authenticated;
+    GRANT EXECUTE ON FUNCTION get_secret TO service_role;
+    REVOKE EXECUTE ON FUNCTION upsert_secret FROM public, anon, authenticated;
+    GRANT EXECUTE ON FUNCTION upsert_secret TO service_role;
+    REVOKE EXECUTE ON FUNCTION delete_vault_secret FROM public, anon, authenticated;
+    GRANT EXECUTE ON FUNCTION delete_vault_secret TO service_role;
+
   ELSE
-    SELECT vault.create_secret(p_secret, p_name, p_description) INTO v_new_id;
-    RETURN v_new_id;
+    RAISE NOTICE 'vault schema not found, skipping vault wrapper functions';
   END IF;
 END;
 $$;
-
-CREATE OR REPLACE FUNCTION public.delete_vault_secret(secret_name text)
-RETURNS boolean
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
-AS $$
-DECLARE v_id uuid;
-BEGIN
-  SELECT id INTO v_id FROM vault.secrets WHERE name = secret_name;
-  IF v_id IS NULL THEN RETURN false; END IF;
-  DELETE FROM vault.secrets WHERE id = v_id;
-  RETURN true;
-END;
-$$;
-
--- Lock down Vault wrappers: only service_role
-REVOKE EXECUTE ON FUNCTION get_secret FROM public, anon, authenticated;
-GRANT EXECUTE ON FUNCTION get_secret TO service_role;
-REVOKE EXECUTE ON FUNCTION upsert_secret FROM public, anon, authenticated;
-GRANT EXECUTE ON FUNCTION upsert_secret TO service_role;
-REVOKE EXECUTE ON FUNCTION delete_vault_secret FROM public, anon, authenticated;
-GRANT EXECUTE ON FUNCTION delete_vault_secret TO service_role;
 
 -- ── Key Rotation Function ──
 
