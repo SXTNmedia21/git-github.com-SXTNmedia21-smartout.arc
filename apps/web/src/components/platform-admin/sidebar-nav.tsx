@@ -14,6 +14,7 @@ import {
   ScrollText,
   Mail,
   KeyRound,
+  Globe,
 } from "lucide-react";
 
 const navItems = [
@@ -30,6 +31,7 @@ const navItems = [
     icon: Mail,
   },
   { href: "/platform-admin/content", label: "Content", icon: FileText },
+  { href: "/platform-admin/landing", label: "Landing", icon: Globe },
   {
     href: "/platform-admin/contracts",
     label: "Contracts",

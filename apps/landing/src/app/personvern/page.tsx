@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import Navigation from "../../components/navigation";
 import Footer from "../../components/footer";
+import { PageTracker } from "../../components/tracking";
 
 export const metadata: Metadata = {
   title: "Personvernerklæring — SmartOut",
@@ -12,6 +13,7 @@ export const metadata: Metadata = {
 export default function PersonvernPage() {
   return (
     <div className="min-h-screen bg-[#050505] text-zinc-100">
+      <PageTracker />
       <Navigation />
 
       <main className="mx-auto max-w-3xl px-6 pt-28 pb-20">

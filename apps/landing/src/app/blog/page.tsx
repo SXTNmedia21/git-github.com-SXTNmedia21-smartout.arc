@@ -4,8 +4,11 @@ import { motion } from "framer-motion";
 import { Quote, Heart } from "lucide-react";
 import Navigation from "../../components/navigation";
 import Footer from "../../components/footer";
+import { usePageTracking } from "../../hooks/useTracking";
 
 export default function BlogPage() {
+  usePageTracking();
+
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-[#050505] font-sans text-white selection:bg-orange-500/30">
       {/* Dynamic Premium Background */}

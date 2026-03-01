@@ -10,16 +10,21 @@
 
 import { useSyncExternalStore } from "react";
 
-export type LandingVariant = "B" | "E";
+export type LandingVariant = "B" | "E" | "T" | "K" | "A" | "F" | "S";
 
 const DEFAULT_VARIANT: LandingVariant = "B";
 const STORAGE_KEY = "landing_variant";
-const VALID_VARIANTS: LandingVariant[] = ["B", "E"];
+const VALID_VARIANTS: LandingVariant[] = ["B", "E", "T", "K", "A", "F", "S"];
 
 /** Display metadata for each variant, shown in the switcher. */
 export const VARIANT_META: Record<LandingVariant, { label: string; description: string }> = {
   B: { label: "Standard", description: "Fullverdig oversikt" },
   E: { label: "Action", description: "Rett på sak" },
+  T: { label: "Enterprise", description: "Data og kontroll" },
+  K: { label: "Konsulent", description: "Resultater og bevis" },
+  A: { label: "Inkluderende", description: "Visuelt og varmt" },
+  F: { label: "Tilgjengelig", description: "Maksimal enkelhet" },
+  S: { label: "Eleganse", description: "Raffinert håndverk" },
 };
 
 function isValidVariant(v: string | null | undefined): v is LandingVariant {

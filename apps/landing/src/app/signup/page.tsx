@@ -4,6 +4,7 @@ import { ArrowRight, UserPlus } from "lucide-react";
 import Navigation from "../../components/navigation";
 import Footer from "../../components/footer";
 import { WEB_APP_LINKS } from "../../lib/web-app-url";
+import { PageTracker, TrackedCta } from "../../components/tracking";
 
 export const metadata: Metadata = {
   title: "Opprett konto — SmartOut",
@@ -43,6 +44,7 @@ export default function SignupPage() {
       </div>
 
       {/* Navigation */}
+      <PageTracker />
       <Navigation />
 
       <main className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6 pt-16">
@@ -52,12 +54,13 @@ export default function SignupPage() {
           </div>
           <h1 className="mb-3 text-3xl font-black tracking-tighter">Opprett konto</h1>
           <p className="mb-10 text-zinc-400">Start din SmartOut-reise i dag.</p>
-          <Link
+          <TrackedCta
+            label="Kom i gang"
             href={WEB_APP_LINKS.onboarding}
             className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white py-4 font-bold text-zinc-950 shadow-[0_0_30px_rgba(255,255,255,0.1)] transition-all hover:shadow-[0_0_40px_rgba(255,255,255,0.2)]"
           >
             Kom i gang <ArrowRight className="h-4 w-4" />
-          </Link>
+          </TrackedCta>
           <p className="mt-6 text-sm text-zinc-500">
             Har du allerede konto?{" "}
             <Link

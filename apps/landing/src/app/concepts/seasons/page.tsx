@@ -16,9 +16,12 @@ import {
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Navigation from "../../../components/navigation";
+import Footer from "../../../components/footer";
+import { usePageTracking } from "../../../hooks/useTracking";
 import NextPageBanner from "../../../components/next-page-banner";
 
 export default function SesongerPage() {
+  usePageTracking();
   const router = useRouter();
   const [selected, setSelected] = useState(1);
 
@@ -239,6 +242,7 @@ export default function SesongerPage() {
           color="from-cyan-500/10"
         />
       </div>
+      <Footer />
     </div>
   );
 }

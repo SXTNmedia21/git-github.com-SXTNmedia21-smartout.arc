@@ -27,6 +27,8 @@ import {
 import { useRouter } from "next/navigation";
 import type { MissionId } from "@smartout/ai/missions";
 import Navigation from "../../../components/navigation";
+import Footer from "../../../components/footer";
+import { usePageTracking } from "../../../hooks/useTracking";
 import NextPageBanner from "../../../components/next-page-banner";
 
 function useWalkieTalkie({
@@ -190,6 +192,7 @@ const CHATS_DATA = [
 ];
 
 export default function KommunikasjonPage() {
+  usePageTracking();
   const router = useRouter();
 
   // UI States
@@ -764,6 +767,7 @@ export default function KommunikasjonPage() {
           color="from-orange-500/10"
         />
       </div>
+      <Footer />
     </div>
   );
 }

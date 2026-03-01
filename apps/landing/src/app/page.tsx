@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import dynamic from "next/dynamic";
 import type { Variants } from "framer-motion";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Mic,
   ArrowRight,
@@ -27,20 +26,24 @@ import {
   ListTodo,
   Globe,
   Sparkles,
+  Bot,
+  BellRing,
+  CalendarCheck,
 } from "lucide-react";
 import Navigation from "../components/navigation";
 import Footer from "../components/footer";
 import WorkspaceAnalyzer from "../components/workspace-analyzer";
 import { WEB_APP_LINKS } from "../lib/web-app-url";
 import VariantELanding from "../components/landing/VariantELanding";
+import VariantTLanding from "../components/landing/VariantTLanding";
+import VariantKLanding from "../components/landing/VariantKLanding";
+import VariantALanding from "../components/landing/VariantALanding";
+import VariantFLanding from "../components/landing/VariantFLanding";
+import VariantSLanding from "../components/landing/VariantSLanding";
+import VoiceDemoWidget from "../components/landing/VoiceDemoWidget";
 import { useVariant } from "../lib/landing-variant";
-
-const VoiceAssistant = dynamic(() => import("../components/voice-assistant"), {
-  ssr: false,
-  loading: () => (
-    <div className="h-[600px] w-full rounded-[40px] border border-white/10 bg-[#0a0a0c]/50 backdrop-blur-xl" />
-  ),
-});
+import { usePageTracking, useTrackCta } from "../hooks/useTracking";
+import { VARIANT_VOICE_CONFIG, VARIANT_AI_SECTION } from "../lib/variant-voice-config";
 
 const MOCK_LOCATIONS = [
   {
@@ -133,11 +136,18 @@ const MOCK_SEASONS = [
 
 export default function SmartoutLandingPage() {
   const { variant } = useVariant();
-  const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+  // Track page view once per browser session (fire-and-forget, no blocking)
+  usePageTracking();
+  const trackCta = useTrackCta();
   const [activeTab, setActiveTab] = useState("locations");
   const onboardingHref = WEB_APP_LINKS.onboarding;
 
   if (variant === "E") return <VariantELanding />;
+  if (variant === "T") return <VariantTLanding />;
+  if (variant === "K") return <VariantKLanding />;
+  if (variant === "A") return <VariantALanding />;
+  if (variant === "F") return <VariantFLanding />;
+  if (variant === "S") return <VariantSLanding />;
 
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
@@ -238,6 +248,7 @@ export default function SmartoutLandingPage() {
             >
               <Link
                 href={onboardingHref}
+                onClick={() => trackCta("Opprett din SmartOut")}
                 className="group relative flex items-center justify-center gap-3 rounded-full bg-white px-10 py-5 text-lg font-black text-zinc-950 shadow-[0_0_40px_rgba(255,255,255,0.2)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_60px_rgba(255,255,255,0.4)]"
               >
                 <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-orange-500 to-rose-500 opacity-20 blur transition duration-500 group-hover:opacity-50"></div>
@@ -418,15 +429,16 @@ export default function SmartoutLandingPage() {
             </motion.p>
 
             <motion.div variants={itemVariants} className="flex flex-wrap items-center gap-4">
-              <button
-                onClick={() => setIsAssistantOpen(true)}
+              <a
+                href="#smartout-ai"
+                onClick={() => trackCta("Start Lise Botsson")}
                 className="group relative flex items-center gap-3 rounded-full bg-white px-8 py-4 text-lg font-bold text-zinc-950 shadow-[0_0_40px_rgba(255,255,255,0.1)] transition-all duration-300 hover:scale-105 hover:shadow-[0_0_60px_rgba(255,255,255,0.2)]"
               >
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-500 text-white transition-transform group-hover:scale-110">
                   <Mic className="h-4 w-4" />
                 </div>
                 Start Lise Botsson
-              </button>
+              </a>
 
               <a
                 href="#workspace"
@@ -463,61 +475,7 @@ export default function SmartoutLandingPage() {
 
           {/* Voice Assistant Floating Widget */}
           <div className="w-full lg:w-[450px]">
-            <AnimatePresence mode="wait">
-              {isAssistantOpen ? (
-                <motion.div
-                  key="assistant"
-                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                  className="relative z-50 h-[400px] w-full sm:h-[600px]"
-                >
-                  <VoiceAssistant
-                    autoStart
-                    missionId="landing-demo"
-                    onClose={() => setIsAssistantOpen(false)}
-                  />
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="placeholder"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="group relative flex h-[360px] w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded-3xl border border-white/10 bg-[#0a0a0c]/50 p-6 text-center shadow-2xl backdrop-blur-xl transition-colors hover:border-orange-500/30 sm:h-[600px] sm:rounded-[40px] sm:p-10"
-                  onClick={() => setIsAssistantOpen(true)}
-                >
-                  <div className="absolute inset-0 z-10 bg-gradient-to-t from-[#050505]/90 to-transparent" />
-                  <div className="absolute -inset-2 z-0 bg-gradient-to-r from-orange-500/0 via-orange-500/10 to-transparent opacity-0 blur-2xl transition-opacity duration-1000 group-hover:opacity-100" />
-                  <motion.div
-                    animate={{
-                      scale: [1, 1.05, 1],
-                      boxShadow: [
-                        "0 0 0px rgba(249,115,22,0)",
-                        "0 0 20px rgba(249,115,22,0.1)",
-                        "0 0 0px rgba(249,115,22,0)",
-                      ],
-                    }}
-                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                    className="relative z-20 mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-white/5 bg-white/5 transition-colors group-hover:border-orange-500/20 group-hover:bg-orange-500/10 sm:mb-6 sm:h-24 sm:w-24"
-                  >
-                    <div className="absolute inset-0 rounded-full border border-orange-500/20 opacity-0 group-hover:animate-ping group-hover:opacity-100" />
-                    <Mic className="h-7 w-7 text-zinc-500 transition-colors group-hover:text-orange-500 sm:h-10 sm:w-10" />
-                  </motion.div>
-                  <h3 className="relative z-20 mb-1 text-lg font-bold text-white sm:mb-2 sm:text-2xl">
-                    Lise venter...
-                  </h3>
-                  <p className="relative z-20 mb-4 max-w-xs text-sm text-zinc-500 sm:mb-8 sm:text-base">
-                    Klikk her for å vekke röstassistenten og still spørsmål om vaktplan, onboarding
-                    eller rutiner.
-                  </p>
-
-                  <div className="relative z-20 flex items-center gap-2 rounded-full border border-zinc-700/50 bg-zinc-800/80 px-4 py-2 text-xs font-bold text-zinc-400 shadow-xl transition-colors group-hover:bg-zinc-800 group-hover:text-zinc-300">
-                    Trykk for å koble til <ArrowRight className="h-3 w-3" />
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            <VoiceDemoWidget config={VARIANT_VOICE_CONFIG.B} height="600px" />
           </div>
         </div>
 
@@ -1080,6 +1038,61 @@ export default function SmartoutLandingPage() {
           </div>
         </section>
 
+        {/* SMARTOUT AI SECTION */}
+        <section id="smartout-ai" className="relative z-10 py-16 sm:py-32">
+          <div className="pointer-events-none absolute top-1/2 left-1/2 h-[800px] w-[800px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-orange-500/5 mix-blend-screen blur-[120px]" />
+
+          <div className="mx-auto max-w-7xl px-6">
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 0.8 }}
+              className="mb-10 text-center sm:mb-16"
+            >
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-orange-500/20 bg-orange-500/10 px-3 py-1 text-xs font-bold tracking-wider text-orange-400 uppercase sm:mb-6">
+                <Bot className="h-3.5 w-3.5" />
+                SmartOut AI
+              </div>
+              <h2 className="mb-3 text-3xl font-black tracking-tight text-white sm:mb-6 sm:text-5xl">
+                {VARIANT_AI_SECTION.B.heading}
+              </h2>
+              <p className="mx-auto max-w-2xl text-sm text-zinc-400 sm:text-lg">
+                {VARIANT_AI_SECTION.B.subheading}
+              </p>
+            </motion.div>
+
+            <div className="grid gap-10 lg:grid-cols-2">
+              {/* AI capability cards */}
+              <div className="space-y-6">
+                {VARIANT_AI_SECTION.B.capabilities.map((cap, i) => (
+                  <motion.div
+                    key={cap.title}
+                    initial={{ opacity: 0, x: -20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5, delay: i * 0.12 }}
+                    className="group rounded-2xl border border-white/5 bg-white/[0.02] p-6 transition-colors hover:border-orange-500/20 hover:bg-orange-500/[0.03]"
+                  >
+                    <div className="mb-3 flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/10">
+                        {i === 0 && <Mic className="h-5 w-5 text-orange-400" />}
+                        {i === 1 && <BellRing className="h-5 w-5 text-orange-400" />}
+                        {i === 2 && <CalendarCheck className="h-5 w-5 text-orange-400" />}
+                      </div>
+                      <h3 className="text-lg font-bold text-white">{cap.title}</h3>
+                    </div>
+                    <p className="text-sm leading-relaxed text-zinc-400">{cap.description}</p>
+                  </motion.div>
+                ))}
+              </div>
+
+              {/* Voice demo widget */}
+              <VoiceDemoWidget config={VARIANT_VOICE_CONFIG.B} height="460px" />
+            </div>
+          </div>
+        </section>
+
         {/* CTA Footer Section */}
         <section className="relative z-10 mt-4 overflow-hidden py-16 sm:mt-10 sm:py-32 md:py-48">
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0a0a0c]/80 to-[#0a0a0c]"></div>
@@ -1102,7 +1115,11 @@ export default function SmartoutLandingPage() {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="flex w-full justify-center"
             >
-              <Link href={onboardingHref} className="group relative w-full sm:w-auto">
+              <Link
+                href={onboardingHref}
+                onClick={() => trackCta("Kom i gang")}
+                className="group relative w-full sm:w-auto"
+              >
                 <div className="absolute -inset-2 rounded-full bg-gradient-to-r from-orange-500 to-rose-500 opacity-50 blur-xl transition duration-500 group-hover:opacity-100"></div>
                 <motion.button
                   whileTap={{ scale: 0.95 }}

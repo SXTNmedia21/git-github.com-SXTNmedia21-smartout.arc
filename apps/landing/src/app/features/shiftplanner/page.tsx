@@ -23,9 +23,12 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Navigation from "../../../components/navigation";
+import Footer from "../../../components/footer";
+import { usePageTracking } from "../../../hooks/useTracking";
 import NextPageBanner from "../../../components/next-page-banner";
 
 export default function VaktlisteLonnPage() {
+  usePageTracking();
   const router = useRouter();
   const [scheduleLayout, setScheduleLayout] = useState<"daily" | "weekly" | "monthly">("daily");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -262,6 +265,7 @@ export default function VaktlisteLonnPage() {
           color="from-amber-500/10"
         />
       </div>
+      <Footer />
     </div>
   );
 }

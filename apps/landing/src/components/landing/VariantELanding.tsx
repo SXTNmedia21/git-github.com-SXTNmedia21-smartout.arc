@@ -7,6 +7,7 @@ import {
   ArrowRight,
   Shield,
   Zap,
+  Zap as ZapIcon,
   BarChart3,
   Clock,
   CheckCircle2,
@@ -15,12 +16,19 @@ import {
   TrendingUp,
   Coffee,
   AlertCircle,
+  Bot,
 } from "lucide-react";
 import Navigation from "../navigation";
 import Footer from "../footer";
+import VoiceDemoWidget from "./VoiceDemoWidget";
 import { WEB_APP_LINKS } from "../../lib/web-app-url";
+import { usePageTracking, useTrackCta } from "../../hooks/useTracking";
+import { VARIANT_VOICE_CONFIG, VARIANT_AI_SECTION } from "../../lib/variant-voice-config";
 
 export default function VariantELanding() {
+  usePageTracking();
+  const trackCta = useTrackCta();
+
   return (
     <div className="min-h-screen overflow-x-hidden bg-zinc-950 font-sans text-white selection:bg-orange-500/30">
       <style jsx global>{`
@@ -67,6 +75,7 @@ export default function VariantELanding() {
             <div className="flex flex-col gap-4 sm:flex-row">
               <Link
                 href={WEB_APP_LINKS.onboarding}
+                onClick={() => trackCta("Kom I Gang Nå")}
                 className="flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-8 py-4 font-bold text-white shadow-[0_0_30px_rgba(249,115,22,0.3)] transition-all hover:bg-orange-400 hover:shadow-[0_0_40px_rgba(249,115,22,0.5)]"
               >
                 Kom I Gang Nå <ArrowRight className="h-5 w-5" />
@@ -868,6 +877,67 @@ export default function VariantELanding() {
         </div>
       </section>
 
+      {/* SmartOut AI Section */}
+      <section id="smartout-ai" className="px-6 py-20 lg:py-32">
+        <div className="mx-auto max-w-7xl">
+          {/* Badge + heading */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="mb-12 text-center"
+          >
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-orange-500/20 bg-orange-500/10 px-3 py-1">
+              <Bot className="h-3.5 w-3.5 text-orange-400" />
+              <span className="text-xs font-semibold tracking-wider text-orange-400 uppercase">
+                SmartOut AI
+              </span>
+            </div>
+            <h2 className="mb-4 text-4xl font-black tracking-tight text-white md:text-6xl">
+              {VARIANT_AI_SECTION.E.heading}
+            </h2>
+            <p className="mx-auto max-w-2xl text-xl font-medium text-zinc-400">
+              {VARIANT_AI_SECTION.E.subheading}
+            </p>
+          </motion.div>
+
+          <div className="grid gap-8 lg:grid-cols-2">
+            {/* Left: 3 compact capability cards */}
+            <div className="space-y-4">
+              {VARIANT_AI_SECTION.E.capabilities.map((cap, i) => {
+                const icons = [
+                  <ZapIcon key="zap" className="h-5 w-5 text-orange-400" />,
+                  <Bot key="bot" className="h-5 w-5 text-orange-400" />,
+                  <CheckCircle2 key="check" className="h-5 w-5 text-orange-400" />,
+                ];
+                return (
+                  <motion.div
+                    key={cap.title}
+                    initial={{ opacity: 0, x: -20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.4, delay: i * 0.1 }}
+                    className="flex items-start gap-4 rounded-xl border border-zinc-800 bg-zinc-900/60 p-5"
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-orange-500/10">
+                      {icons[i]}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-white">{cap.title}</h3>
+                      <p className="text-sm text-zinc-400">{cap.description}</p>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+
+            {/* Right: Voice widget */}
+            <VoiceDemoWidget config={VARIANT_VOICE_CONFIG.E} height="400px" />
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="px-6 py-24">
         <div className="relative mx-auto max-w-5xl overflow-hidden rounded-3xl border border-zinc-800 bg-gradient-to-br from-zinc-900 to-zinc-950 p-10 text-center md:p-20">
@@ -885,6 +955,7 @@ export default function VariantELanding() {
           <div className="relative z-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link
               href={WEB_APP_LINKS.onboarding}
+              onClick={() => trackCta("Start Gratis Prøveperiode")}
               className="w-full rounded-xl bg-white px-8 py-4 text-center text-lg font-black text-zinc-950 transition-colors hover:bg-zinc-200 sm:w-auto"
             >
               Start Gratis Prøveperiode

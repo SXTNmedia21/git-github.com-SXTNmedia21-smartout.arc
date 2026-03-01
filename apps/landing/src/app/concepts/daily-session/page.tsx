@@ -21,9 +21,12 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Navigation from "../../../components/navigation";
+import Footer from "../../../components/footer";
+import { usePageTracking } from "../../../hooks/useTracking";
 import NextPageBanner from "../../../components/next-page-banner";
 
 export default function DailySessionSimple() {
+  usePageTracking();
   const router = useRouter();
   return (
     <div className="flex min-h-screen flex-col overflow-hidden bg-[#050505] pt-16 font-sans text-zinc-100 selection:bg-orange-500/30 md:flex-row">
@@ -477,6 +480,7 @@ function TaskCard({ title, assigned, status, time, category, claimedBy, data }: 
         subtitle="Fullfør Gjennomgangen"
         color="from-orange-500/10"
       />
+      <Footer />
     </div>
   );
 }

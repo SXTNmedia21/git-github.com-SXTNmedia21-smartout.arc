@@ -15,9 +15,12 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Navigation from "../../../components/navigation";
+import Footer from "../../../components/footer";
+import { usePageTracking } from "../../../hooks/useTracking";
 import NextPageBanner from "../../../components/next-page-banner";
 
 export default function IkMatAvvikPage() {
+  usePageTracking();
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [temp, setTemp] = useState(4);
@@ -300,6 +303,7 @@ export default function IkMatAvvikPage() {
           color="from-indigo-500/10"
         />
       </div>
+      <Footer />
       <style
         dangerouslySetInnerHTML={{
           __html: `

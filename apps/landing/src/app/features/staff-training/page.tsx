@@ -12,9 +12,12 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Navigation from "../../../components/navigation";
+import Footer from "../../../components/footer";
+import { usePageTracking } from "../../../hooks/useTracking";
 import NextPageBanner from "../../../components/next-page-banner";
 
 export default function HROpplaeringPage() {
+  usePageTracking();
   const router = useRouter();
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [isAnswered, setIsAnswered] = useState(false);
@@ -155,6 +158,7 @@ export default function HROpplaeringPage() {
           color="from-rose-500/10"
         />
       </div>
+      <Footer />
     </div>
   );
 }

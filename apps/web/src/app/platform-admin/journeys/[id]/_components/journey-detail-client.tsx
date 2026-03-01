@@ -2,23 +2,32 @@
 // journey-detail-client.tsx — Journey Detail Client Component
 // Renders the full detail view for a single journey, including
 // header with status changer, classification info, step list,
-// event timeline, and output tabs (placeholder for future features).
+// event timeline, and output generation tabs (E2E, Doc, Linear, Botsson).
 // Connected to: apps/web/src/app/platform-admin/journeys/[id]/page.tsx (server data)
 // Connected to: apps/web/src/app/platform-admin/journeys/_components/journey-status-changer.tsx
+// Connected to: apps/web/src/app/api/platform-admin/journeys/[id]/generate/route.ts
 // ============================================
 
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
-import type { Journey, JourneyStep, JourneyEvent, JourneyStatus } from "@smartout/types";
+import type {
+  Journey,
+  JourneyStep,
+  JourneyEvent,
+  JourneyStatus,
+  JourneyOutputType,
+} from "@smartout/types";
 import { STATUS_META } from "@/lib/journey/status-transitions";
 import { MODULE_META, ACTOR_META, PRIORITY_META, PLATFORM_META } from "@/lib/journey/module-meta";
 import { JourneyStatusChanger } from "../../_components/journey-status-changer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   ArrowRight,
@@ -56,6 +65,9 @@ import {
   Monitor,
   Laptop,
   Clock,
+  Copy,
+  Loader2,
+  Play,
 } from "lucide-react";
 
 /**
@@ -111,6 +123,118 @@ const PLATFORM_ICON_MAP: Record<string, React.ComponentType<{ className?: string
   Laptop,
 };
 
+// ─── Output Tab Content ─────────────────────────────────────
+
+type OutputTabContentProps = {
+  journeyId: string;
+  outputType: JourneyOutputType;
+  label: string;
+  isCode: boolean;
+};
+
+/**
+ * Shared component for each output tab. Handles generate, display,
+ * and copy-to-clipboard for a specific output type.
+ *
+ * Why shared: All 4 output tabs have identical generate/copy/display
+ * logic — only the output type and label differ.
+ *
+ * @param journeyId - The journey UUID
+ * @param outputType - Which generator to call (e2e, doc, linear, botsson)
+ * @param label - Human-readable label for the output type
+ * @param isCode - Whether to render as code block (true) or markdown-style (false)
+ */
+function OutputTabContent({ journeyId, outputType, label, isCode }: OutputTabContentProps) {
+  const [content, setContent] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  /**
+   * Calls the generate API endpoint and stores the result.
+   */
+  const handleGenerate = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/platform-admin/journeys/${journeyId}/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: outputType }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        toast.error(`Failed to generate ${label}: ${error.error ?? "Unknown error"}`);
+        return;
+      }
+
+      const data = await response.json();
+      setContent(data.content);
+      toast.success(`${label} generated successfully`);
+    } catch {
+      toast.error(`Failed to generate ${label}`);
+    } finally {
+      setLoading(false);
+    }
+  }, [journeyId, outputType, label]);
+
+  /**
+   * Copies the generated content to the clipboard.
+   */
+  const handleCopy = useCallback(async () => {
+    if (!content) return;
+    try {
+      await navigator.clipboard.writeText(content);
+      toast.success("Copied to clipboard");
+    } catch {
+      toast.error("Failed to copy to clipboard");
+    }
+  }, [content]);
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-medium">{label}</CardTitle>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="default" onClick={handleGenerate} disabled={loading}>
+              {loading ? (
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Play className="mr-1.5 h-3.5 w-3.5" />
+              )}
+              Generate
+            </Button>
+            {content && (
+              <Button size="sm" variant="outline" onClick={handleCopy}>
+                <Copy className="mr-1.5 h-3.5 w-3.5" />
+                Copy
+              </Button>
+            )}
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {content ? (
+          isCode ? (
+            <pre className="bg-muted overflow-x-auto rounded-md border p-4 text-sm">
+              <code>{content}</code>
+            </pre>
+          ) : (
+            <div className="bg-muted prose prose-sm dark:prose-invert max-w-none rounded-md border p-4">
+              <pre className="font-sans text-sm whitespace-pre-wrap">{content}</pre>
+            </div>
+          )
+        ) : (
+          <p className="text-muted-foreground text-sm">
+            Click &quot;Generate&quot; to create the {label.toLowerCase()} output.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Main Detail Component ──────────────────────────────────
+
 type JourneyDetailClientProps = {
   journey: Journey;
   steps: JourneyStep[];
@@ -119,9 +243,10 @@ type JourneyDetailClientProps = {
 
 /**
  * Full detail view for a single journey. Shows header, classification,
- * step list, event timeline, and placeholder output tabs.
+ * step list, event timeline, and output generation tabs.
  *
- * Why client component: Needs interactive status changes and tabs.
+ * Why client component: Needs interactive status changes, tabs,
+ * and output generation with API calls.
  *
  * @param journey - The journey record
  * @param steps - Ordered journey steps
@@ -312,18 +437,10 @@ export function JourneyDetailClient({
       <Tabs defaultValue="steps">
         <TabsList>
           <TabsTrigger value="steps">Journey Steps</TabsTrigger>
-          <TabsTrigger value="e2e" disabled>
-            E2E Test
-          </TabsTrigger>
-          <TabsTrigger value="doc" disabled>
-            Doc
-          </TabsTrigger>
-          <TabsTrigger value="linear" disabled>
-            Linear
-          </TabsTrigger>
-          <TabsTrigger value="botsson" disabled>
-            Botsson
-          </TabsTrigger>
+          <TabsTrigger value="e2e">E2E Test</TabsTrigger>
+          <TabsTrigger value="doc">Doc</TabsTrigger>
+          <TabsTrigger value="linear">Linear</TabsTrigger>
+          <TabsTrigger value="botsson">Botsson</TabsTrigger>
         </TabsList>
 
         <TabsContent value="steps">
@@ -362,6 +479,42 @@ export function JourneyDetailClient({
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="e2e">
+          <OutputTabContent
+            journeyId={journey.journey_id}
+            outputType="e2e"
+            label="E2E Test"
+            isCode={true}
+          />
+        </TabsContent>
+
+        <TabsContent value="doc">
+          <OutputTabContent
+            journeyId={journey.journey_id}
+            outputType="doc"
+            label="Onboarding Doc"
+            isCode={false}
+          />
+        </TabsContent>
+
+        <TabsContent value="linear">
+          <OutputTabContent
+            journeyId={journey.journey_id}
+            outputType="linear"
+            label="Linear Issue"
+            isCode={false}
+          />
+        </TabsContent>
+
+        <TabsContent value="botsson">
+          <OutputTabContent
+            journeyId={journey.journey_id}
+            outputType="botsson"
+            label="Botsson Script"
+            isCode={false}
+          />
+        </TabsContent>
       </Tabs>
 
       {/* Event Log Card */}
@@ -391,7 +544,7 @@ export function JourneyDetailClient({
                           {event.event_type}
                         </Badge>
 
-                        {/* Show from → to for status_change events */}
+                        {/* Show from -> to for status_change events */}
                         {event.event_type === "status_change" &&
                           event.from_status &&
                           event.to_status && (
