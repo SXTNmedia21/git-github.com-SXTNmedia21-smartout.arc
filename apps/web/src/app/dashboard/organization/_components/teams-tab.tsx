@@ -26,14 +26,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { TeamRow, DepartmentRow, CountMap } from "./types";
+import type { TeamRow, DepartmentRow, CountMap, ProfileRow } from "./types";
 import { COLOR_PRESETS, toSlug } from "./types";
 import { TEAM_TYPE_CONFIG } from "./constants";
 import { EditTeamDialog } from "./EditTeamDialog";
+import { TeamMembersSheet } from "./TeamMembersSheet";
 
 type TeamsTabProps = {
   teams: TeamRow[];
   departments: DepartmentRow[];
+  profiles: ProfileRow[];
   memberCounts: CountMap;
   policyCounts: CountMap;
   isDark: boolean;
@@ -45,6 +47,7 @@ type TeamsTabProps = {
 export function TeamsTab({
   teams,
   departments,
+  profiles,
   memberCounts,
   policyCounts,
   isDark,
@@ -62,6 +65,9 @@ export function TeamsTab({
 
   // Edit team state
   const [editTeam, setEditTeam] = useState<TeamRow | null>(null);
+
+  // Team members sheet state
+  const [sheetTeam, setSheetTeam] = useState<TeamRow | null>(null);
 
   const deptMap = new Map(departments.map((d) => [d.department_id, d.name]));
 
@@ -218,7 +224,11 @@ export function TeamsTab({
             const deptName = team.department_id ? deptMap.get(team.department_id) : null;
 
             return (
-              <div key={team.team_id} className={`group relative ${cardBase}`}>
+              <div
+                key={team.team_id}
+                className={`group relative cursor-pointer ${cardBase}`}
+                onClick={() => setSheetTeam(team)}
+              >
                 {/* Color accent bar */}
                 {team.color && (
                   <div
@@ -256,6 +266,7 @@ export function TeamsTab({
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button
+                        onClick={(e) => e.stopPropagation()}
                         className={`rounded-md p-1 opacity-0 transition-all group-hover:opacity-100 ${
                           isDark
                             ? "text-zinc-500 hover:bg-zinc-800"
@@ -519,6 +530,20 @@ export function TeamsTab({
             if (!open) setEditTeam(null);
           }}
           onSave={onRefresh}
+        />
+      )}
+
+      {/* Team Members Sheet */}
+      {sheetTeam && (
+        <TeamMembersSheet
+          team={sheetTeam}
+          allProfiles={profiles}
+          isDark={isDark}
+          open={!!sheetTeam}
+          onOpenChange={(open) => {
+            if (!open) setSheetTeam(null);
+          }}
+          onRefresh={onRefresh}
         />
       )}
     </div>

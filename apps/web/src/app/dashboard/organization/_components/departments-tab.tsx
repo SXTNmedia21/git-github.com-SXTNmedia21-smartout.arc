@@ -9,6 +9,7 @@ import {
   ChevronDown,
   AlertTriangle,
   Pencil,
+  UserCircle,
 } from "lucide-react";
 import { createClient } from "@smartout/supabase/client";
 import { toast } from "sonner";
@@ -27,7 +28,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { DepartmentRow, PositionRow, CountMap } from "./types";
+import type { DepartmentRow, PositionRow, CountMap, ProfileRow } from "./types";
 import { COLOR_PRESETS, ICON_PRESETS, toSlug } from "./types";
 import { ICON_COMPONENTS } from "./constants";
 import { EditDepartmentDialog } from "./EditDepartmentDialog";
@@ -36,6 +37,7 @@ import { EditPositionDialog } from "./EditPositionDialog";
 
 type DepartmentsTabProps = {
   departments: DepartmentRow[];
+  profiles: ProfileRow[];
   positionCounts: CountMap;
   positionsByDept: Record<string, PositionRow[]>;
   policyCounts: CountMap;
@@ -47,6 +49,7 @@ type DepartmentsTabProps = {
 
 export function DepartmentsTab({
   departments,
+  profiles,
   positionCounts,
   positionsByDept,
   policyCounts,
@@ -325,6 +328,23 @@ export function DepartmentsTab({
                     {dept.description}
                   </p>
                 )}
+
+                {dept.manager_profile_id &&
+                  (() => {
+                    const manager = profiles.find((p) => p.profile_id === dept.manager_profile_id);
+                    return manager ? (
+                      <div className="mt-1 flex items-center gap-1.5">
+                        <UserCircle
+                          className={`h-3 w-3 ${isDark ? "text-zinc-600" : "text-zinc-400"}`}
+                        />
+                        <span
+                          className={`text-xs font-medium ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+                        >
+                          {manager.display_name}
+                        </span>
+                      </div>
+                    ) : null;
+                  })()}
 
                 {/* Validation warning */}
                 {showWarning && (
@@ -638,6 +658,7 @@ export function DepartmentsTab({
       {editDept && (
         <EditDepartmentDialog
           department={editDept}
+          profiles={profiles}
           isDark={isDark}
           open={!!editDept}
           onOpenChange={(open) => {
