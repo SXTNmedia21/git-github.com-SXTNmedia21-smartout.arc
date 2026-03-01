@@ -36,25 +36,25 @@ Master navigation map for all documentation. An agent reads this to find any doc
 
 ### Modules (Layer 2)
 
-| id        | File                                          | Status    | Key Tables                                                 |
-| --------- | --------------------------------------------- | --------- | ---------------------------------------------------------- |
-| MODULE_01 | modules/SMARTOUT_MODULE_1_ONBOARDING.md       | canonical | onboarding_session                                         |
-| MODULE_02 | modules/SMARTOUT_MODULE_2_ORG_STRUCTURE.md    | canonical | department, location, team                                 |
-| MODULE_03 | modules/SMARTOUT_MODULE_3_SCHEDULING.md       | canonical | schedule_shift                                             |
-| MODULE_04 | modules/SMARTOUT_MODULE_4_OPERATIONS.md       | canonical | department_session, session_task                           |
-| MODULE_05 | modules/SMARTOUT_MODULE_5_HACCP.md            | canonical | asset, control_list                                        |
-| MODULE_06 | modules/SMARTOUT_MODULE_6_TRAINING.md         | canonical | procedure, knowledge_test                                  |
-| MODULE_07 | modules/SMARTOUT_MODULE_7_ABSENCE.md          | draft     | --                                                         |
-| MODULE_08 | modules/SMARTOUT_MODULE_8_PAYROLL.md          | draft     | --                                                         |
-| MODULE_09 | modules/SMARTOUT_MODULE_9_COMMUNICATION.md    | canonical | notification_outbox, notification_preference               |
-| MODULE_10 | modules/SMARTOUT_MODULE_10_REPORTS.md         | canonical | platform_metrics_daily                                     |
-| MODULE_11 | modules/SMARTOUT_MODULE_11_SETTINGS.md        | draft     | --                                                         |
-| MODULE_12 | modules/SMARTOUT_MODULE_12_AI.md              | canonical | onboarding_session                                         |
-| MODULE_13 | modules/SMARTOUT_MODULE_13_MULTITENANT.md     | canonical | workspace, company, company_member                         |
-| MODULE_14 | modules/SMARTOUT_MODULE_14_PRODUCTION.md      | canonical | --                                                         |
-| MODULE_15 | modules/SMARTOUT_MODULE_15_SEASON_PLANNING.md | canonical | season                                                     |
-| MODULE_17 | modules/SMARTOUT_MODULE_17_PLATFORM_ADMIN.md  | canonical | platform_audit_log, platform_metrics_daily, landing_config |
-| MODULE_18 | modules/SMARTOUT_MODULE_18_WEBRTC.md          | canonical | --                                                         |
+| id        | File                                          | Status      | Key Tables                                                 |
+| --------- | --------------------------------------------- | ----------- | ---------------------------------------------------------- |
+| MODULE_01 | modules/SMARTOUT_MODULE_1_ONBOARDING.md       | canonical   | onboarding_session                                         |
+| MODULE_02 | modules/SMARTOUT_MODULE_2_ORG_STRUCTURE.md    | canonical   | department, location, team                                 |
+| MODULE_03 | modules/SMARTOUT_MODULE_3_SCHEDULING.md       | canonical   | schedule_shift                                             |
+| MODULE_04 | modules/SMARTOUT_MODULE_4_OPERATIONS.md       | canonical   | department_session, session_task                           |
+| MODULE_05 | modules/SMARTOUT_MODULE_5_HACCP.md            | canonical   | asset, control_list                                        |
+| MODULE_06 | modules/SMARTOUT_MODULE_6_TRAINING.md         | canonical   | procedure, knowledge_test                                  |
+| MODULE_07 | modules/SMARTOUT_MODULE_7_ABSENCE.md          | draft       | --                                                         |
+| MODULE_08 | modules/SMARTOUT_MODULE_8_PAYROLL.md          | draft       | --                                                         |
+| MODULE_09 | modules/SMARTOUT_MODULE_9_COMMUNICATION.md    | canonical   | notification_outbox, notification_preference               |
+| MODULE_10 | modules/SMARTOUT_MODULE_10_REPORTS.md         | design-spec | custom_report                                              |
+| MODULE_11 | modules/SMARTOUT_MODULE_11_SETTINGS.md        | draft       | --                                                         |
+| MODULE_12 | modules/SMARTOUT_MODULE_12_AI.md              | canonical   | onboarding_session                                         |
+| MODULE_13 | modules/SMARTOUT_MODULE_13_MULTITENANT.md     | canonical   | workspace, company, company_member                         |
+| MODULE_14 | modules/SMARTOUT_MODULE_14_PRODUCTION.md      | canonical   | --                                                         |
+| MODULE_15 | modules/SMARTOUT_MODULE_15_SEASON_PLANNING.md | canonical   | season                                                     |
+| MODULE_17 | modules/SMARTOUT_MODULE_17_PLATFORM_ADMIN.md  | canonical   | platform_audit_log, platform_metrics_daily, landing_config |
+| MODULE_18 | modules/SMARTOUT_MODULE_18_WEBRTC.md          | canonical   | --                                                         |
 
 ### Architecture (Layer 3)
 

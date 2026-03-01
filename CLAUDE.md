@@ -44,7 +44,7 @@ smartout_v3/
 ├── apps/e2e/          → Playwright tests
 ├── packages/          → ai, design-tokens, docs-pipeline, eslint-config, notifications,
 │                        supabase, telemetry, types, typescript-config, ui, utils
-├── services/          → contract-service (Fastify, port 3100), scrapling (Python)
+├── services/          → contract-service (Fastify, port 3100), shift-mcp (MCP, port 3001), scrapling (Python)
 ├── supabase/          → migrations, 15 Edge Functions, seed.sql
 ├── agents/            → Pydantic AI agents (Python)
 └── docs/              → INDEX.md + reference/ modules/ architecture/ decisions/ learnings/
@@ -68,6 +68,7 @@ smartout_v3/
 - API key tables: `platform_api_key` (SHA-256 hashes), `platform_api_key_usage` (hourly buckets), `platform_external_secret` (Vault metadata). See ADR-0028.
 - Enums: `api_key_version_status` (current/previous/revoked), `api_key_type` (workspace/service).
 - Vault wrappers: `get_secret()`, `upsert_secret()`, `delete_vault_secret()` — SECURITY DEFINER, service_role only.
+- Schedule table: `schedule_shift` (not `shift`). Enums: `shift_status`, `day_category`. See ADR-0036.
 
 > Full schema, tables, enums, RLS patterns: `docs/reference/DATABASE.md`
 
@@ -210,8 +211,8 @@ Skip steps 3-5 only if the table is internal-only (platform-admin, audit logs).
 | Scope              | Tables                                        | Status  |
 | ------------------ | --------------------------------------------- | ------- |
 | `profiles:read`    | profile, department, location, team, position | Active  |
-| `schedules:read`   | schedule_shift (future)                       | Planned |
-| `schedules:write`  | schedule_shift (future)                       | Planned |
+| `schedules:read`   | schedule_shift                                | Active  |
+| `schedules:write`  | schedule_shift                                | Active  |
 | `operations:read`  | department_session (future)                   | Planned |
 | `operations:write` | department_session (future)                   | Planned |
 | `haccp:read`       | haccp_log (future)                            | Planned |
@@ -303,6 +304,7 @@ cd apps/web && npx shadcn@latest add <component>
 
 | Date       | Version | Change                                                                                    | Author |
 | ---------- | ------- | ----------------------------------------------------------------------------------------- | ------ |
+| 2026-03-01 | 7.7.0   | shift-mcp service, schedule_shift table, ADR-0036, schedules scope active                 | Claude |
 | 2026-03-01 | 7.6.0   | workspace-api gateway: 7 endpoints, usage tracking, env enforcement, 15 Edge Functions    | Claude |
 | 2026-03-01 | 7.5.0   | API Gateway enforcement: mandatory checklists, scope table, service auth, env enforcement | Claude |
 | 2026-03-01 | 7.4.0   | Inline security summary: Three Laws, API key tiers, env vars always in context            | Claude |

@@ -1,11 +1,11 @@
 ---
 title: "Module 10: Reports, Dashboards & Reconciliation"
 id: MODULE_10
-version: "1.0"
-status: canonical
+version: "1.1"
+status: design-spec
 layer: module
 created: 2026-02-24
-updated: 2026-02-28
+updated: 2026-03-01
 author: pontus
 supersedes: []
 superseded_by: null
@@ -20,7 +20,9 @@ tags:
   - kpis
   - settlement
   - qr-routines
-tables:
+tables_implemented:
+  - custom_report
+tables_planned:
   - deviation
   - daily_reconciliation
   - shift_approval
@@ -29,7 +31,14 @@ tables:
   - location_routine_session
   - role_reconciliation
   - season_reconciliation
+implementation_notes: |
+  Only the AI-powered custom report builder is implemented (custom_report table,
+  reports-agent API, 6 data sources, 4 visualizations). The full reconciliation
+  system (daily reconciliation, settlement/OCR, deviation motor, KPI dashboard,
+  alert engine, QR routines, role/season reconciliation) remains unbuilt.
 changelog:
+  - date: 2026-03-01
+    change: "Updated status to design-spec. Split tables into implemented vs planned."
   - date: 2026-02-28
     change: "Added YAML frontmatter"
 ---

@@ -5,7 +5,7 @@ version: "1.0"
 status: canonical
 layer: reference
 created: 2026-02-28
-updated: 2026-02-28
+updated: 2026-03-01
 author: claude
 supersedes: []
 superseded_by: null
@@ -57,6 +57,7 @@ tables:
     routine,
     runbook,
     runbook_step,
+    schedule_shift,
     team_member,
     zone,
   ]
@@ -147,6 +148,27 @@ Single source of truth for all database tables, enums, RLS patterns, naming conv
 | `onboarding_session`  | `onboarding_session_id`  | AI onboarding session state and context.                              |
 | `invitation`          | `invitation_id`          | Workspace invitations. Status: pending, accepted, expired, cancelled. |
 | `employment_contract` | `employment_contract_id` | Employment contracts (uses `contract_status` enum).                   |
+
+### Schedule (workspace_id scoped, ADR-0036)
+
+| Table            | PK                  | Purpose                                                                                  |
+| ---------------- | ------------------- | ---------------------------------------------------------------------------------------- |
+| `schedule_shift` | `schedule_shift_id` | Individual work shifts. FK to profile (employee), position, team. Has RLS JWT + API key. |
+
+**Key columns:** `shift_date` (DATE), `start_time`/`end_time` (TIME), `work_hours` (NUMERIC(4,2) computed), `breaks` (INTEGER minutes), `status` (shift_status enum), `day_category` (day_category enum), `is_published` (BOOLEAN), `employee_id` (nullable → unassigned shift), `zone`, `indicator` (default 'blue'), `notes`.
+
+**FKs:** `workspace_id` → workspace (CASCADE), `employee_id` → profile (SET NULL), `position_id` → position (SET NULL), `team_id` → team (SET NULL).
+
+**RLS (8 policies, dual-auth):**
+
+- JWT: `jwt_read_schedule_shift` (SELECT, workspace member), `jwt_insert/update/delete_schedule_shift` (admin via `is_admin_in_workspace`)
+- API key: `api_key_read/insert/update/delete_schedule_shift` (via `get_api_workspace_id()`)
+
+**Indexes:** `(workspace_id, shift_date)`, `(employee_id, shift_date)`, `(workspace_id, status)`
+
+**New SQL enums:** `shift_status` (created, assigned, published, active, completed, unpublished), `day_category` (morning, midday, afternoon, evening, night, weekend).
+
+**Planned future tables:** `absence`, `shift_template`, `shift_history`, `shift_task`, `day_info`.
 
 ### Communication (workspace_id scoped)
 
@@ -302,6 +324,13 @@ Enums from `packages/supabase/src/database.types.ts` (auto-generated, never edit
 | `routine_assigned_to_type`      | team, role, profile                                     |
 | `trigger_type`                  | scheduled, event                                        |
 
+### Schedule
+
+| Enum           | Values                                                       |
+| -------------- | ------------------------------------------------------------ |
+| `shift_status` | created, assigned, published, active, completed, unpublished |
+| `day_category` | morning, midday, afternoon, evening, night, weekend          |
+
 ### Operations & Time
 
 | Enum            | Values                                  |
@@ -337,7 +366,7 @@ These enums are defined in `packages/types/src/enums.ts` as Zod schemas but may 
 - `SessionStatus`: upcoming, active, pending_signoff, closed, missed
 - `TaskStatus`: pending, available, in_progress, completed, skipped, overdue, escalated
 - `HookType`: pre_open, open, scheduled, pre_close, close, custom
-- `DayCategory`: morning, midday, afternoon, evening, night, weekend
+- ~~`DayCategory`~~: now `day_category` DB enum (migration 20260301300000)
 - `EmploymentCategory`: full_time, part_time, temporary, flexible, apprentice
 - `ContractType`: permanent, temporary, freelance, apprentice, substitute
 - `RateType`: fixed, hourly, multiplier, percentage, calculated

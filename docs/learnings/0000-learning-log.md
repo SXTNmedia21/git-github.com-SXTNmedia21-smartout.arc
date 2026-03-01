@@ -1,6 +1,6 @@
 ---
 title: "Learning Log"
-updated: 2026-02-28
+updated: 2026-03-01
 ---
 
 # Learning Log
@@ -20,3 +20,5 @@ This document serves as the central index of all Learning Records within the Sma
 | 0009 | 28-02-2026 | [.vercelignore patterns without leading / match at any depth](./0009-vercelignore-depth-matching.md)                                  | vercel, gitignore, build, monorepo          |
 | 0010 | 28-02-2026 | [Vercel Turborepo monorepo — Root Directory is app dir, not monorepo root](./0010-vercel-turborepo-root-directory.md)                 | vercel, turborepo, monorepo, deployment     |
 | 0011 | 28-02-2026 | [Framer Motion Landing Page Animation Patterns](./0011-framer-motion-landing-animation-patterns.md)                                   | framer-motion, animation, landing, ux       |
+| 0012 | 01-03-2026 | [MCP TypeScript SDK uses single package with deep imports](./0012-mcp-sdk-package-structure.md)                                       | mcp, sdk, npm, imports, ai-agents           |
+| 0013 | 01-03-2026 | [Ultravox HTTP tools: no headers on http object, use staticParameters](./0013-ultravox-http-tool-parameters.md)                       | ultravox, voice-ai, stage-engine, api       |
