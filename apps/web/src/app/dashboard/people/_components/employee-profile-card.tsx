@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   Clock,
   AlertTriangle,
+  AlertCircle,
   ChevronRight,
   Phone,
   Mail,
@@ -16,6 +17,7 @@ import {
   MessageSquare,
   History,
   Wallet,
+  Loader2,
 } from "lucide-react";
 import { useState, useEffect, useContext } from "react";
 import { toast } from "sonner";
@@ -52,6 +54,49 @@ export function EmployeeProfileCard({
   const [hrBankAccount, setHrBankAccount] = useState("");
   const [hrEmergencyName, setHrEmergencyName] = useState("");
   const [hrEmergencyPhone, setHrEmergencyPhone] = useState("");
+  const [protocols, setProtocols] = useState<
+    Array<{
+      assignment_id: string;
+      status: string;
+      protocol: { name: string } | null;
+    }>
+  >([]);
+  const [loadingProtocols, setLoadingProtocols] = useState(false);
+  const [teams, setTeams] = useState<Array<{ team_id: string; name: string; team_type: string }>>(
+    [],
+  );
+
+  async function fetchProtocols() {
+    if (!employee?.profileId) return;
+    setLoadingProtocols(true);
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("protocol_assignment")
+      .select("assignment_id, status, protocol:protocol_id(name)")
+      .eq("profile_id", employee.profileId);
+    setProtocols(
+      (data ?? []).map((d) => ({
+        assignment_id: d.assignment_id,
+        status: d.status,
+        protocol: d.protocol as { name: string } | null,
+      })),
+    );
+    setLoadingProtocols(false);
+  }
+
+  async function fetchTeams() {
+    if (!employee?.profileId) return;
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("team_member")
+      .select("team:team_id(team_id, name, team_type)")
+      .eq("profile_id", employee.profileId);
+    setTeams(
+      (data ?? [])
+        .map((d) => d.team as { team_id: string; name: string; team_type: string } | null)
+        .filter(Boolean) as Array<{ team_id: string; name: string; team_type: string }>,
+    );
+  }
 
   useEffect(() => {
     if (employee) {
@@ -65,6 +110,8 @@ export function EmployeeProfileCard({
       setHrEmergencyPhone(employee.emergencyContactPhone ?? "");
       setEditingHr(false);
       setActiveTab("overview");
+      fetchProtocols();
+      fetchTeams();
     }
   }, [employee]);
 
@@ -287,6 +334,30 @@ export function EmployeeProfileCard({
                 </div>
               </div>
 
+              {teams.length > 0 && (
+                <div>
+                  <h3
+                    className={`mb-3 text-xs font-bold tracking-widest uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+                  >
+                    Teams
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {teams.map((t) => (
+                      <span
+                        key={t.team_id}
+                        className={`rounded-lg border px-2.5 py-1 text-xs font-medium ${
+                          isDark
+                            ? "border-zinc-800 bg-zinc-900 text-zinc-300"
+                            : "border-zinc-200 bg-zinc-50 text-zinc-700"
+                        }`}
+                      >
+                        {t.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div>
                 <h3 className="mb-3 text-xs font-bold tracking-widest text-zinc-500 uppercase">
                   Recent Activity
@@ -350,70 +421,87 @@ export function EmployeeProfileCard({
               )}
 
               <div>
-                <h3 className="mb-3 flex items-center justify-between text-xs font-bold tracking-widest text-zinc-500 uppercase">
+                <h3
+                  className={`mb-3 flex items-center justify-between text-xs font-bold tracking-widest uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+                >
                   <span>Assigned Protocols</span>
-                  <span className="font-medium text-zinc-600">3/4 Completed</span>
+                  {protocols.length > 0 && (
+                    <span className="font-medium text-zinc-600">
+                      {protocols.filter((p) => p.status === "completed").length}/{protocols.length}{" "}
+                      Completed
+                    </span>
+                  )}
                 </h3>
 
-                <div className="space-y-2">
-                  <div className="group flex cursor-pointer items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900 p-3 transition-colors hover:border-zinc-700">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
-                        <CheckCircle2 className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-zinc-200 transition-colors group-hover:text-white">
-                          HACCP Temperature Rules
-                        </p>
-                        <p className="mt-0.5 text-[10px] tracking-wider text-zinc-500 uppercase">
-                          Completed Jan 12
-                        </p>
-                      </div>
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-zinc-600 transition-colors group-hover:text-zinc-400" />
+                {loadingProtocols ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-5 w-5 animate-spin text-zinc-500" />
                   </div>
-
-                  <div className="group flex cursor-pointer items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900 p-3 transition-colors hover:border-zinc-700">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
-                        <CheckCircle2 className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-zinc-200 transition-colors group-hover:text-white">
-                          Kitchen Hygiene Standards
-                        </p>
-                        <p className="mt-0.5 text-[10px] tracking-wider text-zinc-500 uppercase">
-                          Completed Jan 10
-                        </p>
-                      </div>
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-zinc-600 transition-colors group-hover:text-zinc-400" />
-                  </div>
-
-                  {(employee.readinessScore ?? 0) < 100 && employee.status !== "invited" && (
-                    <div className="group flex cursor-pointer items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/50 p-3 transition-colors hover:border-zinc-700">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-500/10 text-orange-500">
-                          <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-orange-500" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-zinc-200 transition-colors group-hover:text-white">
-                            Allergen Safety v2
-                          </p>
-                          <div className="mt-1 flex items-center gap-2">
-                            <div className="h-1 w-16 overflow-hidden rounded-full bg-zinc-800">
-                              <div className="h-full w-[60%] rounded-full bg-orange-500" />
+                ) : protocols.length === 0 ? (
+                  <p
+                    className={`py-4 text-center text-sm ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+                  >
+                    No protocols assigned
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {protocols.map((p) => (
+                      <div
+                        key={p.assignment_id}
+                        className={`group flex cursor-pointer items-center justify-between rounded-lg border p-3 transition-colors ${
+                          isDark
+                            ? "border-zinc-800 bg-zinc-900 hover:border-zinc-700"
+                            : "border-zinc-200 bg-zinc-50 hover:border-zinc-300"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          {p.status === "completed" ? (
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
+                              <CheckCircle2 className="h-4 w-4" />
                             </div>
-                            <span className="text-[10px] font-semibold tracking-wider text-orange-500 uppercase">
-                              60%
-                            </span>
+                          ) : p.status === "expired" ? (
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-rose-500/10 text-rose-500">
+                              <AlertCircle className="h-4 w-4" />
+                            </div>
+                          ) : (
+                            <div
+                              className={`flex h-8 w-8 items-center justify-center rounded-full ${isDark ? "bg-zinc-800 text-zinc-500" : "bg-zinc-200 text-zinc-400"}`}
+                            >
+                              <Clock className="h-4 w-4" />
+                            </div>
+                          )}
+                          <div>
+                            <p
+                              className={`text-sm font-bold transition-colors ${isDark ? "text-zinc-200 group-hover:text-white" : "text-zinc-700 group-hover:text-zinc-900"}`}
+                            >
+                              {p.protocol?.name ?? "Unknown Protocol"}
+                            </p>
+                            {p.status === "completed" && (
+                              <p className="mt-0.5 text-[10px] tracking-wider text-emerald-500 uppercase">
+                                Completed
+                              </p>
+                            )}
+                            {p.status === "pending" && (
+                              <p
+                                className={`mt-0.5 text-[10px] tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+                              >
+                                Pending
+                              </p>
+                            )}
+                            {p.status === "expired" && (
+                              <p className="mt-0.5 text-[10px] tracking-wider text-rose-500 uppercase">
+                                Expired
+                              </p>
+                            )}
                           </div>
                         </div>
+                        <ChevronRight
+                          className={`h-4 w-4 transition-colors ${isDark ? "text-zinc-600 group-hover:text-zinc-400" : "text-zinc-400 group-hover:text-zinc-600"}`}
+                        />
                       </div>
-                      <ChevronRight className="h-4 w-4 text-zinc-600 transition-colors group-hover:text-zinc-400" />
-                    </div>
-                  )}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
