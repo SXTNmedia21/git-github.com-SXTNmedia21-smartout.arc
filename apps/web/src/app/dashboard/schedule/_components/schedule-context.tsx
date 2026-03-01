@@ -634,11 +634,11 @@ function scheduleReducer(state: ScheduleState, action: ScheduleAction): Schedule
  * @returns work hours as decimal number
  */
 function calculateWorkHours(startTime: string, endTime: string, breakMinutes: number): number {
-  const [startH, startM] = startTime.split(":").map(Number);
-  const [endH, endM] = endTime.split(":").map(Number);
+  const startParts = startTime.split(":").map(Number);
+  const endParts = endTime.split(":").map(Number);
 
-  let startMinutes = startH * 60 + startM;
-  let endMinutes = endH * 60 + endM;
+  let startMinutes = (startParts[0] ?? 0) * 60 + (startParts[1] ?? 0);
+  let endMinutes = (endParts[0] ?? 0) * 60 + (endParts[1] ?? 0);
 
   // Handle overnight shifts
   if (endMinutes <= startMinutes) {
