@@ -70,7 +70,7 @@ export function CreatePositionDialog({
       name: name.trim(),
       slug: toSlug(name),
       description: description.trim() || null,
-      minimum_role: minimumRole,
+      minimum_role: minimumRole as "owner" | "admin" | "manager" | "employee",
       color: selectedColor,
       icon: selectedIcon,
       department_id: departmentId,
