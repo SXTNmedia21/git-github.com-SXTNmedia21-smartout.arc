@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import type { Variants } from "framer-motion";
 import { motion } from "framer-motion";
@@ -34,12 +35,12 @@ import Navigation from "../components/navigation";
 import Footer from "../components/footer";
 import WorkspaceAnalyzer from "../components/workspace-analyzer";
 import { WEB_APP_LINKS } from "../lib/web-app-url";
-import VariantELanding from "../components/landing/VariantELanding";
-import VariantTLanding from "../components/landing/VariantTLanding";
-import VariantKLanding from "../components/landing/VariantKLanding";
-import VariantALanding from "../components/landing/VariantALanding";
-import VariantFLanding from "../components/landing/VariantFLanding";
-import VariantSLanding from "../components/landing/VariantSLanding";
+const VariantELanding = dynamic(() => import("../components/landing/VariantELanding"));
+const VariantTLanding = dynamic(() => import("../components/landing/VariantTLanding"));
+const VariantKLanding = dynamic(() => import("../components/landing/VariantKLanding"));
+const VariantALanding = dynamic(() => import("../components/landing/VariantALanding"));
+const VariantFLanding = dynamic(() => import("../components/landing/VariantFLanding"));
+const VariantSLanding = dynamic(() => import("../components/landing/VariantSLanding"));
 import VoiceDemoWidget from "../components/landing/VoiceDemoWidget";
 import { useVariant } from "../lib/landing-variant";
 import { usePageTracking, useTrackCta } from "../hooks/useTracking";
