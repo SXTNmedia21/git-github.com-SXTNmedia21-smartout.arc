@@ -397,6 +397,9 @@ entrypoint = "./functions/create-invitation/index.ts"
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/create-invitation/*.html" ]
 
+[functions.accept-invitation]
+verify_jwt = false
+
 [functions.validate-api-key]
 verify_jwt = false
 
