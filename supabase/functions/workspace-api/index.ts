@@ -1,16 +1,17 @@
 import { corsHeaders } from "../_shared/cors.ts";
 import { resolveAuth } from "../_shared/auth-middleware.ts";
 import { checkRateLimit } from "../_shared/rate-limit.ts";
-import { executeWithWorkspaceContext } from "../_shared/api-key-auth.ts";
+import { executeWithWorkspaceContext, logUsage } from "../_shared/api-key-auth.ts";
 import { requireScope } from "../_shared/scope-middleware.ts";
 
 import { handleGetProfiles } from "./handlers/profiles.ts";
 import {
-import { handleGetContracts } from "./handlers/contracts.ts";
   handleGetDepartments,
   handleGetTeams,
   handleGetLocations,
 } from "./handlers/organization.ts";
+import { handleGetContracts } from "./handlers/contracts.ts";
+import { handleGetProtocols, handleGetAssignments } from "./handlers/training.ts";
 
 // ── Route handlers ──
 
@@ -25,6 +26,7 @@ routes["GET /v1/profiles"] = handleGetProfiles;
 routes["GET /v1/departments"] = handleGetDepartments;
 routes["GET /v1/teams"] = handleGetTeams;
 routes["GET /v1/locations"] = handleGetLocations;
+routes["GET /v1/contracts"] = handleGetContracts;
 
 // ── Main router ──
 
@@ -74,7 +76,14 @@ Deno.serve(async (req) => {
     }
 
     // 5. Execute handler
-    return await handler({ workspaceId: auth.workspaceId, scopes: auth.scopes }, url);
+    const response = await handler({ workspaceId: auth.workspaceId, scopes: auth.scopes }, url);
+
+    // 6. Fire-and-forget usage logging (only for API key auth, not JWT)
+    if (auth.method === "api_key" && auth.keyId) {
+      logUsage(auth.keyId, fnPath, response.status).catch(() => {});
+    }
+
+    return response;
   } catch (error: unknown) {
     console.error("[workspace-api]", error);
     return jsonError(500, "Internal server error");

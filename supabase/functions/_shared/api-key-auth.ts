@@ -8,6 +8,7 @@ export interface ApiKeyContext {
   keyType: "workspace" | "service";
   scopes: string[];
   rateLimitPerMinute: number;
+  environment: "live" | "test";
 }
 
 export async function validateApiKey(plaintextKey: string): Promise<ApiKeyContext | null> {
@@ -21,6 +22,7 @@ export async function validateApiKey(plaintextKey: string): Promise<ApiKeyContex
       key_type: string;
       scopes: string[];
       rate_limit_per_minute: number;
+      environment: "live" | "test";
     }>(
       `
       UPDATE platform_api_key
@@ -29,7 +31,7 @@ export async function validateApiKey(plaintextKey: string): Promise<ApiKeyContex
         AND version IN ('current', 'previous')
         AND (expires_at IS NULL OR expires_at > now())
         AND (grace_period_ends_at IS NULL OR grace_period_ends_at > now())
-      RETURNING id, workspace_id, key_type, scopes, rate_limit_per_minute
+      RETURNING id, workspace_id, key_type, scopes, rate_limit_per_minute, environment
     `,
       [keyHash],
     );
@@ -43,6 +45,7 @@ export async function validateApiKey(plaintextKey: string): Promise<ApiKeyContex
       keyType: row.key_type as "workspace" | "service",
       scopes: row.scopes ?? [],
       rateLimitPerMinute: row.rate_limit_per_minute ?? 60,
+      environment: row.environment,
     };
   } finally {
     conn.release();
@@ -67,6 +70,27 @@ export async function executeWithWorkspaceContext<T>(
   } catch (err) {
     await conn.queryArray("ROLLBACK");
     throw err;
+  } finally {
+    conn.release();
+  }
+}
+
+export async function logUsage(keyId: string, endpoint: string, statusCode: number): Promise<void> {
+  const conn = await pool.connect();
+  try {
+    // Hourly bucket: truncate to hour
+    await conn.queryObject(
+      `INSERT INTO platform_api_key_usage (api_key_id, endpoint, hour_bucket, request_count, error_count)
+       VALUES ($1, $2, date_trunc('hour', now()), 1, $3)
+       ON CONFLICT (api_key_id, endpoint, hour_bucket)
+       DO UPDATE SET
+         request_count = platform_api_key_usage.request_count + 1,
+         error_count = platform_api_key_usage.error_count + $3`,
+      [keyId, endpoint, statusCode >= 400 ? 1 : 0],
+    );
+  } catch (err) {
+    // Usage logging should never block the response
+    console.error("[usage-tracking]", err);
   } finally {
     conn.release();
   }
