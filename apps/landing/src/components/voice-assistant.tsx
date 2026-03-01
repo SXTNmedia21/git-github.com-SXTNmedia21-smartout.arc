@@ -11,12 +11,22 @@ interface VoiceAssistantProps {
   onClose?: () => void;
   autoStart?: boolean;
   missionId?: MissionId;
+  /** When true, route through the Stage Engine instead of direct Ultravox. */
+  useEngine?: boolean;
+  /** Per-variant context passed to the API so Lise adapts her tone. */
+  variantContext?: {
+    variant: string;
+    personaName: string;
+    personaRole: string;
+  };
 }
 
 export default function VoiceAssistant({
   onClose,
   autoStart = false,
   missionId = "landing-demo",
+  useEngine = false,
+  variantContext,
 }: VoiceAssistantProps) {
   const [status, setStatus] = useState<UltravoxSessionStatus | "idle">("idle");
   const [messages, setMessages] = useState<{ role: string; text: string }[]>([]);
@@ -61,10 +71,15 @@ export default function VoiceAssistant({
 
       let joinUrl = "";
       try {
-        const res = await fetch("/api/wizard/start", {
+        const apiEndpoint = useEngine ? "/api/wizard/engine-start" : "/api/wizard/start";
+
+        const res = await fetch(apiEndpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ mission_id: missionId }),
+          body: JSON.stringify({
+            mission_id: missionId,
+            template_context: variantContext ?? undefined,
+          }),
         });
         if (res.ok) {
           const data = await res.json();
