@@ -18,6 +18,7 @@ export const env = createEnv({
     SENTRY_DSN: z.string().url().optional(),
     DOCUSEAL_WEBHOOK_SECRET: z.string().optional(),
     ULTRAVOX_API_KEY: z.string().optional(),
+    OPENAI_API_KEY: z.string().startsWith("sk-").optional(),
     CONTRACT_SERVICE_URL: z.string().url().optional(),
     CONTRACT_SERVICE_KEY: z.string().min(16).optional(),
     SCRAPLING_SERVICE_URL: z.string().url().optional(),

@@ -18,6 +18,13 @@ export { ONBOARDING_TOOLS } from "./tools/onboarding";
 export { CONTRACT_TOOLS } from "./tools/contract";
 export type { EditorAction, ContractEditorState, ContractToolContext } from "./tools/contract";
 
+// Doc retrieval tools (RAG)
+export { DOC_TOOLS, searchPlatformDocs, getDocByPath } from "./tools/docs";
+export type { DocToolContext } from "./tools/docs";
+
+// Embedding
+export { getQueryEmbedding } from "./embedding";
+
 // Agents — import via subpath: @smartout/ai/agents/onboarding, @smartout/ai/agents/docs, @smartout/ai/agents/contract
 // (not re-exported from barrel to avoid pulling heavy deps into unrelated routes)
 
