@@ -1,6 +1,6 @@
 ---
 title: "Worklog — test-feature"
-status: in_progress
+status: done
 updated: 2026-03-01
 created: 2026-03-01
 module: testing
@@ -11,7 +11,7 @@ tags: []
 
 > Branch: `feat/test-feature` | Worktree: wt-9 | Started: 2026-03-01
 
-## Status: 🟡 In Progress
+## Status: ✅ Done
 
 ## Done
 
@@ -28,6 +28,7 @@ tags: []
 
 ## Log
 
-| Date       | Time  | Event           |
-| ---------- | ----- | --------------- |
-| 2026-03-01 | 22:20 | Feature started |
+| Date       | Time  | Event                                    |
+| ---------- | ----- | ---------------------------------------- |
+| 2026-03-01 | 22:20 | Feature started                          |
+| 2026-03-01 | 23:31 | Feature closed and merged to development |

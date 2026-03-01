@@ -5,6 +5,7 @@ import Navigation from "../../components/navigation";
 import Footer from "../../components/footer";
 import { WEB_APP_LINKS } from "../../lib/web-app-url";
 import { PageTracker, TrackedCta } from "../../components/tracking";
+import { SignupVisitorLinker } from "../../components/signup-visitor-linker";
 
 export const metadata: Metadata = {
   title: "Opprett konto — SmartOut",
@@ -45,6 +46,7 @@ export default function SignupPage() {
 
       {/* Navigation */}
       <PageTracker />
+      <SignupVisitorLinker />
       <Navigation />
 
       <main className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6 pt-16">

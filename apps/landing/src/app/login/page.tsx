@@ -4,7 +4,7 @@ import { ArrowRight, LogIn } from "lucide-react";
 import Navigation from "../../components/navigation";
 import Footer from "../../components/footer";
 import { WEB_APP_LINKS } from "../../lib/web-app-url";
-import { PageTracker, TrackedCta } from "../../components/tracking";
+import { FullTracker, TrackedCta } from "../../components/tracking";
 
 export const metadata: Metadata = {
   title: "Logg inn — SmartOut",
@@ -44,7 +44,7 @@ export default function LoginPage() {
       </div>
 
       {/* Navigation */}
-      <PageTracker />
+      <FullTracker />
       <Navigation />
 
       <main className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6 pt-16">

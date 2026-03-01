@@ -1,13 +1,11 @@
 // ============================================
 // platform-admin/landing/page.tsx
-// Server component: fetches landing_event data and renders
-// the landing page activity feed for platform admins.
+// Server component: fetches landing_event + landing_session data
+// and renders the tabbed admin view (Sessions + Events).
 //
-// Shows all visits, voice sessions, and CTA clicks from the
-// public landing page. Useful for tracking funnel performance
-// and understanding visitor behavior.
-//
-// Connected to: _components/landing-activity-client.tsx (renders data)
+// Connected to: _components/landing-tabs.tsx (tab container)
+//               _components/landing-activity-client.tsx (events tab)
+//               _components/sessions-tab.tsx (sessions tab)
 //               apps/landing/src/app/api/track/route.ts (writes events)
 //               apps/landing/src/app/api/wizard/start/route.ts (writes voice events)
 // ============================================
@@ -15,12 +13,51 @@
 import { createAdminClient } from "@smartout/supabase/admin";
 import { getSuperAdminId } from "@/lib/platform-admin";
 import { redirect } from "next/navigation";
-import { LandingActivityClient } from "./_components/landing-activity-client";
+import { LandingTabs } from "./_components/landing-tabs";
 import type { LandingEventRow } from "./_components/landing-columns";
+
+// TODO: Remove UntypedClient cast after regenerating database.types.ts
+// (landing_visitor + landing_session tables are not yet in the generated types)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type UntypedClient = ReturnType<typeof createAdminClient> & { from: (table: string) => any };
+
+// ── Exported types ────────────────────────────────────────────
+
+/** Shape of a landing session row with joined visitor + user_identity data. */
+export type SessionRow = {
+  id: string;
+  visitor_id: string;
+  session_id: string;
+  started_at: string;
+  ended_at: string | null;
+  duration_seconds: number | null;
+  max_scroll_depth: number;
+  page_count: number;
+  click_count: number;
+  cta_click_count: number;
+  variant: string | null;
+  referrer: string | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  device_type: string | null;
+  visitor: {
+    id: string;
+    visit_count: number;
+    first_seen: string;
+    user_identity_id: string | null;
+    manual_label: string | null;
+    user_identity: {
+      full_name: string | null;
+      email: string | null;
+    } | null;
+  } | null;
+};
+
+// ── Date helpers ──────────────────────────────────────────────
 
 /**
  * Returns today's date as a UTC ISO string at midnight.
- * Used to filter events created today.
+ * Used to filter events/sessions created today.
  */
 function todayUtcStart(): string {
   const d = new Date();
@@ -39,23 +76,31 @@ function sevenDaysAgoUtcStart(): string {
   return d.toISOString();
 }
 
+// ── Page component ────────────────────────────────────────────
+
 export default async function LandingActivityPage() {
   // Guard: only platform admins can access this page
   const adminId = await getSuperAdminId();
   if (!adminId) redirect("/dashboard");
 
-  const admin = createAdminClient();
+  // TODO: Remove cast after regenerating database.types.ts
+  const admin = createAdminClient() as unknown as UntypedClient;
   const today = todayUtcStart();
   const sevenDaysAgo = sevenDaysAgoUtcStart();
 
-  // Fetch all counts and the event list in parallel for minimal latency
+  // Fetch all event + session data in parallel for minimal latency
   const [
     { data: events },
     { count: visitsToday },
     { count: voiceSessionsToday },
     { count: ctaClicksToday },
-    { data: recentSessions },
+    { data: recentEventSessions },
+    { data: sessions },
+    { data: sessionsToday },
+    { data: sessions7d },
   ] = await Promise.all([
+    // ── Event queries (unchanged) ──
+
     // Last 200 events for the activity table
     admin
       .from("landing_event")
@@ -86,19 +131,97 @@ export default async function LandingActivityPage() {
       .eq("event_type", "cta_click")
       .gte("created_at", today),
 
-    // Unique session IDs in the last 7 days (used to compute unique visitor count)
-    // Supabase doesn't support COUNT(DISTINCT) via the JS client, so we fetch
-    // all session_ids for the period and deduplicate in JS.
+    // Unique session IDs in the last 7 days (for event-based unique count)
     admin
       .from("landing_event")
       .select("session_id")
       .not("session_id", "is", null)
       .gte("created_at", sevenDaysAgo),
+
+    // ── Session queries (new) ──
+
+    // Last 200 sessions with joined visitor data
+    admin
+      .from("landing_session")
+      .select(
+        `id, visitor_id, session_id, started_at, ended_at, duration_seconds,
+         max_scroll_depth, page_count, click_count, cta_click_count,
+         variant, referrer, ip_address, user_agent, device_type,
+         visitor:landing_visitor(
+           id, visit_count, first_seen, user_identity_id, manual_label,
+           user_identity:user_identity(full_name, email)
+         )`,
+      )
+      .order("started_at", { ascending: false })
+      .limit(200),
+
+    // Today's sessions for avg duration + avg scroll
+    admin
+      .from("landing_session")
+      .select("duration_seconds, max_scroll_depth, visitor_id")
+      .gte("started_at", today),
+
+    // Last 7 days sessions for returning visitor count
+    admin
+      .from("landing_session")
+      .select(`visitor_id, visitor:landing_visitor(visit_count)`)
+      .gte("started_at", sevenDaysAgo),
   ]);
 
-  // Deduplicate session IDs in JS to get unique visitor count
-  const uniqueSessions7d = new Set((recentSessions ?? []).map((r) => r.session_id).filter(Boolean))
-    .size;
+  // ── Compute event-based KPIs ──
+
+  const uniqueSessions7d = new Set(
+    (recentEventSessions ?? []).map((r) => r.session_id).filter(Boolean),
+  ).size;
+
+  // ── Compute session-based KPIs ──
+
+  // Type aliases for untyped query results (pending database.types.ts regeneration)
+  type SessionTodayRow = {
+    duration_seconds: number | null;
+    max_scroll_depth: number;
+    visitor_id: string;
+  };
+  type SessionWeekRow = { visitor_id: string; visitor: { visit_count: number } | null };
+
+  const todaySessions = (sessionsToday ?? []) as SessionTodayRow[];
+  const weekSessions = (sessions7d ?? []) as SessionWeekRow[];
+
+  // Unique visitors today: count distinct visitor_ids from today's sessions
+  const uniqueVisitorsToday = new Set(
+    todaySessions.map((s: SessionTodayRow) => s.visitor_id).filter(Boolean),
+  ).size;
+
+  // Returning visitors (7d): unique visitor_ids where visit_count > 1
+  const returningVisitors7d = new Set(
+    weekSessions
+      .filter((s: SessionWeekRow) => {
+        const visitor = s.visitor as { visit_count: number } | null;
+        return visitor && visitor.visit_count > 1;
+      })
+      .map((s: SessionWeekRow) => s.visitor_id)
+      .filter(Boolean),
+  ).size;
+
+  // Average duration today (seconds)
+  const durationsToday = todaySessions
+    .map((s: SessionTodayRow) => s.duration_seconds as number | null)
+    .filter((d: number | null): d is number => d !== null && d > 0);
+  const avgDurationToday =
+    durationsToday.length > 0
+      ? Math.round(
+          durationsToday.reduce((a: number, b: number) => a + b, 0) / durationsToday.length,
+        )
+      : 0;
+
+  // Average scroll depth today (0-100)
+  const scrollsToday = todaySessions
+    .map((s: SessionTodayRow) => s.max_scroll_depth as number)
+    .filter((d: number) => d > 0);
+  const avgScrollToday =
+    scrollsToday.length > 0
+      ? Math.round(scrollsToday.reduce((a: number, b: number) => a + b, 0) / scrollsToday.length)
+      : 0;
 
   return (
     <div className="space-y-6">
@@ -109,12 +232,17 @@ export default async function LandingActivityPage() {
         </p>
       </div>
 
-      <LandingActivityClient
+      <LandingTabs
         events={(events as unknown as LandingEventRow[]) ?? []}
         visitsToday={visitsToday ?? 0}
         voiceSessionsToday={voiceSessionsToday ?? 0}
         ctaClicksToday={ctaClicksToday ?? 0}
         uniqueSessions7d={uniqueSessions7d}
+        sessions={(sessions as unknown as SessionRow[]) ?? []}
+        uniqueVisitorsToday={uniqueVisitorsToday}
+        returningVisitors7d={returningVisitors7d}
+        avgDurationToday={avgDurationToday}
+        avgScrollToday={avgScrollToday}
       />
     </div>
   );
