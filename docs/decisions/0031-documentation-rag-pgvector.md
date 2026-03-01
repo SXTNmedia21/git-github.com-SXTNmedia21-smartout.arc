@@ -17,7 +17,7 @@ Smartout has 150+ internal documentation files (module specs, ADRs, architecture
 
 - AI agents need fast, accurate retrieval over the full docs corpus
 - Supabase already provides PostgreSQL — pgvector is a natural fit
-- OpenRouter (current AI provider) does not offer embedding endpoints
+- OpenRouter (current AI provider) supports embedding endpoints via `textEmbeddingModel()`
 - Embeddings must be high quality but cost-efficient for 150+ docs
 - Platform-level data — not workspace-scoped, no RLS needed
 
@@ -34,8 +34,8 @@ Chosen option: **"Option 1 — pgvector in Supabase"**, because it keeps all dat
 
 ### Embedding Model
 
-- **Model:** OpenAI `text-embedding-3-small` (1536 dimensions)
-- **Provider:** `@ai-sdk/openai` (direct, not through OpenRouter — OpenRouter lacks embedding support)
+- **Model:** `openai/text-embedding-3-small` (1536 dimensions)
+- **Provider:** `@openrouter/ai-sdk-provider` — same provider as LLM calls, uses `OPENROUTER_API_KEY`
 - **Cost:** ~$0.02 per million tokens — negligible for 150 docs
 
 ### Table Design
@@ -46,12 +46,12 @@ Chosen option: **"Option 1 — pgvector in Supabase"**, because it keeps all dat
 
 ### Chunking Strategy
 
-| Doc Type | Strategy |
-|----------|----------|
-| ADRs, roadmaps | Whole-file (typically <1200 tokens) |
+| Doc Type              | Strategy                                                   |
+| --------------------- | ---------------------------------------------------------- |
+| ADRs, roadmaps        | Whole-file (typically <1200 tokens)                        |
 | Modules, architecture | Split on `##` headings, sub-split on `###` if >1200 tokens |
-| Plans, research | Split on `##` headings |
-| Other | Split on `##` headings |
+| Plans, research       | Split on `##` headings                                     |
+| Other                 | Split on `##` headings                                     |
 
 - Context header prepended to each chunk (doc title, type, path)
 - Overlap sentences for continuity between chunks
@@ -68,6 +68,6 @@ Chosen option: **"Option 1 — pgvector in Supabase"**, because it keeps all dat
 - **Good, because** zero additional infrastructure — pgvector runs inside existing Supabase
 - **Good, because** RPC function enables retrieval from Edge Functions and server components
 - **Good, because** HNSW index provides sub-10ms similarity search at this scale
-- **Bad, because** requires `OPENAI_API_KEY` as a new secret (separate from OpenRouter)
+- **Good, because** uses existing `OPENROUTER_API_KEY` — no new secrets needed
 - **Bad, because** re-indexing all docs requires ~150 API calls (one-time, <$0.01)
 - **Agent Impact:** Use `searchPlatformDocs` tool for semantic doc search. Use `getDocByPath` for fetching specific files. Never query `platform_doc_chunk` directly from client code.

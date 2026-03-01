@@ -7,11 +7,15 @@
 // Connected to: ADR-0031 (embedding model decision)
 // ============================================
 
-import { openai } from "@ai-sdk/openai";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { embed } from "ai";
 
-/** Must match the embedding model used in the ingestion pipeline */
-const EMBEDDING_MODEL = "text-embedding-3-small";
+/**
+ * Embedding model routed through OpenRouter.
+ * Must match the model used in the ingestion pipeline
+ * (packages/docs-pipeline/src/embedding/client.ts).
+ */
+const EMBEDDING_MODEL = "openai/text-embedding-3-small";
 
 /**
  * Generates a single embedding vector for a search query.
@@ -22,11 +26,18 @@ const EMBEDDING_MODEL = "text-embedding-3-small";
  *
  * @param text - The search query text
  * @returns 1536-dimensional embedding vector
- * @throws Error if OPENAI_API_KEY is missing or API call fails
+ * @throws Error if OPENROUTER_API_KEY is missing or API call fails
  */
 export async function getQueryEmbedding(text: string): Promise<number[]> {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) {
+    throw new Error("OPENROUTER_API_KEY is not set.");
+  }
+
+  const openrouter = createOpenRouter({ apiKey });
+
   const { embedding } = await embed({
-    model: openai.embedding(EMBEDDING_MODEL),
+    model: openrouter.textEmbeddingModel(EMBEDDING_MODEL),
     value: text,
   });
 

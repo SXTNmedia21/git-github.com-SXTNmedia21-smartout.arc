@@ -5,7 +5,7 @@
 // chunks changed files, generates embeddings, and inserts.
 // Connected to: src/db/operations.ts (database layer)
 // Connected to: src/chunking/chunker.ts (document chunking)
-// Connected to: src/embedding/client.ts (OpenAI embeddings)
+// Connected to: src/embedding/client.ts (OpenRouter embeddings)
 // ============================================
 
 import fg from "fast-glob";
