@@ -2,7 +2,7 @@
 title: "Subdomain & Workspace Routing Implementation Plan"
 id: PLAN_SUBDOMAIN
 version: "1.0"
-status: canonical
+status: completed
 layer: plan
 created: 2026-02-28
 updated: 2026-02-28

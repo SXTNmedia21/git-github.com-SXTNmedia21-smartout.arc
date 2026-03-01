@@ -1,11 +1,11 @@
 ---
 title: "Build Order (Detailed Implementation Plan)"
 id: PLAN_BUILD_ORDER
-version: "1.0"
+version: "1.1"
 status: canonical
 layer: plan
 created: 2026-02-24
-updated: 2026-02-28
+updated: 2026-03-01
 author: pontus
 supersedes: []
 superseded_by: null
@@ -19,13 +19,15 @@ tables: []
 changelog:
   - date: 2026-02-28
     change: "Added YAML frontmatter"
+  - date: 2026-03-01
+    change: "Status audit — marked Wave 1 progress (Org Structure done, Onboarding partial, Settings stub)"
 ---
 
 # Smartout — Build Order (Detailed Implementation Plan)
 
 > Step-by-step implementation tasks for each wave.
 > This is the execution companion to [`project-roadmap.md`](roadmaps/project-roadmap.md).
-> Last updated: 2026-02-28
+> Last updated: 2026-03-01
 
 ---
 
@@ -109,7 +111,7 @@ changelog:
 
 ## Wave 1: Structural Core
 
-**Status:** Next up
+**Status:** In progress (~60% done)
 **Goal:** Make org structure manageable, settings configurable, and complete the onboarding entry point.
 **Prereqs:** Wave 0 (done)
 
@@ -139,7 +141,7 @@ These components are used across 3+ modules and should live in the shared packag
 
 - [ ] **SearchInput** — Debounced search field with clear button and loading indicator. Props: `value`, `onChange`, `placeholder`, `debounceMs?: number`. Used in every list/table view.
 
-- [ ] **ConfirmDialog** — Reusable confirmation modal for destructive actions. Props: `title`, `description`, `confirmLabel`, `variant: 'default'|'destructive'`, `onConfirm`, `onCancel`. Every delete/archive/deactivate action needs one.
+- [x] **ConfirmDialog** — Exists as `ConfirmationDialog` in `platform-admin/confirmation-dialog.tsx`. Needs extraction to `@smartout/ui` for shared use.
 
 - [ ] **InfoTooltip** — Small info icon that shows a tooltip on hover. Props: `content: string | ReactNode`. Used next to form labels and settings to explain concepts.
 
@@ -147,7 +149,7 @@ These components are used across 3+ modules and should live in the shared packag
 
 - [ ] **FormSection** — Grouped form fields with section title, description, and divider. Props: `title`, `description?`, `children`. Used in settings, org structure, onboarding.
 
-- [ ] **DataTable** — Generic wrapper around TanStack Table with built-in search, column visibility, pagination, and empty state. Already exists in platform-admin — extract and generalize. Props: `columns`, `data`, `searchColumn?`, `emptyState?`.
+- [x] **DataTable** — Exists in `platform-admin/data-table.tsx` with TanStack Table. Needs extraction to `@smartout/ui` and generalization (add search, pagination, empty state).
 
 - [ ] **Timeline** — Chronological event/activity display. Props: `items: Array<{timestamp, title, description?, icon?, variant?}>`. Used in audit logs, onboarding progress, employee history.
 
@@ -167,35 +169,36 @@ These components are used across 3+ modules and should live in the shared packag
 
 #### 1.1.1 — Department Management
 
-- [ ] Department list page with DataTable
-- [ ] Create department form (name, description, color, is_seasonal)
+- [x] Department list page with DataTable
+- [x] Create department form (name, description, color, icon, is_seasonal)
 - [ ] Edit department inline or in sheet/dialog
-- [ ] Deactivate/reactivate department (soft delete)
-- [ ] Department detail page showing associated teams, positions, profiles
+- [x] Deactivate/reactivate department (soft delete)
+- [x] Department detail showing associated positions, policies
 
 #### 1.1.2 — Location Management
 
-- [ ] Location list with map view (optional) and table view
-- [ ] Create/edit location (name, type, address, capacity)
-- [ ] Zone management within a location (CRUD for zones)
-- [ ] Asset management within a location (equipment tracking)
+- [x] Location list with table view
+- [x] Create location form (name, type, address, capacity)
+- [ ] Edit location form
+- [ ] Zone management within a location (CRUD for zones — counts displayed, no create UI)
+- [ ] Asset management within a location (counts displayed, no create UI)
 
 #### 1.1.3 — Team Management
 
-- [ ] Team list with member preview (AvatarGroup)
-- [ ] Create team (name, type, leader, department associations)
+- [x] Team list with member/policy counts
+- [x] Create team form (name, type: operational/access/cross_department/seasonal/custom)
 - [ ] Assign/remove team members
 - [ ] Team detail view (members, leader, seasonal toggle)
 
 #### 1.1.4 — Position Management
 
-- [ ] Position list by department
-- [ ] Create/edit position (title, department, required certifications)
-- [ ] Position ↔ Department mapping
+- [x] Position list within department view (role, min role requirement, status)
+- [ ] Create/edit position form (title, department, required certifications)
+- [ ] Position ↔ Department mapping UI
 
 #### 1.1.5 — People Management
 
-- [ ] Profile list in `/dashboard/people` with DataTable (partially exists)
+- [x] Profile list in `/dashboard/people` with DataTable + invite status
 - [ ] Profile detail page (personal info, role, status, department, team memberships)
 - [ ] Role management (employee → manager → admin → owner)
 - [ ] Status management (trainee → active → inactive → offboarding)
@@ -246,21 +249,26 @@ These components are used across 3+ modules and should live in the shared packag
 
 #### 1.3.1 — Invitation Management UI
 
-- [ ] Invitation dashboard page (list of sent invites with status)
-- [ ] Resend/cancel invite actions
+- [x] Invitation list integrated in `/dashboard/people` (pending/expired status)
+- [x] Create invitation dialog (name, email/phone, department, role)
+- [x] Cancel invite action
+- [x] `create-invitation` Edge Function (token generation, 7-day expiry)
+- [ ] Resend invite action
 - [ ] Bulk invite via CSV upload
 - [ ] Invite link generation (shareable link with expiry)
+- [ ] Email dispatch (currently stubbed — TODO in Edge Function)
 
 #### 1.3.2 — Accept-Invite Flow
 
-- [ ] Landing page for invite token (`/invite/[token]` — shell exists)
+- [x] Landing page for invite token (`/invite/[token]` — UI complete)
+- [ ] Connect to real auth signup (currently mocked)
 - [ ] Link new user to existing profile created by admin
 - [ ] Handle expired/cancelled invites gracefully
 - [ ] Post-accept onboarding checklist for new employee
 
 #### 1.3.3 — Trainee Mode
 
-- [ ] Flag new profiles as `trainee` status
+- [x] `trainee` status exists in profile status enum (with GraduationCap icon in People table)
 - [ ] Sandbox mode: real UI, no live data impact
 - [ ] Trainee progress tracker (% of required protocols completed)
 - [ ] 48-hour escalation alert if trainee not progressing
@@ -653,19 +661,21 @@ pnpm --filter e2e test:e2e -- --grep "org-structure"
 
 ## Current Priority: What to Build Next
 
-**Immediate next steps (in this exact order):**
+**Wave 1 progress:** ~60% complete. Org Structure core is live. Settings untouched. Onboarding invite flow partially done.
 
-1. Build the reusable component library (Step 1.0)
-2. Build Module 2: Org Structure (Step 1.1) — the entire platform depends on this
-3. Build Module 11: Settings (Step 1.2) — workspace configuration
-4. Complete Module 1: Onboarding (Step 1.3) — invitation + trainee mode
+**Immediate next steps (recommended order):**
+
+1. **Finish Org Structure gaps (Step 1.1)** — Edit forms for departments/locations/teams, position CRUD, zone/asset CRUD, org visualization
+2. **Extract shared components (Step 1.0)** — Move DataTable + ConfirmDialog from platform-admin to `@smartout/ui`, build remaining shared components as needed
+3. **Build Module 11: Settings (Step 1.2)** — Workspace settings table + form, notification prefs, user prefs
+4. **Complete Onboarding flow (Step 1.3)** — Real auth signup on invite accept, email dispatch, trainee sandbox, CSV bulk invite
 
 **Why this order:**
 
-- Components are needed by everything → build them first
-- Org Structure is the skeleton → you can't schedule without departments, you can't assign tasks without teams
-- Settings configures the workspace → affects how org structure and scheduling behave
-- Onboarding completion requires org structure to exist (inviting people to departments/teams)
+- Org Structure edit flows are the highest-value gap — users can create but not update
+- Shared components should be extracted when they're needed, not all at once
+- Settings is blocking workspace configuration (timezone, currency, language)
+- Onboarding invite-accept is the employee entry point — must work end-to-end before Wave 2
 
 ---
 
