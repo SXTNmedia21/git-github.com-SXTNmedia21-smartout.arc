@@ -46,12 +46,24 @@ export function EmployeeProfileCard({
   const [editDeptId, setEditDeptId] = useState(employee?.departmentId ?? "");
   const [editStatus, setEditStatus] = useState(employee?.status ?? "active");
   const [saving, setSaving] = useState(false);
+  const [editingHr, setEditingHr] = useState(false);
+  const [hrAddress, setHrAddress] = useState("");
+  const [hrPersonalNumber, setHrPersonalNumber] = useState("");
+  const [hrBankAccount, setHrBankAccount] = useState("");
+  const [hrEmergencyName, setHrEmergencyName] = useState("");
+  const [hrEmergencyPhone, setHrEmergencyPhone] = useState("");
 
   useEffect(() => {
     if (employee) {
       setEditRole(employee.role.toLowerCase());
       setEditDeptId(employee.departmentId ?? "");
       setEditStatus(employee.status);
+      setHrAddress(employee.address ?? "");
+      setHrPersonalNumber(employee.personalNumber ?? "");
+      setHrBankAccount(employee.bankAccount ?? "");
+      setHrEmergencyName(employee.emergencyContactName ?? "");
+      setHrEmergencyPhone(employee.emergencyContactPhone ?? "");
+      setEditingHr(false);
       setActiveTab("overview");
     }
   }, [employee]);
@@ -81,6 +93,33 @@ export function EmployeeProfileCard({
         toast.success("Profile updated");
         onRefresh();
       }
+    }
+    setSaving(false);
+  }
+
+  async function handleHrSave() {
+    if (!employee?.profileId) return;
+    setSaving(true);
+    const supabase = createClient();
+
+    const addressParts = hrAddress.split(",").map((s) => s.trim());
+    const { error } = await supabase
+      .from("profile")
+      .update({
+        address_line_1: addressParts[0] || null,
+        postal_code: addressParts[1] || null,
+        city: addressParts[2] || null,
+        personal_number: hrPersonalNumber || null,
+        bank_account: hrBankAccount || null,
+      })
+      .eq("profile_id", employee.profileId);
+
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Personal info updated");
+      setEditingHr(false);
+      onRefresh();
     }
     setSaving(false);
   }
@@ -416,48 +455,166 @@ export function EmployeeProfileCard({
                 </div>
               </div>
 
-              {/* Full Info List */}
+              {/* Personal Information */}
               <div>
-                <h3 className="mb-3 text-xs font-bold tracking-widest text-zinc-500 uppercase">
-                  Personal Information
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex flex-col gap-1">
-                    <span className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500">
-                      <Home className="h-3 w-3" /> Address
-                    </span>
-                    <span className={`text-sm ${isDark ? "text-zinc-300" : "text-zinc-800"}`}>
-                      {employee.address || "Not provided"}
-                    </span>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500">
-                      <CreditCard className="h-3 w-3" /> Personal Number (SSN)
-                    </span>
-                    <span className={`text-sm ${isDark ? "text-zinc-300" : "text-zinc-800"}`}>
-                      {employee.personalNumber || "Not provided"}
-                    </span>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500">
-                      <Wallet className="h-3 w-3" /> Bank Account
-                    </span>
-                    <span
-                      className={`font-mono text-sm ${isDark ? "text-zinc-300" : "text-zinc-800"}`}
+                <div className="mb-3 flex items-center justify-between">
+                  <h3 className="text-xs font-bold tracking-widest text-zinc-500 uppercase">
+                    Personal Information
+                  </h3>
+                  {!editingHr && (
+                    <button
+                      onClick={() => setEditingHr(true)}
+                      className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                        isDark
+                          ? "text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                          : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
+                      }`}
                     >
-                      {employee.bankAccount || "Not provided"}
-                    </span>
-                  </div>
-                  <div className="mt-2 flex flex-col gap-1 rounded-lg border border-rose-500/10 bg-rose-500/5 p-3">
-                    <span className="flex items-center gap-1.5 text-xs font-semibold text-rose-500/80">
-                      <ShieldAlert className="h-3 w-3 text-rose-500" /> Emergency Contact
-                    </span>
-                    <span className={`text-sm ${isDark ? "text-zinc-300" : "text-zinc-800"}`}>
-                      {employee.emergencyContactName || "Not provided"} •{" "}
-                      {employee.emergencyContactPhone || ""}
-                    </span>
-                  </div>
+                      Edit
+                    </button>
+                  )}
                 </div>
+
+                {!editingHr ? (
+                  <div className="space-y-3">
+                    <div className="flex flex-col gap-1">
+                      <span className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500">
+                        <Home className="h-3 w-3" /> Address
+                      </span>
+                      <span className={`text-sm ${isDark ? "text-zinc-300" : "text-zinc-800"}`}>
+                        {employee.address || "Not provided"}
+                      </span>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <span className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500">
+                        <CreditCard className="h-3 w-3" /> Personal Number (SSN)
+                      </span>
+                      <span className={`text-sm ${isDark ? "text-zinc-300" : "text-zinc-800"}`}>
+                        {employee.personalNumber || "Not provided"}
+                      </span>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <span className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500">
+                        <Wallet className="h-3 w-3" /> Bank Account
+                      </span>
+                      <span
+                        className={`font-mono text-sm ${isDark ? "text-zinc-300" : "text-zinc-800"}`}
+                      >
+                        {employee.bankAccount || "Not provided"}
+                      </span>
+                    </div>
+                    <div className="mt-2 flex flex-col gap-1 rounded-lg border border-rose-500/10 bg-rose-500/5 p-3">
+                      <span className="flex items-center gap-1.5 text-xs font-semibold text-rose-500/80">
+                        <ShieldAlert className="h-3 w-3 text-rose-500" /> Emergency Contact
+                      </span>
+                      <span className={`text-sm ${isDark ? "text-zinc-300" : "text-zinc-800"}`}>
+                        {employee.emergencyContactName || "Not provided"} •{" "}
+                        {employee.emergencyContactPhone || ""}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {(() => {
+                      const hrInputClass = `w-full rounded-lg border px-3 py-2 text-sm focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none ${
+                        isDark
+                          ? "border-zinc-800 bg-zinc-900 text-white placeholder:text-zinc-600"
+                          : "border-zinc-200 bg-zinc-50 text-zinc-900 placeholder:text-zinc-400"
+                      }`;
+                      return (
+                        <>
+                          <div className="space-y-1.5">
+                            <label className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500">
+                              <Home className="h-3 w-3" /> Address
+                            </label>
+                            <input
+                              type="text"
+                              value={hrAddress}
+                              onChange={(e) => setHrAddress(e.target.value)}
+                              placeholder="Street, Postal code, City"
+                              className={hrInputClass}
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500">
+                              <CreditCard className="h-3 w-3" /> Personal Number (SSN)
+                            </label>
+                            <input
+                              type="text"
+                              value={hrPersonalNumber}
+                              onChange={(e) => setHrPersonalNumber(e.target.value)}
+                              placeholder="12345678901"
+                              className={hrInputClass}
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500">
+                              <Wallet className="h-3 w-3" /> Bank Account
+                            </label>
+                            <input
+                              type="text"
+                              value={hrBankAccount}
+                              onChange={(e) => setHrBankAccount(e.target.value)}
+                              placeholder="1234.56.78901"
+                              className={hrInputClass}
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500">
+                              <ShieldAlert className="h-3 w-3" /> Emergency Contact Name
+                            </label>
+                            <input
+                              type="text"
+                              value={hrEmergencyName}
+                              onChange={(e) => setHrEmergencyName(e.target.value)}
+                              placeholder="Full name"
+                              className={hrInputClass}
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500">
+                              <Phone className="h-3 w-3" /> Emergency Contact Phone
+                            </label>
+                            <input
+                              type="text"
+                              value={hrEmergencyPhone}
+                              onChange={(e) => setHrEmergencyPhone(e.target.value)}
+                              placeholder="+47 123 45 678"
+                              className={hrInputClass}
+                            />
+                          </div>
+                          <div className="flex gap-2 pt-2">
+                            <button
+                              onClick={handleHrSave}
+                              disabled={saving}
+                              className="flex-1 rounded-lg bg-orange-500 py-2.5 text-sm font-semibold text-white transition-all hover:bg-orange-600 disabled:opacity-50"
+                            >
+                              {saving ? "Saving..." : "Save"}
+                            </button>
+                            <button
+                              onClick={() => {
+                                setHrAddress(employee.address ?? "");
+                                setHrPersonalNumber(employee.personalNumber ?? "");
+                                setHrBankAccount(employee.bankAccount ?? "");
+                                setHrEmergencyName(employee.emergencyContactName ?? "");
+                                setHrEmergencyPhone(employee.emergencyContactPhone ?? "");
+                                setEditingHr(false);
+                              }}
+                              disabled={saving}
+                              className={`flex-1 rounded-lg border py-2.5 text-sm font-semibold transition-all disabled:opacity-50 ${
+                                isDark
+                                  ? "border-zinc-800 text-zinc-300 hover:bg-zinc-800 hover:text-white"
+                                  : "border-zinc-200 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+                              }`}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                )}
               </div>
 
               {/* Communication Log */}
