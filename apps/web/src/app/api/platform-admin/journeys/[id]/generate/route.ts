@@ -8,7 +8,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createClient } from "@smartout/supabase/server";
 import { createAdminClient } from "@smartout/supabase/admin";
 import {
   generateE2ETest,
@@ -16,6 +15,7 @@ import {
   generateLinearSpec,
   generateBotssonScript,
 } from "@smartout/ai";
+import { getSuperAdminId } from "@/lib/platform-admin";
 
 const RequestSchema = z.object({
   type: z.enum(["e2e", "doc", "linear", "botsson"]),
@@ -34,20 +34,11 @@ type Props = { params: Promise<{ id: string }> };
  */
 export async function POST(request: NextRequest, { params }: Props) {
   const { id } = await params;
-  const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const adminId = await getSuperAdminId();
+  if (!adminId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const admin = createAdminClient();
-  const { data: identity } = await admin
-    .from("user_identity")
-    .select("is_godmode")
-    .eq("user_id", user.id)
-    .single();
-  if (!identity?.is_godmode) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   let body: z.infer<typeof RequestSchema>;
   try {

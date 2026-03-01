@@ -18,7 +18,19 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { ArrowLeft, Send, Loader2, CheckCircle2 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import Link from "next/link";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { WizardPhaseIndicator } from "./wizard-phase-indicator";
 import { WizardDraftPreview } from "./wizard-draft-preview";
 
@@ -158,10 +170,9 @@ export function WizardChat({
   async function handleComplete() {
     setIsCompleting(true);
     try {
-      const res = await fetch(
-        `/api/platform-admin/journeys/wizard/${sessionId}/complete`,
-        { method: "POST" },
-      );
+      const res = await fetch(`/api/platform-admin/journeys/wizard/${sessionId}/complete`, {
+        method: "POST",
+      });
 
       if (!res.ok) {
         const data = await res.json();
@@ -197,10 +208,29 @@ export function WizardChat({
 
         {/* Complete button — only visible in review phase */}
         {isActive && isReviewPhase && (
-          <Button onClick={handleComplete} disabled={isCompleting}>
-            <CheckCircle2 className="mr-1.5 h-4 w-4" />
-            {isCompleting ? "Creating..." : "Complete Journey"}
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button disabled={isCompleting}>
+                <CheckCircle2 className="mr-1.5 h-4 w-4" />
+                {isCompleting ? "Creating..." : "Complete Journey"}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Create journey from draft?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will create a new journey with status &quot;Defined&quot;. The wizard session
+                  will be marked as completed.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleComplete} disabled={isCompleting}>
+                  {isCompleting ? "Creating..." : "Create Journey"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         )}
 
         {/* Link to created journey if completed */}
@@ -224,8 +254,8 @@ export function WizardChat({
                 <div className="text-muted-foreground py-8 text-center text-sm">
                   <p>Start by describing the journey you want to define.</p>
                   <p className="mt-1">
-                    The agent will guide you through 6 phases: Discovery, Classification,
-                    Steps, Testing, Documentation, and Review.
+                    The agent will guide you through 6 phases: Discovery, Classification, Steps,
+                    Testing, Documentation, and Review.
                   </p>
                 </div>
               )}
@@ -238,12 +268,16 @@ export function WizardChat({
                 >
                   <Card
                     className={`max-w-[85%] px-4 py-3 ${
-                      msg.role === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted"
+                      msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
                     }`}
                   >
-                    <div className="whitespace-pre-wrap text-sm">{msg.content}</div>
+                    {msg.role === "assistant" ? (
+                      <div className="prose prose-sm dark:prose-invert max-w-none">
+                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                      </div>
+                    ) : (
+                      <div className="text-sm whitespace-pre-wrap">{msg.content}</div>
+                    )}
                   </Card>
                 </div>
               ))}
@@ -294,9 +328,7 @@ export function WizardChat({
           {/* Completed session notice */}
           {!isActive && (
             <div className="border-border border-t p-4 text-center">
-              <p className="text-muted-foreground text-sm">
-                This session is {sessionStatus}.
-              </p>
+              <p className="text-muted-foreground text-sm">This session is {sessionStatus}.</p>
             </div>
           )}
         </div>

@@ -11,6 +11,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type {
   Journey,
@@ -22,11 +23,24 @@ import type {
 import { STATUS_META } from "@/lib/journey/status-transitions";
 import { MODULE_META, ACTOR_META, PRIORITY_META, PLATFORM_META } from "@/lib/journey/module-meta";
 import { JourneyStatusChanger } from "../../_components/journey-status-changer";
+import { JourneyEditForm } from "./journey-edit-form";
+import { JourneyStepsEditor } from "./journey-steps-editor";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -68,6 +82,8 @@ import {
   Copy,
   Loader2,
   Play,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 
 /**
@@ -254,11 +270,16 @@ type JourneyDetailClientProps = {
  */
 export function JourneyDetailClient({
   journey: initialJourney,
-  steps,
+  steps: initialSteps,
   events: initialEvents,
 }: JourneyDetailClientProps) {
+  const router = useRouter();
   const [journey, setJourney] = useState(initialJourney);
+  const [steps, setSteps] = useState(initialSteps);
   const [events, setEvents] = useState(initialEvents);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isEditingSteps, setIsEditingSteps] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const moduleMeta = MODULE_META[journey.module];
   const actorMeta = ACTOR_META[journey.actor];
@@ -292,6 +313,58 @@ export function JourneyDetailClient({
     ]);
   }
 
+  /**
+   * Handles a successful save from the JourneyEditForm.
+   * Updates local journey state and exits edit mode.
+   */
+  function handleEditSaved(updatedJourney: Journey) {
+    setJourney(updatedJourney);
+    setIsEditing(false);
+    toast.success("Journey updated");
+  }
+
+  /**
+   * Handles a successful save from the JourneyStepsEditor.
+   * Refreshes steps and events from the API, then exits edit mode.
+   */
+  async function handleStepsSaved() {
+    try {
+      const res = await fetch(`/api/platform-admin/journeys/${journey.journey_id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSteps(data.steps ?? []);
+        setEvents(data.events ?? []);
+      }
+    } catch {
+      // Refresh failed silently — steps were saved server-side
+    }
+    setIsEditingSteps(false);
+    toast.success("Steps updated");
+  }
+
+  /**
+   * Deletes the journey via the API and redirects to the list page.
+   */
+  async function handleDelete() {
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/platform-admin/journeys/${journey.journey_id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        toast.error(data.error ?? "Failed to delete journey");
+        return;
+      }
+      toast.success(`Journey ${journey.code} deleted`);
+      router.push("/platform-admin/journeys");
+    } catch {
+      toast.error("Network error");
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -315,7 +388,6 @@ export function JourneyDetailClient({
             <div className="flex flex-wrap items-center gap-2">
               <JourneyStatusChanger
                 journeyId={journey.journey_id}
-                workspaceId={journey.workspace_id}
                 currentStatus={journey.status}
                 onStatusChanged={handleStatusChange}
               />
@@ -343,95 +415,147 @@ export function JourneyDetailClient({
               </Badge>
             </div>
           </div>
+
+          {/* Edit + Delete buttons */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsEditing(true)}
+              disabled={isEditing}
+            >
+              <Pencil className="mr-1.5 h-3.5 w-3.5" />
+              Edit
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                  Delete
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete journey {journey.code}?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete the journey, all steps, events, and test runs. This
+                    cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDelete}
+                    disabled={isDeleting}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {isDeleting ? "Deleting..." : "Delete"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </div>
       </div>
 
-      {/* Classification Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-medium">Classification</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Tags */}
-          {journey.tags.length > 0 && (
-            <div>
-              <p className="text-muted-foreground mb-1.5 text-xs font-medium">Tags</p>
-              <div className="flex flex-wrap gap-1.5">
-                {journey.tags.map((tag) => (
-                  <Badge key={tag} variant="secondary" className="text-xs">
-                    {tag}
-                  </Badge>
-                ))}
+      {/* Classification Card — or Edit Form when editing */}
+      {isEditing ? (
+        <JourneyEditForm
+          journey={journey}
+          onSaved={handleEditSaved}
+          onCancel={() => setIsEditing(false)}
+        />
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">Classification</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Tags */}
+            {journey.tags.length > 0 && (
+              <div>
+                <p className="text-muted-foreground mb-1.5 text-xs font-medium">Tags</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {journey.tags.map((tag) => (
+                    <Badge key={tag} variant="secondary" className="text-xs">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Trigger description */}
-          {journey.trigger_description && (
-            <div>
-              <p className="text-muted-foreground mb-1 text-xs font-medium">Trigger</p>
-              <p className="text-foreground text-sm">{journey.trigger_description}</p>
-            </div>
-          )}
-
-          {/* Preconditions */}
-          {journey.preconditions.length > 0 && (
-            <div>
-              <p className="text-muted-foreground mb-1.5 text-xs font-medium">Preconditions</p>
-              <ul className="text-foreground list-inside list-disc space-y-0.5 text-sm">
-                {journey.preconditions.map((pre, i) => (
-                  <li key={i}>{pre}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Test assertion */}
-          {journey.test_assertion && (
-            <div>
-              <p className="text-muted-foreground mb-1 text-xs font-medium">Test Assertion</p>
-              <p className="text-foreground font-mono text-sm">{journey.test_assertion}</p>
-            </div>
-          )}
-
-          {/* Doc title */}
-          {journey.doc_title && (
-            <div>
-              <p className="text-muted-foreground mb-1 text-xs font-medium">Documentation</p>
-              <p className="text-foreground text-sm">{journey.doc_title}</p>
-            </div>
-          )}
-
-          {/* Outcomes */}
-          {(journey.outcomes_success || journey.outcomes_empty || journey.outcomes_error) && (
-            <>
-              <Separator />
-              <div className="grid gap-3 sm:grid-cols-3">
-                {journey.outcomes_success && (
-                  <div>
-                    <p className="text-muted-foreground mb-1 text-xs font-medium">
-                      Success Outcome
-                    </p>
-                    <p className="text-foreground text-sm">{journey.outcomes_success}</p>
-                  </div>
-                )}
-                {journey.outcomes_empty && (
-                  <div>
-                    <p className="text-muted-foreground mb-1 text-xs font-medium">Empty State</p>
-                    <p className="text-foreground text-sm">{journey.outcomes_empty}</p>
-                  </div>
-                )}
-                {journey.outcomes_error && (
-                  <div>
-                    <p className="text-muted-foreground mb-1 text-xs font-medium">Error State</p>
-                    <p className="text-foreground text-sm">{journey.outcomes_error}</p>
-                  </div>
-                )}
+            {/* Trigger description */}
+            {journey.trigger_description && (
+              <div>
+                <p className="text-muted-foreground mb-1 text-xs font-medium">Trigger</p>
+                <p className="text-foreground text-sm">{journey.trigger_description}</p>
               </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+            )}
+
+            {/* Preconditions */}
+            {journey.preconditions.length > 0 && (
+              <div>
+                <p className="text-muted-foreground mb-1.5 text-xs font-medium">Preconditions</p>
+                <ul className="text-foreground list-inside list-disc space-y-0.5 text-sm">
+                  {journey.preconditions.map((pre, i) => (
+                    <li key={i}>{pre}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Test assertion */}
+            {journey.test_assertion && (
+              <div>
+                <p className="text-muted-foreground mb-1 text-xs font-medium">Test Assertion</p>
+                <p className="text-foreground font-mono text-sm">{journey.test_assertion}</p>
+              </div>
+            )}
+
+            {/* Doc title */}
+            {journey.doc_title && (
+              <div>
+                <p className="text-muted-foreground mb-1 text-xs font-medium">Documentation</p>
+                <p className="text-foreground text-sm">{journey.doc_title}</p>
+              </div>
+            )}
+
+            {/* Outcomes */}
+            {(journey.outcomes_success || journey.outcomes_empty || journey.outcomes_error) && (
+              <>
+                <Separator />
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {journey.outcomes_success && (
+                    <div>
+                      <p className="text-muted-foreground mb-1 text-xs font-medium">
+                        Success Outcome
+                      </p>
+                      <p className="text-foreground text-sm">{journey.outcomes_success}</p>
+                    </div>
+                  )}
+                  {journey.outcomes_empty && (
+                    <div>
+                      <p className="text-muted-foreground mb-1 text-xs font-medium">Empty State</p>
+                      <p className="text-foreground text-sm">{journey.outcomes_empty}</p>
+                    </div>
+                  )}
+                  {journey.outcomes_error && (
+                    <div>
+                      <p className="text-muted-foreground mb-1 text-xs font-medium">Error State</p>
+                      <p className="text-foreground text-sm">{journey.outcomes_error}</p>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Output Tabs */}
       <Tabs defaultValue="steps">
@@ -444,40 +568,54 @@ export function JourneyDetailClient({
         </TabsList>
 
         <TabsContent value="steps">
-          {/* Steps Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-medium">Steps ({steps.length})</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {steps.length === 0 ? (
-                <p className="text-muted-foreground text-sm">No steps defined yet.</p>
-              ) : (
-                <ol className="space-y-4">
-                  {steps.map((step) => (
-                    <li key={step.journey_step_id} className="flex gap-3">
-                      {/* Step number circle */}
-                      <div className="bg-muted text-foreground flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-semibold">
-                        {step.step_order}
-                      </div>
-                      <div className="flex-1 space-y-1">
-                        <p className="text-foreground text-sm font-medium">{step.title}</p>
-                        <p className="text-muted-foreground text-sm">{step.action}</p>
-                        {step.expects && (
-                          <p className="text-muted-foreground text-xs">
-                            <span className="font-medium">Expects:</span> {step.expects}
-                          </p>
-                        )}
-                        {step.screen && (
-                          <p className="text-muted-foreground font-mono text-xs">{step.screen}</p>
-                        )}
-                      </div>
-                    </li>
-                  ))}
-                </ol>
-              )}
-            </CardContent>
-          </Card>
+          {isEditingSteps ? (
+            <JourneyStepsEditor
+              journeyId={journey.journey_id}
+              initialSteps={steps}
+              onSaved={handleStepsSaved}
+              onCancel={() => setIsEditingSteps(false)}
+            />
+          ) : (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium">Steps ({steps.length})</CardTitle>
+                  <Button variant="outline" size="sm" onClick={() => setIsEditingSteps(true)}>
+                    <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                    Edit Steps
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {steps.length === 0 ? (
+                  <p className="text-muted-foreground text-sm">No steps defined yet.</p>
+                ) : (
+                  <ol className="space-y-4">
+                    {steps.map((step) => (
+                      <li key={step.journey_step_id} className="flex gap-3">
+                        {/* Step number circle */}
+                        <div className="bg-muted text-foreground flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-semibold">
+                          {step.step_order}
+                        </div>
+                        <div className="flex-1 space-y-1">
+                          <p className="text-foreground text-sm font-medium">{step.title}</p>
+                          <p className="text-muted-foreground text-sm">{step.action}</p>
+                          {step.expects && (
+                            <p className="text-muted-foreground text-xs">
+                              <span className="font-medium">Expects:</span> {step.expects}
+                            </p>
+                          )}
+                          {step.screen && (
+                            <p className="text-muted-foreground font-mono text-xs">{step.screen}</p>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="e2e">

@@ -6,8 +6,8 @@
 // ============================================
 
 import { NextResponse } from "next/server";
-import { createClient } from "@smartout/supabase/server";
 import { createAdminClient } from "@smartout/supabase/admin";
+import { getSuperAdminId } from "@/lib/platform-admin";
 
 type Props = { params: Promise<{ sessionId: string }> };
 
@@ -19,20 +19,11 @@ type Props = { params: Promise<{ sessionId: string }> };
  */
 export async function GET(_request: Request, { params }: Props) {
   const { sessionId } = await params;
-  const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const adminId = await getSuperAdminId();
+  if (!adminId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const admin = createAdminClient();
-  const { data: identity } = await admin
-    .from("user_identity")
-    .select("is_godmode")
-    .eq("user_id", user.id)
-    .single();
-  if (!identity?.is_godmode) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { data, error } = await admin
     .from("wizard_session")
