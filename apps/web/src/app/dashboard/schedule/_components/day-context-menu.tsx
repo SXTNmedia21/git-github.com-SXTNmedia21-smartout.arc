@@ -35,7 +35,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { useSchedule } from "./schedule-context";
+import type { Shift } from "./schedule-types";
+import { useScheduleUI } from "./schedule-ui-context";
+import { useShifts, usePublishShifts, useUnpublishShifts, usePasteDay } from "../_hooks/use-shifts";
+import { useWeekRange } from "../_hooks/use-week-range";
 import { SaveTemplateDialog } from "./save-template-dialog";
 import { LoadTemplateSheet } from "./load-template-sheet";
 import { DayMessageDialog } from "./day-message-dialog";
@@ -60,7 +63,20 @@ type DayContextMenuProps = {
  * @returns DropdownMenu with all day operations
  */
 export function DayContextMenu({ dateId, dateLabel, isDark }: DayContextMenuProps) {
-  const { state, dispatch, computed } = useSchedule();
+  const {
+    clipboard,
+    selectedDays,
+    toggleDaySelection,
+    setCreateShiftContext,
+    setSelectedDay,
+    setClipboard,
+    copyDay,
+  } = useScheduleUI();
+  const { weekStart, weekEnd } = useWeekRange();
+  const { data: shifts = [] as Shift[] } = useShifts(weekStart, weekEnd);
+  const publishShifts = usePublishShifts(weekStart);
+  const unpublishShifts = useUnpublishShifts(weekStart);
+  const pasteDay = usePasteDay(weekStart);
 
   // Local dialog/sheet state
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
@@ -69,12 +85,14 @@ export function DayContextMenu({ dateId, dateLabel, isDark }: DayContextMenuProp
   const [broadcastOpen, setBroadcastOpen] = useState(false);
 
   // Derived conditions for enabling/disabling menu items
-  const dayShifts = computed.getShiftsForDay(dateId);
+  const dayShifts = shifts.filter((s: Shift) => s.dateId === dateId);
   const hasShifts = dayShifts.length > 0;
-  const hasUnpublished = dayShifts.some((s) => s.status === "created" || s.status === "assigned");
-  const hasPublished = dayShifts.some((s) => s.status === "published");
-  const hasClipboard = state.clipboard !== null;
-  const isSelected = state.selectedDays.has(dateId);
+  const hasUnpublished = dayShifts.some(
+    (s: Shift) => s.status === "created" || s.status === "assigned",
+  );
+  const hasPublished = dayShifts.some((s: Shift) => s.status === "published");
+  const hasClipboard = clipboard !== null;
+  const isSelected = selectedDays.has(dateId);
 
   return (
     <>
@@ -92,7 +110,7 @@ export function DayContextMenu({ dateId, dateLabel, isDark }: DayContextMenuProp
 
         <DropdownMenuContent align="end" className="w-52">
           {/* Selection toggle */}
-          <DropdownMenuItem onClick={() => dispatch({ type: "SELECT_DAY", payload: { dateId } })}>
+          <DropdownMenuItem onClick={() => toggleDaySelection(dateId)}>
             {isSelected ? (
               <SquareCheck className="mr-2 h-4 w-4" />
             ) : (
@@ -102,14 +120,7 @@ export function DayContextMenu({ dateId, dateLabel, isDark }: DayContextMenuProp
           </DropdownMenuItem>
 
           {/* Create shift */}
-          <DropdownMenuItem
-            onClick={() =>
-              dispatch({
-                type: "SET_CREATE_SHIFT_CONTEXT",
-                payload: { dateId },
-              })
-            }
-          >
+          <DropdownMenuItem onClick={() => setCreateShiftContext({ dateId })}>
             <Plus className="mr-2 h-4 w-4" />
             Opprett vakt
           </DropdownMenuItem>
@@ -119,7 +130,12 @@ export function DayContextMenu({ dateId, dateLabel, isDark }: DayContextMenuProp
           {/* Publish / Unpublish */}
           <DropdownMenuItem
             disabled={!hasUnpublished}
-            onClick={() => dispatch({ type: "PUBLISH_DAY", payload: { dateId } })}
+            onClick={() => {
+              const draftIds = dayShifts
+                .filter((s: Shift) => s.status === "created" || s.status === "assigned")
+                .map((s: Shift) => s.id);
+              if (draftIds.length > 0) publishShifts.mutate(draftIds);
+            }}
           >
             <Send className="mr-2 h-4 w-4" />
             Publiser dag
@@ -127,7 +143,12 @@ export function DayContextMenu({ dateId, dateLabel, isDark }: DayContextMenuProp
 
           <DropdownMenuItem
             disabled={!hasPublished}
-            onClick={() => dispatch({ type: "UNPUBLISH_DAY", payload: { dateId } })}
+            onClick={() => {
+              const publishedIds = dayShifts
+                .filter((s: Shift) => s.status === "published")
+                .map((s: Shift) => s.id);
+              if (publishedIds.length > 0) unpublishShifts.mutate(publishedIds);
+            }}
           >
             <Undo2 className="mr-2 h-4 w-4" />
             Avpubliser dag
@@ -138,15 +159,22 @@ export function DayContextMenu({ dateId, dateLabel, isDark }: DayContextMenuProp
           {/* Copy / Paste */}
           <DropdownMenuItem
             disabled={!hasShifts}
-            onClick={() => dispatch({ type: "COPY_DAY", payload: { dateId, dateLabel } })}
+            onClick={() => copyDay(dateId, dateLabel, dayShifts)}
           >
             <Copy className="mr-2 h-4 w-4" />
             Kopier dag
           </DropdownMenuItem>
 
           <DropdownMenuItem
-            disabled={!hasClipboard}
-            onClick={() => dispatch({ type: "PASTE_DAY", payload: { targetDateId: dateId } })}
+            disabled={!hasClipboard || pasteDay.isPending}
+            onClick={() => {
+              if (clipboard) {
+                pasteDay.mutate(
+                  { targetDateId: dateId, shifts: clipboard.shifts },
+                  { onSuccess: () => setClipboard(null) },
+                );
+              }
+            }}
           >
             <ClipboardPaste className="mr-2 h-4 w-4" />
             Lim inn dag
@@ -181,7 +209,7 @@ export function DayContextMenu({ dateId, dateLabel, isDark }: DayContextMenuProp
           <DropdownMenuSeparator />
 
           {/* Day inspector */}
-          <DropdownMenuItem onClick={() => dispatch({ type: "SET_SELECTED_DAY", payload: dateId })}>
+          <DropdownMenuItem onClick={() => setSelectedDay(dateId)}>
             <List className="mr-2 h-4 w-4" />
             Se dagsliste
           </DropdownMenuItem>

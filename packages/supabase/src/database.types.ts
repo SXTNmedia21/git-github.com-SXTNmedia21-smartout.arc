@@ -3659,6 +3659,336 @@ export type Database = {
           },
         ]
       }
+      schedule_absence: {
+        Row: {
+          absence_type: string
+          created_at: string
+          employee_id: string
+          end_date: string
+          is_full_day: boolean
+          reason: string | null
+          request_type: string | null
+          schedule_absence_id: string
+          shift_date: string
+          start_date: string
+          status: Database["public"]["Enums"]["absence_status"]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          absence_type: string
+          created_at?: string
+          employee_id: string
+          end_date: string
+          is_full_day?: boolean
+          reason?: string | null
+          request_type?: string | null
+          schedule_absence_id?: string
+          shift_date: string
+          start_date: string
+          status?: Database["public"]["Enums"]["absence_status"]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          absence_type?: string
+          created_at?: string
+          employee_id?: string
+          end_date?: string
+          is_full_day?: boolean
+          reason?: string | null
+          request_type?: string | null
+          schedule_absence_id?: string
+          shift_date?: string
+          start_date?: string
+          status?: Database["public"]["Enums"]["absence_status"]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_absence_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "schedule_absence_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      schedule_audit_log: {
+        Row: {
+          audit_log_id: string
+          changed_fields: string[] | null
+          created_at: string
+          new_data: Json | null
+          old_data: Json | null
+          operation: Database["public"]["Enums"]["audit_operation"]
+          row_id: string
+          table_name: string
+          user_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          audit_log_id?: string
+          changed_fields?: string[] | null
+          created_at?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          operation: Database["public"]["Enums"]["audit_operation"]
+          row_id: string
+          table_name: string
+          user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          audit_log_id?: string
+          changed_fields?: string[] | null
+          created_at?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          operation?: Database["public"]["Enums"]["audit_operation"]
+          row_id?: string
+          table_name?: string
+          user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_audit_log_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      schedule_day_booking: {
+        Row: {
+          booking_time: string
+          contact_person: string | null
+          created_at: string
+          guest_count: number
+          is_vip: boolean
+          location: string | null
+          menu: string | null
+          notes: string | null
+          schedule_day_booking_id: string
+          shift_date: string
+          status: Database["public"]["Enums"]["booking_status"]
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          booking_time: string
+          contact_person?: string | null
+          created_at?: string
+          guest_count?: number
+          is_vip?: boolean
+          location?: string | null
+          menu?: string | null
+          notes?: string | null
+          schedule_day_booking_id?: string
+          shift_date: string
+          status?: Database["public"]["Enums"]["booking_status"]
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          booking_time?: string
+          contact_person?: string | null
+          created_at?: string
+          guest_count?: number
+          is_vip?: boolean
+          location?: string | null
+          menu?: string | null
+          notes?: string | null
+          schedule_day_booking_id?: string
+          shift_date?: string
+          status?: Database["public"]["Enums"]["booking_status"]
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_day_booking_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      schedule_day_message: {
+        Row: {
+          audience: string
+          author_id: string
+          content: string
+          created_at: string
+          is_alert: boolean
+          schedule_day_message_id: string
+          shift_date: string
+          title: string
+          updated_at: string
+          visibility: Database["public"]["Enums"]["message_visibility"]
+          workspace_id: string
+        }
+        Insert: {
+          audience?: string
+          author_id: string
+          content: string
+          created_at?: string
+          is_alert?: boolean
+          schedule_day_message_id?: string
+          shift_date: string
+          title: string
+          updated_at?: string
+          visibility?: Database["public"]["Enums"]["message_visibility"]
+          workspace_id: string
+        }
+        Update: {
+          audience?: string
+          author_id?: string
+          content?: string
+          created_at?: string
+          is_alert?: boolean
+          schedule_day_message_id?: string
+          shift_date?: string
+          title?: string
+          updated_at?: string
+          visibility?: Database["public"]["Enums"]["message_visibility"]
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_day_message_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "schedule_day_message_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      schedule_day_task: {
+        Row: {
+          assigned_to: string | null
+          category: string
+          completed_at: string | null
+          created_at: string
+          highlight: boolean
+          label: string
+          schedule_day_task_id: string
+          shift_date: string
+          task_status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          category?: string
+          completed_at?: string | null
+          created_at?: string
+          highlight?: boolean
+          label: string
+          schedule_day_task_id?: string
+          shift_date: string
+          task_status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          assigned_to?: string | null
+          category?: string
+          completed_at?: string | null
+          created_at?: string
+          highlight?: boolean
+          label?: string
+          schedule_day_task_id?: string
+          shift_date?: string
+          task_status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_day_task_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "schedule_day_task_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      schedule_open_shift: {
+        Row: {
+          created_at: string
+          day_category: Database["public"]["Enums"]["day_category"] | null
+          department: string | null
+          end_time: string
+          role: string | null
+          schedule_open_shift_id: string
+          start_time: string
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          day_category?: Database["public"]["Enums"]["day_category"] | null
+          department?: string | null
+          end_time: string
+          role?: string | null
+          schedule_open_shift_id?: string
+          start_time: string
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          day_category?: Database["public"]["Enums"]["day_category"] | null
+          department?: string | null
+          end_time?: string
+          role?: string | null
+          schedule_open_shift_id?: string
+          start_time?: string
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_open_shift_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       schedule_shift: {
         Row: {
           breaks: number
@@ -3751,6 +4081,114 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "workspace"
             referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      schedule_template: {
+        Row: {
+          created_at: string
+          created_by: string
+          department: string
+          include_assignments: boolean
+          name: string
+          schedule_template_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          department: string
+          include_assignments?: boolean
+          name: string
+          schedule_template_id?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          department?: string
+          include_assignments?: boolean
+          name?: string
+          schedule_template_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_template_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "schedule_template_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      schedule_template_shift: {
+        Row: {
+          breaks: number
+          day_category: Database["public"]["Enums"]["day_category"]
+          employee_id: string | null
+          end_time: string
+          indicator: string
+          notes: string | null
+          role: string
+          schedule_template_shift_id: string
+          start_time: string
+          template_id: string
+          work_hours: number
+          zone: string | null
+        }
+        Insert: {
+          breaks?: number
+          day_category: Database["public"]["Enums"]["day_category"]
+          employee_id?: string | null
+          end_time: string
+          indicator?: string
+          notes?: string | null
+          role: string
+          schedule_template_shift_id?: string
+          start_time: string
+          template_id: string
+          work_hours?: number
+          zone?: string | null
+        }
+        Update: {
+          breaks?: number
+          day_category?: Database["public"]["Enums"]["day_category"]
+          employee_id?: string | null
+          end_time?: string
+          indicator?: string
+          notes?: string | null
+          role?: string
+          schedule_template_shift_id?: string
+          start_time?: string
+          template_id?: string
+          work_hours?: number
+          zone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_template_shift_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "schedule_template_shift_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "schedule_template"
+            referencedColumns: ["schedule_template_id"]
           },
         ]
       }
@@ -4347,6 +4785,7 @@ export type Database = {
           token_count: number
         }[]
       }
+      rollback_audit_entry: { Args: { p_audit_log_id: string }; Returns: Json }
       rotate_api_key: {
         Args: {
           p_environment: string
@@ -4364,10 +4803,13 @@ export type Database = {
       }
     }
     Enums: {
+      absence_status: "pending" | "approved" | "rejected"
       api_key_type: "workspace" | "service"
       api_key_version_status: "current" | "previous" | "revoked"
       asset_type: "equipment" | "safety" | "storage" | "station" | "other"
+      audit_operation: "INSERT" | "UPDATE" | "DELETE"
       auth_provider: "supabase" | "google" | "microsoft"
+      booking_status: "confirmed" | "pending" | "cancelled"
       communication_channel: "email" | "sms" | "push" | "in_app"
       communication_status:
         | "pending"
@@ -4467,6 +4909,7 @@ export type Database = {
         | "event"
         | "storage"
         | "other"
+      message_visibility: "all_day" | "until_16" | "permanent"
       notification_channel: "push" | "sms" | "email" | "voice"
       notification_mode: "training" | "work" | "community"
       notification_status:
@@ -4650,10 +5093,13 @@ export const Constants = {
   },
   public: {
     Enums: {
+      absence_status: ["pending", "approved", "rejected"],
       api_key_type: ["workspace", "service"],
       api_key_version_status: ["current", "previous", "revoked"],
       asset_type: ["equipment", "safety", "storage", "station", "other"],
+      audit_operation: ["INSERT", "UPDATE", "DELETE"],
       auth_provider: ["supabase", "google", "microsoft"],
+      booking_status: ["confirmed", "pending", "cancelled"],
       communication_channel: ["email", "sms", "push", "in_app"],
       communication_status: [
         "pending",
@@ -4763,6 +5209,7 @@ export const Constants = {
         "storage",
         "other",
       ],
+      message_visibility: ["all_day", "until_16", "permanent"],
       notification_channel: ["push", "sms", "email", "voice"],
       notification_mode: ["training", "work", "community"],
       notification_status: [

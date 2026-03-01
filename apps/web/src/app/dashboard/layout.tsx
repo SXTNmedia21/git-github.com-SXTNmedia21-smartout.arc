@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@smartout/supabase/server";
 import { WorkspaceProvider, type WorkspaceData } from "@/lib/workspace-context";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
+import { QueryProvider } from "./query-provider";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const headersList = await headers();
@@ -74,12 +75,18 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   if (workspace) {
     return (
-      <WorkspaceProvider workspace={workspace}>
-        <DashboardShell>{children}</DashboardShell>
-      </WorkspaceProvider>
+      <QueryProvider>
+        <WorkspaceProvider workspace={workspace}>
+          <DashboardShell>{children}</DashboardShell>
+        </WorkspaceProvider>
+      </QueryProvider>
     );
   }
 
   // Fallback: no workspace found at all
-  return <DashboardShell>{children}</DashboardShell>;
+  return (
+    <QueryProvider>
+      <DashboardShell>{children}</DashboardShell>
+    </QueryProvider>
+  );
 }

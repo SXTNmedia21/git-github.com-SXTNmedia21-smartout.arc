@@ -20,7 +20,22 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-import { useSchedule } from "./schedule-context";
+import type {
+  Shift,
+  Absence,
+  OpenShift,
+  ShiftTemplate,
+  DayMessage,
+  DayTask,
+  DayBooking,
+} from "./schedule-types";
+import { useShifts } from "../_hooks/use-shifts";
+import { useAbsences } from "../_hooks/use-absences";
+import { useOpenShifts } from "../_hooks/use-open-shifts";
+import { useTemplates } from "../_hooks/use-templates";
+import { useDayMessages, useDayTasks, useDayBookings } from "../_hooks/use-day-content";
+import { useScheduleComputed } from "../_hooks/use-schedule-computed";
+import { useWeekRange } from "../_hooks/use-week-range";
 
 // ── Props ───────────────────────────────────────────────────
 
@@ -41,7 +56,24 @@ type BroadcastDialogProps = {
  * @returns shadcn Dialog with two send buttons
  */
 export function BroadcastDialog({ dateId, open, onOpenChange }: BroadcastDialogProps) {
-  const { computed } = useSchedule();
+  const { weekStart, weekEnd } = useWeekRange();
+  const { data: shifts = [] as Shift[] } = useShifts(weekStart, weekEnd);
+  const { data: absences = [] as Absence[] } = useAbsences(weekStart, weekEnd);
+  const { data: openShiftsData = [] as OpenShift[] } = useOpenShifts();
+  const { data: templates = [] as ShiftTemplate[] } = useTemplates();
+  const { data: dayMessages = [] as DayMessage[] } = useDayMessages(weekStart, weekEnd);
+  const { data: dayTasks = [] as DayTask[] } = useDayTasks(weekStart, weekEnd);
+  const { data: dayBookings = [] as DayBooking[] } = useDayBookings(weekStart, weekEnd);
+
+  const computed = useScheduleComputed(
+    shifts,
+    absences,
+    openShiftsData.length,
+    templates,
+    dayMessages,
+    dayTasks,
+    dayBookings,
+  );
 
   const dayStats = computed.getDayStats(dateId);
   const staffCount = dayStats.staffCount;

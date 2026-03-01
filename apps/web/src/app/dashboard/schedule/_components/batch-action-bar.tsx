@@ -10,28 +10,53 @@ import { Send, Undo2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
-import { useSchedule } from "./schedule-context";
+import type { Shift } from "./schedule-types";
+import { useScheduleUI } from "./schedule-ui-context";
+import { useShifts, usePublishShifts, useUnpublishShifts } from "../_hooks/use-shifts";
+import { useWeekRange } from "../_hooks/use-week-range";
 
 /**
  * Floating bar at the bottom of the viewport for batch day operations.
- * Appears when state.selectedDays.size > 0, with a slide-up animation.
+ * Appears when selectedDays.size > 0, with a slide-up animation.
  * Offers publish-all, unpublish-all, and clear-selection actions.
  *
  * @returns Animated fixed-position action bar, or null when no days selected
  */
 export function BatchActionBar() {
-  const { state, dispatch } = useSchedule();
-  const count = state.selectedDays.size;
+  const { selectedDays, clearSelectedDays } = useScheduleUI();
+  const { weekStart, weekEnd } = useWeekRange();
+  const { data: shifts = [] as Shift[] } = useShifts(weekStart, weekEnd);
+  const publishShifts = usePublishShifts(weekStart);
+  const unpublishShifts = useUnpublishShifts(weekStart);
+  const count = selectedDays.size;
 
   if (count === 0) return null;
 
   /**
-   * Unpublishes each selected day individually.
-   * The reducer handles filtering published shifts per day.
+   * Publishes all draft shifts across selected days.
+   */
+  function handlePublishAll() {
+    const draftIds = shifts
+      .filter(
+        (s: Shift) =>
+          selectedDays.has(s.dateId) && (s.status === "created" || s.status === "assigned"),
+      )
+      .map((s: Shift) => s.id);
+    if (draftIds.length > 0) {
+      publishShifts.mutate(draftIds);
+    }
+    clearSelectedDays();
+  }
+
+  /**
+   * Unpublishes all published shifts across selected days.
    */
   function handleUnpublishAll() {
-    for (const dateId of state.selectedDays) {
-      dispatch({ type: "UNPUBLISH_DAY", payload: { dateId } });
+    const publishedIds = shifts
+      .filter((s: Shift) => selectedDays.has(s.dateId) && s.status === "published")
+      .map((s: Shift) => s.id);
+    if (publishedIds.length > 0) {
+      unpublishShifts.mutate(publishedIds);
     }
   }
 
@@ -42,11 +67,7 @@ export function BatchActionBar() {
           {count} {count === 1 ? "dag" : "dager"} valgt:
         </span>
 
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={() => dispatch({ type: "PUBLISH_SELECTED_DAYS" })}
-        >
+        <Button size="sm" variant="secondary" onClick={handlePublishAll}>
           <Send className="mr-1.5 h-3.5 w-3.5" />
           Publiser alle
         </Button>
@@ -56,7 +77,7 @@ export function BatchActionBar() {
           Avpubliser alle
         </Button>
 
-        <Button size="sm" variant="ghost" onClick={() => dispatch({ type: "CLEAR_SELECTED_DAYS" })}>
+        <Button size="sm" variant="ghost" onClick={clearSelectedDays}>
           <X className="mr-1.5 h-3.5 w-3.5" />
           Fjern valg
         </Button>

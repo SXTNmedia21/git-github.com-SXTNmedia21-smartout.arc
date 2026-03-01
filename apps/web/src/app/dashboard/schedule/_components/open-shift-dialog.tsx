@@ -26,7 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useSchedule } from "./schedule-context";
+import { useCreateOpenShift } from "../_hooks/use-open-shifts";
 import type { DayCategory } from "./schedule-types";
 
 type OpenShiftDialogProps = {
@@ -40,7 +40,7 @@ type OpenShiftDialogProps = {
  * until dragged onto an employee cell.
  */
 export function OpenShiftDialog({ open, onOpenChange }: OpenShiftDialogProps) {
-  const { dispatch } = useSchedule();
+  const createOpenShift = useCreateOpenShift();
 
   const [title, setTitle] = useState("");
   const [role, setRole] = useState("");
@@ -67,17 +67,14 @@ export function OpenShiftDialog({ open, onOpenChange }: OpenShiftDialogProps) {
   const handleSubmit = () => {
     if (!title.trim()) return;
 
-    dispatch({
-      type: "ADD_OPEN_SHIFT",
-      payload: {
-        title: title.trim(),
-        time: `${startTime}-${endTime}`,
-        startTime,
-        endTime,
-        department: department || undefined,
-        role: role || undefined,
-        dayCategory,
-      },
+    createOpenShift.mutate({
+      id: `open_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      title: title.trim(),
+      startTime,
+      endTime,
+      department: department || undefined,
+      role: role || undefined,
+      dayCategory,
     });
 
     resetForm();

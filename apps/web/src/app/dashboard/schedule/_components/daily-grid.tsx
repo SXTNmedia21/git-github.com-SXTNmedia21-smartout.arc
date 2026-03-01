@@ -15,8 +15,13 @@ import {
 import { useDroppable } from "@dnd-kit/core";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { ShiftCard, AbsenceCard } from "./grid-cards";
-import { dummyEmployees, dummyDays, type Employee, type DayColumn } from "./schedule-data";
-import { useSchedule, type ScheduleAction } from "./schedule-context";
+import type { DayColumn } from "./schedule-data";
+import { useScheduleUI } from "./schedule-ui-context";
+import { useShifts } from "../_hooks/use-shifts";
+import { useAbsences } from "../_hooks/use-absences";
+import { useEmployees, type ScheduleEmployee } from "../_hooks/use-employees";
+import { useWeekRange } from "../_hooks/use-week-range";
+import { useScheduleComputed } from "../_hooks/use-schedule-computed";
 import { DayContextMenu } from "./day-context-menu";
 import type { Shift as ScheduleShift, Absence } from "./schedule-types";
 
@@ -28,25 +33,26 @@ export function GridContent({
   setIsSidebarOpen,
   onDateClick,
   filterSituation = "Alle",
+  visibleDays,
+  employees,
 }: {
   isSidebarOpen: boolean;
   setIsSidebarOpen: (v: boolean) => void;
   onDateClick: (d: string) => void;
   filterSituation?: string;
+  visibleDays: DayColumn[];
+  employees: ScheduleEmployee[];
 }) {
   const { isDark, scheduleView } = useContext(DashboardContext);
-  const { state, dispatch } = useSchedule();
-
-  const visibleDays = React.useMemo(
-    () =>
-      dummyDays.filter((day) => filterSituation === "Alle" || day.situation === filterSituation),
-    [filterSituation],
-  );
+  const { weekStart, weekEnd } = useWeekRange();
+  const { data: shiftsData = [] } = useShifts(weekStart, weekEnd);
+  const { data: absencesData = [] } = useAbsences(weekStart, weekEnd);
+  const { setCreateShiftContext, setAbsencePopover, setSelectedShift } = useScheduleUI();
 
   /** Index shifts by employee::day key for O(1) lookup in grid cells */
   const shiftsByEmployeeDay = React.useMemo(() => {
     const index = new Map<string, ScheduleShift[]>();
-    for (const shift of state.shifts) {
+    for (const shift of shiftsData) {
       if (!shift.employeeId) continue;
       const key = `${shift.employeeId}::${shift.dateId}`;
       const existing = index.get(key);
@@ -57,12 +63,12 @@ export function GridContent({
       }
     }
     return index;
-  }, [state.shifts]);
+  }, [shiftsData]);
 
   /** Index absences by employee::day key */
   const absencesByEmployeeDay = React.useMemo(() => {
     const index = new Map<string, Absence[]>();
-    for (const absence of state.absences) {
+    for (const absence of absencesData) {
       const key = `${absence.employeeId}::${absence.dateId}`;
       const existing = index.get(key);
       if (existing) {
@@ -72,7 +78,20 @@ export function GridContent({
       }
     }
     return index;
-  }, [state.absences]);
+  }, [absencesData]);
+
+  /** Compute hours and shift count per employee from real shift data */
+  const employeeStats = React.useMemo(() => {
+    const stats = new Map<string, { hours: number; shiftCount: number }>();
+    for (const shift of shiftsData) {
+      if (!shift.employeeId) continue;
+      const existing = stats.get(shift.employeeId) ?? { hours: 0, shiftCount: 0 };
+      existing.hours += shift.workHours;
+      existing.shiftCount += 1;
+      stats.set(shift.employeeId, existing);
+    }
+    return stats;
+  }, [shiftsData]);
 
   return (
     <div className="flex w-full flex-col">
@@ -88,14 +107,17 @@ export function GridContent({
       <div className="w-full flex-1 pb-20">
         {scheduleView === "ansatt" && (
           <div className="flex flex-col">
-            {dummyEmployees.map((emp) => (
+            {employees.map((emp) => (
               <EmployeeRow
                 key={emp.id}
                 employee={emp}
+                employeeStats={employeeStats.get(emp.id)}
                 days={visibleDays}
                 shiftsByEmployeeDay={shiftsByEmployeeDay}
                 absencesByEmployeeDay={absencesByEmployeeDay}
-                dispatch={dispatch}
+                onCreateShift={setCreateShiftContext}
+                onAbsencePopover={setAbsencePopover}
+                onSelectShift={setSelectedShift}
               />
             ))}
           </div>
@@ -103,19 +125,22 @@ export function GridContent({
 
         {scheduleView === "jobb" && (
           <div className="flex flex-col">
-            {Array.from(new Set(dummyEmployees.map((e) => e.role))).map((role) => {
-              const employeesInRole = dummyEmployees.filter((e) => e.role === role);
+            {Array.from(new Set(employees.map((e) => e.jobTitle || e.role))).map((jobTitle) => {
+              const employeesInRole = employees.filter((e) => (e.jobTitle || e.role) === jobTitle);
               return (
-                <React.Fragment key={role}>
-                  <GroupHeader title={role} count={employeesInRole.length} days={visibleDays} />
+                <React.Fragment key={jobTitle}>
+                  <GroupHeader title={jobTitle} count={employeesInRole.length} days={visibleDays} />
                   {employeesInRole.map((emp) => (
                     <EmployeeRow
                       key={emp.id}
                       employee={emp}
+                      employeeStats={employeeStats.get(emp.id)}
                       days={visibleDays}
                       shiftsByEmployeeDay={shiftsByEmployeeDay}
                       absencesByEmployeeDay={absencesByEmployeeDay}
-                      dispatch={dispatch}
+                      onCreateShift={setCreateShiftContext}
+                      onAbsencePopover={setAbsencePopover}
+                      onSelectShift={setSelectedShift}
                       subtitle={emp.team}
                     />
                   ))}
@@ -127,8 +152,8 @@ export function GridContent({
 
         {scheduleView === "team" && (
           <div className="flex flex-col">
-            {Array.from(new Set(dummyEmployees.map((e) => e.team))).map((team) => {
-              const employeesInTeam = dummyEmployees.filter((e) => e.team === team);
+            {Array.from(new Set(employees.map((e) => e.team || "Uten team"))).map((team) => {
+              const employeesInTeam = employees.filter((e) => (e.team || "Uten team") === team);
               return (
                 <React.Fragment key={team}>
                   <GroupHeader title={team} count={employeesInTeam.length} days={visibleDays} />
@@ -136,11 +161,14 @@ export function GridContent({
                     <EmployeeRow
                       key={emp.id}
                       employee={emp}
+                      employeeStats={employeeStats.get(emp.id)}
                       days={visibleDays}
                       shiftsByEmployeeDay={shiftsByEmployeeDay}
                       absencesByEmployeeDay={absencesByEmployeeDay}
-                      dispatch={dispatch}
-                      subtitle={emp.role}
+                      onCreateShift={setCreateShiftContext}
+                      onAbsencePopover={setAbsencePopover}
+                      onSelectShift={setSelectedShift}
+                      subtitle={emp.jobTitle || emp.role}
                     />
                   ))}
                 </React.Fragment>
@@ -229,7 +257,7 @@ function DroppableDayHeader({
     <div
       ref={setNodeRef}
       className={`min-w-0 flex-1 border-r border-b border-white/[0.03] ${isDark ? "bg-[#0a0a0c]/90" : "bg-white/95"} group/day flex h-24 cursor-pointer flex-col justify-between p-2 backdrop-blur-xl transition-colors hover:bg-white/5 xl:h-28 ${day.isToday ? "bg-orange-500/[0.06]" : ""} ${isOver ? "rounded-lg border-dashed border-orange-500/50 bg-orange-500/20" : ""}`}
-      onClick={() => onDateClick(day.label)}
+      onClick={() => onDateClick(day.id)}
     >
       {day.coverageAlert ? (
         <div className="absolute top-0 left-0 h-1 w-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.6)]" />
@@ -337,21 +365,28 @@ export const GroupHeader = React.memo(function GroupHeader({
 // ---------------------------------------------------------------------------
 export const EmployeeRow = React.memo(function EmployeeRow({
   employee,
+  employeeStats,
   subtitle,
   days,
   shiftsByEmployeeDay,
   absencesByEmployeeDay,
-  dispatch,
+  onCreateShift,
+  onAbsencePopover,
+  onSelectShift,
 }: {
-  employee: Employee;
+  employee: ScheduleEmployee;
+  employeeStats?: { hours: number; shiftCount: number };
   subtitle?: string;
   days: DayColumn[];
   shiftsByEmployeeDay: Map<string, ScheduleShift[]>;
   absencesByEmployeeDay: Map<string, Absence[]>;
-  dispatch: React.Dispatch<ScheduleAction>;
+  onCreateShift: (ctx: { dateId?: string; employeeId?: string } | null) => void;
+  onAbsencePopover: (ctx: { employeeId: string; dateId: string } | null) => void;
+  onSelectShift: (id: string | null) => void;
 }) {
   const { isDark } = useContext(DashboardContext);
-  const scheduledHours = parseFloat(employee.hours) || 0;
+  const scheduledHours = employeeStats?.hours ?? 0;
+  const shiftCount = employeeStats?.shiftCount ?? 0;
   const contractedHours = 37.5;
   const percentage = Math.min((scheduledHours / contractedHours) * 100, 100);
   const isOvertime = scheduledHours > contractedHours;
@@ -379,17 +414,18 @@ export const EmployeeRow = React.memo(function EmployeeRow({
             {employee.name}
           </h3>
           <p className="mb-1 truncate text-[11px] leading-tight text-zinc-500 xl:text-xs">
-            {subtitle || employee.role}
+            {subtitle || employee.jobTitle || employee.role}
           </p>
           <div className="mt-1 space-y-1 pr-2">
             <div className="flex items-center justify-between text-[10px] font-bold tracking-widest uppercase">
-              <span className="text-zinc-500">{employee.shifts} vakter</span>
+              <span className="text-zinc-500">{shiftCount} vakter</span>
               <span
                 className={
                   isOvertime ? "text-red-400" : percentage >= 95 ? "text-zinc-400" : "text-zinc-400"
                 }
               >
-                {employee.hours} <span className="text-zinc-600">/{contractedHours}</span>
+                {scheduledHours.toFixed(1)}{" "}
+                <span className="text-zinc-600">/{contractedHours}</span>
               </span>
             </div>
             <div
@@ -427,18 +463,10 @@ export const EmployeeRow = React.memo(function EmployeeRow({
             key={day.id}
             isToday={day.isToday}
             id={`cell::${employee.id}::${day.id}`}
-            onAddClick={() =>
-              dispatch({
-                type: "SET_CREATE_SHIFT_CONTEXT",
-                payload: { dateId: day.id, employeeId: employee.id },
-              })
-            }
+            onAddClick={() => onCreateShift({ dateId: day.id, employeeId: employee.id })}
             onContextMenu={(e) => {
               e.preventDefault();
-              dispatch({
-                type: "SET_ABSENCE_POPOVER",
-                payload: { employeeId: employee.id, dateId: day.id },
-              });
+              onAbsencePopover({ employeeId: employee.id, dateId: day.id });
             }}
           >
             {hasContent ? (
@@ -459,7 +487,7 @@ export const EmployeeRow = React.memo(function EmployeeRow({
                     indicator={shift.indicator}
                     zone={shift.zone}
                     id={shift.id}
-                    onClick={() => dispatch({ type: "SET_SELECTED_SHIFT", payload: shift.id })}
+                    onClick={() => onSelectShift(shift.id)}
                   />
                 ))}
               </div>

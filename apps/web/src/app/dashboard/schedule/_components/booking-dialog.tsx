@@ -31,7 +31,8 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 
-import { useSchedule } from "./schedule-context";
+import { useCreateDayBooking } from "../_hooks/use-day-content";
+import { useWeekRange } from "../_hooks/use-week-range";
 
 // ── Props ────────────────────────────────────────────────────
 
@@ -52,7 +53,8 @@ type BookingDialogProps = {
  * @param onOpenChange - Callback when open state changes
  */
 export function BookingDialog({ dateId, open, onOpenChange }: BookingDialogProps) {
-  const { dispatch } = useSchedule();
+  const { weekStart } = useWeekRange();
+  const createDayBooking = useCreateDayBooking(weekStart);
 
   // Form state
   const [title, setTitle] = useState("");
@@ -96,20 +98,18 @@ export function BookingDialog({ dateId, open, onOpenChange }: BookingDialogProps
       return;
     }
 
-    dispatch({
-      type: "ADD_BOOKING",
-      payload: {
-        dateId,
-        title: title.trim(),
-        guestCount: parsedGuests,
-        menu: menu.trim() || "Ikke spesifisert",
-        time: time.trim() || "TBD",
-        location: location.trim() || "Ikke tildelt",
-        status,
-        isVip,
-        notes: notes.trim() || undefined,
-        contactPerson: contactPerson.trim() || undefined,
-      },
+    createDayBooking.mutate({
+      id: `book_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      dateId,
+      title: title.trim(),
+      guestCount: parsedGuests,
+      menu: menu.trim() || "Ikke spesifisert",
+      time: time.trim() || "TBD",
+      location: location.trim() || "Ikke tildelt",
+      status,
+      isVip,
+      notes: notes.trim() || undefined,
+      contactPerson: contactPerson.trim() || undefined,
     });
 
     toast.success(`Booking "${title.trim()}" lagt til`);

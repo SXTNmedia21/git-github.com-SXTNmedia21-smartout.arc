@@ -20,7 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useSchedule } from "./schedule-context";
+import { useSaveTemplate } from "../_hooks/use-templates";
 import type { ShiftTemplate } from "./schedule-types";
 
 type TemplateShiftRow = {
@@ -41,7 +41,7 @@ type CreateTemplateDialogProps = {
  * which saves FROM an existing day.
  */
 export function CreateTemplateDialog({ open, onOpenChange }: CreateTemplateDialogProps) {
-  const { dispatch } = useSchedule();
+  const saveTemplate = useSaveTemplate();
 
   const [name, setName] = useState("");
   const [department, setDepartment] = useState("");
@@ -126,7 +126,7 @@ export function CreateTemplateDialog({ open, onOpenChange }: CreateTemplateDialo
       createdAt: new Date().toISOString(),
     };
 
-    dispatch({ type: "ADD_TEMPLATE", payload: template });
+    saveTemplate.mutate(template);
     resetForm();
     onOpenChange(false);
   };

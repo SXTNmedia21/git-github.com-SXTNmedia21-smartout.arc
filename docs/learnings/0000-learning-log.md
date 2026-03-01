@@ -1,19 +1,25 @@
 ---
-title: Learning Log
-status: in_progress
+title: "Learning Log"
 updated: 2026-03-01
-created: 2026-03-01
-module: landing
-tags: [learnings]
 ---
 
-# Learning Log — landing-analytics
+# Learning Log
 
-| #   | Date       | Learning                                                                                                                                        | Impact                                     |
-| --- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| 1   | 2026-03-01 | database.types.ts must be regenerated after migration for new tables — use UntypedClient cast as temporary workaround                           | Type safety gap until migration applied    |
-| 2   | 2026-03-01 | navigator.sendBeacon requires Blob with content-type for JSON payloads                                                                          | Affects session_end reliability            |
-| 3   | 2026-03-01 | Supabase JS client `.upsert()` with `onConflict` cannot do partial updates (only full row) — use insert-then-update-on-conflict pattern instead | Affects visitor upsert logic               |
-| 4   | 2026-03-01 | sessionStorage keys work well as once-per-session event guards (scroll thresholds)                                                              | Reusable pattern for any per-session dedup |
-| 5   | 2026-03-01 | React strict mode ESLint: Date.now() in useRef initializer triggers react-hooks/purity — move to useEffect body instead                         | Affects all hooks with impure ref init     |
-| 6   | 2026-03-01 | Supabase join syntax `table!inner(fields)` works for nested joins across FKs — used for session → visitor → user_identity                       | Enables rich admin data in single query    |
+This document serves as the central index of all Learning Records within the Smartout project.
+
+| ID   | Date       | Subject                                                                                                                               | Tags                                        |
+| ---- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| 0001 | 28-02-2026 | [Next.js Turbopack sets x-forwarded-host in dev](./0001-turbopack-x-forwarded-host.md)                                                | security, middleware, next.js               |
+| 0002 | 28-02-2026 | [Middleware must copy cookies to redirect responses](./0002-middleware-cookie-preservation.md)                                        | middleware, auth, cookies                   |
+| 0003 | 28-02-2026 | [Optimistic locking pattern for Supabase](./0003-optimistic-locking-supabase.md)                                                      | supabase, concurrency, api                  |
+| 0004 | 28-02-2026 | [Webhook status regression guard pattern](./0004-webhook-status-regression.md)                                                        | webhooks, docuseal, idempotency             |
+| 0005 | 28-02-2026 | [GitHub repo name differs from local directory](./0005-github-repo-name-vs-local-dir.md)                                              | git, github, tooling                        |
+| 0006 | 28-02-2026 | [DocuSeal uses plain shared secret for webhooks](./0006-docuseal-webhook-verification.md)                                             | docuseal, webhooks, security                |
+| 0007 | 28-02-2026 | [Warn-to-fail Performance and Build Governance scales better than immediate hard-fail](./0007-performance-governance-warn-to-fail.md) | performance, ci, governance, architecture   |
+| 0008 | 28-02-2026 | [Vercel always sets x-forwarded-host — never treat it as suspicious](./0008-vercel-x-forwarded-host-400.md)                           | vercel, security, middleware, reverse-proxy |
+| 0009 | 28-02-2026 | [.vercelignore patterns without leading / match at any depth](./0009-vercelignore-depth-matching.md)                                  | vercel, gitignore, build, monorepo          |
+| 0010 | 28-02-2026 | [Vercel Turborepo monorepo — Root Directory is app dir, not monorepo root](./0010-vercel-turborepo-root-directory.md)                 | vercel, turborepo, monorepo, deployment     |
+| 0011 | 28-02-2026 | [Framer Motion Landing Page Animation Patterns](./0011-framer-motion-landing-animation-patterns.md)                                   | framer-motion, animation, landing, ux       |
+| 0012 | 01-03-2026 | [MCP TypeScript SDK uses single package with deep imports](./0012-mcp-sdk-package-structure.md)                                       | mcp, sdk, npm, imports, ai-agents           |
+| 0013 | 01-03-2026 | [Ultravox HTTP tools: no headers on http object, use staticParameters](./0013-ultravox-http-tool-parameters.md)                       | ultravox, voice-ai, stage-engine, api       |
+| 0014 | 01-03-2026 | [Supabase gen types prints debug line to stdout](./0014-supabase-gen-types-stdout-noise.md)                                           | supabase, types, cli, gotcha                |
