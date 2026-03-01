@@ -5,6 +5,11 @@ import { executeWithWorkspaceContext } from "../_shared/api-key-auth.ts";
 import { requireScope } from "../_shared/scope-middleware.ts";
 
 import { handleGetProfiles } from "./handlers/profiles.ts";
+import {
+  handleGetDepartments,
+  handleGetTeams,
+  handleGetLocations,
+} from "./handlers/organization.ts";
 
 // ── Route handlers ──
 
@@ -16,6 +21,9 @@ type RouteHandler = (
 const routes: Record<string, RouteHandler> = {};
 
 routes["GET /v1/profiles"] = handleGetProfiles;
+routes["GET /v1/departments"] = handleGetDepartments;
+routes["GET /v1/teams"] = handleGetTeams;
+routes["GET /v1/locations"] = handleGetLocations;
 
 // ── Main router ──
 
