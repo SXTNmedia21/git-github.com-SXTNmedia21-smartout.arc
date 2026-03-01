@@ -14,7 +14,7 @@ RUN corepack enable
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY services/shift-mcp/package.json ./services/shift-mcp/
-RUN pnpm install --frozen-lockfile --filter @smartout/shift-mcp...
+RUN pnpm install --frozen-lockfile --filter @smartout/shift-mcp... --ignore-scripts
 
 WORKDIR /app/services/shift-mcp
 COPY services/shift-mcp/tsconfig.json ./
@@ -28,7 +28,7 @@ RUN corepack enable
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY services/shift-mcp/package.json ./services/shift-mcp/
-RUN pnpm install --frozen-lockfile --filter @smartout/shift-mcp... --prod
+RUN pnpm install --frozen-lockfile --filter @smartout/shift-mcp... --ignore-scripts --prod
 
 WORKDIR /app/services/shift-mcp
 COPY --from=builder /app/services/shift-mcp/dist ./dist

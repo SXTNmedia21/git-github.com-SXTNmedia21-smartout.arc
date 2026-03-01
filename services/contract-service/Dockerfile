@@ -14,7 +14,7 @@ RUN corepack enable
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY services/contract-service/package.json ./services/contract-service/
-RUN pnpm install --frozen-lockfile --filter @smartout/contract-service...
+RUN pnpm install --frozen-lockfile --filter @smartout/contract-service... --ignore-scripts
 
 WORKDIR /app/services/contract-service
 COPY services/contract-service/tsconfig.json ./
@@ -28,7 +28,7 @@ RUN corepack enable
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY services/contract-service/package.json ./services/contract-service/
-RUN pnpm install --frozen-lockfile --filter @smartout/contract-service... --prod
+RUN pnpm install --frozen-lockfile --filter @smartout/contract-service... --ignore-scripts --prod
 
 WORKDIR /app/services/contract-service
 COPY --from=builder /app/services/contract-service/dist ./dist

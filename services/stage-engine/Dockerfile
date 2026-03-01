@@ -14,7 +14,7 @@ RUN corepack enable
 # Copy workspace structure so pnpm can resolve the lockfile
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY services/stage-engine/package.json ./services/stage-engine/
-RUN pnpm install --frozen-lockfile --filter @smartout/stage-engine...
+RUN pnpm install --frozen-lockfile --filter @smartout/stage-engine... --ignore-scripts
 
 WORKDIR /app/services/stage-engine
 COPY services/stage-engine/tsconfig.json ./
@@ -28,7 +28,7 @@ RUN corepack enable
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY services/stage-engine/package.json ./services/stage-engine/
-RUN pnpm install --frozen-lockfile --filter @smartout/stage-engine... --prod
+RUN pnpm install --frozen-lockfile --filter @smartout/stage-engine... --ignore-scripts --prod
 
 WORKDIR /app/services/stage-engine
 COPY --from=builder /app/services/stage-engine/dist ./dist
