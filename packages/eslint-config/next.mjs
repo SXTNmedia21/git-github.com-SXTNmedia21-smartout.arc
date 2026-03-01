@@ -15,6 +15,7 @@ const eslintConfig = defineConfig([
       // that the compiler cannot auto-optimize.
       "react-hooks/preserve-manual-memoization": "warn",
       "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/incompatible-library": "warn",
     },
   },
 ]);
