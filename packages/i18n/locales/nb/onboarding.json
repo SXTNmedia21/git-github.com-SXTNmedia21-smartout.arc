@@ -1,0 +1,167 @@
+{
+  "init": {
+    "title": "La oss bygge arbeidsplassen din.",
+    "subtitle": "Oppgi bedriftens nettadresse, s\u00e5 genererer vi automatisk struktur, avdelinger og kjernerutiner.",
+    "placeholder": "din-nettside.no",
+    "scan": "Skann og generer",
+    "skip": "Hopp over"
+  },
+  "crawling": {
+    "title": "Analyserer {url}...",
+    "subtitle": "Henter bedriftsstruktur, lokasjoner og genererer standard driftsrutiner."
+  },
+  "auth": {
+    "title": "Lagre fremgangen din",
+    "subtitle": "Opprett en konto for \u00e5 ta vare p\u00e5 alt vi nettopp fant om bedriften din.",
+    "createAccount": "Opprett konto",
+    "signIn": "Logg inn",
+    "emailPlaceholder": "E-postadresse",
+    "passwordPlaceholder": "Passord (min. 8 tegn)",
+    "confirmPlaceholder": "Bekreft passord",
+    "submitSignup": "Opprett konto og fortsett",
+    "submitSignin": "Logg inn og fortsett",
+    "skip": "Hopp over for n\u00e5 (du kan opprette konto senere)",
+    "passwordMismatch": "Passordene stemmer ikke overens",
+    "passwordTooShort": "Passordet m\u00e5 v\u00e6re minst 8 tegn"
+  },
+  "orgVerification": {
+    "title": "Verifiser bedriftsidentitet",
+    "subtitle": "Oppgi organisasjonsnummeret for \u00e5 hente offisielle opplysninger fra Br\u00f8nn\u00f8ysundregistrene.",
+    "placeholder": "Organisasjonsnummer (9 siffer)",
+    "search": "S\u00f8k i Br\u00f8nn\u00f8ysundregistrene",
+    "skip": "Hopp over dette steget",
+    "tryAgain": "Pr\u00f8v igjen",
+    "confirm": "Ser riktig ut",
+    "invalidOrg": "Et gyldig norsk organisasjonsnummer har 9 siffer."
+  },
+  "branding": {
+    "title": "Merkevare og stemme",
+    "subtitle": "Sett opp bedriftens visuelle identitet og kommunikasjonsstil.",
+    "logo": "Bedriftslogo",
+    "logoHint": "Klikk for \u00e5 laste opp eller dra og slipp",
+    "slogan": "Bedriftens slagord",
+    "brandColor": "Merkefarge",
+    "tone": "Kommunikasjonstone",
+    "next": "Generer kontrakt og fortsett",
+    "back": "Tilbake"
+  },
+  "seasonEducation": {
+    "title": "Konseptet sesonger",
+    "subtitle": "I Smartout fungerer alt i sesonger. Nullstill budsjetter, oppdater menyer og endre oppsett smidig.",
+    "whyTitle": "Hvorfor sesonger?",
+    "whyBody": "I stedet for et stadig voksende, uoversiktlig system, bruker Smartout sesonger. En sesong kan v\u00e6re permanent (som \u00abKjernedrift\u00bb) eller tidsbegrenset (som \u00abSommer 2024\u00bb). Dette lar deg arkivere tidligere prestasjoner, tilordne sesongansatte ryddig, og bytte hele driftskonfigurasjonen over natten.",
+    "next": "Jeg forst\u00e5r, la oss bygge en"
+  },
+  "seasonIdentity": {
+    "title": "Gi navn til din f\u00f8rste sesong",
+    "subtitle": "Definer tidsramme og identitet for det f\u00f8rste oppsettet.",
+    "name": "Sesongnavn",
+    "nameHint": "Brukes internt og for de ansatte til \u00e5 identifisere gjeldende aktive konfigurasjon.",
+    "startDate": "Startdato (valgfritt)",
+    "endDate": "Sluttdato (valgfritt)",
+    "type": "Sesongtype",
+    "permanent": "Permanent sesong",
+    "permanentDesc": "En kontinuerlig basiskonfigurasjon. Du kan alltid arkivere den eller starte en ny sesong senere.",
+    "temporal": "Tidsbegrenset sesong",
+    "temporalDesc": "Strenge tidsrammer (f.eks. Sommer 2024). Perfekt for pop-up eller h\u00f8ysesongendringer.",
+    "next": "Sett opp avdelinger",
+    "back": "Tilbake"
+  },
+  "departments": {
+    "title": "Definer avdelinger",
+    "subtitle": "Hva er en avdeling? Det er et dedikert omr\u00e5de med egen vaktplan og prosedyrer.",
+    "active": "Aktive avdelinger",
+    "empty": "Ingen avdelinger installert enn\u00e5.",
+    "emptyHint": "Klikk p\u00e5 et forslag nedenfor eller opprett en egendefinert.",
+    "addCustom": "+ Opprett egendefinert avdeling",
+    "addShort": "+ Legg til egendefinert",
+    "useInSeason": "Bruk i sesong",
+    "notUsed": "Ikke brukt i {season}",
+    "remove": "Fjern",
+    "suggestions": "Anbefalt for din bransje",
+    "next": "Sett opp team",
+    "back": "Tilbake"
+  },
+  "teams": {
+    "title": "Definer team",
+    "subtitle": "Hvis avdelinger er \u00abomr\u00e5dene\u00bb, er team \u00abmenneskene\u00bb.",
+    "setup": "Teamoppsett",
+    "noDepts": "Du har ikke definert noen avdelinger enn\u00e5.",
+    "addTeam": "+ Legg til team",
+    "noTeams": "Ingen team lagt til",
+    "crossDept": "Tverravdelende team",
+    "crossDeptHint": "Team som opererer p\u00e5 tvers av flere avdelinger (f.eks. ledelse).",
+    "noCrossDept": "Ingen tverravdelende team lagt til",
+    "next": "Bekreft lokasjoner",
+    "back": "Tilbake"
+  },
+  "locations": {
+    "title": "Sett opp lokasjoner",
+    "subtitle": "Definer hvor bedriften opererer fysisk.",
+    "hq": "Hovedkontor",
+    "noDesc": "Ingen beskrivelse",
+    "add": "+ Legg til en lokasjon",
+    "edit": "Rediger",
+    "next": "Sett opp prosedyrer",
+    "back": "Tilbake"
+  },
+  "procedures": {
+    "title": "Definer prosedyrer",
+    "subtitle": "Sett opp standard driftsprosedyrer og oppgaver for avdelingene.",
+    "initial": "Innledende oppgaver og rutiner",
+    "noDepts": "Du m\u00e5 definere avdelinger f\u00f8r du oppretter prosedyrer.",
+    "empty": "Ingen prosedyrer opprettet enn\u00e5.",
+    "add": "+ Opprett egendefinert prosedyre",
+    "editDetails": "Rediger detaljer",
+    "next": "Sluttgjennomgang",
+    "back": "Tilbake"
+  },
+  "review": {
+    "title": "Slagplangjennomgang",
+    "subtitle": "Ser alt bra ut, general? Her er den endelige slagplanen.",
+    "identity": "Identitet og merkevare",
+    "season": "F\u00f8rste sesong",
+    "locations": "Lokasjoner",
+    "departments": "Avdelinger",
+    "procedures": "Prosedyrer",
+    "edit": "Rediger",
+    "goBack": "Vent, g\u00e5 tilbake",
+    "activate": "Aktiver arbeidsplassen"
+  },
+  "finalizing": {
+    "title": "Ferdigstiller arbeidsplassen",
+    "subtitle": "Lagrer struktur, injiserer retningslinjer og starter dashbordet..."
+  },
+  "invite": {
+    "title": "Inviter ditt f\u00f8rste teammedlem",
+    "subtitle": "{name} er klar! F\u00e5 noen om bord.",
+    "email": "E-postinvitasjon",
+    "phone": "SMS-invitasjon",
+    "link": "Delbar lenke",
+    "sent": "Sendt!",
+    "enterDashboard": "G\u00e5 til dashbord",
+    "skip": "Hopp over for n\u00e5"
+  },
+  "done": {
+    "title": "Du er klar!",
+    "subtitle": "Velkommen til fremtiden for hospitality-styring.",
+    "dashboard": "G\u00e5 til dashbord"
+  },
+  "drawers": {
+    "editDepartment": "Rediger avdeling",
+    "editTeam": "Rediger team",
+    "editLocation": "Rediger lokasjon",
+    "editProcedure": "Rediger prosedyre",
+    "name": "Internt navn",
+    "description": "Beskrivelse",
+    "teamName": "Teamnavn",
+    "locationName": "Lokasjonsnavn",
+    "procedureTitle": "Prosedyretittel",
+    "urgency": "Hastegrad",
+    "assignTo": "Tilordne til avdeling",
+    "instructions": "Instruksjoner",
+    "done": "Ferdig",
+    "remove": "Fjern",
+    "crossDept": "Tverravdelende team"
+  }
+}

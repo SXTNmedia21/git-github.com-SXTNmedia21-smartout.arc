@@ -1,59 +1,66 @@
 ---
-title: "Worklog — Journey Portal (Phase 3)"
-status: in_progress
+title: "Worklog — Onboarding Wizard Refactor"
+status: review
 updated: 2026-03-01
 created: 2026-03-01
-module: journey
-tags: [journey, platform-admin, hardening, editing]
+module: onboarding
+tags: [wizard, refactor, steps, progressive-save]
 ---
 
-# Worklog — Journey Portal (Phase 3)
+# Worklog — Onboarding Wizard Refactor
 
-## Status: 🟢 Implementation Complete — Awaiting Review
+## Status: 🟡 In Progress
 
 ## Done
 
-- [x] Session startup check
-- [x] Read all journey-related ADRs (0031, 0038)
-- [x] Read completed Phase 1 + Phase 2 plans
-- [x] Read hardening plan (not yet implemented)
-- [x] Audit existing code: all Phase 1 + 2 components present
-- [x] Verify hardening tasks are NOT implemented
-- [x] Write implementation plan (PLAN-journey-portal.md)
-- [x] Track A1: Server-side status transition API route
-- [x] Track A2: Refactor JourneyStatusChanger to use API route
-- [x] Track A3: Fix journey code generation race condition
-- [x] Track A4: Auth dedup across 5 API routes
-- [x] Track B1: Confirmation dialog on status transitions
-- [x] Track B2: Confirmation dialog on wizard complete
-- [x] Track B3: Markdown rendering in wizard chat
-- [x] Track C1: Journey metadata editing API (GET/PATCH/DELETE)
-- [x] Track C2: Journey edit form UI
-- [x] Track C3: Journey steps editor + API
-- [x] Track C4: Delete/archive journey UI
-- [x] Track D1: Typecheck — 0 new errors (pre-existing @smartout/ai resolution)
-- [x] Track D2: Build — pre-existing failure (@smartout/ai), no new issues
-- [x] Track D3: Lint — 0 errors, 11 pre-existing warnings
+- [x] Create shared types file (types.ts) — WizardStep, WorkspaceData, WizardContext
+- [x] Create useOnboardingWizard hook — state machine, progressive save, auth tracking, finalize
+- [x] Create WizardContext.tsx provider
+- [x] Extract InitStep + CrawlStep from monolith
+- [x] Extract OrgVerificationStep with Brreg lookup
+- [x] Extract BrandingStep, SeasonEducationStep, SeasonIdentityStep
+- [x] Extract DepartmentsStep, TeamsStep, LocationsStep, ProceduresStep
+- [x] Extract 4 drawers: Department, Team, Location, Procedure
+- [x] Extract BattlefieldReviewStep (enhanced with all sections + edit links)
+- [x] Extract FinalizeStep + DoneStep (with dashboard redirect)
+- [x] Create AuthStep (inline signup/signin after crawl)
+- [x] Create InviteStep (email + SMS + shareable link)
+- [x] Replace monolithic page.tsx with shell (step router + WizardProvider)
+- [x] Delete page.tsx.bak backup
+- [x] Full typecheck passes (0 errors)
 
 ## Remaining
 
-- [ ] Code review + commit
-- [ ] Merge to development
+- [ ] Manual E2E verification (requires local Supabase + migration apply)
+- [ ] Onboarding polish: remaining tasks from completion plan
 
 ## Decisions
 
-| Date       | Decision                                         | Reason                                                                        |
-| ---------- | ------------------------------------------------ | ----------------------------------------------------------------------------- |
-| 2026-03-01 | Hard delete over soft delete for journeys        | All journeys are seeded and can be re-seeded. Simpler than adding enum value. |
-| 2026-03-01 | Move up/down over drag-and-drop for step reorder | No extra dependency needed. Works fine for typical 5-15 step journeys.        |
+| Date       | Decision                                                | Reason                                          |
+| ---------- | ------------------------------------------------------- | ----------------------------------------------- |
+| 2026-03-01 | Use existing invitation table, not new workspace_invite | Avoid table duplication; extend existing system |
+| 2026-03-01 | Auth step between crawl and org verification            | Show value first (crawl), then ask for signup   |
+| 2026-03-01 | Progressive save to onboarding_session JSONB columns    | Resume if browser closes mid-wizard             |
+| 2026-03-01 | SSO buttons deferred                                    | All OAuth providers disabled in config.toml     |
 
 ## Log
 
-| Date       | Time | Event                                                                  |
-| ---------- | ---- | ---------------------------------------------------------------------- |
-| 2026-03-01 | —    | Session start: wt-4, branch feat/journey-portal                        |
-| 2026-03-01 | —    | Audit: Phase 1+2 done, hardening plan NOT implemented                  |
-| 2026-03-01 | —    | Plan written: docs/plans/PLAN-journey-portal.md                        |
-| 2026-03-01 | —    | Track A+B implemented (3 parallel agents)                              |
-| 2026-03-01 | —    | Track C implemented (2 parallel agents)                                |
-| 2026-03-01 | —    | Track D verified: typecheck clean, lint clean, build pre-existing fail |
+| Date       | Time          | Event                                                                                                                                         |
+| ---------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-03-01 | session start | Started onboarding wizard refactor on feat/onboarding-wizard branch (wt-3)                                                                    |
+| 2026-03-01 | -             | Created types.ts, useOnboardingWizard.ts, WizardContext.tsx                                                                                   |
+| 2026-03-01 | -             | Extracted all 15 step components + 4 drawers from 1,882-line monolith                                                                         |
+| 2026-03-01 | -             | Created new AuthStep and InviteStep components                                                                                                |
+| 2026-03-01 | -             | Replaced page.tsx with shell, typecheck passes                                                                                                |
+| 2026-03-01 | -             | Created DB migration: invitation_sms_support (phone, invite_type, relaxed constraints)                                                        |
+| 2026-03-01 | -             | Updated create-invitation Edge Function: single + batch mode, SendGrid email, Twilio SMS                                                      |
+| 2026-03-01 | -             | Full typecheck (0 errors), lint (0 errors, 11 pre-existing warnings)                                                                          |
+| 2026-03-01 | -             | Created docs/journeys/trainee-mode-core.md — Trainee Mode & Core Journey user journey                                                         |
+| 2026-03-01 | -             | Created docs/journeys/admin-workspace-setup.md — Admin Workspace Setup Wizard user journey (15 steps)                                         |
+| 2026-03-01 | -             | Polish Task 1: Added StepProgress bar component to wizard shell (11 visible steps, progress bar + step counter)                               |
+| 2026-03-01 | -             | Polish Task 2: Added keyboard handlers (Escape to close) and ARIA attributes (role=dialog, aria-modal, aria-label) to all 4 drawer components |
+| 2026-03-01 | -             | Polish Task 6: Updated CLAUDE.md — onboarding dir in monorepo structure + changelog v7.9.0                                                    |
+| 2026-03-01 | -             | Polish Task 7: Updated docs/INDEX.md — 4 plan entries + User Journeys section with 3 journey docs                                             |
+| 2026-03-01 | -             | Polish Task 8: Created ADR-0041 (Onboarding Wizard Step Architecture) + registered in decision log                                            |
+| 2026-03-01 | -             | Polish Task 3: Fixed dashboard.spec.ts — replaced `text=Operations` selector with `main` to avoid Playwright strict mode violation            |
+| 2026-03-01 | -             | Polish Task 4: Expanded auth.spec.ts — added "should show login form elements" and "should show all signup form fields" test cases            |
