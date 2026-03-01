@@ -959,6 +959,7 @@ export type Database = {
           description: string | null
           icon: string | null
           is_active: boolean
+          manager_profile_id: string | null
           name: string
           slug: string
           sort_order: number | null
@@ -972,6 +973,7 @@ export type Database = {
           description?: string | null
           icon?: string | null
           is_active?: boolean
+          manager_profile_id?: string | null
           name: string
           slug: string
           sort_order?: number | null
@@ -985,6 +987,7 @@ export type Database = {
           description?: string | null
           icon?: string | null
           is_active?: boolean
+          manager_profile_id?: string | null
           name?: string
           slug?: string
           sort_order?: number | null
@@ -992,6 +995,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "department_manager_profile_id_fkey"
+            columns: ["manager_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
           {
             foreignKeyName: "fk_department_workspace"
             columns: ["workspace_id"]
