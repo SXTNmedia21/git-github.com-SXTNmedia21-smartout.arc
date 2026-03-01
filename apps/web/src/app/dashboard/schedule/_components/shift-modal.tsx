@@ -54,7 +54,8 @@ import type { Shift } from "./schedule-types";
 import { useScheduleUI } from "./schedule-ui-context";
 import { useShifts, useCreateShift, useUpdateShift, useDeleteShift } from "../_hooks/use-shifts";
 import { useWeekRange } from "../_hooks/use-week-range";
-import { AVAILABLE_ROLES, AVAILABLE_TEAMS, AVAILABLE_ZONES, dummyEmployees } from "./schedule-data";
+import { useEmployees, type ScheduleEmployee } from "../_hooks/use-employees";
+import { AVAILABLE_ZONES } from "./schedule-data";
 import type { DayCategory, ShiftStatus } from "./schedule-types";
 
 // ── Constants ───────────────────────────────────────────────
@@ -230,9 +231,21 @@ export function ShiftModal() {
     useScheduleUI();
   const { weekStart, weekEnd } = useWeekRange();
   const { data: shifts = [] as Shift[] } = useShifts(weekStart, weekEnd);
+  const employeesQuery = useEmployees();
+  const employees: ScheduleEmployee[] = employeesQuery.data ?? [];
   const createShiftMutation = useCreateShift(weekStart);
   const updateShiftMutation = useUpdateShift(weekStart);
   const deleteShiftMutation = useDeleteShift(weekStart);
+
+  /** Unique job titles / roles and teams derived from real employee data */
+  const availableRoles = useMemo(
+    () => [...new Set(employees.map((e) => e.jobTitle || e.role).filter((v): v is string => !!v))],
+    [employees],
+  );
+  const availableTeams = useMemo(
+    () => [...new Set(employees.map((e) => e.team).filter((v): v is string => !!v))],
+    [employees],
+  );
 
   // Determine mode: edit (existing shift) or create (new shift)
   const isOpen = selectedShiftId !== null || createShiftContext !== null;
@@ -264,10 +277,11 @@ export function ShiftModal() {
   useEffect(() => {
     if (existingShift) {
       // Edit mode: pre-fill from existing shift
+      const emp = employees.find((e) => e.id === existingShift.employeeId);
       setForm({
         employeeId: existingShift.employeeId ?? "",
         role: existingShift.role,
-        team: dummyEmployees.find((e) => e.id === existingShift.employeeId)?.team ?? "",
+        team: emp?.team ?? "",
         startTime: existingShift.startTime,
         endTime: existingShift.endTime,
         dayCategory: existingShift.dayCategory,
@@ -280,12 +294,12 @@ export function ShiftModal() {
     } else if (createShiftContext) {
       // Create mode: pre-fill from context, rest is empty
       const employee = createShiftContext.employeeId
-        ? dummyEmployees.find((e) => e.id === createShiftContext?.employeeId)
+        ? employees.find((e) => e.id === createShiftContext?.employeeId)
         : null;
 
       setForm({
         employeeId: createShiftContext.employeeId ?? "",
-        role: employee?.role ?? "",
+        role: (employee?.jobTitle || employee?.role) ?? "",
         team: employee?.team ?? "",
         startTime: "08:00",
         endTime: "16:00",
@@ -299,7 +313,7 @@ export function ShiftModal() {
     }
     setShiftTasks([]);
     setNewTaskLabel("");
-  }, [existingShift, createShiftContext]);
+  }, [existingShift, createShiftContext, employees]);
 
   // ── Computed values ─────────────────────────────────────
 
@@ -327,15 +341,18 @@ export function ShiftModal() {
   );
 
   /** Auto-fill role and team when employee changes */
-  const handleEmployeeChange = useCallback((employeeId: string) => {
-    const employee = dummyEmployees.find((e) => e.id === employeeId);
-    setForm((prev) => ({
-      ...prev,
-      employeeId,
-      role: employee?.role ?? prev.role,
-      team: employee?.team ?? prev.team,
-    }));
-  }, []);
+  const handleEmployeeChange = useCallback(
+    (employeeId: string) => {
+      const employee = employees.find((e) => e.id === employeeId);
+      setForm((prev) => ({
+        ...prev,
+        employeeId,
+        role: (employee?.jobTitle || employee?.role) ?? prev.role,
+        team: employee?.team ?? prev.team,
+      }));
+    },
+    [employees],
+  );
 
   /** Auto-calculate day category when start time changes */
   const handleStartTimeChange = useCallback((startTime: string) => {
@@ -542,9 +559,9 @@ export function ShiftModal() {
                   <SelectValue placeholder="Velg ansatt (valgfritt)" />
                 </SelectTrigger>
                 <SelectContent>
-                  {dummyEmployees.map((emp) => (
+                  {employees.map((emp) => (
                     <SelectItem key={emp.id} value={emp.id}>
-                      {emp.name} — {emp.role}
+                      {emp.name} — {emp.jobTitle || emp.role}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -560,7 +577,7 @@ export function ShiftModal() {
                     <SelectValue placeholder="Velg rolle" />
                   </SelectTrigger>
                   <SelectContent>
-                    {AVAILABLE_ROLES.map((r) => (
+                    {availableRoles.map((r) => (
                       <SelectItem key={r} value={r}>
                         {r}
                       </SelectItem>
@@ -575,7 +592,7 @@ export function ShiftModal() {
                     <SelectValue placeholder="Velg team" />
                   </SelectTrigger>
                   <SelectContent>
-                    {AVAILABLE_TEAMS.map((t) => (
+                    {availableTeams.map((t) => (
                       <SelectItem key={t} value={t}>
                         {t}
                       </SelectItem>

@@ -6,6 +6,8 @@
 export const scheduleKeys = {
   all: ["schedule"] as const,
 
+  employees: (workspaceId: string) => ["schedule", "employees", workspaceId] as const,
+
   shifts: (workspaceId: string, weekStart: string) =>
     ["schedule", "shifts", workspaceId, weekStart] as const,
 

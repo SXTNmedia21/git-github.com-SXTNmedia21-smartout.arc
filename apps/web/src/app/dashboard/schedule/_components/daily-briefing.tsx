@@ -61,20 +61,23 @@ import {
 } from "../_hooks/use-day-content";
 import { useScheduleComputed } from "../_hooks/use-schedule-computed";
 import { useWeekRange } from "../_hooks/use-week-range";
-import { dummyDays, dummyEmployees } from "./schedule-data";
+import { useEmployees, type ScheduleEmployee } from "../_hooks/use-employees";
 import { BookingDialog } from "./booking-dialog";
 import type { TaskStatus } from "./schedule-types";
 
-// ── Helper: resolve dateId from the display label ────────────
+// ── Helper: format ISO date for display ──────────────────────
+
+const DAY_NAMES = ["Son", "Man", "Tir", "Ons", "Tor", "Fre", "Lor"];
 
 /**
- * Maps a display label (e.g. "Man 22/12") to the corresponding
- * dateId in dummyDays (e.g. "d1"). Returns null if not found.
+ * Formats an ISO date string (e.g. "2026-03-02") to a display label.
+ * Returns "Man 2/3" format for header display.
  */
-function resolveDateId(dateLabel: string | null): string | null {
-  if (!dateLabel) return null;
-  const match = dummyDays.find((d) => d.label === dateLabel);
-  return match?.id ?? null;
+function formatDateLabel(dateId: string | null): string {
+  if (!dateId) return "";
+  const date = new Date(dateId + "T00:00:00");
+  const dayName = DAY_NAMES[date.getDay()] ?? "";
+  return `${dayName} ${date.getDate()}/${date.getMonth() + 1}`;
 }
 
 // ── Helper: format NOK currency ──────────────────────────────
@@ -133,8 +136,9 @@ export function DailyBriefingPanel({
     "oversikt",
   );
 
-  // Resolve the dateId from the label string
-  const dateId = useMemo(() => resolveDateId(date), [date]);
+  // The date prop is now the ISO dateId directly (e.g. "2026-03-02")
+  const dateId = date;
+  const dateLabel = useMemo(() => formatDateLabel(date), [date]);
 
   if (!date) return null;
 
@@ -153,7 +157,7 @@ export function DailyBriefingPanel({
               <h2
                 className={`text-xl font-black ${isDark ? "text-white" : "text-zinc-900"} tracking-tight`}
               >
-                {date}
+                {dateLabel}
               </h2>
             </div>
             <button
@@ -289,9 +293,11 @@ function OversiktTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
     (s) => s.role.toLowerCase().includes("manager") || s.indicator === "purple",
   );
 
-  // Resolve manager name from employees
+  // Resolve manager name from real employee data
+  const employeesQuery = useEmployees();
+  const employees: ScheduleEmployee[] = employeesQuery.data ?? [];
   const managerEmployee = managerShift?.employeeId
-    ? dummyEmployees.find((e) => e.id === managerShift.employeeId)
+    ? employees.find((e) => e.id === managerShift.employeeId)
     : null;
 
   // Calculate total work hours from all shifts for this day

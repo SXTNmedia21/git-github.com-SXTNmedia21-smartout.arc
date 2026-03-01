@@ -43,8 +43,10 @@ import { ShiftModal } from "./_components/shift-modal";
 import { BatchActionBar } from "./_components/batch-action-bar";
 import { AbsencePopover } from "./_components/absence-popover";
 
-// TODO: Replace dummyEmployees with profile query when ready
-import { dummyEmployees, type DayColumn } from "./_components/schedule-data";
+import type { DayColumn } from "./_components/schedule-data";
+
+// ── Employee data from Supabase ──────────────────────────────
+import { useEmployees, type ScheduleEmployee } from "./_hooks/use-employees";
 
 // ── New TanStack Query hooks ────────────────────────────────
 import { ScheduleUIProvider, useScheduleUI } from "./_components/schedule-ui-context";
@@ -177,6 +179,8 @@ function SchedulePageContent() {
   const { workspace } = useWorkspace();
 
   // ── TanStack Query hooks ────────────────────────────────────
+  const employeesQuery = useEmployees();
+  const employees = employeesQuery.data ?? [];
   const shiftsQuery = useShifts(weekStart, weekEnd);
   const absencesQuery = useAbsences(weekStart, weekEnd);
   const templatesQuery = useTemplates();
@@ -418,6 +422,8 @@ function SchedulePageContent() {
                       setIsSidebarOpen={setIsSidebarOpen}
                       onDateClick={setSelectedDate}
                       filterSituation={filterSituation}
+                      visibleDays={days}
+                      employees={employees}
                     />
                   )}
                   {scheduleLayout === "weekly" && (
@@ -429,6 +435,7 @@ function SchedulePageContent() {
                       shifts={shifts}
                       computed={computed}
                       scheduleUI={scheduleUI}
+                      employees={employees}
                     />
                   )}
                   {scheduleLayout === "monthly" && (
@@ -447,6 +454,7 @@ function SchedulePageContent() {
                       shifts={shifts}
                       computed={computed}
                       days={days}
+                      employees={employees}
                     />
                   )}
                 </>
@@ -615,6 +623,7 @@ function WeeklyGridContent({
   shifts,
   computed,
   scheduleUI,
+  employees,
 }: {
   isSidebarOpen: boolean;
   setIsSidebarOpen: (v: boolean) => void;
@@ -623,38 +632,41 @@ function WeeklyGridContent({
   shifts: import("./_components/schedule-types").Shift[];
   computed: import("./_hooks/use-schedule-computed").ScheduleComputed;
   scheduleUI: ReturnType<typeof useScheduleUI>;
+  employees: ScheduleEmployee[];
 }) {
   const { isDark, scheduleView, weeklyPeriodCount } = useContext(DashboardContext);
   const columns = Array.from({ length: weeklyPeriodCount }, (_, i) => i + 1);
 
   /**
    * Groups employees dynamically based on the current scheduleView.
-   * - "team": grouped by team name (Kjokken, Sal & Service, Drift)
-   * - "jobb": grouped by role (Sous Chef, Kokk, Manager, etc.)
+   * - "team": grouped by team name
+   * - "jobb": grouped by job title / role
    * - "ansatt": flat list with no grouping headers
    */
   const groupedEmployees = React.useMemo(() => {
     if (scheduleView === "team") {
-      const map = new Map<string, typeof dummyEmployees>();
-      for (const emp of dummyEmployees) {
-        const list = map.get(emp.team) ?? [];
+      const map = new Map<string, ScheduleEmployee[]>();
+      for (const emp of employees) {
+        const key = emp.team || "Uten team";
+        const list = map.get(key) ?? [];
         list.push(emp);
-        map.set(emp.team, list);
+        map.set(key, list);
       }
       return Array.from(map.entries());
     }
     if (scheduleView === "jobb") {
-      const map = new Map<string, typeof dummyEmployees>();
-      for (const emp of dummyEmployees) {
-        const list = map.get(emp.role) ?? [];
+      const map = new Map<string, ScheduleEmployee[]>();
+      for (const emp of employees) {
+        const key = emp.jobTitle || emp.role || "Ukjent";
+        const list = map.get(key) ?? [];
         list.push(emp);
-        map.set(emp.role, list);
+        map.set(key, list);
       }
       return Array.from(map.entries());
     }
     // "ansatt" — flat list, single group
-    return [["Alle ansatte", dummyEmployees] as [string, typeof dummyEmployees]];
-  }, [scheduleView]);
+    return [["Alle ansatte", employees] as [string, ScheduleEmployee[]]];
+  }, [scheduleView, employees]);
 
   return (
     <div className="flex h-full w-full overflow-y-auto">
@@ -691,19 +703,22 @@ function WeeklyGridContent({
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {groupedEmployees.map(([groupName, employees]) => (
-            <TeamGroup key={groupName} title={groupName} count={employees.length}>
-              {employees.map((emp) => (
-                <EntityRow
-                  key={emp.id}
-                  name={emp.name}
-                  subtitle={scheduleView === "jobb" ? emp.team : emp.role}
-                  hours={emp.hours}
-                  shifts={emp.shifts}
-                  avatarColor={emp.avatarColor}
-                  initials={emp.initials}
-                />
-              ))}
+          {groupedEmployees.map(([groupName, groupEmps]) => (
+            <TeamGroup key={groupName} title={groupName} count={groupEmps.length}>
+              {groupEmps.map((emp) => {
+                const stats = computed.getEmployeeStats(emp.id);
+                return (
+                  <EntityRow
+                    key={emp.id}
+                    name={emp.name}
+                    subtitle={scheduleView === "jobb" ? emp.team : emp.jobTitle || emp.role}
+                    hours={stats.totalHours.toFixed(1)}
+                    shifts={String(stats.shiftCount)}
+                    avatarColor={emp.avatarColor}
+                    initials={emp.initials}
+                  />
+                );
+              })}
             </TeamGroup>
           ))}
         </div>
@@ -1228,11 +1243,13 @@ function ListGridContent({
   shifts,
   computed,
   days,
+  employees,
 }: {
   onDateClick: (d: string) => void;
   shifts: import("./_components/schedule-types").Shift[];
   computed: import("./_hooks/use-schedule-computed").ScheduleComputed;
   days: DayColumn[];
+  employees: ScheduleEmployee[];
 }) {
   const { isDark } = useContext(DashboardContext);
 
@@ -1301,7 +1318,7 @@ function ListGridContent({
 
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 print:grid-cols-2">
                 {dayShifts.map((shift) => {
-                  const emp = dummyEmployees.find((e) => e.id === shift.employeeId);
+                  const emp = employees.find((e) => e.id === shift.employeeId);
                   if (!emp) return null;
                   return (
                     <div
@@ -1309,7 +1326,7 @@ function ListGridContent({
                       className={`flex items-start gap-3 rounded-xl border p-3 ${isDark ? "border-white/5 bg-[#0a0a0c] hover:border-white/10" : "border-zinc-200 bg-zinc-50 hover:border-zinc-300"} transition-colors print:border-gray-200 print:bg-white`}
                     >
                       <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-zinc-800 print:border-black">
-                        {emp.role === "Leder" ? (
+                        {emp.role === "manager" || emp.role === "admin" || emp.role === "owner" ? (
                           <Briefcase className="h-4 w-4 text-purple-400" />
                         ) : (
                           <Users className="h-4 w-4 text-zinc-400" />

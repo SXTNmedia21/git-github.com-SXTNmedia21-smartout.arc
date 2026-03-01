@@ -29,7 +29,7 @@ tags: [schedule, ui, persistence, realtime, tanstack-query, audit-log]
 
 ## Remaining
 
-- [ ] Replace dummyEmployees with profile query (schedule-data.ts still provides employee grid data)
+- [x] Replace dummyEmployees with Supabase profile query (use-employees.ts hook)
 - [x] Paste-day operation (batch shift creation from clipboard — usePasteDay hook)
 - [ ] schedule-toasts.tsx cleanup (deprecated, mutations handle own toasts)
 
@@ -44,16 +44,17 @@ tags: [schedule, ui, persistence, realtime, tanstack-query, audit-log]
 
 ## Log
 
-| Date       | Time | Event                                                                     |
-| ---------- | ---- | ------------------------------------------------------------------------- |
-| 2026-03-01 | —    | Session started, brainstorming Phase 1 design                             |
-| 2026-03-01 | —    | Design approved, plan written (12 tasks)                                  |
-| 2026-03-01 | —    | Tasks 1-2 + Task 3 executed in parallel (TanStack install + DB migration) |
-| 2026-03-01 | —    | Task 4: Query keys + mappers                                              |
-| 2026-03-01 | —    | Task 5: Shift hooks with optimistic updates                               |
-| 2026-03-01 | —    | Tasks 6+7+8 executed in parallel (entity hooks + realtime + UI context)   |
-| 2026-03-01 | —    | Task 9: page.tsx provider swap                                            |
-| 2026-03-01 | —    | Task 10: All 15 components migrated                                       |
-| 2026-03-01 | —    | Task 11: Deleted schedule-context.tsx, fixed 40 type errors               |
-| 2026-03-01 | —    | Task 12: Verification passed, ADR-0037 written                            |
-| 2026-03-01 | —    | Paste-day: usePasteDay hook + wired into day-context-menu.tsx             |
+| Date       | Time | Event                                                                      |
+| ---------- | ---- | -------------------------------------------------------------------------- |
+| 2026-03-01 | —    | Session started, brainstorming Phase 1 design                              |
+| 2026-03-01 | —    | Design approved, plan written (12 tasks)                                   |
+| 2026-03-01 | —    | Tasks 1-2 + Task 3 executed in parallel (TanStack install + DB migration)  |
+| 2026-03-01 | —    | Task 4: Query keys + mappers                                               |
+| 2026-03-01 | —    | Task 5: Shift hooks with optimistic updates                                |
+| 2026-03-01 | —    | Tasks 6+7+8 executed in parallel (entity hooks + realtime + UI context)    |
+| 2026-03-01 | —    | Task 9: page.tsx provider swap                                             |
+| 2026-03-01 | —    | Task 10: All 15 components migrated                                        |
+| 2026-03-01 | —    | Task 11: Deleted schedule-context.tsx, fixed 40 type errors                |
+| 2026-03-01 | —    | Task 12: Verification passed, ADR-0037 written                             |
+| 2026-03-01 | —    | Paste-day: usePasteDay hook + wired into day-context-menu.tsx              |
+| 2026-03-01 | —    | Replace dummyEmployees with real Supabase profile query (use-employees.ts) |
