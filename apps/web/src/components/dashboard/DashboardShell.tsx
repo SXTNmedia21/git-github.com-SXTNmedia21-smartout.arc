@@ -180,11 +180,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (isSchedulePage && !prevIsSchedule.current) {
-      // Entering schedule — remember state and collapse
       sidebarStateBeforeAutoCollapse.current = isSidebarCollapsed;
       if (!isSidebarCollapsed) setIsSidebarCollapsed(true);
     } else if (!isSchedulePage && prevIsSchedule.current) {
-      // Leaving schedule — restore previous state
       if (sidebarStateBeforeAutoCollapse.current === false) {
         setIsSidebarCollapsed(false);
       }
