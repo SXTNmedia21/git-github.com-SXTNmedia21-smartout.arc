@@ -19,6 +19,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   let workspace: WorkspaceData | null = null;
+  let profileId: string | null = null;
 
   if (slug) {
     // Workspace subdomain: query workspace by slug
@@ -48,17 +49,19 @@ export default async function DashboardLayout({ children }: { children: React.Re
       redirect("/access-denied?reason=no-profile");
     }
 
+    profileId = profile.profile_id;
     workspace = wsRow;
   } else {
     // No subdomain (local dev or legacy) — use first workspace
     const { data: profileData } = (await supabase
       .from("profile")
-      .select("workspace_id")
+      .select("workspace_id, profile_id")
       .eq("user_id", user.id)
       .limit(1)
-      .single()) as { data: { workspace_id: string } | null };
+      .single()) as { data: { workspace_id: string; profile_id: string } | null };
 
     if (profileData?.workspace_id) {
+      profileId = profileData.profile_id;
       const { data: wsData } = await supabase
         .from("workspace")
         .select(
@@ -77,7 +80,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     return (
       <QueryProvider>
         <WorkspaceProvider workspace={workspace}>
-          <DashboardShell>{children}</DashboardShell>
+          <DashboardShell profileId={profileId}>{children}</DashboardShell>
         </WorkspaceProvider>
       </QueryProvider>
     );
@@ -86,7 +89,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // Fallback: no workspace found at all
   return (
     <QueryProvider>
-      <DashboardShell>{children}</DashboardShell>
+      <DashboardShell profileId={profileId}>{children}</DashboardShell>
     </QueryProvider>
   );
 }

@@ -84,6 +84,7 @@ export const DashboardContext = createContext({
     void _val;
   },
   workspaceData: null as { workspace_id: string; company_id: string; name: string } | null,
+  profileId: null as string | null,
 });
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -116,6 +117,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 
+import { ActionStrip } from "@/components/dashboard/ActionStrip";
 import { UserMenu } from "@/components/dashboard/UserMenu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -130,7 +132,13 @@ const LazyVoiceAssistant = dynamic(() => import("@/components/voice-assistant"),
 /** Demo location options for the schedule page location selector */
 const LOCATIONS = ["Alle Lokasjoner", "Hovedrestaurant", "Bar & Lounge", "Uteservering", "Kjøkken"];
 
-export function DashboardShell({ children }: { children: React.ReactNode }) {
+export function DashboardShell({
+  children,
+  profileId = null,
+}: {
+  children: React.ReactNode;
+  profileId?: string | null;
+}) {
   const [isDark, setIsDark] = useState(true);
   const [isAdminMode, setIsAdminMode] = useState(true);
   const [adminView, setAdminView] = useState<AdminViewType>("tactical");
@@ -186,6 +194,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       scheduleDraftCount,
       setScheduleDraftCount,
       workspaceData,
+      profileId,
     }),
     [
       isAdminMode,
@@ -201,6 +210,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       setOnPublishAll,
       scheduleDraftCount,
       workspaceData,
+      profileId,
     ],
   );
 
@@ -914,6 +924,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
           <DashboardContext.Provider value={dashboardContextValue}>
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-6 md:p-8 print:block print:h-auto print:overflow-visible print:p-0">
+              {isAdminMode && isDashboardPage && (
+                <div className="mb-4 flex-shrink-0">
+                  <ActionStrip isDark={isDark} />
+                </div>
+              )}
               {children}
             </div>
           </DashboardContext.Provider>
