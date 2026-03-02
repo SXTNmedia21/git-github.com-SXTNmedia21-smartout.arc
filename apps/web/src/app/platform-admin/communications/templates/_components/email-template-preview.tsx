@@ -120,8 +120,12 @@ export function EmailTemplatePreview({
       <div className="bg-muted/30 flex flex-1 justify-center overflow-y-auto p-4">
         <iframe
           srcDoc={html}
-          className="border-border h-full rounded-md border bg-white"
-          style={{ width: width === "desktop" ? "100%" : "375px" }}
+          className="border-border rounded-md border bg-white"
+          style={{
+            width: width === "desktop" ? "100%" : "375px",
+            minHeight: "500px",
+            height: "100%",
+          }}
           title="Email template preview"
           sandbox="allow-same-origin"
         />

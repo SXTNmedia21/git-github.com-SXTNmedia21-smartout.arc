@@ -7,8 +7,6 @@ import {
   Loader2,
   Upload,
   Plus,
-  GripVertical,
-  Trash2,
   Type,
   AlignLeft,
   ImageIcon,
@@ -17,14 +15,17 @@ import {
   Minus,
   MousePointerClick,
   PanelBottom,
+  Eye,
+  EyeOff,
+  X,
 } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -109,6 +110,17 @@ export function EmailTemplateEditor({ templateId, initialData, onSave }: EmailTe
 
   const markDirty = useCallback(() => setIsDirty(true), []);
 
+  // Warn on unsaved changes before navigating away
+  useEffect(() => {
+    function handleBeforeUnload(e: BeforeUnloadEvent) {
+      if (isDirty) {
+        e.preventDefault();
+      }
+    }
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isDirty]);
+
   const handleSave = useCallback(
     async (newStatus?: string) => {
       setIsSaving(true);
@@ -124,10 +136,11 @@ export function EmailTemplateEditor({ templateId, initialData, onSave }: EmailTe
         if (newStatus) setStatus(newStatus);
         setIsDirty(false);
         setLastSavedAt(new Date());
+        toast.success(newStatus === "active" ? "Template published" : "Template saved");
       } catch (err) {
         const message = err instanceof Error ? err.message : "Could not save template";
         if (message.includes("NEXT_REDIRECT")) return;
-        alert(message);
+        toast.error(message);
       } finally {
         setIsSaving(false);
       }
@@ -178,6 +191,22 @@ export function EmailTemplateEditor({ templateId, initialData, onSave }: EmailTe
     markDirty();
   }
 
+  function duplicateSection(id: string) {
+    setSections((prev) => {
+      const idx = prev.findIndex((s) => s.id === id);
+      if (idx === -1) return prev;
+      const original = prev[idx]!;
+      const clone: EmailTemplateSection = {
+        ...original,
+        id: crypto.randomUUID(),
+      };
+      const next = [...prev];
+      next.splice(idx + 1, 0, clone);
+      return next;
+    });
+    markDirty();
+  }
+
   function moveSection(id: string, direction: "up" | "down") {
     setSections((prev) => {
       const idx = prev.findIndex((s) => s.id === id);
@@ -220,7 +249,8 @@ export function EmailTemplateEditor({ templateId, initialData, onSave }: EmailTe
           <Badge variant="outline" className="text-xs">
             {status === "draft" ? "Draft" : status === "active" ? "Active" : "Archived"}
           </Badge>
-          {lastSavedAt && (
+          {isDirty && <span className="text-muted-foreground text-xs italic">Unsaved changes</span>}
+          {lastSavedAt && !isDirty && (
             <span className="text-muted-foreground text-xs">
               Saved{" "}
               {lastSavedAt.toLocaleTimeString("no-NO", { hour: "2-digit", minute: "2-digit" })}
@@ -229,7 +259,17 @@ export function EmailTemplateEditor({ templateId, initialData, onSave }: EmailTe
         </div>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" onClick={() => setShowPreview((p) => !p)}>
-            {showPreview ? "Hide Preview" : "Show Preview"}
+            {showPreview ? (
+              <>
+                <EyeOff className="mr-1 h-3.5 w-3.5" />
+                Hide Preview
+              </>
+            ) : (
+              <>
+                <Eye className="mr-1 h-3.5 w-3.5" />
+                Show Preview
+              </>
+            )}
           </Button>
           <Button
             size="sm"
@@ -311,7 +351,9 @@ export function EmailTemplateEditor({ templateId, initialData, onSave }: EmailTe
             {/* Sections */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label className="text-xs font-medium tracking-wider uppercase">Sections</Label>
+                <Label className="text-xs font-medium tracking-wider uppercase">
+                  Sections ({sections.length})
+                </Label>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm" className="h-7 text-xs">
@@ -321,10 +363,10 @@ export function EmailTemplateEditor({ templateId, initialData, onSave }: EmailTe
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     {SECTION_TYPES.map((s) => {
-                      const Icon = s.icon;
+                      const SIcon = s.icon;
                       return (
                         <DropdownMenuItem key={s.type} onClick={() => addSection(s.type)}>
-                          <Icon className="mr-2 h-3.5 w-3.5" />
+                          <SIcon className="mr-2 h-3.5 w-3.5" />
                           {s.label}
                         </DropdownMenuItem>
                       );
@@ -348,6 +390,7 @@ export function EmailTemplateEditor({ templateId, initialData, onSave }: EmailTe
                       onUpdate={(updates) => updateSection(section.id, updates)}
                       onRemove={() => removeSection(section.id)}
                       onMove={(dir) => moveSection(section.id, dir)}
+                      onDuplicate={() => duplicateSection(section.id)}
                     />
                   ))}
                 </div>
@@ -368,7 +411,7 @@ export function EmailTemplateEditor({ templateId, initialData, onSave }: EmailTe
                       onClick={() => removePlaceholder(p.key)}
                       className="text-muted-foreground hover:text-foreground ml-0.5"
                     >
-                      <Trash2 className="h-2.5 w-2.5" />
+                      <X className="h-2.5 w-2.5" />
                     </button>
                   </Badge>
                 ))}

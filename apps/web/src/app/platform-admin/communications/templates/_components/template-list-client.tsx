@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Plus, Mail, Megaphone, Bell, Newspaper, FileText } from "lucide-react";
+import { Plus, Mail, Megaphone, Bell, Newspaper, FileText, ArrowLeft } from "lucide-react";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -33,11 +34,19 @@ export function TemplateListClient({ templates }: { templates: TemplateRow[] }) 
   return (
     <>
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Email Templates</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Create and manage email templates for platform communications
-          </p>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/platform-admin/communications"
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+          <div>
+            <h1 className="text-2xl font-semibold">Email Templates</h1>
+            <p className="text-muted-foreground mt-1 text-sm">
+              Create and manage email templates for platform communications
+            </p>
+          </div>
         </div>
         <Button onClick={() => router.push("/platform-admin/communications/templates/new/edit")}>
           <Plus className="mr-1.5 h-4 w-4" />
