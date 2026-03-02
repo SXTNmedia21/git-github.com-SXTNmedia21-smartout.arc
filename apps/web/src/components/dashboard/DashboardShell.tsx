@@ -83,6 +83,10 @@ export const DashboardContext = createContext({
   setScheduleDraftCount: (_val: number) => {
     void _val;
   },
+  scheduleCompactMode: false,
+  setScheduleCompactMode: (_val: boolean) => {
+    void _val;
+  },
   workspaceData: null as { workspace_id: string; company_id: string; name: string } | null,
   profileId: null as string | null,
 });
@@ -148,6 +152,7 @@ export function DashboardShell({
   const onPublishAllRef = useRef<(() => void) | null>(null);
   const scheduleDraftCountRef = useRef(0);
   const [scheduleDraftCountDisplay, setScheduleDraftCountDisplay] = useState(0);
+  const [scheduleCompactMode, setScheduleCompactMode] = useState(false);
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const pathname = usePathname();
   const workspaceCtx = useWorkspaceOptional();
@@ -201,6 +206,8 @@ export function DashboardShell({
       setOnPublishAll,
       scheduleDraftCount: scheduleDraftCountDisplay,
       setScheduleDraftCount,
+      scheduleCompactMode,
+      setScheduleCompactMode,
       workspaceData,
       profileId,
     }),
@@ -218,6 +225,7 @@ export function DashboardShell({
       setOnPublishAll,
       setScheduleDraftCount,
       scheduleDraftCountDisplay,
+      scheduleCompactMode,
       workspaceData,
       profileId,
     ],
