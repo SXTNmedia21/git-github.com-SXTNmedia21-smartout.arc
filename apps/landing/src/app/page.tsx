@@ -43,6 +43,9 @@ import VariantSLanding from "../components/landing/VariantSLanding";
 import VoiceDemoWidget from "../components/landing/VoiceDemoWidget";
 import { useVariant } from "../lib/landing-variant";
 import { usePageTracking, useTrackCta } from "../hooks/useTracking";
+import { useScrollTracking } from "../hooks/useScrollTracking";
+import { useClickTracking } from "../hooks/useClickTracking";
+import { useSessionLifecycle } from "../hooks/useSessionLifecycle";
 import { VARIANT_VOICE_CONFIG, VARIANT_AI_SECTION } from "../lib/variant-voice-config";
 
 const MOCK_LOCATIONS = [
@@ -138,6 +141,9 @@ export default function SmartoutLandingPage() {
   const { variant } = useVariant();
   // Track page view once per browser session (fire-and-forget, no blocking)
   usePageTracking();
+  useScrollTracking();
+  useClickTracking();
+  useSessionLifecycle();
   const trackCta = useTrackCta();
   const [activeTab, setActiveTab] = useState("locations");
   const onboardingHref = WEB_APP_LINKS.onboarding;

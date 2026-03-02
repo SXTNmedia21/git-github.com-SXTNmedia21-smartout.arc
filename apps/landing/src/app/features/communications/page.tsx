@@ -29,6 +29,9 @@ import type { MissionId } from "@smartout/ai/missions";
 import Navigation from "../../../components/navigation";
 import Footer from "../../../components/footer";
 import { usePageTracking } from "../../../hooks/useTracking";
+import { useScrollTracking } from "../../../hooks/useScrollTracking";
+import { useClickTracking } from "../../../hooks/useClickTracking";
+import { useSessionLifecycle } from "../../../hooks/useSessionLifecycle";
 import NextPageBanner from "../../../components/next-page-banner";
 
 function useWalkieTalkie({
@@ -193,6 +196,9 @@ const CHATS_DATA = [
 
 export default function KommunikasjonPage() {
   usePageTracking();
+  useScrollTracking();
+  useClickTracking();
+  useSessionLifecycle();
   const router = useRouter();
 
   // UI States

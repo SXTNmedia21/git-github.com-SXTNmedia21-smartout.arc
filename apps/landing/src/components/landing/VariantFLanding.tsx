@@ -31,6 +31,9 @@ import VoiceDemoWidget from "./VoiceDemoWidget";
 import { WEB_APP_LINKS } from "../../lib/web-app-url";
 import { VARIANT_VOICE_CONFIG, VARIANT_AI_SECTION } from "../../lib/variant-voice-config";
 import { usePageTracking, useTrackCta } from "../../hooks/useTracking";
+import { useScrollTracking } from "../../hooks/useScrollTracking";
+import { useClickTracking } from "../../hooks/useClickTracking";
+import { useSessionLifecycle } from "../../hooks/useSessionLifecycle";
 
 /**
  * Icon card data for the "What We Do" section.
@@ -113,6 +116,9 @@ const CHECKLIST_ITEMS = [
  */
 export default function VariantFLanding() {
   usePageTracking();
+  useScrollTracking();
+  useClickTracking();
+  useSessionLifecycle();
   const trackCta = useTrackCta();
 
   return (

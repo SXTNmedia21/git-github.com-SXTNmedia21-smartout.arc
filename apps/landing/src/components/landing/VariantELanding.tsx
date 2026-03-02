@@ -23,10 +23,16 @@ import Footer from "../footer";
 import VoiceDemoWidget from "./VoiceDemoWidget";
 import { WEB_APP_LINKS } from "../../lib/web-app-url";
 import { usePageTracking, useTrackCta } from "../../hooks/useTracking";
+import { useScrollTracking } from "../../hooks/useScrollTracking";
+import { useClickTracking } from "../../hooks/useClickTracking";
+import { useSessionLifecycle } from "../../hooks/useSessionLifecycle";
 import { VARIANT_VOICE_CONFIG, VARIANT_AI_SECTION } from "../../lib/variant-voice-config";
 
 export default function VariantELanding() {
   usePageTracking();
+  useScrollTracking();
+  useClickTracking();
+  useSessionLifecycle();
   const trackCta = useTrackCta();
 
   return (

@@ -33,6 +33,9 @@ import VoiceDemoWidget from "./VoiceDemoWidget";
 import { WEB_APP_LINKS } from "../../lib/web-app-url";
 import { VARIANT_VOICE_CONFIG, VARIANT_AI_SECTION } from "../../lib/variant-voice-config";
 import { usePageTracking, useTrackCta } from "../../hooks/useTracking";
+import { useScrollTracking } from "../../hooks/useScrollTracking";
+import { useClickTracking } from "../../hooks/useClickTracking";
+import { useSessionLifecycle } from "../../hooks/useSessionLifecycle";
 
 /**
  * Playfair Display — the serif typeface that defines Variant S.
@@ -183,6 +186,9 @@ const NETWORK_BADGES = [
  */
 export default function VariantSLanding() {
   usePageTracking();
+  useScrollTracking();
+  useClickTracking();
+  useSessionLifecycle();
   const trackCta = useTrackCta();
 
   return (

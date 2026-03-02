@@ -14,6 +14,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Bot } from "lucide-react";
 import { journeys } from "../../components/demo/journeys";
 import { JourneyCard } from "../../components/demo/JourneyCard";
+import { FullTracker } from "../../components/tracking";
 
 /**
  * Hub page listing all 6 guided demo journeys.
@@ -25,6 +26,7 @@ import { JourneyCard } from "../../components/demo/JourneyCard";
 export default function DemoHubPage() {
   return (
     <div className="min-h-screen bg-[#050505] text-zinc-100 selection:bg-orange-500/30">
+      <FullTracker />
       {/* Top navigation — back to home */}
       <nav className="flex items-center justify-between px-6 py-5 sm:px-8">
         <Link

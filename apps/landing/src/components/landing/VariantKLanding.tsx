@@ -12,6 +12,9 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { usePageTracking, useTrackCta } from "../../hooks/useTracking";
+import { useScrollTracking } from "../../hooks/useScrollTracking";
+import { useClickTracking } from "../../hooks/useClickTracking";
+import { useSessionLifecycle } from "../../hooks/useSessionLifecycle";
 import {
   ArrowRight,
   CheckCircle2,
@@ -182,6 +185,9 @@ const toolkitCards = [
  */
 export default function VariantKLanding() {
   usePageTracking();
+  useScrollTracking();
+  useClickTracking();
+  useSessionLifecycle();
   const trackCta = useTrackCta();
 
   return (
