@@ -146,16 +146,39 @@ async function processDynamicTemplateBatches(
   templateId: string,
   templateData: SendGridTemplateData,
   fromEmail: string,
+  translatedVersions?: Map<string, SendGridTemplateData>,
 ): Promise<SendEmailResult> {
-  const emailsToSend = recipients.map((r) => ({
-    email: r.email,
-    templateData: {
-      ...templateData,
-      recipient: r.name,
-    },
-  }));
+  // Group recipients by locale for multilingual sending
+  const byLocale = new Map<string, typeof recipients>();
+  for (const r of recipients) {
+    const locale = r.locale || "no";
+    const group = byLocale.get(locale) ?? [];
+    group.push(r);
+    byLocale.set(locale, group);
+  }
 
-  return sendDynamicTemplateBatch(emailsToSend, templateId, fromEmail);
+  let totalSent = 0;
+  let totalFailed = 0;
+  const allErrors: Array<{ email: string; error: string }> = [];
+
+  for (const [locale, localeRecipients] of byLocale) {
+    const data = translatedVersions?.get(locale) ?? templateData;
+
+    const emailsToSend = localeRecipients.map((r) => ({
+      email: r.email,
+      templateData: {
+        ...data,
+        recipient: r.name,
+      },
+    }));
+
+    const result = await sendDynamicTemplateBatch(emailsToSend, templateId, fromEmail);
+    totalSent += result.sent;
+    totalFailed += result.failed;
+    allErrors.push(...result.errors);
+  }
+
+  return { sent: totalSent, failed: totalFailed, errors: allErrors };
 }
 
 export async function processEmailJob(
