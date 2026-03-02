@@ -28,8 +28,15 @@ $$;
 
 -- ── Enums ──
 
-CREATE TYPE public.api_key_version_status AS ENUM ('current', 'previous', 'revoked');
-CREATE TYPE public.api_key_type AS ENUM ('workspace', 'service');
+DO $$ BEGIN
+  CREATE TYPE public.api_key_version_status AS ENUM ('current', 'previous', 'revoked');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE public.api_key_type AS ENUM ('workspace', 'service');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- ── API Key Registry (Tier 1 + Tier 3) ──
 
