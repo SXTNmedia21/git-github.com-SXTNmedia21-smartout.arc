@@ -1,8 +1,20 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { Activity, Users, MapPin, Building2, Network, X } from "lucide-react";
+import {
+  Activity,
+  Users,
+  MapPin,
+  Building2,
+  Network,
+  Filter,
+  Layers,
+  ArrowUpRight,
+  ArrowDownRight,
+  X,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useWorkforcePipeline, useTrainingReadiness } from "@/app/dashboard/_hooks";
 
 type TimeRange = "today" | "7d" | "14d" | "30d" | "90d";
 
@@ -88,12 +100,16 @@ export function ActivityView({ isDark }: { isDark: boolean }) {
   const [timeRange, setTimeRange] = useState<TimeRange>("30d");
   const [selectedCell, setSelectedCell] = useState<{ row: string; dayIndex: number } | null>(null);
   const days = RANGE_DAYS[timeRange];
+  const isExpanded = selectedCell !== null;
 
   function handleCellClick(rowLabel: string, dayIndex: number) {
     setSelectedCell((prev) =>
       prev?.row === rowLabel && prev?.dayIndex === dayIndex ? null : { row: rowLabel, dayIndex },
     );
   }
+
+  const { data: pipeline } = useWorkforcePipeline();
+  const { data: training } = useTrainingReadiness();
 
   const activeData = useMemo(() => {
     const labels = TAB_LABELS[activeTab] ?? LOCATION_LABELS;
@@ -112,85 +128,340 @@ export function ActivityView({ isDark }: { isDark: boolean }) {
   };
 
   return (
-    <div className="animate-in fade-in flex min-h-0 min-w-0 flex-1 flex-col gap-3 pr-2 pb-2 duration-500">
-      {/* Compact Toolbar */}
-      <div className="flex flex-shrink-0 flex-wrap items-center gap-3 pt-1">
-        {/* Title */}
-        <h1 className="text-foreground flex items-center gap-2 text-base font-black tracking-tight">
-          <Activity className="h-4 w-4 text-indigo-500" />
-          Activity Heatmap
-        </h1>
-
-        {/* Separator */}
-        <div className="bg-border h-5 w-px" />
-
-        {/* Category tabs — inline pills */}
-        <div className="bg-muted/50 flex items-center gap-0.5 rounded-lg p-0.5">
-          <TabBtn
-            active={activeTab === "locations"}
-            onClick={() => setActiveTab("locations")}
-            icon={<MapPin className="h-3 w-3" />}
-            label="Locations"
-            isDark={isDark}
-          />
-          <TabBtn
-            active={activeTab === "departments"}
-            onClick={() => setActiveTab("departments")}
-            icon={<Building2 className="h-3 w-3" />}
-            label="Departments"
-            isDark={isDark}
-          />
-          <TabBtn
-            active={activeTab === "teams"}
-            onClick={() => setActiveTab("teams")}
-            icon={<Network className="h-3 w-3" />}
-            label="Teams"
-            isDark={isDark}
-          />
-          <TabBtn
-            active={activeTab === "employees"}
-            onClick={() => setActiveTab("employees")}
-            icon={<Users className="h-3 w-3" />}
-            label="Users"
-            isDark={isDark}
-          />
+    <div className="animate-in fade-in flex min-h-0 min-w-0 flex-1 flex-col gap-6 overflow-y-auto pr-2 pb-6 duration-500">
+      {/* Header */}
+      <div className="flex flex-shrink-0 flex-col justify-between gap-4 pt-2 md:flex-row md:items-center">
+        <div>
+          <h1 className="text-foreground flex items-center gap-3 text-2xl font-black tracking-tight">
+            <div
+              className={`rounded-xl p-2 ${isDark ? "bg-indigo-500/20 text-indigo-400 shadow-[0_0_20px_rgba(99,102,241,0.2)]" : "bg-indigo-100 text-indigo-600"}`}
+            >
+              <Activity className="h-5 w-5" />
+            </div>
+            Activity & Heatmap Dashboard
+          </h1>
+          <p className="text-muted-foreground mt-1 max-w-2xl text-sm">
+            Visualize cross-cutting activity, load and intensity across the business.
+          </p>
         </div>
 
-        {/* Spacer */}
-        <div className="flex-1" />
-
-        {/* Range selector */}
-        <div className="bg-muted/50 flex items-center gap-0.5 rounded-lg p-0.5">
-          {RANGE_OPTIONS.map((opt) => (
-            <button
-              key={opt.id}
-              onClick={() => setTimeRange(opt.id)}
-              className={`rounded-md px-2 py-1 text-[10px] font-bold transition-colors ${
-                timeRange === opt.id
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
+        <div className="relative z-20 flex items-center gap-2">
+          <button className="border-border bg-background text-foreground hover:bg-muted flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-bold transition-all">
+            <Filter className="h-4 w-4" /> Filter
+          </button>
+          <div className="bg-muted/50 flex items-center gap-1 rounded-lg p-1">
+            {RANGE_OPTIONS.map((opt) => (
+              <button
+                key={opt.id}
+                onClick={() => setTimeRange(opt.id)}
+                className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                  timeRange === opt.id
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* The Heatmap Visualizer */}
-      <div className="border-border bg-background flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border shadow-sm">
-        {/* Activity Detail Panel — above heatmap */}
-        {selectedCell && (
-          <div className="border-border max-h-[40%] shrink-0 overflow-y-auto border-b p-3">
-            <div className="mb-2 flex items-center justify-between">
-              <h4 className="text-foreground text-xs font-bold">
+      {/* Quick Stats Grid — hidden when heatmap expanded */}
+      {!isExpanded && (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+          <StatCard
+            isDark={isDark}
+            title="Active Staff"
+            value={pipeline ? String(pipeline.activeStaff) : "--"}
+            trend={pipeline ? `+${pipeline.newHires30d} new` : ""}
+            isPositive={true}
+            subtitle="Currently employed"
+          />
+          <StatCard
+            isDark={isDark}
+            title="Training Readiness"
+            value={training ? `${training.readinessPercent}%` : "--"}
+            trend={training ? `${training.completed}/${training.totalAssignments}` : ""}
+            isPositive={!training || training.readinessPercent >= 80}
+            subtitle="Protocol completion"
+          />
+          <StatCard
+            isDark={isDark}
+            title="Highest Intensity"
+            value="Fridays"
+            trend="Kveldsgjengen"
+            isPositive={true}
+            subtitle="Most active"
+          />
+          <StatCard
+            isDark={isDark}
+            title="Lowest Intensity"
+            value="Sunday AM"
+            trend="-5.2%"
+            isPositive={false}
+            subtitle="Below budget threshold"
+          />
+        </div>
+      )}
+
+      {/* Training Progress — hidden when heatmap expanded */}
+      {!isExpanded && training && training.totalAssignments > 0 && (
+        <div className="border-border bg-background rounded-2xl border p-5 shadow-sm">
+          <h3 className="text-muted-foreground mb-4 text-sm font-bold tracking-widest uppercase">
+            Training Progress
+          </h3>
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <div className="flex h-4 overflow-hidden rounded-full">
+                <div
+                  className="bg-emerald-500 transition-all duration-700"
+                  style={{
+                    width: `${(training.completed / training.totalAssignments) * 100}%`,
+                  }}
+                />
+                <div
+                  className="bg-amber-500 transition-all duration-700"
+                  style={{
+                    width: `${(training.pending / training.totalAssignments) * 100}%`,
+                  }}
+                />
+                <div className="bg-muted flex-1" />
+              </div>
+            </div>
+            <div className="flex gap-4 text-xs font-semibold">
+              <span className="flex items-center gap-1">
+                <div className="h-2 w-2 rounded-full bg-emerald-500" />
+                Completed ({training.completed})
+              </span>
+              <span className="flex items-center gap-1">
+                <div className="h-2 w-2 rounded-full bg-amber-500" />
+                Pending ({training.pending})
+              </span>
+              {training.expired > 0 && (
+                <span className="flex items-center gap-1">
+                  <div className="bg-muted-foreground/40 h-2 w-2 rounded-full" />
+                  Expired ({training.expired})
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tabs for Heatmap Categories — hidden when heatmap expanded */}
+      {!isExpanded && (
+        <div className="mt-4">
+          <div className="border-border bg-muted inline-flex rounded-2xl border p-1.5 shadow-sm">
+            <TabBtn
+              active={activeTab === "locations"}
+              onClick={() => setActiveTab("locations")}
+              icon={<MapPin className="h-4 w-4" />}
+              label="Locations"
+              isDark={isDark}
+            />
+            <TabBtn
+              active={activeTab === "departments"}
+              onClick={() => setActiveTab("departments")}
+              icon={<Building2 className="h-4 w-4" />}
+              label="Departments"
+              isDark={isDark}
+            />
+            <TabBtn
+              active={activeTab === "teams"}
+              onClick={() => setActiveTab("teams")}
+              icon={<Network className="h-4 w-4" />}
+              label="Teams"
+              isDark={isDark}
+            />
+            <TabBtn
+              active={activeTab === "employees"}
+              onClick={() => setActiveTab("employees")}
+              icon={<Users className="h-4 w-4" />}
+              label="Users"
+              isDark={isDark}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* The Heatmap Visualizer — expands to fill when a cell is selected */}
+      <div
+        className={`border-border bg-background flex flex-col overflow-hidden rounded-3xl border shadow-sm ${isExpanded ? "min-h-0 flex-1" : ""}`}
+      >
+        {/* Expanded toolbar — shown only when expanded */}
+        {isExpanded && (
+          <div className="border-border flex flex-shrink-0 flex-wrap items-center gap-3 border-b px-4 py-2">
+            <button
+              onClick={() => setSelectedCell(null)}
+              className="text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg p-1 transition-colors"
+              title="Collapse"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <span className="text-foreground text-sm font-bold">
+              {selectedCell.row} — Day {selectedCell.dayIndex + 1}
+            </span>
+
+            <div className="bg-border h-4 w-px" />
+
+            <div className="bg-muted/50 flex items-center gap-0.5 rounded-lg p-0.5">
+              <TabBtn
+                active={activeTab === "locations"}
+                onClick={() => setActiveTab("locations")}
+                icon={<MapPin className="h-3 w-3" />}
+                label="Locations"
+                isDark={isDark}
+              />
+              <TabBtn
+                active={activeTab === "departments"}
+                onClick={() => setActiveTab("departments")}
+                icon={<Building2 className="h-3 w-3" />}
+                label="Departments"
+                isDark={isDark}
+              />
+              <TabBtn
+                active={activeTab === "teams"}
+                onClick={() => setActiveTab("teams")}
+                icon={<Network className="h-3 w-3" />}
+                label="Teams"
+                isDark={isDark}
+              />
+              <TabBtn
+                active={activeTab === "employees"}
+                onClick={() => setActiveTab("employees")}
+                icon={<Users className="h-3 w-3" />}
+                label="Users"
+                isDark={isDark}
+              />
+            </div>
+
+            <div className="flex-1" />
+
+            <div className="bg-muted/50 flex items-center gap-0.5 rounded-lg p-0.5">
+              {RANGE_OPTIONS.map((opt) => (
+                <button
+                  key={opt.id}
+                  onClick={() => setTimeRange(opt.id)}
+                  className={`rounded-md px-2 py-1 text-[10px] font-bold transition-colors ${
+                    timeRange === opt.id
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Heatmap Legend */}
+        <div className="border-border bg-muted/50 flex flex-wrap items-center justify-between gap-4 border-b p-4">
+          <h3 className="text-foreground flex items-center gap-2 text-lg font-bold">
+            <Layers className="h-5 w-5 opacity-50" />
+            {activeTab === "locations"
+              ? "Location Intensity"
+              : activeTab === "departments"
+                ? "Department Intensity"
+                : activeTab === "teams"
+                  ? "Team Intensity"
+                  : "User Intensity"}
+          </h3>
+
+          <div className="flex items-center gap-2 text-xs font-semibold">
+            <span className="text-muted-foreground">Quiet</span>
+            <div className="mx-2 flex gap-1">
+              <div className={`h-4 w-4 rounded-sm ${isDark ? "bg-muted/30" : "bg-muted"}`} />
+              <div
+                className={`h-4 w-4 rounded-sm ${isDark ? "bg-indigo-500/10" : "bg-indigo-100"}`}
+              />
+              <div
+                className={`h-4 w-4 rounded-sm ${isDark ? "bg-indigo-500/30" : "bg-indigo-200"}`}
+              />
+              <div
+                className={`h-4 w-4 rounded-sm ${isDark ? "bg-indigo-500/50" : "bg-indigo-300"}`}
+              />
+              <div
+                className={`h-4 w-4 rounded-sm ${isDark ? "bg-indigo-500/80" : "bg-indigo-400"}`}
+              />
+              <div className="h-4 w-4 rounded-sm bg-indigo-500" />
+            </div>
+            <span className="text-muted-foreground">High</span>
+          </div>
+        </div>
+
+        {/* Heatmap Grid container */}
+        <div className={`overflow-x-auto p-4 ${isExpanded ? "flex min-h-0 flex-1 flex-col" : ""}`}>
+          <div className={isExpanded ? "flex min-h-0 flex-1 flex-col" : "min-w-fit"}>
+            {/* Days Header */}
+            <div className="mb-1 flex items-end">
+              <div className="w-24 flex-shrink-0" />
+              <div className="flex flex-1 gap-px">
+                {Array.from({ length: days }, (_, i) => {
+                  const labelEntry = dayLabels.find((d) => d.index === i);
+                  return (
+                    <span
+                      key={i}
+                      className="text-muted-foreground flex-1 text-center text-[10px] font-medium"
+                    >
+                      {labelEntry ? labelEntry.label : ""}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Rows */}
+            <AnimatePresence mode="popLayout" initial={false}>
+              {activeData.map((row) => (
+                <motion.div
+                  key={row.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.3 }}
+                  className={`group hover:bg-muted/50 mb-0.5 flex cursor-crosshair items-center rounded-md p-0.5 transition-colors ${isExpanded ? "min-h-[20px] flex-1" : ""}`}
+                >
+                  <div className="text-muted-foreground group-hover:text-foreground w-24 flex-shrink-0 truncate pr-2 text-xs font-semibold">
+                    {row.label}
+                  </div>
+
+                  <div className="flex flex-1 gap-px">
+                    {row.data.map((val, cellIdx) => (
+                      <div
+                        key={cellIdx}
+                        title={`${row.label} - Day ${cellIdx + 1}: Score ${val}`}
+                        onClick={() => handleCellClick(row.label, cellIdx)}
+                        className={`flex-1 cursor-pointer rounded-sm transition-all duration-300 hover:z-10 hover:scale-[1.3] ${
+                          isExpanded ? "min-h-[14px]" : "h-3.5 w-3.5"
+                        } ${
+                          selectedCell?.row === row.label && selectedCell?.dayIndex === cellIdx
+                            ? "ring-foreground ring-2"
+                            : ""
+                        } ${getIntensityClass(val, isDark)}`}
+                      />
+                    ))}
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* Activity Detail Panel — shown at bottom of expanded heatmap */}
+        {isExpanded && (
+          <div className="border-border max-h-[40%] shrink-0 overflow-y-auto border-t p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <h4 className="text-foreground text-sm font-bold">
                 {selectedCell.row} — Day {selectedCell.dayIndex + 1}
               </h4>
               <button
                 onClick={() => setSelectedCell(null)}
                 className="text-muted-foreground hover:text-foreground"
               >
-                <X className="h-3.5 w-3.5" />
+                <X className="h-4 w-4" />
               </button>
             </div>
             <ActivityDetailPanel
@@ -201,100 +472,49 @@ export function ActivityView({ isDark }: { isDark: boolean }) {
             />
           </div>
         )}
-
-        {/* Heatmap Legend */}
-        <div className="border-border flex flex-shrink-0 items-center justify-between gap-2 border-b px-3 py-1.5">
-          <span className="text-muted-foreground text-xs font-bold">
-            {activeTab === "locations"
-              ? "Location"
-              : activeTab === "departments"
-                ? "Department"
-                : activeTab === "teams"
-                  ? "Team"
-                  : "User"}{" "}
-            Intensity
-          </span>
-          <div className="flex items-center gap-1.5 text-[10px] font-semibold">
-            <span className="text-muted-foreground">Low</span>
-            <div className="flex gap-0.5">
-              <div className={`h-3 w-3 rounded-sm ${isDark ? "bg-muted/30" : "bg-muted"}`} />
-              <div
-                className={`h-3 w-3 rounded-sm ${isDark ? "bg-indigo-500/10" : "bg-indigo-100"}`}
-              />
-              <div
-                className={`h-3 w-3 rounded-sm ${isDark ? "bg-indigo-500/30" : "bg-indigo-200"}`}
-              />
-              <div
-                className={`h-3 w-3 rounded-sm ${isDark ? "bg-indigo-500/50" : "bg-indigo-300"}`}
-              />
-              <div
-                className={`h-3 w-3 rounded-sm ${isDark ? "bg-indigo-500/80" : "bg-indigo-400"}`}
-              />
-              <div className="h-3 w-3 rounded-sm bg-indigo-500" />
-            </div>
-            <span className="text-muted-foreground">High</span>
-          </div>
-        </div>
-
-        {/* Heatmap Grid container */}
-        <div className="flex min-h-0 flex-1 flex-col p-3">
-          {/* Days Header */}
-          <div className="mb-1 flex items-end">
-            <div className="w-24 flex-shrink-0" />
-            <div className="flex flex-1 gap-px">
-              {Array.from({ length: days }, (_, i) => {
-                const labelEntry = dayLabels.find((d) => d.index === i);
-                return (
-                  <span
-                    key={i}
-                    className="text-muted-foreground flex-1 text-center text-[10px] font-medium"
-                  >
-                    {labelEntry ? labelEntry.label : ""}
-                  </span>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Rows */}
-          <AnimatePresence mode="popLayout" initial={false}>
-            {activeData.map((row) => (
-              <motion.div
-                key={row.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.3 }}
-                className="group hover:bg-muted/50 flex min-h-[20px] flex-1 cursor-crosshair items-center rounded-md px-1 transition-colors"
-              >
-                <div className="text-muted-foreground group-hover:text-foreground w-24 flex-shrink-0 truncate pr-2 text-xs font-semibold">
-                  {row.label}
-                </div>
-
-                <div className="flex flex-1 gap-px">
-                  {row.data.map((val, cellIdx) => (
-                    <div
-                      key={cellIdx}
-                      title={`${row.label} - Day ${cellIdx + 1}: Score ${val}`}
-                      onClick={() => handleCellClick(row.label, cellIdx)}
-                      className={`min-h-[14px] flex-1 cursor-pointer rounded-sm transition-all duration-300 hover:z-10 hover:scale-[1.3] ${
-                        selectedCell?.row === row.label && selectedCell?.dayIndex === cellIdx
-                          ? "ring-foreground ring-2"
-                          : ""
-                      } ${getIntensityClass(val, isDark)}`}
-                    />
-                  ))}
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
       </div>
     </div>
   );
 }
 
 // Subcomponents
+
+interface StatCardProps {
+  isDark: boolean;
+  title: string;
+  value: string;
+  trend: string;
+  isPositive: boolean;
+  subtitle: string;
+}
+
+function StatCard({ isDark, title, value, trend, isPositive, subtitle }: StatCardProps) {
+  return (
+    <div className="border-border bg-background relative flex flex-col justify-between overflow-hidden rounded-2xl border p-5 shadow-sm">
+      <div className="relative z-10 mb-4 flex items-start justify-between">
+        <span className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
+          {title}
+        </span>
+        {trend && (
+          <span
+            className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-bold ${isPositive ? (isDark ? "bg-emerald-500/10 text-emerald-400" : "bg-emerald-50 text-emerald-600") : isDark ? "bg-red-500/10 text-red-400" : "bg-red-50 text-red-600"}`}
+          >
+            {isPositive ? (
+              <ArrowUpRight className="h-3 w-3" />
+            ) : (
+              <ArrowDownRight className="h-3 w-3" />
+            )}
+            {trend}
+          </span>
+        )}
+      </div>
+      <div className="relative z-10">
+        <div className="text-foreground text-2xl font-black">{value}</div>
+        <div className="text-muted-foreground mt-1 text-xs">{subtitle}</div>
+      </div>
+    </div>
+  );
+}
 
 interface TabBtnProps {
   active: boolean;
@@ -308,7 +528,7 @@ function TabBtn({ active, onClick, icon, label, isDark }: TabBtnProps) {
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[10px] font-bold transition-all ${active ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+      className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-all ${active ? "border-border bg-background text-foreground border shadow-sm" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground border border-transparent"}`}
     >
       {icon} {label}
     </button>
