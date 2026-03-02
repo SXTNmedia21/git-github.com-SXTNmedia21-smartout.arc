@@ -1,0 +1,35 @@
+{
+  "description": "Tier 2: Full response quality with LLM judge",
+  "cases": [
+    {
+      "id": "quality-01",
+      "message": "Hvem er jeg?",
+      "criteria": [
+        "Responds in Norwegian",
+        "Mentions the employee's name or role",
+        "Uses a tool to look up information (does not guess)",
+        "Tone is friendly and professional"
+      ]
+    },
+    {
+      "id": "quality-02",
+      "message": "Hei!",
+      "criteria": [
+        "Responds in Norwegian",
+        "Greets the employee back",
+        "Does NOT call any tools (greeting doesn't need data)",
+        "Offers to help with something"
+      ]
+    },
+    {
+      "id": "quality-03",
+      "message": "Hvilket team er jeg på og hvem er lederen?",
+      "criteria": [
+        "Responds in Norwegian",
+        "Mentions team name",
+        "Mentions team leader name",
+        "Uses get_team or get_profile tool"
+      ]
+    }
+  ]
+}

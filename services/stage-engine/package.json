@@ -9,7 +9,10 @@
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
     "test:e2e": "tsx test/e2e.ts",
-    "test:agent": "tsx test/agent-chat.e2e.ts"
+    "test:agent": "tsx test/agent-chat.e2e.ts",
+    "eval": "tsx test/eval/run-evals.ts all",
+    "eval:intent": "tsx test/eval/run-evals.ts intent",
+    "eval:quality": "tsx test/eval/run-evals.ts quality"
   },
   "dependencies": {
     "@hono/node-server": "^1.14.0",
