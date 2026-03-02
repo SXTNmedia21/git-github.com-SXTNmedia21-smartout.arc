@@ -38,15 +38,16 @@ tags: [dashboard, worktrees, tracking]
 
 ## Recent Closures
 
-| Date       | Feature                | Branch                        | Merged To   |
-| ---------- | ---------------------- | ----------------------------- | ----------- |
-| 2026-03-02 | unified-keys-admin     | `feat/unified-keys-admin`     | development |
-| 2026-03-02 | fix-onboarding-flow    | `feat/fix-onboarding-flow`    | development |
-| 2026-03-02 | fix-admin-bugs         | `feat/fix-admin-bugs`         | development |
-| 2026-03-02 | landing-sessions-leads | `feat/landing-sessions-leads` | development |
-| 2026-03-02 | dashboard-redesign     | `feat/dashboard-redesign`     | development |
-| 2026-03-02 | team-member-management | `feat/team-member-management` | development |
-| 2026-03-02 | landing-analytics      | `feat/landing-analytics`      | development |
+| Date       | Feature                | Branch                                                             | Merged To   |
+| ---------- | ---------------------- | ------------------------------------------------------------------ | ----------- |
+| 2026-03-02 | unified-keys-admin     | `feat/unified-keys-admin`                                          | development |
+| 2026-03-02 | fix-onboarding-flow    | `feat/fix-onboarding-flow`                                         | development |
+| 2026-03-02 | fix-admin-bugs         | `feat/fix-admin-bugs`                                              | development |
+| 2026-03-02 | landing-sessions-leads | `feat/landing-sessions-leads`                                      | development |
+| 2026-03-02 | dashboard-redesign     | `feat/dashboard-redesign`                                          | development |
+| 2026-03-02 | team-member-management | `feat/team-member-management`                                      | development |
+| 2026-03-02 | landing-analytics      | `feat/landing-analytics`                                           | development |
+| 2026-03-02 | stage-engine-local     | `feat/get-the-stage-engine-and-voice-ultravox-running-locally-the` | development |
 
 ## Session History
 
@@ -59,3 +60,4 @@ tags: [dashboard, worktrees, tracking]
 | 2026-03-02 | landing-analytics      | closed            | Merged to development, branch deleted                                      |
 | 2026-03-02 | agent-architecture     | synced            | Merged to development, wt-4 stays open                                     |
 | 2026-03-02 | (orchestrator)         | session ended     | 4 PRs merged, CI fixed, landing variants, keys/vault, middleware perf      |
+| 2026-03-02 | stage-engine-local     | closed            | Merged to development, sma-14 freed                                        |
