@@ -9,6 +9,8 @@ import {
   ChevronDown,
   AlertTriangle,
   Pencil,
+  UserCircle,
+  ArrowRightLeft,
 } from "lucide-react";
 import { createClient } from "@smartout/supabase/client";
 import { toast } from "sonner";
@@ -27,15 +29,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { DepartmentRow, PositionRow, CountMap } from "./types";
+import type { DepartmentRow, PositionRow, CountMap, ProfileRow } from "./types";
 import { COLOR_PRESETS, ICON_PRESETS, toSlug } from "./types";
 import { ICON_COMPONENTS } from "./constants";
 import { EditDepartmentDialog } from "./EditDepartmentDialog";
 import { CreatePositionDialog } from "./CreatePositionDialog";
 import { EditPositionDialog } from "./EditPositionDialog";
+import { MovePositionDialog } from "./MovePositionDialog";
 
 type DepartmentsTabProps = {
   departments: DepartmentRow[];
+  profiles: ProfileRow[];
   positionCounts: CountMap;
   positionsByDept: Record<string, PositionRow[]>;
   policyCounts: CountMap;
@@ -47,6 +51,7 @@ type DepartmentsTabProps = {
 
 export function DepartmentsTab({
   departments,
+  profiles,
   positionCounts,
   positionsByDept,
   policyCounts,
@@ -69,6 +74,7 @@ export function DepartmentsTab({
   // Position CRUD state
   const [createPosDeptId, setCreatePosDeptId] = useState<string | null>(null);
   const [editPosition, setEditPosition] = useState<PositionRow | null>(null);
+  const [movePosition, setMovePosition] = useState<PositionRow | null>(null);
 
   const cardBase = `rounded-2xl border p-5 transition-all ${
     isDark
@@ -326,6 +332,23 @@ export function DepartmentsTab({
                   </p>
                 )}
 
+                {dept.manager_profile_id &&
+                  (() => {
+                    const manager = profiles.find((p) => p.profile_id === dept.manager_profile_id);
+                    return manager ? (
+                      <div className="mt-1 flex items-center gap-1.5">
+                        <UserCircle
+                          className={`h-3 w-3 ${isDark ? "text-zinc-600" : "text-zinc-400"}`}
+                        />
+                        <span
+                          className={`text-xs font-medium ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+                        >
+                          {manager.display_name}
+                        </span>
+                      </div>
+                    ) : null;
+                  })()}
+
                 {/* Validation warning */}
                 {showWarning && (
                   <div
@@ -438,6 +461,10 @@ export function DepartmentsTab({
                                 <DropdownMenuItem onClick={() => setEditPosition(pos)}>
                                   <Pencil className="mr-2 h-3.5 w-3.5" />
                                   Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setMovePosition(pos)}>
+                                  <ArrowRightLeft className="mr-2 h-3.5 w-3.5" />
+                                  Move to Department
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator className={isDark ? "bg-zinc-800" : ""} />
                                 <DropdownMenuItem onClick={() => togglePositionActive(pos)}>
@@ -638,6 +665,7 @@ export function DepartmentsTab({
       {editDept && (
         <EditDepartmentDialog
           department={editDept}
+          profiles={profiles}
           isDark={isDark}
           open={!!editDept}
           onOpenChange={(open) => {
@@ -671,6 +699,20 @@ export function DepartmentsTab({
           open={!!editPosition}
           onOpenChange={(open) => {
             if (!open) setEditPosition(null);
+          }}
+          onSave={onRefresh}
+        />
+      )}
+
+      {/* Move Position Dialog */}
+      {movePosition && (
+        <MovePositionDialog
+          position={movePosition}
+          departments={departments}
+          isDark={isDark}
+          open={!!movePosition}
+          onOpenChange={(open) => {
+            if (!open) setMovePosition(null);
           }}
           onSave={onRefresh}
         />

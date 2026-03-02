@@ -4,6 +4,7 @@ export type ProfileRole = "owner" | "admin" | "manager" | "employee";
 
 export type Employee = {
   id: string;
+  profileId?: string; // actual profile_id for DB updates (absent for invited)
   name: string;
   email: string;
   role: string;
