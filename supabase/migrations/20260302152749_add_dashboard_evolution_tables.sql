@@ -102,7 +102,7 @@ CREATE TABLE public.workspace_budget (
   time_to_job_target DECIMAL,
   currency TEXT NOT NULL DEFAULT 'NOK',
   notes TEXT,
-  created_by UUID REFERENCES public.user_identity(id),
+  created_by UUID REFERENCES public.user_identity(user_id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE NULLS NOT DISTINCT (workspace_id, location_id, department_id, period_type, period_date, hour_slot)
@@ -140,7 +140,7 @@ CREATE TABLE public.schedule_day_info (
   title TEXT NOT NULL,
   content TEXT,
   category public.day_info_category NOT NULL DEFAULT 'note',
-  created_by UUID REFERENCES public.user_identity(id),
+  created_by UUID REFERENCES public.user_identity(user_id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
