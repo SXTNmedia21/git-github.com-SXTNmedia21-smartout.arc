@@ -409,3 +409,6 @@ verify_jwt = false
 
 [functions.workspace-api]
 verify_jwt = false
+
+[functions.sendgrid-webhook]
+verify_jwt = false

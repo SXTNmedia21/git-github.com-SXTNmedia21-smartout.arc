@@ -71,7 +71,7 @@ export default function AcceptInvitePage() {
 
       setInviteState({
         status: "valid",
-        email: data.email,
+        email: data.email ?? "",
         workspaceName: ws?.name ?? "a workspace",
       });
     }

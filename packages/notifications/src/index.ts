@@ -12,13 +12,14 @@ export type {
   RenderedEmail,
   ResolvedRecipient,
   SendEmailResult,
+  SendGridTemplateData,
 } from "./types";
 
 // Email service (high-level API)
 export { createEmailJob, getEmailJobStatus, processEmailJob } from "./email-service";
 
 // SendGrid adapter
-export { sendEmailBatch } from "./sendgrid";
+export { sendDynamicTemplateBatch, sendEmailBatch } from "./sendgrid";
 
 // Templates
 export { renderTemplate } from "./templates";

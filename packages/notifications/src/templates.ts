@@ -91,6 +91,12 @@ ${v.ctaUrl ? `<p style="margin:24px 0;"><a href="${v.ctaUrl}" style="display:inl
 <p style="margin:0 0 16px;">Sendt: <strong>{{sentDate}}</strong></p>
 ${v.signUrl ? `<p style="margin:24px 0;"><a href="${v.signUrl}" style="display:inline-block;padding:12px 24px;background-color:#2563eb;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;">Signer na</a></p>` : ""}`,
   },
+
+  // Dynamic templates are rendered by SendGrid — this is a no-op fallback
+  "sendgrid-dynamic": {
+    subject: (v) => v.subject ?? "",
+    body: () => "",
+  },
 };
 
 export function renderTemplate(

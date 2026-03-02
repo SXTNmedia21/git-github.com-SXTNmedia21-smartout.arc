@@ -1011,6 +1011,57 @@ export type Database = {
           },
         ]
       }
+      employee_roster: {
+        Row: {
+          created_at: string
+          employee_roster_id: string
+          is_active: boolean
+          pattern: Json
+          period_end: string | null
+          period_start: string
+          profile_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          employee_roster_id?: string
+          is_active?: boolean
+          pattern: Json
+          period_end?: string | null
+          period_start: string
+          profile_id: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          employee_roster_id?: string
+          is_active?: boolean
+          pattern?: Json
+          period_end?: string | null
+          period_start?: string
+          profile_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_roster_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "employee_roster_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       employment_contract: {
         Row: {
           contract_id: string
@@ -1093,6 +1144,51 @@ export type Database = {
           },
         ]
       }
+      engine_authority_config: {
+        Row: {
+          capability: string
+          created_at: string
+          id: string
+          level: string
+          updated_at: string
+          updated_by: string
+          workspace_id: string
+        }
+        Insert: {
+          capability: string
+          created_at?: string
+          id?: string
+          level?: string
+          updated_at?: string
+          updated_by: string
+          workspace_id: string
+        }
+        Update: {
+          capability?: string
+          created_at?: string
+          id?: string
+          level?: string
+          updated_at?: string
+          updated_by?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_authority_config_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "user_identity"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "engine_authority_config_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       engine_inbox: {
         Row: {
           created_at: string
@@ -1137,6 +1233,67 @@ export type Database = {
           },
           {
             foreignKeyName: "engine_inbox_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      engine_memory: {
+        Row: {
+          content: string
+          created_at: string
+          embedding: string | null
+          expires_at: string | null
+          id: string
+          memory_type: string
+          profile_id: string
+          source_session_id: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          embedding?: string | null
+          expires_at?: string | null
+          id?: string
+          memory_type: string
+          profile_id: string
+          source_session_id?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          embedding?: string | null
+          expires_at?: string | null
+          id?: string
+          memory_type?: string
+          profile_id?: string
+          source_session_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_memory_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "engine_memory_source_session_id_fkey"
+            columns: ["source_session_id"]
+            isOneToOne: false
+            referencedRelation: "engine_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engine_memory_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspace"
@@ -1199,7 +1356,8 @@ export type Database = {
           current_stage_id: string | null
           expires_at: string
           id: string
-          mission_id: string
+          mission_id: string | null
+          mode: string
           profile_id: string | null
           stage_index: number
           status: string
@@ -1218,7 +1376,8 @@ export type Database = {
           current_stage_id?: string | null
           expires_at?: string
           id?: string
-          mission_id: string
+          mission_id?: string | null
+          mode?: string
           profile_id?: string | null
           stage_index?: number
           status?: string
@@ -1237,7 +1396,8 @@ export type Database = {
           current_stage_id?: string | null
           expires_at?: string
           id?: string
-          mission_id?: string
+          mission_id?: string | null
+          mode?: string
           profile_id?: string | null
           stage_index?: number
           status?: string
@@ -1333,12 +1493,14 @@ export type Database = {
           company_id: string
           created_at: string
           department_ids: string[] | null
-          email: string
+          email: string | null
           expires_at: string
           first_name: string | null
           invitation_id: string
+          invite_type: Database["public"]["Enums"]["invite_type"]
           invited_by: string | null
           last_name: string | null
+          phone: string | null
           role: Database["public"]["Enums"]["profile_role"]
           status: Database["public"]["Enums"]["invite_status"]
           team_ids: string[] | null
@@ -1350,12 +1512,14 @@ export type Database = {
           company_id: string
           created_at?: string
           department_ids?: string[] | null
-          email: string
+          email?: string | null
           expires_at?: string
           first_name?: string | null
           invitation_id?: string
+          invite_type?: Database["public"]["Enums"]["invite_type"]
           invited_by?: string | null
           last_name?: string | null
+          phone?: string | null
           role?: Database["public"]["Enums"]["profile_role"]
           status?: Database["public"]["Enums"]["invite_status"]
           team_ids?: string[] | null
@@ -1367,12 +1531,14 @@ export type Database = {
           company_id?: string
           created_at?: string
           department_ids?: string[] | null
-          email?: string
+          email?: string | null
           expires_at?: string
           first_name?: string | null
           invitation_id?: string
+          invite_type?: Database["public"]["Enums"]["invite_type"]
           invited_by?: string | null
           last_name?: string | null
+          phone?: string | null
           role?: Database["public"]["Enums"]["profile_role"]
           status?: Database["public"]["Enums"]["invite_status"]
           team_ids?: string[] | null
@@ -1757,6 +1923,50 @@ export type Database = {
           },
         ]
       }
+      landing_block: {
+        Row: {
+          block_type: Database["public"]["Enums"]["landing_block_type"]
+          content: Json
+          created_at: string
+          id: string
+          is_visible: boolean
+          settings: Json
+          sort_order: number
+          updated_at: string
+          variant_id: string
+        }
+        Insert: {
+          block_type: Database["public"]["Enums"]["landing_block_type"]
+          content?: Json
+          created_at?: string
+          id?: string
+          is_visible?: boolean
+          settings?: Json
+          sort_order?: number
+          updated_at?: string
+          variant_id: string
+        }
+        Update: {
+          block_type?: Database["public"]["Enums"]["landing_block_type"]
+          content?: Json
+          created_at?: string
+          id?: string
+          is_visible?: boolean
+          settings?: Json
+          sort_order?: number
+          updated_at?: string
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "landing_block_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "landing_variant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       landing_config: {
         Row: {
           config_id: string
@@ -1925,6 +2135,50 @@ export type Database = {
           },
         ]
       }
+      landing_media: {
+        Row: {
+          alt_text: string
+          created_at: string
+          file_size: number | null
+          height: number | null
+          id: string
+          mime_type: string
+          storage_path: string
+          variant_id: string | null
+          width: number | null
+        }
+        Insert: {
+          alt_text?: string
+          created_at?: string
+          file_size?: number | null
+          height?: number | null
+          id?: string
+          mime_type: string
+          storage_path: string
+          variant_id?: string | null
+          width?: number | null
+        }
+        Update: {
+          alt_text?: string
+          created_at?: string
+          file_size?: number | null
+          height?: number | null
+          id?: string
+          mime_type?: string
+          storage_path?: string
+          variant_id?: string | null
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "landing_media_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "landing_variant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       landing_session: {
         Row: {
           click_count: number
@@ -1992,6 +2246,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      landing_variant: {
+        Row: {
+          created_at: string
+          id: string
+          is_default: boolean
+          meta_description: string | null
+          meta_title: string | null
+          name: string
+          og_image_path: string | null
+          slug: string
+          sort_order: number
+          status: Database["public"]["Enums"]["landing_variant_status"]
+          theme: Json
+          updated_at: string
+          voice_config: Json
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          meta_description?: string | null
+          meta_title?: string | null
+          name: string
+          og_image_path?: string | null
+          slug: string
+          sort_order?: number
+          status?: Database["public"]["Enums"]["landing_variant_status"]
+          theme?: Json
+          updated_at?: string
+          voice_config?: Json
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          meta_description?: string | null
+          meta_title?: string | null
+          name?: string
+          og_image_path?: string | null
+          slug?: string
+          sort_order?: number
+          status?: Database["public"]["Enums"]["landing_variant_status"]
+          theme?: Json
+          updated_at?: string
+          voice_config?: Json
+        }
+        Relationships: []
       }
       landing_visitor: {
         Row: {
@@ -5014,6 +5316,7 @@ export type Database = {
       enforcement_status: "aspirational" | "enforced"
       industry: "restaurant" | "hotel" | "cafe" | "bar" | "catering" | "other"
       invite_status: "pending" | "accepted" | "expired" | "cancelled"
+      invite_type: "email" | "sms" | "link"
       journey_actor:
         | "employee"
         | "trainee"
@@ -5064,6 +5367,23 @@ export type Database = {
         | "broken"
       journey_test_result: "pass" | "fail" | "skip" | "running"
       journey_test_type: "automated" | "manual"
+      landing_block_type:
+        | "hero"
+        | "features_grid"
+        | "features_list"
+        | "features_icons"
+        | "cta_section"
+        | "stats"
+        | "testimonial"
+        | "case_study"
+        | "voice_widget"
+        | "workspace_analyzer"
+        | "text_section"
+        | "image_section"
+        | "pricing_preview"
+        | "faq"
+        | "logo_strip"
+      landing_variant_status: "draft" | "published" | "archived"
       location_type:
         | "main"
         | "outdoor"
@@ -5310,6 +5630,7 @@ export const Constants = {
       enforcement_status: ["aspirational", "enforced"],
       industry: ["restaurant", "hotel", "cafe", "bar", "catering", "other"],
       invite_status: ["pending", "accepted", "expired", "cancelled"],
+      invite_type: ["email", "sms", "link"],
       journey_actor: [
         "employee",
         "trainee",
@@ -5364,6 +5685,24 @@ export const Constants = {
       ],
       journey_test_result: ["pass", "fail", "skip", "running"],
       journey_test_type: ["automated", "manual"],
+      landing_block_type: [
+        "hero",
+        "features_grid",
+        "features_list",
+        "features_icons",
+        "cta_section",
+        "stats",
+        "testimonial",
+        "case_study",
+        "voice_widget",
+        "workspace_analyzer",
+        "text_section",
+        "image_section",
+        "pricing_preview",
+        "faq",
+        "logo_strip",
+      ],
+      landing_variant_status: ["draft", "published", "archived"],
       location_type: [
         "main",
         "outdoor",
