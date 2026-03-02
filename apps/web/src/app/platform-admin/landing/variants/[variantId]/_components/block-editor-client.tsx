@@ -1,17 +1,19 @@
 // ============================================
 // block-editor-client.tsx — Block Editor Client Component
 // Main client component for the landing page variant block editor.
-// Handles drag-and-drop reordering, block CRUD, and variant metadata.
+// Handles drag-and-drop reordering, block CRUD, variant metadata,
+// debounced autosave, publish/unpublish flow, and preview link.
 //
 // Connected to: ../page.tsx (server data)
 //               ./block-card.tsx (individual block rendering)
 //               ./variant-metadata-form.tsx (variant settings)
 //               ./add-block-dialog.tsx (block type picker)
+//               ../preview/page.tsx (iframe preview)
 // ============================================
 
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -26,7 +28,17 @@ import {
 import { SortableContext, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import { createClient } from "@smartout/supabase/client";
 import { toast } from "sonner";
-import { ArrowLeft, ChevronDown, ChevronRight, Save, Rocket, Plus, Loader2 } from "lucide-react";
+import {
+  ArrowLeft,
+  ChevronDown,
+  ChevronRight,
+  Save,
+  Rocket,
+  Plus,
+  Loader2,
+  Eye,
+  CircleOff,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -43,6 +55,10 @@ type BlockEditorClientProps = {
   blocks: BlockData[];
   isNew?: boolean;
 };
+
+type SaveStatus = "saved" | "saving" | "unsaved";
+
+const AUTOSAVE_DELAY_MS = 1000;
 
 // TODO: Replace (supabase as any) once landing tables are in database.types.ts
 
@@ -61,17 +77,32 @@ export function BlockEditorClient({
   const [saving, setSaving] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [expandedBlockId, setExpandedBlockId] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
 
   // Variant metadata state for new/edited variants
   const [variantForm, setVariantForm] = useState({
-    name: variant?.name ?? "",
-    slug: variant?.slug ?? "",
-    status: variant?.status ?? ("draft" as const),
-    is_default: variant?.is_default ?? false,
-    meta_title: variant?.meta_title ?? "",
-    meta_description: variant?.meta_description ?? "",
-    theme_accent: variant?.theme_accent ?? "orange",
+    name: initialVariant?.name ?? "",
+    slug: initialVariant?.slug ?? "",
+    status: initialVariant?.status ?? ("draft" as const),
+    is_default: initialVariant?.is_default ?? false,
+    meta_title: initialVariant?.meta_title ?? "",
+    meta_description: initialVariant?.meta_description ?? "",
+    theme_accent: initialVariant?.theme_accent ?? "orange",
   });
+
+  // Refs for autosave debounce
+  const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const variantFormRef = useRef(variantForm);
+  const variantRef = useRef(variant);
+
+  // Keep refs in sync
+  useEffect(() => {
+    variantFormRef.current = variantForm;
+  }, [variantForm]);
+
+  useEffect(() => {
+    variantRef.current = variant;
+  }, [variant]);
 
   // DnD sensors
   const sensors = useSensors(
@@ -79,6 +110,80 @@ export function BlockEditorClient({
       activationConstraint: { distance: 8 },
     }),
     useSensor(KeyboardSensor),
+  );
+
+  // ── Autosave logic ─────────────────────────────────────────────
+
+  const performAutosave = useCallback(async () => {
+    const currentForm = variantFormRef.current;
+    const currentVariant = variantRef.current;
+
+    // Don't autosave if it's a new unsaved variant or missing required fields
+    if (!currentVariant || !currentForm.name.trim() || !currentForm.slug.trim()) {
+      return;
+    }
+
+    setSaveStatus("saving");
+
+    const payload = {
+      name: currentForm.name.trim(),
+      slug: currentForm.slug.trim(),
+      status: currentForm.status,
+      is_default: currentForm.is_default,
+      meta_title: currentForm.meta_title.trim() || null,
+      meta_description: currentForm.meta_description.trim() || null,
+      theme_accent: currentForm.theme_accent,
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any)
+      .from("landing_variant")
+      .update(payload)
+      .eq("id", currentVariant.id)
+      .select()
+      .single();
+
+    if (error) {
+      setSaveStatus("unsaved");
+      // Don't toast on autosave errors to avoid spam — just show indicator
+      return;
+    }
+
+    setVariant(data as VariantData);
+    setSaveStatus("saved");
+  }, [supabase]);
+
+  const scheduleAutosave = useCallback(() => {
+    // Don't autosave new variants
+    if (isNew && !variant) return;
+
+    setSaveStatus("unsaved");
+
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+    }
+
+    autosaveTimerRef.current = setTimeout(() => {
+      void performAutosave();
+    }, AUTOSAVE_DELAY_MS);
+  }, [isNew, variant, performAutosave]);
+
+  // Cleanup autosave timer on unmount
+  useEffect(() => {
+    return () => {
+      if (autosaveTimerRef.current) {
+        clearTimeout(autosaveTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Track metadata changes for autosave
+  const handleVariantFormChange = useCallback(
+    (newForm: typeof variantForm) => {
+      setVariantForm(newForm);
+      scheduleAutosave();
+    },
+    [scheduleAutosave],
   );
 
   // ── Drag & drop ──────────────────────────────────────────────────
@@ -233,7 +338,14 @@ export function BlockEditorClient({
       return;
     }
 
+    // Clear any pending autosave
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
+
     setSaving(true);
+    setSaveStatus("saving");
 
     const payload = {
       name: variantForm.name.trim(),
@@ -259,10 +371,12 @@ export function BlockEditorClient({
           description: error.message,
         });
         setSaving(false);
+        setSaveStatus("unsaved");
         return;
       }
 
       toast.success("Variant created");
+      setSaveStatus("saved");
       // Navigate to the edit page for the new variant
       router.push(`/platform-admin/landing/variants/${(data as VariantData).id}`);
     } else {
@@ -278,17 +392,39 @@ export function BlockEditorClient({
       if (error) {
         toast.error("Failed to save variant", { description: error.message });
         setSaving(false);
+        setSaveStatus("unsaved");
         return;
       }
 
       setVariant(data as VariantData);
+      setSaveStatus("saved");
       toast.success("Variant saved");
     }
 
     setSaving(false);
   }, [variant, variantForm, isNew, supabase, router]);
 
-  // ── Publish ──────────────────────────────────────────────────────
+  // ── Publish / Unpublish ────────────────────────────────────────
+
+  const triggerRevalidation = useCallback(async () => {
+    try {
+      const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL ?? "http://localhost:3055";
+      const res = await fetch(`${landingUrl}/api/revalidate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          secret: process.env.NEXT_PUBLIC_REVALIDATION_SECRET ?? "dev-revalidation-secret",
+        }),
+      });
+
+      if (!res.ok) {
+        console.warn("[revalidate] Landing page revalidation failed:", res.status);
+      }
+    } catch (err) {
+      // Revalidation failure is non-critical — log but don't block
+      console.warn("[revalidate] Could not reach landing app:", err);
+    }
+  }, []);
 
   const handlePublish = useCallback(async () => {
     if (!variant) {
@@ -296,25 +432,96 @@ export function BlockEditorClient({
       return;
     }
 
+    // Save any pending changes first
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
+
     setSaving(true);
+    setSaveStatus("saving");
+
+    // Save current form data + set status to published
+    const payload = {
+      name: variantForm.name.trim(),
+      slug: variantForm.slug.trim(),
+      status: "published" as const,
+      is_default: variantForm.is_default,
+      meta_title: variantForm.meta_title.trim() || null,
+      meta_description: variantForm.meta_description.trim() || null,
+      theme_accent: variantForm.theme_accent,
+    };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase as any)
+    const { data, error } = await (supabase as any)
       .from("landing_variant")
-      .update({ status: "published" })
-      .eq("id", variant.id);
+      .update(payload)
+      .eq("id", variant.id)
+      .select()
+      .single();
 
     if (error) {
       toast.error("Failed to publish", { description: error.message });
       setSaving(false);
+      setSaveStatus("unsaved");
       return;
     }
 
-    setVariant((prev) => (prev ? { ...prev, status: "published" } : prev));
+    setVariant(data as VariantData);
     setVariantForm((prev) => ({ ...prev, status: "published" }));
-    toast.success("Variant published");
+    setSaveStatus("saved");
+
+    // Trigger revalidation to bust landing page cache
+    await triggerRevalidation();
+
+    toast.success("Variant published and landing page updated");
     setSaving(false);
-  }, [variant, supabase]);
+  }, [variant, variantForm, supabase, triggerRevalidation]);
+
+  const handleUnpublish = useCallback(async () => {
+    if (!variant) return;
+
+    setSaving(true);
+    setSaveStatus("saving");
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any)
+      .from("landing_variant")
+      .update({ status: "draft" })
+      .eq("id", variant.id)
+      .select()
+      .single();
+
+    if (error) {
+      toast.error("Failed to unpublish", { description: error.message });
+      setSaving(false);
+      setSaveStatus("unsaved");
+      return;
+    }
+
+    setVariant(data as VariantData);
+    setVariantForm((prev) => ({ ...prev, status: "draft" }));
+    setSaveStatus("saved");
+
+    // Trigger revalidation so the landing page reflects the change
+    await triggerRevalidation();
+
+    toast.success("Variant unpublished");
+    setSaving(false);
+  }, [variant, supabase, triggerRevalidation]);
+
+  // ── Save status indicator ──────────────────────────────────────
+
+  function SaveStatusIndicator({ status }: { status: SaveStatus }) {
+    switch (status) {
+      case "saved":
+        return <span className="text-xs text-green-500">Lagret</span>;
+      case "saving":
+        return <span className="text-xs text-yellow-500">Lagrer...</span>;
+      case "unsaved":
+        return <span className="text-xs text-orange-500">Ulagrede endringer</span>;
+    }
+  }
 
   // ── Render ───────────────────────────────────────────────────────
 
@@ -345,15 +552,29 @@ export function BlockEditorClient({
                     default
                   </Badge>
                 )}
+                <SaveStatusIndicator status={saveStatus} />
               </div>
             )}
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {/* Preview button */}
+          {variant && (
+            <Button variant="outline" size="sm" asChild>
+              <Link href={`/platform-admin/landing/variants/${variant.id}/preview`}>
+                <Eye className="h-4 w-4" />
+                Forhandsvisning
+              </Link>
+            </Button>
+          )}
+
+          {/* Save button */}
           <Button variant="outline" size="sm" onClick={handleSave} disabled={saving}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Lagre
           </Button>
+
+          {/* Publish / Unpublish button */}
           {variant && variant.status !== "published" && (
             <Button size="sm" onClick={handlePublish} disabled={saving}>
               {saving ? (
@@ -362,6 +583,16 @@ export function BlockEditorClient({
                 <Rocket className="h-4 w-4" />
               )}
               Publiser
+            </Button>
+          )}
+          {variant && variant.status === "published" && (
+            <Button variant="outline" size="sm" onClick={handleUnpublish} disabled={saving}>
+              {saving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <CircleOff className="h-4 w-4" />
+              )}
+              Avpubliser
             </Button>
           )}
         </div>
@@ -385,7 +616,7 @@ export function BlockEditorClient({
         </button>
         {metadataOpen && (
           <div className="border-t px-4 py-4">
-            <VariantMetadataForm values={variantForm} onChange={setVariantForm} />
+            <VariantMetadataForm values={variantForm} onChange={handleVariantFormChange} />
           </div>
         )}
       </div>

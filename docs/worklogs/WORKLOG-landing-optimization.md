@@ -24,8 +24,8 @@ tags: []
 
 ## Remaining
 
-- [ ] Phase 5: Autosave and publish flow (Task 21)
-- [ ] Phase 5: Preview functionality (Task 22)
+- [x] Phase 5: Autosave and publish flow (Task 21)
+- [x] Phase 5: Preview functionality (Task 22)
 - [ ] Phase 6: Seed existing variants (Task 23)
 - [ ] Phase 7: Verify parity (Task 24), route switch (Task 25), cleanup (Task 26-27)
 
@@ -52,3 +52,5 @@ tags: []
 | 2026-03-01 | --    | Task 14: Created /api/revalidate/route.ts + added REVALIDATION_SECRET to env.ts                                                                                  |
 | 2026-03-01 | --    | Task 18: Created block editor — server page, BlockEditorClient, BlockCard (dnd-kit sortable), VariantMetadataForm, AddBlockDialog. Fixed variant list edit link. |
 | 2026-03-02 | --    | Tasks 19-20: Created 15 block-specific edit forms + BlockFormRouter + IconPicker + MediaPicker + ThemePicker. Updated BlockCard to use forms.                    |
+| 2026-03-02 | --    | Task 21: Added debounced autosave (1s delay), save status indicator, publish/unpublish flow with revalidation, env vars for landing URL + secret.                |
+| 2026-03-02 | --    | Task 22: Created preview page with iframe, device size toggles (mobile/tablet/desktop), back-to-editor link, open-in-new-tab button.                             |
