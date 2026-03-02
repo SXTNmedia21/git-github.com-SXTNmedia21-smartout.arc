@@ -31,7 +31,7 @@ export async function classifyIntent(message: string, context: string): Promise<
   const registered = getRegisteredCapabilities();
 
   const { object } = await generateObject({
-    model: openrouter("anthropic/claude-haiku-3"),
+    model: openrouter("anthropic/claude-sonnet-4"),
     schema: intentSchema,
     system: `You are an intent classifier for a Norwegian employee assistant called Mr. Botsson.
 Classify the user's message into one of these capabilities: ${registered.join(", ")}, general.

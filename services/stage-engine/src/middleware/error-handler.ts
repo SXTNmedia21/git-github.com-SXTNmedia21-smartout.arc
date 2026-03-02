@@ -15,6 +15,7 @@ import type { ErrorResponse } from "../types/api.js";
  */
 export function onError(err: Error, c: Context): Response {
   console.error(`[ERROR] ${c.req.method} ${c.req.path}:`, err.message);
+  console.error(err.stack);
 
   const response: ErrorResponse = {
     error: "INTERNAL_ERROR",
