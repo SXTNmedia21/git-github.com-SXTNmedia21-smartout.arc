@@ -323,10 +323,10 @@ export function StrategicView({ isDark }: StrategicViewProps) {
       )}
 
       {/* Main Insights Row */}
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="flex min-h-0 flex-1 flex-col gap-6 lg:flex-row">
         {/* Modern Turnover Trend SVG Graph */}
         <div
-          className={`relative flex min-h-[320px] flex-col overflow-hidden rounded-3xl border p-6 shadow-sm lg:col-span-2 ${isDark ? "border-zinc-800 bg-[#0c0c0e]" : "border-zinc-200 bg-white"}`}
+          className={`relative flex min-h-0 flex-col overflow-hidden rounded-3xl border p-6 shadow-sm lg:flex-[2] ${isDark ? "border-zinc-800 bg-[#0c0c0e]" : "border-zinc-200 bg-white"}`}
         >
           <div className="pointer-events-none absolute top-0 right-0 h-96 w-96 rounded-full bg-blue-500/5 blur-[100px]" />
 
@@ -361,7 +361,7 @@ export function StrategicView({ isDark }: StrategicViewProps) {
 
         {/* Workforce Pipeline */}
         <div
-          className={`relative flex min-h-0 flex-col overflow-hidden rounded-3xl border p-6 shadow-sm ${isDark ? "border-zinc-800 bg-[#0c0c0e]" : "border-zinc-200 bg-white"}`}
+          className={`relative flex min-h-0 flex-col overflow-hidden rounded-3xl border p-6 shadow-sm lg:flex-1 ${isDark ? "border-zinc-800 bg-[#0c0c0e]" : "border-zinc-200 bg-white"}`}
         >
           <div className="pointer-events-none absolute -bottom-12 -left-12 h-48 w-48 rounded-full bg-purple-500/5 blur-[60px]" />
 
