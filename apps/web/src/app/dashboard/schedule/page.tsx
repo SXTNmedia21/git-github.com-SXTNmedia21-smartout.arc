@@ -45,6 +45,9 @@ import { ShiftModal } from "./_components/shift-modal";
 import { BatchActionBar } from "./_components/batch-action-bar";
 import { AbsencePopover } from "./_components/absence-popover";
 import { EmployeeDrawer } from "./_components/employee-drawer";
+import { PublishOverviewDialog } from "./_components/publish-overview-dialog";
+import { SendMessageDialog } from "./_components/send-message-dialog";
+import { MonthlyView } from "./_components/monthly-view";
 
 import type { DayColumn } from "./_components/schedule-data";
 
@@ -186,6 +189,12 @@ function SchedulePageContent() {
   const [sidebarMode, setSidebarMode] = useState<"open" | "templates">("open");
   const [activeStatusFilter, setActiveStatusFilter] = useState<string | null>(null);
   const [weekSpan, setWeekSpan] = useState<1 | 2>(1);
+  const [publishOverviewOpen, setPublishOverviewOpen] = useState(false);
+  const [sendMessageDialog, setSendMessageDialog] = useState<{
+    open: boolean;
+    dateId: string;
+    dateLabel: string;
+  }>({ open: false, dateId: "", dateLabel: "" });
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 1 } }),
@@ -221,8 +230,11 @@ function SchedulePageContent() {
   const dayBookingsQuery = useDayBookings(weekStart, weekEnd);
   const { dayInfoByDate } = useDayInfo(weekStart, weekEnd);
 
-  // ── Enrich day columns with day info (events, notes, budget) ─
+  // ── Enrich day columns with day info + real shift/staff/message/task counts ─
   const enrichedDays = useMemo(() => {
+    const allShifts = shiftsQuery.data ?? [];
+    const allMessages = dayMessagesQuery.data ?? [];
+    const allTasks = dayTasksQuery.data ?? [];
     return days.map((day) => {
       const infos = dayInfoByDate.get(day.id) ?? [];
       const events = infos
@@ -232,13 +244,27 @@ function SchedulePageContent() {
         .filter((d) => d.category !== "event")
         .map((n) => ({ id: n.id, title: n.title, scope: n.scopeType }));
 
+      // Compute real staff and shift counts from shift data
+      const dayShifts = allShifts.filter((s) => s.dateId === day.id);
+      const uniqueEmployees = new Set(dayShifts.map((s) => s.employeeId).filter(Boolean));
+
+      // Compute message and task counts
+      const dayMsgCount = allMessages.filter((m) => m.dateId === day.id).length;
+      const dayTaskList = allTasks.filter((t) => t.dateId === day.id);
+      const dayTasksDone = dayTaskList.filter((t) => t.status === "completed").length;
+
       return {
         ...day,
+        staff: uniqueEmployees.size,
+        shifts: dayShifts.length,
+        messages: dayMsgCount > 0 ? dayMsgCount : undefined,
+        tasks:
+          dayTaskList.length > 0 ? { done: dayTasksDone, total: dayTaskList.length } : undefined,
         events: events.length > 0 ? events : undefined,
         dayInfo: notes.length > 0 ? notes : undefined,
       };
     });
-  }, [days, dayInfoByDate]);
+  }, [days, dayInfoByDate, shiftsQuery.data, dayMessagesQuery.data, dayTasksQuery.data]);
 
   // ── Realtime subscription ───────────────────────────────────
   useScheduleRealtime(weekStart);
@@ -306,6 +332,14 @@ function SchedulePageContent() {
 
   // ── UI-only context ─────────────────────────────────────────
   const scheduleUI = useScheduleUI();
+
+  // Bridge: "Se dagsliste" sets selectedDayId in UI context → open DayControlSheet
+  useEffect(() => {
+    if (scheduleUI.selectedDayId) {
+      setSelectedDate(scheduleUI.selectedDayId);
+      scheduleUI.setSelectedDay(null);
+    }
+  }, [scheduleUI.selectedDayId, scheduleUI.setSelectedDay]);
 
   // ── Derived values ──────────────────────────────────────────
   const shifts = useMemo(() => shiftsQuery.data ?? [], [shiftsQuery.data]);
@@ -413,11 +447,12 @@ function SchedulePageContent() {
   }, []);
 
   // Sync refs + draft count and publish callback to DashboardShell
+  // Opens the publish overview dialog instead of publishing directly
   useEffect(() => {
     publishMutateRef.current = publishShifts.mutate;
     draftIdsRef.current = draftIds;
     setScheduleDraftCount(draftCount);
-    setOnPublishAll(draftCount > 0 ? () => publishMutateRef.current(draftIdsRef.current) : null);
+    setOnPublishAll(draftCount > 0 ? () => setPublishOverviewOpen(true) : null);
     return () => {
       setScheduleDraftCount(0);
       setOnPublishAll(null);
@@ -640,6 +675,30 @@ function SchedulePageContent() {
                   setFilterSituation={setFilterSituation}
                 />
 
+                {/* Week span toggle — below command bar, hidden in monthly view */}
+                {scheduleLayout !== "monthly" && (
+                  <div
+                    className={`flex shrink-0 items-center justify-center gap-2 border-b px-4 py-1.5 ${isDark ? "border-white/[0.04] bg-[#0a0a0c]/60" : "border-zinc-200 bg-white/60"} backdrop-blur-md print:hidden`}
+                  >
+                    <div
+                      className={`flex rounded-lg border p-0.5 ${isDark ? "border-white/10 bg-white/5" : "border-zinc-200 bg-zinc-100"}`}
+                    >
+                      <button
+                        onClick={() => setWeekSpan(1)}
+                        className={`rounded-md px-3 py-1 text-[11px] font-bold transition-all ${weekSpan === 1 ? (isDark ? "bg-zinc-800 text-white shadow-sm" : "bg-white text-zinc-900 shadow-sm") : "text-zinc-500 hover:text-zinc-300"}`}
+                      >
+                        1 uke
+                      </button>
+                      <button
+                        onClick={() => setWeekSpan(2)}
+                        className={`rounded-md px-3 py-1 text-[11px] font-bold transition-all ${weekSpan === 2 ? (isDark ? "bg-zinc-800 text-white shadow-sm" : "bg-white text-zinc-900 shadow-sm") : "text-zinc-500 hover:text-zinc-300"}`}
+                      >
+                        2 uker
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 <StatusStrip
                   isDark={isDark}
                   statusSummary={statusSummary}
@@ -649,8 +708,6 @@ function SchedulePageContent() {
 
                 <GridSurface
                   isDark={isDark}
-                  weekSpan={weekSpan}
-                  setWeekSpan={setWeekSpan}
                   centerContent={
                     <>
                       {scheduleLayout === "daily" && (
@@ -659,7 +716,8 @@ function SchedulePageContent() {
                           setIsSidebarOpen={setIsSidebarOpen}
                           onDateClick={setSelectedDate}
                           filterSituation={filterSituation}
-                          visibleDays={days}
+                          activeStatusFilter={activeStatusFilter}
+                          visibleDays={enrichedDays}
                           employees={sortedEmployees}
                         />
                       )}
@@ -676,13 +734,10 @@ function SchedulePageContent() {
                         />
                       )}
                       {scheduleLayout === "monthly" && (
-                        <MonthlyGridContent
+                        <MonthlyView
                           onDateClick={setSelectedDate}
-                          filterSituation={filterSituation}
                           shifts={shifts}
                           computed={computed}
-                          days={days}
-                          scheduleUI={scheduleUI}
                         />
                       )}
                       {scheduleLayout === "list" && (
@@ -724,6 +779,22 @@ function SchedulePageContent() {
               employees.find((e: ScheduleEmployee) => e.id === scheduleUI.selectedEmployeeId) ??
               null
             }
+          />
+          <PublishOverviewDialog
+            open={publishOverviewOpen}
+            onOpenChange={setPublishOverviewOpen}
+            shifts={shifts}
+            employees={employees}
+            onPublish={(ids) => publishShifts.mutate(ids)}
+            isPublishing={publishShifts.isPending}
+          />
+          <SendMessageDialog
+            open={sendMessageDialog.open}
+            onOpenChange={(open) => setSendMessageDialog((prev) => ({ ...prev, open }))}
+            dateId={sendMessageDialog.dateId}
+            dateLabel={sendMessageDialog.dateLabel}
+            shifts={shifts}
+            employees={employees}
           />
         </>
       )}
@@ -1211,313 +1282,6 @@ function WeeklyEmptyCell({ onClick }: { onClick?: () => void }) {
     >
       <Plus className="h-4 w-4" />
     </button>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// MONTHLY HEATMAP (Strategic View)
-// ═══════════════════════════════════════════════════════════════════════════
-function MonthlyGridContent({
-  onDateClick,
-  filterSituation,
-  shifts,
-  computed,
-  days,
-  scheduleUI,
-}: {
-  onDateClick?: (d: string) => void;
-  filterSituation: string;
-  shifts: import("./_components/schedule-types").Shift[];
-  computed: import("./_hooks/use-schedule-computed").ScheduleComputed;
-  days: DayColumn[];
-  scheduleUI: ReturnType<typeof useScheduleUI>;
-}) {
-  const { isDark } = useContext(DashboardContext);
-  const columns = Array.from({ length: 31 }, (_, i) => i + 1);
-
-  /** Estimated total wage cost across all shifts */
-  const estimatedWageCost = shifts.reduce((sum, s) => sum + s.workHours * 250, 0);
-  const statusSummary = computed.getStatusSummary();
-
-  /** Aggregate team coverage across all days with data */
-  const teamCoverageData = React.useMemo(() => {
-    const uniqueDays = new Set(shifts.map((s) => s.dateId));
-    const teamTotals = new Map<string, { target: number; current: number }>();
-
-    for (const dateId of uniqueDays) {
-      const coverage = computed.getCoverageForDay(dateId);
-      for (const [team, data] of Object.entries(coverage.byTeam)) {
-        const existing = teamTotals.get(team) ?? { target: 0, current: 0 };
-        existing.target += data.target;
-        existing.current += data.current;
-        teamTotals.set(team, existing);
-      }
-    }
-
-    return Array.from(teamTotals.entries()).map(([title, data]) => ({
-      title,
-      target: data.target,
-      current: data.current,
-    }));
-  }, [shifts, computed]);
-
-  return (
-    <div
-      className={`flex h-full w-full min-w-[800px] flex-col ${isDark ? "bg-[#050505]" : "bg-zinc-50"}`}
-    >
-      <div
-        className={`h-16 shrink-0 border-b border-white/5 ${isDark ? "bg-[#0a0a0c]/80" : "bg-white/90"} sticky top-0 z-30 flex items-center gap-6 px-6`}
-      >
-        <div className="flex w-[200px] items-center gap-1.5 text-xs font-bold tracking-widest text-zinc-500 uppercase">
-          <Clock className="h-3.5 w-3.5 text-orange-500" />
-          Måned: Dekning &amp; Kostnad
-        </div>
-        <div className="flex flex-1 gap-8">
-          <div className="flex flex-col">
-            <span className="mb-0.5 text-[11px] font-bold tracking-wider text-zinc-500 uppercase">
-              Est. Lønnskostnad
-            </span>
-            <span className={`text-sm font-black ${isDark ? "text-white" : "text-zinc-900"}`}>
-              {estimatedWageCost.toLocaleString("nb-NO")}{" "}
-              <span className="text-[10px] font-medium text-zinc-500">NOK</span>
-            </span>
-          </div>
-          <div className="flex flex-col">
-            <span className="mb-0.5 text-[11px] font-bold tracking-wider text-zinc-500 uppercase">
-              Lønn % av Salg
-            </span>
-            <span className="text-sm font-black text-green-400">
-              – <span className="text-[10px] font-medium text-zinc-500">(ingen salgsdata)</span>
-            </span>
-          </div>
-          <div className="flex flex-col">
-            <span className="mb-0.5 text-[11px] font-bold tracking-wider text-zinc-500 uppercase">
-              Underbemannede Vakter
-            </span>
-            <span className="text-sm font-black text-rose-400">
-              {statusSummary.coverageRisks}{" "}
-              <span className="text-[10px] font-medium text-zinc-500">denne måneden</span>
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex min-h-0 flex-1 overflow-y-auto">
-        <div
-          className={`w-[200px] shrink-0 border-r border-white/5 xl:w-[250px] ${isDark ? "bg-[#0a0a0c]/60" : "bg-white/80"} sticky left-0 z-20 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)]`}
-        >
-          <div
-            className={`sticky top-16 z-20 h-[60px] border-b ${isDark ? "border-white/5" : "border-zinc-200"} ${isDark ? "bg-[#0a0a0c]/80" : "bg-white/90"} backdrop-blur-xl`}
-          />
-          <div className="flex-1 overflow-y-auto">
-            {teamCoverageData.map((team) => (
-              <TeamCoverageRow
-                key={team.title}
-                title={team.title}
-                target={team.target}
-                current={team.current}
-                isPerfect={team.current >= team.target}
-                isWarning={team.current < team.target - 1}
-              />
-            ))}
-          </div>
-        </div>
-
-        <div className="flex min-w-0 flex-1 overflow-x-auto">
-          {columns.map((col) => {
-            const isWeekend = col % 7 === 6 || col % 7 === 0;
-            const isToday = col === 15;
-
-            /** Map column index to a day dateId if within range */
-            const dateId = col <= days.length ? days[col - 1]?.id : undefined;
-
-            /**
-             * Returns coverage-based heatmap color for a team row.
-             * Green = at or above target, orange = 1 below, red = 2+ below, neutral = no data.
-             */
-            const getHeatmapColor = (rowIdx: number) => {
-              if (!dateId || rowIdx >= teamCoverageData.length) {
-                return "bg-zinc-500/5 border-zinc-500/10";
-              }
-              const team = teamCoverageData[rowIdx];
-              if (!team) return "bg-zinc-500/5 border-zinc-500/10";
-              const coverage = computed.getCoverageForDay(dateId);
-              const teamName = team.title;
-              const teamData = coverage.byTeam[teamName];
-              if (!teamData) return "bg-zinc-500/5 border-zinc-500/10";
-              const { target, current } = teamData;
-              if (current >= target) return "bg-emerald-500/10 border-emerald-500/20";
-              if (current >= target - 1) return "bg-orange-500/20 border-orange-500/50";
-              return "bg-rose-500/20 border-rose-500/50";
-            };
-
-            /** All shifts for this day — used to compute per-cell info */
-            const dayShifts = dateId ? shifts.filter((s) => s.dateId === dateId) : [];
-            const teamCount = Math.max(teamCoverageData.length, 1);
-
-            /**
-             * Returns shift count and time range for a team row.
-             * Distributes day shifts evenly across team rows since
-             * shifts don't carry team info in local state.
-             */
-            const getCellInfo = (rowIdx: number) => {
-              if (dayShifts.length === 0) return { shiftCount: 0, timeRange: undefined };
-              // Distribute shifts across team rows
-              const base = Math.floor(dayShifts.length / teamCount);
-              const remainder = dayShifts.length % teamCount;
-              const shiftCount = base + (rowIdx < remainder ? 1 : 0);
-              if (shiftCount === 0) return { shiftCount: 0, timeRange: undefined };
-              // Compute time range from earliest start to latest end across all day shifts
-              const sorted = [...dayShifts].sort((a, b) => a.startTime.localeCompare(b.startTime));
-              const earliest = sorted[0]?.startTime;
-              const latest = [...dayShifts].sort((a, b) => b.endTime.localeCompare(a.endTime))[0]
-                ?.endTime;
-              const timeRange = earliest && latest ? `${earliest}-${latest}` : undefined;
-              return { shiftCount, timeRange };
-            };
-
-            return (
-              <div
-                key={col}
-                className={`min-w-[32px] flex-1 border-r sm:min-w-[40px] ${isDark ? "border-white/5" : "border-zinc-200"} flex flex-col transition-colors ${
-                  filterSituation === "Selskap" && col % 5 === 0
-                    ? "bg-orange-500/[0.06]"
-                    : filterSituation === "Krise" && col % 7 === 0
-                      ? "bg-rose-500/[0.06]"
-                      : isToday
-                        ? "bg-orange-500/[0.04]"
-                        : isWeekend
-                          ? "bg-indigo-500/[0.02]"
-                          : ""
-                }`}
-              >
-                <div
-                  onClick={() => {
-                    if (!dateId) return;
-                    onDateClick?.(days[col - 1]?.label ?? `Dag ${col}`);
-                    // Open shift creation modal when clicking an empty date
-                    if (dayShifts.length === 0) {
-                      scheduleUI.setCreateShiftContext({ dateId });
-                    }
-                  }}
-                  className={`sticky top-16 h-[60px] border-b border-white/5 p-1 ${isDark ? "bg-[#0a0a0c]/80" : "bg-white/90"} group relative z-10 flex cursor-pointer flex-col items-center justify-end pb-2 backdrop-blur-xl hover:bg-white/5`}
-                >
-                  {isToday && (
-                    <div className="absolute top-1 right-1/2 h-1.5 w-1.5 translate-x-1/2 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.8)]" />
-                  )}
-                  <h2
-                    className={`text-xs font-black tracking-tight xl:text-sm ${isToday ? "text-orange-400" : isWeekend ? "text-indigo-400" : isDark ? "text-white" : "text-zinc-900"}`}
-                  >
-                    {col}
-                  </h2>
-                  <span
-                    className={`mt-0.5 text-[10px] font-bold tracking-widest uppercase ${isWeekend ? "text-indigo-500" : "text-zinc-600"}`}
-                  >
-                    {isWeekend ? "Heg" : "Hvd"}
-                  </span>
-                </div>
-                {teamCoverageData.length > 0 ? (
-                  teamCoverageData.map((_, rowIdx) => {
-                    const cellInfo = getCellInfo(rowIdx);
-                    return (
-                      <HeatmapCell
-                        key={rowIdx}
-                        colorClass={getHeatmapColor(rowIdx)}
-                        shiftCount={cellInfo.shiftCount}
-                        timeRange={cellInfo.timeRange}
-                        onClick={() =>
-                          dateId && onDateClick?.(days[col - 1]?.label ?? `Dag ${col}`)
-                        }
-                      />
-                    );
-                  })
-                ) : (
-                  <>
-                    <HeatmapCell colorClass="bg-zinc-500/5 border-zinc-500/10" />
-                    <HeatmapCell colorClass="bg-zinc-500/5 border-zinc-500/10" />
-                    <HeatmapCell colorClass="bg-zinc-500/5 border-zinc-500/10" />
-                    <HeatmapCell colorClass="bg-zinc-500/5 border-zinc-500/10" />
-                  </>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function TeamCoverageRow({
-  title,
-  target,
-  current,
-  isWarning,
-  isPerfect,
-}: {
-  title: string;
-  target: number;
-  current: number;
-  isWarning?: boolean;
-  isPerfect?: boolean;
-}) {
-  const { isDark } = useContext(DashboardContext);
-  return (
-    <div
-      className={`h-16 border-b ${isDark ? "border-white/5" : "border-zinc-200"} flex cursor-pointer flex-col justify-center px-4 py-2 hover:bg-white/[0.02]`}
-    >
-      <h3
-        className={`text-xs font-bold ${isDark ? "text-white" : "text-zinc-900"} mb-1.5 leading-none tracking-tight`}
-      >
-        {title}
-      </h3>
-      <div className="flex items-center gap-2">
-        <span
-          className={`text-[11px] font-black ${isPerfect ? "text-emerald-400" : isWarning ? "text-rose-400" : "text-orange-400"}`}
-        >
-          {current} <span className="font-medium text-zinc-500">/ {target} dekket</span>
-        </span>
-        {!isPerfect && (
-          <AlertCircle
-            className={`h-3.5 w-3.5 ${isWarning ? "text-rose-400" : "text-orange-400"}`}
-          />
-        )}
-      </div>
-    </div>
-  );
-}
-
-function HeatmapCell({
-  colorClass,
-  onClick,
-  shiftCount,
-  timeRange,
-}: {
-  colorClass: string;
-  onClick?: () => void;
-  /** Number of shifts in this cell (team + day combination) */
-  shiftCount?: number;
-  /** Earliest start to latest end, e.g. "08:00-22:00" */
-  timeRange?: string;
-}) {
-  const { isDark } = useContext(DashboardContext);
-  return (
-    <div className={`h-16 border-b ${isDark ? "border-white/5" : "border-zinc-200"} px-0.5 py-1`}>
-      <div
-        onClick={onClick}
-        className={`flex h-full w-full flex-col items-center justify-center rounded-sm border ${colorClass} cursor-pointer opacity-80 transition-opacity hover:opacity-100`}
-        title="Klikk for detaljer"
-      >
-        {shiftCount !== undefined && shiftCount > 0 && (
-          <>
-            <span className="text-[10px] leading-none font-black">{shiftCount}</span>
-            {timeRange && (
-              <span className="mt-0.5 text-[7px] leading-none text-zinc-500">{timeRange}</span>
-            )}
-          </>
-        )}
-      </div>
-    </div>
   );
 }
 

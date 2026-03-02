@@ -39,6 +39,7 @@ export function GridContent({
   setIsSidebarOpen,
   onDateClick,
   filterSituation = "Alle",
+  activeStatusFilter = null,
   visibleDays,
   employees,
 }: {
@@ -46,6 +47,7 @@ export function GridContent({
   setIsSidebarOpen: (v: boolean) => void;
   onDateClick: (d: string) => void;
   filterSituation?: string;
+  activeStatusFilter?: string | null;
   visibleDays: DayColumn[];
   employees: ScheduleEmployee[];
 }) {
@@ -59,6 +61,63 @@ export function GridContent({
     useScheduleUI();
 
   const updateShift = useUpdateShift(weekStart);
+
+  // ── Filter shifts based on activeStatusFilter ──────────────
+  const filteredShifts = React.useMemo(() => {
+    if (!activeStatusFilter) return shiftsData;
+    switch (activeStatusFilter) {
+      case "draft":
+        return shiftsData.filter((s) => s.status === "created" || s.status === "assigned");
+      case "published":
+        return shiftsData.filter((s) => s.status === "published");
+      case "active":
+        return shiftsData.filter((s) => s.status === "active");
+      case "completed":
+        return shiftsData.filter((s) => s.status === "completed");
+      default:
+        return shiftsData;
+    }
+  }, [shiftsData, activeStatusFilter]);
+
+  // ── Filter employees to only show those with matching data ──
+  const filteredEmployees = React.useMemo(() => {
+    if (!activeStatusFilter) return employees;
+    // Absence filter: show only employees with absences
+    if (activeStatusFilter === "absence") {
+      const employeesWithAbsences = new Set(absencesData.map((a) => a.employeeId));
+      return employees.filter((emp) => employeesWithAbsences.has(emp.id));
+    }
+    // Overtime risk: employees exceeding contracted hours
+    if (activeStatusFilter === "overtime_risk") {
+      const CONTRACTED = 37.5;
+      const hoursByEmp = new Map<string, number>();
+      for (const s of shiftsData) {
+        if (s.employeeId) {
+          hoursByEmp.set(s.employeeId, (hoursByEmp.get(s.employeeId) ?? 0) + s.workHours);
+        }
+      }
+      return employees.filter((emp) => (hoursByEmp.get(emp.id) ?? 0) > CONTRACTED);
+    }
+    // Compliance risk: employees exceeding AML max hours
+    if (activeStatusFilter === "compliance_risk") {
+      const AML_MAX = 40;
+      const hoursByEmp = new Map<string, number>();
+      for (const s of shiftsData) {
+        if (s.employeeId) {
+          hoursByEmp.set(s.employeeId, (hoursByEmp.get(s.employeeId) ?? 0) + s.workHours);
+        }
+      }
+      return employees.filter((emp) => (hoursByEmp.get(emp.id) ?? 0) > AML_MAX);
+    }
+    // Status-based filters: show employees who have matching shifts
+    if (["draft", "published", "active", "completed"].includes(activeStatusFilter)) {
+      const employeeIdsWithShifts = new Set(
+        filteredShifts.map((s) => s.employeeId).filter(Boolean),
+      );
+      return employees.filter((emp) => employeeIdsWithShifts.has(emp.id));
+    }
+    return employees;
+  }, [employees, activeStatusFilter, filteredShifts, absencesData, shiftsData]);
 
   /** Handle time change from Shift+drag resize handles */
   const handleTimeChange = useCallback(
@@ -83,7 +142,7 @@ export function GridContent({
   /** Index shifts by employee::day key for O(1) lookup in grid cells */
   const shiftsByEmployeeDay = React.useMemo(() => {
     const index = new Map<string, ScheduleShift[]>();
-    for (const shift of shiftsData) {
+    for (const shift of filteredShifts) {
       if (!shift.employeeId) continue;
       const key = `${shift.employeeId}::${shift.dateId}`;
       const existing = index.get(key);
@@ -94,7 +153,7 @@ export function GridContent({
       }
     }
     return index;
-  }, [shiftsData]);
+  }, [filteredShifts]);
 
   /** Index absences by employee::day key */
   const absencesByEmployeeDay = React.useMemo(() => {
@@ -114,7 +173,7 @@ export function GridContent({
   /** Compute hours and shift count per employee from real shift data */
   const employeeStats = React.useMemo(() => {
     const stats = new Map<string, { hours: number; shiftCount: number }>();
-    for (const shift of shiftsData) {
+    for (const shift of filteredShifts) {
       if (!shift.employeeId) continue;
       const existing = stats.get(shift.employeeId) ?? { hours: 0, shiftCount: 0 };
       existing.hours += shift.workHours;
@@ -122,7 +181,7 @@ export function GridContent({
       stats.set(shift.employeeId, existing);
     }
     return stats;
-  }, [shiftsData]);
+  }, [filteredShifts]);
 
   /** Total grid width: sticky sidebar + day columns */
   const gridWidth = 260 + visibleDays.length * DAY_COL_WIDTH;
@@ -141,11 +200,11 @@ export function GridContent({
       <div className="w-full flex-1 pb-20">
         {scheduleView === "ansatt" && (
           <SortableContext
-            items={employees.map((e) => e.id)}
+            items={filteredEmployees.map((e) => e.id)}
             strategy={verticalListSortingStrategy}
           >
             <div className="flex flex-col">
-              {employees.map((emp) => (
+              {filteredEmployees.map((emp) => (
                 <SortableEmployeeRow
                   key={emp.id}
                   employee={emp}
@@ -166,59 +225,71 @@ export function GridContent({
 
         {scheduleView === "jobb" && (
           <div className="flex flex-col">
-            {Array.from(new Set(employees.map((e) => e.jobTitle || e.role))).map((jobTitle) => {
-              const employeesInRole = employees.filter((e) => (e.jobTitle || e.role) === jobTitle);
-              return (
-                <React.Fragment key={jobTitle}>
-                  <GroupHeader title={jobTitle} count={employeesInRole.length} days={visibleDays} />
-                  {employeesInRole.map((emp) => (
-                    <EmployeeRow
-                      key={emp.id}
-                      employee={emp}
-                      employeeStats={employeeStats.get(emp.id)}
+            {Array.from(new Set(filteredEmployees.map((e) => e.jobTitle || e.role))).map(
+              (jobTitle) => {
+                const employeesInRole = filteredEmployees.filter(
+                  (e) => (e.jobTitle || e.role) === jobTitle,
+                );
+                return (
+                  <React.Fragment key={jobTitle}>
+                    <GroupHeader
+                      title={jobTitle}
+                      count={employeesInRole.length}
                       days={visibleDays}
-                      shiftsByEmployeeDay={shiftsByEmployeeDay}
-                      absencesByEmployeeDay={absencesByEmployeeDay}
-                      onCreateShift={setCreateShiftContext}
-                      onAbsencePopover={setAbsencePopover}
-                      onSelectShift={setSelectedShift}
-                      onSelectEmployee={setSelectedEmployee}
-                      onTimeChange={handleTimeChange}
-                      subtitle={emp.team}
                     />
-                  ))}
-                </React.Fragment>
-              );
-            })}
+                    {employeesInRole.map((emp) => (
+                      <EmployeeRow
+                        key={emp.id}
+                        employee={emp}
+                        employeeStats={employeeStats.get(emp.id)}
+                        days={visibleDays}
+                        shiftsByEmployeeDay={shiftsByEmployeeDay}
+                        absencesByEmployeeDay={absencesByEmployeeDay}
+                        onCreateShift={setCreateShiftContext}
+                        onAbsencePopover={setAbsencePopover}
+                        onSelectShift={setSelectedShift}
+                        onSelectEmployee={setSelectedEmployee}
+                        onTimeChange={handleTimeChange}
+                        subtitle={emp.team}
+                      />
+                    ))}
+                  </React.Fragment>
+                );
+              },
+            )}
           </div>
         )}
 
         {scheduleView === "team" && (
           <div className="flex flex-col">
-            {Array.from(new Set(employees.map((e) => e.team || "Uten team"))).map((team) => {
-              const employeesInTeam = employees.filter((e) => (e.team || "Uten team") === team);
-              return (
-                <React.Fragment key={team}>
-                  <GroupHeader title={team} count={employeesInTeam.length} days={visibleDays} />
-                  {employeesInTeam.map((emp) => (
-                    <EmployeeRow
-                      key={emp.id}
-                      employee={emp}
-                      employeeStats={employeeStats.get(emp.id)}
-                      days={visibleDays}
-                      shiftsByEmployeeDay={shiftsByEmployeeDay}
-                      absencesByEmployeeDay={absencesByEmployeeDay}
-                      onCreateShift={setCreateShiftContext}
-                      onAbsencePopover={setAbsencePopover}
-                      onSelectShift={setSelectedShift}
-                      onSelectEmployee={setSelectedEmployee}
-                      onTimeChange={handleTimeChange}
-                      subtitle={emp.jobTitle || emp.role}
-                    />
-                  ))}
-                </React.Fragment>
-              );
-            })}
+            {Array.from(new Set(filteredEmployees.map((e) => e.team || "Uten team"))).map(
+              (team) => {
+                const employeesInTeam = filteredEmployees.filter(
+                  (e) => (e.team || "Uten team") === team,
+                );
+                return (
+                  <React.Fragment key={team}>
+                    <GroupHeader title={team} count={employeesInTeam.length} days={visibleDays} />
+                    {employeesInTeam.map((emp) => (
+                      <EmployeeRow
+                        key={emp.id}
+                        employee={emp}
+                        employeeStats={employeeStats.get(emp.id)}
+                        days={visibleDays}
+                        shiftsByEmployeeDay={shiftsByEmployeeDay}
+                        absencesByEmployeeDay={absencesByEmployeeDay}
+                        onCreateShift={setCreateShiftContext}
+                        onAbsencePopover={setAbsencePopover}
+                        onSelectShift={setSelectedShift}
+                        onSelectEmployee={setSelectedEmployee}
+                        onTimeChange={handleTimeChange}
+                        subtitle={emp.jobTitle || emp.role}
+                      />
+                    ))}
+                  </React.Fragment>
+                );
+              },
+            )}
           </div>
         )}
       </div>
