@@ -286,9 +286,7 @@ export function ActivityView({ isDark }: { isDark: boolean }) {
       )}
 
       {/* The Heatmap Visualizer — expands to fill when a cell is selected */}
-      <div
-        className={`border-border bg-background flex flex-col overflow-hidden rounded-3xl border shadow-sm ${isExpanded ? "min-h-0 flex-1" : ""}`}
-      >
+      <div className="border-border bg-background flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border shadow-sm">
         {/* Expanded toolbar — shown only when expanded */}
         {isExpanded && (
           <div className="border-border flex flex-shrink-0 flex-wrap items-center gap-3 border-b px-4 py-2">
@@ -393,8 +391,8 @@ export function ActivityView({ isDark }: { isDark: boolean }) {
         </div>
 
         {/* Heatmap Grid container */}
-        <div className={`overflow-x-auto p-4 ${isExpanded ? "flex min-h-0 flex-1 flex-col" : ""}`}>
-          <div className={isExpanded ? "flex min-h-0 flex-1 flex-col" : "min-w-fit"}>
+        <div className="flex min-h-0 flex-1 flex-col overflow-x-auto p-4">
+          <div className="flex min-h-0 flex-1 flex-col">
             {/* Days Header */}
             <div className="mb-1 flex items-end">
               <div className="w-24 flex-shrink-0" />
@@ -422,7 +420,7 @@ export function ActivityView({ isDark }: { isDark: boolean }) {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ duration: 0.3 }}
-                  className={`group hover:bg-muted/50 mb-0.5 flex cursor-crosshair items-center rounded-md p-0.5 transition-colors ${isExpanded ? "min-h-[20px] flex-1" : ""}`}
+                  className="group hover:bg-muted/50 flex min-h-[20px] flex-1 cursor-crosshair items-center rounded-md p-0.5 transition-colors"
                 >
                   <div className="text-muted-foreground group-hover:text-foreground w-24 flex-shrink-0 truncate pr-2 text-xs font-semibold">
                     {row.label}
@@ -434,9 +432,7 @@ export function ActivityView({ isDark }: { isDark: boolean }) {
                         key={cellIdx}
                         title={`${row.label} - Day ${cellIdx + 1}: Score ${val}`}
                         onClick={() => handleCellClick(row.label, cellIdx)}
-                        className={`flex-1 cursor-pointer rounded-sm transition-all duration-300 hover:z-10 hover:scale-[1.3] ${
-                          isExpanded ? "min-h-[14px]" : "h-3.5 w-3.5"
-                        } ${
+                        className={`flex-1 cursor-pointer rounded-sm transition-all duration-300 hover:z-10 hover:scale-[1.3] ${"min-h-[14px]"} ${
                           selectedCell?.row === row.label && selectedCell?.dayIndex === cellIdx
                             ? "ring-foreground ring-2"
                             : ""
