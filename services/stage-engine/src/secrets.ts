@@ -3,11 +3,8 @@
 // Pre-loads external API keys from Supabase Vault at startup.
 // Call loadSecrets() once before the server starts accepting requests.
 // After that, getSecrets() returns cached values synchronously.
-// Connected to: packages/supabase/src/vault.ts (shared helper)
-// Connected to: src/lib/supabase.ts (service-role client)
 // ============================================
 
-import { getServiceKey } from "@smartout/supabase/vault";
 import { supabaseAdmin } from "./lib/supabase.js";
 
 type ServiceSecrets = {
@@ -17,14 +14,23 @@ type ServiceSecrets = {
 
 let _secrets: ServiceSecrets | null = null;
 
+async function getServiceKey(secretName: string): Promise<string> {
+  const { data, error } = await supabaseAdmin.rpc("get_secret", {
+    secret_name: secretName,
+  });
+  if (error) throw new Error(`Vault: failed to fetch "${secretName}": ${error.message}`);
+  if (!data) throw new Error(`Vault: secret "${secretName}" not found`);
+  return data as string;
+}
+
 /**
  * Fetches all required external API keys from Vault.
  * Must be called once at startup, before the server starts.
  */
 export async function loadSecrets(): Promise<void> {
   const [ultravoxApiKey, openrouterApiKey] = await Promise.all([
-    getServiceKey(supabaseAdmin, "ultravox"),
-    getServiceKey(supabaseAdmin, "openrouter"),
+    getServiceKey("ultravox"),
+    getServiceKey("openrouter"),
   ]);
 
   _secrets = { ultravoxApiKey, openrouterApiKey };
