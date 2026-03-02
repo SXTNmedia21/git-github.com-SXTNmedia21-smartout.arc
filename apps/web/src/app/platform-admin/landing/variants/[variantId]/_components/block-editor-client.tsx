@@ -419,7 +419,8 @@ export function BlockEditorClient({
 
   const triggerRevalidation = useCallback(async () => {
     try {
-      const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL ?? "http://localhost:3055";
+      const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL;
+      if (!landingUrl) return;
       const res = await fetch(`${landingUrl}/api/revalidate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

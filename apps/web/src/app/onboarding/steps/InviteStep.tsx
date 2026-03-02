@@ -38,9 +38,7 @@ export function InviteStep() {
       if (fnError) throw new Error(fnError.message);
       if (data?.token) {
         const baseUrl =
-          process.env.NEXT_PUBLIC_ROOT_DOMAIN === "localhost"
-            ? "http://localhost:3050"
-            : "https://app.smartout.ai";
+          typeof window !== "undefined" ? window.location.origin : "https://app.smartout.ai";
         setInviteLink(`${baseUrl}/invite/${data.token}`);
       }
     } catch (err) {

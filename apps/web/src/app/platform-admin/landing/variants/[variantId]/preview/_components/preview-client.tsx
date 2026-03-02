@@ -35,7 +35,7 @@ export function PreviewClient({ variantId }: PreviewClientProps) {
   const [device, setDevice] = useState<DeviceSize>("desktop");
 
   const landingUrl = useMemo(() => {
-    const base = process.env.NEXT_PUBLIC_LANDING_URL ?? "http://localhost:3055";
+    const base = process.env.NEXT_PUBLIC_LANDING_URL ?? "";
     return `${base}/v?preview=true&id=${variantId}`;
   }, [variantId]);
 
