@@ -11,6 +11,7 @@ import type {
   UltravoxCreateCallPayload,
   UltravoxCreateCallApiResponse,
   UltravoxHttpTool,
+  UltravoxStaticParameter,
 } from "../types/ultravox.js";
 
 /**
@@ -61,9 +62,15 @@ export function buildUltravoxTools(
   sessionId: string,
   apiKey: string,
 ): UltravoxHttpTool[] {
-  // API key sent via x-api-key header — never in URL query params.
-  // Keys in URLs leak via logs, referrer headers, and proxy caches.
-  const authHeaders: Record<string, string> = apiKey ? { "x-api-key": apiKey } : {};
+  // Auth and session routing via staticParameters — invisible to the AI model.
+  // Never put secrets in baseUrlPattern (leaks via logs and referrer headers).
+  // See: docs/learnings/0013-ultravox-http-tool-parameters.md
+  const staticParams: UltravoxStaticParameter[] = [
+    { name: "session_id", location: "PARAMETER_LOCATION_QUERY", value: sessionId },
+    ...(apiKey
+      ? [{ name: "x-api-key", location: "PARAMETER_LOCATION_HEADER" as const, value: apiKey }]
+      : []),
+  ];
 
   return [
     {
@@ -85,10 +92,10 @@ export function buildUltravoxTools(
             required: true,
           },
         ],
+        staticParameters: staticParams,
         http: {
-          baseUrlPattern: `${engineUrl}/adapters/ultravox/store?session_id=${sessionId}`,
+          baseUrlPattern: `${engineUrl}/adapters/ultravox/store`,
           httpMethod: "POST",
-          headers: authHeaders,
         },
       },
     },
@@ -109,10 +116,10 @@ export function buildUltravoxTools(
             required: true,
           },
         ],
+        staticParameters: staticParams,
         http: {
-          baseUrlPattern: `${engineUrl}/adapters/ultravox/fetch?session_id=${sessionId}`,
+          baseUrlPattern: `${engineUrl}/adapters/ultravox/fetch`,
           httpMethod: "POST",
-          headers: authHeaders,
         },
       },
     },
@@ -129,10 +136,10 @@ export function buildUltravoxTools(
             required: false,
           },
         ],
+        staticParameters: staticParams,
         http: {
-          baseUrlPattern: `${engineUrl}/adapters/ultravox/advance?session_id=${sessionId}`,
+          baseUrlPattern: `${engineUrl}/adapters/ultravox/advance`,
           httpMethod: "POST",
-          headers: authHeaders,
         },
       },
     },
