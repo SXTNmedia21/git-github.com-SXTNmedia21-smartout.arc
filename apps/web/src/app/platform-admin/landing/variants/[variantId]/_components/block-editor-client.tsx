@@ -200,6 +200,27 @@ export function BlockEditorClient({
     setExpandedBlockId((prev) => (prev === blockId ? null : blockId));
   }, []);
 
+  const handleContentChange = useCallback(
+    async (blockId: string, content: Record<string, unknown>) => {
+      // Update local state immediately
+      setBlocks((prev) => prev.map((b) => (b.id === blockId ? { ...b, content } : b)));
+
+      // Persist to database
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
+        .from("landing_block")
+        .update({ content })
+        .eq("id", blockId);
+
+      if (error) {
+        toast.error("Failed to save block content", {
+          description: error.message,
+        });
+      }
+    },
+    [supabase],
+  );
+
   // ── Save variant ─────────────────────────────────────────────────
 
   const handleSave = useCallback(async () => {
@@ -404,6 +425,7 @@ export function BlockEditorClient({
                     onToggleExpand={handleToggleExpand}
                     onDelete={handleDeleteBlock}
                     onToggleVisibility={handleToggleVisibility}
+                    onContentChange={handleContentChange}
                   />
                 ))}
               </div>

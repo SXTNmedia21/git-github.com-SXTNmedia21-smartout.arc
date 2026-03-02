@@ -41,6 +41,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 import type { BlockData } from "../page";
+import { BlockFormRouter } from "./forms/block-form-router";
 
 // ── Block type metadata ───────────────────────────────────────────
 
@@ -90,6 +91,7 @@ type BlockCardProps = {
   onToggleExpand: (blockId: string) => void;
   onDelete: (blockId: string) => void;
   onToggleVisibility: (blockId: string, isVisible: boolean) => void;
+  onContentChange: (blockId: string, content: Record<string, unknown>) => void;
 };
 
 export function BlockCard({
@@ -98,6 +100,7 @@ export function BlockCard({
   onToggleExpand,
   onDelete,
   onToggleVisibility,
+  onContentChange,
 }: BlockCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: block.id,
@@ -189,16 +192,14 @@ export function BlockCard({
         </div>
       </div>
 
-      {/* Expanded area — placeholder for block-specific forms (Task 19) */}
+      {/* Expanded area — block-specific edit form */}
       {isExpanded && (
         <div className="border-t px-4 py-4">
-          <p className="text-muted-foreground text-xs">
-            {/* TODO: Task 19 — Add block-specific edit forms here */}
-            Redigering av innhold for {meta.label}-blokker kommer i neste oppgave.
-          </p>
-          <pre className="bg-muted mt-2 max-h-40 overflow-auto rounded p-2 text-xs">
-            {JSON.stringify(block.content, null, 2)}
-          </pre>
+          <BlockFormRouter
+            blockType={block.block_type}
+            content={block.content}
+            onChange={(content) => onContentChange(block.id, content as Record<string, unknown>)}
+          />
         </div>
       )}
     </div>
