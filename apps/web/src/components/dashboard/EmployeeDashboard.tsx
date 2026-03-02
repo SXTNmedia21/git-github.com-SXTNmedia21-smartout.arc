@@ -1,5 +1,6 @@
 "use client";
 
+import { useContext } from "react";
 import {
   Calendar,
   CheckCircle2,
@@ -10,14 +11,66 @@ import {
   ArrowRightLeft,
   ChevronRight,
   MapPin,
-  ListTodo,
+  BookOpen,
 } from "lucide-react";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
+import { useMyShifts, useMyReadiness } from "@/app/dashboard/_hooks";
+import { useWorkspace } from "@/lib/workspace-context";
+import { createClient } from "@smartout/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+import { dashboardKeys } from "@/app/dashboard/_hooks/dashboard-keys";
 
 interface EmployeeDashboardProps {
   isDark: boolean;
 }
 
+function formatShiftDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("en-GB", { weekday: "short", month: "short", day: "numeric" });
+}
+
+function formatDayMonth(dateStr: string): { day: string; month: string; weekday: string } {
+  const d = new Date(dateStr);
+  return {
+    day: String(d.getDate()),
+    month: d.toLocaleDateString("en-GB", { month: "short" }),
+    weekday: d.toLocaleDateString("en-GB", { weekday: "short" }),
+  };
+}
+
 export default function EmployeeDashboard({ isDark }: EmployeeDashboardProps) {
+  const { profileId } = useContext(DashboardContext);
+  const { workspace } = useWorkspace();
+
+  const { data: shifts, isLoading: shiftsLoading } = useMyShifts(profileId);
+  const { data: readiness } = useMyReadiness(profileId);
+
+  // Open shifts query
+  const { data: openShifts } = useQuery({
+    queryKey: dashboardKeys.openShifts(workspace.workspace_id),
+    queryFn: async () => {
+      const supabase = createClient();
+      const today = new Date().toISOString().split("T")[0];
+
+      const { data, error } = await supabase
+        .from("schedule_shift")
+        .select("schedule_shift_id, shift_date, start_time, end_time, role")
+        .eq("workspace_id", workspace.workspace_id)
+        .is("employee_id", null)
+        .eq("is_published", true)
+        .gte("shift_date", today!)
+        .order("shift_date", { ascending: true })
+        .limit(3);
+
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const today = new Date().toISOString().split("T")[0];
+  const todayShift = shifts?.find((s) => s.date === today);
+  const upcomingShifts = shifts?.filter((s) => s.date !== today) ?? [];
+
   return (
     <div className="z-10 flex h-full w-full flex-1 flex-col overflow-hidden">
       {/* Header section */}
@@ -28,7 +81,7 @@ export default function EmployeeDashboard({ isDark }: EmployeeDashboardProps) {
           My Workspace
         </h1>
         <p className={`text-sm ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
-          Your upcoming shifts, tasks, and quick actions at Bårdshaug Vegkro.
+          Your shifts, training progress, and quick actions.
         </p>
       </div>
 
@@ -37,11 +90,9 @@ export default function EmployeeDashboard({ isDark }: EmployeeDashboardProps) {
         <div className="flex h-full min-h-0 flex-col gap-6 lg:col-span-2">
           {/* Today's Shift */}
           <div className="group relative flex-shrink-0">
-            {/* Glow effect */}
             <div
               className={`absolute -inset-0.5 rounded-2xl opacity-25 blur transition duration-1000 group-hover:opacity-50 group-hover:duration-200 ${isDark ? "bg-gradient-to-r from-orange-500 to-indigo-500" : "bg-gradient-to-r from-orange-400 to-indigo-400"}`}
             />
-
             <div
               className={`relative rounded-2xl border p-6 shadow-lg ${isDark ? "border-zinc-800 bg-[#0c0c0e]" : "border-zinc-200 bg-white"}`}
             >
@@ -55,77 +106,113 @@ export default function EmployeeDashboard({ isDark }: EmployeeDashboardProps) {
                   className={`flex items-center gap-2 text-sm font-semibold ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
                 >
                   <Calendar className="h-4 w-4" />
-                  Wed, Feb 26
+                  {new Date().toLocaleDateString("en-GB", {
+                    weekday: "short",
+                    month: "short",
+                    day: "numeric",
+                  })}
                 </div>
               </div>
 
-              <div className="flex items-center gap-6">
+              {shiftsLoading ? (
                 <div
-                  className={`flex h-16 w-16 flex-col items-center justify-center rounded-2xl border ${isDark ? "border-zinc-800 bg-zinc-900" : "border-zinc-200 bg-zinc-50"}`}
-                >
-                  <span
-                    className={`text-2xl font-black ${isDark ? "text-white" : "text-zinc-900"}`}
-                  >
-                    15
-                  </span>
-                  <span
-                    className={`text-[10px] font-bold uppercase ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-                  >
-                    Feb
-                  </span>
-                </div>
-
-                <div className="flex-1">
-                  <h2
-                    className={`mb-1 text-2xl font-black ${isDark ? "text-white" : "text-zinc-900"}`}
-                  >
-                    Service • Evening
-                  </h2>
+                  className={`h-16 animate-pulse rounded-xl ${isDark ? "bg-zinc-800" : "bg-zinc-100"}`}
+                />
+              ) : todayShift ? (
+                <div className="flex items-center gap-6">
                   <div
-                    className={`flex items-center gap-4 text-sm font-semibold ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
+                    className={`flex h-16 w-16 flex-col items-center justify-center rounded-2xl border ${isDark ? "border-zinc-800 bg-zinc-900" : "border-zinc-200 bg-zinc-50"}`}
                   >
-                    <div className="flex items-center gap-1.5 text-orange-500">
-                      <Clock className="h-4 w-4" />
-                      15:00 - 23:30 (8.5h)
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <MapPin className="h-4 w-4" />
-                      Main Restaurant
+                    <span
+                      className={`text-2xl font-black ${isDark ? "text-white" : "text-zinc-900"}`}
+                    >
+                      {formatDayMonth(todayShift.date).day}
+                    </span>
+                    <span
+                      className={`text-[10px] font-bold uppercase ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
+                    >
+                      {formatDayMonth(todayShift.date).month}
+                    </span>
+                  </div>
+
+                  <div className="flex-1">
+                    <h2
+                      className={`mb-1 text-2xl font-black ${isDark ? "text-white" : "text-zinc-900"}`}
+                    >
+                      {todayShift.role}
+                    </h2>
+                    <div
+                      className={`flex items-center gap-4 text-sm font-semibold ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
+                    >
+                      <div className="flex items-center gap-1.5 text-orange-500">
+                        <Clock className="h-4 w-4" />
+                        {todayShift.startTime} - {todayShift.endTime} ({todayShift.workHours}h)
+                      </div>
                     </div>
                   </div>
+
+                  <button
+                    className={`w-32 rounded-xl py-3 text-sm font-bold shadow-md transition-all hover:scale-105 active:scale-95 ${isDark ? "bg-white text-zinc-900 hover:bg-zinc-200" : "bg-zinc-900 text-white hover:bg-zinc-800"}`}
+                  >
+                    Punch In
+                  </button>
                 </div>
-
-                <button
-                  className={`w-32 rounded-xl py-3 text-sm font-bold shadow-md transition-all hover:scale-105 active:scale-95 ${isDark ? "bg-white text-zinc-900 hover:bg-zinc-200" : "bg-zinc-900 text-white hover:bg-zinc-800"}`}
-                >
-                  Punch In
-                </button>
-              </div>
-
-              {/* Shift Details/Tasks Preview */}
-              <div
-                className={`mt-6 border-t border-dashed pt-5 ${isDark ? "border-zinc-800" : "border-zinc-200"}`}
-              >
-                <h3
-                  className={`mb-3 text-xs font-bold tracking-wide uppercase ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-                >
-                  Shift Colleagues
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {["Kari (Shift Lead)", "Per", "Jon", "Morten (Bar)"].map((name, i) => (
-                    <div
-                      key={i}
-                      className={`flex items-center justify-center rounded-lg border px-3 py-1.5 text-xs font-semibold ${isDark ? "border-zinc-800 bg-zinc-900/50 text-zinc-300" : "border-zinc-200 bg-zinc-50 text-zinc-700"}`}
+              ) : (
+                <div className="flex items-center gap-4">
+                  <div
+                    className={`flex h-16 w-16 items-center justify-center rounded-2xl border ${isDark ? "border-zinc-800 bg-zinc-900" : "border-zinc-200 bg-zinc-50"}`}
+                  >
+                    <Calendar className={`h-6 w-6 ${isDark ? "text-zinc-600" : "text-zinc-300"}`} />
+                  </div>
+                  <div>
+                    <h2
+                      className={`text-lg font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}
                     >
-                      {name}
-                    </div>
-                  ))}
+                      No shift today
+                    </h2>
+                    <p className={`text-sm ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+                      Check upcoming shifts or pick up an open one.
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
 
-          {/* Upcoming Schedule list */}
+          {/* Readiness Widget */}
+          {readiness && readiness.total > 0 && (
+            <div
+              className={`flex-shrink-0 rounded-2xl border p-5 shadow-sm ${isDark ? "border-zinc-800 bg-[#0c0c0e]" : "border-zinc-200 bg-white"}`}
+            >
+              <div className="mb-3 flex items-center justify-between">
+                <h3
+                  className={`flex items-center gap-2 text-sm font-bold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}
+                >
+                  <BookOpen className="h-4 w-4 text-indigo-500" /> My Readiness
+                </h3>
+                <span
+                  className={`text-2xl font-black ${readiness.percent >= 100 ? "text-emerald-500" : isDark ? "text-white" : "text-zinc-900"}`}
+                >
+                  {readiness.percent}%
+                </span>
+              </div>
+              <div
+                className={`h-3 overflow-hidden rounded-full ${isDark ? "bg-zinc-800" : "bg-zinc-100"}`}
+              >
+                <div
+                  className={`h-full rounded-full transition-all duration-700 ${readiness.percent >= 100 ? "bg-emerald-500" : readiness.percent >= 70 ? "bg-blue-500" : "bg-orange-500"}`}
+                  style={{ width: `${readiness.percent}%` }}
+                />
+              </div>
+              <p className={`mt-2 text-xs ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
+                {readiness.pending > 0
+                  ? `${readiness.pending} protocol${readiness.pending > 1 ? "s" : ""} remaining`
+                  : "All protocols completed!"}
+              </p>
+            </div>
+          )}
+
+          {/* Upcoming Schedule */}
           <div
             className={`flex min-h-0 flex-1 flex-col rounded-2xl border p-5 shadow-sm ${isDark ? "border-zinc-800 bg-[#0c0c0e]" : "border-zinc-200 bg-white"}`}
           >
@@ -135,75 +222,70 @@ export default function EmployeeDashboard({ isDark }: EmployeeDashboardProps) {
               >
                 Upcoming Schedule
               </h3>
-              <button
-                className={`flex items-center gap-1 text-sm font-bold ${isDark ? "text-indigo-400 hover:text-indigo-300" : "text-indigo-600 hover:text-indigo-500"}`}
-              >
-                View Full Calendar <ChevronRight className="h-4 w-4" />
-              </button>
             </div>
 
             <div className="flex min-h-0 flex-1 flex-col gap-3">
-              {[
-                {
-                  date: "Thu, Feb 27",
-                  time: "15:00 - 23:30",
-                  role: "Service • Evening",
-                  type: "regular",
-                },
-                { date: "Fri, Feb 28", time: "17:00 - 01:00", role: "Bar • Event", type: "event" },
-              ].map((shift, i) => (
-                <div
-                  key={i}
-                  className={`group flex flex-1 cursor-pointer items-center rounded-xl border p-3 transition-colors ${isDark ? "border-zinc-800 bg-zinc-900/40 hover:border-zinc-700 hover:bg-zinc-800/80" : "border-zinc-200 bg-zinc-50/50 hover:border-zinc-300 hover:bg-zinc-100"}`}
-                >
-                  <div
-                    className={`mr-3 flex w-14 flex-col items-center justify-center border-r pr-3 ${isDark ? "border-zinc-800" : "border-zinc-200"}`}
-                  >
-                    <span
-                      className={`text-[10px] font-bold uppercase ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
+              {upcomingShifts.length > 0 ? (
+                upcomingShifts.map((shift) => {
+                  const dm = formatDayMonth(shift.date);
+                  return (
+                    <div
+                      key={shift.id}
+                      className={`group flex flex-1 cursor-pointer items-center rounded-xl border p-3 transition-colors ${isDark ? "border-zinc-800 bg-zinc-900/40 hover:border-zinc-700 hover:bg-zinc-800/80" : "border-zinc-200 bg-zinc-50/50 hover:border-zinc-300 hover:bg-zinc-100"}`}
                     >
-                      {shift.date.split(",")[0]}
-                    </span>
-                    <span
-                      className={`text-lg font-black ${isDark ? "text-white" : "text-zinc-900"}`}
-                    >
-                      {shift.date.split(" ")[2]}
-                    </span>
-                  </div>
-                  <div className="flex-1">
-                    <h4
-                      className={`flex items-center gap-2 text-sm font-bold ${isDark ? "text-zinc-200" : "text-zinc-800"}`}
-                    >
-                      {shift.role}
-                      {shift.type === "event" && (
+                      <div
+                        className={`mr-3 flex w-14 flex-col items-center justify-center border-r pr-3 ${isDark ? "border-zinc-800" : "border-zinc-200"}`}
+                      >
                         <span
-                          className={`rounded border px-1.5 py-0.5 text-[9px] uppercase ${isDark ? "border-indigo-500/20 bg-indigo-500/10 text-indigo-400" : "border-indigo-200 bg-indigo-50 text-indigo-600"}`}
+                          className={`text-[10px] font-bold uppercase ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
                         >
-                          Event
+                          {dm.weekday}
                         </span>
-                      )}
-                    </h4>
-                    <p
-                      className={`mt-0.5 text-xs font-semibold ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-                    >
-                      {shift.time}
-                    </p>
-                  </div>
-                  <ChevronRight
-                    className={`h-4 w-4 opacity-0 transition-opacity group-hover:opacity-100 ${isDark ? "text-zinc-600" : "text-zinc-400"}`}
-                  />
+                        <span
+                          className={`text-lg font-black ${isDark ? "text-white" : "text-zinc-900"}`}
+                        >
+                          {dm.day}
+                        </span>
+                      </div>
+                      <div className="flex-1">
+                        <h4
+                          className={`text-sm font-bold ${isDark ? "text-zinc-200" : "text-zinc-800"}`}
+                        >
+                          {shift.role}
+                        </h4>
+                        <p
+                          className={`mt-0.5 text-xs font-semibold ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
+                        >
+                          {shift.startTime} - {shift.endTime} ({shift.workHours}h)
+                        </p>
+                      </div>
+                      <ChevronRight
+                        className={`h-4 w-4 opacity-0 transition-opacity group-hover:opacity-100 ${isDark ? "text-zinc-600" : "text-zinc-400"}`}
+                      />
+                    </div>
+                  );
+                })
+              ) : (
+                <div
+                  className={`flex flex-1 items-center justify-center rounded-xl border-2 border-dashed p-6 ${isDark ? "border-zinc-800" : "border-zinc-200"}`}
+                >
+                  <p
+                    className={`text-center text-xs font-semibold ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+                  >
+                    No upcoming shifts scheduled.
+                  </p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>
 
         {/* Right Column: Actions & Open Shifts */}
         <div className="flex h-full min-h-0 flex-col gap-6">
-          {/* Quick Actions Grid */}
+          {/* Quick Actions */}
           <div className="grid flex-shrink-0 grid-cols-2 gap-3">
             <button
-              className={`group col-span-2 flex items-center justify-between rounded-xl border p-4 shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98] ${isDark ? "border-indigo-500/30 bg-gradient-to-br from-indigo-900/40 to-indigo-900/10" : "border-indigo-200 bg-gradient-to-br from-indigo-50 to-white"} `}
+              className={`group col-span-2 flex items-center justify-between rounded-xl border p-4 shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98] ${isDark ? "border-indigo-500/30 bg-gradient-to-br from-indigo-900/40 to-indigo-900/10" : "border-indigo-200 bg-gradient-to-br from-indigo-50 to-white"}`}
             >
               <div className="flex items-center gap-3">
                 <div
@@ -250,7 +332,7 @@ export default function EmployeeDashboard({ isDark }: EmployeeDashboardProps) {
             </button>
           </div>
 
-          {/* Open Shifts Banner */}
+          {/* Open Shifts */}
           <div
             className={`relative flex-shrink-0 overflow-hidden rounded-2xl border p-5 shadow-sm ${isDark ? "border-emerald-900/50 bg-emerald-950/20" : "border-emerald-200 bg-emerald-50"}`}
           >
@@ -271,44 +353,58 @@ export default function EmployeeDashboard({ isDark }: EmployeeDashboardProps) {
               </h3>
             </div>
 
-            <p
-              className={`mb-4 text-xs font-semibold ${isDark ? "text-zinc-400" : "text-zinc-600"}`}
-            >
-              There are <b className={isDark ? "text-emerald-400" : "text-emerald-600"}>2 shifts</b>{" "}
-              available matching your skills.
-            </p>
-
-            <div className="space-y-2">
-              <div
-                className={`flex items-center justify-between rounded-lg border p-3 text-sm ${isDark ? "border-emerald-900/50 bg-black/20 hover:bg-black/40" : "border-emerald-100 bg-white hover:shadow-sm"} cursor-pointer transition-all`}
-              >
-                <div>
-                  <div className={`font-bold ${isDark ? "text-zinc-200" : "text-zinc-800"}`}>
-                    Sat, Mar 1
-                  </div>
-                  <div
-                    className={`text-[10px] font-semibold ${isDark ? "text-zinc-500" : "text-zinc-500"}`}
-                  >
-                    15:00 - 23:30 • Service
-                  </div>
-                </div>
-                <button
-                  className={`rounded border px-3 py-1.5 text-xs font-bold ${isDark ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20" : "border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100"}`}
+            {openShifts && openShifts.length > 0 ? (
+              <>
+                <p
+                  className={`mb-4 text-xs font-semibold ${isDark ? "text-zinc-400" : "text-zinc-600"}`}
                 >
-                  Take Shift
-                </button>
-              </div>
-            </div>
+                  There are{" "}
+                  <b className={isDark ? "text-emerald-400" : "text-emerald-600"}>
+                    {openShifts.length} shift{openShifts.length > 1 ? "s" : ""}
+                  </b>{" "}
+                  available.
+                </p>
+
+                <div className="space-y-2">
+                  {openShifts.map((shift) => (
+                    <div
+                      key={shift.schedule_shift_id}
+                      className={`flex items-center justify-between rounded-lg border p-3 text-sm ${isDark ? "border-emerald-900/50 bg-black/20 hover:bg-black/40" : "border-emerald-100 bg-white hover:shadow-sm"} cursor-pointer transition-all`}
+                    >
+                      <div>
+                        <div className={`font-bold ${isDark ? "text-zinc-200" : "text-zinc-800"}`}>
+                          {formatShiftDate(shift.shift_date)}
+                        </div>
+                        <div
+                          className={`text-[10px] font-semibold ${isDark ? "text-zinc-500" : "text-zinc-500"}`}
+                        >
+                          {shift.start_time} - {shift.end_time} &bull; {shift.role}
+                        </div>
+                      </div>
+                      <button
+                        className={`rounded border px-3 py-1.5 text-xs font-bold ${isDark ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20" : "border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100"}`}
+                      >
+                        Take Shift
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <p className={`text-xs font-semibold ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+                No open shifts available right now.
+              </p>
+            )}
           </div>
 
-          {/* Ongoing Tasks Context */}
+          {/* Placeholder: Colleagues */}
           <div
             className={`flex min-h-0 flex-1 flex-col rounded-2xl border p-5 ${isDark ? "border-zinc-800 bg-[#0c0c0e]" : "border-zinc-200 bg-white"}`}
           >
             <h3
               className={`mb-4 flex items-center gap-2 text-sm font-bold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}
             >
-              <ListTodo className="h-4 w-4 text-purple-500" /> My Active Tasks
+              <MapPin className="h-4 w-4 text-purple-500" /> My Active Tasks
             </h3>
 
             <div
