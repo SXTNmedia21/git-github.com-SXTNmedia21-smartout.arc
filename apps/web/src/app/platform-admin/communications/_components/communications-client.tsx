@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { type ColumnDef } from "@tanstack/react-table";
-import { Users, Shield, UserCheck, Crosshair, Send } from "lucide-react";
+import { Users, Shield, UserCheck, Crosshair, Send, PenLine } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ComposeEmailSheet } from "@/components/platform-admin/compose-email-sheet";
@@ -125,10 +126,11 @@ const columns: ColumnDef<CommunicationEntry, unknown>[] = [
 ];
 
 export function CommunicationsClient({ history }: CommunicationsClientProps) {
+  const router = useRouter();
   const [composeOpen, setComposeOpen] = useState(false);
   const [defaultAudience, setDefaultAudience] = useState<AudienceFilter | undefined>(undefined);
 
-  function openCompose(audience?: AudienceFilter) {
+  function openQuickSend(audience?: AudienceFilter) {
     setDefaultAudience(audience);
     setComposeOpen(true);
   }
@@ -145,7 +147,7 @@ export function CommunicationsClient({ history }: CommunicationsClientProps) {
             <Button
               variant="outline"
               className="h-auto flex-col gap-2 py-4"
-              onClick={() => openCompose({ type: "all_users" })}
+              onClick={() => openQuickSend({ type: "all_users" })}
             >
               <Users className="h-5 w-5" />
               <span className="text-xs">All Users</span>
@@ -153,7 +155,7 @@ export function CommunicationsClient({ history }: CommunicationsClientProps) {
             <Button
               variant="outline"
               className="h-auto flex-col gap-2 py-4"
-              onClick={() => openCompose({ type: "role", role: "owner" })}
+              onClick={() => openQuickSend({ type: "role", role: "owner" })}
             >
               <Shield className="h-5 w-5" />
               <span className="text-xs">All Workspace Owners</span>
@@ -161,7 +163,7 @@ export function CommunicationsClient({ history }: CommunicationsClientProps) {
             <Button
               variant="outline"
               className="h-auto flex-col gap-2 py-4"
-              onClick={() => openCompose({ type: "role", role: "admin" })}
+              onClick={() => openQuickSend({ type: "role", role: "admin" })}
             >
               <UserCheck className="h-5 w-5" />
               <span className="text-xs">All Admins</span>
@@ -169,7 +171,7 @@ export function CommunicationsClient({ history }: CommunicationsClientProps) {
             <Button
               variant="outline"
               className="h-auto flex-col gap-2 py-4"
-              onClick={() => openCompose()}
+              onClick={() => openQuickSend()}
             >
               <Crosshair className="h-5 w-5" />
               <span className="text-xs">Custom Audience</span>
@@ -182,10 +184,16 @@ export function CommunicationsClient({ history }: CommunicationsClientProps) {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-3">
           <CardTitle className="text-sm font-medium">Communication History</CardTitle>
-          <Button size="sm" onClick={() => openCompose()}>
-            <Send className="mr-1.5 h-3.5 w-3.5" />
-            Compose
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => openQuickSend()}>
+              <Send className="mr-1.5 h-3.5 w-3.5" />
+              Quick Send
+            </Button>
+            <Button size="sm" onClick={() => router.push("/platform-admin/communications/compose")}>
+              <PenLine className="mr-1.5 h-3.5 w-3.5" />
+              Compose
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <DataTable columns={columns} data={history} />
