@@ -10,9 +10,10 @@ export default async function CommunicationsPage() {
   const admin = createAdminClient();
 
   // Fetch communication history and suppression count in parallel
+  // Cast needed: opened_count + clicked_count added by communications_v2 migration
   const [{ data: communications }, { count: suppressionCount }] = await Promise.all([
     admin
-      .from("platform_communication_log")
+      .from("platform_communication_log" as never)
       .select(
         "communication_id, subject, template, classification, audience_filter, recipient_count, sent_count, failed_count, opened_count, clicked_count, status, created_at",
       )
@@ -21,12 +22,27 @@ export default async function CommunicationsPage() {
     admin.from("platform_email_suppression").select("*", { count: "exact", head: true }),
   ]);
 
-  const history = (communications ?? []).map((c) => ({
+  type CommRow = {
+    communication_id: string;
+    subject: string;
+    template: string;
+    classification: string;
+    audience_filter: Record<string, unknown> | null;
+    recipient_count: number;
+    sent_count: number;
+    failed_count: number;
+    opened_count: number | null;
+    clicked_count: number | null;
+    status: string;
+    created_at: string | null;
+  };
+
+  const history = ((communications ?? []) as CommRow[]).map((c) => ({
     id: c.communication_id,
     subject: c.subject,
     template: c.template,
     classification: c.classification,
-    audienceFilter: c.audience_filter as Record<string, unknown> | null,
+    audienceFilter: c.audience_filter,
     recipientCount: c.recipient_count,
     sentCount: c.sent_count,
     failedCount: c.failed_count,
