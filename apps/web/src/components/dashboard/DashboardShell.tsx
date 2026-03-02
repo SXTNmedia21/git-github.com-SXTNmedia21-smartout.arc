@@ -141,8 +141,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [weeklyPeriodCount, setWeeklyPeriodCount] = useState(4);
   const [scheduleDateOffset, setScheduleDateOffset] = useState(0);
-  const [onPublishAllRef, setOnPublishAllRef] = useState<(() => void) | null>(null);
-  const [scheduleDraftCount, setScheduleDraftCount] = useState(0);
+  const onPublishAllRef = useRef<(() => void) | null>(null);
+  const scheduleDraftCountRef = useRef(0);
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const pathname = usePathname();
   const workspaceCtx = useWorkspaceOptional();
@@ -159,7 +159,15 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   );
   /** Stable setter that schedule page calls to register the publish callback */
   const setOnPublishAll = useCallback((fn: (() => void) | null) => {
-    setOnPublishAllRef(() => fn);
+    onPublishAllRef.current = fn;
+  }, []);
+  /** Stable setter — writes to ref, triggers a local re-render to update the button text */
+  const [, setScheduleHeaderTick] = useState(0);
+  const setScheduleDraftCount = useCallback((count: number) => {
+    if (scheduleDraftCountRef.current !== count) {
+      scheduleDraftCountRef.current = count;
+      setScheduleHeaderTick((t) => t + 1);
+    }
   }, []);
   const dashboardContextValue = useMemo(
     () => ({
@@ -181,9 +189,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       setWeeklyPeriodCount,
       scheduleDateOffset,
       setScheduleDateOffset,
-      onPublishAll: onPublishAllRef,
+      onPublishAll: onPublishAllRef.current,
       setOnPublishAll,
-      scheduleDraftCount,
+      scheduleDraftCount: scheduleDraftCountRef.current,
       setScheduleDraftCount,
       workspaceData,
     }),
@@ -197,9 +205,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       isSidebarCollapsed,
       weeklyPeriodCount,
       scheduleDateOffset,
-      onPublishAllRef,
       setOnPublishAll,
-      scheduleDraftCount,
+      setScheduleDraftCount,
       workspaceData,
     ],
   );
@@ -811,15 +818,15 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   </div>
 
                   <button
-                    onClick={() => onPublishAllRef?.()}
-                    disabled={scheduleDraftCount === 0}
+                    onClick={() => onPublishAllRef.current?.()}
+                    disabled={scheduleDraftCountRef.current === 0}
                     className={`mr-2 hidden rounded-lg px-4 py-1.5 text-[13px] font-bold text-white shadow-sm transition-all sm:block ${
-                      scheduleDraftCount > 0
+                      scheduleDraftCountRef.current > 0
                         ? "bg-gradient-to-r from-orange-600 to-rose-600 hover:from-orange-500 hover:to-rose-500"
                         : "cursor-not-allowed bg-zinc-700 opacity-50"
                     }`}
                   >
-                    Publiser ({scheduleDraftCount})
+                    Publiser ({scheduleDraftCountRef.current})
                   </button>
                 </>
               )}

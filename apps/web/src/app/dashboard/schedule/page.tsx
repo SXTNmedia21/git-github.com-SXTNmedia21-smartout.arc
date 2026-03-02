@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useContext, useEffect, useMemo, useState } from "react";
+import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   Users,
   Briefcase,
@@ -230,27 +230,37 @@ function SchedulePageContent() {
   const scheduleUI = useScheduleUI();
 
   // ── Derived values ──────────────────────────────────────────
-  const shifts = shiftsQuery.data ?? [];
+  const shifts = useMemo(() => shiftsQuery.data ?? [], [shiftsQuery.data]);
   const templates = templatesQuery.data ?? [];
   const openShifts = openShiftsQuery.data ?? [];
   const statusSummary = computed.getStatusSummary();
 
-  // Register the publish-all callback and draft count with the DashboardShell header
-  const draftCount = shifts.filter(
-    (s: Shift) => s.status === "created" || s.status === "assigned",
-  ).length;
+  // Register the publish-all callback and draft count with the DashboardShell header.
+  // Both setOnPublishAll and setScheduleDraftCount write to refs (no context re-render),
+  // so they are safe to call during render without causing infinite loops.
+  const draftIds = useMemo(
+    () =>
+      shifts
+        .filter((s: Shift) => s.status === "created" || s.status === "assigned")
+        .map((s: Shift) => s.id),
+    [shifts],
+  );
+  const draftCount = draftIds.length;
 
+  const publishMutateRef = useRef(publishShifts.mutate);
+  publishMutateRef.current = publishShifts.mutate;
+  const draftIdsRef = useRef(draftIds);
+  draftIdsRef.current = draftIds;
+
+  // Sync draft count and publish callback to DashboardShell (ref-based, no re-render cascade)
   useEffect(() => {
     setScheduleDraftCount(draftCount);
-    const draftIds = shifts
-      .filter((s: Shift) => s.status === "created" || s.status === "assigned")
-      .map((s: Shift) => s.id);
-    setOnPublishAll(() => publishShifts.mutate(draftIds));
+    setOnPublishAll(draftCount > 0 ? () => publishMutateRef.current(draftIdsRef.current) : null);
     return () => {
-      setOnPublishAll(null);
       setScheduleDraftCount(0);
+      setOnPublishAll(null);
     };
-  }, [draftCount, shifts, publishShifts, setOnPublishAll, setScheduleDraftCount]);
+  }, [draftCount, setScheduleDraftCount, setOnPublishAll]);
 
   // ── Loading state ───────────────────────────────────────────
   if (shiftsQuery.isLoading) {

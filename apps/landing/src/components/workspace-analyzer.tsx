@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import {
   Globe,
   Star,
@@ -160,7 +160,7 @@ export default function WorkspaceAnalyzer() {
       <AnimatePresence mode="wait">
         {/* ─── Input Phase ─────────────────────────────────────────── */}
         {phase === "input" && (
-          <motion.div
+          <m.div
             key="input"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -193,12 +193,12 @@ export default function WorkspaceAnalyzer() {
             <p className="mt-3 text-center text-xs text-zinc-500">
               Skriv inn nettadressen til arbeidsplassen din for en gratis analyse
             </p>
-          </motion.div>
+          </m.div>
         )}
 
         {/* ─── Analyzing Phase ─────────────────────────────────────── */}
         {phase === "analyzing" && (
-          <motion.div
+          <m.div
             key="analyzing"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -219,7 +219,7 @@ export default function WorkspaceAnalyzer() {
                 const Icon = step.icon;
 
                 return (
-                  <motion.div
+                  <m.div
                     key={step.label}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: isWaiting ? 0.3 : 1, x: 0 }}
@@ -250,16 +250,16 @@ export default function WorkspaceAnalyzer() {
                     >
                       {step.label}
                     </span>
-                  </motion.div>
+                  </m.div>
                 );
               })}
             </div>
-          </motion.div>
+          </m.div>
         )}
 
         {/* ─── Results Phase ───────────────────────────────────────── */}
         {phase === "results" && (
-          <motion.div
+          <m.div
             key="results"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -272,7 +272,7 @@ export default function WorkspaceAnalyzer() {
               {MOCK_SCORES.map((score, i) => {
                 const Icon = score.icon;
                 return (
-                  <motion.div
+                  <m.div
                     key={score.label}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -291,7 +291,7 @@ export default function WorkspaceAnalyzer() {
                     </div>
                     {/* Progress bar */}
                     <div className="mb-3 h-1 overflow-hidden rounded-full bg-white/5">
-                      <motion.div
+                      <m.div
                         initial={{ width: 0 }}
                         animate={{
                           width: `${(score.value / score.max) * 100}%`,
@@ -307,13 +307,13 @@ export default function WorkspaceAnalyzer() {
                       />
                     </div>
                     <p className="text-xs leading-relaxed text-zinc-500">{score.insight}</p>
-                  </motion.div>
+                  </m.div>
                 );
               })}
             </div>
 
             {/* CTAs */}
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5, duration: 0.35 }}
@@ -331,7 +331,7 @@ export default function WorkspaceAnalyzer() {
               >
                 Optimaliser din arbeidsplass
               </a>
-            </motion.div>
+            </m.div>
 
             {/* Reset link */}
             <div className="text-center">
@@ -342,7 +342,7 @@ export default function WorkspaceAnalyzer() {
                 Analyser en annen arbeidsplass
               </button>
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </div>

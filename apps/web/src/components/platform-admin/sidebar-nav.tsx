@@ -15,6 +15,7 @@ import {
   Mail,
   KeyRound,
   Globe,
+  Layers,
 } from "lucide-react";
 
 const navItems = [
@@ -32,6 +33,11 @@ const navItems = [
   },
   { href: "/platform-admin/content", label: "Content", icon: FileText },
   { href: "/platform-admin/landing", label: "Landing", icon: Globe },
+  {
+    href: "/platform-admin/landing/variants",
+    label: "Variants",
+    icon: Layers,
+  },
   {
     href: "/platform-admin/contracts",
     label: "Contracts",

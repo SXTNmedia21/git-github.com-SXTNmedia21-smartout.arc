@@ -230,9 +230,13 @@ export function ShiftModal() {
   const { selectedShiftId, createShiftContext, setSelectedShift, setCreateShiftContext } =
     useScheduleUI();
   const { weekStart, weekEnd } = useWeekRange();
-  const { data: shifts = [] as Shift[] } = useShifts(weekStart, weekEnd);
+  const shiftsQuery = useShifts(weekStart, weekEnd);
+  const shifts = useMemo(() => (shiftsQuery.data ?? []) as Shift[], [shiftsQuery.data]);
   const employeesQuery = useEmployees();
-  const employees: ScheduleEmployee[] = employeesQuery.data ?? [];
+  const employees = useMemo<ScheduleEmployee[]>(
+    () => employeesQuery.data ?? [],
+    [employeesQuery.data],
+  );
   const createShiftMutation = useCreateShift(weekStart);
   const updateShiftMutation = useUpdateShift(weekStart);
   const deleteShiftMutation = useDeleteShift(weekStart);
@@ -311,7 +315,7 @@ export function ShiftModal() {
         specialConditions: "",
       });
     }
-    setShiftTasks([]);
+    setShiftTasks((prev) => (prev.length === 0 ? prev : []));
     setNewTaskLabel("");
   }, [existingShift, createShiftContext, employees]);
 
