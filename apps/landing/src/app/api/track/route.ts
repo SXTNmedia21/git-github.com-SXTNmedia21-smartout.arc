@@ -226,7 +226,24 @@ export async function POST(request: NextRequest) {
     // TODO: Remove cast after regenerating database.types.ts
     const admin = createAdminClient() as unknown as UntypedClient;
 
-    // --- 1. Insert event (critical path) ---
+    // --- 1. Visitor upsert FIRST (must exist before event FK) ---
+    if (visitor_id) {
+      try {
+        await upsertVisitor(
+          admin,
+          visitor_id,
+          referrer ?? null,
+          variant ?? null,
+          ip_address,
+          user_agent,
+        );
+      } catch (err) {
+        console.error("[track] Visitor upsert failed:", err);
+        // Non-critical — continue without visitor_id in event
+      }
+    }
+
+    // --- 2. Insert event (critical path) ---
     const { error } = await admin.from("landing_event").insert({
       event_type,
       variant: variant ?? null,
@@ -240,25 +257,7 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error("[track] Insert failed:", error.message);
-      // Return 200 anyway — tracking failures should not break the visitor experience
       return NextResponse.json({ ok: false });
-    }
-
-    // --- 2. Visitor upsert (best-effort, fire-and-forget) ---
-    if (visitor_id) {
-      try {
-        await upsertVisitor(
-          admin,
-          visitor_id,
-          referrer ?? null,
-          variant ?? null,
-          ip_address,
-          user_agent,
-        );
-      } catch (err) {
-        console.error("[track] Visitor upsert failed:", err);
-        // Non-critical — continue
-      }
     }
 
     // --- 3. Session upsert (best-effort, fire-and-forget) ---

@@ -1876,6 +1876,7 @@ export type Database = {
           session_id: string | null
           user_agent: string | null
           variant: string | null
+          visitor_id: string | null
         }
         Insert: {
           created_at?: string
@@ -1887,6 +1888,7 @@ export type Database = {
           session_id?: string | null
           user_agent?: string | null
           variant?: string | null
+          visitor_id?: string | null
         }
         Update: {
           created_at?: string
@@ -1898,8 +1900,154 @@ export type Database = {
           session_id?: string | null
           user_agent?: string | null
           variant?: string | null
+          visitor_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "landing_event_visitor_id_fkey"
+            columns: ["visitor_id"]
+            isOneToOne: false
+            referencedRelation: "landing_visitor"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      landing_session: {
+        Row: {
+          click_count: number
+          created_at: string
+          cta_click_count: number
+          device_type: string | null
+          duration_seconds: number | null
+          ended_at: string | null
+          id: string
+          ip_address: unknown
+          max_scroll_depth: number
+          page_count: number
+          referrer: string | null
+          session_id: string
+          started_at: string
+          updated_at: string
+          user_agent: string | null
+          variant: string | null
+          visitor_id: string
+        }
+        Insert: {
+          click_count?: number
+          created_at?: string
+          cta_click_count?: number
+          device_type?: string | null
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          ip_address?: unknown
+          max_scroll_depth?: number
+          page_count?: number
+          referrer?: string | null
+          session_id: string
+          started_at?: string
+          updated_at?: string
+          user_agent?: string | null
+          variant?: string | null
+          visitor_id: string
+        }
+        Update: {
+          click_count?: number
+          created_at?: string
+          cta_click_count?: number
+          device_type?: string | null
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          ip_address?: unknown
+          max_scroll_depth?: number
+          page_count?: number
+          referrer?: string | null
+          session_id?: string
+          started_at?: string
+          updated_at?: string
+          user_agent?: string | null
+          variant?: string | null
+          visitor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "landing_session_visitor_id_fkey"
+            columns: ["visitor_id"]
+            isOneToOne: false
+            referencedRelation: "landing_visitor"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      landing_visitor: {
+        Row: {
+          created_at: string
+          first_referrer: string | null
+          first_seen: string
+          first_variant: string | null
+          id: string
+          ip_addresses: string[]
+          last_seen: string
+          manual_label: string | null
+          manual_notes: string | null
+          tagged_at: string | null
+          tagged_by: string | null
+          updated_at: string
+          user_agents: string[]
+          user_identity_id: string | null
+          visit_count: number
+        }
+        Insert: {
+          created_at?: string
+          first_referrer?: string | null
+          first_seen?: string
+          first_variant?: string | null
+          id: string
+          ip_addresses?: string[]
+          last_seen?: string
+          manual_label?: string | null
+          manual_notes?: string | null
+          tagged_at?: string | null
+          tagged_by?: string | null
+          updated_at?: string
+          user_agents?: string[]
+          user_identity_id?: string | null
+          visit_count?: number
+        }
+        Update: {
+          created_at?: string
+          first_referrer?: string | null
+          first_seen?: string
+          first_variant?: string | null
+          id?: string
+          ip_addresses?: string[]
+          last_seen?: string
+          manual_label?: string | null
+          manual_notes?: string | null
+          tagged_at?: string | null
+          tagged_by?: string | null
+          updated_at?: string
+          user_agents?: string[]
+          user_identity_id?: string | null
+          visit_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "landing_visitor_tagged_by_fkey"
+            columns: ["tagged_by"]
+            isOneToOne: false
+            referencedRelation: "user_identity"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "landing_visitor_user_identity_id_fkey"
+            columns: ["user_identity_id"]
+            isOneToOne: false
+            referencedRelation: "user_identity"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       location: {
         Row: {

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { DocsSidebar } from "./_components/docs-sidebar";
 import { getUserManualNavigation } from "@/lib/user-manual";
+import { FullTracker } from "../../components/tracking";
 
 export const metadata: Metadata = {
   title: "Dokumentasjon – SmartOut",
@@ -13,6 +14,7 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <div className="flex min-h-screen bg-[#050505] text-white">
+      <FullTracker />
       <DocsSidebar navigation={navigation} />
 
       <main className="min-w-0 flex-1">

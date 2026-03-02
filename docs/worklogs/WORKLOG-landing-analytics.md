@@ -61,3 +61,7 @@ tags: []
 | 2026-03-01 | 24:05 | Task 14: Documentation updated. Feature complete                                                                                                                                |
 | 2026-03-01 | 24:10 | Lint fix: Date.now() in useRef → moved inside useEffect (react-hooks/purity)                                                                                                    |
 | 2026-03-01 | 24:15 | Feature closure: Decision log verified (10 decisions), learning log verified (6 learnings), user journeys written (7 journeys). Ready for cf.                                   |
+| 2026-03-02 | 00:10 | Merged to development via cf script. Fixed cf typecheck gate bug (tail -3 → grep).                                                                                              |
+| 2026-03-02 | 00:20 | Post-merge debugging: migration FK error (user_identity.id → user_id), missing .env.local, visitor upsert order (must precede event insert for FK)                              |
+| 2026-03-02 | 00:35 | Fixed tracking coverage: main page + all 6 variants + 12 sub-pages were missing scroll/click/session hooks. Added live feed (10s auto-refresh) to admin.                        |
+| 2026-03-02 | 00:45 | Session ended. Post-merge fixes not yet merged to development — remain on feat/landing-analytics.                                                                               |

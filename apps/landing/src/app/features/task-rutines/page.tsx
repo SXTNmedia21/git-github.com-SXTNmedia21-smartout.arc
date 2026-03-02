@@ -15,10 +15,16 @@ import { useRouter } from "next/navigation";
 import Navigation from "../../../components/navigation";
 import Footer from "../../../components/footer";
 import { usePageTracking } from "../../../hooks/useTracking";
+import { useScrollTracking } from "../../../hooks/useScrollTracking";
+import { useClickTracking } from "../../../hooks/useClickTracking";
+import { useSessionLifecycle } from "../../../hooks/useSessionLifecycle";
 import NextPageBanner from "../../../components/next-page-banner";
 
 export default function OppgaverRutinerPage() {
   usePageTracking();
+  useScrollTracking();
+  useClickTracking();
+  useSessionLifecycle();
   const router = useRouter();
   const [tasks, setTasks] = useState([
     {

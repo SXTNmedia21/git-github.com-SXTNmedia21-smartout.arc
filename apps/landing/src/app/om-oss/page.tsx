@@ -8,10 +8,16 @@ import Navigation from "../../components/navigation";
 import Footer from "../../components/footer";
 import { WEB_APP_LINKS } from "../../lib/web-app-url";
 import { usePageTracking, useTrackCta } from "../../hooks/useTracking";
+import { useScrollTracking } from "../../hooks/useScrollTracking";
+import { useClickTracking } from "../../hooks/useClickTracking";
+import { useSessionLifecycle } from "../../hooks/useSessionLifecycle";
 
 export default function OmOssPage() {
   const router = useRouter();
   usePageTracking();
+  useScrollTracking();
+  useClickTracking();
+  useSessionLifecycle();
   const trackCta = useTrackCta();
 
   return (
