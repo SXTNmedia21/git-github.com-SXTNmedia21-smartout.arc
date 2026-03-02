@@ -8,33 +8,65 @@
 import { supabaseAdmin } from "./lib/supabase.js";
 
 type ServiceSecrets = {
-  ultravoxApiKey: string;
-  openrouterApiKey: string;
+  ultravoxApiKey: string | null;
+  openrouterApiKey: string | null;
 };
 
 let _secrets: ServiceSecrets | null = null;
 
-async function getServiceKey(secretName: string): Promise<string> {
-  const { data, error } = await supabaseAdmin.rpc("get_secret", {
-    secret_name: secretName,
-  });
-  if (error) throw new Error(`Vault: failed to fetch "${secretName}": ${error.message}`);
-  if (!data) throw new Error(`Vault: secret "${secretName}" not found`);
-  return data as string;
+async function getServiceKey(secretName: string): Promise<string | null> {
+  try {
+    const { data, error } = await supabaseAdmin.rpc("get_secret", {
+      secret_name: secretName,
+    });
+    if (error) {
+      console.warn(`[secrets] Vault: failed to fetch "${secretName}": ${error.message}`);
+      return null;
+    }
+    if (!data) {
+      console.warn(`[secrets] Vault: secret "${secretName}" not found`);
+      return null;
+    }
+    return data as string;
+  } catch (err) {
+    console.warn(`[secrets] Vault: unexpected error fetching "${secretName}":`, err);
+    return null;
+  }
 }
 
 /**
- * Fetches all required external API keys from Vault.
- * Must be called once at startup, before the server starts.
+ * Fetches external API keys from Vault, with env var fallback for local dev.
+ * Vault takes priority. If Vault is empty, falls back to:
+ *   ULTRAVOX_API_KEY, OPENROUTER_API_KEY env vars.
  */
 export async function loadSecrets(): Promise<void> {
-  const [ultravoxApiKey, openrouterApiKey] = await Promise.all([
+  const [vaultUltravox, vaultOpenrouter] = await Promise.all([
     getServiceKey("ultravox"),
     getServiceKey("openrouter"),
   ]);
 
+  // Vault first, then env var fallback
+  const ultravoxApiKey = vaultUltravox ?? process.env.ULTRAVOX_API_KEY ?? null;
+  const openrouterApiKey = vaultOpenrouter ?? process.env.OPENROUTER_API_KEY ?? null;
+
   _secrets = { ultravoxApiKey, openrouterApiKey };
-  console.log("[secrets] Loaded 2 keys from Vault (ultravox, openrouter)");
+
+  const sources: string[] = [];
+  if (vaultUltravox) sources.push("ultravox (vault)");
+  else if (ultravoxApiKey) sources.push("ultravox (env)");
+  if (vaultOpenrouter) sources.push("openrouter (vault)");
+  else if (openrouterApiKey) sources.push("openrouter (env)");
+
+  const missing = [!ultravoxApiKey && "ultravox", !openrouterApiKey && "openrouter"].filter(
+    Boolean,
+  );
+
+  if (sources.length > 0) {
+    console.log(`[secrets] Loaded: ${sources.join(", ")}`);
+  }
+  if (missing.length > 0) {
+    console.warn(`[secrets] Missing: ${missing.join(", ")} — related features unavailable`);
+  }
 }
 
 /**

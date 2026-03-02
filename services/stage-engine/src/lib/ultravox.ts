@@ -27,7 +27,7 @@ export async function createUltravoxCall(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-API-Key": getSecrets().ultravoxApiKey,
+        "X-API-Key": getSecrets().ultravoxApiKey ?? "",
       },
       body: JSON.stringify(payload),
     });

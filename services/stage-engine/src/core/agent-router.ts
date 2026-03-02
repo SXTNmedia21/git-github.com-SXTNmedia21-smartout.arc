@@ -24,7 +24,11 @@ let _openrouter: ReturnType<typeof createOpenRouter> | null = null;
 
 function getOpenRouter() {
   if (!_openrouter) {
-    _openrouter = createOpenRouter({ apiKey: getSecrets().openrouterApiKey });
+    const apiKey = getSecrets().openrouterApiKey;
+    if (!apiKey) {
+      throw new Error("OpenRouter API key not available — check Vault or .env.local");
+    }
+    _openrouter = createOpenRouter({ apiKey });
   }
   return _openrouter;
 }
@@ -59,7 +63,9 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
 
   // Step 2: Classify intent
   const contextSummary = buildContextSummary(profileContext);
-  const intent = await classifyIntent(message, contextSummary);
+  const intent = await classifyIntent(message, contextSummary, {
+    apiKey: getSecrets().openrouterApiKey ?? undefined,
+  });
 
   // Step 3: Select tools based on intent + authority
   const selectedTools = selectTools(intent, authorityConfig);
