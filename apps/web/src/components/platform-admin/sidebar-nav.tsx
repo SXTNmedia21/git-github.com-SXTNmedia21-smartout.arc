@@ -16,6 +16,7 @@ import {
   KeyRound,
   Globe,
   Layers,
+  Server,
 } from "lucide-react";
 
 const navItems = [
@@ -49,6 +50,7 @@ const navItems = [
     icon: FileText,
   },
   { href: "/platform-admin/health", label: "Health", icon: Activity },
+  { href: "/platform-admin/services", label: "Services", icon: Server },
   { href: "/platform-admin/journeys", label: "Journey", icon: Map },
   { href: "/platform-admin/keys", label: "Keys & Secrets", icon: KeyRound },
   { href: "/platform-admin/users", label: "Users", icon: Users },
