@@ -24,8 +24,8 @@ import { useWeekRange } from "../_hooks/use-week-range";
 import { DayContextMenu } from "./day-context-menu";
 import type { Shift as ScheduleShift, Absence } from "./schedule-types";
 
-/** Fixed width for each day column (px). Enables horizontal scroll. */
-const DAY_COL_WIDTH = 140;
+/** Fixed width for each day column (px). Spacious dashboard-feel, not Excel. */
+const DAY_COL_WIDTH = 200;
 
 // ---------------------------------------------------------------------------
 // GridContent — daily schedule grid (the perf-critical DnD subtree)
@@ -97,7 +97,7 @@ export function GridContent({
   }, [shiftsData]);
 
   /** Total grid width: sticky sidebar + day columns */
-  const gridWidth = 220 + visibleDays.length * DAY_COL_WIDTH;
+  const gridWidth = 260 + visibleDays.length * DAY_COL_WIDTH;
 
   return (
     <div className="flex w-full flex-col" style={{ minWidth: gridWidth }}>
@@ -212,11 +212,11 @@ const DayHeaders = React.memo(function DayHeaders({
     <div className="sticky top-0 z-40 flex w-full">
       {/* Sticky corner cell */}
       <div
-        className={`w-[220px] shrink-0 border-r border-b border-white/[0.04] ${isDark ? "bg-[#0a0a0c]/95" : "bg-white/95"} sticky left-0 z-50 flex h-20 flex-col justify-between p-3 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)] backdrop-blur-xl`}
+        className={`w-[260px] shrink-0 border-r border-b border-white/[0.04] ${isDark ? "bg-[#0a0a0c]/95" : "bg-white/95"} sticky left-0 z-50 flex h-24 flex-col justify-between p-4 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)] backdrop-blur-xl`}
       >
         <div className="flex w-full items-center justify-between">
-          <div className="flex items-center gap-1.5 text-[11px] font-bold tracking-widest text-zinc-500 uppercase">
-            <Users className={`h-3.5 w-3.5 ${isDark ? "text-zinc-400" : "text-zinc-600"}`} />
+          <div className="flex items-center gap-2 text-xs font-bold tracking-widest text-zinc-500 uppercase">
+            <Users className={`h-4 w-4 ${isDark ? "text-zinc-400" : "text-zinc-600"}`} />
             {scheduleView === "ansatt" ? "Ansatte" : scheduleView === "jobb" ? "Roller" : "Team"}
           </div>
           <button
@@ -258,7 +258,7 @@ function DroppableDayHeader({
     <div
       ref={setNodeRef}
       style={{ width: DAY_COL_WIDTH, minWidth: DAY_COL_WIDTH }}
-      className={`shrink-0 border-r border-b border-white/[0.03] ${isDark ? "bg-[#0a0a0c]/90" : "bg-white/95"} group/day relative flex h-20 cursor-pointer flex-col justify-between p-2 backdrop-blur-xl transition-colors hover:bg-white/5 ${day.isToday ? "bg-orange-500/[0.06]" : ""} ${isOver ? "rounded-lg border-dashed border-orange-500/50 bg-orange-500/20" : ""}`}
+      className={`shrink-0 border-r border-b border-white/[0.03] ${isDark ? "bg-[#0a0a0c]/90" : "bg-white/95"} group/day relative flex h-24 cursor-pointer flex-col justify-between p-3 backdrop-blur-xl transition-colors hover:bg-white/5 ${day.isToday ? "bg-orange-500/[0.06]" : ""} ${isOver ? "rounded-lg border-dashed border-orange-500/50 bg-orange-500/20" : ""}`}
       onClick={() => onDateClick(day.id)}
     >
       {day.coverageAlert ? (
@@ -269,7 +269,7 @@ function DroppableDayHeader({
 
       <div className="flex items-start justify-between">
         <h2
-          className={`flex items-center gap-1 truncate text-xs tracking-tight ${day.isToday ? "font-black text-orange-400" : day.isHoliday ? "font-black text-rose-400" : isDark ? "font-semibold text-zinc-400" : "font-semibold text-zinc-700"}`}
+          className={`flex items-center gap-1.5 truncate text-sm tracking-tight ${day.isToday ? "font-black text-orange-400" : day.isHoliday ? "font-black text-rose-400" : isDark ? "font-semibold text-zinc-400" : "font-semibold text-zinc-700"}`}
         >
           {day.label}
           {day.isToday ? (
@@ -281,39 +281,39 @@ function DroppableDayHeader({
         </div>
       </div>
 
-      <div className="mt-auto flex flex-col gap-1">
-        <div className="flex flex-wrap items-center gap-1.5 text-[10px] leading-none font-medium tracking-widest text-zinc-500/70 uppercase">
-          <span className="flex items-center gap-0.5" title="Ansatte">
-            <Users className="h-2.5 w-2.5" /> {day.staff}
+      <div className="mt-auto flex flex-col gap-1.5">
+        <div className="flex flex-wrap items-center gap-2 text-[11px] leading-none font-medium tracking-wide text-zinc-500/70 uppercase">
+          <span className="flex items-center gap-1" title="Ansatte">
+            <Users className="h-3 w-3" /> {day.staff}
           </span>
-          <span className="flex items-center gap-0.5" title="Vakter">
-            <Briefcase className="h-2.5 w-2.5" /> {day.shifts}
+          <span className="flex items-center gap-1" title="Vakter">
+            <Briefcase className="h-3 w-3" /> {day.shifts}
           </span>
           {day.messages !== undefined ? (
             <span
-              className={`flex items-center gap-0.5 ${day.messages > 0 ? "text-blue-400/50" : ""}`}
+              className={`flex items-center gap-1 ${day.messages > 0 ? "text-blue-400/50" : ""}`}
               title="Meldinger"
             >
-              <MessageSquare className="h-2.5 w-2.5" /> {day.messages}
+              <MessageSquare className="h-3 w-3" /> {day.messages}
             </span>
           ) : null}
           {day.tasks ? (
             <span
-              className={`flex items-center gap-0.5 ${day.tasks.done < day.tasks.total ? "text-orange-400/50" : "text-zinc-500/70"}`}
+              className={`flex items-center gap-1 ${day.tasks.done < day.tasks.total ? "text-orange-400/50" : "text-zinc-500/70"}`}
               title="Gjøremål"
             >
-              <ListTodo className="h-2.5 w-2.5" /> {day.tasks.done}/{day.tasks.total}
+              <ListTodo className="h-3 w-3" /> {day.tasks.done}/{day.tasks.total}
             </span>
           ) : null}
         </div>
         {day.coverageAlert ? (
-          <div className="flex w-fit max-w-full items-center gap-1 rounded border border-red-500/20 bg-red-500/10 px-1 py-0.5 text-[10px] font-bold text-red-500">
-            <AlertCircle className="h-2.5 w-2.5 shrink-0" />{" "}
+          <div className="flex w-fit max-w-full items-center gap-1.5 rounded-md border border-red-500/20 bg-red-500/10 px-1.5 py-1 text-[11px] font-bold text-red-500">
+            <AlertCircle className="h-3 w-3 shrink-0" />{" "}
             <span className="truncate">{day.coverageAlert}</span>
           </div>
         ) : (
-          <div className="flex w-fit max-w-full items-center gap-1 rounded px-1 py-0.5 text-[10px] font-medium text-zinc-600">
-            <CheckCircle2 className="h-2.5 w-2.5 shrink-0 text-zinc-600" /> OK
+          <div className="flex w-fit max-w-full items-center gap-1 rounded-md px-1.5 py-1 text-[11px] font-medium text-zinc-600">
+            <CheckCircle2 className="h-3 w-3 shrink-0 text-zinc-600" /> OK
           </div>
         )}
       </div>
@@ -337,7 +337,7 @@ export const GroupHeader = React.memo(function GroupHeader({
   return (
     <div className="group/header flex w-full">
       <div
-        className={`w-[220px] shrink-0 border-r border-b border-white/[0.04] ${isDark ? "bg-white/[0.03]" : "bg-zinc-100"} relative sticky left-0 z-30 flex h-7 items-center justify-between px-3 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)]`}
+        className={`w-[260px] shrink-0 border-r border-b border-white/[0.04] ${isDark ? "bg-white/[0.03]" : "bg-zinc-100"} relative sticky left-0 z-30 flex h-9 items-center justify-between px-4 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)]`}
       >
         <span
           className={`text-[11px] font-bold ${isDark ? "text-white" : "text-zinc-900"} tracking-wider uppercase`}
@@ -354,7 +354,7 @@ export const GroupHeader = React.memo(function GroupHeader({
         <div
           key={day.id}
           style={{ width: DAY_COL_WIDTH, minWidth: DAY_COL_WIDTH }}
-          className={`shrink-0 border-r border-b ${isDark ? "border-white/[0.04]" : "border-zinc-200"} h-7 bg-white/[0.01]`}
+          className={`shrink-0 border-r border-b ${isDark ? "border-white/[0.04]" : "border-zinc-200"} h-9 bg-white/[0.01]`}
         />
       ))}
     </div>
@@ -403,25 +403,25 @@ export const EmployeeRow = React.memo(function EmployeeRow({
     <div className="group/row flex w-full">
       {/* Sticky employee info panel — clickable to open drawer */}
       <div
-        className={`w-[220px] shrink-0 border-r border-b border-white/[0.04] ${isDark ? "bg-[#0a0a0c]" : "bg-white"} sticky left-0 z-30 flex h-20 cursor-pointer items-center gap-2 p-2 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)] transition-colors group-hover/row:bg-white/[0.02]`}
+        className={`w-[260px] shrink-0 border-r border-b border-white/[0.04] ${isDark ? "bg-[#0a0a0c]" : "bg-white"} sticky left-0 z-30 flex min-h-[100px] cursor-pointer items-center gap-3 p-3 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)] transition-colors group-hover/row:bg-white/[0.02]`}
         onClick={() => onSelectEmployee?.(employee.id)}
       >
         <div
-          className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border text-[9px] font-black ${employee.avatarColor}`}
+          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border text-[10px] font-black ${employee.avatarColor}`}
         >
           {employee.initials}
         </div>
         <div className="min-w-0 flex-1">
           <h3
-            className={`text-[12px] leading-tight font-bold ${isDark ? "text-white" : "text-zinc-900"} truncate transition-colors group-hover/row:text-zinc-300`}
+            className={`text-[13px] leading-tight font-bold ${isDark ? "text-white" : "text-zinc-900"} truncate transition-colors group-hover/row:text-zinc-300`}
           >
             {employee.name}
           </h3>
-          <p className="truncate text-[10px] leading-tight text-zinc-500">
+          <p className="mt-0.5 truncate text-[11px] leading-tight text-zinc-500">
             {subtitle || employee.jobTitle || employee.role}
           </p>
-          <div className="mt-0.5 space-y-0.5 pr-1">
-            <div className="flex items-center justify-between text-[9px] font-bold tracking-widest uppercase">
+          <div className="mt-1.5 space-y-1 pr-1">
+            <div className="flex items-center justify-between text-[10px] font-bold tracking-widest uppercase">
               <span className="text-zinc-500">{shiftCount}v</span>
               <span className={isOvertime ? "text-red-400" : "text-zinc-400"}>
                 {scheduledHours.toFixed(1)}
@@ -429,7 +429,7 @@ export const EmployeeRow = React.memo(function EmployeeRow({
               </span>
             </div>
             <div
-              className={`h-0.5 w-full ${isDark ? "bg-white/5" : "bg-zinc-100"} overflow-hidden rounded-full`}
+              className={`h-1 w-full ${isDark ? "bg-white/5" : "bg-zinc-100"} overflow-hidden rounded-full`}
             >
               <div
                 className={`h-full ${barColor} rounded-full transition-all`}
@@ -469,7 +469,7 @@ export const EmployeeRow = React.memo(function EmployeeRow({
             }}
           >
             {hasContent ? (
-              <div className="flex h-full w-full flex-col gap-0.5 pb-0.5">
+              <div className="flex h-full w-full flex-col gap-1.5 pb-1">
                 {cellAbsences.map((absence) => (
                   <AbsenceCard
                     key={absence.id}
@@ -524,16 +524,16 @@ function MatrixCell({
       ref={setNodeRef}
       onContextMenu={onContextMenu}
       style={{ width: DAY_COL_WIDTH, minWidth: DAY_COL_WIDTH }}
-      className={`shrink-0 border-r border-b border-white/[0.03] ${isDark ? "bg-[#050505]" : "bg-zinc-50"}/40 relative flex h-20 flex-col gap-0.5 overflow-hidden p-1 shadow-[inset_0_1px_6px_rgba(0,0,0,0.3)] transition-colors ${isOver ? "z-10 scale-[1.02] rounded-lg border border-dashed border-orange-500/50 bg-orange-500/20" : "group-hover/row:bg-white/[0.02] hover:bg-white/[0.04]"} ${isToday ? "bg-orange-500/[0.06]" : ""}`}
+      className={`shrink-0 border-r border-b border-white/[0.03] ${isDark ? "bg-[#050505]" : "bg-zinc-50"}/40 relative flex min-h-[100px] flex-col gap-1 overflow-hidden p-2 shadow-[inset_0_1px_6px_rgba(0,0,0,0.3)] transition-colors ${isOver ? "z-10 scale-[1.02] rounded-lg border border-dashed border-orange-500/50 bg-orange-500/20" : "group-hover/row:bg-white/[0.02] hover:bg-white/[0.04]"} ${isToday ? "bg-orange-500/[0.06]" : ""}`}
     >
       {children ? (
         children
       ) : (
         <button
           onClick={onAddClick}
-          className={`absolute inset-x-1 inset-y-1 rounded-md border border-dashed ${isDark ? "border-white/[0.06]" : "border-zinc-300"} flex cursor-pointer items-center justify-center bg-transparent text-orange-500/0 opacity-0 transition-all hover:border-orange-500/30 hover:bg-white/[0.03] hover:text-orange-500/50 hover:opacity-100`}
+          className={`absolute inset-x-2 inset-y-2 rounded-lg border border-dashed ${isDark ? "border-white/[0.06]" : "border-zinc-300"} flex cursor-pointer items-center justify-center bg-transparent text-orange-500/0 opacity-0 transition-all hover:border-orange-500/30 hover:bg-white/[0.03] hover:text-orange-500/50 hover:opacity-100`}
         >
-          <Plus className="h-3.5 w-3.5" />
+          <Plus className="h-4 w-4" />
         </button>
       )}
     </div>
