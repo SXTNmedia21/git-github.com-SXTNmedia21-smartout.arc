@@ -21,6 +21,20 @@ export type CreateUltravoxCallResponse = {
   join_url: string;
 };
 
+/** Parameter location for Ultravox tool parameters */
+export type UltravoxParameterLocation =
+  | "PARAMETER_LOCATION_BODY"
+  | "PARAMETER_LOCATION_QUERY"
+  | "PARAMETER_LOCATION_HEADER"
+  | "PARAMETER_LOCATION_PATH";
+
+/** A static parameter passed with every tool invocation (invisible to the AI) */
+export type UltravoxStaticParameter = {
+  name: string;
+  location: UltravoxParameterLocation;
+  value: string;
+};
+
 /** Ultravox tool definition for HTTP tools */
 export type UltravoxHttpTool = {
   temporaryTool: {
@@ -32,10 +46,10 @@ export type UltravoxHttpTool = {
       schema: Record<string, unknown>;
       required: boolean;
     }>;
+    staticParameters?: UltravoxStaticParameter[];
     http: {
       baseUrlPattern: string;
       httpMethod: "POST";
-      headers?: Record<string, string>;
     };
   };
 };
