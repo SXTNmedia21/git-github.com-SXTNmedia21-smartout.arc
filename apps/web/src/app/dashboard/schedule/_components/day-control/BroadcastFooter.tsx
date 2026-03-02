@@ -65,7 +65,6 @@ export function BroadcastFooter({ dateId }: { dateId: string | null }) {
       {broadcastType && dateId && (
         <BroadcastMessageDialog
           type={broadcastType}
-          dateId={dateId}
           staffCount={staffCount}
           open={!!broadcastType}
           onOpenChange={(open) => {
@@ -81,13 +80,11 @@ export function BroadcastFooter({ dateId }: { dateId: string | null }) {
 
 function BroadcastMessageDialog({
   type,
-  dateId,
   staffCount,
   open,
   onOpenChange,
 }: {
   type: "push" | "sms";
-  dateId: string;
   staffCount: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;

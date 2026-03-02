@@ -5,7 +5,7 @@
 "use client";
 
 import { useContext, useMemo, useState } from "react";
-import { Clock, Users, Pencil, Phone, Mail, CheckCircle2 } from "lucide-react";
+import { Clock, Pencil, Phone, Mail, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import type {
@@ -52,7 +52,10 @@ export function OversiktTab({ dateId }: { dateId: string | null }) {
   );
 
   const stats = dateId ? computed.getDayStats(dateId) : null;
-  const dayShifts = dateId ? computed.getShiftsForDay(dateId) : [];
+  const dayShifts = useMemo(
+    () => (dateId ? computed.getShiftsForDay(dateId) : []),
+    [dateId, computed],
+  );
   const employeesQuery = useEmployees();
   const employees: ScheduleEmployee[] = employeesQuery.data ?? [];
   const totalWorkHours = dayShifts.reduce((sum, s) => sum + s.workHours, 0);

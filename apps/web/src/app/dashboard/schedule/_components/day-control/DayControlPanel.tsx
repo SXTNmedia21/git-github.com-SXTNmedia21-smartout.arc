@@ -6,7 +6,7 @@
 // ============================================
 "use client";
 
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import {
   X,
   Info,
@@ -24,7 +24,6 @@ import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useScheduleUI } from "../schedule-ui-context";
 import { useWeekRange } from "../../_hooks/use-week-range";
 import { useShifts } from "../../_hooks/use-shifts";
-import { useAbsences } from "../../_hooks/use-absences";
 import { useDayMessages, useDayTasks, useDayBookings } from "../../_hooks/use-day-content";
 import type { Shift, DayMessage, DayTask, DayBooking } from "../schedule-types";
 import { formatDateLabel } from "./shared";
@@ -73,6 +72,11 @@ export function DayControlPanel({
     return { staffCount, messageCount, bookingCount, taskCount, taskDone };
   }, [date, shifts, messages, bookings, tasks]);
 
+  const handleClose = useCallback(() => {
+    setDayControlFullscreen(false);
+    onClose();
+  }, [setDayControlFullscreen, onClose]);
+
   // Escape key to close
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -84,14 +88,9 @@ export function DayControlPanel({
       document.addEventListener("keydown", handleKeyDown);
       return () => document.removeEventListener("keydown", handleKeyDown);
     }
-  }, [date]);
+  }, [date, handleClose]);
 
   if (!date) return null;
-
-  function handleClose() {
-    setDayControlFullscreen(false);
-    onClose();
-  }
 
   return (
     <div className="relative flex h-full w-full flex-col">
