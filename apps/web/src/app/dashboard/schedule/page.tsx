@@ -90,13 +90,13 @@ import { useScheduleRealtime } from "./_hooks/use-schedule-realtime";
 import { useScheduleComputed } from "./_hooks/use-schedule-computed";
 
 // ---------------------------------------------------------------------------
-// Week range helper
+// Week range helper — supports week offset for navigation
 // ---------------------------------------------------------------------------
-function getWeekRange(): { weekStart: string; weekEnd: string } {
+function getWeekRange(weekOffset = 0): { weekStart: string; weekEnd: string } {
   const now = new Date();
   const day = now.getDay();
   const monday = new Date(now);
-  monday.setDate(now.getDate() - ((day + 6) % 7));
+  monday.setDate(now.getDate() - ((day + 6) % 7) + weekOffset * 7);
   const sunday = new Date(monday);
   sunday.setDate(monday.getDate() + 6);
   return {
@@ -106,21 +106,23 @@ function getWeekRange(): { weekStart: string; weekEnd: string } {
 }
 
 // ---------------------------------------------------------------------------
-// Generate day columns from week range
+// Generate day columns — supports variable day count (7 or 14)
 // ---------------------------------------------------------------------------
 const DAY_LABELS = ["Man", "Tir", "Ons", "Tor", "Fre", "Lør", "Søn"];
 
-function generateDayColumns(weekStart: string): DayColumn[] {
+function generateDayColumns(weekStart: string, dayCount = 7): DayColumn[] {
   const start = new Date(weekStart + "T00:00:00");
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  return DAY_LABELS.map((label, i) => {
+  return Array.from({ length: dayCount }, (_, i) => {
     const date = new Date(start);
     date.setDate(start.getDate() + i);
     const dateStr = date.toISOString().split("T")[0] ?? "";
     const dayNum = date.getDate();
     const month = date.getMonth() + 1;
+    const dayOfWeek = date.getDay(); // 0=Sun, 1=Mon...
+    const label = DAY_LABELS[(dayOfWeek + 6) % 7] ?? "";
 
     return {
       id: dateStr,
@@ -129,7 +131,7 @@ function generateDayColumns(weekStart: string): DayColumn[] {
       shifts: 0,
       cost: "0",
       isToday: date.getTime() === today.getTime(),
-      isHoliday: i >= 5,
+      isHoliday: dayOfWeek === 0 || dayOfWeek === 6,
       situation: "Normal",
     };
   });
@@ -159,23 +161,33 @@ export default function SchedulePage() {
 // SchedulePageContent — query hooks + rendering
 // ---------------------------------------------------------------------------
 function SchedulePageContent() {
-  const { isDark, scheduleLayout, setOnPublishAll, setScheduleDraftCount } =
+  const { isDark, scheduleLayout, scheduleDateOffset, setOnPublishAll, setScheduleDraftCount } =
     useContext(DashboardContext);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [filterSituation, setFilterSituation] = useState("Alle");
-  const [showGuide, setShowGuide] = useState(false);
   const [sidebarMode, setSidebarMode] = useState<"open" | "templates">("open");
   const [activeStatusFilter, setActiveStatusFilter] = useState<string | null>(null);
+  const [weekSpan, setWeekSpan] = useState<1 | 2>(1);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 1 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
-  // ── Week range and day columns ──────────────────────────────
-  const { weekStart, weekEnd } = useMemo(() => getWeekRange(), []);
-  const days = useMemo(() => generateDayColumns(weekStart), [weekStart]);
+  // ── Week range and day columns (reactive to offset + span) ─
+  const { weekStart, weekEnd } = useMemo(() => {
+    const range = getWeekRange(scheduleDateOffset);
+    if (weekSpan === 2) {
+      // Extend end by 7 days for 2-week view
+      const end = new Date(range.weekStart + "T00:00:00");
+      end.setDate(end.getDate() + 13);
+      return { weekStart: range.weekStart, weekEnd: end.toISOString().split("T")[0] ?? "" };
+    }
+    return range;
+  }, [scheduleDateOffset, weekSpan]);
+  const dayCount = weekSpan === 2 ? 14 : 7;
+  const days = useMemo(() => generateDayColumns(weekStart, dayCount), [weekStart, dayCount]);
 
   // ── Workspace context ───────────────────────────────────────
   const { workspace } = useWorkspace();
@@ -413,8 +425,6 @@ function SchedulePageContent() {
               isDark={isDark}
               filterSituation={filterSituation}
               setFilterSituation={setFilterSituation}
-              showGuide={showGuide}
-              setShowGuide={setShowGuide}
             />
 
             <StatusStrip
@@ -426,6 +436,8 @@ function SchedulePageContent() {
 
             <GridSurface
               isDark={isDark}
+              weekSpan={weekSpan}
+              setWeekSpan={setWeekSpan}
               centerContent={
                 <>
                   {scheduleLayout === "daily" && (

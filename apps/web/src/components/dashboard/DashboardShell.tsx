@@ -111,15 +111,11 @@ import {
   CalendarDays,
   ShieldCheck,
   Mic,
-  Briefcase,
-  Network,
-  MapPin,
-  ChevronDown,
 } from "lucide-react";
 
 import { ActionStrip } from "@/components/dashboard/ActionStrip";
 import { UserMenu } from "@/components/dashboard/UserMenu";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+// Popover imports removed — location selector moved to PlannerCommandBar
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const LazyVoiceAssistant = dynamic(() => import("@/components/voice-assistant"), {
@@ -130,7 +126,7 @@ const LazyVoiceAssistant = dynamic(() => import("@/components/voice-assistant"),
 });
 
 /** Demo location options for the schedule page location selector */
-const LOCATIONS = ["Alle Lokasjoner", "Hovedrestaurant", "Bar & Lounge", "Uteservering", "Kjøkken"];
+// LOCATIONS moved to schedule PlannerCommandBar
 
 export function DashboardShell({
   children,
@@ -145,7 +141,7 @@ export function DashboardShell({
   const [scheduleLayout, setScheduleLayout] = useState<ScheduleLayoutMode>("daily");
   const [scheduleView, setScheduleView] = useState<ScheduleViewMode>("ansatt");
   const [activeLocation, setActiveLocation] = useState("Alle Lokasjoner");
-  const [locationMenuOpen, setLocationMenuOpen] = useState(false);
+  // locationMenuOpen removed — location selector moved to PlannerCommandBar
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [weeklyPeriodCount, setWeeklyPeriodCount] = useState(4);
   const [scheduleDateOffset, setScheduleDateOffset] = useState(0);
@@ -650,79 +646,6 @@ export function DashboardShell({
               {/* Schedule page specific controls */}
               {pathname === "/dashboard/schedule" && isAdminMode && (
                 <>
-                  {/* LOCATION SELECTOR */}
-                  <div className="mr-4 flex items-center gap-3 border-r border-zinc-800/50 pr-6">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-gradient-to-br from-zinc-800 to-zinc-900 shadow-inner">
-                      <MapPin className="h-4 w-4 text-orange-400" />
-                    </div>
-                    <div>
-                      <span className="mb-0.5 block text-[10px] leading-none font-black tracking-widest text-zinc-500 uppercase">
-                        Lokasjon
-                      </span>
-                      <Popover open={locationMenuOpen} onOpenChange={setLocationMenuOpen}>
-                        <PopoverTrigger asChild>
-                          <button className="group flex items-center gap-1.5 text-xs font-bold text-white transition-colors hover:text-orange-400">
-                            {activeLocation}
-                            <ChevronDown
-                              className={`h-3.5 w-3.5 transition-transform ${locationMenuOpen ? "rotate-180" : ""} text-zinc-500 group-hover:text-orange-400`}
-                            />
-                          </button>
-                        </PopoverTrigger>
-                        <PopoverContent align="start" className="w-48 p-1">
-                          {LOCATIONS.map((loc) => (
-                            <button
-                              key={loc}
-                              onClick={() => {
-                                setActiveLocation(loc);
-                                setLocationMenuOpen(false);
-                              }}
-                              className={`w-full rounded-md px-3 py-1.5 text-left text-xs font-medium transition-colors ${
-                                activeLocation === loc
-                                  ? "bg-orange-500/20 text-orange-400"
-                                  : "text-foreground hover:bg-muted"
-                              }`}
-                            >
-                              {loc}
-                            </button>
-                          ))}
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                  </div>
-
-                  {/* VIEW TOGGLES */}
-                  <div
-                    className={`hidden rounded-xl border p-1 shadow-sm xl:flex ${isDark ? "border-zinc-800 bg-[#0a0a0c]" : "border-zinc-200 bg-zinc-100"} mr-2`}
-                  >
-                    <button
-                      onClick={() => setScheduleView("ansatt")}
-                      className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleView === "ansatt" ? (isDark ? "bg-zinc-800 text-white shadow-sm" : "bg-white text-zinc-900 shadow-sm") : isDark ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
-                    >
-                      <Users
-                        className={`h-3.5 w-3.5 ${scheduleView === "ansatt" ? "text-orange-500" : ""}`}
-                      />
-                      Ansatt
-                    </button>
-                    <button
-                      onClick={() => setScheduleView("jobb")}
-                      className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleView === "jobb" ? (isDark ? "bg-zinc-800 text-white shadow-sm" : "bg-white text-zinc-900 shadow-sm") : isDark ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
-                    >
-                      <Briefcase
-                        className={`h-3.5 w-3.5 ${scheduleView === "jobb" ? "text-orange-500" : ""}`}
-                      />
-                      Jobb
-                    </button>
-                    <button
-                      onClick={() => setScheduleView("team")}
-                      className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleView === "team" ? (isDark ? "bg-zinc-800 text-white shadow-sm" : "bg-white text-zinc-900 shadow-sm") : isDark ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
-                    >
-                      <Network
-                        className={`h-3.5 w-3.5 ${scheduleView === "team" ? "text-orange-500" : ""}`}
-                      />
-                      Team
-                    </button>
-                  </div>
-
                   {/* LAYOUT TOGGLE */}
                   <div
                     className={`hidden rounded-xl border p-1 shadow-sm md:flex ${isDark ? "border-zinc-800 bg-[#0a0a0c]" : "border-zinc-200 bg-zinc-100"} mr-2`}
@@ -731,7 +654,7 @@ export function DashboardShell({
                       onClick={() => setScheduleLayout("daily")}
                       className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "daily" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : isDark ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
                     >
-                      Dag-til-dag
+                      Uke
                     </button>
                     <button
                       onClick={() => setScheduleLayout("weekly")}
