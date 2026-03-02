@@ -36,12 +36,13 @@ export default async function WizardSessionPage({ params }: Props) {
   if (!session) notFound();
 
   // Extract messages and draft from JSONB for type safety
-  const messages = (session.messages as Array<{
-    role: string;
-    content: string;
-    phase?: string;
-    timestamp?: string;
-  }>) ?? [];
+  const messages =
+    (session.messages as Array<{
+      role: string;
+      content: string;
+      phase?: string;
+      timestamp?: string;
+    }>) ?? [];
 
   const draftJourney = (session.draft_journey as Record<string, unknown>) ?? {};
 

@@ -250,19 +250,19 @@ function SchedulePageContent() {
   const draftCount = draftIds.length;
 
   const publishMutateRef = useRef(publishShifts.mutate);
-  publishMutateRef.current = publishShifts.mutate;
   const draftIdsRef = useRef(draftIds);
-  draftIdsRef.current = draftIds;
 
-  // Sync draft count and publish callback to DashboardShell (ref-based, no re-render cascade)
+  // Sync refs + draft count and publish callback to DashboardShell
   useEffect(() => {
+    publishMutateRef.current = publishShifts.mutate;
+    draftIdsRef.current = draftIds;
     setScheduleDraftCount(draftCount);
     setOnPublishAll(draftCount > 0 ? () => publishMutateRef.current(draftIdsRef.current) : null);
     return () => {
       setScheduleDraftCount(0);
       setOnPublishAll(null);
     };
-  }, [draftCount, setScheduleDraftCount, setOnPublishAll]);
+  }, [draftCount, draftIds, publishShifts.mutate, setScheduleDraftCount, setOnPublishAll]);
 
   // ── Loading state ───────────────────────────────────────────
   if (shiftsQuery.isLoading) {

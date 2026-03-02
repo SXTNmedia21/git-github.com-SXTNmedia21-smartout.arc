@@ -62,9 +62,7 @@ export function WizardDraftPreview({ draft }: WizardDraftPreviewProps) {
 
         {/* Steps */}
         <div className="space-y-1.5">
-          <span className="text-muted-foreground text-xs font-medium">
-            Steps ({steps.length})
-          </span>
+          <span className="text-muted-foreground text-xs font-medium">Steps ({steps.length})</span>
           {steps.length === 0 ? (
             <p className="text-muted-foreground/60 text-xs italic">Not yet defined</p>
           ) : (

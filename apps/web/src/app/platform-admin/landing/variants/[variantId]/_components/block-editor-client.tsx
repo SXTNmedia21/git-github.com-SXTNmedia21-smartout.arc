@@ -58,6 +58,17 @@ type BlockEditorClientProps = {
 
 type SaveStatus = "saved" | "saving" | "unsaved";
 
+function SaveStatusIndicator({ status }: { status: SaveStatus }) {
+  switch (status) {
+    case "saved":
+      return <span className="text-xs text-green-500">Lagret</span>;
+    case "saving":
+      return <span className="text-xs text-yellow-500">Lagrer...</span>;
+    case "unsaved":
+      return <span className="text-xs text-orange-500">Ulagrede endringer</span>;
+  }
+}
+
 const AUTOSAVE_DELAY_MS = 1000;
 
 // TODO: Replace (supabase as any) once landing tables are in database.types.ts
@@ -509,19 +520,6 @@ export function BlockEditorClient({
     toast.success("Variant unpublished");
     setSaving(false);
   }, [variant, supabase, triggerRevalidation]);
-
-  // ── Save status indicator ──────────────────────────────────────
-
-  function SaveStatusIndicator({ status }: { status: SaveStatus }) {
-    switch (status) {
-      case "saved":
-        return <span className="text-xs text-green-500">Lagret</span>;
-      case "saving":
-        return <span className="text-xs text-yellow-500">Lagrer...</span>;
-      case "unsaved":
-        return <span className="text-xs text-orange-500">Ulagrede endringer</span>;
-    }
-  }
 
   // ── Render ───────────────────────────────────────────────────────
 

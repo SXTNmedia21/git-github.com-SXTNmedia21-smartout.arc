@@ -69,9 +69,7 @@ export function WizardPhaseIndicator({ currentPhase }: WizardPhaseIndicatorProps
             {/* Connector line between phases */}
             {i < PHASES.length - 1 && (
               <div
-                className={`mx-0.5 h-px w-4 ${
-                  i < currentIndex ? "bg-primary/30" : "bg-border"
-                }`}
+                className={`mx-0.5 h-px w-4 ${i < currentIndex ? "bg-primary/30" : "bg-border"}`}
               />
             )}
           </div>

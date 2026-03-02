@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import type { Variants } from "framer-motion";
 import { motion } from "framer-motion";
@@ -138,6 +138,14 @@ const MOCK_SEASONS = [
 ];
 
 export default function SmartoutLandingPage() {
+  return (
+    <Suspense>
+      <SmartoutLandingPageContent />
+    </Suspense>
+  );
+}
+
+function SmartoutLandingPageContent() {
   const { variant } = useVariant();
   // Track page view once per browser session (fire-and-forget, no blocking)
   usePageTracking();

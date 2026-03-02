@@ -25,11 +25,7 @@ export default async function WizardLauncherPage() {
 
   // Fetch workspaces and sessions in parallel
   const [{ data: workspaces }, { data: sessions }] = await Promise.all([
-    admin
-      .from("workspace")
-      .select("workspace_id, name, slug")
-      .eq("is_active", true)
-      .order("name"),
+    admin.from("workspace").select("workspace_id, name, slug").eq("is_active", true).order("name"),
     admin
       .from("wizard_session")
       .select("wizard_session_id, status, current_phase, draft_journey, created_at, completed_at")
@@ -37,10 +33,5 @@ export default async function WizardLauncherPage() {
       .limit(20),
   ]);
 
-  return (
-    <WizardLauncherClient
-      workspaces={workspaces ?? []}
-      sessions={sessions ?? []}
-    />
-  );
+  return <WizardLauncherClient workspaces={workspaces ?? []} sessions={sessions ?? []} />;
 }

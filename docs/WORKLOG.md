@@ -59,12 +59,14 @@ tags: [schedule, ui, persistence, realtime, tanstack-query, audit-log]
 | 2026-03-01 | —    | Paste-day: usePasteDay hook + wired into day-context-menu.tsx              |
 | 2026-03-01 | —    | Replace dummyEmployees with real Supabase profile query (use-employees.ts) |
 | 2026-03-01 | —    | Removed schedule-toasts.tsx, learning 0014, user journeys, feature closure |
+
 title: "Worklog — team-member-management"
 status: in_progress
 updated: 2026-03-01
 created: 2026-03-01
 module: org-structure
 tags: [teams, departments, members, people, ui]
+
 ---
 
 # Worklog — team-member-management

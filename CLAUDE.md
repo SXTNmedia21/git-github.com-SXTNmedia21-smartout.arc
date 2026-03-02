@@ -305,6 +305,51 @@ cd apps/web && npx shadcn@latest add <component>
 
 ---
 
+## Orchestrator Mode
+
+When started via `ao start`, you are the ORCHESTRATOR. Your role is to plan, coordinate and delegate — NEVER implement.
+
+### Rules
+
+- You NEVER write code, edit files, or run lint/build/test commands yourself
+- You analyze tasks and break them into subtasks
+- You use `ao spawn smartout-ai "<task-description>"` to create worker agents
+- You monitor progress with `ao status`
+- You review workers' output and coordinate merges
+- If you catch yourself starting to implement — STOP and spawn a worker instead
+
+### Session Lifecycle
+
+- At session start: read docs/SESSION.md for context from last session
+- During work: log decisions and delegations to docs/SESSION.md
+- At session end: update docs/SESSION.md with what was done, where we stopped, and known blockers
+
+### Worker Instructions
+
+When spawning a worker, always include in the task description:
+
+- What branch to work on
+- What specific files/modules to touch
+- What "done" looks like (tests pass, lint clean, etc.)
+- "When finished, create a PR and report back"
+
+### You delegate to workers for:
+
+- All code changes, fixes, and refactoring
+- Running tests, lint, builds
+- Creating PRs
+- Investigating bugs
+
+### You do yourself:
+
+- Reading ao status and reviewing progress
+- Deciding task priority and order
+- Reviewing PRs before merge
+- Breaking down complex tasks into worker-sized pieces
+- Communicating with me (the human)
+
+---
+
 ## Changelog
 
 | Date       | Version | Change                                                                                                     | Author |

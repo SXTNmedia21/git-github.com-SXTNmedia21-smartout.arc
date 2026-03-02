@@ -151,6 +151,7 @@ export function DashboardShell({
   const [scheduleDateOffset, setScheduleDateOffset] = useState(0);
   const onPublishAllRef = useRef<(() => void) | null>(null);
   const scheduleDraftCountRef = useRef(0);
+  const [scheduleDraftCountDisplay, setScheduleDraftCountDisplay] = useState(0);
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const pathname = usePathname();
   const workspaceCtx = useWorkspaceOptional();
@@ -169,12 +170,15 @@ export function DashboardShell({
   const setOnPublishAll = useCallback((fn: (() => void) | null) => {
     onPublishAllRef.current = fn;
   }, []);
-  /** Stable setter — writes to ref, triggers a local re-render to update the button text */
-  const [, setScheduleHeaderTick] = useState(0);
+  /** Stable callback that reads ref at call-time (event handler), not render-time */
+  const onPublishAllStable = useCallback(() => {
+    onPublishAllRef.current?.();
+  }, []);
+  /** Stable setter — writes to ref + state, avoids infinite loops via guard */
   const setScheduleDraftCount = useCallback((count: number) => {
     if (scheduleDraftCountRef.current !== count) {
       scheduleDraftCountRef.current = count;
-      setScheduleHeaderTick((t) => t + 1);
+      setScheduleDraftCountDisplay(count);
     }
   }, []);
   const dashboardContextValue = useMemo(
@@ -197,9 +201,9 @@ export function DashboardShell({
       setWeeklyPeriodCount,
       scheduleDateOffset,
       setScheduleDateOffset,
-      onPublishAll: onPublishAllRef.current,
+      onPublishAll: onPublishAllStable,
       setOnPublishAll,
-      scheduleDraftCount: scheduleDraftCountRef.current,
+      scheduleDraftCount: scheduleDraftCountDisplay,
       setScheduleDraftCount,
       workspaceData,
       profileId,
@@ -214,8 +218,10 @@ export function DashboardShell({
       isSidebarCollapsed,
       weeklyPeriodCount,
       scheduleDateOffset,
+      onPublishAllStable,
       setOnPublishAll,
       setScheduleDraftCount,
+      scheduleDraftCountDisplay,
       workspaceData,
       profileId,
     ],
@@ -828,15 +834,15 @@ export function DashboardShell({
                   </div>
 
                   <button
-                    onClick={() => onPublishAllRef.current?.()}
-                    disabled={scheduleDraftCountRef.current === 0}
+                    onClick={onPublishAllStable}
+                    disabled={scheduleDraftCountDisplay === 0}
                     className={`mr-2 hidden rounded-lg px-4 py-1.5 text-[13px] font-bold text-white shadow-sm transition-all sm:block ${
-                      scheduleDraftCountRef.current > 0
+                      scheduleDraftCountDisplay > 0
                         ? "bg-gradient-to-r from-orange-600 to-rose-600 hover:from-orange-500 hover:to-rose-500"
                         : "cursor-not-allowed bg-zinc-700 opacity-50"
                     }`}
                   >
-                    Publiser ({scheduleDraftCountRef.current})
+                    Publiser ({scheduleDraftCountDisplay})
                   </button>
                 </>
               )}

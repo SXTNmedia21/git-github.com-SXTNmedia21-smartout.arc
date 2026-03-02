@@ -121,9 +121,7 @@ export function WizardLauncherClient({ workspaces, sessions }: WizardLauncherCli
         </Link>
         <div>
           <h1 className="text-foreground text-2xl font-bold tracking-tight">Journey Wizard</h1>
-          <p className="text-muted-foreground text-sm">
-            AI-guided journey definition in 6 phases
-          </p>
+          <p className="text-muted-foreground text-sm">AI-guided journey definition in 6 phases</p>
         </div>
       </div>
 
