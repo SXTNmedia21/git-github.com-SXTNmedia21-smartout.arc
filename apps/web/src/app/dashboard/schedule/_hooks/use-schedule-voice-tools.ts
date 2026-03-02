@@ -285,6 +285,8 @@ function resolveDateId(
 
 export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientTools {
   const dataRef = useRef(input);
+  // Intentionally no deps — keeps ref fresh on every render so stable tool
+  // implementations (created once via useMemo) always read the latest data.
   useEffect(() => {
     dataRef.current = input;
   });
@@ -472,6 +474,7 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
       const [sh, sm] = startTime.split(":").map(Number);
       const [eh, em] = endTime.split(":").map(Number);
       const workHours = Math.max(0, eh! * 60 + em! - (sh! * 60 + sm!)) / 60;
+      const dayCategory = sh! < 11 ? "morning" : sh! < 17 ? "afternoon" : "evening";
 
       try {
         await d.mutations.createShift({
@@ -483,7 +486,7 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
           endTime,
           workHours,
           status: "created",
-          dayCategory: "morning",
+          dayCategory,
           indicator: "blue",
           isPublished: false,
           breaks: 0,
@@ -521,7 +524,11 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
         return JSON.stringify({ error: `No shift found for ${employee.name} on ${dateId}` });
       }
 
-      const shift = cellShifts[0]!;
+      let shift = cellShifts[0]!;
+      if (cellShifts.length > 1 && params.time) {
+        const match = cellShifts.find((s) => s.startTime === params.time);
+        if (match) shift = match;
+      }
       const patch: Record<string, unknown> = {};
       if (params.startTime) patch.startTime = params.startTime;
       if (params.endTime) patch.endTime = params.endTime;

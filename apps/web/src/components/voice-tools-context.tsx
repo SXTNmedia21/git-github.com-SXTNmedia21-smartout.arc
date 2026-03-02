@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from "react";
 
 export type ClientToolDefinition = {
   temporaryTool: {
@@ -42,11 +42,9 @@ export function VoiceToolsProvider({ children }: { children: ReactNode }) {
     setClientToolsState(tools);
   }, []);
 
-  return (
-    <VoiceToolsContext.Provider value={{ clientTools, setClientTools }}>
-      {children}
-    </VoiceToolsContext.Provider>
-  );
+  const value = useMemo(() => ({ clientTools, setClientTools }), [clientTools, setClientTools]);
+
+  return <VoiceToolsContext.Provider value={value}>{children}</VoiceToolsContext.Provider>;
 }
 
 export function useVoiceTools() {
