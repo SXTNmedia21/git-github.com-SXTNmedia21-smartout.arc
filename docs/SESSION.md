@@ -13,12 +13,12 @@ tags: [session, boot-sequence, continuity]
 
 ## Last Session
 
-| Field   | Value                                              |
-| ------- | -------------------------------------------------- |
-| Date    | 2026-03-02                                         |
-| Branch  | `development`                                      |
-| Feature | Orchestrator session: CI fixes, landing, keys, PRs |
-| Status  | done                                               |
+| Field   | Value                                               |
+| ------- | --------------------------------------------------- |
+| Date    | 2026-03-02                                          |
+| Branch  | `development`                                       |
+| Feature | Schedule v2 + Keys Admin UI + Communications design |
+| Status  | in_progress                                         |
 
 ### What was done
 
