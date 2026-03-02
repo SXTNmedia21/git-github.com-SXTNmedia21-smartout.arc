@@ -208,7 +208,7 @@ ultravox.post("/adapters/ultravox/fetch", zValidator("json", uvFetchSchema), asy
     }
     case "stage": {
       if (session.current_stage_id) {
-        const result = await loadMission(session.mission_id);
+        const result = await loadMission(session.mission_id!);
         const stage = result?.stages.find((s) => s.stage_id === session.current_stage_id);
         data = stage
           ? { stage_id: stage.stage_id, goal: stage.goal, instructions: stage.instructions }
