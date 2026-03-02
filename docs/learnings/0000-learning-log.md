@@ -9,6 +9,13 @@ tags: [learnings]
 
 # Learning Log — landing-optimization
 
+module: ai
+tags: [learnings]
+
+---
+
+# Learning Log — agent-architecture
+
 | #   | Date       | Learning                                                                                                                                        | Impact                                     |
 | --- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
 | 1   | 2026-03-02 | LazyMotion + `m` component reduces framer-motion bundle by ~60% — use `domAnimation` features for basic animations                              | Performance                                |

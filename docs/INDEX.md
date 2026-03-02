@@ -119,49 +119,52 @@ Reusable document templates in `docs/templates/`.
 
 ### Decisions (ADRs)
 
-See `docs/decisions/0000-decision-log.md` -- 39 ADRs (0001-0039).
+See `docs/decisions/0000-decision-log.md` -- 42 ADRs (0001-0042).
 
-| id       | File                                                     | Subject                                    |
-| -------- | -------------------------------------------------------- | ------------------------------------------ |
-| ADR_0001 | decisions/0001-use-turborepo-pnpm.md                     | Turborepo + pnpm workspaces                |
-| ADR_0002 | decisions/0002-state-vs-hooks.md                         | State-driven vs hook-driven logic          |
-| ADR_0003 | decisions/0003-shadcn-integration.md                     | shadcn/ui integration                      |
-| ADR_0004 | decisions/0004-unified-telemetry-engine.md               | Unified telemetry (PostHog)                |
-| ADR_0005 | decisions/0005-testing-infrastructure.md                 | Testing four-layer strategy                |
-| ADR_0006 | decisions/0006-secrets-and-environment.md                | Env vars and secrets                       |
-| ADR_0007 | decisions/0007-dashboard-architecture.md                 | Dashboard layout & nav                     |
-| ADR_0008 | decisions/0008-dashboard-scroll-behavior.md              | Dashboard scroll behavior                  |
-| ADR_0009 | decisions/0009-tailwind-v4-css-config.md                 | Tailwind CSS v4                            |
-| ADR_0010 | decisions/0010-ai-sdk-openrouter.md                      | AI SDK with OpenRouter                     |
-| ADR_0011 | decisions/0011-user-identity-table-naming.md             | user_identity table name                   |
-| ADR_0012 | decisions/0012-subscription-on-company.md                | Subscription on company table              |
-| ADR_0013 | decisions/0013-database-types-generation.md              | Auto-generated DB types                    |
-| ADR_0014 | decisions/0014-posthog-eu-proxy.md                       | PostHog EU proxy                           |
-| ADR_0015 | decisions/0015-bubble-rebuild-strategy.md                | Bubble.io rebuild strategy                 |
-| ADR_0016 | decisions/0016-services-directory.md                     | Services directory                         |
-| ADR_0017 | decisions/0017-enterprise-infrastructure.md              | Enterprise infrastructure                  |
-| ADR_0018 | decisions/0018-tanstack-table-recharts-platform-admin.md | TanStack Table + Recharts                  |
-| ADR_0019 | decisions/0019-performance-build-governance.md           | Performance governance                     |
-| ADR_0020 | decisions/0020-vercel-hosting-strategy.md                | Vercel hosting strategy                    |
-| ADR_0021 | decisions/0021-subdomain-workspace-routing.md            | Subdomain routing                          |
-| ADR_0022 | decisions/0022-notification-service-architecture.md      | Notification service                       |
-| ADR_0023 | decisions/0023-global-scrollbar-standard.md              | Global scrollbar standard                  |
-| ADR_0024 | decisions/0024-contract-system-architecture.md           | Contract system                            |
-| ADR_0025 | decisions/0025-documentation-restructuring.md            | Docs restructuring (YAML, layers, archive) |
-| ADR_0026 | decisions/0026-template-editor-redesign-attachments.md   | Template editor redesign                   |
-| ADR_0027 | decisions/0027-pricing-terms-table.md                    | Pricing terms table                        |
-| ADR_0028 | decisions/0028-api-key-management-system.md              | API key management system                  |
-| ADR_0029 | decisions/0029-workspace-api-gateway.md                  | Workspace API gateway                      |
-| ADR_0030 | decisions/0030-documentation-in-landing-app.md           | Documentation in landing app               |
-| ADR_0031 | decisions/0031-journey-portal-system.md                  | Journey portal system                      |
-| ADR_0032 | decisions/0032-schedule-local-state-architecture.md      | Schedule local state architecture          |
-| ADR_0033 | decisions/0033-documentation-rag-pgvector.md             | Documentation RAG with pgvector            |
-| ADR_0034 | decisions/0034-documentation-enforcement-pipeline.md     | Documentation enforcement pipeline         |
-| ADR_0035 | decisions/0035-docker-network-infra.md                   | Docker network infrastructure              |
-| ADR_0036 | decisions/0036-shift-mcp-server.md                       | Shift MCP server                           |
-| ADR_0037 | decisions/0037-landing-event-tracking.md                 | Landing page event tracking                |
-| ADR_0038 | decisions/0038-journey-agent-output-generators.md        | Journey agent & output generators          |
-| ADR_0039 | decisions/0039-infra-consolidation.md                    | Infrastructure consolidation               |
+| id       | File                                                      | Subject                                      |
+| -------- | --------------------------------------------------------- | -------------------------------------------- |
+| ADR_0001 | decisions/0001-use-turborepo-pnpm.md                      | Turborepo + pnpm workspaces                  |
+| ADR_0002 | decisions/0002-state-vs-hooks.md                          | State-driven vs hook-driven logic            |
+| ADR_0003 | decisions/0003-shadcn-integration.md                      | shadcn/ui integration                        |
+| ADR_0004 | decisions/0004-unified-telemetry-engine.md                | Unified telemetry (PostHog)                  |
+| ADR_0005 | decisions/0005-testing-infrastructure.md                  | Testing four-layer strategy                  |
+| ADR_0006 | decisions/0006-secrets-and-environment.md                 | Env vars and secrets                         |
+| ADR_0007 | decisions/0007-dashboard-architecture.md                  | Dashboard layout & nav                       |
+| ADR_0008 | decisions/0008-dashboard-scroll-behavior.md               | Dashboard scroll behavior                    |
+| ADR_0009 | decisions/0009-tailwind-v4-css-config.md                  | Tailwind CSS v4                              |
+| ADR_0010 | decisions/0010-ai-sdk-openrouter.md                       | AI SDK with OpenRouter                       |
+| ADR_0011 | decisions/0011-user-identity-table-naming.md              | user_identity table name                     |
+| ADR_0012 | decisions/0012-subscription-on-company.md                 | Subscription on company table                |
+| ADR_0013 | decisions/0013-database-types-generation.md               | Auto-generated DB types                      |
+| ADR_0014 | decisions/0014-posthog-eu-proxy.md                        | PostHog EU proxy                             |
+| ADR_0015 | decisions/0015-bubble-rebuild-strategy.md                 | Bubble.io rebuild strategy                   |
+| ADR_0016 | decisions/0016-services-directory.md                      | Services directory                           |
+| ADR_0017 | decisions/0017-enterprise-infrastructure.md               | Enterprise infrastructure                    |
+| ADR_0018 | decisions/0018-tanstack-table-recharts-platform-admin.md  | TanStack Table + Recharts                    |
+| ADR_0019 | decisions/0019-performance-build-governance.md            | Performance governance                       |
+| ADR_0020 | decisions/0020-vercel-hosting-strategy.md                 | Vercel hosting strategy                      |
+| ADR_0021 | decisions/0021-subdomain-workspace-routing.md             | Subdomain routing                            |
+| ADR_0022 | decisions/0022-notification-service-architecture.md       | Notification service                         |
+| ADR_0023 | decisions/0023-global-scrollbar-standard.md               | Global scrollbar standard                    |
+| ADR_0024 | decisions/0024-contract-system-architecture.md            | Contract system                              |
+| ADR_0025 | decisions/0025-documentation-restructuring.md             | Docs restructuring (YAML, layers, archive)   |
+| ADR_0026 | decisions/0026-template-editor-redesign-attachments.md    | Template editor redesign                     |
+| ADR_0027 | decisions/0027-pricing-terms-table.md                     | Pricing terms table                          |
+| ADR_0028 | decisions/0028-api-key-management-system.md               | API key management system                    |
+| ADR_0029 | decisions/0029-workspace-api-gateway.md                   | Workspace API gateway                        |
+| ADR_0030 | decisions/0030-documentation-in-landing-app.md            | Documentation in landing app                 |
+| ADR_0031 | decisions/0031-journey-portal-system.md                   | Journey portal system                        |
+| ADR_0032 | decisions/0032-schedule-local-state-architecture.md       | Schedule local state architecture            |
+| ADR_0033 | decisions/0033-documentation-rag-pgvector.md              | Documentation RAG with pgvector              |
+| ADR_0034 | decisions/0034-documentation-enforcement-pipeline.md      | Documentation enforcement pipeline           |
+| ADR_0035 | decisions/0035-docker-network-infra.md                    | Docker network infrastructure                |
+| ADR_0036 | decisions/0036-shift-mcp-server.md                        | Shift MCP server                             |
+| ADR_0037 | decisions/0037-landing-event-tracking.md                  | Landing page event tracking                  |
+| ADR_0038 | decisions/0038-journey-agent-output-generators.md         | Journey agent & output generators            |
+| ADR_0039 | decisions/0039-infra-consolidation.md                     | Infrastructure consolidation                 |
+| ADR_0040 | decisions/0040-infrastructure-in-monorepo.md              | Infrastructure in monorepo                   |
+| ADR_0041 | decisions/ADR-0041-onboarding-wizard-step-architecture.md | Onboarding wizard step architecture          |
+| ADR_0042 | decisions/ADR-0042-agent-architecture.md                  | Agent architecture — Stage Engine agent mode |
 
 ### Learnings
 
@@ -187,23 +190,24 @@ See `docs/learnings/0000-learning-log.md` -- 13 learning records.
 
 Active plans in `docs/plans/`. Completed plans in `docs/plans/completed/`.
 
-| id                  | File                                               | Status              |
-| ------------------- | -------------------------------------------------- | ------------------- |
-| PLAN_BUILD_ORDER    | plans/BUILD_ORDER.md                               | canonical           |
-| PLAN_KNOWLEDGE_SYS  | plans/2026-02-27-docs-knowledge-system.md          | canonical           |
-| PLAN_NEXTRA         | plans/2026-02-28-docs-nextra-system.md             | accepted (ADR-0030) |
-| PLAN_SUBDOMAIN      | plans/2026-02-28-subdomain-workspace-routing.md    | canonical           |
-| PLAN_AUTH_KEY_MGMT  | plans/2026-02-28-auth-key-management.md            | draft               |
-| PLAN_JOURNEY_P1     | plans/2026-03-01-journey-portal-phase-1.md         | completed           |
-| PLAN_JOURNEY_P2     | plans/2026-03-01-journey-portal-phase-2.md         | in-progress         |
-| PLAN_GUIDED_DEMO    | plans/2026-03-01-guided-demo-experience.md         | draft               |
-| PLAN_DOCKER_INFRA   | plans/2026-03-01-docker-network-infra.md           | in-progress         |
-| PLAN_WIZARD_DESIGN  | plans/2026-03-01-admin-wizard-completion.md        | Approved            |
-| PLAN_WIZARD_IMPL    | plans/2026-03-01-admin-wizard-completion-plan.md   | Approved            |
-| PLAN_USER_JOURNEYS  | plans/2026-03-01-module1-user-journeys-design.md   | Approved            |
-| PLAN_ONBOARD_POLISH | plans/2026-03-01-onboarding-polish-plan.md         | Approved            |
-| PLAN_JOURNEY_TEST   | plans/2026-03-01-journey-testing-system-design.md  | Approved            |
-| PLAN_JOURNEY_IMPL   | plans/2026-03-02-journey-testing-implementation.md | in-progress         |
+| id                  | File                                                  | Status              |
+| ------------------- | ----------------------------------------------------- | ------------------- |
+| PLAN_BUILD_ORDER    | plans/BUILD_ORDER.md                                  | canonical           |
+| PLAN_KNOWLEDGE_SYS  | plans/2026-02-27-docs-knowledge-system.md             | canonical           |
+| PLAN_NEXTRA         | plans/2026-02-28-docs-nextra-system.md                | accepted (ADR-0030) |
+| PLAN_SUBDOMAIN      | plans/2026-02-28-subdomain-workspace-routing.md       | canonical           |
+| PLAN_AUTH_KEY_MGMT  | plans/2026-02-28-auth-key-management.md               | draft               |
+| PLAN_JOURNEY_P1     | plans/2026-03-01-journey-portal-phase-1.md            | completed           |
+| PLAN_JOURNEY_P2     | plans/2026-03-01-journey-portal-phase-2.md            | in-progress         |
+| PLAN_GUIDED_DEMO    | plans/2026-03-01-guided-demo-experience.md            | draft               |
+| PLAN_DOCKER_INFRA   | plans/2026-03-01-docker-network-infra.md              | in-progress         |
+| PLAN_WIZARD_DESIGN  | plans/2026-03-01-admin-wizard-completion.md           | Approved            |
+| PLAN_WIZARD_IMPL    | plans/2026-03-01-admin-wizard-completion-plan.md      | Approved            |
+| PLAN_USER_JOURNEYS  | plans/2026-03-01-module1-user-journeys-design.md      | Approved            |
+| PLAN_ONBOARD_POLISH | plans/2026-03-01-onboarding-polish-plan.md            | Approved            |
+| PLAN_AGENT_DESIGN   | plans/2026-03-01-agent-architecture-design.md         | Approved            |
+| PLAN_AGENT_IMPL     | plans/2026-03-01-agent-architecture-implementation.md | Approved            |
+| PLAN_AGENT_MASTER   | plans/PLAN-agent-architecture.md                      | Approved            |
 
 Completed plans (historical, not loaded actively):
 

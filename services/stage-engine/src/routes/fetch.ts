@@ -84,7 +84,7 @@ fetchRoute.post("/sessions/:id/fetch", zValidator("json", fetchSchema), async (c
         break;
       }
 
-      const result = await loadMission(session.mission_id);
+      const result = await loadMission(session.mission_id!);
       if (result) {
         const currentStage = result.stages.find((s) => s.stage_id === session.current_stage_id);
         data = currentStage

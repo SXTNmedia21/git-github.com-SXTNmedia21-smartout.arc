@@ -5,7 +5,7 @@ version: "1.0"
 status: canonical
 layer: reference
 created: 2026-02-28
-updated: 2026-03-01
+updated: 2026-03-02
 author: claude
 supersedes: []
 superseded_by: null
@@ -60,8 +60,12 @@ tables:
     schedule_shift,
     team_member,
     zone,
+    engine_memory,
+    engine_authority_config,
   ]
 changelog:
+  - date: 2026-03-02
+    change: "Added engine_memory and engine_authority_config tables (ADR-0042)"
   - date: 2026-02-28
     change: "Initial version -- consolidated from CLAUDE.md + CORE_ARCH_V2 + FOUNDATION_DATA_MODEL + database.types.ts"
 ---
@@ -89,7 +93,7 @@ Single source of truth for all database tables, enums, RLS patterns, naming conv
 
 ---
 
-## All Tables (47 entities)
+## All Tables (49 entities)
 
 ### Identity Layer (Global -- no workspace_id)
 
@@ -169,6 +173,21 @@ Single source of truth for all database tables, enums, RLS patterns, naming conv
 **New SQL enums:** `shift_status` (created, assigned, published, active, completed, unpublished), `day_category` (morning, midday, afternoon, evening, night, weekend).
 
 **Planned future tables:** `absence`, `shift_template`, `shift_history`, `shift_task`, `day_info`.
+
+### AI / Agent (workspace_id scoped, ADR-0042)
+
+| Table                     | PK                           | Purpose                                                                                                       |
+| ------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `engine_memory`           | `engine_memory_id`           | Persistent agent memories with pgvector embeddings. Semantic retrieval for context. RLS: workspace isolation. |
+| `engine_authority_config` | `engine_authority_config_id` | Per-workspace, per-capability authority levels. UNIQUE(workspace_id, capability).                             |
+
+**engine_sessions changes (ADR-0042):** Added `mode` column — 'mission' (structured stages) or 'agent' (free-form conversation). Agent sessions have NULL `mission_id`. The `mission_id` FK is now nullable.
+
+**engine_memory key columns:** `workspace_id`, `profile_id`, `category` (preference, fact, context, feedback), `content` (TEXT), `embedding` (vector(1536) via pgvector), `importance` (0-10 scale), `last_accessed_at`.
+
+**engine_authority_config key columns:** `workspace_id`, `capability` (TEXT — e.g. profile, schedule, training), `authority_level` (ai_authority_level enum: autonomous, notify_suggest, notify, escalate, never), `config` (JSONB for capability-specific settings).
+
+**RLS:** Both tables use dual-auth (JWT + API key) workspace isolation pattern.
 
 ### Communication (workspace_id scoped)
 

@@ -43,7 +43,7 @@ smartout_v3/
 │   ├── onboarding/     → Wizard: 15 step components + 4 drawers + useOnboardingWizard hook
 ├── apps/landing/      → Landing page (port 3055)
 ├── apps/e2e/          → Playwright tests
-├── packages/          → ai, design-tokens, docs-pipeline, eslint-config, i18n, notifications,
+├── packages/          → ai (+ capabilities/, router/, prompts/), design-tokens, docs-pipeline, eslint-config, i18n, notifications,
 │                        supabase, tailwind-config, telemetry, types, typescript-config, ui, utils
 ├── services/          → contract-service (Fastify, 3100), interview-mcp (anchor), scrapling (Python),
 │                        shift-mcp (MCP, 3001), stage-engine (Hono, 3000)
@@ -71,6 +71,9 @@ smartout_v3/
 - Enums: `api_key_version_status` (current/previous/revoked), `api_key_type` (workspace/service).
 - Vault wrappers: `get_secret()`, `upsert_secret()`, `delete_vault_secret()` — SECURITY DEFINER, service_role only.
 - Schedule table: `schedule_shift` (not `shift`). Enums: `shift_status`, `day_category`. See ADR-0036.
+- `engine_memory` — Persistent agent memories with pgvector embeddings. RLS: workspace isolation.
+- `engine_authority_config` — Per-workspace, per-capability authority levels. UNIQUE(workspace_id, capability).
+- `engine_sessions.mode` — 'mission' (structured stages) or 'agent' (free-form conversation). Agent sessions have NULL mission_id.
 
 > Full schema, tables, enums, RLS patterns: `docs/reference/DATABASE.md`
 
@@ -139,7 +142,7 @@ smartout_v3/
 ## Modules & ADRs
 
 > 17 modules (1-15, 17-18). Load `docs/modules/MODULE_*.md` BEFORE implementing.
-> 32 ADRs in `docs/decisions/`. Read before making changes in the same area.
+> 42 ADRs in `docs/decisions/`. Read before making changes in the same area.
 > Full lists: `docs/INDEX.md`
 
 **ADR Enforcement:** Create an ADR when adding dependencies, choosing between approaches, changing schema patterns, adding integrations, or modifying build/deploy. Template: `docs/templates/decision.md`. Register in `0000-decision-log.md`.
@@ -304,20 +307,21 @@ cd apps/web && npx shadcn@latest add <component>
 
 ## Changelog
 
-| Date       | Version | Change                                                                                                | Author |
-| ---------- | ------- | ----------------------------------------------------------------------------------------------------- | ------ |
-| 2026-03-01 | 7.9.0   | Onboarding wizard refactored: 15 step components, 4 drawers, progressive save, auth step, invite step | Claude |
-| 2026-03-01 | 7.8.0   | Doc audit: add infra/, stage-engine, interview-mcp, i18n, tailwind-config; fix counts                 | Claude |
-| 2026-03-01 | 7.7.0   | shift-mcp service, schedule_shift table, ADR-0036, schedules scope active                             | Claude |
-| 2026-03-01 | 7.6.0   | workspace-api gateway: 7 endpoints, usage tracking, env enforcement, 15 Edge Functions                | Claude |
-| 2026-03-01 | 7.5.0   | API Gateway enforcement: mandatory checklists, scope table, service auth, env enforcement             | Claude |
-| 2026-03-01 | 7.4.0   | Inline security summary: Three Laws, API key tiers, env vars always in context                        | Claude |
-| 2026-03-01 | 7.3.0   | Protocols folder, templates folder, security protocol populated                                       | Claude |
-| 2026-02-28 | 7.2.0   | API key management: 3 tables, 2 Edge Functions, 8 API routes, UI, ADR-0028                            | Claude |
-| 2026-02-28 | 7.1.0   | Added Security section referencing SMARTOUT_SECURITY_PROTOCOL                                         | Pontus |
-| 2026-02-28 | 7.0.0   | Major trim: moved details to reference files, <280 lines                                              | Claude |
-| 2026-02-28 | 6.1.0   | Pricing terms, workspace creation, ADR-0027                                                           | Claude |
-| 2026-02-28 | 6.0.0   | Docs restructuring, INDEX.md, reference files, YAML, ADR-0025                                         | Claude |
-| 2026-02-28 | 5.0.0   | Contract system, microservice, notifications, ADR-0021-0024                                           | Claude |
-| 2026-02-27 | 2.0.0   | Complete rewrite verified against codebase                                                            | Claude |
-| 2026-01-01 | 1.0.0   | Initial version                                                                                       | Pontus |
+| Date       | Version | Change                                                                                                     | Author |
+| ---------- | ------- | ---------------------------------------------------------------------------------------------------------- | ------ |
+| 2026-03-02 | 8.0.0   | Agent architecture: engine_memory, engine_authority_config tables, agent mode in engine_sessions, ADR-0042 | Claude |
+| 2026-03-01 | 7.9.0   | Onboarding wizard refactored: 15 step components, 4 drawers, progressive save, auth step, invite step      | Claude |
+| 2026-03-01 | 7.8.0   | Doc audit: add infra/, stage-engine, interview-mcp, i18n, tailwind-config; fix counts                      | Claude |
+| 2026-03-01 | 7.7.0   | shift-mcp service, schedule_shift table, ADR-0036, schedules scope active                                  | Claude |
+| 2026-03-01 | 7.6.0   | workspace-api gateway: 7 endpoints, usage tracking, env enforcement, 15 Edge Functions                     | Claude |
+| 2026-03-01 | 7.5.0   | API Gateway enforcement: mandatory checklists, scope table, service auth, env enforcement                  | Claude |
+| 2026-03-01 | 7.4.0   | Inline security summary: Three Laws, API key tiers, env vars always in context                             | Claude |
+| 2026-03-01 | 7.3.0   | Protocols folder, templates folder, security protocol populated                                            | Claude |
+| 2026-02-28 | 7.2.0   | API key management: 3 tables, 2 Edge Functions, 8 API routes, UI, ADR-0028                                 | Claude |
+| 2026-02-28 | 7.1.0   | Added Security section referencing SMARTOUT_SECURITY_PROTOCOL                                              | Pontus |
+| 2026-02-28 | 7.0.0   | Major trim: moved details to reference files, <280 lines                                                   | Claude |
+| 2026-02-28 | 6.1.0   | Pricing terms, workspace creation, ADR-0027                                                                | Claude |
+| 2026-02-28 | 6.0.0   | Docs restructuring, INDEX.md, reference files, YAML, ADR-0025                                              | Claude |
+| 2026-02-28 | 5.0.0   | Contract system, microservice, notifications, ADR-0021-0024                                                | Claude |
+| 2026-02-27 | 2.0.0   | Complete rewrite verified against codebase                                                                 | Claude |
+| 2026-01-01 | 1.0.0   | Initial version                                                                                            | Pontus |

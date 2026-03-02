@@ -8,6 +8,9 @@
 /** Mission mode determines how stages are navigated */
 export type MissionMode = "sequential" | "free" | "hybrid";
 
+/** Session mode: mission = multi-stage workflow, agent = free-form conversation */
+export type SessionMode = "mission" | "agent";
+
 /** Channel through which the agent communicates */
 export type SessionChannel = "voice" | "sms" | "chat" | "email" | "autonomous";
 
@@ -59,7 +62,8 @@ export type Stage = {
  */
 export type Session = {
   id: string;
-  mission_id: string;
+  mode: SessionMode;
+  mission_id: string | null;
   workspace_id: string;
   user_id: string | null;
   profile_id: string | null;

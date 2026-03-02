@@ -25,8 +25,8 @@ export async function advanceStage(
   session: Session,
   req: AdvanceRequest,
 ): Promise<AdvanceResponse | null> {
-  // Load mission and stages
-  const result = await loadMission(session.mission_id);
+  // Load mission and stages (mission_id is guaranteed non-null for mission-mode sessions)
+  const result = await loadMission(session.mission_id!);
   if (!result) return null;
 
   const { mission, stages } = result;
