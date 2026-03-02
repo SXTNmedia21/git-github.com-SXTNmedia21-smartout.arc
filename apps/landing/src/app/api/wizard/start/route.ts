@@ -11,13 +11,17 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { startMissionCall } from "@smartout/ai/missions";
 import { createAdminClient } from "@smartout/supabase/admin";
+import { getServiceKey } from "@smartout/supabase/vault";
 import type { Json } from "@smartout/supabase";
 
 export async function POST(request: NextRequest) {
-  const apiKey = process.env.ULTRAVOX_API_KEY;
-
-  if (!apiKey) {
-    console.error("[wizard/start] ULTRAVOX_API_KEY is not set. Add it to .env.local or 1Password.");
+  let apiKey: string;
+  try {
+    apiKey = await getServiceKey(createAdminClient(), "ultravox");
+  } catch {
+    console.error(
+      "[wizard/start] ULTRAVOX_API_KEY not found in Vault. Save it via /platform-admin/keys.",
+    );
     return NextResponse.json(
       { error: "Voice assistant is not configured. Contact administrator." },
       { status: 503 },

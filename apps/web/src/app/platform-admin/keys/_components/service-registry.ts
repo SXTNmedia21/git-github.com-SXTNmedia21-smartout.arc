@@ -145,6 +145,24 @@ export const SERVICE_REGISTRY: readonly ServiceEntry[] = [
     docsUrl: "https://www.docuseal.com/docs/api",
   },
 
+  {
+    key: "stage_engine_url",
+    provider: "smartout",
+    envVar: "STAGE_ENGINE_URL",
+    label: "Stage Engine URL",
+    tag: "ai",
+    tab: "server",
+    prefix: "http",
+  },
+  {
+    key: "stage_engine_api_key",
+    provider: "smartout",
+    envVar: "STAGE_ENGINE_API_KEY",
+    label: "Stage Engine API Key",
+    tag: "ai",
+    tab: "server",
+  },
+
   // --- Runtime Keys ---
   {
     key: "upstash_redis_url",

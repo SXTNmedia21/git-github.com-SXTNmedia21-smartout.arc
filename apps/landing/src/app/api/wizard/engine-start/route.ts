@@ -8,15 +8,23 @@
 
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { createAdminClient } from "@smartout/supabase/admin";
+import { getServiceKey } from "@smartout/supabase/vault";
 
 export async function POST(request: NextRequest) {
-  const engineUrl = process.env.STAGE_ENGINE_URL;
-  const apiKey = process.env.STAGE_ENGINE_API_KEY;
-
-  if (!engineUrl || !apiKey) {
-    console.error("[engine-start] STAGE_ENGINE_URL or STAGE_ENGINE_API_KEY not set");
+  let engineUrl: string;
+  let apiKey: string;
+  try {
+    const admin = createAdminClient();
+    [engineUrl, apiKey] = await Promise.all([
+      getServiceKey(admin, "stage_engine_url"),
+      getServiceKey(admin, "stage_engine_api_key"),
+    ]);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "unknown";
+    console.error(`[engine-start] Vault lookup failed: ${msg}`);
     return NextResponse.json(
-      { error: "Stage Engine is not configured. Set STAGE_ENGINE_URL and STAGE_ENGINE_API_KEY." },
+      { error: "Stage Engine is not configured. Save keys via /platform-admin/keys." },
       { status: 503 },
     );
   }
