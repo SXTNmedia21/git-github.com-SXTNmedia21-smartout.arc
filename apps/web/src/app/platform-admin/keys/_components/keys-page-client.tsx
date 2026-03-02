@@ -20,6 +20,7 @@ import {
   Search,
   ShieldX,
   Lock,
+  Upload,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -60,6 +61,16 @@ import { StatusBadge } from "@/components/platform-admin/status-badge";
 import { ConfirmationDialog } from "@/components/platform-admin/confirmation-dialog";
 import { CreateKeyDialog } from "./create-key-dialog";
 import { KeySecretDisplay } from "./key-secret-display";
+import { KeysTable } from "./keys-table";
+import { EnvImportDialog } from "./env-import-dialog";
+import {
+  type ServiceTab,
+  type ServiceTag,
+  TAB_LABELS,
+  TAG_LABELS,
+  getServicesForTab,
+  groupByTag,
+} from "./service-registry";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -106,6 +117,12 @@ type SecretRow = {
   updated_at: string;
 };
 
+type SecretStatus = {
+  configured: boolean;
+  environment: string;
+  lastRotatedAt: string | null;
+};
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -118,6 +135,8 @@ function formatDate(dateString: string | null): string {
     day: "2-digit",
   });
 }
+
+const SERVICE_TABS: ServiceTab[] = ["client", "server", "runtime", "webhooks"];
 
 // ---------------------------------------------------------------------------
 // Component
@@ -134,12 +153,9 @@ export function KeysPageClient() {
   const [keyGlobalFilter, setKeyGlobalFilter] = useState("");
   const [keyStatusFilter, setKeyStatusFilter] = useState<string>("all");
 
-  // Secrets table state
-  const [secretSorting, setSecretSorting] = useState<SortingState>([]);
-  const [secretGlobalFilter, setSecretGlobalFilter] = useState("");
-
   // Dialog state
   const [createOpen, setCreateOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [rotateResult, setRotateResult] = useState<{
     open: boolean;
     plaintextKey: string;
@@ -186,6 +202,22 @@ export function KeysPageClient() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // ---------------------------------------------------------------------------
+  // Secret statuses — map service registry keys to vault state
+  // ---------------------------------------------------------------------------
+
+  const secretStatuses = useMemo(() => {
+    const map = new Map<string, SecretStatus>();
+    for (const secret of secrets) {
+      map.set(secret.vault_secret_name, {
+        configured: secret.is_active,
+        environment: secret.environment,
+        lastRotatedAt: secret.last_rotated_at,
+      });
+    }
+    return map;
+  }, [secrets]);
 
   // ---------------------------------------------------------------------------
   // Key actions
@@ -395,100 +427,6 @@ export function KeysPageClient() {
   );
 
   // ---------------------------------------------------------------------------
-  // Secrets columns
-  // ---------------------------------------------------------------------------
-
-  const secretColumns = useMemo<ColumnDef<SecretRow>[]>(
-    () => [
-      {
-        accessorKey: "provider",
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="-ml-3 h-8"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            Provider
-            <ArrowUpDown className="ml-1 h-3 w-3" />
-          </Button>
-        ),
-        cell: ({ row }) => <span className="font-medium">{row.original.provider}</span>,
-      },
-      {
-        accessorKey: "vault_secret_name",
-        header: "Vault Name",
-        cell: ({ row }) => (
-          <code className="bg-muted rounded px-1.5 py-0.5 font-mono text-xs">
-            {row.original.vault_secret_name}
-          </code>
-        ),
-      },
-      {
-        accessorKey: "environment",
-        header: "Env",
-        cell: ({ row }) => <StatusBadge status={row.original.environment} size="sm" />,
-      },
-      {
-        accessorKey: "last_rotated_at",
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="-ml-3 h-8"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            Last Rotated
-            <ArrowUpDown className="ml-1 h-3 w-3" />
-          </Button>
-        ),
-        cell: ({ row }) => (
-          <span className="text-muted-foreground text-xs">
-            {formatDate(row.original.last_rotated_at)}
-          </span>
-        ),
-      },
-      {
-        accessorKey: "is_active",
-        header: "Status",
-        cell: ({ row }) => (
-          <StatusBadge status={row.original.is_active ? "active" : "inactive"} size="sm" />
-        ),
-      },
-      {
-        id: "actions",
-        cell: () => (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                <MoreHorizontal className="h-4 w-4" />
-                <span className="sr-only">Open menu</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={() => toast.info("Secret rotation is not yet implemented")}
-              >
-                <RefreshCw className="h-4 w-4" />
-                Rotate Secret
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => toast.info("Secret deactivation is not yet implemented")}
-              >
-                <ShieldX className="h-4 w-4" />
-                Deactivate
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ),
-        enableSorting: false,
-      },
-    ],
-    [],
-  );
-
-  // ---------------------------------------------------------------------------
   // Filtered data
   // ---------------------------------------------------------------------------
 
@@ -498,7 +436,7 @@ export function KeysPageClient() {
   }, [keys, keyStatusFilter]);
 
   // ---------------------------------------------------------------------------
-  // Tables
+  // API Keys table
   // ---------------------------------------------------------------------------
 
   const keysTable = useReactTable({
@@ -520,29 +458,6 @@ export function KeysPageClient() {
     },
     state: { sorting: keySorting, globalFilter: keyGlobalFilter },
     onGlobalFilterChange: setKeyGlobalFilter,
-    initialState: {
-      pagination: { pageSize: 20 },
-    },
-  });
-
-  const secretsTable = useReactTable({
-    data: secrets,
-    columns: secretColumns,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    onSortingChange: setSecretSorting,
-    globalFilterFn: (row, _columnId, filterValue: string) => {
-      const search = filterValue.toLowerCase();
-      const secret = row.original;
-      return (
-        secret.provider.toLowerCase().includes(search) ||
-        secret.vault_secret_name.toLowerCase().includes(search)
-      );
-    },
-    state: { sorting: secretSorting, globalFilter: secretGlobalFilter },
-    onGlobalFilterChange: setSecretGlobalFilter,
     initialState: {
       pagination: { pageSize: 20 },
     },
@@ -570,27 +485,33 @@ export function KeysPageClient() {
             Manage API keys and external secrets for the platform
           </p>
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Create Key
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setImportOpen(true)}>
+            <Upload className="mr-2 h-4 w-4" />
+            Import .env
+          </Button>
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Create Key
+          </Button>
+        </div>
       </div>
 
-      {/* Tabs */}
-      <Tabs defaultValue="keys" className="mt-6">
+      {/* Main Tabs */}
+      <Tabs defaultValue="api-keys" className="mt-6">
         <TabsList>
-          <TabsTrigger value="keys" className="gap-1.5">
+          <TabsTrigger value="api-keys" className="gap-1.5">
             <KeyRound className="h-3.5 w-3.5" />
             API Keys
           </TabsTrigger>
-          <TabsTrigger value="secrets" className="gap-1.5">
+          <TabsTrigger value="external-secrets" className="gap-1.5">
             <Lock className="h-3.5 w-3.5" />
             External Secrets
           </TabsTrigger>
         </TabsList>
 
         {/* API Keys Tab */}
-        <TabsContent value="keys">
+        <TabsContent value="api-keys">
           <div className="space-y-4">
             {/* Toolbar */}
             <div className="flex items-center justify-between gap-4">
@@ -698,103 +619,44 @@ export function KeysPageClient() {
           </div>
         </TabsContent>
 
-        {/* External Secrets Tab */}
-        <TabsContent value="secrets">
-          <div className="space-y-4">
-            {/* Toolbar */}
-            <div className="flex items-center justify-between gap-4">
-              <div className="relative max-w-sm flex-1">
-                <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
-                <Input
-                  placeholder="Search by provider or vault name..."
-                  value={secretGlobalFilter}
-                  onChange={(e) => setSecretGlobalFilter(e.target.value)}
-                  className="h-9 pl-9 text-sm"
-                />
-              </div>
-              <div className="text-muted-foreground flex items-center gap-2 text-xs">
-                <Lock className="h-3.5 w-3.5" />
-                {secrets.length} secrets
-              </div>
-            </div>
+        {/* External Secrets Tab — 4 sub-tabs by service category */}
+        <TabsContent value="external-secrets">
+          <Tabs defaultValue="client" className="space-y-4">
+            <TabsList>
+              {SERVICE_TABS.map((tab) => (
+                <TabsTrigger key={tab} value={tab} className="text-xs">
+                  {TAB_LABELS[tab]}
+                </TabsTrigger>
+              ))}
+            </TabsList>
 
-            {/* Table */}
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  {secretsTable.getHeaderGroups().map((headerGroup) => (
-                    <TableRow key={headerGroup.id}>
-                      {headerGroup.headers.map((header) => (
-                        <TableHead
-                          key={header.id}
-                          className="text-xs font-medium tracking-wider uppercase"
-                          style={
-                            header.column.getSize() !== 150
-                              ? { width: header.column.getSize() }
-                              : undefined
-                          }
-                        >
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(header.column.columnDef.header, header.getContext())}
-                        </TableHead>
-                      ))}
-                    </TableRow>
+            {SERVICE_TABS.map((tab) => {
+              const services = getServicesForTab(tab);
+              const grouped = groupByTag(services);
+
+              return (
+                <TabsContent key={tab} value={tab} className="space-y-6">
+                  {[...grouped.entries()].map(([tag, tagServices]) => (
+                    <div key={tag}>
+                      <h3 className="text-muted-foreground mb-2 text-xs font-medium tracking-wider uppercase">
+                        {TAG_LABELS[tag as ServiceTag]}
+                      </h3>
+                      <KeysTable
+                        services={tagServices}
+                        secretStatuses={secretStatuses}
+                        onUpdated={fetchData}
+                      />
+                    </div>
                   ))}
-                </TableHeader>
-                <TableBody>
-                  {secretsTable.getRowModel().rows?.length ? (
-                    secretsTable.getRowModel().rows.map((row) => (
-                      <TableRow key={row.id}>
-                        {row.getVisibleCells().map((cell) => (
-                          <TableCell key={cell.id} className="text-sm">
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell
-                        colSpan={secretColumns.length}
-                        className="text-muted-foreground h-24 text-center"
-                      >
-                        No external secrets found.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-
-            {/* Pagination */}
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground text-xs">
-                Page {secretsTable.getState().pagination.pageIndex + 1} of{" "}
-                {secretsTable.getPageCount()}
-              </span>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => secretsTable.previousPage()}
-                  disabled={!secretsTable.getCanPreviousPage()}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => secretsTable.nextPage()}
-                  disabled={!secretsTable.getCanNextPage()}
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
-          </div>
+                </TabsContent>
+              );
+            })}
+          </Tabs>
         </TabsContent>
       </Tabs>
+
+      {/* Import Dialog */}
+      <EnvImportDialog open={importOpen} onOpenChange={setImportOpen} onImported={fetchData} />
 
       {/* Create Key Dialog */}
       <CreateKeyDialog open={createOpen} onOpenChange={setCreateOpen} onCreated={fetchData} />
