@@ -11,6 +11,8 @@
 
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { LandingActivityClient } from "./landing-activity-client";
 import { SessionsTab } from "./sessions-tab";
@@ -44,6 +46,16 @@ export function LandingTabs({
   avgDurationToday,
   avgScrollToday,
 }: LandingTabsProps) {
+  const router = useRouter();
+
+  // Auto-refresh every 10 seconds for live feed
+  useEffect(() => {
+    const interval = setInterval(() => {
+      router.refresh();
+    }, 10_000);
+    return () => clearInterval(interval);
+  }, [router]);
+
   return (
     <Tabs defaultValue="sessions">
       <TabsList>
