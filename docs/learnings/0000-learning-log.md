@@ -17,3 +17,6 @@ tags: [learnings]
 | 4   | 2026-03-01 | sessionStorage keys work well as once-per-session event guards (scroll thresholds)                                                              | Reusable pattern for any per-session dedup |
 | 5   | 2026-03-01 | React strict mode ESLint: Date.now() in useRef initializer triggers react-hooks/purity — move to useEffect body instead                         | Affects all hooks with impure ref init     |
 | 6   | 2026-03-01 | Supabase join syntax `table!inner(fields)` works for nested joins across FKs — used for session → visitor → user_identity                       | Enables rich admin data in single query    |
+| 7   | 2026-03-02 | user_identity PK is `user_id`, NOT `id` — FK references must use `user_identity(user_id)`                                                       | Critical: migration fails otherwise        |
+| 8   | 2026-03-02 | FK constraint order matters: parent row must exist before child insert. Visitor upsert must run before landing_event insert with visitor_id FK  | Silent failures if order is wrong          |
+| 9   | 2026-03-02 | close-feature.sh typecheck gate: `tail -3` misses "successful" when turbo output is short (cached). Use `grep` without tail                     | Script bug fixed                           |
