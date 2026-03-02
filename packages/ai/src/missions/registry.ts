@@ -55,7 +55,7 @@ Start med å hilse varmt og spørre om bedriftens navn og hva slags virksomhet d
     greeting: "Hei! Jeg er Lise fra Smartout. Hva lurer du på i dag?",
     uiDescription: "AI-ambassadør — forteller alt om Smartout",
     language: "no",
-    voice: "jessica",
+    voice: "tina",
     temperature: 0.6,
     maxDurationSeconds: 600,
     firstSpeaker: "agent",

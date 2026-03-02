@@ -1,5 +1,9 @@
+"use client";
+
 import Link from "next/link";
-import { Building2 } from "lucide-react";
+import { Building2, ArrowUp } from "lucide-react";
+import { Suspense } from "react";
+import { VariantDropdown } from "./variant-dropdown";
 
 const footerLinks = {
   Produkt: [
@@ -57,12 +61,22 @@ export default function Footer() {
             &copy; 2026 SmartOut AS. Helt bygget for fremtiden.
           </p>
           <div className="flex items-center gap-6 text-sm text-zinc-600">
+            <Suspense>
+              <VariantDropdown />
+            </Suspense>
             <Link href="/personvern" className="transition-colors hover:text-zinc-400">
               Personvern
             </Link>
             <Link href="/vilkar" className="transition-colors hover:text-zinc-400">
               Vilkår
             </Link>
+            <button
+              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+              className="flex items-center gap-1 transition-colors hover:text-zinc-300"
+              aria-label="Tilbake til toppen"
+            >
+              Toppen <ArrowUp className="h-3 w-3" />
+            </button>
           </div>
         </div>
       </div>

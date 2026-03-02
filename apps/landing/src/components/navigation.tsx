@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Building2, ArrowRight, Menu, X } from "lucide-react";
 import { WEB_APP_LINKS } from "../lib/web-app-url";
+import { VariantBadge } from "./variant-badge";
 
 const NAV_LINKS = [
   { href: "/om-oss", label: "Om Oss" },
@@ -39,6 +40,9 @@ export default function Navigation() {
               {link.label}
             </Link>
           ))}
+          <Suspense>
+            <VariantBadge />
+          </Suspense>
           <Link
             href={WEB_APP_LINKS.onboarding}
             className="flex items-center gap-2 rounded-full bg-white px-5 py-2 text-sm font-bold text-zinc-950 shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-colors hover:bg-zinc-200 hover:shadow-[0_0_30px_rgba(255,255,255,0.2)]"
