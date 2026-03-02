@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Calendar,
   TrendingUp,
@@ -8,132 +9,108 @@ import {
   AlertCircle,
   CheckCircle2,
   ShieldCheck,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
+import { SignalCard } from "./SignalCard";
+import {
+  useStaffingCoverage,
+  getCurrentWeekStart,
+  useTrainingReadiness,
+} from "@/app/dashboard/_hooks";
 
 interface TacticalViewProps {
   isDark: boolean;
 }
 
+function getWeekStart(offset: number): string {
+  const base = new Date(getCurrentWeekStart());
+  base.setDate(base.getDate() + offset * 7);
+  return base.toISOString().split("T")[0]!;
+}
+
+function getWeekNumber(dateStr: string): number {
+  const d = new Date(dateStr);
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+}
+
 export function TacticalView({ isDark }: TacticalViewProps) {
+  const [weekOffset, setWeekOffset] = useState(0);
+  const weekStart = getWeekStart(weekOffset);
+  const weekNum = getWeekNumber(weekStart);
+
+  const { data: coverage, isLoading: coverageLoading } = useStaffingCoverage(weekStart);
+  const { data: training } = useTrainingReadiness();
+
+  // Compute overall staffing fill %
+  const overallFill =
+    coverage && coverage.length > 0
+      ? Math.round(coverage.reduce((sum, d) => sum + d.fillPercent, 0) / coverage.length)
+      : null;
+
+  const staffingStatus =
+    overallFill === null
+      ? "good"
+      : overallFill >= 90
+        ? "good"
+        : overallFill >= 70
+          ? "warning"
+          : "critical";
+
+  const trainingStatus = !training
+    ? "good"
+    : training.readinessPercent >= 90
+      ? "good"
+      : training.readinessPercent >= 70
+        ? "warning"
+        : "critical";
+
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto pr-2 pb-2 duration-500">
-      {/* Top Metrics Row */}
+      {/* Top Signal Cards */}
       <div className="grid flex-shrink-0 grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {/* Payroll Cost */}
-        <div
-          className={`group relative overflow-hidden rounded-2xl border p-5 ${isDark ? "border-zinc-800/50 bg-zinc-950" : "border-zinc-200 bg-white"}`}
-        >
-          <div className="absolute -top-4 -right-4 h-24 w-24 rounded-full bg-emerald-500/10 blur-2xl transition-colors group-hover:bg-emerald-500/20" />
-          <div className="relative z-10 mb-3 flex items-center gap-3">
-            <div
-              className={`rounded-lg border p-2 ${isDark ? "border-zinc-800 bg-zinc-900 text-emerald-400" : "border-emerald-100 bg-emerald-50 text-emerald-600"}`}
-            >
-              <TrendingUp className="h-4 w-4" />
-            </div>
-            <h3
-              className={`text-xs font-bold tracking-widest uppercase ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-            >
-              Weekly Payroll
-            </h3>
-          </div>
-          <div className="relative z-10 flex items-end gap-2">
-            <span
-              className={`text-3xl leading-none font-bold ${isDark ? "text-white" : "text-zinc-900"}`}
-            >
-              142k NOK
-            </span>
-            <span
-              className={`mb-0.5 text-sm font-medium ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-            >
-              vs 145k budget
-            </span>
-          </div>
-        </div>
-
-        {/* Payroll % */}
-        <div
-          className={`group relative overflow-hidden rounded-2xl border p-5 ${isDark ? "border-zinc-800/50 bg-zinc-950" : "border-zinc-200 bg-white"}`}
-        >
-          <div className="absolute -top-4 -right-4 h-24 w-24 rounded-full bg-blue-500/10 blur-2xl transition-colors group-hover:bg-blue-500/20" />
-          <div className="relative z-10 mb-3 flex items-center gap-3">
-            <div
-              className={`rounded-lg border p-2 ${isDark ? "border-zinc-800 bg-zinc-900 text-blue-400" : "border-blue-100 bg-blue-50 text-blue-600"}`}
-            >
-              <Percent className="h-4 w-4" />
-            </div>
-            <h3
-              className={`text-xs font-bold tracking-widest uppercase ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-            >
-              Cost of Sales %
-            </h3>
-          </div>
-          <div className="relative z-10 flex items-end gap-2">
-            <span
-              className={`text-3xl leading-none font-bold ${isDark ? "text-white" : "text-zinc-900"}`}
-            >
-              28.3%
-            </span>
-            <span className="mb-0.5 text-sm font-medium text-emerald-500">target &lt;30%</span>
-          </div>
-        </div>
-
-        {/* Absence Rate */}
-        <div
-          className={`group relative cursor-pointer overflow-hidden rounded-2xl border p-5 transition-colors hover:border-orange-500/30 ${isDark ? "border-zinc-800/50 bg-zinc-950" : "border-zinc-200 bg-white"}`}
-        >
-          <div className="absolute -top-4 -right-4 h-24 w-24 rounded-full bg-orange-500/10 blur-2xl transition-colors group-hover:bg-orange-500/20" />
-          <div className="relative z-10 mb-3 flex items-center gap-3">
-            <div
-              className={`rounded-lg border p-2 ${isDark ? "border-orange-500/20 bg-orange-500/10 text-orange-500" : "border-orange-200 bg-orange-50 text-orange-600"}`}
-            >
-              <AlertCircle className="h-4 w-4" />
-            </div>
-            <h3
-              className={`text-xs font-bold tracking-widest uppercase ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-            >
-              Absence (MTD)
-            </h3>
-          </div>
-          <div className="relative z-10 flex items-end gap-2">
-            <span
-              className={`text-3xl leading-none font-bold ${isDark ? "text-orange-400" : "text-orange-600"}`}
-            >
-              4.2%
-            </span>
-            <span
-              className={`mb-0.5 text-sm font-medium ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-            >
-              up 0.8%
-            </span>
-          </div>
-        </div>
-
-        {/* Overtime */}
-        <div
-          className={`group relative overflow-hidden rounded-2xl border p-5 ${isDark ? "border-zinc-800/50 bg-zinc-950" : "border-zinc-200 bg-white"}`}
-        >
-          <div className="absolute -top-4 -right-4 h-24 w-24 rounded-full bg-indigo-500/10 blur-2xl transition-colors group-hover:bg-indigo-500/20" />
-          <div className="relative z-10 mb-3 flex items-center gap-3">
-            <div
-              className={`rounded-lg border p-2 ${isDark ? "border-zinc-800 bg-zinc-900 text-indigo-400" : "border-indigo-100 bg-indigo-50 text-indigo-600"}`}
-            >
-              <Clock className="h-4 w-4" />
-            </div>
-            <h3
-              className={`text-xs font-bold tracking-widest uppercase ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-            >
-              Overtime Hrs
-            </h3>
-          </div>
-          <div className="relative z-10 flex items-end gap-2">
-            <span
-              className={`text-3xl leading-none font-bold ${isDark ? "text-white" : "text-zinc-900"}`}
-            >
-              23h
-            </span>
-            <span className="mb-0.5 text-sm font-medium text-emerald-500">down 5h</span>
-          </div>
-        </div>
+        <SignalCard
+          isDark={isDark}
+          label="Staffing Coverage"
+          value={overallFill !== null ? `${overallFill}%` : "--"}
+          target="target 100%"
+          status={staffingStatus}
+          icon={<TrendingUp className="h-4 w-4" />}
+        />
+        <SignalCard
+          isDark={isDark}
+          label="Training Readiness"
+          value={training ? `${training.readinessPercent}%` : "--"}
+          target="target 100%"
+          status={trainingStatus}
+          icon={<CheckCircle2 className="h-4 w-4" />}
+          trend={
+            training
+              ? {
+                  direction: training.readinessPercent >= 90 ? "up" : "down",
+                  label: `${training.completed}/${training.totalAssignments}`,
+                }
+              : undefined
+          }
+        />
+        <SignalCard
+          isDark={isDark}
+          label="Cost of Sales %"
+          value="--"
+          status="good"
+          icon={<Percent className="h-4 w-4" />}
+          isPlaceholder
+        />
+        <SignalCard
+          isDark={isDark}
+          label="Absence (MTD)"
+          value="--"
+          status="good"
+          icon={<Clock className="h-4 w-4" />}
+          isPlaceholder
+        />
       </div>
 
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-3">
@@ -142,98 +119,112 @@ export function TacticalView({ isDark }: TacticalViewProps) {
           className={`flex min-h-0 flex-col rounded-2xl border p-4 shadow-sm lg:col-span-2 ${isDark ? "border-zinc-800 bg-[#0c0c0e]" : "border-zinc-200 bg-white"}`}
         >
           <div className="mb-4 flex items-center justify-between">
-            <h2 className={`text-xl font-extrabold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}>
-              Staffing Coverage (Week 9)
-            </h2>
-            <button
-              className={`rounded-lg border px-3 py-1.5 text-sm font-semibold transition-colors ${isDark ? "border-zinc-700 text-zinc-300 hover:bg-zinc-800" : "border-zinc-200 text-zinc-700 hover:bg-zinc-50"}`}
-            >
-              View Schedule Details
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setWeekOffset((o) => o - 1)}
+                className={`rounded-lg border p-1.5 transition-colors ${isDark ? "border-zinc-700 text-zinc-400 hover:bg-zinc-800" : "border-zinc-200 text-zinc-500 hover:bg-zinc-50"}`}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <h2
+                className={`text-xl font-extrabold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}
+              >
+                Staffing Coverage (Week {weekNum})
+              </h2>
+              <button
+                onClick={() => setWeekOffset((o) => o + 1)}
+                className={`rounded-lg border p-1.5 transition-colors ${isDark ? "border-zinc-700 text-zinc-400 hover:bg-zinc-800" : "border-zinc-200 text-zinc-500 hover:bg-zinc-50"}`}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+              {weekOffset !== 0 && (
+                <button
+                  onClick={() => setWeekOffset(0)}
+                  className={`rounded-lg px-2 py-1 text-xs font-semibold ${isDark ? "text-zinc-400 hover:text-zinc-200" : "text-zinc-500 hover:text-zinc-700"}`}
+                >
+                  Today
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="flex min-h-0 flex-1 flex-col justify-around">
-            {[
-              {
-                day: "Mon",
-                status: "OK",
-                fill: "100%",
-                color: isDark ? "bg-emerald-500/80" : "bg-emerald-500",
-              },
-              {
-                day: "Tue",
-                status: "OK",
-                fill: "100%",
-                color: isDark ? "bg-emerald-500/80" : "bg-emerald-500",
-              },
-              {
-                day: "Wed",
-                status: "Alert",
-                fill: "85%",
-                color: isDark ? "bg-orange-500/80" : "bg-orange-500",
-                note: "1 Short (Evening)",
-              },
-              {
-                day: "Thu",
-                status: "OK",
-                fill: "100%",
-                color: isDark ? "bg-emerald-500/80" : "bg-emerald-500",
-              },
-              {
-                day: "Fri",
-                status: "OK",
-                fill: "100%",
-                color: isDark ? "bg-emerald-500/80" : "bg-emerald-500",
-              },
-              {
-                day: "Sat",
-                status: "Alert",
-                fill: "90%",
-                color: isDark ? "bg-orange-500/80" : "bg-orange-500",
-                note: "High volume expected",
-              },
-              {
-                day: "Sun",
-                status: "Alert",
-                fill: "70%",
-                color: isDark ? "bg-red-500/80" : "bg-red-500",
-                note: "2 Open Shifts",
-              },
-            ].map((d, i) => (
-              <div key={i} className="group flex items-center gap-4">
-                <span
-                  className={`w-10 text-sm font-bold ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-                >
-                  {d.day}
-                </span>
-                <div
-                  className={`relative h-6 flex-1 overflow-hidden rounded-lg ${isDark ? "bg-zinc-800/50" : "bg-zinc-100"}`}
-                >
+            {coverageLoading ? (
+              Array.from({ length: 7 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-4">
+                  <span
+                    className={`w-10 text-sm font-bold ${isDark ? "text-zinc-600" : "text-zinc-300"}`}
+                  >
+                    ---
+                  </span>
                   <div
-                    className={`h-full ${d.color} transition-all duration-1000 ease-out`}
-                    style={{ width: d.fill }}
+                    className={`h-6 flex-1 animate-pulse rounded-lg ${isDark ? "bg-zinc-800/50" : "bg-zinc-100"}`}
                   />
                 </div>
-                <div className="flex w-32 items-center justify-end gap-2">
-                  {d.note && (
+              ))
+            ) : coverage && coverage.length > 0 ? (
+              coverage.map((d) => {
+                const fill = `${d.fillPercent}%`;
+                const barColor =
+                  d.fillPercent >= 100
+                    ? isDark
+                      ? "bg-emerald-500/80"
+                      : "bg-emerald-500"
+                    : d.fillPercent >= 80
+                      ? isDark
+                        ? "bg-orange-500/80"
+                        : "bg-orange-500"
+                      : isDark
+                        ? "bg-red-500/80"
+                        : "bg-red-500";
+                const gapCount = d.totalShifts - d.assignedShifts;
+                return (
+                  <div key={d.date} className="group flex items-center gap-4">
                     <span
-                      className={`text-xs font-semibold ${d.status === "Alert" ? (isDark ? "text-orange-400" : "text-orange-500") : isDark ? "text-zinc-400" : "text-zinc-500"}`}
+                      className={`w-10 text-sm font-bold ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
                     >
-                      {d.note}
+                      {d.dayLabel}
                     </span>
-                  )}
-                  {d.status === "OK" ? (
-                    <CheckCircle2
-                      className={`h-4 w-4 ${isDark ? "text-emerald-500" : "text-emerald-500"}`}
-                    />
-                  ) : (
-                    <AlertCircle
-                      className={`h-4 w-4 ${isDark ? "text-orange-500" : "text-orange-500"}`}
-                    />
-                  )}
-                </div>
+                    <div
+                      className={`relative h-6 flex-1 overflow-hidden rounded-lg ${isDark ? "bg-zinc-800/50" : "bg-zinc-100"}`}
+                    >
+                      <div
+                        className={`h-full ${barColor} transition-all duration-1000 ease-out`}
+                        style={{ width: fill }}
+                      />
+                    </div>
+                    <div className="flex w-32 items-center justify-end gap-2">
+                      {gapCount > 0 && (
+                        <span
+                          className={`text-xs font-semibold ${isDark ? "text-orange-400" : "text-orange-500"}`}
+                        >
+                          {gapCount} Open
+                        </span>
+                      )}
+                      {d.totalShifts === 0 ? (
+                        <span className={`text-xs ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
+                          No shifts
+                        </span>
+                      ) : d.fillPercent >= 100 ? (
+                        <CheckCircle2
+                          className={`h-4 w-4 ${isDark ? "text-emerald-500" : "text-emerald-500"}`}
+                        />
+                      ) : (
+                        <AlertCircle
+                          className={`h-4 w-4 ${isDark ? "text-orange-500" : "text-orange-500"}`}
+                        />
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="flex flex-1 items-center justify-center">
+                <p className={`text-sm ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+                  No shifts scheduled this week
+                </p>
               </div>
-            ))}
+            )}
           </div>
         </div>
 
@@ -250,52 +241,68 @@ export function TacticalView({ isDark }: TacticalViewProps) {
               Training & Compliance
             </h3>
             <div className="flex min-h-0 flex-1 flex-col justify-around gap-3 overflow-hidden">
-              <div
-                className={`rounded-lg border p-3 ${isDark ? "border-red-500/20 bg-red-500/5" : "border-red-200 bg-red-50"}`}
-              >
-                <div className="flex items-start gap-3">
-                  <AlertCircle
-                    className={`mt-0.5 h-4 w-4 ${isDark ? "text-red-400" : "text-red-500"}`}
-                  />
-                  <div>
-                    <h4 className={`text-sm font-bold ${isDark ? "text-red-400" : "text-red-700"}`}>
-                      Allergen Certificate Expiring
-                    </h4>
-                    <p className={`mt-1 text-xs ${isDark ? "text-red-300/70" : "text-red-600/80"}`}>
-                      2 staff members (Kari, Ole) have certificates expiring in{" "}
-                      <b className="font-extrabold">3 days</b>.
-                    </p>
-                    <button
-                      className={`mt-2 rounded bg-red-500/20 px-2.5 py-1 text-xs font-bold text-red-700 transition-colors hover:bg-red-500/30 ${isDark ? "bg-red-500/20 text-red-300 hover:bg-red-500/40" : ""}`}
-                    >
-                      Notify Staff
-                    </button>
+              {training && training.pending > 0 ? (
+                <div
+                  className={`rounded-lg border p-3 ${isDark ? "border-orange-500/20 bg-orange-500/5" : "border-orange-200 bg-orange-50"}`}
+                >
+                  <div className="flex items-start gap-3">
+                    <AlertCircle
+                      className={`mt-0.5 h-4 w-4 ${isDark ? "text-orange-400" : "text-orange-500"}`}
+                    />
+                    <div>
+                      <h4
+                        className={`text-sm font-bold ${isDark ? "text-orange-400" : "text-orange-700"}`}
+                      >
+                        {training.pending} Pending Protocols
+                      </h4>
+                      <p
+                        className={`mt-1 text-xs ${isDark ? "text-orange-300/70" : "text-orange-600/80"}`}
+                      >
+                        {training.completed} of {training.totalAssignments} protocol assignments
+                        completed ({training.readinessPercent}%).
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div
+                  className={`rounded-lg border p-3 ${isDark ? "border-emerald-500/20 bg-emerald-500/5" : "border-emerald-200 bg-emerald-50"}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <CheckCircle2
+                      className={`h-4 w-4 ${isDark ? "text-emerald-400" : "text-emerald-500"}`}
+                    />
+                    <h4
+                      className={`text-sm font-bold ${isDark ? "text-emerald-400" : "text-emerald-700"}`}
+                    >
+                      All protocols up to date
+                    </h4>
+                  </div>
+                </div>
+              )}
 
               <div
                 className={`flex items-center justify-between rounded-lg border p-3 ${isDark ? "border-zinc-800 bg-zinc-900" : "border-zinc-200 bg-zinc-50"}`}
               >
                 <div>
                   <h4 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-                    Avg. Onboarding Time
+                    Readiness Score
                   </h4>
                   <p className={`mt-0.5 text-xs ${isDark ? "text-zinc-500" : "text-zinc-500"}`}>
-                    Time to &quot;Job Ready&quot;
+                    Protocol completion
                   </p>
                 </div>
                 <div className="text-right">
                   <div className={`text-xl font-black ${isDark ? "text-white" : "text-zinc-900"}`}>
-                    6.2d
+                    {training ? `${training.readinessPercent}%` : "--"}
                   </div>
-                  <div className="text-[10px] font-bold text-emerald-500">Target &lt; 7d</div>
+                  <div className="text-[10px] font-bold text-emerald-500">Target 100%</div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Upcoming Events */}
+          {/* Upcoming Events (mock - kept as placeholder) */}
           <div
             className={`flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border p-4 shadow-sm ${isDark ? "border-zinc-800 bg-[#0c0c0e]" : "border-zinc-200 bg-white"}`}
           >
@@ -306,43 +313,15 @@ export function TacticalView({ isDark }: TacticalViewProps) {
               Upcoming Events (Impact)
             </h3>
             <div className="flex min-h-0 flex-1 flex-col justify-around gap-4 overflow-hidden">
-              <div className="relative border-l-2 border-orange-500 pl-4">
-                <div
-                  className={`absolute top-1.5 -left-[5px] h-2 w-2 rounded-full bg-orange-500`}
-                />
+              <div
+                className={`flex flex-1 items-center justify-center rounded-lg border-2 border-dashed ${isDark ? "border-zinc-800" : "border-zinc-200"}`}
+              >
                 <p
-                  className={`text-xs font-bold uppercase ${isDark ? "text-orange-400" : "text-orange-600"}`}
+                  className={`text-center text-xs font-semibold ${isDark ? "text-zinc-600" : "text-zinc-400"}`}
                 >
-                  Fri, Feb 28
-                </p>
-                <h4
-                  className={`mt-0.5 text-sm font-bold ${isDark ? "text-zinc-200" : "text-zinc-800"}`}
-                >
-                  Private Banquet (40 pax)
-                </h4>
-                <p
-                  className={`mt-1 inline-block rounded border bg-orange-500/10 px-2 py-0.5 text-xs font-medium text-orange-600 ${isDark ? "border-orange-500/20 text-orange-400" : "border-orange-200"}`}
-                >
-                  Requires +3 Service Staff
-                </p>
-              </div>
-
-              <div className="relative border-l-2 border-zinc-300 pl-4 dark:border-zinc-700">
-                <div
-                  className={`absolute h-2 w-2 rounded-full ${isDark ? "bg-zinc-700" : "bg-zinc-300"} top-1.5 -left-[5px]`}
-                />
-                <p
-                  className={`text-xs font-bold uppercase ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-                >
-                  Sat, Mar 1
-                </p>
-                <h4
-                  className={`mt-0.5 text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}
-                >
-                  Local Football Match
-                </h4>
-                <p className={`mt-1 text-xs ${isDark ? "text-zinc-500" : "text-zinc-500"}`}>
-                  Expected +20% walk-in volume
+                  Event integration coming soon.
+                  <br />
+                  Connect calendar to see staffing impact.
                 </p>
               </div>
             </div>

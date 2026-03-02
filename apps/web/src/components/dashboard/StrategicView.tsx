@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@smartout/ui";
+import { useWorkforcePipeline, useTrainingReadiness } from "@/app/dashboard/_hooks";
 
 const LOCATIONS = [
   { id: "all", name: "All Locations" },
@@ -94,6 +95,8 @@ export function StrategicView({ isDark }: StrategicViewProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const data = defaultMetrics[selectedLocId as keyof typeof defaultMetrics];
+  const { data: pipeline } = useWorkforcePipeline();
+  const { data: training } = useTrainingReadiness();
 
   return (
     <div className="animate-in fade-in flex min-h-0 min-w-0 flex-1 flex-col gap-6 overflow-y-auto pr-2 pb-6 duration-500">
@@ -210,13 +213,22 @@ export function StrategicView({ isDark }: StrategicViewProps) {
 
           <KPICard
             isDark={isDark}
-            title="Compliance Health"
-            value={`${data.compliance}%`}
+            title="Training Readiness"
+            value={
+              selectedLocId === "all" && training
+                ? `${training.readinessPercent}%`
+                : `${data.compliance}%`
+            }
             target={`${targets.complianceTarget}%`}
-            status={data.compliance < targets.complianceTarget ? "bad" : "good"}
+            status={
+              (selectedLocId === "all" && training ? training.readinessPercent : data.compliance) <
+              targets.complianceTarget
+                ? "bad"
+                : "good"
+            }
             icon={<ShieldCheck className="h-5 w-5" />}
             color="stone"
-            explanation="Percentage of active staff with fully up-to-date certifications (e.g. food safety, allergen training). Always aim for 100% compliance."
+            explanation="Percentage of protocol assignments completed by active staff. Measures overall workforce readiness."
           />
         </motion.div>
       </AnimatePresence>
@@ -275,7 +287,7 @@ export function StrategicView({ isDark }: StrategicViewProps) {
               isDark={isDark}
               icon={<Users className="h-5 w-5" />}
               title="Active Staff"
-              value={data.pipeline}
+              value={selectedLocId === "all" && pipeline ? pipeline.activeStaff : data.pipeline}
               subtitle="Currently Employed"
             />
             <div className={`h-px w-full ${isDark ? "bg-zinc-800" : "bg-zinc-100"}`} />
@@ -283,7 +295,7 @@ export function StrategicView({ isDark }: StrategicViewProps) {
               isDark={isDark}
               icon={<ArrowUpRight className="h-5 w-5 text-emerald-500" />}
               title="New Hires (30d)"
-              value={`+${data.hires}`}
+              value={`+${selectedLocId === "all" && pipeline ? pipeline.newHires30d : data.hires}`}
               subtitle="Onboarded"
               highlight
             />
@@ -291,18 +303,24 @@ export function StrategicView({ isDark }: StrategicViewProps) {
             <PipelineRow
               isDark={isDark}
               icon={<ArrowDownRight className="h-5 w-5 text-red-500" />}
-              title="Resignations (30d)"
-              value={`-${data.resig}`}
+              title="Departures (30d)"
+              value={`-${selectedLocId === "all" && pipeline ? pipeline.departures30d : data.resig}`}
               subtitle="Departures"
-              alert={data.resig > 2}
+              alert={
+                (selectedLocId === "all" && pipeline ? pipeline.departures30d : data.resig) > 2
+              }
             />
             <div className={`h-px w-full ${isDark ? "bg-zinc-800" : "bg-zinc-100"}`} />
             <PipelineRow
               isDark={isDark}
               icon={<Briefcase className="h-5 w-5" />}
-              title="Avg. Tenure"
-              value={`${data.tenure} mo`}
-              subtitle="Retention Length"
+              title="Onboarding"
+              value={
+                selectedLocId === "all" && pipeline ? pipeline.onboarding : `${data.tenure} mo`
+              }
+              subtitle={
+                selectedLocId === "all" && pipeline ? "Currently in training" : "Retention Length"
+              }
             />
           </div>
         </div>
