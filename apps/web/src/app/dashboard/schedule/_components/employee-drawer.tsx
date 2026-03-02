@@ -155,10 +155,8 @@ export function EmployeeDrawer({ open, onOpenChange, employee }: EmployeeDrawerP
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        className={`w-full sm:max-w-[460px] ${isDark ? "border-white/5 bg-[#0a0a0c]" : "border-zinc-200 bg-white"} p-0`}
-      >
-        <SheetHeader className="border-b border-white/5 px-6 pt-6 pb-4">
+      <SheetContent className="border-border bg-background w-full p-0 sm:max-w-[460px]">
+        <SheetHeader className="border-border border-b px-6 pt-6 pb-4">
           <SheetTitle className="flex items-center gap-3">
             <div
               className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-xs font-black ${employee.avatarColor}`}
@@ -252,7 +250,7 @@ export function EmployeeDrawer({ open, onOpenChange, employee }: EmployeeDrawerP
               </div>
             </section>
 
-            <Separator className="bg-white/5" />
+            <Separator className="bg-border" />
 
             {/* ── Availability Calendar ─────────────────── */}
             <section>
@@ -267,7 +265,7 @@ export function EmployeeDrawer({ open, onOpenChange, employee }: EmployeeDrawerP
               />
             </section>
 
-            <Separator className="bg-white/5" />
+            <Separator className="bg-border" />
 
             {/* ── Auto-fill Button ──────────────────────── */}
             <section>
@@ -282,7 +280,7 @@ export function EmployeeDrawer({ open, onOpenChange, employee }: EmployeeDrawerP
               </Button>
             </section>
 
-            <Separator className="bg-white/5" />
+            <Separator className="bg-border" />
 
             {/* ── Statistics ────────────────────────────── */}
             <section>
@@ -340,19 +338,11 @@ function TurnusGrid({
           <div
             key={day}
             className={`flex flex-col items-center rounded-lg border p-2 ${
-              timeRange
-                ? isDark
-                  ? "border-orange-500/20 bg-orange-500/5"
-                  : "border-orange-300/50 bg-orange-50"
-                : isDark
-                  ? "border-white/5 bg-white/[0.02]"
-                  : "border-zinc-200 bg-zinc-50"
+              timeRange ? "border-orange-500/20 bg-orange-500/5" : "border-border bg-muted/50"
             } ${isWeekend && !timeRange ? "opacity-50" : ""}`}
           >
             <span
-              className={`mb-1 text-[10px] font-bold tracking-widest uppercase ${
-                isWeekend ? "text-zinc-500" : "text-zinc-400"
-              }`}
+              className={`text-muted-foreground mb-1 text-[10px] font-bold tracking-widest uppercase`}
             >
               {WEEKDAY_LABELS[day]}
             </span>
@@ -476,12 +466,8 @@ function AvailabilityCalendar({
                   isAbsent
                     ? "bg-red-500/20 text-red-400"
                     : hasShift
-                      ? isDark
-                        ? "bg-emerald-500/10 text-emerald-400"
-                        : "bg-emerald-100 text-emerald-700"
-                      : isDark
-                        ? "bg-white/[0.02] text-zinc-600"
-                        : "bg-zinc-50 text-zinc-400"
+                      ? "bg-emerald-500/10 text-emerald-400"
+                      : "bg-muted/50 text-muted-foreground"
                 } ${isToday ? "ring-1 ring-orange-500" : ""}`}
                 title={isAbsent ? "Fravær" : hasShift ? `Turnus: ${pattern[weekdayKey]}` : "Fri"}
               >
@@ -522,17 +508,11 @@ function StatCard({
   isDark: boolean;
 }) {
   return (
-    <div
-      className={`rounded-lg border p-3 ${
-        isDark ? "border-white/5 bg-white/[0.02]" : "border-zinc-200 bg-zinc-50"
-      }`}
-    >
-      <div className="text-[10px] font-medium tracking-wide text-zinc-500 uppercase">{label}</div>
-      <div
-        className={`mt-1 text-lg font-bold ${
-          warn ? "text-red-400" : isDark ? "text-white" : "text-zinc-900"
-        }`}
-      >
+    <div className="border-border bg-muted/50 rounded-lg border p-3">
+      <div className="text-muted-foreground text-[10px] font-medium tracking-wide uppercase">
+        {label}
+      </div>
+      <div className={`mt-1 text-lg font-bold ${warn ? "text-red-400" : "text-foreground"}`}>
         {value}
       </div>
     </div>

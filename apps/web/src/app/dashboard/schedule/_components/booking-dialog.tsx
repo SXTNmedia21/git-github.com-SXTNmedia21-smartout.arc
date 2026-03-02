@@ -12,6 +12,7 @@ import { useState } from "react";
 import { CalendarCheck } from "lucide-react";
 import { toast } from "sonner";
 
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -240,18 +241,10 @@ export function BookingDialog({ dateId, open, onOpenChange }: BookingDialogProps
         </div>
 
         <DialogFooter>
-          <button
-            onClick={() => onOpenChange(false)}
-            className="text-muted-foreground hover:text-foreground rounded-md px-4 py-2 text-sm font-medium transition-colors"
-          >
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Avbryt
-          </button>
-          <button
-            onClick={handleSubmit}
-            className="rounded-md border border-orange-500/30 bg-orange-500/20 px-4 py-2 text-sm font-bold text-orange-400 transition-all hover:bg-orange-500/30"
-          >
-            Legg til booking
-          </button>
+          </Button>
+          <Button onClick={handleSubmit}>Legg til booking</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

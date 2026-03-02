@@ -26,14 +26,12 @@ export const OpenShiftCardView = React.memo(function OpenShiftCardView({
 }: OpenShiftCardViewProps) {
   return (
     <div
-      className={`p-3 ${isDark ? "bg-amber-500/[0.03]" : "bg-white"} group cursor-grab rounded-xl border border-dashed border-amber-500/25 shadow-sm transition-[opacity,transform,background-color,border-color] duration-200 ease-out will-change-transform hover:border-amber-500/40 hover:bg-amber-500/[0.06] active:cursor-grabbing ${isDragging ? "scale-[0.98] opacity-35" : "scale-100 opacity-100"}`}
+      className={`group cursor-grab rounded-xl border border-dashed border-amber-500/25 bg-amber-500/[0.03] p-3 shadow-sm transition-[opacity,transform,background-color,border-color] duration-200 ease-out will-change-transform hover:border-amber-500/40 hover:bg-amber-500/[0.06] active:cursor-grabbing ${isDragging ? "scale-[0.98] opacity-35" : "scale-100 opacity-100"}`}
     >
-      <h4
-        className={`text-sm font-bold ${isDark ? "text-white" : "text-zinc-900"} mb-1 transition-colors group-hover:text-zinc-300`}
-      >
+      <h4 className="text-foreground group-hover:text-foreground/70 mb-1 text-sm font-bold transition-colors">
         {title}
       </h4>
-      <div className="flex items-center gap-1.5 text-xs font-medium text-zinc-500">
+      <div className="text-muted-foreground flex items-center gap-1.5 text-xs font-medium">
         <Clock className="h-3 w-3" />
         {time}
       </div>
@@ -93,12 +91,11 @@ function normalizeShiftIndicator(indicator: string): ShiftIndicator {
   return "orange";
 }
 
-function ShiftStatusIcon({ status, isDark }: { status: ShiftStatus; isDark: boolean }) {
+function ShiftStatusIcon({ status }: { status: ShiftStatus; isDark: boolean }) {
   if (status === "draft") return <AlertCircle className="h-3.5 w-3.5 text-orange-400/60" />;
-  if (status === "published")
-    return <Circle className={`h-3.5 w-3.5 ${isDark ? "text-zinc-500" : "text-zinc-400"}`} />;
+  if (status === "published") return <Circle className="text-muted-foreground h-3.5 w-3.5" />;
   if (status === "active") return <PlayCircle className="h-3.5 w-3.5 text-emerald-400/60" />;
-  return <CheckCircle2 className="h-3.5 w-3.5 text-zinc-600" />;
+  return <CheckCircle2 className="text-muted-foreground h-3.5 w-3.5" />;
 }
 
 export const ShiftCardView = React.memo(function ShiftCardView({
@@ -117,24 +114,24 @@ export const ShiftCardView = React.memo(function ShiftCardView({
   if (isCompact) {
     return (
       <div
-        className={`group relative flex cursor-grab items-center gap-2 rounded-md border px-2 py-1 transition-[opacity,transform,background-color,border-color] duration-200 ease-out hover:border-white/15 active:cursor-grabbing ${isDark ? "hover:bg-white/5" : "hover:bg-zinc-100"} select-none ${SHIFT_STATUS_STYLES[normalizedStatus]} overflow-visible will-change-transform ${isDragging ? "scale-[0.98] opacity-35" : "scale-100 opacity-100"}`}
+        className={`group hover:bg-muted relative flex cursor-grab items-center gap-2 rounded-md border px-2 py-1 transition-[opacity,transform,background-color,border-color] duration-200 ease-out select-none active:cursor-grabbing ${SHIFT_STATUS_STYLES[normalizedStatus]} overflow-visible will-change-transform ${isDragging ? "scale-[0.98] opacity-35" : "scale-100 opacity-100"}`}
       >
         <div
           className={`absolute top-1 bottom-1 left-0 w-0.5 rounded-r-full ${SHIFT_INDICATOR_STYLES[normalizedIndicator]}`}
         />
-        <span
-          className={`text-[11px] font-semibold ${isDark ? "text-white" : "text-zinc-900"} truncate pl-1 leading-tight`}
-        >
+        <span className="text-foreground truncate pl-1 text-[11px] leading-tight font-semibold">
           {role}
         </span>
-        <span className="ml-auto shrink-0 text-[10px] font-medium text-zinc-500">{time}</span>
+        <span className="text-muted-foreground ml-auto shrink-0 text-[10px] font-medium">
+          {time}
+        </span>
       </div>
     );
   }
 
   return (
     <div
-      className={`group relative flex cursor-grab flex-col gap-2.5 rounded-lg border p-2.5 transition-[opacity,transform,background-color,border-color] duration-200 ease-out hover:border-white/15 active:cursor-grabbing xl:p-3 ${isDark ? "hover:bg-white/5" : "hover:bg-zinc-100"} select-none ${SHIFT_STATUS_STYLES[normalizedStatus]} overflow-visible will-change-transform ${isDragging ? "scale-[0.98] opacity-35" : "scale-100 opacity-100"}`}
+      className={`group hover:bg-muted relative flex cursor-grab flex-col gap-2.5 rounded-lg border p-2.5 transition-[opacity,transform,background-color,border-color] duration-200 ease-out select-none active:cursor-grabbing xl:p-3 ${SHIFT_STATUS_STYLES[normalizedStatus]} overflow-visible will-change-transform ${isDragging ? "scale-[0.98] opacity-35" : "scale-100 opacity-100"}`}
     >
       <div
         className={`absolute top-2.5 bottom-2.5 left-0 w-1 rounded-r-full ${SHIFT_INDICATOR_STYLES[normalizedIndicator]}`}
@@ -142,15 +139,11 @@ export const ShiftCardView = React.memo(function ShiftCardView({
 
       <div className="relative z-10 flex w-full items-start justify-between">
         <div className="min-w-0 pr-2">
-          <span
-            className={`text-sm font-semibold ${isDark ? "text-white" : "text-zinc-900"} line-clamp-1 block truncate leading-tight transition-colors group-hover:text-zinc-300`}
-          >
+          <span className="text-foreground group-hover:text-foreground/70 line-clamp-1 block truncate text-sm leading-tight font-semibold transition-colors">
             {role}
           </span>
           {zone ? (
-            <div
-              className={`text-[11px] ${isDark ? "text-zinc-500" : "text-zinc-500"} mt-1 flex items-center gap-1 whitespace-nowrap`}
-            >
+            <div className="text-muted-foreground mt-1 flex items-center gap-1 text-[11px] whitespace-nowrap">
               <MapPin className="h-3 w-3 shrink-0" />
               <span className="truncate">{zone}</span>
             </div>
@@ -162,12 +155,8 @@ export const ShiftCardView = React.memo(function ShiftCardView({
         </div>
       </div>
 
-      <div
-        className={`flex items-center gap-1.5 text-xs ${isDark ? "text-zinc-500" : "text-zinc-500"} relative z-10 mt-auto font-medium`}
-      >
-        <Clock
-          className={`h-3.5 w-3.5 text-zinc-500 group-hover:${isDark ? "text-zinc-400" : "text-zinc-600"}`}
-        />
+      <div className="text-muted-foreground relative z-10 mt-auto flex items-center gap-1.5 text-xs font-medium">
+        <Clock className="text-muted-foreground h-3.5 w-3.5" />
         {time}
       </div>
     </div>
@@ -191,19 +180,17 @@ export const TemplateCardView = React.memo(function TemplateCardView({
 }: TemplateCardViewProps) {
   return (
     <div
-      className={`p-3 ${isDark ? "bg-[#151518]" : "bg-white"} border ${isDark ? "border-dashed border-zinc-700" : "border-dashed border-zinc-300"} group cursor-grab rounded-xl shadow-sm transition-[opacity,transform,background-color,border-color] duration-200 ease-out will-change-transform hover:border-orange-500/50 hover:bg-orange-500/5 active:cursor-grabbing ${isDragging ? "scale-[0.98] opacity-35" : "scale-100 opacity-100"}`}
+      className={`group border-border bg-background cursor-grab rounded-xl border border-dashed p-3 shadow-sm transition-[opacity,transform,background-color,border-color] duration-200 ease-out will-change-transform hover:border-orange-500/50 hover:bg-orange-500/5 active:cursor-grabbing ${isDragging ? "scale-[0.98] opacity-35" : "scale-100 opacity-100"}`}
     >
       <div className="mb-1.5 flex items-start justify-between">
-        <h4
-          className={`text-xs font-bold ${isDark ? "text-white" : "text-zinc-900"} transition-colors group-hover:text-orange-400`}
-        >
+        <h4 className="text-foreground text-xs font-bold transition-colors group-hover:text-orange-400">
           {title}
         </h4>
         <span className="rounded bg-orange-500/10 px-1.5 py-0.5 text-[8px] leading-none font-black tracking-widest text-orange-400 uppercase">
           Mal
         </span>
       </div>
-      <div className="flex items-center justify-between text-[10px] font-medium text-zinc-500">
+      <div className="text-muted-foreground flex items-center justify-between text-[10px] font-medium">
         <div className="flex items-center gap-1">
           <Clock className="h-3 w-3" /> {hours}
         </div>

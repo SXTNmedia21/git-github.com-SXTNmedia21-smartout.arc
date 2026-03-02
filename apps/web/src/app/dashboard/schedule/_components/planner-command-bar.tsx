@@ -35,20 +35,18 @@ export function PlannerCommandBar({
   } = useContext(DashboardContext);
 
   return (
-    <div
-      className={`z-20 flex shrink-0 flex-wrap items-center justify-between border-b border-white/[0.04] px-6 py-2.5 ${isDark ? "bg-[#0a0a0c]/80" : "bg-white/80"} backdrop-blur-md print:hidden`}
-    >
-      <div className="flex flex-wrap items-center gap-3">
-        <h1 className="flex items-center gap-2 text-sm font-black tracking-tight xl:text-base">
-          <CalendarDays className="h-5 w-5 text-orange-500" />
+    <div className="border-border bg-background/80 relative z-50 flex shrink-0 flex-wrap items-center justify-between border-b px-4 py-1 backdrop-blur-md print:hidden">
+      <div className="flex flex-wrap items-center gap-2">
+        <h1 className="flex items-center gap-1.5 text-xs font-black tracking-tight">
+          <CalendarDays className="h-4 w-4 text-orange-500" />
           Vaktplan
         </h1>
-        <div className={`hidden h-4 w-px sm:block ${isDark ? "bg-white/10" : "bg-zinc-300"}`} />
+        <div className="bg-border hidden h-3 w-px sm:block" />
 
         {/* Location selector */}
         <LocationPopover isDark={isDark} value={activeLocation} onChange={setActiveLocation} />
 
-        <div className={`hidden h-4 w-px sm:block ${isDark ? "bg-white/10" : "bg-zinc-300"}`} />
+        <div className="bg-border hidden h-3 w-px sm:block" />
 
         {/* Filter popovers: Ansatt, Jobb, Team, Lokasjon */}
         <div className="flex items-center gap-1">
@@ -75,39 +73,39 @@ export function PlannerCommandBar({
           />
         </div>
 
-        <div className={`hidden h-4 w-px sm:block ${isDark ? "bg-white/10" : "bg-zinc-300"}`} />
+        <div className="bg-border hidden h-3 w-px sm:block" />
 
         {/* Compact mode toggle */}
         <button
           onClick={() => setScheduleCompactMode(!scheduleCompactMode)}
-          className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-bold transition-all ${
+          className={`flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-bold transition-all ${
             scheduleCompactMode
-              ? isDark
-                ? "bg-zinc-800 text-white shadow-sm"
-                : "bg-white text-zinc-900 shadow-sm"
-              : isDark
-                ? "text-zinc-500 hover:bg-white/5 hover:text-zinc-300"
-                : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:bg-muted hover:text-foreground"
           }`}
         >
-          <Rows3 className={`h-3.5 w-3.5 ${scheduleCompactMode ? "text-orange-500" : ""}`} />
+          <Rows3 className={`h-3 w-3 ${scheduleCompactMode ? "text-orange-500" : ""}`} />
           Kompakt
         </button>
       </div>
 
-      <div className="mt-2 flex items-center gap-2 sm:mt-0">
-        <Filter className="h-3.5 w-3.5 text-zinc-500" />
-        <div className="flex rounded-lg border border-white/10 bg-white/5 p-0.5">
+      <div className="mt-1 flex items-center gap-1.5 sm:mt-0">
+        <button
+          onClick={() => setFilterSituation("Alle")}
+          className={`rounded-md p-1 transition-colors ${filterSituation !== "Alle" ? "text-orange-400 hover:text-orange-300" : "text-muted-foreground"}`}
+          title="Fjern filter"
+        >
+          <Filter className="h-3.5 w-3.5" />
+        </button>
+        <div className="border-border bg-muted flex rounded-lg border p-0.5">
           {["Alle", "Selskap", "Krise", "Normal"].map((situation) => (
             <button
               key={situation}
               onClick={() => setFilterSituation(situation)}
               className={`rounded-md px-2.5 py-1 text-[10px] font-bold transition-all ${
                 filterSituation === situation
-                  ? isDark
-                    ? "bg-zinc-800/80 text-zinc-200 shadow-sm"
-                    : "bg-white text-zinc-900 shadow-sm"
-                  : "text-zinc-500 hover:text-zinc-300"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               {situation}
@@ -138,14 +136,10 @@ function ViewFilterButton({
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-bold transition-all ${
+      className={`flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-bold transition-all ${
         isActive
-          ? isDark
-            ? "bg-zinc-800 text-white shadow-sm"
-            : "bg-white text-zinc-900 shadow-sm"
-          : isDark
-            ? "text-zinc-500 hover:bg-white/5 hover:text-zinc-300"
-            : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700"
+          ? "bg-background text-foreground shadow-sm"
+          : "text-muted-foreground hover:bg-muted hover:text-foreground"
       }`}
     >
       <span className={isActive ? "text-orange-500" : ""}>{icon}</span>
@@ -185,11 +179,7 @@ function LocationPopover({
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-bold transition-all ${
-          isDark
-            ? "border-white/10 bg-white/5 text-zinc-300 hover:border-white/20"
-            : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300"
-        }`}
+        className="border-border bg-muted text-foreground hover:bg-muted/80 flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-bold transition-all"
       >
         <MapPin className="h-3.5 w-3.5 text-orange-500" />
         {value}
@@ -197,13 +187,7 @@ function LocationPopover({
       </button>
 
       {open && (
-        <div
-          className={`absolute top-full left-0 z-[9999] mt-1 w-52 rounded-xl border p-1 shadow-xl ${
-            isDark
-              ? "border-white/10 bg-[#111113]/95 backdrop-blur-xl"
-              : "border-zinc-200 bg-white shadow-lg"
-          } animate-in fade-in slide-in-from-top-1`}
-        >
+        <div className="animate-in fade-in slide-in-from-top-1 border-border bg-popover absolute top-full left-0 z-[9999] mt-1 w-52 rounded-xl border p-1 shadow-xl backdrop-blur-xl">
           {LOCATIONS.map((loc) => (
             <button
               key={loc}
@@ -213,12 +197,8 @@ function LocationPopover({
               }}
               className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
                 value === loc
-                  ? isDark
-                    ? "bg-orange-500/10 text-orange-400"
-                    : "bg-orange-50 text-orange-600"
-                  : isDark
-                    ? "text-zinc-400 hover:bg-white/5 hover:text-white"
-                    : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
+                  ? "bg-orange-500/10 text-orange-400"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
               }`}
             >
               {loc}

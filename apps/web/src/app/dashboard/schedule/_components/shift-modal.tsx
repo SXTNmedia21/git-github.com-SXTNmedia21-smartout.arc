@@ -525,30 +525,34 @@ export function ShiftModal() {
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="detaljer" className="mt-2">
-          <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="detaljer" className="text-xs">
-              <Clock className="mr-1 h-3 w-3" />
+        <Tabs defaultValue="detaljer" className="mt-4">
+          <TabsList className={`grid w-full ${isEditMode ? "grid-cols-6" : "grid-cols-4"}`}>
+            <TabsTrigger value="detaljer" className="gap-1.5 text-xs">
+              <Clock className="h-3 w-3" />
               Detaljer
             </TabsTrigger>
-            <TabsTrigger value="funksjoner" className="text-xs">
-              <Settings className="mr-1 h-3 w-3" />
+            <TabsTrigger value="funksjoner" className="gap-1.5 text-xs">
+              <Settings className="h-3 w-3" />
               Funksjoner
             </TabsTrigger>
-            <TabsTrigger value="historie" className="text-xs">
-              <History className="mr-1 h-3 w-3" />
-              Historie
-            </TabsTrigger>
-            <TabsTrigger value="lonn" className="text-xs">
-              <Wallet className="mr-1 h-3 w-3" />
-              Lønn
-            </TabsTrigger>
-            <TabsTrigger value="oppgaver" className="text-xs">
-              <ListChecks className="mr-1 h-3 w-3" />
+            {isEditMode && (
+              <TabsTrigger value="historie" className="gap-1.5 text-xs">
+                <History className="h-3 w-3" />
+                Historie
+              </TabsTrigger>
+            )}
+            {isEditMode && (
+              <TabsTrigger value="lonn" className="gap-1.5 text-xs">
+                <Wallet className="h-3 w-3" />
+                Lønn
+              </TabsTrigger>
+            )}
+            <TabsTrigger value="oppgaver" className="gap-1.5 text-xs">
+              <ListChecks className="h-3 w-3" />
               Oppgaver
             </TabsTrigger>
-            <TabsTrigger value="innstillinger" className="text-xs">
-              <Settings className="mr-1 h-3 w-3" />
+            <TabsTrigger value="innstillinger" className="gap-1.5 text-xs">
+              <Settings className="h-3 w-3" />
               Innstillinger
             </TabsTrigger>
           </TabsList>

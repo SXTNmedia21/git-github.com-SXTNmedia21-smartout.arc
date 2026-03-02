@@ -45,9 +45,7 @@ export function StatusStrip({
   };
 
   return (
-    <div
-      className={`z-20 flex shrink-0 items-center justify-between gap-3 border-b border-white/[0.03] px-6 py-2 ${isDark ? "bg-[#08080a]/80" : "bg-white/80"} backdrop-blur-md print:hidden`}
-    >
+    <div className="border-border bg-background/80 z-20 flex shrink-0 items-center justify-between gap-2 border-b px-4 py-1.5 backdrop-blur-md print:hidden">
       {/* Left side: risk and coverage badges */}
       <div className="flex flex-wrap items-center gap-2">
         <button
@@ -57,7 +55,7 @@ export function StatusStrip({
               ? "border-orange-500/40 bg-orange-500/20 font-black text-orange-400 shadow-[0_0_8px_rgba(249,115,22,0.2)]"
               : statusSummary.coverageRisks > 0
                 ? "border-rose-500/40 bg-rose-500/20 font-black text-rose-400 shadow-[0_0_12px_rgba(244,63,94,0.15)] hover:bg-rose-500/30"
-                : "border-zinc-500/10 bg-zinc-500/5 font-medium text-zinc-500 hover:bg-zinc-500/10"
+                : "border-border bg-muted text-muted-foreground hover:bg-muted/80 font-medium"
           }`}
         >
           Dekningsrisiko: {statusSummary.coverageRisks}
@@ -69,7 +67,7 @@ export function StatusStrip({
               ? "border-orange-500/40 bg-orange-500/20 font-black text-orange-400 shadow-[0_0_8px_rgba(249,115,22,0.2)]"
               : statusSummary.overtimeRisks > 0
                 ? "border-orange-500/25 bg-orange-500/10 font-semibold text-orange-400 hover:bg-orange-500/20"
-                : "border-zinc-500/10 bg-zinc-500/5 font-medium text-zinc-500 hover:bg-zinc-500/10"
+                : "border-border bg-muted text-muted-foreground hover:bg-muted/80 font-medium"
           }`}
         >
           Overtidsrisiko: {statusSummary.overtimeRisks}
@@ -81,7 +79,7 @@ export function StatusStrip({
               ? "border-orange-500/40 bg-orange-500/20 font-black text-orange-400 shadow-[0_0_8px_rgba(249,115,22,0.2)]"
               : statusSummary.complianceRisks > 0
                 ? "border-amber-500/25 bg-amber-500/10 font-semibold text-amber-400 hover:bg-amber-500/20"
-                : "border-zinc-500/10 bg-zinc-500/5 font-medium text-zinc-500 hover:bg-zinc-500/10"
+                : "border-border bg-muted text-muted-foreground hover:bg-muted/80 font-medium"
           }`}
         >
           Compliance: {statusSummary.complianceRisks}
@@ -99,7 +97,7 @@ export function StatusStrip({
         <span
           className={`rounded-lg border px-2 py-1 text-xs font-medium ${
             statusSummary.publishedState === "Publisert"
-              ? "border-zinc-500/10 bg-zinc-500/5 text-zinc-500"
+              ? "border-border bg-muted text-muted-foreground"
               : "border-orange-500/25 bg-orange-500/8 text-orange-400/80"
           }`}
         >
@@ -114,7 +112,7 @@ export function StatusStrip({
           className={`rounded-md border px-2 py-0.5 text-xs font-medium transition-all ${
             activeFilter === "draft"
               ? "border-orange-500/40 bg-orange-500/20 text-orange-400 shadow-[0_0_8px_rgba(249,115,22,0.2)]"
-              : "border-zinc-500/8 bg-zinc-500/[0.03] text-zinc-500 hover:bg-zinc-500/10"
+              : "border-border bg-muted/50 text-muted-foreground hover:bg-muted"
           }`}
         >
           Draft {statusSummary.draftCount}
@@ -124,7 +122,7 @@ export function StatusStrip({
           className={`rounded-md border px-2 py-0.5 text-xs font-medium transition-all ${
             activeFilter === "published"
               ? "border-orange-500/40 bg-orange-500/20 text-orange-400 shadow-[0_0_8px_rgba(249,115,22,0.2)]"
-              : "border-zinc-500/8 bg-zinc-500/[0.03] text-zinc-500 hover:bg-zinc-500/10"
+              : "border-border bg-muted/50 text-muted-foreground hover:bg-muted"
           }`}
         >
           Published {statusSummary.publishedCount}
@@ -134,7 +132,7 @@ export function StatusStrip({
           className={`rounded-md border px-2 py-0.5 text-xs font-medium transition-all ${
             activeFilter === "active"
               ? "border-orange-500/40 bg-orange-500/20 text-orange-400 shadow-[0_0_8px_rgba(249,115,22,0.2)]"
-              : "border-zinc-500/8 bg-zinc-500/[0.03] text-zinc-500 hover:bg-zinc-500/10"
+              : "border-border bg-muted/50 text-muted-foreground hover:bg-muted"
           }`}
         >
           Active {statusSummary.activeCount}
@@ -144,7 +142,7 @@ export function StatusStrip({
           className={`rounded-md border px-2 py-0.5 text-xs font-medium transition-all ${
             activeFilter === "completed"
               ? "border-orange-500/40 bg-orange-500/20 text-orange-400 shadow-[0_0_8px_rgba(249,115,22,0.2)]"
-              : "border-zinc-500/8 bg-zinc-500/[0.03] text-zinc-500 hover:bg-zinc-500/10"
+              : "border-border bg-muted/50 text-muted-foreground hover:bg-muted"
           }`}
         >
           Completed {statusSummary.completedCount}
@@ -156,7 +154,7 @@ export function StatusStrip({
               ? "border-orange-500/40 bg-orange-500/20 text-orange-400 shadow-[0_0_8px_rgba(249,115,22,0.2)]"
               : statusSummary.absenceCount > 0
                 ? "border-rose-500/20 bg-rose-500/5 text-rose-400 hover:bg-rose-500/10"
-                : "border-zinc-500/8 bg-zinc-500/[0.03] text-zinc-500 hover:bg-zinc-500/10"
+                : "border-border bg-muted/50 text-muted-foreground hover:bg-muted"
           }`}
         >
           Fravær {statusSummary.absenceCount}

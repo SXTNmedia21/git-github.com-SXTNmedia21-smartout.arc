@@ -218,7 +218,7 @@ export function ShiftCard({
 
       {/* Resize preview tooltip */}
       {resizePreview && (
-        <div className="absolute -top-7 left-1/2 z-30 -translate-x-1/2 rounded bg-zinc-900 px-2 py-0.5 text-[10px] font-bold whitespace-nowrap text-orange-300 shadow-lg">
+        <div className="bg-popover border-border absolute -top-7 left-1/2 z-30 -translate-x-1/2 rounded border px-2 py-0.5 text-[10px] font-bold whitespace-nowrap text-orange-400 shadow-lg">
           {resizePreview.start} - {resizePreview.end}
         </div>
       )}

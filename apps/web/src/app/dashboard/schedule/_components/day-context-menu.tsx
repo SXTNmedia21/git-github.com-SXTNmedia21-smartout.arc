@@ -32,6 +32,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -104,15 +105,15 @@ export function DayContextMenu({ dateId, dateLabel, isDark }: DayContextMenuProp
           <Button
             variant="ghost"
             size="icon"
-            className={`h-6 w-6 ${isDark ? "text-white/60 hover:bg-white/10 hover:text-white" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}
+            className="text-muted-foreground hover:bg-muted hover:text-foreground h-6 w-6"
           >
             <MoreVertical className="h-3.5 w-3.5" />
             <span className="sr-only">Dagmeny for {dateLabel}</span>
           </Button>
         </DropdownMenuTrigger>
 
-        <DropdownMenuContent align="end" className="w-52">
-          {/* Selection toggle */}
+        <DropdownMenuContent align="end" className="z-50 w-52">
+          {/* Selection & Create */}
           <DropdownMenuItem onClick={() => toggleDaySelection(dateId)}>
             {isSelected ? (
               <SquareCheck className="mr-2 h-4 w-4" />
@@ -122,7 +123,6 @@ export function DayContextMenu({ dateId, dateLabel, isDark }: DayContextMenuProp
             Velg dag
           </DropdownMenuItem>
 
-          {/* Create shift */}
           <DropdownMenuItem onClick={() => setCreateShiftContext({ dateId })}>
             <Plus className="mr-2 h-4 w-4" />
             Opprett vakt
@@ -131,6 +131,9 @@ export function DayContextMenu({ dateId, dateLabel, isDark }: DayContextMenuProp
           <DropdownMenuSeparator />
 
           {/* Publish / Unpublish */}
+          <DropdownMenuLabel className="text-muted-foreground text-[10px] font-semibold tracking-wider uppercase">
+            Publisering
+          </DropdownMenuLabel>
           <DropdownMenuItem
             disabled={!hasUnpublished}
             onClick={() => {
@@ -160,6 +163,9 @@ export function DayContextMenu({ dateId, dateLabel, isDark }: DayContextMenuProp
           <DropdownMenuSeparator />
 
           {/* Copy / Paste */}
+          <DropdownMenuLabel className="text-muted-foreground text-[10px] font-semibold tracking-wider uppercase">
+            Kopier / Lim inn
+          </DropdownMenuLabel>
           <DropdownMenuItem
             disabled={!hasShifts}
             onClick={() => copyDay(dateId, dateLabel, dayShifts)}
@@ -186,6 +192,9 @@ export function DayContextMenu({ dateId, dateLabel, isDark }: DayContextMenuProp
           <DropdownMenuSeparator />
 
           {/* Templates */}
+          <DropdownMenuLabel className="text-muted-foreground text-[10px] font-semibold tracking-wider uppercase">
+            Maler
+          </DropdownMenuLabel>
           <DropdownMenuItem onClick={() => setSaveTemplateOpen(true)}>
             <BookmarkPlus className="mr-2 h-4 w-4" />
             Lagre som mal
@@ -199,6 +208,9 @@ export function DayContextMenu({ dateId, dateLabel, isDark }: DayContextMenuProp
           <DropdownMenuSeparator />
 
           {/* Day info & broadcast */}
+          <DropdownMenuLabel className="text-muted-foreground text-[10px] font-semibold tracking-wider uppercase">
+            Kommunikasjon
+          </DropdownMenuLabel>
           <DropdownMenuItem onClick={() => setDayInfoOpen(true)}>
             <CalendarPlus className="mr-2 h-4 w-4" />
             Legg til daginfo
