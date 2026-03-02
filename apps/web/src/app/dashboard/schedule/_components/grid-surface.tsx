@@ -35,7 +35,7 @@ export function GridSurface({
 
       {/* Week span toggle footer */}
       <div
-        className={`flex shrink-0 items-center justify-center gap-2 border-t px-4 py-1.5 ${
+        className={`flex shrink-0 items-center justify-center gap-2 border-t px-4 py-2.5 ${
           isDark ? "border-white/[0.04] bg-[#0a0a0c]/80" : "border-zinc-200 bg-white/80"
         } backdrop-blur-md print:hidden`}
       >
@@ -46,7 +46,7 @@ export function GridSurface({
         >
           <button
             onClick={() => setWeekSpan(1)}
-            className={`rounded-md px-3 py-1 text-xs font-bold transition-all ${
+            className={`rounded-md px-4 py-1.5 text-xs font-bold transition-all ${
               weekSpan === 1
                 ? isDark
                   ? "bg-zinc-800 text-white shadow-sm"
@@ -58,7 +58,7 @@ export function GridSurface({
           </button>
           <button
             onClick={() => setWeekSpan(2)}
-            className={`rounded-md px-3 py-1 text-xs font-bold transition-all ${
+            className={`rounded-md px-4 py-1.5 text-xs font-bold transition-all ${
               weekSpan === 2
                 ? isDark
                   ? "bg-zinc-800 text-white shadow-sm"

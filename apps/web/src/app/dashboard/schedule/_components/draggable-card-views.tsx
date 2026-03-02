@@ -93,11 +93,11 @@ function normalizeShiftIndicator(indicator: string): ShiftIndicator {
 }
 
 function ShiftStatusIcon({ status, isDark }: { status: ShiftStatus; isDark: boolean }) {
-  if (status === "draft") return <AlertCircle className="h-3 w-3 text-orange-400/60" />;
+  if (status === "draft") return <AlertCircle className="h-3.5 w-3.5 text-orange-400/60" />;
   if (status === "published")
-    return <Circle className={`h-3 w-3 ${isDark ? "text-zinc-500" : "text-zinc-400"}`} />;
-  if (status === "active") return <PlayCircle className="h-3 w-3 text-emerald-400/60" />;
-  return <CheckCircle2 className="h-3 w-3 text-zinc-600" />;
+    return <Circle className={`h-3.5 w-3.5 ${isDark ? "text-zinc-500" : "text-zinc-400"}`} />;
+  if (status === "active") return <PlayCircle className="h-3.5 w-3.5 text-emerald-400/60" />;
+  return <CheckCircle2 className="h-3.5 w-3.5 text-zinc-600" />;
 }
 
 export const ShiftCardView = React.memo(function ShiftCardView({
@@ -114,39 +114,39 @@ export const ShiftCardView = React.memo(function ShiftCardView({
 
   return (
     <div
-      className={`group relative flex cursor-grab flex-col gap-2 rounded-lg border p-2 transition-[opacity,transform,background-color,border-color] duration-200 ease-out hover:border-white/15 active:cursor-grabbing xl:p-2.5 ${isDark ? "hover:bg-white/5" : "hover:bg-zinc-100"} select-none ${SHIFT_STATUS_STYLES[normalizedStatus]} overflow-visible will-change-transform ${isDragging ? "scale-[0.98] opacity-35" : "scale-100 opacity-100"}`}
+      className={`group relative flex cursor-grab flex-col gap-2.5 rounded-lg border p-2.5 transition-[opacity,transform,background-color,border-color] duration-200 ease-out hover:border-white/15 active:cursor-grabbing xl:p-3 ${isDark ? "hover:bg-white/5" : "hover:bg-zinc-100"} select-none ${SHIFT_STATUS_STYLES[normalizedStatus]} overflow-visible will-change-transform ${isDragging ? "scale-[0.98] opacity-35" : "scale-100 opacity-100"}`}
     >
       <div
-        className={`absolute top-2 bottom-2 left-0 w-0.5 rounded-r-full ${SHIFT_INDICATOR_STYLES[normalizedIndicator]}`}
+        className={`absolute top-2.5 bottom-2.5 left-0 w-1 rounded-r-full ${SHIFT_INDICATOR_STYLES[normalizedIndicator]}`}
       />
 
       <div className="relative z-10 flex w-full items-start justify-between">
         <div className="min-w-0 pr-2">
           <span
-            className={`text-xs font-semibold xl:text-[13px] ${isDark ? "text-white" : "text-zinc-900"} line-clamp-1 block truncate leading-tight transition-colors group-hover:text-zinc-300`}
+            className={`text-sm font-semibold ${isDark ? "text-white" : "text-zinc-900"} line-clamp-1 block truncate leading-tight transition-colors group-hover:text-zinc-300`}
           >
             {role}
           </span>
           {zone ? (
             <div
-              className={`text-[10px] ${isDark ? "text-zinc-500" : "text-zinc-500"} mt-0.5 flex items-center gap-1 whitespace-nowrap`}
+              className={`text-[11px] ${isDark ? "text-zinc-500" : "text-zinc-500"} mt-1 flex items-center gap-1 whitespace-nowrap`}
             >
-              <MapPin className="h-2.5 w-2.5 shrink-0" />
+              <MapPin className="h-3 w-3 shrink-0" />
               <span className="truncate">{zone}</span>
             </div>
           ) : null}
         </div>
 
-        <div className="relative flex h-4 w-4 shrink-0 items-center justify-center">
+        <div className="relative flex h-5 w-5 shrink-0 items-center justify-center">
           <ShiftStatusIcon status={normalizedStatus} isDark={isDark} />
         </div>
       </div>
 
       <div
-        className={`flex items-center gap-1.5 text-[10px] xl:text-[11px] ${isDark ? "text-zinc-500" : "text-zinc-500"} relative z-10 mt-auto font-medium`}
+        className={`flex items-center gap-1.5 text-xs ${isDark ? "text-zinc-500" : "text-zinc-500"} relative z-10 mt-auto font-medium`}
       >
         <Clock
-          className={`h-3 w-3 text-zinc-500 group-hover:${isDark ? "text-zinc-400" : "text-zinc-600"}`}
+          className={`h-3.5 w-3.5 text-zinc-500 group-hover:${isDark ? "text-zinc-400" : "text-zinc-600"}`}
         />
         {time}
       </div>
