@@ -196,3 +196,72 @@ export async function POST(request: NextRequest) {
     { status: 201 },
   );
 }
+
+// ---------------------------------------------------------------------------
+// DELETE — Remove an external secret (Vault + metadata row)
+// ---------------------------------------------------------------------------
+
+const DeleteSecretSchema = z.object({
+  id: z.string().uuid(),
+});
+
+export async function DELETE(request: NextRequest) {
+  const adminId = await getSuperAdminId();
+  if (!adminId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const body = DeleteSecretSchema.safeParse(await request.json());
+  if (!body.success) {
+    return NextResponse.json({ error: body.error.flatten().fieldErrors }, { status: 400 });
+  }
+
+  const admin = createAdminClient();
+
+  // Fetch the metadata row to get the vault_secret_name
+  const { data: secret, error: fetchError } = await admin
+    .from("platform_external_secret")
+    .select("id, vault_secret_name, provider")
+    .eq("id", body.data.id)
+    .single();
+
+  if (fetchError || !secret) {
+    return NextResponse.json({ error: "Secret not found" }, { status: 404 });
+  }
+
+  // Delete from Vault first
+  const { error: vaultError } = await admin.rpc("delete_vault_secret", {
+    secret_name: secret.vault_secret_name,
+  });
+
+  if (vaultError) {
+    return NextResponse.json(
+      { error: `Failed to delete from Vault: ${vaultError.message}` },
+      { status: 500 },
+    );
+  }
+
+  // Delete metadata row
+  const { error: deleteError } = await admin
+    .from("platform_external_secret")
+    .delete()
+    .eq("id", secret.id);
+
+  if (deleteError) {
+    return NextResponse.json(
+      { error: `Failed to delete metadata: ${deleteError.message}` },
+      { status: 500 },
+    );
+  }
+
+  await logPlatformAction(
+    adminId,
+    "delete_external_secret",
+    "platform_external_secret",
+    secret.id,
+    {
+      provider: secret.provider,
+      vault_secret_name: secret.vault_secret_name,
+    },
+  );
+
+  return NextResponse.json({ success: true });
+}
