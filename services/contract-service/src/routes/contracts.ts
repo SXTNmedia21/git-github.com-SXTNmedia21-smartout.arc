@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { supabase } from "../lib/supabase.js";
-import { docuseal } from "../lib/docuseal.js";
+import { getDocuseal } from "../lib/docuseal.js";
 import { resolvePlaceholders } from "../lib/placeholders.js";
 import { scheduleReminders } from "../lib/reminders.js";
 import { randomUUID } from "node:crypto";
@@ -234,7 +234,7 @@ export async function contractRoutes(app: FastifyInstance) {
 </html>`;
 
       // Create DocuSeal template from resolved HTML
-      const dsTemplate = await docuseal.createTemplateFromHtml({
+      const dsTemplate = await getDocuseal().createTemplateFromHtml({
         html: fullHtml,
         name: contract.title ?? "Smartout Contract",
       });
@@ -251,7 +251,7 @@ export async function contractRoutes(app: FastifyInstance) {
       const signingToken = randomUUID().replace(/-/g, "").slice(0, 24);
 
       // Create submission with two parties
-      const submission = await docuseal.createSubmission({
+      const submission = await getDocuseal().createSubmission({
         template_id: dsTemplate.id,
         send_email: true,
         completed_redirect_url: `${config.APP_URL}/sign/success?token=${signingToken}`,

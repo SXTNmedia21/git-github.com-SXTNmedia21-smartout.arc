@@ -17,12 +17,17 @@ import { toVercelTools } from "@smartout/ai/adapters/vercel-ai";
 import { loadAuthorityConfig } from "./authority.js";
 import { loadRecentMemories } from "./memory-manager.js";
 import { supabaseAdmin } from "../lib/supabase.js";
-import { config } from "../config.js";
+import { getSecrets } from "../secrets.js";
 import type { AgentChatResponse, ConversationTurn } from "../types/agent.js";
 
-const openrouter = createOpenRouter({
-  apiKey: config.OPENROUTER_API_KEY,
-});
+let _openrouter: ReturnType<typeof createOpenRouter> | null = null;
+
+function getOpenRouter() {
+  if (!_openrouter) {
+    _openrouter = createOpenRouter({ apiKey: getSecrets().openrouterApiKey });
+  }
+  return _openrouter;
+}
 
 type AgentRouterInput = {
   message: string;
@@ -93,7 +98,7 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
   const vercelTools = toVercelTools(selectedTools, toolContext);
 
   const result = await generateText({
-    model: openrouter("anthropic/claude-sonnet-4"),
+    model: getOpenRouter()("anthropic/claude-sonnet-4"),
     system: systemPrompt,
     messages,
     tools: vercelTools,

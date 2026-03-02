@@ -10,6 +10,7 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { logger } from "hono/logger";
 import { config } from "./config.js";
+import { loadSecrets } from "./secrets.js";
 import { authMiddleware } from "./middleware/auth.js";
 import { onError } from "./middleware/error-handler.js";
 import { health } from "./routes/health.js";
@@ -21,6 +22,9 @@ import { ultravox } from "./routes/adapters/ultravox.js";
 import { agentChat } from "./routes/agent/chat.js";
 import { expireStaleSession } from "./core/session-manager.js";
 import { cleanExpiredMemories } from "./core/memory-manager.js";
+
+// Load external API keys from Vault before starting the server
+await loadSecrets();
 
 const app = new Hono();
 

@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { supabase } from "../lib/supabase.js";
-import { docuseal } from "../lib/docuseal.js";
+import { getDocuseal } from "../lib/docuseal.js";
 
 export async function syncRoutes(app: FastifyInstance) {
   // Sync template to DocuSeal
@@ -27,7 +27,7 @@ export async function syncRoutes(app: FastifyInstance) {
       const fullHtml = buildTemplateHtml(template);
 
       // Push to DocuSeal
-      const dsTemplate = await docuseal.createTemplateFromHtml({
+      const dsTemplate = await getDocuseal().createTemplateFromHtml({
         html: fullHtml,
         name: `${template.name} (${template.language})`,
       });

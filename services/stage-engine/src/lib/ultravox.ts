@@ -6,7 +6,7 @@
 // Connected to: Ultravox API docs
 // ============================================
 
-import { config } from "../config.js";
+import { getSecrets } from "../secrets.js";
 import type {
   UltravoxCreateCallPayload,
   UltravoxCreateCallApiResponse,
@@ -27,7 +27,7 @@ export async function createUltravoxCall(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-API-Key": config.ULTRAVOX_API_KEY,
+        "X-API-Key": getSecrets().ultravoxApiKey,
       },
       body: JSON.stringify(payload),
     });

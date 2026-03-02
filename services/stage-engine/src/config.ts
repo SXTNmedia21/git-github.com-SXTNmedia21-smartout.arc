@@ -24,11 +24,8 @@ const envSchema = z.object({
   /** Supabase service role key — used for admin operations (key validation, context loading) */
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(32),
 
-  /** Ultravox API key for creating voice calls */
-  ULTRAVOX_API_KEY: z.string().min(1),
-
-  /** OpenRouter API key for agent mode LLM calls */
-  OPENROUTER_API_KEY: z.string().min(1),
+  // ULTRAVOX_API_KEY and OPENROUTER_API_KEY are loaded from Vault at runtime.
+  // See src/secrets.ts — only SUPABASE_URL + SERVICE_ROLE_KEY needed as env vars.
 
   /** Log level */
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),

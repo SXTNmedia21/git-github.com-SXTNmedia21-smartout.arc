@@ -1,5 +1,6 @@
 import Fastify from "fastify";
 import { config } from "./config.js";
+import { loadSecrets } from "./secrets.js";
 import { templateRoutes } from "./routes/templates.js";
 import { syncRoutes } from "./routes/sync.js";
 import { contractRoutes } from "./routes/contracts.js";
@@ -65,6 +66,8 @@ app.register(webhookRoutes);
 // Start server
 const start = async () => {
   try {
+    // Load external API keys from Vault before starting the server
+    await loadSecrets();
     await app.listen({ port: config.PORT, host: "0.0.0.0" });
     app.log.info(`Contract service running on port ${config.PORT}`);
   } catch (err) {

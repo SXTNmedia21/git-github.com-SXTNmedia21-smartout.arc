@@ -6,7 +6,7 @@
  */
 import type { FastifyInstance } from "fastify";
 import { supabase } from "../lib/supabase.js";
-import { config } from "../config.js";
+import { getSecrets } from "../secrets.js";
 
 type WebhookPayload = {
   event_type: string;
@@ -46,7 +46,7 @@ export async function webhookRoutes(app: FastifyInstance) {
   app.post("/webhooks/docuseal", async (request, reply) => {
     // Verify shared secret
     const secret = request.headers["x-docuseal-secret"] ?? request.headers["x-docuseal-signature"];
-    if (secret !== config.DOCUSEAL_WEBHOOK_SECRET) {
+    if (secret !== getSecrets().docusealWebhookSecret) {
       return reply.status(401).send({ error: "Unauthorized" });
     }
 
