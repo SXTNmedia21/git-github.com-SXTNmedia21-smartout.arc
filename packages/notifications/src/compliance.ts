@@ -13,6 +13,7 @@ const TEMPLATE_CLASSIFICATION: Record<EmailTemplate, EmailClassification> = {
   "trial-reminder": "transactional",
   "payment-reminder": "transactional",
   "contract-reminder": "transactional",
+  "sendgrid-dynamic": "broadcast",
 };
 
 export const ALLOWED_SENDERS = [
