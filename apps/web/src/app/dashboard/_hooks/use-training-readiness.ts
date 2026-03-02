@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useWorkspace } from "@/lib/workspace-context";
+import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
 import { dashboardKeys } from "./dashboard-keys";
 import type { TrainingReadinessData } from "./dashboard-types";
@@ -12,19 +12,21 @@ import type { TrainingReadinessData } from "./dashboard-types";
  * Connected to: TacticalView task completion, StrategicView training KPI
  */
 export function useTrainingReadiness() {
-  const { workspace } = useWorkspace();
-  const workspaceId = workspace.workspace_id;
+  const ctx = useWorkspaceOptional();
+  const workspaceId = ctx?.workspace.workspace_id;
 
   return useQuery({
-    queryKey: dashboardKeys.trainingReadiness(workspaceId),
+    queryKey: dashboardKeys.trainingReadiness(workspaceId ?? "none"),
+    enabled: !!workspaceId,
     queryFn: async (): Promise<TrainingReadinessData> => {
+      const wsId = workspaceId!;
       const supabase = createClient();
 
       // Fetch all protocol assignments for workspace profiles
       const { data, error } = await supabase
         .from("protocol_assignment")
         .select("status, profile!inner(workspace_id)")
-        .eq("profile.workspace_id", workspaceId);
+        .eq("profile.workspace_id", wsId);
 
       if (error) throw error;
 

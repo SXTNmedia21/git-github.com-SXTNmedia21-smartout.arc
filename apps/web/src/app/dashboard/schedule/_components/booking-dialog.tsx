@@ -98,13 +98,18 @@ export function BookingDialog({ dateId, open, onOpenChange }: BookingDialogProps
       return;
     }
 
+    if (!time.trim() || !/^\d{2}:\d{2}$/.test(time.trim())) {
+      toast.error("Tidspunkt er påkrevd (HH:MM)");
+      return;
+    }
+
     createDayBooking.mutate({
-      id: `book_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      id: crypto.randomUUID(),
       dateId,
       title: title.trim(),
       guestCount: parsedGuests,
       menu: menu.trim() || "Ikke spesifisert",
-      time: time.trim() || "TBD",
+      time: time.trim(),
       location: location.trim() || "Ikke tildelt",
       status,
       isVip,

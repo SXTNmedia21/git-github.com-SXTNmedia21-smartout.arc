@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useWorkspace } from "@/lib/workspace-context";
+import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
 import { dashboardKeys } from "./dashboard-keys";
 import type { DepartmentShiftGroup } from "./dashboard-types";
@@ -12,12 +12,14 @@ import type { DepartmentShiftGroup } from "./dashboard-types";
  * Connected to: ReconciliationView department cards
  */
 export function useDepartmentShifts(date: string) {
-  const { workspace } = useWorkspace();
-  const workspaceId = workspace.workspace_id;
+  const ctx = useWorkspaceOptional();
+  const workspaceId = ctx?.workspace.workspace_id;
 
   return useQuery({
-    queryKey: dashboardKeys.departmentShifts(workspaceId, date),
+    queryKey: dashboardKeys.departmentShifts(workspaceId ?? "none", date),
+    enabled: !!workspaceId,
     queryFn: async (): Promise<DepartmentShiftGroup[]> => {
+      const wsId = workspaceId!;
       const supabase = createClient();
 
       const { data, error } = await supabase
@@ -42,7 +44,7 @@ export function useDepartmentShifts(date: string) {
           )
         `,
         )
-        .eq("workspace_id", workspaceId)
+        .eq("workspace_id", wsId)
         .eq("shift_date", date)
         .order("start_time", { ascending: true });
 

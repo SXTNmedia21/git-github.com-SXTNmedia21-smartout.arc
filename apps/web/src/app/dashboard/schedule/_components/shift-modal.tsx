@@ -407,7 +407,7 @@ export function ShiftModal() {
     } else if (dateId) {
       // Create new shift
       createShiftMutation.mutate({
-        id: `shift_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        id: crypto.randomUUID(),
         employeeId: form.employeeId || null,
         dateId,
         role: form.role,

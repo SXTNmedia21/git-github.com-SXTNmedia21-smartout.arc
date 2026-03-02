@@ -9,7 +9,7 @@
 // ============================================
 "use client";
 
-import { useState } from "react";
+import { useContext, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -31,6 +31,8 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 
 import { useCreateDayMessage } from "../_hooks/use-day-content";
 import { useWeekRange } from "../_hooks/use-week-range";
@@ -56,6 +58,7 @@ type DayMessageDialogProps = {
 export function DayMessageDialog({ dateId, open, onOpenChange }: DayMessageDialogProps) {
   const { weekStart } = useWeekRange();
   const createDayMessage = useCreateDayMessage(weekStart);
+  const { profileId } = useContext(DashboardContext);
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -77,13 +80,13 @@ export function DayMessageDialog({ dateId, open, onOpenChange }: DayMessageDialo
     if (!title.trim()) return;
 
     createDayMessage.mutate({
-      id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      id: crypto.randomUUID(),
       dateId,
       title: title.trim(),
       content: content.trim(),
       audience: audience as "all" | "leaders" | string,
       visibility: visibility as "all_day" | "until_16" | "permanent",
-      author: "System",
+      author: profileId ?? "",
       isAlert,
     });
 

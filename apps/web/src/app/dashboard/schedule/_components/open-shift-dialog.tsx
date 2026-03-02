@@ -68,7 +68,7 @@ export function OpenShiftDialog({ open, onOpenChange }: OpenShiftDialogProps) {
     if (!title.trim()) return;
 
     createOpenShift.mutate({
-      id: `open_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      id: crypto.randomUUID(),
       title: title.trim(),
       startTime,
       endTime,

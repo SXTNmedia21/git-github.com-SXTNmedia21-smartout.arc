@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useWorkspace } from "@/lib/workspace-context";
+import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
 import { dashboardKeys } from "./dashboard-keys";
 import type { ActionCounts } from "./dashboard-types";
@@ -12,12 +12,14 @@ import type { ActionCounts } from "./dashboard-types";
  * Connected to: ActionStrip component
  */
 export function useActionItems() {
-  const { workspace } = useWorkspace();
-  const workspaceId = workspace.workspace_id;
+  const ctx = useWorkspaceOptional();
+  const workspaceId = ctx?.workspace.workspace_id;
 
   return useQuery({
-    queryKey: dashboardKeys.actionItems(workspaceId),
+    queryKey: dashboardKeys.actionItems(workspaceId ?? "none"),
+    enabled: !!workspaceId,
     queryFn: async (): Promise<ActionCounts> => {
+      const wsId = workspaceId!;
       const supabase = createClient();
       const today = new Date().toISOString().split("T")[0];
       const twoDaysFromNow = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000)
@@ -32,7 +34,7 @@ export function useActionItems() {
           supabase
             .from("schedule_shift")
             .select("*", { count: "exact", head: true })
-            .eq("workspace_id", workspaceId)
+            .eq("workspace_id", wsId)
             .is("employee_id", null)
             .gte("shift_date", today)
             .lte("shift_date", twoDaysFromNow!),
@@ -41,14 +43,14 @@ export function useActionItems() {
           supabase
             .from("employment_contract")
             .select("*", { count: "exact", head: true })
-            .eq("workspace_id", workspaceId)
+            .eq("workspace_id", wsId)
             .eq("status", "sent"),
 
           // 3. Stuck onboarding (no completion in 48h)
           supabase
             .from("onboarding_session")
             .select("*", { count: "exact", head: true })
-            .eq("workspace_id", workspaceId)
+            .eq("workspace_id", wsId)
             .is("completed_at", null)
             .lt("updated_at", fortyEightHoursAgo),
 
@@ -56,14 +58,14 @@ export function useActionItems() {
           supabase
             .from("protocol_assignment")
             .select("*, profile!inner(workspace_id)", { count: "exact", head: true })
-            .eq("profile.workspace_id", workspaceId)
+            .eq("profile.workspace_id", wsId)
             .eq("status", "pending"),
 
           // 5. Stale invitations (pending > 7 days)
           supabase
             .from("invitation")
             .select("*", { count: "exact", head: true })
-            .eq("workspace_id", workspaceId)
+            .eq("workspace_id", wsId)
             .eq("status", "pending")
             .lt("created_at", sevenDaysAgo),
         ]);

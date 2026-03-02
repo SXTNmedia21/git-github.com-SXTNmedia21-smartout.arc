@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useWorkspace } from "@/lib/workspace-context";
+import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
 import { dashboardKeys } from "./dashboard-keys";
 import type { PipelineData } from "./dashboard-types";
@@ -12,12 +12,14 @@ import type { PipelineData } from "./dashboard-types";
  * Connected to: StrategicView pipeline widget, ActivityView people count
  */
 export function useWorkforcePipeline() {
-  const { workspace } = useWorkspace();
-  const workspaceId = workspace.workspace_id;
+  const ctx = useWorkspaceOptional();
+  const workspaceId = ctx?.workspace.workspace_id;
 
   return useQuery({
-    queryKey: dashboardKeys.workforcePipeline(workspaceId),
+    queryKey: dashboardKeys.workforcePipeline(workspaceId ?? "none"),
+    enabled: !!workspaceId,
     queryFn: async (): Promise<PipelineData> => {
+      const wsId = workspaceId!;
       const supabase = createClient();
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
@@ -26,21 +28,21 @@ export function useWorkforcePipeline() {
         supabase
           .from("profile")
           .select("*", { count: "exact", head: true })
-          .eq("workspace_id", workspaceId)
+          .eq("workspace_id", wsId)
           .eq("is_active", true),
 
         // New hires in last 30 days
         supabase
           .from("profile")
           .select("*", { count: "exact", head: true })
-          .eq("workspace_id", workspaceId)
+          .eq("workspace_id", wsId)
           .gte("joined_at", thirtyDaysAgo),
 
         // Departures in last 30 days (inactive profiles recently updated)
         supabase
           .from("profile")
           .select("*", { count: "exact", head: true })
-          .eq("workspace_id", workspaceId)
+          .eq("workspace_id", wsId)
           .eq("status", "offboarding")
           .gte("updated_at", thirtyDaysAgo),
 
@@ -48,7 +50,7 @@ export function useWorkforcePipeline() {
         supabase
           .from("profile")
           .select("*", { count: "exact", head: true })
-          .eq("workspace_id", workspaceId)
+          .eq("workspace_id", wsId)
           .eq("status", "trainee"),
       ]);
 

@@ -7,7 +7,7 @@
 // ============================================
 "use client";
 
-import { useState } from "react";
+import { useContext, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +21,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 
 import type { Shift } from "./schedule-types";
 import { useShifts } from "../_hooks/use-shifts";
@@ -49,6 +51,7 @@ export function SaveTemplateDialog({ dateId, open, onOpenChange }: SaveTemplateD
   const { weekStart, weekEnd } = useWeekRange();
   const { data: shifts = [] as Shift[] } = useShifts(weekStart, weekEnd);
   const saveTemplateMutation = useSaveTemplate();
+  const { profileId } = useContext(DashboardContext);
 
   const [name, setName] = useState("");
   const [department, setDepartment] = useState("");
@@ -84,12 +87,12 @@ export function SaveTemplateDialog({ dateId, open, onOpenChange }: SaveTemplateD
     );
 
     saveTemplateMutation.mutate({
-      id: `tmpl_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      id: crypto.randomUUID(),
       name: name.trim(),
       department: department.trim(),
       shifts: templateShifts,
       includeAssignments,
-      createdBy: "System",
+      createdBy: profileId ?? "",
     });
 
     resetForm();
