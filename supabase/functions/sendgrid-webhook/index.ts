@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const WEBHOOK_SECRET = Deno.env.get("SENDGRID_WEBHOOK_VERIFICATION_KEY");
+const WEBHOOK_VERIFICATION_KEY = Deno.env.get("SENDGRID_WEBHOOK_VERIFICATION_KEY");
 
 type SendGridEvent = {
   email: string;
@@ -14,20 +14,65 @@ type SendGridEvent = {
   [key: string]: unknown;
 };
 
+/**
+ * Verify SendGrid Event Webhook signature using ECDSA P-256 SHA-256.
+ * The public key is base64-encoded SPKI format from SendGrid settings.
+ * Payload = timestamp + rawBody (must be raw, not re-serialized JSON).
+ */
+async function verifySignature(
+  publicKeyBase64: string,
+  signature: string,
+  timestamp: string,
+  rawBody: string,
+): Promise<boolean> {
+  try {
+    const keyDer = Uint8Array.from(atob(publicKeyBase64), (c) => c.charCodeAt(0));
+    const cryptoKey = await crypto.subtle.importKey(
+      "spki",
+      keyDer,
+      { name: "ECDSA", namedCurve: "P-256" },
+      false,
+      ["verify"],
+    );
+    const payload = new TextEncoder().encode(timestamp + rawBody);
+    const sig = Uint8Array.from(atob(signature), (c) => c.charCodeAt(0));
+    return await crypto.subtle.verify(
+      { name: "ECDSA", hash: { name: "SHA-256" } },
+      cryptoKey,
+      sig,
+      payload,
+    );
+  } catch {
+    return false;
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
   }
 
-  // Verify webhook signature
-  const signature = req.headers.get("x-twilio-email-event-webhook-signature");
-  if (WEBHOOK_SECRET && !signature) {
-    return new Response("Missing signature", { status: 401 });
+  // Read raw body first (needed for both signature verification and parsing)
+  const rawBody = await req.text();
+
+  // Verify webhook signature when verification key is configured
+  if (WEBHOOK_VERIFICATION_KEY) {
+    const signature = req.headers.get("x-twilio-email-event-webhook-signature");
+    const timestamp = req.headers.get("x-twilio-email-event-webhook-timestamp");
+
+    if (!signature || !timestamp) {
+      return new Response("Missing signature headers", { status: 401 });
+    }
+
+    const isValid = await verifySignature(WEBHOOK_VERIFICATION_KEY, signature, timestamp, rawBody);
+    if (!isValid) {
+      return new Response("Invalid signature", { status: 403 });
+    }
   }
 
   let events: SendGridEvent[];
   try {
-    events = await req.json();
+    events = JSON.parse(rawBody);
     if (!Array.isArray(events)) {
       return new Response("Expected array", { status: 400 });
     }
