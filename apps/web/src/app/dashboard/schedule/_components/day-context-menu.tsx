@@ -13,6 +13,7 @@ import { useState } from "react";
 import {
   BookmarkPlus,
   BookOpen,
+  CalendarPlus,
   ClipboardPaste,
   Copy,
   FileText,
@@ -42,6 +43,7 @@ import { useWeekRange } from "../_hooks/use-week-range";
 import { SaveTemplateDialog } from "./save-template-dialog";
 import { LoadTemplateSheet } from "./load-template-sheet";
 import { DayMessageDialog } from "./day-message-dialog";
+import { DayInfoDialog } from "./day-info-dialog";
 import { BroadcastDialog } from "./broadcast-dialog";
 
 // ── Props ───────────────────────────────────────────────────
@@ -82,6 +84,7 @@ export function DayContextMenu({ dateId, dateLabel, isDark }: DayContextMenuProp
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
   const [loadTemplateOpen, setLoadTemplateOpen] = useState(false);
   const [dayMessageOpen, setDayMessageOpen] = useState(false);
+  const [dayInfoOpen, setDayInfoOpen] = useState(false);
   const [broadcastOpen, setBroadcastOpen] = useState(false);
 
   // Derived conditions for enabling/disabling menu items
@@ -196,9 +199,14 @@ export function DayContextMenu({ dateId, dateLabel, isDark }: DayContextMenuProp
           <DropdownMenuSeparator />
 
           {/* Day info & broadcast */}
+          <DropdownMenuItem onClick={() => setDayInfoOpen(true)}>
+            <CalendarPlus className="mr-2 h-4 w-4" />
+            Legg til daginfo
+          </DropdownMenuItem>
+
           <DropdownMenuItem onClick={() => setDayMessageOpen(true)}>
             <FileText className="mr-2 h-4 w-4" />
-            Opprett daginfo
+            Opprett melding
           </DropdownMenuItem>
 
           <DropdownMenuItem onClick={() => setBroadcastOpen(true)}>
@@ -230,6 +238,8 @@ export function DayContextMenu({ dateId, dateLabel, isDark }: DayContextMenuProp
       />
 
       <DayMessageDialog dateId={dateId} open={dayMessageOpen} onOpenChange={setDayMessageOpen} />
+
+      <DayInfoDialog dateId={dateId} open={dayInfoOpen} onOpenChange={setDayInfoOpen} />
 
       <BroadcastDialog dateId={dateId} open={broadcastOpen} onOpenChange={setBroadcastOpen} />
     </>

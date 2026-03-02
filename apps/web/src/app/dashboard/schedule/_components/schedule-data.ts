@@ -21,6 +21,12 @@ export type DayColumn = {
   messages?: number;
   tasks?: { done: number; total: number };
   situation: string;
+  /** Events from schedule_day_info (category = 'event') */
+  events?: { id: string; title: string }[];
+  /** Notes/alerts from schedule_day_info (category != 'event') */
+  dayInfo?: { id: string; title: string; scope: string }[];
+  /** Daily budget amount from workspace_budget */
+  budgetAmount?: number;
 };
 
 /** Physical zones within the venue, for shift assignment dropdowns */

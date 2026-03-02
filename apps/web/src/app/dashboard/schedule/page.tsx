@@ -90,6 +90,7 @@ import {
 } from "./_hooks/use-day-content";
 import { useScheduleRealtime } from "./_hooks/use-schedule-realtime";
 import { useScheduleComputed } from "./_hooks/use-schedule-computed";
+import { useDayInfo } from "./_hooks/use-day-info";
 
 // ---------------------------------------------------------------------------
 // Week range helper — supports week offset for navigation
@@ -217,6 +218,26 @@ function SchedulePageContent() {
   const dayMessagesQuery = useDayMessages(weekStart, weekEnd);
   const dayTasksQuery = useDayTasks(weekStart, weekEnd);
   const dayBookingsQuery = useDayBookings(weekStart, weekEnd);
+  const { dayInfoByDate } = useDayInfo(weekStart, weekEnd);
+
+  // ── Enrich day columns with day info (events, notes, budget) ─
+  const enrichedDays = useMemo(() => {
+    return days.map((day) => {
+      const infos = dayInfoByDate.get(day.id) ?? [];
+      const events = infos
+        .filter((d) => d.category === "event")
+        .map((e) => ({ id: e.id, title: e.title }));
+      const notes = infos
+        .filter((d) => d.category !== "event")
+        .map((n) => ({ id: n.id, title: n.title, scope: n.scopeType }));
+
+      return {
+        ...day,
+        events: events.length > 0 ? events : undefined,
+        dayInfo: notes.length > 0 ? notes : undefined,
+      };
+    });
+  }, [days, dayInfoByDate]);
 
   // ── Realtime subscription ───────────────────────────────────
   useScheduleRealtime(weekStart);

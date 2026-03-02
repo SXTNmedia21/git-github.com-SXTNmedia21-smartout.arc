@@ -12,6 +12,8 @@ import {
   MessageSquare,
   ListTodo,
   GripVertical,
+  CalendarDays,
+  StickyNote,
 } from "lucide-react";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
@@ -246,7 +248,7 @@ const DayHeaders = React.memo(function DayHeaders({
     <div className="sticky top-0 z-40 flex w-full">
       {/* Sticky corner cell */}
       <div
-        className={`w-[260px] shrink-0 border-r border-b border-white/[0.04] ${isDark ? "bg-[#0a0a0c]/95" : "bg-white/95"} sticky left-0 z-50 flex h-24 flex-col justify-between p-4 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)] backdrop-blur-xl`}
+        className={`w-[260px] shrink-0 border-r border-b border-white/[0.04] ${isDark ? "bg-[#0a0a0c]/95" : "bg-white/95"} sticky left-0 z-50 flex h-44 flex-col justify-between p-4 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)] backdrop-blur-xl`}
       >
         <div className="flex w-full items-center justify-between">
           <div className="flex items-center gap-2 text-xs font-bold tracking-widest text-zinc-500 uppercase">
@@ -288,11 +290,16 @@ function DroppableDayHeader({
 }) {
   const { isOver, setNodeRef } = useDroppable({ id: `day-header::${day.id}` });
 
+  const hasEvents = day.events && day.events.length > 0;
+  const hasDayInfo = day.dayInfo && day.dayInfo.length > 0;
+  const hasBudget = day.budgetAmount !== undefined && day.budgetAmount > 0;
+  const hasMiddleContent = hasEvents || hasDayInfo || hasBudget;
+
   return (
     <div
       ref={setNodeRef}
       style={{ width: DAY_COL_WIDTH, minWidth: DAY_COL_WIDTH }}
-      className={`shrink-0 border-r border-b border-white/[0.03] ${isDark ? "bg-[#0a0a0c]/90" : "bg-white/95"} group/day relative flex h-24 cursor-pointer flex-col justify-between p-3 backdrop-blur-xl transition-colors hover:bg-white/5 ${day.isToday ? "bg-orange-500/[0.06]" : ""} ${isOver ? "rounded-lg border-dashed border-orange-500/50 bg-orange-500/20" : ""}`}
+      className={`shrink-0 border-r border-b border-white/[0.03] ${isDark ? "bg-[#0a0a0c]/90" : "bg-white/95"} group/day relative flex h-44 cursor-pointer flex-col p-3 backdrop-blur-xl transition-colors hover:bg-white/5 ${day.isToday ? "bg-orange-500/[0.06]" : ""} ${isOver ? "rounded-lg border-dashed border-orange-500/50 bg-orange-500/20" : ""}`}
       onClick={() => onDateClick(day.id)}
     >
       {day.coverageAlert ? (
@@ -301,6 +308,7 @@ function DroppableDayHeader({
         <div className="absolute top-0 left-0 h-0.5 w-full bg-emerald-500/10" />
       )}
 
+      {/* Top: Date label + context menu */}
       <div className="flex items-start justify-between">
         <h2
           className={`flex items-center gap-1.5 truncate text-sm tracking-tight ${day.isToday ? "font-black text-orange-400" : day.isHoliday ? "font-black text-rose-400" : isDark ? "font-semibold text-zinc-400" : "font-semibold text-zinc-700"}`}
@@ -315,6 +323,41 @@ function DroppableDayHeader({
         </div>
       </div>
 
+      {/* Middle: Events, day info, budget */}
+      <div className="mt-1.5 flex min-h-0 flex-1 flex-col gap-1 overflow-hidden">
+        {hasEvents
+          ? day.events!.slice(0, 2).map((event) => (
+              <div
+                key={event.id}
+                className="flex items-center gap-1 truncate rounded bg-indigo-500/10 px-1.5 py-0.5 text-[10px] text-indigo-400"
+              >
+                <CalendarDays className="h-2.5 w-2.5 shrink-0" />
+                <span className="truncate">{event.title}</span>
+              </div>
+            ))
+          : null}
+        {hasDayInfo
+          ? day.dayInfo!.slice(0, 2).map((info) => (
+              <div
+                key={info.id}
+                className="text-muted-foreground flex items-center gap-1 truncate text-[10px]"
+              >
+                <StickyNote className="h-2.5 w-2.5 shrink-0" />
+                <span className="truncate">{info.title}</span>
+              </div>
+            ))
+          : null}
+        {hasBudget ? (
+          <div className="text-[10px] font-medium text-emerald-400">
+            kr {day.budgetAmount!.toLocaleString("no-NO")}
+          </div>
+        ) : null}
+        {!hasMiddleContent ? (
+          <div className="text-muted-foreground/40 text-[10px] italic">Ingen daginfo</div>
+        ) : null}
+      </div>
+
+      {/* Bottom: Stats (staff, shifts, coverage) */}
       <div className="mt-auto flex flex-col gap-1.5">
         <div className="flex flex-wrap items-center gap-2 text-[11px] leading-none font-medium tracking-wide text-zinc-500/70 uppercase">
           <span className="flex items-center gap-1" title="Ansatte">
