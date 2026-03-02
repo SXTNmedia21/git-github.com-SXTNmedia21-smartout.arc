@@ -60,6 +60,7 @@ import {
 import { StatusBadge } from "@/components/platform-admin/status-badge";
 import { ConfirmationDialog } from "@/components/platform-admin/confirmation-dialog";
 import { CreateKeyDialog } from "./create-key-dialog";
+import { CreateSecretDialog } from "./create-secret-dialog";
 import { KeySecretDisplay } from "./key-secret-display";
 import { KeysTable } from "./keys-table";
 import { EnvImportDialog } from "./env-import-dialog";
@@ -155,6 +156,7 @@ export function KeysPageClient() {
 
   // Dialog state
   const [createOpen, setCreateOpen] = useState(false);
+  const [createSecretOpen, setCreateSecretOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [rotateResult, setRotateResult] = useState<{
     open: boolean;
@@ -622,13 +624,19 @@ export function KeysPageClient() {
         {/* External Secrets Tab — 4 sub-tabs by service category */}
         <TabsContent value="external-secrets">
           <Tabs defaultValue="client" className="space-y-4">
-            <TabsList>
-              {SERVICE_TABS.map((tab) => (
-                <TabsTrigger key={tab} value={tab} className="text-xs">
-                  {TAB_LABELS[tab]}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+            <div className="flex items-center justify-between">
+              <TabsList>
+                {SERVICE_TABS.map((tab) => (
+                  <TabsTrigger key={tab} value={tab} className="text-xs">
+                    {TAB_LABELS[tab]}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              <Button size="sm" onClick={() => setCreateSecretOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Secret
+              </Button>
+            </div>
 
             {SERVICE_TABS.map((tab) => {
               const services = getServicesForTab(tab);
@@ -660,6 +668,13 @@ export function KeysPageClient() {
 
       {/* Create Key Dialog */}
       <CreateKeyDialog open={createOpen} onOpenChange={setCreateOpen} onCreated={fetchData} />
+
+      {/* Create Secret Dialog */}
+      <CreateSecretDialog
+        open={createSecretOpen}
+        onOpenChange={setCreateSecretOpen}
+        onCreated={fetchData}
+      />
 
       {/* Rotate Result Dialog */}
       <Dialog
