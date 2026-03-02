@@ -11,6 +11,7 @@ import {
   Layers,
   ArrowUpRight,
   ArrowDownRight,
+  X,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useWorkforcePipeline, useTrainingReadiness } from "@/app/dashboard/_hooks";
@@ -97,7 +98,14 @@ export function ActivityView({ isDark }: { isDark: boolean }) {
     "locations",
   );
   const [timeRange, setTimeRange] = useState<TimeRange>("30d");
+  const [selectedCell, setSelectedCell] = useState<{ row: string; dayIndex: number } | null>(null);
   const days = RANGE_DAYS[timeRange];
+
+  function handleCellClick(rowLabel: string, dayIndex: number) {
+    setSelectedCell((prev) =>
+      prev?.row === rowLabel && prev?.dayIndex === dayIndex ? null : { row: rowLabel, dayIndex },
+    );
+  }
 
   const { data: pipeline } = useWorkforcePipeline();
   const { data: training } = useTrainingReadiness();
@@ -311,53 +319,81 @@ export function ActivityView({ isDark }: { isDark: boolean }) {
         </div>
 
         {/* Heatmap Grid container */}
-        <div className="flex-1 overflow-x-auto p-4">
-          <div className="min-w-fit">
-            {/* Days Header */}
-            <div className="mb-1 flex items-end">
-              <div className="w-20 flex-shrink-0" />
-              <div className="relative flex gap-0.5" style={{ width: `${days * 16}px` }}>
-                {dayLabels.map((d) => (
+        <div className="flex-1 p-4">
+          {/* Days Header */}
+          <div className="mb-1 flex items-end">
+            <div className="w-24 flex-shrink-0" />
+            <div className="flex flex-1 gap-px">
+              {Array.from({ length: days }, (_, i) => {
+                const labelEntry = dayLabels.find((d) => d.index === i);
+                return (
                   <span
-                    key={d.index}
-                    className="text-muted-foreground absolute text-[10px] font-medium"
-                    style={{ left: `${d.index * 16}px`, width: "14px", textAlign: "center" }}
+                    key={i}
+                    className="text-muted-foreground flex-1 text-center text-[10px] font-medium"
                   >
-                    {d.label}
+                    {labelEntry ? labelEntry.label : ""}
                   </span>
-                ))}
-              </div>
+                );
+              })}
             </div>
-
-            {/* Rows */}
-            <AnimatePresence mode="popLayout" initial={false}>
-              {activeData.map((row) => (
-                <motion.div
-                  key={row.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.3 }}
-                  className="group hover:bg-muted/50 mb-0.5 flex cursor-crosshair items-center rounded-md p-0.5 transition-colors"
-                >
-                  <div className="text-muted-foreground group-hover:text-foreground w-20 flex-shrink-0 truncate pr-2 text-xs font-semibold">
-                    {row.label}
-                  </div>
-
-                  <div className="flex gap-0.5">
-                    {row.data.map((val, cellIdx) => (
-                      <div
-                        key={cellIdx}
-                        title={`${row.label} - Day ${cellIdx + 1}: Score ${val}`}
-                        className={`h-3.5 w-3.5 cursor-pointer rounded-sm transition-all duration-300 hover:z-10 hover:scale-[1.3] ${getIntensityClass(val, isDark)}`}
-                      />
-                    ))}
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
           </div>
+
+          {/* Rows */}
+          <AnimatePresence mode="popLayout" initial={false}>
+            {activeData.map((row) => (
+              <motion.div
+                key={row.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.3 }}
+                className="group hover:bg-muted/50 mb-0.5 flex cursor-crosshair items-center rounded-md p-0.5 transition-colors"
+              >
+                <div className="text-muted-foreground group-hover:text-foreground w-24 flex-shrink-0 truncate pr-2 text-xs font-semibold">
+                  {row.label}
+                </div>
+
+                <div className="flex flex-1 gap-px">
+                  {row.data.map((val, cellIdx) => (
+                    <div
+                      key={cellIdx}
+                      title={`${row.label} - Day ${cellIdx + 1}: Score ${val}`}
+                      onClick={() => handleCellClick(row.label, cellIdx)}
+                      className={`min-h-[14px] flex-1 cursor-pointer rounded-sm transition-all duration-300 hover:z-10 hover:scale-[1.3] ${
+                        selectedCell?.row === row.label && selectedCell?.dayIndex === cellIdx
+                          ? "ring-foreground ring-2"
+                          : ""
+                      } ${getIntensityClass(val, isDark)}`}
+                    />
+                  ))}
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
+
+        {/* Activity Detail Panel */}
+        {selectedCell && (
+          <div className="border-border border-t p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <h4 className="text-foreground text-sm font-bold">
+                {selectedCell.row} — Day {selectedCell.dayIndex + 1}
+              </h4>
+              <button
+                onClick={() => setSelectedCell(null)}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <ActivityDetailPanel
+              label={selectedCell.row}
+              dayIndex={selectedCell.dayIndex}
+              days={days}
+              isDark={isDark}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -418,5 +454,72 @@ function TabBtn({ active, onClick, icon, label, isDark }: TabBtnProps) {
     >
       {icon} {label}
     </button>
+  );
+}
+
+function ActivityDetailPanel({
+  label,
+  dayIndex,
+  days,
+  isDark,
+}: {
+  label: string;
+  dayIndex: number;
+  days: number;
+  isDark: boolean;
+}) {
+  if (days === 1) {
+    const hours = Array.from({ length: 17 }, (_, i) => i + 6);
+    return (
+      <div className="space-y-1">
+        <p className="text-muted-foreground mb-2 text-xs">Hourly breakdown</p>
+        {hours.map((h) => {
+          const activity = Math.floor(Math.random() * 100);
+          return (
+            <div key={h} className="flex items-center gap-3">
+              <span className="text-muted-foreground w-12 font-mono text-xs">
+                {String(h).padStart(2, "0")}:00
+              </span>
+              <div className="bg-muted/30 h-4 flex-1 overflow-hidden rounded-sm">
+                <div
+                  className="h-full bg-indigo-500/60 transition-all"
+                  style={{ width: `${activity}%` }}
+                />
+              </div>
+              <span className="text-muted-foreground w-8 text-right text-xs">{activity}</span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  const entries = Array.from({ length: 5 }, (_, i) => ({
+    time: `${8 + i * 2}:${i % 2 === 0 ? "00" : "30"}`,
+    event: ["Shift start", "Training session", "Break period", "Inspection", "Shift end"][i],
+    score: Math.floor(Math.random() * 100),
+  }));
+
+  return (
+    <div className="space-y-2">
+      <p className="text-muted-foreground mb-2 text-xs">Activity log for day {dayIndex + 1}</p>
+      {entries.map((e, i) => (
+        <div key={i} className="border-border flex items-center gap-3 rounded-lg border p-2">
+          <span className="text-muted-foreground w-12 font-mono text-xs">{e.time}</span>
+          <span className="text-foreground flex-1 text-sm">{e.event}</span>
+          <div
+            className={`rounded px-2 py-0.5 text-xs font-bold ${
+              e.score >= 80
+                ? "bg-emerald-500/10 text-emerald-500"
+                : e.score >= 50
+                  ? "bg-amber-500/10 text-amber-500"
+                  : "bg-red-500/10 text-red-500"
+            }`}
+          >
+            {e.score}
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
