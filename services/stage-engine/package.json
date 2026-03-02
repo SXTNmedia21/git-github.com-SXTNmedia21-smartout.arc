@@ -13,7 +13,10 @@
   "dependencies": {
     "@hono/node-server": "^1.14.0",
     "@hono/zod-validator": "^0.5.0",
+    "@openrouter/ai-sdk-provider": "^2.2.3",
+    "@smartout/ai": "workspace:*",
     "@supabase/supabase-js": "^2.49.4",
+    "ai": "^6.0.103",
     "hono": "^4.7.0",
     "zod": "^3.24.2"
   },

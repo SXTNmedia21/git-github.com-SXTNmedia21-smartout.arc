@@ -27,6 +27,9 @@ const envSchema = z.object({
   /** Ultravox API key for creating voice calls */
   ULTRAVOX_API_KEY: z.string().min(1),
 
+  /** OpenRouter API key for agent mode LLM calls */
+  OPENROUTER_API_KEY: z.string().min(1),
+
   /** Log level */
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
 
