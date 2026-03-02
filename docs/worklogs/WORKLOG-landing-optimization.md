@@ -1,6 +1,6 @@
 ---
 title: "Worklog — landing-optimization"
-status: in_progress
+status: review
 updated: 2026-03-02
 created: 2026-03-01
 module: landing
@@ -11,7 +11,7 @@ tags: []
 
 > Branch: `feat/landing-optimization` | Worktree: wt-5 | Started: 2026-03-01
 
-## Status: 🟡 In Progress
+## Status: 🟢 Implementation Complete — Ready for Review
 
 ## Done
 
@@ -26,8 +26,9 @@ tags: []
 
 - [x] Phase 5: Autosave and publish flow (Task 21)
 - [x] Phase 5: Preview functionality (Task 22)
-- [ ] Phase 6: Seed existing variants (Task 23)
-- [ ] Phase 7: Verify parity (Task 24), route switch (Task 25), cleanup (Task 26-27)
+- [x] Phase 6: Seed existing variants (Task 23)
+- [x] Phase 7: Verify parity (Task 24), route switch (Task 25), cleanup (Task 26-27)
+- All tasks complete
 
 ## Decisions
 
@@ -40,17 +41,20 @@ tags: []
 
 ## Log
 
-| Date       | Time  | Event                                                                                                                                                            |
-| ---------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-03-01 | 22:27 | Feature started                                                                                                                                                  |
-| 2026-03-01 | 22:50 | Codebase exploration complete — 7 variants, 66.5 KB page.tsx, all hardcoded                                                                                      |
-| 2026-03-01 | 23:00 | Design approved — block-based page builder with admin UI                                                                                                         |
-| 2026-03-01 | 23:05 | Design doc saved to docs/plans/                                                                                                                                  |
-| 2026-03-01 | 23:30 | Implementation plan written — 27 tasks across 7 phases                                                                                                           |
-| 2026-03-01 | --    | Task 12: Created get-variant.ts — server-side variant fetching with unstable_cache                                                                               |
-| 2026-03-01 | --    | Task 13: Created /v/page.tsx — DB-driven landing route with ?v=slug and preview                                                                                  |
-| 2026-03-01 | --    | Task 14: Created /api/revalidate/route.ts + added REVALIDATION_SECRET to env.ts                                                                                  |
-| 2026-03-01 | --    | Task 18: Created block editor — server page, BlockEditorClient, BlockCard (dnd-kit sortable), VariantMetadataForm, AddBlockDialog. Fixed variant list edit link. |
-| 2026-03-02 | --    | Tasks 19-20: Created 15 block-specific edit forms + BlockFormRouter + IconPicker + MediaPicker + ThemePicker. Updated BlockCard to use forms.                    |
-| 2026-03-02 | --    | Task 21: Added debounced autosave (1s delay), save status indicator, publish/unpublish flow with revalidation, env vars for landing URL + secret.                |
-| 2026-03-02 | --    | Task 22: Created preview page with iframe, device size toggles (mobile/tablet/desktop), back-to-editor link, open-in-new-tab button.                             |
+| Date       | Time  | Event                                                                                                                                                                                         |
+| ---------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-03-01 | 22:27 | Feature started                                                                                                                                                                               |
+| 2026-03-01 | 22:50 | Codebase exploration complete — 7 variants, 66.5 KB page.tsx, all hardcoded                                                                                                                   |
+| 2026-03-01 | 23:00 | Design approved — block-based page builder with admin UI                                                                                                                                      |
+| 2026-03-01 | 23:05 | Design doc saved to docs/plans/                                                                                                                                                               |
+| 2026-03-01 | 23:30 | Implementation plan written — 27 tasks across 7 phases                                                                                                                                        |
+| 2026-03-01 | --    | Task 12: Created get-variant.ts — server-side variant fetching with unstable_cache                                                                                                            |
+| 2026-03-01 | --    | Task 13: Created /v/page.tsx — DB-driven landing route with ?v=slug and preview                                                                                                               |
+| 2026-03-01 | --    | Task 14: Created /api/revalidate/route.ts + added REVALIDATION_SECRET to env.ts                                                                                                               |
+| 2026-03-01 | --    | Task 18: Created block editor — server page, BlockEditorClient, BlockCard (dnd-kit sortable), VariantMetadataForm, AddBlockDialog. Fixed variant list edit link.                              |
+| 2026-03-02 | --    | Tasks 19-20: Created 15 block-specific edit forms + BlockFormRouter + IconPicker + MediaPicker + ThemePicker. Updated BlockCard to use forms.                                                 |
+| 2026-03-02 | --    | Task 21: Added debounced autosave (1s delay), save status indicator, publish/unpublish flow with revalidation, env vars for landing URL + secret.                                             |
+| 2026-03-02 | --    | Task 22: Created preview page with iframe, device size toggles (mobile/tablet/desktop), back-to-editor link, open-in-new-tab button.                                                          |
+| 2026-03-02 | --    | Task 25: Switched root route to DB-driven page. Old page moved to /legacy, then deleted with variant cleanup.                                                                                 |
+| 2026-03-02 | --    | Task 26: Deleted 6 Variant\*Landing components, landing-variant.ts, variant-switcher.tsx, legacy page. Inlined LandingVariant type. Removed VariantSwitcher from footer. ~5700 lines removed. |
+| 2026-03-02 | --    | Task 27: Typecheck + lint — all errors pre-existing (missing @smartout/ai, @smartout/types). No new errors from our changes.                                                                  |
