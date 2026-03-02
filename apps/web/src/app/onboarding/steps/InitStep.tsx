@@ -185,10 +185,10 @@ export function InitStep() {
       <div className="mb-8 flex h-20 w-20 items-center justify-center rounded-full border border-blue-500/20 bg-blue-500/10 text-blue-400 shadow-[0_0_30px_rgba(59,130,246,0.2)]">
         <Bot size={40} />
       </div>
-      <h1 className="mb-4 text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
+      <h1 className="mb-4 text-3xl font-extrabold tracking-tight text-white sm:text-5xl">
         Let&apos;s build your workspace.
       </h1>
-      <p className="mb-12 text-lg text-zinc-400">
+      <p className="mb-8 text-base text-zinc-400 sm:mb-12 sm:text-lg">
         Provide your company&apos;s website address and we&apos;ll automatically generate your
         structure, departments, and core policies.
       </p>
@@ -227,7 +227,7 @@ export function InitStep() {
             onClick={handleSkip}
             className="w-full rounded-xl border border-white/5 bg-zinc-900 px-8 py-4 font-medium text-white transition-colors hover:bg-zinc-800 sm:w-auto"
           >
-            Skip text
+            Set up manually
           </button>
         </div>
       </form>

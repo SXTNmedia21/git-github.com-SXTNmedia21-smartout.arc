@@ -34,7 +34,7 @@ export function DepartmentDrawer({ isOpen, onClose, department, onUpdate }: Depa
       aria-label="Edit Department"
       className="animate-in fade-in fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm duration-300"
     >
-      <div className="animate-in slide-in-from-right h-full w-full max-w-sm overflow-y-auto border-l border-white/10 bg-[#111] shadow-2xl duration-300 sm:max-w-md">
+      <div className="animate-in slide-in-from-right h-full w-full overflow-y-auto border-l border-white/10 bg-[#111] shadow-2xl duration-300 sm:max-w-md">
         <div className="p-6">
           <div className="mb-6 flex items-center justify-between">
             <h2 className="text-xl font-bold text-white">Edit Department</h2>

@@ -13,10 +13,10 @@ export function DoneStep() {
 
   return (
     <div className="animate-in zoom-in-95 fade-in mx-auto flex w-full max-w-md flex-col items-center text-center duration-500">
-      <div className="mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-400 shadow-[0_0_40px_rgba(16,185,129,0.3)] ring-4 ring-emerald-500/20">
-        <CheckCircle2 size={48} />
+      <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-400 shadow-[0_0_40px_rgba(16,185,129,0.3)] ring-4 ring-emerald-500/20 sm:mb-8 sm:h-24 sm:w-24">
+        <CheckCircle2 className="h-10 w-10 sm:h-12 sm:w-12" />
       </div>
-      <h2 className="mb-4 text-3xl font-extrabold text-white">You&apos;re All Set!</h2>
+      <h2 className="mb-4 text-2xl font-extrabold text-white sm:text-3xl">You&apos;re All Set!</h2>
       <p className="mb-8 text-zinc-400">Welcome to the future of hospitality management.</p>
       <a
         href={dashboardUrl}

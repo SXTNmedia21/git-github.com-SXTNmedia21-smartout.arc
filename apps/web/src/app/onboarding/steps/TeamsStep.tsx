@@ -177,7 +177,7 @@ export function TeamsStep() {
         </div>
       </div>
 
-      <div className="mt-10 flex justify-between">
+      <div className="mt-8 flex flex-col-reverse gap-3 sm:mt-10 sm:flex-row sm:justify-between">
         <button
           onClick={() => wizard.goTo("departments")}
           className="rounded-xl border border-white/10 px-6 py-3.5 font-medium text-white transition-colors hover:bg-white/5"

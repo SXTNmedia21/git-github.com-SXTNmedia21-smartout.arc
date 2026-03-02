@@ -111,11 +111,13 @@ export function OrgVerificationStep() {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 mx-auto flex w-full max-w-2xl flex-col items-center text-center duration-500">
-      <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full border border-blue-500/20 bg-blue-500/10 text-blue-400 shadow-[0_0_30px_rgba(59,130,246,0.15)]">
-        <Building2 size={32} />
+      <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full border border-blue-500/20 bg-blue-500/10 text-blue-400 shadow-[0_0_30px_rgba(59,130,246,0.15)] sm:h-20 sm:w-20">
+        <Building2 className="h-7 w-7 sm:h-8 sm:w-8" />
       </div>
-      <h2 className="mb-3 text-3xl font-extrabold text-white">Verify Company Identity</h2>
-      <p className="mb-8 text-zinc-400">
+      <h2 className="mb-3 text-2xl font-extrabold text-white sm:text-3xl">
+        Verify Company Identity
+      </h2>
+      <p className="mb-6 text-sm text-zinc-400 sm:mb-8 sm:text-base">
         Enter your Norwegian organization number to pull official public records for your workspace.
       </p>
 
@@ -154,13 +156,15 @@ export function OrgVerificationStep() {
           </button>
         </form>
       ) : (
-        <div className="relative w-full overflow-hidden rounded-2xl border border-cyan-500/30 bg-[#111] p-6 text-left shadow-2xl shadow-cyan-900/10 sm:p-8">
-          <div className="absolute top-0 right-0 p-4">
+        <div className="relative w-full overflow-hidden rounded-2xl border border-cyan-500/30 bg-[#111] p-5 text-left shadow-2xl shadow-cyan-900/10 sm:p-8">
+          <div className="absolute top-3 right-3 sm:top-4 sm:right-4">
             <CheckCircle2 className="text-green-500" size={24} />
           </div>
-          <h3 className="mb-6 pr-8 text-2xl font-bold text-white">{wizard.verifiedOrgData.name}</h3>
+          <h3 className="mb-4 pr-8 text-xl font-bold text-white sm:mb-6 sm:text-2xl">
+            {wizard.verifiedOrgData.name}
+          </h3>
 
-          <div className="mb-8 grid grid-cols-1 gap-8 sm:grid-cols-2">
+          <div className="mb-6 grid grid-cols-1 gap-6 sm:mb-8 sm:grid-cols-2 sm:gap-8">
             <div className="space-y-4">
               <div className="flex flex-col">
                 <span className="text-xs font-bold text-zinc-500 uppercase">Org Num</span>
@@ -196,16 +200,16 @@ export function OrgVerificationStep() {
             )}
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row">
             <button
               onClick={() => wizard.setVerifiedOrgData(null)}
-              className="flex-1 rounded-xl bg-zinc-800 px-4 py-3 font-medium text-white transition-colors hover:bg-zinc-700"
+              className="rounded-xl bg-zinc-800 px-4 py-3 font-medium text-white transition-colors hover:bg-zinc-700 sm:flex-1"
             >
               Try Again
             </button>
             <button
               onClick={handleConfirmOrg}
-              className="flex flex-[2] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-6 py-3 font-bold text-white shadow-lg shadow-cyan-500/20 hover:opacity-90"
+              className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-6 py-3 font-bold text-white shadow-lg shadow-cyan-500/20 hover:opacity-90 sm:flex-[2]"
             >
               Looks correct <ArrowRight size={18} />
             </button>

@@ -64,11 +64,11 @@ export function SeasonIdentityStep() {
             <label className="mb-2 block text-xs font-bold tracking-wider text-zinc-500 uppercase">
               Season Type
             </label>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <button
                 type="button"
-                onClick={() => wizard.updateData({ seasonType: "Permanent" })}
-                className={`rounded-xl border-2 p-4 text-left transition-colors ${wizard.workspaceData.seasonType === "Permanent" ? "border-emerald-500 bg-emerald-500/10 text-emerald-400" : "border-white/10 bg-black/50 text-zinc-400 hover:border-white/30"}`}
+                onClick={() => wizard.updateData({ seasonType: "default" })}
+                className={`rounded-xl border-2 p-4 text-left transition-colors ${wizard.workspaceData.seasonType === "default" ? "border-emerald-500 bg-emerald-500/10 text-emerald-400" : "border-white/10 bg-black/50 text-zinc-400 hover:border-white/30"}`}
               >
                 <div className="mb-1 font-bold">Permanent Season</div>
                 <div className="text-xs opacity-70">
@@ -78,8 +78,8 @@ export function SeasonIdentityStep() {
               </button>
               <button
                 type="button"
-                onClick={() => wizard.updateData({ seasonType: "Temporal" })}
-                className={`rounded-xl border-2 p-4 text-left transition-colors ${wizard.workspaceData.seasonType === "Temporal" ? "border-emerald-500 bg-emerald-500/10 text-emerald-400" : "border-white/10 bg-black/50 text-zinc-400 hover:border-white/30"}`}
+                onClick={() => wizard.updateData({ seasonType: "calendar" })}
+                className={`rounded-xl border-2 p-4 text-left transition-colors ${wizard.workspaceData.seasonType === "calendar" ? "border-emerald-500 bg-emerald-500/10 text-emerald-400" : "border-white/10 bg-black/50 text-zinc-400 hover:border-white/30"}`}
               >
                 <div className="mb-1 font-bold">Temporal Season</div>
                 <div className="text-xs opacity-70">
@@ -92,7 +92,7 @@ export function SeasonIdentityStep() {
         </div>
       </div>
 
-      <div className="mt-10 flex justify-between">
+      <div className="mt-8 flex flex-col-reverse gap-3 sm:mt-10 sm:flex-row sm:justify-between">
         <button
           onClick={() => wizard.goTo("season_education")}
           className="rounded-xl border border-white/10 px-6 py-3.5 font-medium text-white transition-colors hover:bg-white/5"

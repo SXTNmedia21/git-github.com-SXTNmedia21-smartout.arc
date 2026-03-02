@@ -3,6 +3,14 @@
 import { ArrowRight, MapPin, Building2, Users, FileText, Pencil } from "lucide-react";
 import { useWizard } from "../WizardContext";
 
+const SEASON_TYPE_LABELS: Record<string, string> = {
+  default: "Permanent",
+  calendar: "Temporal",
+  focus: "Focus",
+  cycle: "Cycle",
+  custom: "Custom",
+};
+
 export function BattlefieldReviewStep() {
   const wizard = useWizard();
 
@@ -75,7 +83,10 @@ export function BattlefieldReviewStep() {
             </div>
             <div className="flex justify-between border-b border-white/5 pb-2">
               <span className="font-medium text-zinc-500">Type</span>
-              <span className="text-white">{wizard.workspaceData.seasonType}</span>
+              <span className="text-white">
+                {SEASON_TYPE_LABELS[wizard.workspaceData.seasonType] ??
+                  wizard.workspaceData.seasonType}
+              </span>
             </div>
             <div className="flex justify-between border-b border-white/5 pb-2">
               <span className="font-medium text-zinc-500">Period</span>
@@ -189,7 +200,7 @@ export function BattlefieldReviewStep() {
         </div>
       </div>
 
-      <div className="mt-10 flex justify-center gap-6">
+      <div className="mt-8 flex flex-col-reverse gap-3 sm:mt-10 sm:flex-row sm:justify-center sm:gap-6">
         <button
           onClick={() => wizard.goTo("procedures")}
           className="rounded-xl border border-white/10 px-6 py-4 font-medium text-white transition-colors hover:bg-white/5"

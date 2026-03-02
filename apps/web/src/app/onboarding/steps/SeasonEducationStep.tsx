@@ -18,7 +18,7 @@ export function SeasonEducationStep() {
         </p>
       </div>
 
-      <div className="group relative flex flex-col items-center overflow-hidden rounded-3xl border border-white/5 bg-[#111] p-8 text-center shadow-xl sm:p-10">
+      <div className="group relative flex flex-col items-center overflow-hidden rounded-3xl border border-white/5 bg-[#111] p-6 text-center shadow-xl sm:p-10">
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-transparent"></div>
 
         <div className="mb-8 flex h-24 w-24 items-center justify-center rounded-full border border-indigo-500/30 bg-indigo-500/20">

@@ -115,14 +115,14 @@ export function InviteStep() {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 mx-auto flex w-full max-w-2xl flex-col items-center text-center duration-500">
-      <div className="mb-8 flex h-20 w-20 items-center justify-center rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 shadow-[0_0_30px_rgba(16,185,129,0.2)]">
-        <Users size={40} />
+      <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 shadow-[0_0_30px_rgba(16,185,129,0.2)] sm:mb-8 sm:h-20 sm:w-20">
+        <Users className="h-8 w-8 sm:h-10 sm:w-10" />
       </div>
 
-      <h1 className="mb-3 text-3xl font-extrabold tracking-tight text-white">
+      <h1 className="mb-3 text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
         Invite your first team member
       </h1>
-      <p className="mb-10 text-lg text-zinc-400">
+      <p className="mb-8 text-base text-zinc-400 sm:mb-10 sm:text-lg">
         {wizard.workspaceData.name
           ? `${wizard.workspaceData.name} is ready!`
           : "Your workspace is ready!"}{" "}
@@ -147,7 +147,7 @@ export function InviteStep() {
               </span>
             )}
           </div>
-          <form onSubmit={handleSendEmail} className="flex gap-3">
+          <form onSubmit={handleSendEmail} className="flex flex-col gap-3 sm:flex-row">
             <input
               type="email"
               value={email}
@@ -176,7 +176,7 @@ export function InviteStep() {
               </span>
             )}
           </div>
-          <form onSubmit={handleSendSms} className="flex gap-3">
+          <form onSubmit={handleSendSms} className="flex flex-col gap-3 sm:flex-row">
             <div className="flex flex-1 items-center overflow-hidden rounded-xl border border-white/10 bg-black/50 transition-colors focus-within:border-green-500">
               <span className="pl-4 text-sm font-medium text-zinc-500">+47</span>
               <input
@@ -204,15 +204,23 @@ export function InviteStep() {
             <h3 className="font-bold text-white">Shareable Link</h3>
           </div>
           {inviteLink ? (
-            <div className="flex items-center gap-3">
-              <div className="flex-1 truncate rounded-xl border border-white/10 bg-black/50 px-4 py-3 font-mono text-sm text-zinc-400">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="min-w-0 flex-1 truncate rounded-xl border border-white/10 bg-black/50 px-4 py-3 font-mono text-sm text-zinc-400">
                 {inviteLink}
               </div>
               <button
                 onClick={handleCopyLink}
-                className="shrink-0 rounded-xl bg-purple-500 px-4 py-3 font-bold text-white transition-colors hover:bg-purple-400"
+                className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-purple-500 px-4 py-3 font-bold text-white transition-colors hover:bg-purple-400"
               >
-                {linkCopied ? <CheckCircle2 size={18} /> : <Copy size={18} />}
+                {linkCopied ? (
+                  <>
+                    <CheckCircle2 size={18} /> <span className="sm:hidden">Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy size={18} /> <span className="sm:hidden">Copy Link</span>
+                  </>
+                )}
               </button>
             </div>
           ) : (

@@ -134,7 +134,7 @@ export function DepartmentsStep() {
         <h4 className="mb-3 ml-2 text-sm font-bold tracking-wider text-zinc-500 uppercase">
           Recommended for your industry
         </h4>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
           {["Kitchen", "Front of House", "Management", "Bar", "Housekeeping", "Events"].map(
             (dept) => {
               const isInstalled = wizard.workspaceData.departments.some(
@@ -157,7 +157,7 @@ export function DepartmentsStep() {
         </div>
       </div>
 
-      <div className="mt-10 flex justify-between">
+      <div className="mt-8 flex flex-col-reverse gap-3 sm:mt-10 sm:flex-row sm:justify-between">
         <button
           onClick={() => wizard.goTo("season_identity")}
           className="rounded-xl border border-white/10 px-6 py-3.5 font-medium text-white transition-colors hover:bg-white/5"

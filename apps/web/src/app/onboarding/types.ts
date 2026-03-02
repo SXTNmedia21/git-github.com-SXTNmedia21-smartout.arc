@@ -138,7 +138,7 @@ export const EMPTY_WORKSPACE_DATA: WorkspaceData = {
   seasonName: "Core Operations",
   seasonStartDate: "",
   seasonEndDate: "",
-  seasonType: "Permanent",
+  seasonType: "default",
 };
 
 /** Verified org data from Bronnoydsundregistrene lookup. */

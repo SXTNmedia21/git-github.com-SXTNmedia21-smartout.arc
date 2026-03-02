@@ -49,16 +49,16 @@ function OnboardingContent() {
 
   return (
     <WizardProvider value={wizard}>
-      <div className="relative flex h-full w-full flex-col items-center justify-center bg-[#0a0a0c] font-sans text-zinc-300 selection:bg-cyan-500/30">
+      <div className="relative flex min-h-full w-full flex-col items-center bg-[#0a0a0c] font-sans text-zinc-300 selection:bg-cyan-500/30">
         {/* Ambient Background */}
-        <div className="pointer-events-none absolute inset-0 z-0">
+        <div className="pointer-events-none fixed inset-0 z-0">
           <div className="absolute top-0 right-1/4 h-[800px] w-[800px] -translate-y-1/2 rounded-full bg-blue-600/10 blur-[120px]" />
           <div className="absolute bottom-0 left-1/4 h-[800px] w-[800px] translate-y-1/2 rounded-full bg-purple-600/10 blur-[120px]" />
         </div>
 
-        <div className="relative z-10 flex w-full flex-col items-center">
+        <div className="relative z-10 flex w-full flex-1 flex-col items-center py-8 sm:py-12">
           <StepProgress currentStep={wizard.step} />
-          <div className="mx-auto flex w-full max-w-5xl flex-col justify-center px-6 py-12">
+          <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center px-4 sm:px-6">
             <StepComponent />
           </div>
         </div>
@@ -71,7 +71,7 @@ export default function OnboardingPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex h-full min-h-screen w-full items-center justify-center bg-[#0a0a0c]">
+        <div className="flex min-h-full w-full items-center justify-center bg-[#0a0a0c]">
           <Loader2 className="animate-spin text-cyan-500" size={32} />
         </div>
       }

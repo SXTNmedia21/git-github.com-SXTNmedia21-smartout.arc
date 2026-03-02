@@ -188,7 +188,22 @@ export function useOnboardingWizard(): WizardContext {
         body: { workspaceData },
       });
 
-      if (invokeError) throw new Error(invokeError.message || "Failed to activate workspace");
+      if (invokeError) {
+        // supabase.functions.invoke returns a generic message for non-2xx responses.
+        // The actual error is in the response context — try to extract it.
+        let message = "Failed to activate workspace";
+        try {
+          const ctx = (invokeError as unknown as { context: Response }).context;
+          if (ctx && typeof ctx.json === "function") {
+            const body = await ctx.json();
+            if (body?.error) message = body.error;
+          }
+        } catch {
+          // Fallback to the generic message
+          if (invokeError.message) message = invokeError.message;
+        }
+        throw new Error(message);
+      }
 
       const workspaceId = data?.workspaceId;
       if (!workspaceId) throw new Error("No workspace ID returned");

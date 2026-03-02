@@ -81,7 +81,7 @@ export function BrandingStep() {
         </div>
       </div>
 
-      <div className="mt-10 flex justify-between">
+      <div className="mt-8 flex flex-col-reverse gap-3 sm:mt-10 sm:flex-row sm:justify-between">
         <button
           onClick={() => wizard.goTo("org_verification")}
           className="rounded-xl border border-white/10 px-6 py-3.5 font-medium text-white transition-colors hover:bg-white/5"
@@ -92,7 +92,7 @@ export function BrandingStep() {
           onClick={() => wizard.goTo("season_education")}
           className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-purple-500 to-pink-600 px-8 py-3.5 font-bold text-white shadow-lg shadow-purple-500/25 transition-transform hover:from-purple-400 hover:to-pink-500 active:scale-95"
         >
-          Generate Contract & Proceed <CheckCircle2 size={18} />
+          Continue <CheckCircle2 size={18} />
         </button>
       </div>
     </div>

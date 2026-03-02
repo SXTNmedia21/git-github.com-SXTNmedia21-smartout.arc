@@ -31,7 +31,7 @@ export function StepProgress({ currentStep }: StepProgressProps) {
   const progress = currentIndex >= 0 ? ((currentIndex + 1) / VISIBLE_STEPS.length) * 100 : 0;
 
   return (
-    <div className="mx-auto mb-8 w-full max-w-5xl px-6">
+    <div className="mx-auto mb-6 w-full max-w-5xl px-4 sm:mb-8 sm:px-6">
       <div className="h-1 w-full overflow-hidden rounded-full bg-white/5">
         <div
           className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 transition-all duration-500"

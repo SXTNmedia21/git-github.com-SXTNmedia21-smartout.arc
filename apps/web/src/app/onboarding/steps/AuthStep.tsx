@@ -62,12 +62,14 @@ export function AuthStep() {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 mx-auto flex w-full max-w-xl flex-col items-center text-center duration-500">
-      <div className="mb-8 flex h-20 w-20 items-center justify-center rounded-full border border-cyan-500/20 bg-cyan-500/10 text-cyan-400 shadow-[0_0_30px_rgba(6,182,212,0.2)]">
-        <Bot size={40} />
+      <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full border border-cyan-500/20 bg-cyan-500/10 text-cyan-400 shadow-[0_0_30px_rgba(6,182,212,0.2)] sm:mb-8 sm:h-20 sm:w-20">
+        <Bot className="h-8 w-8 sm:h-10 sm:w-10" />
       </div>
 
-      <h1 className="mb-3 text-3xl font-extrabold tracking-tight text-white">Save your progress</h1>
-      <p className="mb-10 text-lg text-zinc-400">
+      <h1 className="mb-3 text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
+        Save your progress
+      </h1>
+      <p className="mb-8 text-base text-zinc-400 sm:mb-10 sm:text-lg">
         Create an account to keep everything we just found about your business.
       </p>
 
