@@ -13,7 +13,7 @@ import type { ScheduleComputed } from "./use-schedule-computed";
 type ScheduleVoiceToolsInput = {
   weekStart: string;
   weekEnd: string;
-  days: Array<{ id: string; label: string; isToday: boolean; isHoliday: boolean }>;
+  days: Array<{ id: string; label: string; isToday?: boolean; isHoliday?: boolean }>;
   shifts: Shift[];
   absences: Absence[];
   employees: ScheduleEmployee[];
@@ -260,7 +260,7 @@ const DAY_NAMES: Record<string, number> = {
 
 function resolveDateId(
   dayInput: string,
-  days: Array<{ id: string; isToday: boolean }>,
+  days: Array<{ id: string; isToday?: boolean }>,
 ): string | null {
   if (/^\d{4}-\d{2}-\d{2}$/.test(dayInput)) return dayInput;
 

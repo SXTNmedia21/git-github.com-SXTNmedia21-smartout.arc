@@ -90,6 +90,8 @@ import {
 import { useScheduleRealtime } from "./_hooks/use-schedule-realtime";
 import { useScheduleComputed } from "./_hooks/use-schedule-computed";
 import { useDayInfo } from "./_hooks/use-day-info";
+import { useVoiceTools } from "@/components/voice-tools-context";
+import { useScheduleVoiceTools } from "./_hooks/use-schedule-voice-tools";
 
 // ---------------------------------------------------------------------------
 // Week range helper — supports week offset for navigation
@@ -274,6 +276,33 @@ function SchedulePageContent() {
   const updateDayTaskStatus = useUpdateDayTaskStatus(weekStart);
   const deleteDayTask = useDeleteDayTask(weekStart);
   const createDayBooking = useCreateDayBooking(weekStart);
+
+  // ── Voice tools ─────────────────────────────────────────────
+  const { setClientTools } = useVoiceTools();
+
+  const voiceTools = useScheduleVoiceTools({
+    weekStart,
+    weekEnd,
+    days: enrichedDays,
+    shifts: shiftsQuery.data ?? [],
+    absences: absencesQuery.data ?? [],
+    employees,
+    computed,
+    mutations: {
+      createShift: (input) =>
+        createShift.mutateAsync(input as Parameters<typeof createShift.mutateAsync>[0]),
+      updateShift: (input) =>
+        updateShift.mutateAsync(input as Parameters<typeof updateShift.mutateAsync>[0]),
+      deleteShift: (id) => deleteShift.mutateAsync(id),
+      publishShifts: (ids) => publishShifts.mutateAsync(ids),
+    },
+  });
+
+  // Register/unregister tools when schedule page mounts/unmounts
+  useEffect(() => {
+    setClientTools(voiceTools);
+    return () => setClientTools(null);
+  }, [voiceTools, setClientTools]);
 
   // ── UI-only context ─────────────────────────────────────────
   const scheduleUI = useScheduleUI();
@@ -668,7 +697,10 @@ function SchedulePageContent() {
                     </>
                   }
                   dayInspector={
-                    <DayControlSheet selectedDate={selectedDate} onClose={() => setSelectedDate(null)}>
+                    <DayControlSheet
+                      selectedDate={selectedDate}
+                      onClose={() => setSelectedDate(null)}
+                    >
                       <DayControlPanel date={selectedDate} onClose={() => setSelectedDate(null)} />
                     </DayControlSheet>
                   }
