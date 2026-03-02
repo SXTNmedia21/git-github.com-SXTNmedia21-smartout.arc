@@ -31,14 +31,13 @@ import { sortableKeyboardCoordinates, arrayMove } from "@dnd-kit/sortable";
 import { PlannerCommandBar } from "./_components/planner-command-bar";
 import { StatusStrip } from "./_components/status-strip";
 import { GridSurface } from "./_components/grid-surface";
-import { DayInspector } from "./_components/day-inspector";
 import { GridContent } from "./_components/daily-grid";
 import { ShiftCard, OpenShiftCard, TemplateCard, AbsenceCard } from "./_components/grid-cards";
 import type { Shift, OpenShift, ShiftTemplate } from "./_components/schedule-types";
 
 type TemplateShift = ShiftTemplate["shifts"][number];
 import { ScheduleDragOverlay } from "./_components/schedule-drag-overlay";
-import { DailyBriefingPanel } from "./_components/daily-briefing";
+import { DayControlSheet, DayControlPanel } from "./_components/day-control";
 import { OpenShiftDialog } from "./_components/open-shift-dialog";
 import { CreateTemplateDialog } from "./_components/create-template-dialog";
 import { EditTemplateDialog } from "./_components/edit-template-dialog";
@@ -669,12 +668,9 @@ function SchedulePageContent() {
                     </>
                   }
                   dayInspector={
-                    <DayInspector isDark={isDark} selectedDate={selectedDate}>
-                      <DailyBriefingPanel
-                        date={selectedDate}
-                        onClose={() => setSelectedDate(null)}
-                      />
-                    </DayInspector>
+                    <DayControlSheet selectedDate={selectedDate} onClose={() => setSelectedDate(null)}>
+                      <DayControlPanel date={selectedDate} onClose={() => setSelectedDate(null)} />
+                    </DayControlSheet>
                   }
                 />
               </div>

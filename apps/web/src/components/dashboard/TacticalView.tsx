@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   Calendar,
   TrendingUp,
@@ -15,6 +14,7 @@ import {
   Plus,
 } from "lucide-react";
 import { SignalCard } from "./SignalCard";
+import { DayInfoDialog } from "@/app/dashboard/schedule/_components/day-info-dialog";
 import {
   useStaffingCoverage,
   getCurrentWeekStart,
@@ -24,6 +24,7 @@ import {
 
 interface TacticalViewProps {
   isDark: boolean;
+  onDateClick?: (date: string) => void;
 }
 
 function getWeekStart(offset: number): string {
@@ -39,9 +40,9 @@ function getWeekNumber(dateStr: string): number {
   return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
 }
 
-export function TacticalView({ isDark }: TacticalViewProps) {
-  const router = useRouter();
+export function TacticalView({ isDark, onDateClick }: TacticalViewProps) {
   const [weekOffset, setWeekOffset] = useState(0);
+  const [showEventDialog, setShowEventDialog] = useState(false);
   const weekStart = getWeekStart(weekOffset);
   const weekNum = getWeekNumber(weekStart);
 
@@ -188,7 +189,7 @@ export function TacticalView({ isDark }: TacticalViewProps) {
                 return (
                   <button
                     key={d.date}
-                    onClick={() => router.push("/dashboard/schedule")}
+                    onClick={() => onDateClick?.(d.date)}
                     className={`group flex w-full items-center gap-4 rounded-lg px-1 transition-colors ${isDark ? "hover:bg-white/5" : "hover:bg-zinc-50"}`}
                   >
                     <span
@@ -325,6 +326,7 @@ export function TacticalView({ isDark }: TacticalViewProps) {
                 Upcoming Events (Impact)
               </h3>
               <button
+                onClick={() => setShowEventDialog(true)}
                 className={`rounded-lg p-1 transition-colors ${isDark ? "hover:bg-white/5" : "hover:bg-zinc-100"}`}
                 title="Add event"
               >
@@ -345,6 +347,12 @@ export function TacticalView({ isDark }: TacticalViewProps) {
           </div>
         </div>
       </div>
+
+      <DayInfoDialog
+        dateId={weekStart}
+        open={showEventDialog}
+        onOpenChange={setShowEventDialog}
+      />
     </div>
   );
 }
