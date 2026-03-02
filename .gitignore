@@ -39,6 +39,7 @@ desktop.ini
 # Coverage
 coverage/
 artifacts/
-.claude/
+.claude/*
+!.claude/settings.local.json
 
 .vercel
