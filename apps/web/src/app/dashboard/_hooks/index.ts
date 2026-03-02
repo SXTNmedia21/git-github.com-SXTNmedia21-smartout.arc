@@ -20,4 +20,6 @@ export { useDepartmentShifts } from "./use-department-shifts";
 export { useMyReadiness, useMyShifts } from "./use-my-dashboard";
 export { getCurrentWeekStart, useStaffingCoverage } from "./use-staffing-coverage";
 export { useTrainingReadiness } from "./use-training-readiness";
+export { useBudget } from "./use-budget";
+export type { BudgetPeriodType, BudgetEntry } from "./use-budget";
 export { useWorkforcePipeline } from "./use-workforce-pipeline";

@@ -35,4 +35,7 @@ export const dashboardKeys = {
   openShifts: (workspaceId: string) => ["dashboard", "open-shifts", workspaceId] as const,
 
   kpiTargets: (workspaceId: string) => ["dashboard", "kpi-targets", workspaceId] as const,
+
+  budgets: (workspaceId: string, periodType: string, startDate: string, endDate: string) =>
+    ["dashboard", "budgets", workspaceId, periodType, startDate, endDate] as const,
 };

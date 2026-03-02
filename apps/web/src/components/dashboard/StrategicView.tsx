@@ -16,6 +16,7 @@ import {
   MapPin,
   Settings,
   Pencil,
+  SlidersHorizontal,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -30,6 +31,7 @@ import {
 } from "@smartout/ui";
 import { useWorkforcePipeline, useTrainingReadiness, useKpiTargets } from "@/app/dashboard/_hooks";
 import type { KpiMetric } from "@/app/dashboard/_hooks";
+import { BudgetSettingsPanel } from "./BudgetSettingsPanel";
 
 const LOCATIONS = [
   { id: "all", name: "All Locations" },
@@ -121,6 +123,7 @@ interface StrategicViewProps {
 export function StrategicView({ isDark }: StrategicViewProps) {
   const [selectedLocId, setSelectedLocId] = useState("all");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [showBudget, setShowBudget] = useState(false);
 
   const { targets, updateTarget } = useKpiTargets();
 
@@ -147,149 +150,177 @@ export function StrategicView({ isDark }: StrategicViewProps) {
           </p>
         </div>
 
-        {/* Modern Pill Selector */}
-        <div
-          className={`flex items-center rounded-xl border p-1 ${isDark ? "border-zinc-800 bg-[#0c0c0e]" : "border-zinc-200 bg-white shadow-sm"}`}
-        >
-          {LOCATIONS.map((loc) => {
-            const isSelected = selectedLocId === loc.id;
-            return (
-              <button
-                key={loc.id}
-                onClick={() => setSelectedLocId(loc.id)}
-                className={`relative rounded-lg px-4 py-2 text-sm font-bold transition-colors ${isSelected ? (isDark ? "text-white" : "text-zinc-900") : isDark ? "text-zinc-500 hover:text-zinc-300" : "text-zinc-500 hover:text-zinc-700"}`}
-              >
-                {isSelected && (
-                  <motion.div
-                    layoutId="loc-pill"
-                    className={`absolute inset-0 rounded-lg shadow-sm ${isDark ? "border border-zinc-700/50 bg-zinc-800/80" : "border border-zinc-200/50 bg-zinc-100"}`}
-                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                  />
-                )}
-                <span className="relative z-10 flex items-center gap-2">
-                  {loc.id === "all" ? (
-                    <Building2 className="h-4 w-4" />
-                  ) : (
-                    <MapPin className="h-4 w-4" />
+        <div className="flex items-center gap-3">
+          {/* Budget toggle */}
+          <button
+            onClick={() => setShowBudget(!showBudget)}
+            title="Budget Settings"
+            className={`flex items-center gap-2 rounded-xl border p-2.5 transition-colors ${
+              showBudget
+                ? isDark
+                  ? "border-primary/50 bg-primary/10 text-primary"
+                  : "border-primary/50 bg-primary/10 text-primary"
+                : isDark
+                  ? "border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-200"
+                  : "border-zinc-200 bg-zinc-50 text-zinc-500 hover:text-zinc-700"
+            }`}
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+            <span className="hidden text-xs font-bold md:inline">Budget</span>
+          </button>
+
+          {/* Modern Pill Selector */}
+          <div
+            className={`flex items-center rounded-xl border p-1 ${isDark ? "border-zinc-800 bg-[#0c0c0e]" : "border-zinc-200 bg-white shadow-sm"}`}
+          >
+            {LOCATIONS.map((loc) => {
+              const isSelected = selectedLocId === loc.id;
+              return (
+                <button
+                  key={loc.id}
+                  onClick={() => setSelectedLocId(loc.id)}
+                  className={`relative rounded-lg px-4 py-2 text-sm font-bold transition-colors ${isSelected ? (isDark ? "text-white" : "text-zinc-900") : isDark ? "text-zinc-500 hover:text-zinc-300" : "text-zinc-500 hover:text-zinc-700"}`}
+                >
+                  {isSelected && (
+                    <motion.div
+                      layoutId="loc-pill"
+                      className={`absolute inset-0 rounded-lg shadow-sm ${isDark ? "border border-zinc-700/50 bg-zinc-800/80" : "border border-zinc-200/50 bg-zinc-100"}`}
+                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                    />
                   )}
-                  {loc.name}
-                </span>
-              </button>
-            );
-          })}
+                  <span className="relative z-10 flex items-center gap-2">
+                    {loc.id === "all" ? (
+                      <Building2 className="h-4 w-4" />
+                    ) : (
+                      <MapPin className="h-4 w-4" />
+                    )}
+                    {loc.name}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
-      {/* SmartOut KPI Grid */}
-      <AnimatePresence mode="popLayout" initial={false}>
-        <motion.div
-          key={selectedLocId}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          transition={{ duration: 0.3 }}
-          className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3"
-        >
-          <KPICard
-            isDark={isDark}
-            title="Cost of Sales %"
-            metric="cost_of_sales"
-            value={`${data.payroll}%`}
-            targetValue={targets.cost_of_sales}
-            targetDisplay={`< ${targets.cost_of_sales}%`}
-            status={data.payroll > targets.cost_of_sales ? "bad" : "good"}
-            icon={<Percent className="h-5 w-5" />}
-            color="emerald"
-            unit="%"
-            explanation="Calculated by dividing total payroll costs by total revenue over the selected period (rolling 30 days). Adjust the target to trigger earlier warnings."
-            onTargetSave={handleTargetSave}
-          />
+      {/* Budget Panel or KPI Grid */}
+      {showBudget ? (
+        <BudgetSettingsPanel onClose={() => setShowBudget(false)} />
+      ) : (
+        <>
+          {/* SmartOut KPI Grid */}
+          <AnimatePresence mode="popLayout" initial={false}>
+            <motion.div
+              key={selectedLocId}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.3 }}
+              className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3"
+            >
+              <KPICard
+                isDark={isDark}
+                title="Cost of Sales %"
+                metric="cost_of_sales"
+                value={`${data.payroll}%`}
+                targetValue={targets.cost_of_sales}
+                targetDisplay={`< ${targets.cost_of_sales}%`}
+                status={data.payroll > targets.cost_of_sales ? "bad" : "good"}
+                icon={<Percent className="h-5 w-5" />}
+                color="emerald"
+                unit="%"
+                explanation="Calculated by dividing total payroll costs by total revenue over the selected period (rolling 30 days). Adjust the target to trigger earlier warnings."
+                onTargetSave={handleTargetSave}
+              />
 
-          <KPICard
-            isDark={isDark}
-            title="90-Day Turnover"
-            metric="turnover_90d"
-            value={`${data.turn}%`}
-            targetValue={targets.turnover_90d}
-            targetDisplay={`< ${targets.turnover_90d}%`}
-            status={data.turn > targets.turnover_90d ? "bad" : "good"}
-            icon={<Users className="h-5 w-5" />}
-            color="blue"
-            unit="%"
-            explanation="Calculated by taking the number of separated employees divided by the average number of employees over 90 days. Measured against your target."
-            onTargetSave={handleTargetSave}
-          />
+              <KPICard
+                isDark={isDark}
+                title="90-Day Turnover"
+                metric="turnover_90d"
+                value={`${data.turn}%`}
+                targetValue={targets.turnover_90d}
+                targetDisplay={`< ${targets.turnover_90d}%`}
+                status={data.turn > targets.turnover_90d ? "bad" : "good"}
+                icon={<Users className="h-5 w-5" />}
+                color="blue"
+                unit="%"
+                explanation="Calculated by taking the number of separated employees divided by the average number of employees over 90 days. Measured against your target."
+                onTargetSave={handleTargetSave}
+              />
 
-          <KPICard
-            isDark={isDark}
-            title="Absence Rate"
-            metric="absence_rate"
-            value={`${data.abs}%`}
-            targetValue={targets.absence_rate}
-            targetDisplay={`< ${targets.absence_rate}%`}
-            status={data.abs > targets.absence_rate ? "bad" : "good"}
-            icon={<Activity className="h-5 w-5" />}
-            color="orange"
-            unit="%"
-            explanation="Total recorded absence hours divided by total expected working hours for the month-to-date. Used to detect early signs of team fatigue."
-            onTargetSave={handleTargetSave}
-          />
+              <KPICard
+                isDark={isDark}
+                title="Absence Rate"
+                metric="absence_rate"
+                value={`${data.abs}%`}
+                targetValue={targets.absence_rate}
+                targetDisplay={`< ${targets.absence_rate}%`}
+                status={data.abs > targets.absence_rate ? "bad" : "good"}
+                icon={<Activity className="h-5 w-5" />}
+                color="orange"
+                unit="%"
+                explanation="Total recorded absence hours divided by total expected working hours for the month-to-date. Used to detect early signs of team fatigue."
+                onTargetSave={handleTargetSave}
+              />
 
-          <KPICard
-            isDark={isDark}
-            title="Time to Job-Ready"
-            metric="time_to_job_ready"
-            value={`${data.onboarding}d`}
-            targetValue={targets.time_to_job_ready}
-            targetDisplay={`< ${targets.time_to_job_ready}d`}
-            status={data.onboarding > targets.time_to_job_ready ? "bad" : "good"}
-            icon={<Target className="h-5 w-5" />}
-            color="purple"
-            unit="days"
-            explanation="The average number of days between an employee's first shift and the completion of all required onboarding paths including compliance checks."
-            onTargetSave={handleTargetSave}
-          />
+              <KPICard
+                isDark={isDark}
+                title="Time to Job-Ready"
+                metric="time_to_job_ready"
+                value={`${data.onboarding}d`}
+                targetValue={targets.time_to_job_ready}
+                targetDisplay={`< ${targets.time_to_job_ready}d`}
+                status={data.onboarding > targets.time_to_job_ready ? "bad" : "good"}
+                icon={<Target className="h-5 w-5" />}
+                color="purple"
+                unit="days"
+                explanation="The average number of days between an employee's first shift and the completion of all required onboarding paths including compliance checks."
+                onTargetSave={handleTargetSave}
+              />
 
-          <KPICard
-            isDark={isDark}
-            title="Task Completion"
-            metric="task_completion"
-            value={`${data.task}%`}
-            targetValue={targets.task_completion}
-            targetDisplay={`> ${targets.task_completion}%`}
-            status={data.task < targets.task_completion ? "bad" : "good"}
-            icon={<CheckCircle2 className="h-5 w-5" />}
-            color="indigo"
-            unit="%"
-            explanation="Percentage of assigned workplace tasks (opening, closing, maintenance) completed across all shifts matching the location filter."
-            onTargetSave={handleTargetSave}
-          />
+              <KPICard
+                isDark={isDark}
+                title="Task Completion"
+                metric="task_completion"
+                value={`${data.task}%`}
+                targetValue={targets.task_completion}
+                targetDisplay={`> ${targets.task_completion}%`}
+                status={data.task < targets.task_completion ? "bad" : "good"}
+                icon={<CheckCircle2 className="h-5 w-5" />}
+                color="indigo"
+                unit="%"
+                explanation="Percentage of assigned workplace tasks (opening, closing, maintenance) completed across all shifts matching the location filter."
+                onTargetSave={handleTargetSave}
+              />
 
-          <KPICard
-            isDark={isDark}
-            title="Training Readiness"
-            metric="training_readiness"
-            value={
-              selectedLocId === "all" && training
-                ? `${training.readinessPercent}%`
-                : `${data.compliance}%`
-            }
-            targetValue={targets.training_readiness}
-            targetDisplay={`${targets.training_readiness}%`}
-            status={
-              (selectedLocId === "all" && training ? training.readinessPercent : data.compliance) <
-              targets.training_readiness
-                ? "bad"
-                : "good"
-            }
-            icon={<ShieldCheck className="h-5 w-5" />}
-            color="stone"
-            unit="%"
-            explanation="Percentage of protocol assignments completed by active staff. Measures overall workforce readiness."
-            onTargetSave={handleTargetSave}
-          />
-        </motion.div>
-      </AnimatePresence>
+              <KPICard
+                isDark={isDark}
+                title="Training Readiness"
+                metric="training_readiness"
+                value={
+                  selectedLocId === "all" && training
+                    ? `${training.readinessPercent}%`
+                    : `${data.compliance}%`
+                }
+                targetValue={targets.training_readiness}
+                targetDisplay={`${targets.training_readiness}%`}
+                status={
+                  (selectedLocId === "all" && training
+                    ? training.readinessPercent
+                    : data.compliance) < targets.training_readiness
+                    ? "bad"
+                    : "good"
+                }
+                icon={<ShieldCheck className="h-5 w-5" />}
+                color="stone"
+                unit="%"
+                explanation="Percentage of protocol assignments completed by active staff. Measures overall workforce readiness."
+                onTargetSave={handleTargetSave}
+              />
+            </motion.div>
+          </AnimatePresence>
+        </>
+      )}
 
       {/* Main Insights Row */}
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-6 lg:grid-cols-3">
