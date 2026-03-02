@@ -13,6 +13,7 @@ import {
   MessageSquare,
   CalendarCheck,
   ListTodo,
+  DollarSign,
   Maximize2,
   Minimize2,
   ChevronLeft,
@@ -32,9 +33,11 @@ import { OversiktTab } from "./OversiktTab";
 import { MeldingerTab } from "./MeldingerTab";
 import { BookingsTab } from "./BookingsTab";
 import { OppgaverTab } from "./OppgaverTab";
+import { BudgetTab } from "./BudgetTab";
+import { StaffingTab } from "./StaffingTab";
 import { BroadcastFooter } from "./BroadcastFooter";
 
-type TabId = "oversikt" | "meldinger" | "bookings" | "oppgaver";
+type TabId = "oversikt" | "meldinger" | "bookings" | "oppgaver" | "budsjett" | "bemanning";
 
 export function DayControlPanel({
   date,
@@ -192,6 +195,18 @@ export function DayControlPanel({
             label="Oppgaver"
             badge={dayStats.taskCount > 0 ? dayStats.taskCount - dayStats.taskDone : undefined}
           />
+          <TabButton
+            active={activeTab === "budsjett"}
+            onClick={() => setActiveTab("budsjett")}
+            icon={<DollarSign className="h-3 w-3" />}
+            label="Budsjett"
+          />
+          <TabButton
+            active={activeTab === "bemanning"}
+            onClick={() => setActiveTab("bemanning")}
+            icon={<Users className="h-3 w-3" />}
+            label="Bemanning"
+          />
         </div>
       </div>
 
@@ -201,6 +216,8 @@ export function DayControlPanel({
         {activeTab === "meldinger" && <MeldingerTab dateId={date} />}
         {activeTab === "bookings" && <BookingsTab dateId={date} />}
         {activeTab === "oppgaver" && <OppgaverTab dateId={date} />}
+        {activeTab === "budsjett" && <BudgetTab dateId={date} />}
+        {activeTab === "bemanning" && <StaffingTab dateId={date} />}
       </div>
 
       {/* Footer */}
