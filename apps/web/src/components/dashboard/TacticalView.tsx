@@ -17,6 +17,7 @@ import {
   useStaffingCoverage,
   getCurrentWeekStart,
   useTrainingReadiness,
+  type DayCoverage,
 } from "@/app/dashboard/_hooks";
 
 interface TacticalViewProps {
@@ -47,7 +48,10 @@ export function TacticalView({ isDark }: TacticalViewProps) {
   // Compute overall staffing fill %
   const overallFill =
     coverage && coverage.length > 0
-      ? Math.round(coverage.reduce((sum, d) => sum + d.fillPercent, 0) / coverage.length)
+      ? Math.round(
+          coverage.reduce((sum: number, d: DayCoverage) => sum + d.fillPercent, 0) /
+            coverage.length,
+        )
       : null;
 
   const staffingStatus =
@@ -163,7 +167,7 @@ export function TacticalView({ isDark }: TacticalViewProps) {
                 </div>
               ))
             ) : coverage && coverage.length > 0 ? (
-              coverage.map((d) => {
+              coverage.map((d: DayCoverage) => {
                 const fill = `${d.fillPercent}%`;
                 const barColor =
                   d.fillPercent >= 100

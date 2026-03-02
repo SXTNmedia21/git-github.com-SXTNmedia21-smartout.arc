@@ -14,11 +14,19 @@ import {
   BookOpen,
 } from "lucide-react";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { useMyShifts, useMyReadiness } from "@/app/dashboard/_hooks";
+import { useMyShifts, useMyReadiness, type MyShift } from "@/app/dashboard/_hooks";
 import { useWorkspace } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { dashboardKeys } from "@/app/dashboard/_hooks/dashboard-keys";
+
+type OpenShift = {
+  schedule_shift_id: string;
+  shift_date: string;
+  start_time: string;
+  end_time: string;
+  role: string;
+};
 
 interface EmployeeDashboardProps {
   isDark: boolean;
@@ -68,8 +76,8 @@ export default function EmployeeDashboard({ isDark }: EmployeeDashboardProps) {
   });
 
   const today = new Date().toISOString().split("T")[0];
-  const todayShift = shifts?.find((s) => s.date === today);
-  const upcomingShifts = shifts?.filter((s) => s.date !== today) ?? [];
+  const todayShift = shifts?.find((s: MyShift) => s.date === today);
+  const upcomingShifts = shifts?.filter((s: MyShift) => s.date !== today) ?? [];
 
   return (
     <div className="z-10 flex h-full w-full flex-1 flex-col overflow-hidden">
@@ -226,7 +234,7 @@ export default function EmployeeDashboard({ isDark }: EmployeeDashboardProps) {
 
             <div className="flex min-h-0 flex-1 flex-col gap-3">
               {upcomingShifts.length > 0 ? (
-                upcomingShifts.map((shift) => {
+                upcomingShifts.map((shift: MyShift) => {
                   const dm = formatDayMonth(shift.date);
                   return (
                     <div
@@ -366,7 +374,7 @@ export default function EmployeeDashboard({ isDark }: EmployeeDashboardProps) {
                 </p>
 
                 <div className="space-y-2">
-                  {openShifts.map((shift) => (
+                  {openShifts.map((shift: OpenShift) => (
                     <div
                       key={shift.schedule_shift_id}
                       className={`flex items-center justify-between rounded-lg border p-3 text-sm ${isDark ? "border-emerald-900/50 bg-black/20 hover:bg-black/40" : "border-emerald-100 bg-white hover:shadow-sm"} cursor-pointer transition-all`}

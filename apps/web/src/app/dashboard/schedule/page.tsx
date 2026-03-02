@@ -34,6 +34,8 @@ import { DayInspector } from "./_components/day-inspector";
 import { GridContent } from "./_components/daily-grid";
 import { ShiftCard, OpenShiftCard, TemplateCard, AbsenceCard } from "./_components/grid-cards";
 import type { Shift, OpenShift, ShiftTemplate } from "./_components/schedule-types";
+
+type TemplateShift = ShiftTemplate["shifts"][number];
 import { ScheduleDragOverlay } from "./_components/schedule-drag-overlay";
 import { DailyBriefingPanel } from "./_components/daily-briefing";
 import { OpenShiftDialog } from "./_components/open-shift-dialog";
@@ -324,9 +326,9 @@ function SchedulePageContent() {
       const templateId = active.data.current?.templateId as string | undefined;
       const [, , dateId] = cellMatch;
       if (templateId && dateId) {
-        const template = templates.find((t) => t.id === templateId);
+        const template = templates.find((t: ShiftTemplate) => t.id === templateId);
         if (template) {
-          const shiftsToCreate = template.shifts.map((s) => ({
+          const shiftsToCreate = template.shifts.map((s: TemplateShift) => ({
             id: crypto.randomUUID(),
             employeeId: s.employeeId,
             dateId,
@@ -352,9 +354,9 @@ function SchedulePageContent() {
       const templateId = active.data.current?.templateId as string | undefined;
       const [, dateId] = dayHeaderMatch;
       if (templateId && dateId) {
-        const template = templates.find((t) => t.id === templateId);
+        const template = templates.find((t: ShiftTemplate) => t.id === templateId);
         if (template) {
-          const shiftsToCreate = template.shifts.map((s) => ({
+          const shiftsToCreate = template.shifts.map((s: TemplateShift) => ({
             id: crypto.randomUUID(),
             employeeId: s.employeeId,
             dateId,

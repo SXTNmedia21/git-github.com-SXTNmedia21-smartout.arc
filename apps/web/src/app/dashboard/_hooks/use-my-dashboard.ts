@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { dashboardKeys } from "./dashboard-keys";
 
-type MyShift = {
+export type MyShift = {
   id: string;
   date: string;
   startTime: string;

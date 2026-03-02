@@ -92,7 +92,7 @@ export function ReconciliationView({ isDark }: { isDark: boolean }) {
         </div>
       ) : departments && departments.length > 0 ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {departments.map((dept) => (
+          {departments.map((dept: DepartmentShiftGroup) => (
             <DepartmentCard
               key={dept.departmentId}
               dept={dept}
