@@ -13,30 +13,31 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #     | Path                             | Branch                        | Module        | Status      | Last Activity | tmux  | Changes |
-| ----- | -------------------------------- | ----------------------------- | ------------- | ----------- | ------------- | ----- | ------- |
-| wt-1  | `~/dev/wt-1`                     | `feat/auth-screens-redesign`  | web           | paused      | —             | —     | unknown |
-| wt-2  | `~/dev/wt-2`                     | `feat/people-module-v2`       | org-structure | in_progress | just started  | —     | clean   |
-| wt-3  | `~/dev/wt-3`                     | `feat/communications-v2`      | comms         | paused      | —             | —     | unknown |
-| wt-4  | `~/dev/wt-4`                     | `feat/schedule-control-panel` | schedule      | in_progress | just started  | —     | clean   |
-| sma-1 | `~/.worktrees/smartout-ai/sma-1` | `feat/test-spawn`             | infra         | idle        | 2h ago        | sma-1 | clean   |
-| sma-2 | `~/.worktrees/smartout-ai/sma-2` | `feat/fix-services-docker`    | infra         | idle        | 1h ago        | sma-2 | clean   |
-| sma-4 | `~/.worktrees/smartout-ai/sma-4` | `feat/fix-daily-session`      | landing       | idle        | 1h ago        | sma-4 | clean   |
-| sma-5 | `~/.worktrees/smartout-ai/sma-5` | `feat/fix-schedule-supabase`  | web           | idle        | 1h ago        | sma-5 | clean   |
-| wt-5  | `~/dev/wt-5`                     | `feat/dashboard-evolution`    | dashboard     | in_progress | just started  | —     | clean   |
+| #      | Path                              | Branch                            | Module    | Status      | Last Activity | tmux   | Changes |
+| ------ | --------------------------------- | --------------------------------- | --------- | ----------- | ------------- | ------ | ------- |
+| wt-1   | `~/dev/wt-1`                      | `feat/auth-screens-redesign`      | auth      | done        | merged        | —      | clean   |
+| wt-2   | `~/dev/wt-2`                      | `feat/people-module-v2`           | org       | done        | just now      | —      | clean   |
+| wt-3   | `~/dev/wt-3`                      | `feat/communications-v2`          | comms     | paused      | 6h ago        | —      | 2 files |
+| wt-4   | `~/dev/wt-4`                      | `feat/schedule-control-panel`     | schedule  | done        | just now      | —      | clean   |
+| wt-5   | `~/dev/wt-5`                      | `feat/dashboard-evolution`        | dashboard | in_progress | 3m ago        | —      | 6 files |
+| wt-20  | `~/dev/wt-20`                     | `feat/operations-ui-redesign`     | ops       | done        | 25m ago       | —      | clean   |
+| sma-16 | `~/.worktrees/smartout-ai/sma-16` | `feat/fix-schedule-supabase`      | web       | done        | 2h ago        | sma-16 | clean   |
+| sma-17 | `~/.worktrees/smartout-ai/sma-17` | `feat/build-agent-config-ui`      | web       | in_progress | 15m ago       | sma-17 | clean   |
+| sma-18 | `~/.worktrees/smartout-ai/sma-18` | `feat/services-health-dashboard`  | platform  | done        | 6h ago        | sma-18 | clean   |
+| sma-19 | `~/.worktrees/smartout-ai/sma-19` | `feat/respawn-day-control-center` | schedule  | in_progress | 8m ago        | sma-19 | clean   |
 
 ## Free Slots
 
-| #     | Available |
-| ----- | --------- |
-| wt-20 | free      |
+| #   | Available |
+| --- | --------- |
+| —   | none      |
 
 ## Pending Journeys
 
 | Worktree | Feature                | Journey File                                      | Status  |
 | -------- | ---------------------- | ------------------------------------------------- | ------- |
-| wt-2     | people-module-v2       | `docs/journeys/JOURNEY-people-module-v2.md`       | missing |
-| wt-4     | schedule-control-panel | `docs/journeys/JOURNEY-schedule-control-panel.md` | missing |
+| wt-2     | people-module-v2       | `docs/journeys/JOURNEY-people-module-v2.md`       | done    |
+| wt-4     | schedule-control-panel | `docs/journeys/JOURNEY-schedule-control-panel.md` | done    |
 | wt-5     | dashboard-evolution    | `docs/journeys/JOURNEY-dashboard-evolution.md`    | missing |
 
 ## Recent Closures
@@ -53,6 +54,9 @@ tags: [dashboard, worktrees, tracking]
 | 2026-03-02 | stage-engine-local     | `feat/get-the-stage-engine-and-voice-ultravox-running-locally-the` | development |
 | 2026-03-03 | operations-ui-redesign | `feat/operations-ui-redesign`                                      | development |
 | 2026-03-03 | fix-schedule-mutations | `feat/fix-the-5-supabase-mutation-errors-on-the-schedule-page-the` | development |
+| 2026-03-03 | people-module-v2       | `feat/people-module-v2`                                            | development |
+| 2026-03-03 | schedule-control-panel | `feat/schedule-control-panel`                                      | development |
+| 2026-03-03 | auth-screens-redesign  | `feat/auth-screens-redesign`                                       | development |
 
 ## Session History
 
@@ -71,3 +75,8 @@ tags: [dashboard, worktrees, tracking]
 | 2026-03-02 | dashboard-evolution    | started           | wt-5, module: dashboard — 9-track dashboard evolution plan                 |
 | 2026-03-03 | operations-ui-redesign | closed            | Merged to development, wt-20 freed                                         |
 | 2026-03-03 | fix-schedule-mutations | closed            | PR #26 closed (already on development), sma-16 freed                       |
+| 2026-03-03 | people-module-v2       | closed            | Merged to development, wt-2 freed                                          |
+| 2026-03-03 | email-template-editor  | session ended     | Tiptap rich editor, 4 new sections (card/hero/CTA/video), SSR fix, pushed  |
+| 2026-03-03 | schedule-control-panel | closed            | Merged to development, wt-4 freed. 8/10 tasks, 10 commits                  |
+| 2026-03-03 | auth-screens-redesign  | closed            | Split-screen auth, gradient mesh, 5 pages, reset-pw fix, merged wt-1       |
+| 2026-03-03 | (dashboard)            | session ended     | Fixed useWorkspace crash in 5 hooks (edbf7e4), auth merged, session logged |
