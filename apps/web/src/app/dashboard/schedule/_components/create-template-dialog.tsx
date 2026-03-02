@@ -8,8 +8,9 @@
 // ============================================
 "use client";
 
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { Trash2, Plus } from "lucide-react";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import {
   Dialog,
   DialogContent,
@@ -41,6 +42,7 @@ type CreateTemplateDialogProps = {
  * which saves FROM an existing day.
  */
 export function CreateTemplateDialog({ open, onOpenChange }: CreateTemplateDialogProps) {
+  const { profileId } = useContext(DashboardContext);
   const saveTemplate = useSaveTemplate();
 
   const [name, setName] = useState("");
@@ -106,7 +108,7 @@ export function CreateTemplateDialog({ open, onOpenChange }: CreateTemplateDialo
     if (validShifts.length === 0) return;
 
     const template: ShiftTemplate = {
-      id: `tmpl_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      id: crypto.randomUUID(),
       name: name.trim(),
       department: department.trim(),
       shifts: validShifts.map((s) => ({
@@ -122,7 +124,7 @@ export function CreateTemplateDialog({ open, onOpenChange }: CreateTemplateDialo
         breaks: 30,
       })),
       includeAssignments: false,
-      createdBy: "System",
+      createdBy: profileId ?? "",
       createdAt: new Date().toISOString(),
     };
 

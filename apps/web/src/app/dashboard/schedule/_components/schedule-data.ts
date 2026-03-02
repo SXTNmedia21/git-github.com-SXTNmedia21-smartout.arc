@@ -6,6 +6,7 @@ export type DragPreviewData = {
   title?: string;
   role?: string;
   time?: string;
+  type?: string;
 };
 
 export type DayColumn = {

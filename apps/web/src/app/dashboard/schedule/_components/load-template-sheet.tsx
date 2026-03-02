@@ -101,7 +101,7 @@ export function LoadTemplateSheet({ dateId, open, onOpenChange }: LoadTemplateSh
     if (!template) return;
 
     const newShifts = template.shifts.map((s) => ({
-      id: `shift_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      id: crypto.randomUUID(),
       employeeId: s.employeeId,
       dateId,
       role: s.role,

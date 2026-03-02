@@ -10,7 +10,7 @@
 // ============================================
 "use client";
 
-import { useContext, useMemo, useState } from "react";
+import { useCallback, useContext, useMemo, useRef, useState } from "react";
 import {
   X,
   Info,
@@ -61,7 +61,7 @@ import type {
   ShiftTemplate,
 } from "./schedule-types";
 import { useScheduleUI } from "./schedule-ui-context";
-import { useShifts } from "../_hooks/use-shifts";
+import { useShifts, useUpdateShift } from "../_hooks/use-shifts";
 import { useAbsences } from "../_hooks/use-absences";
 import { useOpenShifts } from "../_hooks/use-open-shifts";
 import { useTemplates } from "../_hooks/use-templates";
@@ -173,7 +173,7 @@ export function DailyBriefingPanel({
     <div className="relative flex h-full w-full flex-col">
       {/* Compact Header */}
       <div className={`shrink-0 border-b ${isDark ? "border-white/10" : "border-zinc-200"}`}>
-        <div className="flex items-center gap-3 px-5 py-3">
+        <div className="flex items-center gap-3 px-5 py-4">
           {/* Title */}
           <div className="min-w-0 flex-1">
             <span className="text-[9px] font-bold tracking-widest text-orange-400 uppercase">
@@ -237,7 +237,7 @@ export function DailyBriefingPanel({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-5">
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-4 pb-6">
         {activeTab === "oversikt" && <OversiktTab isDark={isDark} dateId={dateId} />}
         {activeTab === "meldinger" && <MeldingerTab isDark={isDark} dateId={dateId} />}
         {activeTab === "bookings" && <BookingsTab isDark={isDark} dateId={dateId} />}
@@ -271,7 +271,7 @@ function FooterBroadcast({ isDark, dateId }: { isDark: boolean; dateId: string |
   return (
     <>
       <div
-        className={`shrink-0 border-t px-5 py-3 ${isDark ? "border-white/10 bg-[#0a0a0c]" : "border-zinc-200 bg-white"}`}
+        className={`shrink-0 border-t px-5 py-4 ${isDark ? "border-white/10 bg-[#0a0a0c]" : "border-zinc-200 bg-white"}`}
       >
         <div className="flex items-center gap-3">
           <Megaphone className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
@@ -403,6 +403,7 @@ function OversiktTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
   const { data: dayTasks = [] as DayTask[] } = useDayTasks(weekStart, weekEnd);
   const { data: dayBookings = [] as DayBooking[] } = useDayBookings(weekStart, weekEnd);
   const { setSelectedShift } = useScheduleUI();
+  const updateShift = useUpdateShift(weekStart);
 
   const computed = useScheduleComputed(
     shifts,
@@ -454,8 +455,12 @@ function OversiktTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
           role: s.role,
           startHour: timeToHour(s.startTime),
           endHour: timeToHour(s.endTime),
+          startTime: s.startTime,
+          endTime: s.endTime,
           time: s.time,
           status: s.status,
+          zone: s.zone,
+          team: emp?.team,
         };
       });
   }, [dayShifts, employees]);
@@ -547,7 +552,25 @@ function OversiktTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
         >
           Tidslinje
         </h3>
-        <TimelineView isDark={isDark} entries={timelineData} onShiftClick={setSelectedShift} />
+        <TimelineView
+          isDark={isDark}
+          entries={timelineData}
+          onShiftClick={setSelectedShift}
+          onTimeChange={(shiftId, newStart, newEnd) => {
+            const startMins =
+              parseInt(newStart.split(":")[0] ?? "0", 10) * 60 +
+              parseInt(newStart.split(":")[1] ?? "0", 10);
+            let endMins =
+              parseInt(newEnd.split(":")[0] ?? "0", 10) * 60 +
+              parseInt(newEnd.split(":")[1] ?? "0", 10);
+            if (endMins <= startMins) endMins += 24 * 60;
+            const workHours = Math.max(0, (endMins - startMins) / 60);
+            updateShift.mutate({
+              id: shiftId,
+              patch: { startTime: newStart, endTime: newEnd, workHours },
+            });
+          }}
+        />
       </section>
 
       {/* Employee list */}
@@ -573,6 +596,8 @@ function OversiktTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
                 role={entry.role}
                 time={entry.time}
                 status={entry.status}
+                zone={entry.zone}
+                team={entry.team}
                 onShiftClick={() => setSelectedShift(entry.shiftId)}
               />
             ))
@@ -643,29 +668,34 @@ type TimelineEntry = {
   role: string;
   startHour: number;
   endHour: number;
+  startTime: string;
+  endTime: string;
   time: string;
   status: string;
+  zone?: string;
+  team?: string;
 };
 
 function TimelineView({
   isDark,
   entries,
   onShiftClick,
+  onTimeChange,
 }: {
   isDark: boolean;
   entries: TimelineEntry[];
   onShiftClick: (id: string) => void;
+  onTimeChange?: (shiftId: string, newStart: string, newEnd: string) => void;
 }) {
-  // Generate hour labels
   const hours = Array.from({ length: TIMELINE_HOURS + 1 }, (_, i) => TIMELINE_START + i);
 
   return (
     <div
-      className={`overflow-x-auto rounded-xl border ${isDark ? "border-white/10 bg-white/[0.03]" : "border-zinc-200 bg-zinc-50"} p-3`}
+      className={`overflow-x-auto rounded-xl border ${isDark ? "border-white/10 bg-white/[0.03]" : "border-zinc-200 bg-zinc-50"} p-4`}
     >
       {/* Hour labels */}
-      <div className="mb-2 flex">
-        <div className="w-20 shrink-0" />
+      <div className="mb-1 flex">
+        <div className="w-24 shrink-0" />
         <div className="relative flex-1">
           <div className="flex justify-between">
             {hours.map((h) => (
@@ -681,55 +711,220 @@ function TimelineView({
       {entries.length === 0 ? (
         <p className="py-6 text-center text-xs text-zinc-500">Ingen vakter</p>
       ) : (
-        entries.map((entry) => {
-          const startPct = Math.max(0, ((entry.startHour - TIMELINE_START) / TIMELINE_HOURS) * 100);
-          const endHour = entry.endHour <= entry.startHour ? entry.endHour + 24 : entry.endHour;
-          const endPct = Math.min(100, ((endHour - TIMELINE_START) / TIMELINE_HOURS) * 100);
-          const widthPct = endPct - startPct;
-
-          return (
-            <div key={entry.shiftId} className="mb-1.5 flex items-center">
-              {/* Name label */}
-              <div className="w-20 shrink-0 truncate pr-2 text-[10px] font-bold">
-                <span className={isDark ? "text-zinc-300" : "text-zinc-700"}>
-                  {entry.name.split(" ")[0]}
-                </span>
-              </div>
-
-              {/* Bar container */}
-              <div
-                className={`relative h-6 flex-1 rounded ${isDark ? "bg-white/5" : "bg-zinc-200/50"}`}
-              >
-                {/* Grid lines */}
-                {hours.map((h) => (
-                  <div
-                    key={h}
-                    className={`absolute top-0 h-full w-px ${isDark ? "bg-white/5" : "bg-zinc-300/50"}`}
-                    style={{
-                      left: `${((h - TIMELINE_START) / TIMELINE_HOURS) * 100}%`,
-                    }}
-                  />
-                ))}
-
-                {/* Shift bar */}
-                <button
-                  onClick={() => onShiftClick(entry.shiftId)}
-                  className="absolute top-0.5 h-5 cursor-pointer rounded bg-orange-500/80 transition-all hover:bg-orange-500"
-                  style={{
-                    left: `${startPct}%`,
-                    width: `${Math.max(widthPct, 2)}%`,
-                  }}
-                  title={`${entry.name} — ${entry.time}`}
-                >
-                  <span className="truncate px-1 text-[8px] font-bold text-white">
-                    {entry.time}
-                  </span>
-                </button>
-              </div>
-            </div>
-          );
-        })
+        entries.map((entry) => (
+          <TimelineBar
+            key={entry.shiftId}
+            isDark={isDark}
+            entry={entry}
+            hours={hours}
+            onShiftClick={onShiftClick}
+            onTimeChange={onTimeChange}
+          />
+        ))
       )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// TimelineBar — individual draggable/resizable shift bar
+// ---------------------------------------------------------------------------
+
+/** Convert hour (decimal) to "HH:MM" string */
+function hourToTimeStr(h: number): string {
+  const wrapped = ((h % 24) + 24) % 24;
+  const hrs = Math.floor(wrapped);
+  const mins = Math.round((wrapped - hrs) * 60);
+  return `${String(hrs).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
+}
+
+/** Snap a decimal hour to nearest 15-minute increment */
+function snapHour(h: number): number {
+  return Math.round(h * 4) / 4;
+}
+
+function TimelineBar({
+  isDark,
+  entry,
+  hours,
+  onShiftClick,
+  onTimeChange,
+}: {
+  isDark: boolean;
+  entry: TimelineEntry;
+  hours: number[];
+  onShiftClick: (id: string) => void;
+  onTimeChange?: (shiftId: string, newStart: string, newEnd: string) => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [dragState, setDragState] = useState<{
+    type: "move" | "start" | "end";
+    startHour: number;
+    endHour: number;
+  } | null>(null);
+
+  const currentStart = dragState ? dragState.startHour : entry.startHour;
+  const rawEnd = dragState ? dragState.endHour : entry.endHour;
+  const currentEnd = rawEnd <= currentStart ? rawEnd + 24 : rawEnd;
+
+  const startPct = Math.max(0, ((currentStart - TIMELINE_START) / TIMELINE_HOURS) * 100);
+  const endPct = Math.min(100, ((currentEnd - TIMELINE_START) / TIMELINE_HOURS) * 100);
+  const widthPct = Math.max(endPct - startPct, 1.5);
+
+  const displayStart = dragState ? hourToTimeStr(dragState.startHour) : entry.startTime;
+  const displayEnd = dragState ? hourToTimeStr(dragState.endHour) : entry.endTime;
+
+  /** Convert a pixel X offset within the container to a decimal hour */
+  const pxToHour = useCallback((clientX: number): number => {
+    if (!containerRef.current) return TIMELINE_START;
+    const rect = containerRef.current.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    return TIMELINE_START + pct * TIMELINE_HOURS;
+  }, []);
+
+  const handlePointerDown = useCallback(
+    (type: "move" | "start" | "end", e: React.PointerEvent) => {
+      if (!onTimeChange) return;
+      e.preventDefault();
+      e.stopPropagation();
+
+      const originX = e.clientX;
+      const origStart = entry.startHour;
+      const origEnd = entry.endHour <= entry.startHour ? entry.endHour + 24 : entry.endHour;
+      const duration = origEnd - origStart;
+
+      const onMove = (ev: PointerEvent) => {
+        const currentHour = pxToHour(ev.clientX);
+        const originHour = pxToHour(originX);
+        const delta = currentHour - originHour;
+
+        if (type === "move") {
+          const newStart = snapHour(origStart + delta);
+          const newEnd = snapHour(newStart + duration);
+          setDragState({ type, startHour: newStart, endHour: newEnd });
+        } else if (type === "start") {
+          const newStart = snapHour(origStart + delta);
+          if (newStart < origEnd - 0.25) {
+            setDragState({ type, startHour: newStart, endHour: entry.endHour });
+          }
+        } else {
+          const newEnd = snapHour(origEnd + delta);
+          if (newEnd > origStart + 0.25) {
+            setDragState({ type, startHour: entry.startHour, endHour: newEnd });
+          }
+        }
+      };
+
+      const onUp = () => {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        setDragState((prev) => {
+          if (prev) {
+            const newStartStr = hourToTimeStr(prev.startHour);
+            const newEndStr = hourToTimeStr(prev.endHour);
+            if (newStartStr !== entry.startTime || newEndStr !== entry.endTime) {
+              onTimeChange(entry.shiftId, newStartStr, newEndStr);
+            }
+          }
+          return null;
+        });
+      };
+
+      // Initialize drag state
+      setDragState({ type, startHour: origStart, endHour: entry.endHour });
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+    },
+    [entry, onTimeChange, pxToHour],
+  );
+
+  const meta = [entry.zone, entry.team].filter(Boolean).join(" · ");
+
+  return (
+    <div className="group/bar mb-2 flex items-center">
+      {/* Name + role label */}
+      <div className="w-24 shrink-0 pr-3">
+        <div
+          className={`truncate text-[11px] leading-tight font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}
+        >
+          {entry.name.split(" ")[0]}
+        </div>
+        <div className="truncate text-[9px] leading-tight text-zinc-500">{entry.role}</div>
+      </div>
+
+      {/* Bar container */}
+      <div
+        ref={containerRef}
+        className={`relative h-8 flex-1 rounded-md ${isDark ? "bg-white/[0.04]" : "bg-zinc-200/40"}`}
+      >
+        {/* Grid lines */}
+        {hours.map((h) => (
+          <div
+            key={h}
+            className={`absolute top-0 h-full w-px ${isDark ? "bg-white/[0.06]" : "bg-zinc-300/40"}`}
+            style={{ left: `${((h - TIMELINE_START) / TIMELINE_HOURS) * 100}%` }}
+          />
+        ))}
+
+        {/* Shift bar */}
+        <div
+          className={`absolute top-1 h-6 rounded-md transition-shadow ${
+            dragState
+              ? "z-10 bg-orange-500 shadow-[0_0_12px_rgba(249,115,22,0.5)]"
+              : "bg-orange-500/80 group-hover/bar:shadow-[0_0_8px_rgba(249,115,22,0.3)] hover:bg-orange-500"
+          } ${onTimeChange ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"}`}
+          style={{ left: `${startPct}%`, width: `${widthPct}%` }}
+          onPointerDown={onTimeChange ? (e) => handlePointerDown("move", e) : undefined}
+          onClick={(e) => {
+            if (!dragState) {
+              e.stopPropagation();
+              onShiftClick(entry.shiftId);
+            }
+          }}
+        >
+          {/* Bar content */}
+          <div className="flex h-full items-center gap-1.5 overflow-hidden px-1.5">
+            <span className="truncate text-[9px] leading-none font-bold text-white">
+              {displayStart} - {displayEnd}
+            </span>
+            {meta && (
+              <span className="hidden truncate text-[8px] leading-none text-white/60 xl:inline">
+                {meta}
+              </span>
+            )}
+          </div>
+
+          {/* Left resize handle (start time) */}
+          {onTimeChange && (
+            <div
+              className="absolute top-0 left-0 h-full w-2 cursor-col-resize opacity-0 transition-opacity group-hover/bar:opacity-100"
+              onPointerDown={(e) => handlePointerDown("start", e)}
+            >
+              <div className="absolute top-1/2 left-0.5 h-3 w-0.5 -translate-y-1/2 rounded-full bg-white/80" />
+            </div>
+          )}
+
+          {/* Right resize handle (end time) */}
+          {onTimeChange && (
+            <div
+              className="absolute top-0 right-0 h-full w-2 cursor-col-resize opacity-0 transition-opacity group-hover/bar:opacity-100"
+              onPointerDown={(e) => handlePointerDown("end", e)}
+            >
+              <div className="absolute top-1/2 right-0.5 h-3 w-0.5 -translate-y-1/2 rounded-full bg-white/80" />
+            </div>
+          )}
+        </div>
+
+        {/* Time tooltip during drag */}
+        {dragState && (
+          <div
+            className="pointer-events-none absolute -top-6 z-20 rounded bg-zinc-900 px-2 py-0.5 text-[10px] font-bold whitespace-nowrap text-orange-300 shadow-lg"
+            style={{ left: `${startPct + widthPct / 2}%`, transform: "translateX(-50%)" }}
+          >
+            {displayStart} - {displayEnd}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -746,6 +941,8 @@ function EmployeeRow({
   role,
   time,
   status,
+  zone,
+  team,
   onShiftClick,
 }: {
   isDark: boolean;
@@ -755,6 +952,8 @@ function EmployeeRow({
   role: string;
   time: string;
   status: string;
+  zone?: string;
+  team?: string;
   onShiftClick: () => void;
 }) {
   const isActive = status === "published" || status === "active";
@@ -787,6 +986,20 @@ function EmployeeRow({
         <div className="text-[10px] text-zinc-500">
           {time} &middot; {role}
         </div>
+        {(zone || team) && (
+          <div className="mt-0.5 flex items-center gap-2 text-[9px] text-zinc-500">
+            {zone && (
+              <span className="flex items-center gap-0.5">
+                <MapPin className="h-2.5 w-2.5" /> {zone}
+              </span>
+            )}
+            {team && (
+              <span className="flex items-center gap-0.5">
+                <Users className="h-2.5 w-2.5" /> {team}
+              </span>
+            )}
+          </div>
+        )}
       </button>
 
       {/* Contact */}
@@ -813,6 +1026,7 @@ function EmployeeRow({
 // ---------------------------------------------------------------------------
 
 function MeldingerTab({ isDark, dateId }: { isDark: boolean; dateId: string | null }) {
+  const { profileId } = useContext(DashboardContext);
   const { weekStart, weekEnd } = useWeekRange();
   const { data: dayMessagesData = [] as DayMessage[] } = useDayMessages(weekStart, weekEnd);
   const createDayMessage = useCreateDayMessage(weekStart);
@@ -832,13 +1046,13 @@ function MeldingerTab({ isDark, dateId }: { isDark: boolean; dateId: string | nu
     }
 
     createDayMessage.mutate({
-      id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      id: crypto.randomUUID(),
       dateId,
       title: content.trim().slice(0, 50),
       content: content.trim(),
       audience,
       visibility,
-      author: "Du",
+      author: profileId ?? "",
       isAlert: false,
     });
 
@@ -1112,7 +1326,7 @@ function OppgaverTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
     }
 
     createDayTask.mutate({
-      id: `task_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      id: crypto.randomUUID(),
       dateId,
       label: newTaskLabel.trim(),
       status: "pending",

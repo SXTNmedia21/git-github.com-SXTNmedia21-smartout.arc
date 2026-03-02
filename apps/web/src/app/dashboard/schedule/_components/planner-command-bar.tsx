@@ -10,6 +10,7 @@ import {
   MapPin,
   ChevronDown,
   Check,
+  Rows3,
 } from "lucide-react";
 import { DashboardContext, type ScheduleViewMode } from "@/components/dashboard/DashboardShell";
 
@@ -24,8 +25,14 @@ export function PlannerCommandBar({
   filterSituation,
   setFilterSituation,
 }: PlannerCommandBarProps) {
-  const { scheduleView, setScheduleView, activeLocation, setActiveLocation } =
-    useContext(DashboardContext);
+  const {
+    scheduleView,
+    setScheduleView,
+    activeLocation,
+    setActiveLocation,
+    scheduleCompactMode,
+    setScheduleCompactMode,
+  } = useContext(DashboardContext);
 
   return (
     <div
@@ -67,6 +74,25 @@ export function PlannerCommandBar({
             onClick={() => setScheduleView("team")}
           />
         </div>
+
+        <div className={`hidden h-4 w-px sm:block ${isDark ? "bg-white/10" : "bg-zinc-300"}`} />
+
+        {/* Compact mode toggle */}
+        <button
+          onClick={() => setScheduleCompactMode(!scheduleCompactMode)}
+          className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-bold transition-all ${
+            scheduleCompactMode
+              ? isDark
+                ? "bg-zinc-800 text-white shadow-sm"
+                : "bg-white text-zinc-900 shadow-sm"
+              : isDark
+                ? "text-zinc-500 hover:bg-white/5 hover:text-zinc-300"
+                : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700"
+          }`}
+        >
+          <Rows3 className={`h-3.5 w-3.5 ${scheduleCompactMode ? "text-orange-500" : ""}`} />
+          Kompakt
+        </button>
       </div>
 
       <div className="mt-2 flex items-center gap-2 sm:mt-0">

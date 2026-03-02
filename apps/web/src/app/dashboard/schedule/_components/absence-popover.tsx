@@ -61,7 +61,7 @@ export function AbsencePopover() {
 
     const nowStr = new Date().toISOString();
     createAbsence.mutate({
-      id: `abs_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      id: crypto.randomUUID(),
       employeeId: absencePopover.employeeId,
       dateId: absencePopover.dateId,
       type: absenceType,

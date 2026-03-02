@@ -52,6 +52,7 @@ type ShiftCardViewProps = {
   status: string;
   indicator: string;
   zone?: string;
+  isCompact?: boolean;
 };
 
 const SHIFT_STATUS_STYLES: Record<ShiftStatus, string> = {
@@ -108,9 +109,28 @@ export const ShiftCardView = React.memo(function ShiftCardView({
   status,
   indicator,
   zone,
+  isCompact,
 }: ShiftCardViewProps) {
   const normalizedStatus = normalizeShiftStatus(status);
   const normalizedIndicator = normalizeShiftIndicator(indicator);
+
+  if (isCompact) {
+    return (
+      <div
+        className={`group relative flex cursor-grab items-center gap-2 rounded-md border px-2 py-1 transition-[opacity,transform,background-color,border-color] duration-200 ease-out hover:border-white/15 active:cursor-grabbing ${isDark ? "hover:bg-white/5" : "hover:bg-zinc-100"} select-none ${SHIFT_STATUS_STYLES[normalizedStatus]} overflow-visible will-change-transform ${isDragging ? "scale-[0.98] opacity-35" : "scale-100 opacity-100"}`}
+      >
+        <div
+          className={`absolute top-1 bottom-1 left-0 w-0.5 rounded-r-full ${SHIFT_INDICATOR_STYLES[normalizedIndicator]}`}
+        />
+        <span
+          className={`text-[11px] font-semibold ${isDark ? "text-white" : "text-zinc-900"} truncate pl-1 leading-tight`}
+        >
+          {role}
+        </span>
+        <span className="ml-auto shrink-0 text-[10px] font-medium text-zinc-500">{time}</span>
+      </div>
+    );
+  }
 
   return (
     <div

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   Users,
   Briefcase,
@@ -18,6 +18,7 @@ import {
   DndContext,
   type CollisionDetection,
   type DragEndEvent,
+  type DragStartEvent,
   KeyboardSensor,
   PointerSensor,
   pointerWithin,
@@ -26,7 +27,7 @@ import {
   useSensors,
   useDroppable,
 } from "@dnd-kit/core";
-import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import { sortableKeyboardCoordinates, arrayMove } from "@dnd-kit/sortable";
 import { PlannerCommandBar } from "./_components/planner-command-bar";
 import { StatusStrip } from "./_components/status-strip";
 import { GridSurface } from "./_components/grid-surface";
@@ -98,12 +99,15 @@ function getWeekRange(weekOffset = 0): { weekStart: string; weekEnd: string } {
   const day = now.getDay();
   const monday = new Date(now);
   monday.setDate(now.getDate() - ((day + 6) % 7) + weekOffset * 7);
+  monday.setHours(0, 0, 0, 0);
   const sunday = new Date(monday);
   sunday.setDate(monday.getDate() + 6);
-  return {
-    weekStart: monday.toISOString().split("T")[0] ?? "",
-    weekEnd: sunday.toISOString().split("T")[0] ?? "",
-  };
+
+  // Use local date parts to avoid UTC timezone shift (Norway is UTC+1/+2)
+  const fmt = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+  return { weekStart: fmt(monday), weekEnd: fmt(sunday) };
 }
 
 // ---------------------------------------------------------------------------
@@ -116,10 +120,14 @@ function generateDayColumns(weekStart: string, dayCount = 7): DayColumn[] {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  // Use local date parts to avoid UTC timezone shift
+  const fmt = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
   return Array.from({ length: dayCount }, (_, i) => {
     const date = new Date(start);
     date.setDate(start.getDate() + i);
-    const dateStr = date.toISOString().split("T")[0] ?? "";
+    const dateStr = fmt(date);
     const dayNum = date.getDate();
     const month = date.getMonth() + 1;
     const dayOfWeek = date.getDay(); // 0=Sun, 1=Mon...
@@ -162,8 +170,14 @@ export default function SchedulePage() {
 // SchedulePageContent — query hooks + rendering
 // ---------------------------------------------------------------------------
 function SchedulePageContent() {
-  const { isDark, scheduleLayout, scheduleDateOffset, setOnPublishAll, setScheduleDraftCount } =
-    useContext(DashboardContext);
+  const {
+    isDark,
+    scheduleLayout,
+    scheduleDateOffset,
+    setOnPublishAll,
+    setScheduleDraftCount,
+    scheduleCompactMode,
+  } = useContext(DashboardContext);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [filterSituation, setFilterSituation] = useState("Alle");
@@ -250,6 +264,62 @@ function SchedulePageContent() {
   const openShifts = openShiftsQuery.data ?? [];
   const statusSummary = computed.getStatusSummary();
 
+  // ── Employee custom order + compact sort ──────────────────
+  const [employeeOrder, setEmployeeOrder] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const stored = localStorage.getItem("schedule-employee-order");
+      return stored ? (JSON.parse(stored) as string[]) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Persist custom order to localStorage
+  const saveEmployeeOrder = useCallback((order: string[]) => {
+    setEmployeeOrder(order);
+    try {
+      localStorage.setItem("schedule-employee-order", JSON.stringify(order));
+    } catch {
+      /* ignore quota errors */
+    }
+  }, []);
+
+  // Build a set of employee IDs with shifts this week for compact sort
+  const employeesWithShifts = useMemo(() => {
+    const set = new Set<string>();
+    for (const s of shifts) {
+      if (s.employeeId) set.add(s.employeeId);
+    }
+    return set;
+  }, [shifts]);
+
+  // Sorted employees: apply custom order first, then compact auto-sort
+  const sortedEmployees = useMemo(() => {
+    let sorted = [...employees];
+
+    // Apply custom order if any
+    if (employeeOrder.length > 0) {
+      const orderIndex = new Map(employeeOrder.map((id, i) => [id, i]));
+      sorted.sort((a, b) => {
+        const ai = orderIndex.get(a.id) ?? Infinity;
+        const bi = orderIndex.get(b.id) ?? Infinity;
+        return ai - bi;
+      });
+    }
+
+    // When compact, employees with shifts float to top
+    if (scheduleCompactMode) {
+      sorted.sort((a, b) => {
+        const aHas = employeesWithShifts.has(a.id) ? 0 : 1;
+        const bHas = employeesWithShifts.has(b.id) ? 0 : 1;
+        return aHas - bHas;
+      });
+    }
+
+    return sorted;
+  }, [employees, employeeOrder, scheduleCompactMode, employeesWithShifts]);
+
   // Register the publish-all callback and draft count with the DashboardShell header.
   // Both setOnPublishAll and setScheduleDraftCount write to refs (no context re-render),
   // so they are safe to call during render without causing infinite loops.
@@ -265,6 +335,34 @@ function SchedulePageContent() {
   const publishMutateRef = useRef(publishShifts.mutate);
   const draftIdsRef = useRef(draftIds);
 
+  // ── Ctrl+drag copy mode ─────────────────────────────────────
+  /** Tracks whether Ctrl/Meta is currently held (updated via keyboard listeners). */
+  const isCtrlHeldRef = useRef(false);
+  /** True when the current drag started with Ctrl held (copy-drag). */
+  const isCopyDragRef = useRef(false);
+
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    const nativeEvent = event.activatorEvent as MouseEvent | TouchEvent | KeyboardEvent;
+    const ctrlHeld = "ctrlKey" in nativeEvent && (nativeEvent.ctrlKey || nativeEvent.metaKey);
+    isCopyDragRef.current = ctrlHeld;
+  }, []);
+
+  // Track Ctrl/Meta key state globally so we know at drop time
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Control" || e.key === "Meta") isCtrlHeldRef.current = true;
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.key === "Control" || e.key === "Meta") isCtrlHeldRef.current = false;
+    };
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+    };
+  }, []);
+
   // Sync refs + draft count and publish callback to DashboardShell
   useEffect(() => {
     publishMutateRef.current = publishShifts.mutate;
@@ -277,15 +375,6 @@ function SchedulePageContent() {
     };
   }, [draftCount, draftIds, publishShifts.mutate, setScheduleDraftCount, setOnPublishAll]);
 
-  // ── Loading state ───────────────────────────────────────────
-  if (shiftsQuery.isLoading) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <p className="text-sm text-zinc-500">Laster vaktplan...</p>
-      </div>
-    );
-  }
-
   /**
    * Handles DnD drop events.
    * Parses droppable ID format: "cell::employeeId::dateId" or "day-header::dateId"
@@ -296,18 +385,75 @@ function SchedulePageContent() {
     if (!over) return;
 
     const sourceType = active.data.current?.type as string | undefined;
+
+    // ── Employee row reorder ───────────────────────────────────
+    if (sourceType === "employee-sort") {
+      if (active.id !== over.id) {
+        const currentIds = sortedEmployees.map((e) => e.id);
+        const oldIndex = currentIds.indexOf(String(active.id));
+        const newIndex = currentIds.indexOf(String(over.id));
+        if (oldIndex !== -1 && newIndex !== -1) {
+          saveEmployeeOrder(arrayMove(currentIds, oldIndex, newIndex));
+        }
+      }
+      return;
+    }
+
     const droppableId = String(over.id);
 
     // Parse droppable ID
     const cellMatch = droppableId.match(/^cell::(.+)::(.+)$/);
     const dayHeaderMatch = droppableId.match(/^day-header::(.+)$/);
 
-    if (cellMatch && sourceType === "shift") {
-      // Shift dropped on employee cell -> move shift
+    // Shift dropped on open shift zone → convert to open shift
+    if (droppableId === "open-shift-zone" && sourceType === "shift") {
+      const shiftId = active.data.current?.shiftId as string | undefined;
+      if (shiftId) {
+        const sourceShift = shifts.find((s: Shift) => s.id === shiftId);
+        if (sourceShift) {
+          createOpenShift.mutate({
+            id: crypto.randomUUID(),
+            title: sourceShift.role,
+            startTime: sourceShift.startTime,
+            endTime: sourceShift.endTime,
+            role: sourceShift.role,
+            dayCategory: sourceShift.dayCategory,
+          });
+          // Remove the original assigned shift
+          deleteShift.mutate(shiftId);
+        }
+      }
+    } else if (cellMatch && sourceType === "shift") {
       const [, toEmployeeId, toDateId] = cellMatch;
       const shiftId = active.data.current?.shiftId as string | undefined;
       if (shiftId && toEmployeeId && toDateId) {
-        moveShift.mutate({ id: shiftId, employeeId: toEmployeeId, dateId: toDateId });
+        if (isCopyDragRef.current && isCtrlHeldRef.current) {
+          // Ctrl+drag → duplicate shift to target cell
+          const sourceShift = shifts.find((s: Shift) => s.id === shiftId);
+          if (sourceShift) {
+            createShift.mutate({
+              id: crypto.randomUUID(),
+              employeeId: toEmployeeId,
+              dateId: toDateId,
+              role: sourceShift.role,
+              positionId: sourceShift.positionId,
+              teamId: sourceShift.teamId,
+              startTime: sourceShift.startTime,
+              endTime: sourceShift.endTime,
+              workHours: sourceShift.workHours,
+              status: sourceShift.status === "published" ? "created" : sourceShift.status,
+              dayCategory: sourceShift.dayCategory,
+              zone: sourceShift.zone,
+              indicator: sourceShift.indicator,
+              isPublished: false,
+              breaks: sourceShift.breaks,
+              notes: sourceShift.notes,
+            });
+          }
+        } else {
+          // Normal drag → move shift
+          moveShift.mutate({ id: shiftId, employeeId: toEmployeeId, dateId: toDateId });
+        }
       }
     } else if (cellMatch && sourceType === "open-shift") {
       // Open shift dropped on employee cell -> assign
@@ -391,124 +537,170 @@ function SchedulePageContent() {
         }
       }
     }
+
+    // Always reset copy-drag state after drop
+    isCopyDragRef.current = false;
   };
+
+  const handleDragCancel = useCallback(() => {
+    isCopyDragRef.current = false;
+  }, []);
+
+  const isLoading = shiftsQuery.isLoading;
 
   return (
     <div
       className={`flex flex-1 flex-col ${isDark ? "bg-[#050505]" : "bg-zinc-50"} relative h-full overflow-hidden rounded-2xl border border-white/[0.04] font-sans text-zinc-100 shadow-2xl print:block print:h-auto print:overflow-visible print:border-none print:bg-white print:shadow-none`}
     >
-      {/* AMBIENT BACKGROUND */}
-      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-2xl opacity-10">
-        <div className="absolute top-[-10%] left-[-10%] h-[500px] w-[500px] rounded-full bg-orange-600/20 mix-blend-screen blur-[120px]" />
-      </div>
-
-      {/* MAIN CONTENT AREA — sidebar spans full height alongside command bar, status strip, and grid */}
-      <DndContext
-        sensors={sensors}
-        collisionDetection={scheduleCollisionDetection}
-        autoScroll={false}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="flex flex-1 overflow-hidden">
-          {/* Sidebar — full height from top of schedule container to bottom */}
-          <ScheduleSidebar
-            isDark={isDark}
-            isSidebarOpen={isSidebarOpen}
-            sidebarMode={sidebarMode}
-            setSidebarMode={setSidebarMode}
-            templates={templates}
-            openShifts={openShifts}
-          />
-
-          {/* Main content column — command bar, status strip, then grid */}
-          <div className="flex min-w-0 flex-1 flex-col">
-            <PlannerCommandBar
-              isDark={isDark}
-              filterSituation={filterSituation}
-              setFilterSituation={setFilterSituation}
-            />
-
-            <StatusStrip
-              isDark={isDark}
-              statusSummary={statusSummary}
-              activeFilter={activeStatusFilter}
-              onFilterClick={setActiveStatusFilter}
-            />
-
-            <GridSurface
-              isDark={isDark}
-              weekSpan={weekSpan}
-              setWeekSpan={setWeekSpan}
-              centerContent={
-                <>
-                  {scheduleLayout === "daily" && (
-                    <GridContent
-                      isSidebarOpen={isSidebarOpen}
-                      setIsSidebarOpen={setIsSidebarOpen}
-                      onDateClick={setSelectedDate}
-                      filterSituation={filterSituation}
-                      visibleDays={days}
-                      employees={employees}
-                    />
-                  )}
-                  {scheduleLayout === "weekly" && (
-                    <WeeklyGridContent
-                      isSidebarOpen={isSidebarOpen}
-                      setIsSidebarOpen={setIsSidebarOpen}
-                      onDateClick={setSelectedDate}
-                      filterSituation={filterSituation}
-                      shifts={shifts}
-                      computed={computed}
-                      scheduleUI={scheduleUI}
-                      employees={employees}
-                    />
-                  )}
-                  {scheduleLayout === "monthly" && (
-                    <MonthlyGridContent
-                      onDateClick={setSelectedDate}
-                      filterSituation={filterSituation}
-                      shifts={shifts}
-                      computed={computed}
-                      days={days}
-                      scheduleUI={scheduleUI}
-                    />
-                  )}
-                  {scheduleLayout === "list" && (
-                    <ListGridContent
-                      onDateClick={setSelectedDate}
-                      shifts={shifts}
-                      computed={computed}
-                      days={days}
-                      employees={employees}
-                    />
-                  )}
-                </>
-              }
-              dayInspector={
-                <DayInspector isDark={isDark} selectedDate={selectedDate}>
-                  <DailyBriefingPanel date={selectedDate} onClose={() => setSelectedDate(null)} />
-                </DayInspector>
-              }
-            />
-          </div>
+      {isLoading ? (
+        <div className="flex h-full flex-1 items-center justify-center">
+          <p className="text-sm text-zinc-500">Laster vaktplan...</p>
         </div>
+      ) : (
+        <>
+          {/* AMBIENT BACKGROUND */}
+          <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-2xl opacity-10">
+            <div className="absolute top-[-10%] left-[-10%] h-[500px] w-[500px] rounded-full bg-orange-600/20 mix-blend-screen blur-[120px]" />
+          </div>
 
-        <ScheduleDragOverlay isDark={isDark} />
-      </DndContext>
+          {/* MAIN CONTENT AREA — sidebar spans full height alongside command bar, status strip, and grid */}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={scheduleCollisionDetection}
+            autoScroll={false}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
+          >
+            <div className="flex flex-1 overflow-hidden">
+              {/* Sidebar — full height from top of schedule container to bottom */}
+              <ScheduleSidebar
+                isDark={isDark}
+                isSidebarOpen={isSidebarOpen}
+                sidebarMode={sidebarMode}
+                setSidebarMode={setSidebarMode}
+                templates={templates}
+                openShifts={openShifts}
+              />
 
-      {/* Global modals and overlays rendered at the page level */}
-      <ShiftModal />
-      <BatchActionBar />
-      <AbsencePopover />
-      <EmployeeDrawer
-        open={!!scheduleUI.selectedEmployeeId}
-        onOpenChange={(open) => {
-          if (!open) scheduleUI.setSelectedEmployee(null);
-        }}
-        employee={
-          employees.find((e: ScheduleEmployee) => e.id === scheduleUI.selectedEmployeeId) ?? null
-        }
-      />
+              {/* Main content column — command bar, status strip, then grid */}
+              <div className="flex min-w-0 flex-1 flex-col">
+                <PlannerCommandBar
+                  isDark={isDark}
+                  filterSituation={filterSituation}
+                  setFilterSituation={setFilterSituation}
+                />
+
+                <StatusStrip
+                  isDark={isDark}
+                  statusSummary={statusSummary}
+                  activeFilter={activeStatusFilter}
+                  onFilterClick={setActiveStatusFilter}
+                />
+
+                <GridSurface
+                  isDark={isDark}
+                  weekSpan={weekSpan}
+                  setWeekSpan={setWeekSpan}
+                  centerContent={
+                    <>
+                      {scheduleLayout === "daily" && (
+                        <GridContent
+                          isSidebarOpen={isSidebarOpen}
+                          setIsSidebarOpen={setIsSidebarOpen}
+                          onDateClick={setSelectedDate}
+                          filterSituation={filterSituation}
+                          visibleDays={days}
+                          employees={sortedEmployees}
+                        />
+                      )}
+                      {scheduleLayout === "weekly" && (
+                        <WeeklyGridContent
+                          isSidebarOpen={isSidebarOpen}
+                          setIsSidebarOpen={setIsSidebarOpen}
+                          onDateClick={setSelectedDate}
+                          filterSituation={filterSituation}
+                          shifts={shifts}
+                          computed={computed}
+                          scheduleUI={scheduleUI}
+                          employees={employees}
+                        />
+                      )}
+                      {scheduleLayout === "monthly" && (
+                        <MonthlyGridContent
+                          onDateClick={setSelectedDate}
+                          filterSituation={filterSituation}
+                          shifts={shifts}
+                          computed={computed}
+                          days={days}
+                          scheduleUI={scheduleUI}
+                        />
+                      )}
+                      {scheduleLayout === "list" && (
+                        <ListGridContent
+                          onDateClick={setSelectedDate}
+                          shifts={shifts}
+                          computed={computed}
+                          days={days}
+                          employees={employees}
+                        />
+                      )}
+                    </>
+                  }
+                  dayInspector={
+                    <DayInspector isDark={isDark} selectedDate={selectedDate}>
+                      <DailyBriefingPanel
+                        date={selectedDate}
+                        onClose={() => setSelectedDate(null)}
+                      />
+                    </DayInspector>
+                  }
+                />
+              </div>
+            </div>
+
+            <ScheduleDragOverlay isDark={isDark} />
+          </DndContext>
+
+          {/* Global modals and overlays rendered at the page level */}
+          <ShiftModal />
+          <BatchActionBar />
+          <AbsencePopover />
+          <EmployeeDrawer
+            open={!!scheduleUI.selectedEmployeeId}
+            onOpenChange={(open) => {
+              if (!open) scheduleUI.setSelectedEmployee(null);
+            }}
+            employee={
+              employees.find((e: ScheduleEmployee) => e.id === scheduleUI.selectedEmployeeId) ??
+              null
+            }
+          />
+        </>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// OpenShiftDropZone — droppable area for converting shifts to open shifts
+// ---------------------------------------------------------------------------
+function OpenShiftDropZone({ isDark, children }: { isDark: boolean; children: React.ReactNode }) {
+  const { setNodeRef, isOver } = useDroppable({ id: "open-shift-zone" });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`min-h-[60px] rounded-xl border-2 border-dashed p-2 transition-all ${
+        isOver ? "border-amber-500/50 bg-amber-500/10" : `border-transparent ${isDark ? "" : ""}`
+      }`}
+    >
+      {children}
+      {isOver && (
+        <p className="mt-2 text-center text-[10px] font-bold tracking-wider text-amber-400 uppercase">
+          Slipp for å gjøre åpen
+        </p>
+      )}
     </div>
   );
 }
@@ -582,14 +774,21 @@ function ScheduleSidebar({
                 <Plus className="h-3.5 w-3.5" />
               </button>
             </div>
-            <div className="space-y-3">
-              {openShifts.map((shift) => (
-                <OpenShiftCard key={shift.id} id={shift.id} title={shift.title} time={shift.time} />
-              ))}
-              {openShifts.length === 0 && (
-                <p className="text-center text-xs text-zinc-500">Ingen åpne vakter</p>
-              )}
-            </div>
+            <OpenShiftDropZone isDark={isDark}>
+              <div className="space-y-3">
+                {openShifts.map((shift) => (
+                  <OpenShiftCard
+                    key={shift.id}
+                    id={shift.id}
+                    title={shift.title}
+                    time={shift.time}
+                  />
+                ))}
+                {openShifts.length === 0 && (
+                  <p className="text-center text-xs text-zinc-500">Ingen åpne vakter</p>
+                )}
+              </div>
+            </OpenShiftDropZone>
             <OpenShiftDialog open={openShiftDialogOpen} onOpenChange={setOpenShiftDialogOpen} />
           </>
         ) : (
