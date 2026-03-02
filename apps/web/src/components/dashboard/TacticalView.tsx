@@ -189,7 +189,7 @@ export function TacticalView({ isDark }: TacticalViewProps) {
                   <button
                     key={d.date}
                     onClick={() => router.push("/dashboard/schedule")}
-                    className="group flex w-full cursor-pointer items-center gap-4 rounded-lg px-1 transition-colors hover:bg-white/5"
+                    className={`group flex w-full items-center gap-4 rounded-lg px-1 transition-colors ${isDark ? "hover:bg-white/5" : "hover:bg-zinc-50"}`}
                   >
                     <span
                       className={`w-10 text-left text-sm font-bold ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
@@ -338,7 +338,7 @@ export function TacticalView({ isDark }: TacticalViewProps) {
                 <p
                   className={`text-center text-xs font-semibold ${isDark ? "text-zinc-600" : "text-zinc-400"}`}
                 >
-                  Coming soon — events from schedule_day_info
+                  Coming soon — connect events to see staffing impact
                 </p>
               </div>
             </div>
