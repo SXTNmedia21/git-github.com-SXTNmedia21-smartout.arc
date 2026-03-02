@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { CalendarX, FileSignature, UserX, BookOpen, MailWarning, CheckCircle2 } from "lucide-react";
 import { useActionItems } from "@/app/dashboard/_hooks/use-action-items";
 
@@ -12,6 +13,7 @@ const CHIP_CONFIG = [
     key: "shiftGaps" as const,
     icon: CalendarX,
     label: "Shift Gaps",
+    href: "/dashboard/schedule",
     priorityColor: {
       dark: "bg-red-500/15 text-red-400 border-red-500/20",
       light: "bg-red-50 text-red-600 border-red-200",
@@ -21,6 +23,7 @@ const CHIP_CONFIG = [
     key: "pendingContracts" as const,
     icon: FileSignature,
     label: "Contracts",
+    href: "/dashboard/people",
     priorityColor: {
       dark: "bg-orange-500/15 text-orange-400 border-orange-500/20",
       light: "bg-orange-50 text-orange-600 border-orange-200",
@@ -30,6 +33,7 @@ const CHIP_CONFIG = [
     key: "stuckOnboarding" as const,
     icon: UserX,
     label: "Onboarding",
+    href: "/dashboard/people",
     priorityColor: {
       dark: "bg-orange-500/15 text-orange-400 border-orange-500/20",
       light: "bg-orange-50 text-orange-600 border-orange-200",
@@ -39,6 +43,7 @@ const CHIP_CONFIG = [
     key: "pendingProtocols" as const,
     icon: BookOpen,
     label: "Protocols",
+    href: "/dashboard/governance",
     priorityColor: {
       dark: "bg-blue-500/15 text-blue-400 border-blue-500/20",
       light: "bg-blue-50 text-blue-600 border-blue-200",
@@ -48,6 +53,7 @@ const CHIP_CONFIG = [
     key: "staleInvitations" as const,
     icon: MailWarning,
     label: "Invitations",
+    href: "/dashboard/people",
     priorityColor: {
       dark: "bg-zinc-500/15 text-zinc-400 border-zinc-500/20",
       light: "bg-zinc-100 text-zinc-600 border-zinc-200",
@@ -106,14 +112,15 @@ export function ActionStrip({ isDark }: ActionStripProps) {
 
         const Icon = chip.icon;
         return (
-          <button
+          <Link
             key={chip.key}
+            href={chip.href}
             className={`flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-bold transition-all hover:scale-105 ${chip.priorityColor[theme]}`}
           >
             <Icon className="h-3.5 w-3.5" />
             <span>{count}</span>
             <span className="hidden sm:inline">{chip.label}</span>
-          </button>
+          </Link>
         );
       })}
     </div>

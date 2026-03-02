@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Calendar,
   TrendingUp,
@@ -11,6 +12,7 @@ import {
   ShieldCheck,
   ChevronLeft,
   ChevronRight,
+  Plus,
 } from "lucide-react";
 import { SignalCard } from "./SignalCard";
 import {
@@ -38,6 +40,7 @@ function getWeekNumber(dateStr: string): number {
 }
 
 export function TacticalView({ isDark }: TacticalViewProps) {
+  const router = useRouter();
   const [weekOffset, setWeekOffset] = useState(0);
   const weekStart = getWeekStart(weekOffset);
   const weekNum = getWeekNumber(weekStart);
@@ -117,13 +120,13 @@ export function TacticalView({ isDark }: TacticalViewProps) {
         />
       </div>
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-3">
+      <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 gap-3 overflow-hidden lg:grid-cols-3">
         {/* Main Weekly Schedule Overview */}
         <div
-          className={`flex min-h-0 flex-col rounded-2xl border p-4 shadow-sm lg:col-span-2 ${isDark ? "border-zinc-800 bg-[#0c0c0e]" : "border-zinc-200 bg-white"}`}
+          className={`flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border p-4 shadow-sm lg:col-span-2 ${isDark ? "border-zinc-800 bg-[#0c0c0e]" : "border-zinc-200 bg-white"}`}
         >
-          <div className="mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          <div className="mb-4 flex min-w-0 items-center justify-between">
+            <div className="flex min-w-0 items-center gap-2">
               <button
                 onClick={() => setWeekOffset((o) => o - 1)}
                 className={`rounded-lg border p-1.5 transition-colors ${isDark ? "border-zinc-700 text-zinc-400 hover:bg-zinc-800" : "border-zinc-200 text-zinc-500 hover:bg-zinc-50"}`}
@@ -131,7 +134,7 @@ export function TacticalView({ isDark }: TacticalViewProps) {
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <h2
-                className={`text-xl font-extrabold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}
+                className={`truncate text-xl font-extrabold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}
               >
                 Staffing Coverage (Week {weekNum})
               </h2>
@@ -183,21 +186,25 @@ export function TacticalView({ isDark }: TacticalViewProps) {
                         : "bg-red-500";
                 const gapCount = d.totalShifts - d.assignedShifts;
                 return (
-                  <div key={d.date} className="group flex items-center gap-4">
+                  <button
+                    key={d.date}
+                    onClick={() => router.push("/dashboard/schedule")}
+                    className="group flex w-full cursor-pointer items-center gap-4 rounded-lg px-1 transition-colors hover:bg-white/5"
+                  >
                     <span
-                      className={`w-10 text-sm font-bold ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
+                      className={`w-10 text-left text-sm font-bold ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
                     >
                       {d.dayLabel}
                     </span>
                     <div
-                      className={`relative h-6 flex-1 overflow-hidden rounded-lg ${isDark ? "bg-zinc-800/50" : "bg-zinc-100"}`}
+                      className={`relative h-6 min-w-0 flex-1 overflow-hidden rounded-lg ${isDark ? "bg-zinc-800/50" : "bg-zinc-100"}`}
                     >
                       <div
                         className={`h-full ${barColor} transition-all duration-1000 ease-out`}
                         style={{ width: fill }}
                       />
                     </div>
-                    <div className="flex w-32 items-center justify-end gap-2">
+                    <div className="flex w-32 shrink-0 items-center justify-end gap-2">
                       {gapCount > 0 && (
                         <span
                           className={`text-xs font-semibold ${isDark ? "text-orange-400" : "text-orange-500"}`}
@@ -219,7 +226,7 @@ export function TacticalView({ isDark }: TacticalViewProps) {
                         />
                       )}
                     </div>
-                  </div>
+                  </button>
                 );
               })
             ) : (
@@ -233,7 +240,7 @@ export function TacticalView({ isDark }: TacticalViewProps) {
         </div>
 
         {/* Sidebar Widgets */}
-        <div className="flex h-full min-h-0 flex-col gap-3">
+        <div className="flex h-full min-h-0 min-w-0 flex-col gap-3">
           {/* Team Health / Compliance */}
           <div
             className={`flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border p-4 shadow-sm ${isDark ? "border-zinc-800 bg-[#0c0c0e]" : "border-zinc-200 bg-white"}`}
@@ -310,12 +317,20 @@ export function TacticalView({ isDark }: TacticalViewProps) {
           <div
             className={`flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border p-4 shadow-sm ${isDark ? "border-zinc-800 bg-[#0c0c0e]" : "border-zinc-200 bg-white"}`}
           >
-            <h3
-              className={`mb-3 flex items-center gap-2 text-sm font-bold tracking-widest uppercase ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-            >
-              <Calendar className="h-4 w-4 text-blue-500" />
-              Upcoming Events (Impact)
-            </h3>
+            <div className="mb-3 flex items-center justify-between">
+              <h3
+                className={`flex items-center gap-2 text-sm font-bold tracking-widest uppercase ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
+              >
+                <Calendar className="h-4 w-4 text-blue-500" />
+                Upcoming Events (Impact)
+              </h3>
+              <button
+                className={`rounded-lg p-1 transition-colors ${isDark ? "hover:bg-white/5" : "hover:bg-zinc-100"}`}
+                title="Add event"
+              >
+                <Plus className={`h-3.5 w-3.5 ${isDark ? "text-zinc-400" : "text-zinc-500"}`} />
+              </button>
+            </div>
             <div className="flex min-h-0 flex-1 flex-col justify-around gap-4 overflow-hidden">
               <div
                 className={`flex flex-1 items-center justify-center rounded-lg border-2 border-dashed ${isDark ? "border-zinc-800" : "border-zinc-200"}`}
@@ -323,9 +338,7 @@ export function TacticalView({ isDark }: TacticalViewProps) {
                 <p
                   className={`text-center text-xs font-semibold ${isDark ? "text-zinc-600" : "text-zinc-400"}`}
                 >
-                  Event integration coming soon.
-                  <br />
-                  Connect calendar to see staffing impact.
+                  Coming soon — events from schedule_day_info
                 </p>
               </div>
             </div>
