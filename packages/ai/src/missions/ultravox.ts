@@ -9,6 +9,7 @@ export type StartCallOptions = {
   agentId?: string;
   metadata?: Record<string, string>;
   templateContext?: Record<string, string>;
+  selectedTools?: Array<Record<string, unknown>>;
 };
 
 export type CallResult = {
@@ -73,6 +74,10 @@ export async function startMissionCall(options: StartCallOptions): Promise<CallR
   };
   if (Object.keys(mergedContext).length > 0) {
     callBody.templateContext = mergedContext;
+  }
+
+  if (options.selectedTools && options.selectedTools.length > 0) {
+    callBody.selectedTools = options.selectedTools;
   }
 
   const url = options.agentId

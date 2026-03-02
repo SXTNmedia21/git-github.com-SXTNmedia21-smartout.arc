@@ -21,11 +21,13 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}));
     const missionId = body.mission_id || "mr-botsson";
+    const selectedTools = Array.isArray(body.selected_tools) ? body.selected_tools : [];
 
     const result = await startMissionCall({
       missionId,
       apiKey,
       agentId: process.env.ULTRAVOX_AGENT_ID,
+      selectedTools,
       metadata: {
         source: "web-dashboard",
         ...(body.metadata || {}),
