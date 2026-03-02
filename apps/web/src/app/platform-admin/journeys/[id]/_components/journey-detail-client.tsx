@@ -10,7 +10,7 @@
 
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type {
@@ -19,6 +19,9 @@ import type {
   JourneyEvent,
   JourneyStatus,
   JourneyOutputType,
+  JourneyTestRun,
+  JourneyTestResult,
+  JourneyTestType,
 } from "@smartout/types";
 import { STATUS_META } from "@/lib/journey/status-transitions";
 import { MODULE_META, ACTOR_META, PRIORITY_META, PLATFORM_META } from "@/lib/journey/module-meta";
@@ -84,6 +87,7 @@ import {
   Play,
   Pencil,
   Trash2,
+  RefreshCw,
 } from "lucide-react";
 
 /**
@@ -246,6 +250,256 @@ function OutputTabContent({ journeyId, outputType, label, isCode }: OutputTabCon
         )}
       </CardContent>
     </Card>
+  );
+}
+
+// ─── Test Tab Content ──────────────────────────────────────
+
+/**
+ * Maps test result to badge variant and color styling.
+ * pass=green, fail=red, skip=yellow, running=blue.
+ */
+const TEST_RESULT_STYLE: Record<JourneyTestResult, { className: string; label: string }> = {
+  pass: { className: "border-green-600 bg-green-600/10 text-green-600", label: "Pass" },
+  fail: { className: "border-red-600 bg-red-600/10 text-red-600", label: "Fail" },
+  skip: { className: "border-yellow-600 bg-yellow-600/10 text-yellow-600", label: "Skip" },
+  running: { className: "border-blue-600 bg-blue-600/10 text-blue-600", label: "Running" },
+};
+
+/**
+ * Maps test type to badge styling.
+ */
+const TEST_TYPE_STYLE: Record<JourneyTestType, { className: string; label: string }> = {
+  automated: { className: "border-purple-600/50 text-purple-600", label: "Automated" },
+  manual: { className: "border-orange-600/50 text-orange-600", label: "Manual" },
+};
+
+type TestTabContentProps = {
+  journeyId: string;
+};
+
+/**
+ * Replaces the old E2E OutputTabContent with a proper testing interface.
+ * Shows action buttons (Run E2E, Start Manual, Generate Skeleton) and
+ * test run history fetched from the API.
+ *
+ * Why separate from OutputTabContent: The test tab needs different UX —
+ * multiple actions, run history, result badges — not just generate/copy.
+ *
+ * @param journeyId - The journey UUID
+ */
+function TestTabContent({ journeyId }: TestTabContentProps) {
+  const [testRuns, setTestRuns] = useState<JourneyTestRun[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [generatingE2E, setGeneratingE2E] = useState(false);
+  const [generatedContent, setGeneratedContent] = useState<string | null>(null);
+
+  /**
+   * Fetches test run history from the API.
+   */
+  const fetchTestRuns = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/platform-admin/journeys/${journeyId}/test-runs`);
+      if (response.ok) {
+        const data = await response.json();
+        setTestRuns(data.test_runs ?? []);
+      }
+    } catch {
+      // Silently fail — empty list is shown
+    } finally {
+      setLoading(false);
+    }
+  }, [journeyId]);
+
+  useEffect(() => {
+    fetchTestRuns();
+  }, [fetchTestRuns]);
+
+  /**
+   * Generates an E2E skeleton using the existing generate API.
+   * Same logic as OutputTabContent but scoped to e2e type.
+   */
+  const handleGenerateSkeleton = useCallback(async () => {
+    setGeneratingE2E(true);
+    try {
+      const response = await fetch(`/api/platform-admin/journeys/${journeyId}/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "e2e" }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        toast.error(`Failed to generate E2E skeleton: ${error.error ?? "Unknown error"}`);
+        return;
+      }
+
+      const data = await response.json();
+      setGeneratedContent(data.content);
+      toast.success("E2E skeleton generated successfully");
+    } catch {
+      toast.error("Failed to generate E2E skeleton");
+    } finally {
+      setGeneratingE2E(false);
+    }
+  }, [journeyId]);
+
+  /**
+   * Copies generated content to clipboard.
+   */
+  const handleCopyGenerated = useCallback(async () => {
+    if (!generatedContent) return;
+    try {
+      await navigator.clipboard.writeText(generatedContent);
+      toast.success("Copied to clipboard");
+    } catch {
+      toast.error("Failed to copy to clipboard");
+    }
+  }, [generatedContent]);
+
+  /**
+   * Formats duration from milliseconds to a human-readable string.
+   */
+  function formatDuration(ms: number | null): string {
+    if (ms === null) return "—";
+    if (ms < 1000) return `${ms}ms`;
+    return `${(ms / 1000).toFixed(1)}s`;
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Action Buttons Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-medium">Test Actions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              size="sm"
+              variant="default"
+              onClick={() => toast.info("Coming soon — use journey-test skill in Claude Code")}
+            >
+              <Play className="mr-1.5 h-3.5 w-3.5" />
+              Run E2E Test
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => toast.info("Coming soon — use journey-test skill in Claude Code")}
+            >
+              <TestTube2 className="mr-1.5 h-3.5 w-3.5" />
+              Start Manual Test
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleGenerateSkeleton}
+              disabled={generatingE2E}
+            >
+              {generatingE2E ? (
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Wand2 className="mr-1.5 h-3.5 w-3.5" />
+              )}
+              Generate E2E Skeleton
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Generated E2E Skeleton (shown when generated) */}
+      {generatedContent && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium">Generated E2E Skeleton</CardTitle>
+              <Button size="sm" variant="outline" onClick={handleCopyGenerated}>
+                <Copy className="mr-1.5 h-3.5 w-3.5" />
+                Copy
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <pre className="bg-muted overflow-x-auto rounded-md border p-4 text-sm">
+              <code>{generatedContent}</code>
+            </pre>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Test Run History Card */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm font-medium">Test History ({testRuns.length})</CardTitle>
+            <Button size="sm" variant="ghost" onClick={fetchTestRuns} disabled={loading}>
+              <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {loading && testRuns.length === 0 ? (
+            <div className="flex items-center gap-2 py-4">
+              <Loader2 className="text-muted-foreground h-4 w-4 animate-spin" />
+              <p className="text-muted-foreground text-sm">Loading test history...</p>
+            </div>
+          ) : testRuns.length === 0 ? (
+            <p className="text-muted-foreground text-sm">
+              No test runs yet. Run a test or use the journey-test skill in Claude Code.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {testRuns.map((run) => {
+                const resultStyle = TEST_RESULT_STYLE[run.result];
+                const typeStyle = TEST_TYPE_STYLE[run.test_type];
+
+                return (
+                  <div
+                    key={run.journey_test_run_id}
+                    className="flex items-center gap-3 rounded-md border px-3 py-2"
+                  >
+                    {/* Result badge */}
+                    <Badge variant="outline" className={`text-xs ${resultStyle.className}`}>
+                      {resultStyle.label}
+                    </Badge>
+
+                    {/* Type badge */}
+                    <Badge variant="outline" className={`text-xs ${typeStyle.className}`}>
+                      {typeStyle.label}
+                    </Badge>
+
+                    {/* Duration */}
+                    <span className="text-muted-foreground text-xs">
+                      {formatDuration(run.duration_ms)}
+                    </span>
+
+                    {/* Error message (truncated) */}
+                    {run.error_message && (
+                      <span
+                        className="text-destructive max-w-[300px] truncate text-xs"
+                        title={run.error_message}
+                      >
+                        {run.error_message}
+                      </span>
+                    )}
+
+                    {/* Spacer */}
+                    <div className="flex-1" />
+
+                    {/* Timestamp */}
+                    <span className="text-muted-foreground shrink-0 text-xs">
+                      {new Date(run.created_at).toLocaleString()}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
@@ -619,12 +873,7 @@ export function JourneyDetailClient({
         </TabsContent>
 
         <TabsContent value="e2e">
-          <OutputTabContent
-            journeyId={journey.journey_id}
-            outputType="e2e"
-            label="E2E Test"
-            isCode={true}
-          />
+          <TestTabContent journeyId={journey.journey_id} />
         </TabsContent>
 
         <TabsContent value="doc">

@@ -214,6 +214,9 @@ export type JourneyEventType = z.infer<typeof JourneyEventTypeEnum>;
 export const JourneyTestResultEnum = z.enum(["pass", "fail", "skip", "running"]);
 export type JourneyTestResult = z.infer<typeof JourneyTestResultEnum>;
 
+export const JourneyTestTypeEnum = z.enum(["automated", "manual"]);
+export type JourneyTestType = z.infer<typeof JourneyTestTypeEnum>;
+
 export const JourneyPhaseEnum = z.enum(["definition", "planning", "build", "test", "release"]);
 export type JourneyPhase = z.infer<typeof JourneyPhaseEnum>;
 

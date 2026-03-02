@@ -17,6 +17,7 @@ import {
   JourneyModuleEnum,
   JourneyEventTypeEnum,
   JourneyTestResultEnum,
+  JourneyTestTypeEnum,
   WizardSessionStatusEnum,
   WizardPhaseEnum,
 } from "./enums";
@@ -101,6 +102,7 @@ export const JourneyTestRunSchema = z.object({
   journey_id: z.string().uuid(),
   workspace_id: z.string().uuid(),
   result: JourneyTestResultEnum,
+  test_type: JourneyTestTypeEnum,
   duration_ms: z.number().int().nullable(),
   error_message: z.string().nullable(),
   test_output: z.record(z.unknown()).nullable(),

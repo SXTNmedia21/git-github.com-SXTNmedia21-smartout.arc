@@ -1,6 +1,6 @@
 ---
 title: "Smartout Documentation Index"
-updated: 2026-03-01
+updated: 2026-03-02
 ---
 
 # Smartout Documentation Index
@@ -187,21 +187,23 @@ See `docs/learnings/0000-learning-log.md` -- 13 learning records.
 
 Active plans in `docs/plans/`. Completed plans in `docs/plans/completed/`.
 
-| id                  | File                                             | Status              |
-| ------------------- | ------------------------------------------------ | ------------------- |
-| PLAN_BUILD_ORDER    | plans/BUILD_ORDER.md                             | canonical           |
-| PLAN_KNOWLEDGE_SYS  | plans/2026-02-27-docs-knowledge-system.md        | canonical           |
-| PLAN_NEXTRA         | plans/2026-02-28-docs-nextra-system.md           | accepted (ADR-0030) |
-| PLAN_SUBDOMAIN      | plans/2026-02-28-subdomain-workspace-routing.md  | canonical           |
-| PLAN_AUTH_KEY_MGMT  | plans/2026-02-28-auth-key-management.md          | draft               |
-| PLAN_JOURNEY_P1     | plans/2026-03-01-journey-portal-phase-1.md       | completed           |
-| PLAN_JOURNEY_P2     | plans/2026-03-01-journey-portal-phase-2.md       | in-progress         |
-| PLAN_GUIDED_DEMO    | plans/2026-03-01-guided-demo-experience.md       | draft               |
-| PLAN_DOCKER_INFRA   | plans/2026-03-01-docker-network-infra.md         | in-progress         |
-| PLAN_WIZARD_DESIGN  | plans/2026-03-01-admin-wizard-completion.md      | Approved            |
-| PLAN_WIZARD_IMPL    | plans/2026-03-01-admin-wizard-completion-plan.md | Approved            |
-| PLAN_USER_JOURNEYS  | plans/2026-03-01-module1-user-journeys-design.md | Approved            |
-| PLAN_ONBOARD_POLISH | plans/2026-03-01-onboarding-polish-plan.md       | Approved            |
+| id                  | File                                               | Status              |
+| ------------------- | -------------------------------------------------- | ------------------- |
+| PLAN_BUILD_ORDER    | plans/BUILD_ORDER.md                               | canonical           |
+| PLAN_KNOWLEDGE_SYS  | plans/2026-02-27-docs-knowledge-system.md          | canonical           |
+| PLAN_NEXTRA         | plans/2026-02-28-docs-nextra-system.md             | accepted (ADR-0030) |
+| PLAN_SUBDOMAIN      | plans/2026-02-28-subdomain-workspace-routing.md    | canonical           |
+| PLAN_AUTH_KEY_MGMT  | plans/2026-02-28-auth-key-management.md            | draft               |
+| PLAN_JOURNEY_P1     | plans/2026-03-01-journey-portal-phase-1.md         | completed           |
+| PLAN_JOURNEY_P2     | plans/2026-03-01-journey-portal-phase-2.md         | in-progress         |
+| PLAN_GUIDED_DEMO    | plans/2026-03-01-guided-demo-experience.md         | draft               |
+| PLAN_DOCKER_INFRA   | plans/2026-03-01-docker-network-infra.md           | in-progress         |
+| PLAN_WIZARD_DESIGN  | plans/2026-03-01-admin-wizard-completion.md        | Approved            |
+| PLAN_WIZARD_IMPL    | plans/2026-03-01-admin-wizard-completion-plan.md   | Approved            |
+| PLAN_USER_JOURNEYS  | plans/2026-03-01-module1-user-journeys-design.md   | Approved            |
+| PLAN_ONBOARD_POLISH | plans/2026-03-01-onboarding-polish-plan.md         | Approved            |
+| PLAN_JOURNEY_TEST   | plans/2026-03-01-journey-testing-system-design.md  | Approved            |
+| PLAN_JOURNEY_IMPL   | plans/2026-03-02-journey-testing-implementation.md | in-progress         |
 
 Completed plans (historical, not loaded actively):
 
