@@ -204,12 +204,11 @@ export function MonthlyView({ shifts, computed, onDateClick }: MonthlyViewProps)
   }, [calendarDays, computed, shifts]);
 
   const handleDayClick = useCallback(
-    (dateId: string, dateLabel: string, hasShifts: boolean) => {
+    (dateId: string, hasShifts: boolean) => {
       if (!hasShifts) {
-        // Open shift creation with date pre-filled
         scheduleUI.setCreateShiftContext({ dateId });
       }
-      onDateClick?.(dateLabel);
+      onDateClick?.(dateId);
     },
     [scheduleUI, onDateClick],
   );
@@ -331,7 +330,6 @@ export function MonthlyView({ shifts, computed, onDateClick }: MonthlyViewProps)
             const coverage = getCoverageLevel(stats);
             const isWeekend = day.date.getDay() === 0 || day.date.getDay() === 6;
             const dayNum = day.date.getDate();
-            const dayLabel = `${DAY_HEADERS[(day.date.getDay() + 6) % 7]} ${dayNum}/${day.date.getMonth() + 1}`;
 
             const draftCount = dayShifts.filter(
               (s) => s.status === "created" || s.status === "assigned",
@@ -353,7 +351,7 @@ export function MonthlyView({ shifts, computed, onDateClick }: MonthlyViewProps)
                 publishedCount={publishedCount}
                 estimatedCost={stats.estimatedCost}
                 isDark={isDark}
-                onClick={() => handleDayClick(day.dateId, dayLabel, dayShifts.length > 0)}
+                onClick={() => handleDayClick(day.dateId, dayShifts.length > 0)}
                 onCreateShift={() => handleCreateShift(day.dateId)}
               />
             );
