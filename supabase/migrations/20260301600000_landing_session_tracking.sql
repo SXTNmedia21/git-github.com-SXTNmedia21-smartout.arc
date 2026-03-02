@@ -25,10 +25,10 @@ CREATE TABLE public.landing_visitor (
   first_variant     text,
   ip_addresses      text[] NOT NULL DEFAULT '{}',
   user_agents       text[] NOT NULL DEFAULT '{}',
-  user_identity_id  uuid REFERENCES public.user_identity(id) ON DELETE SET NULL,
+  user_identity_id  uuid REFERENCES public.user_identity(user_id) ON DELETE SET NULL,
   manual_label      text,
   manual_notes      text,
-  tagged_by         uuid REFERENCES public.user_identity(id) ON DELETE SET NULL,
+  tagged_by         uuid REFERENCES public.user_identity(user_id) ON DELETE SET NULL,
   tagged_at         timestamptz,
   created_at        timestamptz NOT NULL DEFAULT now(),
   updated_at        timestamptz NOT NULL DEFAULT now()
