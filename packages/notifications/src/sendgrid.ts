@@ -8,6 +8,13 @@ import sgMail from "@sendgrid/mail";
 import type { SendEmailResult, SendGridTemplateData } from "./types";
 
 const DEFAULT_FROM = "noreply@smartout.io";
+
+/** Temporary env var fallback — callers should pass apiKey from Vault instead. */
+function requireEnvKey(name: string): string {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} is not set. Save it via /platform-admin/keys.`);
+  return value;
+}
 const BATCH_SIZE = 100;
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 1000;
@@ -26,11 +33,7 @@ type DynamicTemplateMessage = {
   dynamicTemplateData: SendGridTemplateData;
 };
 
-function getSendGridClient(): typeof sgMail {
-  const apiKey = process.env.SENDGRID_API_KEY;
-  if (!apiKey) {
-    throw new Error("SENDGRID_API_KEY is not set");
-  }
+function getSendGridClient(apiKey: string): typeof sgMail {
   sgMail.setApiKey(apiKey);
   return sgMail;
 }
@@ -83,8 +86,9 @@ async function sendWithRetry(
 export async function sendEmailBatch(
   recipients: Array<{ email: string; subject: string; html: string }>,
   fromEmail: string = DEFAULT_FROM,
+  apiKey?: string,
 ): Promise<SendEmailResult> {
-  const client = getSendGridClient();
+  const client = getSendGridClient(apiKey ?? requireEnvKey("SENDGRID_API_KEY"));
 
   let totalSent = 0;
   let totalFailed = 0;
@@ -153,8 +157,9 @@ export async function sendDynamicTemplateBatch(
   recipients: Array<{ email: string; templateData: SendGridTemplateData }>,
   templateId: string,
   fromEmail: string = DEFAULT_FROM,
+  apiKey?: string,
 ): Promise<SendEmailResult> {
-  const client = getSendGridClient();
+  const client = getSendGridClient(apiKey ?? requireEnvKey("SENDGRID_API_KEY"));
 
   let totalSent = 0;
   let totalFailed = 0;

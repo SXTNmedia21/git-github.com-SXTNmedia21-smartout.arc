@@ -109,7 +109,7 @@ export const SERVICE_REGISTRY: readonly ServiceEntry[] = [
     docsUrl: "https://dashboard.stripe.com/apikeys",
   },
   {
-    key: "sendgrid_api_key",
+    key: "sendgrid",
     provider: "sendgrid",
     envVar: "SENDGRID_API_KEY",
     label: "SendGrid API Key",

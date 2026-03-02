@@ -13,6 +13,7 @@ import { isOutboundEmailEnabled } from "./kill-switch";
 import { checkRateLimit, RECIPIENT_HARD_CAP } from "./rate-limit";
 import { sendDynamicTemplateBatch, sendEmailBatch } from "./sendgrid";
 import { renderTemplate } from "./templates";
+import { getServiceKey } from "@smartout/supabase/vault";
 
 const JOB_BATCH_SIZE = 100;
 
@@ -74,6 +75,9 @@ export async function createEmailJob(
     failedCount: 0,
   };
 
+  // Fetch SendGrid API key from Vault
+  const sendgridKey = await getServiceKey(adminClient, "sendgrid");
+
   // Store job metadata for processing
   // We store in communication_log-compatible format when possible,
   // but for platform-level sends we track the job in memory and process immediately
@@ -90,6 +94,7 @@ export async function createEmailJob(
         opts.sendgridTemplateId!,
         opts.templateData!,
         fromEmail,
+        sendgridKey,
       )
     : await processEmailBatches(
         activeRecipients.map((r) => ({
@@ -100,6 +105,7 @@ export async function createEmailJob(
         opts.template,
         opts.variables,
         fromEmail,
+        sendgridKey,
       );
 
   job.status = result.failed > 0 ? "completed" : "completed";
@@ -115,6 +121,7 @@ async function processEmailBatches(
   template: EmailJobOptions["template"],
   variables: Record<string, string>,
   fromEmail: string,
+  apiKey: string,
 ): Promise<SendEmailResult> {
   let totalSent = 0;
   let totalFailed = 0;
@@ -132,7 +139,7 @@ async function processEmailBatches(
       };
     });
 
-    const result = await sendEmailBatch(emailsToSend, fromEmail);
+    const result = await sendEmailBatch(emailsToSend, fromEmail, apiKey);
     totalSent += result.sent;
     totalFailed += result.failed;
     allErrors.push(...result.errors);
@@ -146,6 +153,7 @@ async function processDynamicTemplateBatches(
   templateId: string,
   templateData: SendGridTemplateData,
   fromEmail: string,
+  apiKey: string,
   translatedVersions?: Map<string, SendGridTemplateData>,
 ): Promise<SendEmailResult> {
   // Group recipients by locale for multilingual sending
@@ -172,7 +180,7 @@ async function processDynamicTemplateBatches(
       },
     }));
 
-    const result = await sendDynamicTemplateBatch(emailsToSend, templateId, fromEmail);
+    const result = await sendDynamicTemplateBatch(emailsToSend, templateId, fromEmail, apiKey);
     totalSent += result.sent;
     totalFailed += result.failed;
     allErrors.push(...result.errors);
