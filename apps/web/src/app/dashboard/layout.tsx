@@ -86,10 +86,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
     );
   }
 
-  // Fallback: no workspace found at all
-  return (
-    <QueryProvider>
-      <DashboardShell profileId={profileId}>{children}</DashboardShell>
-    </QueryProvider>
-  );
+  // No workspace found — redirect instead of rendering without WorkspaceProvider
+  redirect("/onboarding");
 }
