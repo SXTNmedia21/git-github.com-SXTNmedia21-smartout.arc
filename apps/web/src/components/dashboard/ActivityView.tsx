@@ -391,12 +391,12 @@ export function ActivityView({ isDark }: { isDark: boolean }) {
         </div>
 
         {/* Heatmap Grid container */}
-        <div className="flex min-h-0 flex-1 flex-col overflow-x-auto p-4">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-2 pt-2 pb-1">
           <div className="flex min-h-0 flex-1 flex-col">
             {/* Days Header */}
-            <div className="mb-1 flex items-end">
-              <div className="w-24 flex-shrink-0" />
-              <div className="flex flex-1 gap-px">
+            <div className="mb-0.5 flex items-end">
+              <div className="w-16 flex-shrink-0" />
+              <div className="flex flex-1">
                 {Array.from({ length: days }, (_, i) => {
                   const labelEntry = dayLabels.find((d) => d.index === i);
                   return (
@@ -420,19 +420,19 @@ export function ActivityView({ isDark }: { isDark: boolean }) {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ duration: 0.3 }}
-                  className="group hover:bg-muted/50 flex min-h-[20px] flex-1 cursor-crosshair items-center rounded-md p-0.5 transition-colors"
+                  className="group hover:bg-muted/50 flex min-h-[20px] flex-1 cursor-crosshair items-center rounded-sm transition-colors"
                 >
-                  <div className="text-muted-foreground group-hover:text-foreground w-24 flex-shrink-0 truncate pr-2 text-xs font-semibold">
+                  <div className="text-muted-foreground group-hover:text-foreground w-16 flex-shrink-0 truncate pr-1.5 text-[10px] font-semibold">
                     {row.label}
                   </div>
 
-                  <div className="flex flex-1 gap-px">
+                  <div className="flex flex-1">
                     {row.data.map((val, cellIdx) => (
                       <div
                         key={cellIdx}
                         title={`${row.label} - Day ${cellIdx + 1}: Score ${val}`}
                         onClick={() => handleCellClick(row.label, cellIdx)}
-                        className={`flex-1 cursor-pointer rounded-sm transition-all duration-300 hover:z-10 hover:scale-[1.3] ${"min-h-[14px]"} ${
+                        className={`min-h-[14px] flex-1 cursor-pointer transition-all duration-300 hover:z-10 hover:brightness-125 ${
                           selectedCell?.row === row.label && selectedCell?.dayIndex === cellIdx
                             ? "ring-foreground ring-2"
                             : ""
