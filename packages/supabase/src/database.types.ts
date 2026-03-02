@@ -1658,6 +1658,7 @@ export type Database = {
           journey_test_run_id: string
           result: Database["public"]["Enums"]["journey_test_result"]
           test_output: Json | null
+          test_type: Database["public"]["Enums"]["journey_test_type"]
           triggered_by: string | null
           workspace_id: string
         }
@@ -1669,6 +1670,7 @@ export type Database = {
           journey_test_run_id?: string
           result: Database["public"]["Enums"]["journey_test_result"]
           test_output?: Json | null
+          test_type?: Database["public"]["Enums"]["journey_test_type"]
           triggered_by?: string | null
           workspace_id: string
         }
@@ -1680,6 +1682,7 @@ export type Database = {
           journey_test_run_id?: string
           result?: Database["public"]["Enums"]["journey_test_result"]
           test_output?: Json | null
+          test_type?: Database["public"]["Enums"]["journey_test_type"]
           triggered_by?: string | null
           workspace_id?: string
         }
@@ -5060,6 +5063,7 @@ export type Database = {
         | "inactive"
         | "broken"
       journey_test_result: "pass" | "fail" | "skip" | "running"
+      journey_test_type: "automated" | "manual"
       location_type:
         | "main"
         | "outdoor"
@@ -5359,6 +5363,7 @@ export const Constants = {
         "broken",
       ],
       journey_test_result: ["pass", "fail", "skip", "running"],
+      journey_test_type: ["automated", "manual"],
       location_type: [
         "main",
         "outdoor",

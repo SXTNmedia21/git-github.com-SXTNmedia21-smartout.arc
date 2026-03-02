@@ -14,13 +14,36 @@ export default defineConfig({
   /* Opt out of parallel tests on CI. */
   workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: "html",
+  reporter: process.env.CI ? [["html"], ["github"]] : "html",
+  /* Global timeout for each test */
+  timeout: 30_000,
+  expect: {
+    timeout: 10_000,
+  },
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: "on-first-retry",
     video: "retain-on-failure",
   },
+  /* Output directory for test artifacts */
+  outputDir: "./test-results",
+
+  /* Start dev servers before running tests */
+  webServer: [
+    {
+      command: "pnpm --filter web dev",
+      url: "http://127.0.0.1:3050",
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+    {
+      command: "pnpm --filter landing dev",
+      url: "http://127.0.0.1:3055",
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+  ],
 
   /* Configure projects for major browsers and different local apps */
   projects: [

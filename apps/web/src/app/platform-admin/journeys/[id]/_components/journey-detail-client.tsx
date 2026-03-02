@@ -453,7 +453,7 @@ function TestTabContent({ journeyId }: TestTabContentProps) {
             <div className="space-y-2">
               {testRuns.map((run) => {
                 const resultStyle = TEST_RESULT_STYLE[run.result];
-                const typeStyle = TEST_TYPE_STYLE[run.test_type];
+                const typeStyle = TEST_TYPE_STYLE[run.test_type ?? "automated"];
 
                 return (
                   <div

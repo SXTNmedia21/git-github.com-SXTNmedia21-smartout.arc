@@ -87,7 +87,7 @@ export async function POST(request: NextRequest, { params }: Props) {
       error_message: body.error_message ?? null,
       test_output: (body.test_output as Json) ?? null,
       triggered_by: superAdminId,
-      test_type: body.test_type as never,
+      test_type: body.test_type,
     })
     .select()
     .single();
