@@ -1,0 +1,131 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { Monitor, Smartphone } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import type { EmailTemplateSection, EmailTemplatePlaceholder } from "../[id]/edit/save-action";
+
+type EmailTemplatePreviewProps = {
+  subject: string;
+  sections: EmailTemplateSection[];
+  placeholders: EmailTemplatePlaceholder[];
+};
+
+function replacePlaceholders(text: string, placeholders: EmailTemplatePlaceholder[]): string {
+  let result = text;
+  for (const p of placeholders) {
+    const value = p.defaultValue || `[${p.label || p.key}]`;
+    result = result.replaceAll(`{{${p.key}}}`, value);
+  }
+  return result;
+}
+
+function renderSection(
+  section: EmailTemplateSection,
+  placeholders: EmailTemplatePlaceholder[],
+): string {
+  const r = (text: string) => replacePlaceholders(text, placeholders);
+
+  switch (section.type) {
+    case "title":
+      return `<h1 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#111827;">${r(section.content ?? "")}</h1>`;
+
+    case "message":
+      return `<div style="font-size:14px;line-height:1.6;color:#374151;">${r(section.content ?? "")}</div>`;
+
+    case "image":
+      if (!section.imageUrl)
+        return '<div style="padding:20px;text-align:center;color:#9ca3af;border:1px dashed #d1d5db;border-radius:6px;">[Image placeholder]</div>';
+      return `<img src="${section.imageUrl}" alt="${r(section.imageAlt ?? "")}" style="max-width:100%;height:auto;border-radius:6px;" />`;
+
+    case "list":
+      if (!section.items?.length) return "";
+      const items = section.items
+        .map((item) => `<li style="margin-bottom:4px;">${r(item)}</li>`)
+        .join("");
+      return `<ul style="margin:0;padding-left:20px;font-size:14px;line-height:1.6;color:#374151;">${items}</ul>`;
+
+    case "html":
+      return r(section.content ?? "");
+
+    case "button":
+      return `<div style="text-align:center;padding:8px 0;">
+        <a href="${section.buttonUrl ?? "#"}" style="display:inline-block;padding:10px 24px;background:#2563eb;color:#fff;text-decoration:none;border-radius:6px;font-size:14px;font-weight:500;">${r(section.buttonText ?? "Click here")}</a>
+      </div>`;
+
+    case "divider":
+      return '<hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0;" />';
+
+    case "footer":
+      return `<div style="font-size:12px;color:#9ca3af;border-top:1px solid #e5e7eb;padding-top:16px;margin-top:16px;">${r(section.content ?? "")}</div>`;
+
+    default:
+      return "";
+  }
+}
+
+export function EmailTemplatePreview({
+  subject,
+  sections,
+  placeholders,
+}: EmailTemplatePreviewProps) {
+  const [width, setWidth] = useState<"desktop" | "mobile">("desktop");
+
+  const html = useMemo(() => {
+    const bodyParts = sections.map((s) => renderSection(s, placeholders)).join("\n");
+    const subjectLine = replacePlaceholders(subject, placeholders);
+
+    return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="max-width:600px;margin:0 auto;padding:20px;">
+    <!-- Subject preview -->
+    <div style="background:#fff;border-radius:8px 8px 0 0;padding:12px 16px;border-bottom:1px solid #e5e7eb;">
+      <p style="margin:0;font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:0.5px;">Subject</p>
+      <p style="margin:4px 0 0;font-size:14px;font-weight:600;color:#111827;">${subjectLine || "[No subject]"}</p>
+    </div>
+    <!-- Email body -->
+    <div style="background:#fff;border-radius:0 0 8px 8px;padding:24px;">
+      ${bodyParts || '<p style="color:#9ca3af;text-align:center;">Add sections to see preview</p>'}
+    </div>
+  </div>
+</body>
+</html>`;
+  }, [subject, sections, placeholders]);
+
+  return (
+    <div className="flex h-full flex-col">
+      <div className="border-border flex items-center justify-between border-b px-3 py-2">
+        <span className="text-xs font-medium">Preview</span>
+        <div className="flex items-center gap-1">
+          <Button
+            variant={width === "desktop" ? "secondary" : "ghost"}
+            size="sm"
+            className="h-6 w-6 p-0"
+            onClick={() => setWidth("desktop")}
+          >
+            <Monitor className="h-3 w-3" />
+          </Button>
+          <Button
+            variant={width === "mobile" ? "secondary" : "ghost"}
+            size="sm"
+            className="h-6 w-6 p-0"
+            onClick={() => setWidth("mobile")}
+          >
+            <Smartphone className="h-3 w-3" />
+          </Button>
+        </div>
+      </div>
+      <div className="bg-muted/30 flex flex-1 justify-center overflow-y-auto p-4">
+        <iframe
+          srcDoc={html}
+          className="border-border h-full rounded-md border bg-white"
+          style={{ width: width === "desktop" ? "100%" : "375px" }}
+          title="Email template preview"
+          sandbox="allow-same-origin"
+        />
+      </div>
+    </div>
+  );
+}

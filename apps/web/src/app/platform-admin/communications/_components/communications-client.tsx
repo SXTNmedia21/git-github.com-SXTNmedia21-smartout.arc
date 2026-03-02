@@ -3,7 +3,16 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { type ColumnDef } from "@tanstack/react-table";
-import { Users, Shield, UserCheck, Crosshair, Send, PenLine, ChevronDown } from "lucide-react";
+import {
+  Users,
+  Shield,
+  UserCheck,
+  Crosshair,
+  Send,
+  PenLine,
+  ChevronDown,
+  FileText,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ComposeEmailSheet } from "@/components/platform-admin/compose-email-sheet";
@@ -221,6 +230,14 @@ export function CommunicationsClient({ history }: CommunicationsClientProps) {
         <CardHeader className="flex flex-row items-center justify-between pb-3">
           <CardTitle className="text-sm font-medium">Communication History</CardTitle>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push("/platform-admin/communications/templates")}
+            >
+              <FileText className="mr-1.5 h-3.5 w-3.5" />
+              Templates
+            </Button>
             <Button variant="outline" size="sm" onClick={() => openQuickSend()}>
               <Send className="mr-1.5 h-3.5 w-3.5" />
               Quick Send
