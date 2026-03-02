@@ -1,3 +1,4 @@
+Connecting to db 5432
 export type Json =
   | string
   | number
@@ -1333,12 +1334,14 @@ export type Database = {
           company_id: string
           created_at: string
           department_ids: string[] | null
-          email: string
+          email: string | null
           expires_at: string
           first_name: string | null
           invitation_id: string
+          invite_type: Database["public"]["Enums"]["invite_type"]
           invited_by: string | null
           last_name: string | null
+          phone: string | null
           role: Database["public"]["Enums"]["profile_role"]
           status: Database["public"]["Enums"]["invite_status"]
           team_ids: string[] | null
@@ -1350,12 +1353,14 @@ export type Database = {
           company_id: string
           created_at?: string
           department_ids?: string[] | null
-          email: string
+          email?: string | null
           expires_at?: string
           first_name?: string | null
           invitation_id?: string
+          invite_type?: Database["public"]["Enums"]["invite_type"]
           invited_by?: string | null
           last_name?: string | null
+          phone?: string | null
           role?: Database["public"]["Enums"]["profile_role"]
           status?: Database["public"]["Enums"]["invite_status"]
           team_ids?: string[] | null
@@ -1367,12 +1372,14 @@ export type Database = {
           company_id?: string
           created_at?: string
           department_ids?: string[] | null
-          email?: string
+          email?: string | null
           expires_at?: string
           first_name?: string | null
           invitation_id?: string
+          invite_type?: Database["public"]["Enums"]["invite_type"]
           invited_by?: string | null
           last_name?: string | null
+          phone?: string | null
           role?: Database["public"]["Enums"]["profile_role"]
           status?: Database["public"]["Enums"]["invite_status"]
           team_ids?: string[] | null
@@ -1658,7 +1665,6 @@ export type Database = {
           journey_test_run_id: string
           result: Database["public"]["Enums"]["journey_test_result"]
           test_output: Json | null
-          test_type: Database["public"]["Enums"]["journey_test_type"]
           triggered_by: string | null
           workspace_id: string
         }
@@ -1670,7 +1676,6 @@ export type Database = {
           journey_test_run_id?: string
           result: Database["public"]["Enums"]["journey_test_result"]
           test_output?: Json | null
-          test_type?: Database["public"]["Enums"]["journey_test_type"]
           triggered_by?: string | null
           workspace_id: string
         }
@@ -1682,7 +1687,6 @@ export type Database = {
           journey_test_run_id?: string
           result?: Database["public"]["Enums"]["journey_test_result"]
           test_output?: Json | null
-          test_type?: Database["public"]["Enums"]["journey_test_type"]
           triggered_by?: string | null
           workspace_id?: string
         }
@@ -1889,7 +1893,6 @@ export type Database = {
           session_id: string | null
           user_agent: string | null
           variant: string | null
-          visitor_id: string | null
         }
         Insert: {
           created_at?: string
@@ -1901,7 +1904,6 @@ export type Database = {
           session_id?: string | null
           user_agent?: string | null
           variant?: string | null
-          visitor_id?: string | null
         }
         Update: {
           created_at?: string
@@ -1913,154 +1915,8 @@ export type Database = {
           session_id?: string | null
           user_agent?: string | null
           variant?: string | null
-          visitor_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "landing_event_visitor_id_fkey"
-            columns: ["visitor_id"]
-            isOneToOne: false
-            referencedRelation: "landing_visitor"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      landing_session: {
-        Row: {
-          click_count: number
-          created_at: string
-          cta_click_count: number
-          device_type: string | null
-          duration_seconds: number | null
-          ended_at: string | null
-          id: string
-          ip_address: unknown
-          max_scroll_depth: number
-          page_count: number
-          referrer: string | null
-          session_id: string
-          started_at: string
-          updated_at: string
-          user_agent: string | null
-          variant: string | null
-          visitor_id: string
-        }
-        Insert: {
-          click_count?: number
-          created_at?: string
-          cta_click_count?: number
-          device_type?: string | null
-          duration_seconds?: number | null
-          ended_at?: string | null
-          id?: string
-          ip_address?: unknown
-          max_scroll_depth?: number
-          page_count?: number
-          referrer?: string | null
-          session_id: string
-          started_at?: string
-          updated_at?: string
-          user_agent?: string | null
-          variant?: string | null
-          visitor_id: string
-        }
-        Update: {
-          click_count?: number
-          created_at?: string
-          cta_click_count?: number
-          device_type?: string | null
-          duration_seconds?: number | null
-          ended_at?: string | null
-          id?: string
-          ip_address?: unknown
-          max_scroll_depth?: number
-          page_count?: number
-          referrer?: string | null
-          session_id?: string
-          started_at?: string
-          updated_at?: string
-          user_agent?: string | null
-          variant?: string | null
-          visitor_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "landing_session_visitor_id_fkey"
-            columns: ["visitor_id"]
-            isOneToOne: false
-            referencedRelation: "landing_visitor"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      landing_visitor: {
-        Row: {
-          created_at: string
-          first_referrer: string | null
-          first_seen: string
-          first_variant: string | null
-          id: string
-          ip_addresses: string[]
-          last_seen: string
-          manual_label: string | null
-          manual_notes: string | null
-          tagged_at: string | null
-          tagged_by: string | null
-          updated_at: string
-          user_agents: string[]
-          user_identity_id: string | null
-          visit_count: number
-        }
-        Insert: {
-          created_at?: string
-          first_referrer?: string | null
-          first_seen?: string
-          first_variant?: string | null
-          id: string
-          ip_addresses?: string[]
-          last_seen?: string
-          manual_label?: string | null
-          manual_notes?: string | null
-          tagged_at?: string | null
-          tagged_by?: string | null
-          updated_at?: string
-          user_agents?: string[]
-          user_identity_id?: string | null
-          visit_count?: number
-        }
-        Update: {
-          created_at?: string
-          first_referrer?: string | null
-          first_seen?: string
-          first_variant?: string | null
-          id?: string
-          ip_addresses?: string[]
-          last_seen?: string
-          manual_label?: string | null
-          manual_notes?: string | null
-          tagged_at?: string | null
-          tagged_by?: string | null
-          updated_at?: string
-          user_agents?: string[]
-          user_identity_id?: string | null
-          visit_count?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "landing_visitor_tagged_by_fkey"
-            columns: ["tagged_by"]
-            isOneToOne: false
-            referencedRelation: "user_identity"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "landing_visitor_user_identity_id_fkey"
-            columns: ["user_identity_id"]
-            isOneToOne: false
-            referencedRelation: "user_identity"
-            referencedColumns: ["user_id"]
-          },
-        ]
+        Relationships: []
       }
       location: {
         Row: {
@@ -2619,57 +2475,69 @@ export type Database = {
         Row: {
           audience_filter: Json | null
           classification: string
+          clicked_count: number
           communication_id: string
           created_at: string | null
           failed_count: number
           idempotency_key: string | null
           message_body: string
+          opened_count: number
           provider: string | null
           provider_batch_id: string | null
           recipient_count: number
+          sendgrid_template_id: string | null
           sent_count: number
           status: string
           subject: string
           super_admin_id: string
           template: string
+          template_data: Json | null
           updated_at: string | null
           workspace_id: string | null
         }
         Insert: {
           audience_filter?: Json | null
           classification?: string
+          clicked_count?: number
           communication_id?: string
           created_at?: string | null
           failed_count?: number
           idempotency_key?: string | null
           message_body: string
+          opened_count?: number
           provider?: string | null
           provider_batch_id?: string | null
           recipient_count?: number
+          sendgrid_template_id?: string | null
           sent_count?: number
           status?: string
           subject: string
           super_admin_id: string
           template: string
+          template_data?: Json | null
           updated_at?: string | null
           workspace_id?: string | null
         }
         Update: {
           audience_filter?: Json | null
           classification?: string
+          clicked_count?: number
           communication_id?: string
           created_at?: string | null
           failed_count?: number
           idempotency_key?: string | null
           message_body?: string
+          opened_count?: number
           provider?: string | null
           provider_batch_id?: string | null
           recipient_count?: number
+          sendgrid_template_id?: string | null
           sent_count?: number
           status?: string
           subject?: string
           super_admin_id?: string
           template?: string
+          template_data?: Json | null
           updated_at?: string | null
           workspace_id?: string | null
         }
@@ -2692,36 +2560,48 @@ export type Database = {
       }
       platform_communication_recipient: {
         Row: {
+          click_count: number
+          clicked_at: string | null
           communication_id: string
           created_at: string | null
           delivered_at: string | null
           email: string
           error_message: string | null
           name: string | null
+          open_count: number
+          opened_at: string | null
           recipient_id: string
           sent_at: string | null
           status: string
           user_id: string | null
         }
         Insert: {
+          click_count?: number
+          clicked_at?: string | null
           communication_id: string
           created_at?: string | null
           delivered_at?: string | null
           email: string
           error_message?: string | null
           name?: string | null
+          open_count?: number
+          opened_at?: string | null
           recipient_id?: string
           sent_at?: string | null
           status?: string
           user_id?: string | null
         }
         Update: {
+          click_count?: number
+          clicked_at?: string | null
           communication_id?: string
           created_at?: string | null
           delivered_at?: string | null
           email?: string
           error_message?: string | null
           name?: string | null
+          open_count?: number
+          opened_at?: string | null
           recipient_id?: string
           sent_at?: string | null
           status?: string
@@ -3023,6 +2903,57 @@ export type Database = {
           workspace_to_invite?: number | null
         }
         Relationships: []
+      }
+      platform_webhook_event: {
+        Row: {
+          communication_id: string | null
+          created_at: string
+          email: string
+          event_id: string
+          event_type: string
+          processed_at: string
+          provider: string
+          raw_payload: Json
+          recipient_id: string | null
+        }
+        Insert: {
+          communication_id?: string | null
+          created_at?: string
+          email: string
+          event_id?: string
+          event_type: string
+          processed_at?: string
+          provider?: string
+          raw_payload: Json
+          recipient_id?: string | null
+        }
+        Update: {
+          communication_id?: string | null
+          created_at?: string
+          email?: string
+          event_id?: string
+          event_type?: string
+          processed_at?: string
+          provider?: string
+          raw_payload?: Json
+          recipient_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_webhook_event_communication_id_fkey"
+            columns: ["communication_id"]
+            isOneToOne: false
+            referencedRelation: "platform_communication_log"
+            referencedColumns: ["communication_id"]
+          },
+          {
+            foreignKeyName: "platform_webhook_event_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "platform_communication_recipient"
+            referencedColumns: ["recipient_id"]
+          },
+        ]
       }
       policy: {
         Row: {
@@ -3820,336 +3751,6 @@ export type Database = {
           },
         ]
       }
-      schedule_absence: {
-        Row: {
-          absence_type: string
-          created_at: string
-          employee_id: string
-          end_date: string
-          is_full_day: boolean
-          reason: string | null
-          request_type: string | null
-          schedule_absence_id: string
-          shift_date: string
-          start_date: string
-          status: Database["public"]["Enums"]["absence_status"]
-          updated_at: string
-          workspace_id: string
-        }
-        Insert: {
-          absence_type: string
-          created_at?: string
-          employee_id: string
-          end_date: string
-          is_full_day?: boolean
-          reason?: string | null
-          request_type?: string | null
-          schedule_absence_id?: string
-          shift_date: string
-          start_date: string
-          status?: Database["public"]["Enums"]["absence_status"]
-          updated_at?: string
-          workspace_id: string
-        }
-        Update: {
-          absence_type?: string
-          created_at?: string
-          employee_id?: string
-          end_date?: string
-          is_full_day?: boolean
-          reason?: string | null
-          request_type?: string | null
-          schedule_absence_id?: string
-          shift_date?: string
-          start_date?: string
-          status?: Database["public"]["Enums"]["absence_status"]
-          updated_at?: string
-          workspace_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "schedule_absence_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "profile"
-            referencedColumns: ["profile_id"]
-          },
-          {
-            foreignKeyName: "schedule_absence_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspace"
-            referencedColumns: ["workspace_id"]
-          },
-        ]
-      }
-      schedule_audit_log: {
-        Row: {
-          audit_log_id: string
-          changed_fields: string[] | null
-          created_at: string
-          new_data: Json | null
-          old_data: Json | null
-          operation: Database["public"]["Enums"]["audit_operation"]
-          row_id: string
-          table_name: string
-          user_id: string | null
-          workspace_id: string
-        }
-        Insert: {
-          audit_log_id?: string
-          changed_fields?: string[] | null
-          created_at?: string
-          new_data?: Json | null
-          old_data?: Json | null
-          operation: Database["public"]["Enums"]["audit_operation"]
-          row_id: string
-          table_name: string
-          user_id?: string | null
-          workspace_id: string
-        }
-        Update: {
-          audit_log_id?: string
-          changed_fields?: string[] | null
-          created_at?: string
-          new_data?: Json | null
-          old_data?: Json | null
-          operation?: Database["public"]["Enums"]["audit_operation"]
-          row_id?: string
-          table_name?: string
-          user_id?: string | null
-          workspace_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "schedule_audit_log_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspace"
-            referencedColumns: ["workspace_id"]
-          },
-        ]
-      }
-      schedule_day_booking: {
-        Row: {
-          booking_time: string
-          contact_person: string | null
-          created_at: string
-          guest_count: number
-          is_vip: boolean
-          location: string | null
-          menu: string | null
-          notes: string | null
-          schedule_day_booking_id: string
-          shift_date: string
-          status: Database["public"]["Enums"]["booking_status"]
-          title: string
-          updated_at: string
-          workspace_id: string
-        }
-        Insert: {
-          booking_time: string
-          contact_person?: string | null
-          created_at?: string
-          guest_count?: number
-          is_vip?: boolean
-          location?: string | null
-          menu?: string | null
-          notes?: string | null
-          schedule_day_booking_id?: string
-          shift_date: string
-          status?: Database["public"]["Enums"]["booking_status"]
-          title: string
-          updated_at?: string
-          workspace_id: string
-        }
-        Update: {
-          booking_time?: string
-          contact_person?: string | null
-          created_at?: string
-          guest_count?: number
-          is_vip?: boolean
-          location?: string | null
-          menu?: string | null
-          notes?: string | null
-          schedule_day_booking_id?: string
-          shift_date?: string
-          status?: Database["public"]["Enums"]["booking_status"]
-          title?: string
-          updated_at?: string
-          workspace_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "schedule_day_booking_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspace"
-            referencedColumns: ["workspace_id"]
-          },
-        ]
-      }
-      schedule_day_message: {
-        Row: {
-          audience: string
-          author_id: string
-          content: string
-          created_at: string
-          is_alert: boolean
-          schedule_day_message_id: string
-          shift_date: string
-          title: string
-          updated_at: string
-          visibility: Database["public"]["Enums"]["message_visibility"]
-          workspace_id: string
-        }
-        Insert: {
-          audience?: string
-          author_id: string
-          content: string
-          created_at?: string
-          is_alert?: boolean
-          schedule_day_message_id?: string
-          shift_date: string
-          title: string
-          updated_at?: string
-          visibility?: Database["public"]["Enums"]["message_visibility"]
-          workspace_id: string
-        }
-        Update: {
-          audience?: string
-          author_id?: string
-          content?: string
-          created_at?: string
-          is_alert?: boolean
-          schedule_day_message_id?: string
-          shift_date?: string
-          title?: string
-          updated_at?: string
-          visibility?: Database["public"]["Enums"]["message_visibility"]
-          workspace_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "schedule_day_message_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "profile"
-            referencedColumns: ["profile_id"]
-          },
-          {
-            foreignKeyName: "schedule_day_message_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspace"
-            referencedColumns: ["workspace_id"]
-          },
-        ]
-      }
-      schedule_day_task: {
-        Row: {
-          assigned_to: string | null
-          category: string
-          completed_at: string | null
-          created_at: string
-          highlight: boolean
-          label: string
-          schedule_day_task_id: string
-          shift_date: string
-          task_status: string
-          updated_at: string
-          workspace_id: string
-        }
-        Insert: {
-          assigned_to?: string | null
-          category?: string
-          completed_at?: string | null
-          created_at?: string
-          highlight?: boolean
-          label: string
-          schedule_day_task_id?: string
-          shift_date: string
-          task_status?: string
-          updated_at?: string
-          workspace_id: string
-        }
-        Update: {
-          assigned_to?: string | null
-          category?: string
-          completed_at?: string | null
-          created_at?: string
-          highlight?: boolean
-          label?: string
-          schedule_day_task_id?: string
-          shift_date?: string
-          task_status?: string
-          updated_at?: string
-          workspace_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "schedule_day_task_assigned_to_fkey"
-            columns: ["assigned_to"]
-            isOneToOne: false
-            referencedRelation: "profile"
-            referencedColumns: ["profile_id"]
-          },
-          {
-            foreignKeyName: "schedule_day_task_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspace"
-            referencedColumns: ["workspace_id"]
-          },
-        ]
-      }
-      schedule_open_shift: {
-        Row: {
-          created_at: string
-          day_category: Database["public"]["Enums"]["day_category"] | null
-          department: string | null
-          end_time: string
-          role: string | null
-          schedule_open_shift_id: string
-          start_time: string
-          title: string
-          updated_at: string
-          workspace_id: string
-        }
-        Insert: {
-          created_at?: string
-          day_category?: Database["public"]["Enums"]["day_category"] | null
-          department?: string | null
-          end_time: string
-          role?: string | null
-          schedule_open_shift_id?: string
-          start_time: string
-          title: string
-          updated_at?: string
-          workspace_id: string
-        }
-        Update: {
-          created_at?: string
-          day_category?: Database["public"]["Enums"]["day_category"] | null
-          department?: string | null
-          end_time?: string
-          role?: string | null
-          schedule_open_shift_id?: string
-          start_time?: string
-          title?: string
-          updated_at?: string
-          workspace_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "schedule_open_shift_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspace"
-            referencedColumns: ["workspace_id"]
-          },
-        ]
-      }
       schedule_shift: {
         Row: {
           breaks: number
@@ -4242,114 +3843,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "workspace"
             referencedColumns: ["workspace_id"]
-          },
-        ]
-      }
-      schedule_template: {
-        Row: {
-          created_at: string
-          created_by: string
-          department: string
-          include_assignments: boolean
-          name: string
-          schedule_template_id: string
-          updated_at: string
-          workspace_id: string
-        }
-        Insert: {
-          created_at?: string
-          created_by: string
-          department: string
-          include_assignments?: boolean
-          name: string
-          schedule_template_id?: string
-          updated_at?: string
-          workspace_id: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string
-          department?: string
-          include_assignments?: boolean
-          name?: string
-          schedule_template_id?: string
-          updated_at?: string
-          workspace_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "schedule_template_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profile"
-            referencedColumns: ["profile_id"]
-          },
-          {
-            foreignKeyName: "schedule_template_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspace"
-            referencedColumns: ["workspace_id"]
-          },
-        ]
-      }
-      schedule_template_shift: {
-        Row: {
-          breaks: number
-          day_category: Database["public"]["Enums"]["day_category"]
-          employee_id: string | null
-          end_time: string
-          indicator: string
-          notes: string | null
-          role: string
-          schedule_template_shift_id: string
-          start_time: string
-          template_id: string
-          work_hours: number
-          zone: string | null
-        }
-        Insert: {
-          breaks?: number
-          day_category: Database["public"]["Enums"]["day_category"]
-          employee_id?: string | null
-          end_time: string
-          indicator?: string
-          notes?: string | null
-          role: string
-          schedule_template_shift_id?: string
-          start_time: string
-          template_id: string
-          work_hours?: number
-          zone?: string | null
-        }
-        Update: {
-          breaks?: number
-          day_category?: Database["public"]["Enums"]["day_category"]
-          employee_id?: string | null
-          end_time?: string
-          indicator?: string
-          notes?: string | null
-          role?: string
-          schedule_template_shift_id?: string
-          start_time?: string
-          template_id?: string
-          work_hours?: number
-          zone?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "schedule_template_shift_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "profile"
-            referencedColumns: ["profile_id"]
-          },
-          {
-            foreignKeyName: "schedule_template_shift_template_id_fkey"
-            columns: ["template_id"]
-            isOneToOne: false
-            referencedRelation: "schedule_template"
-            referencedColumns: ["schedule_template_id"]
           },
         ]
       }
@@ -4920,6 +4413,10 @@ export type Database = {
       get_api_workspace_id: { Args: never; Returns: string }
       get_secret: { Args: { secret_name: string }; Returns: string }
       get_workspace_ids_for_user: { Args: { uid: string }; Returns: string[] }
+      increment_communication_counter: {
+        Args: { p_communication_id: string; p_field: string }
+        Returns: undefined
+      }
       is_admin_in_workspace: {
         Args: { uid: string; wid: string }
         Returns: boolean
@@ -4946,7 +4443,6 @@ export type Database = {
           token_count: number
         }[]
       }
-      rollback_audit_entry: { Args: { p_audit_log_id: string }; Returns: Json }
       rotate_api_key: {
         Args: {
           p_environment: string
@@ -4964,13 +4460,10 @@ export type Database = {
       }
     }
     Enums: {
-      absence_status: "pending" | "approved" | "rejected"
       api_key_type: "workspace" | "service"
       api_key_version_status: "current" | "previous" | "revoked"
       asset_type: "equipment" | "safety" | "storage" | "station" | "other"
-      audit_operation: "INSERT" | "UPDATE" | "DELETE"
       auth_provider: "supabase" | "google" | "microsoft"
-      booking_status: "confirmed" | "pending" | "cancelled"
       communication_channel: "email" | "sms" | "push" | "in_app"
       communication_status:
         | "pending"
@@ -5014,6 +4507,7 @@ export type Database = {
       enforcement_status: "aspirational" | "enforced"
       industry: "restaurant" | "hotel" | "cafe" | "bar" | "catering" | "other"
       invite_status: "pending" | "accepted" | "expired" | "cancelled"
+      invite_type: "email" | "sms" | "link"
       journey_actor:
         | "employee"
         | "trainee"
@@ -5063,7 +4557,6 @@ export type Database = {
         | "inactive"
         | "broken"
       journey_test_result: "pass" | "fail" | "skip" | "running"
-      journey_test_type: "automated" | "manual"
       location_type:
         | "main"
         | "outdoor"
@@ -5071,7 +4564,6 @@ export type Database = {
         | "event"
         | "storage"
         | "other"
-      message_visibility: "all_day" | "until_16" | "permanent"
       notification_channel: "push" | "sms" | "email" | "voice"
       notification_mode: "training" | "work" | "community"
       notification_status:
@@ -5255,13 +4747,10 @@ export const Constants = {
   },
   public: {
     Enums: {
-      absence_status: ["pending", "approved", "rejected"],
       api_key_type: ["workspace", "service"],
       api_key_version_status: ["current", "previous", "revoked"],
       asset_type: ["equipment", "safety", "storage", "station", "other"],
-      audit_operation: ["INSERT", "UPDATE", "DELETE"],
       auth_provider: ["supabase", "google", "microsoft"],
-      booking_status: ["confirmed", "pending", "cancelled"],
       communication_channel: ["email", "sms", "push", "in_app"],
       communication_status: [
         "pending",
@@ -5310,6 +4799,7 @@ export const Constants = {
       enforcement_status: ["aspirational", "enforced"],
       industry: ["restaurant", "hotel", "cafe", "bar", "catering", "other"],
       invite_status: ["pending", "accepted", "expired", "cancelled"],
+      invite_type: ["email", "sms", "link"],
       journey_actor: [
         "employee",
         "trainee",
@@ -5363,7 +4853,6 @@ export const Constants = {
         "broken",
       ],
       journey_test_result: ["pass", "fail", "skip", "running"],
-      journey_test_type: ["automated", "manual"],
       location_type: [
         "main",
         "outdoor",
@@ -5372,7 +4861,6 @@ export const Constants = {
         "storage",
         "other",
       ],
-      message_visibility: ["all_day", "until_16", "permanent"],
       notification_channel: ["push", "sms", "email", "voice"],
       notification_mode: ["training", "work", "community"],
       notification_status: [
