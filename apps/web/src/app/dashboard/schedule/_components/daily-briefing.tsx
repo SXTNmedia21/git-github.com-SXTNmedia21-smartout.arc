@@ -1,9 +1,10 @@
 // ============================================
 // daily-briefing.tsx
 // Rich day detail panel (DayInspector) with 4 tabs:
-// Oversikt, Dagsinfo (Meldinger), Selskap/Booking, Oppgaver.
-// All tabs are wired to the schedule context for live state.
-// Connected to: schedule-context.tsx (state + dispatch)
+// Oversikt, Dagsinfo (Meldinger), Reservasjoner, Oppgaver.
+// v2: Bottom sheet with fullscreen expand, compact header,
+// timeline view, employee list, budget edit, broadcast dialog.
+// Connected to: schedule-ui-context.tsx (fullscreen state)
 // Connected to: schedule-data.ts (dummyDays for dateId lookup)
 // Connected to: booking-dialog.tsx (manual booking creation)
 // ============================================
@@ -31,9 +32,24 @@ import {
   Trash2,
   Star,
   Loader2,
+  Maximize2,
+  Minimize2,
+  Pencil,
+  Phone,
+  Send,
+  CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import type {
   Shift,
@@ -67,35 +83,37 @@ import type { TaskStatus } from "./schedule-types";
 
 // ── Helper: format ISO date for display ──────────────────────
 
-const DAY_NAMES = ["Son", "Man", "Tir", "Ons", "Tor", "Fre", "Lor"];
+const DAY_NAMES_FULL = ["Sondag", "Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lordag"];
+const MONTH_NAMES = [
+  "januar",
+  "februar",
+  "mars",
+  "april",
+  "mai",
+  "juni",
+  "juli",
+  "august",
+  "september",
+  "oktober",
+  "november",
+  "desember",
+];
 
-/**
- * Formats an ISO date string (e.g. "2026-03-02") to a display label.
- * Returns "Man 2/3" format for header display.
- */
 function formatDateLabel(dateId: string | null): string {
   if (!dateId) return "";
   const date = new Date(dateId + "T00:00:00");
-  const dayName = DAY_NAMES[date.getDay()] ?? "";
-  return `${dayName} ${date.getDate()}/${date.getMonth() + 1}`;
+  const dayName = DAY_NAMES_FULL[date.getDay()] ?? "";
+  return `${dayName} ${date.getDate()}. ${MONTH_NAMES[date.getMonth()] ?? ""}`.toUpperCase();
 }
 
 // ── Helper: format NOK currency ──────────────────────────────
 
-/**
- * Formats a number as Norwegian kroner string.
- * Example: 14350 → "14 350 kr"
- */
 function formatNok(amount: number): string {
   return `${amount.toLocaleString("nb-NO")} kr`;
 }
 
 // ── Helper: format work hours ────────────────────────────────
 
-/**
- * Formats decimal hours into "Xt Ym" display.
- * Example: 8.5 → "8t 30m"
- */
 function formatHours(hours: number): string {
   const h = Math.floor(hours);
   const m = Math.round((hours - h) * 60);
@@ -105,9 +123,6 @@ function formatHours(hours: number): string {
 
 // ── Helper: cycle task status ────────────────────────────────
 
-/**
- * Returns the next status in the cycle: pending → in_progress → completed.
- */
 function nextTaskStatus(current: TaskStatus): TaskStatus {
   switch (current) {
     case "pending":
@@ -121,8 +136,15 @@ function nextTaskStatus(current: TaskStatus): TaskStatus {
   }
 }
 
+// ── Helper: parse time string to hour number ─────────────────
+
+function timeToHour(time: string): number {
+  const [h, m] = time.split(":").map(Number);
+  return (h ?? 0) + (m ?? 0) / 60;
+}
+
 // ---------------------------------------------------------------------------
-// DailyBriefingPanel — rich day detail panel (no DnD interaction)
+// DailyBriefingPanel — rich day detail panel (bottom sheet content)
 // ---------------------------------------------------------------------------
 export function DailyBriefingPanel({
   date,
@@ -132,72 +154,90 @@ export function DailyBriefingPanel({
   onClose: () => void;
 }) {
   const { isDark } = useContext(DashboardContext);
+  const { dayControlFullscreen, setDayControlFullscreen } = useScheduleUI();
   const [activeTab, setActiveTab] = useState<"oversikt" | "meldinger" | "bookings" | "oppgaver">(
     "oversikt",
   );
 
-  // The date prop is now the ISO dateId directly (e.g. "2026-03-02")
   const dateId = date;
   const dateLabel = useMemo(() => formatDateLabel(date), [date]);
 
   if (!date) return null;
 
+  function handleClose() {
+    setDayControlFullscreen(false);
+    onClose();
+  }
+
   return (
     <div className="relative flex h-full w-full flex-col">
-      {/* Header */}
-      <div
-        className={`shrink-0 border-b ${isDark ? "border-white/10" : "border-zinc-300"} bg-gradient-to-r from-[#0a0a0c]/40 to-orange-500/[0.02]`}
-      >
-        <div className="p-5 pb-3">
-          <div className="mb-4 flex items-start justify-between">
-            <div className="flex flex-col">
-              <span className="mb-0.5 text-[10px] font-bold tracking-widest text-orange-400 uppercase">
-                Kontrollsenter for dag
-              </span>
-              <h2
-                className={`text-xl font-black ${isDark ? "text-white" : "text-zinc-900"} tracking-tight`}
-              >
-                {dateLabel}
-              </h2>
-            </div>
-            <button
-              onClick={onClose}
-              className={`p-2 text-zinc-400 hover:text-white ${isDark ? "hover:bg-white/10" : "hover:bg-zinc-200"} rounded-xl transition-all`}
+      {/* Compact Header */}
+      <div className={`shrink-0 border-b ${isDark ? "border-white/10" : "border-zinc-200"}`}>
+        <div className="flex items-center gap-3 px-5 py-3">
+          {/* Title */}
+          <div className="min-w-0 flex-1">
+            <span className="text-[9px] font-bold tracking-widest text-orange-400 uppercase">
+              Kontrollsenter
+            </span>
+            <h2
+              className={`truncate text-sm font-black ${isDark ? "text-white" : "text-zinc-900"} leading-tight tracking-tight`}
             >
-              <X className="h-5 w-5" />
-            </button>
+              {dateLabel}
+            </h2>
           </div>
 
-          <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1 lg:gap-4">
-            <TabButton
-              active={activeTab === "oversikt"}
-              onClick={() => setActiveTab("oversikt")}
-              icon={<Info className="h-3.5 w-3.5" />}
-              label="Oversikt"
-            />
-            <TabButton
-              active={activeTab === "meldinger"}
-              onClick={() => setActiveTab("meldinger")}
-              icon={<MessageSquare className="h-3.5 w-3.5" />}
-              label="Dagsinfo"
-            />
-            <TabButton
-              active={activeTab === "bookings"}
-              onClick={() => setActiveTab("bookings")}
-              icon={<CalendarCheck className="h-3.5 w-3.5" />}
-              label="Selskap / Booking"
-            />
-            <TabButton
-              active={activeTab === "oppgaver"}
-              onClick={() => setActiveTab("oppgaver")}
-              icon={<ListTodo className="h-3.5 w-3.5" />}
-              label="Oppgaver"
-            />
+          {/* Actions */}
+          <div className="flex shrink-0 items-center gap-1">
+            <button
+              onClick={() => setDayControlFullscreen(!dayControlFullscreen)}
+              className={`rounded-lg p-1.5 text-zinc-400 transition-all ${isDark ? "hover:bg-white/10 hover:text-white" : "hover:bg-zinc-100 hover:text-zinc-700"}`}
+              title={dayControlFullscreen ? "Minimer" : "Fullskjerm"}
+            >
+              {dayControlFullscreen ? (
+                <Minimize2 className="h-4 w-4" />
+              ) : (
+                <Maximize2 className="h-4 w-4" />
+              )}
+            </button>
+            <button
+              onClick={handleClose}
+              className={`rounded-lg p-1.5 text-zinc-400 transition-all ${isDark ? "hover:bg-white/10 hover:text-white" : "hover:bg-zinc-100 hover:text-zinc-700"}`}
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
+        </div>
+
+        {/* Tabs - compact single row */}
+        <div className="no-scrollbar flex gap-0 overflow-x-auto border-t border-white/5 px-5">
+          <TabButton
+            active={activeTab === "oversikt"}
+            onClick={() => setActiveTab("oversikt")}
+            icon={<Info className="h-3 w-3" />}
+            label="Oversikt"
+          />
+          <TabButton
+            active={activeTab === "meldinger"}
+            onClick={() => setActiveTab("meldinger")}
+            icon={<MessageSquare className="h-3 w-3" />}
+            label="Dagsinfo"
+          />
+          <TabButton
+            active={activeTab === "bookings"}
+            onClick={() => setActiveTab("bookings")}
+            icon={<CalendarCheck className="h-3 w-3" />}
+            label="Reservasjoner"
+          />
+          <TabButton
+            active={activeTab === "oppgaver"}
+            onClick={() => setActiveTab("oppgaver")}
+            icon={<ListTodo className="h-3 w-3" />}
+            label="Oppgaver"
+          />
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-5">
         {activeTab === "oversikt" && <OversiktTab isDark={isDark} dateId={dateId} />}
         {activeTab === "meldinger" && <MeldingerTab isDark={isDark} dateId={dateId} />}
         {activeTab === "bookings" && <BookingsTab isDark={isDark} dateId={dateId} />}
@@ -211,16 +251,14 @@ export function DailyBriefingPanel({
 }
 
 // ---------------------------------------------------------------------------
-// Footer Broadcast
+// Footer Broadcast — now opens a dialog instead of instant toast
 // ---------------------------------------------------------------------------
 
-/**
- * Footer with "Push Vakt" and "SMS" broadcast buttons.
- * Staff count comes from the schedule context.
- */
 function FooterBroadcast({ isDark, dateId }: { isDark: boolean; dateId: string | null }) {
   const { weekStart, weekEnd } = useWeekRange();
   const { data: shifts = [] as Shift[] } = useShifts(weekStart, weekEnd);
+  const [broadcastType, setBroadcastType] = useState<"push" | "sms" | null>(null);
+
   const staffCount = dateId
     ? new Set(
         shifts
@@ -231,38 +269,130 @@ function FooterBroadcast({ isDark, dateId }: { isDark: boolean; dateId: string |
     : 0;
 
   return (
-    <div className={`border-t border-white/10 p-5 ${isDark ? "bg-[#0a0a0c]" : "bg-white"}`}>
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="flex items-center gap-1.5 text-[11px] font-bold tracking-widest text-zinc-500 uppercase">
-          <Megaphone className="h-3.5 w-3.5" /> Kringkast til alle på vakt
-        </h3>
-        <span className="text-[10px] font-medium text-zinc-600">{staffCount} ansatte</span>
+    <>
+      <div
+        className={`shrink-0 border-t px-5 py-3 ${isDark ? "border-white/10 bg-[#0a0a0c]" : "border-zinc-200 bg-white"}`}
+      >
+        <div className="flex items-center gap-3">
+          <Megaphone className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+          <span className="text-[10px] font-bold tracking-wider text-zinc-500 uppercase">
+            Kringkast ({staffCount})
+          </span>
+          <div className="flex-1" />
+          <button
+            onClick={() => setBroadcastType("push")}
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[10px] font-bold transition-all ${isDark ? "bg-white/5 text-white hover:bg-white/10" : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"} border ${isDark ? "border-white/10" : "border-zinc-200"}`}
+          >
+            <MessageCircle className="h-3.5 w-3.5 text-blue-400" /> Push
+          </button>
+          <button
+            onClick={() => setBroadcastType("sms")}
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[10px] font-bold transition-all ${isDark ? "bg-white/5 text-white hover:bg-white/10" : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"} border ${isDark ? "border-white/10" : "border-zinc-200"}`}
+          >
+            <Mail className="h-3.5 w-3.5 text-orange-400" /> SMS
+          </button>
+        </div>
       </div>
-      <div className="flex gap-2">
-        <button
-          onClick={() => toast(`Push-varsler sendt til ${staffCount} ansatte`)}
-          className={`flex flex-1 items-center justify-center gap-2 bg-white/5 ${isDark ? "hover:bg-white/10" : "hover:bg-zinc-200"} rounded-xl border border-white/10 py-2.5 text-xs font-bold text-white transition-all hover:border-white/20`}
-        >
-          <MessageCircle className="h-4 w-4 text-blue-400" /> Push Vakt
-        </button>
-        <button
-          onClick={() => toast(`SMS sendt til ${staffCount} ansatte`)}
-          className={`flex flex-1 items-center justify-center gap-2 bg-white/5 ${isDark ? "hover:bg-white/10" : "hover:bg-zinc-200"} rounded-xl border border-white/10 py-2.5 text-xs font-bold text-white transition-all hover:border-white/20`}
-        >
-          <Mail className="h-4 w-4 text-orange-400" /> SMS
-        </button>
-      </div>
-    </div>
+
+      {/* Broadcast Dialog */}
+      {broadcastType && dateId && (
+        <BroadcastMessageDialog
+          type={broadcastType}
+          dateId={dateId}
+          staffCount={staffCount}
+          open={!!broadcastType}
+          onOpenChange={(open) => {
+            if (!open) setBroadcastType(null);
+          }}
+        />
+      )}
+    </>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Oversikt Tab
+// Broadcast Message Dialog — Task 7: message field + daginfo checkbox
 // ---------------------------------------------------------------------------
 
-/**
- * Overview tab showing shift manager and key metrics from context state.
- */
+function BroadcastMessageDialog({
+  type,
+  dateId,
+  staffCount,
+  open,
+  onOpenChange,
+}: {
+  type: "push" | "sms";
+  dateId: string;
+  staffCount: number;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [message, setMessage] = useState("");
+  const [includeDaginfo, setIncludeDaginfo] = useState(false);
+
+  function handleSend() {
+    const method = type === "push" ? "Push-varsler" : "SMS";
+    const extra = includeDaginfo ? " (med daginfo)" : "";
+    toast.success(`${method} sendt til ${staffCount} ansatte${extra}`);
+    setMessage("");
+    setIncludeDaginfo(false);
+    onOpenChange(false);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            {type === "push" ? (
+              <MessageCircle className="h-5 w-5 text-blue-400" />
+            ) : (
+              <Mail className="h-5 w-5 text-orange-400" />
+            )}
+            Send {type === "push" ? "Push-melding" : "SMS"}
+          </DialogTitle>
+          <DialogDescription>
+            Til {staffCount} {staffCount === 1 ? "ansatt" : "ansatte"} på vakt
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          <textarea
+            placeholder="Skriv melding..."
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            className="border-input focus:border-ring h-24 w-full resize-none rounded-lg border bg-transparent p-3 text-sm focus:outline-none"
+          />
+
+          <label className="flex cursor-pointer items-center gap-2">
+            <input
+              type="checkbox"
+              checked={includeDaginfo}
+              onChange={(e) => setIncludeDaginfo(e.target.checked)}
+              className="border-input h-4 w-4 rounded accent-orange-500"
+            />
+            <span className="text-muted-foreground text-sm">Pakk med daginfo</span>
+          </label>
+        </div>
+
+        <DialogFooter className="flex-row gap-2 sm:justify-end">
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+            Avbryt
+          </Button>
+          <Button onClick={handleSend}>
+            <Send className="mr-1.5 h-3.5 w-3.5" />
+            Send {type === "push" ? "Push" : "SMS"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Oversikt Tab — with timeline, employee list, budget edit, extra fields
+// ---------------------------------------------------------------------------
+
 function OversiktTab({ isDark, dateId }: { isDark: boolean; dateId: string | null }) {
   const { weekStart, weekEnd } = useWeekRange();
   const { data: shifts = [] as Shift[] } = useShifts(weekStart, weekEnd);
@@ -284,116 +414,396 @@ function OversiktTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
     dayBookings,
   );
 
-  // Get stats and shifts for this day from computed
   const stats = dateId ? computed.getDayStats(dateId) : null;
   const dayShifts = dateId ? computed.getShiftsForDay(dateId) : [];
 
-  // Find the manager shift (role includes "Manager" or is the first purple indicator)
-  const managerShift = dayShifts.find(
-    (s) => s.role.toLowerCase().includes("manager") || s.indicator === "purple",
-  );
-
-  // Resolve manager name from real employee data
   const employeesQuery = useEmployees();
   const employees: ScheduleEmployee[] = employeesQuery.data ?? [];
-  const managerEmployee = managerShift?.employeeId
-    ? employees.find((e) => e.id === managerShift.employeeId)
-    : null;
 
-  // Calculate total work hours from all shifts for this day
   const totalWorkHours = dayShifts.reduce((sum, s) => sum + s.workHours, 0);
 
+  // Budget edit state
+  const [isEditingBudget, setIsEditingBudget] = useState(false);
+  const [budget, setBudget] = useState(15000);
+  const [openingHours, setOpeningHours] = useState("11:00 - 23:00");
+  const [dutyManagers, setDutyManagers] = useState("");
+  const [lastYearData, setLastYearData] = useState({ staff: 8, cost: 18400, hours: 52 });
+
+  // Find duty managers from shifts (role includes "manager")
+  const managerShifts = dayShifts.filter(
+    (s) => s.role.toLowerCase().includes("manager") || s.indicator === "purple",
+  );
+  const managerNames = managerShifts
+    .map((s) => {
+      const emp = s.employeeId ? employees.find((e) => e.id === s.employeeId) : null;
+      return emp?.name;
+    })
+    .filter(Boolean);
+
+  // Build timeline data
+  const timelineData = useMemo(() => {
+    return dayShifts
+      .filter((s) => s.employeeId)
+      .map((s) => {
+        const emp = employees.find((e) => e.id === s.employeeId);
+        return {
+          shiftId: s.id,
+          name: emp?.name ?? "Ukjent",
+          initials: emp?.initials ?? "??",
+          avatarColor: emp?.avatarColor ?? "bg-zinc-500/20 text-zinc-400 border-zinc-500/30",
+          role: s.role,
+          startHour: timeToHour(s.startTime),
+          endHour: timeToHour(s.endTime),
+          time: s.time,
+          status: s.status,
+        };
+      });
+  }, [dayShifts, employees]);
+
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-2 space-y-8">
-      {/* Vaktansvarlig section */}
+    <div className="animate-in fade-in slide-in-from-bottom-2 space-y-6">
+      {/* KPI Cards with budget edit */}
       <section>
-        <div className="mb-3 flex items-center gap-2">
-          <div className="flex h-6 w-6 items-center justify-center rounded-md border border-purple-500/30 bg-purple-500/20 text-purple-400">
-            <Briefcase className="h-3.5 w-3.5" />
-          </div>
-          <h3 className={`text-sm font-bold ${isDark ? "text-white" : "text-zinc-900"}`}>
-            Vaktansvarlig
+        <div className="mb-3 flex items-center justify-between">
+          <h3
+            className={`text-[10px] font-bold tracking-widest uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+          >
+            Nokkeltall
           </h3>
+          <button
+            onClick={() => setIsEditingBudget(!isEditingBudget)}
+            className="flex items-center gap-1 text-[10px] font-bold text-orange-400 hover:text-orange-300"
+          >
+            <Pencil className="h-3 w-3" />
+            {isEditingBudget ? "Lagre" : "Rediger"}
+          </button>
         </div>
-        {managerEmployee && managerShift ? (
-          <div
-            onClick={() => setSelectedShift(managerShift.id)}
-            className={`p-4 ${isDark ? "bg-white/5" : "bg-zinc-100"} group flex cursor-pointer items-center justify-between rounded-2xl border border-white/10 transition-colors hover:border-white/20`}
-          >
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full border border-purple-500/30 bg-purple-500/20 text-xs font-black text-purple-400">
-                {managerEmployee.initials}
-              </div>
-              <div className="flex flex-col">
-                <span
-                  className={`text-sm font-bold ${isDark ? "text-white" : "text-zinc-900"} transition-colors group-hover:text-purple-400`}
-                >
-                  {managerEmployee.name}
-                </span>
-                <span className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase">
-                  {managerShift.role} &bull; {managerShift.time}
-                </span>
-              </div>
-            </div>
-            <ChevronDown className="h-4 w-4 text-zinc-600" />
-          </div>
-        ) : (
-          <div
-            className={`p-4 ${isDark ? "bg-white/5" : "bg-zinc-100"} rounded-2xl border border-white/10`}
-          >
-            <span className="text-xs text-zinc-500">Ingen vaktansvarlig tildelt</span>
-          </div>
-        )}
+
+        <div className="grid grid-cols-4 gap-2">
+          <KpiCard
+            isDark={isDark}
+            label="Est. Kostnad"
+            value={stats ? formatNok(stats.estimatedCost) : "—"}
+          />
+          <KpiCard
+            isDark={isDark}
+            label="Budsjett"
+            value={formatNok(budget)}
+            editing={isEditingBudget}
+            editValue={budget}
+            onEditChange={(v) => setBudget(Number(v))}
+          />
+          <KpiCard isDark={isDark} label="Timer" value={formatHours(totalWorkHours)} />
+          <KpiCard isDark={isDark} label="Ansatte" value={String(stats?.staffCount ?? 0)} />
+        </div>
       </section>
 
-      {/* Key metrics section */}
-      <section>
-        <h3 className={`text-sm font-bold ${isDark ? "text-white" : "text-zinc-900"} mb-3`}>
-          Dagens nøkkeltall
-        </h3>
-        <div className="grid grid-cols-2 gap-3">
-          <div
-            className={`rounded-xl border p-4 ${isDark ? "border-white/10 bg-white/5" : "border-zinc-200 bg-zinc-50"}`}
-          >
-            <span className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase">
-              Est. Kostnad
-            </span>
-            <div className={`text-lg font-black ${isDark ? "text-white" : "text-zinc-900"} mt-1`}>
-              {stats ? formatNok(stats.estimatedCost) : "—"}
-            </div>
+      {/* Extra info row: opening hours, duty manager, last year */}
+      <section
+        className={`rounded-xl border p-3 ${isDark ? "border-white/10 bg-white/[0.03]" : "border-zinc-200 bg-zinc-50"}`}
+      >
+        <div className="grid grid-cols-1 gap-2 text-[11px] md:grid-cols-3">
+          <div>
+            <span className="font-bold text-zinc-500">Apningstider:</span>{" "}
+            {isEditingBudget ? (
+              <input
+                type="text"
+                value={openingHours}
+                onChange={(e) => setOpeningHours(e.target.value)}
+                className="border-input ml-1 w-28 rounded border bg-transparent px-1.5 py-0.5 text-[11px]"
+              />
+            ) : (
+              <span className={isDark ? "text-white" : "text-zinc-900"}>{openingHours}</span>
+            )}
           </div>
-          <div
-            className={`rounded-xl border p-4 ${isDark ? "border-white/10 bg-white/5" : "border-zinc-200 bg-zinc-50"}`}
-          >
-            <span className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase">
-              Totale Timer
-            </span>
-            <div className={`text-lg font-black ${isDark ? "text-white" : "text-zinc-900"} mt-1`}>
-              {formatHours(totalWorkHours)}
-            </div>
+          <div>
+            <span className="font-bold text-zinc-500">Duty Manager:</span>{" "}
+            {isEditingBudget ? (
+              <input
+                type="text"
+                value={dutyManagers || managerNames.join(", ")}
+                onChange={(e) => setDutyManagers(e.target.value)}
+                className="border-input ml-1 w-40 rounded border bg-transparent px-1.5 py-0.5 text-[11px]"
+              />
+            ) : (
+              <span className={isDark ? "text-white" : "text-zinc-900"}>
+                {dutyManagers || managerNames.join(", ") || "Ingen"}
+              </span>
+            )}
           </div>
-          <div
-            className={`rounded-xl border p-4 ${isDark ? "border-white/10 bg-white/5" : "border-zinc-200 bg-zinc-50"}`}
-          >
-            <span className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase">
-              Ansatte
+          <div>
+            <span className="font-bold text-zinc-500">Forrige ar:</span>{" "}
+            <span className={isDark ? "text-zinc-400" : "text-zinc-600"}>
+              {lastYearData.staff} ans, {formatNok(lastYearData.cost)}, {lastYearData.hours}t
             </span>
-            <div className={`text-lg font-black ${isDark ? "text-white" : "text-zinc-900"} mt-1`}>
-              {stats?.staffCount ?? 0}
-            </div>
-          </div>
-          <div
-            className={`rounded-xl border p-4 ${isDark ? "border-white/10 bg-white/5" : "border-zinc-200 bg-zinc-50"}`}
-          >
-            <span className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase">
-              Vakter
-            </span>
-            <div className={`text-lg font-black ${isDark ? "text-white" : "text-zinc-900"} mt-1`}>
-              {stats?.shiftCount ?? 0}
-            </div>
           </div>
         </div>
       </section>
+
+      {/* Timeline — Gantt-style 06:00-23:00 */}
+      <section>
+        <h3
+          className={`mb-3 text-[10px] font-bold tracking-widest uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+        >
+          Tidslinje
+        </h3>
+        <TimelineView isDark={isDark} entries={timelineData} onShiftClick={setSelectedShift} />
+      </section>
+
+      {/* Employee list */}
+      <section>
+        <h3
+          className={`mb-3 text-[10px] font-bold tracking-widest uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+        >
+          Ansatte pa vakt ({timelineData.length})
+        </h3>
+        <div className="space-y-2">
+          {timelineData.length === 0 ? (
+            <p className="py-4 text-center text-xs text-zinc-500">
+              Ingen ansatte pa vakt denne dagen
+            </p>
+          ) : (
+            timelineData.map((entry) => (
+              <EmployeeRow
+                key={entry.shiftId}
+                isDark={isDark}
+                name={entry.name}
+                initials={entry.initials}
+                avatarColor={entry.avatarColor}
+                role={entry.role}
+                time={entry.time}
+                status={entry.status}
+                onShiftClick={() => setSelectedShift(entry.shiftId)}
+              />
+            ))
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// KPI Card
+// ---------------------------------------------------------------------------
+
+function KpiCard({
+  isDark,
+  label,
+  value,
+  editing,
+  editValue,
+  onEditChange,
+}: {
+  isDark: boolean;
+  label: string;
+  value: string;
+  editing?: boolean;
+  editValue?: number;
+  onEditChange?: (v: string) => void;
+}) {
+  return (
+    <div
+      className={`rounded-xl border p-3 ${isDark ? "border-white/10 bg-white/5" : "border-zinc-200 bg-white"}`}
+    >
+      <span className="block text-[9px] font-bold tracking-widest text-zinc-500 uppercase">
+        {label}
+      </span>
+      {editing && onEditChange ? (
+        <input
+          type="number"
+          value={editValue}
+          onChange={(e) => onEditChange(e.target.value)}
+          className="border-input mt-1 w-full rounded border bg-transparent px-1 py-0.5 text-sm font-black"
+        />
+      ) : (
+        <div
+          className={`mt-1 text-base leading-tight font-black ${isDark ? "text-white" : "text-zinc-900"}`}
+        >
+          {value}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Timeline View — Gantt-style bar chart
+// ---------------------------------------------------------------------------
+
+const TIMELINE_START = 6; // 06:00
+const TIMELINE_END = 23; // 23:00
+const TIMELINE_HOURS = TIMELINE_END - TIMELINE_START;
+
+type TimelineEntry = {
+  shiftId: string;
+  name: string;
+  initials: string;
+  avatarColor: string;
+  role: string;
+  startHour: number;
+  endHour: number;
+  time: string;
+  status: string;
+};
+
+function TimelineView({
+  isDark,
+  entries,
+  onShiftClick,
+}: {
+  isDark: boolean;
+  entries: TimelineEntry[];
+  onShiftClick: (id: string) => void;
+}) {
+  // Generate hour labels
+  const hours = Array.from({ length: TIMELINE_HOURS + 1 }, (_, i) => TIMELINE_START + i);
+
+  return (
+    <div
+      className={`overflow-x-auto rounded-xl border ${isDark ? "border-white/10 bg-white/[0.03]" : "border-zinc-200 bg-zinc-50"} p-3`}
+    >
+      {/* Hour labels */}
+      <div className="mb-2 flex">
+        <div className="w-20 shrink-0" />
+        <div className="relative flex-1">
+          <div className="flex justify-between">
+            {hours.map((h) => (
+              <span key={h} className="w-0 text-center text-[9px] font-bold text-zinc-500">
+                {String(h).padStart(2, "0")}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Grid lines + bars */}
+      {entries.length === 0 ? (
+        <p className="py-6 text-center text-xs text-zinc-500">Ingen vakter</p>
+      ) : (
+        entries.map((entry) => {
+          const startPct = Math.max(0, ((entry.startHour - TIMELINE_START) / TIMELINE_HOURS) * 100);
+          const endHour = entry.endHour <= entry.startHour ? entry.endHour + 24 : entry.endHour;
+          const endPct = Math.min(100, ((endHour - TIMELINE_START) / TIMELINE_HOURS) * 100);
+          const widthPct = endPct - startPct;
+
+          return (
+            <div key={entry.shiftId} className="mb-1.5 flex items-center">
+              {/* Name label */}
+              <div className="w-20 shrink-0 truncate pr-2 text-[10px] font-bold">
+                <span className={isDark ? "text-zinc-300" : "text-zinc-700"}>
+                  {entry.name.split(" ")[0]}
+                </span>
+              </div>
+
+              {/* Bar container */}
+              <div
+                className={`relative h-6 flex-1 rounded ${isDark ? "bg-white/5" : "bg-zinc-200/50"}`}
+              >
+                {/* Grid lines */}
+                {hours.map((h) => (
+                  <div
+                    key={h}
+                    className={`absolute top-0 h-full w-px ${isDark ? "bg-white/5" : "bg-zinc-300/50"}`}
+                    style={{
+                      left: `${((h - TIMELINE_START) / TIMELINE_HOURS) * 100}%`,
+                    }}
+                  />
+                ))}
+
+                {/* Shift bar */}
+                <button
+                  onClick={() => onShiftClick(entry.shiftId)}
+                  className="absolute top-0.5 h-5 cursor-pointer rounded bg-orange-500/80 transition-all hover:bg-orange-500"
+                  style={{
+                    left: `${startPct}%`,
+                    width: `${Math.max(widthPct, 2)}%`,
+                  }}
+                  title={`${entry.name} — ${entry.time}`}
+                >
+                  <span className="truncate px-1 text-[8px] font-bold text-white">
+                    {entry.time}
+                  </span>
+                </button>
+              </div>
+            </div>
+          );
+        })
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Employee Row
+// ---------------------------------------------------------------------------
+
+function EmployeeRow({
+  isDark,
+  name,
+  initials,
+  avatarColor,
+  role,
+  time,
+  status,
+  onShiftClick,
+}: {
+  isDark: boolean;
+  name: string;
+  initials: string;
+  avatarColor: string;
+  role: string;
+  time: string;
+  status: string;
+  onShiftClick: () => void;
+}) {
+  const isActive = status === "published" || status === "active";
+
+  return (
+    <div
+      className={`flex items-center gap-3 rounded-xl border p-3 transition-colors ${isDark ? "border-white/5 bg-white/[0.03] hover:border-white/10" : "border-zinc-200 bg-white hover:border-zinc-300"}`}
+    >
+      {/* Status indicator */}
+      <div className="shrink-0">
+        {isActive ? (
+          <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+        ) : (
+          <Clock className="h-4 w-4 text-zinc-500" />
+        )}
+      </div>
+
+      {/* Avatar */}
+      <div
+        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-[10px] font-black ${avatarColor}`}
+      >
+        {initials}
+      </div>
+
+      {/* Info */}
+      <button onClick={onShiftClick} className="min-w-0 flex-1 text-left">
+        <div className={`truncate text-xs font-bold ${isDark ? "text-white" : "text-zinc-900"}`}>
+          {name}
+        </div>
+        <div className="text-[10px] text-zinc-500">
+          {time} &middot; {role}
+        </div>
+      </button>
+
+      {/* Contact */}
+      <div className="flex shrink-0 items-center gap-1.5">
+        <button
+          onClick={() => toast.info(`Ringer ${name}...`)}
+          className={`rounded-lg p-1.5 ${isDark ? "hover:bg-white/10" : "hover:bg-zinc-100"} text-zinc-500 transition-colors hover:text-blue-400`}
+        >
+          <Phone className="h-3.5 w-3.5" />
+        </button>
+        <button
+          onClick={() => toast.info(`SMS til ${name}...`)}
+          className={`rounded-lg p-1.5 ${isDark ? "hover:bg-white/10" : "hover:bg-zinc-100"} text-zinc-500 transition-colors hover:text-orange-400`}
+        >
+          <Mail className="h-3.5 w-3.5" />
+        </button>
+      </div>
     </div>
   );
 }
@@ -402,32 +812,22 @@ function OversiktTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
 // Meldinger Tab (Dagsinfo)
 // ---------------------------------------------------------------------------
 
-/**
- * Day messages tab with form for creating new messages
- * and a list of active messages from context.
- */
 function MeldingerTab({ isDark, dateId }: { isDark: boolean; dateId: string | null }) {
   const { weekStart, weekEnd } = useWeekRange();
   const { data: dayMessagesData = [] as DayMessage[] } = useDayMessages(weekStart, weekEnd);
   const createDayMessage = useCreateDayMessage(weekStart);
   const deleteDayMessage = useDeleteDayMessage(weekStart);
 
-  // Form state
   const [content, setContent] = useState("");
   const [audience, setAudience] = useState<"all" | "leaders" | string>("all");
   const [visibility, setVisibility] = useState<"all_day" | "until_16" | "permanent">("all_day");
 
-  // Get messages for this day from query data
   const messages = dateId ? dayMessagesData.filter((m: DayMessage) => m.dateId === dateId) : [];
 
-  /**
-   * Publishes a new day message via dispatch.
-   * Validates that content is not empty and dateId is set.
-   */
   function handlePublish() {
     if (!dateId) return;
     if (!content.trim()) {
-      toast.error("Skriv en beskjed først");
+      toast.error("Skriv en beskjed forst");
       return;
     }
 
@@ -446,9 +846,6 @@ function MeldingerTab({ isDark, dateId }: { isDark: boolean; dateId: string | nu
     setContent("");
   }
 
-  /**
-   * Maps audience values to display labels.
-   */
   function audienceLabel(value: string): string {
     switch (value) {
       case "all":
@@ -460,9 +857,6 @@ function MeldingerTab({ isDark, dateId }: { isDark: boolean; dateId: string | nu
     }
   }
 
-  /**
-   * Maps visibility values to display labels.
-   */
   function visibilityLabel(value: string): string {
     switch (value) {
       case "all_day":
@@ -500,7 +894,7 @@ function MeldingerTab({ isDark, dateId }: { isDark: boolean; dateId: string | nu
                 onChange={(e) => setAudience(e.target.value)}
                 className="cursor-pointer bg-transparent text-[11px] font-bold text-zinc-300 outline-none"
               >
-                <option value="all">Alle På Vakt</option>
+                <option value="all">Alle Pa Vakt</option>
                 <option value="leaders">Kun Ledere</option>
                 <option value="Servering">Servering (Team)</option>
               </select>
@@ -560,25 +954,17 @@ function MeldingerTab({ isDark, dateId }: { isDark: boolean; dateId: string | nu
 }
 
 // ---------------------------------------------------------------------------
-// Bookings Tab
+// Bookings Tab (Reservasjoner)
 // ---------------------------------------------------------------------------
 
-/**
- * Bookings tab showing reservations from context.
- * Includes inline detail expansion and a dialog for adding new bookings.
- */
 function BookingsTab({ isDark, dateId }: { isDark: boolean; dateId: string | null }) {
   const { weekStart, weekEnd } = useWeekRange();
   const { data: dayBookingsData = [] as DayBooking[] } = useDayBookings(weekStart, weekEnd);
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
   const [expandedBookingId, setExpandedBookingId] = useState<string | null>(null);
 
-  // Get bookings for this day from query data
   const bookings = dateId ? dayBookingsData.filter((b: DayBooking) => b.dateId === dateId) : [];
 
-  /**
-   * Maps booking status to display badge styling.
-   */
   function statusBadge(status: string, isVip: boolean) {
     switch (status) {
       case "confirmed":
@@ -610,7 +996,7 @@ function BookingsTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
         <h4
           className={`text-xs font-bold ${isDark ? "text-zinc-400" : "text-zinc-500"} tracking-widest uppercase`}
         >
-          Reservasjoner og Selskap ({bookings.length})
+          Reservasjoner ({bookings.length})
         </h4>
         <button
           onClick={() => setBookingDialogOpen(true)}
@@ -659,7 +1045,6 @@ function BookingsTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
                   </button>
                 </div>
 
-                {/* Expanded detail section */}
                 {isExpanded && (
                   <div className="mt-3 space-y-2 border-t border-white/5 pt-3">
                     {booking.contactPerson && (
@@ -684,7 +1069,6 @@ function BookingsTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
         </div>
       )}
 
-      {/* Booking creation dialog */}
       {dateId && (
         <BookingDialog
           dateId={dateId}
@@ -700,10 +1084,6 @@ function BookingsTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
 // Oppgaver Tab
 // ---------------------------------------------------------------------------
 
-/**
- * Tasks tab with inline creation, category filters, status toggling,
- * and task deletion. All data from schedule context.
- */
 function OppgaverTab({ isDark, dateId }: { isDark: boolean; dateId: string | null }) {
   const { weekStart, weekEnd } = useWeekRange();
   const { data: dayTasksData = [] as DayTask[] } = useDayTasks(weekStart, weekEnd);
@@ -711,26 +1091,19 @@ function OppgaverTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
   const updateDayTaskStatus = useUpdateDayTaskStatus(weekStart);
   const deleteDayTask = useDeleteDayTask(weekStart);
 
-  // Local state for task creation and filtering
   const [newTaskLabel, setNewTaskLabel] = useState("");
   const [filter, setFilter] = useState<"all" | "routine" | "delegated">("all");
 
-  // Get tasks for this day from query data, filtered by category
   const allTasks = dateId ? dayTasksData.filter((t: DayTask) => t.dateId === dateId) : [];
   const filteredTasks =
     filter === "all" ? allTasks : allTasks.filter((t: DayTask) => t.category === filter);
 
-  // Compute completion stats
   const completedCount = allTasks.filter((t: DayTask) => t.status === "completed").length;
   const totalCount = allTasks.length;
 
-  // Category counts for filter chips
   const routineCount = allTasks.filter((t: DayTask) => t.category === "routine").length;
   const delegatedCount = allTasks.filter((t: DayTask) => t.category === "delegated").length;
 
-  /**
-   * Adds a new task via dispatch. Defaults to "all" category and "pending" status.
-   */
   function handleAddTask() {
     if (!dateId) return;
     if (!newTaskLabel.trim()) {
@@ -751,9 +1124,6 @@ function OppgaverTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
     setNewTaskLabel("");
   }
 
-  /**
-   * Returns the CSS class and icon for a given task status.
-   */
   function statusIcon(status: TaskStatus) {
     switch (status) {
       case "completed":
@@ -780,10 +1150,10 @@ function OppgaverTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
         <h3
           className={`text-xs font-bold ${isDark ? "text-zinc-500" : "text-zinc-400"} tracking-widest uppercase`}
         >
-          Gjøremål &amp; Rutiner
+          Gjoremal &amp; Rutiner
         </h3>
         <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
-          {completedCount} / {totalCount} Utført
+          {completedCount} / {totalCount} Utfort
         </span>
       </div>
       <div className="space-y-2">
@@ -791,7 +1161,7 @@ function OppgaverTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
         <div className="mb-4 flex gap-2">
           <input
             type="text"
-            placeholder="Planlegg nytt gjøremål for dagen..."
+            placeholder="Planlegg nytt gjoremal for dagen..."
             value={newTaskLabel}
             onChange={(e) => setNewTaskLabel(e.target.value)}
             onKeyDown={(e) => {
@@ -873,7 +1243,6 @@ function OppgaverTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
                 key={task.id}
                 className={`flex items-center gap-3 rounded-xl border p-3 transition-colors ${base}`}
               >
-                {/* Status toggle button */}
                 <button
                   onClick={() =>
                     updateDayTaskStatus.mutate({
@@ -886,19 +1255,16 @@ function OppgaverTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
                   {icon}
                 </button>
 
-                {/* Task label */}
                 <span
                   className={`truncate text-xs font-medium ${isDone ? "text-zinc-500 line-through" : "text-zinc-200"}`}
                 >
                   {task.label}
                 </span>
 
-                {/* Highlight dot */}
                 {task.highlight && (
                   <span className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.8)]" />
                 )}
 
-                {/* Delete button */}
                 <button
                   onClick={() => {
                     deleteDayTask.mutate(task.id);
@@ -921,10 +1287,6 @@ function OppgaverTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
 // Small reusable pieces
 // ---------------------------------------------------------------------------
 
-/**
- * Tab button for the header tab bar.
- * Highlights with orange when active.
- */
 function TabButton({
   active,
   label,
@@ -940,17 +1302,13 @@ function TabButton({
   return (
     <button
       onClick={onClick}
-      className={`flex shrink-0 items-center gap-1.5 border-b-2 pb-2 text-[11px] font-bold whitespace-nowrap transition-all ${active ? (isDark ? "border-orange-500 text-orange-400" : "border-orange-500 text-orange-500") : "border-transparent text-zinc-500 hover:text-zinc-400"} px-2`}
+      className={`flex shrink-0 items-center gap-1 border-b-2 px-3 py-2 text-[10px] font-bold whitespace-nowrap transition-all ${active ? (isDark ? "border-orange-500 text-orange-400" : "border-orange-500 text-orange-500") : "border-transparent text-zinc-500 hover:text-zinc-400"}`}
     >
       {icon} {label}
     </button>
   );
 }
 
-/**
- * Individual message card with delete action.
- * Used in the Meldinger tab.
- */
 function MessageCard({
   title,
   audience,

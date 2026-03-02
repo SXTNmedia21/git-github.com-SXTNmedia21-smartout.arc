@@ -12,8 +12,8 @@ type GridSurfaceProps = {
 
 /**
  * Grid surface container for the schedule grid content and day inspector.
- * The sidebar is rendered separately at a higher level so it can span
- * the full height of the schedule container (alongside command bar and status strip).
+ * The day inspector is now a fixed-position bottom sheet, rendered as a portal-like
+ * overlay rather than an inline sibling.
  */
 export function GridSurface({
   isDark,

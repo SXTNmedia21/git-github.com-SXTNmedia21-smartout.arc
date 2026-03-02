@@ -26,6 +26,7 @@ type ScheduleUIState = {
   selectedDays: Set<string>;
   createShiftContext: { dateId?: string; employeeId?: string } | null;
   absencePopover: { employeeId: string; dateId: string } | null;
+  dayControlFullscreen: boolean;
 };
 
 // ── Actions ──────────────────────────────────────────────────
@@ -39,6 +40,7 @@ type ScheduleUIActions = {
   setCreateShiftContext: (ctx: { dateId?: string; employeeId?: string } | null) => void;
   setAbsencePopover: (ctx: { employeeId: string; dateId: string } | null) => void;
   copyDay: (dateId: string, dateLabel: string, shifts: Shift[]) => void;
+  setDayControlFullscreen: (fullscreen: boolean) => void;
 };
 
 // ── Context value ────────────────────────────────────────────
@@ -62,6 +64,7 @@ export function ScheduleUIProvider({ children }: { children: ReactNode }) {
     employeeId: string;
     dateId: string;
   } | null>(null);
+  const [dayControlFullscreen, setDayControlFullscreenState] = useState(false);
 
   const setSelectedShift = useCallback((id: string | null) => {
     setSelectedShiftId(id);
@@ -102,6 +105,10 @@ export function ScheduleUIProvider({ children }: { children: ReactNode }) {
     setAbsencePopoverState(ctx);
   }, []);
 
+  const setDayControlFullscreen = useCallback((fullscreen: boolean) => {
+    setDayControlFullscreenState(fullscreen);
+  }, []);
+
   const copyDay = useCallback((dateId: string, dateLabel: string, shifts: Shift[]) => {
     const strippedShifts = shifts.map(
       ({ id: _id, dateId: _dateId, createdAt: _createdAt, updatedAt: _updatedAt, ...rest }) => rest,
@@ -123,6 +130,7 @@ export function ScheduleUIProvider({ children }: { children: ReactNode }) {
       selectedDays,
       createShiftContext,
       absencePopover,
+      dayControlFullscreen,
       setSelectedShift,
       setSelectedDay,
       setClipboard,
@@ -131,6 +139,7 @@ export function ScheduleUIProvider({ children }: { children: ReactNode }) {
       setCreateShiftContext,
       setAbsencePopover,
       copyDay,
+      setDayControlFullscreen,
     }),
     [
       selectedShiftId,
@@ -139,6 +148,7 @@ export function ScheduleUIProvider({ children }: { children: ReactNode }) {
       selectedDays,
       createShiftContext,
       absencePopover,
+      dayControlFullscreen,
       setSelectedShift,
       setSelectedDay,
       setClipboard,
@@ -147,6 +157,7 @@ export function ScheduleUIProvider({ children }: { children: ReactNode }) {
       setCreateShiftContext,
       setAbsencePopover,
       copyDay,
+      setDayControlFullscreen,
     ],
   );
 
