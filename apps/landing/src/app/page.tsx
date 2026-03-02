@@ -12,7 +12,6 @@
 // ============================================
 
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { getVariantWithBlocks, parseTheme } from "../lib/get-variant";
 import Navigation from "../components/navigation";
 import Footer from "../components/footer";
@@ -70,7 +69,20 @@ export default async function VariantPage({ searchParams }: PageProps) {
   const result = await getVariantWithBlocks(slug, previewId);
 
   if (!result) {
-    redirect("/legacy");
+    return (
+      <>
+        <Navigation />
+        <main className="flex min-h-screen items-center justify-center bg-[#0a0a0c] pt-16">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-white">Smartout</h1>
+            <p className="mt-4 text-zinc-400">
+              Personalklarhet fra dag 1. Siden er midlertidig utilgjengelig.
+            </p>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
   }
 
   const { variant, blocks } = result;

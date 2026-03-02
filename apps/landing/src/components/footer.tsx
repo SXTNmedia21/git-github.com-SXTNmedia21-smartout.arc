@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Building2 } from "lucide-react";
-import VariantSwitcher from "./variant-switcher";
 
 const footerLinks = {
   Produkt: [
@@ -64,7 +63,6 @@ export default function Footer() {
             <Link href="/vilkar" className="transition-colors hover:text-zinc-400">
               Vilkår
             </Link>
-            <VariantSwitcher />
           </div>
         </div>
       </div>

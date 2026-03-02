@@ -8,7 +8,8 @@
 //               voice-assistant.tsx (receives variantContext)
 // ============================================
 
-import type { LandingVariant } from "./landing-variant";
+/** Legacy variant identifiers used by voice config and VoiceDemoWidget. */
+export type LandingVariant = "B" | "E" | "T" | "K" | "A" | "F" | "S";
 
 /** Keys for the static accent color class map. */
 export type AccentColorKey =
