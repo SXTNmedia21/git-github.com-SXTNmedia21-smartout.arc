@@ -14,7 +14,7 @@ export const getProfile = defineTool({
     const { data, error } = await supabase
       .from("profile")
       .select(
-        "profile_id, first_name, last_name, role, status, department:department_id(name), team:team_id(name)",
+        "profile_id, display_name, role, status, department:department_id(name), team:team_id(name)",
       )
       .eq("profile_id", ctx.profileId)
       .single();
@@ -49,7 +49,7 @@ export const getTeam = defineTool({
 
     const { data: members } = await supabase
       .from("profile")
-      .select("profile_id, first_name, last_name, role")
+      .select("profile_id, display_name, role")
       .eq("team_id", profile.team_id)
       .eq("is_active", true);
 

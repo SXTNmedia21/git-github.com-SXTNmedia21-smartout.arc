@@ -154,13 +154,13 @@ async function loadProfileContext(workspaceId: string, profileId: string): Promi
   // Load profile with department and team
   const { data: profile } = await supabaseAdmin
     .from("profile")
-    .select("first_name, last_name, role, status, department_id, team_id")
+    .select("display_name, role, status, department_id, team_id")
     .eq("profile_id", profileId)
     .single();
 
   if (!profile) return defaults;
 
-  defaults.employeeName = `${profile.first_name} ${profile.last_name}`.trim() || "Ansatt";
+  defaults.employeeName = profile.display_name || "Ansatt";
   defaults.role = profile.role ?? "ansatt";
   defaults.status = profile.status ?? "active";
 
@@ -191,12 +191,12 @@ async function loadProfileContext(workspaceId: string, profileId: string): Promi
       if (team.leader_profile_id) {
         const { data: leader } = await supabaseAdmin
           .from("profile")
-          .select("first_name, last_name")
+          .select("display_name")
           .eq("profile_id", team.leader_profile_id)
           .single();
 
         if (leader) {
-          defaults.teamLeader = `${leader.first_name} ${leader.last_name}`.trim();
+          defaults.teamLeader = leader.display_name || "Ukjent";
         }
       }
     }

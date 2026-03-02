@@ -7,7 +7,7 @@ CREATE TABLE engine_authority_config (
   capability    TEXT NOT NULL,
   level         TEXT NOT NULL DEFAULT 'read_only'
                   CHECK (level IN ('autonomous', 'confirm', 'suggest', 'read_only', 'disabled')),
-  updated_by    UUID NOT NULL REFERENCES user_identity(user_identity_id),
+  updated_by    UUID NOT NULL REFERENCES user_identity(user_id),
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
   CONSTRAINT uq_workspace_capability UNIQUE (workspace_id, capability)
