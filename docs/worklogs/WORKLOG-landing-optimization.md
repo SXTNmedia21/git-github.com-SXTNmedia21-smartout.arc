@@ -1,6 +1,6 @@
 ---
 title: "Worklog — landing-optimization"
-status: review
+status: done
 updated: 2026-03-02
 created: 2026-03-01
 module: landing
@@ -58,3 +58,4 @@ tags: []
 | 2026-03-02 | --    | Task 25: Switched root route to DB-driven page. Old page moved to /legacy, then deleted with variant cleanup.                                                                                 |
 | 2026-03-02 | --    | Task 26: Deleted 6 Variant\*Landing components, landing-variant.ts, variant-switcher.tsx, legacy page. Inlined LandingVariant type. Removed VariantSwitcher from footer. ~5700 lines removed. |
 | 2026-03-02 | --    | Task 27: Typecheck + lint — all errors pre-existing (missing @smartout/ai, @smartout/types). No new errors from our changes.                                                                  |
+| 2026-03-02 | 01:38 | Feature closed and merged to development                                                                                                                                                      |
