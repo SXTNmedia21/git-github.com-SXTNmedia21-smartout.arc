@@ -33,4 +33,6 @@ export const dashboardKeys = {
   myReadiness: (profileId: string) => ["dashboard", "my-readiness", profileId] as const,
 
   openShifts: (workspaceId: string) => ["dashboard", "open-shifts", workspaceId] as const,
+
+  kpiTargets: (workspaceId: string) => ["dashboard", "kpi-targets", workspaceId] as const,
 };

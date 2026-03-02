@@ -2,6 +2,7 @@ export { Button, buttonVariants, type ButtonProps } from "./components/button";
 export * from "./components/dialog";
 export * from "./components/input";
 export * from "./components/label";
+export * from "./components/popover";
 export * from "./components/badge";
 export * from "./components/card";
 export * from "./components/skeleton";

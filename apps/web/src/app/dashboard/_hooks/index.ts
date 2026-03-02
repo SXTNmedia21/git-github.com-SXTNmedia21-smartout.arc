@@ -14,6 +14,8 @@ export type {
 } from "./dashboard-types";
 export type { MyShift } from "./use-my-dashboard";
 export { useActionItems } from "./use-action-items";
+export { useKpiTargets } from "./use-kpi-targets";
+export type { KpiMetric, KpiTargets } from "./use-kpi-targets";
 export { useDepartmentShifts } from "./use-department-shifts";
 export { useMyReadiness, useMyShifts } from "./use-my-dashboard";
 export { getCurrentWeekStart, useStaffingCoverage } from "./use-staffing-coverage";
