@@ -44,6 +44,7 @@ import { EditTemplateDialog } from "./_components/edit-template-dialog";
 import { ShiftModal } from "./_components/shift-modal";
 import { BatchActionBar } from "./_components/batch-action-bar";
 import { AbsencePopover } from "./_components/absence-popover";
+import { EmployeeDrawer } from "./_components/employee-drawer";
 
 import type { DayColumn } from "./_components/schedule-data";
 
@@ -499,6 +500,15 @@ function SchedulePageContent() {
       <ShiftModal />
       <BatchActionBar />
       <AbsencePopover />
+      <EmployeeDrawer
+        open={!!scheduleUI.selectedEmployeeId}
+        onOpenChange={(open) => {
+          if (!open) scheduleUI.setSelectedEmployee(null);
+        }}
+        employee={
+          employees.find((e: ScheduleEmployee) => e.id === scheduleUI.selectedEmployeeId) ?? null
+        }
+      />
     </div>
   );
 }
@@ -740,6 +750,7 @@ function WeeklyGridContent({
                     shifts={String(stats.shiftCount)}
                     avatarColor={emp.avatarColor}
                     initials={emp.initials}
+                    onClick={() => scheduleUI.setSelectedEmployee(emp.id)}
                   />
                 );
               })}
@@ -866,6 +877,7 @@ function EntityRow({
   avatarColor,
   initials,
   contractedHours = 37.5,
+  onClick,
 }: {
   name: string;
   subtitle?: string;
@@ -874,6 +886,7 @@ function EntityRow({
   avatarColor: string;
   initials: string;
   contractedHours?: number;
+  onClick?: () => void;
 }) {
   const { isDark } = useContext(DashboardContext);
   const scheduledHours = parseFloat(hours) || 0;
@@ -887,6 +900,7 @@ function EntityRow({
 
   return (
     <div
+      onClick={onClick}
       className={`group flex h-24 cursor-pointer items-center gap-2 border-b border-white/5 p-2 transition-colors hover:bg-white/[0.02] ${isDark ? "bg-[#0a0a0c]" : "bg-white"}`}
     >
       <div

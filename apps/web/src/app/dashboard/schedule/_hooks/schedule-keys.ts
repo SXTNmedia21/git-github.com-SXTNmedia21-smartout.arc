@@ -30,4 +30,7 @@ export const scheduleKeys = {
     ["schedule", "bookings", workspaceId, weekStart] as const,
 
   auditLog: (tableAndRowId: string) => ["schedule", "audit", tableAndRowId] as const,
+
+  roster: (workspaceId: string, profileId: string) =>
+    ["schedule", "roster", workspaceId, profileId] as const,
 };

@@ -49,7 +49,8 @@ export function GridContent({
   const { weekStart, weekEnd } = useWeekRange();
   const { data: shiftsData = [] } = useShifts(weekStart, weekEnd);
   const { data: absencesData = [] } = useAbsences(weekStart, weekEnd);
-  const { setCreateShiftContext, setAbsencePopover, setSelectedShift } = useScheduleUI();
+  const { setCreateShiftContext, setAbsencePopover, setSelectedShift, setSelectedEmployee } =
+    useScheduleUI();
 
   /** Index shifts by employee::day key for O(1) lookup in grid cells */
   const shiftsByEmployeeDay = React.useMemo(() => {
@@ -123,6 +124,7 @@ export function GridContent({
                 onCreateShift={setCreateShiftContext}
                 onAbsencePopover={setAbsencePopover}
                 onSelectShift={setSelectedShift}
+                onSelectEmployee={setSelectedEmployee}
               />
             ))}
           </div>
@@ -146,6 +148,7 @@ export function GridContent({
                       onCreateShift={setCreateShiftContext}
                       onAbsencePopover={setAbsencePopover}
                       onSelectShift={setSelectedShift}
+                      onSelectEmployee={setSelectedEmployee}
                       subtitle={emp.team}
                     />
                   ))}
@@ -173,6 +176,7 @@ export function GridContent({
                       onCreateShift={setCreateShiftContext}
                       onAbsencePopover={setAbsencePopover}
                       onSelectShift={setSelectedShift}
+                      onSelectEmployee={setSelectedEmployee}
                       subtitle={emp.jobTitle || emp.role}
                     />
                   ))}
@@ -370,6 +374,7 @@ export const EmployeeRow = React.memo(function EmployeeRow({
   onCreateShift,
   onAbsencePopover,
   onSelectShift,
+  onSelectEmployee,
 }: {
   employee: ScheduleEmployee;
   employeeStats?: { hours: number; shiftCount: number };
@@ -380,6 +385,7 @@ export const EmployeeRow = React.memo(function EmployeeRow({
   onCreateShift: (ctx: { dateId?: string; employeeId?: string } | null) => void;
   onAbsencePopover: (ctx: { employeeId: string; dateId: string } | null) => void;
   onSelectShift: (id: string | null) => void;
+  onSelectEmployee?: (id: string) => void;
 }) {
   const { isDark } = useContext(DashboardContext);
   const scheduledHours = employeeStats?.hours ?? 0;
@@ -395,9 +401,10 @@ export const EmployeeRow = React.memo(function EmployeeRow({
 
   return (
     <div className="group/row flex w-full">
-      {/* Sticky employee info panel */}
+      {/* Sticky employee info panel — clickable to open drawer */}
       <div
-        className={`w-[220px] shrink-0 border-r border-b border-white/[0.04] ${isDark ? "bg-[#0a0a0c]" : "bg-white"} sticky left-0 z-30 flex h-20 items-center gap-2 p-2 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)] transition-colors group-hover/row:bg-white/[0.02]`}
+        className={`w-[220px] shrink-0 border-r border-b border-white/[0.04] ${isDark ? "bg-[#0a0a0c]" : "bg-white"} sticky left-0 z-30 flex h-20 cursor-pointer items-center gap-2 p-2 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)] transition-colors group-hover/row:bg-white/[0.02]`}
+        onClick={() => onSelectEmployee?.(employee.id)}
       >
         <div
           className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border text-[9px] font-black ${employee.avatarColor}`}

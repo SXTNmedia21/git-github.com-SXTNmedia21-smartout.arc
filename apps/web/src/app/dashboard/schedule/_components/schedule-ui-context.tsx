@@ -22,6 +22,7 @@ import type { DayClipboard, Shift } from "./schedule-types";
 type ScheduleUIState = {
   selectedShiftId: string | null;
   selectedDayId: string | null;
+  selectedEmployeeId: string | null;
   clipboard: DayClipboard | null;
   selectedDays: Set<string>;
   createShiftContext: { dateId?: string; employeeId?: string } | null;
@@ -34,6 +35,7 @@ type ScheduleUIState = {
 type ScheduleUIActions = {
   setSelectedShift: (id: string | null) => void;
   setSelectedDay: (id: string | null) => void;
+  setSelectedEmployee: (id: string | null) => void;
   setClipboard: (clipboard: DayClipboard | null) => void;
   toggleDaySelection: (dateId: string) => void;
   clearSelectedDays: () => void;
@@ -54,6 +56,7 @@ const ScheduleUIContext = createContext<ScheduleUIContextValue | null>(null);
 export function ScheduleUIProvider({ children }: { children: ReactNode }) {
   const [selectedShiftId, setSelectedShiftId] = useState<string | null>(null);
   const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
   const [clipboard, setClipboardState] = useState<DayClipboard | null>(null);
   const [selectedDays, setSelectedDays] = useState<Set<string>>(new Set());
   const [createShiftContext, setCreateShiftContextState] = useState<{
@@ -72,6 +75,10 @@ export function ScheduleUIProvider({ children }: { children: ReactNode }) {
 
   const setSelectedDay = useCallback((id: string | null) => {
     setSelectedDayId(id);
+  }, []);
+
+  const setSelectedEmployee = useCallback((id: string | null) => {
+    setSelectedEmployeeId(id);
   }, []);
 
   const setClipboard = useCallback((cb: DayClipboard | null) => {
@@ -126,6 +133,7 @@ export function ScheduleUIProvider({ children }: { children: ReactNode }) {
     () => ({
       selectedShiftId,
       selectedDayId,
+      selectedEmployeeId,
       clipboard,
       selectedDays,
       createShiftContext,
@@ -133,6 +141,7 @@ export function ScheduleUIProvider({ children }: { children: ReactNode }) {
       dayControlFullscreen,
       setSelectedShift,
       setSelectedDay,
+      setSelectedEmployee,
       setClipboard,
       toggleDaySelection,
       clearSelectedDays,
@@ -144,6 +153,7 @@ export function ScheduleUIProvider({ children }: { children: ReactNode }) {
     [
       selectedShiftId,
       selectedDayId,
+      selectedEmployeeId,
       clipboard,
       selectedDays,
       createShiftContext,
@@ -151,6 +161,7 @@ export function ScheduleUIProvider({ children }: { children: ReactNode }) {
       dayControlFullscreen,
       setSelectedShift,
       setSelectedDay,
+      setSelectedEmployee,
       setClipboard,
       toggleDaySelection,
       clearSelectedDays,
