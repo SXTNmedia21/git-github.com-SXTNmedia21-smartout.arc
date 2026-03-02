@@ -35,6 +35,7 @@ export function EmailRichEditor({
   const [isAiLoading, setIsAiLoading] = useState(false);
 
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
       StarterKit.configure({ heading: { levels: [2, 3] } }),
       Underline,

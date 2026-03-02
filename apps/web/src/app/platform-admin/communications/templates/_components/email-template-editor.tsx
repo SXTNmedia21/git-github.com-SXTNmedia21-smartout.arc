@@ -18,6 +18,10 @@ import {
   Eye,
   EyeOff,
   X,
+  LayoutGrid,
+  RectangleHorizontal,
+  Megaphone,
+  Video,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -71,6 +75,15 @@ const SECTION_TYPES = [
   },
   { type: "image" as const, label: "Image", icon: ImageIcon, placeholder: "" },
   { type: "list" as const, label: "List", icon: List, placeholder: "" },
+  { type: "card" as const, label: "Card", icon: LayoutGrid, placeholder: "" },
+  {
+    type: "hero_card" as const,
+    label: "Hero Card",
+    icon: RectangleHorizontal,
+    placeholder: "",
+  },
+  { type: "cta" as const, label: "Call to Action", icon: Megaphone, placeholder: "" },
+  { type: "video" as const, label: "Video", icon: Video, placeholder: "" },
   { type: "html" as const, label: "HTML", icon: Code, placeholder: "<div>Custom HTML...</div>" },
   { type: "button" as const, label: "Button", icon: MousePointerClick, placeholder: "" },
   { type: "divider" as const, label: "Divider", icon: Minus, placeholder: "" },
@@ -176,6 +189,27 @@ export function EmailTemplateEditor({ templateId, initialData, onSave }: EmailTe
     if (type === "image") {
       newSection.imageUrl = "";
       newSection.imageAlt = "";
+    }
+    if (type === "card") {
+      newSection.content = "Card Title";
+      newSection.subtitle = "Card subtitle or description";
+      newSection.imageUrl = "";
+    }
+    if (type === "hero_card") {
+      newSection.content = "Hero Title";
+      newSection.subtitle = "Hero subtitle";
+      newSection.imageUrl = "";
+      newSection.items = ["Feature one", "Feature two", "Feature three"];
+    }
+    if (type === "cta") {
+      newSection.content = "Ready to get started?";
+      newSection.buttonText = "Get Started";
+      newSection.buttonUrl = "https://";
+    }
+    if (type === "video") {
+      newSection.videoUrl = "";
+      newSection.videoThumbnailUrl = "";
+      newSection.content = "Watch the video";
     }
     setSections((prev) => [...prev, newSection]);
     markDirty();

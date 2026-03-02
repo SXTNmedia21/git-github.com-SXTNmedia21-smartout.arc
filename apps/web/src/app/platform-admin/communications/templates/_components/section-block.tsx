@@ -18,6 +18,10 @@ import {
   X,
   Copy,
   ChevronsUpDown,
+  LayoutGrid,
+  RectangleHorizontal,
+  Megaphone,
+  Video,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +51,14 @@ const SECTION_META: Record<string, { label: string; icon: typeof Type; color: st
   button: { label: "Button", icon: MousePointerClick, color: "bg-cyan-500/10 text-cyan-500" },
   divider: { label: "Divider", icon: Minus, color: "bg-muted text-muted-foreground" },
   footer: { label: "Footer", icon: PanelBottom, color: "bg-amber-500/10 text-amber-500" },
+  card: { label: "Card", icon: LayoutGrid, color: "bg-indigo-500/10 text-indigo-500" },
+  hero_card: {
+    label: "Hero Card",
+    icon: RectangleHorizontal,
+    color: "bg-pink-500/10 text-pink-500",
+  },
+  cta: { label: "CTA", icon: Megaphone, color: "bg-emerald-500/10 text-emerald-500" },
+  video: { label: "Video", icon: Video, color: "bg-rose-500/10 text-rose-500" },
 };
 
 export function SectionBlock({
@@ -80,7 +92,7 @@ export function SectionBlock({
             {section.content
               ? section.content.replace(/<[^>]*>/g, "").slice(0, 50) +
                 (section.content.length > 50 ? "..." : "")
-              : (section.buttonText ?? section.imageUrl ?? "")}
+              : (section.buttonText ?? section.videoUrl ?? section.imageUrl ?? "")}
           </span>
         )}
 
@@ -235,6 +247,140 @@ export function SectionBlock({
                 onChange={(e) => onUpdate({ buttonUrl: e.target.value })}
                 className="text-xs"
               />
+            </div>
+          )}
+
+          {section.type === "card" && (
+            <div className="space-y-2">
+              <Input
+                placeholder="Card title"
+                value={section.content ?? ""}
+                onChange={(e) => onUpdate({ content: e.target.value })}
+                className="text-sm font-medium"
+              />
+              <Input
+                placeholder="Card subtitle / description"
+                value={section.subtitle ?? ""}
+                onChange={(e) => onUpdate({ subtitle: e.target.value })}
+                className="text-xs"
+              />
+              <Input
+                placeholder="Image URL (optional)"
+                value={section.imageUrl ?? ""}
+                onChange={(e) => onUpdate({ imageUrl: e.target.value })}
+                className="text-xs"
+              />
+            </div>
+          )}
+
+          {section.type === "hero_card" && (
+            <div className="space-y-2">
+              <Input
+                placeholder="Image URL (full-width background)"
+                value={section.imageUrl ?? ""}
+                onChange={(e) => onUpdate({ imageUrl: e.target.value })}
+                className="text-xs"
+              />
+              <Input
+                placeholder="Hero title"
+                value={section.content ?? ""}
+                onChange={(e) => onUpdate({ content: e.target.value })}
+                className="text-sm font-medium"
+              />
+              <Input
+                placeholder="Hero subtitle"
+                value={section.subtitle ?? ""}
+                onChange={(e) => onUpdate({ subtitle: e.target.value })}
+                className="text-xs"
+              />
+              <div className="space-y-1.5">
+                <p className="text-muted-foreground text-xs font-medium">Bullet Points</p>
+                {(section.items ?? []).map((item, i) => (
+                  <div key={i} className="flex items-center gap-1.5">
+                    <span className="text-muted-foreground text-xs">•</span>
+                    <Input
+                      value={item}
+                      onChange={(e) => {
+                        const items = [...(section.items ?? [])];
+                        items[i] = e.target.value;
+                        onUpdate({ items });
+                      }}
+                      className="h-7 flex-1 text-xs"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0"
+                      onClick={() => {
+                        const items = (section.items ?? []).filter((_, idx) => idx !== i);
+                        onUpdate({ items });
+                      }}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => onUpdate({ items: [...(section.items ?? []), ""] })}
+                >
+                  <Plus className="mr-1 h-3 w-3" />
+                  Add bullet
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {section.type === "cta" && (
+            <div className="space-y-2">
+              <Input
+                placeholder="CTA description (e.g., Ready to get started?)"
+                value={section.content ?? ""}
+                onChange={(e) => onUpdate({ content: e.target.value })}
+                className="text-sm"
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <Input
+                  placeholder="Button text"
+                  value={section.buttonText ?? ""}
+                  onChange={(e) => onUpdate({ buttonText: e.target.value })}
+                  className="text-xs"
+                />
+                <Input
+                  placeholder="Button URL"
+                  value={section.buttonUrl ?? ""}
+                  onChange={(e) => onUpdate({ buttonUrl: e.target.value })}
+                  className="text-xs"
+                />
+              </div>
+            </div>
+          )}
+
+          {section.type === "video" && (
+            <div className="space-y-2">
+              <Input
+                placeholder="Video title / caption"
+                value={section.content ?? ""}
+                onChange={(e) => onUpdate({ content: e.target.value })}
+                className="text-sm"
+              />
+              <Input
+                placeholder="Video URL (YouTube, Vimeo, etc.)"
+                value={section.videoUrl ?? ""}
+                onChange={(e) => onUpdate({ videoUrl: e.target.value })}
+                className="text-xs"
+              />
+              <Input
+                placeholder="Thumbnail image URL (shown in email)"
+                value={section.videoThumbnailUrl ?? ""}
+                onChange={(e) => onUpdate({ videoThumbnailUrl: e.target.value })}
+                className="text-xs"
+              />
+              <p className="text-muted-foreground text-xs">
+                Emails can&apos;t embed video. A thumbnail with a play button links to the video.
+              </p>
             </div>
           )}
 

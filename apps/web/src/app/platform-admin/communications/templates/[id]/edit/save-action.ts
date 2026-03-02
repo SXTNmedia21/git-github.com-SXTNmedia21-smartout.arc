@@ -6,13 +6,28 @@ import { revalidatePath } from "next/cache";
 
 export type EmailTemplateSection = {
   id: string;
-  type: "title" | "message" | "image" | "list" | "html" | "footer" | "divider" | "button";
+  type:
+    | "title"
+    | "message"
+    | "image"
+    | "list"
+    | "html"
+    | "footer"
+    | "divider"
+    | "button"
+    | "card"
+    | "hero_card"
+    | "cta"
+    | "video";
   content?: string;
+  subtitle?: string;
   items?: string[];
   imageUrl?: string;
   imageAlt?: string;
   buttonText?: string;
   buttonUrl?: string;
+  videoUrl?: string;
+  videoThumbnailUrl?: string;
 };
 
 export type EmailTemplatePlaceholder = {

@@ -56,6 +56,70 @@ function renderSection(
     case "divider":
       return '<hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0;" />';
 
+    case "card": {
+      const cardImg = section.imageUrl
+        ? `<img src="${section.imageUrl}" alt="" style="width:100%;height:160px;object-fit:cover;border-radius:6px 6px 0 0;" />`
+        : "";
+      return `<div style="border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;margin:8px 0;">
+        ${cardImg}
+        <div style="padding:16px;">
+          <h3 style="margin:0 0 4px;font-size:16px;font-weight:600;color:#111827;">${r(section.content ?? "Card Title")}</h3>
+          <p style="margin:0;font-size:13px;color:#6b7280;">${r(section.subtitle ?? "")}</p>
+        </div>
+      </div>`;
+    }
+
+    case "hero_card": {
+      const bgImg = section.imageUrl
+        ? `background-image:url('${section.imageUrl}');background-size:cover;background-position:center;`
+        : "background:#1e293b;";
+      const bullets = (section.items ?? [])
+        .map(
+          (item) =>
+            `<li style="margin-bottom:4px;font-size:14px;color:rgba(255,255,255,0.9);">${r(item)}</li>`,
+        )
+        .join("");
+      const bulletHtml = bullets
+        ? `<ul style="margin:12px 0 0;padding-left:20px;">${bullets}</ul>`
+        : "";
+      return `<div style="border-radius:8px;overflow:hidden;margin:8px 0;${bgImg}">
+        <div style="padding:32px 24px;background:rgba(0,0,0,0.5);">
+          <h2 style="margin:0 0 6px;font-size:22px;font-weight:700;color:#fff;">${r(section.content ?? "Hero Title")}</h2>
+          <p style="margin:0;font-size:14px;color:rgba(255,255,255,0.8);">${r(section.subtitle ?? "")}</p>
+          ${bulletHtml}
+        </div>
+      </div>`;
+    }
+
+    case "cta":
+      return `<div style="background:#f0f9ff;border-radius:8px;padding:24px;text-align:center;margin:8px 0;">
+        <p style="margin:0 0 12px;font-size:16px;font-weight:500;color:#111827;">${r(section.content ?? "")}</p>
+        <a href="${section.buttonUrl ?? "#"}" style="display:inline-block;padding:12px 32px;background:#2563eb;color:#fff;text-decoration:none;border-radius:6px;font-size:14px;font-weight:600;">${r(section.buttonText ?? "Get Started")}</a>
+      </div>`;
+
+    case "video": {
+      const thumb = section.videoThumbnailUrl
+        ? `<img src="${section.videoThumbnailUrl}" alt="${r(section.content ?? "Video")}" style="width:100%;height:auto;border-radius:6px;" />`
+        : `<div style="width:100%;height:200px;background:#1e293b;border-radius:6px;display:flex;align-items:center;justify-content:center;">
+            <div style="width:60px;height:60px;background:rgba(255,255,255,0.9);border-radius:50%;display:flex;align-items:center;justify-content:center;">
+              <div style="width:0;height:0;border-top:12px solid transparent;border-bottom:12px solid transparent;border-left:20px solid #111827;margin-left:4px;"></div>
+            </div>
+          </div>`;
+      return `<div style="margin:8px 0;text-align:center;">
+        <a href="${section.videoUrl ?? "#"}" style="text-decoration:none;display:block;position:relative;">
+          ${thumb}
+          ${
+            section.videoThumbnailUrl
+              ? `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:60px;height:60px;background:rgba(0,0,0,0.7);border-radius:50%;display:flex;align-items:center;justify-content:center;">
+            <div style="width:0;height:0;border-top:12px solid transparent;border-bottom:12px solid transparent;border-left:20px solid #fff;margin-left:4px;"></div>
+          </div>`
+              : ""
+          }
+        </a>
+        ${section.content ? `<p style="margin:8px 0 0;font-size:13px;color:#6b7280;">${r(section.content)}</p>` : ""}
+      </div>`;
+    }
+
     case "footer":
       return `<div style="font-size:12px;color:#9ca3af;border-top:1px solid #e5e7eb;padding-top:16px;margin-top:16px;">${r(section.content ?? "")}</div>`;
 
