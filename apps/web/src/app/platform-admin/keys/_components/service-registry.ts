@@ -81,7 +81,7 @@ export const SERVICE_REGISTRY: readonly ServiceEntry[] = [
     prefix: "eyJ",
   },
   {
-    key: "openrouter_api_key",
+    key: "openrouter",
     provider: "openrouter",
     envVar: "OPENROUTER_API_KEY",
     label: "OpenRouter API Key",
@@ -91,7 +91,7 @@ export const SERVICE_REGISTRY: readonly ServiceEntry[] = [
     docsUrl: "https://openrouter.ai/keys",
   },
   {
-    key: "ultravox_api_key",
+    key: "ultravox",
     provider: "ultravox",
     envVar: "ULTRAVOX_API_KEY",
     label: "Ultravox API Key",
@@ -136,7 +136,7 @@ export const SERVICE_REGISTRY: readonly ServiceEntry[] = [
     tab: "server",
   },
   {
-    key: "docuseal_api_key",
+    key: "docuseal",
     provider: "docuseal",
     envVar: "DOCUSEAL_API_KEY",
     label: "DocuSeal API Key",
