@@ -136,70 +136,69 @@ export function StrategicView({ isDark }: StrategicViewProps) {
   }
 
   return (
-    <div className="animate-in fade-in flex min-h-0 min-w-0 flex-1 flex-col gap-6 overflow-y-auto pr-2 pb-6 duration-500">
-      {/* Header & Department/Location Selector */}
-      <div className="flex flex-shrink-0 flex-col justify-between gap-4 pt-2 md:flex-row md:items-center">
+    <div className="animate-in fade-in flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto pr-2 pb-4 duration-500">
+      {/* Header & Location Selector */}
+      <div className="flex flex-shrink-0 flex-wrap items-center gap-3 pt-1">
         <div>
           <h1
-            className={`text-2xl font-black tracking-tight ${isDark ? "text-zinc-100" : "text-zinc-900"}`}
+            className={`text-base font-black tracking-tight ${isDark ? "text-zinc-100" : "text-zinc-900"}`}
           >
             Strategic Insights
           </h1>
-          <p className={`text-sm ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
-            Monitor workforce KPIs and organizational health.
-          </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          {/* Budget toggle */}
-          <button
-            onClick={() => setShowBudget(!showBudget)}
-            title="Budget Settings"
-            className={`flex items-center gap-2 rounded-xl border p-2.5 transition-colors ${
-              showBudget
-                ? isDark
-                  ? "border-primary/50 bg-primary/10 text-primary"
-                  : "border-primary/50 bg-primary/10 text-primary"
-                : isDark
-                  ? "border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-200"
-                  : "border-zinc-200 bg-zinc-50 text-zinc-500 hover:text-zinc-700"
-            }`}
-          >
-            <SlidersHorizontal className="h-4 w-4" />
-            <span className="hidden text-xs font-bold md:inline">Budget</span>
-          </button>
+        <div className="bg-border h-5 w-px" />
 
-          {/* Modern Pill Selector */}
-          <div
-            className={`flex items-center rounded-xl border p-1 ${isDark ? "border-zinc-800 bg-[#0c0c0e]" : "border-zinc-200 bg-white shadow-sm"}`}
-          >
-            {LOCATIONS.map((loc) => {
-              const isSelected = selectedLocId === loc.id;
-              return (
-                <button
-                  key={loc.id}
-                  onClick={() => setSelectedLocId(loc.id)}
-                  className={`relative rounded-lg px-4 py-2 text-sm font-bold transition-colors ${isSelected ? (isDark ? "text-white" : "text-zinc-900") : isDark ? "text-zinc-500 hover:text-zinc-300" : "text-zinc-500 hover:text-zinc-700"}`}
-                >
-                  {isSelected && (
-                    <motion.div
-                      layoutId="loc-pill"
-                      className={`absolute inset-0 rounded-lg shadow-sm ${isDark ? "border border-zinc-700/50 bg-zinc-800/80" : "border border-zinc-200/50 bg-zinc-100"}`}
-                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                    />
+        {/* Budget toggle - more compact */}
+        <button
+          onClick={() => setShowBudget(!showBudget)}
+          title="Budget Settings"
+          className={`flex items-center gap-1.5 rounded-lg border p-1.5 text-[10px] font-bold transition-colors ${
+            showBudget
+              ? isDark
+                ? "border-primary/50 bg-primary/10 text-primary"
+                : "border-primary/50 bg-primary/10 text-primary"
+              : isDark
+                ? "border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-200"
+                : "border-zinc-200 bg-zinc-50 text-zinc-500 hover:text-zinc-700"
+          }`}
+        >
+          <SlidersHorizontal className="h-3.5 w-3.5" />
+          <span className="hidden md:inline">Budget</span>
+        </button>
+
+        <div className="flex-1" />
+
+        {/* Location selector - compact pills */}
+        <div
+          className={`flex items-center rounded-lg border p-0.5 ${isDark ? "border-zinc-800 bg-[#0c0c0e]" : "border-zinc-200 bg-white shadow-sm"}`}
+        >
+          {LOCATIONS.map((loc) => {
+            const isSelected = selectedLocId === loc.id;
+            return (
+              <button
+                key={loc.id}
+                onClick={() => setSelectedLocId(loc.id)}
+                className={`relative rounded-md px-2.5 py-1.5 text-xs font-bold transition-colors ${isSelected ? (isDark ? "text-white" : "text-zinc-900") : isDark ? "text-zinc-500 hover:text-zinc-300" : "text-zinc-500 hover:text-zinc-700"}`}
+              >
+                {isSelected && (
+                  <motion.div
+                    layoutId="loc-pill"
+                    className={`absolute inset-0 rounded-md shadow-sm ${isDark ? "border border-zinc-700/50 bg-zinc-800/80" : "border border-zinc-200/50 bg-zinc-100"}`}
+                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                  />
+                )}
+                <span className="relative z-10 flex items-center gap-1.5">
+                  {loc.id === "all" ? (
+                    <Building2 className="h-3.5 w-3.5" />
+                  ) : (
+                    <MapPin className="h-3.5 w-3.5" />
                   )}
-                  <span className="relative z-10 flex items-center gap-2">
-                    {loc.id === "all" ? (
-                      <Building2 className="h-4 w-4" />
-                    ) : (
-                      <MapPin className="h-4 w-4" />
-                    )}
-                    {loc.name}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+                  <span className="hidden sm:inline">{loc.name}</span>
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -216,7 +215,7 @@ export function StrategicView({ isDark }: StrategicViewProps) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.3 }}
-              className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3"
+              className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3"
             >
               <KPICard
                 isDark={isDark}
@@ -323,17 +322,17 @@ export function StrategicView({ isDark }: StrategicViewProps) {
       )}
 
       {/* Main Insights Row */}
-      <div className="flex min-h-0 flex-1 flex-col gap-6 lg:flex-row">
+      <div className="flex min-h-0 flex-col gap-4 lg:flex-row">
         {/* Modern Turnover Trend SVG Graph */}
         <div
-          className={`relative flex min-h-0 flex-col overflow-hidden rounded-3xl border p-6 shadow-sm lg:flex-[2] ${isDark ? "border-zinc-800 bg-[#0c0c0e]" : "border-zinc-200 bg-white"}`}
+          className={`relative flex min-h-0 flex-col overflow-hidden rounded-2xl border p-5 shadow-sm lg:w-2/3 ${isDark ? "border-zinc-800 bg-[#0c0c0e]" : "border-zinc-200 bg-white"}`}
         >
           <div className="pointer-events-none absolute top-0 right-0 h-96 w-96 rounded-full bg-blue-500/5 blur-[100px]" />
 
-          <div className="relative z-10 mb-6 flex items-start justify-between">
+          <div className="relative z-10 mb-3 flex items-start justify-between">
             <div>
               <h2
-                className={`text-xl font-extrabold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}
+                className={`text-base font-extrabold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}
               >
                 Turnover Trend & Forecast
               </h2>
@@ -350,7 +349,7 @@ export function StrategicView({ isDark }: StrategicViewProps) {
             </button>
           </div>
 
-          <div className="relative z-10 mt-4 h-[200px] w-full flex-1">
+          <div className="relative z-10 mt-2 h-[160px] w-full">
             <TurnoverChart
               isDark={isDark}
               location={selectedLocId}
@@ -361,17 +360,17 @@ export function StrategicView({ isDark }: StrategicViewProps) {
 
         {/* Workforce Pipeline */}
         <div
-          className={`relative flex min-h-0 flex-col overflow-hidden rounded-3xl border p-6 shadow-sm lg:flex-1 ${isDark ? "border-zinc-800 bg-[#0c0c0e]" : "border-zinc-200 bg-white"}`}
+          className={`relative flex min-h-0 flex-col overflow-hidden rounded-2xl border p-5 shadow-sm lg:w-1/3 ${isDark ? "border-zinc-800 bg-[#0c0c0e]" : "border-zinc-200 bg-white"}`}
         >
           <div className="pointer-events-none absolute -bottom-12 -left-12 h-48 w-48 rounded-full bg-purple-500/5 blur-[60px]" />
 
           <h2
-            className={`mb-5 text-lg font-extrabold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}
+            className={`mb-3 text-base font-extrabold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}
           >
             Workforce Pipeline
           </h2>
 
-          <div className="relative z-10 flex flex-1 flex-col justify-center space-y-6">
+          <div className="relative z-10 flex flex-1 flex-col justify-center space-y-4">
             <PipelineRow
               isDark={isDark}
               icon={<Users className="h-5 w-5" />}
@@ -562,7 +561,7 @@ function KPICard({
             if (!editOpen) setShowExplanation(true);
           }}
           onMouseLeave={() => setShowExplanation(false)}
-          className={`group relative min-h-[140px] cursor-pointer overflow-hidden rounded-2xl border p-5 transition-all hover:shadow-md ${isDark ? "border-zinc-800 bg-[#0c0c0e] hover:border-zinc-700" : "border-zinc-200 bg-white"}`}
+          className={`group relative min-h-[100px] cursor-pointer overflow-hidden rounded-2xl border p-4 transition-all hover:shadow-md ${isDark ? "border-zinc-800 bg-[#0c0c0e] hover:border-zinc-700" : "border-zinc-200 bg-white"}`}
         >
           <AnimatePresence mode="wait">
             {!showExplanation ? (
@@ -577,7 +576,7 @@ function KPICard({
                 <div
                   className={`absolute -top-6 -right-6 h-24 w-24 rounded-full opacity-20 blur-2xl transition-opacity group-hover:opacity-40 bg-${color}-500`}
                 />
-                <div className="relative z-10 mb-4 flex items-start justify-between">
+                <div className="relative z-10 mb-2 flex items-start justify-between">
                   <div
                     className={`rounded-xl border p-2.5 ${isDark ? "border-zinc-800 bg-zinc-900 text-zinc-300" : "border-zinc-200 bg-zinc-50 text-zinc-600"}`}
                   >
@@ -612,7 +611,7 @@ function KPICard({
                   </h3>
                   <div className="flex items-end gap-3">
                     <span
-                      className={`text-3xl leading-none font-black ${isDark ? "text-white" : "text-zinc-900"} ${isBad ? (isDark ? "!text-red-400" : "!text-red-600") : ""}`}
+                      className={`text-2xl leading-none font-black ${isDark ? "text-white" : "text-zinc-900"} ${isBad ? (isDark ? "!text-red-400" : "!text-red-600") : ""}`}
                     >
                       {value}
                     </span>
