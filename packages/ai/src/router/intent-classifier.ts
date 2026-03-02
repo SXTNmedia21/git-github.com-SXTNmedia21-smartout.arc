@@ -4,9 +4,16 @@ import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { z } from "zod";
 import { getRegisteredCapabilities } from "../capabilities/registry.js";
 
-const openrouter = createOpenRouter({
-  apiKey: process.env.OPENROUTER_API_KEY!,
-});
+let _openrouter: ReturnType<typeof createOpenRouter> | null = null;
+
+function getOpenRouter(apiKey?: string) {
+  if (!_openrouter) {
+    const key = apiKey ?? process.env.OPENROUTER_API_KEY;
+    if (!key) throw new Error("OpenRouter API key required: pass apiKey or set OPENROUTER_API_KEY");
+    _openrouter = createOpenRouter({ apiKey: key });
+  }
+  return _openrouter;
+}
 
 export const intentSchema = z.object({
   intent: z.string().describe("Specific intent, e.g. 'schedule:query', 'training:status'"),
@@ -27,11 +34,15 @@ export const intentSchema = z.object({
 
 export type IntentResult = z.infer<typeof intentSchema>;
 
-export async function classifyIntent(message: string, context: string): Promise<IntentResult> {
+export async function classifyIntent(
+  message: string,
+  context: string,
+  options?: { apiKey?: string },
+): Promise<IntentResult> {
   const registered = getRegisteredCapabilities();
 
   const { object } = await generateObject({
-    model: openrouter("anthropic/claude-sonnet-4"),
+    model: getOpenRouter(options?.apiKey)("anthropic/claude-sonnet-4"),
     schema: intentSchema,
     system: `You are an intent classifier for a Norwegian employee assistant called Mr. Botsson.
 Classify the user's message into one of these capabilities: ${registered.join(", ")}, general.
