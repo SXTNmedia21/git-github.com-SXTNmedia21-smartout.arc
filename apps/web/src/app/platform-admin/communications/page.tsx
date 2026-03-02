@@ -14,7 +14,7 @@ export default async function CommunicationsPage() {
     admin
       .from("platform_communication_log")
       .select(
-        "communication_id, subject, template, classification, audience_filter, recipient_count, sent_count, failed_count, status, created_at",
+        "communication_id, subject, template, classification, audience_filter, recipient_count, sent_count, failed_count, opened_count, clicked_count, status, created_at",
       )
       .order("created_at", { ascending: false })
       .limit(100),
@@ -30,6 +30,8 @@ export default async function CommunicationsPage() {
     recipientCount: c.recipient_count,
     sentCount: c.sent_count,
     failedCount: c.failed_count,
+    openedCount: c.opened_count ?? 0,
+    clickedCount: c.clicked_count ?? 0,
     status: c.status,
     createdAt: c.created_at ?? "",
   }));

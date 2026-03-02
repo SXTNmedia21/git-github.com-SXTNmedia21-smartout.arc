@@ -4,11 +4,9 @@
  * to avoid version mismatches across the monorepo.
  * PromiseLike (not Promise) because Supabase rpc() returns a PostgrestFilterBuilder.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SupabaseRpcClient = {
-  rpc: (
-    fn: string,
-    args: Record<string, unknown>,
-  ) => PromiseLike<{ data: unknown; error: { message: string } | null }>;
+  rpc: (...args: any[]) => PromiseLike<{ data: unknown; error: { message: string } | null }>;
 };
 
 const cache = new Map<string, string>();

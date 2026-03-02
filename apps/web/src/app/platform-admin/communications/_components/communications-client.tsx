@@ -3,12 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { type ColumnDef } from "@tanstack/react-table";
-import { Users, Shield, UserCheck, Crosshair, Send, PenLine } from "lucide-react";
+import { Users, Shield, UserCheck, Crosshair, Send, PenLine, ChevronDown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ComposeEmailSheet } from "@/components/platform-admin/compose-email-sheet";
 import { DataTable } from "@/components/platform-admin/data-table";
 import { StatusBadge } from "@/components/platform-admin/status-badge";
+import { CommunicationDetail } from "./communication-detail";
 import type { AudienceFilter } from "@/components/platform-admin/audience-selector";
 
 type CommunicationEntry = {
@@ -20,6 +21,8 @@ type CommunicationEntry = {
   recipientCount: number;
   sentCount: number;
   failedCount: number;
+  openedCount: number;
+  clickedCount: number;
   status: string;
   createdAt: string;
 };
@@ -119,6 +122,34 @@ const columns: ColumnDef<CommunicationEntry, unknown>[] = [
     ),
   },
   {
+    id: "engagement",
+    header: "Opened / Clicked",
+    cell: ({ row }) => {
+      const total = row.original.recipientCount;
+      const opened = row.original.openedCount;
+      const clicked = row.original.clickedCount;
+
+      if (total === 0 || (opened === 0 && clicked === 0)) {
+        return <span className="text-muted-foreground text-xs">&mdash;</span>;
+      }
+
+      return (
+        <span className="text-xs">
+          <span className="text-blue-500" title={`${opened} opened`}>
+            {opened}
+          </span>
+          {" / "}
+          <span className="text-purple-500" title={`${clicked} clicked`}>
+            {clicked}
+          </span>
+          <span className="text-muted-foreground ml-1">
+            ({Math.round((opened / total) * 100)}%)
+          </span>
+        </span>
+      );
+    },
+  },
+  {
     accessorKey: "status",
     header: "Status",
     cell: ({ row }) => <StatusBadge status={row.original.status} size="sm" />,
@@ -129,10 +160,15 @@ export function CommunicationsClient({ history }: CommunicationsClientProps) {
   const router = useRouter();
   const [composeOpen, setComposeOpen] = useState(false);
   const [defaultAudience, setDefaultAudience] = useState<AudienceFilter | undefined>(undefined);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   function openQuickSend(audience?: AudienceFilter) {
     setDefaultAudience(audience);
     setComposeOpen(true);
+  }
+
+  function handleRowClick(entry: CommunicationEntry) {
+    setExpandedId((prev) => (prev === entry.id ? null : entry.id));
   }
 
   return (
@@ -195,8 +231,24 @@ export function CommunicationsClient({ history }: CommunicationsClientProps) {
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
-          <DataTable columns={columns} data={history} />
+        <CardContent className="space-y-0">
+          <DataTable columns={columns} data={history} onRowClick={handleRowClick} />
+          {expandedId && (
+            <div className="border-border bg-muted/30 rounded-b-md border-x border-b p-4">
+              <div className="mb-2 flex items-center justify-between">
+                <h4 className="text-sm font-medium">Recipient Details</h4>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2"
+                  onClick={() => setExpandedId(null)}
+                >
+                  <ChevronDown className="h-3 w-3 rotate-180" />
+                </Button>
+              </div>
+              <CommunicationDetail communicationId={expandedId} />
+            </div>
+          )}
         </CardContent>
       </Card>
 
