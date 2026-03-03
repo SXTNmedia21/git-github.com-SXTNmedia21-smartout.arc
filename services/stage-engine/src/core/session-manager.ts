@@ -14,6 +14,37 @@ import type { Mission, Stage, Session, JourneyStep } from "../types/session.js";
 import type { CreateSessionRequest, CreateSessionResponse } from "../types/api.js";
 import type { AuthContext } from "../types/auth.js";
 
+/**
+ * Load completed onboarding data for a profile.
+ * Used by Botsson to inherit Lise's collected data.
+ */
+export async function loadOnboardingContext(
+  profileId: string,
+  workspaceId: string,
+): Promise<Record<string, unknown> | null> {
+  const { data: session } = await supabaseAdmin
+    .from("engine_sessions")
+    .select("collected_data, created_at, completed_at, context")
+    .eq("profile_id", profileId)
+    .eq("workspace_id", workspaceId)
+    .eq("status", "complete")
+    .eq("mode", "mission")
+    .not("journey_id", "is", null)
+    .order("completed_at", { ascending: false })
+    .limit(1)
+    .single();
+
+  if (!session) return null;
+
+  return {
+    prior_onboarding: {
+      collected_data: session.collected_data,
+      completed_at: session.completed_at,
+      created_at: session.created_at,
+    },
+  };
+}
+
 /** Result of loading a session with workspace authorization */
 export type SessionLoadResult =
   | { ok: true; session: Session }

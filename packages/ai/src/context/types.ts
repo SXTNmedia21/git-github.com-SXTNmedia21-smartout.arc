@@ -65,4 +65,11 @@ export type AgentContext = {
 
   // Resolved posture
   resolvedPosture: ResolvedPosture;
+
+  // Prior onboarding data (from completed Lise sessions)
+  priorOnboarding?: {
+    collected_data: Record<string, unknown>;
+    completed_at: string;
+    created_at: string;
+  };
 };

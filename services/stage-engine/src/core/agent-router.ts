@@ -13,8 +13,10 @@ import { selectTools } from "@smartout/ai/router/tool-selector";
 import { buildBotssonPromptFromContext } from "@smartout/ai/prompts/mr-botsson";
 import { toVercelTools } from "@smartout/ai/adapters/vercel-ai";
 import { collectContext } from "@smartout/ai/context/collector";
+import type { AgentContext } from "@smartout/ai/context/types";
 import type { Situation } from "@smartout/ai/capabilities/types";
 import { loadAuthorityConfig } from "./authority.js";
+import { loadOnboardingContext } from "./session-manager.js";
 import { supabaseAdmin } from "../lib/supabase.js";
 import { broadcastToSession } from "../ws/connection-manager.js";
 import { getBufferedActions } from "../routes/ws.js";
@@ -96,6 +98,12 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     authority,
     supabaseAdmin,
   });
+
+  // Step 3b: Inject prior onboarding context (Lise → Botsson handoff)
+  const onboardingCtx = await loadOnboardingContext(profileId, workspaceId);
+  if (onboardingCtx) {
+    ctx.priorOnboarding = onboardingCtx.prior_onboarding as AgentContext["priorOnboarding"];
+  }
 
   // Step 4: Select tools based on intent + authority
   const selectedTools = selectTools(intent, authorityConfig);

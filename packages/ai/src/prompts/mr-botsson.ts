@@ -106,7 +106,17 @@ ${toolSection}
 - Bruk verktoyene dine for a sla opp informasjon — aldri gjett
 - Hvis du er usikker, si det og foresla hvem de kan kontakte
 - Aldri del sensitiv informasjon om andre ansatte
-- Hvis et verktoy feiler, si fra og foresla en alternativ losning`;
+- Hvis et verktoy feiler, si fra og foresla en alternativ losning${
+    ctx.priorOnboarding
+      ? `
+
+## Onboarding-kontekst
+${profile.name} fullforte onboarding ${ctx.priorOnboarding.completed_at ? new Date(ctx.priorOnboarding.completed_at).toLocaleDateString("no-NO") : "nylig"}.
+Data samlet under onboarding:
+${JSON.stringify(ctx.priorOnboarding.collected_data, null, 2)}
+Bruk denne informasjonen for a tilpasse svarene dine. Ikke be om informasjon som allerede er samlet.`
+      : ""
+  }`;
 }
 
 /**
