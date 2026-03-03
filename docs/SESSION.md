@@ -13,33 +13,33 @@ tags: [session, boot-sequence, continuity]
 
 ## Last Session
 
-| Field   | Value                 |
-| ------- | --------------------- |
-| Date    | 2026-03-07            |
-| Branch  | `development`         |
-| Feature | bulk worktree closure |
-| Status  | ready_for_closure     |
+| Field   | Value         |
+| ------- | ------------- |
+| Date    | 2026-03-07    |
+| Branch  | `development` |
+| Feature | comms closure |
+| Status  | done          |
 
 ### What was done
 
-- WSL health check: Docker Desktop started, Supabase local brought up
-- Audited all 3 worktrees (wt-1, wt-2, wt-3) for closure
-- wt-1 (`feat/operation`): 0 commits — abandoned, worktree + branch to be removed
-- wt-2 (`feat/communications-finish`): all 5 closure gates pass, ready for `cf 2`
-- wt-3 (`feat/daily-standup`): 0 commits — abandoned, worktree + branch to be removed
-- Updated DASHBOARD.md — all worktrees freed, session history updated
+- Verified communications-v2 plan: all 8 tasks complete
+- Ran /close-feature for wt-2: journeys, worklog, logs committed
+- communications-finish merged to development via cf 2
+- wt-1 (operation) and wt-3 (daily-standup) abandoned (0 commits)
+- All worktrees cleaned up, development branch is clean
 
 ### Where we stopped
 
-- User needs to run cleanup commands (see below)
+- All worktrees freed, development branch clean
+- No active features — ready for new work
 
 ### Known blockers / errors
 
-- None (all gates passed for wt-2)
+- None
 
 ### Pending decisions
 
-- None
+- [ ] Pick next feature to work on
 
 ---
 
