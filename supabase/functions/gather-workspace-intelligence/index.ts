@@ -131,12 +131,15 @@ async function fetchDagligLeder(orgNumber: string): Promise<string | null> {
     const data = await res.json();
     const groups = data?.rollegrupper || [];
 
-    for (const group of groups) {
-      if (group.type?.kode === "DAGL") {
-        const roller = group.roller || [];
-        if (roller.length > 0 && roller[0].person?.navn) {
-          const n = roller[0].person.navn;
-          return [n.fornavn, n.mellomnavn, n.etternavn].filter(Boolean).join(" ");
+    // Priority: Daglig leder (CEO) > Styrets leder (Board chair) > Innehaver (Owner)
+    const rolePriority = ["DAGL", "LEDE", "INHA"];
+    for (const code of rolePriority) {
+      for (const group of groups) {
+        for (const rolle of group.roller || []) {
+          if (rolle.type?.kode === code && rolle.person?.navn) {
+            const n = rolle.person.navn;
+            return [n.fornavn, n.mellomnavn, n.etternavn].filter(Boolean).join(" ");
+          }
         }
       }
     }
@@ -227,47 +230,90 @@ serve(async (req) => {
     } = await supabaseClient.auth.getUser();
     const userId = user?.id || null;
 
-    const { url } = await req.json();
+    const { url, orgNumber: rawOrgNumber } = await req.json();
+    const orgNumber = rawOrgNumber?.replace(/\s+/g, "") || "";
 
-    if (!url) {
-      return new Response(JSON.stringify({ error: "URL is required." }), {
+    if (!url && !orgNumber) {
+      return new Response(JSON.stringify({ error: "URL or org number is required." }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 400,
       });
     }
 
-    console.log(`[intelligence] Starting pipeline for: ${url}`);
+    console.log(
+      `[intelligence] Starting pipeline — url: ${url || "(none)"}, orgNumber: ${orgNumber || "(none)"}`,
+    );
 
-    // ── STEP 1: Scrape website ──
-    const scraplingBase =
-      Deno.env.get("SCRAPLING_SERVICE_URL") || "http://host.docker.internal:8000";
+    // ── STEP 1: Scrape website (skip if org-number-only) ──
+    let scrapedData: Record<string, unknown> | null = null;
+    let companyName: string | null = null;
 
-    console.log("[intelligence] Step 1: Scraping...");
-    const scrapedData = await fetchScraplingWithRetry(scraplingBase, url);
-    const companyName = scrapedData?.companyName;
-    console.log(`[intelligence] Scraped company: ${companyName || "unknown"}`);
+    if (url) {
+      const scraplingBase =
+        Deno.env.get("SCRAPLING_SERVICE_URL") || "http://host.docker.internal:8000";
 
-    // ── STEP 2: Search Brreg by name ──
+      console.log("[intelligence] Step 1: Scraping...");
+      scrapedData = await fetchScraplingWithRetry(scraplingBase, url);
+      companyName = (scrapedData as Record<string, unknown>)?.companyName as string | null;
+      console.log(`[intelligence] Scraped company: ${companyName || "unknown"}`);
+    } else {
+      console.log("[intelligence] Step 1: Skipped (org-number-only mode)");
+    }
+
+    // ── STEP 2: Brreg lookup ──
     let brregEntity: BrregEntity | null = null;
     let dagligLeder: string | null = null;
     let brregMatched = false;
 
-    if (companyName) {
-      const scrapedCity: string | null = null;
+    if (orgNumber) {
+      // Direct lookup by org number
+      console.log(`[intelligence] Step 2: Direct Brreg lookup for ${orgNumber}...`);
+      const [details, leader] = await Promise.all([
+        fetchBrregDetails(orgNumber),
+        fetchDagligLeder(orgNumber),
+      ]);
 
-      console.log(`[intelligence] Step 2: Searching Brreg for "${companyName}"...`);
-      brregEntity = await searchBrregByName(companyName, scrapedCity);
+      if (details) {
+        brregEntity = details;
+        brregMatched = true;
+        dagligLeder = leader;
+        companyName = companyName || details.navn;
+        console.log(`[intelligence] Brreg found: ${details.navn} (${orgNumber})`);
+        console.log(`[intelligence] Daglig leder: ${dagligLeder || "not found"}`);
+      } else {
+        console.log(`[intelligence] No Brreg entity found for ${orgNumber}`);
+      }
+    } else if (companyName) {
+      // Search by scraped company name
+      const scrapedCity: string | null =
+        ((scrapedData as Record<string, unknown>)?.city as string) ??
+        (((scrapedData as Record<string, unknown>)?.address as Record<string, unknown>)
+          ?.city as string) ??
+        null;
+
+      // Clean company name for Brreg search: take first part before common separators
+      const cleanName = companyName
+        .split(/\s*[–—\-|:]\s*/)[0] // Split on dashes, pipes, colons
+        .replace(/\s+(restaurant|bar|cafe|kafé|hotell|hotel|bistro|brasserie)\s*$/i, "") // Strip venue type suffixes
+        .trim();
+
+      console.log(
+        `[intelligence] Step 2: Searching Brreg for "${cleanName}" (raw: "${companyName}")...`,
+      );
+      brregEntity = await searchBrregByName(cleanName, scrapedCity);
 
       // ── STEP 3: Fetch full Brreg details + roles ──
       if (brregEntity) {
         brregMatched = true;
-        const orgNumber = brregEntity.organisasjonsnummer;
-        console.log(`[intelligence] Step 3: Brreg match found: ${orgNumber} (${brregEntity.navn})`);
+        const matchedOrgNumber = brregEntity.organisasjonsnummer;
+        console.log(
+          `[intelligence] Step 3: Brreg match found: ${matchedOrgNumber} (${brregEntity.navn})`,
+        );
 
         // Fetch details + roles in parallel
         const [fullDetails, leader] = await Promise.all([
-          fetchBrregDetails(orgNumber),
-          fetchDagligLeder(orgNumber),
+          fetchBrregDetails(matchedOrgNumber),
+          fetchDagligLeder(matchedOrgNumber),
         ]);
 
         if (fullDetails) brregEntity = fullDetails;
