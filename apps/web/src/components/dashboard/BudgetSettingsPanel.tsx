@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useCallback, useRef } from "react";
+import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { ChevronLeft, ChevronRight, ArrowLeft, Calendar, DollarSign } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useBudget } from "@/app/dashboard/_hooks/use-budget";
@@ -279,18 +279,20 @@ function MonthlyForm({
   const [timeToJob, setTimeToJob] = useState<string>("");
 
   const prevExisting = useRef<BudgetEntry | undefined>(undefined);
-  if (prevExisting.current !== existing) {
-    prevExisting.current = existing;
-    if (existing) {
-      setRevenue(existing.revenue_target?.toString() ?? "");
-      setLaborCost(existing.labor_cost_target?.toString() ?? "");
-      setFoodCost(existing.food_cost_target?.toString() ?? "");
-      setCostOfSales(existing.cost_of_sales_target?.toString() ?? "");
-      setTurnover(existing.turnover_target?.toString() ?? "");
-      setAbsence(existing.absence_threshold?.toString() ?? "");
-      setTimeToJob(existing.time_to_job_target?.toString() ?? "");
+  useEffect(() => {
+    if (prevExisting.current !== existing) {
+      prevExisting.current = existing;
+      if (existing) {
+        setRevenue(existing.revenue_target?.toString() ?? "");
+        setLaborCost(existing.labor_cost_target?.toString() ?? "");
+        setFoodCost(existing.food_cost_target?.toString() ?? "");
+        setCostOfSales(existing.cost_of_sales_target?.toString() ?? "");
+        setTurnover(existing.turnover_target?.toString() ?? "");
+        setAbsence(existing.absence_threshold?.toString() ?? "");
+        setTimeToJob(existing.time_to_job_target?.toString() ?? "");
+      }
     }
-  }
+  }, [existing]);
 
   function handleSave() {
     onSave({
@@ -447,12 +449,14 @@ function WeeklyRow({
   const [food, setFood] = useState(existing?.food_cost_target?.toString() ?? "");
 
   const prevExisting = useRef<BudgetEntry | undefined>(undefined);
-  if (prevExisting.current !== existing) {
-    prevExisting.current = existing;
-    setRevenue(existing?.revenue_target?.toString() ?? "");
-    setLabor(existing?.labor_cost_target?.toString() ?? "");
-    setFood(existing?.food_cost_target?.toString() ?? "");
-  }
+  useEffect(() => {
+    if (prevExisting.current !== existing) {
+      prevExisting.current = existing;
+      setRevenue(existing?.revenue_target?.toString() ?? "");
+      setLabor(existing?.labor_cost_target?.toString() ?? "");
+      setFood(existing?.food_cost_target?.toString() ?? "");
+    }
+  }, [existing]);
 
   const handleBlur = useCallback(() => {
     onSave({
@@ -681,6 +685,20 @@ function HourlyGrid({
   budgets: BudgetEntry[];
   onSave: (entry: Omit<BudgetEntry, "id"> & { id?: string }) => void;
 }) {
+  // For simplicity, use the first selected day as representative
+  const firstDay = Array.from(selectedDays).sort()[0] ?? "";
+
+  const budgetByHour = useMemo(() => {
+    const map = new Map<number, BudgetEntry>();
+    if (!firstDay) return map;
+    for (const b of budgets) {
+      if (b.period_type === "hourly" && b.period_date === firstDay && b.hour_slot !== null) {
+        map.set(b.hour_slot, b);
+      }
+    }
+    return map;
+  }, [budgets, firstDay]);
+
   if (selectedDays.size === 0) {
     return (
       <div className="border-border bg-card mt-2 flex flex-col items-center justify-center rounded-xl border p-8">
@@ -694,19 +712,6 @@ function HourlyGrid({
       </div>
     );
   }
-
-  // For simplicity, use the first selected day as representative
-  const firstDay = Array.from(selectedDays).sort()[0]!;
-
-  const budgetByHour = useMemo(() => {
-    const map = new Map<number, BudgetEntry>();
-    for (const b of budgets) {
-      if (b.period_type === "hourly" && b.period_date === firstDay && b.hour_slot !== null) {
-        map.set(b.hour_slot, b);
-      }
-    }
-    return map;
-  }, [budgets, firstDay]);
 
   return (
     <div className="border-border bg-card mt-2 overflow-hidden rounded-xl border">
@@ -753,11 +758,13 @@ function HourlyRow({
   const [labor, setLabor] = useState(existing?.labor_cost_target?.toString() ?? "");
 
   const prevExisting = useRef<BudgetEntry | undefined>(undefined);
-  if (prevExisting.current !== existing) {
-    prevExisting.current = existing;
-    setRevenue(existing?.revenue_target?.toString() ?? "");
-    setLabor(existing?.labor_cost_target?.toString() ?? "");
-  }
+  useEffect(() => {
+    if (prevExisting.current !== existing) {
+      prevExisting.current = existing;
+      setRevenue(existing?.revenue_target?.toString() ?? "");
+      setLabor(existing?.labor_cost_target?.toString() ?? "");
+    }
+  }, [existing]);
 
   const handleBlur = useCallback(() => {
     // Save for all selected days

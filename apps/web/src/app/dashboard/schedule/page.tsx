@@ -379,7 +379,7 @@ function SchedulePageContent() {
 
   // Sorted employees: apply custom order first, then compact auto-sort
   const sortedEmployees = useMemo(() => {
-    let sorted = [...employees];
+    const sorted = [...employees];
 
     // Apply custom order if any
     if (employeeOrder.length > 0) {

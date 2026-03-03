@@ -35,7 +35,7 @@ function VoiceVisualizer({
           animate={
             isSpeaking
               ? {
-                  height: [4, 14 + Math.random() * 10, 6, 18 + Math.random() * 6, 4],
+                  height: [4, 14 + i * 3, 6, 18 + i * 2, 4],
                   opacity: [0.5, 0.9, 0.6, 1, 0.5],
                 }
               : isConnected

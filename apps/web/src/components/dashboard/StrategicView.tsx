@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Percent,
   AlertCircle,
@@ -476,10 +476,12 @@ function DialogTargetInput({
   const prevValue = useRef(value);
 
   // Sync local state when DB value changes (after mutation completes)
-  if (prevValue.current !== value) {
-    prevValue.current = value;
-    setLocal(value);
-  }
+  useEffect(() => {
+    if (prevValue.current !== value) {
+      prevValue.current = value;
+      setLocal(value);
+    }
+  }, [value]);
 
   return (
     <div className="flex flex-col gap-2">
@@ -541,10 +543,12 @@ function KPICard({
   const prevTarget = useRef(targetValue);
 
   // Sync edit value when target changes from DB
-  if (prevTarget.current !== targetValue) {
-    prevTarget.current = targetValue;
-    setEditValue(targetValue);
-  }
+  useEffect(() => {
+    if (prevTarget.current !== targetValue) {
+      prevTarget.current = targetValue;
+      setEditValue(targetValue);
+    }
+  }, [targetValue]);
 
   function commitEdit() {
     if (editValue !== targetValue) {

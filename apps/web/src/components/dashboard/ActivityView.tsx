@@ -548,7 +548,7 @@ function ActivityDetailPanel({
       <div className="space-y-1">
         <p className="text-muted-foreground mb-2 text-xs">Hourly breakdown</p>
         {hours.map((h) => {
-          const activity = Math.floor(Math.random() * 100);
+          const activity = (h * 17 + 43) % 100;
           return (
             <div key={h} className="flex items-center gap-3">
               <span className="text-muted-foreground w-12 font-mono text-xs">
@@ -571,7 +571,7 @@ function ActivityDetailPanel({
   const entries = Array.from({ length: 5 }, (_, i) => ({
     time: `${8 + i * 2}:${i % 2 === 0 ? "00" : "30"}`,
     event: ["Shift start", "Training session", "Break period", "Inspection", "Shift end"][i],
-    score: Math.floor(Math.random() * 100),
+    score: (i * 23 + 37) % 100,
   }));
 
   return (

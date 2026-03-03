@@ -23,7 +23,7 @@ function LargeVoiceVisualizer({
           animate={
             isSpeaking
               ? {
-                  height: [8, 40 + Math.random() * 30, 12, 50 + Math.random() * 20, 8],
+                  height: [8, 40 + i * 5, 12, 50 + i * 4, 8],
                   opacity: [0.5, 0.9, 0.6, 1, 0.5],
                 }
               : isConnected

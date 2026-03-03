@@ -32,7 +32,9 @@ export function useJourneySocket({
   const [isConnected, setIsConnected] = useState(false);
   const [lastCommand, setLastCommand] = useState<UICommand | null>(null);
   const onCommandRef = useRef(onCommand);
-  onCommandRef.current = onCommand;
+  useEffect(() => {
+    onCommandRef.current = onCommand;
+  });
 
   useEffect(() => {
     if (!sessionId || !token) return;
