@@ -1,7 +1,7 @@
 ---
 title: Session Log
 status: in_progress
-updated: 2026-03-11
+updated: 2026-03-12
 created: 2026-03-02
 module: meta
 tags: [session, boot-sequence, continuity]
@@ -13,31 +13,30 @@ tags: [session, boot-sequence, continuity]
 
 ## Last Session
 
-| Field   | Value                  |
-| ------- | ---------------------- |
-| Date    | 2026-03-11             |
-| Branch  | `development`          |
-| Feature | cleanup + housekeeping |
-| Status  | done                   |
+| Field   | Value                                   |
+| ------- | --------------------------------------- |
+| Date    | 2026-03-11                              |
+| Branch  | `development`                           |
+| Feature | env consolidation + Twilio + addKeyFact |
+| Status  | in_progress                             |
 
 ### What was done
 
-- Pushed development to origin (16 commits of migration remediation work)
-- Closed `feat/agent-profile-system` — all closure gates (worklog, journeys, decisions, learnings), wt-1 + branch removed
-- Committed docs housekeeping (narratives, completed plans, infra env example)
-- Cherry-picked 4 commits from `feat/onboarding-intelligence-pipeline` (edge function rewrites, Serper.dev, env vars)
-- Skipped 3 obsolete pipeline commits (conflicted with merged onboarding-redesign)
-- Fixed merge conflict markers in `onboarding/types.ts`
-- Fixed stray `keys-page-client.tsx` (EnvImportDialog wiring)
-- Pruned 29 stale remote `feat/*` branches + 1 orphan `worktree-stage-enginen`
-- Removed wt-3 worktree + local pipeline branch
+- Resolved 3 stash conflict files (WizardContext.tsx, useBotsson.ts, registry.ts)
+- Created shared Twilio SMS helper for Edge Functions (`supabase/functions/_shared/twilio.ts`)
+- Refactored `create-invitation` to use shared Twilio helper
+- Fixed `saveMemory` type signature mismatch in BotssonActions (1-param vs 3-param)
+- Implemented `addKeyFact` client tool for voice agent (label+value → KeyFactsPanel)
+- Updated PACKAGES.md (added `./sms` export), ENV_VARS.md (Edge Function + service vars)
+- Consolidated all env vars into single `.env.example` (done in previous sub-session)
+- Fixed Brreg name matching + daglig leder fallback (done in previous sub-session)
+- Typecheck 18/18 passing, pushed to development
 
 ### Where we stopped
 
-- Repo fully clean: `development` + `main` only (local + remote)
-- No active worktrees, all slots free
-- Typecheck 18/18 FULL TURBO
-- 6 unstaged files on development from another session (env consolidation + gather-intelligence + env-import-dialog)
+- `addKeyFact` tool implemented but not yet committed
+- Docs updates (PACKAGES.md, ENV_VARS.md, SESSION.md, DASHBOARD.md) not yet committed
+- Some unstaged onboarding files from stash restoration still on disk
 
 ### Known blockers / errors
 

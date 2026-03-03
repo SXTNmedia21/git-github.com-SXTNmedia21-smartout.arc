@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: in_progress
-updated: 2026-03-11
+updated: 2026-03-12
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -116,3 +116,4 @@ _None._
 | 2026-03-10 | (migration remediation)          | session           | Pushed development (16 commits). Cleaned docs, committed landing variants. Closed agent-profile-system.                                                                                        |
 | 2026-03-11 | onboarding-redesign              | closed            | 19 commits merged. Scroll-based onboarding, voice agent, Google SSO, reset button, AgentCard. wt-2 freed                                                                                       |
 | 2026-03-11 | (cleanup + housekeeping)         | session ended     | Cherry-picked intelligence pipeline edge functions. Closed agent-profile-system. Pruned 29 stale remote branches. Fixed merge conflicts + stray import. Repo fully clean.                      |
+| 2026-03-12 | (env + twilio + tools)           | session           | Resolved stash conflicts, Twilio Edge Function helper, env consolidation, addKeyFact tool, docs updates.                                                                                       |

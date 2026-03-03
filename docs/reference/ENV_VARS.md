@@ -5,7 +5,7 @@ version: "1.0"
 status: canonical
 layer: reference
 created: 2026-02-28
-updated: 2026-02-28
+updated: 2026-03-11
 author: claude
 supersedes: []
 superseded_by: null
@@ -13,6 +13,8 @@ depends_on: []
 tags: [env, secrets, configuration, 1password, validation, t3-env]
 tables: []
 changelog:
+  - date: 2026-03-11
+    change: "Note consolidated .env.example, add Edge Function + service vars, add TWILIO_FROM_NUMBER"
   - date: 2026-02-28
     change: "Initial version -- consolidated from CLAUDE.md + apps/web/src/env.ts + apps/landing/src/env.ts"
 ---
@@ -179,6 +181,56 @@ pnpm --filter landing dev   # port 3055
 | `NEXT_PUBLIC_WEB_APP_URL`       | `http://localhost:3050`  | `https://app.smartout.ai` |
 | `SENTRY_DSN`                    | Not set                  | Production DSN            |
 | `UPSTASH_REDIS_*`               | Not set                  | Upstash credentials       |
+
+---
+
+## Consolidated .env.example
+
+A single `.env.example` at the repo root lists ALL environment variables across all apps, services, and Edge Functions. Service-specific `.env.example` files were removed in March 2026.
+
+```bash
+# Copy and fill in:
+cp .env.example .env.local
+```
+
+---
+
+## Edge Function Variables (Deno.env)
+
+These are set via `supabase/functions/.env` or Supabase Dashboard secrets.
+
+| Variable                    | Required | Notes                        |
+| --------------------------- | -------- | ---------------------------- |
+| `SUPABASE_URL`              | Auto     | Injected by Supabase runtime |
+| `SUPABASE_ANON_KEY`         | Auto     | Injected by Supabase runtime |
+| `SUPABASE_SERVICE_ROLE_KEY` | Auto     | Injected by Supabase runtime |
+| `SENDGRID_API_KEY`          | No       | Email dispatch (invitations) |
+| `TWILIO_ACCOUNT_SID`        | No       | SMS dispatch (invitations)   |
+| `TWILIO_AUTH_TOKEN`         | No       | SMS dispatch (invitations)   |
+| `TWILIO_FROM_NUMBER`        | No       | SMS sender number            |
+| `SERPER_API_KEY`            | No       | Web search in intelligence   |
+| `SITE_URL`                  | No       | Invite link base URL         |
+| `WATCHDOG_CRON_SECRET`      | No       | Cron-only Edge Function auth |
+
+---
+
+## Service Variables
+
+### Stage Engine (services/stage-engine)
+
+| Variable               | Required | Notes                    |
+| ---------------------- | -------- | ------------------------ |
+| `STAGE_ENGINE_API_KEY` | Yes      | Service auth key         |
+| `ENGINE_URL`           | No       | Self-reference URL       |
+| `ENVIRONMENT`          | No       | development / production |
+| `LOG_LEVEL`            | No       | debug / info / warn      |
+
+### Contract Service (services/contract-service)
+
+| Variable               | Required | Notes            |
+| ---------------------- | -------- | ---------------- |
+| `CONTRACT_SERVICE_KEY` | Yes      | Service auth key |
+| `PORT`                 | No       | Default: 3100    |
 
 ---
 

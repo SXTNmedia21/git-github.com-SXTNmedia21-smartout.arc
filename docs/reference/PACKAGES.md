@@ -5,7 +5,7 @@ version: "1.0"
 status: canonical
 layer: reference
 created: 2026-02-28
-updated: 2026-02-28
+updated: 2026-03-11
 author: claude
 supersedes: []
 superseded_by: null
@@ -13,6 +13,8 @@ depends_on: []
 tags: [packages, monorepo, exports, dependencies, pnpm]
 tables: []
 changelog:
+  - date: 2026-03-11
+    change: "Add @smartout/notifications ./sms export (Twilio SDK SMS service)"
   - date: 2026-02-28
     change: "Initial version -- consolidated from CLAUDE.md + actual package.json files"
 ---
@@ -35,7 +37,7 @@ All monorepo packages with their export paths, dependencies, and build commands.
 | `packages/eslint-config`     | @smartout/eslint-config     | --               | Yes (3 paths)        |
 | `packages/typescript-config` | @smartout/typescript-config | --               | No (JSON files)      |
 | `packages/telemetry`         | @smartout/telemetry         | --               | Yes (2 paths)        |
-| `packages/notifications`     | @smartout/notifications     | --               | Yes (4 paths)        |
+| `packages/notifications`     | @smartout/notifications     | --               | Yes (5 paths)        |
 | `packages/utils`             | @smartout/utils             | --               | No (main/types only) |
 | `packages/i18n`              | @smartout/i18n              | --               | No (main/types only) |
 
@@ -191,12 +193,13 @@ Email + SMS sending via SendGrid/Twilio.
 
 **Exports:**
 
-| Path           | File                  | Purpose                                           |
-| -------------- | --------------------- | ------------------------------------------------- |
-| `.`            | `./src/index.ts`      | `sendEmail`, `createBroadcastJob`, `getJobStatus` |
-| `./templates`  | `./src/templates.ts`  | Email template registry                           |
-| `./audiences`  | `./src/audiences.ts`  | Audience filter types + resolvers                 |
-| `./compliance` | `./src/compliance.ts` | Suppression list, classification                  |
+| Path           | File                   | Purpose                                           |
+| -------------- | ---------------------- | ------------------------------------------------- |
+| `.`            | `./src/index.ts`       | `sendEmail`, `createBroadcastJob`, `getJobStatus` |
+| `./sms`        | `./src/sms-service.ts` | `sendSms`, `sendSmsBatch` via Twilio SDK          |
+| `./templates`  | `./src/templates.ts`   | Email template registry                           |
+| `./audiences`  | `./src/audiences.ts`   | Audience filter types + resolvers                 |
+| `./compliance` | `./src/compliance.ts`  | Suppression list, classification                  |
 
 **Dependencies:**
 

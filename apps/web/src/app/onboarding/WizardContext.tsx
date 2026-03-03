@@ -90,6 +90,14 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  // Add a key fact to the visual panel (agent tool)
+  const addKeyFact = useCallback(
+    (label: string, value: string) => {
+      state.saveMemory(`${label}: ${value}`);
+    },
+    [state.saveMemory],
+  );
+
   // Writable actions the agent can invoke via client tools
   const botssonActions: BotssonActions = useMemo(
     () => ({
@@ -99,6 +107,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       addDepartments,
       triggerScrape: state.triggerScrape,
       advanceToNextSection,
+      addKeyFact,
       saveMemory,
     }),
     [
@@ -108,6 +117,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       addDepartments,
       state.triggerScrape,
       advanceToNextSection,
+      addKeyFact,
       saveMemory,
     ],
   );

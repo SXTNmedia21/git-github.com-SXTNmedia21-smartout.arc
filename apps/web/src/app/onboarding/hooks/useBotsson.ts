@@ -15,7 +15,14 @@ export interface BotssonActions {
   addDepartments: (names: string[]) => void;
   triggerScrape: (url: string, orgNumber: string) => Promise<void>;
   advanceToNextSection: () => void;
+  addKeyFact: (label: string, value: string) => void;
   saveMemory: (content: string, memoryType: string, expiresAt?: string) => Promise<void>;
+}
+
+export interface DebugEntry {
+  timestamp: number;
+  type: "status" | "tool_call" | "tool_result" | "context_push" | "inference" | "event";
+  content: string;
 }
 
 interface BotssonState {
@@ -26,6 +33,7 @@ interface BotssonState {
   currentText: string;
   transcript: { role: string; text: string }[];
   contextLog: string[];
+  debugLog: DebugEntry[];
   startSession: () => Promise<void>;
   endSession: () => void;
   toggleMic: () => void;
@@ -124,6 +132,31 @@ const CLIENT_TOOLS = [
   },
   {
     temporaryTool: {
+      modelToolName: "addKeyFact",
+      description:
+        "Add a key fact to the visual panel (top-left). Use this actively as you learn things: business name, city, industry, employees, season, departments. The panel builds trust and gives the user an overview.",
+      dynamicParameters: [
+        {
+          name: "label",
+          location: "PARAMETER_LOCATION_BODY",
+          schema: {
+            type: "string",
+            description: 'Short label, e.g. "Bedrift", "By", "Bransje", "Ansatte", "Sesong"',
+          },
+          required: true,
+        },
+        {
+          name: "value",
+          location: "PARAMETER_LOCATION_BODY",
+          schema: { type: "string", description: 'The fact value, e.g. "Burger Bar", "Oslo"' },
+          required: true,
+        },
+      ],
+      client: {},
+    },
+  },
+  {
+    temporaryTool: {
       modelToolName: "saveMemory",
       description:
         'Save a memory about the user. RULES: (1) ALWAYS confirm with the user before saving — say what you want to remember and ask "Skal jeg notere det?" Only call after user confirms. (2) Only save factual knowledge — business details, preferences, team structure. NEVER save tasks or reminders. Type "constant" for permanent facts, "temporal" for time-limited info with an end date.',
@@ -165,9 +198,14 @@ export function useBotsson(actions?: BotssonActions): BotssonState {
   const [isMuted, setIsMuted] = useState(false);
   const [currentText, setCurrentText] = useState("");
   const [contextLog, setContextLog] = useState<string[]>([]);
+  const [debugLog, setDebugLog] = useState<DebugEntry[]>([]);
   const sessionRef = useRef<UltravoxSession | null>(null);
   const startingRef = useRef(false);
   const actionsRef = useRef(actions);
+
+  const addDebug = useCallback((type: DebugEntry["type"], content: string) => {
+    setDebugLog((prev) => [...prev, { timestamp: Date.now(), type, content }]);
+  }, []);
 
   // Keep ref in sync
   useEffect(() => {
@@ -233,6 +271,15 @@ export function useBotsson(actions?: BotssonActions): BotssonState {
         return JSON.stringify({ success: true, message: "Scrolled to next section" });
       });
 
+      session.registerToolImplementation("addKeyFact", (params) => {
+        const label = String(params.label ?? "");
+        const value = String(params.value ?? "");
+        if (label && value) {
+          actionsRef.current?.addKeyFact(label, value);
+        }
+        return JSON.stringify({ success: true, message: `Added: ${label}: ${value}` });
+      });
+
       session.registerToolImplementation("saveMemory", (params) => {
         const content = String(params.content ?? "");
         const memoryType = String(params.memoryType ?? "constant");
@@ -241,19 +288,43 @@ export function useBotsson(actions?: BotssonActions): BotssonState {
         return JSON.stringify({ success: true, message: "Memory saved" });
       });
 
+      // Capture ALL data messages for debug — tool calls, transcripts, state changes
+      session.addEventListener("data_message", ((e: Event) => {
+        if (sessionRef.current !== session) return;
+        const evt = e as CustomEvent & { message?: Record<string, unknown> };
+        const msg = evt.message ?? (evt as unknown as { detail?: Record<string, unknown> }).detail;
+        if (!msg) return;
+
+        const msgType = String(msg.type ?? "unknown");
+
+        if (msgType === "client_tool_invocation") {
+          const toolName = String(msg.toolName ?? msg.tool_name ?? "unknown");
+          const params = msg.parameters ?? msg.invocationId ?? "";
+          addDebug(
+            "tool_call",
+            `${toolName}(${typeof params === "string" ? params : JSON.stringify(params)})`,
+          );
+        } else if (msgType !== "state" && msgType !== "transcript") {
+          addDebug("event", `${msgType}: ${JSON.stringify(msg).slice(0, 200)}`);
+        }
+      }) as EventListener);
+
       let introSent = false;
       session.addEventListener("status", () => {
         if (sessionRef.current === session) {
-          setStatus(session.status || "idle");
+          const newStatus = session.status || "idle";
+          setStatus(newStatus);
+          addDebug("status", String(newStatus));
 
           // Send inference trigger ONCE when session first becomes LISTENING
           if (!introSent && session.status === UltravoxSessionStatus.LISTENING) {
             introSent = true;
             setTimeout(() => {
               if (sessionRef.current === session) {
-                session.sendText(
-                  "[Systemmelding: Brukeren er klar. Start samtalen — presenter deg og spør hva de heter.]",
-                );
+                const msg =
+                  "[Systemmelding: Brukeren er klar. Start samtalen — presenter deg og spør hva de heter.]";
+                addDebug("inference", msg);
+                session.sendText(msg);
               }
             }, 800);
           }
@@ -326,6 +397,7 @@ export function useBotsson(actions?: BotssonActions): BotssonState {
     setStatus("idle");
     setCurrentText("");
     setContextLog([]);
+    setDebugLog([]);
   }, []);
 
   const toggleMic = useCallback(() => {
@@ -353,6 +425,7 @@ export function useBotsson(actions?: BotssonActions): BotssonState {
 
     if (connected) {
       setContextLog((prev) => [...prev, text]);
+      addDebug("context_push", text);
       session.sendText(text);
     }
   }, []);
@@ -382,6 +455,7 @@ export function useBotsson(actions?: BotssonActions): BotssonState {
     currentText,
     transcript,
     contextLog,
+    debugLog,
     startSession,
     endSession,
     toggleMic,
