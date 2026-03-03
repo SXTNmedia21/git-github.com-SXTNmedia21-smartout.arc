@@ -67,6 +67,32 @@ export function buildStagePrompt(
     );
   }
 
+  // Journey step enrichment
+  const journeyStep = context.journeyStep as Record<string, unknown> | undefined;
+  if (journeyStep) {
+    sections.push(`\n--- AKTUELT JOURNEY-STEG ---`);
+    sections.push(
+      `Steg ${journeyStep.step_order} av ${context.journey_total_steps ?? "?"}: "${journeyStep.title}"`,
+    );
+    if (journeyStep.action) sections.push(`Brukerens handling: ${journeyStep.action}`);
+    if (journeyStep.expects) sections.push(`Forventet resultat: ${journeyStep.expects}`);
+    if (journeyStep.screen) sections.push(`Brukerens skjerm: ${journeyStep.screen}`);
+    if (journeyStep.component) sections.push(`UI-komponent: ${journeyStep.component}`);
+    const dataWrites = journeyStep.data_writes as string[] | undefined;
+    if (dataWrites && dataWrites.length > 0) {
+      sections.push(`Data du skal samle: ${dataWrites.join(", ")}`);
+    }
+    if (journeyStep.required_confirmation) {
+      sections.push(`VIKTIG: Bruker MÅ eksplisitt bekrefte før du kan gå videre.`);
+    }
+  }
+
+  // Progress
+  const journeyProgress = context.journey_progress as string | undefined;
+  if (journeyProgress) {
+    sections.push(`Progresjon: ${journeyProgress}`);
+  }
+
   // History from previous stages
   if (Object.keys(collectedData).length > 0) {
     sections.push(

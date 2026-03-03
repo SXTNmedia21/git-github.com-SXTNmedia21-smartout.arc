@@ -189,19 +189,30 @@ export async function createSession(
   const context: Record<string, unknown> = { ...identityContext, ...(req.context ?? {}) };
 
   // Include journey context if mission is linked to a journey
-  if (journey && journeySteps.length > 0) {
-    context.journey = {
-      title: journey.title,
-      code: journey.code,
-      steps: journeySteps.map((s) => ({
-        step_order: s.step_order,
-        title: s.title,
-        action: s.action,
-        expects: s.expects,
-        screen: s.screen,
-        component: s.component,
-      })),
-    };
+  const journeyContext = journey
+    ? {
+        journey_id: mission.journey_id,
+        journey_title: journey.title as string,
+        journey_code: journey.code as string,
+        total_steps: journeySteps.length,
+        steps: journeySteps.map((s) => ({
+          step_order: s.step_order,
+          title: s.title,
+          action: s.action,
+          expects: s.expects,
+          screen: s.screen,
+          component: s.component,
+          data_writes: s.data_writes ?? [],
+          data_reads: s.data_reads ?? [],
+          min_duration_seconds: s.min_duration_seconds,
+          max_duration_seconds: s.max_duration_seconds,
+          required_confirmation: s.required_confirmation,
+        })),
+      }
+    : null;
+
+  if (journeyContext) {
+    context.journey = journeyContext;
   }
 
   // Create session row
@@ -219,6 +230,9 @@ export async function createSession(
       context,
       collected_data: {},
       callback_url: req.callback_url ?? null,
+      journey_id: mission.journey_id ?? null,
+      stage_started_at: new Date().toISOString(),
+      guardian_whisper_count: 0,
     })
     .select()
     .single();
