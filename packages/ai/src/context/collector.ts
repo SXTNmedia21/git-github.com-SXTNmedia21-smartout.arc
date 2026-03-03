@@ -130,8 +130,8 @@ export async function collectContext(params: {
     id: profileId,
     name: profileRow?.display_name ?? "Ansatt",
     role,
-    department: (profileRow?.department as { name: string } | null)?.name ?? null,
-    team: (profileRow?.team as { name: string } | null)?.name ?? null,
+    department: (profileRow?.department as unknown as { name: string } | null)?.name ?? null,
+    team: (profileRow?.team as unknown as { name: string } | null)?.name ?? null,
     status: profileRow?.status ?? "active",
     preferredLanguage: profileRow?.preferred_language ?? "no",
   };
@@ -161,7 +161,7 @@ export async function collectContext(params: {
           start: activeShiftRow.start_time,
           end: activeShiftRow.end_time,
           role: activeShiftRow.role ?? "",
-          department: (activeShiftRow.department as { name: string } | null)?.name ?? "",
+          department: (activeShiftRow.department as unknown as { name: string } | null)?.name ?? "",
         }
       : null,
     relationship,
