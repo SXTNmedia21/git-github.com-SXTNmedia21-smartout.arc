@@ -434,7 +434,7 @@ export function BillingClient({ companies, mrrData }: BillingClientProps) {
           </div>
 
           {/* Table */}
-          <div className="border-border rounded-md border">
+          <div className="border-border overflow-x-auto rounded-md border">
             <TooltipProvider>
               <Table>
                 <TableHeader>
