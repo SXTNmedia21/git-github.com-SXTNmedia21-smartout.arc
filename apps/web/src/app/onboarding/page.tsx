@@ -49,6 +49,9 @@ function ScrollContainer() {
         ref={containerRef as React.RefObject<HTMLElement>}
         className="h-dvh snap-y snap-mandatory overflow-y-auto"
         style={{ scrollBehavior: "smooth" }}
+        onClick={() => {
+          if (!botsson.isUnlocked) botsson.unlock();
+        }}
       >
         {ONBOARDING_SECTIONS.map((section) => {
           const SectionComponent = SECTION_COMPONENTS[section];
@@ -68,8 +71,10 @@ function ScrollContainer() {
       <BotssonAvatar
         isSpeaking={botsson.isSpeaking}
         isEnabled={botsson.isEnabled}
+        isUnlocked={botsson.isUnlocked}
         currentText={botsson.currentText}
         onToggle={botsson.toggleVoice}
+        onUnlock={botsson.unlock}
       />
     </>
   );
