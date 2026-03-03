@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: in_progress
-updated: 2026-03-03
+updated: 2026-03-08
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -13,22 +13,25 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-_None — all worktrees freed._
+| #   | Branch                     | Module     | Status      | Progress     | Blocker | State |
+| --- | -------------------------- | ---------- | ----------- | ------------ | ------- | ----- |
+| 2   | `feat/onboarding-redesign` | onboarding | in_progress | just started | —       | clean |
+
+> **Note:** wt-1 (`feat/operation`) and wt-3 (`feat/daily-standup`) still exist as git worktrees despite being marked abandoned on 2026-03-07. Clean up with `git worktree remove`.
 
 ## Free Slots
 
 | #     | Available |
 | ----- | --------- |
-| wt-1  | yes       |
-| wt-2  | yes       |
-| wt-3  | yes       |
 | wt-4  | yes       |
 | wt-5  | yes       |
 | wt-20 | yes       |
 
 ## Pending Journeys
 
-_None._
+| Worktree | Feature             | Journey File                                   | Status  |
+| -------- | ------------------- | ---------------------------------------------- | ------- |
+| wt-2     | onboarding-redesign | `docs/journeys/JOURNEY-onboarding-redesign.md` | missing |
 
 ## Recent Closures
 
@@ -98,3 +101,5 @@ _None._
 | 2026-03-07 | daily-standup               | abandoned         | Empty branch (0 commits). Worktree + branch removed.                                                                                                                                           |
 | 2026-03-07 | (comms closure)             | session ended     | Verified comms-finish plan (8/8 tasks), closed feature, cf 2 merged. Clean development.                                                                                                        |
 | 2026-03-03 | DO droplet deployment       | session ended     | Fixed all 5 DO services: env vars, swapped keys, DNS A-records (GoDaddy), TLS certs, contract-service Vault fallback. All services verified working.                                           |
+| 2026-03-08 | (hydration fix)             | session ended     | Fixed React hydration mismatch: lazy-loaded ReactQueryDevtools in query-provider.tsx. 1 file changed on development.                                                                           |
+| 2026-03-07 | onboarding-redesign         | started           | wt-2, module: onboarding — 5-step dashboard-style onboarding replacing 15-step wizard                                                                                                          |

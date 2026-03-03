@@ -1,7 +1,7 @@
 ---
 title: Session Log
 status: in_progress
-updated: 2026-03-03
+updated: 2026-03-08
 created: 2026-03-02
 module: meta
 tags: [session, boot-sequence, continuity]
@@ -13,38 +13,34 @@ tags: [session, boot-sequence, continuity]
 
 ## Last Session
 
-| Field   | Value                          |
-| ------- | ------------------------------ |
-| Date    | 2026-03-03                     |
-| Branch  | `development`                  |
-| Feature | DO droplet services deployment |
-| Status  | done                           |
+| Field   | Value         |
+| ------- | ------------- |
+| Date    | 2026-03-08    |
+| Branch  | `development` |
+| Feature | hydration fix |
+| Status  | done          |
 
 ### What was done
 
-- Diagnosed all 5 DO droplet services — only scrapling was running
-- Fixed empty `.env` on droplet (user filled in Supabase credentials)
-- Fixed swapped SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY
-- Fixed DNS: subdomains pointed to Vercel (wildcard CNAME) instead of droplet — user added A-records in GoDaddy for engine, schedule-mcp, contract, n8n
-- Restarted Caddy to provision Let's Encrypt TLS certificates for all 4 subdomains
-- Fixed contract-service crash: added env var fallback when Vault `get_secret()` is unavailable (commit c7992e4)
-- Verified all 5 services respond correctly with real requests (scrapling extracts data, others reject unauthorized calls properly)
+- Fixed React hydration mismatch in `apps/web/src/app/dashboard/query-provider.tsx`
+- Root cause: `ReactQueryDevtools` static import rendered differently during SSR vs client, shifting Radix UI `useId()` counter
+- Fix: lazy-loaded `ReactQueryDevtools` with `next/dynamic` + `ssr: false`
 
 ### Where we stopped
 
-- All 5 services running and verified on droplet
-- All worktrees freed, development branch clean, no uncommitted changes
+- Fix applied, 1 uncommitted file on development (`query-provider.tsx`)
+- 2 untracked plan files from prior session (`docs/plans/2026-03-03-onboarding-redesign-*.md`)
 
 ### Known blockers / errors
 
-- Contract-service uses env var fallback — Vault `get_secret()` function not deployed to production Supabase (migration exists but `supabase_vault` extension may not be enabled)
-- Caddy health check shows "unhealthy" (likely stale from before cert provisioning — may self-resolve)
+- Contract-service uses env var fallback — Vault `get_secret()` not deployed to production
 
 ### Pending decisions
 
-- [ ] Enable `supabase_vault` extension on production and seed DocuSeal secrets for proper Vault-based secret management
-- [ ] Lock down port 8000 on droplet with UFW (scrapling has no auth, currently open)
-- [ ] Pick next feature to work on
+- [ ] Commit the hydration fix to development
+- [ ] Confirm 5 open questions in onboarding redesign plan
+- [ ] Enable `supabase_vault` extension on production
+- [ ] Lock down port 8000 on droplet with UFW
 
 ---
 
