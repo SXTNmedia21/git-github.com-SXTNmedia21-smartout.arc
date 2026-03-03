@@ -13,36 +13,32 @@ tags: [session, boot-sequence, continuity]
 
 ## Last Session
 
-| Field   | Value                      |
-| ------- | -------------------------- |
-| Date    | 2026-03-06                 |
-| Branch  | `feat/entity-detail-pages` |
-| Feature | entity-detail-pages        |
-| Status  | ready_for_closure          |
+| Field   | Value            |
+| ------- | ---------------- |
+| Date    | 2026-03-06       |
+| Branch  | `feat/operation` |
+| Feature | operation        |
+| Status  | in_progress      |
 
 ### What was done
 
-- Completed all closure gates for entity-detail-pages (wt-1)
-- Created user journeys: JOURNEY-entity-detail-pages.md (5 journeys)
-- Populated decision log (3 decisions) and learning log (2 learnings)
-- Updated worklog status to "Ready for Closure"
-- Committed: `feat(org-structure): add entity detail pages with shared layout` (5f5a10b)
-- Committed: `docs(entity-detail-pages): add journeys, decisions, learnings for closure` (05d2b2d)
-- Updated DASHBOARD.md: removed wt-1 from active, added to free slots and recent closures
+- Started new feature: operation
+- Worktree: wt-1
+- Module: operations
 
 ### Where we stopped
 
-- Feature ready for closure
-- Run: `~/.claude/scripts/close-feature.sh 1`
+- Feature just initialized, ready for work
 
 ### Known blockers / errors
 
-- None (all gates passed)
+- None
 
 ### Pending decisions
 
+- [ ] Fill in PLAN-operation.md with scope and tasks
 - [ ] wt-2 (communications-finish) in progress
-- [ ] wt-3 (daily-standup) in progress — DailyCloseEngine plan written
+- [ ] wt-3 (daily-standup) in progress
 
 ---
 
