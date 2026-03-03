@@ -35,8 +35,10 @@ export default async function ContractsPage() {
        sent_at, signed_at, expires_at, created_at, signed_pdf_url,
        company:workspace_id (name),
        template:template_id (name, contract_type)`,
+      { count: "exact" },
     )
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(200);
 
   const contracts = (rawContracts ?? []) as unknown as ContractQueryRow[];
 
