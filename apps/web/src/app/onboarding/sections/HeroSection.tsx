@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@smartout/supabase/client";
 import { useOnboarding } from "../WizardContext";
 import { SectionReveal, RevealItem } from "../components/SectionReveal";
 
 export function HeroSection() {
-  const { isAuthenticated, userId, completeSection } = useOnboarding();
+  const { isAuthenticated, userId, completeSection, activeSection, botsson } = useOnboarding();
+
+  useEffect(() => {
+    if (activeSection === "hero") botsson.triggerSection("hero", "enter");
+  }, [activeSection, botsson]);
   const supabase = createClient();
 
   const [email, setEmail] = useState("");

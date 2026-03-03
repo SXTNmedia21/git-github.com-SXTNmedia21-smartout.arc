@@ -1,11 +1,16 @@
 "use client";
 
+import { useEffect } from "react";
 import { Calendar, TrendingUp } from "lucide-react";
 import { SectionReveal, RevealItem } from "../components/SectionReveal";
 import { useOnboarding } from "../WizardContext";
 
 export function SeasonSection() {
-  const { season, updateSeason, completeSection } = useOnboarding();
+  const { season, updateSeason, completeSection, activeSection, botsson } = useOnboarding();
+
+  useEffect(() => {
+    if (activeSection === "season") botsson.triggerSection("season", "enter");
+  }, [activeSection, botsson]);
 
   return (
     <SectionReveal>

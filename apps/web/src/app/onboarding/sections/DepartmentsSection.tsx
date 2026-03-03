@@ -1,12 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, X } from "lucide-react";
 import { useOnboarding } from "../WizardContext";
 import { SectionReveal, RevealItem } from "../components/SectionReveal";
 
 export function DepartmentsSection() {
-  const { departments, toggleDepartment, addCustomDepartment, completeSection } = useOnboarding();
+  const {
+    departments,
+    toggleDepartment,
+    addCustomDepartment,
+    completeSection,
+    activeSection,
+    botsson,
+  } = useOnboarding();
+
+  useEffect(() => {
+    if (activeSection === "departments") botsson.triggerSection("departments", "enter");
+  }, [activeSection, botsson]);
   const [showInput, setShowInput] = useState(false);
   const [customName, setCustomName] = useState("");
 

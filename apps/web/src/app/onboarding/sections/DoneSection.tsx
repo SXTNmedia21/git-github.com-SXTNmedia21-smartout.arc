@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Users, Calendar, ClipboardList, ArrowRight, Loader2 } from "lucide-react";
 import { useOnboarding } from "../WizardContext";
@@ -18,10 +18,22 @@ function formatDateRange(startDate: string, endDate: string) {
 }
 
 export function DoneSection() {
-  const { business, season, departments, finalize, activatedWorkspaceSlug } = useOnboarding();
+  const {
+    business,
+    season,
+    departments,
+    finalize,
+    activatedWorkspaceSlug,
+    activeSection,
+    botsson,
+  } = useOnboarding();
   const router = useRouter();
   const [isActivating, setIsActivating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (activeSection === "done") botsson.triggerSection("done", "enter");
+  }, [activeSection, botsson]);
 
   const selectedDepartments = departments.filter((d) => d.selected);
   const totalPositions = selectedDepartments.reduce(

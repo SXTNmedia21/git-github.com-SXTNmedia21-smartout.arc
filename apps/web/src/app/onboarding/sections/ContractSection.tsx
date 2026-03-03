@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { FileText, CheckCircle } from "lucide-react";
 import { useOnboarding } from "../WizardContext";
 import { SectionReveal, RevealItem } from "../components/SectionReveal";
@@ -12,7 +13,11 @@ const CONTRACT_INCLUDES = [
 ];
 
 export function ContractSection() {
-  const { business, completeSection } = useOnboarding();
+  const { business, completeSection, activeSection, botsson } = useOnboarding();
+
+  useEffect(() => {
+    if (activeSection === "contract") botsson.triggerSection("contract", "enter");
+  }, [activeSection, botsson]);
 
   const companyName = business.legalName || business.name;
 

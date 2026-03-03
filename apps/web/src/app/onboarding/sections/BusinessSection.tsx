@@ -1,14 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Globe, Hash, Pencil, Check, ArrowRight } from "lucide-react";
 import { useOnboarding } from "../WizardContext";
 import { SectionReveal, RevealItem } from "../components/SectionReveal";
 import { DataMaterializer } from "../components/DataMaterializer";
 
 export function BusinessSection() {
-  const { business, scrapeStatus, triggerScrape, updateBusiness, completeSection } =
-    useOnboarding();
+  const {
+    business,
+    scrapeStatus,
+    triggerScrape,
+    updateBusiness,
+    completeSection,
+    activeSection,
+    botsson,
+  } = useOnboarding();
+
+  useEffect(() => {
+    if (activeSection === "business") botsson.triggerSection("business", "enter");
+  }, [activeSection, botsson]);
+
+  useEffect(() => {
+    if (scrapeStatus === "done") botsson.triggerSection("business", "complete");
+    if (scrapeStatus === "error") botsson.triggerSection("business", "error");
+  }, [scrapeStatus, botsson]);
 
   const [urlInput, setUrlInput] = useState(business.website ?? "");
   const [orgInput, setOrgInput] = useState(business.orgNumber ?? "");
