@@ -23,7 +23,7 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { PlayCircle, Image, CheckCircle, Globe, Mic, Bot } from "lucide-react";
 import Navigation from "../navigation";
 import Footer from "../footer";
@@ -134,7 +134,7 @@ export default function VariantFLanding() {
             Only animation in the entire page: simple fade-in.
             ================================================ */}
         <section className="flex min-h-screen items-center justify-center px-6">
-          <motion.div
+          <m.div
             className="flex w-full flex-col items-center text-center"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -153,7 +153,7 @@ export default function VariantFLanding() {
             >
               Kom i gang
             </Link>
-          </motion.div>
+          </m.div>
         </section>
 
         {/* ================================================

@@ -25,7 +25,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { motion, useInView } from "framer-motion";
+import { m, useInView } from "framer-motion";
 import { usePageTracking, useTrackCta } from "../../hooks/useTracking";
 import { useScrollTracking } from "../../hooks/useScrollTracking";
 import { useClickTracking } from "../../hooks/useClickTracking";
@@ -327,7 +327,7 @@ export default function VariantTLanding() {
         <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-2">
           {/* Left column: headline and CTAs */}
           <div className="z-10">
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
@@ -337,9 +337,9 @@ export default function VariantTLanding() {
               <span className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
                 Enterprise Compliance Platform
               </span>
-            </motion.div>
+            </m.div>
 
-            <motion.h1
+            <m.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
@@ -347,9 +347,9 @@ export default function VariantTLanding() {
             >
               Full kontroll.
               <span className="block text-slate-400">Null gjetning.</span>
-            </motion.h1>
+            </m.h1>
 
-            <motion.p
+            <m.p
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
@@ -357,9 +357,9 @@ export default function VariantTLanding() {
             >
               Samle sertifiseringer, opplaering og compliance i ett system. Revisionsklar
               dokumentasjon, sanntidsdata og full integrasjonsstotte.
-            </motion.p>
+            </m.p>
 
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3 }}
@@ -379,11 +379,11 @@ export default function VariantTLanding() {
               >
                 Book demo
               </Link>
-            </motion.div>
+            </m.div>
           </div>
 
           {/* Right column: animated dashboard mockup with status table */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0, x: 40 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, delay: 0.3 }}
@@ -410,7 +410,7 @@ export default function VariantTLanding() {
                   </thead>
                   <tbody>
                     {heroTableRows.map((row, i) => (
-                      <motion.tr
+                      <m.tr
                         key={row.name}
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -425,7 +425,7 @@ export default function VariantTLanding() {
                             {row.status}
                           </span>
                         </td>
-                      </motion.tr>
+                      </m.tr>
                     ))}
                   </tbody>
                 </table>
@@ -440,7 +440,7 @@ export default function VariantTLanding() {
                 Sanntidsdata
               </div>
             </div>
-          </motion.div>
+          </m.div>
         </div>
       </section>
 
@@ -451,7 +451,7 @@ export default function VariantTLanding() {
           ================================ */}
       <section id="compliance" className="px-6 py-20 lg:py-32">
         <div className="mx-auto max-w-7xl">
-          <motion.div {...fadeUp} className="mb-16 text-center">
+          <m.div {...fadeUp} className="mb-16 text-center">
             <h2 className="mb-4 text-3xl font-bold tracking-tight lg:text-5xl">
               Compliance i sanntid
             </h2>
@@ -459,7 +459,7 @@ export default function VariantTLanding() {
               Alle sertifiseringer, opplaeringsloep og avvik samlet i ett dashboard. Ingen
               overraskelser ved revisjon.
             </p>
-          </motion.div>
+          </m.div>
 
           {/* 3 animated counter stats */}
           <div className="mb-16 grid gap-8 sm:grid-cols-3">
@@ -483,7 +483,7 @@ export default function VariantTLanding() {
                 icon: Shield,
               },
             ].map((stat, i) => (
-              <motion.div
+              <m.div
                 key={stat.suffix}
                 initial={{ opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -500,12 +500,12 @@ export default function VariantTLanding() {
                     duration={2000}
                   />
                 </p>
-              </motion.div>
+              </m.div>
             ))}
           </div>
 
           {/* Fake data table — full compliance table with Norwegian names */}
-          <motion.div
+          <m.div
             {...fadeUp}
             transition={{ duration: 0.6, delay: 0.2 }}
             className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/60"
@@ -548,7 +548,7 @@ export default function VariantTLanding() {
                 </tbody>
               </table>
             </div>
-          </motion.div>
+          </m.div>
         </div>
       </section>
 
@@ -559,7 +559,7 @@ export default function VariantTLanding() {
           ================================ */}
       <section className="px-6 py-20 lg:py-32">
         <div className="mx-auto max-w-7xl">
-          <motion.div {...fadeUp} className="mb-16 text-center">
+          <m.div {...fadeUp} className="mb-16 text-center">
             <h2 className="mb-4 text-3xl font-bold tracking-tight lg:text-5xl">
               Kobles til systemene du allerede bruker
             </h2>
@@ -567,12 +567,12 @@ export default function VariantTLanding() {
               Smartout integrerer med vaktplansystemer, lonnssystemer og POS uten manuell
               dataoverfoering.
             </p>
-          </motion.div>
+          </m.div>
 
           {/* 8-tile integration grid — 2 cols mobile, 4 cols desktop */}
           <div className="mx-auto grid max-w-4xl grid-cols-2 gap-4 sm:grid-cols-4">
             {integrations.map((name, i) => (
-              <motion.div
+              <m.div
                 key={name}
                 initial={{ opacity: 0, scale: 0.9 }}
                 whileInView={{ opacity: 1, scale: 1 }}
@@ -581,12 +581,12 @@ export default function VariantTLanding() {
                 className="flex items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900/60 px-4 py-6 text-center transition-colors hover:border-slate-600 hover:bg-zinc-800/60"
               >
                 <span className="text-sm font-medium text-zinc-300">{name}</span>
-              </motion.div>
+              </m.div>
             ))}
           </div>
 
           {/* API documentation link */}
-          <motion.div {...fadeIn} className="mt-8 text-center">
+          <m.div {...fadeIn} className="mt-8 text-center">
             <Link
               href="/docs/api"
               className="inline-flex items-center gap-1.5 text-sm text-slate-400 transition-colors hover:text-slate-300"
@@ -594,7 +594,7 @@ export default function VariantTLanding() {
               Se full API-dokumentasjon
               <ExternalLink className="h-3.5 w-3.5" />
             </Link>
-          </motion.div>
+          </m.div>
         </div>
       </section>
 
@@ -605,7 +605,7 @@ export default function VariantTLanding() {
           ================================ */}
       <section className="px-6 py-20 lg:py-32">
         <div className="mx-auto max-w-7xl">
-          <motion.div {...fadeUp} className="mb-16 text-center">
+          <m.div {...fadeUp} className="mb-16 text-center">
             <h2 className="mb-4 text-3xl font-bold tracking-tight lg:text-5xl">
               Alle lokasjoner. Ett overblikk.
             </h2>
@@ -613,9 +613,9 @@ export default function VariantTLanding() {
               Sammenlign compliance-status, opplaeringsfremdrift og avvik pa tvers av alle
               avdelinger og eiendommer.
             </p>
-          </motion.div>
+          </m.div>
 
-          <motion.div
+          <m.div
             {...fadeUp}
             transition={{ duration: 0.6, delay: 0.1 }}
             className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 lg:p-10"
@@ -680,7 +680,7 @@ export default function VariantTLanding() {
               {/* 4 mini stat cards in a 2x2 grid */}
               <div className="grid grid-cols-2 gap-4">
                 {propertyStats.map((stat, i) => (
-                  <motion.div
+                  <m.div
                     key={stat.label}
                     initial={{ opacity: 0, y: 16 }}
                     whileInView={{ opacity: 1, y: 0 }}
@@ -691,11 +691,11 @@ export default function VariantTLanding() {
                     <stat.icon className="mb-2 h-5 w-5 text-slate-400" />
                     <p className="text-2xl font-bold text-white">{stat.value}</p>
                     <p className="text-sm text-zinc-500">{stat.label}</p>
-                  </motion.div>
+                  </m.div>
                 ))}
               </div>
             </div>
-          </motion.div>
+          </m.div>
         </div>
       </section>
 
@@ -706,7 +706,7 @@ export default function VariantTLanding() {
           ================================ */}
       <section className="px-6 py-20 lg:py-32">
         <div className="mx-auto max-w-3xl text-center">
-          <motion.div {...fadeUp}>
+          <m.div {...fadeUp}>
             <MonitorSmartphone className="mx-auto mb-6 h-10 w-10 text-slate-400" />
             <h2 className="mb-4 text-3xl font-bold tracking-tight lg:text-5xl">
               Dine data. Ditt format.
@@ -715,11 +715,11 @@ export default function VariantTLanding() {
               Eksporter, integrer eller bygg videre. Du eier alltid dataene dine — uten vendor
               lock-in.
             </p>
-          </motion.div>
+          </m.div>
 
           <div className="space-y-6">
             {exportFeatures.map((feature, i) => (
-              <motion.div
+              <m.div
                 key={feature.text}
                 initial={{ opacity: 0, x: -20 }}
                 whileInView={{ opacity: 1, x: 0 }}
@@ -731,7 +731,7 @@ export default function VariantTLanding() {
                   <feature.icon className="h-5 w-5 text-slate-400" />
                 </div>
                 <span className="text-lg font-medium text-zinc-200">{feature.text}</span>
-              </motion.div>
+              </m.div>
             ))}
           </div>
         </div>
@@ -744,15 +744,15 @@ export default function VariantTLanding() {
           ================================ */}
       <section className="px-6 py-20 lg:py-32">
         <div className="mx-auto max-w-7xl">
-          <motion.div {...fadeUp} className="mb-12 text-center">
+          <m.div {...fadeUp} className="mb-12 text-center">
             <h2 className="mb-4 text-3xl font-bold tracking-tight lg:text-5xl">
               Sikkerhet uten kompromiss
             </h2>
-          </motion.div>
+          </m.div>
 
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
             {securityBadges.map((badge, i) => (
-              <motion.div
+              <m.div
                 key={badge.label}
                 initial={{ opacity: 0, y: 16 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -762,7 +762,7 @@ export default function VariantTLanding() {
               >
                 <badge.icon className="h-7 w-7 text-slate-400" />
                 <span className="text-sm font-medium text-zinc-300">{badge.label}</span>
-              </motion.div>
+              </m.div>
             ))}
           </div>
         </div>
@@ -776,12 +776,12 @@ export default function VariantTLanding() {
           ================================ */}
       <section id="smartout-ai" className="px-6 py-20 lg:py-32">
         <div className="mx-auto max-w-7xl">
-          <motion.div {...fadeUp} className="mb-16 text-center">
+          <m.div {...fadeUp} className="mb-16 text-center">
             <h2 className="mb-4 text-3xl font-bold tracking-tight lg:text-5xl">
               {VARIANT_AI_SECTION.T.heading}
             </h2>
             <p className="mx-auto max-w-2xl text-zinc-400">{VARIANT_AI_SECTION.T.subheading}</p>
-          </motion.div>
+          </m.div>
 
           <div className="grid gap-10 lg:grid-cols-2">
             {/* Left: Enterprise-style table rows for AI capabilities */}
@@ -795,7 +795,7 @@ export default function VariantTLanding() {
                   // Map each capability to an enterprise-appropriate icon
                   const CapIcon = [Shield, Database, AlertTriangle][i] ?? Shield;
                   return (
-                    <motion.div
+                    <m.div
                       key={cap.title}
                       initial={{ opacity: 0, x: 20 }}
                       whileInView={{ opacity: 1, x: 0 }}
@@ -810,7 +810,7 @@ export default function VariantTLanding() {
                         <h3 className="font-semibold text-zinc-200">{cap.title}</h3>
                         <p className="text-sm text-zinc-500">{cap.description}</p>
                       </div>
-                    </motion.div>
+                    </m.div>
                   );
                 })}
               </div>
@@ -829,7 +829,7 @@ export default function VariantTLanding() {
           ================================ */}
       <section className="px-6 py-20 lg:py-32">
         <div className="mx-auto max-w-3xl text-center">
-          <motion.div {...fadeUp}>
+          <m.div {...fadeUp}>
             <Building2 className="mx-auto mb-6 h-10 w-10 text-slate-400" />
             <h2 className="mb-4 text-3xl font-bold tracking-tight lg:text-5xl">
               Klar for en strukturert overgang?
@@ -845,7 +845,7 @@ export default function VariantTLanding() {
             >
               Book en teknisk demo <ArrowRight className="h-5 w-5" />
             </Link>
-          </motion.div>
+          </m.div>
         </div>
       </section>
 

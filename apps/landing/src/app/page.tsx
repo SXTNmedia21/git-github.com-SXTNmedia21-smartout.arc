@@ -1,9 +1,10 @@
 "use client";
 
 import { Suspense, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import type { Variants } from "framer-motion";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import {
   Mic,
   ArrowRight,
@@ -34,13 +35,14 @@ import Navigation from "../components/navigation";
 import Footer from "../components/footer";
 import WorkspaceAnalyzer from "../components/workspace-analyzer";
 import { WEB_APP_LINKS } from "../lib/web-app-url";
-import VariantELanding from "../components/landing/VariantELanding";
-import VariantTLanding from "../components/landing/VariantTLanding";
-import VariantKLanding from "../components/landing/VariantKLanding";
-import VariantALanding from "../components/landing/VariantALanding";
-import VariantFLanding from "../components/landing/VariantFLanding";
-import VariantSLanding from "../components/landing/VariantSLanding";
-import VoiceDemoWidget from "../components/landing/VoiceDemoWidget";
+
+const VariantELanding = dynamic(() => import("../components/landing/VariantELanding"));
+const VariantTLanding = dynamic(() => import("../components/landing/VariantTLanding"));
+const VariantKLanding = dynamic(() => import("../components/landing/VariantKLanding"));
+const VariantALanding = dynamic(() => import("../components/landing/VariantALanding"));
+const VariantFLanding = dynamic(() => import("../components/landing/VariantFLanding"));
+const VariantSLanding = dynamic(() => import("../components/landing/VariantSLanding"));
+const VoiceDemoWidget = dynamic(() => import("../components/landing/VoiceDemoWidget"));
 import { useVariant } from "../lib/landing-variant";
 import { usePageTracking, useTrackCta } from "../hooks/useTracking";
 import { useScrollTracking } from "../hooks/useScrollTracking";
@@ -217,13 +219,13 @@ function SmartoutLandingPageContent() {
       <main className="relative z-10 mx-auto max-w-7xl px-6 pt-24 pb-12 sm:pt-32 sm:pb-20">
         {/* MAIN HERO SECTION */}
         <div className="relative flex min-h-0 flex-col items-center justify-center gap-6 pt-10 pb-6 text-center sm:min-h-[calc(100dvh-120px)] sm:gap-8 sm:pt-20 sm:pb-10">
-          <motion.div
+          <m.div
             initial="hidden"
             animate="visible"
             variants={containerVariants}
             className="z-20 mx-auto flex max-w-5xl flex-col items-center"
           >
-            <motion.div
+            <m.div
               variants={itemVariants}
               className="group relative mb-4 inline-flex items-center gap-2 overflow-hidden rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white shadow-xl backdrop-blur-md sm:mb-8"
             >
@@ -233,9 +235,9 @@ function SmartoutLandingPageContent() {
               <span className="relative z-10">
                 Den komplette plattformen for serveringsbransjen
               </span>
-            </motion.div>
+            </m.div>
 
-            <motion.h1
+            <m.h1
               variants={itemVariants}
               className="mb-4 text-4xl leading-[1.05] font-black tracking-tighter drop-shadow-2xl sm:mb-8 sm:text-6xl md:text-8xl lg:text-[7.5rem]"
             >
@@ -246,17 +248,17 @@ function SmartoutLandingPageContent() {
                   Full kontroll.
                 </span>
               </span>
-            </motion.h1>
+            </m.h1>
 
-            <motion.p
+            <m.p
               variants={itemVariants}
               className="mb-8 max-w-3xl text-lg leading-relaxed font-medium text-zinc-400 sm:mb-12 sm:text-xl md:text-2xl"
             >
               Samle vaktplaner, HR, kommunikasjon, stemplingsur og internkontroll i ett og samme
               lynraske system. Reduser kaos og øk fortjenesten.
-            </motion.p>
+            </m.p>
 
-            <motion.div
+            <m.div
               variants={itemVariants}
               className="flex flex-wrap items-center justify-center gap-6"
             >
@@ -283,17 +285,17 @@ function SmartoutLandingPageContent() {
                   Møt AI-assistenten Lise
                 </span>
               </a>
-            </motion.div>
-          </motion.div>
+            </m.div>
+          </m.div>
 
           {/* Abstract App Mockup Visual */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 100 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, delay: 0.4, type: "spring", stiffness: 50 }}
             className="relative z-10 mt-12 hidden w-full max-w-6xl md:block"
           >
-            <motion.div
+            <m.div
               animate={{ y: [0, -12, 0] }}
               transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
             >
@@ -339,15 +341,15 @@ function SmartoutLandingPageContent() {
                   </div>
                 </div>
               </div>
-            </motion.div>
-          </motion.div>
+            </m.div>
+          </m.div>
         </div>
 
         {/* BRAND / INTEGRATION MARQUEE */}
         <div className="relative mt-12 mb-8 flex w-full items-center overflow-hidden py-6 sm:mt-32 sm:mb-12 sm:py-12">
           <div className="pointer-events-none absolute top-0 bottom-0 left-0 z-10 w-48 bg-gradient-to-r from-zinc-950 to-transparent"></div>
           <div className="pointer-events-none absolute top-0 right-0 bottom-0 z-10 w-48 bg-gradient-to-l from-zinc-950 to-transparent"></div>
-          <motion.div
+          <m.div
             initial={{ x: 0 }}
             animate={{ x: "-50%" }}
             transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
@@ -393,7 +395,7 @@ function SmartoutLandingPageContent() {
               <ShieldCheck className="h-5 w-5" />
               POWEROFFICE
             </div>
-          </motion.div>
+          </m.div>
         </div>
 
         {/* LISE HERO SECTION */}
@@ -404,13 +406,13 @@ function SmartoutLandingPageContent() {
           {/* Soft background glow for Lise section */}
           <div className="pointer-events-none absolute top-1/2 left-1/2 h-[800px] w-[800px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-orange-500/5 mix-blend-screen blur-[120px]" />
 
-          <motion.div
+          <m.div
             className="max-w-2xl flex-1"
             initial="hidden"
             animate="visible"
             variants={containerVariants}
           >
-            <motion.div
+            <m.div
               variants={itemVariants}
               className="mb-4 inline-flex items-center gap-2 rounded-full border border-orange-500/20 bg-orange-500/10 px-3 py-1 text-xs font-bold tracking-wider text-orange-400 uppercase sm:mb-6"
             >
@@ -419,9 +421,9 @@ function SmartoutLandingPageContent() {
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-orange-500"></span>
               </span>
               Møt fremtidens workforce management
-            </motion.div>
+            </m.div>
 
-            <motion.h1
+            <m.h1
               variants={itemVariants}
               className="mb-4 text-4xl leading-[1.1] font-extrabold tracking-tight sm:mb-6 sm:text-5xl md:text-7xl"
             >
@@ -431,18 +433,18 @@ function SmartoutLandingPageContent() {
               </span>
               ,<br />
               din digitale kollega.
-            </motion.h1>
+            </m.h1>
 
-            <motion.p
+            <m.p
               variants={itemVariants}
               className="mb-6 max-w-xl text-base leading-relaxed text-zinc-400 sm:mb-10 sm:text-lg md:text-xl"
             >
               SmartOut er bygget for den norske serveringsbransjen. Reduser administrativt arbeid
               fra timer til minutter, integrer ansatte på tvers av språkbarrierer, og få full
               kontroll over lønnskostnader og compliance (Mattilsynet/Arbeidstilsynet) i sanntid.
-            </motion.p>
+            </m.p>
 
-            <motion.div variants={itemVariants} className="flex flex-wrap items-center gap-4">
+            <m.div variants={itemVariants} className="flex flex-wrap items-center gap-4">
               <a
                 href="#smartout-ai"
                 onClick={() => trackCta("Start Lise Botsson")}
@@ -460,9 +462,9 @@ function SmartoutLandingPageContent() {
               >
                 Utforsk konsepter <ArrowRight className="h-4 w-4" />
               </a>
-            </motion.div>
+            </m.div>
 
-            <motion.div
+            <m.div
               variants={itemVariants}
               className="mt-10 grid grid-cols-3 gap-3 sm:mt-12 sm:flex sm:items-center sm:gap-6"
             >
@@ -471,7 +473,7 @@ function SmartoutLandingPageContent() {
                 { icon: ShieldCheck, label: "100% Compliance" },
                 { icon: Users, label: "Høy Retensjon" },
               ].map((stat, i) => (
-                <motion.div
+                <m.div
                   key={stat.label}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -482,10 +484,10 @@ function SmartoutLandingPageContent() {
                   <span className="text-center text-[11px] font-semibold text-zinc-500 sm:text-sm">
                     {stat.label}
                   </span>
-                </motion.div>
+                </m.div>
               ))}
-            </motion.div>
-          </motion.div>
+            </m.div>
+          </m.div>
 
           {/* Voice Assistant Floating Widget */}
           <div className="w-full lg:w-[450px]">
@@ -501,7 +503,7 @@ function SmartoutLandingPageContent() {
           {/* Ambient Glow */}
           <div className="pointer-events-none absolute top-0 right-0 h-[600px] w-[600px] rounded-full bg-blue-500/5 mix-blend-screen blur-[150px]" />
 
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
@@ -516,7 +518,7 @@ function SmartoutLandingPageContent() {
               tvers av alle aspekter. Slik organiserer stjernene bedriften sin for å overholde
               Arbeidstilsynets og Mattilsynets krav:
             </p>
-          </motion.div>
+          </m.div>
 
           {/* Interactive Tabs */}
           <div className="mb-8 flex justify-center gap-1.5 px-2 sm:mb-12 sm:gap-3 sm:px-4">
@@ -550,7 +552,7 @@ function SmartoutLandingPageContent() {
           <div className="relative min-h-[350px]">
             {/* Locations Panel */}
             {activeTab === "locations" && (
-              <motion.div
+              <m.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4 }}
@@ -565,7 +567,7 @@ function SmartoutLandingPageContent() {
                   </p>
                   <div className="flex flex-wrap justify-center gap-3">
                     {["Flerlokasjon", "Soner & Utstyr", "Stedsbasert opplæring"].map((tag, i) => (
-                      <motion.span
+                      <m.span
                         key={tag}
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
@@ -573,13 +575,13 @@ function SmartoutLandingPageContent() {
                         className="rounded-full border border-orange-500/20 bg-orange-500/5 px-3 py-1 text-xs font-bold text-orange-300"
                       >
                         {tag}
-                      </motion.span>
+                      </m.span>
                     ))}
                   </div>
                 </div>
                 <div className="grid grid-cols-1 gap-6 sm:gap-8 md:grid-cols-3">
                   {MOCK_LOCATIONS.map((loc, i) => (
-                    <motion.div
+                    <m.div
                       key={loc.id}
                       initial={{ opacity: 0, y: 30 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -605,15 +607,15 @@ function SmartoutLandingPageContent() {
                           </span>
                         </div>
                       </Link>
-                    </motion.div>
+                    </m.div>
                   ))}
                 </div>
-              </motion.div>
+              </m.div>
             )}
 
             {/* Procedures Panel */}
             {activeTab === "procedures" && (
-              <motion.div
+              <m.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4 }}
@@ -628,7 +630,7 @@ function SmartoutLandingPageContent() {
                   </p>
                   <div className="flex flex-wrap justify-center gap-3">
                     {["Sporbar signering", "Automatisk oppfølging", "HACCP-klar"].map((tag, i) => (
-                      <motion.span
+                      <m.span
                         key={tag}
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
@@ -636,13 +638,13 @@ function SmartoutLandingPageContent() {
                         className="rounded-full border border-emerald-500/20 bg-emerald-500/5 px-3 py-1 text-xs font-bold text-emerald-300"
                       >
                         {tag}
-                      </motion.span>
+                      </m.span>
                     ))}
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-4">
                   {MOCK_PROCEDURES.map((proc, i) => (
-                    <motion.div
+                    <m.div
                       key={proc.id}
                       initial={{ opacity: 0, y: 30 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -666,15 +668,15 @@ function SmartoutLandingPageContent() {
                           {proc.taskCount} Oppgaver
                         </span>
                       </Link>
-                    </motion.div>
+                    </m.div>
                   ))}
                 </div>
-              </motion.div>
+              </m.div>
             )}
 
             {/* Seasons Panel */}
             {activeTab === "seasons" && (
-              <motion.div
+              <m.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4 }}
@@ -690,7 +692,7 @@ function SmartoutLandingPageContent() {
                   <div className="flex flex-wrap justify-center gap-3">
                     {["Ett-klikk aktivering", "Lagrede oppsett", "Sesongbasert meny"].map(
                       (tag, i) => (
-                        <motion.span
+                        <m.span
                           key={tag}
                           initial={{ opacity: 0, scale: 0.8 }}
                           animate={{ opacity: 1, scale: 1 }}
@@ -698,14 +700,14 @@ function SmartoutLandingPageContent() {
                           className="rounded-full border border-blue-500/20 bg-blue-500/5 px-3 py-1 text-xs font-bold text-blue-300"
                         >
                           {tag}
-                        </motion.span>
+                        </m.span>
                       ),
                     )}
                   </div>
                 </div>
                 <div className="grid grid-cols-1 gap-6 sm:gap-8 md:grid-cols-3">
                   {MOCK_SEASONS.map((season, i) => (
-                    <motion.div
+                    <m.div
                       key={season.id}
                       initial={{ opacity: 0, y: 30 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -731,10 +733,10 @@ function SmartoutLandingPageContent() {
                           {season.period}
                         </p>
                       </Link>
-                    </motion.div>
+                    </m.div>
                   ))}
                 </div>
-              </motion.div>
+              </m.div>
             )}
           </div>
         </section>
@@ -746,21 +748,21 @@ function SmartoutLandingPageContent() {
           <div className="pointer-events-none absolute top-1/2 left-1/2 h-[600px] w-[1000px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-500/5 blur-[150px]" />
 
           <div className="relative z-10 mx-auto max-w-7xl px-6 text-center">
-            <motion.div
+            <m.div
               initial={{ opacity: 0, scale: 0.9 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
               className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 sm:mb-8 sm:h-20 sm:w-20"
             >
-              <motion.div
+              <m.div
                 animate={{ scale: [1, 1.1, 1] }}
                 transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
               >
                 <ShieldCheck className="h-7 w-7 sm:h-10 sm:w-10" />
-              </motion.div>
-            </motion.div>
-            <motion.h2
+              </m.div>
+            </m.div>
+            <m.h2
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -768,8 +770,8 @@ function SmartoutLandingPageContent() {
               className="mb-4 text-2xl font-black tracking-tight text-white sm:mb-6 sm:text-5xl"
             >
               Sov godt om natten.
-            </motion.h2>
-            <motion.p
+            </m.h2>
+            <m.p
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -778,13 +780,13 @@ function SmartoutLandingPageContent() {
             >
               Når Mattilsynet eller Arbeidstilsynet banker på døren, er alt klart. Vi sikrer at du
               automatisk følger regelverket for arbeidstid, pauser, og IK-mat.
-            </motion.p>
+            </m.p>
 
             <div className="relative mx-auto grid max-w-5xl grid-cols-1 gap-2 text-left sm:gap-8 md:grid-cols-2">
               {/* Decorative divider */}
               <div className="absolute top-1/2 left-1/2 hidden h-3/4 w-px -translate-x-1/2 -translate-y-1/2 bg-gradient-to-b from-transparent via-emerald-500/20 to-transparent md:block"></div>
 
-              <motion.div
+              <m.div
                 initial={{ opacity: 0, x: -20 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
@@ -811,8 +813,8 @@ function SmartoutLandingPageContent() {
                     bygget rett inn i rutinemodulen.
                   </p>
                 </div>
-              </motion.div>
-              <motion.div
+              </m.div>
+              <m.div
                 initial={{ opacity: 0, x: 20 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
@@ -839,7 +841,7 @@ function SmartoutLandingPageContent() {
                     som sperrer for ulovlig overtid.
                   </p>
                 </div>
-              </motion.div>
+              </m.div>
             </div>
           </div>
         </section>
@@ -849,7 +851,7 @@ function SmartoutLandingPageContent() {
           id="features"
           className="relative z-10 flex min-h-0 flex-col justify-center py-16 pt-8 sm:min-h-[100dvh] sm:py-40 sm:pt-20"
         >
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
@@ -868,7 +870,7 @@ function SmartoutLandingPageContent() {
               Vi har byttet ut de gamle, trege systemene med et lynraskt, AI-drevet grensesnitt som
               de ansatte faktisk elsker å bruke. Tidsbesparende for ledere, motiverende for teamet.
             </p>
-          </motion.div>
+          </m.div>
 
           <div className="grid grid-cols-1 gap-4 sm:gap-8 md:grid-cols-2 lg:grid-cols-3">
             <FeatureCard
@@ -926,7 +928,7 @@ function SmartoutLandingPageContent() {
         <section className="relative z-10 py-16 sm:py-40">
           <div className="mx-auto max-w-7xl px-6">
             <div className="grid grid-cols-1 items-center gap-10 sm:gap-16 lg:grid-cols-2">
-              <motion.div
+              <m.div
                 initial={{ opacity: 0, x: -40 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
@@ -946,7 +948,7 @@ function SmartoutLandingPageContent() {
                   og vår AI skraper menyer, åpningstider, lokasjoner og bygger systemet for deg helt
                   automatisk.
                 </p>
-                <motion.ul
+                <m.ul
                   initial="hidden"
                   whileInView="visible"
                   viewport={{ once: true }}
@@ -956,7 +958,7 @@ function SmartoutLandingPageContent() {
                   }}
                   className="mb-6 space-y-4 sm:mb-10 sm:space-y-6"
                 >
-                  <motion.li
+                  <m.li
                     variants={{ hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0 } }}
                     className="flex items-center gap-4 text-lg font-medium text-zinc-300"
                   >
@@ -964,8 +966,8 @@ function SmartoutLandingPageContent() {
                       <CheckCircle2 className="h-6 w-6" />
                     </div>
                     Skriv inn din nåværende nettside
-                  </motion.li>
-                  <motion.li
+                  </m.li>
+                  <m.li
                     variants={{ hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0 } }}
                     className="flex items-center gap-4 text-lg font-medium text-zinc-300"
                   >
@@ -973,8 +975,8 @@ function SmartoutLandingPageContent() {
                       <Sparkles className="h-6 w-6" />
                     </div>
                     AI analyserer og bygger arbeidsplassen
-                  </motion.li>
-                  <motion.li
+                  </m.li>
+                  <m.li
                     variants={{ hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0 } }}
                     className="flex items-center gap-4 text-lg font-medium text-zinc-300"
                   >
@@ -982,10 +984,10 @@ function SmartoutLandingPageContent() {
                       <Users className="h-6 w-6" />
                     </div>
                     Inviter ansatte og start opp med en gang
-                  </motion.li>
-                </motion.ul>
-              </motion.div>
-              <motion.div
+                  </m.li>
+                </m.ul>
+              </m.div>
+              <m.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
@@ -996,7 +998,7 @@ function SmartoutLandingPageContent() {
                 <div className="relative z-10">
                   <WorkspaceAnalyzer />
                 </div>
-              </motion.div>
+              </m.div>
             </div>
           </div>
         </section>
@@ -1004,7 +1006,7 @@ function SmartoutLandingPageContent() {
         {/* PRICING SECTION */}
         <section id="priser" className="relative z-10 mt-4 py-16 sm:mt-10 sm:py-32">
           <div className="mx-auto max-w-7xl px-6 text-center">
-            <motion.div
+            <m.div
               initial={{ opacity: 0, scale: 0.9 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
@@ -1012,8 +1014,8 @@ function SmartoutLandingPageContent() {
               className="mb-6 inline-flex items-center gap-2 rounded-full border border-purple-500/20 bg-purple-500/10 px-3 py-1 text-xs font-bold tracking-widest text-purple-400 uppercase"
             >
               <Sparkles className="h-4 w-4" /> Enkel Prismodell
-            </motion.div>
-            <motion.h2
+            </m.div>
+            <m.h2
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -1023,8 +1025,8 @@ function SmartoutLandingPageContent() {
               Mindre admin.
               <br />
               Mer på bunnlinjen.
-            </motion.h2>
-            <motion.p
+            </m.h2>
+            <m.p
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -1033,9 +1035,9 @@ function SmartoutLandingPageContent() {
             >
               Vi gir deg alt du trenger for å drive restauranten din mer lønnsomt — til en pris som
               gir mening.
-            </motion.p>
+            </m.p>
 
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -1048,7 +1050,7 @@ function SmartoutLandingPageContent() {
                 Se våre priser og pakker
                 <ArrowRight className="h-5 w-5 text-purple-400 transition-transform group-hover:translate-x-1" />
               </Link>
-            </motion.div>
+            </m.div>
           </div>
         </section>
 
@@ -1057,7 +1059,7 @@ function SmartoutLandingPageContent() {
           <div className="pointer-events-none absolute top-1/2 left-1/2 h-[800px] w-[800px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-orange-500/5 mix-blend-screen blur-[120px]" />
 
           <div className="mx-auto max-w-7xl px-6">
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 40 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-100px" }}
@@ -1074,13 +1076,13 @@ function SmartoutLandingPageContent() {
               <p className="mx-auto max-w-2xl text-sm text-zinc-400 sm:text-lg">
                 {VARIANT_AI_SECTION.B.subheading}
               </p>
-            </motion.div>
+            </m.div>
 
             <div className="grid gap-10 lg:grid-cols-2">
               {/* AI capability cards */}
               <div className="space-y-6">
                 {VARIANT_AI_SECTION.B.capabilities.map((cap, i) => (
-                  <motion.div
+                  <m.div
                     key={cap.title}
                     initial={{ opacity: 0, x: -20 }}
                     whileInView={{ opacity: 1, x: 0 }}
@@ -1097,7 +1099,7 @@ function SmartoutLandingPageContent() {
                       <h3 className="text-lg font-bold text-white">{cap.title}</h3>
                     </div>
                     <p className="text-sm leading-relaxed text-zinc-400">{cap.description}</p>
-                  </motion.div>
+                  </m.div>
                 ))}
               </div>
 
@@ -1113,7 +1115,7 @@ function SmartoutLandingPageContent() {
           <div className="pointer-events-none absolute top-1/2 left-1/2 h-[800px] w-[1200px] -translate-x-1/2 -translate-y-1/2 rounded-[50%] bg-orange-500/10 blur-[150px]"></div>
 
           <div className="relative mx-auto max-w-4xl px-6 text-center">
-            <motion.h2
+            <m.h2
               initial={{ opacity: 0, scale: 0.9 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
@@ -1121,8 +1123,8 @@ function SmartoutLandingPageContent() {
               className="mb-6 text-4xl font-black tracking-tight text-white sm:mb-8 sm:text-5xl"
             >
               Klar for fremtiden?
-            </motion.h2>
-            <motion.div
+            </m.h2>
+            <m.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -1135,21 +1137,21 @@ function SmartoutLandingPageContent() {
                 className="group relative w-full sm:w-auto"
               >
                 <div className="absolute -inset-2 rounded-full bg-gradient-to-r from-orange-500 to-rose-500 opacity-50 blur-xl transition duration-500 group-hover:opacity-100"></div>
-                <motion.button
+                <m.button
                   whileTap={{ scale: 0.95 }}
                   className="relative mx-auto flex w-full items-center justify-center gap-3 rounded-full bg-white px-8 py-4 text-sm font-black text-zinc-950 shadow-[0_0_40px_rgba(255,255,255,0.2)] transition-all group-hover:-translate-y-1 group-hover:shadow-[0_0_60px_rgba(255,255,255,0.4)] sm:w-auto sm:px-12 sm:py-5 sm:text-lg"
                 >
-                  <motion.span
+                  <m.span
                     animate={{ rotate: [0, 10, -10, 0] }}
                     transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
                     className="inline-flex"
                   >
                     <Globe className="h-5 w-5 text-orange-600 drop-shadow-sm" />
-                  </motion.span>
+                  </m.span>
                   Kom i gang
-                </motion.button>
+                </m.button>
               </Link>
-            </motion.div>
+            </m.div>
           </div>
         </section>
       </main>
@@ -1175,7 +1177,7 @@ function FeatureCard({
   href?: string;
 }) {
   const cardContent = (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 40 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-50px" }}
@@ -1189,7 +1191,7 @@ function FeatureCard({
       ></div>
 
       <div className="relative z-10 flex h-full flex-col p-5 sm:p-8">
-        <motion.div
+        <m.div
           animate={{ y: [0, -3, 0] }}
           transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: delay * 2 }}
           className={`h-11 w-11 rounded-xl bg-gradient-to-tr ${color} mb-4 p-[1px] shadow-2xl sm:mb-6 sm:h-14 sm:w-14 sm:rounded-2xl`}
@@ -1197,7 +1199,7 @@ function FeatureCard({
           <div className="flex h-full w-full items-center justify-center rounded-2xl bg-[#111]">
             <Icon className="h-6 w-6 text-white drop-shadow-md" />
           </div>
-        </motion.div>
+        </m.div>
         <h3 className="mb-2 flex items-center justify-between text-lg font-bold tracking-tight text-white transition-all group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-zinc-400 group-hover:bg-clip-text group-hover:text-transparent sm:mb-4 sm:text-xl">
           {title}
           {href && (
@@ -1208,7 +1210,7 @@ function FeatureCard({
           {description}
         </p>
       </div>
-    </motion.div>
+    </m.div>
   );
 
   if (href) {

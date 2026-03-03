@@ -10,7 +10,7 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { usePageTracking, useTrackCta } from "../../hooks/useTracking";
 import { useScrollTracking } from "../../hooks/useScrollTracking";
 import { useClickTracking } from "../../hooks/useClickTracking";
@@ -208,7 +208,7 @@ export default function VariantKLanding() {
 
         <div className="mx-auto grid max-w-7xl items-center gap-16 lg:grid-cols-2">
           {/* Left Column — Headline + CTAs */}
-          <motion.div
+          <m.div
             initial="hidden"
             animate="visible"
             variants={fadeUp}
@@ -279,10 +279,10 @@ export default function VariantKLanding() {
                 </span>
               </div>
             </div>
-          </motion.div>
+          </m.div>
 
           {/* Right Column — Featured Case Study Card */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
@@ -335,7 +335,7 @@ export default function VariantKLanding() {
                       <span className="font-bold text-emerald-400">{bar.after}%</span>
                     </div>
                     <div className="h-2 overflow-hidden rounded-full bg-zinc-800">
-                      <motion.div
+                      <m.div
                         initial={{ width: 0 }}
                         animate={{ width: `${bar.after}%` }}
                         transition={{ duration: 1.2, delay: 0.5 }}
@@ -360,7 +360,7 @@ export default function VariantKLanding() {
                 </div>
               </div>
             </div>
-          </motion.div>
+          </m.div>
         </div>
       </section>
 
@@ -371,7 +371,7 @@ export default function VariantKLanding() {
           ============================================ */}
       <section className="relative px-6 py-24 lg:py-32">
         <div className="mx-auto max-w-7xl">
-          <motion.div
+          <m.div
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
@@ -389,9 +389,9 @@ export default function VariantKLanding() {
               Hver implementering måles. Hver forbedring dokumenteres. Her er tallene fra tre norske
               bedrifter.
             </p>
-          </motion.div>
+          </m.div>
 
-          <motion.div
+          <m.div
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
@@ -399,7 +399,7 @@ export default function VariantKLanding() {
             className="grid gap-8 md:grid-cols-3"
           >
             {caseStudies.map((study) => (
-              <motion.div
+              <m.div
                 key={study.name}
                 variants={fadeUp}
                 transition={{ duration: 0.5 }}
@@ -434,9 +434,9 @@ export default function VariantKLanding() {
                     </p>
                   </div>
                 </div>
-              </motion.div>
+              </m.div>
             ))}
-          </motion.div>
+          </m.div>
         </div>
       </section>
 
@@ -451,7 +451,7 @@ export default function VariantKLanding() {
         <div className="pointer-events-none absolute bottom-0 left-1/2 -z-10 h-[500px] w-[800px] -translate-x-1/2 rounded-full bg-emerald-500/5 blur-3xl" />
 
         <div className="mx-auto max-w-5xl">
-          <motion.div
+          <m.div
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
@@ -468,9 +468,9 @@ export default function VariantKLanding() {
             <p className="mx-auto max-w-2xl text-lg text-zinc-400">
               Fra manuelle prosesser til digitalisert drift. Se hva som endres.
             </p>
-          </motion.div>
+          </m.div>
 
-          <motion.div
+          <m.div
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
@@ -478,7 +478,7 @@ export default function VariantKLanding() {
             className="grid gap-8 md:grid-cols-2"
           >
             {/* Before panel */}
-            <motion.div
+            <m.div
               variants={fadeUp}
               transition={{ duration: 0.5 }}
               className="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-8"
@@ -494,10 +494,10 @@ export default function VariantKLanding() {
                   </li>
                 ))}
               </ul>
-            </motion.div>
+            </m.div>
 
             {/* After panel */}
-            <motion.div
+            <m.div
               variants={fadeUp}
               transition={{ duration: 0.5 }}
               className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-8"
@@ -513,8 +513,8 @@ export default function VariantKLanding() {
                   </li>
                 ))}
               </ul>
-            </motion.div>
-          </motion.div>
+            </m.div>
+          </m.div>
         </div>
       </section>
 
@@ -526,7 +526,7 @@ export default function VariantKLanding() {
           ============================================ */}
       <section className="relative px-6 py-24 lg:py-32">
         <div className="mx-auto max-w-7xl">
-          <motion.div
+          <m.div
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
@@ -544,9 +544,9 @@ export default function VariantKLanding() {
               Compliance er ikke valgfritt. SmartOut håndterer de norske kravene dine klienter
               sliter med.
             </p>
-          </motion.div>
+          </m.div>
 
-          <motion.div
+          <m.div
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
@@ -554,7 +554,7 @@ export default function VariantKLanding() {
             className="grid gap-8 md:grid-cols-3"
           >
             {regulatoryCards.map((card) => (
-              <motion.div
+              <m.div
                 key={card.title}
                 variants={fadeUp}
                 transition={{ duration: 0.5 }}
@@ -565,9 +565,9 @@ export default function VariantKLanding() {
                 </div>
                 <h3 className="mb-3 text-xl font-bold text-white">{card.title}</h3>
                 <p className="leading-relaxed text-zinc-400">{card.description}</p>
-              </motion.div>
+              </m.div>
             ))}
-          </motion.div>
+          </m.div>
         </div>
       </section>
 
@@ -581,7 +581,7 @@ export default function VariantKLanding() {
         <div className="pointer-events-none absolute top-1/2 left-0 -z-10 h-[400px] w-[400px] -translate-y-1/2 rounded-full bg-emerald-500/5 blur-3xl" />
 
         <div className="mx-auto max-w-5xl">
-          <motion.div
+          <m.div
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
@@ -598,9 +598,9 @@ export default function VariantKLanding() {
             <p className="mx-auto max-w-2xl text-lg text-zinc-400">
               Rådgivere og bransjeledere som har evaluert SmartOut for sine klienter.
             </p>
-          </motion.div>
+          </m.div>
 
-          <motion.div
+          <m.div
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
@@ -608,7 +608,7 @@ export default function VariantKLanding() {
             className="space-y-8"
           >
             {endorsements.map((endorsement) => (
-              <motion.blockquote
+              <m.blockquote
                 key={endorsement.author}
                 variants={fadeUp}
                 transition={{ duration: 0.5 }}
@@ -636,9 +636,9 @@ export default function VariantKLanding() {
                     </div>
                   </div>
                 </div>
-              </motion.blockquote>
+              </m.blockquote>
             ))}
-          </motion.div>
+          </m.div>
         </div>
       </section>
 
@@ -651,7 +651,7 @@ export default function VariantKLanding() {
           ============================================ */}
       <section className="relative px-6 py-24 lg:py-32">
         <div className="mx-auto max-w-7xl">
-          <motion.div
+          <m.div
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
@@ -668,9 +668,9 @@ export default function VariantKLanding() {
             <p className="mx-auto max-w-2xl text-lg text-zinc-400">
               Alt du trenger for å evaluere, dokumentere og anbefale SmartOut.
             </p>
-          </motion.div>
+          </m.div>
 
-          <motion.div
+          <m.div
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
@@ -678,7 +678,7 @@ export default function VariantKLanding() {
             className="grid gap-8 md:grid-cols-3"
           >
             {toolkitCards.map((card) => (
-              <motion.div
+              <m.div
                 key={card.title}
                 variants={fadeUp}
                 transition={{ duration: 0.5 }}
@@ -689,12 +689,12 @@ export default function VariantKLanding() {
                 </div>
                 <h3 className="mb-3 text-xl font-bold text-white">{card.title}</h3>
                 <p className="leading-relaxed text-zinc-400">{card.description}</p>
-              </motion.div>
+              </m.div>
             ))}
-          </motion.div>
+          </m.div>
 
           {/* Partner CTA */}
-          <motion.div
+          <m.div
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
@@ -709,7 +709,7 @@ export default function VariantKLanding() {
             >
               Bli partnerrådgiver <ArrowRight className="h-5 w-5" />
             </Link>
-          </motion.div>
+          </m.div>
         </div>
       </section>
 
@@ -721,7 +721,7 @@ export default function VariantKLanding() {
           ============================================ */}
       <section id="smartout-ai" className="relative px-6 py-24 lg:py-32">
         <div className="mx-auto max-w-7xl">
-          <motion.div
+          <m.div
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
@@ -738,11 +738,11 @@ export default function VariantKLanding() {
             <p className="mx-auto max-w-2xl text-lg text-zinc-400">
               {VARIANT_AI_SECTION.K.subheading}
             </p>
-          </motion.div>
+          </m.div>
 
           <div className="grid gap-10 lg:grid-cols-2">
             {/* Left: Metric-style capability cards */}
-            <motion.div
+            <m.div
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true }}
@@ -750,7 +750,7 @@ export default function VariantKLanding() {
               className="space-y-6"
             >
               {VARIANT_AI_SECTION.K.capabilities.map((cap) => (
-                <motion.div
+                <m.div
                   key={cap.title}
                   variants={fadeUp}
                   transition={{ duration: 0.5 }}
@@ -760,9 +760,9 @@ export default function VariantKLanding() {
                     <p className="text-2xl font-black text-emerald-400">{cap.title}</p>
                   </div>
                   <p className="text-sm text-zinc-400">{cap.description}</p>
-                </motion.div>
+                </m.div>
               ))}
-            </motion.div>
+            </m.div>
 
             {/* Right: Voice widget */}
             <VoiceDemoWidget config={VARIANT_VOICE_CONFIG.K} height="460px" />
@@ -780,7 +780,7 @@ export default function VariantKLanding() {
         {/* Background accent */}
         <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-transparent via-emerald-500/5 to-transparent" />
 
-        <motion.div
+        <m.div
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true }}
@@ -822,7 +822,7 @@ export default function VariantKLanding() {
               <span>30+ norske klienter</span>
             </div>
           </div>
-        </motion.div>
+        </m.div>
       </section>
 
       {/* Shared Footer */}

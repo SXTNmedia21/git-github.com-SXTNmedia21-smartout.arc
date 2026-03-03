@@ -19,7 +19,7 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import {
   BookOpen,
   CheckCircle,
@@ -218,7 +218,7 @@ export default function VariantALanding() {
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-amber-900/10 to-transparent" />
 
         {/* Animated radial glow — slow breathing warmth */}
-        <motion.div
+        <m.div
           className="pointer-events-none absolute top-1/2 left-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-500/5 blur-3xl"
           animate={{
             scale: [1, 1.15, 1],
@@ -228,7 +228,7 @@ export default function VariantALanding() {
         />
 
         {/* Secondary orbiting glow — offset for depth */}
-        <motion.div
+        <m.div
           className="pointer-events-none absolute top-1/3 left-1/3 h-[400px] w-[400px] rounded-full bg-amber-600/3 blur-3xl"
           animate={{
             x: [0, 60, 0, -60, 0],
@@ -238,19 +238,19 @@ export default function VariantALanding() {
           transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
         />
 
-        <motion.div
+        <m.div
           className="relative z-10 mx-auto max-w-4xl text-center"
           initial="hidden"
           animate="visible"
           variants={staggerContainer}
         >
-          <motion.h1
+          <m.h1
             className="mb-6 text-5xl font-bold tracking-tight lg:text-7xl"
             variants={heroReveal}
             transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
           >
             Jobb med{" "}
-            <motion.span
+            <m.span
               className="inline-block bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent"
               animate={{
                 backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
@@ -259,18 +259,18 @@ export default function VariantALanding() {
               transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
             >
               trygghet.
-            </motion.span>
-          </motion.h1>
+            </m.span>
+          </m.h1>
 
-          <motion.p
+          <m.p
             className="mx-auto mb-10 max-w-2xl text-xl text-zinc-300 lg:text-2xl"
             variants={heroSubtitle}
             transition={{ duration: 0.7, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
           >
             SmartOut gj&oslash;r deg klar for jobben — p&aring; ditt spr&aring;k.
-          </motion.p>
+          </m.p>
 
-          <motion.div
+          <m.div
             className="flex flex-col items-center justify-center gap-4 sm:flex-row"
             variants={heroCta}
             transition={{
@@ -282,7 +282,7 @@ export default function VariantALanding() {
             }}
           >
             {/* Primary CTA — amber filled button with hover lift */}
-            <motion.div whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.97 }}>
+            <m.div whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.97 }}>
               <Link
                 href={WEB_APP_LINKS.onboarding}
                 onClick={() => trackCta("Kom i gang")}
@@ -290,10 +290,10 @@ export default function VariantALanding() {
               >
                 Kom i gang
               </Link>
-            </motion.div>
+            </m.div>
 
             {/* Secondary CTA — ghost button with hover glow */}
-            <motion.div whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.97 }}>
+            <m.div whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.97 }}>
               <button
                 type="button"
                 onClick={() => trackCta("Se video")}
@@ -301,9 +301,9 @@ export default function VariantALanding() {
               >
                 Se video
               </button>
-            </motion.div>
-          </motion.div>
-        </motion.div>
+            </m.div>
+          </m.div>
+        </m.div>
       </section>
 
       {/* ============================================
@@ -312,24 +312,24 @@ export default function VariantALanding() {
           process in simple, visual steps.
           ============================================ */}
       <section className="relative px-6 py-24 lg:py-32">
-        <motion.div
+        <m.div
           className="mx-auto max-w-5xl"
           initial="hidden"
           whileInView="visible"
           viewport={viewportOnce}
           variants={staggerContainer}
         >
-          <motion.h2
+          <m.h2
             className="mb-16 text-center text-3xl font-bold tracking-tight lg:text-4xl"
             variants={fadeUp}
             transition={{ duration: 0.5 }}
           >
             Enkelt. I tre steg.
-          </motion.h2>
+          </m.h2>
 
           <div className="grid gap-8 md:grid-cols-3">
             {HOW_IT_WORKS_STEPS.map((step, i) => (
-              <motion.div
+              <m.div
                 key={step.title}
                 className="group flex flex-col items-center rounded-3xl border border-white/5 bg-white/[0.02] p-10 text-center transition-all duration-500 hover:border-amber-500/20 hover:bg-amber-500/[0.03] hover:shadow-[0_8px_40px_rgba(245,158,11,0.06)]"
                 variants={cardReveal}
@@ -341,7 +341,7 @@ export default function VariantALanding() {
                 whileHover={{ y: -6, transition: { duration: 0.3, ease: "easeOut" } }}
               >
                 {/* 96px icon — ambient float animation on hover */}
-                <motion.div
+                <m.div
                   animate={{ y: [0, -6, 0] }}
                   transition={{
                     duration: 3 + i * 0.4,
@@ -353,13 +353,13 @@ export default function VariantALanding() {
                     className="mb-6 h-24 w-24 text-amber-400 transition-colors duration-500 group-hover:text-amber-300"
                     strokeWidth={1.2}
                   />
-                </motion.div>
+                </m.div>
                 <h3 className="mb-3 text-2xl font-bold">{step.title}</h3>
                 <p className="text-base text-zinc-400">{step.description}</p>
-              </motion.div>
+              </m.div>
             ))}
           </div>
-        </motion.div>
+        </m.div>
       </section>
 
       {/* ============================================
@@ -368,7 +368,7 @@ export default function VariantALanding() {
           Communicates inclusivity at a glance.
           ============================================ */}
       <section className="relative px-6 py-24 lg:py-32">
-        <motion.div
+        <m.div
           className="mx-auto max-w-4xl text-center"
           initial="hidden"
           whileInView="visible"
@@ -376,31 +376,31 @@ export default function VariantALanding() {
           variants={staggerContainer}
         >
           {/* Globe icon — slow spin for a worldly feel */}
-          <motion.div
+          <m.div
             className="mb-6 flex justify-center"
             variants={fadeUp}
             transition={{ duration: 0.5 }}
           >
-            <motion.div
+            <m.div
               animate={{ rotate: [0, 360] }}
               transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
             >
               <Globe className="h-16 w-16 text-amber-400" strokeWidth={1.2} />
-            </motion.div>
-          </motion.div>
+            </m.div>
+          </m.div>
 
-          <motion.h2
+          <m.h2
             className="mb-10 text-3xl font-bold tracking-tight lg:text-4xl"
             variants={heroReveal}
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
           >
             15+ spr&aring;k st&oslash;ttet.
-          </motion.h2>
+          </m.h2>
 
           {/* Language pills — individually staggered reveal */}
-          <motion.div className="flex flex-wrap justify-center gap-3" variants={staggerFast}>
+          <m.div className="flex flex-wrap justify-center gap-3" variants={staggerFast}>
             {SUPPORTED_LANGUAGES.map((language) => (
-              <motion.span
+              <m.span
                 key={language}
                 className="rounded-full border border-amber-500/20 bg-amber-500/10 px-4 py-2 text-sm text-amber-300 transition-all duration-300 hover:border-amber-400/40 hover:bg-amber-500/20 hover:text-amber-200"
                 variants={pillReveal}
@@ -413,10 +413,10 @@ export default function VariantALanding() {
                 whileHover={{ scale: 1.1, y: -2 }}
               >
                 {language}
-              </motion.span>
+              </m.span>
             ))}
-          </motion.div>
-        </motion.div>
+          </m.div>
+        </m.div>
       </section>
 
       {/* ============================================
@@ -425,25 +425,25 @@ export default function VariantALanding() {
           An amber line connects them to show forward momentum.
           ============================================ */}
       <section className="relative px-6 py-24 lg:py-32">
-        <motion.div
+        <m.div
           className="mx-auto max-w-3xl"
           initial="hidden"
           whileInView="visible"
           viewport={viewportOnce}
           variants={staggerContainer}
         >
-          <motion.h2
+          <m.h2
             className="mb-16 text-center text-3xl font-bold tracking-tight lg:text-4xl"
             variants={fadeUp}
             transition={{ duration: 0.5 }}
           >
             Din reise.
-          </motion.h2>
+          </m.h2>
 
           {/* Timeline container — relative positioning for the vertical line */}
           <div className="relative">
             {/* Vertical amber line — animated height reveal */}
-            <motion.div
+            <m.div
               className="absolute top-0 left-12 w-0.5 origin-top bg-gradient-to-b from-amber-500 via-amber-500 to-amber-500/20 lg:left-1/2 lg:-translate-x-1/2"
               initial={{ height: 0 }}
               whileInView={{ height: "100%" }}
@@ -453,14 +453,14 @@ export default function VariantALanding() {
 
             <div className="space-y-16">
               {CAREER_STAGES.map((stage, index) => (
-                <motion.div
+                <m.div
                   key={stage.title}
                   className="relative flex items-start gap-8 lg:items-center"
                   variants={fadeUp}
                   transition={{ duration: 0.6, delay: index * 0.2 }}
                 >
                   {/* Timeline node — scales in with spring bounce */}
-                  <motion.div
+                  <m.div
                     className="relative z-10 flex h-24 w-24 shrink-0 items-center justify-center rounded-full border-2 border-amber-500 bg-zinc-950"
                     variants={nodeReveal}
                     transition={{
@@ -476,10 +476,10 @@ export default function VariantALanding() {
                     }}
                   >
                     <stage.icon className="h-10 w-10 text-amber-400" strokeWidth={1.5} />
-                  </motion.div>
+                  </m.div>
 
                   {/* Stage content — slides in from the right */}
-                  <motion.div
+                  <m.div
                     className={
                       index === 0 ? "pt-2" : index === CAREER_STAGES.length - 1 ? "pb-2" : ""
                     }
@@ -494,12 +494,12 @@ export default function VariantALanding() {
                   >
                     <h3 className="mb-2 text-2xl font-bold">{stage.title}</h3>
                     <p className="text-base text-zinc-400">{stage.description}</p>
-                  </motion.div>
-                </motion.div>
+                  </m.div>
+                </m.div>
               ))}
             </div>
           </div>
-        </motion.div>
+        </m.div>
       </section>
 
       {/* ============================================
@@ -511,7 +511,7 @@ export default function VariantALanding() {
         {/* Subtle amber background wash */}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-amber-900/5 via-transparent to-transparent" />
 
-        <motion.div
+        <m.div
           className="relative z-10 mx-auto max-w-3xl text-center"
           initial="hidden"
           whileInView="visible"
@@ -519,12 +519,12 @@ export default function VariantALanding() {
           variants={staggerContainer}
         >
           {/* Shield icon — gentle breathing pulse for a sense of safety */}
-          <motion.div
+          <m.div
             className="mb-6 flex justify-center"
             variants={fadeUp}
             transition={{ duration: 0.5 }}
           >
-            <motion.div
+            <m.div
               animate={{
                 scale: [1, 1.08, 1],
                 opacity: [0.85, 1, 0.85],
@@ -532,21 +532,21 @@ export default function VariantALanding() {
               transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
             >
               <Shield className="h-16 w-16 text-amber-400" strokeWidth={1.2} />
-            </motion.div>
-          </motion.div>
+            </m.div>
+          </m.div>
 
-          <motion.h2
+          <m.h2
             className="mb-10 text-3xl font-bold tracking-tight lg:text-4xl"
             variants={heroReveal}
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
           >
             Dine data er trygge.
-          </motion.h2>
+          </m.h2>
 
           {/* Privacy bullet points — staggered entrance with heart pulse */}
-          <motion.ul className="mx-auto max-w-lg space-y-5 text-left" variants={staggerContainer}>
+          <m.ul className="mx-auto max-w-lg space-y-5 text-left" variants={staggerContainer}>
             {PRIVACY_POINTS.map((point, i) => (
-              <motion.li
+              <m.li
                 key={point}
                 className="flex items-start gap-4 text-lg text-zinc-300"
                 variants={fadeUp}
@@ -556,7 +556,7 @@ export default function VariantALanding() {
                   ease: [0.22, 1, 0.36, 1],
                 }}
               >
-                <motion.div
+                <m.div
                   animate={{
                     scale: [1, 1.2, 1],
                   }}
@@ -568,12 +568,12 @@ export default function VariantALanding() {
                   }}
                 >
                   <Heart className="mt-1 h-5 w-5 shrink-0 text-amber-400" strokeWidth={1.5} />
-                </motion.div>
+                </m.div>
                 <span>{point}</span>
-              </motion.li>
+              </m.li>
             ))}
-          </motion.ul>
-        </motion.div>
+          </m.ul>
+        </m.div>
       </section>
 
       {/* ============================================
@@ -582,7 +582,7 @@ export default function VariantALanding() {
           Large decorative Quote icon sets the tone.
           ============================================ */}
       <section className="relative px-6 py-24 lg:py-32">
-        <motion.div
+        <m.div
           className="mx-auto max-w-3xl text-center"
           initial="hidden"
           whileInView="visible"
@@ -590,29 +590,29 @@ export default function VariantALanding() {
           variants={staggerContainer}
         >
           {/* Decorative quote icon — subtle scale entrance with float */}
-          <motion.div
+          <m.div
             className="mb-8 flex justify-center"
             variants={quoteReveal}
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
           >
-            <motion.div
+            <m.div
               animate={{ y: [0, -4, 0], rotate: [0, 2, 0, -2, 0] }}
               transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
             >
               <Quote className="h-16 w-16 text-amber-500/40" strokeWidth={1.2} />
-            </motion.div>
-          </motion.div>
+            </m.div>
+          </m.div>
 
-          <motion.blockquote
+          <m.blockquote
             className="mb-6 text-xl leading-relaxed text-zinc-200 italic lg:text-2xl"
             variants={quoteReveal}
             transition={{ duration: 0.8, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
           >
             &ldquo;Jeg var redd for &aring; starte med nytt datasystem. Men SmartOut var s&aring;
             enkelt at jeg klarte det p&aring; f&oslash;rste fors&oslash;k — p&aring; polsk.&rdquo;
-          </motion.blockquote>
+          </m.blockquote>
 
-          <motion.p
+          <m.p
             className="text-base font-semibold text-amber-400"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
@@ -620,8 +620,8 @@ export default function VariantALanding() {
             transition={{ duration: 0.8, delay: 0.6 }}
           >
             Maria K., servit&oslash;r i 12 &aring;r
-          </motion.p>
-        </motion.div>
+          </m.p>
+        </m.div>
       </section>
 
       {/* ============================================
@@ -634,28 +634,28 @@ export default function VariantALanding() {
         {/* Subtle amber wash */}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-amber-900/5 via-transparent to-transparent" />
 
-        <motion.div
+        <m.div
           className="relative z-10 mx-auto max-w-5xl"
           initial="hidden"
           whileInView="visible"
           viewport={viewportOnce}
           variants={staggerContainer}
         >
-          <motion.h2
+          <m.h2
             className="mb-16 text-center text-3xl font-bold tracking-tight lg:text-4xl"
             variants={fadeUp}
             transition={{ duration: 0.5 }}
           >
             {VARIANT_AI_SECTION.A.heading}
-          </motion.h2>
+          </m.h2>
 
-          <motion.p
+          <m.p
             className="mx-auto mb-12 max-w-2xl text-center text-xl text-zinc-300"
             variants={fadeUp}
             transition={{ duration: 0.5 }}
           >
             {VARIANT_AI_SECTION.A.subheading}
-          </motion.p>
+          </m.p>
 
           {/* 3 giant icon cards — one per AI capability, with hover lift + floating icons */}
           <div className="mb-16 grid gap-8 md:grid-cols-3">
@@ -663,7 +663,7 @@ export default function VariantALanding() {
               const icons = [Globe, Mic, BookOpen];
               const IconComponent = icons[i] ?? Globe;
               return (
-                <motion.div
+                <m.div
                   key={cap.title}
                   className="group flex flex-col items-center rounded-3xl border border-white/5 bg-white/[0.02] p-10 text-center transition-all duration-500 hover:border-amber-500/20 hover:bg-amber-500/[0.03] hover:shadow-[0_8px_40px_rgba(245,158,11,0.06)]"
                   variants={cardReveal}
@@ -675,7 +675,7 @@ export default function VariantALanding() {
                   whileHover={{ y: -6, transition: { duration: 0.3, ease: "easeOut" } }}
                 >
                   {/* 96px icon — ambient float with staggered timing */}
-                  <motion.div
+                  <m.div
                     animate={{ y: [0, -8, 0] }}
                     transition={{
                       duration: 3.5 + i * 0.5,
@@ -687,10 +687,10 @@ export default function VariantALanding() {
                       className="mb-6 h-24 w-24 text-amber-400 transition-colors duration-500 group-hover:text-amber-300"
                       strokeWidth={1.2}
                     />
-                  </motion.div>
+                  </m.div>
                   <h3 className="mb-3 text-2xl font-bold">{cap.title}</h3>
                   <p className="text-base text-zinc-400">{cap.description}</p>
-                </motion.div>
+                </m.div>
               );
             })}
           </div>
@@ -699,7 +699,7 @@ export default function VariantALanding() {
           <div className="mx-auto max-w-lg">
             <VoiceDemoWidget config={VARIANT_VOICE_CONFIG.A} height="400px" />
           </div>
-        </motion.div>
+        </m.div>
       </section>
 
       {/* ============================================
@@ -708,7 +708,7 @@ export default function VariantALanding() {
           ============================================ */}
       <section className="relative px-6 py-24 lg:py-32">
         {/* Ambient glow behind CTA — draws the eye */}
-        <motion.div
+        <m.div
           className="pointer-events-none absolute top-1/2 left-1/2 h-[300px] w-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-500/8 blur-3xl"
           animate={{
             scale: [1, 1.3, 1],
@@ -717,7 +717,7 @@ export default function VariantALanding() {
           transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
         />
 
-        <motion.div
+        <m.div
           className="relative z-10 mx-auto max-w-3xl text-center"
           initial="hidden"
           whileInView="visible"
@@ -725,7 +725,7 @@ export default function VariantALanding() {
           variants={heroReveal}
           transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
         >
-          <motion.div whileHover={{ scale: 1.06, y: -3 }} whileTap={{ scale: 0.97 }}>
+          <m.div whileHover={{ scale: 1.06, y: -3 }} whileTap={{ scale: 0.97 }}>
             <Link
               href={WEB_APP_LINKS.onboarding}
               onClick={() => trackCta("Start gratis i dag.")}
@@ -733,8 +733,8 @@ export default function VariantALanding() {
             >
               Start gratis i dag.
             </Link>
-          </motion.div>
-        </motion.div>
+          </m.div>
+        </m.div>
       </section>
 
       {/* Shared Footer */}
