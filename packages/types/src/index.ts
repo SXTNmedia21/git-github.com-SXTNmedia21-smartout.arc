@@ -6,3 +6,4 @@ export * from "./time";
 export * from "./platform";
 export * from "./journey";
 export * from "./engine";
+export * from "./mission-protocol";
