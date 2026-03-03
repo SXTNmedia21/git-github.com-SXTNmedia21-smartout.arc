@@ -28,3 +28,31 @@ export type CapabilityDefinition = {
   readOnlyTools: ReadonlyArray<SmartoutTool<AgentToolContext>>;
   suggestTools?: ReadonlyArray<SmartoutTool<AgentToolContext>>;
 };
+
+// -- Personality & Posture --
+
+export type Personality = {
+  formality: number;
+  assertiveness: number;
+  warmth: number;
+  humor: number;
+  verbosity: number;
+};
+
+export type ResolvedPosture = Personality;
+
+export type Situation =
+  | "onboarding"
+  | "haccp"
+  | "scheduling"
+  | "training"
+  | "operations"
+  | "general";
+
+export type PostureAdaptFlags = {
+  role: boolean;
+  situation: boolean;
+  authority: boolean;
+};
+
+export type ProfileRole = "employee" | "manager" | "admin" | "owner";

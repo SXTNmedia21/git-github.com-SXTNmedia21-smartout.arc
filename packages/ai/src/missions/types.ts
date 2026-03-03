@@ -11,6 +11,19 @@ export type MissionId = z.infer<typeof MissionIdSchema>;
 
 export type UltravoxVoice = "terrence" | "mark" | "jessica" | "sarah" | "tina";
 
+export type MissionStageOverride = {
+  id: string;
+  voice?: UltravoxVoice;
+  temperature?: number;
+  posture_override?: Partial<{
+    formality: number;
+    assertiveness: number;
+    warmth: number;
+    humor: number;
+    verbosity: number;
+  }>;
+};
+
 export type AgentMission = {
   id: MissionId;
   name: string;
@@ -26,6 +39,7 @@ export type AgentMission = {
   agentDisplayName: string;
   greeting: string;
   uiDescription: string;
+  stages?: MissionStageOverride[];
 };
 
 export type MissionManifestEntry = {

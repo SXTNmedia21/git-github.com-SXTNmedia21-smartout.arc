@@ -100,6 +100,18 @@
     "./prompts/mr-botsson": {
       "types": "./dist/prompts/mr-botsson.d.ts",
       "default": "./dist/prompts/mr-botsson.js"
+    },
+    "./prompts/posture": {
+      "types": "./dist/prompts/posture.d.ts",
+      "default": "./dist/prompts/posture.js"
+    },
+    "./context/types": {
+      "types": "./dist/context/types.d.ts",
+      "default": "./dist/context/types.js"
+    },
+    "./context/collector": {
+      "types": "./dist/context/collector.d.ts",
+      "default": "./dist/context/collector.js"
     }
   },
   "scripts": {
