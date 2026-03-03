@@ -1,7 +1,7 @@
 ---
 title: Session Log
 status: in_progress
-updated: 2026-03-08
+updated: 2026-03-09
 created: 2026-03-02
 module: meta
 tags: [session, boot-sequence, continuity]
@@ -13,34 +13,37 @@ tags: [session, boot-sequence, continuity]
 
 ## Last Session
 
-| Field   | Value         |
-| ------- | ------------- |
-| Date    | 2026-03-08    |
-| Branch  | `development` |
-| Feature | hydration fix |
-| Status  | done          |
+| Field   | Value                                  |
+| ------- | -------------------------------------- |
+| Date    | 2026-03-09                             |
+| Branch  | `development`                          |
+| Feature | Season Planning MVP + DailyCloseEngine |
+| Status  | done (both merged)                     |
 
 ### What was done
 
-- Fixed React hydration mismatch in `apps/web/src/app/dashboard/query-provider.tsx`
-- Root cause: `ReactQueryDevtools` static import rendered differently during SSR vs client, shifting Radix UI `useId()` counter
-- Fix: lazy-loaded `ReactQueryDevtools` with `next/dynamic` + `ssr: false`
+- **Season Planning MVP (wt-1, Module 15):** Created full UI — 5 hooks, 5 components (SeasonSelector, BudgetSetupTab, DayFactorsTab, HourFactorsTab, SeasonOverviewTab), page rewrite with 4-tab layout. Pure TS calculation engine + tests. Typecheck clean. All closure docs committed.
+- **DailyCloseEngine (wt-3):** 30 files — 6 engine tables, domain tables, 3 Edge Functions (OCR/validation/dispatch), employee close-out UI, admin reconciliation dashboard. Typecheck clean. All closure docs committed.
+- **Schedule UI polish:** 16 files committed on development earlier (13 dialog redesigns, monthly view rewrite, filters, compact headers)
+- **Closure deliverables for both features:** Journey docs, worklogs, decision logs, learning logs — all committed on their respective branches
 
 ### Where we stopped
 
-- Fix applied, 1 uncommitted file on development (`query-provider.tsx`)
-- 2 untracked plan files from prior session (`docs/plans/2026-03-03-onboarding-redesign-*.md`)
+- Both features merged to development, worktrees removed, remote branches deleted
+- wt-2 (`feat/onboarding-redesign`) untouched this session
+- development is clean and pushed
 
 ### Known blockers / errors
 
 - Contract-service uses env var fallback — Vault `get_secret()` not deployed to production
+- DailyCloseEngine tables not in `database.types.ts` — using `(supabase.from as Function)()` workaround. Run migrations + regenerate types when ready.
 
 ### Pending decisions
 
-- [ ] Commit the hydration fix to development
-- [ ] Confirm 5 open questions in onboarding redesign plan
+- [ ] Run DailyCloseEngine DB migrations and regenerate `database.types.ts`
 - [ ] Enable `supabase_vault` extension on production
 - [ ] Lock down port 8000 on droplet with UFW
+- [ ] Continue onboarding redesign (wt-2)
 
 ---
 

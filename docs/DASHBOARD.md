@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: in_progress
-updated: 2026-03-08
+updated: 2026-03-09
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -17,12 +17,12 @@ tags: [dashboard, worktrees, tracking]
 | --- | -------------------------- | ---------- | ----------- | ------------ | ------- | ----- |
 | 2   | `feat/onboarding-redesign` | onboarding | in_progress | just started | —       | clean |
 
-> **Note:** wt-1 (`feat/operation`) and wt-3 (`feat/daily-standup`) still exist as git worktrees despite being marked abandoned on 2026-03-07. Clean up with `git worktree remove`.
-
 ## Free Slots
 
 | #     | Available |
 | ----- | --------- |
+| wt-1  | yes       |
+| wt-3  | yes       |
 | wt-4  | yes       |
 | wt-5  | yes       |
 | wt-20 | yes       |
@@ -56,6 +56,8 @@ tags: [dashboard, worktrees, tracking]
 | 2026-03-03 | agent-config-ui           | `feat/build-the-agent-config-training-session-ui-page`             | development |
 | 2026-03-05 | entity-detail-pages       | `feat/entity-detail-pages`                                         | development |
 | 2026-03-06 | communications-finish     | `feat/communications-finish`                                       | development |
+| 2026-03-08 | operation (season)        | `feat/operation`                                                   | development |
+| 2026-03-08 | daily-standup             | `feat/daily-standup`                                               | development |
 
 ## Session History
 
@@ -103,3 +105,8 @@ tags: [dashboard, worktrees, tracking]
 | 2026-03-03 | DO droplet deployment       | session ended     | Fixed all 5 DO services: env vars, swapped keys, DNS A-records (GoDaddy), TLS certs, contract-service Vault fallback. All services verified working.                                           |
 | 2026-03-08 | (hydration fix)             | session ended     | Fixed React hydration mismatch: lazy-loaded ReactQueryDevtools in query-provider.tsx. 1 file changed on development.                                                                           |
 | 2026-03-07 | onboarding-redesign         | started           | wt-2, module: onboarding — 5-step dashboard-style onboarding replacing 15-step wizard                                                                                                          |
+| 2026-03-09 | season-planning-mvp         | ready_for_closure | wt-1: Season Planning MVP (Module 15) — 3 DB tables, calculation engine, 5 hooks, 5 components, tab page. All closure gates pass. Run `cf 1`.                                                  |
+| 2026-03-09 | daily-close-engine          | ready_for_closure | wt-3: DailyCloseEngine — 6 engine tables, 3 Edge Functions (OCR/validation/dispatch), employee close-out UI, admin reconciliation dashboard. All closure gates pass. Run `cf 3`.               |
+| 2026-03-09 | (session)                   | session ended     | Completed Season Planning MVP + DailyCloseEngine. Both features ready for closure (cf 1, cf 3). 16 schedule UI files committed earlier.                                                        |
+| 2026-03-08 | operation (season)          | merged+closed     | 10 commits merged to development, wt-1 removed. Season planning UI + calc engine + DB migration.                                                                                               |
+| 2026-03-08 | daily-standup               | merged+closed     | 2 commits merged to development, wt-3 removed. Daily close engine, reconciliation UI, 4 DB migrations, 3 edge functions.                                                                       |
