@@ -278,7 +278,7 @@ export function BusinessSection() {
               isEditing={isEditing}
               onChange={(v) =>
                 updateBusiness({
-                  employeeCount: v ? parseInt(v, 10) || undefined : undefined,
+                  employeeCount: v,
                 })
               }
               mono

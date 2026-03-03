@@ -25,7 +25,7 @@ describe("getDepartmentsForIndustry", () => {
   it("returns generic defaults for unknown NACE", () => {
     const deps = getDepartmentsForIndustry("99.999");
     expect(deps.length).toBeGreaterThan(0);
-    expect(deps[0].name).toBe("Administrasjon");
+    expect(deps[0]!.name).toBe("Administrasjon");
   });
 
   it("maps industry description to NACE code", () => {

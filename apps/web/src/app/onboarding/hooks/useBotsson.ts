@@ -63,7 +63,7 @@ export function useBotsson(): BotssonState {
       const scripts = getScriptsForSection(section, trigger);
       if (scripts.length === 0) return;
 
-      const script = scripts[0];
+      const script = scripts[0]!;
       const delay = script.delay ?? 0;
       setTimeout(() => speak(script.text), delay);
     },

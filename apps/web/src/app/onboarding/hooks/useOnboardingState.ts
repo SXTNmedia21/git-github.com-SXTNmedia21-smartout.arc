@@ -167,8 +167,8 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
       });
 
       const nextIdx = ONBOARDING_SECTIONS.indexOf(section) + 1;
-      if (nextIdx < ONBOARDING_SECTIONS.length) {
-        const next = ONBOARDING_SECTIONS[nextIdx];
+      const next = ONBOARDING_SECTIONS[nextIdx];
+      if (next) {
         setCurrentSection(next);
 
         if (saveTimerRef.current) clearTimeout(saveTimerRef.current);

@@ -53,7 +53,7 @@ const POSITION_MAP: Record<string, string[]> = {
 };
 
 export function getDepartmentsForIndustry(naceCode: string): DepartmentOption[] {
-  const config = DEPARTMENT_CONFIGS[naceCode] ?? DEPARTMENT_CONFIGS.default;
+  const config = DEPARTMENT_CONFIGS[naceCode] ?? DEPARTMENT_CONFIGS["default"]!;
   return config.map((dept, i) => ({
     id: `dept-${i}`,
     name: dept.name,
