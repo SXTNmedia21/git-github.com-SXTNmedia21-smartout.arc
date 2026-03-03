@@ -91,6 +91,7 @@ export function useOperatingHours(locationId?: string) {
       });
     },
     enabled: !!wsId,
+    staleTime: 10 * 60 * 1000, // 10 minutes — stable workspace settings
   });
 
   const upsertHours = useMutation({

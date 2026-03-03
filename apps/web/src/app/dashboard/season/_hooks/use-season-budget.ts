@@ -48,6 +48,7 @@ export function useSeasonBudget(seasonId: string | null) {
       return data;
     },
     enabled: !!wsId && !!seasonId,
+    staleTime: 5 * 60 * 1000, // 5 minutes — semi-stable season budget
   });
 
   const upsertBudget = useMutation({

@@ -25,6 +25,7 @@ export function useAbsences(weekStart: string, weekEnd: string) {
 
   return useQuery({
     queryKey: scheduleKeys.absences(workspace.workspace_id, weekStart),
+    staleTime: 2 * 60 * 1000, // 2 minutes — volatile absence data
     queryFn: async () => {
       const supabase = createClient();
 

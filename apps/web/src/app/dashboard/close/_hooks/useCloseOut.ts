@@ -13,6 +13,7 @@ export function useDepartmentSession(departmentId: string | null) {
   return useQuery({
     queryKey: ["department-session", workspace.workspace_id, departmentId],
     enabled: !!departmentId,
+    staleTime: 30 * 1000, // 30 seconds — real-time active session data
     queryFn: async () => {
       const today = new Date().toISOString().split("T")[0]!;
       const { data, error } = await supabase
@@ -38,6 +39,7 @@ export function useReconciliation(sessionId: string | null) {
   return useQuery({
     queryKey: ["reconciliation", workspace.workspace_id, sessionId],
     enabled: !!sessionId,
+    staleTime: 2 * 60 * 1000, // 2 minutes — volatile reconciliation data
     queryFn: async () => {
       const { data, error } = await supabase
         .from("daily_reconciliation")
@@ -159,6 +161,7 @@ export function useSessionDeviations(sessionId: string | null) {
   return useQuery({
     queryKey: ["session-deviations", workspace.workspace_id, sessionId],
     enabled: !!sessionId,
+    staleTime: 2 * 60 * 1000, // 2 minutes — volatile deviation data
     queryFn: async () => {
       const { data, error } = await supabase
         .from("deviation")

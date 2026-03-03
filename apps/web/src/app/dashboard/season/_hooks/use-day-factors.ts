@@ -47,6 +47,7 @@ export function useDayFactors(seasonBudgetId: string | null) {
       return data ?? [];
     },
     enabled: !!wsId && !!seasonBudgetId,
+    staleTime: 5 * 60 * 1000, // 5 minutes — semi-stable budget factors
   });
 
   const saveDayFactors = useMutation({

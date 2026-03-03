@@ -20,6 +20,7 @@ export function useReconciliationList(filters?: {
 
   return useQuery({
     queryKey: ["reconciliation-list", workspace.workspace_id, filters],
+    staleTime: 2 * 60 * 1000, // 2 minutes — volatile reconciliation data
     queryFn: async () => {
       let query = supabase
         .from("daily_reconciliation")
@@ -56,6 +57,7 @@ export function useReconciliationDetail(reconciliationId: string | null) {
   return useQuery({
     queryKey: ["reconciliation-detail", reconciliationId],
     enabled: !!reconciliationId,
+    staleTime: 2 * 60 * 1000, // 2 minutes — volatile reconciliation detail
     queryFn: async () => {
       const { data, error } = await supabase
         .from("daily_reconciliation")

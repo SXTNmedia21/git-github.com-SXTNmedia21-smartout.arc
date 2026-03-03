@@ -18,6 +18,7 @@ export function useTrainingReadiness() {
   return useQuery({
     queryKey: dashboardKeys.trainingReadiness(workspaceId ?? "none"),
     enabled: !!workspaceId,
+    staleTime: 5 * 60 * 1000, // 5 minutes — semi-stable training readiness
     queryFn: async (): Promise<TrainingReadinessData> => {
       const wsId = workspaceId!;
       const supabase = createClient();

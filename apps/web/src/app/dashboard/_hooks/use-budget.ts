@@ -73,6 +73,7 @@ export function useBudget({
       return data ?? [];
     },
     enabled: !!wsId,
+    staleTime: 5 * 60 * 1000, // 5 minutes — semi-stable budget data
   });
 
   const upsertBudget = useMutation({

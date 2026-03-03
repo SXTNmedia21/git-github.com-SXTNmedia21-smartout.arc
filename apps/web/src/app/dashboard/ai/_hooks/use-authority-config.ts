@@ -34,6 +34,7 @@ export function useAuthorityConfig() {
 
   return useQuery({
     queryKey: authorityKeys.all(workspaceId),
+    staleTime: 10 * 60 * 1000, // 10 minutes — stable workspace config
     queryFn: async (): Promise<AuthorityConfigMap> => {
       const supabase = createClient();
       const { data, error } = await supabase
