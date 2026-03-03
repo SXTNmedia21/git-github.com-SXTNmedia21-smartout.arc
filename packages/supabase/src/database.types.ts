@@ -2270,11 +2270,14 @@ export type Database = {
           created_at: string
           current_stage_id: string | null
           expires_at: string
+          guardian_whisper_count: number
           id: string
+          journey_id: string | null
           mission_id: string | null
           mode: string
           profile_id: string | null
           stage_index: number
+          stage_started_at: string | null
           status: string
           summary: string | null
           updated_at: string
@@ -2290,11 +2293,14 @@ export type Database = {
           created_at?: string
           current_stage_id?: string | null
           expires_at?: string
+          guardian_whisper_count?: number
           id?: string
+          journey_id?: string | null
           mission_id?: string | null
           mode?: string
           profile_id?: string | null
           stage_index?: number
+          stage_started_at?: string | null
           status?: string
           summary?: string | null
           updated_at?: string
@@ -2310,11 +2316,14 @@ export type Database = {
           created_at?: string
           current_stage_id?: string | null
           expires_at?: string
+          guardian_whisper_count?: number
           id?: string
+          journey_id?: string | null
           mission_id?: string | null
           mode?: string
           profile_id?: string | null
           stage_index?: number
+          stage_started_at?: string | null
           status?: string
           summary?: string | null
           updated_at?: string
@@ -2322,6 +2331,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "engine_sessions_journey_id_fkey"
+            columns: ["journey_id"]
+            isOneToOne: false
+            referencedRelation: "journey"
+            referencedColumns: ["journey_id"]
+          },
           {
             foreignKeyName: "engine_sessions_mission_id_fkey"
             columns: ["mission_id"]
@@ -3050,7 +3066,10 @@ export type Database = {
           expects: string | null
           journey_id: string
           journey_step_id: string
+          max_duration_seconds: number | null
+          min_duration_seconds: number | null
           notes: string | null
+          required_confirmation: boolean
           screen: string | null
           step_order: number
           title: string
@@ -3066,7 +3085,10 @@ export type Database = {
           expects?: string | null
           journey_id: string
           journey_step_id?: string
+          max_duration_seconds?: number | null
+          min_duration_seconds?: number | null
           notes?: string | null
+          required_confirmation?: boolean
           screen?: string | null
           step_order: number
           title: string
@@ -3082,7 +3104,10 @@ export type Database = {
           expects?: string | null
           journey_id?: string
           journey_step_id?: string
+          max_duration_seconds?: number | null
+          min_duration_seconds?: number | null
           notes?: string | null
+          required_confirmation?: boolean
           screen?: string | null
           step_order?: number
           title?: string
