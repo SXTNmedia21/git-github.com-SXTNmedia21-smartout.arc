@@ -203,14 +203,15 @@ export async function POST(request: NextRequest) {
 
   const jobId = (commLog as { communication_id: string }).communication_id;
 
-  // Create recipient entries
+  // Create recipient entries (include locale for multilingual sending)
   const recipientRows = activeRecipients.map(
-    (r: { userId: string; email: string; name: string }) => ({
+    (r: { userId: string; email: string; name: string; locale: string }) => ({
       communication_id: jobId,
       user_id: r.userId,
       email: r.email,
       name: r.name,
       status: "pending",
+      locale: r.locale ?? "no",
     }),
   );
 

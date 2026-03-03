@@ -14,11 +14,13 @@ import {
   FileText,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { ComposeEmailSheet } from "@/components/platform-admin/compose-email-sheet";
 import { DataTable } from "@/components/platform-admin/data-table";
 import { StatusBadge } from "@/components/platform-admin/status-badge";
 import { CommunicationDetail } from "./communication-detail";
+import { EngagementReport } from "./engagement-report";
 import type { AudienceFilter } from "@/components/platform-admin/audience-selector";
 
 type CommunicationEntry = {
@@ -225,10 +227,12 @@ export function CommunicationsClient({ history }: CommunicationsClientProps) {
         </CardContent>
       </Card>
 
-      {/* Communication History */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-3">
-          <CardTitle className="text-sm font-medium">Communication History</CardTitle>
+      <Tabs defaultValue="history">
+        <div className="flex items-center justify-between">
+          <TabsList>
+            <TabsTrigger value="history">Historikk</TabsTrigger>
+            <TabsTrigger value="reports">Rapporter</TabsTrigger>
+          </TabsList>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -247,27 +251,40 @@ export function CommunicationsClient({ history }: CommunicationsClientProps) {
               Compose
             </Button>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-0">
-          <DataTable columns={columns} data={history} onRowClick={handleRowClick} />
-          {expandedId && (
-            <div className="border-border bg-muted/30 rounded-b-md border-x border-b p-4">
-              <div className="mb-2 flex items-center justify-between">
-                <h4 className="text-sm font-medium">Recipient Details</h4>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 px-2"
-                  onClick={() => setExpandedId(null)}
-                >
-                  <ChevronDown className="h-3 w-3 rotate-180" />
-                </Button>
-              </div>
-              <CommunicationDetail communicationId={expandedId} />
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        </div>
+
+        <TabsContent value="history">
+          <Card>
+            <CardContent className="pt-6">
+              <DataTable columns={columns} data={history} onRowClick={handleRowClick} />
+              {expandedId && (
+                <div className="border-border bg-muted/30 rounded-b-md border-x border-b p-4">
+                  <div className="mb-2 flex items-center justify-between">
+                    <h4 className="text-sm font-medium">Recipient Details</h4>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2"
+                      onClick={() => setExpandedId(null)}
+                    >
+                      <ChevronDown className="h-3 w-3 rotate-180" />
+                    </Button>
+                  </div>
+                  <CommunicationDetail communicationId={expandedId} />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="reports">
+          <Card>
+            <CardContent className="pt-6">
+              <EngagementReport communications={history} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       <ComposeEmailSheet
         open={composeOpen}

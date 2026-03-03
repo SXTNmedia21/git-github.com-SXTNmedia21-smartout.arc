@@ -59,7 +59,20 @@ function CollapsibleSection({
   );
 }
 
-export function ComposePageClient() {
+type SavedTemplate = {
+  template_id: string;
+  name: string;
+  category: string;
+  subject: string;
+  sections: unknown[];
+  placeholders: unknown[];
+};
+
+type ComposePageClientProps = {
+  savedTemplates?: SavedTemplate[];
+};
+
+export function ComposePageClient({ savedTemplates = [] }: ComposePageClientProps) {
   const router = useRouter();
 
   // Form state
@@ -277,13 +290,48 @@ export function ComposePageClient() {
               )}
 
               {templateMode === "sendgrid-dynamic" && (
-                <div className="space-y-2">
-                  <Label>SendGrid Template ID</Label>
-                  <Input
-                    value={sendgridTemplateId}
-                    onChange={(e) => setSendgridTemplateId(e.target.value)}
-                    placeholder="d-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                  />
+                <div className="space-y-3">
+                  {savedTemplates.length > 0 && (
+                    <div className="space-y-2">
+                      <Label>Last inn lagret mal</Label>
+                      <Select
+                        onValueChange={(id) => {
+                          const t = savedTemplates.find(
+                            (tpl) => tpl.template_id === id,
+                          );
+                          if (t) {
+                            setSubject(t.subject ?? "");
+                            toast.success(`Mal "${t.name}" lastet`);
+                          }
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Velg en lagret mal..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {savedTemplates.map((t) => (
+                            <SelectItem
+                              key={t.template_id}
+                              value={t.template_id}
+                            >
+                              {t.name} ({t.category})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-muted-foreground text-xs">
+                        Eller skriv inn SendGrid Template ID manuelt nedenfor
+                      </p>
+                    </div>
+                  )}
+                  <div className="space-y-2">
+                    <Label>SendGrid Template ID</Label>
+                    <Input
+                      value={sendgridTemplateId}
+                      onChange={(e) => setSendgridTemplateId(e.target.value)}
+                      placeholder="d-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                    />
+                  </div>
                 </div>
               )}
 
