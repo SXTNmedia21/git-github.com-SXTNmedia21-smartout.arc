@@ -3,7 +3,7 @@
 # Multi-stage build: compile TypeScript, then run with prod deps only.
 # Build context is the monorepo root (accesses root pnpm-lock.yaml).
 # Uses pnpm workspace filter to install only this service's deps.
-# Port 3100 — routed via Caddy at contract.smartout.ai.
+# Port 5012 — routed via Caddy at contract.smartout.ai.
 # Connected to: infra/docker-compose.yml (orchestration)
 # ============================================
 
@@ -33,7 +33,7 @@ RUN pnpm install --frozen-lockfile --filter @smartout/contract-service... --igno
 WORKDIR /app/services/contract-service
 COPY --from=builder /app/services/contract-service/dist ./dist
 
-EXPOSE 3100
+EXPOSE 5012
 ENV NODE_ENV=production
 USER node
 CMD ["node", "dist/server.js"]

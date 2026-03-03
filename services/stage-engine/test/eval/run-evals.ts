@@ -14,7 +14,7 @@ import {
   type QualityResult,
 } from "./report.js";
 
-const ENGINE_URL = process.env.ENGINE_URL ?? "http://localhost:3000";
+const ENGINE_URL = process.env.ENGINE_URL ?? "http://localhost:5010";
 const API_KEY = process.env.TEST_API_KEY;
 const PROFILE_ID = process.env.TEST_PROFILE_ID;
 

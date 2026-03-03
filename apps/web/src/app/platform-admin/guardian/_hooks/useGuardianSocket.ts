@@ -33,7 +33,7 @@ type GuardianSessionList = {
 
 type ServerMessage = GuardianEvent | GuardianSessionList;
 
-const STAGE_ENGINE_URL = process.env.NEXT_PUBLIC_STAGE_ENGINE_URL ?? "http://localhost:5022";
+const STAGE_ENGINE_URL = process.env.NEXT_PUBLIC_STAGE_ENGINE_URL ?? "http://localhost:5010";
 
 export function useGuardianSocket() {
   const wsRef = useRef<WebSocket | null>(null);

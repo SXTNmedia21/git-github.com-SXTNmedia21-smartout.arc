@@ -3,7 +3,7 @@
 // Requires: running Stage Engine + Supabase + valid API key.
 // Run with: pnpm test:agent
 
-const BASE_URL = process.env.ENGINE_URL ?? "http://localhost:3000";
+const BASE_URL = process.env.ENGINE_URL ?? "http://localhost:5010";
 const API_KEY = process.env.TEST_API_KEY;
 
 if (!API_KEY) {

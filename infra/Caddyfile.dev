@@ -5,15 +5,15 @@
 # ============================================
 
 :3070 {
-	reverse_proxy stage-engine:3000
+	reverse_proxy stage-engine:5010
 }
 
 :3071 {
-	reverse_proxy shift-mcp:3001
+	reverse_proxy shift-mcp:5011
 }
 
 :3072 {
-	reverse_proxy contract-service:3100
+	reverse_proxy contract-service:5012
 }
 
 :3073 {

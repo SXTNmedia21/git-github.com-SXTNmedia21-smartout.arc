@@ -53,6 +53,6 @@ COPY --from=builder /app/packages/supabase/src ./packages/supabase/src
 COPY --from=builder /app/services/stage-engine/dist ./services/stage-engine/dist
 
 WORKDIR /app/services/stage-engine
-EXPOSE 5022
+EXPOSE 5010
 ENV NODE_ENV=production
 CMD ["node", "dist/index.js"]

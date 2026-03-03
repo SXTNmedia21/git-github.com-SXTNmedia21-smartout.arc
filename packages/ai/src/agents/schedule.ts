@@ -63,7 +63,7 @@ export type ScheduleAgentContext = {
   jwt?: string;
   /** Workspace API key — used when called from stage-engine or service */
   apiKey?: string;
-  /** Base URL of the Shift MCP Server (e.g. http://localhost:3001) */
+  /** Base URL of the Shift MCP Server (e.g. http://localhost:5011) */
   mcpUrl: string;
 };
 

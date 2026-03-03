@@ -3,7 +3,7 @@
 # Multi-stage build: compile TypeScript, then run with prod deps only.
 # Build context is the monorepo root (accesses root pnpm-lock.yaml).
 # Uses pnpm workspace filter to install only this service's deps.
-# Port 3001 — routed via Caddy at schedule-mcp.smartout.ai.
+# Port 5011 — routed via Caddy at schedule-mcp.smartout.ai.
 # Connected to: infra/docker-compose.yml (orchestration)
 # ============================================
 
@@ -33,7 +33,7 @@ RUN pnpm install --frozen-lockfile --filter @smartout/shift-mcp... --ignore-scri
 WORKDIR /app/services/shift-mcp
 COPY --from=builder /app/services/shift-mcp/dist ./dist
 
-EXPOSE 3001
+EXPOSE 5011
 ENV NODE_ENV=production
 USER node
 CMD ["node", "dist/index.js"]

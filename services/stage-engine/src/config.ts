@@ -9,8 +9,8 @@
 import { z } from "zod";
 
 const envSchema = z.object({
-  /** Server port — defaults to 3000 */
-  PORT: z.coerce.number().default(3000),
+  /** Server port — defaults to 5010 */
+  PORT: z.coerce.number().default(5010),
 
   /** Public URL of the engine — used in webhook payloads and Ultravox tool URLs */
   ENGINE_URL: z.string().url(),
