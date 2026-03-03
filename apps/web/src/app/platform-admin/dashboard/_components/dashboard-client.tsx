@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 import {
@@ -95,7 +95,11 @@ function getActivityDescription(entry: ActivityEntry): string {
 export function DashboardClient({ subscriptionData, recentActivity }: DashboardClientProps) {
   const [composeOpen, setComposeOpen] = useState(false);
 
-  const hasSubscriptionData = subscriptionData.some((d) => d.value > 0);
+  const filteredSubscriptionData = useMemo(
+    () => subscriptionData.filter((d) => d.value > 0),
+    [subscriptionData],
+  );
+  const hasSubscriptionData = filteredSubscriptionData.length > 0;
 
   return (
     <>
@@ -149,7 +153,7 @@ export function DashboardClient({ subscriptionData, recentActivity }: DashboardC
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={subscriptionData.filter((d) => d.value > 0)}
+                      data={filteredSubscriptionData}
                       cx="50%"
                       cy="50%"
                       innerRadius={50}
@@ -157,11 +161,9 @@ export function DashboardClient({ subscriptionData, recentActivity }: DashboardC
                       paddingAngle={2}
                       dataKey="value"
                     >
-                      {subscriptionData
-                        .filter((d) => d.value > 0)
-                        .map((entry) => (
-                          <Cell key={entry.name} fill={entry.color} />
-                        ))}
+                      {filteredSubscriptionData.map((entry) => (
+                        <Cell key={entry.name} fill={entry.color} />
+                      ))}
                     </Pie>
                     <Tooltip
                       contentStyle={{
