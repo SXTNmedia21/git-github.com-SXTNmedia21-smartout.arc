@@ -23,7 +23,7 @@ export default function CaseStudyBlock({ content, settings }: BlockProps<CaseStu
             <p className="mb-1 text-xs font-bold tracking-wider text-zinc-500 uppercase">
               Casestudie
             </p>
-            <h3 className="text-2xl font-extrabold text-white">{content.heading}</h3>
+            <h3 className="text-2xl font-bold text-white">{content.heading}</h3>
             <p className="mt-1 text-sm text-zinc-400">{content.company}</p>
           </div>
 

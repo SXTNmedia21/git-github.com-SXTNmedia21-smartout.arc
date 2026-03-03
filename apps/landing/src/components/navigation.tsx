@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { m, AnimatePresence } from "framer-motion";
 import { Building2, ArrowRight, Menu, X } from "lucide-react";
 import { WEB_APP_LINKS } from "../lib/web-app-url";
+// VariantBadge hidden in production — only shown in dev via ?debug=variants
 import { VariantBadge } from "./variant-badge";
 
 const NAV_LINKS = [
@@ -87,9 +88,11 @@ export default function Navigation() {
             );
           })}
           <div className="mx-2 h-5 w-px bg-white/10" />
-          <Suspense>
-            <VariantBadge />
-          </Suspense>
+          {process.env.NODE_ENV === "development" && (
+            <Suspense>
+              <VariantBadge />
+            </Suspense>
+          )}
           <Link
             href={WEB_APP_LINKS.onboarding}
             className="group ml-2 flex items-center gap-2 rounded-full bg-white px-5 py-2 text-sm font-bold text-zinc-950 shadow-[0_0_20px_rgba(255,255,255,0.08)] transition-all duration-300 hover:bg-zinc-100 hover:shadow-[0_0_30px_rgba(255,255,255,0.15)]"

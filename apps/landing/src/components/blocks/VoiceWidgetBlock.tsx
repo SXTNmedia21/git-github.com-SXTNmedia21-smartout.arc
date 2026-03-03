@@ -36,7 +36,7 @@ export default function VoiceWidgetBlock({ content, settings }: BlockProps<Voice
             className="mb-12 text-center"
           >
             {content.heading && (
-              <h2 className="mb-4 text-4xl font-extrabold tracking-tight text-white lg:text-5xl">
+              <h2 className="mb-4 text-4xl font-bold tracking-tight text-white lg:text-5xl">
                 {content.heading}
               </h2>
             )}

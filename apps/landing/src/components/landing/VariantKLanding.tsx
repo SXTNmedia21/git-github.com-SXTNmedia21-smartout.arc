@@ -223,7 +223,7 @@ export default function VariantKLanding() {
               </span>
             </div>
 
-            <h1 className="mb-6 text-5xl leading-[1.08] font-extrabold tracking-tight lg:text-7xl">
+            <h1 className="mb-6 text-5xl leading-[1.08] font-black tracking-tight lg:text-7xl">
               Vi leverer{" "}
               <span className="bg-gradient-to-r from-emerald-400 to-emerald-600 bg-clip-text text-transparent">
                 resultater.
@@ -379,7 +379,7 @@ export default function VariantKLanding() {
             transition={{ duration: 0.5 }}
             className="mb-16 text-center"
           >
-            <h2 className="mb-4 text-4xl font-extrabold tracking-tight lg:text-5xl">
+            <h2 className="mb-4 text-4xl font-bold tracking-tight lg:text-5xl">
               Dokumenterte{" "}
               <span className="bg-gradient-to-r from-emerald-400 to-emerald-600 bg-clip-text text-transparent">
                 resultater.
@@ -459,7 +459,7 @@ export default function VariantKLanding() {
             transition={{ duration: 0.5 }}
             className="mb-16 text-center"
           >
-            <h2 className="mb-4 text-4xl font-extrabold tracking-tight lg:text-5xl">
+            <h2 className="mb-4 text-4xl font-bold tracking-tight lg:text-5xl">
               Forskjellen er{" "}
               <span className="bg-gradient-to-r from-emerald-400 to-emerald-600 bg-clip-text text-transparent">
                 målbar.
@@ -534,7 +534,7 @@ export default function VariantKLanding() {
             transition={{ duration: 0.5 }}
             className="mb-16 text-center"
           >
-            <h2 className="mb-4 text-4xl font-extrabold tracking-tight lg:text-5xl">
+            <h2 className="mb-4 text-4xl font-bold tracking-tight lg:text-5xl">
               Bygget for{" "}
               <span className="bg-gradient-to-r from-emerald-400 to-emerald-600 bg-clip-text text-transparent">
                 norske regler.
@@ -589,7 +589,7 @@ export default function VariantKLanding() {
             transition={{ duration: 0.5 }}
             className="mb-16 text-center"
           >
-            <h2 className="mb-4 text-4xl font-extrabold tracking-tight lg:text-5xl">
+            <h2 className="mb-4 text-4xl font-bold tracking-tight lg:text-5xl">
               Hva bransjen{" "}
               <span className="bg-gradient-to-r from-emerald-400 to-emerald-600 bg-clip-text text-transparent">
                 sier.
@@ -659,7 +659,7 @@ export default function VariantKLanding() {
             transition={{ duration: 0.5 }}
             className="mb-16 text-center"
           >
-            <h2 className="mb-4 text-4xl font-extrabold tracking-tight lg:text-5xl">
+            <h2 className="mb-4 text-4xl font-bold tracking-tight lg:text-5xl">
               Anbefal SmartOut til{" "}
               <span className="bg-gradient-to-r from-emerald-400 to-emerald-600 bg-clip-text text-transparent">
                 dine klienter.
@@ -729,7 +729,7 @@ export default function VariantKLanding() {
             transition={{ duration: 0.5 }}
             className="mb-16 text-center"
           >
-            <h2 className="mb-4 text-4xl font-extrabold tracking-tight lg:text-5xl">
+            <h2 className="mb-4 text-4xl font-bold tracking-tight lg:text-5xl">
               Dokumentert{" "}
               <span className="bg-gradient-to-r from-emerald-400 to-emerald-600 bg-clip-text text-transparent">
                 AI-effekt
@@ -788,7 +788,7 @@ export default function VariantKLanding() {
           transition={{ duration: 0.6 }}
           className="mx-auto max-w-3xl text-center"
         >
-          <h2 className="mb-6 text-4xl font-extrabold tracking-tight lg:text-5xl">
+          <h2 className="mb-6 text-4xl font-bold tracking-tight lg:text-5xl">
             Ta en strategisk avgjørelse{" "}
             <span className="bg-gradient-to-r from-emerald-400 to-emerald-600 bg-clip-text text-transparent">
               basert på data.

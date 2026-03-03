@@ -17,7 +17,7 @@ export default function FaqBlock({ content, settings }: BlockProps<FaqContent>) 
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
-            className="mb-12 text-center text-4xl font-extrabold tracking-tight text-white lg:text-5xl"
+            className="mb-12 text-center text-4xl font-bold tracking-tight text-white lg:text-5xl"
           >
             {content.heading}
           </m.h2>

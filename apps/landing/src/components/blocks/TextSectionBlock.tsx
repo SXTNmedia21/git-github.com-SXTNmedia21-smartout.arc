@@ -18,7 +18,7 @@ export default function TextSectionBlock({ content, settings }: BlockProps<TextS
       >
         <div className="mx-auto max-w-3xl">
           {content.heading && (
-            <h2 className="mb-6 text-3xl font-extrabold tracking-tight text-white lg:text-4xl">
+            <h2 className="mb-6 text-3xl font-bold tracking-tight text-white lg:text-4xl">
               {content.heading}
             </h2>
           )}
