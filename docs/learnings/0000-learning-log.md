@@ -38,14 +38,14 @@ tags: [learnings]
 | 4   | 2026-03-06 | vitest config only includes `src/**/__tests__/**/*.test.ts` — tests outside `__tests__/` dirs are silently ignored.                                                                                                                                         | Placed test file correctly on first attempt after checking config |
 
 status: in_progress
-updated: 2026-03-04
+updated: 2026-03-03
 created: 2026-03-03
-module: operations
+module: onboarding
 tags: [learnings]
 
 ---
 
-# Learning Log — daily-standup
+# Learning Log — onboarding-intelligence-pipeline
 
 | #   | Date       | Learning                                                                                                                                        | Impact                     |
 | --- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
@@ -76,6 +76,7 @@ tags: [learnings]
 | 2   | 2026-03-10 | FK references must match actual PK column names: `workspace(workspace_id)` not `workspace(id)`, `profile(profile_id)` not `profile(id)`               | Critical — broke all migrations until fixed   |
 | 3   | 2026-03-10 | `CREATE OR REPLACE TRIGGER` works in PG17 — use it for idempotent migrations instead of `CREATE TRIGGER`                                              | All future migrations should use this pattern |
 | 4   | 2026-03-10 | Relationship auto-creation on first interaction (in relationship-manager, not user-facing) prevents "no relationship" edge cases in context collector | Eliminates null-handling complexity           |
+
 # Learning Log — onboarding-redesign
 
 | #   | Date       | Learning                                                                                                                                                                | Impact                                            |
@@ -85,3 +86,5 @@ tags: [learnings]
 | 3   | 2026-03-10 | `scrollIntoView({ behavior: "smooth" })` works with `overflow: hidden` — manual scroll is blocked but programmatic scroll still fires and triggers IntersectionObserver | Enabled controlled scroll pattern                 |
 | 4   | 2026-03-10 | Framer Motion `whileInView` fires with programmatic scroll — IntersectionObserver still detects sections after `scrollIntoView`                                         | Animations trigger correctly in controlled scroll |
 | 5   | 2026-03-10 | `custom-${Date.now()}` creates duplicate React keys on rapid double-clicks — append array length for uniqueness                                                         | Fixed console error on fast department adds       |
+| #   | Date       | Learning                                                                                                                                                                | Impact                                            |
+| --- | ----       | --------                                                                                                                                                                | ------                                            |

@@ -41,14 +41,14 @@ tags: [decisions]
 | 4   | 2026-03-06 | Follow established (supabase.from as Function) cast pattern for new table hooks                | Accepted |
 
 status: in_progress
-updated: 2026-03-04
+updated: 2026-03-03
 created: 2026-03-03
-module: operations
+module: onboarding
 tags: [decisions]
 
 ---
 
-# Decision Log — daily-standup
+# Decision Log — onboarding-intelligence-pipeline
 
 | #        | Date       | Decision                                                 | Status   |
 | -------- | ---------- | -------------------------------------------------------- | -------- |
@@ -79,6 +79,7 @@ tags: [decisions]
 | 4   | 2026-03-10 | Keep legacy buildBotssonPrompt alongside new — backwards compat for unmigrated callers         | Accepted |
 | 5   | 2026-03-10 | Auto-create agent_profile at workspace activation — zero-config, every workspace gets defaults | Accepted |
 | 6   | 2026-03-10 | Parallel 5-way fetch in context collector — latency over sequential simplicity                 | Accepted |
+
 # Decision Log — onboarding-redesign
 
 | #   | Date       | Decision                                                                                  | Status   |
@@ -89,3 +90,5 @@ tags: [decisions]
 | 4   | 2026-03-10 | Luxury easing curve [0.16, 1, 0.3, 1] for all animations                                  | accepted |
 | 5   | 2026-03-10 | Google SSO as primary login action, collapsible email form                                | accepted |
 | 6   | 2026-03-11 | Reset button clears all state + deletes DB session (not just page reload)                 | accepted |
+| #   | Date       | Decision                                                                                  | Status   |
+| --- | ----       | --------                                                                                  | ------   |
