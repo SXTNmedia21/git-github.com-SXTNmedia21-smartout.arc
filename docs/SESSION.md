@@ -1,7 +1,7 @@
 ---
 title: Session Log
 status: in_progress
-updated: 2026-03-12
+updated: 2026-03-16
 created: 2026-03-02
 module: meta
 tags: [session, boot-sequence, continuity]
@@ -13,42 +13,35 @@ tags: [session, boot-sequence, continuity]
 
 ## Last Session
 
-| Field   | Value                                   |
-| ------- | --------------------------------------- |
-| Date    | 2026-03-11                              |
-| Branch  | `development`                           |
-| Feature | env consolidation + Twilio + addKeyFact |
-| Status  | in_progress                             |
+| Field   | Value                      |
+| ------- | -------------------------- |
+| Date    | 2026-03-16                 |
+| Branch  | `feat/onboarding-pipe`     |
+| Feature | onboarding-pipe + guardian |
+| Status  | in_progress                |
 
 ### What was done
 
-- Resolved 3 stash conflict files (WizardContext.tsx, useBotsson.ts, registry.ts)
-- Created shared Twilio SMS helper for Edge Functions (`supabase/functions/_shared/twilio.ts`)
-- Refactored `create-invitation` to use shared Twilio helper
-- Fixed `saveMemory` type signature mismatch in BotssonActions (1-param vs 3-param)
-- Implemented `addKeyFact` client tool for voice agent (label+value → KeyFactsPanel)
-- Updated PACKAGES.md (added `./sms` export), ENV_VARS.md (Edge Function + service vars)
-- Consolidated all env vars into single `.env.example` (done in previous sub-session)
-- Fixed Brreg name matching + daglig leder fallback (done in previous sub-session)
-- Typecheck 18/18 passing, pushed to development
+- Started new feature: guardian (wt-1, module: ai)
+- Started new feature: onboarding-pipe (wt-2, module: onboarding)
+- Main repo on `development` (correct state)
 
 ### Where we stopped
 
-- `addKeyFact` tool implemented but not yet committed
-- Docs updates (PACKAGES.md, ENV_VARS.md, SESSION.md, DASHBOARD.md) not yet committed
-- Some unstaged onboarding files from stash restoration still on disk
+- Both features just initialized, ready for work
 
 ### Known blockers / errors
 
-- None
+- `feat/onboarding` still has 3 commits not yet merged to development
+- Design gap (from prior session): `positions` array sent by client but finalize RPC expects `teams`
+- Design gap (from prior session): Season `startDate`/`endDate` sent by client but RPC ignores them
 
 ### Pending decisions
 
+- [ ] Fill in PLAN-guardian.md with scope and tasks
+- [ ] Fill in PLAN-onboarding-pipe.md with scope and tasks
+- [ ] Test + merge feat/onboarding to development (still pending)
 - [ ] Push migrations to production (`supabase db push`) — Pontus
-- [ ] CI migration validation job (GitHub Actions) — Claude can write
-- [ ] Set up staging Supabase environment — Pontus
-- [ ] Enable `supabase_vault` extension on production
-- [ ] Lock down port 8000 on droplet with UFW
 
 ---
 
