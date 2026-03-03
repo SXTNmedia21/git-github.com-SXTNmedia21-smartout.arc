@@ -99,23 +99,37 @@ export async function advanceStage(
     .update({
       current_stage_id: nextStage.stage_id,
       stage_index: nextIndex,
+      stage_started_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
     .eq("id", session.id);
 
-  // Build stage context, enriched with linked journey step data
+  // Build stage context, enriched with linked journey step data (including timing + progress)
   const stageContext = { ...(session.context as Record<string, unknown>) };
   if (nextStage.journey_step_id && journeySteps.length > 0) {
     const linkedStep = journeySteps.find((s) => s.journey_step_id === nextStage.journey_step_id);
     if (linkedStep) {
       stageContext.journeyStep = {
+        step_order: linkedStep.step_order,
+        title: linkedStep.title,
         action: linkedStep.action,
         expects: linkedStep.expects,
         screen: linkedStep.screen,
         component: linkedStep.component,
-        dataReads: linkedStep.data_reads,
-        dataWrites: linkedStep.data_writes,
+        data_reads: linkedStep.data_reads ?? [],
+        data_writes: linkedStep.data_writes ?? [],
+        min_duration_seconds: linkedStep.min_duration_seconds,
+        max_duration_seconds: linkedStep.max_duration_seconds,
+        required_confirmation: linkedStep.required_confirmation,
       };
+
+      // Add journey progress context
+      const journeyCtx = session.context.journey as Record<string, unknown> | undefined;
+      stageContext.journey_total_steps = journeyCtx?.total_steps ?? null;
+
+      const totalSteps = (journeyCtx?.total_steps as number) ?? 0;
+      stageContext.journey_progress =
+        totalSteps > 0 ? `${linkedStep.step_order}/${totalSteps} steg` : null;
     }
   }
 
