@@ -100,6 +100,10 @@
     "./prompts/mr-botsson": {
       "types": "./dist/prompts/mr-botsson.d.ts",
       "default": "./dist/prompts/mr-botsson.js"
+    },
+    "./prompts/posture": {
+      "types": "./dist/prompts/posture.d.ts",
+      "default": "./dist/prompts/posture.js"
     }
   },
   "scripts": {
