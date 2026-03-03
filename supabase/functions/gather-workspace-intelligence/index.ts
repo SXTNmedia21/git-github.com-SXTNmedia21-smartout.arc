@@ -6,6 +6,206 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// --- Brreg helpers ---
+
+interface BrregEntity {
+  organisasjonsnummer: string;
+  navn: string;
+  forretningsadresse?: {
+    adresse?: string[];
+    postnummer?: string;
+    poststed?: string;
+    kommune?: string;
+  };
+  naeringskode1?: { kode: string; beskrivelse: string };
+  antallAnsatte?: number;
+  organisasjonsform?: { kode: string; beskrivelse: string };
+  registreringsdatoEnhetsregisteret?: string;
+  underAvvikling?: boolean;
+  konkurs?: boolean;
+}
+
+interface BrregMatch {
+  entity: BrregEntity;
+  score: number;
+}
+
+function normalizeName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/\b(as|ans|da|asa|sa|enk)\b/gi, "")
+    .replace(/[^a-zæøå0-9\s]/g, "")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+function scoreBrregMatch(
+  entity: BrregEntity,
+  scrapedName: string,
+  scrapedCity: string | null,
+): number {
+  let score = 0;
+  const normalEntity = normalizeName(entity.navn);
+  const normalScraped = normalizeName(scrapedName);
+
+  // Exact match
+  if (normalEntity === normalScraped) {
+    score += 100;
+  } else if (normalEntity.includes(normalScraped) || normalScraped.includes(normalEntity)) {
+    score += 50;
+  }
+
+  // City match
+  if (
+    scrapedCity &&
+    entity.forretningsadresse?.poststed?.toLowerCase() === scrapedCity.toLowerCase()
+  ) {
+    score += 30;
+  }
+
+  // Has employees
+  if (entity.antallAnsatte && entity.antallAnsatte > 0) {
+    score += 10;
+  }
+
+  // Not under liquidation
+  if (!entity.underAvvikling && !entity.konkurs) {
+    score += 10;
+  }
+
+  return score;
+}
+
+async function searchBrregByName(
+  companyName: string,
+  scrapedCity: string | null,
+): Promise<BrregEntity | null> {
+  try {
+    const encoded = encodeURIComponent(companyName);
+    const res = await fetch(
+      `https://data.brreg.no/enhetsregisteret/api/enheter?navn=${encoded}&size=5`,
+    );
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    const entities: BrregEntity[] = data?._embedded?.enheter || [];
+
+    if (entities.length === 0) return null;
+
+    // Score and rank
+    const scored: BrregMatch[] = entities.map((entity) => ({
+      entity,
+      score: scoreBrregMatch(entity, companyName, scrapedCity),
+    }));
+
+    scored.sort((a, b) => b.score - a.score);
+
+    // Only return if confidence is high enough
+    if (scored[0].score >= 50) {
+      return scored[0].entity;
+    }
+
+    return null;
+  } catch (e) {
+    console.warn("Brreg name search failed:", e);
+    return null;
+  }
+}
+
+async function fetchBrregDetails(orgNumber: string): Promise<BrregEntity | null> {
+  try {
+    const res = await fetch(`https://data.brreg.no/enhetsregisteret/api/enheter/${orgNumber}`);
+    return res.ok ? await res.json() : null;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchDagligLeder(orgNumber: string): Promise<string | null> {
+  try {
+    const res = await fetch(
+      `https://data.brreg.no/enhetsregisteret/api/enheter/${orgNumber}/roller`,
+    );
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    const groups = data?.rollegrupper || [];
+
+    for (const group of groups) {
+      if (group.type?.kode === "DAGL") {
+        const roller = group.roller || [];
+        if (roller.length > 0 && roller[0].person?.navn) {
+          const n = roller[0].person.navn;
+          return [n.fornavn, n.mellomnavn, n.etternavn].filter(Boolean).join(" ");
+        }
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// --- Scrapling helper (kept from original) ---
+
+async function fetchScraplingWithRetry(scraplingBase: string, url: string, retries = 3) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const res = await fetch(`${scraplingBase}/extract`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url,
+          config: {
+            include_company_info: true,
+            include_locations: true,
+            include_departments: true,
+          },
+        }),
+      });
+      if (res.ok) return await res.json();
+      console.warn(`Scrapling attempt ${i + 1} failed: ${res.status}`);
+    } catch (e: unknown) {
+      console.warn(`Scrapling attempt ${i + 1} threw:`, e instanceof Error ? e.message : String(e));
+    }
+    if (i < retries - 1) {
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+  }
+  throw new Error(`Scrapling service unavailable after ${retries} attempts.`);
+}
+
+// --- Web search helper ---
+
+async function fetchWebSearch(
+  companyName: string,
+  city: string,
+): Promise<Record<string, unknown> | null> {
+  try {
+    const edgeFunctionUrl = Deno.env.get("SUPABASE_URL")
+      ? `${Deno.env.get("SUPABASE_URL")}/functions/v1`
+      : "http://host.docker.internal:54321/functions/v1";
+
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    const res = await fetch(`${edgeFunctionUrl}/web-search-intelligence`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${serviceKey}`,
+      },
+      body: JSON.stringify({ companyName, city }),
+    });
+
+    return res.ok ? await res.json() : null;
+  } catch (e) {
+    console.warn("Web search failed:", e);
+    return null;
+  }
+}
+
+// --- Main handler ---
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -16,19 +216,18 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
       {
-        global: { headers: { Authorization: req.headers.get("Authorization")! } },
+        global: {
+          headers: { Authorization: req.headers.get("Authorization")! },
+        },
       },
     );
 
     const {
       data: { user },
     } = await supabaseClient.auth.getUser();
-
-    // Allow anonymous execution for pre-signup onboarding scan
     const userId = user?.id || null;
 
-    const payload = await req.json();
-    const { url, orgNumber } = payload;
+    const { url } = await req.json();
 
     if (!url) {
       return new Response(JSON.stringify({ error: "URL is required." }), {
@@ -37,114 +236,108 @@ serve(async (req) => {
       });
     }
 
-    console.log(`Gathering intelligence for URL: ${url}`);
+    console.log(`[intelligence] Starting pipeline for: ${url}`);
 
-    // SOURCE 1: Scrape (using existing Python microservice)
-    // Base URL for scrapling service — no trailing slash, no path
-    // Docker: http://scrapling:8000 | Local: http://host.docker.internal:8000
+    // ── STEP 1: Scrape website ──
     const scraplingBase =
       Deno.env.get("SCRAPLING_SERVICE_URL") || "http://host.docker.internal:8000";
 
-    const fetchScraplingWithRetry = async (retries = 3) => {
-      for (let i = 0; i < retries; i++) {
-        try {
-          const res = await fetch(`${scraplingBase}/extract`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              url,
-              config: {
-                include_company_info: true,
-                include_locations: true,
-                include_departments: true,
-              },
-            }),
-          });
-          if (res.ok) {
-            return await res.json();
-          }
-          console.warn(`Scrapling attempt ${i + 1} failed: ${res.status}`);
-        } catch (e: unknown) {
-          console.warn(
-            `Scrapling attempt ${i + 1} threw error:`,
-            e instanceof Error ? e.message : String(e),
-          );
-        }
-        // Small delay before retrying
-        if (i < retries - 1) await new Promise((resolve) => setTimeout(resolve, 1000));
+    console.log("[intelligence] Step 1: Scraping...");
+    const scrapedData = await fetchScraplingWithRetry(scraplingBase, url);
+    const companyName = scrapedData?.companyName;
+    console.log(`[intelligence] Scraped company: ${companyName || "unknown"}`);
+
+    // ── STEP 2: Search Brreg by name ──
+    let brregEntity: BrregEntity | null = null;
+    let dagligLeder: string | null = null;
+    let brregMatched = false;
+
+    if (companyName) {
+      const scrapedCity: string | null = null;
+
+      console.log(`[intelligence] Step 2: Searching Brreg for "${companyName}"...`);
+      brregEntity = await searchBrregByName(companyName, scrapedCity);
+
+      // ── STEP 3: Fetch full Brreg details + roles ──
+      if (brregEntity) {
+        brregMatched = true;
+        const orgNumber = brregEntity.organisasjonsnummer;
+        console.log(`[intelligence] Step 3: Brreg match found: ${orgNumber} (${brregEntity.navn})`);
+
+        // Fetch details + roles in parallel
+        const [fullDetails, leader] = await Promise.all([
+          fetchBrregDetails(orgNumber),
+          fetchDagligLeder(orgNumber),
+        ]);
+
+        if (fullDetails) brregEntity = fullDetails;
+        dagligLeder = leader;
+        console.log(`[intelligence] Daglig leder: ${dagligLeder || "not found"}`);
+      } else {
+        console.log("[intelligence] No confident Brreg match found");
       }
-      const alertMsg =
-        "CRITICAL ERROR ALERT: User onboarding critical function (Scrapling service) failed after 3 attempts.";
-      console.error(alertMsg);
-      // In a real scenario, this would send an email/Slack notification or a Sentry alert.
-      throw new Error(`Scrapling service unavailable after ${retries} attempts.`);
-    };
-
-    const scrapedDataPromise = fetchScraplingWithRetry();
-
-    // SOURCE 2: Brreg (Optional, but try to fetch if org number is provided, otherwise search by name after scraping)
-    // For simplicity in Phase 2 MVP, we will fetch Brreg if orgNumber is passed. If not, the UI handles it in Step 2.
-    let brregDataPromise = Promise.resolve(null);
-    if (orgNumber) {
-      brregDataPromise = fetch(`https://data.brreg.no/enhetsregisteret/api/enheter/${orgNumber}`)
-        .then((res) => (res.ok ? res.json() : null))
-        .catch(() => null);
     }
 
-    // SOURCE 3 & 4 (Web Search & AI Analysis) will be triggered via separate endpoints or in the background
-    // to prevent timeout and allow UI to show Step 2 quickly, as per architectural spec.
+    // ── STEP 4: Web search ──
+    const city = brregEntity?.forretningsadresse?.poststed || "";
 
-    const [scrapedData, brregData] = await Promise.all([scrapedDataPromise, brregDataPromise]);
+    console.log(`[intelligence] Step 4: Web search for "${companyName}" in "${city}"...`);
+    const webSearchData = companyName ? await fetchWebSearch(companyName, city) : null;
 
-    // Create onboarding_session record
+    // ── STEP 5: Build structured Brreg response ──
+    const brregResponse = {
+      matched: brregMatched,
+      orgNumber: brregEntity?.organisasjonsnummer || null,
+      legalName: brregEntity?.navn || null,
+      naceCode: brregEntity?.naeringskode1?.kode || null,
+      naceDescription: brregEntity?.naeringskode1?.beskrivelse || null,
+      address: brregEntity?.forretningsadresse
+        ? {
+            street: brregEntity.forretningsadresse.adresse?.[0] || "",
+            postalCode: brregEntity.forretningsadresse.postnummer || "",
+            city: brregEntity.forretningsadresse.poststed || "",
+          }
+        : null,
+      dagligLeder,
+      employeeCount: brregEntity?.antallAnsatte || null,
+      companyType: brregEntity?.organisasjonsform?.beskrivelse || null,
+      registrationDate: brregEntity?.registreringsdatoEnhetsregisteret || null,
+    };
+
+    // ── STEP 6: Store in onboarding_session ──
     const { data: sessionData, error: sessionError } = await supabaseClient
       .from("onboarding_session")
       .insert({
         user_id: userId,
         source_url: url,
-        current_step: 1, // Moving from Step 0 to Step 1 (Intelligence Gathering)
+        current_step: 1,
         scraped_data: scrapedData,
-        brreg_data: brregData,
+        brreg_data: brregResponse,
+        web_search_data: webSearchData,
       })
       .select()
       .single();
 
     if (sessionError) {
       console.error("Failed to create onboarding session:", sessionError);
-      // Continue anyway; we still have the data
     }
 
-    // Trigger background analysis if we have a company name
-    const companyName = brregData?.navn || scrapedData?.companyName;
-    const city = brregData?.forretningsadresse?.poststed || "Oslo"; // Try to extract city
-
-    if (companyName && sessionData) {
-      // Fire and forget background task to do web search and AI analysis
-      const edgeFunctionUrl = Deno.env.get("SUPABASE_URL")
-        ? `${Deno.env.get("SUPABASE_URL")}/functions/v1`
-        : "http://host.docker.internal:54321/functions/v1";
-
-      fetch(`${edgeFunctionUrl}/web-search-intelligence`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: req.headers.get("Authorization")!,
-        },
-        body: JSON.stringify({
-          sessionId: sessionData.id,
-          companyName,
-          city,
-          scrapedData,
-        }),
-      }).catch((e) => console.error("Failed to trigger background analysis", e));
-    }
+    console.log(`[intelligence] Pipeline complete. Session: ${sessionData?.id || "none"}`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        sessionId: sessionData?.id,
+        sessionId: sessionData?.id || null,
         scrapedData,
-        brregData,
+        brregData: brregResponse,
+        webSearchData: webSearchData || {
+          rating: null,
+          reviewCount: null,
+          newsArticles: [],
+          seasonalPatterns: [],
+          mentions: [],
+          jobListings: [],
+        },
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -152,9 +345,11 @@ serve(async (req) => {
       },
     );
   } catch (error: unknown) {
-    console.error("Function Error:", error);
+    console.error("Pipeline error:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
+      JSON.stringify({
+        error: error instanceof Error ? error.message : String(error),
+      }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 400,
