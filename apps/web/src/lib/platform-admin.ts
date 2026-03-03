@@ -1,3 +1,4 @@
+import { NextResponse } from "next/server";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { createClient } from "@smartout/supabase/server";
 import type { Json } from "@smartout/supabase";
@@ -23,6 +24,41 @@ export async function getSuperAdminId(): Promise<string | null> {
     .single();
 
   return data?.is_godmode ? user.id : null;
+}
+
+/**
+ * Validates that the current request comes from a godmode user.
+ * Returns the admin user ID and a pre-configured admin Supabase client,
+ * or a NextResponse error if unauthorized.
+ *
+ * Use in API route handlers to replace the repeated 10-line
+ * getSuperAdminId() + createAdminClient() pattern.
+ */
+export async function requireGodmode(): Promise<
+  | { adminId: string; admin: ReturnType<typeof createAdminClient>; error?: never }
+  | { error: NextResponse; adminId?: never; admin?: never }
+> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
+  }
+
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("user_identity")
+    .select("is_godmode")
+    .eq("user_id", user.id)
+    .single();
+
+  if (!data?.is_godmode) {
+    return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
+  }
+
+  return { adminId: user.id, admin };
 }
 
 /**
