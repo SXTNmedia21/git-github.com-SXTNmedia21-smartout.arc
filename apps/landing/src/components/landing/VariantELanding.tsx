@@ -37,18 +37,6 @@ export default function VariantELanding() {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-zinc-950 font-sans text-white selection:bg-orange-500/30">
-      <style jsx global>{`
-        @keyframes float {
-          0%,
-          100% {
-            transform: translateY(0);
-          }
-          50% {
-            transform: translateY(-10px);
-          }
-        }
-      `}</style>
-
       {/* Shared Navigation */}
       <Navigation />
 
