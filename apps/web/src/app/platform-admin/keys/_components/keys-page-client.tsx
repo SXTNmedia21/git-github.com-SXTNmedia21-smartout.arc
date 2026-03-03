@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { SERVICE_REGISTRY, type ServiceTab, TAG_LABELS, type ServiceTag } from "./service-registry";
+import { EnvImportDialog } from "./env-import-dialog";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -86,6 +87,9 @@ export function KeysPageClient() {
   const [editKey, setEditKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const [showValue, setShowValue] = useState(false);
+
+  // Import dialog
+  const [importOpen, setImportOpen] = useState(false);
 
   // Staged config — local values not yet pushed to Supabase
   const [staged, setStaged] = useState<Map<string, StagedValue>>(new Map());
@@ -328,6 +332,10 @@ export function KeysPageClient() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+            <Upload className="mr-2 h-3.5 w-3.5" />
+            Import .env
+          </Button>
           <Button variant="outline" size="sm" onClick={fetchSecrets}>
             <RefreshCw className="mr-2 h-3.5 w-3.5" />
             Refresh
@@ -618,6 +626,9 @@ export function KeysPageClient() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Import .env Dialog */}
+      <EnvImportDialog open={importOpen} onOpenChange={setImportOpen} onImported={fetchSecrets} />
     </>
   );
 }
