@@ -64,5 +64,11 @@ tags: [decisions]
 
 # Decision Log — onboarding-redesign
 
-| #   | Date | Decision | Status |
-| --- | ---- | -------- | ------ |
+| #   | Date       | Decision                                                                                  | Status   |
+| --- | ---------- | ----------------------------------------------------------------------------------------- | -------- |
+| 1   | 2026-03-07 | Replace 15-step wizard with 6-section scroll layout                                       | accepted |
+| 2   | 2026-03-10 | Controlled scroll (overflow:hidden + touch-action:none), programmatic scrollIntoView only | accepted |
+| 3   | 2026-03-10 | GPU performance: only animate opacity + translateY, no blur/scale/backdrop-blur           | accepted |
+| 4   | 2026-03-10 | Luxury easing curve [0.16, 1, 0.3, 1] for all animations                                  | accepted |
+| 5   | 2026-03-10 | Google SSO as primary login action, collapsible email form                                | accepted |
+| 6   | 2026-03-11 | Reset button clears all state + deletes DB session (not just page reload)                 | accepted |

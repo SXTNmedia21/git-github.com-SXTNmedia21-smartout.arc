@@ -1,7 +1,7 @@
 ---
 title: "Plan — onboarding-redesign"
-status: draft
-updated: 2026-03-03
+status: done
+updated: 2026-03-11
 created: 2026-03-03
 module: onboarding
 tags: [plan]
