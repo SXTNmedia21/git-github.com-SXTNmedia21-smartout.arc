@@ -105,6 +105,24 @@ fetchRoute.post("/sessions/:id/fetch", zValidator("json", fetchSchema), async (c
       break;
   }
 
+  // Deliver pending Guardian whispers for context and stage queries
+  if (body.query_type === "context" || body.query_type === "stage") {
+    const whispers = (session.collected_data as Record<string, unknown>)?._whispers as
+      | string[]
+      | undefined;
+    if (whispers && whispers.length > 0) {
+      data._guardian_whispers = whispers;
+
+      // Clear whispers after delivery (agent has seen them)
+      const collected = { ...(session.collected_data as Record<string, unknown>) };
+      delete collected._whispers;
+      await supabaseAdmin
+        .from("engine_sessions")
+        .update({ collected_data: collected })
+        .eq("id", sessionId);
+    }
+  }
+
   return c.json({ data });
 });
 
