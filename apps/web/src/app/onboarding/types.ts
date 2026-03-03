@@ -39,6 +39,14 @@ export interface BusinessData {
   logoUrl: string;
   description: string;
   openingHours: string;
+  googleRating: number | null;
+  googleRatingCount: number | null;
+  priceLevel: string;
+  googleMapsUrl: string;
+  googlePlaceId: string;
+  latitude: number | null;
+  longitude: number | null;
+  photos: string[];
 }
 
 /** Season configuration */
@@ -79,6 +87,7 @@ export interface OnboardingState {
   isAuthenticated: boolean;
   userId: string | null;
   sessionId: string | null;
+  onboardingWorkspaceId: string | null;
 
   // Section data
   business: BusinessData;
@@ -114,6 +123,14 @@ export const EMPTY_BUSINESS_DATA: BusinessData = {
   logoUrl: "",
   description: "",
   openingHours: "",
+  googleRating: null,
+  googleRatingCount: null,
+  priceLevel: "",
+  googleMapsUrl: "",
+  googlePlaceId: "",
+  latitude: null,
+  longitude: null,
+  photos: [],
 };
 
 export const DEFAULT_SEASON_DATA: SeasonData = {
