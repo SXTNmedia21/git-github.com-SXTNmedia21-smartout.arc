@@ -2,14 +2,34 @@
 
 import { useState } from "react";
 import { createClient } from "@smartout/supabase/client";
-import { Building2, CheckCircle2, Loader2, ArrowRight } from "lucide-react";
+import {
+  Building2,
+  CheckCircle2,
+  Loader2,
+  ArrowRight,
+  MapPin,
+  User,
+  Briefcase,
+  Users,
+  Sparkles,
+} from "lucide-react";
 import { useWizard } from "../WizardContext";
+
+/** Format a 9-digit org number with spaces: "987654321" → "987 654 321" */
+function formatOrgNumber(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length !== 9) return raw;
+  return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 9)}`;
+}
 
 export function OrgVerificationStep() {
   const wizard = useWizard();
   const supabase = createClient();
   const [isVerifyingOrg, setIsVerifyingOrg] = useState(false);
   const [orgError, setOrgError] = useState("");
+  const [manualOverride, setManualOverride] = useState(false);
+
+  const autoDetected = wizard.workspaceData.orgNumber && !manualOverride;
 
   const handleVerifyOrg = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,7 +107,12 @@ export function OrgVerificationStep() {
   };
 
   const handleConfirmOrg = async () => {
-    if (wizard.sessionId && wizard.orgNumberInput) {
+    // Determine which org number to persist — auto-detected or manually entered
+    const orgToPersist = autoDetected
+      ? wizard.workspaceData.orgNumber
+      : wizard.orgNumberInput;
+
+    if (wizard.sessionId && orgToPersist) {
       try {
         const { data: wsData } = await supabase
           .from("workspace")
@@ -98,7 +123,7 @@ export function OrgVerificationStep() {
         if (wsData?.company_id) {
           await supabase
             .from("company")
-            .update({ org_number: wizard.orgNumberInput })
+            .update({ org_number: orgToPersist })
             .eq("company_id", wsData.company_id);
         }
       } catch (e) {
@@ -106,9 +131,130 @@ export function OrgVerificationStep() {
       }
     }
 
+    // If confirming auto-detected data, also sync orgNumberInput for downstream use
+    if (autoDetected) {
+      wizard.setOrgNumberInput(wizard.workspaceData.orgNumber);
+    }
+
     wizard.goTo("branding");
   };
 
+  const handleSwitchToManual = () => {
+    setManualOverride(true);
+    wizard.setVerifiedOrgData(null);
+  };
+
+  // ── State A: Auto-detected confirmation card ──
+  if (autoDetected) {
+    const { workspaceData: wd } = wizard;
+    return (
+      <div className="animate-in fade-in slide-in-from-bottom-4 mx-auto flex w-full max-w-2xl flex-col items-center text-center duration-500">
+        <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full border border-green-500/20 bg-green-500/10 text-green-400 shadow-[0_0_30px_rgba(34,197,94,0.15)] sm:h-20 sm:w-20">
+          <Building2 className="h-7 w-7 sm:h-8 sm:w-8" />
+        </div>
+        <h2 className="mb-3 text-2xl font-extrabold text-white sm:text-3xl">
+          We found your company
+        </h2>
+        <p className="mb-6 text-sm text-zinc-400 sm:mb-8 sm:text-base">
+          This information was automatically retrieved from Bronnoydsundregistrene. Please confirm it&apos;s correct.
+        </p>
+
+        <div className="relative w-full overflow-hidden rounded-2xl border border-green-500/20 bg-[#111] p-5 text-left shadow-2xl shadow-green-900/10 sm:p-8">
+          {/* Auto-detected badge */}
+          <div className="absolute top-3 right-3 flex items-center gap-1.5 rounded-full border border-green-500/20 bg-green-500/10 px-3 py-1 sm:top-4 sm:right-4">
+            <Sparkles className="text-green-400" size={14} />
+            <span className="text-xs font-semibold text-green-400">Auto-detected</span>
+          </div>
+
+          <h3 className="mb-4 pr-28 text-xl font-bold text-white sm:mb-6 sm:text-2xl">
+            {wd.name}
+          </h3>
+
+          <div className="mb-6 grid grid-cols-1 gap-4 sm:mb-8 sm:grid-cols-2 sm:gap-6">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/5 bg-white/5">
+                <Building2 className="text-zinc-400" size={16} />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs font-bold text-zinc-500 uppercase">Org Number</span>
+                <span className="font-mono text-zinc-300">{formatOrgNumber(wd.orgNumber)}</span>
+              </div>
+            </div>
+
+            {wd.address && (
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/5 bg-white/5">
+                  <MapPin className="text-zinc-400" size={16} />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-zinc-500 uppercase">
+                    Forretningsadresse
+                  </span>
+                  <span className="text-zinc-300">{wd.address}</span>
+                </div>
+              </div>
+            )}
+
+            {wd.ceo && (
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/5 bg-white/5">
+                  <User className="text-zinc-400" size={16} />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-zinc-500 uppercase">Daglig Leder</span>
+                  <span className="text-zinc-300">{wd.ceo}</span>
+                </div>
+              </div>
+            )}
+
+            {wd.industry && (
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/5 bg-white/5">
+                  <Briefcase className="text-zinc-400" size={16} />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-zinc-500 uppercase">Industry</span>
+                  <span className="text-zinc-300">{wd.industry}</span>
+                </div>
+              </div>
+            )}
+
+            {wd.employeeCount && (
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/5 bg-white/5">
+                  <Users className="text-zinc-400" size={16} />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-zinc-500 uppercase">Employees</span>
+                  <span className="text-zinc-300">{wd.employeeCount}</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <button
+              onClick={handleConfirmOrg}
+              className="flex flex-[2] items-center justify-center gap-2 rounded-xl bg-white px-6 py-3.5 font-bold text-black shadow-lg transition-transform hover:bg-zinc-200 active:scale-[0.98]"
+            >
+              <CheckCircle2 size={18} />
+              Confirm & Continue
+            </button>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleSwitchToManual}
+          className="mt-6 text-sm text-zinc-500 transition-colors hover:text-white"
+        >
+          Not correct? Enter org number manually
+        </button>
+      </div>
+    );
+  }
+
+  // ── State B: Manual entry (existing implementation) ──
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 mx-auto flex w-full max-w-2xl flex-col items-center text-center duration-500">
       <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full border border-blue-500/20 bg-blue-500/10 text-blue-400 shadow-[0_0_30px_rgba(59,130,246,0.15)] sm:h-20 sm:w-20">
