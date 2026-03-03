@@ -37,6 +37,7 @@ export const env = createEnv({
     NEXT_PUBLIC_ROOT_DOMAIN: z.string().default("localhost"),
     NEXT_PUBLIC_LANDING_URL: z.string().url().optional(),
     NEXT_PUBLIC_REVALIDATION_SECRET: z.string().optional(),
+    NEXT_PUBLIC_STAGE_ENGINE_URL: z.string().url().optional(),
   },
 
   // For Next.js >= 13.4.4, you only need to destructure client variables:
@@ -49,6 +50,7 @@ export const env = createEnv({
     NEXT_PUBLIC_ROOT_DOMAIN: process.env.NEXT_PUBLIC_ROOT_DOMAIN,
     NEXT_PUBLIC_LANDING_URL: process.env.NEXT_PUBLIC_LANDING_URL,
     NEXT_PUBLIC_REVALIDATION_SECRET: process.env.NEXT_PUBLIC_REVALIDATION_SECRET,
+    NEXT_PUBLIC_STAGE_ENGINE_URL: process.env.NEXT_PUBLIC_STAGE_ENGINE_URL,
   },
 
   // If variables are missing, it will throw an error automatically
