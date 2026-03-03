@@ -8,7 +8,7 @@ See [ADR-0040](../docs/decisions/0040-infrastructure-in-monorepo.md) for the dec
 | Service          | Port   | Domain                   | Description            | Status       |
 | ---------------- | ------ | ------------------------ | ---------------------- | ------------ |
 | caddy            | 80/443 | \*.smartout.ai           | HTTPS reverse proxy    | Active       |
-| stage-engine     | 3000   | engine.smartout.ai       | AI agent orchestration | Active       |
+| stage-engine     | 3070   | engine.smartout.ai       | AI agent orchestration | Active       |
 | shift-mcp        | 3001   | schedule-mcp.smartout.ai | Shift management MCP   | Active       |
 | contract-service | 3100   | contract.smartout.ai     | DocuSeal e-signatures  | Active       |
 | scrapling        | 8000   | (internal)               | Web scraping           | Active       |

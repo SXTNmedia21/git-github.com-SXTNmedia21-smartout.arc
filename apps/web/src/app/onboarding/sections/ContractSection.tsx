@@ -21,7 +21,7 @@ export function ContractSection() {
       <div className="flex flex-col items-center gap-10">
         <RevealItem>
           <div className="flex flex-col items-center gap-3 text-center">
-            <h2 className="font-[family-name:var(--font-display)] text-6xl leading-[1.1] tracking-tight text-white">
+            <h2 className="font-heading text-6xl leading-[1.1] tracking-tight text-white">
               Kontraktmal
             </h2>
             <p className="max-w-md text-xl leading-relaxed text-white/50">

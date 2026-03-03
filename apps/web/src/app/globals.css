@@ -1,6 +1,6 @@
 @import "tailwindcss";
 @import "@smartout/design-tokens/tokens.css";
-@plugin "tailwindcss-animate";
+@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -68,7 +68,17 @@
   --color-onboarding-glass: oklch(1 0 0 / 0.05);
   --color-onboarding-glass-border: oklch(1 0 0 / 0.08);
   /* Display font */
-  --font-display: var(--font-instrument-serif);
+  --font-heading: var(--font-instrument-serif);
+}
+
+@utility bg-stripes-blue {
+  background-image: url("/diagonal-stripes-blue.svg");
+  background-repeat: repeat;
+}
+
+@utility bg-stripes-rose {
+  background-image: url("/diagonal-stripes-rose.svg");
+  background-repeat: repeat;
 }
 
 @layer base {

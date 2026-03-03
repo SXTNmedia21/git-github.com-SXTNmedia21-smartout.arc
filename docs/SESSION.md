@@ -1,7 +1,7 @@
 ---
 title: Session Log
 status: in_progress
-updated: 2026-03-20
+updated: 2026-03-23
 created: 2026-03-02
 module: meta
 tags: [session, boot-sequence, continuity]
@@ -13,49 +13,43 @@ tags: [session, boot-sequence, continuity]
 
 ## Last Session
 
-| Field   | Value              |
-| ------- | ------------------ |
-| Date    | 2026-03-19         |
-| Branch  | `development`      |
-| Feature | onboarding-mission |
-| Status  | done               |
+| Field   | Value                 |
+| ------- | --------------------- |
+| Date    | 2026-03-23            |
+| Branch  | `development`         |
+| Feature | PR + lint + voice fix |
+| Status  | done                  |
 
 ### What was done
 
-- Completed onboarding-as-mission implementation (11/11 tasks):
-  - Schema migration: journey_id FK on engine_missions, journey_step_id on engine_stages
-  - Shared WebSocket protocol types: UICommand, UserAction, SystemEvent (packages/types)
-  - @hono/node-ws installed for Stage Engine WebSocket support
-  - Connection manager: Map<sessionId, Set<WSContext>> with broadcast
-  - WebSocket route: GET /ws/:sessionId with JWT auth + user action buffering
-  - UI capability: 5 tools (navigate_to, fill_field, highlight_element, show_panel, show_toast)
-  - Agent router wired with broadcast callback + buffered user actions
-  - loadMission() extended to load journey + journeySteps
-  - Seed data aligned with existing onboarding-interview mission (6 stages)
-  - Frontend useJourneySocket hook for WebSocket communication
-  - Typecheck: 18/18 packages pass, 0 errors
-- Reviewed prompt tuning design doc (existing work on stage-engine-routing)
-- Closed wt-1 (platform-admin-polish), freed for future work
-- All branches merged and pushed to development
-- Design doc: docs/plans/2026-03-18-onboarding-as-mission-design.md
-- Implementation plan: docs/plans/2026-03-18-onboarding-as-mission-plan.md
+- Updated PR #13 (`development` → `main`) with full release summary (462 commits, 955 files, 174K lines)
+- Fixed all 19 lint errors → 0 errors:
+  - 8x ref-during-render → moved to useEffect
+  - 1x conditional useMemo → moved before early return
+  - 6x Math.random() in render → deterministic values
+  - 1x let→const
+- Verified: typecheck 18/18, lint 0 errors, build 8/8
+- Committed + pushed lint fixes (a8cc14b)
+- Diagnosed 502 voice error: port mismatch (Stage Engine on 3000, env said 5022)
+- User aligned all service ports in `.env.local`
 
 ### Where we stopped
 
-- User mentioned **LiveKit** — discussion pending
-- All worktrees freed, no active feature branches
-- Lise transcriptions: NOT persisted (client-side only in useBotsson.ts)
+- PR #13 ready for merge: https://github.com/SXTNmedia21/smartout.ai/pull/13
+- 23 uncommitted files on development (landing, onboarding, dashboard, infra)
+- wt-3 has `feat/stage-engine-fix` from previous session
 
 ### Known blockers / errors
 
-- None
+- None — all tests pass, voice port fixed
 
 ### Pending decisions
 
-- [ ] LiveKit evaluation — replace Ultravox? Landing page? Onboarding?
-- [ ] Push migrations to production (`supabase db push`) — Pontus
-- [ ] Integrate useJourneySocket with onboarding page (next phase)
-- [ ] Persist Lise transcripts (currently ephemeral, client-side only)
+- [ ] Merge PR #13 to main (Pontus)
+- [ ] Commit remaining 23 uncommitted files on development
+- [ ] LiveKit evaluation (carried over)
+- [ ] wt-3 stage-engine-fix: review or close
+- [ ] Push migrations to production (Pontus)
 
 ---
 

@@ -69,6 +69,10 @@ export const ACCENT_COLORS: Record<
     glow: string;
     buttonBg: string;
     buttonHover: string;
+    /** Full group-hover:bg-* class string for Tailwind JIT safety */
+    groupHoverBg: string;
+    /** Full group-hover:text-* class string for Tailwind JIT safety */
+    groupHoverText: string;
   }
 > = {
   orange: {
@@ -83,6 +87,8 @@ export const ACCENT_COLORS: Record<
     glow: "bg-orange-500/5",
     buttonBg: "bg-orange-500",
     buttonHover: "hover:bg-orange-400",
+    groupHoverBg: "group-hover:bg-orange-500/10",
+    groupHoverText: "group-hover:text-orange-400",
   },
   "orange-action": {
     border: "border-orange-500/30",
@@ -96,6 +102,8 @@ export const ACCENT_COLORS: Record<
     glow: "bg-orange-500/5",
     buttonBg: "bg-orange-500",
     buttonHover: "hover:bg-orange-400",
+    groupHoverBg: "group-hover:bg-orange-500/10",
+    groupHoverText: "group-hover:text-orange-400",
   },
   slate: {
     border: "border-slate-500/30",
@@ -109,6 +117,8 @@ export const ACCENT_COLORS: Record<
     glow: "bg-slate-500/5",
     buttonBg: "bg-slate-500",
     buttonHover: "hover:bg-slate-400",
+    groupHoverBg: "group-hover:bg-slate-500/10",
+    groupHoverText: "group-hover:text-slate-400",
   },
   emerald: {
     border: "border-emerald-500/30",
@@ -122,6 +132,8 @@ export const ACCENT_COLORS: Record<
     glow: "bg-emerald-500/5",
     buttonBg: "bg-emerald-500",
     buttonHover: "hover:bg-emerald-400",
+    groupHoverBg: "group-hover:bg-emerald-500/10",
+    groupHoverText: "group-hover:text-emerald-400",
   },
   amber: {
     border: "border-amber-500/30",
@@ -135,6 +147,8 @@ export const ACCENT_COLORS: Record<
     glow: "bg-amber-500/5",
     buttonBg: "bg-amber-500",
     buttonHover: "hover:bg-amber-400",
+    groupHoverBg: "group-hover:bg-amber-500/10",
+    groupHoverText: "group-hover:text-amber-400",
   },
   yellow: {
     border: "border-yellow-400/30",
@@ -148,6 +162,8 @@ export const ACCENT_COLORS: Record<
     glow: "bg-yellow-400/5",
     buttonBg: "bg-yellow-400",
     buttonHover: "hover:bg-yellow-300",
+    groupHoverBg: "group-hover:bg-yellow-400/10",
+    groupHoverText: "group-hover:text-yellow-400",
   },
   rose: {
     border: "border-rose-400/30",
@@ -161,6 +177,8 @@ export const ACCENT_COLORS: Record<
     glow: "bg-rose-950/10",
     buttonBg: "bg-rose-400/20",
     buttonHover: "hover:bg-rose-400/30",
+    groupHoverBg: "group-hover:bg-rose-950/20",
+    groupHoverText: "group-hover:text-rose-300",
   },
 };
 

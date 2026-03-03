@@ -66,7 +66,7 @@ export function HeroSection() {
         <SectionReveal>
           <div className="flex w-full max-w-lg flex-col items-center gap-10">
             <RevealItem>
-              <h1 className="text-center font-[family-name:var(--font-display)] text-6xl leading-[1.1] tracking-tight text-white sm:text-7xl">
+              <h1 className="font-heading text-center text-6xl leading-[1.1] tracking-tight text-white sm:text-7xl">
                 Velkommen tilbake
               </h1>
             </RevealItem>
@@ -118,7 +118,7 @@ export function HeroSection() {
       <SectionReveal>
         <div className="flex w-full max-w-lg flex-col items-center gap-10">
           <RevealItem>
-            <h1 className="text-center font-[family-name:var(--font-display)] text-6xl leading-[1.1] tracking-tight text-white sm:text-7xl">
+            <h1 className="font-heading text-center text-6xl leading-[1.1] tracking-tight text-white sm:text-7xl">
               Velkommen til
               <br />
               Smartout

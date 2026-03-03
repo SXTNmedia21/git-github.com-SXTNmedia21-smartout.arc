@@ -6,6 +6,7 @@ import { withSentryConfig } from "@sentry/nextjs";
 import "./src/env";
 
 const nextConfig: NextConfig = {
+  ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
   transpilePackages: [
     "@smartout/ai",
     "@smartout/supabase",

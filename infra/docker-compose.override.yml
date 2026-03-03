@@ -8,9 +8,9 @@
 services:
   stage-engine:
     ports:
-      - "3070:3000"
+      - "5022:5030"
     environment:
-      - ENGINE_URL=http://localhost:3070
+      - ENGINE_URL=http://localhost:5030
       - LOG_LEVEL=debug
 
   shift-mcp:
@@ -20,7 +20,7 @@ services:
   contract-service:
     environment:
       - NODE_ENV=development
-      - APP_URL=http://localhost:3050
+      - APP_URL=http://localhost:3100
 
   scrapling:
     ports:

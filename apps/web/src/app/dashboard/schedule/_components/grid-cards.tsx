@@ -353,8 +353,8 @@ export const AbsenceCard = React.memo(function AbsenceCard({
     <div
       className={`relative flex h-[46px] w-full shrink-0 items-center rounded-lg border px-2.5 py-1.5 transition-all xl:h-[50px] ${
         isSick
-          ? 'border-rose-500/40 bg-rose-500/15 bg-[url("/diagonal-stripes-rose.svg")] bg-repeat shadow-[0_0_10px_rgba(244,63,94,0.1)]'
-          : 'border-blue-500/15 bg-blue-500/[0.04] bg-[url("/diagonal-stripes-blue.svg")] bg-repeat'
+          ? "bg-stripes-rose border-rose-500/40 bg-rose-500/15 shadow-[0_0_10px_rgba(244,63,94,0.1)]"
+          : "bg-stripes-blue border-blue-500/15 bg-blue-500/[0.04]"
       }`}
     >
       {isSick ? (

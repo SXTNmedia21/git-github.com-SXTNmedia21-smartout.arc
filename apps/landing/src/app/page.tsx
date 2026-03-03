@@ -25,7 +25,6 @@ import {
   GraduationCap,
   MessageSquare,
   ListTodo,
-  Globe,
   Sparkles,
   Bot,
   BellRing,
@@ -186,30 +185,21 @@ function SmartoutLandingPageContent() {
     <div className="relative min-h-screen overflow-x-hidden bg-[#050505] font-sans text-white selection:bg-orange-500/30">
       {/* Dynamic Premium Background */}
       <div className="pointer-events-none fixed inset-0 z-0 bg-[#050505]">
-        {/* Subtle Grid Pattern */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] bg-[size:24px_24px]"></div>
+        {/* Subtle Grid Pattern — masked to fade out at edges */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] bg-[size:24px_24px]" />
 
-        {/* Noise overlay - reduced complexity for performance */}
+        {/* Ambient Glowing Orbs — slow float animation, GPU-composited */}
         <div
-          className="absolute inset-0 opacity-[0.010]"
-          style={{
-            backgroundImage:
-              'url(\'data:image/svg+xml,%3Csvg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="n"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23n)"/%3E%3C/svg%3E\')',
-          }}
-        ></div>
-
-        {/* Refined Glowing Orbs with Hardware Acceleration */}
-        <div
-          className="absolute top-[-10%] left-[-10%] h-[50vw] w-[50vw] rounded-full bg-orange-600/10 mix-blend-screen blur-[100px] will-change-[opacity] motion-safe:animate-pulse"
-          style={{ animationDuration: "8s" }}
+          className="motion-safe:animate-glow-shift absolute top-[-10%] left-[-10%] h-[50vw] w-[50vw] rounded-full bg-orange-600/8 mix-blend-screen blur-[100px]"
+          style={{ animationDelay: "0s" }}
         />
         <div
-          className="absolute top-[20%] right-[-10%] h-[40vw] w-[40vw] rounded-full bg-rose-600/10 mix-blend-screen blur-[120px] will-change-[opacity] motion-safe:animate-pulse"
-          style={{ animationDuration: "12s" }}
+          className="motion-safe:animate-glow-shift absolute top-[20%] right-[-10%] h-[40vw] w-[40vw] rounded-full bg-rose-600/8 mix-blend-screen blur-[120px]"
+          style={{ animationDelay: "-3s" }}
         />
         <div
-          className="absolute bottom-[-20%] left-[20%] h-[60vw] w-[60vw] rounded-full bg-purple-600/10 mix-blend-screen blur-[120px] will-change-[opacity] motion-safe:animate-pulse"
-          style={{ animationDuration: "10s" }}
+          className="motion-safe:animate-glow-shift absolute bottom-[-20%] left-[20%] h-[60vw] w-[60vw] rounded-full bg-purple-600/6 mix-blend-screen blur-[120px]"
+          style={{ animationDelay: "-5s" }}
         />
       </div>
 
@@ -265,25 +255,20 @@ function SmartoutLandingPageContent() {
               <Link
                 href={onboardingHref}
                 onClick={() => trackCta("Opprett din SmartOut")}
-                className="group relative flex w-full items-center justify-center gap-3 rounded-full bg-white px-8 py-4 text-base font-black text-zinc-950 shadow-[0_0_40px_rgba(255,255,255,0.2)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_60px_rgba(255,255,255,0.4)] sm:w-auto sm:px-10 sm:py-5 sm:text-lg"
+                className="group relative flex w-full items-center justify-center gap-3 rounded-full bg-white px-8 py-4 text-base font-black text-zinc-950 shadow-[0_0_40px_rgba(255,255,255,0.15)] transition-all duration-300 hover:shadow-[0_0_60px_rgba(255,255,255,0.3)] sm:w-auto sm:px-10 sm:py-5 sm:text-lg"
               >
-                <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-orange-500 to-rose-500 opacity-20 blur transition duration-500 group-hover:opacity-50"></div>
+                <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-orange-500 to-rose-500 opacity-20 blur transition duration-500 group-hover:opacity-40" />
                 <span className="relative flex items-center gap-3">
                   Opprett din SmartOut{" "}
-                  <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+                  <ArrowRight className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1" />
                 </span>
               </Link>
 
               <a
                 href="#lise"
-                className="group relative flex w-full items-center justify-center gap-3 overflow-hidden rounded-full px-8 py-4 text-base transition-all duration-300 hover:-translate-y-1 sm:w-auto sm:px-10 sm:py-5 sm:text-lg"
+                className="group relative flex w-full items-center justify-center gap-3 overflow-hidden rounded-full border border-white/10 bg-white/5 px-8 py-4 text-base font-bold text-white backdrop-blur-md transition-all duration-300 hover:border-white/20 hover:bg-white/10 sm:w-auto sm:px-10 sm:py-5 sm:text-lg"
               >
-                <div className="absolute inset-0 rounded-full border border-white/10 bg-white/5 backdrop-blur-md transition-colors group-hover:bg-white/10" />
-                <div className="absolute inset-0 bg-gradient-to-r from-zinc-800/50 to-zinc-700/50 opacity-0 transition-opacity group-hover:opacity-100" />
-                <div className="absolute -inset-[1px] rounded-full bg-gradient-to-r from-white/20 to-white/0 opacity-0 blur-[1px] transition-opacity group-hover:opacity-100" />
-                <span className="relative font-bold text-white group-hover:drop-shadow-md">
-                  Møt AI-assistenten Lise
-                </span>
+                Møt AI-assistenten Lise
               </a>
             </m.div>
           </m.div>
@@ -347,54 +332,33 @@ function SmartoutLandingPageContent() {
 
         {/* BRAND / INTEGRATION MARQUEE */}
         <div className="relative mt-12 mb-8 flex w-full items-center overflow-hidden py-6 sm:mt-32 sm:mb-12 sm:py-12">
-          <div className="pointer-events-none absolute top-0 bottom-0 left-0 z-10 w-48 bg-gradient-to-r from-zinc-950 to-transparent"></div>
-          <div className="pointer-events-none absolute top-0 right-0 bottom-0 z-10 w-48 bg-gradient-to-l from-zinc-950 to-transparent"></div>
+          {/* Edge fade masks */}
+          <div className="pointer-events-none absolute top-0 bottom-0 left-0 z-10 w-32 bg-gradient-to-r from-[#050505] to-transparent sm:w-48" />
+          <div className="pointer-events-none absolute top-0 right-0 bottom-0 z-10 w-32 bg-gradient-to-l from-[#050505] to-transparent sm:w-48" />
           <m.div
             initial={{ x: 0 }}
             animate={{ x: "-50%" }}
             transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
-            className="flex w-max items-center gap-12 px-4 whitespace-nowrap opacity-50 sm:gap-24"
+            className="flex w-max items-center gap-12 px-4 whitespace-nowrap opacity-40 sm:gap-24"
           >
-            <div className="flex items-center gap-2 text-lg font-black tracking-tighter text-zinc-400 sm:text-2xl">
-              <Zap className="h-5 w-5" />
-              TRIPLETEX
-            </div>
-            <div className="flex items-center gap-2 text-lg font-black tracking-tighter text-zinc-400 sm:text-2xl">
-              <Building2 className="h-5 w-5" />
-              VISMA
-            </div>
-            <div className="flex items-center gap-2 text-lg font-black tracking-tighter text-zinc-400 sm:text-2xl">
-              <Users className="h-5 w-5" />
-              ZETTLE
-            </div>
-            <div className="flex items-center gap-2 text-lg font-black tracking-tighter text-zinc-400 sm:text-2xl">
-              <Target className="h-5 w-5" />
-              LIGHTSPEED
-            </div>
-            <div className="flex items-center gap-2 text-lg font-black tracking-tighter text-zinc-400 sm:text-2xl">
-              <ShieldCheck className="h-5 w-5" />
-              POWEROFFICE
-            </div>
-            <div className="flex items-center gap-2 text-lg font-black tracking-tighter text-zinc-400 sm:text-2xl">
-              <Zap className="h-5 w-5" />
-              TRIPLETEX
-            </div>
-            <div className="flex items-center gap-2 text-lg font-black tracking-tighter text-zinc-400 sm:text-2xl">
-              <Building2 className="h-5 w-5" />
-              VISMA
-            </div>
-            <div className="flex items-center gap-2 text-lg font-black tracking-tighter text-zinc-400 sm:text-2xl">
-              <Users className="h-5 w-5" />
-              ZETTLE
-            </div>
-            <div className="flex items-center gap-2 text-lg font-black tracking-tighter text-zinc-400 sm:text-2xl">
-              <Target className="h-5 w-5" />
-              LIGHTSPEED
-            </div>
-            <div className="flex items-center gap-2 text-lg font-black tracking-tighter text-zinc-400 sm:text-2xl">
-              <ShieldCheck className="h-5 w-5" />
-              POWEROFFICE
-            </div>
+            {/* Render integration brands twice for seamless loop */}
+            {[0, 1].map((set) =>
+              [
+                { icon: Zap, name: "TRIPLETEX" },
+                { icon: Building2, name: "VISMA" },
+                { icon: Users, name: "ZETTLE" },
+                { icon: Target, name: "LIGHTSPEED" },
+                { icon: ShieldCheck, name: "POWEROFFICE" },
+              ].map((brand) => (
+                <div
+                  key={`${set}-${brand.name}`}
+                  className="flex items-center gap-2 text-lg font-black tracking-tighter text-zinc-400 sm:text-2xl"
+                >
+                  <brand.icon className="h-5 w-5" />
+                  {brand.name}
+                </div>
+              )),
+            )}
           </m.div>
         </div>
 
@@ -495,10 +459,13 @@ function SmartoutLandingPageContent() {
           </div>
         </div>
 
+        {/* ─── Divider ─── */}
+        <div className="section-divider relative z-10 my-8 sm:my-16" />
+
         {/* INTERACTIVE WORKSPACE SECTION */}
         <section
           id="workspace"
-          className="relative z-10 mt-12 flex min-h-0 flex-col justify-center py-16 sm:mt-20 sm:min-h-[100dvh] sm:py-32"
+          className="relative z-10 flex min-h-0 flex-col justify-center py-16 sm:min-h-[100dvh] sm:py-32"
         >
           {/* Ambient Glow */}
           <div className="pointer-events-none absolute top-0 right-0 h-[600px] w-[600px] rounded-full bg-blue-500/5 mix-blend-screen blur-[150px]" />
@@ -741,8 +708,11 @@ function SmartoutLandingPageContent() {
           </div>
         </section>
 
+        {/* ─── Divider ─── */}
+        <div className="section-divider relative z-10 my-8 sm:my-16" />
+
         {/* COMPLIANCE SECTION */}
-        <section className="relative z-10 mt-12 py-16 sm:mt-20 sm:py-40">
+        <section className="relative z-10 py-16 sm:py-40">
           {/* Blended background for compliance */}
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-emerald-950/10 to-transparent" />
           <div className="pointer-events-none absolute top-1/2 left-1/2 h-[600px] w-[1000px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-500/5 blur-[150px]" />
@@ -924,8 +894,11 @@ function SmartoutLandingPageContent() {
           </div>
         </section>
 
+        {/* ─── Divider ─── */}
+        <div className="section-divider relative z-10 my-8 sm:my-16" />
+
         {/* ONBOARDING PROMISE SECTION */}
-        <section className="relative z-10 py-16 sm:py-40">
+        <section className="relative z-10 py-16 sm:py-32">
           <div className="mx-auto max-w-7xl px-6">
             <div className="grid grid-cols-1 items-center gap-10 sm:gap-16 lg:grid-cols-2">
               <m.div
@@ -1003,8 +976,11 @@ function SmartoutLandingPageContent() {
           </div>
         </section>
 
+        {/* ─── Divider ─── */}
+        <div className="section-divider relative z-10 my-8 sm:my-16" />
+
         {/* PRICING SECTION */}
-        <section id="priser" className="relative z-10 mt-4 py-16 sm:mt-10 sm:py-32">
+        <section id="priser" className="relative z-10 py-16 sm:py-32">
           <div className="mx-auto max-w-7xl px-6 text-center">
             <m.div
               initial={{ opacity: 0, scale: 0.9 }}
@@ -1053,6 +1029,9 @@ function SmartoutLandingPageContent() {
             </m.div>
           </div>
         </section>
+
+        {/* ─── Divider ─── */}
+        <div className="section-divider relative z-10 my-8 sm:my-16" />
 
         {/* SMARTOUT AI SECTION */}
         <section id="smartout-ai" className="relative z-10 py-16 sm:py-32">
@@ -1110,7 +1089,7 @@ function SmartoutLandingPageContent() {
         </section>
 
         {/* CTA Footer Section */}
-        <section className="relative z-10 mt-4 overflow-hidden py-16 sm:mt-10 sm:py-32 md:py-48">
+        <section className="relative z-10 overflow-hidden py-16 sm:py-32 md:py-48">
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0a0a0c]/80 to-[#0a0a0c]"></div>
           <div className="pointer-events-none absolute top-1/2 left-1/2 h-[800px] w-[1200px] -translate-x-1/2 -translate-y-1/2 rounded-[50%] bg-orange-500/10 blur-[150px]"></div>
 
@@ -1134,22 +1113,13 @@ function SmartoutLandingPageContent() {
               <Link
                 href={onboardingHref}
                 onClick={() => trackCta("Kom i gang")}
-                className="group relative w-full sm:w-auto"
+                className="group relative block w-full sm:inline-block sm:w-auto"
               >
-                <div className="absolute -inset-2 rounded-full bg-gradient-to-r from-orange-500 to-rose-500 opacity-50 blur-xl transition duration-500 group-hover:opacity-100"></div>
-                <m.button
-                  whileTap={{ scale: 0.95 }}
-                  className="relative mx-auto flex w-full items-center justify-center gap-3 rounded-full bg-white px-8 py-4 text-sm font-black text-zinc-950 shadow-[0_0_40px_rgba(255,255,255,0.2)] transition-all group-hover:-translate-y-1 group-hover:shadow-[0_0_60px_rgba(255,255,255,0.4)] sm:w-auto sm:px-12 sm:py-5 sm:text-lg"
-                >
-                  <m.span
-                    animate={{ rotate: [0, 10, -10, 0] }}
-                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                    className="inline-flex"
-                  >
-                    <Globe className="h-5 w-5 text-orange-600 drop-shadow-sm" />
-                  </m.span>
+                <div className="absolute -inset-2 rounded-full bg-gradient-to-r from-orange-500 to-rose-500 opacity-40 blur-xl transition duration-500 group-hover:opacity-80" />
+                <span className="relative flex w-full items-center justify-center gap-3 rounded-full bg-white px-8 py-4 text-sm font-black text-zinc-950 shadow-[0_0_40px_rgba(255,255,255,0.15)] transition-all duration-300 group-hover:shadow-[0_0_60px_rgba(255,255,255,0.3)] sm:w-auto sm:px-12 sm:py-5 sm:text-lg">
                   Kom i gang
-                </m.button>
+                  <ArrowRight className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1" />
+                </span>
               </Link>
             </m.div>
           </div>
@@ -1161,6 +1131,8 @@ function SmartoutLandingPageContent() {
   );
 }
 
+// UI Events:
+// - nav: href (feature card click — links to feature detail page)
 function FeatureCard({
   icon: Icon,
   title,
@@ -1182,28 +1154,27 @@ function FeatureCard({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-50px" }}
       transition={{ duration: 0.6, delay }}
-      whileHover={{ y: -10 }}
-      className={`group relative h-full overflow-hidden rounded-2xl border border-white/5 bg-[#0a0a0c]/40 shadow-2xl backdrop-blur-2xl transition-all duration-500 hover:border-white/10 sm:rounded-[32px] ${href ? "cursor-pointer" : ""}`}
+      className={`group relative h-full overflow-hidden rounded-2xl border border-white/5 bg-[#0a0a0c]/40 shadow-2xl backdrop-blur-2xl transition-all duration-500 hover:-translate-y-2 hover:border-white/10 hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)] sm:rounded-[32px] ${href ? "cursor-pointer" : ""}`}
     >
+      {/* Top edge highlight on hover */}
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      {/* Color glow behind card on hover */}
       <div
         className={`absolute -inset-1 bg-gradient-to-b ${color} opacity-0 blur-2xl transition-opacity duration-500 group-hover:opacity-10`}
-      ></div>
+      />
 
       <div className="relative z-10 flex h-full flex-col p-5 sm:p-8">
-        <m.div
-          animate={{ y: [0, -3, 0] }}
-          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: delay * 2 }}
-          className={`h-11 w-11 rounded-xl bg-gradient-to-tr ${color} mb-4 p-[1px] shadow-2xl sm:mb-6 sm:h-14 sm:w-14 sm:rounded-2xl`}
+        <div
+          className={`h-11 w-11 rounded-xl bg-gradient-to-tr ${color} mb-4 p-[1px] shadow-2xl transition-transform duration-500 group-hover:scale-110 sm:mb-6 sm:h-14 sm:w-14 sm:rounded-2xl`}
         >
           <div className="flex h-full w-full items-center justify-center rounded-2xl bg-[#111]">
             <Icon className="h-6 w-6 text-white drop-shadow-md" />
           </div>
-        </m.div>
-        <h3 className="mb-2 flex items-center justify-between text-lg font-bold tracking-tight text-white transition-all group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-zinc-400 group-hover:bg-clip-text group-hover:text-transparent sm:mb-4 sm:text-xl">
+        </div>
+        <h3 className="mb-2 flex items-center justify-between text-lg font-bold tracking-tight text-white transition-colors duration-300 sm:mb-4 sm:text-xl">
           {title}
           {href && (
-            <ArrowRight className="h-5 w-5 -translate-x-4 transform opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:text-zinc-300 group-hover:opacity-100" />
+            <ArrowRight className="h-5 w-5 -translate-x-4 transform text-zinc-400 opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:text-white group-hover:opacity-100" />
           )}
         </h3>
         <p className="text-sm leading-relaxed font-medium text-zinc-400 sm:text-base">

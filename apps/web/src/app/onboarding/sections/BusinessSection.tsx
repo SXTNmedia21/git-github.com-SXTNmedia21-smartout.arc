@@ -55,7 +55,7 @@ export function BusinessSection() {
     return (
       <SectionReveal>
         <RevealItem>
-          <h2 className="font-[family-name:var(--font-display)] text-6xl leading-[1.1] tracking-tight text-white">
+          <h2 className="font-heading text-6xl leading-[1.1] tracking-tight text-white">
             Fortell oss om bedriften din
           </h2>
         </RevealItem>
@@ -154,7 +154,7 @@ export function BusinessSection() {
     return (
       <SectionReveal>
         <RevealItem>
-          <h2 className="font-[family-name:var(--font-display)] text-6xl leading-[1.1] tracking-tight text-white">
+          <h2 className="font-heading text-6xl leading-[1.1] tracking-tight text-white">
             Fortell oss om bedriften din
           </h2>
         </RevealItem>
@@ -176,7 +176,7 @@ export function BusinessSection() {
   return (
     <SectionReveal>
       <RevealItem>
-        <h2 className="font-[family-name:var(--font-display)] text-6xl leading-[1.1] tracking-tight text-white">
+        <h2 className="font-heading text-6xl leading-[1.1] tracking-tight text-white">
           Fortell oss om bedriften din
         </h2>
       </RevealItem>

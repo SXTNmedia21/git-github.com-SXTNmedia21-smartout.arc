@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: in_progress
-updated: 2026-03-20
+updated: 2026-03-23
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -13,26 +13,26 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #   | Branch | Module | Status | Progress | Blockers | Health |
-| --- | ------ | ------ | ------ | -------- | -------- | ------ |
-| —   | —      | —      | —      | —        | —        | —      |
+| #    | Branch                  | Module | Status      | Progress     | Blockers | Health |
+| ---- | ----------------------- | ------ | ----------- | ------------ | -------- | ------ |
+| wt-3 | `feat/stage-engine-fix` | ai     | in_progress | just started | —        | clean  |
 
 ## Free Slots
 
-| #     | Available |
-| ----- | --------- |
-| wt-1  | yes       |
-| wt-2  | yes       |
-| wt-3  | yes       |
-| wt-4  | yes       |
-| wt-5  | yes       |
-| wt-20 | yes       |
+| #     | Available             |
+| ----- | --------------------- |
+| wt-1  | yes                   |
+| wt-2  | yes                   |
+| wt-3  | no — stage-engine-fix |
+| wt-4  | yes                   |
+| wt-5  | yes                   |
+| wt-20 | yes                   |
 
 ## Pending Journeys
 
-| Worktree | Feature | Journey File | Status |
-| -------- | ------- | ------------ | ------ |
-| —        | —       | —            | —      |
+| Worktree | Feature          | Journey File                                | Status  |
+| -------- | ---------------- | ------------------------------------------- | ------- |
+| wt-3     | stage-engine-fix | `docs/journeys/JOURNEY-stage-engine-fix.md` | missing |
 
 ## Recent Closures
 
@@ -147,3 +147,5 @@ tags: [dashboard, worktrees, tracking]
 | 2026-03-19 | stage-engine-routing             | abandoned         | 0 unique commits, empty branch. wt-3 removed.                                                                                                                                                                                                                                                                             |
 | 2026-03-19 | journey-portal-fixes             | closed            | wt-4: Code review remediation — requireGodmode(), audit logging, icon extraction, pagination, types, date formatting. 10 issues fixed.                                                                                                                                                                                    |
 | 2026-03-19 | onboarding-mission               | closed            | 11/11 tasks: mission-journey FK, protocol types, @hono/node-ws, WS connection manager, WS route, UI capability (5 tools), agent router wiring, journey data loading, seed data, frontend hook, typecheck. All merged to development. User mentioned LiveKit — pending next session.                                       |
+| 2026-03-21 | stage-engine-fix                 | started           | wt-3, module: ai — Fix ESM resolution, seed Lise prompt, fix stage ordering. Get Stage Engine running.                                                                                                                                                                                                                    |
+| 2026-03-23 | (PR + lint + voice fix)          | session ended     | Updated PR #13 (462 commits). Fixed 19 lint errors (0 errors now). Typecheck 18/18, build 8/8. Resolved 502 voice error (port mismatch). 23 uncommitted files on development.                                                                                                                                             |

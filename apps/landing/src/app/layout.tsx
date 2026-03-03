@@ -26,7 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="no" className={`dark ${geistSans.variable} ${geistMono.variable}`}>
       <body
-        className={`${geistSans.className} bg-zinc-950 text-white antialiased selection:bg-orange-500/30`}
+        className={`${geistSans.className} bg-background text-foreground antialiased selection:bg-orange-500/30`}
       >
         <MotionProvider>{children}</MotionProvider>
         <Analytics />

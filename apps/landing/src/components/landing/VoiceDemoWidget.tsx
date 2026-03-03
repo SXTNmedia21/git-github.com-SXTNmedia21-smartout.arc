@@ -113,7 +113,7 @@ export default function VoiceDemoWidget({ config, className = "", height }: Voic
               transition={
                 config.usePulse ? { duration: 4, repeat: Infinity, ease: "easeInOut" } : undefined
               }
-              className={`relative z-20 mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-white/5 bg-white/5 transition-colors sm:mb-6 sm:h-24 sm:w-24 ${colors.borderHover} group-hover:${colors.bg}`}
+              className={`relative z-20 mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-white/5 bg-white/5 transition-colors sm:mb-6 sm:h-24 sm:w-24 ${colors.borderHover} ${colors.groupHoverBg}`}
             >
               {config.usePulse && (
                 <div
@@ -121,7 +121,7 @@ export default function VoiceDemoWidget({ config, className = "", height }: Voic
                 />
               )}
               <Mic
-                className={`h-7 w-7 text-zinc-500 transition-colors sm:h-10 sm:w-10 group-hover:${colors.text}`}
+                className={`h-7 w-7 text-zinc-500 transition-colors sm:h-10 sm:w-10 ${colors.groupHoverText}`}
               />
             </m.div>
 
