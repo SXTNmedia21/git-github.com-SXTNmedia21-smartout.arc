@@ -13,39 +13,39 @@ tags: [session, boot-sequence, continuity]
 
 ## Last Session
 
-| Field   | Value                                   |
-| ------- | --------------------------------------- |
-| Date    | 2026-03-10                              |
-| Branch  | `feat/onboarding-intelligence-pipeline` |
-| Feature | onboarding-intelligence-pipeline        |
-| Status  | in_progress                             |
+| Field   | Value                      |
+| ------- | -------------------------- |
+| Date    | 2026-03-11                 |
+| Branch  | `feat/onboarding-redesign` |
+| Feature | onboarding-redesign        |
+| Status  | ready_for_closure          |
 
 ### What was done
 
-- Explored scrapling service and onboarding intelligence gathering
-- Designed intelligence pipeline: scrape → Brreg name search → Brreg details → web search
-- Wrote design doc: `docs/plans/2026-03-10-onboarding-intelligence-pipeline-design.md`
-- Wrote implementation plan: `docs/plans/2026-03-10-onboarding-intelligence-pipeline.md` (6 tasks)
-- Started feature: wt-3, `feat/onboarding-intelligence-pipeline`
+- Completed UI polish: controlled scroll, soft borders, luxury easing, performance optimization
+- Redesigned login: Google SSO primary, collapsible email form
+- Added reset button with proper state + DB session cleanup
+- Added AgentCard panel for voice agent inspection
+- Wired mission registry for onboarding-interview
+- All closure gates verified: WORKLOG, decisions (6), learnings (5), journey (5 flows)
+- Typecheck passes (18/18)
+- Branch already merged to development, docs commit pushed
 
 ### Where we stopped
 
-- Feature just initialized, ready for implementation
-- Plan: 6 tasks (env var → web-search-intelligence → gather-workspace-intelligence → InitStep → OrgVerificationStep → e2e test)
+- Feature ready for closure
+- Run: `~/.claude/scripts/close-feature.sh 2`
 
 ### Known blockers / errors
 
-- Need `SERPER_API_KEY` env var (sign up at serper.dev for free tier)
-- Contract-service uses env var fallback — Vault `get_secret()` not deployed to production
-- DailyCloseEngine tables not in `database.types.ts` — needs migrations + type regen
+- None (all gates passed)
 
 ### Pending decisions
 
+- [ ] Continue onboarding-intelligence-pipeline (wt-3)
 - [ ] Sign up for Serper.dev and get API key
 - [ ] Run DailyCloseEngine DB migrations and regenerate `database.types.ts`
 - [ ] Enable `supabase_vault` extension on production
-- [ ] Lock down port 8000 on droplet with UFW
-- [ ] Continue onboarding redesign (wt-2)
 
 ---
 
