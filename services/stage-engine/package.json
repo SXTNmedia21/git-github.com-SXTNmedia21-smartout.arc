@@ -21,6 +21,7 @@
     "@openrouter/ai-sdk-provider": "^2.2.3",
     "@smartout/ai": "workspace:*",
     "@smartout/supabase": "workspace:*",
+    "@smartout/types": "workspace:*",
     "@supabase/supabase-js": "^2.49.4",
     "ai": "^6.0.103",
     "hono": "^4.7.0",
