@@ -15,7 +15,7 @@ export interface BotssonActions {
   addDepartments: (names: string[]) => void;
   triggerScrape: (url: string, orgNumber: string) => Promise<void>;
   advanceToNextSection: () => void;
-  saveMemory: (content: string, memoryType: string, expiresAt?: string) => Promise<void>;
+  saveMemory: (content: string) => void;
 }
 
 interface BotssonState {
@@ -126,32 +126,13 @@ const CLIENT_TOOLS = [
     temporaryTool: {
       modelToolName: "saveMemory",
       description:
-        'Save a memory about the user. Use this when you learn something important that should be remembered across sessions. Type "constant" for permanent facts (name, preferences), "temporal" for time-limited info (current season details, temporary arrangements) with an end date.',
+        'Save a memory about the user. RULES: (1) ALWAYS confirm with the user before saving — say what you want to remember and ask "Skal jeg notere det?" Only call after user confirms. (2) Only save factual knowledge — business details, preferences, team structure. NEVER save tasks or reminders.',
       dynamicParameters: [
         {
           name: "content",
           location: "PARAMETER_LOCATION_BODY",
           schema: { type: "string", description: "The memory content — what to remember" },
           required: true,
-        },
-        {
-          name: "memoryType",
-          location: "PARAMETER_LOCATION_BODY",
-          schema: {
-            type: "string",
-            description: 'Either "constant" (permanent) or "temporal" (expires)',
-          },
-          required: true,
-        },
-        {
-          name: "expiresAt",
-          location: "PARAMETER_LOCATION_BODY",
-          schema: {
-            type: "string",
-            description:
-              "ISO date (YYYY-MM-DD) when this memory expires. Required for temporal memories.",
-          },
-          required: false,
         },
       ],
       client: {},

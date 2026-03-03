@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import { createClient } from "@smartout/supabase/client";
-import { ArrowRight, Mail } from "lucide-react";
+import { ArrowRight, Mail, Mic, PenLine } from "lucide-react";
 import { useOnboarding } from "../WizardContext";
 import { SectionReveal, RevealItem } from "../components/SectionReveal";
 
 export function HeroSection() {
-  const { isAuthenticated, completeSection } = useOnboarding();
+  const { isAuthenticated, completeSection, botsson } = useOnboarding();
 
   const supabase = createClient();
 
@@ -73,19 +73,40 @@ export function HeroSection() {
 
             <RevealItem>
               <p className="text-center text-xl leading-relaxed text-white/50">
-                Alt er klart. La oss fortsette der du slapp.
+                Velg hvordan du vil sette opp bedriften din.
               </p>
             </RevealItem>
 
             <RevealItem>
-              <button
-                type="button"
-                onClick={() => completeSection("hero")}
-                className="flex w-full items-center justify-center gap-3 rounded-2xl bg-white px-8 py-4 text-lg font-semibold text-black transition-colors hover:bg-white/90"
-              >
-                Fortsett
-                <ArrowRight className="h-5 w-5" />
-              </button>
+              <div className="flex w-full flex-col gap-4 sm:flex-row sm:gap-6">
+                <div className="flex flex-1 flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void botsson.startSession();
+                      completeSection("hero");
+                    }}
+                    className="flex w-full items-center justify-center gap-3 rounded-2xl bg-white px-6 py-4 text-lg font-semibold text-black transition-colors hover:bg-white/90"
+                  >
+                    <Mic className="h-5 w-5" />
+                    Guidet med Lise
+                    <ArrowRight className="h-5 w-5" />
+                  </button>
+                  <p className="text-center text-sm text-white/30">~5 min</p>
+                </div>
+
+                <div className="flex flex-1 flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={() => completeSection("hero")}
+                    className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.05] px-6 py-4 text-lg font-semibold text-white/70 transition-colors hover:bg-white/[0.08]"
+                  >
+                    <PenLine className="h-5 w-5" />
+                    Manuelt oppsett
+                  </button>
+                  <p className="text-center text-sm text-white/30">~10 min</p>
+                </div>
+              </div>
             </RevealItem>
           </div>
         </SectionReveal>

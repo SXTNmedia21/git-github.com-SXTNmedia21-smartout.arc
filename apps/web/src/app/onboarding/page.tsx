@@ -1,11 +1,12 @@
 "use client";
 
-import { Suspense, useCallback, useRef, useState } from "react";
-import { Loader2, RotateCcw } from "lucide-react";
+import { Suspense, useState } from "react";
+import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { OnboardingProvider, useOnboarding } from "./WizardContext";
 import { ParallaxBackground } from "./components/ParallaxBackground";
 import { BotssonAvatar } from "./components/BotssonAvatar";
+import { KeyFactsPanel } from "./components/KeyFactsPanel";
 import { AgentCard } from "@/components/agent-card";
 import { getMission } from "@smartout/ai/missions";
 import { HeroSection } from "./sections/HeroSection";
@@ -44,26 +45,18 @@ function ProgressBar() {
 const mission = getMission("onboarding-interview");
 
 function ScrollContainer() {
-  const { containerRef, botsson, reset } = useOnboarding();
-  const startedRef = useRef(false);
+  const { containerRef, botsson } = useOnboarding();
   const [cardOpen, setCardOpen] = useState(false);
-
-  // Start Lise on first user interaction (browser requires gesture for audio)
-  const handleFirstInteraction = useCallback(() => {
-    if (startedRef.current || botsson.status !== "idle") return;
-    startedRef.current = true;
-    void botsson.startSession();
-  }, [botsson.status, botsson.startSession]);
 
   return (
     <>
       <ProgressBar />
+      <KeyFactsPanel />
 
       <main
         ref={containerRef as React.RefObject<HTMLElement>}
         className="h-dvh overflow-hidden"
         style={{ scrollBehavior: "smooth", touchAction: "none" }}
-        onClick={handleFirstInteraction}
       >
         {ONBOARDING_SECTIONS.map((section) => {
           const SectionComponent = SECTION_COMPONENTS[section];
@@ -85,15 +78,6 @@ function ScrollContainer() {
           );
         })}
       </main>
-
-      <button
-        type="button"
-        onClick={() => void reset()}
-        className="fixed top-4 right-4 z-50 flex h-10 w-10 items-center justify-center rounded-full border border-white/[0.06] bg-white/[0.05] text-white/30 transition-colors hover:bg-white/10 hover:text-white/60"
-        title="Reset onboarding"
-      >
-        <RotateCcw className="h-4 w-4" />
-      </button>
 
       <BotssonAvatar
         status={botsson.status}

@@ -355,7 +355,7 @@ serve(async (req) => {
       .from("onboarding_session")
       .insert({
         user_id: userId,
-        source_url: url,
+        source_url: url || `brreg:${orgNumber}`,
         current_step: 1,
         scraped_data: scrapedData,
         brreg_data: brregResponse,

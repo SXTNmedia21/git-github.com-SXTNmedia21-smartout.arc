@@ -65,6 +65,13 @@ export interface ContractData {
   previewUrl: string | null;
 }
 
+/** Memory saved by Lise (voice agent) — user-specific knowledge context */
+export interface Memory {
+  id: string;
+  content: string;
+  savedAt: Date;
+}
+
 /** Full onboarding state */
 export interface OnboardingState {
   currentSection: OnboardingSection;
@@ -82,6 +89,9 @@ export interface OnboardingState {
   // Scraping state
   scrapeStatus: "idle" | "scraping" | "done" | "error";
   scrapeSource: "url" | "org" | "both" | null;
+
+  // Agent-driven memories (knowledge context saved by Lise)
+  memories: Memory[];
 
   // Finalization
   activatedWorkspaceId: string | null;

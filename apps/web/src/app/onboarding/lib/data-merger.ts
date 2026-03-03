@@ -12,19 +12,25 @@ interface ScrapedData {
   [key: string]: unknown;
 }
 
-interface BrregData {
-  navn?: string;
-  organisasjonsnummer?: string;
-  forretningsadresse?: {
-    adresse?: string[];
-    postnummer?: string;
-    poststed?: string;
-  };
-  naeringskode1?: {
-    kode?: string;
-    beskrivelse?: string;
-  };
-  antallAnsatte?: number;
+/**
+ * Brreg response as returned by the gather-workspace-intelligence Edge Function.
+ * This is the restructured format, NOT the raw Brreg API shape.
+ */
+interface BrregResponse {
+  matched?: boolean;
+  orgNumber?: string | null;
+  legalName?: string | null;
+  naceCode?: string | null;
+  naceDescription?: string | null;
+  address?: {
+    street?: string;
+    postalCode?: string;
+    city?: string;
+  } | null;
+  dagligLeder?: string | null;
+  employeeCount?: number | null;
+  companyType?: string | null;
+  registrationDate?: string | null;
   [key: string]: unknown;
 }
 
@@ -35,23 +41,22 @@ interface BrregData {
  */
 export function mergeBusinessData(
   scraped: ScrapedData | null,
-  brreg: BrregData | null,
+  brreg: BrregResponse | null,
 ): BusinessData {
   const s = scraped ?? {};
   const b = brreg ?? {};
-  const addr = b.forretningsadresse;
 
   return {
     ...EMPTY_BUSINESS_DATA,
-    legalName: b.navn ?? "",
-    name: b.navn ?? s.companyName ?? "",
-    orgNumber: b.organisasjonsnummer ?? "",
-    address: addr?.adresse?.[0] ?? "",
-    postalCode: addr?.postnummer ?? "",
-    city: capitalize(addr?.poststed ?? ""),
-    industryCode: b.naeringskode1?.kode ?? "",
-    industry: b.naeringskode1?.beskrivelse ?? "",
-    employeeCount: b.antallAnsatte ? String(b.antallAnsatte) : "",
+    legalName: b.legalName ?? "",
+    name: b.legalName ?? s.companyName ?? "",
+    orgNumber: b.orgNumber ?? "",
+    address: b.address?.street ?? "",
+    postalCode: b.address?.postalCode ?? "",
+    city: capitalize(b.address?.city ?? ""),
+    industryCode: b.naceCode ?? "",
+    industry: b.naceDescription ?? "",
+    employeeCount: b.employeeCount ? String(b.employeeCount) : "",
     email: s.email ?? "",
     phone: s.phone ?? "",
     description: s.summary ?? "",

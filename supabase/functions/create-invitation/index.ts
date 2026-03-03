@@ -1,10 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-export const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { sendSms } from "../_shared/twilio.ts";
+import { corsHeaders } from "../_shared/cors.ts";
 
 /**
  * create-invitation Edge Function
@@ -283,40 +280,8 @@ async function sendEmailInvite(recipientEmail: string, inviteUrl: string, worksp
   }
 }
 
-// ── SMS dispatch via Twilio HTTP API ─────────────────────────────────
+// ── SMS dispatch via shared Twilio helper ────────────────────────────
 
 async function sendSmsInvite(phone: string, inviteUrl: string) {
-  const accountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
-  const authToken = Deno.env.get("TWILIO_AUTH_TOKEN");
-  const fromNumber = Deno.env.get("TWILIO_FROM_NUMBER");
-
-  if (!accountSid || !authToken || !fromNumber) {
-    console.warn("Twilio credentials not configured, skipping SMS dispatch");
-    return;
-  }
-
-  try {
-    const res = await fetch(
-      `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Basic ${btoa(`${accountSid}:${authToken}`)}`,
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({
-          To: phone,
-          From: fromNumber,
-          Body: `You've been invited to join Smartout! Accept here: ${inviteUrl}`,
-        }),
-      },
-    );
-
-    if (!res.ok) {
-      const text = await res.text();
-      console.error("Twilio error:", res.status, text);
-    }
-  } catch (err) {
-    console.error("Failed to send SMS:", err);
-  }
+  await sendSms(phone, `You've been invited to join Smartout! Accept here: ${inviteUrl}`);
 }

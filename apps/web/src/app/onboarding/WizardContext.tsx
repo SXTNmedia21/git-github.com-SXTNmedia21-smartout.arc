@@ -124,18 +124,18 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     const messages: Record<string, string | null> = {
       hero: null,
       business:
-        "Brukeren er nå på bedriftsseksjonen. De kan skrive inn nettside eller org.nummer, eller fortelle deg muntlig.",
-      season: `Brukeren er nå på sesongseksjonen. Foreslått sesong: ${state.season.name || "ikke valgt ennå"}.`,
-      departments: `Brukeren er nå på avdelingsseksjonen. ${
+        "[Systemmelding: Brukeren har scrollet til bedriftsseksjonen. Avslutt det du holder på med naturlig, og begynn å snakke om bedriften. De kan skrive inn nettside eller org.nummer, eller fortelle deg muntlig.]",
+      season: `[Systemmelding: Brukeren har scrollet til sesongseksjonen. Avslutt det du holder på med naturlig, og begynn å snakke om sesonger. Foreslått sesong: ${state.season.name || "ikke valgt ennå"}.]`,
+      departments: `[Systemmelding: Brukeren har scrollet til avdelingsseksjonen. Avslutt det du holder på med naturlig, og spør om avdelinger. ${
         state.departments.filter((d) => d.selected).length > 0
-          ? `Foreslåtte: ${state.departments
+          ? `Allerede valgt: ${state.departments
               .filter((d) => d.selected)
               .map((d) => d.name)
               .join(", ")}.`
-          : "Ingen avdelinger valgt ennå. Spør brukeren hvilke avdelinger de har."
-      }`,
-      contract: `Brukeren er nå på kontraktseksjonen. Bedrift: ${state.business.name || "ikke angitt"}.`,
-      done: `Brukeren er ferdig! Alt er klart. Bedrift: ${state.business.name || "ikke angitt"}, sesong: ${state.season.name || "ikke angitt"}, ${state.departments.filter((d) => d.selected).length} avdelinger valgt.`,
+          : "Ingen avdelinger valgt ennå."
+      }]`,
+      contract: `[Systemmelding: Brukeren har scrollet til kontraktseksjonen. Avslutt det du holder på med naturlig, og snakk om kontrakten. Bedrift: ${state.business.name || "ikke angitt"}.]`,
+      done: `[Systemmelding: Brukeren er ferdig med onboarding! Alt er klart. Avslutt med en varm velkomst. Bedrift: ${state.business.name || "ikke angitt"}, sesong: ${state.season.name || "ikke angitt"}, ${state.departments.filter((d) => d.selected).length} avdelinger.]`,
     };
 
     const msg = messages[section];

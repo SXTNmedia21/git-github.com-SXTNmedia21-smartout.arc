@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Upload, Loader2, AlertTriangle, Check } from "lucide-react";
+import { useState, useMemo, useCallback, useRef, type DragEvent } from "react";
+import { Upload, Loader2, AlertTriangle, Check, FileUp } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -85,15 +85,44 @@ export function EnvImportDialog({ open, onOpenChange, onImported }: EnvImportDia
   const [rawText, setRawText] = useState("");
   const [importing, setImporting] = useState(false);
   const [step, setStep] = useState<"paste" | "preview">("paste");
+  const [dragging, setDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const parsed = useMemo(() => parseEnvContent(rawText), [rawText]);
   const matched = useMemo(() => parsed.filter((e) => e.matched), [parsed]);
   const unmatched = useMemo(() => parsed.filter((e) => !e.matched), [parsed]);
 
+  const readFile = useCallback((file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result;
+      if (typeof text === "string") setRawText(text);
+    };
+    reader.readAsText(file);
+  }, []);
+
+  function handleDrop(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) readFile(file);
+  }
+
+  function handleDragOver(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setDragging(true);
+  }
+
+  function handleDragLeave(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setDragging(false);
+  }
+
   function handleClose(nextOpen: boolean) {
     if (!nextOpen) {
       setRawText("");
       setStep("paste");
+      setDragging(false);
     }
     onOpenChange(nextOpen);
   }
@@ -152,19 +181,79 @@ export function EnvImportDialog({ open, onOpenChange, onImported }: EnvImportDia
           <DialogTitle>Import from .env</DialogTitle>
           <DialogDescription>
             {step === "paste"
-              ? "Paste your .env file contents. Keys will be matched against known services and stored in Vault."
+              ? "Drop a .env file, browse for one, or paste contents. Keys are matched against known services and stored in Vault."
               : `${matched.length} of ${parsed.length} keys matched. Review before importing.`}
           </DialogDescription>
         </DialogHeader>
 
         {step === "paste" ? (
-          <Textarea
-            placeholder={`# Paste your .env contents here\nOPENROUTER_API_KEY=sk-or-...\nSTRIPE_SECRET_KEY=sk_live_...\nSENDGRID_API_KEY=SG....`}
-            value={rawText}
-            onChange={(e) => setRawText(e.target.value)}
-            rows={12}
-            className="font-mono text-xs"
-          />
+          <div
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            className="relative"
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".env,.env.*,.txt,text/plain"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) readFile(file);
+                e.target.value = "";
+              }}
+            />
+
+            {!rawText ? (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className={`flex w-full flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed py-12 transition-colors ${
+                  dragging
+                    ? "border-primary bg-primary/5"
+                    : "border-muted-foreground/25 hover:border-muted-foreground/50"
+                }`}
+              >
+                <FileUp
+                  className={`h-8 w-8 ${dragging ? "text-primary" : "text-muted-foreground"}`}
+                />
+                <div className="text-center">
+                  <p className="text-sm font-medium">
+                    {dragging ? "Drop file here" : "Drop .env file or click to browse"}
+                  </p>
+                  <p className="text-muted-foreground mt-1 text-xs">
+                    Or paste contents directly below
+                  </p>
+                </div>
+              </button>
+            ) : (
+              <div className="bg-muted/50 mb-2 flex items-center justify-between rounded-md border px-3 py-2">
+                <span className="text-muted-foreground text-xs">
+                  {parsed.length} key{parsed.length !== 1 ? "s" : ""} parsed
+                  {matched.length > 0 && (
+                    <span className="text-emerald-500"> · {matched.length} matched</span>
+                  )}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-xs"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  Replace file
+                </Button>
+              </div>
+            )}
+
+            <Textarea
+              placeholder={`# Paste your .env contents here\nOPENROUTER_API_KEY=sk-or-...\nSTRIPE_SECRET_KEY=sk_live_...\nSENDGRID_API_KEY=SG....`}
+              value={rawText}
+              onChange={(e) => setRawText(e.target.value)}
+              rows={rawText ? 10 : 3}
+              className="font-mono text-xs"
+            />
+          </div>
         ) : (
           <div className="max-h-[400px] space-y-4 overflow-y-auto">
             {matched.length > 0 && (

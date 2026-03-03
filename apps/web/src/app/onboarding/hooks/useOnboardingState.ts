@@ -9,6 +9,7 @@ import type {
   BusinessData,
   SeasonData,
   DepartmentOption,
+  Memory,
 } from "../types";
 import { ONBOARDING_SECTIONS, EMPTY_BUSINESS_DATA } from "../types";
 import { mergeBusinessData } from "../lib/data-merger";
@@ -29,6 +30,8 @@ export interface OnboardingActions {
   toggleDepartment: (id: string) => void;
   addCustomDepartment: (name: string) => void;
   completeSection: (section: OnboardingSection) => void;
+  saveMemory: (content: string) => void;
+  removeMemory: (id: string) => void;
   finalize: () => Promise<void>;
   reset: () => Promise<void>;
 }
@@ -49,6 +52,8 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
     templateGenerated: false,
     previewUrl: null as string | null,
   });
+
+  const [memories, setMemories] = useState<Memory[]>([]);
 
   const [scrapeStatus, setScrapeStatus] = useState<"idle" | "scraping" | "done" | "error">("idle");
   const [scrapeSource, setScrapeSource] = useState<"url" | "org" | "both" | null>(null);
@@ -233,6 +238,18 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
     });
   }, []);
 
+  // Agent-driven memories — knowledge context saved by Lise
+  const saveMemory = useCallback((content: string) => {
+    setMemories((prev) => [
+      ...prev,
+      { id: `mem-${Date.now()}-${prev.length}`, content, savedAt: new Date() },
+    ]);
+  }, []);
+
+  const removeMemory = useCallback((id: string) => {
+    setMemories((prev) => prev.filter((m) => m.id !== id));
+  }, []);
+
   // Reset — clear all state and delete DB session
   const reset = useCallback(async () => {
     // Delete DB session if one exists
@@ -249,6 +266,7 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
     setBusiness(EMPTY_BUSINESS_DATA);
     setSeason(suggestSeason());
     setDepartments([]);
+    setMemories([]);
     setContract({ templateGenerated: false, previewUrl: null });
     setScrapeStatus("idle");
     setScrapeSource(null);
@@ -325,6 +343,7 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
     season,
     departments,
     contract,
+    memories,
     scrapeStatus,
     scrapeSource,
     activatedWorkspaceId,
@@ -335,6 +354,8 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
     toggleDepartment,
     addCustomDepartment,
     completeSection,
+    saveMemory,
+    removeMemory,
     finalize,
     reset,
   };
