@@ -1,6 +1,6 @@
 ---
 title: "Worklog — daily-standup"
-status: in_progress
+status: done
 updated: 2026-03-04
 created: 2026-03-03
 module: operations
@@ -11,7 +11,7 @@ tags: [daily-close, reconciliation, state-machine, ocr]
 
 > Branch: `feat/daily-standup` | Worktree: wt-3 | Started: 2026-03-03
 
-## Status: 🟡 In Progress
+## Status: Done
 
 ## Done
 
@@ -32,9 +32,10 @@ tags: [daily-close, reconciliation, state-machine, ocr]
 
 ## Remaining
 
+- [x] User journey documentation (JOURNEY-daily-standup.md)
+- [x] WORKLOG updated with final status
 - [ ] Typecheck (pnpm turbo typecheck) — needs Bash access
-- [ ] Commit all changes
-- [ ] Verify no type errors in UI components
+- [ ] Final commit and closure
 
 ## Decisions
 
@@ -59,3 +60,5 @@ tags: [daily-close, reconciliation, state-machine, ocr]
 | 2026-03-04 | --    | Phase 6: Admin reconciliation dashboard (6 components + hooks)                                  |
 | 2026-03-04 | --    | Phase 7: Engine dispatcher Edge Function                                                        |
 | 2026-03-04 | --    | ADR-0043 written, decision/learning logs updated                                                |
+| 2026-03-04 | --    | User journey documentation: 7 journeys (employee close-out, image upload, admin approve/reject, shift approval, deviation resolution, engine dispatch) |
+| 2026-03-04 | --    | WORKLOG finalized, status set to done                                                           |
