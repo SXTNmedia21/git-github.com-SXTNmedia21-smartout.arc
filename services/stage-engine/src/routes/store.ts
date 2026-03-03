@@ -13,6 +13,7 @@ import { z } from "zod";
 import { loadAuthorizedSession } from "../core/session-manager.js";
 import { validateStoreData, writeToInbox } from "../core/inbox-writer.js";
 import { emitGuardianEvent } from "../core/guardian-bus.js";
+import { evaluateSession } from "../core/guardian-evaluator.js";
 import type { AuthContext } from "../types/auth.js";
 
 const store = new Hono<{ Variables: { auth: AuthContext } }>();
@@ -83,6 +84,9 @@ store.post("/sessions/:id/store", zValidator("json", storeSchema), async (c) => 
     summary: `Data collected: ${body.entity_type}`,
     data: { entity_type: body.entity_type, inbox_id: entry.id },
   });
+
+  // Fire-and-forget guardian evaluation after data collected
+  evaluateSession(sessionId).catch((err) => console.error("Guardian eval after store:", err));
 
   return c.json({
     inbox_id: entry.id,

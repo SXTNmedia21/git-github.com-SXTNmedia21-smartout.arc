@@ -20,6 +20,7 @@ import { supabaseAdmin } from "../../lib/supabase.js";
 import { createUltravoxCall, buildUltravoxTools } from "../../lib/ultravox.js";
 import { config } from "../../config.js";
 import { emitGuardianEvent } from "../../core/guardian-bus.js";
+import { evaluateSession } from "../../core/guardian-evaluator.js";
 import type { AuthContext } from "../../types/auth.js";
 import type { UltravoxNewStageResponse } from "../../types/ultravox.js";
 
@@ -161,6 +162,9 @@ ultravox.post("/adapters/ultravox/store", zValidator("json", uvStoreSchema), asy
     summary: `Voice data collected: ${body.entity_type}`,
     data: { entity_type: body.entity_type },
   });
+
+  // Fire-and-forget guardian evaluation after voice data collected
+  evaluateSession(sessionId).catch((err) => console.error("Guardian eval after voice store:", err));
 
   // Return plain text — Ultravox tool result
   return c.text(`Stored ${body.entity_type} successfully. Continue the conversation.`);

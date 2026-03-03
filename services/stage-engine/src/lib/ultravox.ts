@@ -49,7 +49,7 @@ export async function createUltravoxCall(
 }
 
 /**
- * Builds the Ultravox HTTP tool definitions for store, fetch, and advance.
+ * Builds the Ultravox HTTP tool definitions for store, fetch, advance, and getJourneyContext.
  * These tools point back to the engine's adapter endpoints.
  *
  * @param engineUrl - The public URL of the engine (e.g. https://engine.smartout.ai)
@@ -139,6 +139,33 @@ export function buildUltravoxTools(
         staticParameters: staticParams,
         http: {
           baseUrlPattern: `${engineUrl}/adapters/ultravox/advance`,
+          httpMethod: "POST",
+        },
+      },
+    },
+    {
+      temporaryTool: {
+        modelToolName: "getJourneyContext",
+        description:
+          "Get the current journey step details including what data to collect, what screen the user is on, and what to expect. Call this when you need to check what you should be doing.",
+        dynamicParameters: [
+          {
+            name: "include_progress",
+            location: "PARAMETER_LOCATION_BODY",
+            schema: { type: "boolean", description: "Include overall progress info" },
+            required: false,
+          },
+        ],
+        staticParameters: [
+          ...staticParams,
+          {
+            name: "query_type",
+            location: "PARAMETER_LOCATION_BODY",
+            value: "context",
+          },
+        ],
+        http: {
+          baseUrlPattern: `${engineUrl}/adapters/ultravox/fetch`,
           httpMethod: "POST",
         },
       },

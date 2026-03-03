@@ -25,6 +25,7 @@ import { createWsRoute } from "./routes/ws.js";
 import { attachGuardianWs } from "./routes/guardian.js";
 import { expireStaleSession } from "./core/session-manager.js";
 import { cleanExpiredMemories } from "./core/memory-manager.js";
+import { evaluateAllActiveSessions } from "./core/guardian-evaluator.js";
 
 // Load external API keys from Vault before starting the server
 await loadSecrets();
@@ -85,5 +86,15 @@ setInterval(async () => {
 console.log(
   `[cleanup] Session + memory cleanup running every ${config.CLEANUP_INTERVAL_MINUTES} minutes`,
 );
+
+// Guardian evaluation loop — checks all active sessions every 30s
+setInterval(async () => {
+  try {
+    await evaluateAllActiveSessions();
+  } catch (err) {
+    console.error("Guardian evaluation loop error:", err);
+  }
+}, 30_000);
+console.log("[guardian] Evaluation loop running every 30 seconds");
 
 export { app };
