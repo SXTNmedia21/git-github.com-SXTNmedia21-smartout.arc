@@ -8,8 +8,7 @@
 
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@smartout/supabase/admin";
-import { getSuperAdminId } from "@/lib/platform-admin";
+import { requireGodmode, logPlatformAction } from "@/lib/platform-admin";
 
 type Props = { params: Promise<{ sessionId: string }> };
 
@@ -32,10 +31,9 @@ type Props = { params: Promise<{ sessionId: string }> };
 export async function POST(_request: NextRequest, { params }: Props) {
   const { sessionId } = await params;
 
-  const adminId = await getSuperAdminId();
-  if (!adminId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-
-  const admin = createAdminClient();
+  const result = await requireGodmode();
+  if (result.error) return result.error;
+  const { adminId, admin } = result;
 
   // Load session
   const { data: session } = await admin
@@ -142,6 +140,9 @@ export async function POST(_request: NextRequest, { params }: Props) {
       component?: string;
     }>) ?? [];
 
+  let stepError: string | null = null;
+  let eventError: string | null = null;
+
   if (draftSteps.length > 0) {
     const stepRows = draftSteps.map((s, i) => ({
       journey_id: journey.journey_id as string,
@@ -154,11 +155,15 @@ export async function POST(_request: NextRequest, { params }: Props) {
       component: s.component ?? null,
     }));
 
-    await admin.from("journey_step").insert(stepRows);
+    const { error } = await admin.from("journey_step").insert(stepRows);
+    if (error) {
+      console.error("[wizard-complete] Failed to insert journey steps:", error.message);
+      stepError = error.message;
+    }
   }
 
   // Log the creation event for audit trail
-  await admin.from("journey_event").insert({
+  const { error: evtErr } = await admin.from("journey_event").insert({
     journey_id: journey.journey_id as string,
     workspace_id: session.workspace_id,
     event_type: "status_change" as never,
@@ -167,6 +172,10 @@ export async function POST(_request: NextRequest, { params }: Props) {
     actor_id: adminId,
     metadata: { source: "wizard", session_id: sessionId },
   });
+  if (evtErr) {
+    console.error("[wizard-complete] Failed to log creation event:", evtErr.message);
+    eventError = evtErr.message;
+  }
 
   // Mark wizard session as completed and link to created journey
   await admin
@@ -178,9 +187,23 @@ export async function POST(_request: NextRequest, { params }: Props) {
     })
     .eq("wizard_session_id", sessionId);
 
+  // Log to platform audit trail
+  await logPlatformAction(adminId, "journey_created", "journey", journey.journey_id as string, {
+    code: nextCode,
+    title: journey.title as string,
+    source: "wizard",
+  });
+
+  const warnings = [
+    ...(stepError ? ["Steps failed to save — add manually"] : []),
+    ...(eventError ? ["Event log entry failed"] : []),
+  ];
+
   return NextResponse.json({
     journey_id: journey.journey_id as string,
     code: nextCode,
     title: journey.title as string,
+    steps_created: draftSteps.length,
+    ...(warnings.length > 0 && { warnings }),
   });
 }
