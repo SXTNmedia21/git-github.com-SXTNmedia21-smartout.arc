@@ -4,7 +4,7 @@ import { Suspense, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import type { Variants } from "framer-motion";
-import { m } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import {
   Mic,
   ArrowRight,
@@ -234,7 +234,7 @@ function SmartoutLandingPageContent() {
               Én plattform. <br />
               <span className="relative inline-block">
                 <span className="absolute -inset-2 bg-gradient-to-r from-orange-500 via-rose-500 to-purple-600 opacity-20 blur"></span>
-                <span className="relative bg-gradient-to-r from-orange-400 via-rose-400 to-purple-400 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(251,146,60,0.3)]">
+                <span className="text-shimmer relative bg-gradient-to-r from-orange-400 via-rose-400 to-orange-400 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(251,146,60,0.3)]">
                   Full kontroll.
                 </span>
               </span>
@@ -255,9 +255,9 @@ function SmartoutLandingPageContent() {
               <Link
                 href={onboardingHref}
                 onClick={() => trackCta("Opprett din SmartOut")}
-                className="group relative flex w-full items-center justify-center gap-3 rounded-full bg-white px-8 py-4 text-base font-black text-zinc-950 shadow-[0_0_40px_rgba(255,255,255,0.15)] transition-all duration-300 hover:shadow-[0_0_60px_rgba(255,255,255,0.3)] sm:w-auto sm:px-10 sm:py-5 sm:text-lg"
+                className="group relative flex w-full items-center justify-center gap-3 rounded-full bg-gradient-to-r from-orange-600 to-rose-600 px-8 py-4 text-base font-black text-white shadow-[0_0_40px_rgba(249,115,22,0.25)] transition-all duration-300 hover:shadow-[0_0_60px_rgba(249,115,22,0.4)] sm:w-auto sm:px-10 sm:py-5 sm:text-lg"
               >
-                <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-orange-500 to-rose-500 opacity-20 blur transition duration-500 group-hover:opacity-40" />
+                <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-orange-500 to-rose-500 opacity-30 blur transition duration-500 group-hover:opacity-50" />
                 <span className="relative flex items-center gap-3">
                   Opprett din SmartOut{" "}
                   <ArrowRight className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1" />
@@ -295,32 +295,102 @@ function SmartoutLandingPageContent() {
                   <div className="ml-4 h-6 w-64 rounded-full bg-white/5" />
                 </div>
                 {/* Dashboard mockup content */}
-                <div className="grid h-[500px] grid-cols-12 gap-8 p-8">
+                <div className="grid h-[500px] grid-cols-12 gap-4 p-6">
                   {/* Sidebar */}
-                  <div className="col-span-3 flex flex-col gap-4">
-                    <div className="mb-8 h-12 w-full rounded-2xl bg-white/5" />
-                    {[...Array(6)].map((_, i) => (
+                  <div className="col-span-3 flex flex-col gap-2">
+                    <div className="mb-4 flex items-center gap-2 rounded-xl bg-white/5 px-3 py-2.5">
+                      <div className="h-6 w-6 rounded-lg bg-orange-500/30" />
+                      <span className="text-xs font-bold text-white/60">SmartOut</span>
+                    </div>
+                    {[
+                      { label: "Dashboard", active: true },
+                      { label: "Vaktplan", active: false },
+                      { label: "Ansatte", active: false },
+                      { label: "Prosedyrer", active: false },
+                      { label: "Kommunikasjon", active: false },
+                      { label: "Innstillinger", active: false },
+                    ].map((item) => (
                       <div
-                        key={i}
-                        className="h-10 w-full rounded-xl border border-white/5 bg-white/5"
-                      />
+                        key={item.label}
+                        className={`flex items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-semibold ${
+                          item.active
+                            ? "border border-orange-500/20 bg-orange-500/10 text-orange-400"
+                            : "text-white/30"
+                        }`}
+                      >
+                        <div className={`h-1.5 w-1.5 rounded-full ${item.active ? "bg-orange-400" : "bg-white/20"}`} />
+                        {item.label}
+                      </div>
                     ))}
                   </div>
                   {/* Main Content */}
-                  <div className="col-span-9 flex flex-col gap-8">
-                    <div className="flex h-40 w-full flex-col justify-end rounded-3xl border border-orange-500/20 bg-gradient-to-br from-orange-500/20 to-rose-500/5 p-8">
-                      <div className="mb-4 h-8 w-1/3 rounded-lg bg-white/10" />
-                      <div className="h-4 w-1/4 rounded-lg bg-white/5" />
+                  <div className="col-span-9 flex flex-col gap-4">
+                    {/* Stat cards row */}
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
+                        <div className="mb-1 text-[10px] font-semibold text-white/30">Ansatte</div>
+                        <div className="text-2xl font-black text-white">142</div>
+                        <div className="mt-1 text-[10px] font-semibold text-emerald-400">+12 denne mnd</div>
+                      </div>
+                      <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
+                        <div className="mb-1 text-[10px] font-semibold text-white/30">Beredskap</div>
+                        <div className="text-2xl font-black text-white">87%</div>
+                        <div className="mt-1 flex items-center gap-1">
+                          <div className="h-1 w-16 overflow-hidden rounded-full bg-white/10">
+                            <div className="h-full w-[87%] rounded-full bg-emerald-500" />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="rounded-2xl border border-orange-500/20 bg-orange-500/5 p-4">
+                        <div className="mb-1 text-[10px] font-semibold text-white/30">Avvik</div>
+                        <div className="text-2xl font-black text-orange-400">4</div>
+                        <div className="mt-1 text-[10px] font-semibold text-orange-400/60">Krever oppfølging</div>
+                      </div>
                     </div>
-                    <div className="grid flex-1 grid-cols-3 gap-6">
-                      <div className="col-span-2 rounded-3xl border border-white/5 bg-white/5 p-6" />
-                      <div className="col-span-1 flex flex-col gap-4 rounded-3xl border border-white/5 bg-white/5 p-6">
-                        {[...Array(4)].map((_, i) => (
-                          <div
-                            key={i}
-                            className="w-full flex-1 rounded-xl border border-white/5 bg-white/5"
-                          />
+                    {/* Schedule preview row */}
+                    <div className="flex-1 rounded-2xl border border-white/5 bg-white/[0.03] p-4">
+                      <div className="mb-3 flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-white/50">Vaktplan i dag</span>
+                        <span className="rounded-full bg-white/5 px-2 py-0.5 text-[9px] font-bold text-white/30">Man 3. mars</span>
+                      </div>
+                      <div className="space-y-2">
+                        {[
+                          { name: "Emma H.", time: "07:00–15:00", status: "active" },
+                          { name: "Khalid M.", time: "11:00–19:00", status: "active" },
+                          { name: "Jonas B.", time: "15:00–23:00", status: "upcoming" },
+                          { name: "Maria K.", time: "15:00–23:00", status: "upcoming" },
+                        ].map((shift) => (
+                          <div key={shift.name} className="flex items-center justify-between rounded-lg bg-white/[0.02] px-3 py-1.5">
+                            <div className="flex items-center gap-2">
+                              <div className={`h-1.5 w-1.5 rounded-full ${shift.status === "active" ? "bg-emerald-400" : "bg-white/20"}`} />
+                              <span className="text-[11px] font-semibold text-white/60">{shift.name}</span>
+                            </div>
+                            <span className="text-[10px] font-medium text-white/30">{shift.time}</span>
+                          </div>
                         ))}
+                      </div>
+                    </div>
+                    {/* Bottom row: activity + compliance */}
+                    <div className="grid grid-cols-5 gap-3">
+                      <div className="col-span-3 rounded-2xl border border-white/5 bg-white/[0.03] p-4">
+                        <span className="text-[11px] font-bold text-white/50">Aktivitet denne uken</span>
+                        <div className="mt-3 flex items-end gap-1.5">
+                          {[40, 65, 80, 55, 90, 70, 45].map((h, i) => (
+                            <div key={i} className="flex-1">
+                              <div
+                                className="rounded-sm bg-gradient-to-t from-orange-500/40 to-orange-500/10"
+                                style={{ height: `${h}px` }}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="col-span-2 rounded-2xl border border-emerald-500/10 bg-emerald-500/5 p-4">
+                        <span className="text-[11px] font-bold text-white/50">Compliance</span>
+                        <div className="mt-2 flex items-center gap-2">
+                          <div className="text-lg font-black text-emerald-400">100%</div>
+                        </div>
+                        <div className="mt-1 text-[9px] font-semibold text-emerald-400/50">IK-mat oppdatert</div>
                       </div>
                     </div>
                   </div>
@@ -339,24 +409,23 @@ function SmartoutLandingPageContent() {
             initial={{ x: 0 }}
             animate={{ x: "-50%" }}
             transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
-            className="flex w-max items-center gap-12 px-4 whitespace-nowrap opacity-40 sm:gap-24"
+            className="flex w-max items-center gap-12 px-4 whitespace-nowrap opacity-60 sm:gap-24"
           >
             {/* Render integration brands twice for seamless loop */}
             {[0, 1].map((set) =>
               [
-                { icon: Zap, name: "TRIPLETEX" },
-                { icon: Building2, name: "VISMA" },
-                { icon: Users, name: "ZETTLE" },
-                { icon: Target, name: "LIGHTSPEED" },
-                { icon: ShieldCheck, name: "POWEROFFICE" },
-              ].map((brand) => (
-                <div
-                  key={`${set}-${brand.name}`}
-                  className="flex items-center gap-2 text-lg font-black tracking-tighter text-zinc-400 sm:text-2xl"
+                "TRIPLETEX",
+                "VISMA",
+                "ZETTLE",
+                "LIGHTSPEED",
+                "POWEROFFICE",
+              ].map((name) => (
+                <span
+                  key={`${set}-${name}`}
+                  className="text-lg font-black tracking-[0.15em] text-zinc-500 sm:text-2xl"
                 >
-                  <brand.icon className="h-5 w-5" />
-                  {brand.name}
-                </div>
+                  {name}
+                </span>
               )),
             )}
           </m.div>
@@ -412,7 +481,7 @@ function SmartoutLandingPageContent() {
               <a
                 href="#smartout-ai"
                 onClick={() => trackCta("Start Lise Botsson")}
-                className="group relative flex items-center gap-3 rounded-full bg-white px-8 py-4 text-lg font-bold text-zinc-950 shadow-[0_0_40px_rgba(255,255,255,0.1)] transition-all duration-300 hover:scale-105 hover:shadow-[0_0_60px_rgba(255,255,255,0.2)]"
+                className="group relative flex items-center gap-3 rounded-full bg-white px-8 py-4 text-lg font-bold text-zinc-950 shadow-[0_0_40px_rgba(255,255,255,0.1)] transition-all duration-300 hover:shadow-[0_0_60px_rgba(249,115,22,0.25)]"
               >
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-500 text-white transition-transform group-hover:scale-110">
                   <Mic className="h-4 w-4" />
@@ -433,9 +502,9 @@ function SmartoutLandingPageContent() {
               className="mt-10 grid grid-cols-3 gap-3 sm:mt-12 sm:flex sm:items-center sm:gap-6"
             >
               {[
-                { icon: Clock, label: "Tidsbesparelse" },
-                { icon: ShieldCheck, label: "100% Compliance" },
-                { icon: Users, label: "Høy Retensjon" },
+                { icon: Clock, label: "3 timer spart/dag" },
+                { icon: ShieldCheck, label: "100% compliance" },
+                { icon: Users, label: "42% lavere turnover" },
               ].map((stat, i) => (
                 <m.div
                   key={stat.label}
@@ -517,12 +586,15 @@ function SmartoutLandingPageContent() {
 
           {/* Tab Content Panels */}
           <div className="relative min-h-[350px]">
+            <AnimatePresence mode="wait">
             {/* Locations Panel */}
             {activeTab === "locations" && (
               <m.div
+                key="locations"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
               >
                 <div className="mx-auto mb-6 max-w-2xl text-center sm:mb-10">
                   <h3 className="mb-2 text-lg font-black text-white sm:mb-3 sm:text-2xl">
@@ -583,9 +655,11 @@ function SmartoutLandingPageContent() {
             {/* Procedures Panel */}
             {activeTab === "procedures" && (
               <m.div
+                key="procedures"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
               >
                 <div className="mx-auto mb-6 max-w-2xl text-center sm:mb-10">
                   <h3 className="mb-2 text-lg font-black text-white sm:mb-3 sm:text-2xl">
@@ -644,9 +718,11 @@ function SmartoutLandingPageContent() {
             {/* Seasons Panel */}
             {activeTab === "seasons" && (
               <m.div
+                key="seasons"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
               >
                 <div className="mx-auto mb-6 max-w-2xl text-center sm:mb-10">
                   <h3 className="mb-2 text-lg font-black text-white sm:mb-3 sm:text-2xl">
@@ -705,6 +781,7 @@ function SmartoutLandingPageContent() {
                 </div>
               </m.div>
             )}
+            </AnimatePresence>
           </div>
         </section>
 
