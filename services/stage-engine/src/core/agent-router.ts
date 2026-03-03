@@ -1,21 +1,20 @@
 // ============================================
 // agent-router.ts
 // Core routing logic for agent mode conversations.
-// Loads context, classifies intent, selects tools, builds prompt,
-// and runs the LLM to generate a response.
-// Connected to: @smartout/ai (intent-classifier, tool-selector, mr-botsson, vercel-ai)
+// Pipeline: classify intent → load authority → collect context → select tools → build prompt → LLM
+// Connected to: @smartout/ai (intent-classifier, tool-selector, mr-botsson, context, vercel-ai)
 // Connected to: src/core/authority.ts (workspace authority config)
-// Connected to: src/core/memory-manager.ts (conversation memory)
 // ============================================
 
 import { generateText, stepCountIs } from "ai";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { classifyIntent } from "@smartout/ai/router/intent-classifier";
 import { selectTools } from "@smartout/ai/router/tool-selector";
-import { buildBotssonPrompt } from "@smartout/ai/prompts/mr-botsson";
+import { buildBotssonPromptFromContext } from "@smartout/ai/prompts/mr-botsson";
 import { toVercelTools } from "@smartout/ai/adapters/vercel-ai";
+import { collectContext } from "@smartout/ai/context/collector";
+import type { Situation } from "@smartout/ai/capabilities/types";
 import { loadAuthorityConfig } from "./authority.js";
-import { loadRecentMemories } from "./memory-manager.js";
 import { supabaseAdmin } from "../lib/supabase.js";
 import { getSecrets } from "../secrets.js";
 import type { AgentChatResponse, ConversationTurn } from "../types/agent.js";
@@ -40,50 +39,69 @@ type AgentRouterInput = {
   profileId: string;
   userId?: string;
   conversationHistory: ConversationTurn[];
+  situation?: Situation;
 };
 
 /**
  * Routes an agent message through the full pipeline:
- * 1. Load profile context, memories, and authority config in parallel
+ * 1. Load authority config
  * 2. Classify intent
- * 3. Select tools based on intent + authority
- * 4. Build Mr. Botsson system prompt
- * 5. Run LLM with tools
- * 6. Return response
+ * 3. Collect full context (profile, agent profile, relationship, memories, shift)
+ * 4. Select tools based on intent + authority
+ * 5. Build posture-aware system prompt
+ * 6. Run LLM with tools
  */
 export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentChatResponse> {
-  const { message, sessionId, workspaceId, profileId, userId, conversationHistory } = input;
+  const {
+    message,
+    sessionId,
+    workspaceId,
+    profileId,
+    userId,
+    conversationHistory,
+    situation = "general",
+  } = input;
 
-  // Step 1: Load context, memories, and authority in parallel
-  const [profileContext, memories, authorityConfig] = await Promise.all([
-    loadProfileContext(workspaceId, profileId),
-    loadRecentMemories(workspaceId, profileId),
-    loadAuthorityConfig(workspaceId),
-  ]);
+  // Step 1: Load authority config
+  const authorityConfig = await loadAuthorityConfig(workspaceId);
 
   // Step 2: Classify intent
-  const contextSummary = buildContextSummary(profileContext);
-  const intent = await classifyIntent(message, contextSummary, {
+  const intent = await classifyIntent(message, "", {
     apiKey: getSecrets().openrouterApiKey ?? undefined,
   });
 
-  // Step 3: Select tools based on intent + authority
+  // Determine situation from intent if not explicitly provided
+  const resolvedSituation: Situation =
+    situation !== "general"
+      ? situation
+      : intent.capability === "schedule"
+        ? "scheduling"
+        : intent.capability === "training"
+          ? "training"
+          : intent.capability === "operations"
+            ? "operations"
+            : "general";
+
+  // Determine authority for the matched capability
+  const authority = authorityConfig[intent.capability] ?? "suggest";
+
+  // Step 3: Collect full context (parallel fetch)
+  const ctx = await collectContext({
+    workspaceId,
+    profileId,
+    situation: resolvedSituation,
+    authority,
+    supabaseAdmin,
+  });
+
+  // Step 4: Select tools based on intent + authority
   const selectedTools = selectTools(intent, authorityConfig);
 
-  // Step 4: Build system prompt
-  const systemPrompt = buildBotssonPrompt({
-    workspaceName: profileContext.workspaceName,
-    employeeName: profileContext.employeeName,
-    employeeRole: profileContext.role,
-    departmentName: profileContext.departmentName,
-    teamName: profileContext.teamName,
-    teamLeader: profileContext.teamLeader,
-    status: profileContext.status,
-    readinessScore: profileContext.readinessScore,
-    recentMemories: memories.map((m) => m.content),
-    toolDescriptions: selectedTools.map((t) => `${t.name}: ${t.description}`),
-    language: "no",
-  });
+  // Step 5: Build posture-aware system prompt
+  const systemPrompt = buildBotssonPromptFromContext(
+    ctx,
+    selectedTools.map((t) => `${t.name}: ${t.description}`),
+  );
 
   // Build conversation messages for the LLM
   const messages = conversationHistory.map((turn) => ({
@@ -92,7 +110,7 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
   }));
   messages.push({ role: "user", content: message });
 
-  // Step 5: Run LLM with tools
+  // Step 6: Run LLM with tools
   const toolContext = {
     workspaceId,
     profileId,
@@ -111,7 +129,7 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     stopWhen: stepCountIs(5),
   });
 
-  // Step 6: Return response
+  // Step 7: Return response
   return {
     session_id: sessionId,
     response: result.text,
@@ -120,105 +138,4 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
       confidence: intent.confidence,
     },
   };
-}
-
-// -- Internal helpers --
-
-type ProfileContext = {
-  workspaceName: string;
-  employeeName: string;
-  role: string;
-  departmentName: string;
-  teamName: string;
-  teamLeader: string;
-  status: string;
-  readinessScore: number | null;
-};
-
-/**
- * Loads profile context for the agent prompt.
- * Fetches workspace, profile, department, and team data.
- */
-async function loadProfileContext(workspaceId: string, profileId: string): Promise<ProfileContext> {
-  const defaults: ProfileContext = {
-    workspaceName: "Ukjent arbeidsplass",
-    employeeName: "Ansatt",
-    role: "ansatt",
-    departmentName: "Ukjent avdeling",
-    teamName: "Ukjent team",
-    teamLeader: "Ukjent",
-    status: "active",
-    readinessScore: null,
-  };
-
-  // Load workspace
-  const { data: workspace } = await supabaseAdmin
-    .from("workspace")
-    .select("name")
-    .eq("workspace_id", workspaceId)
-    .single();
-
-  if (workspace) {
-    defaults.workspaceName = workspace.name;
-  }
-
-  // Load profile with department and team
-  const { data: profile } = await supabaseAdmin
-    .from("profile")
-    .select("display_name, role, status, department_id, team_id")
-    .eq("profile_id", profileId)
-    .single();
-
-  if (!profile) return defaults;
-
-  defaults.employeeName = profile.display_name || "Ansatt";
-  defaults.role = profile.role ?? "ansatt";
-  defaults.status = profile.status ?? "active";
-
-  // Load department
-  if (profile.department_id) {
-    const { data: dept } = await supabaseAdmin
-      .from("department")
-      .select("name")
-      .eq("department_id", profile.department_id)
-      .single();
-
-    if (dept) {
-      defaults.departmentName = dept.name;
-    }
-  }
-
-  // Load team + leader
-  if (profile.team_id) {
-    const { data: team } = await supabaseAdmin
-      .from("team")
-      .select("name, leader_profile_id")
-      .eq("team_id", profile.team_id)
-      .single();
-
-    if (team) {
-      defaults.teamName = team.name;
-
-      if (team.leader_profile_id) {
-        const { data: leader } = await supabaseAdmin
-          .from("profile")
-          .select("display_name")
-          .eq("profile_id", team.leader_profile_id)
-          .single();
-
-        if (leader) {
-          defaults.teamLeader = leader.display_name || "Ukjent";
-        }
-      }
-    }
-  }
-
-  return defaults;
-}
-
-/**
- * Builds a short context string for the intent classifier.
- */
-function buildContextSummary(ctx: ProfileContext): string {
-  return `${ctx.employeeName}, ${ctx.role} i ${ctx.departmentName}, team ${ctx.teamName}. Status: ${ctx.status}.`;
 }
