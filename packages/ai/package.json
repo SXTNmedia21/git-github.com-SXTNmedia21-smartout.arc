@@ -89,6 +89,10 @@
       "types": "./dist/capabilities/profile/index.d.ts",
       "default": "./dist/capabilities/profile/index.js"
     },
+    "./capabilities/guardian": {
+      "types": "./dist/capabilities/guardian/index.d.ts",
+      "default": "./dist/capabilities/guardian/index.js"
+    },
     "./router/intent-classifier": {
       "types": "./dist/router/intent-classifier.d.ts",
       "default": "./dist/router/intent-classifier.js"

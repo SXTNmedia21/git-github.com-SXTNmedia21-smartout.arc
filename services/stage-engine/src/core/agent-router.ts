@@ -80,7 +80,9 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
           ? "training"
           : intent.capability === "operations"
             ? "operations"
-            : "general";
+            : intent.capability === "guardian"
+              ? "guardian"
+              : "general";
 
   // Determine authority for the matched capability
   const authority = authorityConfig[intent.capability] ?? "suggest";
