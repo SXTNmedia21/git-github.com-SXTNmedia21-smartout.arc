@@ -1,13 +1,13 @@
 ---
 title: "Schedule DB Persistence with TanStack Query"
-id: ADR_0041
+id: ADR_0047
 status: accepted
 layer: decision
 created: 2026-03-01
 updated: 2026-03-01
 ---
 
-# ADR-0041: Schedule DB Persistence with TanStack Query
+# ADR-0047: Schedule DB Persistence with TanStack Query
 
 ## Context and Problem Statement
 

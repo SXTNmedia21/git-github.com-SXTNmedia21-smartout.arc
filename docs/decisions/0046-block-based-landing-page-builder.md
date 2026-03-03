@@ -1,13 +1,13 @@
 ---
 title: "Block-based Landing Page Builder"
-id: ADR_0040
+id: ADR_0046
 status: accepted
 layer: decision
 created: 2026-03-02
 updated: 2026-03-02
 ---
 
-# ADR-0040: Block-based Landing Page Builder
+# ADR-0046: Block-based Landing Page Builder
 
 ## Context and Problem Statement
 
