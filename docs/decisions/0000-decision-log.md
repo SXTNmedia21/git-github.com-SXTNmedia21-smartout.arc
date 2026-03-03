@@ -3,21 +3,11 @@ title: Decision Log
 status: in_progress
 updated: 2026-03-03
 created: 2026-03-03
-module: platform-admin
+module: landing
 tags: [decisions]
 ---
 
-# Decision Log — platform-admin-polish
-
-| #   | Date | Decision | Status |
-| --- | ---- | -------- | ------ |
-
-module: ai
-tags: [decisions]
-
----
-
-# Decision Log — stage-engine-routing
+# Decision Log — landing-mobile-fix
 
 | #   | Date | Decision | Status |
 | --- | ---- | -------- | ------ |

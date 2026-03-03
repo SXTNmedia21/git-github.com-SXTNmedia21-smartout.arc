@@ -3,21 +3,11 @@ title: Learning Log
 status: in_progress
 updated: 2026-03-03
 created: 2026-03-03
-module: platform-admin
+module: landing
 tags: [learnings]
 ---
 
-# Learning Log — platform-admin-polish
-
-| #   | Date | Learning | Impact |
-| --- | ---- | -------- | ------ |
-
-module: ai
-tags: [learnings]
-
----
-
-# Learning Log — stage-engine-routing
+# Learning Log — landing-mobile-fix
 
 | #   | Date | Learning | Impact |
 | --- | ---- | -------- | ------ |
