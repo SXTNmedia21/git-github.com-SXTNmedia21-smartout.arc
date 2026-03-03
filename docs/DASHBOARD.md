@@ -1,8 +1,7 @@
 ---
 title: Development Dashboard
 status: in_progress
-updated: 2026-03-06
-
+updated: 2026-03-07
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -14,27 +13,22 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #    | Path         | Branch                       | Module     | Status      | Last Activity | tmux | Changes |
-| ---- | ------------ | ---------------------------- | ---------- | ----------- | ------------- | ---- | ------- |
-| wt-1 | `~/dev/wt-1` | `feat/operation`             | operations | in_progress | just started  | none | clean   |
-| wt-2 | `~/dev/wt-2` | `feat/communications-finish` | comms      | in_progress | 11 hours ago  | none | 4 files |
-| wt-3 | `~/dev/wt-3` | `feat/daily-standup`         | operations | in_progress | 1 hour ago    | none | 4 files |
+_None — all worktrees freed._
 
 ## Free Slots
 
 | #     | Available |
 | ----- | --------- |
+| wt-1  | yes       |
+| wt-2  | yes       |
+| wt-3  | yes       |
 | wt-4  | yes       |
 | wt-5  | yes       |
 | wt-20 | yes       |
 
 ## Pending Journeys
 
-| Worktree | Feature               | Journey File                                     | Status  |
-| -------- | --------------------- | ------------------------------------------------ | ------- |
-| wt-2     | communications-finish | `docs/journeys/JOURNEY-communications-finish.md` | missing |
-| wt-1     | operation             | `docs/journeys/JOURNEY-operation.md`             | missing |
-| wt-3     | daily-standup         | `docs/journeys/JOURNEY-daily-standup.md`         | missing |
+_None._
 
 ## Recent Closures
 
@@ -58,6 +52,7 @@ tags: [dashboard, worktrees, tracking]
 | 2026-03-03 | dashboard-evolution       | `feat/dashboard-evolution`                                         | development |
 | 2026-03-03 | agent-config-ui           | `feat/build-the-agent-config-training-session-ui-page`             | development |
 | 2026-03-05 | entity-detail-pages       | `feat/entity-detail-pages`                                         | development |
+| 2026-03-06 | communications-finish     | `feat/communications-finish`                                       | development |
 
 ## Session History
 
@@ -96,3 +91,8 @@ tags: [dashboard, worktrees, tracking]
 | 2026-03-05 | schedule-ui-polish          | session ended     | 16 files: 13 dialog redesigns, monthly view rewrite, working filters, compact headers. Uncommitted on development                                                                              |
 | 2026-03-06 | (status review)             | session ended     | Ran /status + typecheck (18/18 pass). Cleaned ghost worktrees sma-16/sma-17. Found 12 orphan feat branches. 2 active worktrees (wt-2 comms, wt-3 standup). 2 uncommitted files on development. |
 | 2026-03-06 | operation                   | started           | wt-1, module: operations                                                                                                                                                                       |
+| 2026-03-06 | communications-finish       | closed            | 5 commits, all 8 plan tasks done. wt-2 freed                                                                                                                                                   |
+| 2026-03-06 | (main session)              | session ended     | Status review, typecheck (18/18), comms closure prep (all gates pass, cf 2 ready). 5 uncommitted files on development (3 new module docs, 2 modified docs).                                    |
+| 2026-03-07 | communications-finish       | closing           | All gates verified, 5 commits ready for merge. cf 2 to execute.                                                                                                                                |
+| 2026-03-07 | operation                   | abandoned         | Empty branch (0 commits). Worktree + branch removed.                                                                                                                                           |
+| 2026-03-07 | daily-standup               | abandoned         | Empty branch (0 commits). Worktree + branch removed.                                                                                                                                           |
