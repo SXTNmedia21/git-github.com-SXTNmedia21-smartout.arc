@@ -38,4 +38,18 @@ export const dashboardKeys = {
 
   budgets: (workspaceId: string, periodType: string, startDate: string, endDate: string) =>
     ["dashboard", "budgets", workspaceId, periodType, startDate, endDate] as const,
+
+  // Season Planning (Module 15)
+  seasons: (workspaceId: string) => ["dashboard", "seasons", workspaceId] as const,
+
+  seasonBudget: (workspaceId: string, seasonId: string) =>
+    ["dashboard", "season-budget", workspaceId, seasonId] as const,
+
+  dayFactors: (workspaceId: string, seasonBudgetId: string) =>
+    ["dashboard", "day-factors", workspaceId, seasonBudgetId] as const,
+
+  hourFactors: (workspaceId: string, seasonBudgetId: string) =>
+    ["dashboard", "hour-factors", workspaceId, seasonBudgetId] as const,
+
+  operatingHours: (workspaceId: string) => ["dashboard", "operating-hours", workspaceId] as const,
 };

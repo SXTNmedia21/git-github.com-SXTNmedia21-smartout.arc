@@ -71,6 +71,7 @@ smartout_v3/
 - Enums: `api_key_version_status` (current/previous/revoked), `api_key_type` (workspace/service).
 - Vault wrappers: `get_secret()`, `upsert_secret()`, `delete_vault_secret()` — SECURITY DEFINER, service_role only.
 - Schedule table: `schedule_shift` (not `shift`). Enums: `shift_status`, `day_category`. See ADR-0036.
+- Season planning tables: `season_budget` (1:1 with season), `day_factor` (weekday weights), `hour_factor` (hour weights). Enum: `budget_status` (draft/active/locked). DIFFERENT from `workspace_budget` (operational per-date targets).
 - `engine_memory` — Persistent agent memories with pgvector embeddings. RLS: workspace isolation.
 - `engine_authority_config` — Per-workspace, per-capability authority levels. UNIQUE(workspace_id, capability).
 - `engine_sessions.mode` — 'mission' (structured stages) or 'agent' (free-form conversation). Agent sessions have NULL mission_id.
@@ -119,7 +120,7 @@ smartout_v3/
 **Identity:** user_identity → company → company_member → workspace → profile
 **Structure:** department (permanent) | location | team (can be seasonal)
 **Governance:** policy → protocol → {procedure, routine, runbook, control_list, knowledge_test, confirmation}
-**Time:** season (wraps operations, gamification container)
+**Time:** season → season_budget → {day_factor, hour_factor} (wraps operations, gamification, revenue planning)
 
 **Key rules:** All tables have `workspace_id` (except identity layer + platform-admin). Profile has no season connection. Position is per-shift, not per-person.
 
@@ -136,6 +137,7 @@ smartout_v3/
 - **Readiness** — Employee "ready" when all assigned Protocols completed. Score = % completed.
 - **Trainee Mode** — Sandbox. Real UI, no live impact. 48h escalation.
 - **Season** — Time period wrapping operations. Own leaderboard and point rules.
+- **Season Budget** — Strategic revenue target per season. 1:1 with season. Contains total target, labor %, avg hourly wage, base price per guest. Day/hour factors distribute targets across weekdays and hours. Calculation engine: `apps/web/src/lib/season-calculations.ts` (pure functions, no DB deps). UI: `/dashboard/season` with 4 tabs (overview, budget, day-factors, hour-factors).
 
 ---
 
@@ -352,21 +354,22 @@ When spawning a worker, always include in the task description:
 
 ## Changelog
 
-| Date       | Version | Change                                                                                                     | Author |
-| ---------- | ------- | ---------------------------------------------------------------------------------------------------------- | ------ |
-| 2026-03-02 | 8.0.0   | Agent architecture: engine_memory, engine_authority_config tables, agent mode in engine_sessions, ADR-0042 | Claude |
-| 2026-03-01 | 7.9.0   | Onboarding wizard refactored: 15 step components, 4 drawers, progressive save, auth step, invite step      | Claude |
-| 2026-03-01 | 7.8.0   | Doc audit: add infra/, stage-engine, interview-mcp, i18n, tailwind-config; fix counts                      | Claude |
-| 2026-03-01 | 7.7.0   | shift-mcp service, schedule_shift table, ADR-0036, schedules scope active                                  | Claude |
-| 2026-03-01 | 7.6.0   | workspace-api gateway: 7 endpoints, usage tracking, env enforcement, 15 Edge Functions                     | Claude |
-| 2026-03-01 | 7.5.0   | API Gateway enforcement: mandatory checklists, scope table, service auth, env enforcement                  | Claude |
-| 2026-03-01 | 7.4.0   | Inline security summary: Three Laws, API key tiers, env vars always in context                             | Claude |
-| 2026-03-01 | 7.3.0   | Protocols folder, templates folder, security protocol populated                                            | Claude |
-| 2026-02-28 | 7.2.0   | API key management: 3 tables, 2 Edge Functions, 8 API routes, UI, ADR-0028                                 | Claude |
-| 2026-02-28 | 7.1.0   | Added Security section referencing SMARTOUT_SECURITY_PROTOCOL                                              | Pontus |
-| 2026-02-28 | 7.0.0   | Major trim: moved details to reference files, <280 lines                                                   | Claude |
-| 2026-02-28 | 6.1.0   | Pricing terms, workspace creation, ADR-0027                                                                | Claude |
-| 2026-02-28 | 6.0.0   | Docs restructuring, INDEX.md, reference files, YAML, ADR-0025                                              | Claude |
-| 2026-02-28 | 5.0.0   | Contract system, microservice, notifications, ADR-0021-0024                                                | Claude |
-| 2026-02-27 | 2.0.0   | Complete rewrite verified against codebase                                                                 | Claude |
-| 2026-01-01 | 1.0.0   | Initial version                                                                                            | Pontus |
+| Date       | Version | Change                                                                                                                                                                   | Author |
+| ---------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------ |
+| 2026-03-06 | 8.1.0   | Season planning (Module 15 MVP): season_budget, day_factor, hour_factor tables, budget_status enum, calculation engine, 4 hooks, 5 UI components, /dashboard/season page | Claude |
+| 2026-03-02 | 8.0.0   | Agent architecture: engine_memory, engine_authority_config tables, agent mode in engine_sessions, ADR-0042                                                               | Claude |
+| 2026-03-01 | 7.9.0   | Onboarding wizard refactored: 15 step components, 4 drawers, progressive save, auth step, invite step                                                                    | Claude |
+| 2026-03-01 | 7.8.0   | Doc audit: add infra/, stage-engine, interview-mcp, i18n, tailwind-config; fix counts                                                                                    | Claude |
+| 2026-03-01 | 7.7.0   | shift-mcp service, schedule_shift table, ADR-0036, schedules scope active                                                                                                | Claude |
+| 2026-03-01 | 7.6.0   | workspace-api gateway: 7 endpoints, usage tracking, env enforcement, 15 Edge Functions                                                                                   | Claude |
+| 2026-03-01 | 7.5.0   | API Gateway enforcement: mandatory checklists, scope table, service auth, env enforcement                                                                                | Claude |
+| 2026-03-01 | 7.4.0   | Inline security summary: Three Laws, API key tiers, env vars always in context                                                                                           | Claude |
+| 2026-03-01 | 7.3.0   | Protocols folder, templates folder, security protocol populated                                                                                                          | Claude |
+| 2026-02-28 | 7.2.0   | API key management: 3 tables, 2 Edge Functions, 8 API routes, UI, ADR-0028                                                                                               | Claude |
+| 2026-02-28 | 7.1.0   | Added Security section referencing SMARTOUT_SECURITY_PROTOCOL                                                                                                            | Pontus |
+| 2026-02-28 | 7.0.0   | Major trim: moved details to reference files, <280 lines                                                                                                                 | Claude |
+| 2026-02-28 | 6.1.0   | Pricing terms, workspace creation, ADR-0027                                                                                                                              | Claude |
+| 2026-02-28 | 6.0.0   | Docs restructuring, INDEX.md, reference files, YAML, ADR-0025                                                                                                            | Claude |
+| 2026-02-28 | 5.0.0   | Contract system, microservice, notifications, ADR-0021-0024                                                                                                              | Claude |
+| 2026-02-27 | 2.0.0   | Complete rewrite verified against codebase                                                                                                                               | Claude |
+| 2026-01-01 | 1.0.0   | Initial version                                                                                                                                                          | Pontus |

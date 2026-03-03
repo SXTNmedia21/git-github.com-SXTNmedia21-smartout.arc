@@ -1,13 +1,13 @@
 ---
 title: Decision Log
-status: in_progress
-updated: 2026-03-05
+status: done
+updated: 2026-03-06
 created: 2026-03-03
-module: org-structure
+module: season-planning
 tags: [decisions]
 ---
 
-# Decision Log — entity-detail-pages
+# Decision Log — operation
 
 | #   | Date       | Decision                                                                                              | Status   |
 | --- | ---------- | ----------------------------------------------------------------------------------------------------- | -------- |
@@ -31,3 +31,9 @@ tags: [decisions]
 | 4   | 2026-03-02 | Fixed email structure, not drag-and-drop builder (YAGNI)          | accepted |
 | 5   | 2026-03-04 | ECDSA P-256 SHA-256 for SendGrid webhook signature verification   | accepted |
 | 6   | 2026-03-04 | Store locale on recipient row for future multilingual expansion   | accepted |
+| #   | Date       | Decision                                                                                       | Status   |
+| --- | ---------- | ---------------------------------------------------------------------------------------------- | -------- |
+| 1   | 2026-03-06 | Reuse settings/useOperatingHours hook for season hour derivation instead of creating duplicate | Accepted |
+| 2   | 2026-03-06 | Create season_budget table separate from existing workspace_budget (strategic vs operational)  | Accepted |
+| 3   | 2026-03-06 | Use UTC-only date arithmetic in calculation engine to prevent timezone bugs                    | Accepted |
+| 4   | 2026-03-06 | Follow established (supabase.from as Function) cast pattern for new table hooks                | Accepted |

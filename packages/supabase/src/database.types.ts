@@ -951,6 +951,51 @@ export type Database = {
           },
         ]
       }
+      day_factor: {
+        Row: {
+          created_at: string
+          day_factor_id: string
+          factor: number
+          season_budget_id: string
+          updated_at: string
+          weekday: number
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          day_factor_id?: string
+          factor?: number
+          season_budget_id: string
+          updated_at?: string
+          weekday: number
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          day_factor_id?: string
+          factor?: number
+          season_budget_id?: string
+          updated_at?: string
+          weekday?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "day_factor_season_budget_id_fkey"
+            columns: ["season_budget_id"]
+            isOneToOne: false
+            referencedRelation: "season_budget"
+            referencedColumns: ["season_budget_id"]
+          },
+          {
+            foreignKeyName: "day_factor_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       department: {
         Row: {
           color: string | null
@@ -1485,6 +1530,51 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "engine_missions"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      hour_factor: {
+        Row: {
+          created_at: string
+          factor: number
+          hour: number
+          hour_factor_id: string
+          season_budget_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          factor?: number
+          hour: number
+          hour_factor_id?: string
+          season_budget_id: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          factor?: number
+          hour?: number
+          hour_factor_id?: string
+          season_budget_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hour_factor_season_budget_id_fkey"
+            columns: ["season_budget_id"]
+            isOneToOne: false
+            referencedRelation: "season_budget"
+            referencedColumns: ["season_budget_id"]
+          },
+          {
+            foreignKeyName: "hour_factor_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
           },
         ]
       }
@@ -2735,6 +2825,57 @@ export type Database = {
           },
         ]
       }
+      operating_hours: {
+        Row: {
+          close_time: string
+          created_at: string
+          day_of_week: number
+          id: string
+          is_closed: boolean
+          location_id: string | null
+          open_time: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          close_time?: string
+          created_at?: string
+          day_of_week: number
+          id?: string
+          is_closed?: boolean
+          location_id?: string | null
+          open_time?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          close_time?: string
+          created_at?: string
+          day_of_week?: number
+          id?: string
+          is_closed?: boolean
+          location_id?: string | null
+          open_time?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operating_hours_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "location"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "operating_hours_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       platform_api_key: {
         Row: {
           allowed_ips: unknown[] | null
@@ -2921,57 +3062,69 @@ export type Database = {
         Row: {
           audience_filter: Json | null
           classification: string
+          clicked_count: number
           communication_id: string
           created_at: string | null
           failed_count: number
           idempotency_key: string | null
           message_body: string
+          opened_count: number
           provider: string | null
           provider_batch_id: string | null
           recipient_count: number
+          sendgrid_template_id: string | null
           sent_count: number
           status: string
           subject: string
           super_admin_id: string
           template: string
+          template_data: Json | null
           updated_at: string | null
           workspace_id: string | null
         }
         Insert: {
           audience_filter?: Json | null
           classification?: string
+          clicked_count?: number
           communication_id?: string
           created_at?: string | null
           failed_count?: number
           idempotency_key?: string | null
           message_body: string
+          opened_count?: number
           provider?: string | null
           provider_batch_id?: string | null
           recipient_count?: number
+          sendgrid_template_id?: string | null
           sent_count?: number
           status?: string
           subject: string
           super_admin_id: string
           template: string
+          template_data?: Json | null
           updated_at?: string | null
           workspace_id?: string | null
         }
         Update: {
           audience_filter?: Json | null
           classification?: string
+          clicked_count?: number
           communication_id?: string
           created_at?: string | null
           failed_count?: number
           idempotency_key?: string | null
           message_body?: string
+          opened_count?: number
           provider?: string | null
           provider_batch_id?: string | null
           recipient_count?: number
+          sendgrid_template_id?: string | null
           sent_count?: number
           status?: string
           subject?: string
           super_admin_id?: string
           template?: string
+          template_data?: Json | null
           updated_at?: string | null
           workspace_id?: string | null
         }
@@ -2994,36 +3147,48 @@ export type Database = {
       }
       platform_communication_recipient: {
         Row: {
+          click_count: number
+          clicked_at: string | null
           communication_id: string
           created_at: string | null
           delivered_at: string | null
           email: string
           error_message: string | null
           name: string | null
+          open_count: number
+          opened_at: string | null
           recipient_id: string
           sent_at: string | null
           status: string
           user_id: string | null
         }
         Insert: {
+          click_count?: number
+          clicked_at?: string | null
           communication_id: string
           created_at?: string | null
           delivered_at?: string | null
           email: string
           error_message?: string | null
           name?: string | null
+          open_count?: number
+          opened_at?: string | null
           recipient_id?: string
           sent_at?: string | null
           status?: string
           user_id?: string | null
         }
         Update: {
+          click_count?: number
+          clicked_at?: string | null
           communication_id?: string
           created_at?: string | null
           delivered_at?: string | null
           email?: string
           error_message?: string | null
           name?: string | null
+          open_count?: number
+          opened_at?: string | null
           recipient_id?: string
           sent_at?: string | null
           status?: string
@@ -3115,6 +3280,48 @@ export type Database = {
           reason?: string
           source?: string | null
           suppression_id?: string
+        }
+        Relationships: []
+      }
+      platform_email_template: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          is_active: boolean
+          name: string
+          placeholders: Json
+          sections: Json
+          status: string
+          subject: string
+          template_id: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          is_active?: boolean
+          name: string
+          placeholders?: Json
+          sections?: Json
+          status?: string
+          subject?: string
+          template_id?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          is_active?: boolean
+          name?: string
+          placeholders?: Json
+          sections?: Json
+          status?: string
+          subject?: string
+          template_id?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -3325,6 +3532,57 @@ export type Database = {
           workspace_to_invite?: number | null
         }
         Relationships: []
+      }
+      platform_webhook_event: {
+        Row: {
+          communication_id: string | null
+          created_at: string
+          email: string
+          event_id: string
+          event_type: string
+          processed_at: string
+          provider: string
+          raw_payload: Json
+          recipient_id: string | null
+        }
+        Insert: {
+          communication_id?: string | null
+          created_at?: string
+          email: string
+          event_id?: string
+          event_type: string
+          processed_at?: string
+          provider?: string
+          raw_payload: Json
+          recipient_id?: string | null
+        }
+        Update: {
+          communication_id?: string | null
+          created_at?: string
+          email?: string
+          event_id?: string
+          event_type?: string
+          processed_at?: string
+          provider?: string
+          raw_payload?: Json
+          recipient_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_webhook_event_communication_id_fkey"
+            columns: ["communication_id"]
+            isOneToOne: false
+            referencedRelation: "platform_communication_log"
+            referencedColumns: ["communication_id"]
+          },
+          {
+            foreignKeyName: "platform_webhook_event_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "platform_communication_recipient"
+            referencedColumns: ["recipient_id"]
+          },
+        ]
       }
       policy: {
         Row: {
@@ -4291,6 +4549,63 @@ export type Database = {
           },
         ]
       }
+      schedule_day_info: {
+        Row: {
+          category: Database["public"]["Enums"]["day_info_category"]
+          content: string | null
+          created_at: string
+          created_by: string | null
+          date: string
+          id: string
+          scope_id: string | null
+          scope_type: Database["public"]["Enums"]["day_info_scope"]
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["day_info_category"]
+          content?: string | null
+          created_at?: string
+          created_by?: string | null
+          date: string
+          id?: string
+          scope_id?: string | null
+          scope_type?: Database["public"]["Enums"]["day_info_scope"]
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["day_info_category"]
+          content?: string | null
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          id?: string
+          scope_id?: string | null
+          scope_type?: Database["public"]["Enums"]["day_info_scope"]
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_day_info_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_identity"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "schedule_day_info_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       schedule_day_message: {
         Row: {
           audience: string
@@ -4734,6 +5049,73 @@ export type Database = {
           },
         ]
       }
+      season_budget: {
+        Row: {
+          avg_hourly_wage: number | null
+          base_price_per_guest: number | null
+          created_at: string
+          created_by: string | null
+          season_budget_id: string
+          season_id: string
+          season_price_factor: number
+          status: Database["public"]["Enums"]["budget_status"]
+          target_labor_percentage: number
+          total_target_revenue: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          avg_hourly_wage?: number | null
+          base_price_per_guest?: number | null
+          created_at?: string
+          created_by?: string | null
+          season_budget_id?: string
+          season_id: string
+          season_price_factor?: number
+          status?: Database["public"]["Enums"]["budget_status"]
+          target_labor_percentage?: number
+          total_target_revenue?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          avg_hourly_wage?: number | null
+          base_price_per_guest?: number | null
+          created_at?: string
+          created_by?: string | null
+          season_budget_id?: string
+          season_id?: string
+          season_price_factor?: number
+          status?: Database["public"]["Enums"]["budget_status"]
+          target_labor_percentage?: number
+          total_target_revenue?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "season_budget_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "season_budget_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: true
+            referencedRelation: "season"
+            referencedColumns: ["season_id"]
+          },
+          {
+            foreignKeyName: "season_budget_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       team: {
         Row: {
           color: string | null
@@ -5111,6 +5493,145 @@ export type Database = {
           },
         ]
       }
+      workspace_budget: {
+        Row: {
+          absence_threshold: number | null
+          cost_of_sales_target: number | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          department_id: string | null
+          food_cost_target: number | null
+          hour_slot: number | null
+          id: string
+          labor_cost_target: number | null
+          labor_hours_target: number | null
+          location_id: string | null
+          notes: string | null
+          overtime_limit_hours: number | null
+          period_date: string
+          period_type: Database["public"]["Enums"]["budget_period_type"]
+          revenue_target: number | null
+          time_to_job_target: number | null
+          turnover_target: number | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          absence_threshold?: number | null
+          cost_of_sales_target?: number | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          department_id?: string | null
+          food_cost_target?: number | null
+          hour_slot?: number | null
+          id?: string
+          labor_cost_target?: number | null
+          labor_hours_target?: number | null
+          location_id?: string | null
+          notes?: string | null
+          overtime_limit_hours?: number | null
+          period_date: string
+          period_type: Database["public"]["Enums"]["budget_period_type"]
+          revenue_target?: number | null
+          time_to_job_target?: number | null
+          turnover_target?: number | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          absence_threshold?: number | null
+          cost_of_sales_target?: number | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          department_id?: string | null
+          food_cost_target?: number | null
+          hour_slot?: number | null
+          id?: string
+          labor_cost_target?: number | null
+          labor_hours_target?: number | null
+          location_id?: string | null
+          notes?: string | null
+          overtime_limit_hours?: number | null
+          period_date?: string
+          period_type?: Database["public"]["Enums"]["budget_period_type"]
+          revenue_target?: number | null
+          time_to_job_target?: number | null
+          turnover_target?: number | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_budget_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_identity"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "workspace_budget_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "department"
+            referencedColumns: ["department_id"]
+          },
+          {
+            foreignKeyName: "workspace_budget_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "location"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "workspace_budget_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      workspace_kpi_target: {
+        Row: {
+          benchmark_value: number | null
+          created_at: string
+          id: string
+          metric: string
+          target_value: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          benchmark_value?: number | null
+          created_at?: string
+          id?: string
+          metric: string
+          target_value: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          benchmark_value?: number | null
+          created_at?: string
+          id?: string
+          metric?: string
+          target_value?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_kpi_target_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       zone: {
         Row: {
           capacity: number | null
@@ -5222,6 +5743,10 @@ export type Database = {
       get_api_workspace_id: { Args: never; Returns: string }
       get_secret: { Args: { secret_name: string }; Returns: string }
       get_workspace_ids_for_user: { Args: { uid: string }; Returns: string[] }
+      increment_communication_counter: {
+        Args: { p_communication_id: string; p_field: string }
+        Returns: undefined
+      }
       is_admin_in_workspace: {
         Args: { uid: string; wid: string }
         Returns: boolean
@@ -5273,6 +5798,8 @@ export type Database = {
       audit_operation: "INSERT" | "UPDATE" | "DELETE"
       auth_provider: "supabase" | "google" | "microsoft"
       booking_status: "confirmed" | "pending" | "cancelled"
+      budget_period_type: "monthly" | "weekly" | "daily" | "hourly"
+      budget_status: "draft" | "active" | "locked"
       communication_channel: "email" | "sms" | "push" | "in_app"
       communication_status:
         | "pending"
@@ -5304,6 +5831,8 @@ export type Database = {
         | "evening"
         | "night"
         | "weekend"
+      day_info_category: "note" | "event" | "alert" | "budget_note"
+      day_info_scope: "workspace" | "department" | "team"
       doc_type:
         | "adr"
         | "module"
@@ -5582,6 +6111,8 @@ export const Constants = {
       audit_operation: ["INSERT", "UPDATE", "DELETE"],
       auth_provider: ["supabase", "google", "microsoft"],
       booking_status: ["confirmed", "pending", "cancelled"],
+      budget_period_type: ["monthly", "weekly", "daily", "hourly"],
+      budget_status: ["draft", "active", "locked"],
       communication_channel: ["email", "sms", "push", "in_app"],
       communication_status: [
         "pending",
@@ -5617,6 +6148,8 @@ export const Constants = {
         "night",
         "weekend",
       ],
+      day_info_category: ["note", "event", "alert", "budget_note"],
+      day_info_scope: ["workspace", "department", "team"],
       doc_type: [
         "adr",
         "module",
