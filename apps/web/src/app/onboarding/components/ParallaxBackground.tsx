@@ -26,15 +26,18 @@ export function ParallaxBackground({ section, containerRef }: ParallaxBackground
     offset: ["start end", "end start"],
   });
 
-  const y1 = useTransform(scrollYProgress, [0, 1], ["0%", "-30%"]);
-  const y2 = useTransform(scrollYProgress, [0, 1], ["0%", "-50%"]);
-  const opacity = useTransform(scrollYProgress, [0, 0.3, 0.7, 1], [0, 1, 1, 0]);
+  const y1 = useTransform(scrollYProgress, [0, 1], ["0%", "-20%"]);
+  const y2 = useTransform(scrollYProgress, [0, 1], ["0%", "-35%"]);
+  const opacity = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0, 1, 1, 0]);
 
   return (
     <div
       ref={ref}
       className="pointer-events-none absolute inset-0 overflow-hidden"
-      style={{ backgroundColor: SECTION_COLORS[section] }}
+      style={{
+        backgroundColor: SECTION_COLORS[section],
+        contain: "layout style paint",
+      }}
     >
       <motion.div
         className="absolute h-[600px] w-[600px] rounded-full"
@@ -42,9 +45,10 @@ export function ParallaxBackground({ section, containerRef }: ParallaxBackground
           y: y1,
           opacity,
           background: "radial-gradient(circle, var(--color-onboarding-glow) 0%, transparent 70%)",
-          filter: "blur(100px)",
+          filter: "blur(80px)",
           top: "10%",
           right: "-10%",
+          willChange: "transform",
         }}
       />
       <motion.div
@@ -53,17 +57,13 @@ export function ParallaxBackground({ section, containerRef }: ParallaxBackground
           y: y2,
           opacity,
           background: "radial-gradient(circle, oklch(0.6 0.1 200) 0%, transparent 70%)",
-          filter: "blur(120px)",
+          filter: "blur(90px)",
           bottom: "20%",
           left: "-5%",
+          willChange: "transform",
         }}
       />
-      <div
-        className="absolute inset-0 opacity-[0.03]"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
-        }}
-      />
+      {/* Noise texture removed — feTurbulence SVG filter costs ~2ms/frame per section */}
     </div>
   );
 }

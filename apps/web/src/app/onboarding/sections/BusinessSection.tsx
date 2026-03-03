@@ -1,30 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Globe, Hash, Pencil, Check, ArrowRight } from "lucide-react";
 import { useOnboarding } from "../WizardContext";
 import { SectionReveal, RevealItem } from "../components/SectionReveal";
 import { DataMaterializer } from "../components/DataMaterializer";
 
 export function BusinessSection() {
-  const {
-    business,
-    scrapeStatus,
-    triggerScrape,
-    updateBusiness,
-    completeSection,
-    activeSection,
-    botsson,
-  } = useOnboarding();
-
-  useEffect(() => {
-    if (activeSection === "business") botsson.triggerSection("business", "enter");
-  }, [activeSection, botsson]);
-
-  useEffect(() => {
-    if (scrapeStatus === "done") botsson.triggerSection("business", "complete");
-    if (scrapeStatus === "error") botsson.triggerSection("business", "error");
-  }, [scrapeStatus, botsson]);
+  const { business, scrapeStatus, triggerScrape, updateBusiness, completeSection } =
+    useOnboarding();
 
   const [urlInput, setUrlInput] = useState(business.website ?? "");
   const [orgInput, setOrgInput] = useState(business.orgNumber ?? "");
@@ -61,25 +45,25 @@ export function BusinessSection() {
     return (
       <SectionReveal>
         <RevealItem>
-          <h2 className="font-[family-name:var(--font-display)] text-5xl text-white">
+          <h2 className="font-[family-name:var(--font-display)] text-6xl leading-[1.1] tracking-tight text-white">
             Fortell oss om bedriften din
           </h2>
         </RevealItem>
 
         <RevealItem>
-          <p className="mt-3 text-lg text-white/60">
+          <p className="mt-4 text-xl leading-relaxed text-white/50">
             Skriv inn nettsiden eller org.nr — vi finner resten.
           </p>
         </RevealItem>
 
         <RevealItem>
-          <div className="mt-10 rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl">
+          <div className="mt-10 rounded-2xl border border-white/[0.06] bg-white/[0.07] p-8 shadow-lg shadow-black/20">
             {/* Tabs */}
             <div className="mb-6 flex gap-2">
               <button
                 type="button"
                 onClick={() => setActiveTab("url")}
-                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                className={`rounded-lg px-4 py-2 text-base font-medium transition-colors ${
                   activeTab === "url"
                     ? "bg-white/10 text-white"
                     : "text-white/40 hover:text-white/60"
@@ -90,7 +74,7 @@ export function BusinessSection() {
               <button
                 type="button"
                 onClick={() => setActiveTab("org")}
-                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                className={`rounded-lg px-4 py-2 text-base font-medium transition-colors ${
                   activeTab === "org"
                     ? "bg-white/10 text-white"
                     : "text-white/40 hover:text-white/60"
@@ -109,7 +93,7 @@ export function BusinessSection() {
                   value={urlInput}
                   onChange={(e) => setUrlInput(e.target.value)}
                   placeholder="https://dinbedrift.no"
-                  className="w-full rounded-xl border border-white/10 bg-white/5 py-3 pr-4 pl-12 text-white placeholder:text-white/30 focus:ring-2 focus:ring-white/20 focus:outline-none"
+                  className="w-full rounded-xl border border-white/[0.06] bg-white/5 py-3 pr-4 pl-12 text-white placeholder:text-white/30 focus:ring-2 focus:ring-white/20 focus:outline-none"
                 />
               </div>
             ) : (
@@ -120,7 +104,7 @@ export function BusinessSection() {
                   value={orgInput}
                   onChange={(e) => setOrgInput(e.target.value)}
                   placeholder="123 456 789"
-                  className="w-full rounded-xl border border-white/10 bg-white/5 py-3 pr-4 pl-12 text-white placeholder:text-white/30 focus:ring-2 focus:ring-white/20 focus:outline-none"
+                  className="w-full rounded-xl border border-white/[0.06] bg-white/5 py-3 pr-4 pl-12 text-white placeholder:text-white/30 focus:ring-2 focus:ring-white/20 focus:outline-none"
                 />
               </div>
             )}
@@ -134,11 +118,21 @@ export function BusinessSection() {
             <button
               type="button"
               onClick={handleScrape}
-              className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-white py-3 font-semibold text-black transition-colors hover:bg-white/90"
+              className="mt-6 flex w-full items-center justify-center gap-3 rounded-2xl bg-white py-4 text-lg font-semibold text-black transition-colors hover:bg-white/90"
             >
               Skann bedriften
               <ArrowRight className="h-4 w-4" />
             </button>
+
+            <div className="mt-3 text-center">
+              <button
+                type="button"
+                onClick={() => completeSection("business")}
+                className="text-sm text-white/30 transition-colors hover:text-white/50"
+              >
+                Hopp over
+              </button>
+            </div>
           </div>
         </RevealItem>
       </SectionReveal>
@@ -150,13 +144,13 @@ export function BusinessSection() {
     return (
       <SectionReveal>
         <RevealItem>
-          <h2 className="font-[family-name:var(--font-display)] text-5xl text-white">
+          <h2 className="font-[family-name:var(--font-display)] text-6xl leading-[1.1] tracking-tight text-white">
             Fortell oss om bedriften din
           </h2>
         </RevealItem>
 
         <RevealItem>
-          <p className="mt-3 text-lg text-white/60">Vi henter informasjon...</p>
+          <p className="mt-4 text-xl leading-relaxed text-white/50">Vi henter informasjon...</p>
         </RevealItem>
 
         <RevealItem>
@@ -172,20 +166,22 @@ export function BusinessSection() {
   return (
     <SectionReveal>
       <RevealItem>
-        <h2 className="font-[family-name:var(--font-display)] text-5xl text-white">
+        <h2 className="font-[family-name:var(--font-display)] text-6xl leading-[1.1] tracking-tight text-white">
           Fortell oss om bedriften din
         </h2>
       </RevealItem>
 
       <RevealItem>
-        <p className="mt-3 text-lg text-white/60">Stemmer dette? Rediger det som er feil.</p>
+        <p className="mt-4 text-xl leading-relaxed text-white/50">
+          Stemmer dette? Rediger det som er feil.
+        </p>
       </RevealItem>
 
       <RevealItem>
-        <div className="mt-10 rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl">
+        <div className="mt-10 rounded-2xl border border-white/[0.06] bg-white/[0.07] p-8 shadow-lg shadow-black/20">
           {/* Review header */}
           <div className="mb-6 flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-white">{business.name}</h3>
+            <h3 className="text-xl font-semibold text-white">{business.name}</h3>
             <button
               type="button"
               onClick={() => setIsEditing(!isEditing)}
@@ -302,7 +298,7 @@ export function BusinessSection() {
           <button
             type="button"
             onClick={() => completeSection("business")}
-            className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-white py-3 font-semibold text-black transition-colors hover:bg-white/90"
+            className="mt-8 flex w-full items-center justify-center gap-3 rounded-2xl bg-white py-4 text-lg font-semibold text-black transition-colors hover:bg-white/90"
           >
             Ser riktig ut
             <Check className="h-4 w-4" />
@@ -338,7 +334,7 @@ function ReviewField({
             value={value}
             onChange={(e) => onChange(e.target.value)}
             rows={3}
-            className="w-full resize-none rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:ring-2 focus:ring-white/20 focus:outline-none"
+            className="w-full resize-none rounded-lg border border-white/[0.06] bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:ring-2 focus:ring-white/20 focus:outline-none"
           />
         </div>
       );
@@ -351,7 +347,7 @@ function ReviewField({
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className={`w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:ring-2 focus:ring-white/20 focus:outline-none ${
+          className={`w-full rounded-lg border border-white/[0.06] bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:ring-2 focus:ring-white/20 focus:outline-none ${
             mono ? "font-mono" : ""
           }`}
         />

@@ -1,0 +1,189 @@
+"use client";
+
+import { useState } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+
+interface AgentCardProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  // Identity
+  name: string;
+  description: string;
+  greeting: string;
+  // Config
+  temperature?: number;
+  voice?: string;
+  language?: string;
+  maxDuration?: number;
+  firstSpeaker?: "agent" | "user";
+  // Live session
+  status?: string;
+  isConnected?: boolean;
+  // Context log: messages pushed via sendContext
+  contextLog?: string[];
+  // Transcript: conversation history
+  transcript?: { role: string; text: string }[];
+  // System prompt
+  instruction?: string;
+}
+
+function ConfigItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="text-[10px] font-medium tracking-wider text-white/40 uppercase">
+        {label}
+      </span>
+      <span className="text-sm text-white/80">{value}</span>
+    </div>
+  );
+}
+
+export function AgentCard({
+  open,
+  onOpenChange,
+  name,
+  description,
+  greeting,
+  temperature,
+  voice,
+  language,
+  maxDuration,
+  firstSpeaker,
+  status,
+  isConnected,
+  contextLog,
+  transcript,
+  instruction,
+}: AgentCardProps) {
+  const [showInstruction, setShowInstruction] = useState(false);
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="right"
+        className="flex w-full flex-col gap-0 overflow-y-auto border-white/10 bg-black/90 p-0 backdrop-blur-xl sm:max-w-md"
+      >
+        {/* Header */}
+        <SheetHeader className="border-b border-white/[0.06] px-6 py-5">
+          <div className="flex items-center gap-3">
+            <SheetTitle className="text-lg font-semibold text-white">{name}</SheetTitle>
+            {isConnected !== undefined && (
+              <span
+                className={`h-2 w-2 rounded-full ${isConnected ? "bg-emerald-400" : "bg-white/20"}`}
+              />
+            )}
+            {status && status !== "idle" && (
+              <span className="rounded-full bg-white/[0.06] px-2 py-0.5 text-[10px] font-medium tracking-wider text-white/40 uppercase">
+                {status}
+              </span>
+            )}
+          </div>
+          <SheetDescription className="text-sm text-white/50">{greeting}</SheetDescription>
+          <p className="text-xs leading-relaxed text-white/30">{description}</p>
+        </SheetHeader>
+
+        {/* Config grid */}
+        <div className="border-b border-white/[0.06] px-6 py-4">
+          <h3 className="mb-3 text-[10px] font-medium tracking-wider text-white/40 uppercase">
+            Config
+          </h3>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+            {temperature !== undefined && (
+              <ConfigItem label="Temperature" value={String(temperature)} />
+            )}
+            {voice && (
+              <ConfigItem
+                label="Voice"
+                value={voice.length > 12 ? `${voice.slice(0, 12)}...` : voice}
+              />
+            )}
+            {language && <ConfigItem label="Language" value={language} />}
+            {maxDuration !== undefined && (
+              <ConfigItem label="Max duration" value={`${Math.round(maxDuration / 60)} min`} />
+            )}
+            {firstSpeaker && <ConfigItem label="First speaker" value={firstSpeaker} />}
+          </div>
+        </div>
+
+        {/* Context log */}
+        {contextLog && contextLog.length > 0 && (
+          <div className="border-b border-white/[0.06] px-6 py-4">
+            <h3 className="mb-3 text-[10px] font-medium tracking-wider text-white/40 uppercase">
+              Context pushed ({contextLog.length})
+            </h3>
+            <div className="flex max-h-40 flex-col gap-1.5 overflow-y-auto">
+              {contextLog.map((msg, i) => (
+                <p
+                  key={i}
+                  className="rounded-md bg-white/[0.04] px-3 py-1.5 text-xs leading-relaxed text-white/60"
+                >
+                  {msg}
+                </p>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Transcript */}
+        {transcript && transcript.length > 0 && (
+          <div className="border-b border-white/[0.06] px-6 py-4">
+            <h3 className="mb-3 text-[10px] font-medium tracking-wider text-white/40 uppercase">
+              Transcript ({transcript.length})
+            </h3>
+            <div className="flex max-h-60 flex-col gap-2 overflow-y-auto">
+              {transcript.map((msg, i) => (
+                <div
+                  key={i}
+                  className={`flex flex-col gap-0.5 ${msg.role === "user" ? "items-end" : "items-start"}`}
+                >
+                  <span className="text-[10px] font-medium tracking-wider text-white/30 uppercase">
+                    {msg.role}
+                  </span>
+                  <p
+                    className={`max-w-[85%] rounded-xl px-3 py-2 text-xs leading-relaxed ${
+                      msg.role === "user"
+                        ? "bg-white/[0.08] text-white/70"
+                        : "bg-white/[0.04] text-white/60"
+                    }`}
+                  >
+                    {msg.text}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* System prompt (collapsible) */}
+        {instruction && (
+          <div className="px-6 py-4">
+            <button
+              type="button"
+              onClick={() => setShowInstruction((v) => !v)}
+              className="mb-2 flex items-center gap-1.5 text-[10px] font-medium tracking-wider text-white/40 uppercase transition-colors hover:text-white/60"
+            >
+              {showInstruction ? (
+                <ChevronDown className="h-3 w-3" />
+              ) : (
+                <ChevronRight className="h-3 w-3" />
+              )}
+              System prompt
+            </button>
+            {showInstruction && (
+              <pre className="max-h-80 overflow-y-auto rounded-lg bg-white/[0.04] p-4 font-mono text-[11px] leading-relaxed whitespace-pre-wrap text-white/50">
+                {instruction}
+              </pre>
+            )}
+          </div>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+}

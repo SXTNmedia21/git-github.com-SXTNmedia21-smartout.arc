@@ -88,14 +88,6 @@ export interface OnboardingState {
   activatedWorkspaceSlug: string | null;
 }
 
-/** Mr. Botsson voice script */
-export interface BotssonScript {
-  section: OnboardingSection;
-  trigger: "enter" | "complete" | "error";
-  text: string;
-  delay?: number;
-}
-
 export const EMPTY_BUSINESS_DATA: BusinessData = {
   name: "",
   legalName: "",

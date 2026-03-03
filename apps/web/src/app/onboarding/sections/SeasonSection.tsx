@@ -1,46 +1,41 @@
 "use client";
 
-import { useEffect } from "react";
 import { Calendar, TrendingUp } from "lucide-react";
 import { SectionReveal, RevealItem } from "../components/SectionReveal";
 import { useOnboarding } from "../WizardContext";
 
 export function SeasonSection() {
-  const { season, updateSeason, completeSection, activeSection, botsson } = useOnboarding();
-
-  useEffect(() => {
-    if (activeSection === "season") botsson.triggerSection("season", "enter");
-  }, [activeSection, botsson]);
+  const { season, updateSeason, completeSection } = useOnboarding();
 
   return (
     <SectionReveal>
       <RevealItem>
-        <h2 className="font-[family-name:var(--font-display)] text-5xl text-white">
+        <h2 className="font-[family-name:var(--font-display)] text-6xl leading-[1.1] tracking-tight text-white">
           Din forste sesong
         </h2>
-        <p className="mt-3 text-white/50">
+        <p className="mt-4 text-xl leading-relaxed text-white/50">
           Sesonger organiserer drift, mal og bemanning i perioder.
         </p>
       </RevealItem>
 
       <RevealItem>
-        <div className="space-y-6 rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl">
+        <div className="space-y-6 rounded-2xl border border-white/[0.06] bg-white/[0.07] p-8 shadow-lg shadow-black/20">
           {/* Sesongnavn */}
           <div>
-            <label className="mb-1.5 block text-sm text-white/50">Sesongnavn</label>
+            <label className="mb-1.5 block text-base text-white/50">Sesongnavn</label>
             <input
               type="text"
               value={season.name}
               onChange={(e) => updateSeason({ name: e.target.value })}
               placeholder="F.eks. Var 2026"
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-white/30"
+              className="w-full rounded-xl border border-white/[0.06] bg-white/5 px-4 py-3 text-white placeholder:text-white/30"
             />
           </div>
 
           {/* Startdato / Sluttdato */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1.5 flex items-center gap-1.5 text-sm text-white/50">
+              <label className="mb-1.5 flex items-center gap-1.5 text-base text-white/50">
                 <Calendar className="h-3.5 w-3.5" />
                 Startdato
               </label>
@@ -48,11 +43,11 @@ export function SeasonSection() {
                 type="date"
                 value={season.startDate}
                 onChange={(e) => updateSeason({ startDate: e.target.value })}
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-white/30"
+                className="w-full rounded-xl border border-white/[0.06] bg-white/5 px-4 py-3 text-white placeholder:text-white/30"
               />
             </div>
             <div>
-              <label className="mb-1.5 flex items-center gap-1.5 text-sm text-white/50">
+              <label className="mb-1.5 flex items-center gap-1.5 text-base text-white/50">
                 <Calendar className="h-3.5 w-3.5" />
                 Sluttdato
               </label>
@@ -60,7 +55,7 @@ export function SeasonSection() {
                 type="date"
                 value={season.endDate}
                 onChange={(e) => updateSeason({ endDate: e.target.value })}
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-white/30"
+                className="w-full rounded-xl border border-white/[0.06] bg-white/5 px-4 py-3 text-white placeholder:text-white/30"
               />
             </div>
           </div>
@@ -68,7 +63,7 @@ export function SeasonSection() {
           {/* Forventet omsetning / Onsket bunnlinje */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1.5 flex items-center gap-1.5 text-sm text-white/50">
+              <label className="mb-1.5 flex items-center gap-1.5 text-base text-white/50">
                 <TrendingUp className="h-3.5 w-3.5" />
                 Forventet omsetning
               </label>
@@ -82,7 +77,7 @@ export function SeasonSection() {
                     })
                   }
                   placeholder="Valgfritt"
-                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 pr-12 text-white placeholder:text-white/30"
+                  className="w-full rounded-xl border border-white/[0.06] bg-white/5 px-4 py-3 pr-12 text-white placeholder:text-white/30"
                 />
                 <span className="absolute top-1/2 right-4 -translate-y-1/2 text-sm text-white/30">
                   kr
@@ -90,7 +85,7 @@ export function SeasonSection() {
               </div>
             </div>
             <div>
-              <label className="mb-1.5 flex items-center gap-1.5 text-sm text-white/50">
+              <label className="mb-1.5 flex items-center gap-1.5 text-base text-white/50">
                 <TrendingUp className="h-3.5 w-3.5" />
                 Onsket bunnlinje
               </label>
@@ -104,7 +99,7 @@ export function SeasonSection() {
                     })
                   }
                   placeholder="Valgfritt"
-                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 pr-12 text-white placeholder:text-white/30"
+                  className="w-full rounded-xl border border-white/[0.06] bg-white/5 px-4 py-3 pr-12 text-white placeholder:text-white/30"
                 />
                 <span className="absolute top-1/2 right-4 -translate-y-1/2 text-sm text-white/30">
                   %
@@ -118,7 +113,7 @@ export function SeasonSection() {
             <button
               type="button"
               onClick={() => completeSection("season")}
-              className="w-full rounded-xl bg-white py-3 font-semibold text-black"
+              className="w-full rounded-2xl bg-white py-4 text-lg font-semibold text-black"
             >
               Bekreft sesong
             </button>

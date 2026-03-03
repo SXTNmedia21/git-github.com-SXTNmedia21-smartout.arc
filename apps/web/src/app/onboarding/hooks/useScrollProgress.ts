@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { OnboardingSection } from "../types";
 import { ONBOARDING_SECTIONS } from "../types";
 
@@ -16,17 +16,15 @@ export function useScrollProgress(
   containerRef: React.RefObject<HTMLElement | null>,
 ): ScrollProgress {
   const [activeSection, setActiveSection] = useState<OnboardingSection>("hero");
-  const [progress, setProgress] = useState(0);
-  const observerRef = useRef<IntersectionObserver | null>(null);
 
   const sectionIndex = ONBOARDING_SECTIONS.indexOf(activeSection);
-  const totalProgress = (sectionIndex + progress) / ONBOARDING_SECTIONS.length;
+  const totalProgress = sectionIndex / ONBOARDING_SECTIONS.length;
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    observerRef.current = new IntersectionObserver(
+    const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
           if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
@@ -44,24 +42,9 @@ export function useScrollProgress(
     );
 
     const sections = container.querySelectorAll("[data-section]");
-    sections.forEach((section) => observerRef.current?.observe(section));
+    sections.forEach((section) => observer.observe(section));
 
-    return () => observerRef.current?.disconnect();
-  }, [containerRef]);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const handleScroll = () => {
-      const { scrollTop, clientHeight } = container;
-      const sectionHeight = clientHeight;
-      const currentOffset = scrollTop % sectionHeight;
-      setProgress(Math.min(currentOffset / sectionHeight, 1));
-    };
-
-    container.addEventListener("scroll", handleScroll, { passive: true });
-    return () => container.removeEventListener("scroll", handleScroll);
+    return () => observer.disconnect();
   }, [containerRef]);
 
   const scrollToSection = useCallback(
@@ -77,7 +60,7 @@ export function useScrollProgress(
   return {
     activeSection,
     sectionIndex,
-    progress,
+    progress: 0,
     totalProgress,
     scrollToSection,
   };

@@ -10,7 +10,7 @@ import type {
   SeasonData,
   DepartmentOption,
 } from "../types";
-import { ONBOARDING_SECTIONS, EMPTY_BUSINESS_DATA, DEFAULT_SEASON_DATA } from "../types";
+import { ONBOARDING_SECTIONS, EMPTY_BUSINESS_DATA } from "../types";
 import { mergeBusinessData } from "../lib/data-merger";
 import { suggestSeason } from "../lib/season-suggestions";
 import { getDepartmentsForIndustry, resolveNaceCode } from "../lib/industry-defaults";
@@ -30,6 +30,7 @@ export interface OnboardingActions {
   addCustomDepartment: (name: string) => void;
   completeSection: (section: OnboardingSection) => void;
   finalize: () => Promise<void>;
+  reset: () => Promise<void>;
 }
 
 export function useOnboardingState(): OnboardingState & OnboardingActions {
@@ -226,17 +227,38 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
   }, []);
 
   const addCustomDepartment = useCallback((name: string) => {
-    setDepartments((prev) => [
-      ...prev,
-      {
-        id: `custom-${Date.now()}`,
-        name,
-        icon: "plus",
-        selected: true,
-        positions: [],
-      },
-    ]);
+    setDepartments((prev) => {
+      const id = `custom-${Date.now()}-${prev.length}`;
+      return [...prev, { id, name, icon: "plus", selected: true, positions: [] }];
+    });
   }, []);
+
+  // Reset — clear all state and delete DB session
+  const reset = useCallback(async () => {
+    // Delete DB session if one exists
+    if (sessionId) {
+      await supabase.from("onboarding_session").delete().eq("id", sessionId);
+    }
+
+    // Clear pending save
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+
+    // Reset all local state
+    setCurrentSection("hero");
+    setSections(INITIAL_SECTIONS);
+    setBusiness(EMPTY_BUSINESS_DATA);
+    setSeason(suggestSeason());
+    setDepartments([]);
+    setContract({ templateGenerated: false, previewUrl: null });
+    setScrapeStatus("idle");
+    setScrapeSource(null);
+    setSessionId(null);
+    setActivatedWorkspaceId(null);
+    setActivatedWorkspaceSlug(null);
+
+    // Allow session resume to fire again on next auth check
+    hasResumed.current = false;
+  }, [sessionId, supabase]);
 
   // Finalize
   const finalize = useCallback(async () => {
@@ -314,5 +336,6 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
     addCustomDepartment,
     completeSection,
     finalize,
+    reset,
   };
 }

@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import { FileText, CheckCircle } from "lucide-react";
 import { useOnboarding } from "../WizardContext";
 import { SectionReveal, RevealItem } from "../components/SectionReveal";
@@ -13,11 +12,7 @@ const CONTRACT_INCLUDES = [
 ];
 
 export function ContractSection() {
-  const { business, completeSection, activeSection, botsson } = useOnboarding();
-
-  useEffect(() => {
-    if (activeSection === "contract") botsson.triggerSection("contract", "enter");
-  }, [activeSection, botsson]);
+  const { business, completeSection } = useOnboarding();
 
   const companyName = business.legalName || business.name;
 
@@ -26,17 +21,17 @@ export function ContractSection() {
       <div className="flex flex-col items-center gap-10">
         <RevealItem>
           <div className="flex flex-col items-center gap-3 text-center">
-            <h2 className="font-[family-name:var(--font-display)] text-5xl text-white">
+            <h2 className="font-[family-name:var(--font-display)] text-6xl leading-[1.1] tracking-tight text-white">
               Kontraktmal
             </h2>
-            <p className="max-w-md text-lg text-white/50">
+            <p className="max-w-md text-xl leading-relaxed text-white/50">
               Vi har laget en mal basert pa norsk arbeidsmiljolov og din bedrift.
             </p>
           </div>
         </RevealItem>
 
         <RevealItem>
-          <div className="flex w-full max-w-md flex-col gap-6 rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl">
+          <div className="flex w-full max-w-md flex-col gap-6 rounded-2xl border border-white/[0.06] bg-white/[0.07] p-8 shadow-lg shadow-black/20">
             <div className="flex items-center gap-3">
               <FileText className="size-5 text-white/40" />
               <span className="text-lg font-medium text-white/80">
@@ -57,14 +52,14 @@ export function ContractSection() {
               )}
             </div>
 
-            <div className="border-t border-white/10" />
+            <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
 
             <div className="flex flex-col gap-3">
               <p className="text-xs tracking-wider text-white/50 uppercase">Malen inkluderer</p>
               {CONTRACT_INCLUDES.map((item) => (
                 <div key={item} className="flex items-center gap-3">
                   <CheckCircle className="size-4 shrink-0 text-emerald-400" />
-                  <span className="text-sm text-white/70">{item}</span>
+                  <span className="text-base text-white/70">{item}</span>
                 </div>
               ))}
             </div>
@@ -76,7 +71,7 @@ export function ContractSection() {
             <button
               type="button"
               onClick={() => completeSection("contract")}
-              className="w-full rounded-xl bg-white py-3 font-semibold text-black transition-colors hover:bg-white/90"
+              className="w-full rounded-2xl bg-white py-4 text-lg font-semibold text-black transition-colors hover:bg-white/90"
             >
               Bekreft kontraktmal
             </button>

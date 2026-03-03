@@ -1,23 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Plus, X } from "lucide-react";
 import { useOnboarding } from "../WizardContext";
 import { SectionReveal, RevealItem } from "../components/SectionReveal";
 
 export function DepartmentsSection() {
-  const {
-    departments,
-    toggleDepartment,
-    addCustomDepartment,
-    completeSection,
-    activeSection,
-    botsson,
-  } = useOnboarding();
+  const { departments, toggleDepartment, addCustomDepartment, completeSection } = useOnboarding();
 
-  useEffect(() => {
-    if (activeSection === "departments") botsson.triggerSection("departments", "enter");
-  }, [activeSection, botsson]);
   const [showInput, setShowInput] = useState(false);
   const [customName, setCustomName] = useState("");
 
@@ -32,18 +22,20 @@ export function DepartmentsSection() {
   return (
     <SectionReveal>
       <RevealItem>
-        <h2 className="font-[family-name:var(--font-display)] text-5xl text-white">Avdelinger</h2>
+        <h2 className="font-[family-name:var(--font-display)] text-6xl leading-[1.1] tracking-tight text-white">
+          Avdelinger
+        </h2>
       </RevealItem>
 
       <RevealItem>
-        <p className="mt-4 text-lg text-white/60">
+        <p className="mt-4 text-xl leading-relaxed text-white/50">
           Basert p&aring; bransjen din foresl&aring;r vi disse avdelingene. Fjern de som ikke
           passer.
         </p>
       </RevealItem>
 
       <RevealItem>
-        <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl">
+        <div className="mt-8 rounded-2xl border border-white/[0.06] bg-white/[0.07] p-8 shadow-lg shadow-black/20">
           <div className="flex flex-wrap gap-3">
             {departments.map((dept) => (
               <button
@@ -52,8 +44,8 @@ export function DepartmentsSection() {
                 onClick={() => toggleDepartment(dept.id)}
                 className={`flex cursor-pointer items-center gap-2 rounded-xl border px-4 py-3 transition-all ${
                   dept.selected
-                    ? "border-white/20 bg-white/15 text-white"
-                    : "border-white/5 bg-white/5 text-white/40"
+                    ? "border-white/[0.12] bg-white/15 text-white"
+                    : "border-white/[0.03] bg-white/5 text-white/40"
                 }`}
               >
                 <span>{dept.name}</span>
@@ -71,7 +63,7 @@ export function DepartmentsSection() {
               <button
                 type="button"
                 onClick={() => setShowInput(true)}
-                className="flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-white/20 px-4 py-3 text-white/40 transition-all hover:text-white/60"
+                className="flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-white/[0.12] px-4 py-3 text-white/40 transition-all hover:text-white/60"
               >
                 <Plus className="h-4 w-4" />
                 <span>Legg til avdeling</span>
@@ -89,7 +81,7 @@ export function DepartmentsSection() {
                   if (e.key === "Enter") handleAdd();
                 }}
                 placeholder="Avdelingsnavn"
-                className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white transition-colors outline-none placeholder:text-white/30 focus:border-white/20"
+                className="flex-1 rounded-xl border border-white/[0.06] bg-white/5 px-4 py-3 text-white transition-colors outline-none placeholder:text-white/30 focus:border-white/20"
                 autoFocus
               />
               <button
@@ -115,7 +107,7 @@ export function DepartmentsSection() {
           <button
             type="button"
             onClick={() => completeSection("departments")}
-            className="mt-6 w-full cursor-pointer rounded-xl bg-white py-3 font-semibold text-black transition-colors hover:bg-white/90"
+            className="mt-6 w-full cursor-pointer rounded-2xl bg-white py-4 text-lg font-semibold text-black transition-colors hover:bg-white/90"
           >
             Bekreft avdelinger
           </button>

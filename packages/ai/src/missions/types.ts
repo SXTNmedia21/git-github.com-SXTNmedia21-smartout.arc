@@ -9,7 +9,8 @@ export const MissionIdSchema = z.enum([
 ]);
 export type MissionId = z.infer<typeof MissionIdSchema>;
 
-export type UltravoxVoice = "terrence" | "mark" | "jessica" | "sarah" | "tina";
+/** Built-in Ultravox voices or custom voice IDs (UUIDs from cloned/custom voices) */
+export type UltravoxVoice = "terrence" | "mark" | "jessica" | "sarah" | "tina" | (string & {});
 
 export type AgentMission = {
   id: MissionId;
