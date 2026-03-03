@@ -1,11 +1,11 @@
 ---
 title: "Module 1: Onboarding & Brukerregistrering"
 id: MODULE_01
-version: "2.0"
+version: "3.0"
 status: canonical
 layer: module
 created: 2026-02-24
-updated: 2026-02-28
+updated: 2026-03-03
 author: pontus
 supersedes:
   - SMARTOUT_ONBOARDING_FRAMEWORK.md
@@ -20,6 +20,8 @@ tags:
   - sandbox
   - ai-guided
 tables:
+  - invitation
+  - onboarding_session
   - trainee_journey
   - module_journey
   - module_journey_checkpoint
@@ -27,13 +29,23 @@ tables:
 changelog:
   - date: 2026-02-28
     change: "Added YAML frontmatter"
+  - date: 2026-03-03
+    change: "v3.0: Audit against codebase. Updated wizard (15 steps), invitation table naming, SendGrid, emergency contact on user_identity. Added implementation status markers, Roadmap section. Created ADR-0043/44/45, Learning-0014/15."
 ---
 
 # Module 1: Onboarding & Brukerregistrering
 
 > **Smartout.io** — Functional documentation for migration
-> Version 2.0 | February 2026
+> Version 3.0 | March 2026
 > **Supersedes:** SMARTOUT_ONBOARDING_FRAMEWORK.md (v1), SMARTOUT_ONBOARDING_FRAMEWORK_v2.md
+
+### Implementation Status Key
+
+| Marker         | Meaning                    |
+| -------------- | -------------------------- |
+| ✅ IMPLEMENTED | Built and working in code  |
+| ⏳ PLANNED     | Designed but not yet built |
+| 🔄 PARTIAL     | Some parts implemented     |
 
 ---
 
@@ -59,86 +71,90 @@ Onboarding in Smartout is split into **THREE distinct systems:**
 
 ---
 
-## 2. Workspace Creation (First Run)
+## 2. Workspace Creation (First Run) ✅ IMPLEMENTED
 
 Before any employee can be onboarded, an admin must create a workspace. This is the **admin's own onboarding** — the first-time setup flow that creates the operational environment.
+
+> **Implementation:** 15-step wizard at `apps/web/src/app/onboarding/`, `useOnboardingWizard` hook, progressive save to `onboarding_session` table, atomic workspace creation via `activate_workspace_v3` RPC. See ADR-0041.
 
 ### 2.1 Signup Flow
 
 ```
-Admin visits smartout.io
+Admin visits smartout.io landing page
   → "Start gratis prøveperiode" / "Get started"
-  → Create account
+  → Enters website URL (optional) for AI-assisted setup
+  → AI scrapes website via gather-workspace-intelligence Edge Function
+      Extracts: departments, teams, branding, locations, procedures
+  → Create account (AuthStep — inline during wizard)
       Email + password (Supabase Auth)
       OR Google / Microsoft SSO
-  → Create Company
+      Skipped if already authenticated
+  → Verify company via Brreg API
       Company name (required)
       Org number (Norwegian: required for compliance)
-      Industry: restaurant | hotel | cafe | bar | catering | other
-  → Create first Workspace
-      Workspace name (e.g., "Bårdshaug Vegkro")
-      Address (optional, can add later)
-      Timezone (auto-detected, defaults to Europe/Oslo)
-      Language (defaults to Norsk)
-  → System creates:
+  → Configure workspace
+      Branding (logo, colors — pre-filled from website scrape)
+      Season setup (education + identity steps)
+      Departments, Locations, Teams (pre-filled from AI scrape)
+      Procedures (suggested based on industry)
+  → Review all entities (BattlefieldReviewStep)
+  → System creates atomically via activate_workspace_v3 RPC:
       Company record
       CompanyMember (role: owner)
       Workspace (with default Season auto-created)
       Profile (role: owner, status: active)
-      Stripe subscription (trial period starts)
+      Departments, Locations, Teams
+      Policy → Protocol → Procedures
+  → Invite first employee (InviteStep)
+  → Done — redirect to dashboard
 ```
 
-### 2.2 Workspace Setup Wizard
+### 2.2 Workspace Setup Wizard (15 Steps)
 
-After workspace creation, the admin runs through a guided setup:
+The wizard is implemented as 15 independent step components with 4 modal drawers, managed by `useOnboardingWizard` context hook. State is progressively saved to `onboarding_session` table (JSONB + step index) with 500ms debounce. See Learning-0015.
 
 ```
-WORKSPACE SETUP
+WORKSPACE SETUP (15 steps)
 │
-├── Step 1: Departments
-│     "Hvilke avdelinger har dere?"
-│     → Suggest defaults based on industry (Restaurant: Kjøkken, Sal, Bar)
-│     → Admin confirms, adjusts, or adds custom
-│
-├── Step 2: Locations
-│     "Har dere flere serveringsområder?"
-│     → Main location auto-created from workspace address
-│     → Add additional: Uteterrasse, Bankett, etc.
-│
-├── Step 3: Positions
-│     "Hvilke stillinger finnes?"
-│     → Suggest defaults per department (Kjøkken: Kokk, Sous Chef, Oppvask)
-│     → Admin confirms, adjusts, or adds custom
-│
-├── Step 4: Modules
-│     "Hvilke moduler vil du aktivere?"
-│     → Show available modules with descriptions
-│     → Recommend based on industry + plan
-│     → Toggle on/off (can change later)
-│
-└── Step 5: Invite First Employee
-      "Klar til å invitere ditt første teammedlem?"
-      → Leads directly into invitation flow (Section 3)
+├── 1. InitStep          — Enter website URL or skip to manual setup
+├── 2. CrawlStep         — AI scrapes website, extracts intelligence
+├── 3. AuthStep           — Inline signup (skip if already authenticated)
+├── 4. OrgVerificationStep — Brreg API company lookup + verification
+├── 5. BrandingStep       — Logo, colors (pre-filled from scrape)
+├── 6. SeasonEducationStep — Explain season concept
+├── 7. SeasonIdentityStep  — Name and configure first season
+├── 8. DepartmentsStep    — Confirm/edit departments (+ DepartmentDrawer)
+├── 9. LocationsStep      — Confirm/edit locations (+ LocationDrawer)
+├── 10. TeamsStep          — Confirm/edit teams (+ TeamDrawer)
+├── 11. ProceduresStep     — Confirm/edit procedures (+ ProcedureDrawer)
+├── 12. BattlefieldReviewStep — Review all entities before creation
+├── 13. FinalizeStep       — Atomic workspace creation (activate_workspace_v3)
+├── 14. InviteStep         — Invite first employee (email/SMS/link)
+└── 15. DoneStep           — Redirect to dashboard
 ```
 
-**AI assistance:** Mr. Botsson can guide the admin through workspace setup conversationally, offering industry-specific suggestions. "Jeg ser dere er en restaurant. De fleste restauranter starter med Kjøkken, Sal og Bar som avdelinger. Stemmer det for dere?"
+**AI assistance:** The wizard uses Mr. Botsson via voice (Ultravox) during the CrawlStep to conversationally extract workspace intelligence from the admin. The AI scrapes the business website and pre-fills departments, teams, locations, and branding.
+
+**Session resume:** If the browser closes mid-wizard, returning users resume at their last step with all data restored. Transient steps (CrawlStep, FinalizeStep) are skipped on resume.
 
 **Note:** Detailed workspace settings and configuration are covered in Module 11 (Settings & Administration). This section covers only the first-time flow.
 
 ---
 
-## 3. Invitation & Account Creation
+## 3. Invitation & Account Creation ✅ IMPLEMENTED
 
 The invitation flow is how employees enter the Smartout ecosystem. It creates the User (if new) and Profile, and triggers Trainee Mode.
 
+> **Implementation:** `invitation` table (see ADR-0044), `create-invitation` + `accept-invitation` Edge Functions, `/invite/[token]` acceptance page. Email via SendGrid (see ADR-0045), SMS via Twilio.
+
 ### 3.1 Invitation Methods
 
-| Method              | How                                                                 | Best for                                |
-| ------------------- | ------------------------------------------------------------------- | --------------------------------------- |
-| **Email invite**    | Admin enters employee's email. System sends invite link via Resend. | Standard — most employees               |
-| **SMS invite**      | Admin enters employee's phone. System sends invite link via Twilio. | Employees without regular email access  |
-| **Shareable link**  | Admin generates a workspace invite link with optional expiry.       | Job fairs, group hiring, walk-ins       |
-| **Bulk CSV import** | Admin uploads CSV with name, email, phone, department, position.    | Seasonal hiring (10+ employees at once) |
+| Method              | How                                                                   | Best for                                | Status |
+| ------------------- | --------------------------------------------------------------------- | --------------------------------------- | ------ |
+| **Email invite**    | Admin enters employee's email. System sends invite link via SendGrid. | Standard — most employees               | ✅     |
+| **SMS invite**      | Admin enters employee's phone. System sends invite link via Twilio.   | Employees without regular email access  | ✅     |
+| **Shareable link**  | Admin generates a workspace invite link (token-based, no expiry).     | Job fairs, group hiring, walk-ins       | ✅     |
+| **Bulk CSV import** | Admin uploads CSV with name, email, phone, department, position.      | Seasonal hiring (10+ employees at once) | ⏳     |
 
 ### 3.2 Invitation Data
 
@@ -155,20 +171,24 @@ When creating an invite, admin provides:
 | **Start date**     | No        | Expected first day — used for first shift scheduling |
 | **Language**       | No        | Defaults to workspace language. Can override.        |
 
-### 3.3 Acceptance Flow
+### 3.3 Acceptance Flow ✅ IMPLEMENTED
+
+> **Implementation:** `/invite/[token]` page validates token (pending + not expired), shows form for first_name, last_name, password. Calls `accept-invitation` Edge Function.
 
 ```
 Employee receives invite (email / SMS / clicks link)
   │
-  ├── New to Smartout (no existing User)
-  │     → Create account page
-  │     → Email + password / magic link / SMS OTP (Supabase Auth)
-  │     → User record created
-  │     → Profile created (status: trainee, linked to workspace)
-  │     → CompanyMember created (role: member)
-  │     → Redirect to Smartout app → Trainee Mode begins
+  ├── New to Smartout (no existing User)  ✅
+  │     → /invite/[token] acceptance page
+  │     → Validates: token exists, status=pending, not expired (7-day default)
+  │     → Form: first_name, last_name, password
+  │     → accept-invitation Edge Function creates:
+  │         auth.users record (Supabase Auth signUp)
+  │         user_identity record (via handle_new_user trigger)
+  │         profile (status: trainee, linked to workspace)
+  │     → Auto sign-in → redirect to /dashboard
   │
-  └── Existing User (has account from another workspace)
+  └── Existing User (has account from another workspace)  ⏳ PLANNED
         → "Du har allerede en Smartout-konto. Logg inn for å koble til [Workspace]."
         → Login
         → New Profile created (status: trainee, linked to new workspace)
@@ -180,15 +200,15 @@ Employee receives invite (email / SMS / clicks link)
 
 When an invite is accepted, the system automatically creates:
 
-| Entity                          | Details                                                                              |
-| ------------------------------- | ------------------------------------------------------------------------------------ |
-| **User**                        | If new. Auth credentials, personal info.                                             |
-| **CompanyMember**               | Links User to Company (role: member).                                                |
-| **Profile**                     | Status: `trainee`. Role as specified by admin. Department, position, teams assigned. |
-| **trainee_journey**             | Auto-created with `status: not_started`. First shift date populated if known.        |
-| **profile_checkpoint_progress** | Records created for all required module journey checkpoints.                         |
+| Entity                          | Details                                                                        | Status |
+| ------------------------------- | ------------------------------------------------------------------------------ | ------ |
+| **auth.users**                  | Supabase Auth record. Email + password.                                        | ✅     |
+| **user_identity**               | Created by `handle_new_user()` trigger. Personal data incl. emergency contact. | ✅     |
+| **Profile**                     | Status: `trainee`. Role as specified by admin.                                 | ✅     |
+| **trainee_journey**             | Auto-created with `status: not_started`. First shift date populated if known.  | ⏳     |
+| **profile_checkpoint_progress** | Records created for all required module journey checkpoints.                   | ⏳     |
 
-### 3.5 Invite Management
+### 3.5 Invite Management ⏳ PLANNED
 
 Admin can manage outstanding invites:
 
@@ -200,7 +220,7 @@ Admin can manage outstanding invites:
 | **Track**        | See which invites are pending, accepted, expired            |
 | **Bulk actions** | Resend all pending, cancel all expired                      |
 
-### 3.6 Bulk Import
+### 3.6 Bulk Import ⏳ PLANNED
 
 For seasonal hiring, admin can upload a CSV:
 
@@ -215,7 +235,9 @@ System validates, deduplicates (checks existing Users by email/phone), creates i
 
 ---
 
-## 4. Trainee Mode
+## 4. Trainee Mode ⏳ PLANNED
+
+> **Current state:** `profile.status = 'trainee'` is set on invite acceptance, and `trainee_started`/`trainee_completed` timestamp fields exist on profile. However, the full trainee mode system (journey tracking, sandbox, escalation, approval) is not yet implemented.
 
 ### What It Is
 
@@ -294,7 +316,9 @@ Key rules:
 
 ---
 
-## 5. Module Journeys
+## 5. Module Journeys ⏳ PLANNED
+
+> **Current state:** No `module_journey`, `module_journey_checkpoint`, or `profile_checkpoint_progress` tables exist. No checkpoint definitions or tracking logic implemented.
 
 ### Definition: Hybrid Checkpoints + AI Guidance
 
@@ -351,7 +375,9 @@ This makes the module journey system a **feature adoption engine**, not just an 
 
 ---
 
-## 6. AI Copilot — Mr. Botsson as Guide
+## 6. AI Copilot — Mr. Botsson as Guide 🔄 PARTIAL
+
+> **Current state:** Mr. Botsson onboarding agent exists at `packages/ai/src/agents/onboarding.ts` with tools for transcription, intelligence reports, and structured data extraction. Voice integration via Ultravox is working (`apps/web/src/components/voice-assistant.tsx`). However, the 12 UI guidance + operational tools described below are NOT yet implemented — they require the module journey system (§5).
 
 ### Interaction Mode
 
@@ -433,7 +459,7 @@ Mr. Botsson: "Hei, velkommen til [Restaurant Name]! 👋
 
 ---
 
-## 7. Trainee Progress UI
+## 7. Trainee Progress UI ⏳ PLANNED
 
 ### Trainee View: Checklist + Progress Bar
 
@@ -480,7 +506,7 @@ Tapping a module expands to show individual checkpoints with check/uncheck statu
 
 ---
 
-## 8. Cross-Training & Ongoing Readiness
+## 8. Cross-Training & Ongoing Readiness ⏳ PLANNED
 
 ### Cross-Training (Department Move)
 
@@ -500,7 +526,9 @@ When a procedure is updated → employees who completed the old version get noti
 
 ---
 
-## 9. Gamification During Onboarding
+## 9. Gamification During Onboarding ⏳ PLANNED
+
+> **Current state:** No `points_event` table, no leaderboard, no gamification logic. Requires core gamification infrastructure (cross-module concern).
 
 ### Points Carry Over
 
@@ -529,10 +557,60 @@ Point values are configurable per workspace via the gamification config (see Mod
 
 ## 10. Data Model
 
-### New Tables
+### Implemented Tables
 
 ```
--- Trainee journey tracking
+-- Invitation tracking (ADR-0044: named 'invitation', not 'workspace_invite')
+-- Migration: 00011_employee_invitations.sql
+invitation ✅ IMPLEMENTED
+  id                   uuid (PK)
+  workspace_id         fk → workspace
+
+  -- Invite details
+  email                string | null
+  phone                string | null
+  invite_type          invite_type enum (email | sms | link)
+  token                string (unique, used in invite URL)
+
+  -- Pre-populated profile data
+  role                 workspace_role enum (default: employee)
+
+  -- Status
+  status               invite_status enum (pending | accepted | expired | cancelled)
+  expires_at           timestamp (default: 7 days)
+  accepted_at          timestamp | null
+
+  -- Created by
+  invited_by           fk → user_identity
+  created_at           timestamp
+  updated_at           timestamp
+
+
+-- Admin wizard session persistence (Learning-0015: progressive save pattern)
+-- Migration: 00009_onboarding_v3.sql
+onboarding_session ✅ IMPLEMENTED
+  id                   uuid (PK)
+  user_id              fk → auth.users
+
+  -- Wizard state
+  current_step         integer (0-14, maps to step component index)
+  scraped_data         jsonb | null (AI-extracted website intelligence)
+  confirmed_departments jsonb | null
+  confirmed_locations  jsonb | null
+  confirmed_branding   jsonb | null
+  workspace_data       jsonb | null (all wizard state as single blob)
+
+  -- Lifecycle
+  started_at           timestamp
+  completed_at         timestamp | null
+  created_at           timestamp
+  updated_at           timestamp
+```
+
+### Planned Tables
+
+```
+-- Trainee journey tracking ⏳ PLANNED
 trainee_journey
   id                   uuid (PK)
   profile_id           fk → profile
@@ -561,40 +639,7 @@ trainee_journey
   updated_at           timestamp
 
 
--- Invitation tracking
-workspace_invite
-  invite_id            uuid (PK)
-  workspace_id         fk → workspace
-
-  -- Invite details
-  email                string | null
-  phone                string | null
-  invite_method        email | sms | link | bulk
-  invite_token         string (unique, used in invite URL)
-
-  -- Pre-populated profile data
-  first_name           string
-  last_name            string
-  role                 employee | manager (default: employee)
-  department_id        fk → department | null
-  position_id          fk → position | null
-  team_ids             uuid[] | null
-  language             string | null (override workspace default)
-  start_date           date | null
-
-  -- Status
-  status               pending | accepted | expired | cancelled
-  expires_at           timestamp
-  accepted_at          timestamp | null
-  accepted_by_user_id  fk → user | null (the User who accepted)
-
-  -- Created by
-  created_by           fk → profile
-  created_at           timestamp
-  updated_at           timestamp
-
-
--- Module journey definition (shipped with each module)
+-- Module journey definition (shipped with each module) ⏳ PLANNED
 module_journey
   id                   uuid (PK)
   module_slug          string (scheduling, chat, haccp, tasks, etc.)
@@ -650,16 +695,25 @@ profile_checkpoint_progress
   updated_at           timestamp
 ```
 
-### Profile Schema Additions
+### user_identity Schema Additions ✅ IMPLEMENTED
 
-The following fields are added to the Profile table (Core Architecture):
+Emergency contact fields are on `user_identity` (not `profile`) because they are personal data that follows the person, not the workspace role. See ADR-0043.
 
 ```
-profile (additions for Module 1)
+user_identity (additions for Module 1) ✅
   -- Emergency contact (Norwegian labor law / workplace safety)
   emergency_contact_name       string | null
   emergency_contact_phone      string | null
   emergency_contact_relation   string | null (e.g., "Ektefelle", "Forelder", "Partner")
+```
+
+### Profile Schema Additions ✅ IMPLEMENTED
+
+```
+profile (additions for Module 1) ✅
+  -- Trainee lifecycle timestamps
+  trainee_started              timestamp | null (when trainee mode began)
+  trainee_completed            timestamp | null (when transitioned to active)
 ```
 
 ### Tables NOT Created
@@ -700,12 +754,12 @@ profile (additions for Module 1)
 
 | Module                          | Integration                                                                                         |
 | ------------------------------- | --------------------------------------------------------------------------------------------------- |
-| **Core Architecture**           | Profile.status (trainee/active), emergency_contact fields, preferred_language                       |
+| **Core Architecture**           | Profile.status (trainee/active), user_identity.emergency_contact fields, preferred_language         |
 | **Module 2: Org Structure**     | Department, Team, Position → determines which protocols to assign                                   |
 | **Module 3: Scheduling**        | Trainee visible in grid with badge. First shift = trainee deadline. Sandbox punch-in.               |
 | **Module 4: Operations**        | Trainees excluded from real Department Sessions. Sandbox task completion. Module journey for tasks. |
 | **Module 5: HACCP**             | Sandbox temperature logging. Module journey for HACCP.                                              |
-| **Module 9: Communication**     | Real chat during trainee mode. Module journey for chat. Invite delivery via Resend/Twilio.          |
+| **Module 9: Communication**     | Real chat during trainee mode. Module journey for chat. Invite delivery via SendGrid/Twilio.        |
 | **Module 12: AI (Mr. Botsson)** | All AI guidance, tool calling, voice integration                                                    |
 | **Module 13: Billing**          | Workspace creation triggers Stripe subscription. Trainees count toward plan limits.                 |
 | **Governance Model**            | Protocol training (separate from trainee mode, longer timeline)                                     |
@@ -715,17 +769,18 @@ profile (additions for Module 1)
 
 ## 12. Implementation Sequence
 
-| Phase                    | Scope                                                                                                 | Duration   |
-| ------------------------ | ----------------------------------------------------------------------------------------------------- | ---------- |
-| **1. Invitation system** | `workspace_invite` table. Email/SMS invite sending. Acceptance flow. Supabase Auth integration.       | Week 1-2   |
-| **2. Data layer**        | `trainee_journey`, `module_journey`, checkpoint tables. Auto-assign on invite acceptance.             | Week 3-4   |
-| **3. Core journey**      | Smartout basics: navigation, profile (incl. emergency contact), core concepts. Hardcoded checkpoints. | Week 5-6   |
-| **4. AI chat guidance**  | Mr. Botsson tool definitions. Chat-based walkthrough. Progress tracking.                              | Week 7-8   |
-| **5. UI overlay**        | `OnboardingOverlay` component. Element tagging. Navigate/highlight/spotlight/tooltip.                 | Week 9-10  |
-| **6. Module journeys**   | Per-module checkpoints for Scheduling, Tasks, HACCP, Chat. Sandbox activities.                        | Week 11-12 |
-| **7. Admin dashboard**   | Trainee progress view. Approval flow. AI alerts for at-risk trainees. Invite management.              | Week 13-14 |
-| **8. Voice upgrade**     | Ultravox integration for voice-guided onboarding.                                                     | Week 15-16 |
-| **9. Intelligence**      | Adaptive depth, difficulty, pacing. Profile-specific ordering. Auto-fill demo. Confetti.              | Week 17-18 |
+| Phase                    | Scope                                                                                                   | Status |
+| ------------------------ | ------------------------------------------------------------------------------------------------------- | ------ |
+| **0. Admin wizard**      | 15-step setup wizard. Progressive save. AI website scrape. Workspace activation RPC.                    | ✅     |
+| **1. Invitation system** | `invitation` table. Email (SendGrid) / SMS (Twilio) / link invite. Acceptance flow. Supabase Auth.      | ✅     |
+| **2. Data layer**        | `trainee_journey`, `module_journey`, checkpoint tables. Auto-assign on invite acceptance.               | ⏳     |
+| **3. Core journey**      | Smartout basics: navigation, profile (incl. emergency contact), core concepts. Hardcoded checkpoints.   | ⏳     |
+| **4. AI chat guidance**  | Mr. Botsson tool definitions. Chat-based walkthrough. Progress tracking.                                | ⏳     |
+| **5. UI overlay**        | `OnboardingOverlay` component. Element tagging. Navigate/highlight/spotlight/tooltip.                   | ⏳     |
+| **6. Module journeys**   | Per-module checkpoints for Scheduling, Tasks, HACCP, Chat. Sandbox activities.                          | ⏳     |
+| **7. Admin dashboard**   | Trainee progress view. Approval flow. AI alerts for at-risk trainees. Invite management.                | ⏳     |
+| **8. Voice upgrade**     | Ultravox integration for voice-guided onboarding. (Voice infra exists, needs trainee mode integration.) | ⏳     |
+| **9. Intelligence**      | Adaptive depth, difficulty, pacing. Profile-specific ordering. Auto-fill demo. Confetti.                | ⏳     |
 
 ---
 
@@ -754,6 +809,11 @@ All decisions made during the design process:
 | 17  | Language                      | Match profile's preferred_language                                   | Multilingual workforce reality in Norwegian service industry.                             |
 | 18  | Trainee scheduling visibility | Visible with trainee badge, can be assigned shifts                   | First assigned shift becomes trainee deadline. Managers need to see trainees in planning. |
 | 19  | Trainee gamification          | Points carry over to first active season                             | Real stakes motivate faster completion. Early completers get a head start.                |
+| 20  | Emergency contact placement   | `user_identity` not `profile` (ADR-0043)                             | Personal data follows the person, not the workspace role.                                 |
+| 21  | Invitation table naming       | `invitation` not `workspace_invite` (ADR-0044)                       | Follows snake_case singular convention. workspace_id FK provides scoping.                 |
+| 22  | Email provider                | SendGrid not Resend (ADR-0045)                                       | Already integrated in notifications package. Twilio/SendGrid = one vendor.                |
+| 23  | Wizard architecture           | 15 step components + 4 drawers + context hook (ADR-0041)             | Extracted from 1,882-line monolith. Each step independently testable.                     |
+| 24  | Progressive save              | JSONB + 500ms debounce to `onboarding_session` (Learning-0015)       | Resilient to browser close. Schema changes need no migration.                             |
 
 ---
 
@@ -779,16 +839,62 @@ All decisions made during the design process:
 
 Specific considerations for migration from Bubble to Next.js/Supabase:
 
-- Invitation system uses Supabase Auth for account creation (email+password, magic link, SMS OTP via Twilio)
-- `workspace_invite` table needs RLS: only admins/managers can create invites; public access for acceptance via token
-- Invite token validation as a Supabase Edge Function (verify token, check expiry, create User+Profile+CompanyMember)
-- Bulk CSV import processed server-side via Edge Function (validate, deduplicate, batch-create invites)
-- Sandbox mode enforced at the API layer: check `Profile.status === 'trainee'` before writing to operational tables
-- Module journey checkpoints are seed data — inserted via migration scripts, versioned with module releases
-- `OnboardingOverlay` component is client-side only — no server rendering needed
-- AI tool calling for UI guidance uses the existing Mr. Botsson chat infrastructure with additional tool definitions
-- Trainee badge in scheduling grid is a UI concern — query `Profile.status` when rendering the employee list in Module 3
-- Gamification points from trainee mode need the same `points_event` table that Module 4 proposes (Core-level, not module-level)
+- ✅ Invitation system uses Supabase Auth for account creation (email+password via `accept-invitation` Edge Function)
+- ✅ `invitation` table has RLS: admins/managers can create invites; token-based acceptance via Edge Function
+- ✅ Invite token validation via `accept-invitation` Edge Function (verify token, check expiry, create auth.users + user_identity + profile)
+- ✅ Admin wizard uses `activate_workspace_v3` RPC for atomic workspace creation
+- ✅ Progressive save to `onboarding_session` JSONB (Learning-0015)
+- ⏳ Bulk CSV import — not yet implemented, will be processed server-side via Edge Function
+- ⏳ Sandbox mode — not yet enforced at API layer: will check `Profile.status === 'trainee'` before writing to operational tables
+- ⏳ Module journey checkpoints — seed data to be inserted via migration scripts, versioned with module releases
+- ⏳ `OnboardingOverlay` component — client-side only, no server rendering needed
+- ⏳ AI UI guidance tools — will extend Mr. Botsson with 12 additional tool definitions
+- ⏳ Trainee badge in scheduling grid — UI concern, will query `Profile.status` when rendering employee list
+- ⏳ Gamification points — needs `points_event` table (Core-level, cross-module concern)
+
+---
+
+## 16. Roadmap
+
+Prioritized list of unimplemented features, grouped by dependency order.
+
+### P1 — Core Trainee System (blocks everything else)
+
+| Item                  | What                                                           | Depends on            |
+| --------------------- | -------------------------------------------------------------- | --------------------- |
+| Trainee journey table | `trainee_journey` migration + auto-create on invite acceptance | —                     |
+| Module journey tables | `module_journey` + `module_journey_checkpoint` migrations      | —                     |
+| Checkpoint progress   | `profile_checkpoint_progress` migration                        | Module journey tables |
+| Hardcoded checkpoints | Seed data for core + per-module checkpoints                    | Module journey tables |
+| Trainee → Active      | Admin approval UI + profile.status transition logic            | Trainee journey table |
+
+### P2 — Trainee Experience
+
+| Item                 | What                                                                     | Depends on            |
+| -------------------- | ------------------------------------------------------------------------ | --------------------- |
+| Trainee progress UI  | Checklist + progress bar component for trainee dashboard                 | Checkpoint progress   |
+| AI UI guidance tools | 6 tools: navigate, highlight, tooltip, spotlight, autofill, celebrate    | OnboardingOverlay     |
+| AI operational tools | 6 tools: progress, checkpoint, suggest, sandbox, complete, escalate      | Trainee journey table |
+| OnboardingOverlay    | Portal component + `data-onboard` element tagging                        | —                     |
+| Sandbox enforcement  | API-layer check for `profile.status === 'trainee'` on operational writes | —                     |
+
+### P3 — Admin Tools
+
+| Item                    | What                                                      | Depends on            |
+| ----------------------- | --------------------------------------------------------- | --------------------- |
+| Admin trainee dashboard | Progress view per trainee, approval flow, AI alerts       | Trainee progress UI   |
+| 48h escalation          | Cron job: check trainees approaching first shift deadline | Trainee journey table |
+| Invite management UI    | List/resend/cancel/expire invites                         | —                     |
+| Bulk CSV import         | Upload, validate, deduplicate, batch-create invites       | Invitation system     |
+
+### P4 — Enhancement
+
+| Item                          | What                                                             | Depends on                  |
+| ----------------------------- | ---------------------------------------------------------------- | --------------------------- |
+| Gamification                  | `points_event` table, leaderboard, trainee point carry-over      | Cross-module infrastructure |
+| Cross-training                | New department → new protocols + AI guidance (no trainee mode)   | Module journeys             |
+| Voice-guided onboarding       | Ultravox integration for trainee checkpoint guidance             | AI UI tools + voice infra   |
+| Existing user multi-workspace | Accept invite as existing user → new profile, workspace selector | Invitation acceptance flow  |
 
 ---
 

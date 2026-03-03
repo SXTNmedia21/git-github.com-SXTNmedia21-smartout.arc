@@ -2,7 +2,7 @@
 title: "Entity Detail Pages Design"
 id: PLAN_ENTITY_DETAIL_PAGES
 version: "1.0"
-status: active
+status: draft
 layer: plan
 created: 2026-03-01
 updated: 2026-03-01

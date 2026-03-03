@@ -1,10 +1,10 @@
 ---
 title: "Journey Portal — Hardening & Feature Completion"
 id: PLAN_JOURNEY_PORTAL
-status: draft
+status: in_progress
 layer: plan
 created: 2026-03-01
-updated: 2026-03-01
+updated: 2026-03-03
 depends_on:
   - ADR_0031
   - ADR_0038

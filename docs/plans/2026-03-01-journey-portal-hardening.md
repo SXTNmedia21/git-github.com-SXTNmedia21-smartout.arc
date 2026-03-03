@@ -1,3 +1,12 @@
+---
+title: "Journey Portal Hardening Implementation Plan"
+status: in_progress
+updated: 2026-03-03
+created: 2026-03-01
+module: journey
+tags: [journey, security, hardening, ui]
+---
+
 # Journey Portal Hardening — Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.

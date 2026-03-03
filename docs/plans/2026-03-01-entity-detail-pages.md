@@ -1,3 +1,12 @@
+---
+title: "Entity Detail Pages Implementation Plan"
+status: draft
+updated: 2026-03-03
+created: 2026-03-01
+module: org-structure
+tags: [entity, detail-pages, department, location, team, profile]
+---
+
 # Entity Detail Pages Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.

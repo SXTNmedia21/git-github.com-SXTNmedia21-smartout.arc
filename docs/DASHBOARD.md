@@ -17,13 +17,13 @@ tags: [dashboard, worktrees, tracking]
 | ------ | --------------------------------- | --------------------------------- | --------- | ----------- | ------------- | ------ | ------- |
 | sma-16 | `~/.worktrees/smartout-ai/sma-16` | `feat/communications-v2-worker`   | comms     | in_progress | just now      | sma-16 | clean   |
 | sma-17 | `~/.worktrees/smartout-ai/sma-17` | `feat/dashboard-evolution-worker` | dashboard | in_progress | just now      | sma-17 | clean   |
+| wt-2   | `~/dev/wt-2`                      | `feat/communications-finish`      | comms     | in_progress | just started  | a2     | clean   |
 
 ## Free Slots
 
 | #      | Available |
 | ------ | --------- |
 | wt-1   | yes       |
-| wt-2   | yes       |
 | wt-3   | yes       |
 | wt-4   | yes       |
 | wt-5   | yes       |
@@ -33,9 +33,9 @@ tags: [dashboard, worktrees, tracking]
 
 ## Pending Journeys
 
-| Worktree | Feature | Journey File | Status |
-| -------- | ------- | ------------ | ------ |
-| (none)   | —       | —            | —      |
+| Worktree | Feature               | Journey File                                     | Status  |
+| -------- | --------------------- | ------------------------------------------------ | ------- |
+| wt-2     | communications-finish | `docs/journeys/JOURNEY-communications-finish.md` | missing |
 
 ## Recent Closures
 
@@ -88,3 +88,4 @@ tags: [dashboard, worktrees, tracking]
 | 2026-03-03 | complete-remaining-features | started           | wt-1, module: multi — 4 features: landing, portal, comms, entity-detail                 |
 | 2026-03-04 | admin-wizard-completion     | session ended     | Verified all 17 plan tasks already implemented, typecheck passes clean                  |
 | 2026-03-04 | dashboard-polish            | closed            | 8 commits on development: heatmap overhaul, strategic fix, day-control tabs, wt-1 freed |
+| 2026-03-04 | communications-finish       | started           | wt-2, module: comms — template persistence, engagement reports, webhook fix             |

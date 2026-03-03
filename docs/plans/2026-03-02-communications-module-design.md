@@ -1,6 +1,6 @@
 ---
 title: "Design — Communications Module UI Redesign"
-status: draft
+status: in_progress
 updated: 2026-03-02
 created: 2026-03-02
 module: communications
