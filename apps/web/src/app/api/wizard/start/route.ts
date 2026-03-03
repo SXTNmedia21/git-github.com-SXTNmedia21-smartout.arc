@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Get authenticated user + workspace
+  // Get authenticated user + workspace (workspace is optional during onboarding)
   const supabase = await createClient();
   const {
     data: { user },
@@ -39,6 +39,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // Look up profile — may not exist yet during onboarding
   const { data: profile } = await supabase
     .from("profile")
     .select("profile_id, workspace_id")
@@ -46,13 +47,16 @@ export async function POST(request: NextRequest) {
     .limit(1)
     .single();
 
-  if (!profile?.workspace_id) {
-    return NextResponse.json({ error: "No workspace found" }, { status: 400 });
-  }
-
   try {
     const body = await request.json().catch(() => ({}));
     const missionId = body.mission_id || "onboarding-interview";
+
+    // During onboarding the workspace may not exist yet — use body override or profile
+    const workspaceId = body.workspace_id ?? profile?.workspace_id;
+
+    if (!workspaceId && missionId !== "onboarding-interview") {
+      return NextResponse.json({ error: "No workspace found" }, { status: 400 });
+    }
 
     const res = await fetch(`${stageEngineUrl}/adapters/ultravox/create-call`, {
       method: "POST",
@@ -62,7 +66,7 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         mission_id: missionId,
-        workspace_id: profile.workspace_id,
+        workspace_id: workspaceId ?? "00000000-0000-0000-0000-000000000000",
         user_id: user.id,
         voice: body.voice,
         language: body.language ?? "no",
