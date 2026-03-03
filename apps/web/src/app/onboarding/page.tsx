@@ -106,6 +106,7 @@ function ScrollContainer() {
           status={String(botsson.status)}
           isConnected={botsson.isConnected}
           contextLog={botsson.contextLog}
+          debugLog={botsson.debugLog}
           transcript={botsson.transcript}
           instruction={mission.systemPrompt}
         />

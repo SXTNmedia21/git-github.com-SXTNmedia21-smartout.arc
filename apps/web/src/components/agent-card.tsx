@@ -10,6 +10,12 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 
+interface DebugEntry {
+  timestamp: number;
+  type: "status" | "tool_call" | "tool_result" | "context_push" | "inference" | "event";
+  content: string;
+}
+
 interface AgentCardProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -28,6 +34,8 @@ interface AgentCardProps {
   isConnected?: boolean;
   // Context log: messages pushed via sendContext
   contextLog?: string[];
+  // Debug log: structured event log
+  debugLog?: DebugEntry[];
   // Transcript: conversation history
   transcript?: { role: string; text: string }[];
   // System prompt
@@ -59,10 +67,12 @@ export function AgentCard({
   status,
   isConnected,
   contextLog,
+  debugLog,
   transcript,
   instruction,
 }: AgentCardProps) {
   const [showInstruction, setShowInstruction] = useState(false);
+  const [showDebug, setShowDebug] = useState(true);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -128,6 +138,52 @@ export function AgentCard({
                 </p>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Debug log */}
+        {debugLog && debugLog.length > 0 && (
+          <div className="border-b border-white/[0.06] px-6 py-4">
+            <button
+              type="button"
+              onClick={() => setShowDebug((v) => !v)}
+              className="mb-2 flex items-center gap-1.5 text-[10px] font-medium tracking-wider text-white/40 uppercase transition-colors hover:text-white/60"
+            >
+              {showDebug ? (
+                <ChevronDown className="h-3 w-3" />
+              ) : (
+                <ChevronRight className="h-3 w-3" />
+              )}
+              Debug log ({debugLog.length})
+            </button>
+            {showDebug && (
+              <div className="flex max-h-60 flex-col gap-1 overflow-y-auto font-mono text-[11px]">
+                {debugLog.map((entry, i) => {
+                  const time = new Date(entry.timestamp).toLocaleTimeString("en-GB", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit",
+                  });
+                  const colors: Record<string, string> = {
+                    status: "text-blue-400/70",
+                    tool_call: "text-amber-400/80",
+                    tool_result: "text-emerald-400/60",
+                    context_push: "text-purple-400/70",
+                    inference: "text-rose-400/70",
+                    event: "text-white/30",
+                  };
+                  return (
+                    <div key={i} className="flex gap-2 leading-tight">
+                      <span className="shrink-0 text-white/20">{time}</span>
+                      <span className={`shrink-0 ${colors[entry.type] ?? "text-white/40"}`}>
+                        {entry.type}
+                      </span>
+                      <span className="truncate text-white/50">{entry.content}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
