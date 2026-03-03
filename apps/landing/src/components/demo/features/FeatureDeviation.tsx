@@ -10,7 +10,7 @@
 
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { AlertTriangle, FileText, Clock, MapPin, User, CheckCircle2, Send } from "lucide-react";
 import type { DemoFeatureProps } from "../journeys/types";
 
@@ -33,7 +33,7 @@ export function FeatureDeviation({ uiState }: DemoFeatureProps) {
       <AnimatePresence mode="wait">
         {/* Phase: Empty — waiting for user to start */}
         {phase === "empty" && (
-          <motion.div
+          <m.div
             key="empty"
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -54,12 +54,12 @@ export function FeatureDeviation({ uiState }: DemoFeatureProps) {
               <FileText className="h-3.5 w-3.5" />
               Bruk chatpanelet til høyre for å begynne
             </div>
-          </motion.div>
+          </m.div>
         )}
 
         {/* Phase: Building — fields appear progressively */}
         {phase === "building" && (
-          <motion.div
+          <m.div
             key="building"
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -78,7 +78,7 @@ export function FeatureDeviation({ uiState }: DemoFeatureProps) {
             <div className="flex flex-col gap-3">
               <AnimatePresence>
                 {fields.what && (
-                  <motion.div
+                  <m.div
                     key="what"
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -89,11 +89,11 @@ export function FeatureDeviation({ uiState }: DemoFeatureProps) {
                       Hva skjedde
                     </label>
                     <p className="text-sm text-zinc-200">{fields.what}</p>
-                  </motion.div>
+                  </m.div>
                 )}
 
                 {fields.when && (
-                  <motion.div
+                  <m.div
                     key="when"
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -104,11 +104,11 @@ export function FeatureDeviation({ uiState }: DemoFeatureProps) {
                       Når skjedde det
                     </label>
                     <p className="text-sm text-zinc-200">{fields.when}</p>
-                  </motion.div>
+                  </m.div>
                 )}
 
                 {fields.where && (
-                  <motion.div
+                  <m.div
                     key="where"
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -119,11 +119,11 @@ export function FeatureDeviation({ uiState }: DemoFeatureProps) {
                       Hvor skjedde det
                     </label>
                     <p className="text-sm text-zinc-200">{fields.where}</p>
-                  </motion.div>
+                  </m.div>
                 )}
 
                 {fields.severity && (
-                  <motion.div
+                  <m.div
                     key="severity"
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -151,7 +151,7 @@ export function FeatureDeviation({ uiState }: DemoFeatureProps) {
                         </span>
                       ))}
                     </div>
-                  </motion.div>
+                  </m.div>
                 )}
               </AnimatePresence>
             </div>
@@ -159,7 +159,7 @@ export function FeatureDeviation({ uiState }: DemoFeatureProps) {
             {/* Waiting indicator when not all fields are filled */}
             {Object.keys(fields).length < 4 && (
               <div className="flex items-center gap-2 text-xs text-zinc-500">
-                <motion.div
+                <m.div
                   className="h-1.5 w-1.5 rounded-full bg-amber-500"
                   animate={{ opacity: [0.3, 1, 0.3] }}
                   transition={{ duration: 1.5, repeat: Infinity }}
@@ -167,12 +167,12 @@ export function FeatureDeviation({ uiState }: DemoFeatureProps) {
                 Lise samler inn informasjon...
               </div>
             )}
-          </motion.div>
+          </m.div>
         )}
 
         {/* Phase: Submitted — final summary card */}
         {phase === "submitted" && (
-          <motion.div
+          <m.div
             key="submitted"
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -181,7 +181,7 @@ export function FeatureDeviation({ uiState }: DemoFeatureProps) {
             className="flex flex-1 flex-col gap-5"
           >
             {/* Success banner */}
-            <motion.div
+            <m.div
               initial={{ scale: 0.95 }}
               animate={{ scale: 1 }}
               className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4"
@@ -191,7 +191,7 @@ export function FeatureDeviation({ uiState }: DemoFeatureProps) {
                 <p className="text-sm font-medium text-emerald-300">Avviksmeldning registrert</p>
                 <p className="text-xs text-zinc-500">Sendt til avdelingsleder kl. 14:32</p>
               </div>
-            </motion.div>
+            </m.div>
 
             {/* Summary card */}
             <div className="rounded-2xl border border-white/[0.06] bg-[#0a0a0c] p-5">
@@ -239,7 +239,7 @@ export function FeatureDeviation({ uiState }: DemoFeatureProps) {
                 </div>
               </div>
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </div>

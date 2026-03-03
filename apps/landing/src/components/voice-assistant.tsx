@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Mic, MicOff, Sparkles, X, Activity, Bot, Loader2 } from "lucide-react";
 import { UltravoxSession, UltravoxSessionStatus, Role } from "ultravox-client";
 import { MISSION_MANIFEST } from "@smartout/ai/missions";
@@ -201,7 +201,7 @@ export default function VoiceAssistant({
           </div>
         ) : (
           messages.map((msg, idx) => (
-            <motion.div
+            <m.div
               key={idx}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -220,7 +220,7 @@ export default function VoiceAssistant({
               >
                 {msg.text}
               </div>
-            </motion.div>
+            </m.div>
           ))
         )}
       </div>
@@ -246,7 +246,7 @@ export default function VoiceAssistant({
             <div className="flex flex-1 justify-center">
               <div className="flex h-6 items-center gap-1">
                 {[1, 2, 3, 4, 5].map((i) => (
-                  <motion.div
+                  <m.div
                     key={i}
                     animate={
                       isConnected && !isMuted

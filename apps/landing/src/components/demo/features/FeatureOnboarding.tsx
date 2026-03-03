@@ -9,7 +9,7 @@
 
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import {
   UserPlus,
   FileCheck,
@@ -67,7 +67,7 @@ export function FeatureOnboarding({ uiState, onInteraction }: DemoFeatureProps) 
       <AnimatePresence mode="wait">
         {/* Phase: Welcome */}
         {phase === "welcome" && (
-          <motion.div
+          <m.div
             key="welcome"
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -75,14 +75,14 @@ export function FeatureOnboarding({ uiState, onInteraction }: DemoFeatureProps) 
             transition={{ duration: 0.4 }}
             className="flex flex-1 flex-col items-center justify-center gap-6"
           >
-            <motion.div
+            <m.div
               initial={{ scale: 0.8 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
               className="flex h-20 w-20 items-center justify-center rounded-3xl bg-rose-500/10"
             >
               <UserPlus className="h-10 w-10 text-rose-400" />
-            </motion.div>
+            </m.div>
             <div className="text-center">
               <h2 className="text-2xl font-bold text-white">Velkommen, Sara!</h2>
               <p className="mt-2 max-w-sm text-sm text-zinc-400">
@@ -95,12 +95,12 @@ export function FeatureOnboarding({ uiState, onInteraction }: DemoFeatureProps) 
               </span>
               <span>Grand Hotel — Kjøkken</span>
             </div>
-          </motion.div>
+          </m.div>
         )}
 
         {/* Phase: Terms acceptance */}
         {phase === "terms" && (
-          <motion.div
+          <m.div
             key="terms"
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -131,7 +131,7 @@ export function FeatureOnboarding({ uiState, onInteraction }: DemoFeatureProps) 
             </div>
 
             {/* Accept toggle */}
-            <motion.button
+            <m.button
               onClick={() => onInteraction("accept-terms")}
               className={`flex items-center gap-3 rounded-xl border p-4 transition-all ${
                 termsAccepted
@@ -161,13 +161,13 @@ export function FeatureOnboarding({ uiState, onInteraction }: DemoFeatureProps) 
               <span className={`text-sm ${termsAccepted ? "text-emerald-300" : "text-zinc-300"}`}>
                 Jeg har lest og godtar arbeidsreglementet
               </span>
-            </motion.button>
-          </motion.div>
+            </m.button>
+          </m.div>
         )}
 
         {/* Phase: Protocol training */}
         {phase === "protocol" && (
-          <motion.div
+          <m.div
             key="protocol"
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -187,7 +187,7 @@ export function FeatureOnboarding({ uiState, onInteraction }: DemoFeatureProps) 
 
             {/* Progress bar */}
             <div className="h-1.5 overflow-hidden rounded-full bg-zinc-800">
-              <motion.div
+              <m.div
                 className="h-full rounded-full bg-rose-500"
                 animate={{
                   width: `${(completedItems / PROTOCOL_ITEMS.length) * 100}%`,
@@ -203,7 +203,7 @@ export function FeatureOnboarding({ uiState, onInteraction }: DemoFeatureProps) 
                 const isCurrent = i === completedItems;
 
                 return (
-                  <motion.button
+                  <m.button
                     key={item.id}
                     onClick={() => {
                       if (isCurrent) onInteraction(`complete-item-${i}`);
@@ -246,16 +246,16 @@ export function FeatureOnboarding({ uiState, onInteraction }: DemoFeatureProps) 
                         <p className="mt-0.5 text-xs text-zinc-500">{item.description}</p>
                       </div>
                     </div>
-                  </motion.button>
+                  </m.button>
                 );
               })}
             </div>
-          </motion.div>
+          </m.div>
         )}
 
         {/* Phase: Complete — "Klar til vakt!" */}
         {phase === "complete" && (
-          <motion.div
+          <m.div
             key="complete"
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -263,36 +263,36 @@ export function FeatureOnboarding({ uiState, onInteraction }: DemoFeatureProps) 
             transition={{ duration: 0.4 }}
             className="flex flex-1 flex-col items-center justify-center gap-6"
           >
-            <motion.div
+            <m.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
               className="flex h-24 w-24 items-center justify-center rounded-3xl bg-emerald-500/10"
             >
               <Shield className="h-12 w-12 text-emerald-400" />
-            </motion.div>
+            </m.div>
 
             <div className="text-center">
-              <motion.h2
+              <m.h2
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
                 className="text-3xl font-black text-white"
               >
                 Klar til vakt!
-              </motion.h2>
-              <motion.p
+              </m.h2>
+              <m.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.6 }}
                 className="mt-2 text-sm text-zinc-400"
               >
                 Sara har fullført onboarding og er klar fra dag 1.
-              </motion.p>
+              </m.p>
             </div>
 
             {/* Completion badges */}
-            <motion.div
+            <m.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.8 }}
@@ -311,10 +311,10 @@ export function FeatureOnboarding({ uiState, onInteraction }: DemoFeatureProps) 
                   {badge.label}
                 </span>
               ))}
-            </motion.div>
+            </m.div>
 
             {/* Ready score */}
-            <motion.div
+            <m.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 1.0 }}
@@ -322,8 +322,8 @@ export function FeatureOnboarding({ uiState, onInteraction }: DemoFeatureProps) 
             >
               <p className="text-4xl font-black text-emerald-400">100%</p>
               <p className="mt-1 text-xs text-zinc-500">Readiness Score</p>
-            </motion.div>
-          </motion.div>
+            </m.div>
+          </m.div>
         )}
       </AnimatePresence>
     </div>

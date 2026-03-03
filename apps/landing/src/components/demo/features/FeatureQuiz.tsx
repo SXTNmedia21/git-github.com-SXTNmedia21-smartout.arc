@@ -10,7 +10,7 @@
 
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { GraduationCap, CheckCircle2, XCircle, Trophy, Star } from "lucide-react";
 import type { DemoFeatureProps } from "../journeys/types";
 
@@ -77,7 +77,7 @@ export function FeatureQuiz({ uiState, onInteraction }: DemoFeatureProps) {
       <AnimatePresence mode="wait">
         {/* Phase: Intro */}
         {phase === "intro" && (
-          <motion.div
+          <m.div
             key="intro"
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -101,12 +101,12 @@ export function FeatureQuiz({ uiState, onInteraction }: DemoFeatureProps) {
               <span className="h-4 w-px bg-zinc-700" />
               <span>Mattrygghet & HMS</span>
             </div>
-          </motion.div>
+          </m.div>
         )}
 
         {/* Phase: Quiz questions */}
         {phase === "quiz" && question && (
-          <motion.div
+          <m.div
             key={`question-${currentQuestion}`}
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -156,7 +156,7 @@ export function FeatureQuiz({ uiState, onInteraction }: DemoFeatureProps) {
                 }
 
                 return (
-                  <motion.button
+                  <m.button
                     key={i}
                     onClick={() => {
                       if (!showFeedback) onInteraction(`answer-${i}`);
@@ -187,7 +187,7 @@ export function FeatureQuiz({ uiState, onInteraction }: DemoFeatureProps) {
                     {showFeedback && isSelected && !isCorrect && (
                       <XCircle className="h-4 w-4 text-red-400" />
                     )}
-                  </motion.button>
+                  </m.button>
                 );
               })}
             </div>
@@ -195,7 +195,7 @@ export function FeatureQuiz({ uiState, onInteraction }: DemoFeatureProps) {
             {/* Feedback text */}
             <AnimatePresence>
               {showFeedback && (
-                <motion.div
+                <m.div
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   className={`rounded-xl border p-4 text-sm ${
@@ -205,15 +205,15 @@ export function FeatureQuiz({ uiState, onInteraction }: DemoFeatureProps) {
                   }`}
                 >
                   {question.explanation}
-                </motion.div>
+                </m.div>
               )}
             </AnimatePresence>
-          </motion.div>
+          </m.div>
         )}
 
         {/* Phase: Result screen */}
         {phase === "result" && (
-          <motion.div
+          <m.div
             key="result"
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -221,14 +221,14 @@ export function FeatureQuiz({ uiState, onInteraction }: DemoFeatureProps) {
             transition={{ duration: 0.4 }}
             className="flex flex-1 flex-col items-center justify-center gap-6"
           >
-            <motion.div
+            <m.div
               initial={{ scale: 0.5 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring", stiffness: 200 }}
               className="flex h-20 w-20 items-center justify-center rounded-3xl bg-amber-500/10"
             >
               <Trophy className="h-10 w-10 text-amber-400" />
-            </motion.div>
+            </m.div>
 
             <div className="text-center">
               <h2 className="text-2xl font-bold text-white">Quiz fullført!</h2>
@@ -240,7 +240,7 @@ export function FeatureQuiz({ uiState, onInteraction }: DemoFeatureProps) {
             {/* Star rating */}
             <div className="flex gap-1">
               {[0, 1, 2].map((i) => (
-                <motion.div
+                <m.div
                   key={i}
                   initial={{ opacity: 0, scale: 0 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -251,14 +251,14 @@ export function FeatureQuiz({ uiState, onInteraction }: DemoFeatureProps) {
                       i < score ? "fill-amber-400 text-amber-400" : "text-zinc-700"
                     }`}
                   />
-                </motion.div>
+                </m.div>
               ))}
             </div>
 
             {/* Score bar */}
             <div className="w-full max-w-xs">
               <div className="h-2 overflow-hidden rounded-full bg-zinc-800">
-                <motion.div
+                <m.div
                   className="h-full rounded-full bg-gradient-to-r from-purple-500 to-amber-500"
                   initial={{ width: "0%" }}
                   animate={{ width: `${(score / QUESTIONS.length) * 100}%` }}
@@ -269,7 +269,7 @@ export function FeatureQuiz({ uiState, onInteraction }: DemoFeatureProps) {
                 {Math.round((score / QUESTIONS.length) * 100)}% riktig
               </p>
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </div>

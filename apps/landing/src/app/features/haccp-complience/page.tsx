@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -90,7 +90,7 @@ export default function IkMatAvvikPage() {
           </div>
         </div>
 
-        <motion.div
+        <m.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#0a0a0c]/80 p-6 shadow-[0_0_50px_-15px_rgba(249,115,22,0.2)] backdrop-blur-3xl sm:p-8 md:p-12"
@@ -99,7 +99,7 @@ export default function IkMatAvvikPage() {
 
           {isDone ? (
             <div className="py-24 text-center">
-              <motion.div
+              <m.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ type: "spring", bounce: 0.5 }}
@@ -107,7 +107,7 @@ export default function IkMatAvvikPage() {
                 <div className="mx-auto mb-8 flex h-32 w-32 items-center justify-center rounded-full border border-emerald-500/20 bg-emerald-500/10 shadow-[0_0_40px_-10px_rgba(16,185,129,0.3)]">
                   <CheckCircle2 className="h-16 w-16 text-emerald-400" />
                 </div>
-              </motion.div>
+              </m.div>
               <h2 className="mb-4 text-4xl font-black text-white">Kontroll Loggført</h2>
               <p className="mx-auto max-w-md text-xl font-medium text-zinc-400">
                 Målingen er sikkert lagret og synkronisert med styringssystemet ditt.
@@ -151,7 +151,7 @@ export default function IkMatAvvikPage() {
               {/* Survey Step Content */}
               <div className="flex min-h-[350px] flex-col justify-center md:w-2/3">
                 {step === 1 && (
-                  <motion.div
+                  <m.div
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     className="flex flex-col gap-8"
@@ -181,11 +181,11 @@ export default function IkMatAvvikPage() {
                         <span className="text-lg font-bold">Ja, registrer avvik</span>
                       </button>
                     </div>
-                  </motion.div>
+                  </m.div>
                 )}
 
                 {step === 2 && (
-                  <motion.div
+                  <m.div
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     className="flex flex-col gap-8"
@@ -229,11 +229,11 @@ export default function IkMatAvvikPage() {
                     >
                       Bekreft Temperatur <ChevronRight className="h-5 w-5" />
                     </button>
-                  </motion.div>
+                  </m.div>
                 )}
 
                 {step === 3 && (
-                  <motion.div
+                  <m.div
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     className="flex flex-col gap-8"
@@ -295,12 +295,12 @@ export default function IkMatAvvikPage() {
                         {!isSubmitting && <PenTool className="h-5 w-5" />}
                       </button>
                     </div>
-                  </motion.div>
+                  </m.div>
                 )}
               </div>
             </div>
           )}
-        </motion.div>
+        </m.div>
 
         <NextPageBanner
           href="/features/punchclock-timetracking"

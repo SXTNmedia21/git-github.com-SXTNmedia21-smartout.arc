@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import {
   ArrowLeft,
   MapPin,
@@ -127,7 +127,7 @@ export default function LokasjonerPage() {
 
         {/* Score Section */}
         <div className="mb-8 grid grid-cols-1 gap-8 md:grid-cols-2">
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#0a0a0c]/80 p-8 backdrop-blur-3xl"
@@ -152,9 +152,9 @@ export default function LokasjonerPage() {
                 ></div>
               ))}
             </div>
-          </motion.div>
+          </m.div>
 
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
@@ -199,13 +199,13 @@ export default function LokasjonerPage() {
                 </div>
               </div>
             </div>
-          </motion.div>
+          </m.div>
         </div>
 
         {/* Grid of stats */}
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           {stats.map((stat, i) => (
-            <motion.div
+            <m.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.2 + i * 0.05 }}
@@ -221,7 +221,7 @@ export default function LokasjonerPage() {
                 {stat.label}
               </h3>
               <span className="text-3xl font-black text-white">{stat.value}</span>
-            </motion.div>
+            </m.div>
           ))}
         </div>
 

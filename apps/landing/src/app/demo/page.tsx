@@ -10,7 +10,7 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { ArrowLeft, Bot } from "lucide-react";
 import { journeys } from "../../components/demo/journeys";
 import { JourneyCard } from "../../components/demo/JourneyCard";
@@ -40,7 +40,7 @@ export default function DemoHubPage() {
 
       <div className="mx-auto max-w-4xl px-6 pt-8 pb-20 sm:px-8">
         {/* Header */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
@@ -54,7 +54,7 @@ export default function DemoHubPage() {
             Velg et scenario og opplev hvordan Smartout fungerer i praksis — guidet av
             AI-assistenten Lise.
           </p>
-        </motion.div>
+        </m.div>
 
         {/* Journey grid — 2 columns on tablet, 3 on desktop */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -75,14 +75,14 @@ export default function DemoHubPage() {
         </div>
 
         {/* Footer note */}
-        <motion.p
+        <m.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.8, duration: 0.5 }}
           className="mt-12 text-center text-sm text-zinc-600"
         >
           Alle scenarier bruker simulert data — ingen ekte personopplysninger.
-        </motion.p>
+        </m.p>
       </div>
     </div>
   );

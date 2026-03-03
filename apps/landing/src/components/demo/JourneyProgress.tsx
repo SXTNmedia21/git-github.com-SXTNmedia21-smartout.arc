@@ -8,7 +8,7 @@
 
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import type { JourneyPersona } from "./journeys/types";
 
 /** Map persona keys to Norwegian display labels */
@@ -63,7 +63,7 @@ export function JourneyProgress({ title, persona, totalSteps, currentStep }: Jou
           const isCompleted = i < currentStep;
 
           return (
-            <motion.div
+            <m.div
               key={i}
               className={`rounded-full transition-colors ${
                 isActive

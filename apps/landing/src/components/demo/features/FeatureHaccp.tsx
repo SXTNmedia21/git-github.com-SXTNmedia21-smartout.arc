@@ -10,7 +10,7 @@
 
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { Thermometer, CheckCircle2, AlertTriangle, Shield, Bell } from "lucide-react";
 import type { DemoFeatureProps } from "../journeys/types";
 
@@ -112,7 +112,7 @@ export function FeatureHaccp({ uiState, onInteraction }: DemoFeatureProps) {
           </span>
         </div>
         <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-800">
-          <motion.div
+          <m.div
             className={`h-full rounded-full ${showAlert ? "bg-red-500" : "bg-emerald-500"}`}
             animate={{
               width: `${(Math.min(checkedUnits, UNITS.length) / UNITS.length) * 100}%`,
@@ -130,7 +130,7 @@ export function FeatureHaccp({ uiState, onInteraction }: DemoFeatureProps) {
           const isOverThreshold = unit.temperature > unit.threshold;
 
           return (
-            <motion.button
+            <m.button
               key={unit.id}
               onClick={() => {
                 if (isCurrent) onInteraction(`check-unit-${i}`);
@@ -229,7 +229,7 @@ export function FeatureHaccp({ uiState, onInteraction }: DemoFeatureProps) {
                   )}
                 </div>
               )}
-            </motion.button>
+            </m.button>
           );
         })}
       </div>
@@ -237,7 +237,7 @@ export function FeatureHaccp({ uiState, onInteraction }: DemoFeatureProps) {
       {/* Alert banner */}
       <AnimatePresence>
         {showAlert && phase !== "resolved" && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -16 }}
@@ -252,11 +252,11 @@ export function FeatureHaccp({ uiState, onInteraction }: DemoFeatureProps) {
                 Kjølerom (Lager B) — +9.1°C — Varslet avdelingsleder
               </p>
             </div>
-          </motion.div>
+          </m.div>
         )}
 
         {phase === "resolved" && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4"
@@ -268,7 +268,7 @@ export function FeatureHaccp({ uiState, onInteraction }: DemoFeatureProps) {
                 2 godkjent, 1 avvik meldt og håndtert. Logg lagret.
               </p>
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </div>

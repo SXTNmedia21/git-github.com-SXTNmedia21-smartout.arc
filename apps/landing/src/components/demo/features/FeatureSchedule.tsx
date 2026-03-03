@@ -10,7 +10,7 @@
 
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { Users, CheckCircle2, AlertCircle, Clock, Bot, Sparkles } from "lucide-react";
 import type { DemoFeatureProps } from "../journeys/types";
 
@@ -192,7 +192,7 @@ export function FeatureSchedule({ uiState, onInteraction }: DemoFeatureProps) {
                     {day.shifts.map((shift, i) => {
                       const style = STATUS_STYLES[shift.status];
                       return (
-                        <motion.div
+                        <m.div
                           key={`${day.day}-${shift.name}-${i}`}
                           initial={{ opacity: 0, scale: 0.95 }}
                           animate={{ opacity: 1, scale: 1 }}
@@ -227,14 +227,14 @@ export function FeatureSchedule({ uiState, onInteraction }: DemoFeatureProps) {
                               Foreslått av Lise
                             </span>
                           )}
-                        </motion.div>
+                        </m.div>
                       );
                     })}
                   </AnimatePresence>
 
                   {/* Empty gap indicator for Tuesday */}
                   {isGapDay && (
-                    <motion.div
+                    <m.div
                       animate={
                         showGapHighlight
                           ? {
@@ -254,7 +254,7 @@ export function FeatureSchedule({ uiState, onInteraction }: DemoFeatureProps) {
                         Ingen dekning
                       </span>
                       <span className="mt-0.5 text-[10px] text-red-400/40">2 ansatte mangler</span>
-                    </motion.div>
+                    </m.div>
                   )}
                 </div>
               </div>
@@ -266,7 +266,7 @@ export function FeatureSchedule({ uiState, onInteraction }: DemoFeatureProps) {
       {/* Stats panel — shown at the final step */}
       <AnimatePresence>
         {showStats && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 16 }}
@@ -276,7 +276,7 @@ export function FeatureSchedule({ uiState, onInteraction }: DemoFeatureProps) {
             <StatCard label="Dekningsgrad" value="100%" color="emerald" />
             <StatCard label="Overtid" value="0 t" color="cyan" />
             <StatCard label="Ønsker oppfylt" value="3/4" color="orange" />
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </div>

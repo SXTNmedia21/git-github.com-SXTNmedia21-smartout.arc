@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Quote, Heart } from "lucide-react";
 import Navigation from "../../components/navigation";
 import Footer from "../../components/footer";
@@ -46,7 +46,7 @@ export default function BlogPage() {
 
       <main className="relative z-10 mx-auto min-h-screen max-w-7xl px-6 pt-40 pb-20">
         <div className="mx-auto mb-20 max-w-3xl text-center">
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
@@ -56,9 +56,9 @@ export default function BlogPage() {
             <div className="absolute -inset-[1px] rounded-full bg-gradient-to-r from-orange-500 to-rose-500 opacity-0 blur-sm transition-opacity duration-500 group-hover:opacity-30" />
             <Heart className="relative z-10 h-4 w-4 text-orange-400 drop-shadow-[0_0_8px_rgba(251,146,60,0.8)]" />
             <span className="relative z-10">Historiene fra bransjen</span>
-          </motion.div>
+          </m.div>
 
-          <motion.h1
+          <m.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
@@ -71,9 +71,9 @@ export default function BlogPage() {
                 virkelighetens helter.
               </span>
             </span>
-          </motion.h1>
+          </m.h1>
 
-          <motion.p
+          <m.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
@@ -81,10 +81,10 @@ export default function BlogPage() {
           >
             Les om hvordan Norges beste restauranter har halvert administrativ tid og fått fornøyde
             ansatte.
-          </motion.p>
+          </m.p>
         </div>
 
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.3 }}
@@ -160,7 +160,7 @@ export default function BlogPage() {
               </div>
             </div>
           ))}
-        </motion.div>
+        </m.div>
       </main>
 
       <Footer />

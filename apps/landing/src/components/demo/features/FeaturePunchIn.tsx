@@ -9,7 +9,7 @@
 
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { Clock, CheckCircle2, Circle, MapPin, User, BarChart3, TrendingUp } from "lucide-react";
 import type { DemoFeatureProps } from "../journeys/types";
 
@@ -48,7 +48,7 @@ export function FeaturePunchIn({ currentStepId, uiState, onInteraction }: DemoFe
       <AnimatePresence mode="wait">
         {/* Phase 1: Clock-in screen */}
         {phase === "clock-in" && (
-          <motion.div
+          <m.div
             key="clock-in"
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -69,7 +69,7 @@ export function FeaturePunchIn({ currentStepId, uiState, onInteraction }: DemoFe
             </div>
 
             {/* Punch button */}
-            <motion.button
+            <m.button
               onClick={() => onInteraction("clock-in")}
               className={`flex items-center gap-3 rounded-2xl px-8 py-4 text-lg font-bold transition-all ${
                 clockedIn
@@ -95,27 +95,27 @@ export function FeaturePunchIn({ currentStepId, uiState, onInteraction }: DemoFe
             >
               <Clock className="h-6 w-6" />
               {clockedIn ? "Innstemplet 06:58" : "Stempel inn"}
-            </motion.button>
+            </m.button>
 
             {/* Clocked-in confirmation */}
             <AnimatePresence>
               {clockedIn && (
-                <motion.div
+                <m.div
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   className="flex items-center gap-2 text-sm text-emerald-400"
                 >
                   <CheckCircle2 className="h-4 w-4" />
                   Du er innstemplet — 2 minutter før vaktstart
-                </motion.div>
+                </m.div>
               )}
             </AnimatePresence>
-          </motion.div>
+          </m.div>
         )}
 
         {/* Phase 2: Task list */}
         {phase === "tasks" && (
-          <motion.div
+          <m.div
             key="tasks"
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -144,7 +144,7 @@ export function FeaturePunchIn({ currentStepId, uiState, onInteraction }: DemoFe
                 <span>{Math.round((completedTasks / TASKS.length) * 100)}%</span>
               </div>
               <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-800">
-                <motion.div
+                <m.div
                   className="h-full rounded-full bg-orange-500"
                   animate={{ width: `${(completedTasks / TASKS.length) * 100}%` }}
                   transition={{ duration: 0.5 }}
@@ -159,7 +159,7 @@ export function FeaturePunchIn({ currentStepId, uiState, onInteraction }: DemoFe
                 const isCurrent = i === completedTasks;
 
                 return (
-                  <motion.button
+                  <m.button
                     key={task.id}
                     onClick={() => {
                       if (isCurrent) onInteraction("check-task");
@@ -204,16 +204,16 @@ export function FeaturePunchIn({ currentStepId, uiState, onInteraction }: DemoFe
                       </p>
                     </div>
                     <span className="text-xs text-zinc-500">{task.time}</span>
-                  </motion.button>
+                  </m.button>
                 );
               })}
             </div>
-          </motion.div>
+          </m.div>
         )}
 
         {/* Phase 3: Manager stats view */}
         {phase === "stats" && (
-          <motion.div
+          <m.div
             key="stats"
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -275,7 +275,7 @@ export function FeaturePunchIn({ currentStepId, uiState, onInteraction }: DemoFe
                     color: "text-orange-400",
                   },
                 ].map((entry, i) => (
-                  <motion.div
+                  <m.div
                     key={i}
                     initial={{ opacity: 0, x: -8 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -286,11 +286,11 @@ export function FeaturePunchIn({ currentStepId, uiState, onInteraction }: DemoFe
                       {entry.time}
                     </span>
                     <span className={`text-sm ${entry.color}`}>{entry.text}</span>
-                  </motion.div>
+                  </m.div>
                 ))}
               </div>
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </div>

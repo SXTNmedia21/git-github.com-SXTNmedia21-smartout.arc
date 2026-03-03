@@ -9,7 +9,7 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import {
   Clock,
   CalendarDays,
@@ -124,7 +124,7 @@ export function JourneyCard({
   const badge = PERSONA_BADGE[persona];
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{
@@ -169,6 +169,6 @@ export function JourneyCard({
           )}
         </div>
       </Link>
-    </motion.div>
+    </m.div>
   );
 }

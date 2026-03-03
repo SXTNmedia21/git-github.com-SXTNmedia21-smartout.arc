@@ -10,7 +10,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { Bot, Mic, MicOff, Send, Volume2 } from "lucide-react";
 import type { QuickReply } from "./journeys/types";
 
@@ -111,7 +111,7 @@ export function AssistantPanel({
       <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
         <AnimatePresence mode="popLayout">
           {messages.map((msg) => (
-            <motion.div
+            <m.div
               key={msg.id}
               {...fadeUp}
               layout
@@ -126,7 +126,7 @@ export function AssistantPanel({
               >
                 {msg.content}
               </div>
-            </motion.div>
+            </m.div>
           ))}
 
           {/* Quick reply chips — shown after the last assistant message */}
@@ -134,7 +134,7 @@ export function AssistantPanel({
             messages[messages.length - 1]?.role === "assistant" &&
             messages[messages.length - 1]?.quickReplies &&
             messages[messages.length - 1]!.quickReplies!.length > 0 && (
-              <motion.div key="quick-replies" {...fadeUp} className="flex flex-wrap gap-2 pt-1">
+              <m.div key="quick-replies" {...fadeUp} className="flex flex-wrap gap-2 pt-1">
                 {messages[messages.length - 1]!.quickReplies!.map((reply) => (
                   <button
                     key={reply.label}
@@ -144,21 +144,21 @@ export function AssistantPanel({
                     {reply.label}
                   </button>
                 ))}
-              </motion.div>
+              </m.div>
             )}
         </AnimatePresence>
 
         {/* Typing indicator — three bouncing dots */}
         <AnimatePresence>
           {isTyping && (
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
               className="flex items-center gap-1 px-1"
             >
               {[0, 1, 2].map((i) => (
-                <motion.span
+                <m.span
                   key={i}
                   className="h-1.5 w-1.5 rounded-full bg-zinc-500"
                   animate={{ y: [0, -4, 0] }}
@@ -169,7 +169,7 @@ export function AssistantPanel({
                   }}
                 />
               ))}
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
       </div>

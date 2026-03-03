@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { ArrowLeft, Users, Target, Heart, ShieldCheck, Zap } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -43,7 +43,7 @@ export default function OmOssPage() {
           Tilbake til forside
         </button>
 
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
@@ -63,11 +63,11 @@ export default function OmOssPage() {
             fragmenterte systemer. Vår misjon er å gi restauranter, hoteller og barer teknologien de
             fortjener.
           </p>
-        </motion.div>
+        </m.div>
 
         {/* Core Values Section */}
         <div className="mb-32 grid grid-cols-1 gap-8 md:grid-cols-3">
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -82,9 +82,9 @@ export default function OmOssPage() {
               Vi tror på å fjerne friksjon. Hvert minutt spart på administrasjon er et minutt mer
               til gjestene.
             </p>
-          </motion.div>
+          </m.div>
 
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -99,9 +99,9 @@ export default function OmOssPage() {
               Systemet vårt er bygget for å tåle presset når restauranten er stappfull og marginene
               er små.
             </p>
-          </motion.div>
+          </m.div>
 
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -116,11 +116,11 @@ export default function OmOssPage() {
               Teknologi skal empowerere de ansatte, ikke overvåke dem. Vi designer for glede og
               mestring.
             </p>
-          </motion.div>
+          </m.div>
         </div>
 
         {/* Team / Office Section Placeholder */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, scale: 0.95 }}
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true }}
@@ -135,10 +135,10 @@ export default function OmOssPage() {
               Fra vårt hovedkvarter jobber vi hver dag for å revolusjonere bransjen.
             </p>
           </div>
-        </motion.div>
+        </m.div>
 
         {/* CTA Section */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -160,7 +160,7 @@ export default function OmOssPage() {
               <Zap className="h-5 w-5 text-orange-500" /> Start din SmartOut i dag
             </Link>
           </div>
-        </motion.div>
+        </m.div>
       </div>
       <Footer />
     </div>

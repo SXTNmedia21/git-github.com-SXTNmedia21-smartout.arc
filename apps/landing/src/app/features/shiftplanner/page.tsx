@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import {
   ArrowLeft,
   Plus,
@@ -88,7 +88,7 @@ export default function VaktlisteLonnPage() {
           </div>
         </div>
 
-        <motion.div
+        <m.div
           initial={{ opacity: 0, scale: 0.98, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ delay: 0.1 }}
@@ -262,7 +262,7 @@ export default function VaktlisteLonnPage() {
               )}
             </main>
           </div>
-        </motion.div>
+        </m.div>
 
         <NextPageBanner
           href="/features/task-rutines"
