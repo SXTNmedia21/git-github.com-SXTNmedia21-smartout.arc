@@ -1,18 +1,13 @@
 ---
 title: Learning Log
 status: in_progress
-updated: 2026-03-03
-created: 2026-03-03
-module: dashboard
+updated: 2026-03-04
+created: 2026-03-04
+module: infra
 tags: [learnings]
 ---
 
-# Learning Log — dashboard-perf
-module: ai
-tags: [learnings]
----
-
-# Learning Log — stage-engine-fix
+# Learning Log — infra-port-consolidation
 
 | #   | Date | Learning | Impact |
 | --- | ---- | -------- | ------ |

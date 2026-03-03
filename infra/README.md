@@ -8,9 +8,9 @@ See [ADR-0040](../docs/decisions/0040-infrastructure-in-monorepo.md) for the dec
 | Service          | Port   | Domain                   | Description            | Status       |
 | ---------------- | ------ | ------------------------ | ---------------------- | ------------ |
 | caddy            | 80/443 | \*.smartout.ai           | HTTPS reverse proxy    | Active       |
-| stage-engine     | 3070   | engine.smartout.ai       | AI agent orchestration | Active       |
-| shift-mcp        | 3001   | schedule-mcp.smartout.ai | Shift management MCP   | Active       |
-| contract-service | 3100   | contract.smartout.ai     | DocuSeal e-signatures  | Active       |
+| stage-engine     | 5010   | engine.smartout.ai       | AI agent orchestration | Active       |
+| shift-mcp        | 5011   | schedule-mcp.smartout.ai | Shift management MCP   | Active       |
+| contract-service | 5012   | contract.smartout.ai     | DocuSeal e-signatures  | Active       |
 | scrapling        | 8000   | (internal)               | Web scraping           | Active       |
 | n8n              | 5678   | n8n.smartout.ai          | Workflow automation    | Not deployed |
 
@@ -31,12 +31,12 @@ nano infra/.env
 cd infra
 docker compose up --build
 
-# Services available at:
-#    Stage Engine:      http://localhost:3070
-#    Shift MCP:         http://localhost:3071
-#    Contract Service:  http://localhost:3072
-#    Scrapling:         http://localhost:3073
-#    n8n:               http://localhost:3074 (also direct at :5678)
+# Services available at (direct ports from override):
+#    Stage Engine:      http://localhost:5010
+#    Shift MCP:         http://localhost:5011
+#    Contract Service:  http://localhost:5012
+#    Scrapling:         http://localhost:8000
+#    n8n:               http://localhost:5678
 ```
 
 ## Production
