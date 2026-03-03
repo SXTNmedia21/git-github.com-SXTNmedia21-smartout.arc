@@ -30,6 +30,7 @@ export function useMyShifts(profileId: string | null) {
   return useQuery({
     queryKey: dashboardKeys.myShifts(profileId ?? ""),
     enabled: !!profileId,
+    staleTime: 2 * 60 * 1000, // 2 minutes — volatile shift data
     queryFn: async (): Promise<MyShift[]> => {
       const supabase = createClient();
       const today = new Date().toISOString().split("T")[0];
@@ -69,6 +70,7 @@ export function useMyReadiness(profileId: string | null) {
   return useQuery({
     queryKey: dashboardKeys.myReadiness(profileId ?? ""),
     enabled: !!profileId,
+    staleTime: 5 * 60 * 1000, // 5 minutes — semi-stable training readiness
     queryFn: async (): Promise<MyReadiness> => {
       const supabase = createClient();
 

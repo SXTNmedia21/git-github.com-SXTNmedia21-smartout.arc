@@ -36,6 +36,7 @@ export function useDayMessages(weekStart: string, weekEnd: string) {
 
   return useQuery({
     queryKey: scheduleKeys.dayMessages(workspace.workspace_id, weekStart),
+    staleTime: 2 * 60 * 1000, // 2 minutes — volatile daily content
     queryFn: async () => {
       const supabase = createClient();
 
@@ -161,6 +162,7 @@ export function useDayTasks(weekStart: string, weekEnd: string) {
 
   return useQuery({
     queryKey: scheduleKeys.dayTasks(workspace.workspace_id, weekStart),
+    staleTime: 2 * 60 * 1000, // 2 minutes — volatile daily content
     queryFn: async () => {
       const supabase = createClient();
 
@@ -337,6 +339,7 @@ export function useDayBookings(weekStart: string, weekEnd: string) {
 
   return useQuery({
     queryKey: scheduleKeys.dayBookings(workspace.workspace_id, weekStart),
+    staleTime: 2 * 60 * 1000, // 2 minutes — volatile daily content
     queryFn: async () => {
       const supabase = createClient();
 

@@ -134,6 +134,7 @@ export function useDayInfo(weekStart: string, weekEnd: string) {
       return (data ?? []).map(fromDbDayInfo);
     },
     enabled: !!workspaceId,
+    staleTime: 2 * 60 * 1000, // 2 minutes — volatile daily info
   });
 
   // Group by date for efficient lookup

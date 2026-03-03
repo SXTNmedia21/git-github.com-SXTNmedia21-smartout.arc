@@ -18,6 +18,7 @@ export function useDepartmentShifts(date: string) {
   return useQuery({
     queryKey: dashboardKeys.departmentShifts(workspaceId ?? "none", date),
     enabled: !!workspaceId,
+    staleTime: 2 * 60 * 1000, // 2 minutes — volatile shift data
     queryFn: async (): Promise<DepartmentShiftGroup[]> => {
       const wsId = workspaceId!;
       const supabase = createClient();

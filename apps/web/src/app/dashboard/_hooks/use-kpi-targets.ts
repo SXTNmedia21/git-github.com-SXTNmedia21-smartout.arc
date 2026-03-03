@@ -61,6 +61,7 @@ export function useKpiTargets() {
       return targets;
     },
     enabled: !!wsId,
+    staleTime: 10 * 60 * 1000, // 10 minutes — stable workspace config
   });
 
   const updateTarget = useMutation({

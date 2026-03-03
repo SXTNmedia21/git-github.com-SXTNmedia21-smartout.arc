@@ -18,6 +18,7 @@ export function useWorkforcePipeline() {
   return useQuery({
     queryKey: dashboardKeys.workforcePipeline(workspaceId ?? "none"),
     enabled: !!workspaceId,
+    staleTime: 5 * 60 * 1000, // 5 minutes — semi-stable workforce pipeline
     queryFn: async (): Promise<PipelineData> => {
       const wsId = workspaceId!;
       const supabase = createClient();

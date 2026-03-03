@@ -25,6 +25,7 @@ export function useShifts(weekStart: string, weekEnd: string) {
 
   return useQuery({
     queryKey: scheduleKeys.shifts(workspace.workspace_id, weekStart),
+    staleTime: 2 * 60 * 1000, // 2 minutes — volatile shift data
     queryFn: async () => {
       const supabase = createClient();
 

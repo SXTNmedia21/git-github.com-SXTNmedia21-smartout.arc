@@ -20,6 +20,7 @@ export function useStaffingCoverage(weekStart: string) {
   return useQuery({
     queryKey: dashboardKeys.staffingCoverage(workspaceId ?? "none", weekStart),
     enabled: !!workspaceId,
+    staleTime: 2 * 60 * 1000, // 2 minutes — volatile staffing coverage
     queryFn: async (): Promise<DayCoverage[]> => {
       const wsId = workspaceId!;
       const supabase = createClient();
