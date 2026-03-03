@@ -52,8 +52,8 @@ export default function PricingPage() {
           <h1 className="mb-6 text-5xl leading-[1.05] font-black tracking-tighter drop-shadow-2xl md:text-7xl">
             Full kontroll til <br />
             <span className="relative inline-block">
-              <span className="absolute -inset-2 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600 opacity-20 blur"></span>
-              <span className="relative bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(52,211,153,0.3)]">
+              <span className="absolute -inset-2 bg-gradient-to-r from-orange-500 via-rose-500 to-orange-600 opacity-20 blur"></span>
+              <span className="relative bg-gradient-to-r from-orange-400 via-rose-400 to-orange-400 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(251,146,60,0.3)]">
                 en fast pris.
               </span>
             </span>
