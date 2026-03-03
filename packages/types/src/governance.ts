@@ -10,7 +10,7 @@ import {
   ControlListAssignedToTypeEnum,
   ControlFrequencyEnum,
   ProtocolAssignmentStatusEnum,
-} from "./enums";
+} from "./enums.js";
 
 export const PolicySchema = z.object({
   policy_id: z.string().uuid(),

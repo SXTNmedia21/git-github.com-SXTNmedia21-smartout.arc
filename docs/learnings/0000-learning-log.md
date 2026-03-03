@@ -8,6 +8,11 @@ tags: [learnings]
 ---
 
 # Learning Log — dashboard-perf
+module: ai
+tags: [learnings]
+---
+
+# Learning Log — stage-engine-fix
 
 | #   | Date | Learning | Impact |
 | --- | ---- | -------- | ------ |

@@ -20,7 +20,7 @@ import {
   JourneyTestTypeEnum,
   WizardSessionStatusEnum,
   WizardPhaseEnum,
-} from "./enums";
+} from "./enums.js";
 import type {
   JourneyStatus,
   JourneyModule,
@@ -28,7 +28,7 @@ import type {
   JourneyPlatform,
   JourneyPriority,
   WizardPhase,
-} from "./enums";
+} from "./enums.js";
 
 // ─── Journey ──────────────────────────────────────────────
 export const JourneySchema = z.object({
@@ -139,7 +139,7 @@ export type JourneyWithEvents = Journey & {
 };
 
 // Re-export enum types used in this module for convenience
-export type { JourneyStatus, JourneyModule } from "./enums";
+export type { JourneyStatus, JourneyModule } from "./enums.js";
 
 // ─── Wizard Session ──────────────────────────────────────
 export const WizardSessionSchema = z.object({

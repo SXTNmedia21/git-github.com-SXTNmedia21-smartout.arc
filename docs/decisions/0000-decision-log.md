@@ -8,6 +8,11 @@ tags: [decisions]
 ---
 
 # Decision Log — dashboard-perf
+module: ai
+tags: [decisions]
+---
+
+# Decision Log — stage-engine-fix
 
 | #   | Date | Decision | Status |
 | --- | ---- | -------- | ------ |
