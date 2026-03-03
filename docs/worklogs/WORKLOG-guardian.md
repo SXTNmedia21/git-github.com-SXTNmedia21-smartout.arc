@@ -58,16 +58,20 @@ tags: [guardian, capability, stage-engine, websocket, dashboard]
 - [x] I3: Documented hardcoded actor colors as deliberate exception
 - [x] I4: Added workspace validation on whisper command
 
-## Remaining
+### Closure Prep
 
-- [ ] ADR for WebSocket architecture decision
-- [ ] Add API key RLS policies on guardian_signal table
-- [ ] Add UPDATE RLS policy for JWT users on guardian_signal
-- [ ] Guardian sweep Edge Function (v2 — cron-based detection)
+- [x] ADR-0049: Guardian WebSocket architecture decision
+- [x] API key RLS + JWT UPDATE policies on guardian_signal (20260314200000)
+- [x] Learning log entries (2 learnings: WS auth, event dedup)
+- [x] Fixed stage engine default URL to port 5022
+
+## Remaining (v2)
+
+- [ ] Guardian sweep Edge Function (cron-based detection)
 - [ ] Signal expiry cleanup job
-- [ ] Learning log entries
 - [ ] End-to-end manual test (start stage engine, open dashboard, trigger session)
 - [ ] Typecheck full pass (needs all workspace packages built)
+- [ ] User journeys doc
 
 ## Decisions
 
@@ -93,3 +97,4 @@ tags: [guardian, capability, stage-engine, websocket, dashboard]
 | 2026-03-14 | —     | All 8 implementation tasks complete (11 commits)                            |
 | 2026-03-14 | —     | Code review: 3 critical + 5 important issues found                          |
 | 2026-03-14 | —     | All review fixes applied and committed                                      |
+| 2026-03-14 | —     | ADR-0049, learning logs, guardian_signal RLS policies, port fix committed   |
