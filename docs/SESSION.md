@@ -1,7 +1,7 @@
 ---
 title: Session Log
 status: in_progress
-updated: 2026-03-23
+updated: 2026-03-28
 created: 2026-03-02
 module: meta
 tags: [session, boot-sequence, continuity]
@@ -13,43 +13,47 @@ tags: [session, boot-sequence, continuity]
 
 ## Last Session
 
-| Field   | Value                 |
-| ------- | --------------------- |
-| Date    | 2026-03-23            |
-| Branch  | `development`         |
-| Feature | PR + lint + voice fix |
-| Status  | done                  |
+| Field   | Value                           |
+| ------- | ------------------------------- |
+| Date    | 2026-03-28                      |
+| Branch  | `development`                   |
+| Feature | Stage Engine assessment + fixes |
+| Status  | done                            |
 
 ### What was done
 
-- Updated PR #13 (`development` → `main`) with full release summary (462 commits, 955 files, 174K lines)
-- Fixed all 19 lint errors → 0 errors:
-  - 8x ref-during-render → moved to useEffect
-  - 1x conditional useMemo → moved before early return
-  - 6x Math.random() in render → deterministic values
-  - 1x let→const
-- Verified: typecheck 18/18, lint 0 errors, build 8/8
-- Committed + pushed lint fixes (a8cc14b)
-- Diagnosed 502 voice error: port mismatch (Stage Engine on 3000, env said 5022)
-- User aligned all service ports in `.env.local`
+- Deep Stage Engine assessment via engine-architect agent (full architecture audit)
+- Fixed `profile.id` → `profile.profile_id` in context collector (8867662, merged)
+- Seeded onboarding-interview mission (7 stages) + mr-botsson mission (7953059, merged)
+- Verified: full build chain passes, engine starts on port 3010, health 200 OK
+- 7 new commits on development since last session (by other sessions):
+  - Journey seed data (J-ONBOARD-001, 4 steps)
+  - Session types updated with guardian + journey fields
+  - Session creation enriched with journey step context
+  - Stage advancement enriched with journey step data + timing
+  - Guardian evaluation loop for journey-driven sessions
+  - Guardian whisper delivery via fetch endpoint
 
 ### Where we stopped
 
-- PR #13 ready for merge: https://github.com/SXTNmedia21/smartout.ai/pull/13
-- 23 uncommitted files on development (landing, onboarding, dashboard, infra)
-- wt-3 has `feat/stage-engine-fix` from previous session
+- Stage Engine fully functional in dev mode
+- 8 uncommitted files on development (package.json, MessageList.tsx, context/types.ts, agent-router.ts, session-manager.ts, pnpm-lock.yaml)
+- wt-1 has `feat/landing-polish` (5 commits, visual review pending)
 
 ### Known blockers / errors
 
-- None — all tests pass, voice port fixed
+- None — engine runs, build passes
 
 ### Pending decisions
 
-- [ ] Merge PR #13 to main (Pontus)
-- [ ] Commit remaining 23 uncommitted files on development
-- [ ] LiveKit evaluation (carried over)
-- [ ] wt-3 stage-engine-fix: review or close
-- [ ] Push migrations to production (Pontus)
+- [ ] Visual review of landing polish (wt-1), then merge
+- [ ] Merge PR #13 to main (Pontus) — carried over
+- [ ] LiveKit evaluation — carried over
+- [ ] Push migrations to production (Pontus) — carried over
+- [ ] Build remaining 7 agent capabilities — carried over
+- [ ] Wire relationship manager to session end — carried over
+- [ ] Add memory auto-save after agent turns — carried over
+- [ ] Commit 8 uncommitted files on development
 
 ---
 

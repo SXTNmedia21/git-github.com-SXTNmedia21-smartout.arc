@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: in_progress
-updated: 2026-03-23
+updated: 2026-03-28
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -13,26 +13,24 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #    | Branch                  | Module | Status      | Progress     | Blockers | Health |
-| ---- | ----------------------- | ------ | ----------- | ------------ | -------- | ------ |
-| wt-3 | `feat/stage-engine-fix` | ai     | in_progress | just started | —        | clean  |
+| #    | Branch                | Module  | Status      | Progress                           | Blockers | Health |
+| ---- | --------------------- | ------- | ----------- | ---------------------------------- | -------- | ------ |
+| wt-1 | `feat/landing-polish` | landing | in_progress | 5 commits, 13/13 polish items done | —        | clean  |
 
 ## Free Slots
 
-| #     | Available             |
-| ----- | --------------------- |
-| wt-1  | yes                   |
-| wt-2  | yes                   |
-| wt-3  | no — stage-engine-fix |
-| wt-4  | yes                   |
-| wt-5  | yes                   |
-| wt-20 | yes                   |
+| #     | Available           |
+| ----- | ------------------- |
+| wt-1  | no — landing-polish |
+| wt-2  | yes                 |
+| wt-3  | yes                 |
+| wt-4  | yes                 |
+| wt-5  | yes                 |
+| wt-20 | yes                 |
 
 ## Pending Journeys
 
-| Worktree | Feature          | Journey File                                | Status  |
-| -------- | ---------------- | ------------------------------------------- | ------- |
-| wt-3     | stage-engine-fix | `docs/journeys/JOURNEY-stage-engine-fix.md` | missing |
+_None_
 
 ## Recent Closures
 
@@ -149,3 +147,8 @@ tags: [dashboard, worktrees, tracking]
 | 2026-03-19 | onboarding-mission               | closed            | 11/11 tasks: mission-journey FK, protocol types, @hono/node-ws, WS connection manager, WS route, UI capability (5 tools), agent router wiring, journey data loading, seed data, frontend hook, typecheck. All merged to development. User mentioned LiveKit — pending next session.                                       |
 | 2026-03-21 | stage-engine-fix                 | started           | wt-3, module: ai — Fix ESM resolution, seed Lise prompt, fix stage ordering. Get Stage Engine running.                                                                                                                                                                                                                    |
 | 2026-03-23 | (PR + lint + voice fix)          | session ended     | Updated PR #13 (462 commits). Fixed 19 lint errors (0 errors now). Typecheck 18/18, build 8/8. Resolved 502 voice error (port mismatch). 23 uncommitted files on development.                                                                                                                                             |
+| 2026-03-24 | guardian-dashboard               | session ended     | Built Guardian dashboard (3 tabs: Overview/Live/Analytics). 12 new files, 5 hooks, design doc. Fixed MessageList typecheck. Committed 9ca092d.                                                                                                                                                                            |
+| 2026-03-26 | stage-engine-fix                 | merged+closed     | Fixed profile_id bug in context collector, seeded onboarding-interview (7 stages) + mr-botsson missions. Full build chain passes, engine starts on port 3010. wt-3 freed.                                                                                                                                                 |
+| 2026-03-27 | (cleanup + merge)                | done              | Committed 23 accumulated files. Merged feat/dashboard-perf (3 commits) + feat/stage-engine-fix (2 commits) into development. Removed wt-1, wt-2, wt-3. Committed guardian dashboard (12 files). All slots clean.                                                                                                          |
+| 2026-03-27 | landing-polish                   | session ended     | wt-1: Frontend designer agent — 5 commits, 20 files, 13/13 polish items. Hero mockup, CTA gradient, typography, pricing fix, VariantBadge hidden, VariantA animations fixed, shimmer, trust badges, tabs AnimatePresence. Ready for visual review.                                                                        |
+| 2026-03-28 | stage-engine assessment          | session ended     | Engine-architect deep dive: full service assessment, profile_id fix, mission seed data, build verified. Then 7 new commits on development: journey seed, session types, journey/guardian enrichment, Guardian evaluator loop + whisper delivery.                                                                          |

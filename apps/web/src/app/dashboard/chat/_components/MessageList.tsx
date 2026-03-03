@@ -90,7 +90,7 @@ export function MessageList({
           {/* Date separator */}
           <div className="flex items-center justify-center py-4">
             <span className="bg-muted text-muted-foreground rounded-full px-3 py-1 text-xs">
-              {formatDateHeader(messages[0].created_at)}
+              {formatDateHeader(messages[0]?.created_at ?? dateKey)}
             </span>
           </div>
 
