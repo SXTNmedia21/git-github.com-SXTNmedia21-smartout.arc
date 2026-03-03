@@ -33,11 +33,11 @@ tags: [landing, sessions, leads, analytics]
 
 ## Decisions
 
-| Date       | Decision                                                                            | Reason                                                      |
-| ---------- | ----------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| 2026-03-02 | No new DB tables for leads                                                          | landing_visitor already has user_identity_id + manual_label |
-| 2026-03-02 | Engagement score formula: visits*10 + CTAs*15 + scroll\*0.3 + duration/10 (cap 100) | Simple weighted formula covering key engagement signals     |
-| 2026-03-02 | Hot/Warm/Cold thresholds at 70/40                                                   | Intuitive breakdown for admin quick-scanning                |
+| Date       | Decision                                                                             | Reason                                                      |
+| ---------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------- |
+| 2026-03-02 | No new DB tables for leads                                                           | landing_visitor already has user_identity_id + manual_label |
+| 2026-03-02 | Engagement score formula: `visits*10 + CTAs*15 + scroll*0.3 + duration/10` (cap 100) | Simple weighted formula covering key engagement signals     |
+| 2026-03-02 | Hot/Warm/Cold thresholds at 70/40                                                    | Intuitive breakdown for admin quick-scanning                |
 
 ## Log
 

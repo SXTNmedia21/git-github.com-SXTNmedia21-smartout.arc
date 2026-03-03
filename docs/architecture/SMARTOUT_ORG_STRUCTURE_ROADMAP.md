@@ -31,7 +31,7 @@ changelog:
 # Roadmap för Integrering av Organisationsstruktur (Module 2)
 
 > **Draft:** 2026-02-27  
-> **Syfte:** Etablera en plan för hur vi kompletterar databasen och bygger in "Organisational Structure" (Locations, Departments, Teams m.fl.) i vårt Dashboard, helt i enlighet med `SMARTOUT_MODULE_2_ORG_STRUCTURE.md` och regelverket i `GEMINI.md`.
+> **Syfte:** Etablera en plan för hur vi kompletterar databasen och bygger in "Organisational Structure" (Locations, Departments, Teams m.fl.) i vårt Dashboard, helt i enlighet med `SMARTOUT_MODULE_2_ORG_STRUCTURE.md` och regelverket i `CLAUDE.md`.
 
 ---
 

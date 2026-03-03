@@ -38,7 +38,7 @@ The current onboarding is an 11-step wizard with educational screens, concept ex
 
 ```
 Landing page -> Sign up -> Enter URL / Org number
-  -> Scrape + Bronnoydsund -> Pre-fill review
+  -> Scrape + Brønnøysund -> Pre-fill review
   -> Create Season (simplified)
   -> Departments (confirm, don't create)
   -> Contract generation
@@ -75,7 +75,7 @@ Landing page -> Sign up -> Enter URL / Org number
 | **Nettside** | URL field     | Scrape homepage -> extract name, address, phone, opening hours, industry, logo, description |
 | **Org.nr**   | 9-digit field | Hit data.brreg.no -> get legal name, address, industry code (NACE), business form           |
 
-**If both are provided:** Merge. Bronnoydsund data is authoritative for legal fields (name, org number, address). Scraped data fills the rest (logo, opening hours, description).
+**If both are provided:** Merge. Brønnøysund data is authoritative for legal fields (name, org number, address). Scraped data fills the rest (logo, opening hours, description).
 
 **What gets saved:**
 
@@ -162,7 +162,7 @@ No separate educational screens. Every concept explained in 1-2 lines of microco
 
 Status: Scrapling service exists and works. gather-workspace-intelligence Edge Function exists. Needs testing and reliability improvements.
 
-### 4.2 Bronnoydsundregistrene API
+### 4.2 Brønnøysundregistrene API
 
 Endpoint: https://data.brreg.no/enhetsregisteret/api/enheter/{orgnr}
 Status: Public API, already integrated client-side in OrgVerificationStep. Moving to Edge Function.

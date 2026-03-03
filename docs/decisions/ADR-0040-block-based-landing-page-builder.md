@@ -41,5 +41,3 @@ Chosen option: **"Block-based Page Builder"**, because it gives admins full WYSI
 - **Agent Impact:** Landing page content is now in `landing_variant` + `landing_block` tables, not in component files. Never hardcode landing content. New block types: create schema in `block-schemas.ts`, component in `components/blocks/`, form in admin `forms/`.
 
 ---
-
-> After writing: register in `docs/decisions/0000-decision-log.md`.

@@ -1,3 +1,12 @@
+---
+title: "Webpage Design Prompt"
+status: in_progress
+updated: 2026-03-11
+created: 2026-03-01
+module: design
+tags: [prompt, design, webpage]
+---
+
 🧠 World-Class Website Prompt Template (Epic Quality)
 
 Använd som top-level prompt när du ber AI att skapa hemsida, landningssida, designkoncept, komponenter eller fullständig implementation.

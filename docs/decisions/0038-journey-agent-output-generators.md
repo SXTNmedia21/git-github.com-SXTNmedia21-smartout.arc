@@ -73,5 +73,3 @@ User → Detail Page → Output Tab → POST /api/.../generate
 - **Phase 3:** Linear sync, automated test runs, auto-generation triggers on status change
 
 ---
-
-> After writing: register in `docs/decisions/0000-decision-log.md` and update the ADR table in `CLAUDE.md`.

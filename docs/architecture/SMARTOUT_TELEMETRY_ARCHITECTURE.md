@@ -335,10 +335,10 @@ CREATE TABLE activity_trail (
   id              BIGSERIAL PRIMARY KEY,
 
   -- Scoping
-  workspace_id    UUID NOT NULL REFERENCES workspace(id),
+  workspace_id    UUID NOT NULL REFERENCES workspace(workspace_id),
 
   -- Who
-  actor_id        UUID NOT NULL REFERENCES profile(id),
+  actor_id        UUID NOT NULL REFERENCES profile(profile_id),
 
   -- What
   event           TEXT NOT NULL,                        -- 'shift created', 'department updated'
@@ -386,7 +386,7 @@ ALTER TABLE activity_trail ENABLE ROW LEVEL SECURITY;
 -- Managers/admins can see all activity in their workspace
 CREATE POLICY "Workspace members can view activity" ON activity_trail
   FOR SELECT
-  USING (workspace_id IN (SELECT get_workspace_ids_for_user()));
+  USING (workspace_id IN (SELECT get_workspace_ids_for_user(auth.uid())));
 
 -- Only the system (service role) can insert
 -- Application writes via Edge Functions with service role
@@ -698,7 +698,7 @@ export function useTrack() {
 import { emit } from "@smartout/telemetry";
 
 export async function POST(req: Request) {
-  const { data, error } = await supabase.from("shift").insert(shiftData).select().single();
+  const { data, error } = await supabase.from("schedule_shift").insert(shiftData).select().single();
 
   if (data) {
     await emit({

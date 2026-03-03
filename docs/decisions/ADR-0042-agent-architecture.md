@@ -54,5 +54,3 @@ Chosen option: **"Extend Stage Engine with Agent Mode"**, because it reuses exis
 - **Agent Impact:** New tables: `engine_memory` (persistent memories with pgvector embeddings, RLS workspace isolation), `engine_authority_config` (per-workspace per-capability authority levels, UNIQUE constraint on workspace_id + capability). The `engine_sessions` table gains a `mode` column ('mission' or 'agent') and `mission_id` becomes nullable. All agent endpoints go through Stage Engine — do not create separate agent services.
 
 ---
-
-> After writing: register in `docs/decisions/0000-decision-log.md` and update the ADR table in `CLAUDE.md`.

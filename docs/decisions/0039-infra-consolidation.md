@@ -1,7 +1,7 @@
 ---
 title: "Infrastructure Consolidation"
 id: ADR_0039
-status: active
+status: accepted
 layer: decision
 created: 2026-03-01
 updated: 2026-03-01
@@ -52,5 +52,3 @@ Chosen option: **"Unified `infra/` directory with three-file compose"**, because
 - **Agent Impact:** When running services locally, use `cd infra && docker compose up --build`. Never create per-service compose files — they're superseded. Edge Functions calling scrapling must use `SCRAPLING_SERVICE_URL` as base URL and append the path in the fetch call.
 
 ---
-
-> After writing: register in `docs/decisions/0000-decision-log.md` and update the ADR table in `CLAUDE.md`.

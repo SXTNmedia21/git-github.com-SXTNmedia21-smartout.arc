@@ -84,9 +84,9 @@ Templates are auto-classified at definition time. Classification determines:
 
 Only these verified senders are permitted:
 
-- `noreply@smartout.io`
-- `support@smartout.io`
-- `hei@smartout.io`
+- `noreply@smartout.ai`
+- `support@smartout.ai`
+- `hei@smartout.ai`
 
 Route handlers that attempt to set a sender outside this list are rejected at the package boundary.
 

@@ -9,7 +9,7 @@ tags: [testing, e2e, playwright, manual-testing]
 
 # Worklog — Journey Testing System
 
-## Status: 🟡 In Progress (Fas 1 complete)
+## Status: 🟡 In Progress (Phase 1 complete)
 
 ## Done
 
@@ -22,11 +22,11 @@ tags: [testing, e2e, playwright, manual-testing]
 - [x] Journey test agent skill (.claude/skills/journey-test.md)
 - [x] Manual test guide skill (.claude/skills/journey-manual-test.md)
 
-## Remaining (Fas 2+3)
+## Remaining (Phase 2+3)
 
 - [ ] PostHog event listener for manual test tracking
 - [ ] Mr. Botsson voice guide for manual testing
-- [ ] Wizard voice alternative ("Start med röst")
+- [ ] Wizard voice alternative ("Start med voice")
 - [ ] CI pipeline (GitHub Actions)
 - [ ] Self-healing selectors
 - [ ] Test expansion from bug reports

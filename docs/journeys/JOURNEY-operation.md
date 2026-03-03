@@ -26,6 +26,7 @@ tags: [module-15, season, budget, journeys]
 **Postcondition:** Season is selected, tab navigation is visible. Budget tab is always available; other tabs require a saved budget.
 
 **Error paths:**
+
 - No seasons exist -> System shows "Ingen sesonger opprettet enna." text instead of the dropdown. User must create a season elsewhere first.
 - Network error on season fetch -> Loading skeleton shown indefinitely (TanStack Query retry behavior).
 
@@ -45,6 +46,7 @@ tags: [module-15, season, budget, journeys]
 **Postcondition:** `season_budget` row exists for this season with the configured values. Dagfaktorer, Timefaktorer, and Oversikt tabs are now enabled.
 
 **Error paths:**
+
 - User enters 0 or negative revenue -> `handleSave` returns early (no mutation fired), button stays enabled. No user feedback shown (silent validation).
 - User leaves revenue empty -> "Lagre budsjett" button is disabled (`!totalTarget` check).
 - Database error on upsert -> TanStack Query `onError` fires. No explicit toast shown in current implementation.
@@ -64,6 +66,7 @@ tags: [module-15, season, budget, journeys]
 **Postcondition:** 7 `day_factor` rows exist for this `season_budget_id` with the configured weights. These factors are now used in the Overview tab calculations.
 
 **Error paths:**
+
 - User enters 0 or negative factor -> `updateFactor` returns early, value unchanged.
 - User enters non-numeric value -> `parseFloat` returns NaN, `updateFactor` returns early.
 
@@ -84,6 +87,7 @@ tags: [module-15, season, budget, journeys]
 **Postcondition:** `hour_factor` rows exist for this `season_budget_id` covering all open hours. These factors are used in the Overview tab hourly calculations.
 
 **Error paths:**
+
 - Operating hours query fails -> Falls back to 10:00-22:00 default range.
 - User enters 0 or negative factor -> `updateFactor` returns early, value unchanged.
 - All operating days are marked as closed -> System shows default 10:00-22:00 range (fallback).
@@ -106,7 +110,8 @@ tags: [module-15, season, budget, journeys]
 **Postcondition:** Admin has a complete visual overview of: season revenue target, daily distribution, peak staffing needs, expected guest counts, and hourly revenue patterns. This information supports scheduling and hiring decisions.
 
 **Error paths:**
-- No budget exists -> System shows: "Sett opp budsjett forst for a se beregninger." (The Oversikt tab is also disabled in the page-level tab navigation when no budget exists, so this is a double guard.)
+
+- No budget exists -> System shows: "Sett opp budsjett først for å se beregninger." (The Oversikt tab is also disabled in the page-level tab navigation when no budget exists, so this is a double guard.)
 - No season start/end dates -> `calculateDayTargets` returns empty array. Metric cards show dashes or zeros. Charts are empty.
 - Average hourly wage is 0 or not set -> `calculateStaffingNeed` returns `staffNeeded: 0`. "Topp bemanning" card shows dash.
 - Base price per guest not set -> "Gjester/dag" card shows dash.
@@ -126,4 +131,5 @@ tags: [module-15, season, budget, journeys]
 **Postcondition:** All displayed data reflects the newly selected season. No data from the previous season leaks into the current view.
 
 **Error paths:**
+
 - Rapid season switching -> TanStack Query cancels in-flight requests for the previous season. No stale data displayed.

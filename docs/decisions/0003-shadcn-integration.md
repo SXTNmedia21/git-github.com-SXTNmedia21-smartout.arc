@@ -14,7 +14,7 @@ updated: 2026-02-24
 
 ## Context
 
-As we move into Phase 0.9 (Next.js Scaffold) of the Smartout Engine rebuild, we need to establish a clear standard for the UI configuration in our monorepo setup to ensure the frontend layers of the application are maintainable and scaleable. Specifically, we need a decision around how Shadcn/ui and Tailwind CSS should be installed and managed across the monorepo workspaces.
+As we move into Phase 0.9 (Next.js Scaffold) of the Smartout Engine rebuild, we need to establish a clear standard for the UI configuration in our monorepo setup to ensure the frontend layers of the application are maintainable and scalable. Specifically, we need a decision around how Shadcn/ui and Tailwind CSS should be installed and managed across the monorepo workspaces.
 
 ## Decision
 

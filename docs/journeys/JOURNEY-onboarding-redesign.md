@@ -112,11 +112,11 @@ Sections: Hero (login) → Business → Season → Departments → Contract → 
 
 1. On first click anywhere on the page, Botsson session starts (browser gesture required for audio)
 2. As user scrolls between sections, system pushes context to voice agent:
-   - Business section: "Brukeren er na pa bedriftsseksjonen..."
+   - Business section: "Brukeren er nå på bedriftsseksjonen..."
    - Season section: includes current season suggestion
    - Departments section: lists selected departments
    - Done section: full summary
-3. Scrape status changes also push to voice agent ("Skanner bedriften na...", "Skanning ferdig!")
+3. Scrape status changes also push to voice agent ("Skanner bedriften nå...", "Skanning ferdig!")
 4. User can view agent details via AgentCard (shows mission config, transcript, context log)
 5. User can mute/unmute microphone via BotssonAvatar controls
 

@@ -7,7 +7,7 @@ created: 2026-03-01
 updated: 2026-03-01
 ---
 
-# ADR-0036: Landing Page Event Tracking
+# ADR-0037: Landing Page Event Tracking
 
 ## Context and Problem Statement
 

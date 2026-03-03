@@ -41,24 +41,24 @@ tags: [daily-close, reconciliation, state-machine, ocr]
 
 | Date       | Decision                                            | Reason                                                            |
 | ---------- | --------------------------------------------------- | ----------------------------------------------------------------- |
-| 2026-03-04 | Generic state machine engine with engine\_\* prefix | Reusable for future processes, matches existing naming convention |
+| 2026-03-04 | Generic state machine engine with `engine_*` prefix | Reusable for future processes, matches existing naming convention |
 | 2026-03-04 | Google Vision API for OCR                           | Best-in-class text detection for Norwegian receipt formats        |
 | 2026-03-04 | Gatekeeper as engine step, not middleware           | Keeps all process logic in the engine, configurable per process   |
 | 2026-03-04 | Dual tolerance threshold (% OR absolute)            | Prevents false positives on small transaction amounts             |
 
 ## Log
 
-| Date       | Time  | Event                                                                                           |
-| ---------- | ----- | ----------------------------------------------------------------------------------------------- |
-| 2026-03-03 | 08:29 | Feature started                                                                                 |
-| 2026-03-04 | --    | Phase 1: Engine tables migration created                                                        |
-| 2026-03-04 | --    | Phase 1: Engine Zod types + condition evaluator created                                         |
-| 2026-03-04 | --    | Phase 2: department_session, daily_reconciliation, deviation, shift_approval migrations created |
-| 2026-03-04 | --    | Phase 3: daily_close process definition seeded (10 steps, 2 triggers)                           |
-| 2026-03-04 | --    | Phase 4: OCR + validation Edge Functions created                                                |
-| 2026-03-04 | --    | Phase 5: Employee close-out UI (4 components + hooks)                                           |
-| 2026-03-04 | --    | Phase 6: Admin reconciliation dashboard (6 components + hooks)                                  |
-| 2026-03-04 | --    | Phase 7: Engine dispatcher Edge Function                                                        |
-| 2026-03-04 | --    | ADR-0043 written, decision/learning logs updated                                                |
+| Date       | Time  | Event                                                                                                                                                  |
+| ---------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 2026-03-03 | 08:29 | Feature started                                                                                                                                        |
+| 2026-03-04 | --    | Phase 1: Engine tables migration created                                                                                                               |
+| 2026-03-04 | --    | Phase 1: Engine Zod types + condition evaluator created                                                                                                |
+| 2026-03-04 | --    | Phase 2: department_session, daily_reconciliation, deviation, shift_approval migrations created                                                        |
+| 2026-03-04 | --    | Phase 3: daily_close process definition seeded (10 steps, 2 triggers)                                                                                  |
+| 2026-03-04 | --    | Phase 4: OCR + validation Edge Functions created                                                                                                       |
+| 2026-03-04 | --    | Phase 5: Employee close-out UI (4 components + hooks)                                                                                                  |
+| 2026-03-04 | --    | Phase 6: Admin reconciliation dashboard (6 components + hooks)                                                                                         |
+| 2026-03-04 | --    | Phase 7: Engine dispatcher Edge Function                                                                                                               |
+| 2026-03-04 | --    | ADR-0043 written, decision/learning logs updated                                                                                                       |
 | 2026-03-04 | --    | User journey documentation: 7 journeys (employee close-out, image upload, admin approve/reject, shift approval, deviation resolution, engine dispatch) |
-| 2026-03-04 | --    | WORKLOG finalized, status set to done                                                           |
+| 2026-03-04 | --    | WORKLOG finalized, status set to done                                                                                                                  |

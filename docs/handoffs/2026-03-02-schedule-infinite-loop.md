@@ -1,6 +1,6 @@
 ---
 title: "Handoff — Schedule Page Infinite Re-render Loop"
-status: in_progress
+status: done
 updated: 2026-03-02
 created: 2026-03-02
 module: schedule-ui

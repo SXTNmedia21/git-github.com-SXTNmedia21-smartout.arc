@@ -134,7 +134,7 @@ This document describes all user journeys for the People Module v2 redesign, cov
 
 **Error paths:**
 
-- No protocols exist in workspace -> Dialog shows "Ingen protokoller funnet. Opprett protokoller i opplaeringsmodulen forst."
+- No protocols exist in workspace -> Dialog shows "Ingen protokoller funnet. Opprett protokoller i opplæringsmodulen først."
 - Protocol already assigned to this employee -> System prevents duplicate assignment. Toast shows "Denne protokollen er allerede tildelt." Protocol is greyed out or hidden in the list.
 - Search returns no results -> Dialog shows "Ingen treff" below the search field. Admin can clear the search and browse all protocols.
 - Network error on assignment -> System shows error toast "Kunne ikke tildele protokoll". Dialog stays open so admin can retry.
@@ -150,7 +150,7 @@ This document describes all user journeys for the People Module v2 redesign, cov
 3. Admin selects the new role (e.g. "manager") -> System updates the profile's role -> System shows success toast "Rolle oppdatert" -> Admin sees the Role badge update in the table row
 4. (Change Department path) Admin right-clicks an employee row and clicks "Endre avdeling" -> System opens a department picker showing all workspace departments -> Admin sees department options with the current department indicated
 5. Admin selects the new department -> System updates the profile's department_id -> System shows success toast "Avdeling oppdatert" -> Admin sees the Department column update in the table row
-6. (Deactivate path) Admin right-clicks an employee row and clicks "Deaktiver" -> System shows a confirmation dialog: "Er du sikker pa at du vil deaktivere [Name]?" -> Admin confirms -> System sets profile status to "inactive" -> Admin sees the Status badge change to inactive
+6. (Deactivate path) Admin right-clicks an employee row and clicks "Deaktiver" -> System shows a confirmation dialog: "Er du sikker på at du vil deaktivere [Name]?" -> Admin confirms -> System sets profile status to "inactive" -> Admin sees the Status badge change to inactive
 
 **Postcondition:** Employee's role, department, or status is updated. Change is reflected immediately in the table and across all views.
 
@@ -158,7 +158,7 @@ This document describes all user journeys for the People Module v2 redesign, cov
 
 - Admin tries to change own role -> System blocks with "Du kan ikke endre din egen rolle"
 - Admin tries to deactivate the workspace owner -> System blocks with "Eieren kan ikke deaktiveres"
-- Only one admin left and attempting to change their role to employee -> System warns "Dette er den siste administratoren. Tildel en ny administrator forst."
+- Only one admin left and attempting to change their role to employee -> System warns "Dette er den siste administratoren. Tildel en ny administrator først."
 - Network error on update -> System shows error toast. Table row reverts to previous value.
 - Context menu triggered on mobile/touch (no right-click) -> System provides an alternative action button (three-dot menu) on each row for touch devices.
 
@@ -181,9 +181,9 @@ This document describes all user journeys for the People Module v2 redesign, cov
 **Error paths:**
 
 - Email already exists in workspace (active profile) -> System shows validation error: "Denne e-postadressen er allerede registrert i denne arbeidsplassen."
-- Email already has a pending invitation -> System shows: "En invitasjon er allerede sendt til denne e-postadressen. Vil du sende pa nytt?" Admin can resend or cancel.
+- Email already has a pending invitation -> System shows: "En invitasjon er allerede sendt til denne e-postadressen. Vil du sende på nytt?" Admin can resend or cancel.
 - Invalid email format -> System shows inline validation: "Ugyldig e-postadresse." Send button is disabled.
-- No departments exist -> Department dropdown shows "Ingen avdelinger. Opprett en avdeling forst." Send button is disabled until a department is selected.
+- No departments exist -> Department dropdown shows "Ingen avdelinger. Opprett en avdeling først." Send button is disabled until a department is selected.
 - Email delivery fails -> Invitation record is still created. System shows warning toast: "Invitasjon opprettet, men e-post kunne ikke sendes. Profilen kan dele lenken manuelt."
 - Network error on submit -> System shows error toast. Dialog stays open with form data preserved so admin can retry.
 

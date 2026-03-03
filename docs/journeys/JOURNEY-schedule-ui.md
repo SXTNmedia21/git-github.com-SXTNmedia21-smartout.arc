@@ -158,7 +158,7 @@ tags: [schedule, journeys, persistence, realtime]
 
 **Error paths:**
 
-- INSERT fails → Toast: "Kunne ikke opprette fravr"
+- INSERT fails → Toast: "Kunne ikke opprette fravær"
 
 ---
 

@@ -1,13 +1,13 @@
 ---
-title: "ADR-0031: Documentation RAG with pgvector"
-id: ADR_0031
+title: "ADR-0033: Documentation RAG with pgvector"
+id: ADR_0033
 status: accepted
 layer: decision
 created: 2026-03-01
 updated: 2026-03-01
 ---
 
-# ADR-0031: Documentation RAG with pgvector
+# ADR-0033: Documentation RAG with pgvector
 
 ## Context and Problem Statement
 

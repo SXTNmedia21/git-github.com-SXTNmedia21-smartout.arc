@@ -112,7 +112,7 @@ tags: [journey, voice, ultravox, agent, fix, systems]
    → Browser opens WebSocket connection to Ultravox (joinUrl)
 
 7. Voice agent connects and loads system prompt for this stage
-   → Admin hears Lise's greeting (e.g., "Hi! Let's make sure the coffee machine is safe to use")
+   → Admin hears Mr. Botsson's greeting (e.g., "Hi! Let's make sure the coffee machine is safe to use")
    → Agent has access to three tools: store, fetch, advance
 
 8. Admin (or employee) speaks to agent
@@ -183,7 +183,7 @@ tags: [journey, voice, ultravox, agent, fix, systems]
    → Agent asks: "Why is glove hygiene important?"
    → Employee speaks answer
    → Agent calls `fetch` tool with query_type="context" to understand workplace rules
-   → **[WITH FIX]** Request includes sessionParameters so engine knows which workspace context to retrieve
+   → **[WITH FIX]** Request includes staticParameters so engine knows which workspace context to retrieve
    → Engine returns: "In this workplace, gloves must be changed every 4 hours and after handling raw meat"
    → Agent uses this context to validate employee's answer
 
@@ -195,7 +195,7 @@ tags: [journey, voice, ultravox, agent, fix, systems]
 8. **Stage Complete** — Agent calls `advance` tool
    → Agent says: "Great work! You've completed stage 3. Let's move to the next stage."
    → Agent calls `advance` with result: { stage_completed: "Stage 3", score: 95, timestamp: ... }
-   → **[WITH FIX]** Request includes sessionParameters
+   → **[WITH FIX]** Request includes staticParameters
    → Engine `/adapters/ultravox/advance` endpoint receives request with session context
    → System fetches next stage from mission definition
    → System loads Stage 4 data from `engine_sessions` → mission → stages

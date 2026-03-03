@@ -11,7 +11,7 @@ tags: [onboarding, scroll, animations, voice, ux]
 
 > Branch: `feat/onboarding-redesign` | Worktree: wt-2 | Started: 2026-03-03
 
-## Status: :green_circle: Done
+## Status: 🟢 Done
 
 ## Done
 

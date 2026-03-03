@@ -1,7 +1,7 @@
 ---
 title: "Docker Network Infrastructure"
 id: ADR_0035
-status: active
+status: superseded
 layer: decision
 created: 2026-03-01
 updated: 2026-03-01
@@ -57,5 +57,3 @@ Chosen option: **"Separate `smartout-infra` repo with Docker Compose + Caddy"**,
 - **Agent Impact:** When adding a new microservice, create its Dockerfile in `smartout-infra/services/`, add the compose definition, and add a Caddy route if it needs external access. Do not add Docker orchestration to the monorepo.
 
 ---
-
-> After writing: register in `docs/decisions/0000-decision-log.md` and update the ADR table in `CLAUDE.md`.

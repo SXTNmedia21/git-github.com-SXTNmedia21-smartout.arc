@@ -1,13 +1,13 @@
 ---
-title: "ADR-0032: Documentation Enforcement Pipeline"
-id: ADR_0032
+title: "ADR-0034: Documentation Enforcement Pipeline"
+id: ADR_0034
 status: accepted
 layer: decision
 created: 2026-03-01
 updated: 2026-03-01
 ---
 
-# ADR-0032: Documentation Enforcement Pipeline
+# ADR-0034: Documentation Enforcement Pipeline
 
 ## Context and Problem Statement
 

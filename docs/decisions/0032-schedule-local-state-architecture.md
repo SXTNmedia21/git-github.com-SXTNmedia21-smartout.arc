@@ -1,13 +1,13 @@
 ---
 title: "Schedule Page Local State Architecture"
-id: ADR_0031
+id: ADR_0032
 status: accepted
 layer: decision
 created: 2026-03-01
 updated: 2026-03-01
 ---
 
-# ADR-0031: Schedule Page Local State Architecture
+# ADR-0032: Schedule Page Local State Architecture
 
 ## Context and Problem Statement
 
@@ -52,5 +52,3 @@ Chosen option: **"Local state with useReducer + Context"**, because it allows im
 - **Agent Impact:** When migrating to database, keep the same type shapes and add `workspace_id`, `created_at`, `updated_at` columns. Replace reducer dispatch with Supabase mutations. RLS policies must cover both JWT and API key auth paths per CLAUDE.md gateway checklist.
 
 ---
-
-> After writing: register in `docs/decisions/0000-decision-log.md` and update the ADR table in `CLAUDE.md`.

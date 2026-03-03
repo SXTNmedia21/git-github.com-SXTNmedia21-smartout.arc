@@ -44,5 +44,3 @@ Chosen option: **"MCP server as standalone service"**, because:
 - **Agent Impact:** AI agents connecting to shift management must use MCP protocol via `POST /mcp` endpoint at `schedule-mcp.smartout.ai`. Auth via `x-api-key` header with `schedules:read` and/or `schedules:write` scopes.
 
 ---
-
-> Registered in `docs/decisions/0000-decision-log.md`.

@@ -262,12 +262,12 @@ Always --> `org_verification`
 
 **Actions**
 
-| Action                    | Result                                 |
-| ------------------------- | -------------------------------------- |
-| Enter org number + verify | Calls Bronnysundregistrene (Brreg) API |
-| "Looks correct"           | Saves org data, proceeds to next step  |
-| "Try Again"               | Clears lookup result, resets input     |
-| "Skip this step"          | Proceeds without org verification      |
+| Action                    | Result                                  |
+| ------------------------- | --------------------------------------- |
+| Enter org number + verify | Calls Brønnøysundregistrene (Brreg) API |
+| "Looks correct"           | Saves org data, proceeds to next step   |
+| "Try Again"               | Clears lookup result, resets input      |
+| "Skip this step"          | Proceeds without org verification       |
 
 **Validation**
 
@@ -1079,7 +1079,7 @@ If the user is authenticated (step 3), wizard state is periodically saved to `on
 - [ ] Auth step supports both signup and signin with proper Supabase Auth integration
 - [ ] Auth step is skipped when user is already authenticated
 - [ ] Auth skip option allows proceeding without an account
-- [ ] Org verification calls Bronnysundregistrene API with 9-digit org number
+- [ ] Org verification calls Brønnøysundregistrene API with 9-digit org number
 - [ ] Org verification displays company name, address, CEO, and industry
 - [ ] Branding step captures logo, slogan, brand color, and communication tone
 - [ ] Season education is a read-only informational step

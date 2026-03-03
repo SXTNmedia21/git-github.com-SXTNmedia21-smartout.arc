@@ -80,7 +80,7 @@ Before any employee can be onboarded, an admin must create a workspace. This is 
 ### 2.1 Signup Flow
 
 ```
-Admin visits smartout.io landing page
+Admin visits smartout.ai landing page
   → "Start gratis prøveperiode" / "Get started"
   → Enters website URL (optional) for AI-assisted setup
   → AI scrapes website via gather-workspace-intelligence Edge Function

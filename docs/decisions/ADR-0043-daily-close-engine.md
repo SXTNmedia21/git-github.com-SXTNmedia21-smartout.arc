@@ -48,5 +48,3 @@ Chosen option: **"Generic State Machine Engine in public schema"**, because it p
 4. **Tolerance threshold**: 1% or 50 NOK (whichever greater) for POS vs terminal mismatch
 
 ---
-
-> After writing: register in `docs/decisions/0000-decision-log.md` and update the ADR table in `CLAUDE.md`.

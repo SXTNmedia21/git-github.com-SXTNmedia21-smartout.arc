@@ -30,6 +30,7 @@ tags: [daily-close, reconciliation, settlement, ocr, engine, journeys]
 **Postcondition:** `daily_reconciliation.status` = `submitted`. Settlement images have OCR data stored. All closing checklist items completed. Engine state progresses to `wait_for_event` (step 7), waiting for admin action.
 
 **Error paths:**
+
 - If no active department session exists for today: Image upload step shows "Ingen aktiv avstemming funnet for dagens dato"
 - If image upload fails: Image card shows red error icon with error message, employee can retry or remove and re-upload
 - If OCR extraction fails or returns low confidence: System falls back to manual input, employee can proceed
@@ -55,6 +56,7 @@ tags: [daily-close, reconciliation, settlement, ocr, engine, journeys]
 **Postcondition:** Two or more `settlement_image` rows exist with OCR parsed data. Both POS and terminal types present and processed.
 
 **Error paths:**
+
 - Google Vision API key not configured: Edge Function returns 503 "OCR not configured"
 - Image not found in database: Edge Function returns 404
 - Image download from Storage fails: Edge Function returns 500
@@ -70,20 +72,21 @@ tags: [daily-close, reconciliation, settlement, ocr, engine, journeys]
 1. Admin navigates to `/dashboard/reconciliation` --> System loads `ReconciliationPage` with a split layout: DayList on the left, DayApproval on the right
 2. Admin sees a list of days in `DayList` with traffic light status indicators: gray circle (open), amber clock (submitted), amber alert (awaiting_approval), green check (approved), lock (locked), red alert (unreconciled) --> Each row shows date, department name, status badge, and revenue total
 3. Admin clicks on a day row --> System loads `DayApproval` for that reconciliation_id via `useReconciliationDetail` --> Admin sees the date header, status badge, revenue total
-4. Admin sees precondition warnings if applicable: "X blokkerende avvik ma loses for godkjenning" (red card) and "X vakter venter pa godkjenning" (amber card)
+4. Admin sees precondition warnings if applicable: "X blokkerende avvik må løses før godkjenning" (red card) and "X vakter venter på godkjenning" (amber card)
 5. Admin views the **Revenue tab** (default) --> `RevenueSection` shows: total revenue, card total, cash total, VAT, transaction count, revenue source (OCR/manual), and uploaded settlement images with OCR confidence
 6. Admin can tap settlement images to view originals and verify OCR accuracy
 7. Admin switches to **Shifts tab** --> `ShiftApprovalSection` shows: list of shift approvals with punch-in/out times, planned vs calculated vs approved hours, status badges (Venter/Godkjent/Redigert/Bestridt), and summary totals at the top
 8. For each pending shift, admin can click the check icon to approve calculated hours OR the edit icon to modify hours with required justification
 9. Admin switches to **Deviations tab** --> `DeviationSection` shows: list of deviations grouped by domain (Sikkerhet/Kunde/Prosedyre/System/Materiell) with severity badges, status, and blocking indicators
 10. Admin can expand a deviation to see description, cost impact, and resolution notes
-11. If a deviation is open, admin can write resolution notes and click "Marker som lost" to resolve it
+11. If a deviation is open, admin can write resolution notes and click "Marker som løst" to resolve it
 12. Once all preconditions are met (no blocking deviations open, no pending shifts), the "Godkjenn dagen" button becomes enabled
 13. Admin optionally writes approval notes in the textarea --> Clicks "Godkjenn dagen" --> System calls `useApproveReconciliation` mutation which updates `daily_reconciliation.status` to `approved`, sets `approved_by`, `approved_at`, `approval_notes`, and fires `reconciliation.approved` engine event --> Green confirmation card appears: "Dagen er godkjent"
 
 **Postcondition:** `daily_reconciliation.status` = `approved`. KPIs (revenue_per_worked_hour, labor_percentage) calculated. Day is closed. Engine fires `day_closed` notification for downstream systems.
 
 **Error paths:**
+
 - Reconciliation not found: Detail view shows "Kunne ikke laste avstemming"
 - Blocking deviations still open: "Godkjenn dagen" button remains disabled, red warning card visible
 - Pending shifts not approved: "Godkjenn dagen" button remains disabled, amber warning card visible
@@ -103,6 +106,7 @@ tags: [daily-close, reconciliation, settlement, ocr, engine, journeys]
 **Postcondition:** Reconciliation status changes. Closing employee receives a push notification with admin feedback. Engine loops back for re-submission.
 
 **Error paths:**
+
 - Empty rejection reason: "Avvis" button is disabled, admin cannot submit without reason
 - Admin clicks "Avbryt": Reject form closes, approval form reappears, no mutation fired
 - Network error: TanStack Query handles retry
@@ -122,6 +126,7 @@ tags: [daily-close, reconciliation, settlement, ocr, engine, journeys]
 **Postcondition:** `shift_approval.status` = `approved` or `edited`. `approved_hours` is set. `approved_by` and `approved_at` recorded. If edited, `edit_justification` contains the admin's reason. Summary totals (planned/actual/approved) update.
 
 **Error paths:**
+
 - Edit submitted without justification: "Lagre" button is disabled (justification required)
 - Edit submitted without hours: "Lagre" button is disabled
 - Network error: TanStack Query handles retry, edit form remains open
@@ -135,15 +140,16 @@ tags: [daily-close, reconciliation, settlement, ocr, engine, journeys]
 1. Admin sees deviations listed with domain icon (Shield/Users/Wrench/Monitor/Package), title, domain badge, severity badge (low/medium/high/critical with color coding), and status badge
 2. Blocking deviations (blocks_day_approval = true) are highlighted with red border and background
 3. Admin clicks on a deviation row to expand it --> System shows description, cost impact (formatted as NOK), and resolution notes if any
-4. For open deviations, admin sees a textarea and "Marker som lost" (Mark as resolved) button
-5. Admin writes resolution notes describing how the deviation was handled --> Clicks "Marker som lost" --> System calls `useResolveDeviation` mutation with `deviationId`, `profileId`, and `notes` --> Deviation status changes to `resolved`, `resolved_by` and `resolved_at` recorded
+4. For open deviations, admin sees a textarea and "Marker som løst" (Mark as resolved) button
+5. Admin writes resolution notes describing how the deviation was handled --> Clicks "Marker som løst" --> System calls `useResolveDeviation` mutation with `deviationId`, `profileId`, and `notes` --> Deviation status changes to `resolved`, `resolved_by` and `resolved_at` recorded
 6. Expanded section collapses after resolution
 7. Once all blocking deviations are resolved, the blocking count badge updates and the "Godkjenn dagen" button becomes enabled
 
 **Postcondition:** `deviation.status` = `resolved`. `resolution_notes`, `resolved_by`, `resolved_at` populated. If this was the last blocking deviation, day approval is unblocked.
 
 **Error paths:**
-- Empty resolution notes: "Marker som lost" button is disabled
+
+- Empty resolution notes: "Marker som løst" button is disabled
 - Network error: TanStack Query handles retry
 
 ---
@@ -173,6 +179,7 @@ tags: [daily-close, reconciliation, settlement, ocr, engine, journeys]
 **Postcondition:** Engine state reaches `complete`. All 10 steps executed. `daily_reconciliation.status` = `approved` and `locked` (after policy period). KPI metrics calculated. Day fully closed.
 
 **Error paths:**
+
 - Duplicate event (same idempotency key): engine_event unique index prevents insertion, no duplicate processing
 - Engine state already exists for entity + process (active/pending/waiting): unique index `idx_engine_state_unique_active` prevents duplicate processes
 - Step execution fails: engine state sets `last_error`, increments `retry_count`, status = `failed`

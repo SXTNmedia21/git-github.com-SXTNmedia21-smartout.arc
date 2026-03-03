@@ -666,7 +666,7 @@ Vault stores the encrypted value, but we need metadata (last rotated, who rotate
 CREATE TABLE platform_external_secret (
   id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id        UUID REFERENCES workspace(workspace_id),  -- NULL = platform-level
-  provider            TEXT NOT NULL,                             -- stripe, twilio, resend, docuseal
+  provider            TEXT NOT NULL,                             -- stripe, twilio, sendgrid, docuseal
   environment         TEXT NOT NULL DEFAULT 'live' CHECK (environment IN ('live', 'test')),
   vault_secret_name   TEXT NOT NULL UNIQUE,                     -- FK to vault.secrets.name
   description         TEXT,

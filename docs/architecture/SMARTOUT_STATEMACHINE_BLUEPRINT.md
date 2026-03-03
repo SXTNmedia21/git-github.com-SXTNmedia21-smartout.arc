@@ -1,3 +1,12 @@
+---
+title: "State Machine Blueprint — Review & Solutions"
+status: canonical
+updated: 2026-03-11
+created: 2026-03-02
+module: architecture
+tags: [state-machine, engine, automation, workflow]
+---
+
 # Smartout State Machine — Review & Løsninger
 
 **Versjon:** 1.1  

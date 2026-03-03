@@ -17,7 +17,7 @@ tags: [onboarding, wizard, workspace-activation, user-journey]
 2. User enters website URL → User clicks "Scan & Generate"
 3. System navigates to CrawlStep (loading spinner) → System calls `gather-workspace-intelligence` Edge Function → System extracts company data (name, locations, departments, contact info)
 4. System navigates to AuthStep → User creates account (email + password) → System calls `supabase.auth.signUp`
-5. System navigates to OrgVerificationStep → User enters 9-digit org number → System fetches from Bronnoydsundregistrene API → System displays verified company info (name, address, CEO, industry)
+5. System navigates to OrgVerificationStep → User enters 9-digit org number → System fetches from Brønnøysundregistrene API → System displays verified company info (name, address, CEO, industry)
 6. User confirms org data → System navigates to BrandingStep
 7. User configures branding (logo, slogan, brand color, communication tone) → User clicks "Continue"
 8. System navigates to SeasonEducationStep → User reads explanation of Seasons concept → User clicks "I understand, let's build one"

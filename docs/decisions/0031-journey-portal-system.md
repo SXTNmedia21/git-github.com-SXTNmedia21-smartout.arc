@@ -70,5 +70,3 @@ Release:    implemented → active / inactive / broken
 - **Phase 3:** Linear sync, automated test runs, doc generation
 
 ---
-
-> After writing: register in `docs/decisions/0000-decision-log.md` and update the ADR table in `CLAUDE.md`.

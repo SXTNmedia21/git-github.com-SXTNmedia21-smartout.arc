@@ -49,7 +49,7 @@ changelog:
 > | Module 6: Training | Training completion certifications |
 > | Module 11: Settings | Template creator UI, contract admin dashboard |
 > | Module 12: AI | Mr. Botsson contract assistant agent |
-> | Future HR Module | Employee contracts (§14-5/14-6 compliance) |, NDAs
+> | Future HR Module | Employee contracts (§14-5/14-6 compliance), NDAs |
 
 ---
 
@@ -100,7 +100,7 @@ The Contract System is **shared signing infrastructure** consumed by multiple mo
 | AI SDK                          | **Vercel AI SDK 6 Agent class**                                       | ToolLoopAgent handles multi-step tool execution. Type-safe. Streaming. Works with Anthropic.                                       |
 | Template storage                | **Supabase** (not DocuSeal)                                           | Templates are Smartout data. DocuSeal gets a synced copy.                                                                          |
 | Contract content format         | **HTML**                                                              | DocuSeal `POST /templates/html` is the most code-friendly creation method. Tiptap outputs HTML natively.                           |
-| Signing experience              | **Embedded in Smartout**                                              | `@docuseal/react` `DocusealForm` component embedded in smartout.io/sign/[token]. Full brand control.                               |
+| Signing experience              | **Embedded in Smartout**                                              | `@docuseal/react` `DocusealForm` component embedded in smartout.ai/sign/[token]. Full brand control.                               |
 | DocuSeal SDK                    | **`@docuseal/api`** (microservice) + **`@docuseal/react`** (frontend) | Official TypeScript SDK with built-in types. v1.0.21 (API), v1.0.71 (React).                                                       |
 | Contract design philosophy      | **Pop-in colors, section summaries, visual hierarchy**                | Not traditional legal walls of text. Enjoyable to read and sign.                                                                   |
 | Language support V1             | **Norwegian + English**                                               | Swedish and Danish deferred.                                                                                                       |
@@ -187,7 +187,7 @@ Stores the template definition. DocuSeal gets a synced copy via the microservice
 ```sql
 CREATE TABLE contract_template (
   id                    uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id          uuid REFERENCES workspace(id),  -- NULL = Smartout system template
+  workspace_id          uuid REFERENCES workspace(workspace_id),  -- NULL = Smartout system template
 
   -- Identity
   name                  text NOT NULL,
@@ -227,7 +227,7 @@ An instance of a template sent for signing.
 ```sql
 CREATE TABLE contract (
   id                        uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id              uuid NOT NULL REFERENCES workspace(id),
+  workspace_id              uuid NOT NULL REFERENCES workspace(workspace_id),
   template_id               uuid REFERENCES contract_template(id),
 
   -- Identity
@@ -312,7 +312,7 @@ Scheduled and tracked reminders for unsigned contracts.
 CREATE TABLE contract_reminder (
   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   contract_id     uuid NOT NULL REFERENCES contract(id),
-  workspace_id    uuid REFERENCES workspace(id),
+  workspace_id    uuid REFERENCES workspace(workspace_id),
   reminder_type   text NOT NULL,  -- 'email' | 'sms' | 'push' | 'in_app'
   template_key    text NOT NULL,  -- Reference to message_template.key
   language        text NOT NULL DEFAULT 'no',
@@ -345,7 +345,7 @@ CREATE TABLE message_template (
 
   cta_label_no      text,
   cta_label_en      text,
-  cta_url_template  text,  -- "https://smartout.io/sign/{{token}}"
+  cta_url_template  text,  -- "https://smartout.ai/sign/{{token}}"
 
   sms_body_no       text,
   sms_body_en       text,
@@ -423,7 +423,7 @@ DOCUSEAL_API_URL=https://api.docuseal.com
 DOCUSEAL_WEBHOOK_SECRET=<secret>
 SMARTOUT_COMPANY_NAME=Smartout AS
 SMARTOUT_ORG_NUMBER=93XXXXXXX
-SMARTOUT_CONTACT_EMAIL=pontus@smartout.io
+SMARTOUT_CONTACT_EMAIL=pontus@smartout.ai
 ```
 
 ### 4.3 API Endpoints
@@ -670,7 +670,7 @@ When AI proposes changes, the editor shows inline diffs per the Liveblocks/Tipta
 
 ### 6.1 Journey A: Self-Service Registration
 
-**Trigger:** Client registers on smartout.io
+**Trigger:** Client registers on smartout.ai
 
 ```
 1. Register → email, phone, company name, org number (Brreg auto-lookup)
@@ -713,13 +713,13 @@ When AI proposes changes, the editor shows inline diffs per the Liveblocks/Tipta
 
 ### 6.3 Signing Experience
 
-The signing page at `smartout.io/sign/[token]` embeds:
+The signing page at `smartout.ai/sign/[token]` embeds:
 
 ```tsx
 <DocusealForm
   src={signingUrl}
   email={recipientEmail}
-  logo="https://smartout.io/logo.png"
+  logo="https://smartout.ai/logo.png"
   backgroundColor="#f9fafb"
   customCss=".ds-form { font-family: Inter; }"
   values={prefilledValues}
@@ -871,9 +871,9 @@ const submission = await docuseal.createSubmission({
   submitters: [
     {
       role: "Leverandør",
-      email: "pontus@smartout.io",
+      email: "pontus@smartout.ai",
       completed: true, // Auto-sign Smartout party
-      values: { Signatur: "https://smartout.io/assets/signature.png" },
+      values: { Signatur: "https://smartout.ai/assets/signature.png" },
     },
     {
       role: "Kunde",
@@ -895,7 +895,7 @@ const docs = await docuseal.getSubmissionDocuments(submissionId);
 
 Two components used:
 
-**`DocusealForm`** — Embedded signing on `smartout.io/sign/[token]`. Props: `src`, `email`, `logo`, `backgroundColor`, `customCss`, `values`, `readonlyFields`, `withDecline`, `withDownloadButton`, `language`, `onComplete`, `onDecline`.
+**`DocusealForm`** — Embedded signing on `smartout.ai/sign/[token]`. Props: `src`, `email`, `logo`, `backgroundColor`, `customCss`, `values`, `readonlyFields`, `withDecline`, `withDownloadButton`, `language`, `onComplete`, `onDecline`.
 
 **`DocusealBuilder`** — Embedded template builder in admin. Requires JWT (HS256) token generated server-side. Props: `token`, `customCss`, `backgroundColor`, `withFieldsDetection`, `language`, `onSave`, `onChange`. Note: We use our own Tiptap-based editor for the primary template creation experience, but DocusealBuilder can serve as a fallback for advanced field positioning.
 
@@ -970,7 +970,7 @@ fastify.post("/webhooks/docuseal", async (request, reply) => {
 | `smartout_org_number`    | [org number]       |
 | `smartout_address`       | [address]          |
 | `smartout_contact_name`  | Pontus Johansson   |
-| `smartout_contact_email` | pontus@smartout.io |
+| `smartout_contact_email` | pontus@smartout.ai |
 
 **Manual (set during creation):**
 
@@ -1046,7 +1046,7 @@ Smartout processes personal data on behalf of its clients (employee names, sched
 - The DPA is a **separate template** stored alongside the main service agreement
 - When sending a client contract, the DPA is attached as Bilag (Annex)
 - The DPA has its own signature field — signed in the same DocuSeal submission
-- The DPA references a **sub-processor list** hosted at `smartout.io/sub-processors` (publicly accessible, updated when vendors change)
+- The DPA references a **sub-processor list** hosted at `smartout.ai/sub-processors` (publicly accessible, updated when vendors change)
 - AI template creator includes a `validate_contract` tool check: "DPA reference present? → Yes/No"
 
 **Sub-processor list (V1):**
@@ -1222,7 +1222,7 @@ The `validate_contract` tool should check:
 
 ### Phase 3: Client Journeys (Week 5-6)
 
-10. Signing page: `smartout.io/sign/[token]` with embedded DocusealForm
+10. Signing page: `smartout.ai/sign/[token]` with embedded DocusealForm
 11. Journey A: Self-service registration → contract presentation → signing
 12. Journey B: Admin contract creation + send UI
 13. Workspace state machine (status transitions tied to contract events)

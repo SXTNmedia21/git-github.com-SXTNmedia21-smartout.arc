@@ -34,7 +34,7 @@ changelog:
 
 | Layer         | Technology                                                          | Purpose                                         |
 | ------------- | ------------------------------------------------------------------- | ----------------------------------------------- |
-| Web Dashboard | Next.js 14+ (App Router, TypeScript)                                | Admin + employee desktop experience             |
+| Web Dashboard | Next.js 16 (App Router, TypeScript)                                 | Admin + employee desktop experience             |
 | Mobile App    | React Native + Expo (TypeScript)                                    | Runtime restaurant operations                   |
 | Backend       | Supabase (PostgreSQL, Auth, Storage, Realtime, Edge Functions)      | All backend services                            |
 | Automation    | n8n (complex workflows) + Supabase Edge Functions (simple triggers) | Business logic orchestration                    |
