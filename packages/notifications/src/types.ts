@@ -78,3 +78,9 @@ export type EmailJobOptions = {
   sendgridTemplateId?: string;
   templateData?: SendGridTemplateData;
 };
+
+export type SmsResult = {
+  sent: number;
+  failed: number;
+  errors: Array<{ phone: string; error: string }>;
+};

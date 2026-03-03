@@ -13,6 +13,7 @@ export type {
   ResolvedRecipient,
   SendEmailResult,
   SendGridTemplateData,
+  SmsResult,
 } from "./types";
 
 // Email service (high-level API)
@@ -38,6 +39,9 @@ export {
 
 // Rate limiting
 export { checkRateLimit, RECIPIENT_HARD_CAP, RECIPIENT_SOFT_CAP } from "./rate-limit";
+
+// SMS service
+export { sendSms, sendSmsBatch } from "./sms-service";
 
 // Kill switch
 export { isOutboundEmailEnabled } from "./kill-switch";
