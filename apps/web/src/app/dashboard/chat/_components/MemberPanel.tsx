@@ -33,7 +33,7 @@ export function MemberPanel({ conversation, onClose }: Props) {
         <div className="flex flex-col gap-1">
           {participants.map((p) => (
             <div
-              key={p.profile.id}
+              key={p.profile.profile_id}
               className="hover:bg-accent flex items-center gap-3 rounded-lg px-3 py-2"
             >
               <Avatar className="h-8 w-8">

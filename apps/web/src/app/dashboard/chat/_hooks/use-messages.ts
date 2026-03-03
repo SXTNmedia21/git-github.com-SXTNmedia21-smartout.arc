@@ -28,11 +28,11 @@ export function useMessages(conversationId: string | null) {
         .select(
           `
           *,
-          sender:profile!inner(id, full_name, avatar_url, role),
+          sender:profile!inner(profile_id, full_name, avatar_url, role),
           reply_to:chat_message!reply_to_id(
             id,
             content,
-            sender:profile!inner(id, full_name, avatar_url, role)
+            sender:profile!inner(profile_id, full_name, avatar_url, role)
           )
         `,
         )
@@ -73,7 +73,7 @@ export function useSendMessage(conversationId: string | null, profileId: string)
           content,
           reply_to_id: replyToId ?? null,
         })
-        .select(`*, sender:profile!inner(id, full_name, avatar_url, role)`)
+        .select(`*, sender:profile!inner(profile_id, full_name, avatar_url, role)`)
         .single();
 
       if (error) throw error;

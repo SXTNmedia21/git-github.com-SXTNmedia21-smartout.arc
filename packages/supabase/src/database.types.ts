@@ -357,6 +357,181 @@ export type Database = {
           },
         ]
       }
+      chat_conversation: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_archived: boolean
+          name: string | null
+          type: Database["public"]["Enums"]["chat_conversation_type"]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          is_archived?: boolean
+          name?: string | null
+          type: Database["public"]["Enums"]["chat_conversation_type"]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_archived?: boolean
+          name?: string | null
+          type?: Database["public"]["Enums"]["chat_conversation_type"]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_conversation_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "chat_conversation_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      chat_message: {
+        Row: {
+          attachments: Json
+          content: string
+          conversation_id: string
+          created_at: string
+          deleted_at: string | null
+          edited_at: string | null
+          id: string
+          is_system: boolean
+          reactions: Json
+          reply_to_id: string | null
+          sender_id: string
+          updated_at: string
+        }
+        Insert: {
+          attachments?: Json
+          content: string
+          conversation_id: string
+          created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
+          id?: string
+          is_system?: boolean
+          reactions?: Json
+          reply_to_id?: string | null
+          sender_id: string
+          updated_at?: string
+        }
+        Update: {
+          attachments?: Json
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
+          id?: string
+          is_system?: boolean
+          reactions?: Json
+          reply_to_id?: string | null
+          sender_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_message_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "chat_conversation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_message_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "chat_message"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_message_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+        ]
+      }
+      chat_participant: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          id: string
+          is_muted: boolean
+          joined_at: string
+          last_read_at: string
+          left_at: string | null
+          profile_id: string
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          id?: string
+          is_muted?: boolean
+          joined_at?: string
+          last_read_at?: string
+          left_at?: string | null
+          profile_id: string
+          role?: string
+          updated_at?: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          is_muted?: boolean
+          joined_at?: string
+          last_read_at?: string
+          left_at?: string | null
+          profile_id?: string
+          role?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_participant_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "chat_conversation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_participant_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+        ]
+      }
       clause_library: {
         Row: {
           category: string
@@ -1997,6 +2172,7 @@ export type Database = {
           journey_id: string | null
           mode: string
           name: string
+          system_prompt: string | null
           updated_at: string
           workspace_id: string | null
         }
@@ -2009,6 +2185,7 @@ export type Database = {
           journey_id?: string | null
           mode?: string
           name: string
+          system_prompt?: string | null
           updated_at?: string
           workspace_id?: string | null
         }
@@ -2021,6 +2198,7 @@ export type Database = {
           journey_id?: string | null
           mode?: string
           name?: string
+          system_prompt?: string | null
           updated_at?: string
           workspace_id?: string | null
         }
@@ -2179,6 +2357,7 @@ export type Database = {
           stage_id: string
           stage_order: number
           success_criteria: string
+          tuning_notes: string | null
         }
         Insert: {
           created_at?: string
@@ -2198,6 +2377,7 @@ export type Database = {
           stage_id: string
           stage_order: number
           success_criteria: string
+          tuning_notes?: string | null
         }
         Update: {
           created_at?: string
@@ -2217,6 +2397,7 @@ export type Database = {
           stage_id?: string
           stage_order?: number
           success_criteria?: string
+          tuning_notes?: string | null
         }
         Relationships: [
           {
@@ -7088,6 +7269,7 @@ export type Database = {
       booking_status: "confirmed" | "pending" | "cancelled"
       budget_period_type: "monthly" | "weekly" | "daily" | "hourly"
       budget_status: "draft" | "active" | "locked"
+      chat_conversation_type: "group" | "dm" | "ai"
       communication_channel: "email" | "sms" | "push" | "in_app"
       communication_status:
         | "pending"
@@ -7430,6 +7612,7 @@ export const Constants = {
       booking_status: ["confirmed", "pending", "cancelled"],
       budget_period_type: ["monthly", "weekly", "daily", "hourly"],
       budget_status: ["draft", "active", "locked"],
+      chat_conversation_type: ["group", "dm", "ai"],
       communication_channel: ["email", "sms", "push", "in_app"],
       communication_status: [
         "pending",

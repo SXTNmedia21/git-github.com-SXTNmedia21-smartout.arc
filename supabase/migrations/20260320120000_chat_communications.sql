@@ -18,7 +18,7 @@ CREATE TABLE public.chat_conversation (
   name               TEXT,
   description        TEXT,
   avatar_url         TEXT,
-  created_by         UUID NOT NULL REFERENCES public.profile(id) ON DELETE CASCADE,
+  created_by         UUID NOT NULL REFERENCES public.profile(profile_id) ON DELETE CASCADE,
   is_archived        BOOLEAN NOT NULL DEFAULT false,
   created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at         TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -32,7 +32,7 @@ COMMENT ON COLUMN public.chat_conversation.name IS 'Display name. NULL for DM (d
 CREATE TABLE public.chat_participant (
   id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   conversation_id    UUID NOT NULL REFERENCES public.chat_conversation(id) ON DELETE CASCADE,
-  profile_id         UUID NOT NULL REFERENCES public.profile(id) ON DELETE CASCADE,
+  profile_id         UUID NOT NULL REFERENCES public.profile(profile_id) ON DELETE CASCADE,
   role               TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('member', 'admin')),
   last_read_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
   is_muted           BOOLEAN NOT NULL DEFAULT false,
@@ -50,7 +50,7 @@ COMMENT ON COLUMN public.chat_participant.last_read_at IS 'Timestamp of last rea
 CREATE TABLE public.chat_message (
   id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   conversation_id    UUID NOT NULL REFERENCES public.chat_conversation(id) ON DELETE CASCADE,
-  sender_id          UUID NOT NULL REFERENCES public.profile(id) ON DELETE CASCADE,
+  sender_id          UUID NOT NULL REFERENCES public.profile(profile_id) ON DELETE CASCADE,
   content            TEXT NOT NULL,
   reply_to_id        UUID REFERENCES public.chat_message(id) ON DELETE SET NULL,
   reactions          JSONB NOT NULL DEFAULT '{}',
@@ -75,7 +75,7 @@ CREATE POLICY "jwt_read_chat_conversation"
   USING (
     id IN (
       SELECT cp.conversation_id FROM public.chat_participant cp
-      WHERE cp.profile_id IN (SELECT p.id FROM public.profile p WHERE p.user_id = auth.uid())
+      WHERE cp.profile_id IN (SELECT p.profile_id FROM public.profile p WHERE p.user_id = auth.uid())
       AND cp.left_at IS NULL
     )
   );
@@ -93,7 +93,7 @@ CREATE POLICY "jwt_update_chat_conversation"
   USING (
     id IN (
       SELECT cp.conversation_id FROM public.chat_participant cp
-      WHERE cp.profile_id IN (SELECT p.id FROM public.profile p WHERE p.user_id = auth.uid())
+      WHERE cp.profile_id IN (SELECT p.profile_id FROM public.profile p WHERE p.user_id = auth.uid())
       AND cp.role = 'admin'
       AND cp.left_at IS NULL
     )
@@ -113,7 +113,7 @@ CREATE POLICY "jwt_read_chat_participant"
   USING (
     conversation_id IN (
       SELECT cp2.conversation_id FROM public.chat_participant cp2
-      WHERE cp2.profile_id IN (SELECT p.id FROM public.profile p WHERE p.user_id = auth.uid())
+      WHERE cp2.profile_id IN (SELECT p.profile_id FROM public.profile p WHERE p.user_id = auth.uid())
       AND cp2.left_at IS NULL
     )
   );
@@ -124,13 +124,13 @@ CREATE POLICY "jwt_insert_chat_participant"
   WITH CHECK (
     conversation_id IN (
       SELECT cp.conversation_id FROM public.chat_participant cp
-      WHERE cp.profile_id IN (SELECT p.id FROM public.profile p WHERE p.user_id = auth.uid())
+      WHERE cp.profile_id IN (SELECT p.profile_id FROM public.profile p WHERE p.user_id = auth.uid())
       AND cp.role = 'admin'
       AND cp.left_at IS NULL
     )
     OR conversation_id IN (
       SELECT cc.id FROM public.chat_conversation cc
-      WHERE cc.created_by IN (SELECT p.id FROM public.profile p WHERE p.user_id = auth.uid())
+      WHERE cc.created_by IN (SELECT p.profile_id FROM public.profile p WHERE p.user_id = auth.uid())
     )
   );
 
@@ -138,7 +138,7 @@ CREATE POLICY "jwt_insert_chat_participant"
 CREATE POLICY "jwt_update_chat_participant"
   ON public.chat_participant FOR UPDATE
   USING (
-    profile_id IN (SELECT p.id FROM public.profile p WHERE p.user_id = auth.uid())
+    profile_id IN (SELECT p.profile_id FROM public.profile p WHERE p.user_id = auth.uid())
   );
 
 -- API key: read
@@ -160,7 +160,7 @@ CREATE POLICY "jwt_read_chat_message"
   USING (
     conversation_id IN (
       SELECT cp.conversation_id FROM public.chat_participant cp
-      WHERE cp.profile_id IN (SELECT p.id FROM public.profile p WHERE p.user_id = auth.uid())
+      WHERE cp.profile_id IN (SELECT p.profile_id FROM public.profile p WHERE p.user_id = auth.uid())
       AND cp.left_at IS NULL
     )
   );
@@ -171,17 +171,17 @@ CREATE POLICY "jwt_insert_chat_message"
   WITH CHECK (
     conversation_id IN (
       SELECT cp.conversation_id FROM public.chat_participant cp
-      WHERE cp.profile_id IN (SELECT p.id FROM public.profile p WHERE p.user_id = auth.uid())
+      WHERE cp.profile_id IN (SELECT p.profile_id FROM public.profile p WHERE p.user_id = auth.uid())
       AND cp.left_at IS NULL
     )
-    AND sender_id IN (SELECT p.id FROM public.profile p WHERE p.user_id = auth.uid())
+    AND sender_id IN (SELECT p.profile_id FROM public.profile p WHERE p.user_id = auth.uid())
   );
 
 -- JWT: update own messages (edit, soft-delete)
 CREATE POLICY "jwt_update_chat_message"
   ON public.chat_message FOR UPDATE
   USING (
-    sender_id IN (SELECT p.id FROM public.profile p WHERE p.user_id = auth.uid())
+    sender_id IN (SELECT p.profile_id FROM public.profile p WHERE p.user_id = auth.uid())
   );
 
 -- API key: read
