@@ -146,7 +146,7 @@ The Contract System is **shared signing infrastructure** consumed by multiple mo
 │                                                                     │
 │        ┌────────────────────────────────────────────────┐           │
 │        │   Notification Service (future — prerequisite)  │           │
-│        │   Email (Resend) · SMS (Twilio) · Push · In-app │           │
+│        │   Email (SendGrid) · SMS (Twilio) · Push · In-app │           │
 │        └────────────────────────────────────────────────┘           │
 └────────────────────────────────────────────────────────────────────┘
 ```
@@ -824,7 +824,7 @@ The reminder sequences reveal a platform-wide need. This is NOT contract-specifi
 
 **Required capabilities:**
 
-- **Email** via Resend (existing in stack)
+- **Email** via SendGrid (existing in stack)
 - **SMS** via Twilio or Link Mobility (Norwegian provider)
 - **Push** via Expo Push (mobile) + Web Push API
 - **In-app** via Supabase Realtime (banners, toasts)
@@ -835,7 +835,7 @@ The reminder sequences reveal a platform-wide need. This is NOT contract-specifi
 - **Rate limiting** (don't spam)
 - **Admin controls** (pause all for a workspace, manual override)
 
-**Implementation note:** This should be a separate module specification. The contract system depends on it but shouldn't build its own notification logic. For V1, a simplified version using Supabase Edge Functions for scheduled email/SMS via Resend/Twilio is sufficient.
+**Implementation note:** This should be a separate module specification. The contract system depends on it but shouldn't build its own notification logic. For V1, a simplified version using Supabase Edge Functions for scheduled email/SMS via SendGrid/Twilio is sufficient.
 
 **Cron/Scheduler for automated checks:**
 
@@ -1056,7 +1056,7 @@ Smartout processes personal data on behalf of its clients (employee names, sched
 | Supabase (US entity, EU hosting) | Database, Auth, Storage     | EU (Frankfurt)      |
 | Vercel                           | Web hosting, Edge Functions | EU                  |
 | DocuSeal                         | Document signing            | EU (or self-hosted) |
-| Resend                           | Transactional email         | US (SCCs in place)  |
+| SendGrid                         | Transactional email         | US (SCCs in place)  |
 | Stripe                           | Payment processing          | US/EU (SCCs)        |
 | Twilio                           | SMS notifications           | US (SCCs)           |
 | Expo                             | Mobile push notifications   | US (SCCs)           |
@@ -1231,7 +1231,7 @@ The `validate_contract` tool should check:
 
 14. contract_reminder scheduling on contract creation
 15. Daily cron: check expiry, process state transitions
-16. Email reminders via Resend (simplified — no full notification service yet)
+16. Email reminders via SendGrid (simplified — no full notification service yet)
 17. SMS reminders via Twilio (critical ones only: day 7, 13, 21)
 18. In-app banners: trial countdown, contract signing prompt
 

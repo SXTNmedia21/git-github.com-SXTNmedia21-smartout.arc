@@ -5,6 +5,7 @@ updated: 2026-03-08
 created: 2026-03-08
 module: meta
 tags: [narrative, ai, capabilities, voice, agents, vision]
+language: en
 ---
 
 # The Colleague
@@ -113,7 +114,7 @@ When Sara asks a question, the AI doesn't just search a database. It _thinks_ ab
 
 That's not a schedule question. It's not a wine question. It's a _governance_ question — about procedures, protocols, how things are done at this specific workplace.
 
-The Agent Router classifies intent across nine capability domains:
+The Agent Router classifies intent across nine capability domains — these map to six specialized agents, where some agents handle multiple related domains:
 
 - **Onboarding** — getting new employees ready
 - **Schedule** — shifts, availability, swaps
@@ -129,7 +130,7 @@ Each domain has its own agent with its own tools, its own knowledge base, its ow
 
 Sara doesn't see any of this routing. She just asks a question and gets a relevant answer from something that understands _what kind of help she needs_.
 
-Six specialized agents work behind the scenes. Each one is an expert in its domain. The router sends questions to the right expert. The expert has the right tools. The tools access the right data. The answer arrives in seconds.
+Six specialized agents work behind the scenes, each covering one or more of those nine domains. The router sends questions to the right expert. The expert has the right tools. The tools access the right data. The answer arrives in seconds.
 
 ---
 

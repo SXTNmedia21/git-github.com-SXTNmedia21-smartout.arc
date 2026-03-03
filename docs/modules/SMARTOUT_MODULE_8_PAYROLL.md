@@ -30,7 +30,7 @@ changelog:
 
 # Module 8: Lønn & Økonomi (Payroll & Finance)
 
-> **Smartout.io** — Functional documentation for migration
+> **Smartout.ai** — Functional documentation for migration
 > Version 1.0 | February 2026
 > **Dependencies:** Core Architecture v2 (Profile, Department), Module 3 (Scheduling — shifts/punches), Module 7 (Absence)
 > **Status:** PLACEHOLDER — requires detailed specification

@@ -35,7 +35,7 @@ Vaktplanen er kjernen i daglig drift. Her planlegger du skift, tildeler personal
 
 ## Visningsmodi
 
-### Ansa-visning (person)
+### Ansatt-visning (person)
 
 Viser vaktplanen organisert etter ansatte. Hver rad er en person, og kolonnene er dager. Du ser raskt hvem som jobber når, og kan dra-og-slippe vakter mellom ansatte.
 
@@ -81,7 +81,7 @@ Klikk på et vaktkort for å se utvidet informasjon:
 SmartOut støtter vaktplanmaler for å spare tid:
 
 1. **Lag mal fra eksisterende uke** — Kopier en ferdig vaktplan som mal
-2. **Bruk mal** — Appliser en lagret mal på en ny uke
+2. **Bruk mal** — Bruk en lagret mal på en ny uke
 3. **Automatisk generering** — La SmartOut foreslå en vaktplan basert på historikk, budsjett og tilgjengelighet
 
 ---

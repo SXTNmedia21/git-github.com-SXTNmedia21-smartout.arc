@@ -24,7 +24,7 @@ changelog:
 
 # Module 11: Innstillinger & Administrasjon (Settings & Administration)
 
-> **Smartout.io** — Functional documentation for migration
+> **Smartout.ai** — Functional documentation for migration
 > Version 1.0 | February 2026
 > **Dependencies:** Core Architecture v2, Module 13 (Multi-Tenant/Billing)
 > **Status:** PLACEHOLDER — requires detailed specification
@@ -105,7 +105,7 @@ Workspace-level settings and configuration. Covers branding, module activation, 
 | ----------- | ---------- | -------------------------- |
 | Supabase    | Backend    | Automatic (no user config) |
 | Twilio      | SMS/Voice  | API keys, phone numbers    |
-| Resend      | Email      | API key, sender domain     |
+| SendGrid    | Email      | API key, sender domain     |
 | Stripe      | Billing    | Managed via Module 13      |
 | n8n         | Automation | Webhook URLs               |
 | DocuSeal    | Contracts  | Template IDs, API key      |

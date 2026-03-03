@@ -34,7 +34,7 @@ Disse innstillingene gjelder per arbeidsplass:
 
 ### Generelt
 
-- **Navn og logo** — Arbeidsplass navn og profilbilde
+- **Navn og logo** — Arbeidsplassnavn og profilbilde
 - **Adresse** — Fysisk adresse brukt i rapporter og kontrakter
 - **Tidssone** — Standard: Europe/Oslo
 - **Språk** — Norsk (standard), svensk, dansk, finsk eller engelsk
@@ -117,7 +117,7 @@ SmartOut støtter fem språk:
 
 - **Arbeidsplass-språk** — Bestemmer standardspråket for alle ansatte
 - **Personlig språk** — Hver ansatt kan overstyre med sitt foretrukne språk
-- **Innholdssspråk** — Retningslinjer og protokoller kan ha oversettelser
+- **Innholdsspråk** — Retningslinjer og protokoller kan ha oversettelser
 
 ---
 

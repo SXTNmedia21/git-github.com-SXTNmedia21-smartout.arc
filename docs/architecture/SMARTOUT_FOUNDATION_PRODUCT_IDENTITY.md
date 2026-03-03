@@ -23,7 +23,7 @@ changelog:
 
 # Smartout — Product Identity
 
-> **Smartout.io** — Foundation documentation
+> **Smartout.ai** — Foundation documentation
 > Version 1.0 | February 2026
 > **Source:** SMARTOUT_COMPLETE_DOCUMENTATION.md, Section 0
 

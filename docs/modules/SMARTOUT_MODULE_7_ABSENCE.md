@@ -30,7 +30,7 @@ changelog:
 
 # Module 7: Fravær & Permisjon (Absence & Leave)
 
-> **Smartout.io** — Functional documentation for migration
+> **Smartout.ai** — Functional documentation for migration
 > Version 1.0 | February 2026
 > **Dependencies:** Core Architecture v2 (Profile, Department, Workspace), Module 3 (Scheduling), Module 8 (Payroll)
 > **Status:** PLACEHOLDER — requires detailed specification

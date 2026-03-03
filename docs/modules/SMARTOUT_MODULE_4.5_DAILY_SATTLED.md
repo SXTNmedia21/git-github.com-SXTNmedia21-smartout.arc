@@ -1,6 +1,15 @@
+---
+title: "Module 4.5: Daily Financial Close Engine"
+status: in_progress
+updated: 2026-03-11
+created: 2026-03-05
+module: operations
+tags: [settlement, daily-close, ocr, reconciliation]
+---
+
 # Module 4.5: Sättelfunktion — Daily Financial Close Engine
 
-> **Smartout.io** — Functional documentation for migration
+> **Smartout.ai** — Functional documentation for migration
 > Version 1.0 | March 2026
 >
 > **Origin:** Brainstorm session on AI-driven daily reconciliation with image capture from iSettle/POS terminals, OCR extraction, cross-validation, gatekeeper logic, and manager approval.

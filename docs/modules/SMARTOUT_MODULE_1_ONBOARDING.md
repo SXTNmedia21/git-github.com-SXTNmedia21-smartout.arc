@@ -35,7 +35,7 @@ changelog:
 
 # Module 1: Onboarding & Brukerregistrering
 
-> **Smartout.io** — Functional documentation for migration
+> **Smartout.ai** — Functional documentation for migration
 > Version 3.0 | March 2026
 > **Supersedes:** SMARTOUT_ONBOARDING_FRAMEWORK.md (v1), SMARTOUT_ONBOARDING_FRAMEWORK_v2.md
 

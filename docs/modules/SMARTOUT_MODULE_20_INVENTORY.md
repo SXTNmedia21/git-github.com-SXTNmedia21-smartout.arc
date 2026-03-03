@@ -1,4 +1,13 @@
-# Smartout Module 8 — Inventory & Supply Chain
+---
+title: "Module 20: Inventory & Supply Chain"
+status: draft
+updated: 2026-03-11
+created: 2026-03-01
+module: inventory
+tags: [inventory, supply-chain, procurement]
+---
+
+# Module 20: Inventory & Supply Chain
 
 > **Summary:** Closed-loop inventory management for restaurant operations. Covers the full raw material lifecycle: demand → order → receiving → storage → production → service → waste → analysis. Integrates deeply with Operations (Module 4) via session tasks and deviations, HACCP (Module 5) via batch traceability and temperature control, and Org Structure (Module 2) via storage locations. Four engines: Order & Receiving, Storage & Location, Deviation (Avviksmotor), and Traceability.
 

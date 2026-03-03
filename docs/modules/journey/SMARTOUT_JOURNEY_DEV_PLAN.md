@@ -1,3 +1,12 @@
+---
+title: "Journey Dev Plan"
+status: in_progress
+updated: 2026-03-11
+created: 2026-03-01
+module: journey
+tags: [journey, plan, implementation]
+---
+
 # SMARTOUT — Journey System Development Plan
 
 > **Tre faser. Integrerat i existerande build order.**

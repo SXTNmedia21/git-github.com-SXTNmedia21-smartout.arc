@@ -5,6 +5,7 @@ updated: 2026-03-08
 created: 2026-03-08
 module: meta
 tags: [narrative, singularity, future, vision]
+language: en
 ---
 
 # The Shift
@@ -139,7 +140,7 @@ The technology changes _how_ we prepare people. It doesn't change _why_.
 
 Pontus understood that before the first commit. He'll understand it after the millionth.
 
-The machines think faster now. They'll think faster still. But the reason to build — the Sara on her first Friday night, the chef who wants to lead instead of administrate, the industry that loses half its people every year — that doesn't scale or optimize or disrupt.
+The machines think faster now. They'll think faster still. But the reason to build — the Sara on her first Friday night, the chef who wants to lead instead of administer, the industry that loses half its people every year — that doesn't scale or optimize or disrupt.
 
 It's just true.
 

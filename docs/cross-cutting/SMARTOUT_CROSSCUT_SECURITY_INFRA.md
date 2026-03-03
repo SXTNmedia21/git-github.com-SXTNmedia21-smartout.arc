@@ -24,7 +24,7 @@ changelog:
 
 # Cross-Cutting: Security & Infrastructure
 
-> **Smartout.io** — Cross-cutting documentation
+> **Smartout.ai** — Cross-cutting documentation
 > Version 1.0 | February 2026
 > **Source:** SMARTOUT_COMPLETE_DOCUMENTATION.md, Sections 26, 28, 29, 30
 
@@ -83,13 +83,13 @@ changelog:
 | ------- | -------------------------------------- | --------- | --------------------------------- |
 | Push    | Expo Push (mobile), Web Push (desktop) | Seconds   | Task alerts, shift reminders      |
 | SMS     | Twilio                                 | Seconds   | Critical alerts, non-app users    |
-| Email   | Resend                                 | Minutes   | Formal comms, schedules, payslips |
+| Email   | SendGrid                               | Minutes   | Formal comms, schedules, payslips |
 | Voice   | Twilio + Ultravox                      | Real-time | AI handoff, emergencies           |
 | In-app  | UI                                     | On open   | Non-urgent status updates         |
 
 ### 2.2 Notification Preferences
 
-Stored on `Profile.notification_pref`:
+Stored in the `notification_preference` table (per-profile notification settings):
 
 ```json
 {

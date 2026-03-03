@@ -1,3 +1,12 @@
+---
+title: "Journey Registry"
+status: in_progress
+updated: 2026-03-11
+created: 2026-03-01
+module: journey
+tags: [journey, registry, portal]
+---
+
 # SMARTOUT — Journey Registry & Implementation Guide
 
 > **Employee Readiness System — Journey-Driven Development**

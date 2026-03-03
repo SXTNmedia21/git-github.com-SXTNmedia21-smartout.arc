@@ -80,7 +80,7 @@ En gjentagende operativ oppgave som utføres regelmessig. Rutiner kobles til hoo
 
 En flerstegs operativ prosess for komplekse situasjoner. Mer detaljert enn en prosedyre.
 
-**Eksempel:** «Håndtering av matvareallergi-hendelse» — Trinn-for-trinn-guide med escaleringspunkter.
+**Eksempel:** «Håndtering av matvareallergi-hendelse» — Trinn-for-trinn-guide med eskaleringspunkter.
 
 ### Kontrolliste
 

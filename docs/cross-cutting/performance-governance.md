@@ -38,7 +38,7 @@ The model is:
 
 - Apps: `apps/web`, `apps/landing`
 - Route scope: all routes in both apps (critical routes get stricter thresholds)
-- Trigger points: pull requests and pushes to `SmartOut.ai`
+- Trigger points: pull requests and pushes to the development integration branch
 
 ## Ownership
 

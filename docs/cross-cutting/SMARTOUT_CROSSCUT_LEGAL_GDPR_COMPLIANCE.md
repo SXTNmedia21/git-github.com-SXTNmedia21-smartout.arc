@@ -24,7 +24,7 @@ changelog:
 
 # Cross-Cutting: Legal, GDPR & Compliance
 
-> **Smartout.io** — Cross-cutting documentation
+> **Smartout.ai** — Cross-cutting documentation
 > Version 1.0 | February 2026
 > **Source:** SMARTOUT_COMPLETE_DOCUMENTATION.md, Sections 21, 25
 > **Scope:** GDPR/Personvern, Norwegian labor law, food safety, accounting law, equality law
@@ -70,7 +70,7 @@ Smartout = Data Processor. Employer = Data Controller.
 | Supabase            | Backend, database, auth | All platform data              |
 | Vercel              | Web hosting             | Request logs, session data     |
 | Twilio              | SMS, voice              | Phone numbers, message content |
-| Resend              | Email                   | Email addresses, content       |
+| SendGrid            | Email                   | Email addresses, content       |
 | Stripe              | Billing                 | Company billing info           |
 | DigitalOcean        | n8n hosting             | Workflow execution data        |
 | Ultravox (Fixie.ai) | Voice AI                | Voice recordings, transcripts  |
@@ -130,7 +130,7 @@ Smartout = Data Processor. Employer = Data Controller.
 
 ### 1.10 Privacy Statement
 
-Published at smartout.io/privacy. Norwegian language. Version-controlled.
+Published at smartout.ai/personvern. Norwegian language. Version-controlled.
 
 ---
 

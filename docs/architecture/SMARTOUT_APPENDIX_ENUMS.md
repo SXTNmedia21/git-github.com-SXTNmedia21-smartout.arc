@@ -24,7 +24,7 @@ changelog:
 
 # Smartout — All Enums (Option Sets)
 
-> **Smartout.io** — Appendix
+> **Smartout.ai** — Appendix
 > Version 1.0 | February 2026
 > **Source:** SMARTOUT_COMPLETE_DOCUMENTATION.md, Appendix B
 

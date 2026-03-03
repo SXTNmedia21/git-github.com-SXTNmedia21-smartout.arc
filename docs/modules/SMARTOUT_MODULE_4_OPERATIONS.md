@@ -33,7 +33,7 @@ changelog:
 
 # Module 4: Operations & Task Management
 
-> **Smartout.io** — Functional documentation for migration
+> **Smartout.ai** — Functional documentation for migration
 > Version 1.0 | February 2026
 >
 > **Scope change:** This module was originally titled "Oppgavehåndtering (Task Management)" in the index. After architectural analysis, it has been elevated to **Operations & Task Management** because it introduces the **Department Session** — the daily operational container that binds shifts, procedures, tasks, and accountability into a single auditable unit.

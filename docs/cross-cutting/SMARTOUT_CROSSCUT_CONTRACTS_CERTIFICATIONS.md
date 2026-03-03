@@ -23,7 +23,7 @@ changelog:
 
 # Cross-Cutting: Contracts & Certifications
 
-> **Smartout.io** — Cross-cutting documentation
+> **Smartout.ai** — Cross-cutting documentation
 > Version 1.0 | February 2026
 > **Source:** SMARTOUT_COMPLETE_DOCUMENTATION.md, Sections 22, 23
 
@@ -45,7 +45,7 @@ employment_contract
   workspace_id         fk → workspace
   profile_id           fk → profile
   contract_type        permanent | temporary | freelance | apprentice | substitute
-  status               draft | pending_signature | active | amended | terminated | expired
+  status               draft | sent | viewed | signed | expired | terminated
   template_id          fk → contract_template | null
   start_date           date
   end_date             date | null (null = permanent)
@@ -115,7 +115,7 @@ contract_amendment
 
 ### 1.6 Digital Signing
 
-In-app signature capture (draw or type). Email confirmation with signed PDF. Audit trail. No external e-signature provider in v1.
+In-app signature capture (draw or type). Email confirmation with signed PDF. Audit trail. DocuSeal is used for digital signing (see ADR-0024).
 
 ### 1.7 Contract → Profile Sync
 

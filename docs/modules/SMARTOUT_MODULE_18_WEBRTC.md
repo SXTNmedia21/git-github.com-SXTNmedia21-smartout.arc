@@ -28,7 +28,7 @@ changelog:
 
 # Module 18: WebRTC Voice & Video (LiveKit Integration)
 
-> **Smartout.io** — Functional documentation for migration
+> **Smartout.ai** — Functional documentation for migration
 > Version 1.0 | February 2026
 > **Dependencies:** Core Architecture v2 (Profile, Team, Department, Workspace), Module 9 (Communication — chat_channel, chat_message), Module 12 (AI Layer — Mr. Botsson)
 > **Technology:** LiveKit Cloud → self-hosted migration path

@@ -5,6 +5,7 @@ updated: 2026-03-08
 created: 2026-03-08
 module: meta
 tags: [narrative, seasons, strategy, gamification, vision]
+language: en
 ---
 
 # Everything Is Seasons
@@ -109,7 +110,7 @@ When revenue drops, most operators cut blindly. Reduce hours across the board. C
 
 Seasons offer precision instead of panic.
 
-Revenue is down 15% this month? The system shows it's concentrated on weekday lunches — weekends are still strong. Don't cut Saturday staff. Reduce Tuesday-Thursday by one person per shift and run a weekday lunch promotion.
+Revenue is down 15% this month? The system shows the drop is concentrated on weekday lunches — weekends are still strong. Don't cut Saturday staff. Reduce Tuesday-Thursday by one person per shift and run a weekday lunch promotion.
 
 The new staff aren't performing? The readiness scores show exactly where the gaps are. Don't fire them — train them. The cost of replacing an employee is 3-5x the cost of a targeted training week.
 

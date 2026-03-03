@@ -35,7 +35,7 @@ changelog:
 
 # Smartout — Core Data Model
 
-> **Smartout.io** — Foundation documentation
+> **Smartout.ai** — Foundation documentation
 > Version 1.0 | February 2026
 > **Source:** SMARTOUT_COMPLETE_DOCUMENTATION.md, Sections 2, 3, 4
 > **Authoritative source:** SMARTOUT_CORE_ARCHITECTURE_v2.md

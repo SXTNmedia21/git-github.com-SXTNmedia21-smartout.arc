@@ -5,6 +5,7 @@ updated: 2026-03-08
 created: 2026-03-08
 module: meta
 tags: [narrative, democratization, builders, vision]
+language: en
 ---
 
 # The Builders

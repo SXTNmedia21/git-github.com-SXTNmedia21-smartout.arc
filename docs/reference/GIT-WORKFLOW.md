@@ -25,27 +25,27 @@ changelog:
 
 ## Nyckelkoncept (bara det du behöver veta)
 
-| Term        | Vad det är                                                                            |
-| ----------- | ------------------------------------------------------------------------------------- |
-| `main`      | Din produktionsbranch. Det som körs på smartout.ai. Ingen pushar hit direkt.          |
-| `develop`   | Din dagliga arbetsbranch. Här bygger du saker.                                        |
-| `feature/*` | Tillfälliga branches för specifika uppgifter. Skapas från `develop`, mergas tillbaka. |
-| `hotfix/*`  | Akuta fixar som går direkt till `main` (enda undantaget).                             |
-| `origin`    | **Inte en branch.** Bara adressen till din GitHub-remote.                             |
-| `HEAD`      | Pekar på den branch du är på just nu. Inget du behöver tänka på.                      |
-| PR          | Pull Request. Den enda vägen in till `main`.                                          |
+| Term          | Vad det är                                                                                |
+| ------------- | ----------------------------------------------------------------------------------------- |
+| `main`        | Din produktionsbranch. Det som körs på smartout.ai. Ingen pushar hit direkt.              |
+| `development` | Din dagliga arbetsbranch. Här bygger du saker.                                            |
+| `feature/*`   | Tillfälliga branches för specifika uppgifter. Skapas från `development`, mergas tillbaka. |
+| `hotfix/*`    | Akuta fixar som går direkt till `main` (enda undantaget).                                 |
+| `origin`      | **Inte en branch.** Bara adressen till din GitHub-remote.                                 |
+| `HEAD`        | Pekar på den branch du är på just nu. Inget du behöver tänka på.                          |
+| PR            | Pull Request. Den enda vägen in till `main`.                                              |
 
 ---
 
 ## Branch-flöde
 
 ```
-feature/x ──→ develop ──→ PR till main ──→ Vercel preview ──→ merge ──→ LIVE
+feature/x ──→ development ──→ PR till main ──→ Vercel preview ──→ merge ──→ LIVE
                                                     ↑
                                         Du testar här innan merge
 
 hotfix/x ────────────────→ PR till main ──→ Vercel preview ──→ merge ──→ LIVE
-                           (cherry-pick tillbaka till develop)
+                           (cherry-pick tillbaka till development)
 ```
 
 ---
@@ -175,9 +175,9 @@ Ta bort test-filen efteråt.
 ### Starta ny uppgift
 
 ```bash
-# Byt till develop och hämta senaste
-git checkout develop
-git pull origin develop
+# Byt till development och hämta senaste
+git checkout development
+git pull origin development
 
 # Skapa feature-branch
 git checkout -b feature/lisa-hub-voice-routing
@@ -194,14 +194,14 @@ git push -u origin feature/lisa-hub-voice-routing
 ### När klart — öppna PR
 
 1. **GitHub** → Repot → "Compare & pull request"
-2. Base: `develop` ← Compare: `feature/lisa-hub-voice-routing`
-3. Merge till develop
-4. Testa develop
+2. Base: `development` ← Compare: `feature/lisa-hub-voice-routing`
+3. Merge till development
+4. Testa development
 
 ### Release till produktion
 
 1. **GitHub** → New Pull Request
-2. Base: `main` ← Compare: `develop`
+2. Base: `main` ← Compare: `development`
 3. Vercel skapar automatiskt en **preview-deployment**
 4. Klicka preview-länken i PR:n → testa allt
 5. Merge → Live på smartout.ai
@@ -219,10 +219,10 @@ git add . && git commit -m "fix: auth crash on login"
 git push -u origin hotfix/auth-crash
 
 # Öppna PR direkt till main
-# Efter merge, cherry-pick till develop:
-git checkout develop
+# Efter merge, cherry-pick till development:
+git checkout development
 git cherry-pick <commit-hash>
-git push origin develop
+git push origin development
 ```
 
 ---
@@ -234,10 +234,10 @@ Skapa denna i repots rot:
 ```
 # === GIT WORKFLOW ===
 - NEVER commit or push directly to main
-- Always work on develop or feature/* branches
+- Always work on development or feature/* branches
 - All changes to main must go through a Pull Request
 - Branch naming: feature/beskrivning, fix/beskrivning, hotfix/beskrivning
-- Default working branch: develop
+- Default working branch: development
 
 # === ENVIRONMENT VARIABLES ===
 - NEVER hardcode API keys, secrets, or credentials in code
@@ -306,7 +306,7 @@ Thumbs.db
 
 ```
 □ Rename "Smartout.ai"-branch till "main" (GitHub → Settings → Default branch)
-□ Skapa "develop" från "main"
+□ Skapa "development" från "main"
 □ Ta bort gamla oanvända branches
 □ Sätt upp branch protection på "main" (med "do not allow bypassing")
 □ Verifiera Vercel production branch = main
@@ -316,7 +316,7 @@ Thumbs.db
 □ Installera git pre-push hook
 □ Verifiera .gitignore innehåller .env*
 □ Testkör: försök pusha direkt till main (ska nekas)
-□ Testkör: skapa feature-branch → PR till develop → PR till main
+□ Testkör: skapa feature-branch → PR till development → PR till main
 ```
 
 ---

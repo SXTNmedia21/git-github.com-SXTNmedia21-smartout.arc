@@ -98,7 +98,7 @@ Hver invitert bruker starter som **trainee**. I trainee-modus gjennomfører de o
 
 ## Neste steg
 
-Når bedriften, arbeidsplass og ansatte er på plass, kan du:
+Når bedriften, arbeidsplassen og ansatte er på plass, kan du:
 
 - Konfigurere **vaktplanen** for å begynne å planlegge skift
 - Sette opp **protokoller** og **retningslinjer** for opplæring

@@ -5,6 +5,7 @@ updated: 2026-03-08
 created: 2026-03-08
 module: meta
 tags: [narrative, architecture, engineering, vision]
+language: en
 ---
 
 # The Iceberg
@@ -90,7 +91,7 @@ TIPS|DRIKKEPENGER → tips
 
 The OCR extracts the numbers. Cross-validates POS total against terminal total. If the difference exceeds tolerance — configurable per workspace, either fixed NOK amount or percentage — a deviation is auto-created. The closer must comment on every deviation before they can proceed.
 
-And here's the lock: **the closer cannot punch out until everything is done.** Checklist complete. Both images uploaded and parsed. All deviations commented. The system physically prevents you from leaving until the day is closed properly.
+And here's the lock: **the closer cannot punch out until everything is done.** Checklist complete. Both images uploaded and parsed. All deviations commented. The system locks the workflow — you cannot punch out until the day is properly closed.
 
 **Phase 2 — The Manager (next morning):**
 

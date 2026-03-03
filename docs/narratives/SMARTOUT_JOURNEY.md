@@ -5,6 +5,7 @@ updated: 2026-03-08
 created: 2026-03-08
 module: meta
 tags: [narrative, journey, smartout, inspiration]
+language: en
 ---
 
 # The Smartout Journey
@@ -177,7 +178,7 @@ Let's step back and look at what exists. Not what's planned. What's _real_, in t
 ```
 493 commits in 5 days
 458 non-merge commits
-176 features
+176 feature commits
 88 bug fixes
 50 documentation commits
 21 features closed and merged

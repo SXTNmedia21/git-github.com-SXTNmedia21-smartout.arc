@@ -30,7 +30,7 @@ changelog:
 
 # Module 15: Season Planning & Budget Engine
 
-> **Smartout.io** — Functional documentation for migration  
+> **Smartout.ai** — Functional documentation for migration
 > Version 1.0 | February 2026
 >
 > **New module.** Extends the Season concept from Core Architecture with budget targets, revenue forecasting, factor hierarchies, and staffing capacity models. This is the strategic planning layer — "setting up the battlefield" with numbers.

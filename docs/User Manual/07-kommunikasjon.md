@@ -85,7 +85,7 @@ Ledere kan sende kunngjøringer til hele arbeidsplass, avdeling eller team:
 3. **Velg kanal** — Push, SMS, e-post eller alle
 4. **Krev bekreftelse** — Valgfritt: mottakerne må bekrefte at de har lest
 
-> Kunngjøringer med bekreftelskrav vises i et eget «ulest»-felt til den ansatte bekrefter.
+> Kunngjøringer med bekreftelseskrav vises i et eget «ulest»-felt til den ansatte bekrefter.
 
 ---
 

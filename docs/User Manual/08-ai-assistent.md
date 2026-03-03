@@ -30,7 +30,7 @@ changelog:
 
 ## Hva er Lise?
 
-Lise (internt kalt Mr. Botsson) er SmartOuts AI-assistent. Hun er designet som en operativ medarbeider — ikke bare en chatbot. Lise forstår din arbeidsplass, kjenner reglene, og kan hjelpe med alt fra vaktplanlegging til HACCP-spørsmål.
+Lise er SmartOuts AI-assistent. Hun er designet som en operativ medarbeider — ikke bare en chatbot. Lise forstår din arbeidsplass, kjenner reglene, og kan hjelpe med alt fra vaktplanlegging til HACCP-spørsmål.
 
 > Lise er ikke en generell AI. Hun er trent på SmartOuts domene og har kun tilgang til data du har rett til å se.
 

@@ -25,7 +25,7 @@ changelog:
 
 # Smartout — Implementation Guide
 
-> **Smartout.io** — Implementation documentation
+> **Smartout.ai** — Implementation documentation
 > Version 1.0 | February 2026
 > **Source:** SMARTOUT_COMPLETE_DOCUMENTATION.md, Sections 31-35
 > **See also:** BUILD_ORDER.md (detailed task-level breakdown), archive/SMARTOUT_REBUILD_STRATEGY.md (archived), CLAUDE.md

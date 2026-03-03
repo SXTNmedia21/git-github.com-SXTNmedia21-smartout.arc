@@ -5,6 +5,7 @@ updated: 2026-03-08
 created: 2026-03-08
 module: meta
 tags: [narrative, vision, employee-experience, inspiration]
+language: sv
 ---
 
 # Det Första Passet
@@ -52,7 +53,7 @@ Pontus Lindroth har sett den tusentals gånger. Som anställd, som chef, som äg
 
 Statistiken är brutal. Inom hotell och restaurang i Norge slutar uppåt 40% av nyanställda inom det första halvåret. Inte för att jobbet är dåligt. Inte för att människorna är fel. Utan för att **ingen förbereder dem ordentligt**.
 
-Det är dyrt. En nyanställd som slutar kostar arbetsgivaren 50 000–150 000 kronor. Rekrytering, upplärning, produktivitetsbortfall, kollegors extrabelastning.
+Det är dyrt. En nyanställd som slutar kostar arbetsgivaren 50 000–150 000 kroner. Rekrytering, upplärning, produktivitetsbortfall, kollegors extrabelastning.
 
 Men det verkliga priset är inte pengar. Det är _Sara_. Det är känslan av att inte räcka till. Av att vara i vägen. Av att alla andra verkar veta vad de gör — utom du.
 

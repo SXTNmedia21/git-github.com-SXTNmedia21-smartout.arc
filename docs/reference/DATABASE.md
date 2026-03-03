@@ -326,7 +326,7 @@ Tables WITHOUT workspace_id (user_identity, company, platform-admin) are exempt 
 - User-facing operations: RLS client (anon key)
 - Admin/trigger operations: service role client
 - Platform-admin tables: no RLS, service role only
-- `user_identity.is_super_admin` (boolean, default false) gates platform-admin access
+- `user_identity.is_godmode` (boolean, default false) gates platform-admin access
 
 ---
 

@@ -37,7 +37,7 @@ Both `apps/web` and `apps/landing` use `@t3-oss/env-nextjs` with Zod schemas:
 
 ## Web App Variables (apps/web/src/env.ts)
 
-### Client Variables (NEXT*PUBLIC*\*)
+### Client Variables (`NEXT_PUBLIC_*`)
 
 | Variable                        | Validation                      | Default                    | Required        | Notes                                                    |
 | ------------------------------- | ------------------------------- | -------------------------- | --------------- | -------------------------------------------------------- |
@@ -75,7 +75,7 @@ Both `apps/web` and `apps/landing` use `@t3-oss/env-nextjs` with Zod schemas:
 
 ## Landing Page Variables (apps/landing/src/env.ts)
 
-### Client Variables (NEXT*PUBLIC*\*)
+### Client Variables (`NEXT_PUBLIC_*`)
 
 | Variable                        | Validation                      | Default                    | Required        | Notes                           |
 | ------------------------------- | ------------------------------- | -------------------------- | --------------- | ------------------------------- |

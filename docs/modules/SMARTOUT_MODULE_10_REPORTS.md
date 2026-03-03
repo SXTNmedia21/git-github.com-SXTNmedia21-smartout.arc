@@ -45,8 +45,8 @@ changelog:
 
 # Module 10: Reports, Dashboards & Reconciliation
 
-> **Smartout.io** — Functional documentation for migration  
-> Version 1.0 | February 2026
+> **Smartout.ai** — Functional documentation for migration
+> Version 1.1 | February 2026
 >
 > **Scope expansion:** This module was originally reserved as "Reports & Dashboards" in the index. It has been elevated to **Reports, Dashboards & Reconciliation** because it introduces the **Daily Reconciliation** — the admin-facing approval layer that sits on top of Module 4's Department Session sign-off — the **Role Reconciliation** for periodic per-role aggregation — and the **Season Reconciliation** that closes the Season lifecycle.
 >

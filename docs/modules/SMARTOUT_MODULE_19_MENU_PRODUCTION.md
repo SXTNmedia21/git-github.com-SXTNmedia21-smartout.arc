@@ -1,6 +1,15 @@
+---
+title: "Module 19: Menu & Production System"
+status: draft
+updated: 2026-03-11
+created: 2026-03-01
+module: production
+tags: [menu, production, recipe, kitchen]
+---
+
 # Module 19: Menu & Production System
 
-> **Smartout.io** — Functional documentation for migration
+> **Smartout.ai** — Functional documentation for migration
 > Version 1.0 | March 2026
 >
 > **Origin:** Brainstorm session between Pontus & Martin on dynamic menu creation, production planning, and AI-driven kitchen operations.

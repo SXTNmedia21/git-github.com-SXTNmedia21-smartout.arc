@@ -33,7 +33,7 @@ changelog:
 
 # Module 17: Platform Administration (Super Admin Backoffice)
 
-> **Smartout.io** — Functional documentation for platform-level administration
+> **Smartout.ai** — Functional documentation for platform-level administration
 > Version 1.0 | February 2026
 > **Dependencies:** Core Architecture v2 (User, Company, Workspace), Module 13 (Multi-Tenant, Stripe), Landing Page Config System
 > **Audience:** Smartout internal team only — this is NOT workspace-level admin
@@ -42,7 +42,7 @@ changelog:
 
 ## 1. Module Overview
 
-Smartout needs an internal backoffice where the platform team (Pontus + future team) can manage all workspaces, monitor platform health, manage Stripe subscriptions, control landing page content, and handle contracts. This is a completely separate experience from workspace admin — it operates cross-workspace with `is_super_admin` access.
+Smartout needs an internal backoffice where the platform team (Pontus + future team) can manage all workspaces, monitor platform health, manage Stripe subscriptions, control landing page content, and handle contracts. This is a completely separate experience from workspace admin — it operates cross-workspace with `is_godmode` access.
 
 ### What This Module Covers
 
@@ -73,8 +73,8 @@ Smartout needs an internal backoffice where the platform team (Pontus + future t
 As defined in Module 13:
 
 ```sql
--- On the user table (NOT profile — this is cross-workspace)
-ALTER TABLE "user" ADD COLUMN is_super_admin boolean DEFAULT false;
+-- On the user_identity table (NOT profile — this is cross-workspace)
+ALTER TABLE "user_identity" ADD COLUMN is_godmode boolean DEFAULT false;
 ```
 
 Super-admin is **not** a workspace role. It's a platform-level flag on the `user` table. A super-admin can also be a regular workspace user with normal roles — the two are orthogonal.
@@ -103,12 +103,12 @@ export async function middleware(req: NextRequest) {
     if (!session?.user) return redirect("/login");
 
     const { data: user } = await supabaseAdmin
-      .from("user")
-      .select("is_super_admin")
+      .from("user_identity")
+      .select("is_godmode")
       .eq("user_id", session.user.id)
       .single();
 
-    if (!user?.is_super_admin) return redirect("/dashboard");
+    if (!user?.is_godmode) return redirect("/dashboard");
   }
 }
 ```
@@ -631,14 +631,14 @@ All sent contracts across all companies:
 
 ### 4.8 User Management (`/platform-admin/users`)
 
-| Column      | Source                    |
-| ----------- | ------------------------- |
-| Name        | `user.full_name`          |
-| Email       | `user.email`              |
-| Workspaces  | Count of active profiles  |
-| Super Admin | Badge if `is_super_admin` |
-| Created     | `user.created_at`         |
-| Last Login  | Auth metadata             |
+| Column      | Source                   |
+| ----------- | ------------------------ |
+| Name        | `user.full_name`         |
+| Email       | `user.email`             |
+| Workspaces  | Count of active profiles |
+| Super Admin | Badge if `is_godmode`    |
+| Created     | `user.created_at`        |
+| Last Login  | Auth metadata            |
 
 **Actions:**
 
@@ -1088,9 +1088,9 @@ Use the same shadcn/ui components as the main app, but with a more compact, dash
 
 ## 12. Security Checklist
 
-- [ ] `is_super_admin` can only be set via direct database access or by an existing super-admin
+- [ ] `is_godmode` can only be set via direct database access or by an existing super-admin
 - [ ] Service role key never exposed to client-side code
-- [ ] All platform-admin API routes check `is_super_admin` in middleware
+- [ ] All platform-admin API routes check `is_godmode` in middleware
 - [ ] Every action writes to `platform_audit_log`
 - [ ] Impersonation requires reason and is time-limited (max 1 hour)
 - [ ] Impersonation creates visible banner in impersonated session

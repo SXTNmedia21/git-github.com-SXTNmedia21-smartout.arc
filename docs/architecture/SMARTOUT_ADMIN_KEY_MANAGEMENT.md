@@ -14,7 +14,7 @@ depends_on:
 
 # Smartout — Secret & API Key Management (Admin Dashboard)
 
-> **Smartout.io** — Architectural blueprint for migration
+> **Smartout.ai** — Architectural blueprint for migration
 > Version 1.0 | February 2026
 > **Dependencies:** Secret & API Key Infrastructure doc, Core Architecture v2, Module 13 (Multi-Tenant), UI Architecture
 
@@ -359,7 +359,7 @@ Overview of all connected and available external services.
 │                                                             │
 │  ┌──────────────────────────────────────────────────────┐   │
 │  │ 📱 Twilio (SMS)                      [Koble til →]  │   │
-│  │ 📧 Resend (E-post)                   [Koble til →]  │   │
+│  │ 📧 SendGrid (E-post)                  [Koble til →]  │   │
 │  └──────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────┘
 ```
