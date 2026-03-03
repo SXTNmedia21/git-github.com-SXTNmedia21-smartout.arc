@@ -239,7 +239,7 @@ function SmartoutLandingPageContent() {
 
             <m.h1
               variants={itemVariants}
-              className="mb-4 text-4xl leading-[1.05] font-black tracking-tighter drop-shadow-2xl sm:mb-8 sm:text-6xl md:text-8xl lg:text-[7.5rem]"
+              className="mb-4 text-3xl leading-[1.05] font-black tracking-tighter drop-shadow-2xl sm:mb-8 sm:text-5xl md:text-7xl lg:text-[7.5rem]"
             >
               Én plattform. <br />
               <span className="relative inline-block">
@@ -260,12 +260,12 @@ function SmartoutLandingPageContent() {
 
             <m.div
               variants={itemVariants}
-              className="flex flex-wrap items-center justify-center gap-6"
+              className="flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-6"
             >
               <Link
                 href={onboardingHref}
                 onClick={() => trackCta("Opprett din SmartOut")}
-                className="group relative flex items-center justify-center gap-3 rounded-full bg-white px-10 py-5 text-lg font-black text-zinc-950 shadow-[0_0_40px_rgba(255,255,255,0.2)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_60px_rgba(255,255,255,0.4)]"
+                className="group relative flex w-full items-center justify-center gap-3 rounded-full bg-white px-8 py-4 text-base font-black text-zinc-950 shadow-[0_0_40px_rgba(255,255,255,0.2)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_60px_rgba(255,255,255,0.4)] sm:w-auto sm:px-10 sm:py-5 sm:text-lg"
               >
                 <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-orange-500 to-rose-500 opacity-20 blur transition duration-500 group-hover:opacity-50"></div>
                 <span className="relative flex items-center gap-3">
@@ -276,7 +276,7 @@ function SmartoutLandingPageContent() {
 
               <a
                 href="#lise"
-                className="group relative flex items-center justify-center gap-3 overflow-hidden rounded-full px-10 py-5 text-lg transition-all duration-300 hover:-translate-y-1"
+                className="group relative flex w-full items-center justify-center gap-3 overflow-hidden rounded-full px-8 py-4 text-base transition-all duration-300 hover:-translate-y-1 sm:w-auto sm:px-10 sm:py-5 sm:text-lg"
               >
                 <div className="absolute inset-0 rounded-full border border-white/10 bg-white/5 backdrop-blur-md transition-colors group-hover:bg-white/10" />
                 <div className="absolute inset-0 bg-gradient-to-r from-zinc-800/50 to-zinc-700/50 opacity-0 transition-opacity group-hover:opacity-100" />
@@ -293,7 +293,7 @@ function SmartoutLandingPageContent() {
             initial={{ opacity: 0, y: 100 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, delay: 0.4, type: "spring", stiffness: 50 }}
-            className="relative z-10 mt-12 hidden w-full max-w-6xl md:block"
+            className="relative z-10 hidden w-full max-w-6xl md:mt-12 md:block"
           >
             <m.div
               animate={{ y: [0, -12, 0] }}
@@ -353,45 +353,45 @@ function SmartoutLandingPageContent() {
             initial={{ x: 0 }}
             animate={{ x: "-50%" }}
             transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
-            className="flex w-max items-center gap-24 px-4 whitespace-nowrap opacity-50"
+            className="flex w-max items-center gap-12 px-4 whitespace-nowrap opacity-50 sm:gap-24"
           >
-            <div className="flex items-center gap-2 text-2xl font-black tracking-tighter text-zinc-400">
+            <div className="flex items-center gap-2 text-lg font-black tracking-tighter text-zinc-400 sm:text-2xl">
               <Zap className="h-5 w-5" />
               TRIPLETEX
             </div>
-            <div className="flex items-center gap-2 text-2xl font-black tracking-tighter text-zinc-400">
+            <div className="flex items-center gap-2 text-lg font-black tracking-tighter text-zinc-400 sm:text-2xl">
               <Building2 className="h-5 w-5" />
               VISMA
             </div>
-            <div className="flex items-center gap-2 text-2xl font-black tracking-tighter text-zinc-400">
+            <div className="flex items-center gap-2 text-lg font-black tracking-tighter text-zinc-400 sm:text-2xl">
               <Users className="h-5 w-5" />
               ZETTLE
             </div>
-            <div className="flex items-center gap-2 text-2xl font-black tracking-tighter text-zinc-400">
+            <div className="flex items-center gap-2 text-lg font-black tracking-tighter text-zinc-400 sm:text-2xl">
               <Target className="h-5 w-5" />
               LIGHTSPEED
             </div>
-            <div className="flex items-center gap-2 text-2xl font-black tracking-tighter text-zinc-400">
+            <div className="flex items-center gap-2 text-lg font-black tracking-tighter text-zinc-400 sm:text-2xl">
               <ShieldCheck className="h-5 w-5" />
               POWEROFFICE
             </div>
-            <div className="flex items-center gap-2 text-2xl font-black tracking-tighter text-zinc-400">
+            <div className="flex items-center gap-2 text-lg font-black tracking-tighter text-zinc-400 sm:text-2xl">
               <Zap className="h-5 w-5" />
               TRIPLETEX
             </div>
-            <div className="flex items-center gap-2 text-2xl font-black tracking-tighter text-zinc-400">
+            <div className="flex items-center gap-2 text-lg font-black tracking-tighter text-zinc-400 sm:text-2xl">
               <Building2 className="h-5 w-5" />
               VISMA
             </div>
-            <div className="flex items-center gap-2 text-2xl font-black tracking-tighter text-zinc-400">
+            <div className="flex items-center gap-2 text-lg font-black tracking-tighter text-zinc-400 sm:text-2xl">
               <Users className="h-5 w-5" />
               ZETTLE
             </div>
-            <div className="flex items-center gap-2 text-2xl font-black tracking-tighter text-zinc-400">
+            <div className="flex items-center gap-2 text-lg font-black tracking-tighter text-zinc-400 sm:text-2xl">
               <Target className="h-5 w-5" />
               LIGHTSPEED
             </div>
-            <div className="flex items-center gap-2 text-2xl font-black tracking-tighter text-zinc-400">
+            <div className="flex items-center gap-2 text-lg font-black tracking-tighter text-zinc-400 sm:text-2xl">
               <ShieldCheck className="h-5 w-5" />
               POWEROFFICE
             </div>
@@ -642,7 +642,7 @@ function SmartoutLandingPageContent() {
                     ))}
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-4">
                   {MOCK_PROCEDURES.map((proc, i) => (
                     <m.div
                       key={proc.id}

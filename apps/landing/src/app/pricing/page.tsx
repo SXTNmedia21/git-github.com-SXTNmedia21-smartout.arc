@@ -67,7 +67,7 @@ export default function PricingPage() {
 
         <div className="mx-auto grid max-w-5xl grid-cols-1 gap-8 md:grid-cols-2">
           {/* Basic Plan */}
-          <div className="group relative flex flex-col overflow-hidden rounded-[40px] border border-white/5 bg-[#0a0a0c]/40 p-10 shadow-2xl backdrop-blur-2xl transition-all duration-500 hover:border-white/10">
+          <div className="group relative flex flex-col overflow-hidden rounded-3xl border border-white/5 bg-[#0a0a0c]/40 p-6 shadow-2xl backdrop-blur-2xl transition-all duration-500 hover:border-white/10 sm:rounded-[40px] sm:p-10">
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
             <div className="absolute -inset-1 bg-gradient-to-b from-blue-500/5 to-transparent opacity-0 blur-2xl transition-opacity duration-500 group-hover:opacity-100"></div>
 
@@ -110,7 +110,7 @@ export default function PricingPage() {
           </div>
 
           {/* Pro Plan */}
-          <div className="group relative flex transform flex-col overflow-hidden rounded-[40px] border border-orange-500/20 bg-[#0a0a0c]/60 p-10 shadow-[0_20px_80px_-20px_rgba(249,115,22,0.3)] backdrop-blur-2xl transition-all duration-500 hover:border-orange-500/40 md:-translate-y-4">
+          <div className="group relative flex transform flex-col overflow-hidden rounded-3xl border border-orange-500/20 bg-[#0a0a0c]/60 p-6 shadow-[0_20px_80px_-20px_rgba(249,115,22,0.3)] backdrop-blur-2xl transition-all duration-500 hover:border-orange-500/40 sm:rounded-[40px] sm:p-10 md:-translate-y-4">
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-orange-500/50 to-transparent opacity-100 transition-all duration-500" />
             <div className="absolute -inset-4 bg-gradient-to-b from-orange-500/10 to-transparent opacity-50 blur-3xl transition-opacity duration-500 group-hover:opacity-100"></div>
 

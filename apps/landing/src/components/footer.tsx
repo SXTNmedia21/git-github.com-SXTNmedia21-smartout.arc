@@ -26,7 +26,7 @@ export default function Footer() {
   return (
     <footer className="relative z-10 border-t border-zinc-900 bg-zinc-950 py-16">
       <div className="mx-auto max-w-7xl px-6">
-        <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-4">
           <div className="col-span-2 md:col-span-1">
             <Link href="/" className="mb-4 flex items-center gap-2">
               <Building2 className="h-5 w-5 text-orange-500" />

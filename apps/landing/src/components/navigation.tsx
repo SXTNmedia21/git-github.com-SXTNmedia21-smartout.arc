@@ -55,7 +55,7 @@ export default function Navigation() {
         <div className="flex items-center gap-3 md:hidden">
           <Link
             href={WEB_APP_LINKS.onboarding}
-            className="flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-sm font-bold text-zinc-950"
+            className="flex items-center gap-1.5 rounded-full bg-white px-4 py-2.5 text-sm font-bold text-zinc-950"
           >
             Kom i gang <ArrowRight className="h-3.5 w-3.5" />
           </Link>
