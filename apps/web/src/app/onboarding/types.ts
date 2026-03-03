@@ -102,6 +102,8 @@ export interface WorkspaceData {
   menus: { href: string; text: string }[];
   socialLinks: Record<string, string>;
   reservationUrl: string | null;
+  orgNumber: string;
+  naceCode: string;
   brandColor: string;
   communicationTone: string;
   seasonName: string;
@@ -133,6 +135,8 @@ export const EMPTY_WORKSPACE_DATA: WorkspaceData = {
   menus: [],
   socialLinks: {},
   reservationUrl: null,
+  orgNumber: "",
+  naceCode: "",
   brandColor: "#3B82F6",
   communicationTone: "Professional & Formal",
   seasonName: "Core Operations",

@@ -42,7 +42,7 @@ export function InitStep() {
         throw new Error("Edge Function Failed");
       }
 
-      const { scrapedData, brregData, sessionId } = data;
+      const { scrapedData, brregData, webSearchData: _webSearchData, sessionId } = data;
 
       const generatedPolicies = [
         {
@@ -59,19 +59,23 @@ export function InitStep() {
       ];
 
       const newData: Partial<WorkspaceData> = {
-        name: brregData?.navn || scrapedData?.companyName || "",
-        website: "",
+        name: brregData?.legalName || scrapedData?.companyName || "",
+        website: targetUrl,
         email: scrapedData?.email || "",
         phone: scrapedData?.phone || "",
-        address: brregData?.forretningsadresse
-          ? `${brregData.forretningsadresse.adresse?.[0] || ""}, ${brregData.forretningsadresse.postnummer || ""} ${brregData.forretningsadresse.poststed || ""}`.trim()
+        address: brregData?.address
+          ? `${brregData.address.street}, ${brregData.address.postalCode} ${brregData.address.city}`.trim()
           : "",
-        ceo: "",
-        employeeCount: brregData?.antallAnsatte ? brregData.antallAnsatte.toString() : "",
-        industry: brregData?.naeringskode1 ? brregData.naeringskode1.beskrivelse : "",
+        ceo: brregData?.dagligLeder || "",
+        employeeCount: brregData?.employeeCount
+          ? brregData.employeeCount.toString()
+          : "",
+        industry: brregData?.naceDescription || "",
         concept: "",
         summary: scrapedData?.summary || "",
         slogan: "",
+        orgNumber: brregData?.orgNumber || "",
+        naceCode: brregData?.naceCode || "",
         locations: scrapedData?.locations || [],
         departments: scrapedData?.departments || [],
         multiDepartmentTeams: [],
