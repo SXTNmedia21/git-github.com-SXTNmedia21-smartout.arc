@@ -27,6 +27,7 @@ export function GuardianMonitor() {
           <h1 className="text-foreground text-lg font-semibold">Guardian Monitor</h1>
         </div>
         <div className="flex items-center gap-2 text-sm">
+          {/* Semantic status color — deliberate exception from CSS variable rule */}
           <div
             className={cn("h-2 w-2 rounded-full", connected ? "bg-emerald-500" : "bg-destructive")}
           />

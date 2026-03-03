@@ -57,7 +57,7 @@ export function useGuardianSocket() {
       if (!session?.access_token) return;
 
       const wsUrl = STAGE_ENGINE_URL.replace(/^http/, "ws") + "/guardian/ws";
-      ws = new WebSocket(wsUrl, ["bearer", session.access_token]);
+      ws = new WebSocket(`${wsUrl}?token=${session.access_token}`);
       wsRef.current = ws;
 
       ws.onopen = () => setConnected(true);

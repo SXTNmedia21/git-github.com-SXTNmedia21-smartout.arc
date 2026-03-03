@@ -1,4 +1,3 @@
-Connecting to db 5432
 export type Json =
   | string
   | number
@@ -2418,6 +2417,7 @@ export type Database = {
           id: string
           session_id: string
           summary: string
+          updated_at: string
           workspace_id: string
         }
         Insert: {
@@ -2428,6 +2428,7 @@ export type Database = {
           id?: string
           session_id: string
           summary: string
+          updated_at?: string
           workspace_id: string
         }
         Update: {
@@ -2438,6 +2439,7 @@ export type Database = {
           id?: string
           session_id?: string
           summary?: string
+          updated_at?: string
           workspace_id?: string
         }
         Relationships: [

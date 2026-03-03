@@ -282,18 +282,7 @@ ultravox.post("/adapters/ultravox/advance", zValidator("json", uvAdvanceSchema),
     return c.json({ error: "INTERNAL_ERROR", message: "Failed to advance", status: 500 }, 500);
   }
 
-  emitGuardianEvent({
-    session_id: sessionId,
-    workspace_id: session.workspace_id,
-    event_type: result.complete ? "session.completed" : "stage.changed",
-    actor: "system",
-    summary: result.complete
-      ? "Voice session complete"
-      : `Voice stage → ${result.new_stage?.stage_id ?? "unknown"}`,
-    data: result.complete
-      ? { summary: result.summary }
-      : { to_stage: result.new_stage?.stage_id, progress: result.progress },
-  });
+  // Guardian events already emitted inside advanceStage() — no duplicate emit here.
 
   // If mission complete, return text result (no new stage)
   if (result.complete) {

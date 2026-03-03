@@ -26,8 +26,8 @@ export function attachGuardianWs(server: Server): void {
     const url = new URL(req.url ?? "", `http://${req.headers.host}`);
     if (url.pathname !== "/guardian/ws") return;
 
-    // Authenticate
-    const workspaceId = await authenticateUpgrade(req.headers);
+    // Authenticate (check headers + query param token)
+    const workspaceId = await authenticateUpgrade(req.headers, url);
     if (!workspaceId) {
       socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
       socket.destroy();
@@ -63,12 +63,14 @@ export function attachGuardianWs(server: Server): void {
   });
 }
 
-/** Auth for WebSocket upgrade — checks x-api-key or Authorization header */
+/** Auth for WebSocket upgrade — checks x-api-key, Authorization header, or ?token query param */
 async function authenticateUpgrade(
   headers: Record<string, string | string[] | undefined>,
+  url: URL,
 ): Promise<string | null> {
   const apiKey = headers["x-api-key"] as string | undefined;
   const authHeader = headers["authorization"] as string | undefined;
+  const queryToken = url.searchParams.get("token");
 
   if (apiKey) {
     const hash = hashApiKey(apiKey);
@@ -81,9 +83,11 @@ async function authenticateUpgrade(
     return data?.workspace_id ?? null;
   }
 
-  if (authHeader?.startsWith("Bearer ")) {
-    const token = authHeader.slice(7);
-    const client = createUserClient(token);
+  // JWT auth — from Authorization header or ?token query param
+  const jwtToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : queryToken;
+
+  if (jwtToken) {
+    const client = createUserClient(jwtToken);
     const {
       data: { user },
     } = await client.auth.getUser();
@@ -91,12 +95,14 @@ async function authenticateUpgrade(
 
     const { data: profile } = await supabaseAdmin
       .from("profile")
-      .select("workspace_id")
+      .select("workspace_id, role")
       .eq("user_id", user.id)
       .eq("is_active", true)
       .limit(1)
       .single();
-    return profile?.workspace_id ?? null;
+
+    if (!profile || !["admin", "owner"].includes(profile.role)) return null;
+    return profile.workspace_id;
   }
 
   return null;
@@ -148,6 +154,7 @@ async function handleCommand(
         .from("engine_sessions")
         .select("collected_data")
         .eq("id", cmd.session_id)
+        .eq("workspace_id", workspaceId)
         .single();
 
       if (!session) break;

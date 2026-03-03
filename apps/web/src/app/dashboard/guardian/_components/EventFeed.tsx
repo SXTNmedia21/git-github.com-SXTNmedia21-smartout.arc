@@ -9,6 +9,8 @@ type EventFeedProps = {
   events: GuardianEvent[];
 };
 
+// Semantic actor colors — deliberate exception from CSS variable rule.
+// Each actor gets a distinct color for visual identification in the event feed.
 const ACTOR_STYLES: Record<string, string> = {
   system: "text-muted-foreground",
   agent: "text-blue-400",

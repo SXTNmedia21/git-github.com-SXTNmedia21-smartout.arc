@@ -9,7 +9,8 @@ CREATE TABLE guardian_log (
   actor           TEXT NOT NULL,
   summary         TEXT NOT NULL,
   data            JSONB DEFAULT '{}',
-  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- Session event feed (primary query)
@@ -26,6 +27,10 @@ ALTER TABLE guardian_log ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Workspace members can view logs" ON guardian_log
   FOR SELECT
   USING (workspace_id IN (SELECT get_workspace_ids_for_user(auth.uid())));
+
+CREATE POLICY "api_key_read_guardian_log" ON guardian_log
+  FOR SELECT
+  USING (workspace_id = get_api_workspace_id());
 
 CREATE POLICY "Service can manage logs" ON guardian_log
   FOR ALL TO service_role
