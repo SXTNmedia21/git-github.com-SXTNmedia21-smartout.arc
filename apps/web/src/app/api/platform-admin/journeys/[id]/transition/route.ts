@@ -10,8 +10,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import type { JourneyStatus } from "@smartout/types";
-import { createAdminClient } from "@smartout/supabase/admin";
-import { getSuperAdminId } from "@/lib/platform-admin";
+import { requireGodmode, logPlatformAction } from "@/lib/platform-admin";
 import { isValidTransition, getValidTransitions } from "@/lib/journey/status-transitions";
 
 const JOURNEY_STATUSES = [
@@ -52,10 +51,9 @@ export async function POST(request: NextRequest, { params }: Props) {
   }
 
   // Auth: require godmode
-  const superAdminId = await getSuperAdminId();
-  if (!superAdminId) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const result = await requireGodmode();
+  if (result.error) return result.error;
+  const { adminId, admin } = result;
 
   // Parse and validate request body
   let body: z.infer<typeof TransitionRequestSchema>;
@@ -66,7 +64,6 @@ export async function POST(request: NextRequest, { params }: Props) {
   }
 
   const newStatus = body.newStatus satisfies JourneyStatus;
-  const admin = createAdminClient();
 
   // Load the current journey
   const { data: journey, error: fetchError } = await admin
@@ -110,11 +107,17 @@ export async function POST(request: NextRequest, { params }: Props) {
     event_type: "status_change" as never,
     from_status: currentStatus as never,
     to_status: newStatus as never,
-    actor_id: superAdminId,
+    actor_id: adminId,
   });
   if (eventError) {
     console.error(`[journey-transition] Event logging failed for journey ${id}:`, eventError);
   }
+
+  // Log to platform audit trail
+  await logPlatformAction(adminId, "journey_status_change", "journey", id, {
+    from: currentStatus,
+    to: newStatus,
+  });
 
   return NextResponse.json({
     journey_id: id,
