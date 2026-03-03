@@ -24,7 +24,7 @@ export function useConversations() {
           participants:chat_participant!inner(
             role,
             last_read_at,
-            profile:profile!inner(profile_id, full_name, avatar_url, role)
+            profile:profile!inner(profile_id, display_name, avatar_url, role)
           )
         `,
         )
@@ -41,7 +41,7 @@ export function useConversations() {
           const { data: lastMsg } = await supabase
             .from("chat_message")
             .select(
-              "content, created_at, sender:profile!inner(profile_id, full_name, avatar_url, role)",
+              "content, created_at, sender:profile!inner(profile_id, display_name, avatar_url, role)",
             )
             .eq("conversation_id", conv.id)
             .is("deleted_at", null)

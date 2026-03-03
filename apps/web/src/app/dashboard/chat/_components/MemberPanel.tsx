@@ -38,12 +38,12 @@ export function MemberPanel({ conversation, onClose }: Props) {
             >
               <Avatar className="h-8 w-8">
                 <AvatarFallback className="text-xs">
-                  {(p.profile.full_name ?? "?").slice(0, 2).toUpperCase()}
+                  {(p.profile.display_name ?? "?").slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 overflow-hidden">
                 <p className="text-foreground truncate text-sm">
-                  {p.profile.full_name ?? "Ukjent"}
+                  {p.profile.display_name ?? "Ukjent"}
                 </p>
                 <p className="text-muted-foreground truncate text-xs capitalize">{p.role}</p>
               </div>

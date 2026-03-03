@@ -54,14 +54,14 @@ export function MessageBubble({ message, isMe, profileId, onReply, onReaction }:
             isMe ? "mr-2" : "ml-2",
           )}
         >
-          <span className="text-primary font-medium">{message.reply_to.sender.full_name}</span>
+          <span className="text-primary font-medium">{message.reply_to.sender.display_name}</span>
           <p className="text-muted-foreground truncate">{message.reply_to.content}</p>
         </div>
       )}
 
       {/* Sender name (not for own messages) */}
       {!isMe && (
-        <span className="text-muted-foreground ml-2 text-xs">{message.sender.full_name}</span>
+        <span className="text-muted-foreground ml-2 text-xs">{message.sender.display_name}</span>
       )}
 
       {/* Message bubble */}

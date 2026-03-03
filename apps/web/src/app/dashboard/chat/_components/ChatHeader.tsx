@@ -15,7 +15,7 @@ export function ChatHeader({ conversation, onToggleMembers }: Props) {
   const displayName =
     conversation.name ??
     conversation.participants
-      .map((p) => p.profile.full_name)
+      .map((p) => p.profile.display_name)
       .filter(Boolean)
       .join(", ") ??
     "Uten navn";

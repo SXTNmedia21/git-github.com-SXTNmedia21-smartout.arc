@@ -49,7 +49,7 @@ export function ConversationItem({ conversation, isActive, onClick }: Props) {
   const displayName =
     conversation.name ??
     conversation.participants
-      .map((p) => p.profile.full_name)
+      .map((p) => p.profile.display_name)
       .filter(Boolean)
       .join(", ") ??
     "Uten navn";
@@ -84,7 +84,7 @@ export function ConversationItem({ conversation, isActive, onClick }: Props) {
         <div className="flex items-center justify-between">
           <p className="text-muted-foreground truncate text-xs">
             {conversation.last_message
-              ? `${conversation.last_message.sender.full_name}: ${conversation.last_message.content}`
+              ? `${conversation.last_message.sender.display_name}: ${conversation.last_message.content}`
               : "Ingen meldinger enn\u00e5"}
           </p>
           {conversation.unread_count > 0 && (

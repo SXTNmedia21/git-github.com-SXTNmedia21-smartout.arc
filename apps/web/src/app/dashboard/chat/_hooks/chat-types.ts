@@ -13,7 +13,7 @@ export type ChatConversationType = Database["public"]["Enums"]["chat_conversatio
 /** Profile info embedded in messages and participant lists */
 export type ChatProfile = {
   profile_id: string;
-  full_name: string | null;
+  display_name: string | null;
   avatar_url: string | null;
   role: string | null;
 };

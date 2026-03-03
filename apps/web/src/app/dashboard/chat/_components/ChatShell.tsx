@@ -73,7 +73,7 @@ export function ChatShell({ profileId }: Props) {
       if (msg) {
         setReplyTo({
           id: msg.id,
-          senderName: msg.sender.full_name ?? "Ukjent",
+          senderName: msg.sender.display_name ?? "Ukjent",
         });
       }
     },
