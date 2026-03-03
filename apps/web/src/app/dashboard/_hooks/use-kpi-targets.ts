@@ -45,10 +45,10 @@ export function useKpiTargets() {
   const query = useQuery({
     queryKey: dashboardKeys.kpiTargets(wsId ?? "none"),
     queryFn: async (): Promise<KpiTargets> => {
-      // Cast to bypass missing generated types (table created in migration, types not yet regenerated)
-      const { data, error } = (await (supabase.from as Function)("workspace_kpi_target")
+      const { data, error } = await supabase
+        .from("workspace_kpi_target")
         .select("metric, target_value, benchmark_value")
-        .eq("workspace_id", wsId!)) as { data: KpiRow[] | null; error: { message: string } | null };
+        .eq("workspace_id", wsId!);
 
       if (error) throw error;
 
@@ -65,7 +65,7 @@ export function useKpiTargets() {
 
   const updateTarget = useMutation({
     mutationFn: async ({ metric, value }: { metric: KpiMetric; value: number }) => {
-      const { error } = (await (supabase.from as Function)("workspace_kpi_target").upsert(
+      const { error } = await supabase.from("workspace_kpi_target").upsert(
         {
           workspace_id: wsId!,
           metric,
@@ -73,7 +73,7 @@ export function useKpiTargets() {
           updated_at: new Date().toISOString(),
         },
         { onConflict: "workspace_id,metric" },
-      )) as { error: { message: string } | null };
+      );
 
       if (error) throw error;
     },

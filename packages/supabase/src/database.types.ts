@@ -103,6 +103,184 @@ export type Database = {
           },
         ]
       }
+      agent_profile: {
+        Row: {
+          adapt_to_authority: boolean
+          adapt_to_role: boolean
+          adapt_to_situation: boolean
+          assertiveness: number
+          created_at: string
+          default_voice: string
+          display_name: string
+          formality: number
+          greeting: string
+          humor: number
+          id: string
+          language: string
+          updated_at: string
+          updated_by: string | null
+          verbosity: number
+          voice_speed: number
+          voice_stability: number
+          voice_temperature: number
+          warmth: number
+          workspace_id: string
+        }
+        Insert: {
+          adapt_to_authority?: boolean
+          adapt_to_role?: boolean
+          adapt_to_situation?: boolean
+          assertiveness?: number
+          created_at?: string
+          default_voice?: string
+          display_name?: string
+          formality?: number
+          greeting?: string
+          humor?: number
+          id?: string
+          language?: string
+          updated_at?: string
+          updated_by?: string | null
+          verbosity?: number
+          voice_speed?: number
+          voice_stability?: number
+          voice_temperature?: number
+          warmth?: number
+          workspace_id: string
+        }
+        Update: {
+          adapt_to_authority?: boolean
+          adapt_to_role?: boolean
+          adapt_to_situation?: boolean
+          assertiveness?: number
+          created_at?: string
+          default_voice?: string
+          display_name?: string
+          formality?: number
+          greeting?: string
+          humor?: number
+          id?: string
+          language?: string
+          updated_at?: string
+          updated_by?: string | null
+          verbosity?: number
+          voice_speed?: number
+          voice_stability?: number
+          voice_temperature?: number
+          warmth?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_profile_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "user_identity"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "agent_profile_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      agent_relationship: {
+        Row: {
+          accuracy_score: number
+          agent_profile_id: string
+          created_at: string
+          familiarity_score: number
+          id: string
+          last_interaction_at: string | null
+          negative_count: number
+          neutral_count: number
+          positive_count: number
+          profile_id: string
+          protocols_assigned: number
+          protocols_completed: number
+          readiness_score: number
+          relationship_score: number
+          sentiment_score: number
+          sentiment_trend: number
+          total_conversations: number
+          total_minutes: number
+          trust_score: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          accuracy_score?: number
+          agent_profile_id: string
+          created_at?: string
+          familiarity_score?: number
+          id?: string
+          last_interaction_at?: string | null
+          negative_count?: number
+          neutral_count?: number
+          positive_count?: number
+          profile_id: string
+          protocols_assigned?: number
+          protocols_completed?: number
+          readiness_score?: number
+          relationship_score?: number
+          sentiment_score?: number
+          sentiment_trend?: number
+          total_conversations?: number
+          total_minutes?: number
+          trust_score?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          accuracy_score?: number
+          agent_profile_id?: string
+          created_at?: string
+          familiarity_score?: number
+          id?: string
+          last_interaction_at?: string | null
+          negative_count?: number
+          neutral_count?: number
+          positive_count?: number
+          profile_id?: string
+          protocols_assigned?: number
+          protocols_completed?: number
+          readiness_score?: number
+          relationship_score?: number
+          sentiment_score?: number
+          sentiment_trend?: number
+          total_conversations?: number
+          total_minutes?: number
+          trust_score?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_relationship_agent_profile_id_fkey"
+            columns: ["agent_profile_id"]
+            isOneToOne: false
+            referencedRelation: "agent_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_relationship_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "agent_relationship_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       asset: {
         Row: {
           asset_id: string
@@ -1734,42 +1912,58 @@ export type Database = {
       }
       engine_memory: {
         Row: {
+          agent_profile_id: string | null
           content: string
           created_at: string
           embedding: string | null
           expires_at: string | null
           id: string
+          importance: number
           memory_type: string
           profile_id: string
+          scope: string
           source_session_id: string | null
           updated_at: string
           workspace_id: string
         }
         Insert: {
+          agent_profile_id?: string | null
           content: string
           created_at?: string
           embedding?: string | null
           expires_at?: string | null
           id?: string
+          importance?: number
           memory_type: string
           profile_id: string
+          scope?: string
           source_session_id?: string | null
           updated_at?: string
           workspace_id: string
         }
         Update: {
+          agent_profile_id?: string | null
           content?: string
           created_at?: string
           embedding?: string | null
           expires_at?: string | null
           id?: string
+          importance?: number
           memory_type?: string
           profile_id?: string
+          scope?: string
           source_session_id?: string | null
           updated_at?: string
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "engine_memory_agent_profile_id_fkey"
+            columns: ["agent_profile_id"]
+            isOneToOne: false
+            referencedRelation: "agent_profile"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "engine_memory_profile_id_fkey"
             columns: ["profile_id"]

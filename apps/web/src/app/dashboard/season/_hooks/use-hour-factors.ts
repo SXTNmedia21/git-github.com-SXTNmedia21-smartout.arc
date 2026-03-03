@@ -39,14 +39,12 @@ export function useHourFactors(seasonBudgetId: string | null) {
   const query = useQuery({
     queryKey: dashboardKeys.hourFactors(wsId ?? "none", seasonBudgetId ?? "none"),
     queryFn: async (): Promise<HourFactor[]> => {
-      const { data, error } = (await (supabase.from as Function)("hour_factor")
+      const { data, error } = await supabase
+        .from("hour_factor")
         .select("hour_factor_id, hour, factor")
         .eq("workspace_id", wsId!)
         .eq("season_budget_id", seasonBudgetId!)
-        .order("hour")) as {
-        data: HourFactor[] | null;
-        error: { message: string } | null;
-      };
+        .order("hour");
 
       if (error) throw new Error(error.message);
       return data ?? [];
@@ -56,10 +54,11 @@ export function useHourFactors(seasonBudgetId: string | null) {
 
   const saveHourFactors = useMutation({
     mutationFn: async (factors: { hour: number; factor: number }[]) => {
-      const { error: deleteError } = (await (supabase.from as Function)("hour_factor")
+      const { error: deleteError } = await supabase
+        .from("hour_factor")
         .delete()
         .eq("season_budget_id", seasonBudgetId!)
-        .eq("workspace_id", wsId!)) as { error: { message: string } | null };
+        .eq("workspace_id", wsId!);
 
       if (deleteError) throw new Error(deleteError.message);
 
@@ -70,9 +69,7 @@ export function useHourFactors(seasonBudgetId: string | null) {
         factor: f.factor,
       }));
 
-      const { error: insertError } = (await (supabase.from as Function)("hour_factor").insert(
-        rows,
-      )) as { error: { message: string } | null };
+      const { error: insertError } = await supabase.from("hour_factor").insert(rows);
 
       if (insertError) throw new Error(insertError.message);
     },

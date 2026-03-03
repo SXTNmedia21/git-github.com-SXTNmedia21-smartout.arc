@@ -3,11 +3,14 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
+import type { Database } from "@smartout/supabase";
+
+type ReconciliationStatus = Database["public"]["Enums"]["reconciliation_status"];
 
 // ── Fetch all reconciliations for workspace ──────────────────
 
 export function useReconciliationList(filters?: {
-  status?: string;
+  status?: ReconciliationStatus;
   departmentId?: string;
   dateFrom?: string;
   dateTo?: string;
@@ -18,7 +21,8 @@ export function useReconciliationList(filters?: {
   return useQuery({
     queryKey: ["reconciliation-list", workspace.workspace_id, filters],
     queryFn: async () => {
-      let query = (supabase.from as Function)("daily_reconciliation")
+      let query = supabase
+        .from("daily_reconciliation")
         .select("*, department_session!inner(status, session_date, department:department_id(name))")
         .eq("workspace_id", workspace.workspace_id)
         .order("reconciliation_date", { ascending: false })
@@ -53,12 +57,13 @@ export function useReconciliationDetail(reconciliationId: string | null) {
     queryKey: ["reconciliation-detail", reconciliationId],
     enabled: !!reconciliationId,
     queryFn: async () => {
-      const { data, error } = await (supabase.from as Function)("daily_reconciliation")
+      const { data, error } = await supabase
+        .from("daily_reconciliation")
         .select(
           `*,
           settlement_image(*),
           settlement_validation(*),
-          shift_approval(*, schedule_shift:shift_id(profile_id, start_time, end_time)),
+          shift_approval(*, schedule_shift:shift_id(employee_id, start_time, end_time)),
           deviation(*)`,
         )
         .eq("reconciliation_id", reconciliationId!)
@@ -87,7 +92,8 @@ export function useApproveReconciliation() {
       notes?: string;
     }) => {
       // Calculate KPIs
-      const { data: recon } = await (supabase.from as Function)("daily_reconciliation")
+      const { data: recon } = await supabase
+        .from("daily_reconciliation")
         .select("revenue_total, total_actual_hours, total_labor_cost")
         .eq("reconciliation_id", reconciliationId)
         .single();
@@ -101,7 +107,8 @@ export function useApproveReconciliation() {
           ? (Number(recon.total_labor_cost) / Number(recon.revenue_total)) * 100
           : null;
 
-      const { data, error } = await (supabase.from as Function)("daily_reconciliation")
+      const { data, error } = await supabase
+        .from("daily_reconciliation")
         .update({
           status: "approved",
           approved_by: profileId,
@@ -154,7 +161,8 @@ export function useRejectReconciliation() {
       reconciliationId: string;
       reason: string;
     }) => {
-      const { data, error } = await (supabase.from as Function)("daily_reconciliation")
+      const { data, error } = await supabase
+        .from("daily_reconciliation")
         .update({
           status: "open",
           approval_notes: reason,
@@ -206,7 +214,8 @@ export function useApproveShiftHours() {
       profileId: string;
       justification?: string;
     }) => {
-      const { data, error } = await (supabase.from as Function)("shift_approval")
+      const { data, error } = await supabase
+        .from("shift_approval")
         .update({
           approved_hours: approvedHours,
           status: justification ? "edited" : "approved",
@@ -244,7 +253,8 @@ export function useResolveDeviation() {
       profileId: string;
       notes: string;
     }) => {
-      const { data, error } = await (supabase.from as Function)("deviation")
+      const { data, error } = await supabase
+        .from("deviation")
         .update({
           status: "resolved",
           resolution_notes: notes,

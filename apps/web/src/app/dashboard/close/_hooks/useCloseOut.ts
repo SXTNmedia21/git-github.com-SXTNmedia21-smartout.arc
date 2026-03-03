@@ -14,8 +14,9 @@ export function useDepartmentSession(departmentId: string | null) {
     queryKey: ["department-session", workspace.workspace_id, departmentId],
     enabled: !!departmentId,
     queryFn: async () => {
-      const today = new Date().toISOString().split("T")[0];
-      const { data, error } = await (supabase.from as Function)("department_session")
+      const today = new Date().toISOString().split("T")[0]!;
+      const { data, error } = await supabase
+        .from("department_session")
         .select("*")
         .eq("workspace_id", workspace.workspace_id)
         .eq("department_id", departmentId!)
@@ -38,7 +39,8 @@ export function useReconciliation(sessionId: string | null) {
     queryKey: ["reconciliation", workspace.workspace_id, sessionId],
     enabled: !!sessionId,
     queryFn: async () => {
-      const { data, error } = await (supabase.from as Function)("daily_reconciliation")
+      const { data, error } = await supabase
+        .from("daily_reconciliation")
         .select("*, settlement_image(*)")
         .eq("session_id", sessionId!)
         .single();
@@ -80,7 +82,8 @@ export function useUploadSettlementImage() {
       if (uploadErr) throw uploadErr;
 
       // 2. Create settlement_image record
-      const { data, error } = await (supabase.from as Function)("settlement_image")
+      const { data, error } = await supabase
+        .from("settlement_image")
         .insert({
           reconciliation_id: reconciliationId,
           workspace_id: workspace.workspace_id,
@@ -126,7 +129,8 @@ export function useSubmitReconciliation() {
       });
 
       // 2. Update reconciliation status
-      const { data, error } = await (supabase.from as Function)("daily_reconciliation")
+      const { data, error } = await supabase
+        .from("daily_reconciliation")
         .update({
           status: "submitted",
           settled_by: profileId,
@@ -156,7 +160,8 @@ export function useSessionDeviations(sessionId: string | null) {
     queryKey: ["session-deviations", workspace.workspace_id, sessionId],
     enabled: !!sessionId,
     queryFn: async () => {
-      const { data, error } = await (supabase.from as Function)("deviation")
+      const { data, error } = await supabase
+        .from("deviation")
         .select("*")
         .eq("session_id", sessionId!)
         .order("created_at", { ascending: false });

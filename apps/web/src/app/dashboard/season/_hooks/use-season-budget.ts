@@ -35,16 +35,14 @@ export function useSeasonBudget(seasonId: string | null) {
   const query = useQuery({
     queryKey: dashboardKeys.seasonBudget(wsId ?? "none", seasonId ?? "none"),
     queryFn: async (): Promise<SeasonBudget | null> => {
-      const { data, error } = (await (supabase.from as Function)("season_budget")
+      const { data, error } = await supabase
+        .from("season_budget")
         .select(
           "season_budget_id, season_id, total_target_revenue, base_price_per_guest, season_price_factor, target_labor_percentage, avg_hourly_wage, status",
         )
         .eq("workspace_id", wsId!)
         .eq("season_id", seasonId!)
-        .maybeSingle()) as {
-        data: SeasonBudget | null;
-        error: { message: string } | null;
-      };
+        .maybeSingle();
 
       if (error) throw new Error(error.message);
       return data;
@@ -57,7 +55,8 @@ export function useSeasonBudget(seasonId: string | null) {
       const existing = query.data;
 
       if (existing) {
-        const { error } = (await (supabase.from as Function)("season_budget")
+        const { error } = await supabase
+          .from("season_budget")
           .update({
             total_target_revenue: input.total_target_revenue,
             base_price_per_guest: input.base_price_per_guest ?? null,
@@ -66,13 +65,11 @@ export function useSeasonBudget(seasonId: string | null) {
             avg_hourly_wage: input.avg_hourly_wage ?? null,
             updated_at: new Date().toISOString(),
           })
-          .eq("season_budget_id", existing.season_budget_id)) as {
-          error: { message: string } | null;
-        };
+          .eq("season_budget_id", existing.season_budget_id);
 
         if (error) throw new Error(error.message);
       } else {
-        const { error } = (await (supabase.from as Function)("season_budget").insert({
+        const { error } = await supabase.from("season_budget").insert({
           season_id: input.season_id,
           workspace_id: wsId!,
           total_target_revenue: input.total_target_revenue,
@@ -80,7 +77,7 @@ export function useSeasonBudget(seasonId: string | null) {
           season_price_factor: input.season_price_factor ?? 1.0,
           target_labor_percentage: input.target_labor_percentage ?? 0.3,
           avg_hourly_wage: input.avg_hourly_wage ?? null,
-        })) as { error: { message: string } | null };
+        });
 
         if (error) throw new Error(error.message);
       }

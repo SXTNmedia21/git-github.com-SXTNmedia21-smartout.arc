@@ -59,7 +59,8 @@ export function useOperatingHours(locationId?: string) {
   const query = useQuery({
     queryKey: operatingHoursKeys(wsId ?? "none", locationId),
     queryFn: async (): Promise<OperatingHoursEntry[]> => {
-      let q = (supabase.from as Function)("operating_hours")
+      let q = supabase
+        .from("operating_hours")
         .select("id, workspace_id, location_id, day_of_week, open_time, close_time, is_closed")
         .eq("workspace_id", wsId!);
 
@@ -69,10 +70,7 @@ export function useOperatingHours(locationId?: string) {
         q = q.is("location_id", null);
       }
 
-      const { data, error } = (await q) as {
-        data: OperatingHoursRow[] | null;
-        error: { message: string } | null;
-      };
+      const { data, error } = await q;
 
       if (error) throw new Error(error.message);
 
@@ -107,9 +105,9 @@ export function useOperatingHours(locationId?: string) {
         updated_at: new Date().toISOString(),
       }));
 
-      const { error } = (await (supabase.from as Function)("operating_hours").upsert(rows, {
+      const { error } = await supabase.from("operating_hours").upsert(rows, {
         onConflict: "workspace_id,location_id,day_of_week",
-      })) as { error: { message: string } | null };
+      });
 
       if (error) throw new Error(error.message);
     },

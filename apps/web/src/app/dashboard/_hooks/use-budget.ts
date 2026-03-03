@@ -52,7 +52,8 @@ export function useBudget({
   const query = useQuery({
     queryKey: dashboardKeys.budgets(wsId ?? "none", periodType, startDate, endDate),
     queryFn: async (): Promise<BudgetEntry[]> => {
-      let q = (supabase.from as Function)("workspace_budget")
+      let q = supabase
+        .from("workspace_budget")
         .select("*")
         .eq("workspace_id", wsId!)
         .eq("period_type", periodType)
@@ -66,10 +67,7 @@ export function useBudget({
         q = q.eq("department_id", departmentId);
       }
 
-      const { data, error } = (await q) as {
-        data: BudgetEntry[] | null;
-        error: { message: string } | null;
-      };
+      const { data, error } = await q;
 
       if (error) throw error;
       return data ?? [];
@@ -97,9 +95,9 @@ export function useBudget({
         updated_at: new Date().toISOString(),
       };
 
-      const { error } = (await (supabase.from as Function)("workspace_budget").upsert(payload, {
+      const { error } = await supabase.from("workspace_budget").upsert(payload, {
         onConflict: "workspace_id,period_type,period_date,hour_slot",
-      })) as { error: { message: string } | null };
+      });
 
       if (error) throw error;
     },

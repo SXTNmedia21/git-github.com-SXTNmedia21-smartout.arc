@@ -27,15 +27,13 @@ export function useSeasons() {
   const query = useQuery({
     queryKey: dashboardKeys.seasons(wsId ?? "none"),
     queryFn: async (): Promise<Season[]> => {
-      const { data, error } = (await (supabase.from as Function)("season")
+      const { data, error } = await supabase
+        .from("season")
         .select(
           "season_id, name, slug, season_type, start_date, end_date, status, is_default, color, icon, description",
         )
         .eq("workspace_id", wsId!)
-        .order("start_date", { ascending: false })) as {
-        data: Season[] | null;
-        error: { message: string } | null;
-      };
+        .order("start_date", { ascending: false });
 
       if (error) throw new Error(error.message);
       return data ?? [];

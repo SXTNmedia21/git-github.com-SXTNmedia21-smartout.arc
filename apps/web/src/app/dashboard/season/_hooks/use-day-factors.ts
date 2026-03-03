@@ -36,14 +36,12 @@ export function useDayFactors(seasonBudgetId: string | null) {
   const query = useQuery({
     queryKey: dashboardKeys.dayFactors(wsId ?? "none", seasonBudgetId ?? "none"),
     queryFn: async (): Promise<DayFactor[]> => {
-      const { data, error } = (await (supabase.from as Function)("day_factor")
+      const { data, error } = await supabase
+        .from("day_factor")
         .select("day_factor_id, weekday, factor")
         .eq("workspace_id", wsId!)
         .eq("season_budget_id", seasonBudgetId!)
-        .order("weekday")) as {
-        data: DayFactor[] | null;
-        error: { message: string } | null;
-      };
+        .order("weekday");
 
       if (error) throw new Error(error.message);
       return data ?? [];
@@ -54,10 +52,11 @@ export function useDayFactors(seasonBudgetId: string | null) {
   const saveDayFactors = useMutation({
     mutationFn: async (factors: { weekday: number; factor: number }[]) => {
       // Delete existing + insert new (simpler than individual upserts for 7 rows)
-      const { error: deleteError } = (await (supabase.from as Function)("day_factor")
+      const { error: deleteError } = await supabase
+        .from("day_factor")
         .delete()
         .eq("season_budget_id", seasonBudgetId!)
-        .eq("workspace_id", wsId!)) as { error: { message: string } | null };
+        .eq("workspace_id", wsId!);
 
       if (deleteError) throw new Error(deleteError.message);
 
@@ -68,9 +67,7 @@ export function useDayFactors(seasonBudgetId: string | null) {
         factor: f.factor,
       }));
 
-      const { error: insertError } = (await (supabase.from as Function)("day_factor").insert(
-        rows,
-      )) as { error: { message: string } | null };
+      const { error: insertError } = await supabase.from("day_factor").insert(rows);
 
       if (insertError) throw new Error(insertError.message);
     },

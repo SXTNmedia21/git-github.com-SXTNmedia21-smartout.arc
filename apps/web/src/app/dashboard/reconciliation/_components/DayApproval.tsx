@@ -66,7 +66,7 @@ export function DayApproval({ reconciliationId }: DayApprovalProps) {
     status: string;
     system_deviations: unknown;
     schedule_shift: {
-      profile_id: string;
+      employee_id: string | null;
       start_time: string;
       end_time: string;
     } | null;

@@ -1438,3 +1438,764 @@ END $$;
 -- SELECT count(*) FROM journey WHERE workspace_id = 'b0000000-0000-0000-0000-000000000000';
 -- Expected: 68
 -- ─────────────────────────────────────────────────────────────────
+
+-- ============================================================================
+-- 10. Operational Seed Data — Schedule, Season, Operations, Reconciliation
+-- ============================================================================
+-- UUID reference guide:
+--   workspace:  b0000000-0000-0000-0000-000000000000
+--   departments: d0...-000 (Operations), d0...-001 (Kitchen), d0...-002 (Service), d0...-003 (Bar)
+--   profiles:   f0...-000 (Admin), f0...-001 (Anna/Kitchen), f0...-002 (Erik/Kitchen),
+--               f0...-003 (Lise/Service), f0...-004 (Ole/Bar), f0...-005 (Kari/Service),
+--               f0...-006 (Jon/Kitchen), f0...-007 (Sara/Service), f0...-008 (Jonas/Kitchen),
+--               f0...-009 (Silje/Service)
+
+-- ── 10.1 Teams ──────────────────────────────────────────────────
+INSERT INTO public.team (team_id, workspace_id, department_id, name, slug, leader_profile_id, team_type)
+VALUES
+  ('aa000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000',
+   'd0000000-0000-0000-0000-000000000001', 'Kitchen A-Team', 'kitchen-a-team',
+   'f0000000-0000-0000-0000-000000000002', 'operational'),
+  ('aa000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000',
+   'd0000000-0000-0000-0000-000000000002', 'Service Evening', 'service-evening',
+   'f0000000-0000-0000-0000-000000000007', 'operational'),
+  ('aa000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000',
+   'd0000000-0000-0000-0000-000000000003', 'Bar Crew', 'bar-crew',
+   NULL, 'operational');
+
+-- ── 10.2 Positions ──────────────────────────────────────────────
+INSERT INTO public.position (position_id, workspace_id, department_id, name, slug)
+VALUES
+  ('ab000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000',
+   'd0000000-0000-0000-0000-000000000001', 'Head Chef', 'head-chef'),
+  ('ab000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000',
+   'd0000000-0000-0000-0000-000000000001', 'Line Cook', 'line-cook'),
+  ('ab000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000',
+   'd0000000-0000-0000-0000-000000000002', 'Waiter', 'waiter'),
+  ('ab000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000000',
+   'd0000000-0000-0000-0000-000000000003', 'Bartender', 'bartender');
+
+-- ── 10.3 Season (1 active) ─────────────────────────────────────
+INSERT INTO public.season (season_id, workspace_id, name, slug, season_type, start_date, end_date, status, is_default, color)
+VALUES
+  ('ac000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000',
+   'Vinter 2026', 'vinter-2026', 'default',
+   '2026-01-01', '2026-03-31', 'active', true, '#3B82F6');
+
+-- ── 10.4 Season Budget + Factors ────────────────────────────────
+INSERT INTO public.season_budget (season_budget_id, season_id, workspace_id, total_target_revenue, base_price_per_guest, season_price_factor, target_labor_percentage, avg_hourly_wage, status, created_by)
+VALUES
+  ('ad000000-0000-0000-0000-000000000001', 'ac000000-0000-0000-0000-000000000001',
+   'b0000000-0000-0000-0000-000000000000',
+   2500000, 450, 1.0, 0.30, 225, 'active',
+   'f0000000-0000-0000-0000-000000000000');
+
+-- Day factors (Mon=0 through Sun=6, restaurant profile)
+INSERT INTO public.day_factor (workspace_id, season_budget_id, weekday, factor)
+VALUES
+  ('b0000000-0000-0000-0000-000000000000', 'ad000000-0000-0000-0000-000000000001', 0, 1.0),
+  ('b0000000-0000-0000-0000-000000000000', 'ad000000-0000-0000-0000-000000000001', 1, 1.1),
+  ('b0000000-0000-0000-0000-000000000000', 'ad000000-0000-0000-0000-000000000001', 2, 1.2),
+  ('b0000000-0000-0000-0000-000000000000', 'ad000000-0000-0000-0000-000000000001', 3, 1.4),
+  ('b0000000-0000-0000-0000-000000000000', 'ad000000-0000-0000-0000-000000000001', 4, 2.2),
+  ('b0000000-0000-0000-0000-000000000000', 'ad000000-0000-0000-0000-000000000001', 5, 2.5),
+  ('b0000000-0000-0000-0000-000000000000', 'ad000000-0000-0000-0000-000000000001', 6, 1.3);
+
+-- Hour factors (lunch + dinner peaks)
+INSERT INTO public.hour_factor (workspace_id, season_budget_id, hour, factor)
+VALUES
+  ('b0000000-0000-0000-0000-000000000000', 'ad000000-0000-0000-0000-000000000001', 10, 0.4),
+  ('b0000000-0000-0000-0000-000000000000', 'ad000000-0000-0000-0000-000000000001', 11, 0.7),
+  ('b0000000-0000-0000-0000-000000000000', 'ad000000-0000-0000-0000-000000000001', 12, 1.3),
+  ('b0000000-0000-0000-0000-000000000000', 'ad000000-0000-0000-0000-000000000001', 13, 1.0),
+  ('b0000000-0000-0000-0000-000000000000', 'ad000000-0000-0000-0000-000000000001', 14, 0.8),
+  ('b0000000-0000-0000-0000-000000000000', 'ad000000-0000-0000-0000-000000000001', 15, 0.6),
+  ('b0000000-0000-0000-0000-000000000000', 'ad000000-0000-0000-0000-000000000001', 16, 0.9),
+  ('b0000000-0000-0000-0000-000000000000', 'ad000000-0000-0000-0000-000000000001', 17, 1.5),
+  ('b0000000-0000-0000-0000-000000000000', 'ad000000-0000-0000-0000-000000000001', 18, 2.0),
+  ('b0000000-0000-0000-0000-000000000000', 'ad000000-0000-0000-0000-000000000001', 19, 2.4),
+  ('b0000000-0000-0000-0000-000000000000', 'ad000000-0000-0000-0000-000000000001', 20, 2.2),
+  ('b0000000-0000-0000-0000-000000000000', 'ad000000-0000-0000-0000-000000000001', 21, 1.1);
+
+-- ── 10.5 Operating Hours ────────────────────────────────────────
+INSERT INTO public.operating_hours (workspace_id, day_of_week, open_time, close_time, is_closed)
+VALUES
+  ('b0000000-0000-0000-0000-000000000000', 0, '11:00', '23:00', false),
+  ('b0000000-0000-0000-0000-000000000000', 1, '11:00', '23:00', false),
+  ('b0000000-0000-0000-0000-000000000000', 2, '11:00', '23:00', false),
+  ('b0000000-0000-0000-0000-000000000000', 3, '11:00', '23:30', false),
+  ('b0000000-0000-0000-0000-000000000000', 4, '11:00', '01:00', false),
+  ('b0000000-0000-0000-0000-000000000000', 5, '12:00', '01:00', false),
+  ('b0000000-0000-0000-0000-000000000000', 6, '12:00', '22:00', false);
+
+-- ── 10.6 Workspace KPI Targets ──────────────────────────────────
+INSERT INTO public.workspace_kpi_target (workspace_id, metric, target_value, benchmark_value)
+VALUES
+  ('b0000000-0000-0000-0000-000000000000', 'cost_of_sales', 30, 28),
+  ('b0000000-0000-0000-0000-000000000000', 'turnover_90d', 15, 12),
+  ('b0000000-0000-0000-0000-000000000000', 'absence_rate', 4, 3.5),
+  ('b0000000-0000-0000-0000-000000000000', 'time_to_job_ready', 7, 5),
+  ('b0000000-0000-0000-0000-000000000000', 'task_completion', 90, 95),
+  ('b0000000-0000-0000-0000-000000000000', 'training_readiness', 100, 100);
+
+-- ── 10.7 Schedule Shifts (this week) ────────────────────────────
+-- Uses CURRENT_DATE for relative dates so shifts stay relevant
+INSERT INTO public.schedule_shift (
+  schedule_shift_id, workspace_id, employee_id, shift_date, role,
+  start_time, end_time, work_hours, breaks, day_category, status, is_published
+) VALUES
+  -- Yesterday: Kitchen (Anna + Erik), Service (Kari), Bar (Ole) — all completed
+  ('ae000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000001', CURRENT_DATE - 1, 'Kokk',
+   '10:00', '18:00', 7.5, 30, 'morning', 'completed', true),
+  ('ae000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000002', CURRENT_DATE - 1, 'Sous Chef',
+   '10:00', '22:00', 11.5, 30, 'morning', 'completed', true),
+  ('ae000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000005', CURRENT_DATE - 1, 'Servitor',
+   '16:00', '23:00', 6.5, 30, 'evening', 'completed', true),
+  ('ae000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000004', CURRENT_DATE - 1, 'Bartender',
+   '16:00', '01:00', 8.5, 30, 'evening', 'completed', true),
+
+  -- Today: Kitchen (Anna + Jonas), Service (Kari + Silje), Bar (Ole)
+  ('ae000000-0000-0000-0000-000000000005', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000001', CURRENT_DATE, 'Kokk',
+   '10:00', '18:00', 7.5, 30, 'morning', 'published', true),
+  ('ae000000-0000-0000-0000-000000000006', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000008', CURRENT_DATE, 'Kokk',
+   '14:00', '22:00', 7.5, 30, 'afternoon', 'published', true),
+  ('ae000000-0000-0000-0000-000000000007', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000005', CURRENT_DATE, 'Servitor',
+   '11:00', '19:00', 7.5, 30, 'midday', 'published', true),
+  ('ae000000-0000-0000-0000-000000000008', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000009', CURRENT_DATE, 'Servitor',
+   '16:00', '23:00', 6.5, 30, 'evening', 'published', true),
+  ('ae000000-0000-0000-0000-000000000009', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000004', CURRENT_DATE, 'Bartender',
+   '16:00', '01:00', 8.5, 30, 'evening', 'published', true),
+
+  -- Tomorrow: Kitchen (Erik), Service (Kari), Bar (Ole) — created but not published
+  ('ae000000-0000-0000-0000-000000000010', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000002', CURRENT_DATE + 1, 'Sous Chef',
+   '10:00', '22:00', 11.5, 30, 'morning', 'created', false),
+  ('ae000000-0000-0000-0000-000000000011', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000005', CURRENT_DATE + 1, 'Servitor',
+   '11:00', '19:00', 7.5, 30, 'midday', 'created', false),
+  ('ae000000-0000-0000-0000-000000000012', 'b0000000-0000-0000-0000-000000000000',
+   'f0000000-0000-0000-0000-000000000004', CURRENT_DATE + 1, 'Bartender',
+   '16:00', '01:00', 8.5, 30, 'evening', 'created', false);
+
+-- ── 10.8 Workspace Budget (daily targets, this week) ────────────
+INSERT INTO public.workspace_budget (workspace_id, period_type, period_date, revenue_target, labor_cost_target)
+VALUES
+  ('b0000000-0000-0000-0000-000000000000', 'daily', CURRENT_DATE - 1, 28000, 8400),
+  ('b0000000-0000-0000-0000-000000000000', 'daily', CURRENT_DATE,     30000, 9000),
+  ('b0000000-0000-0000-0000-000000000000', 'daily', CURRENT_DATE + 1, 32000, 9600);
+
+-- ── 10.9 Department Sessions ────────────────────────────────────
+-- Yesterday: Kitchen closed, Service closed
+INSERT INTO public.department_session (
+  department_session_id, workspace_id, department_id, season_id, session_date,
+  status, opened_at, opened_by, closed_at, closed_by,
+  planned_shifts, actual_shifts, tasks_total, tasks_completed
+) VALUES
+  ('af000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000',
+   'd0000000-0000-0000-0000-000000000001', 'ac000000-0000-0000-0000-000000000001',
+   CURRENT_DATE - 1, 'closed',
+   (CURRENT_DATE - 1 + TIME '10:00')::timestamptz, 'f0000000-0000-0000-0000-000000000002',
+   (CURRENT_DATE - 1 + TIME '22:30')::timestamptz, 'f0000000-0000-0000-0000-000000000002',
+   2, 2, 8, 8),
+  ('af000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000',
+   'd0000000-0000-0000-0000-000000000002', 'ac000000-0000-0000-0000-000000000001',
+   CURRENT_DATE - 1, 'closed',
+   (CURRENT_DATE - 1 + TIME '16:00')::timestamptz, 'f0000000-0000-0000-0000-000000000005',
+   (CURRENT_DATE - 1 + TIME '23:15')::timestamptz, 'f0000000-0000-0000-0000-000000000005',
+   1, 1, 5, 5),
+  -- Today: Kitchen active, Service upcoming
+  ('af000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000',
+   'd0000000-0000-0000-0000-000000000001', 'ac000000-0000-0000-0000-000000000001',
+   CURRENT_DATE, 'active',
+   (CURRENT_DATE + TIME '10:00')::timestamptz, 'f0000000-0000-0000-0000-000000000001',
+   NULL, NULL,
+   2, 0, 8, 3),
+  ('af000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000000',
+   'd0000000-0000-0000-0000-000000000002', 'ac000000-0000-0000-0000-000000000001',
+   CURRENT_DATE, 'upcoming',
+   NULL, NULL, NULL, NULL,
+   2, 0, 5, 0);
+
+-- ── 10.10 Daily Reconciliation ──────────────────────────────────
+-- Yesterday Kitchen: approved
+INSERT INTO public.daily_reconciliation (
+  reconciliation_id, workspace_id, department_id, session_id, reconciliation_date,
+  status, settled_by, settled_at, approved_by, approved_at, approval_notes,
+  revenue_total, revenue_card, revenue_cash, revenue_transactions, revenue_source,
+  total_planned_hours, total_actual_hours, total_labor_cost,
+  revenue_per_worked_hour, labor_percentage
+) VALUES (
+  'b1000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000',
+  'd0000000-0000-0000-0000-000000000001', 'af000000-0000-0000-0000-000000000001',
+  CURRENT_DATE - 1, 'approved',
+  'f0000000-0000-0000-0000-000000000002', (CURRENT_DATE - 1 + TIME '22:45')::timestamptz,
+  'f0000000-0000-0000-0000-000000000000', (CURRENT_DATE + TIME '09:30')::timestamptz,
+  'Alt ser bra ut.',
+  31250, 26500, 4750, 142, 'ocr',
+  19.0, 19.0, 4275,
+  1644.74, 13.68
+);
+
+-- Yesterday Service: submitted (awaiting admin approval)
+INSERT INTO public.daily_reconciliation (
+  reconciliation_id, workspace_id, department_id, session_id, reconciliation_date,
+  status, settled_by, settled_at,
+  revenue_total, revenue_card, revenue_cash, revenue_transactions, revenue_source,
+  total_planned_hours, total_actual_hours, total_labor_cost
+) VALUES (
+  'b1000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000',
+  'd0000000-0000-0000-0000-000000000002', 'af000000-0000-0000-0000-000000000002',
+  CURRENT_DATE - 1, 'submitted',
+  'f0000000-0000-0000-0000-000000000005', (CURRENT_DATE - 1 + TIME '23:20')::timestamptz,
+  18750, 16200, 2550, 89, 'ocr',
+  6.5, 7.0, 1575
+);
+
+-- Today Kitchen: open (accumulating)
+INSERT INTO public.daily_reconciliation (
+  reconciliation_id, workspace_id, department_id, session_id, reconciliation_date, status
+) VALUES (
+  'b1000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000',
+  'd0000000-0000-0000-0000-000000000001', 'af000000-0000-0000-0000-000000000003',
+  CURRENT_DATE, 'open'
+);
+
+-- ── 10.11 Settlement Images ─────────────────────────────────────
+-- POS + Terminal images for yesterday's Kitchen reconciliation
+INSERT INTO public.settlement_image (image_id, reconciliation_id, workspace_id, source_type, storage_path, ocr_raw_text, ocr_confidence, ocr_processed_at, uploaded_by)
+VALUES
+  ('b2000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001',
+   'b0000000-0000-0000-0000-000000000000', 'pos',
+   'b0000000-0000-0000-0000-000000000000/settlements/seed/pos-kitchen.jpg',
+   'DAGLIG RAPPORT\nTotal: 31 250,00\nKort: 26 500,00\nKontant: 4 750,00\nTransaksjoner: 142',
+   0.94, now() - interval '12 hours',
+   'f0000000-0000-0000-0000-000000000002'),
+  ('b2000000-0000-0000-0000-000000000002', 'b1000000-0000-0000-0000-000000000001',
+   'b0000000-0000-0000-0000-000000000000', 'terminal',
+   'b0000000-0000-0000-0000-000000000000/settlements/seed/terminal-kitchen.jpg',
+   'iSettle Settlement\nTotal: 26 480,00\nTransactions: 138',
+   0.91, now() - interval '12 hours',
+   'f0000000-0000-0000-0000-000000000002');
+
+-- ── 10.12 Settlement Validation ─────────────────────────────────
+INSERT INTO public.settlement_validation (reconciliation_id, workspace_id, pos_total, terminal_total, difference, difference_percent, within_threshold)
+VALUES
+  ('b1000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000',
+   26500, 26480, 20, 0.08, true);
+
+-- ── 10.13 Shift Approvals (yesterday) ───────────────────────────
+INSERT INTO public.shift_approval (
+  approval_id, reconciliation_id, shift_id, workspace_id,
+  punch_in, punch_out, planned_hours, calculated_hours, approved_hours,
+  status, approved_by, approved_at
+) VALUES
+  -- Anna: Kitchen, approved as planned
+  ('b3000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001',
+   'ae000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000',
+   (CURRENT_DATE - 1 + TIME '09:58')::timestamptz, (CURRENT_DATE - 1 + TIME '18:05')::timestamptz,
+   7.5, 7.62, 7.5,
+   'approved', 'f0000000-0000-0000-0000-000000000000', (CURRENT_DATE + TIME '09:30')::timestamptz),
+  -- Erik: Kitchen (closing), approved with edited overtime
+  ('b3000000-0000-0000-0000-000000000002', 'b1000000-0000-0000-0000-000000000001',
+   'ae000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000',
+   (CURRENT_DATE - 1 + TIME '09:55')::timestamptz, (CURRENT_DATE - 1 + TIME '22:35')::timestamptz,
+   11.5, 12.17, 11.5,
+   'edited', 'f0000000-0000-0000-0000-000000000000', (CURRENT_DATE + TIME '09:30')::timestamptz),
+  -- Kari: Service, pending (not yet approved)
+  ('b3000000-0000-0000-0000-000000000003', 'b1000000-0000-0000-0000-000000000002',
+   'ae000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000',
+   (CURRENT_DATE - 1 + TIME '16:02')::timestamptz, (CURRENT_DATE - 1 + TIME '23:10')::timestamptz,
+   6.5, 6.63, NULL,
+   'pending', NULL, NULL);
+
+-- ── 10.14 Deviations ────────────────────────────────────────────
+INSERT INTO public.deviation (
+  deviation_id, workspace_id, department_id, session_id, reconciliation_id,
+  domain, subcategory, severity, title, description,
+  status, blocks_day_approval, reported_by
+) VALUES
+  -- System-detected: settlement mismatch (auto-resolved, within threshold)
+  ('b4000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000',
+   'd0000000-0000-0000-0000-000000000001', 'af000000-0000-0000-0000-000000000001',
+   'b1000000-0000-0000-0000-000000000001',
+   'system', 'settlement_mismatch', 'low',
+   'POS/Terminal avvik kr 20', 'POS rapporterer 26 500, terminal rapporterer 26 480. Differanse 0.08%.',
+   'resolved', false, NULL),
+  -- Manual: procedure deviation (open, blocks approval)
+  ('b4000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000',
+   'd0000000-0000-0000-0000-000000000002', 'af000000-0000-0000-0000-000000000002',
+   'b1000000-0000-0000-0000-000000000002',
+   'procedure', 'missing_checklist_item', 'medium',
+   'Kjøleskap ikke sjekket', 'Temperaturlogg for kveld mangler. Kari rapporterte at hun glemte.',
+   'open', true, 'f0000000-0000-0000-0000-000000000005');
+
+-- ============================================================================
+-- 11. GOVERNANCE — Policies, Protocols, Procedures, Assignments
+-- ============================================================================
+-- UUID scheme: c1..., c2..., c3..., c4..., c5..., c6..., c7..., c8...
+-- Restaurant "Smartout Downtown" governance: food safety, service, onboarding
+
+-- ── 11.1 Policies ────────────────────────────────────────────────────
+INSERT INTO public.policy (
+  policy_id, workspace_id, policy_type, policy_scope, name, description,
+  statement, enforcement_status, is_active, created_by
+) VALUES
+  -- Food Safety (HACCP)
+  ('c1000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000',
+   'haccp', 'workspace', 'Mathygiene og HACCP',
+   'Mattrygghet for kjøkken og service',
+   'Alle ansatte skal følge HACCP-protokollen for mottak, lagring, tilberedning og servering av mat.',
+   'enforced', true, 'f0000000-0000-0000-0000-000000000000'),
+  -- Service Standards
+  ('c1000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000',
+   'operational', 'department', 'Servicestandard',
+   'Standarder for gjestekontakt og servering',
+   'Servicepersonalet skal hilse gjester innen 30 sekunder, ta bestilling innen 3 minutter, og følge opp hvert bord minimum hvert 10. minutt.',
+   'enforced', true, 'f0000000-0000-0000-0000-000000000000'),
+  -- Onboarding
+  ('c1000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000',
+   'hr', 'workspace', 'Opplæring nye ansatte',
+   'Opplæringsprogram for nyansatte',
+   'Alle nye ansatte skal gjennomføre obligatorisk opplæring innen 14 dager etter oppstart.',
+   'enforced', true, 'f0000000-0000-0000-0000-000000000000'),
+  -- Bar Operations
+  ('c1000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000000',
+   'operational', 'department', 'Bardrift',
+   'Prosedyrer for bardrift og alkoholhåndtering',
+   'Bartendere skal følge alkoholloven, sjekke legitimasjon ved tvil, og aldri servere synlig berusede gjester.',
+   'enforced', true, 'f0000000-0000-0000-0000-000000000000'),
+  -- Safety
+  ('c1000000-0000-0000-0000-000000000005', 'b0000000-0000-0000-0000-000000000000',
+   'safety', 'workspace', 'HMS og sikkerhet',
+   'Helse, miljø og sikkerhet',
+   'Alle ansatte skal kjenne til rømningsveier, brannslukker-plassering og førstehjelp.',
+   'aspirational', true, 'f0000000-0000-0000-0000-000000000000');
+
+-- ── 11.2 Protocols (one per policy) ──────────────────────────────────
+INSERT INTO public.protocol (
+  protocol_id, policy_id, workspace_id, name, description,
+  version, status, owner_profile_id, created_by
+) VALUES
+  ('c2000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000001',
+   'b0000000-0000-0000-0000-000000000000', 'HACCP Kjøkken',
+   'Temperaturkontroll, mottak, merking, renhold', '1.0', 'active',
+   'f0000000-0000-0000-0000-000000000002', 'f0000000-0000-0000-0000-000000000000'),
+  ('c2000000-0000-0000-0000-000000000002', 'c1000000-0000-0000-0000-000000000002',
+   'b0000000-0000-0000-0000-000000000000', 'Service Grunnkurs',
+   'Bordservice, bestillingssystem, gjestehåndtering', '1.0', 'active',
+   'f0000000-0000-0000-0000-000000000007', 'f0000000-0000-0000-0000-000000000000'),
+  ('c2000000-0000-0000-0000-000000000003', 'c1000000-0000-0000-0000-000000000003',
+   'b0000000-0000-0000-0000-000000000000', 'Onboarding Program',
+   'Dag 1-14 oppgaver, systemtilgang, opplæring', '2.0', 'active',
+   'f0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000000'),
+  ('c2000000-0000-0000-0000-000000000004', 'c1000000-0000-0000-0000-000000000004',
+   'b0000000-0000-0000-0000-000000000000', 'Bar Prosedyrer',
+   'Alkoholservering, alderskontroll, barstenging', '1.0', 'active',
+   'f0000000-0000-0000-0000-000000000004', 'f0000000-0000-0000-0000-000000000000'),
+  ('c2000000-0000-0000-0000-000000000005', 'c1000000-0000-0000-0000-000000000005',
+   'b0000000-0000-0000-0000-000000000000', 'HMS Grunnopplæring',
+   'Brann, rømning, førstehjelp', '1.0', 'draft',
+   'f0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000000');
+
+-- ── 11.3 Procedures ──────────────────────────────────────────────────
+INSERT INTO public.procedure (
+  procedure_id, protocol_id, name, description, procedure_type, sort_order
+) VALUES
+  -- HACCP
+  ('c3000000-0000-0000-0000-000000000001', 'c2000000-0000-0000-0000-000000000001',
+   'Varemottak', 'Kontroll av varer ved levering', 'standard', 1),
+  ('c3000000-0000-0000-0000-000000000002', 'c2000000-0000-0000-0000-000000000001',
+   'Temperaturlogg', 'Daglig temperaturkontroll av kjøle/frys', 'standard', 2),
+  ('c3000000-0000-0000-0000-000000000003', 'c2000000-0000-0000-0000-000000000001',
+   'Renholdsplan', 'Ukentlig renholdssjekk', 'maintenance', 3),
+  -- Service
+  ('c3000000-0000-0000-0000-000000000004', 'c2000000-0000-0000-0000-000000000002',
+   'Bordservice Steg-for-Steg', 'Fra gjest ankommer til betaling', 'standard', 1),
+  ('c3000000-0000-0000-0000-000000000005', 'c2000000-0000-0000-0000-000000000002',
+   'Kassasystem Opplæring', 'Bruk av POS, split-betaling, gavekort', 'onboarding', 2),
+  -- Onboarding
+  ('c3000000-0000-0000-0000-000000000006', 'c2000000-0000-0000-0000-000000000003',
+   'Dag 1: Velkomst', 'Omvisning, uniformering, systemtilgang', 'onboarding', 1),
+  ('c3000000-0000-0000-0000-000000000007', 'c2000000-0000-0000-0000-000000000003',
+   'Dag 2-3: Skygging', 'Følge erfaren kollega på vakt', 'onboarding', 2),
+  -- Bar
+  ('c3000000-0000-0000-0000-000000000008', 'c2000000-0000-0000-0000-000000000004',
+   'Alderskontroll', 'Legitimasjonssjekk og avvisning', 'standard', 1),
+  ('c3000000-0000-0000-0000-000000000009', 'c2000000-0000-0000-0000-000000000004',
+   'Barstenging', 'Oppgjør, renhold, lukking', 'standard', 2);
+
+-- ── 11.4 Procedure Steps ─────────────────────────────────────────────
+INSERT INTO public.procedure_step (
+  step_id, procedure_id, title, description, step_order, estimated_minutes
+) VALUES
+  -- Varemottak
+  ('c4000000-0000-0000-0000-000000000001', 'c3000000-0000-0000-0000-000000000001',
+   'Sjekk følgeseddel', 'Kontroller at følgeseddel stemmer med bestilling', 1, 2),
+  ('c4000000-0000-0000-0000-000000000002', 'c3000000-0000-0000-0000-000000000001',
+   'Mål temperatur', 'Sjekk kjølekjedetemperatur med IR-termometer', 2, 3),
+  ('c4000000-0000-0000-0000-000000000003', 'c3000000-0000-0000-0000-000000000001',
+   'Lagre riktig', 'Plasser varer i riktig kjøle/frys/tørrlager', 3, 10),
+  -- Temperaturlogg
+  ('c4000000-0000-0000-0000-000000000004', 'c3000000-0000-0000-0000-000000000002',
+   'Kjøleskap morgen', 'Logg temperatur kjøleskap 1-3 ved åpning', 1, 3),
+  ('c4000000-0000-0000-0000-000000000005', 'c3000000-0000-0000-0000-000000000002',
+   'Fryser morgen', 'Logg temperatur fryser ved åpning', 2, 2),
+  ('c4000000-0000-0000-0000-000000000006', 'c3000000-0000-0000-0000-000000000002',
+   'Kjøleskap kveld', 'Logg temperatur kjøleskap 1-3 ved stenging', 3, 3),
+  -- Bordservice
+  ('c4000000-0000-0000-0000-000000000007', 'c3000000-0000-0000-0000-000000000004',
+   'Hilse gjesten', 'Hils innen 30 sekunder, tilby meny', 1, 1),
+  ('c4000000-0000-0000-0000-000000000008', 'c3000000-0000-0000-0000-000000000004',
+   'Ta bestilling', 'Bruk POS, bekreft allergier, gjenta bestilling', 2, 3),
+  ('c4000000-0000-0000-0000-000000000009', 'c3000000-0000-0000-0000-000000000004',
+   'Servere mat', 'Sjekk rett tallerken, server fra venstre', 3, 1),
+  ('c4000000-0000-0000-0000-000000000010', 'c3000000-0000-0000-0000-000000000004',
+   'Oppfølging', 'Sjekk bordet 2 min etter servering', 4, 1),
+  -- Alderskontroll
+  ('c4000000-0000-0000-0000-000000000011', 'c3000000-0000-0000-0000-000000000008',
+   'Spør om legitimasjon', 'Alltid ved tvil om alder', 1, 1),
+  ('c4000000-0000-0000-0000-000000000012', 'c3000000-0000-0000-0000-000000000008',
+   'Kontroller ID', 'Sjekk bilde, utløpsdato, fødselsdato', 2, 1),
+  ('c4000000-0000-0000-0000-000000000013', 'c3000000-0000-0000-0000-000000000008',
+   'Avvis eller server', 'Høflig avvisning eller fortsett servering', 3, 1);
+
+-- ── 11.5 Control Lists ───────────────────────────────────────────────
+INSERT INTO public.control_list (
+  control_list_id, protocol_id, name, description, assigned_to_type, items
+) VALUES
+  ('c5000000-0000-0000-0000-000000000001', 'c2000000-0000-0000-0000-000000000001',
+   'Daglig temperatursjekk', 'Morgen + kveld temperaturlogg',
+   'team_leader',
+   '[{"label":"Kjøleskap 1","type":"temperature","target":4,"max":7},{"label":"Kjøleskap 2","type":"temperature","target":4,"max":7},{"label":"Kjøleskap 3","type":"temperature","target":4,"max":7},{"label":"Fryser","type":"temperature","target":-18,"max":-15}]'),
+  ('c5000000-0000-0000-0000-000000000002', 'c2000000-0000-0000-0000-000000000002',
+   'Kveldsstenging service', 'Sjekkliste for stenging av sal',
+   'manager',
+   '[{"label":"Alle bord tørket","type":"checkbox"},{"label":"Bestikk polert","type":"checkbox"},{"label":"Gulv mopp","type":"checkbox"},{"label":"Lys av","type":"checkbox"},{"label":"Alarm satt","type":"checkbox"}]'),
+  ('c5000000-0000-0000-0000-000000000003', 'c2000000-0000-0000-0000-000000000004',
+   'Barstenging sjekkliste', 'Opprydding og sikkerhet',
+   'team_leader',
+   '[{"label":"Alle flasker tilbake","type":"checkbox"},{"label":"Bardisk rengjort","type":"checkbox"},{"label":"Kassaoppgjør ferdig","type":"checkbox"},{"label":"Kjøleskap lukket","type":"checkbox"}]');
+
+-- ── 11.6 Routines ────────────────────────────────────────────────────
+INSERT INTO public.routine (
+  routine_id, protocol_id, procedure_id, name,
+  trigger_type, trigger_config,
+  assigned_to_type, assigned_to_ref,
+  control_list_id, control_frequency
+) VALUES
+  ('c6000000-0000-0000-0000-000000000001', 'c2000000-0000-0000-0000-000000000001',
+   'c3000000-0000-0000-0000-000000000002', 'Morgen temperaturlogg',
+   'scheduled', '{"cron":"0 9 * * *","timezone":"Europe/Oslo"}',
+   'team', 'aa000000-0000-0000-0000-000000000001',
+   'c5000000-0000-0000-0000-000000000001', 'every_time'),
+  ('c6000000-0000-0000-0000-000000000002', 'c2000000-0000-0000-0000-000000000002',
+   'c3000000-0000-0000-0000-000000000004', 'Servicerutine kveld',
+   'scheduled', '{"cron":"0 22 * * *","timezone":"Europe/Oslo"}',
+   'team', 'aa000000-0000-0000-0000-000000000002',
+   'c5000000-0000-0000-0000-000000000002', 'every_time');
+
+-- ── 11.7 Knowledge Tests ─────────────────────────────────────────────
+INSERT INTO public.knowledge_test (
+  knowledge_test_id, protocol_id, name, description,
+  questions, pass_threshold, max_attempts
+) VALUES
+  ('c7000000-0000-0000-0000-000000000001', 'c2000000-0000-0000-0000-000000000001',
+   'HACCP Quiz', 'Test av grunnleggende HACCP-kunnskap',
+   '[{"q":"Hva er maks temperatur for kjøleskap?","options":["4°C","7°C","10°C"],"correct":1},{"q":"Hvor lenge kan fersk mat stå i romtemperatur?","options":["30 min","2 timer","4 timer"],"correct":1},{"q":"Hva gjør du ved varemottak med feil temperatur?","options":["Aksepterer","Avviser og dokumenterer","Setter i kjøleskap"],"correct":1}]',
+   80, 3),
+  ('c7000000-0000-0000-0000-000000000002', 'c2000000-0000-0000-0000-000000000004',
+   'Alkoholservering', 'Ansvarlig alkoholhåndtering',
+   '[{"q":"Hva er aldersgrense for alkohol i Norge?","options":["16","18","20"],"correct":1},{"q":"Hva gjør du ved synlig beruselse?","options":["Serverer saktere","Nekter servering","Spør om de vil ha vann"],"correct":1}]',
+   100, 2);
+
+-- ── 11.8 Confirmations ───────────────────────────────────────────────
+INSERT INTO public.confirmation (
+  confirmation_id, protocol_id, name, confirmation_text, requires_signature
+) VALUES
+  ('c8000000-0000-0000-0000-000000000001', 'c2000000-0000-0000-0000-000000000003',
+   'Onboarding bekreftelse',
+   'Jeg bekrefter at jeg har gjennomført onboarding-programmet og forstår mine plikter og rettigheter.',
+   true),
+  ('c8000000-0000-0000-0000-000000000002', 'c2000000-0000-0000-0000-000000000005',
+   'HMS-bekreftelse',
+   'Jeg bekrefter at jeg kjenner rømningsveier, brannslukker-plassering og førstehjelp-prosedyrer.',
+   false);
+
+-- ── 11.9 Protocol Assignments ────────────────────────────────────────
+-- Active employees get assigned protocols based on department
+INSERT INTO public.protocol_assignment (
+  assignment_id, protocol_id, profile_id, status, completed_at
+) VALUES
+  -- Anna (Kitchen) — HACCP completed, Onboarding completed
+  ('c9000000-0000-0000-0000-000000000001', 'c2000000-0000-0000-0000-000000000001',
+   'f0000000-0000-0000-0000-000000000001', 'completed', now() - interval '30 days'),
+  ('c9000000-0000-0000-0000-000000000002', 'c2000000-0000-0000-0000-000000000003',
+   'f0000000-0000-0000-0000-000000000001', 'completed', now() - interval '60 days'),
+  -- Erik (Kitchen, manager) — HACCP completed
+  ('c9000000-0000-0000-0000-000000000003', 'c2000000-0000-0000-0000-000000000001',
+   'f0000000-0000-0000-0000-000000000002', 'completed', now() - interval '45 days'),
+  -- Ole (Bar) — Bar completed, Onboarding completed
+  ('c9000000-0000-0000-0000-000000000004', 'c2000000-0000-0000-0000-000000000004',
+   'f0000000-0000-0000-0000-000000000004', 'completed', now() - interval '20 days'),
+  ('c9000000-0000-0000-0000-000000000005', 'c2000000-0000-0000-0000-000000000003',
+   'f0000000-0000-0000-0000-000000000004', 'completed', now() - interval '40 days'),
+  -- Kari (Service, trainee) — Service pending, Onboarding pending
+  ('c9000000-0000-0000-0000-000000000006', 'c2000000-0000-0000-0000-000000000002',
+   'f0000000-0000-0000-0000-000000000005', 'pending', NULL),
+  ('c9000000-0000-0000-0000-000000000007', 'c2000000-0000-0000-0000-000000000003',
+   'f0000000-0000-0000-0000-000000000005', 'pending', NULL),
+  -- Jonas (Kitchen, trainee) — HACCP pending, Onboarding pending
+  ('c9000000-0000-0000-0000-000000000008', 'c2000000-0000-0000-0000-000000000001',
+   'f0000000-0000-0000-0000-000000000008', 'pending', NULL),
+  ('c9000000-0000-0000-0000-000000000009', 'c2000000-0000-0000-0000-000000000003',
+   'f0000000-0000-0000-0000-000000000008', 'pending', NULL),
+  -- Silje (Service, trainee) — Service pending
+  ('c9000000-0000-0000-0000-000000000010', 'c2000000-0000-0000-0000-000000000002',
+   'f0000000-0000-0000-0000-000000000009', 'pending', NULL);
+
+
+-- ============================================================================
+-- 12. ORG STRUCTURE — Zones, Assets, Team Members
+-- ============================================================================
+
+-- ── 12.1 Zones ───────────────────────────────────────────────────────
+INSERT INTO public.zone (zone_id, workspace_id, location_id, name, slug, capacity)
+VALUES
+  ('d1000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000',
+   'c0000000-0000-0000-0000-000000000000', 'Hovedsal', 'hovedsal', 60),
+  ('d1000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000',
+   'c0000000-0000-0000-0000-000000000000', 'Terrasse', 'terrasse', 30),
+  ('d1000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000',
+   'c0000000-0000-0000-0000-000000000000', 'Bar-område', 'bar-omrade', 20),
+  ('d1000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000000',
+   'c0000000-0000-0000-0000-000000000000', 'Privat rom', 'privat-rom', 12);
+
+-- ── 12.2 Assets ──────────────────────────────────────────────────────
+INSERT INTO public.asset (asset_id, workspace_id, location_id, name, description, requires_training, requires_routine)
+VALUES
+  ('d2000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000',
+   'c0000000-0000-0000-0000-000000000000', 'Kombidamper', 'Rational iCombi Pro 10-1/1', true, true),
+  ('d2000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000',
+   'c0000000-0000-0000-0000-000000000000', 'Espressomaskin', 'La Marzocco Linea Mini', true, true),
+  ('d2000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000',
+   'c0000000-0000-0000-0000-000000000000', 'POS Kasse 1', 'Lightspeed Restaurant L-Series', true, false),
+  ('d2000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000000',
+   'c0000000-0000-0000-0000-000000000000', 'POS Kasse 2', 'Lightspeed Restaurant L-Series', true, false),
+  ('d2000000-0000-0000-0000-000000000005', 'b0000000-0000-0000-0000-000000000000',
+   'c0000000-0000-0000-0000-000000000000', 'Oppvaskmaskin', 'Winterhalter UC-XL', false, true);
+
+-- ── 12.3 Team Members ────────────────────────────────────────────────
+INSERT INTO public.team_member (team_id, profile_id)
+VALUES
+  -- Kitchen A-Team: Anna, Erik (leader), Jonas (trainee)
+  ('aa000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-000000000001'),
+  ('aa000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-000000000002'),
+  ('aa000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-000000000008'),
+  -- Service Evening: Kari, Silje, Sara (leader, inactive)
+  ('aa000000-0000-0000-0000-000000000002', 'f0000000-0000-0000-0000-000000000005'),
+  ('aa000000-0000-0000-0000-000000000002', 'f0000000-0000-0000-0000-000000000009'),
+  ('aa000000-0000-0000-0000-000000000002', 'f0000000-0000-0000-0000-000000000007'),
+  -- Bar Crew: Ole
+  ('aa000000-0000-0000-0000-000000000003', 'f0000000-0000-0000-0000-000000000004');
+
+
+-- ============================================================================
+-- 13. SCHEDULE — Templates, Absences, Open Shifts, Day Messages/Tasks
+-- ============================================================================
+
+-- ── 13.1 Schedule Templates ──────────────────────────────────────────
+INSERT INTO public.schedule_template (
+  schedule_template_id, workspace_id, name, department, include_assignments, created_by
+) VALUES
+  ('d3000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000',
+   'Standard Hverdag Kjøkken', 'Kitchen', true, 'f0000000-0000-0000-0000-000000000000'),
+  ('d3000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000000',
+   'Standard Hverdag Service', 'Service', true, 'f0000000-0000-0000-0000-000000000000'),
+  ('d3000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000000',
+   'Helg Full Bemanning', 'Kitchen', false, 'f0000000-0000-0000-0000-000000000000');
+
+-- ── 13.2 Template Shifts ─────────────────────────────────────────────
+INSERT INTO public.schedule_template_shift (
+  template_id, employee_id, role, start_time, end_time, work_hours, breaks, day_category
+) VALUES
+  -- Standard Hverdag Kjøkken
+  ('d3000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-000000000001',
+   'Kokk', '10:00', '18:00', 7.5, 30, 'morning'),
+  ('d3000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-000000000002',
+   'Sous Chef', '10:00', '22:00', 11.5, 30, 'morning'),
+  -- Standard Hverdag Service
+  ('d3000000-0000-0000-0000-000000000002', 'f0000000-0000-0000-0000-000000000005',
+   'Servitør', '11:00', '19:00', 7.5, 30, 'midday'),
+  ('d3000000-0000-0000-0000-000000000002', NULL,
+   'Servitør Kveld', '16:00', '23:00', 6.5, 30, 'evening'),
+  -- Helg: no assignments, just slots
+  ('d3000000-0000-0000-0000-000000000003', NULL,
+   'Kokk Morgen', '09:00', '17:00', 7.5, 30, 'morning'),
+  ('d3000000-0000-0000-0000-000000000003', NULL,
+   'Kokk Kveld', '15:00', '23:00', 7.5, 30, 'afternoon'),
+  ('d3000000-0000-0000-0000-000000000003', NULL,
+   'Sous Chef', '09:00', '23:00', 13.5, 30, 'morning');
+
+-- ── 13.3 Schedule Absences ───────────────────────────────────────────
+INSERT INTO public.schedule_absence (
+  workspace_id, employee_id, shift_date, absence_type, reason,
+  start_date, end_date, is_full_day, status
+) VALUES
+  -- Lise (inactive) — sick leave this week
+  ('b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000003',
+   CURRENT_DATE, 'sick_leave', 'Influensa',
+   CURRENT_DATE - 2, CURRENT_DATE + 3, true, 'approved'),
+  -- Sara (inactive/leave) — vacation
+  ('b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000007',
+   CURRENT_DATE, 'vacation', 'Ferie Italia',
+   CURRENT_DATE - 7, CURRENT_DATE + 7, true, 'approved'),
+  -- Jon — personal day tomorrow, pending
+  ('b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000006',
+   CURRENT_DATE + 1, 'personal', 'Tannlege',
+   CURRENT_DATE + 1, CURRENT_DATE + 1, true, 'pending');
+
+-- ── 13.4 Open Shifts ─────────────────────────────────────────────────
+INSERT INTO public.schedule_open_shift (
+  workspace_id, title, start_time, end_time, department, role, day_category
+) VALUES
+  ('b0000000-0000-0000-0000-000000000000',
+   'Ekstra servitør fredag', '17:00', '23:00', 'Service', 'Servitør', 'evening'),
+  ('b0000000-0000-0000-0000-000000000000',
+   'Kokk helg lørdag', '09:00', '17:00', 'Kitchen', 'Kokk', 'morning');
+
+-- ── 13.5 Schedule Day Messages ───────────────────────────────────────
+INSERT INTO public.schedule_day_message (
+  workspace_id, shift_date, title, content, visibility, author_id, is_alert
+) VALUES
+  ('b0000000-0000-0000-0000-000000000000', CURRENT_DATE,
+   'Stort selskap i kveld', 'Bord 8-12 er reservert for 30 pers fra kl 19. Ekstra forberedelser!',
+   'all_day', 'f0000000-0000-0000-0000-000000000000', true),
+  ('b0000000-0000-0000-0000-000000000000', CURRENT_DATE + 1,
+   'Vareleveranse', 'Servicegrossisten leverer kl 08. Noen må ta imot.',
+   'until_16', 'f0000000-0000-0000-0000-000000000002', false);
+
+-- ── 13.6 Schedule Day Tasks ──────────────────────────────────────────
+INSERT INTO public.schedule_day_task (
+  workspace_id, shift_date, label, assigned_to, task_status
+) VALUES
+  ('b0000000-0000-0000-0000-000000000000', CURRENT_DATE,
+   'Dekk bord 8-12 for selskap', 'f0000000-0000-0000-0000-000000000005', 'pending'),
+  ('b0000000-0000-0000-0000-000000000000', CURRENT_DATE,
+   'Bestill ekstra brød fra bakeri', NULL, 'completed'),
+  ('b0000000-0000-0000-0000-000000000000', CURRENT_DATE,
+   'Sjekk vinlageret for selskap', 'f0000000-0000-0000-0000-000000000004', 'pending');
+
+
+-- ============================================================================
+-- 14. AGENT — Profile & Relationships
+-- ============================================================================
+
+-- ── 14.1 Agent Profile (Mr. Botsson) ─────────────────────────────────
+INSERT INTO public.agent_profile (
+  id, workspace_id, display_name, greeting, language,
+  default_voice, voice_speed, voice_temperature, voice_stability,
+  formality, assertiveness, warmth, humor, verbosity,
+  adapt_to_role, adapt_to_situation, adapt_to_authority,
+  updated_by
+) VALUES
+  ('d4000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000000',
+   'Mr. Botsson', 'Hei! Klar for en ny dag? Hva kan jeg hjelpe deg med?', 'no',
+   'mark', 1.0, 0.3, 0.7,
+   0.4, 0.5, 0.8, 0.3, 0.4,
+   true, true, true,
+   'e0000000-0000-0000-0000-000000000000');
+
+-- ── 14.2 Agent Relationships ─────────────────────────────────────────
+INSERT INTO public.agent_relationship (
+  workspace_id, agent_profile_id, profile_id,
+  total_conversations, total_minutes, last_interaction_at,
+  familiarity_score, protocols_completed, protocols_assigned,
+  readiness_score, accuracy_score, trust_score,
+  positive_count, neutral_count, negative_count,
+  sentiment_trend, sentiment_score, relationship_score
+) VALUES
+  -- Anna: experienced, high trust, many conversations
+  ('b0000000-0000-0000-0000-000000000000', 'd4000000-0000-0000-0000-000000000001',
+   'f0000000-0000-0000-0000-000000000001',
+   45, 120.5, now() - interval '1 day',
+   0.85, 2, 2, 1.0, 0.92, 0.88,
+   38, 6, 1, 0.3, 0.82, 0.87),
+  -- Erik: manager, moderate engagement
+  ('b0000000-0000-0000-0000-000000000000', 'd4000000-0000-0000-0000-000000000001',
+   'f0000000-0000-0000-0000-000000000002',
+   22, 55.0, now() - interval '2 days',
+   0.65, 1, 1, 1.0, 0.88, 0.75,
+   18, 3, 1, 0.1, 0.77, 0.72),
+  -- Ole: regular user
+  ('b0000000-0000-0000-0000-000000000000', 'd4000000-0000-0000-0000-000000000001',
+   'f0000000-0000-0000-0000-000000000004',
+   30, 78.0, now() - interval '1 day',
+   0.72, 2, 2, 1.0, 0.85, 0.80,
+   25, 4, 1, 0.2, 0.80, 0.78),
+  -- Kari: trainee, new, low familiarity
+  ('b0000000-0000-0000-0000-000000000000', 'd4000000-0000-0000-0000-000000000001',
+   'f0000000-0000-0000-0000-000000000005',
+   5, 15.0, now() - interval '1 day',
+   0.15, 0, 2, 0.0, 0.70, 0.20,
+   3, 2, 0, 0.0, 0.60, 0.18),
+  -- Jonas: brand new trainee
+  ('b0000000-0000-0000-0000-000000000000', 'd4000000-0000-0000-0000-000000000001',
+   'f0000000-0000-0000-0000-000000000008',
+   2, 8.0, now(),
+   0.05, 0, 2, 0.0, 0.50, 0.10,
+   2, 0, 0, 0.0, 0.55, 0.08);
+
+
+-- ============================================================================
+-- 15. ENGINE — Authority Config
+-- ============================================================================
+
+INSERT INTO public.engine_authority_config (
+  workspace_id, capability, level, updated_by
+) VALUES
+  ('b0000000-0000-0000-0000-000000000000', 'schedule.read', 'autonomous',
+   'e0000000-0000-0000-0000-000000000000'),
+  ('b0000000-0000-0000-0000-000000000000', 'schedule.write', 'confirm',
+   'e0000000-0000-0000-0000-000000000000'),
+  ('b0000000-0000-0000-0000-000000000000', 'protocol.assign', 'suggest',
+   'e0000000-0000-0000-0000-000000000000'),
+  ('b0000000-0000-0000-0000-000000000000', 'deviation.create', 'confirm',
+   'e0000000-0000-0000-0000-000000000000'),
+  ('b0000000-0000-0000-0000-000000000000', 'notification.send', 'autonomous',
+   'e0000000-0000-0000-0000-000000000000'),
+  ('b0000000-0000-0000-0000-000000000000', 'contract.generate', 'confirm',
+   'e0000000-0000-0000-0000-000000000000');
+
+
+-- ============================================================================
+-- Seed verification (uncomment to check counts):
+-- ============================================================================
+-- SELECT 'teams' AS entity, count(*) FROM team WHERE workspace_id = 'b0000000-0000-0000-0000-000000000000'
+-- UNION ALL SELECT 'team_members', count(*) FROM team_member tm JOIN team t ON tm.team_id = t.team_id WHERE t.workspace_id = 'b0000000-0000-0000-0000-000000000000'
+-- UNION ALL SELECT 'positions', count(*) FROM position WHERE workspace_id = 'b0000000-0000-0000-0000-000000000000'
+-- UNION ALL SELECT 'zones', count(*) FROM zone WHERE workspace_id = 'b0000000-0000-0000-0000-000000000000'
+-- UNION ALL SELECT 'assets', count(*) FROM asset WHERE workspace_id = 'b0000000-0000-0000-0000-000000000000'
+-- UNION ALL SELECT 'policies', count(*) FROM policy WHERE workspace_id = 'b0000000-0000-0000-0000-000000000000'
+-- UNION ALL SELECT 'protocols', count(*) FROM protocol WHERE workspace_id = 'b0000000-0000-0000-0000-000000000000'
+-- UNION ALL SELECT 'procedures', count(*) FROM procedure p JOIN protocol pr ON p.protocol_id = pr.protocol_id WHERE pr.workspace_id = 'b0000000-0000-0000-0000-000000000000'
+-- UNION ALL SELECT 'assignments', count(*) FROM protocol_assignment pa JOIN protocol pr ON pa.protocol_id = pr.protocol_id WHERE pr.workspace_id = 'b0000000-0000-0000-0000-000000000000'
+-- UNION ALL SELECT 'seasons', count(*) FROM season WHERE workspace_id = 'b0000000-0000-0000-0000-000000000000'
+-- UNION ALL SELECT 'shifts', count(*) FROM schedule_shift WHERE workspace_id = 'b0000000-0000-0000-0000-000000000000'
+-- UNION ALL SELECT 'templates', count(*) FROM schedule_template WHERE workspace_id = 'b0000000-0000-0000-0000-000000000000'
+-- UNION ALL SELECT 'absences', count(*) FROM schedule_absence WHERE workspace_id = 'b0000000-0000-0000-0000-000000000000'
+-- UNION ALL SELECT 'dept_sessions', count(*) FROM department_session WHERE workspace_id = 'b0000000-0000-0000-0000-000000000000'
+-- UNION ALL SELECT 'reconciliations', count(*) FROM daily_reconciliation WHERE workspace_id = 'b0000000-0000-0000-0000-000000000000'
+-- UNION ALL SELECT 'deviations', count(*) FROM deviation WHERE workspace_id = 'b0000000-0000-0000-0000-000000000000'
+-- UNION ALL SELECT 'agent_profile', count(*) FROM agent_profile WHERE workspace_id = 'b0000000-0000-0000-0000-000000000000'
+-- UNION ALL SELECT 'agent_relationships', count(*) FROM agent_relationship WHERE workspace_id = 'b0000000-0000-0000-0000-000000000000'
+-- UNION ALL SELECT 'authority_config', count(*) FROM engine_authority_config WHERE workspace_id = 'b0000000-0000-0000-0000-000000000000';
+-- ============================================================================

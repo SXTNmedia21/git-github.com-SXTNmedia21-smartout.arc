@@ -7,7 +7,7 @@
 -- 1. agent_profile — one per workspace, Mr. Botsson's DNA
 CREATE TABLE agent_profile (
   id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id       uuid NOT NULL REFERENCES workspace(id) ON DELETE CASCADE,
+  workspace_id       uuid NOT NULL REFERENCES workspace(workspace_id) ON DELETE CASCADE,
 
   -- Identity
   display_name       text NOT NULL DEFAULT 'Mr. Botsson',
@@ -35,7 +35,7 @@ CREATE TABLE agent_profile (
   -- Metadata
   created_at         timestamptz NOT NULL DEFAULT now(),
   updated_at         timestamptz NOT NULL DEFAULT now(),
-  updated_by         uuid REFERENCES user_identity(id),
+  updated_by         uuid REFERENCES user_identity(user_id),
 
   CONSTRAINT unique_workspace_agent UNIQUE (workspace_id)
 );
@@ -58,15 +58,19 @@ CREATE POLICY "api_key_agent_profile_read" ON agent_profile
     workspace_id = (current_setting('app.workspace_id', true))::uuid
   );
 
+CREATE OR REPLACE TRIGGER set_agent_profile_updated_at
+  BEFORE UPDATE ON agent_profile
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
 COMMENT ON TABLE agent_profile IS 'Per-workspace AI agent identity: voice DNA, personality sliders, posture adaptation flags.';
 
 
 -- 2. agent_relationship — one per agent × employee
 CREATE TABLE agent_relationship (
   id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id        uuid NOT NULL REFERENCES workspace(id) ON DELETE CASCADE,
+  workspace_id        uuid NOT NULL REFERENCES workspace(workspace_id) ON DELETE CASCADE,
   agent_profile_id    uuid NOT NULL REFERENCES agent_profile(id) ON DELETE CASCADE,
-  profile_id          uuid NOT NULL REFERENCES profile(id) ON DELETE CASCADE,
+  profile_id          uuid NOT NULL REFERENCES profile(profile_id) ON DELETE CASCADE,
 
   -- Familiarity
   total_conversations integer NOT NULL DEFAULT 0,
@@ -102,7 +106,7 @@ ALTER TABLE agent_relationship ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "agent_relationship_read_own" ON agent_relationship
   FOR SELECT USING (
-    profile_id IN (SELECT p.id FROM profile p WHERE p.user_id = auth.uid())
+    profile_id IN (SELECT p.profile_id FROM profile p WHERE p.user_id = auth.uid())
   );
 
 CREATE POLICY "agent_relationship_read_admin" ON agent_relationship
@@ -119,6 +123,10 @@ CREATE POLICY "api_key_agent_relationship_read" ON agent_relationship
 CREATE INDEX idx_agent_relationship_workspace ON agent_relationship(workspace_id);
 CREATE INDEX idx_agent_relationship_profile ON agent_relationship(profile_id);
 CREATE INDEX idx_agent_relationship_composite ON agent_relationship(agent_profile_id, relationship_score DESC);
+
+CREATE OR REPLACE TRIGGER set_agent_relationship_updated_at
+  BEFORE UPDATE ON agent_relationship
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 COMMENT ON TABLE agent_relationship IS 'Per-agent-per-employee relationship: familiarity, trust/competence, sentiment.';
 
