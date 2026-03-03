@@ -22,7 +22,7 @@ export default function HeroBlock({ content, settings }: BlockProps<HeroContent>
           transition={{ duration: 0.6 }}
           className={isCentered ? "mx-auto max-w-4xl" : "max-w-3xl"}
         >
-          <h1 className="mb-6 text-5xl leading-[1.08] font-extrabold tracking-tight text-white lg:text-7xl">
+          <h1 className="mb-6 text-5xl leading-[1.08] font-black tracking-tight text-white lg:text-7xl">
             {content.heading}
           </h1>
 

@@ -23,7 +23,7 @@ export default function FeaturesGridBlock({ content, settings }: BlockProps<Feat
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
-            className="mb-16 text-center text-4xl font-extrabold tracking-tight text-white lg:text-5xl"
+            className="mb-16 text-center text-4xl font-bold tracking-tight text-white lg:text-5xl"
           >
             {content.heading}
           </m.h2>

@@ -24,7 +24,7 @@ export default function CtaSectionBlock({ content, settings }: BlockProps<CtaSec
         transition={{ duration: 0.6 }}
         className={`mx-auto ${getLayoutClasses(settings.layout)} text-center`}
       >
-        <h2 className="mb-6 text-4xl font-extrabold tracking-tight text-white lg:text-5xl">
+        <h2 className="mb-6 text-4xl font-bold tracking-tight text-white lg:text-5xl">
           {content.heading}
         </h2>
 

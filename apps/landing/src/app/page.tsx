@@ -458,7 +458,7 @@ function SmartoutLandingPageContent() {
 
             <m.h1
               variants={itemVariants}
-              className="mb-4 text-4xl leading-[1.1] font-extrabold tracking-tight sm:mb-6 sm:text-5xl md:text-7xl"
+              className="mb-4 text-4xl leading-[1.1] font-black tracking-tight sm:mb-6 sm:text-5xl md:text-7xl"
             >
               Møt{" "}
               <span className="bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent">

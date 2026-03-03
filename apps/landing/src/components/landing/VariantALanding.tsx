@@ -245,7 +245,7 @@ export default function VariantALanding() {
           variants={staggerContainer}
         >
           <m.h1
-            className="mb-6 text-5xl font-bold tracking-tight lg:text-7xl"
+            className="mb-6 text-5xl font-black tracking-tight lg:text-7xl"
             variants={heroReveal}
             transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
           >
@@ -281,27 +281,23 @@ export default function VariantALanding() {
               damping: 20,
             }}
           >
-            {/* Primary CTA — amber filled button with hover lift */}
-            <m.div whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.97 }}>
-              <Link
-                href={WEB_APP_LINKS.onboarding}
-                onClick={() => trackCta("Kom i gang")}
-                className="inline-flex items-center rounded-full bg-amber-500 px-8 py-4 text-lg font-bold text-zinc-950 shadow-[0_0_30px_rgba(245,158,11,0.3)] transition-shadow hover:shadow-[0_0_50px_rgba(245,158,11,0.5)]"
-              >
-                Kom i gang
-              </Link>
-            </m.div>
+            {/* Primary CTA — amber filled button with hover glow */}
+            <Link
+              href={WEB_APP_LINKS.onboarding}
+              onClick={() => trackCta("Kom i gang")}
+              className="inline-flex items-center rounded-full bg-amber-500 px-8 py-4 text-lg font-bold text-zinc-950 shadow-[0_0_30px_rgba(245,158,11,0.3)] transition-shadow duration-300 hover:shadow-[0_0_50px_rgba(245,158,11,0.5)]"
+            >
+              Kom i gang
+            </Link>
 
             {/* Secondary CTA — ghost button with hover glow */}
-            <m.div whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.97 }}>
-              <button
-                type="button"
-                onClick={() => trackCta("Se video")}
-                className="inline-flex items-center rounded-full border border-white/10 px-8 py-4 text-lg font-semibold text-zinc-300 transition-all hover:border-amber-500/30 hover:text-white hover:shadow-[0_0_20px_rgba(245,158,11,0.1)]"
-              >
-                Se video
-              </button>
-            </m.div>
+            <button
+              type="button"
+              onClick={() => trackCta("Se video")}
+              className="inline-flex items-center rounded-full border border-white/10 px-8 py-4 text-lg font-semibold text-zinc-300 transition-all duration-300 hover:border-amber-500/30 hover:text-white hover:shadow-[0_0_20px_rgba(245,158,11,0.1)]"
+            >
+              Se video
+            </button>
           </m.div>
         </m.div>
       </section>
@@ -338,22 +334,12 @@ export default function VariantALanding() {
                   delay: i * 0.1,
                   ease: [0.22, 1, 0.36, 1],
                 }}
-                whileHover={{ y: -6, transition: { duration: 0.3, ease: "easeOut" } }}
               >
-                {/* 96px icon — ambient float animation on hover */}
-                <m.div
-                  animate={{ y: [0, -6, 0] }}
-                  transition={{
-                    duration: 3 + i * 0.4,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                >
-                  <step.icon
-                    className="mb-6 h-24 w-24 text-amber-400 transition-colors duration-500 group-hover:text-amber-300"
-                    strokeWidth={1.2}
-                  />
-                </m.div>
+                {/* 96px icon — static, color shift on hover */}
+                <step.icon
+                  className="mb-6 h-24 w-24 text-amber-400 transition-colors duration-500 group-hover:text-amber-300"
+                  strokeWidth={1.2}
+                />
                 <h3 className="mb-3 text-2xl font-bold">{step.title}</h3>
                 <p className="text-base text-zinc-400">{step.description}</p>
               </m.div>
@@ -410,7 +396,6 @@ export default function VariantALanding() {
                   stiffness: 300,
                   damping: 20,
                 }}
-                whileHover={{ scale: 1.1, y: -2 }}
               >
                 {language}
               </m.span>
@@ -468,11 +453,6 @@ export default function VariantALanding() {
                       stiffness: 260,
                       damping: 18,
                       delay: 0.3 + index * 0.25,
-                    }}
-                    whileHover={{
-                      scale: 1.1,
-                      borderColor: "rgba(245, 158, 11, 0.8)",
-                      boxShadow: "0 0 30px rgba(245, 158, 11, 0.2)",
                     }}
                   >
                     <stage.icon className="h-10 w-10 text-amber-400" strokeWidth={1.5} />
@@ -672,22 +652,12 @@ export default function VariantALanding() {
                     delay: i * 0.12,
                     ease: [0.22, 1, 0.36, 1],
                   }}
-                  whileHover={{ y: -6, transition: { duration: 0.3, ease: "easeOut" } }}
                 >
-                  {/* 96px icon — ambient float with staggered timing */}
-                  <m.div
-                    animate={{ y: [0, -8, 0] }}
-                    transition={{
-                      duration: 3.5 + i * 0.5,
-                      repeat: Infinity,
-                      ease: "easeInOut",
-                    }}
-                  >
-                    <IconComponent
-                      className="mb-6 h-24 w-24 text-amber-400 transition-colors duration-500 group-hover:text-amber-300"
-                      strokeWidth={1.2}
-                    />
-                  </m.div>
+                  {/* 96px icon — static, color shift on hover */}
+                  <IconComponent
+                    className="mb-6 h-24 w-24 text-amber-400 transition-colors duration-500 group-hover:text-amber-300"
+                    strokeWidth={1.2}
+                  />
                   <h3 className="mb-3 text-2xl font-bold">{cap.title}</h3>
                   <p className="text-base text-zinc-400">{cap.description}</p>
                 </m.div>
@@ -725,15 +695,13 @@ export default function VariantALanding() {
           variants={heroReveal}
           transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
         >
-          <m.div whileHover={{ scale: 1.06, y: -3 }} whileTap={{ scale: 0.97 }}>
-            <Link
-              href={WEB_APP_LINKS.onboarding}
-              onClick={() => trackCta("Start gratis i dag.")}
-              className="inline-flex items-center rounded-full bg-amber-500 px-10 py-5 text-xl font-bold text-zinc-950 shadow-[0_0_40px_rgba(245,158,11,0.3)] transition-shadow hover:shadow-[0_0_60px_rgba(245,158,11,0.5)]"
-            >
-              Start gratis i dag.
-            </Link>
-          </m.div>
+          <Link
+            href={WEB_APP_LINKS.onboarding}
+            onClick={() => trackCta("Start gratis i dag.")}
+            className="inline-flex items-center rounded-full bg-amber-500 px-10 py-5 text-xl font-bold text-zinc-950 shadow-[0_0_40px_rgba(245,158,11,0.3)] transition-shadow duration-300 hover:shadow-[0_0_60px_rgba(245,158,11,0.5)]"
+          >
+            Start gratis i dag.
+          </Link>
         </m.div>
       </section>
 

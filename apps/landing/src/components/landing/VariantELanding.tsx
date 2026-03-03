@@ -66,7 +66,7 @@ export default function VariantELanding() {
               </span>
             </div>
 
-            <h1 className="mb-6 text-5xl leading-[1.1] font-extrabold tracking-tight lg:text-7xl">
+            <h1 className="mb-6 text-5xl leading-[1.1] font-black tracking-tight lg:text-7xl">
               Intelligent
               <span className="block bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent">
                 Vaktplanlegging.
@@ -344,7 +344,7 @@ export default function VariantELanding() {
       >
         <div className="mx-auto max-w-7xl px-6">
           <div className="mb-16 text-center">
-            <h2 className="mb-4 text-3xl font-extrabold md:text-5xl">
+            <h2 className="mb-4 text-3xl font-bold md:text-5xl">
               Alt du trenger for å skalere.
             </h2>
             <p className="mx-auto max-w-2xl text-zinc-400">
@@ -519,7 +519,7 @@ export default function VariantELanding() {
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col items-center gap-12 md:flex-row">
             <div className="flex-1">
-              <h2 className="mb-6 text-3xl font-extrabold md:text-5xl">Navet i din verksamhet</h2>
+              <h2 className="mb-6 text-3xl font-bold md:text-5xl">Navet i din verksamhet</h2>
               <p className="mb-8 max-w-xl text-lg text-zinc-400">
                 Smartout är byggt för att prata med systemen du redan älskar. POS, lönesystem, eller
                 HR-mjukvara – vi samlar alla trådarna i en kraftfull hub.
@@ -620,7 +620,7 @@ export default function VariantELanding() {
                 For de Ansatte
               </span>
             </div>
-            <h2 className="mb-6 text-3xl font-extrabold md:text-5xl">
+            <h2 className="mb-6 text-3xl font-bold md:text-5xl">
               En app teamet ditt faktisk vil bruke.
             </h2>
             <p className="mb-8 max-w-xl text-lg text-zinc-400">
@@ -829,7 +829,7 @@ export default function VariantELanding() {
       <section className="border-t border-zinc-800 bg-zinc-900/30 px-6 py-24">
         <div className="mx-auto max-w-4xl">
           <div className="mb-16 text-center">
-            <h2 className="mb-4 text-3xl font-extrabold md:text-5xl">Vanlige Spørsmål</h2>
+            <h2 className="mb-4 text-3xl font-bold md:text-5xl">Vanlige Spørsmål</h2>
             <p className="mx-auto max-w-xl text-zinc-400">
               Svar på det ledere oftest lurer på før de tar i bruk Smartout.
             </p>
@@ -950,7 +950,7 @@ export default function VariantELanding() {
           <div className="absolute top-0 right-0 h-64 w-64 rounded-full bg-orange-500/10 blur-[100px]"></div>
           <div className="absolute bottom-0 left-0 h-64 w-64 rounded-full bg-blue-500/10 blur-[100px]"></div>
 
-          <h2 className="relative z-10 mb-6 text-4xl font-extrabold md:text-6xl">
+          <h2 className="relative z-10 mb-6 text-4xl font-bold md:text-6xl">
             Klar til å transformere driften?
           </h2>
           <p className="relative z-10 mx-auto mb-10 max-w-2xl text-xl text-zinc-400">

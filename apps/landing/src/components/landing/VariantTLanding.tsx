@@ -343,7 +343,7 @@ export default function VariantTLanding() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
-              className="mb-6 text-5xl leading-[1.1] font-extrabold tracking-tight lg:text-7xl"
+              className="mb-6 text-5xl leading-[1.1] font-black tracking-tight lg:text-7xl"
             >
               Full kontroll.
               <span className="block text-slate-400">Null gjetning.</span>

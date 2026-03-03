@@ -22,7 +22,7 @@ export default function PricingPreviewBlock({
         className={`mx-auto ${getLayoutClasses(settings.layout)} text-center`}
       >
         {content.heading && (
-          <h2 className="mb-4 text-3xl font-extrabold tracking-tight text-white lg:text-4xl">
+          <h2 className="mb-4 text-3xl font-bold tracking-tight text-white lg:text-4xl">
             {content.heading}
           </h2>
         )}

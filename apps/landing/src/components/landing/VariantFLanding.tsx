@@ -140,7 +140,7 @@ export default function VariantFLanding() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
-            <h1 className="mb-6 text-5xl font-bold text-white lg:text-7xl">Du klarer dette.</h1>
+            <h1 className="mb-6 text-5xl font-black text-white lg:text-7xl">Du klarer dette.</h1>
 
             <p className="mb-12 text-xl text-zinc-300 lg:text-2xl">
               SmartOut hjelper deg å lære jobben.
