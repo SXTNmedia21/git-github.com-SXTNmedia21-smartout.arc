@@ -6491,10 +6491,18 @@ export type Database = {
           description: string | null
           email: string | null
           extended_description: string | null
+          google_maps_url: string | null
+          google_place_id: string | null
+          google_price_level: string | null
+          google_rating: number | null
+          google_rating_count: number | null
           grace_period_ends: string | null
+          intelligence_data: Json | null
           is_active: boolean
           language: Database["public"]["Enums"]["preferred_language"]
+          latitude: number | null
           logo_url: string | null
+          longitude: number | null
           max_profiles: number | null
           name: string
           override_access: boolean | null
@@ -6530,10 +6538,18 @@ export type Database = {
           description?: string | null
           email?: string | null
           extended_description?: string | null
+          google_maps_url?: string | null
+          google_place_id?: string | null
+          google_price_level?: string | null
+          google_rating?: number | null
+          google_rating_count?: number | null
           grace_period_ends?: string | null
+          intelligence_data?: Json | null
           is_active?: boolean
           language?: Database["public"]["Enums"]["preferred_language"]
+          latitude?: number | null
           logo_url?: string | null
+          longitude?: number | null
           max_profiles?: number | null
           name: string
           override_access?: boolean | null
@@ -6569,10 +6585,18 @@ export type Database = {
           description?: string | null
           email?: string | null
           extended_description?: string | null
+          google_maps_url?: string | null
+          google_place_id?: string | null
+          google_price_level?: string | null
+          google_rating?: number | null
+          google_rating_count?: number | null
           grace_period_ends?: string | null
+          intelligence_data?: Json | null
           is_active?: boolean
           language?: Database["public"]["Enums"]["preferred_language"]
+          latitude?: number | null
           logo_url?: string | null
+          longitude?: number | null
           max_profiles?: number | null
           name?: string
           override_access?: boolean | null
@@ -6846,6 +6870,10 @@ export type Database = {
             Returns: string
           }
       delete_vault_secret: { Args: { secret_name: string }; Returns: boolean }
+      finalize_onboarding_workspace: {
+        Args: { p_data: Json; p_workspace_id: string }
+        Returns: string
+      }
       generate_contract_number: { Args: never; Returns: string }
       get_api_workspace_id: { Args: never; Returns: string }
       get_secret: { Args: { secret_name: string }; Returns: string }
@@ -6879,6 +6907,14 @@ export type Database = {
           source_path: string
           token_count: number
         }[]
+      }
+      provision_onboarding_workspace: {
+        Args: {
+          p_company_name: string
+          p_intelligence_data?: Json
+          p_user_id: string
+        }
+        Returns: string
       }
       rollback_audit_entry: { Args: { p_audit_log_id: string }; Returns: Json }
       rotate_api_key: {
