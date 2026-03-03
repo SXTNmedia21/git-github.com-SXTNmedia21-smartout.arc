@@ -16,6 +16,9 @@ import { collectContext } from "@smartout/ai/context/collector";
 import type { Situation } from "@smartout/ai/capabilities/types";
 import { loadAuthorityConfig } from "./authority.js";
 import { supabaseAdmin } from "../lib/supabase.js";
+import { broadcastToSession } from "../ws/connection-manager.js";
+import { getBufferedActions } from "../routes/ws.js";
+import type { MissionProtocolMessage } from "@smartout/types";
 import { getSecrets } from "../secrets.js";
 import type { AgentChatResponse, ConversationTurn } from "../types/agent.js";
 
@@ -80,9 +83,7 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
           ? "training"
           : intent.capability === "operations"
             ? "operations"
-            : intent.capability === "guardian"
-              ? "guardian"
-              : "general";
+            : "general";
 
   // Determine authority for the matched capability
   const authority = authorityConfig[intent.capability] ?? "suggest";
@@ -105,12 +106,20 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     selectedTools.map((t) => `${t.name}: ${t.description}`),
   );
 
+  // Inject buffered user actions from WebSocket into the message
+  const bufferedActions = getBufferedActions(sessionId);
+  let augmentedMessage = message;
+  if (bufferedActions.length > 0) {
+    const actionSummary = bufferedActions.map((a) => JSON.stringify(a.action)).join(", ");
+    augmentedMessage = `[UI events since last turn: ${actionSummary}]\n\n${message}`;
+  }
+
   // Build conversation messages for the LLM
   const messages = conversationHistory.map((turn) => ({
     role: turn.role as "user" | "assistant",
     content: turn.content,
   }));
-  messages.push({ role: "user", content: message });
+  messages.push({ role: "user", content: augmentedMessage });
 
   // Step 6: Run LLM with tools
   const toolContext = {
@@ -119,6 +128,7 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     userId,
     sessionId,
     supabaseAdmin,
+    broadcast: (event: unknown) => broadcastToSession(sessionId, event as MissionProtocolMessage),
   };
 
   const vercelTools = toVercelTools(selectedTools, toolContext);

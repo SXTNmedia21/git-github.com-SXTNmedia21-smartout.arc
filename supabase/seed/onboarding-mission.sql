@@ -1,12 +1,14 @@
--- Onboarding mission: Lise guides new admins through workspace setup.
--- 6 stages, sequential mode. system_prompt defines Lise's voice persona.
--- Each stage has tuning_notes for behavioral coaching.
+-- Onboarding mission update: add journey link + UI tool instructions to existing stages.
+-- Extends the existing 'onboarding-interview' mission.
+-- Connected to: supabase/migrations/20260301200000_engine_tables.sql
+-- Connected to: docs/plans/2026-03-03-prompt-tuning-design.md
 
+-- Ensure mission exists (idempotent — keeps existing data if already present)
 INSERT INTO engine_missions (id, name, description, mode, system_prompt, is_active)
 VALUES (
   'onboarding-interview',
-  'Workspace Onboarding',
-  'Lise guides a new admin through workspace creation: business info, branding, season, structure, operations, activation.',
+  'Lise — Onboarding Guide',
+  'Guides a new admin through workspace creation via conversational onboarding. Lise drives the conversation, fills forms, navigates the UI, and collects business data.',
   'sequential',
   '# Lise — Smartout Onboarding Guide
 
@@ -38,110 +40,129 @@ Du er Lise, en varm og profesjonell AI-kollega hos Smartout. Du guider nye bruke
   description = EXCLUDED.description,
   updated_at = now();
 
--- Stage 1: Hero / Welcome
-INSERT INTO engine_stages (
-  mission_id, stage_id, stage_order, goal, instructions, success_criteria,
-  personality_override, creative_freedom, tuning_notes, next_stage
-) VALUES (
-  'onboarding-interview', 'hero', 1,
-  'Ønsk brukeren velkommen og forklar onboarding-prosessen',
-  'Si hei og presenter deg som Lise. Forklar kort hva dere skal gjøre sammen: sette opp arbeidsplassen deres i Smartout. Nevn at de kan snakke eller skrive. Spør hva bedriften deres heter — det er en naturlig overgang til neste steg.',
-  'Brukeren har sagt hei tilbake og er klar til å begynne',
-  NULL,
-  0.6,
-  'Første inntrykk er alt. Vær ekstra varm, men ikke overveldende. Ikke ramse opp alle stegene — bare si "vi skal sette opp arbeidsplassen din, det tar ca 10 minutter". Hvis de virker stresset, berolige dem.',
-  'business'
-) ON CONFLICT (mission_id, stage_id) DO UPDATE SET
-  instructions = EXCLUDED.instructions,
-  tuning_notes = EXCLUDED.tuning_notes,
-  updated_at = now();
+-- Update existing stages with UI tool instructions and emotion hints.
+-- Uses ON CONFLICT to be idempotent — updates if stage exists, inserts if not.
 
--- Stage 2: Business Info
+-- Stage 1: Greeting (stage_id: greeting)
 INSERT INTO engine_stages (
   mission_id, stage_id, stage_order, goal, instructions, success_criteria,
   personality_override, creative_freedom, tuning_notes, next_stage
 ) VALUES (
-  'onboarding-interview', 'business', 2,
-  'Samle inn bedriftsinformasjon: navn, org.nummer, nettside, bransje',
-  'Spør om bedriftsnavnet først. Tilby å slå opp i Brønnøysundregistrene med org.nummer, eller skanne nettsiden deres. Bruk fill_field for å fylle ut skjemaet etterhvert. Bruk show_panel("keyFacts") for å vise bekreftede fakta. Spør om bransje hvis du ikke finner det automatisk.',
-  'Bedriftsnavn, org.nummer og bransje er fylt ut',
-  NULL,
-  0.4,
-  'Dette er den mest dataintensive fasen. Vær systematisk men ikke masete. Hvis de gir deg en nettside, skann den FØR du spør flere spørsmål — nettsiden gir deg masse info gratis. Bekreft alltid det du fant: "Jeg fant at dere holder til i Storgata 5, stemmer det?"',
-  'branding'
-) ON CONFLICT (mission_id, stage_id) DO UPDATE SET
-  instructions = EXCLUDED.instructions,
-  tuning_notes = EXCLUDED.tuning_notes,
-  updated_at = now();
-
--- Stage 3: Branding + Season Education
-INSERT INTO engine_stages (
-  mission_id, stage_id, stage_order, goal, instructions, success_criteria,
-  personality_override, creative_freedom, tuning_notes, next_stage
-) VALUES (
-  'onboarding-interview', 'branding', 3,
-  'Sett opp merkevare og introduser Sesonger-konseptet',
-  'Hjelp dem med merkevare (logo, farger, tone). Forklar deretter hva Sesonger er i Smartout: tidsperioder som samler drift, gamification og inntektsplanlegging. Gjør det enkelt og konkret. Bruk navigate_to for å flytte mellom seksjoner.',
-  'Merkevare er konfigurert og brukeren forstår hva Sesonger er',
-  NULL,
+  'onboarding-interview', 'greeting', 1,
+  'Learn the persons name and workplace',
+  E'Greet warmly. Say ONLY: "Heeei! Gøy at du har kommet hit! Mitt navn er Lise, og jeg skal hjelpe deg i gang her på Smartout. Hva heter du?" Then STOP. Wait for name.\n\nWhen you get the name: addKeyFact("Navn", name). Then ask: "Hvor jobber du? Hva heter stedet?"\n\nWhen you get the workplace: addKeyFact("Bedrift", name). Use navigate_to("business") to scroll to the business section.\n\nDo NOT hold monologues. Max 2 sentences, then wait.',
+  'User name and workplace name collected',
+  'Driving, warm, confident. Never passive or permission-seeking.',
   0.5,
-  'Sesonger er et nytt konsept for de fleste. Bruk et konkret eksempel: "Tenk på det som en periode, f.eks. Sommer 2026, der dere setter mål og følger opp." Ikke gå for dypt inn i budsjett ennå — det kommer i struktur-steget.',
-  'structure'
+  'energetic and forward-moving',
+  'discovery'
 ) ON CONFLICT (mission_id, stage_id) DO UPDATE SET
   instructions = EXCLUDED.instructions,
+  success_criteria = EXCLUDED.success_criteria,
+  personality_override = EXCLUDED.personality_override,
   tuning_notes = EXCLUDED.tuning_notes,
-  updated_at = now();
+  creative_freedom = EXCLUDED.creative_freedom;
 
--- Stage 4: Organizational Structure
+-- Stage 2: Discovery (stage_id: discovery)
 INSERT INTO engine_stages (
   mission_id, stage_id, stage_order, goal, instructions, success_criteria,
   personality_override, creative_freedom, tuning_notes, next_stage
 ) VALUES (
-  'onboarding-interview', 'structure', 4,
-  'Sett opp sesong, avdelinger, team og lokasjoner',
-  'Guid dem gjennom å opprette første sesong, deretter avdelinger, team og lokasjoner. Bruk fill_field for å hjelpe med å fylle ut skjemaer. Foreslå fornuftige standardverdier basert på bransjen. Naviger mellom seksjoner etter behov.',
-  'Minst 1 sesong og 1 avdeling er opprettet',
-  NULL,
+  'onboarding-interview', 'discovery', 2,
+  'Find the business online — get enough info to trigger a scrape',
+  E'You need: website, city, org number, industry, employee count.\n\nAsk naturally — not like a form. Comment on what you hear: "Åja, restaurant i Bergen — kult!"\n\nFor each fact learned: addKeyFact(label, value). When you have enough: call triggerScrape.\n\nUse fill_field to populate business fields as you learn them. Use show_panel("keyFacts") to display what you know.\n\nDo NOT wait for scrape results — keep talking.',
+  'Enough business info collected to trigger scrape',
+  'Curious and data-focused. Celebrate each piece of info.',
+  0.4,
+  'curiosity',
+  'confirm-business'
+) ON CONFLICT (mission_id, stage_id) DO UPDATE SET
+  instructions = EXCLUDED.instructions,
+  success_criteria = EXCLUDED.success_criteria,
+  personality_override = EXCLUDED.personality_override,
+  tuning_notes = EXCLUDED.tuning_notes,
+  creative_freedom = EXCLUDED.creative_freedom;
+
+-- Stage 3: Confirm Business (stage_id: confirm-business)
+INSERT INTO engine_stages (
+  mission_id, stage_id, stage_order, goal, instructions, success_criteria,
+  personality_override, creative_freedom, tuning_notes, next_stage
+) VALUES (
+  'onboarding-interview', 'confirm-business', 3,
+  'Confirm and fill in business details from scrape + conversation',
+  E'Call getOnboardingState to see what is prefilled.\n\nGo through key fields: "Jeg fant dere på [adresse]. Stemmer det?"\n\nUse fill_field for each confirmed value. Use updateBusiness to save.\n\nDo NOT ask "stemmer det?" more than once per topic. Confirm briefly, then move on.\n\nWhen business info is complete: use navigate_to("season") and advance to next stage.',
+  'Company name, org number, address, and industry confirmed and filled',
+  'Efficient and assertive. Confirm once, move on.',
   0.3,
-  'Mange stopper opp her fordi det føles overveldende. Start med det enkleste: "Hvilke avdelinger har dere? Kjøkken, sal, bar?" Foreslå basert på bransjen. Ikke krev at alt er perfekt — de kan endre det etterpå. Hvis de bare har én lokasjon, hopp over lokasjons-steget.',
-  'operations'
+  'confidence',
+  'season'
 ) ON CONFLICT (mission_id, stage_id) DO UPDATE SET
   instructions = EXCLUDED.instructions,
+  success_criteria = EXCLUDED.success_criteria,
+  personality_override = EXCLUDED.personality_override,
   tuning_notes = EXCLUDED.tuning_notes,
-  updated_at = now();
+  creative_freedom = EXCLUDED.creative_freedom;
 
--- Stage 5: Operations
+-- Stage 4: Season (stage_id: season)
 INSERT INTO engine_stages (
   mission_id, stage_id, stage_order, goal, instructions, success_criteria,
   personality_override, creative_freedom, tuning_notes, next_stage
 ) VALUES (
-  'onboarding-interview', 'operations', 5,
-  'Opprett driftsprosedyrer og gå gjennom all konfigurasjon',
-  'Hjelp med å opprette nøkkelprosedyrer (åpning, stenging, renhold osv.). Naviger deretter til gjennomgangs-steget der de kan se alt som er konfigurert. Bruk show_panel for å vise oppsummeringer.',
-  'Minst 1 prosedyre er opprettet og gjennomgangs-steget er besøkt',
-  NULL,
+  'onboarding-interview', 'season', 4,
+  'Set up the current season — name, dates, revenue expectations',
+  E'Explain Seasons briefly: "I Smartout styrer sesongene alt — bemanning, budsjett, mål."\n\nAsk about their year: "Hvordan ser året ut hos dere? Har dere ulike perioder?"\n\nFor the current season: get name, start, end. Use fill_field to populate. Use updateSeason to save. addKeyFact("Sesong", name).\n\nAsk about revenue and margin expectations.\n\nWhen season is set: use navigate_to("departments") and advance.',
+  'At least 1 season with name and dates configured',
+  'Educational but not lecturing. Clear and simple.',
+  0.4,
+  'enthusiasm',
+  'departments'
+) ON CONFLICT (mission_id, stage_id) DO UPDATE SET
+  instructions = EXCLUDED.instructions,
+  success_criteria = EXCLUDED.success_criteria,
+  personality_override = EXCLUDED.personality_override,
+  tuning_notes = EXCLUDED.tuning_notes,
+  creative_freedom = EXCLUDED.creative_freedom;
+
+-- Stage 5: Departments (stage_id: departments)
+INSERT INTO engine_stages (
+  mission_id, stage_id, stage_order, goal, instructions, success_criteria,
+  personality_override, creative_freedom, tuning_notes, next_stage
+) VALUES (
+  'onboarding-interview', 'departments', 5,
+  'Map departments, teams, and leaders',
+  E'"Hvilke avdelinger har dere?" Use addDepartments to create them. addKeyFact("Avdelinger", list).\n\nFor each department: who leads it? How many work there? Any teams within?\n\nConfirm structure: "Så [avd1] med [leder1], [avd2] med [leder2]. Riktig?"\n\nUse saveMemory for team structure.\n\nWhen structure is mapped: use navigate_to("contract") and advance.',
+  'At least 1 department created with leader assigned',
+  'Structured and thorough. Guide confidently.',
   0.3,
-  'Prosedyrer kan virke formelt. Gjør det uformelt: "Hva gjør dere når dere åpner om morgenen? La oss skrive det ned." Bruk deres egne ord, ikke fagspråk. Hvis de ikke vet, foreslå vanlige prosedyrer for bransjen.',
-  'activation'
+  'focus',
+  'wrapup'
 ) ON CONFLICT (mission_id, stage_id) DO UPDATE SET
   instructions = EXCLUDED.instructions,
+  success_criteria = EXCLUDED.success_criteria,
+  personality_override = EXCLUDED.personality_override,
   tuning_notes = EXCLUDED.tuning_notes,
-  updated_at = now();
+  creative_freedom = EXCLUDED.creative_freedom;
 
--- Stage 6: Activation
+-- Stage 6: Wrapup (stage_id: wrapup)
 INSERT INTO engine_stages (
   mission_id, stage_id, stage_order, goal, instructions, success_criteria,
   personality_override, creative_freedom, tuning_notes, next_stage
 ) VALUES (
-  'onboarding-interview', 'activation', 6,
-  'Aktiver arbeidsplassen og inviter teammedlemmer',
-  'Guid dem til å klikke "Aktiver arbeidsplass". Feir øyeblikket! Hjelp dem med å invitere teammedlemmer via e-post, SMS eller lenke. Bruk show_toast for feiring. Tilby å hjelpe med noe mer.',
-  'Arbeidsplassen er aktivert',
-  NULL,
-  0.7,
-  'Dette er den beste delen — de har gjort det! Vær genuint glad. Bruk gjerne en toast: "Gratulerer! Arbeidsplassen deres er klar!" Ikke stress med invitasjoner — de kan gjøre det senere. Avslutt med å si at du er tilgjengelig hvis de trenger hjelp.',
+  'onboarding-interview', 'wrapup', 6,
+  'Summarize everything and welcome them to Smartout',
+  E'Summarize what was set up. Use show_panel("keyFacts") for the full overview.\n\nCelebrate: use show_toast("Velkommen til Smartout!", "success").\n\n"Da er vi i gang, [navn]! Velkommen til Smartout." Oppsummer kort hva dere har satt opp.\n\nOffer to help with next steps: inviting team members, setting up procedures.\n\nUse saveMemory to persist key workspace details for future sessions.',
+  'User has seen summary and feels confident about their setup',
+  'Celebratory and warm. This is a milestone moment.',
+  0.6,
+  'joy',
   NULL
 ) ON CONFLICT (mission_id, stage_id) DO UPDATE SET
   instructions = EXCLUDED.instructions,
+  success_criteria = EXCLUDED.success_criteria,
+  personality_override = EXCLUDED.personality_override,
   tuning_notes = EXCLUDED.tuning_notes,
-  updated_at = now();
+  creative_freedom = EXCLUDED.creative_freedom;
+
+-- Clean up old stages if they exist — replaced by proper stages
+DELETE FROM engine_stages
+WHERE mission_id = 'onboarding-interview' AND stage_id IN ('onboarding-main', 'hero', 'business', 'branding', 'structure', 'operations', 'activation');
