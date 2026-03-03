@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useContext, useRef, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import {
   Search,
   Filter,
@@ -56,6 +57,7 @@ export function PeopleDataTable({
   currentUserRole: ProfileRole;
   onRefresh: () => void;
 }) {
+  const router = useRouter();
   const { isDark, workspaceData } = useContext(DashboardContext);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDept, setSelectedDept] = useState("All");
@@ -475,7 +477,11 @@ export function PeopleDataTable({
               {filteredEmployees.map((emp) => (
                 <tr
                   key={emp.id}
-                  onClick={() => setSelectedEmployee(emp)}
+                  onClick={() =>
+                    emp.profileId
+                      ? router.push(`/dashboard/people/${emp.profileId}`)
+                      : setSelectedEmployee(emp)
+                  }
                   className={`group ${isDark ? "hover:bg-zinc-900/50" : "hover:bg-zinc-50"} cursor-pointer transition-colors`}
                 >
                   <td className="px-3 py-4" onClick={(e) => e.stopPropagation()}>

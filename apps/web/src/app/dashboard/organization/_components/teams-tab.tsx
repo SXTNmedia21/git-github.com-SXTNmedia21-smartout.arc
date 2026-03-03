@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Network,
   Plus,
@@ -55,6 +56,7 @@ export function TeamsTab({
   onRefresh,
   loading,
 }: TeamsTabProps) {
+  const router = useRouter();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -227,7 +229,7 @@ export function TeamsTab({
               <div
                 key={team.team_id}
                 className={`group relative cursor-pointer ${cardBase}`}
-                onClick={() => setSheetTeam(team)}
+                onClick={() => router.push(`/dashboard/organization/teams/${team.team_id}`)}
               >
                 {/* Color accent bar */}
                 {team.color && (
