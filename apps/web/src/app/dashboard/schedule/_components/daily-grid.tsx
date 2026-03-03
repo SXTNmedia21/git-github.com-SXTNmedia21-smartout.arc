@@ -8,12 +8,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   AlertCircle,
-  CheckCircle2,
-  MessageSquare,
-  ListTodo,
   GripVertical,
-  CalendarDays,
-  StickyNote,
 } from "lucide-react";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
@@ -27,9 +22,6 @@ import { useAbsences } from "../_hooks/use-absences";
 import type { ScheduleEmployee } from "../_hooks/use-employees";
 import { DayContextMenu } from "./day-context-menu";
 import type { Shift as ScheduleShift, Absence } from "./schedule-types";
-
-/** Fixed width for each day column (px). Spacious dashboard-feel, not Excel. */
-const DAY_COL_WIDTH = 200;
 
 // ---------------------------------------------------------------------------
 // GridContent — daily schedule grid (the perf-critical DnD subtree)
@@ -183,11 +175,8 @@ export function GridContent({
     return stats;
   }, [filteredShifts]);
 
-  /** Total grid width: sticky sidebar + day columns */
-  const gridWidth = 260 + visibleDays.length * DAY_COL_WIDTH;
-
   return (
-    <div className="flex w-full flex-col" style={{ minWidth: gridWidth }}>
+    <div className="flex w-full flex-col">
       <DayHeaders
         isDark={isDark}
         scheduleView={scheduleView}
@@ -319,7 +308,7 @@ const DayHeaders = React.memo(function DayHeaders({
     <div className="sticky top-0 z-40 flex w-full">
       {/* Sticky corner cell */}
       <div
-        className={`w-[260px] shrink-0 border-r border-b border-white/[0.04] ${isDark ? "bg-[#0a0a0c]/95" : "bg-white/95"} sticky left-0 z-50 flex h-44 flex-col justify-between p-4 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)] backdrop-blur-xl`}
+        className={`w-[260px] shrink-0 border-r border-b border-white/[0.04] ${isDark ? "bg-[#0a0a0c]/95" : "bg-white/95"} sticky left-0 z-50 flex h-16 flex-col justify-center p-3 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)] backdrop-blur-xl`}
       >
         <div className="flex w-full items-center justify-between">
           <div className="flex items-center gap-2 text-xs font-bold tracking-widest text-zinc-500 uppercase">
@@ -361,16 +350,10 @@ function DroppableDayHeader({
 }) {
   const { isOver, setNodeRef } = useDroppable({ id: `day-header::${day.id}` });
 
-  const hasEvents = day.events && day.events.length > 0;
-  const hasDayInfo = day.dayInfo && day.dayInfo.length > 0;
-  const hasBudget = day.budgetAmount !== undefined && day.budgetAmount > 0;
-  const hasMiddleContent = hasEvents || hasDayInfo || hasBudget;
-
   return (
     <div
       ref={setNodeRef}
-      style={{ width: DAY_COL_WIDTH, minWidth: DAY_COL_WIDTH }}
-      className={`shrink-0 border-r border-b border-white/[0.03] ${isDark ? "bg-[#0a0a0c]/90" : "bg-white/95"} group/day relative flex h-44 cursor-pointer flex-col p-3 backdrop-blur-xl transition-colors hover:bg-white/5 ${day.isToday ? "bg-orange-500/[0.06]" : ""} ${isOver ? "rounded-lg border-dashed border-orange-500/50 bg-orange-500/20" : ""}`}
+      className={`min-w-0 flex-1 border-r border-b border-white/[0.03] ${isDark ? "bg-[#0a0a0c]/90" : "bg-white/95"} group/day relative flex h-16 cursor-pointer flex-col justify-center p-2 backdrop-blur-xl transition-colors hover:bg-white/5 ${day.isToday ? "bg-orange-500/[0.06]" : ""} ${isOver ? "rounded-lg border-dashed border-orange-500/50 bg-orange-500/20" : ""} ${day.situation === "__dimmed__" ? "opacity-30" : ""}`}
       onClick={() => onDateClick(day.id)}
     >
       {day.coverageAlert ? (
@@ -394,76 +377,19 @@ function DroppableDayHeader({
         </div>
       </div>
 
-      {/* Middle: Events, day info, budget */}
-      <div className="mt-1.5 flex min-h-0 flex-1 flex-col gap-1 overflow-hidden">
-        {hasEvents
-          ? day.events!.slice(0, 2).map((event) => (
-              <div
-                key={event.id}
-                className="flex items-center gap-1 truncate rounded bg-indigo-500/10 px-1.5 py-0.5 text-[10px] text-indigo-400"
-              >
-                <CalendarDays className="h-2.5 w-2.5 shrink-0" />
-                <span className="truncate">{event.title}</span>
-              </div>
-            ))
-          : null}
-        {hasDayInfo
-          ? day.dayInfo!.slice(0, 2).map((info) => (
-              <div
-                key={info.id}
-                className="text-muted-foreground flex items-center gap-1 truncate text-[10px]"
-              >
-                <StickyNote className="h-2.5 w-2.5 shrink-0" />
-                <span className="truncate">{info.title}</span>
-              </div>
-            ))
-          : null}
-        {hasBudget ? (
-          <div className="text-[10px] font-medium text-emerald-400">
-            kr {day.budgetAmount!.toLocaleString("no-NO")}
-          </div>
-        ) : null}
-        {!hasMiddleContent ? (
-          <div className="text-muted-foreground/40 text-[10px] italic">Ingen daginfo</div>
-        ) : null}
-      </div>
-
-      {/* Bottom: Stats (staff, shifts, coverage) */}
-      <div className="mt-auto flex flex-col gap-1.5">
-        <div className="flex flex-wrap items-center gap-2 text-[11px] leading-none font-medium tracking-wide text-zinc-500/70 uppercase">
-          <span className="flex items-center gap-1" title="Ansatte">
-            <Users className="h-3 w-3" /> {day.staff}
-          </span>
-          <span className="flex items-center gap-1" title="Vakter">
-            <Briefcase className="h-3 w-3" /> {day.shifts}
-          </span>
-          {day.messages !== undefined ? (
-            <span
-              className={`flex items-center gap-1 ${day.messages > 0 ? "text-blue-400/50" : ""}`}
-              title="Meldinger"
-            >
-              <MessageSquare className="h-3 w-3" /> {day.messages}
-            </span>
-          ) : null}
-          {day.tasks ? (
-            <span
-              className={`flex items-center gap-1 ${day.tasks.done < day.tasks.total ? "text-orange-400/50" : "text-zinc-500/70"}`}
-              title="Gjøremål"
-            >
-              <ListTodo className="h-3 w-3" /> {day.tasks.done}/{day.tasks.total}
-            </span>
-          ) : null}
-        </div>
+      {/* Compact stats */}
+      <div className="mt-1 flex items-center gap-2 text-[10px] leading-none font-medium text-zinc-500/70">
+        <span className="flex items-center gap-0.5" title="Ansatte">
+          <Users className="h-2.5 w-2.5" /> {day.staff}
+        </span>
+        <span className="flex items-center gap-0.5" title="Vakter">
+          <Briefcase className="h-2.5 w-2.5" /> {day.shifts}
+        </span>
         {day.coverageAlert ? (
-          <div className="flex w-fit max-w-full items-center gap-1.5 rounded-md border border-red-500/20 bg-red-500/10 px-1.5 py-1 text-[11px] font-bold text-red-500">
-            <AlertCircle className="h-3 w-3 shrink-0" />{" "}
-            <span className="truncate">{day.coverageAlert}</span>
-          </div>
-        ) : (
-          <div className="flex w-fit max-w-full items-center gap-1 rounded-md px-1.5 py-1 text-[11px] font-medium text-zinc-600">
-            <CheckCircle2 className="h-3 w-3 shrink-0 text-zinc-600" /> OK
-          </div>
-        )}
+          <span title={day.coverageAlert}>
+            <AlertCircle className="h-2.5 w-2.5 text-red-500" />
+          </span>
+        ) : null}
       </div>
     </div>
   );
@@ -501,8 +427,7 @@ export const GroupHeader = React.memo(function GroupHeader({
       {days.map((day) => (
         <div
           key={day.id}
-          style={{ width: DAY_COL_WIDTH, minWidth: DAY_COL_WIDTH }}
-          className={`shrink-0 border-r border-b ${isDark ? "border-white/[0.04]" : "border-zinc-200"} h-9 bg-white/[0.01]`}
+          className={`min-w-0 flex-1 border-r border-b ${isDark ? "border-white/[0.04]" : "border-zinc-200"} h-9 bg-white/[0.01]`}
         />
       ))}
     </div>
@@ -667,6 +592,7 @@ export const EmployeeRow = React.memo(function EmployeeRow({
             isToday={day.isToday}
             id={`cell::${employee.id}::${day.id}`}
             isCompact={isCompact}
+            dimmed={day.situation === "__dimmed__"}
             onAddClick={() => onCreateShift({ dateId: day.id, employeeId: employee.id })}
             onContextMenu={(e) => {
               e.preventDefault();
@@ -722,6 +648,7 @@ function MatrixCell({
   isToday,
   id,
   isCompact,
+  dimmed,
   onAddClick,
   onContextMenu,
 }: {
@@ -729,6 +656,7 @@ function MatrixCell({
   isToday?: boolean;
   id?: string;
   isCompact?: boolean;
+  dimmed?: boolean;
   onAddClick?: () => void;
   onContextMenu?: (e: React.MouseEvent) => void;
 }) {
@@ -741,8 +669,7 @@ function MatrixCell({
     <div
       ref={setNodeRef}
       onContextMenu={onContextMenu}
-      style={{ width: DAY_COL_WIDTH, minWidth: DAY_COL_WIDTH }}
-      className={`shrink-0 border-r border-b border-white/[0.03] ${isDark ? "bg-[#050505]" : "bg-zinc-50"}/40 relative flex flex-col gap-1 overflow-hidden shadow-[inset_0_1px_6px_rgba(0,0,0,0.3)] transition-colors ${isCompact ? "h-[52px] min-h-0 p-1" : "min-h-[100px] p-2"} ${isOver ? "z-10 scale-[1.02] rounded-lg border border-dashed border-orange-500/50 bg-orange-500/20" : "group-hover/row:bg-white/[0.02] hover:bg-white/[0.04]"} ${isToday ? "bg-orange-500/[0.06]" : ""}`}
+      className={`min-w-0 flex-1 border-r border-b border-white/[0.03] ${isDark ? "bg-[#050505]" : "bg-zinc-50"}/40 relative flex flex-col gap-1 overflow-hidden shadow-[inset_0_1px_6px_rgba(0,0,0,0.3)] transition-colors ${isCompact ? "h-[52px] min-h-0 p-1" : "min-h-[100px] p-2"} ${isOver ? "z-10 scale-[1.02] rounded-lg border border-dashed border-orange-500/50 bg-orange-500/20" : "group-hover/row:bg-white/[0.02] hover:bg-white/[0.04]"} ${isToday ? "bg-orange-500/[0.06]" : ""} ${dimmed ? "opacity-30" : ""}`}
     >
       {children ? (
         <>

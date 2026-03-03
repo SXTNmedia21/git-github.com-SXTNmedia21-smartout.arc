@@ -102,15 +102,18 @@ export function DayMessageDialog({ dateId, open, onOpenChange }: DayMessageDialo
         onOpenChange(value);
       }}
     >
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Opprett daginfo</DialogTitle>
-          <DialogDescription>
-            Legg til en melding som vises for ansatte som jobber denne dagen.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="gap-0 p-0 sm:max-w-md">
+        <div className="border-border relative overflow-hidden rounded-t-lg border-b px-6 pt-6 pb-4">
+          <div className="absolute top-0 left-0 h-1 w-full bg-blue-500" />
+          <DialogHeader>
+            <DialogTitle>Opprett daginfo</DialogTitle>
+            <DialogDescription>
+              Legg til en melding som vises for ansatte som jobber denne dagen.
+            </DialogDescription>
+          </DialogHeader>
+        </div>
 
-        <div className="grid gap-4 py-4">
+        <div className="grid gap-4 px-6 py-4">
           {/* Title */}
           <div className="grid gap-2">
             <Label htmlFor="msg-title">Tittel</Label>
@@ -176,11 +179,16 @@ export function DayMessageDialog({ dateId, open, onOpenChange }: DayMessageDialo
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="border-border border-t px-6 py-4">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Avbryt
           </Button>
-          <Button onClick={handleSubmit} disabled={!title.trim()}>
+          <Button
+            size="sm"
+            className="bg-blue-600 text-white hover:bg-blue-700"
+            onClick={handleSubmit}
+            disabled={!title.trim()}
+          >
             Opprett melding
           </Button>
         </DialogFooter>

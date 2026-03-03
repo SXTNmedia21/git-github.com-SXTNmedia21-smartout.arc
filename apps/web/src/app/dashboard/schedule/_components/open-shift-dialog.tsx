@@ -83,12 +83,15 @@ export function OpenShiftDialog({ open, onOpenChange }: OpenShiftDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="border-border bg-background sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-foreground">Opprett åpen vakt</DialogTitle>
-        </DialogHeader>
+      <DialogContent className="border-border bg-background gap-0 p-0 sm:max-w-md">
+        <div className="border-border relative overflow-hidden rounded-t-lg border-b px-6 pt-6 pb-4">
+          <div className="absolute top-0 left-0 h-1 w-full bg-amber-500" />
+          <DialogHeader>
+            <DialogTitle className="text-foreground text-base">Opprett åpen vakt</DialogTitle>
+          </DialogHeader>
+        </div>
 
-        <div className="space-y-4 py-2">
+        <div className="space-y-4 px-6 py-4">
           <div className="space-y-1.5">
             <Label className="text-xs">Tittel</Label>
             <Input
@@ -158,12 +161,17 @@ export function OpenShiftDialog({ open, onOpenChange }: OpenShiftDialogProps) {
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="border-border border-t px-6 py-4">
           <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
             Avbryt
           </Button>
-          <Button size="sm" onClick={handleSubmit} disabled={!title.trim()}>
-            Opprett
+          <Button
+            size="sm"
+            onClick={handleSubmit}
+            disabled={!title.trim()}
+            className="bg-amber-600 text-white hover:bg-amber-700"
+          >
+            Opprett vakt
           </Button>
         </DialogFooter>
       </DialogContent>

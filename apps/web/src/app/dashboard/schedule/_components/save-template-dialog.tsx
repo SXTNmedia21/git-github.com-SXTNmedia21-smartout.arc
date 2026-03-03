@@ -107,15 +107,19 @@ export function SaveTemplateDialog({ dateId, open, onOpenChange }: SaveTemplateD
         onOpenChange(value);
       }}
     >
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Lagre dag som mal</DialogTitle>
-          <DialogDescription>
-            Lagre dagens {shiftCount} {shiftCount === 1 ? "vakt" : "vakter"} som en gjenbrukbar mal.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="gap-0 p-0 sm:max-w-md">
+        <div className="border-border relative overflow-hidden rounded-t-lg border-b px-6 pt-6 pb-4">
+          <div className="absolute top-0 left-0 h-1 w-full bg-violet-500" />
+          <DialogHeader>
+            <DialogTitle>Lagre dag som mal</DialogTitle>
+            <DialogDescription>
+              Lagre dagens {shiftCount} {shiftCount === 1 ? "vakt" : "vakter"} som en gjenbrukbar
+              mal.
+            </DialogDescription>
+          </DialogHeader>
+        </div>
 
-        <div className="grid gap-4 py-4">
+        <div className="grid gap-4 px-6 py-4">
           {/* Template name */}
           <div className="grid gap-2">
             <Label htmlFor="template-name">Navn</Label>
@@ -160,11 +164,16 @@ export function SaveTemplateDialog({ dateId, open, onOpenChange }: SaveTemplateD
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="border-border border-t px-6 py-4">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Avbryt
           </Button>
-          <Button onClick={handleSave} disabled={!name.trim()}>
+          <Button
+            size="sm"
+            className="bg-violet-600 text-white hover:bg-violet-700"
+            onClick={handleSave}
+            disabled={!name.trim()}
+          >
             Lagre mal
           </Button>
         </DialogFooter>

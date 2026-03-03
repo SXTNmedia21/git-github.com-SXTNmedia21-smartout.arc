@@ -125,16 +125,21 @@ export function BookingDialog({ dateId, open, onOpenChange }: BookingDialogProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <CalendarCheck className="h-5 w-5 text-orange-400" />
-            Ny booking
-          </DialogTitle>
-          <DialogDescription>Legg til en reservasjon eller et selskap for dagen.</DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-w-md gap-0 p-0">
+        <div className="border-border relative overflow-hidden rounded-t-lg border-b px-6 pt-6 pb-4">
+          <div className="absolute top-0 left-0 h-1 w-full bg-indigo-500" />
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarCheck className="h-5 w-5 text-orange-400" />
+              Ny booking
+            </DialogTitle>
+            <DialogDescription>
+              Legg til en reservasjon eller et selskap for dagen.
+            </DialogDescription>
+          </DialogHeader>
+        </div>
 
-        <div className="grid gap-4 py-2">
+        <div className="grid gap-4 px-6 py-4">
           {/* Title */}
           <div className="grid gap-1.5">
             <Label htmlFor="booking-title">Tittel *</Label>
@@ -240,11 +245,17 @@ export function BookingDialog({ dateId, open, onOpenChange }: BookingDialogProps
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="border-border border-t px-6 py-4">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Avbryt
           </Button>
-          <Button onClick={handleSubmit}>Legg til booking</Button>
+          <Button
+            size="sm"
+            className="bg-indigo-600 text-white hover:bg-indigo-700"
+            onClick={handleSubmit}
+          >
+            Legg til booking
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

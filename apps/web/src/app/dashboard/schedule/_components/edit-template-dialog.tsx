@@ -129,12 +129,15 @@ export function EditTemplateDialog({ open, onOpenChange, template }: EditTemplat
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="border-border bg-background sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="text-foreground">Rediger mal</DialogTitle>
-        </DialogHeader>
+      <DialogContent className="border-border bg-background gap-0 p-0 sm:max-w-lg">
+        <div className="border-border relative overflow-hidden rounded-t-lg border-b px-6 pt-6 pb-4">
+          <div className="absolute top-0 left-0 h-1 w-full bg-violet-500" />
+          <DialogHeader>
+            <DialogTitle className="text-foreground text-base">Rediger mal</DialogTitle>
+          </DialogHeader>
+        </div>
 
-        <div className="space-y-4 py-2">
+        <div className="space-y-4 px-6 py-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs">Navn</Label>
@@ -200,7 +203,7 @@ export function EditTemplateDialog({ open, onOpenChange, template }: EditTemplat
           </div>
         </div>
 
-        <DialogFooter className="flex items-center justify-between sm:justify-between">
+        <DialogFooter className="border-border flex items-center justify-between border-t px-6 py-4 sm:justify-between">
           {/* Delete button on the left side of the footer */}
           <div>
             {showDeleteConfirm ? (

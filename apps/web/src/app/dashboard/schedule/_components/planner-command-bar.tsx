@@ -18,12 +18,18 @@ type PlannerCommandBarProps = {
   isDark: boolean;
   filterSituation: string;
   setFilterSituation: (value: string) => void;
+  weekSpan?: 1 | 2;
+  setWeekSpan?: (v: 1 | 2) => void;
+  scheduleLayout?: string;
 };
 
 export function PlannerCommandBar({
   isDark,
   filterSituation,
   setFilterSituation,
+  weekSpan,
+  setWeekSpan,
+  scheduleLayout,
 }: PlannerCommandBarProps) {
   const {
     scheduleView,
@@ -88,6 +94,26 @@ export function PlannerCommandBar({
           Kompakt
         </button>
       </div>
+
+      {/* Week span toggle */}
+      {scheduleLayout !== "monthly" && weekSpan !== undefined && setWeekSpan && (
+        <div
+          className={`flex rounded-lg border p-0.5 ${isDark ? "border-white/10 bg-white/5" : "border-zinc-200 bg-zinc-100"}`}
+        >
+          <button
+            onClick={() => setWeekSpan(1)}
+            className={`rounded-md px-3 py-1 text-[11px] font-bold transition-all ${weekSpan === 1 ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            1 uke
+          </button>
+          <button
+            onClick={() => setWeekSpan(2)}
+            className={`rounded-md px-3 py-1 text-[11px] font-bold transition-all ${weekSpan === 2 ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            2 uker
+          </button>
+        </div>
+      )}
 
       <div className="mt-1 flex items-center gap-1.5 sm:mt-0">
         <button

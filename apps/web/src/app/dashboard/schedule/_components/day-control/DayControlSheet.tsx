@@ -35,14 +35,14 @@ export function DayControlSheet({ selectedDate, onClose, children }: DayControlS
       {/* Backdrop overlay */}
       <div
         onClick={handleBackdropClick}
-        className={`fixed inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity duration-300 ${
+        className={`fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm transition-opacity duration-300 ${
           isOpen ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
       />
 
       {/* Bottom sheet */}
       <aside
-        className={`fixed right-0 bottom-0 ${sidebarOffset} z-50 flex flex-col border-t ${
+        className={`fixed right-0 bottom-0 ${sidebarOffset} z-[70] flex flex-col border-t ${
           isDark ? "border-border bg-background/[0.98]" : "border-border bg-card/[0.98]"
         } shadow-[0_-16px_48px_rgba(0,0,0,0.3)] backdrop-blur-2xl transition-all duration-300 ease-out ${
           isOpen

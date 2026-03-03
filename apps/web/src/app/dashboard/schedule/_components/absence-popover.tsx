@@ -89,10 +89,14 @@ export function AbsencePopover() {
       <PopoverTrigger asChild>
         <span />
       </PopoverTrigger>
-      <PopoverContent className="border-border bg-background w-72 space-y-4 p-4">
-        <h4 className="text-foreground text-sm font-bold">Registrer fravær</h4>
+      <PopoverContent className="border-border bg-background w-80 space-y-0 p-0">
+        <div className="border-border border-b px-4 py-3">
+          <div className="mb-3 h-0.5 w-full rounded-full bg-rose-500" />
+          <h4 className="text-foreground text-sm font-bold">Registrer fravær</h4>
+          <p className="text-muted-foreground mt-0.5 text-[11px]">Registrer fravær for valgt dag</p>
+        </div>
 
-        <div className="space-y-3">
+        <div className="space-y-3 px-4 py-3">
           <div className="space-y-1.5">
             <Label className="text-muted-foreground text-xs">Type fravær</Label>
             <Select value={absenceType} onValueChange={(v) => setAbsenceType(v as AbsenceType)}>
@@ -125,12 +129,16 @@ export function AbsencePopover() {
           </div>
         </div>
 
-        <div className="flex justify-end gap-2">
+        <div className="border-border flex justify-end gap-2 border-t px-4 py-3">
           <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={handleClose}>
             Avbryt
           </Button>
-          <Button size="sm" className="h-7 text-xs" onClick={handleSubmit}>
-            Registrer
+          <Button
+            size="sm"
+            className="h-7 bg-rose-600 text-xs text-white hover:bg-rose-700"
+            onClick={handleSubmit}
+          >
+            Registrer fravær
           </Button>
         </div>
       </PopoverContent>

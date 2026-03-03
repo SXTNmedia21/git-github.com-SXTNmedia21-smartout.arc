@@ -403,6 +403,50 @@ function SchedulePageContent() {
     return sorted;
   }, [employees, employeeOrder, scheduleCompactMode, employeesWithShifts]);
 
+  // ── Location-based employee filtering ─────────────────────
+  const { activeLocation } = useContext(DashboardContext);
+
+  const locationFilteredEmployees = useMemo(() => {
+    if (!activeLocation || activeLocation === "Alle Lokasjoner") return sortedEmployees;
+    const loc = activeLocation.toLowerCase();
+    return sortedEmployees.filter((emp) => {
+      const dept = (emp.jobTitle || "").toLowerCase();
+      const team = (emp.team || "").toLowerCase();
+      const role = (emp.role || "").toLowerCase();
+      // Match location to employee attributes
+      return (
+        dept.includes(loc) ||
+        team.includes(loc) ||
+        role.includes(loc) ||
+        loc.includes(dept) ||
+        loc.includes(team)
+      );
+    });
+  }, [sortedEmployees, activeLocation]);
+
+  // ── Situation-filtered day columns ────────────────────────
+  const situationFilteredDays = useMemo(() => {
+    if (filterSituation === "Alle") return enrichedDays;
+    return enrichedDays.map((day) => {
+      const hasEvents = (day.events?.length ?? 0) > 0;
+      const hasAlerts = day.coverageAlert != null;
+      let dimmed = false;
+
+      if (filterSituation === "Selskap") {
+        // Dim days without events/bookings
+        dimmed = !hasEvents;
+      } else if (filterSituation === "Krise") {
+        // Dim days without coverage alerts
+        dimmed = !hasAlerts;
+      } else if (filterSituation === "Normal") {
+        // Dim days that have events or alerts (show only "normal" days)
+        dimmed = hasEvents || hasAlerts;
+      }
+
+      return { ...day, situation: dimmed ? "__dimmed__" : day.situation };
+    });
+  }, [enrichedDays, filterSituation]);
+
   // Register the publish-all callback and draft count with the DashboardShell header.
   // Both setOnPublishAll and setScheduleDraftCount write to refs (no context re-render),
   // so they are safe to call during render without causing infinite loops.
@@ -673,37 +717,9 @@ function SchedulePageContent() {
                   isDark={isDark}
                   filterSituation={filterSituation}
                   setFilterSituation={setFilterSituation}
-                />
-
-                {/* Week span toggle — below command bar, hidden in monthly view */}
-                {scheduleLayout !== "monthly" && (
-                  <div
-                    className={`flex shrink-0 items-center justify-center gap-2 border-b px-4 py-1.5 ${isDark ? "border-white/[0.04] bg-[#0a0a0c]/60" : "border-zinc-200 bg-white/60"} backdrop-blur-md print:hidden`}
-                  >
-                    <div
-                      className={`flex rounded-lg border p-0.5 ${isDark ? "border-white/10 bg-white/5" : "border-zinc-200 bg-zinc-100"}`}
-                    >
-                      <button
-                        onClick={() => setWeekSpan(1)}
-                        className={`rounded-md px-3 py-1 text-[11px] font-bold transition-all ${weekSpan === 1 ? (isDark ? "bg-zinc-800 text-white shadow-sm" : "bg-white text-zinc-900 shadow-sm") : "text-zinc-500 hover:text-zinc-300"}`}
-                      >
-                        1 uke
-                      </button>
-                      <button
-                        onClick={() => setWeekSpan(2)}
-                        className={`rounded-md px-3 py-1 text-[11px] font-bold transition-all ${weekSpan === 2 ? (isDark ? "bg-zinc-800 text-white shadow-sm" : "bg-white text-zinc-900 shadow-sm") : "text-zinc-500 hover:text-zinc-300"}`}
-                      >
-                        2 uker
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                <StatusStrip
-                  isDark={isDark}
-                  statusSummary={statusSummary}
-                  activeFilter={activeStatusFilter}
-                  onFilterClick={setActiveStatusFilter}
+                  weekSpan={weekSpan}
+                  setWeekSpan={setWeekSpan}
+                  scheduleLayout={scheduleLayout}
                 />
 
                 <GridSurface
@@ -717,8 +733,8 @@ function SchedulePageContent() {
                           onDateClick={setSelectedDate}
                           filterSituation={filterSituation}
                           activeStatusFilter={activeStatusFilter}
-                          visibleDays={enrichedDays}
-                          employees={sortedEmployees}
+                          visibleDays={situationFilteredDays}
+                          employees={locationFilteredEmployees}
                         />
                       )}
                       {scheduleLayout === "weekly" && (
@@ -738,6 +754,7 @@ function SchedulePageContent() {
                           onDateClick={setSelectedDate}
                           shifts={shifts}
                           computed={computed}
+                          employees={employees}
                         />
                       )}
                       {scheduleLayout === "list" && (
@@ -759,6 +776,13 @@ function SchedulePageContent() {
                       <DayControlPanel date={selectedDate} onClose={() => setSelectedDate(null)} />
                     </DayControlSheet>
                   }
+                />
+
+                <StatusStrip
+                  isDark={isDark}
+                  statusSummary={statusSummary}
+                  activeFilter={activeStatusFilter}
+                  onFilterClick={setActiveStatusFilter}
                 />
               </div>
             </div>

@@ -101,24 +101,29 @@ export function PublishOverviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Send className="h-5 w-5" />
-            Publiser vakter
-          </DialogTitle>
-          <DialogDescription>
-            {draftShifts.length} {draftShifts.length === 1 ? "vakt" : "vakter"} vil bli publisert
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="gap-0 p-0 sm:max-w-lg">
+        <div className="border-border relative overflow-hidden rounded-t-lg border-b px-6 pt-6 pb-4">
+          <div className="absolute top-0 left-0 h-1 w-full bg-emerald-500" />
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500">
+                <Send className="h-4 w-4" />
+              </div>
+              Publiser vakter
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              {draftShifts.length} {draftShifts.length === 1 ? "vakt" : "vakter"} vil bli publisert
+            </DialogDescription>
+          </DialogHeader>
+        </div>
 
         {draftShifts.length === 0 ? (
-          <div className="text-muted-foreground py-8 text-center text-sm">
+          <div className="text-muted-foreground px-6 py-8 text-center text-sm">
             Ingen upubliserte vakter å publisere.
           </div>
         ) : (
           <ScrollArea className="max-h-[400px]">
-            <div className="space-y-4 pr-4">
+            <div className="space-y-4 px-6 py-4 pr-4">
               {groupedByDay.map(([dateId, dayShifts]) => (
                 <div key={dateId}>
                   <div className="mb-2 flex items-center justify-between">
@@ -166,11 +171,16 @@ export function PublishOverviewDialog({
           </ScrollArea>
         )}
 
-        <DialogFooter className="flex-row gap-2 sm:justify-end">
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+        <DialogFooter className="border-border flex-row gap-2 border-t px-6 py-4 sm:justify-end">
+          <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
             Avbryt
           </Button>
-          <Button onClick={handlePublish} disabled={draftShifts.length === 0 || isPublishing}>
+          <Button
+            size="sm"
+            onClick={handlePublish}
+            disabled={draftShifts.length === 0 || isPublishing}
+            className="bg-emerald-600 text-white hover:bg-emerald-700"
+          >
             <Send className="mr-1.5 h-3.5 w-3.5" />
             Publiser alle
           </Button>

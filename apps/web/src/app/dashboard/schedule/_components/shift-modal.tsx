@@ -515,482 +515,522 @@ export function ShiftModal() {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="max-h-[85vh] max-w-xl overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{isEditMode ? "Rediger skift" : "Nytt skift"}</DialogTitle>
-          <DialogDescription>
-            {isEditMode
-              ? "Endre detaljer for dette skiftet"
-              : "Opprett et nytt skift for denne dagen"}
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-h-[85vh] max-w-2xl gap-0 overflow-y-auto p-0">
+        {/* Header with status accent */}
+        <div className="border-border relative overflow-hidden rounded-t-lg border-b px-6 pt-6 pb-4">
+          {isEditMode && existingShift && (
+            <div
+              className={`absolute top-0 left-0 h-1 w-full ${
+                existingShift.status === "published"
+                  ? "bg-emerald-500"
+                  : existingShift.status === "active"
+                    ? "bg-blue-500"
+                    : existingShift.status === "completed"
+                      ? "bg-zinc-500"
+                      : "bg-orange-500"
+              }`}
+            />
+          )}
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div
+                className={`flex h-10 w-10 items-center justify-center rounded-xl ${
+                  isEditMode
+                    ? "bg-orange-500/10 text-orange-500"
+                    : "bg-emerald-500/10 text-emerald-500"
+                }`}
+              >
+                <Clock className="h-5 w-5" />
+              </div>
+              <div>
+                <DialogTitle className="text-base">
+                  {isEditMode ? "Rediger skift" : "Nytt skift"}
+                </DialogTitle>
+                <DialogDescription className="text-xs">
+                  {isEditMode && existingShift
+                    ? `${dateId} · ${getStatusLabel(existingShift.status)}`
+                    : dateId
+                      ? `Opprett skift for ${dateId}`
+                      : "Opprett et nytt skift"}
+                </DialogDescription>
+              </div>
+              {isEditMode && existingShift && (
+                <Badge variant={getStatusBadgeVariant(existingShift.status)} className="ml-auto">
+                  {getStatusLabel(existingShift.status)}
+                </Badge>
+              )}
+            </div>
+          </DialogHeader>
+        </div>
 
-        <Tabs defaultValue="detaljer" className="mt-4">
-          <TabsList className={`grid w-full ${isEditMode ? "grid-cols-6" : "grid-cols-4"}`}>
-            <TabsTrigger value="detaljer" className="gap-1.5 text-xs">
-              <Clock className="h-3 w-3" />
-              Detaljer
-            </TabsTrigger>
-            <TabsTrigger value="funksjoner" className="gap-1.5 text-xs">
-              <Settings className="h-3 w-3" />
-              Funksjoner
-            </TabsTrigger>
-            {isEditMode && (
-              <TabsTrigger value="historie" className="gap-1.5 text-xs">
-                <History className="h-3 w-3" />
-                Historie
+        <div className="px-6 pt-4 pb-2">
+          <Tabs defaultValue="detaljer">
+            <TabsList
+              className={`mb-4 grid w-full ${isEditMode ? "grid-cols-6" : "grid-cols-4"} h-9`}
+            >
+              <TabsTrigger value="detaljer" className="gap-1.5 text-[11px]">
+                <Clock className="h-3 w-3" />
+                Detaljer
               </TabsTrigger>
-            )}
-            {isEditMode && (
-              <TabsTrigger value="lonn" className="gap-1.5 text-xs">
-                <Wallet className="h-3 w-3" />
-                Lønn
+              <TabsTrigger value="funksjoner" className="gap-1.5 text-[11px]">
+                <Settings className="h-3 w-3" />
+                Funksjoner
               </TabsTrigger>
-            )}
-            <TabsTrigger value="oppgaver" className="gap-1.5 text-xs">
-              <ListChecks className="h-3 w-3" />
-              Oppgaver
-            </TabsTrigger>
-            <TabsTrigger value="innstillinger" className="gap-1.5 text-xs">
-              <Settings className="h-3 w-3" />
-              Innstillinger
-            </TabsTrigger>
-          </TabsList>
+              {isEditMode && (
+                <TabsTrigger value="historie" className="gap-1.5 text-[11px]">
+                  <History className="h-3 w-3" />
+                  Historie
+                </TabsTrigger>
+              )}
+              {isEditMode && (
+                <TabsTrigger value="lonn" className="gap-1.5 text-[11px]">
+                  <Wallet className="h-3 w-3" />
+                  Lønn
+                </TabsTrigger>
+              )}
+              <TabsTrigger value="oppgaver" className="gap-1.5 text-[11px]">
+                <ListChecks className="h-3 w-3" />
+                Oppgaver
+              </TabsTrigger>
+              <TabsTrigger value="innstillinger" className="gap-1.5 text-[11px]">
+                <Settings className="h-3 w-3" />
+                Innstillinger
+              </TabsTrigger>
+            </TabsList>
 
-          {/* ── Tab 1: Detaljer ─────────────────────────────── */}
-          <TabsContent value="detaljer" className="mt-4 space-y-3">
-            {/* Employee select */}
-            <div className="space-y-2">
-              <Label htmlFor="employee">Ansatt</Label>
-              <Select value={form.employeeId} onValueChange={handleEmployeeChange}>
-                <SelectTrigger id="employee">
-                  <SelectValue placeholder="Velg ansatt (valgfritt)" />
-                </SelectTrigger>
-                <SelectContent>
-                  {employees.map((emp) => (
-                    <SelectItem key={emp.id} value={emp.id}>
-                      {emp.name} — {emp.jobTitle || emp.role}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Role + Team row */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* ── Tab 1: Detaljer ─────────────────────────────── */}
+            <TabsContent value="detaljer" className="mt-4 space-y-3">
+              {/* Employee select */}
               <div className="space-y-2">
-                <Label htmlFor="role">Rolle</Label>
-                <Select value={form.role} onValueChange={(v) => updateField("role", v)}>
-                  <SelectTrigger id="role">
-                    <SelectValue placeholder="Velg rolle" />
+                <Label htmlFor="employee">Ansatt</Label>
+                <Select value={form.employeeId} onValueChange={handleEmployeeChange}>
+                  <SelectTrigger id="employee">
+                    <SelectValue placeholder="Velg ansatt (valgfritt)" />
                   </SelectTrigger>
                   <SelectContent>
-                    {availableRoles.map((r) => (
-                      <SelectItem key={r} value={r}>
-                        {r}
+                    {employees.map((emp) => (
+                      <SelectItem key={emp.id} value={emp.id}>
+                        {emp.name} — {emp.jobTitle || emp.role}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="team">Team</Label>
-                <Select value={form.team} onValueChange={(v) => updateField("team", v)}>
-                  <SelectTrigger id="team">
-                    <SelectValue placeholder="Velg team" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableTeams.map((t) => (
-                      <SelectItem key={t} value={t}>
-                        {t}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
 
-            {/* Date display (read-only) */}
-            {dateId && (
-              <div className="space-y-2">
-                <Label>Dato</Label>
-                <div className="border-border bg-muted text-muted-foreground flex items-center gap-2 rounded-md border px-3 py-2 text-sm">
-                  <Calendar className="h-4 w-4" />
-                  {dateId}
-                </div>
-              </div>
-            )}
-
-            {/* Shift time presets for quick-fill */}
-            <div className="space-y-1.5">
-              <Label className="text-muted-foreground text-xs">Hurtigvalg</Label>
-              <div className="flex flex-wrap gap-1.5">
-                {SHIFT_PRESETS.map((preset) => (
-                  <Button
-                    key={preset.label}
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-[11px]"
-                    onClick={() => {
-                      setForm((prev) => ({
-                        ...prev,
-                        startTime: preset.startTime,
-                        endTime: preset.endTime,
-                        dayCategory: preset.dayCategory,
-                      }));
-                    }}
-                  >
-                    {preset.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            {/* Start + End time row with inline work hours */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <Label htmlFor="startTime" className="text-xs">
-                  Starttid
-                </Label>
-                <Input
-                  id="startTime"
-                  type="time"
-                  value={form.startTime}
-                  onChange={(e) => handleStartTimeChange(e.target.value)}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="endTime" className="text-xs">
-                  Sluttid
-                </Label>
-                <Input
-                  id="endTime"
-                  type="time"
-                  value={form.endTime}
-                  onChange={(e) => updateField("endTime", e.target.value)}
-                />
-              </div>
-            </div>
-            <div className="text-muted-foreground -mt-1 text-xs">
-              {workHours.toFixed(1)}t arbeid (inkl. {form.breaks} min pause)
-            </div>
-
-            {/* Day category + Zone row */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="dayCategory">Dagkategori</Label>
-                <Select
-                  value={form.dayCategory}
-                  onValueChange={(v) => updateField("dayCategory", v as DayCategory)}
-                >
-                  <SelectTrigger id="dayCategory">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {DAY_CATEGORY_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="zone">Sone</Label>
-                <Select value={form.zone} onValueChange={(v) => updateField("zone", v)}>
-                  <SelectTrigger id="zone">
-                    <SelectValue placeholder="Velg sone" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {AVAILABLE_ZONES.map((z) => (
-                      <SelectItem key={z} value={z}>
-                        {z}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Status badge (read-only in edit mode) */}
-            {isEditMode && existingShift && (
-              <div className="space-y-2">
-                <Label>Status</Label>
-                <div>
-                  <Badge variant={getStatusBadgeVariant(existingShift.status)}>
-                    {getStatusLabel(existingShift.status)}
-                  </Badge>
-                </div>
-              </div>
-            )}
-
-            {/* Publish toggle + notification channels */}
-            <div className="border-border space-y-3 rounded-md border p-3">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="publish-toggle" className="cursor-pointer">
-                  Publiser skift
-                </Label>
-                <Switch
-                  id="publish-toggle"
-                  checked={form.isPublished}
-                  onCheckedChange={(checked) => updateField("isPublished", checked)}
-                />
-              </div>
-
-              {form.isPublished && (
+              {/* Role + Team row */}
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-muted-foreground text-xs">Varslingskanaler</Label>
-                  <div className="flex gap-2">
-                    {NOTIFICATION_CHANNELS.map((ch) => {
-                      const Icon = ch.icon;
-                      const isActive = form.notificationChannels.has(ch.id);
-                      return (
-                        <Button
-                          key={ch.id}
-                          type="button"
-                          variant={isActive ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => toggleChannel(ch.id)}
-                          className="gap-1.5"
-                        >
-                          <Icon className="h-3.5 w-3.5" />
-                          {ch.label}
-                        </Button>
-                      );
-                    })}
+                  <Label htmlFor="role">Rolle</Label>
+                  <Select value={form.role} onValueChange={(v) => updateField("role", v)}>
+                    <SelectTrigger id="role">
+                      <SelectValue placeholder="Velg rolle" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableRoles.map((r) => (
+                        <SelectItem key={r} value={r}>
+                          {r}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="team">Team</Label>
+                  <Select value={form.team} onValueChange={(v) => updateField("team", v)}>
+                    <SelectTrigger id="team">
+                      <SelectValue placeholder="Velg team" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableTeams.map((t) => (
+                        <SelectItem key={t} value={t}>
+                          {t}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Date display (read-only) */}
+              {dateId && (
+                <div className="space-y-2">
+                  <Label>Dato</Label>
+                  <div className="border-border bg-muted text-muted-foreground flex items-center gap-2 rounded-md border px-3 py-2 text-sm">
+                    <Calendar className="h-4 w-4" />
+                    {dateId}
                   </div>
                 </div>
               )}
-            </div>
-          </TabsContent>
 
-          {/* ── Tab 2: Funksjoner ───────────────────────────── */}
-          <TabsContent value="funksjoner" className="mt-4">
-            <div className="text-muted-foreground flex flex-col items-center justify-center py-12 text-center">
-              <Settings className="mb-3 h-10 w-10 opacity-30" />
-              <p className="text-sm">Tilleggsfunksjoner konfigureres per workspace</p>
-            </div>
-          </TabsContent>
-
-          {/* ── Tab 3: Historie ──────────────────────────────── */}
-          <TabsContent value="historie" className="mt-4">
-            {historyEntries.length === 0 ? (
-              <div className="text-muted-foreground flex flex-col items-center justify-center py-12 text-center">
-                <History className="mb-3 h-10 w-10 opacity-30" />
-                <p className="text-sm">Ingen historikk ennå</p>
+              {/* Shift time presets for quick-fill */}
+              <div className="space-y-1.5">
+                <Label className="text-muted-foreground text-xs">Hurtigvalg</Label>
+                <div className="flex flex-wrap gap-1.5">
+                  {SHIFT_PRESETS.map((preset) => (
+                    <Button
+                      key={preset.label}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-[11px]"
+                      onClick={() => {
+                        setForm((prev) => ({
+                          ...prev,
+                          startTime: preset.startTime,
+                          endTime: preset.endTime,
+                          dayCategory: preset.dayCategory,
+                        }));
+                      }}
+                    >
+                      {preset.label}
+                    </Button>
+                  ))}
+                </div>
               </div>
-            ) : (
-              <div className="space-y-2">
-                {historyEntries.map((entry) => (
-                  <div
-                    key={entry.id}
-                    className="border-border flex items-start gap-3 rounded-md border p-3 text-sm"
+
+              {/* Start + End time row with inline work hours */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label htmlFor="startTime" className="text-xs">
+                    Starttid
+                  </Label>
+                  <Input
+                    id="startTime"
+                    type="time"
+                    value={form.startTime}
+                    onChange={(e) => handleStartTimeChange(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="endTime" className="text-xs">
+                    Sluttid
+                  </Label>
+                  <Input
+                    id="endTime"
+                    type="time"
+                    value={form.endTime}
+                    onChange={(e) => updateField("endTime", e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="text-muted-foreground -mt-1 text-xs">
+                {workHours.toFixed(1)}t arbeid (inkl. {form.breaks} min pause)
+              </div>
+
+              {/* Day category + Zone row */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="dayCategory">Dagkategori</Label>
+                  <Select
+                    value={form.dayCategory}
+                    onValueChange={(v) => updateField("dayCategory", v as DayCategory)}
                   >
-                    <div className="mt-0.5 flex-shrink-0">
-                      <History className="text-muted-foreground h-4 w-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs">
-                          {entry.eventType}
-                        </Badge>
-                        {entry.field && (
-                          <span className="text-muted-foreground">{entry.field}</span>
-                        )}
-                      </div>
-                      {(entry.oldValue || entry.newValue) && (
-                        <div className="text-muted-foreground mt-1 text-xs">
-                          {entry.oldValue && <span className="line-through">{entry.oldValue}</span>}
-                          {entry.oldValue && entry.newValue && " → "}
-                          {entry.newValue && (
-                            <span className="text-foreground font-medium">{entry.newValue}</span>
-                          )}
-                        </div>
-                      )}
-                      <div className="text-muted-foreground mt-1 text-xs">
-                        {entry.actor} — {new Date(entry.timestamp).toLocaleString("nb-NO")}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-
-          {/* ── Tab 4: Lønnsgrunnlag ────────────────────────── */}
-          <TabsContent value="lonn" className="mt-4">
-            <div className="space-y-4">
-              <div className="border-border rounded-md border">
-                <div className="border-border border-b px-4 py-3">
-                  <h4 className="text-sm font-medium">Beregnet lønn</h4>
+                    <SelectTrigger id="dayCategory">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DAY_CATEGORY_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <div className="space-y-3 p-4">
-                  {/* Base pay */}
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      Grunnlønn ({workHours.toFixed(1)}t x {BASE_HOURLY_RATE} NOK)
-                    </span>
-                    <span>{payBreakdown.base.toFixed(0)} NOK</span>
-                  </div>
-
-                  {/* Evening supplement */}
-                  {payBreakdown.eveningSupplement > 0 && (
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">
-                        Kveld/natt-tillegg (+{EVENING_SUPPLEMENT * 100}%)
-                      </span>
-                      <span>{payBreakdown.eveningSupplement.toFixed(0)} NOK</span>
-                    </div>
-                  )}
-
-                  {/* Weekend supplement */}
-                  {payBreakdown.weekendSupplement > 0 && (
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">
-                        Helgetillegg (+{WEEKEND_SUPPLEMENT * 100}%)
-                      </span>
-                      <span>{payBreakdown.weekendSupplement.toFixed(0)} NOK</span>
-                    </div>
-                  )}
-
-                  {/* Separator */}
-                  <div className="border-border border-t" />
-
-                  {/* Total */}
-                  <div className="flex items-center justify-between font-medium">
-                    <span>Totalt</span>
-                    <span>{payBreakdown.total.toFixed(0)} NOK</span>
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="zone">Sone</Label>
+                  <Select value={form.zone} onValueChange={(v) => updateField("zone", v)}>
+                    <SelectTrigger id="zone">
+                      <SelectValue placeholder="Velg sone" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {AVAILABLE_ZONES.map((z) => (
+                        <SelectItem key={z} value={z}>
+                          {z}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
-              <p className="text-muted-foreground text-xs">
-                Estimat basert på standardsatser. Faktisk lønn beregnes av lønnssystem.
-              </p>
-            </div>
-          </TabsContent>
+              {/* Publish toggle + notification channels */}
+              <div className="border-border space-y-3 rounded-md border p-3">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="publish-toggle" className="cursor-pointer">
+                    Publiser skift
+                  </Label>
+                  <Switch
+                    id="publish-toggle"
+                    checked={form.isPublished}
+                    onCheckedChange={(checked) => updateField("isPublished", checked)}
+                  />
+                </div>
 
-          {/* ── Tab 5: Oppgaver ──────────────────────────────── */}
-          <TabsContent value="oppgaver" className="mt-4">
-            <div className="space-y-4">
-              {/* Add task input */}
-              <div className="flex gap-2">
-                <Input
-                  value={newTaskLabel}
-                  onChange={(e) => setNewTaskLabel(e.target.value)}
-                  placeholder="Legg til oppgave..."
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAddTask();
-                    }
-                  }}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={handleAddTask}
-                  disabled={!newTaskLabel.trim()}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
+                {form.isPublished && (
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground text-xs">Varslingskanaler</Label>
+                    <div className="flex gap-2">
+                      {NOTIFICATION_CHANNELS.map((ch) => {
+                        const Icon = ch.icon;
+                        const isActive = form.notificationChannels.has(ch.id);
+                        return (
+                          <Button
+                            key={ch.id}
+                            type="button"
+                            variant={isActive ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => toggleChannel(ch.id)}
+                            className="gap-1.5"
+                          >
+                            <Icon className="h-3.5 w-3.5" />
+                            {ch.label}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
+            </TabsContent>
 
-              {/* Task list */}
-              {shiftTasks.length === 0 ? (
-                <div className="text-muted-foreground flex flex-col items-center justify-center py-8 text-center">
-                  <ListChecks className="mb-3 h-10 w-10 opacity-30" />
-                  <p className="text-sm">Ingen oppgaver lagt til</p>
+            {/* ── Tab 2: Funksjoner ───────────────────────────── */}
+            <TabsContent value="funksjoner" className="mt-4">
+              <div className="text-muted-foreground flex flex-col items-center justify-center py-12 text-center">
+                <Settings className="mb-3 h-10 w-10 opacity-30" />
+                <p className="text-sm">Tilleggsfunksjoner konfigureres per workspace</p>
+              </div>
+            </TabsContent>
+
+            {/* ── Tab 3: Historie ──────────────────────────────── */}
+            <TabsContent value="historie" className="mt-4">
+              {historyEntries.length === 0 ? (
+                <div className="text-muted-foreground flex flex-col items-center justify-center py-12 text-center">
+                  <History className="mb-3 h-10 w-10 opacity-30" />
+                  <p className="text-sm">Ingen historikk ennå</p>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {shiftTasks.map((task) => (
+                  {historyEntries.map((entry) => (
                     <div
-                      key={task.id}
-                      className="border-border flex items-center gap-3 rounded-md border p-2.5"
+                      key={entry.id}
+                      className="border-border flex items-start gap-3 rounded-md border p-3 text-sm"
                     >
-                      <button
-                        type="button"
-                        onClick={() => handleToggleTask(task.id)}
-                        className="text-muted-foreground hover:text-foreground flex-shrink-0"
-                      >
-                        <CheckCircle2
-                          className={`h-5 w-5 ${
-                            task.status === "completed" ? "text-emerald-500" : ""
-                          }`}
-                        />
-                      </button>
-                      <span
-                        className={`flex-1 text-sm ${
-                          task.status === "completed" ? "text-muted-foreground line-through" : ""
-                        }`}
-                      >
-                        {task.label}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteTask(task.id)}
-                        className="text-muted-foreground hover:text-destructive flex-shrink-0"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
+                      <div className="mt-0.5 flex-shrink-0">
+                        <History className="text-muted-foreground h-4 w-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs">
+                            {entry.eventType}
+                          </Badge>
+                          {entry.field && (
+                            <span className="text-muted-foreground">{entry.field}</span>
+                          )}
+                        </div>
+                        {(entry.oldValue || entry.newValue) && (
+                          <div className="text-muted-foreground mt-1 text-xs">
+                            {entry.oldValue && (
+                              <span className="line-through">{entry.oldValue}</span>
+                            )}
+                            {entry.oldValue && entry.newValue && " → "}
+                            {entry.newValue && (
+                              <span className="text-foreground font-medium">{entry.newValue}</span>
+                            )}
+                          </div>
+                        )}
+                        <div className="text-muted-foreground mt-1 text-xs">
+                          {entry.actor} — {new Date(entry.timestamp).toLocaleString("nb-NO")}
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
               )}
-            </div>
-          </TabsContent>
+            </TabsContent>
 
-          {/* ── Tab 6: Innstillinger ────────────────────────── */}
-          <TabsContent value="innstillinger" className="mt-4 space-y-4">
-            {/* Break duration */}
-            <div className="space-y-2">
-              <Label htmlFor="breaks">Pausevarighet (minutter)</Label>
-              <Input
-                id="breaks"
-                type="number"
-                min={0}
-                max={120}
-                value={form.breaks}
-                onChange={(e) => updateField("breaks", Math.max(0, parseInt(e.target.value) || 0))}
-              />
-              <p className="text-muted-foreground text-xs">
-                Arbeidstimer justeres automatisk ({workHours.toFixed(1)}t etter pause)
-              </p>
-            </div>
+            {/* ── Tab 4: Lønnsgrunnlag ────────────────────────── */}
+            <TabsContent value="lonn" className="mt-4">
+              <div className="space-y-4">
+                <div className="border-border rounded-md border">
+                  <div className="border-border border-b px-4 py-3">
+                    <h4 className="text-sm font-medium">Beregnet lønn</h4>
+                  </div>
+                  <div className="space-y-3 p-4">
+                    {/* Base pay */}
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">
+                        Grunnlønn ({workHours.toFixed(1)}t x {BASE_HOURLY_RATE} NOK)
+                      </span>
+                      <span>{payBreakdown.base.toFixed(0)} NOK</span>
+                    </div>
 
-            {/* Special conditions */}
-            <div className="space-y-2">
-              <Label htmlFor="specialConditions">Spesielle betingelser</Label>
-              <Textarea
-                id="specialConditions"
-                value={form.specialConditions}
-                onChange={(e) => updateField("specialConditions", e.target.value)}
-                placeholder="Eventuelle merknader, spesialkrav, etc."
-                rows={4}
-              />
-            </div>
-          </TabsContent>
-        </Tabs>
+                    {/* Evening supplement */}
+                    {payBreakdown.eveningSupplement > 0 && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          Kveld/natt-tillegg (+{EVENING_SUPPLEMENT * 100}%)
+                        </span>
+                        <span>{payBreakdown.eveningSupplement.toFixed(0)} NOK</span>
+                      </div>
+                    )}
 
-        <DialogFooter className="mt-4 gap-2 sm:gap-0">
+                    {/* Weekend supplement */}
+                    {payBreakdown.weekendSupplement > 0 && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          Helgetillegg (+{WEEKEND_SUPPLEMENT * 100}%)
+                        </span>
+                        <span>{payBreakdown.weekendSupplement.toFixed(0)} NOK</span>
+                      </div>
+                    )}
+
+                    {/* Separator */}
+                    <div className="border-border border-t" />
+
+                    {/* Total */}
+                    <div className="flex items-center justify-between font-medium">
+                      <span>Totalt</span>
+                      <span>{payBreakdown.total.toFixed(0)} NOK</span>
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-muted-foreground text-xs">
+                  Estimat basert på standardsatser. Faktisk lønn beregnes av lønnssystem.
+                </p>
+              </div>
+            </TabsContent>
+
+            {/* ── Tab 5: Oppgaver ──────────────────────────────── */}
+            <TabsContent value="oppgaver" className="mt-4">
+              <div className="space-y-4">
+                {/* Add task input */}
+                <div className="flex gap-2">
+                  <Input
+                    value={newTaskLabel}
+                    onChange={(e) => setNewTaskLabel(e.target.value)}
+                    placeholder="Legg til oppgave..."
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddTask();
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={handleAddTask}
+                    disabled={!newTaskLabel.trim()}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                {/* Task list */}
+                {shiftTasks.length === 0 ? (
+                  <div className="text-muted-foreground flex flex-col items-center justify-center py-8 text-center">
+                    <ListChecks className="mb-3 h-10 w-10 opacity-30" />
+                    <p className="text-sm">Ingen oppgaver lagt til</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {shiftTasks.map((task) => (
+                      <div
+                        key={task.id}
+                        className="border-border flex items-center gap-3 rounded-md border p-2.5"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => handleToggleTask(task.id)}
+                          className="text-muted-foreground hover:text-foreground flex-shrink-0"
+                        >
+                          <CheckCircle2
+                            className={`h-5 w-5 ${
+                              task.status === "completed" ? "text-emerald-500" : ""
+                            }`}
+                          />
+                        </button>
+                        <span
+                          className={`flex-1 text-sm ${
+                            task.status === "completed" ? "text-muted-foreground line-through" : ""
+                          }`}
+                        >
+                          {task.label}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteTask(task.id)}
+                          className="text-muted-foreground hover:text-destructive flex-shrink-0"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+
+            {/* ── Tab 6: Innstillinger ────────────────────────── */}
+            <TabsContent value="innstillinger" className="mt-4 space-y-4">
+              {/* Break duration */}
+              <div className="space-y-2">
+                <Label htmlFor="breaks">Pausevarighet (minutter)</Label>
+                <Input
+                  id="breaks"
+                  type="number"
+                  min={0}
+                  max={120}
+                  value={form.breaks}
+                  onChange={(e) =>
+                    updateField("breaks", Math.max(0, parseInt(e.target.value) || 0))
+                  }
+                />
+                <p className="text-muted-foreground text-xs">
+                  Arbeidstimer justeres automatisk ({workHours.toFixed(1)}t etter pause)
+                </p>
+              </div>
+
+              {/* Special conditions */}
+              <div className="space-y-2">
+                <Label htmlFor="specialConditions">Spesielle betingelser</Label>
+                <Textarea
+                  id="specialConditions"
+                  value={form.specialConditions}
+                  onChange={(e) => updateField("specialConditions", e.target.value)}
+                  placeholder="Eventuelle merknader, spesialkrav, etc."
+                  rows={4}
+                />
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+
+        <DialogFooter className="border-border gap-2 border-t px-6 py-4 sm:gap-0">
           {isEditMode && (
             <Button
               type="button"
               variant="destructive"
+              size="sm"
               onClick={handleDelete}
               className="mr-auto gap-1.5"
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="h-3.5 w-3.5" />
               Slett
             </Button>
           )}
-          <Button type="button" variant="outline" onClick={handleClose}>
+          <Button type="button" variant="outline" size="sm" onClick={handleClose}>
             Avbryt
           </Button>
-          <Button type="button" onClick={handleSave}>
+          <Button
+            type="button"
+            size="sm"
+            onClick={handleSave}
+            className="bg-orange-600 text-white hover:bg-orange-700"
+          >
             {isEditMode ? "Lagre endringer" : "Opprett skift"}
           </Button>
         </DialogFooter>

@@ -139,16 +139,23 @@ export function SendMessageDialog({
         onOpenChange(v);
       }}
     >
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5" />
-            Send melding
-          </DialogTitle>
-          <DialogDescription>Send melding til ansatte på vakt {dateLabel}</DialogDescription>
-        </DialogHeader>
+      <DialogContent className="gap-0 p-0 sm:max-w-md">
+        <div className="border-border relative overflow-hidden rounded-t-lg border-b px-6 pt-6 pb-4">
+          <div className="absolute top-0 left-0 h-1 w-full bg-blue-500" />
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10 text-blue-500">
+                <MessageSquare className="h-4 w-4" />
+              </div>
+              Send melding
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Til ansatte på vakt {dateLabel}
+            </DialogDescription>
+          </DialogHeader>
+        </div>
 
-        <div className="grid gap-5 py-2">
+        <div className="grid gap-5 px-6 py-4">
           {/* Channel selection */}
           <div className="grid gap-2">
             <Label className="text-xs font-bold tracking-wider uppercase">Kanaler</Label>
@@ -253,13 +260,18 @@ export function SendMessageDialog({
           </div>
         </div>
 
-        <DialogFooter className="flex-row gap-2 sm:justify-end">
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+        <DialogFooter className="border-border flex-row gap-2 border-t px-6 py-4 sm:justify-end">
+          <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
             Avbryt
           </Button>
-          <Button onClick={handleSend} disabled={!canSend}>
+          <Button
+            size="sm"
+            onClick={handleSend}
+            disabled={!canSend}
+            className="bg-blue-600 text-white hover:bg-blue-700"
+          >
             <Send className="mr-1.5 h-3.5 w-3.5" />
-            Send til {recipientCount} {recipientCount === 1 ? "mottaker" : "mottakere"}
+            Send til {recipientCount}
           </Button>
         </DialogFooter>
       </DialogContent>
