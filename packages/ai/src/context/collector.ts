@@ -48,9 +48,9 @@ export async function collectContext(params: {
       sb
         .from("profile")
         .select(
-          "id, display_name, role, status, preferred_language, department:department_id(name), team:team_id(name)",
+          "profile_id, display_name, role, status, preferred_language, department:department_id(name), team:team_id(name)",
         )
-        .eq("id", profileId)
+        .eq("profile_id", profileId)
         .single()
         .then((r) => r.data),
       sb

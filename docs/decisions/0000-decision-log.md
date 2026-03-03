@@ -3,11 +3,11 @@ title: Decision Log
 status: in_progress
 updated: 2026-03-03
 created: 2026-03-03
-module: landing
+module: ai
 tags: [decisions]
 ---
 
-# Decision Log — landing-mobile-fix
+# Decision Log — stage-engine-fix
 
 | #   | Date | Decision | Status |
 | --- | ---- | -------- | ------ |
