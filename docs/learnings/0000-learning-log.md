@@ -78,5 +78,10 @@ tags: [learnings]
 | 4   | 2026-03-10 | Relationship auto-creation on first interaction (in relationship-manager, not user-facing) prevents "no relationship" edge cases in context collector | Eliminates null-handling complexity           |
 # Learning Log — onboarding-redesign
 
-| #   | Date | Learning | Impact |
-| --- | ---- | -------- | ------ |
+| #   | Date       | Learning                                                                                                                                                                | Impact                                            |
+| --- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| 1   | 2026-03-10 | `backdrop-blur-xl` on multiple stacked cards = extreme GPU lag. Replace with solid `bg-white/[0.07]` for same visual effect without compositing cost.                   | Eliminated all animation jank                     |
+| 2   | 2026-03-10 | Animated `filter: blur()` causes jank — only animate compositor properties (opacity, transform). CSS blur is re-rasterized every frame.                                 | Core performance principle for scroll animations  |
+| 3   | 2026-03-10 | `scrollIntoView({ behavior: "smooth" })` works with `overflow: hidden` — manual scroll is blocked but programmatic scroll still fires and triggers IntersectionObserver | Enabled controlled scroll pattern                 |
+| 4   | 2026-03-10 | Framer Motion `whileInView` fires with programmatic scroll — IntersectionObserver still detects sections after `scrollIntoView`                                         | Animations trigger correctly in controlled scroll |
+| 5   | 2026-03-10 | `custom-${Date.now()}` creates duplicate React keys on rapid double-clicks — append array length for uniqueness                                                         | Fixed console error on fast department adds       |
