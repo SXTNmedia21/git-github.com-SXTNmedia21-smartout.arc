@@ -57,6 +57,18 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-info: var(--info);
+  /* Onboarding color temperature journey */
+  --color-onboarding-hero: oklch(0.13 0.01 250);
+  --color-onboarding-business: oklch(0.12 0.02 60);
+  --color-onboarding-season: oklch(0.11 0.03 35);
+  --color-onboarding-departments: oklch(0.1 0.02 150);
+  --color-onboarding-contract: oklch(0.12 0.01 280);
+  --color-onboarding-done: oklch(0.11 0.03 80);
+  --color-onboarding-glow: oklch(0.75 0.15 55);
+  --color-onboarding-glass: oklch(1 0 0 / 0.05);
+  --color-onboarding-glass-border: oklch(1 0 0 / 0.08);
+  /* Display font */
+  --font-display: var(--font-instrument-serif);
 }
 
 @layer base {
