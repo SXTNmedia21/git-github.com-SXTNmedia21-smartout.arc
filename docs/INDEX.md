@@ -1,6 +1,6 @@
 ---
 title: "Smartout Documentation Index"
-updated: 2026-03-12
+updated: 2026-03-14
 ---
 
 # Smartout Documentation Index
@@ -33,28 +33,39 @@ Master navigation map for all documentation. An agent reads this to find any doc
 | REF_API_VERSIONING | reference/API_VERSIONING_AND_LIFECYCLE.md        | canonical | --           |
 | REF_API_VISIBILITY | reference/API_VISIBILITY_AND_RELEASE_PROFILES.md | canonical | --           |
 | REF_API_INVENTORY  | reference/API_INVENTORY_AND_COVERAGE.md          | canonical | --           |
+| REF_SERVICES_ARCH  | reference/SERVICES_ARCHITECTURE.md               | canonical | --           |
+| REF_EDGE_FUNCTIONS | reference/EDGE_FUNCTIONS_REFERENCE.md            | canonical | --           |
+| REF_API_ROUTES     | reference/API_ROUTES_REFERENCE.md                | canonical | --           |
+| REF_SCRAPLING_API  | reference/SCRAPLING_API.md                       | canonical | --           |
+| REF_STAGE_ENGINE   | reference/STAGE_ENGINE_TRAINER_GUIDE.md          | canonical | ai           |
 
 ### Modules (Layer 2)
 
-| id        | File                                          | Status      | Key Tables                                                 |
-| --------- | --------------------------------------------- | ----------- | ---------------------------------------------------------- |
-| MODULE_01 | modules/SMARTOUT_MODULE_1_ONBOARDING.md       | canonical   | onboarding_session                                         |
-| MODULE_02 | modules/SMARTOUT_MODULE_2_ORG_STRUCTURE.md    | canonical   | department, location, team                                 |
-| MODULE_03 | modules/SMARTOUT_MODULE_3_SCHEDULING.md       | canonical   | schedule_shift                                             |
-| MODULE_04 | modules/SMARTOUT_MODULE_4_OPERATIONS.md       | canonical   | department_session, session_task                           |
-| MODULE_05 | modules/SMARTOUT_MODULE_5_HACCP.md            | canonical   | asset, control_list                                        |
-| MODULE_06 | modules/SMARTOUT_MODULE_6_TRAINING.md         | canonical   | procedure, knowledge_test                                  |
-| MODULE_07 | modules/SMARTOUT_MODULE_7_ABSENCE.md          | draft       | --                                                         |
-| MODULE_08 | modules/SMARTOUT_MODULE_8_PAYROLL.md          | draft       | --                                                         |
-| MODULE_09 | modules/SMARTOUT_MODULE_9_COMMUNICATION.md    | canonical   | notification_outbox, notification_preference               |
-| MODULE_10 | modules/SMARTOUT_MODULE_10_REPORTS.md         | design-spec | custom_report                                              |
-| MODULE_11 | modules/SMARTOUT_MODULE_11_SETTINGS.md        | draft       | --                                                         |
-| MODULE_12 | modules/SMARTOUT_MODULE_12_AI.md              | canonical   | onboarding_session                                         |
-| MODULE_13 | modules/SMARTOUT_MODULE_13_MULTITENANT.md     | canonical   | workspace, company, company_member                         |
-| MODULE_14 | modules/SMARTOUT_MODULE_14_PRODUCTION.md      | canonical   | --                                                         |
-| MODULE_15 | modules/SMARTOUT_MODULE_15_SEASON_PLANNING.md | canonical   | season                                                     |
-| MODULE_17 | modules/SMARTOUT_MODULE_17_PLATFORM_ADMIN.md  | canonical   | platform_audit_log, platform_metrics_daily, landing_config |
-| MODULE_18 | modules/SMARTOUT_MODULE_18_WEBRTC.md          | canonical   | --                                                         |
+| id                | File                                          | Status      | Key Tables                                                 |
+| ----------------- | --------------------------------------------- | ----------- | ---------------------------------------------------------- |
+| MODULE_01         | modules/SMARTOUT_MODULE_1_ONBOARDING.md       | canonical   | onboarding_session                                         |
+| MODULE_02         | modules/SMARTOUT_MODULE_2_ORG_STRUCTURE.md    | canonical   | department, location, team                                 |
+| MODULE_03         | modules/SMARTOUT_MODULE_3_SCHEDULING.md       | canonical   | schedule_shift                                             |
+| MODULE_04         | modules/SMARTOUT_MODULE_4_OPERATIONS.md       | canonical   | department_session, session_task                           |
+| MODULE_05         | modules/SMARTOUT_MODULE_5_HACCP.md            | canonical   | asset, control_list                                        |
+| MODULE_06         | modules/SMARTOUT_MODULE_6_TRAINING.md         | canonical   | procedure, knowledge_test                                  |
+| MODULE_07         | modules/SMARTOUT_MODULE_7_ABSENCE.md          | draft       | --                                                         |
+| MODULE_08         | modules/SMARTOUT_MODULE_8_PAYROLL.md          | draft       | --                                                         |
+| MODULE_09         | modules/SMARTOUT_MODULE_9_COMMUNICATION.md    | canonical   | notification_outbox, notification_preference               |
+| MODULE_10         | modules/SMARTOUT_MODULE_10_REPORTS.md         | design-spec | custom_report                                              |
+| MODULE_11         | modules/SMARTOUT_MODULE_11_SETTINGS.md        | draft       | --                                                         |
+| MODULE_12         | modules/SMARTOUT_MODULE_12_AI.md              | canonical   | onboarding_session                                         |
+| MODULE_13         | modules/SMARTOUT_MODULE_13_MULTITENANT.md     | canonical   | workspace, company, company_member                         |
+| MODULE_14         | modules/SMARTOUT_MODULE_14_PRODUCTION.md      | canonical   | --                                                         |
+| MODULE_15         | modules/SMARTOUT_MODULE_15_SEASON_PLANNING.md | canonical   | season                                                     |
+| MODULE_17         | modules/SMARTOUT_MODULE_17_PLATFORM_ADMIN.md  | canonical   | platform_audit_log, platform_metrics_daily, landing_config |
+| MODULE_18         | modules/SMARTOUT_MODULE_18_WEBRTC.md          | canonical   | --                                                         |
+| MODULE_4_5        | modules/SMARTOUT_MODULE_4.5_DAILY_SATTLED.md  | in_progress | --                                                         |
+| MODULE_19         | modules/SMARTOUT_MODULE_19_MENU_PRODUCTION.md | draft       | --                                                         |
+| MODULE_20         | modules/SMARTOUT_MODULE_20_INVENTORY.md       | draft       | --                                                         |
+| JOURNEY_DEEP_SPEC | modules/journey/SMARTOUT_JOURNEY_DEEP_SPEC.md | in_progress | journey                                                    |
+| JOURNEY_DEV_PLAN  | modules/journey/SMARTOUT_JOURNEY_DEV_PLAN.md  | in_progress | journey                                                    |
+| JOURNEY_REGISTRY  | modules/journey/SMARTOUT_JOURNEY_REGISTRY.md  | in_progress | journey                                                    |
 
 ### Architecture (Layer 3)
 
@@ -174,7 +185,7 @@ See `docs/decisions/0000-decision-log.md` -- 48 ADRs (0001-0048).
 
 ### Learnings
 
-See `docs/learnings/0000-learning-log.md` -- 13 learning records.
+See `docs/learnings/0000-learning-log.md` -- 16 learning records.
 
 | id         | File                                                       | Subject                          |
 | ---------- | ---------------------------------------------------------- | -------------------------------- |
@@ -191,6 +202,9 @@ See `docs/learnings/0000-learning-log.md` -- 13 learning records.
 | LEARN_0011 | learnings/0011-framer-motion-landing-animation-patterns.md | Framer Motion animation patterns |
 | LEARN_0012 | learnings/0012-mcp-sdk-package-structure.md                | MCP SDK package structure        |
 | LEARN_0013 | learnings/0013-ultravox-http-tool-parameters.md            | Ultravox HTTP tool parameters    |
+| LEARN_0014 | learnings/0014-supabase-gen-types-stdout-noise.md          | Supabase gen types stdout noise  |
+| LEARN_0016 | learnings/0016-season-type-enum-mismatch.md                | Season type enum mismatch        |
+| LEARN_0017 | learnings/0017-progressive-save-pattern.md                 | Progressive save pattern         |
 
 ### Plans
 

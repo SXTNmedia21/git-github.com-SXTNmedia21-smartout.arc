@@ -151,7 +151,7 @@ export async function middleware(request: NextRequest): Promise<Response> {
         if (workspace?.contract_status) {
           const status = workspace.contract_status;
 
-          if (status === "setup") {
+          if (status === "setup" || status === "onboarding") {
             const redir = NextResponse.redirect(new URL("/onboarding", request.url));
             copySessionCookies(response, redir);
             return redir;
@@ -252,7 +252,7 @@ async function handleLegacyRouting(request: NextRequest): Promise<Response> {
     if (workspace?.contract_status) {
       const status = workspace.contract_status;
 
-      if (status === "setup") {
+      if (status === "setup" || status === "onboarding") {
         const redir = NextResponse.redirect(new URL("/onboarding", request.url));
         copySessionCookies(response, redir);
         return redir;

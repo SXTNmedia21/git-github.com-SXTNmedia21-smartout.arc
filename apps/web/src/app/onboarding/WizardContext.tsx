@@ -124,28 +124,45 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
 
   const botsson = useBotsson(botssonActions);
 
-  // Push section changes to voice agent
+  // Push section changes to voice agent — but only after Lise has had time to introduce herself
   const prevSectionRef = useRef<OnboardingSection | null>(null);
+  const sessionStartRef = useRef<number | null>(null);
+
+  // Track when session starts
+  useEffect(() => {
+    if (botsson.isConnected && !sessionStartRef.current) {
+      sessionStartRef.current = Date.now();
+    }
+    if (!botsson.isConnected) {
+      sessionStartRef.current = null;
+    }
+  }, [botsson.isConnected]);
+
   useEffect(() => {
     const section = scroll.activeSection;
     if (section === prevSectionRef.current) return;
     prevSectionRef.current = section;
 
+    // Don't push section context until at least 30s into the session
+    // This prevents interrupting Lise's intro in the first moments
+    const elapsed = sessionStartRef.current ? Date.now() - sessionStartRef.current : 0;
+    if (elapsed < 30_000 && section !== "hero" && section !== "done") return;
+
     const messages: Record<string, string | null> = {
       hero: null,
       business:
-        "[Systemmelding: Brukeren har scrollet til bedriftsseksjonen. Avslutt det du holder på med naturlig, og begynn å snakke om bedriften. De kan skrive inn nettside eller org.nummer, eller fortelle deg muntlig.]",
-      season: `[Systemmelding: Brukeren har scrollet til sesongseksjonen. Avslutt det du holder på med naturlig, og begynn å snakke om sesonger. Foreslått sesong: ${state.season.name || "ikke valgt ennå"}.]`,
-      departments: `[Systemmelding: Brukeren har scrollet til avdelingsseksjonen. Avslutt det du holder på med naturlig, og spør om avdelinger. ${
+        "[Systemmelding: Brukeren har scrollet til bedriftsseksjonen. Fullfør det du snakker om naturlig. Ikke avbryt deg selv.]",
+      season: `[Systemmelding: Brukeren har scrollet til sesongseksjonen. Fullfør det du snakker om naturlig. Sesonginfo: ${state.season.name || "ikke valgt ennå"}.]`,
+      departments: `[Systemmelding: Brukeren har scrollet til avdelingsseksjonen. Fullfør det du snakker om naturlig. ${
         state.departments.filter((d) => d.selected).length > 0
           ? `Allerede valgt: ${state.departments
               .filter((d) => d.selected)
               .map((d) => d.name)
               .join(", ")}.`
-          : "Ingen avdelinger valgt ennå."
+          : ""
       }]`,
-      contract: `[Systemmelding: Brukeren har scrollet til kontraktseksjonen. Avslutt det du holder på med naturlig, og snakk om kontrakten. Bedrift: ${state.business.name || "ikke angitt"}.]`,
-      done: `[Systemmelding: Brukeren er ferdig med onboarding! Alt er klart. Avslutt med en varm velkomst. Bedrift: ${state.business.name || "ikke angitt"}, sesong: ${state.season.name || "ikke angitt"}, ${state.departments.filter((d) => d.selected).length} avdelinger.]`,
+      contract: `[Systemmelding: Brukeren har scrollet til kontraktseksjonen. Fullfør det du snakker om naturlig.]`,
+      done: `[Systemmelding: Brukeren er ferdig med onboarding! Avslutt med en varm velkomst. Bedrift: ${state.business.name || "ikke angitt"}, sesong: ${state.season.name || "ikke angitt"}, ${state.departments.filter((d) => d.selected).length} avdelinger.]`,
     };
 
     const msg = messages[section];
@@ -158,6 +175,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     state.season.name,
     state.departments,
     botsson.sendContext,
+    botsson.isConnected,
   ]);
 
   // Push scrape status changes to voice agent

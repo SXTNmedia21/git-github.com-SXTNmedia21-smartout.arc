@@ -1,14 +1,14 @@
 ---
 title: "Progressive Save Pattern"
-id: LEARNING_0015
+id: "0017"
 status: canonical
 layer: learning
 created: 2026-03-03
-updated: 2026-03-03
+updated: 2026-03-12
 tags: [pattern, onboarding, wizard, ux]
 ---
 
-# Learning-0015: Progressive Save Pattern With Debounce + JSONB
+# Learning-0017: Progressive Save Pattern With Debounce + JSONB
 
 ## Context
 

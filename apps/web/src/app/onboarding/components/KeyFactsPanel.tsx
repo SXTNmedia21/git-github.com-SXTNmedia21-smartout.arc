@@ -15,7 +15,7 @@ export function KeyFactsPanel() {
     <AnimatePresence>
       {visible && (
         <motion.div
-          className="fixed top-6 left-6 z-40 hidden max-w-[240px] flex-col gap-2 rounded-2xl border border-white/[0.06] bg-black/60 p-4 shadow-2xl backdrop-blur-xl sm:flex"
+          className="fixed top-20 left-6 z-40 hidden max-w-[240px] flex-col gap-2 rounded-2xl border border-white/[0.06] bg-black/60 p-4 shadow-2xl backdrop-blur-xl sm:flex"
           initial={{ opacity: 0, x: -24 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -24 }}

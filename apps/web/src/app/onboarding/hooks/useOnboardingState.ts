@@ -13,6 +13,7 @@ import type {
 } from "../types";
 import { ONBOARDING_SECTIONS, EMPTY_BUSINESS_DATA } from "../types";
 import { mergeBusinessData } from "../lib/data-merger";
+import type { PlacesData } from "../lib/data-merger";
 import { suggestSeason } from "../lib/season-suggestions";
 import { getDepartmentsForIndustry, resolveNaceCode } from "../lib/industry-defaults";
 
@@ -32,6 +33,7 @@ export interface OnboardingActions {
   completeSection: (section: OnboardingSection) => void;
   saveMemory: (content: string) => void;
   removeMemory: (id: string) => void;
+  resetScrape: () => void;
   finalize: () => Promise<void>;
   reset: () => Promise<void>;
 }
@@ -44,6 +46,7 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [onboardingWorkspaceId, setOnboardingWorkspaceId] = useState<string | null>(null);
 
   const [business, setBusiness] = useState<BusinessData>(EMPTY_BUSINESS_DATA);
   const [season, setSeason] = useState<SeasonData>(suggestSeason());
@@ -92,12 +95,64 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Resume session
+  // Resume session — check for existing onboarding workspace first, then fallback to onboarding_session
   useEffect(() => {
     if (!isAuthenticated || !userId || hasResumed.current) return;
     hasResumed.current = true;
 
     async function resume() {
+      // Try to resume from onboarding workspace first
+      const { data: wsData } = await supabase
+        .from("profile")
+        .select(
+          "workspace_id, workspace:workspace_id(workspace_id, contract_status, intelligence_data, name)",
+        )
+        .eq("user_id", userId!)
+        .limit(10);
+
+      if (wsData) {
+        const onboardingProfile = wsData.find((p) => {
+          const ws = p.workspace as unknown as {
+            contract_status: string | null;
+          } | null;
+          return ws?.contract_status === "onboarding";
+        });
+
+        if (onboardingProfile) {
+          const ws = onboardingProfile.workspace as unknown as {
+            workspace_id: string;
+            intelligence_data: Record<string, unknown> | null;
+            name: string;
+          };
+
+          setOnboardingWorkspaceId(ws.workspace_id);
+
+          // Restore business data from intelligence_data
+          const intel = ws.intelligence_data;
+          if (intel) {
+            const scraped = intel.scraped as Record<string, unknown> | null;
+            const brreg = intel.brreg as Record<string, unknown> | null;
+            const places = intel.places as PlacesData | null;
+
+            const merged = mergeBusinessData(scraped, brreg, places);
+            const sourceUrl = intel.source_url as string | null;
+            if (!merged.website && sourceUrl && !sourceUrl.startsWith("brreg:")) {
+              merged.website = sourceUrl;
+            }
+            setBusiness(merged);
+            setScrapeStatus("done");
+
+            // Auto-populate departments from industry
+            const nace = merged.industryCode || resolveNaceCode(merged.industry);
+            const suggestedDepts = getDepartmentsForIndustry(nace);
+            setDepartments(suggestedDepts);
+          }
+
+          return; // Resumed from workspace
+        }
+      }
+
+      // Fallback: try legacy onboarding_session
       const { data } = await supabase
         .from("onboarding_session")
         .select("id, current_step, scraped_data")
@@ -127,37 +182,67 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
     resume();
   }, [isAuthenticated, userId]);
 
-  // Auto-save with debounce
+  // Auto-save with debounce — save to workspace intelligence_data if we have one
   const save = useCallback(
     async (sectionName: OnboardingSection) => {
       if (!isAuthenticated || !userId) return;
 
-      const stepIndex = ONBOARDING_SECTIONS.indexOf(sectionName);
-      const now = new Date().toISOString();
-      const payload = {
-        user_id: userId,
-        current_step: stepIndex,
-        scraped_data: {
-          companyName: business.name,
-          email: business.email,
-          phone: business.phone,
-          summary: business.description,
-        } as unknown as Json,
-        updated_at: now,
-      };
-
-      if (sessionId) {
-        await supabase.from("onboarding_session").update(payload).eq("id", sessionId);
-      } else {
-        const { data } = await supabase
-          .from("onboarding_session")
-          .insert({ ...payload, started_at: now })
-          .select("id")
+      if (onboardingWorkspaceId) {
+        // Merge into existing intelligence_data — never overwrite pipeline results
+        const now = new Date().toISOString();
+        const { data: existing } = await supabase
+          .from("workspace")
+          .select("intelligence_data")
+          .eq("workspace_id", onboardingWorkspaceId)
           .single();
-        if (data) setSessionId(data.id);
+
+        const existingData = (existing?.intelligence_data as Record<string, unknown>) ?? {};
+
+        await supabase
+          .from("workspace")
+          .update({
+            intelligence_data: {
+              ...existingData,
+              last_saved_section: sectionName,
+              updated_at: now,
+              business_snapshot: {
+                name: business.name,
+                email: business.email,
+                phone: business.phone,
+                description: business.description,
+              },
+            } as unknown as Json,
+          })
+          .eq("workspace_id", onboardingWorkspaceId);
+      } else {
+        // Legacy: save to onboarding_session
+        const stepIndex = ONBOARDING_SECTIONS.indexOf(sectionName);
+        const now = new Date().toISOString();
+        const payload = {
+          user_id: userId,
+          current_step: stepIndex,
+          scraped_data: {
+            companyName: business.name,
+            email: business.email,
+            phone: business.phone,
+            summary: business.description,
+          } as unknown as Json,
+          updated_at: now,
+        };
+
+        if (sessionId) {
+          await supabase.from("onboarding_session").update(payload).eq("id", sessionId);
+        } else {
+          const { data } = await supabase
+            .from("onboarding_session")
+            .insert({ ...payload, started_at: now })
+            .select("id")
+            .single();
+          if (data) setSessionId(data.id);
+        }
       }
     },
-    [isAuthenticated, userId, sessionId, business, supabase],
+    [isAuthenticated, userId, sessionId, onboardingWorkspaceId, business, supabase],
   );
 
   // Section management
@@ -198,8 +283,14 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
 
         if (error) throw new Error("Scraping failed");
 
-        const { scrapedData, brregData } = data;
-        const merged = mergeBusinessData(scrapedData, brregData);
+        const { scrapedData, brregData, placesData, workspaceId } = data;
+
+        // Store the workspace ID from the pipeline
+        if (workspaceId) {
+          setOnboardingWorkspaceId(workspaceId);
+        }
+
+        const merged = mergeBusinessData(scrapedData, brregData, placesData as PlacesData | null);
 
         if (!merged.website && url) {
           merged.website = url;
@@ -250,9 +341,34 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
     setMemories((prev) => prev.filter((m) => m.id !== id));
   }, []);
 
-  // Reset — clear all state and delete DB session
+  // Reset scrape — go back to input fields
+  const resetScrape = useCallback(() => {
+    setScrapeStatus("idle");
+    setScrapeSource(null);
+    setBusiness(EMPTY_BUSINESS_DATA);
+    setDepartments([]);
+  }, []);
+
+  // Reset — clear all state and delete onboarding workspace or DB session
   const reset = useCallback(async () => {
-    // Delete DB session if one exists
+    // Delete onboarding workspace if one exists (only if still in onboarding state)
+    if (onboardingWorkspaceId) {
+      // Verify it's still in onboarding state before deleting
+      const { data: ws } = await supabase
+        .from("workspace")
+        .select("contract_status")
+        .eq("workspace_id", onboardingWorkspaceId)
+        .single();
+
+      if (ws?.contract_status === "onboarding") {
+        // Delete profile, company_member, workspace, company in order
+        // The cascade should handle most of this, but be explicit
+        await supabase.from("profile").delete().eq("workspace_id", onboardingWorkspaceId);
+        await supabase.from("workspace").delete().eq("workspace_id", onboardingWorkspaceId);
+      }
+    }
+
+    // Legacy: delete DB session if one exists
     if (sessionId) {
       await supabase.from("onboarding_session").delete().eq("id", sessionId);
     }
@@ -271,53 +387,77 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
     setScrapeStatus("idle");
     setScrapeSource(null);
     setSessionId(null);
+    setOnboardingWorkspaceId(null);
     setActivatedWorkspaceId(null);
     setActivatedWorkspaceSlug(null);
 
     // Allow session resume to fire again on next auth check
     hasResumed.current = false;
-  }, [sessionId, supabase]);
+  }, [sessionId, onboardingWorkspaceId, supabase]);
 
-  // Finalize
+  // Finalize — use finalize-workspace if we have an onboarding workspace, else activate-workspace
   const finalize = useCallback(async () => {
     try {
       const selectedDepts = departments
         .filter((d) => d.selected)
         .map((d) => ({ name: d.name, positions: d.positions }));
 
-      const { data, error } = await supabase.functions.invoke("activate-workspace", {
-        body: {
-          workspaceData: {
-            name: business.name,
-            email: business.email,
-            phone: business.phone,
-            address: `${business.address}, ${business.postalCode} ${business.city}`,
-            industry: business.industry,
-            employeeCount: business.employeeCount,
-            summary: business.description,
-            departments: selectedDepts,
-            seasonName: season.name,
-            seasonStartDate: season.startDate,
-            seasonEndDate: season.endDate,
+      const workspacePayload = {
+        name: business.name,
+        legalName: business.legalName,
+        orgNumber: business.orgNumber,
+        email: business.email,
+        phone: business.phone,
+        address: `${business.address}, ${business.postalCode} ${business.city}`,
+        industry: business.industry,
+        industryCode: business.industryCode,
+        employeeCount: business.employeeCount,
+        summary: business.description,
+        website: business.website,
+        departments: selectedDepts,
+        seasonName: season.name,
+        seasonStartDate: season.startDate,
+        seasonEndDate: season.endDate,
+      };
+
+      let workspaceId: string;
+      let slug: string | null = null;
+
+      if (onboardingWorkspaceId) {
+        // Finalize existing onboarding workspace
+        const { data, error } = await supabase.functions.invoke("finalize-workspace", {
+          body: {
+            workspaceId: onboardingWorkspaceId,
+            workspaceData: workspacePayload,
           },
-        },
-      });
+        });
 
-      if (error) throw new Error("Failed to activate workspace");
+        if (error) throw new Error("Failed to finalize workspace");
+        workspaceId = data?.workspaceId;
+        slug = data?.slug ?? null;
+      } else {
+        // Legacy: activate-workspace for old flow
+        const { data, error } = await supabase.functions.invoke("activate-workspace", {
+          body: { workspaceData: workspacePayload },
+        });
 
-      const workspaceId = data?.workspaceId;
+        if (error) throw new Error("Failed to activate workspace");
+        workspaceId = data?.workspaceId;
+
+        const { data: ws } = await supabase
+          .from("workspace")
+          .select("slug")
+          .eq("workspace_id", workspaceId)
+          .single();
+        slug = ws?.slug ?? null;
+      }
+
       if (!workspaceId) throw new Error("No workspace ID returned");
 
       setActivatedWorkspaceId(workspaceId);
+      setActivatedWorkspaceSlug(slug);
 
-      const { data: ws } = await supabase
-        .from("workspace")
-        .select("slug")
-        .eq("workspace_id", workspaceId)
-        .single();
-
-      setActivatedWorkspaceSlug(ws?.slug ?? null);
-
+      // Mark legacy session as completed if it exists
       if (sessionId) {
         await supabase
           .from("onboarding_session")
@@ -331,7 +471,7 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
       console.error("Finalization error:", err);
       throw err;
     }
-  }, [business, season, departments, sessionId, supabase]);
+  }, [business, season, departments, sessionId, onboardingWorkspaceId, supabase]);
 
   return {
     currentSection,
@@ -339,6 +479,7 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
     isAuthenticated,
     userId,
     sessionId,
+    onboardingWorkspaceId,
     business,
     season,
     departments,
@@ -356,6 +497,7 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
     completeSection,
     saveMemory,
     removeMemory,
+    resetScrape,
     finalize,
     reset,
   };

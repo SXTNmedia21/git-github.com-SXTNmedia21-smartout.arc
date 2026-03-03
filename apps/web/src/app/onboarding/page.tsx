@@ -6,7 +6,10 @@ import { motion } from "framer-motion";
 import { OnboardingProvider, useOnboarding } from "./WizardContext";
 import { ParallaxBackground } from "./components/ParallaxBackground";
 import { BotssonAvatar } from "./components/BotssonAvatar";
+import { VoiceSessionOverlay } from "./components/VoiceSessionOverlay";
 import { KeyFactsPanel } from "./components/KeyFactsPanel";
+import { NavigationController } from "./components/NavigationController";
+import { AgentControlPanel } from "./components/AgentControlPanel";
 import { AgentCard } from "@/components/agent-card";
 import { getMission } from "@smartout/ai/missions";
 import { HeroSection } from "./sections/HeroSection";
@@ -45,12 +48,14 @@ function ProgressBar() {
 const mission = getMission("onboarding-interview");
 
 function ScrollContainer() {
-  const { containerRef, botsson } = useOnboarding();
+  const { containerRef, botsson, activeSection } = useOnboarding();
   const [cardOpen, setCardOpen] = useState(false);
+  const showVoiceOverlay = botsson.status !== "idle" && activeSection === "hero";
 
   return (
     <>
       <ProgressBar />
+      <NavigationController />
       <KeyFactsPanel />
 
       <main
@@ -79,17 +84,26 @@ function ScrollContainer() {
         })}
       </main>
 
-      <BotssonAvatar
-        status={botsson.status}
-        isConnected={botsson.isConnected}
-        isSpeaking={botsson.isSpeaking}
-        isMuted={botsson.isMuted}
-        currentText={botsson.currentText}
-        onToggleMic={botsson.toggleMic}
-        onStart={botsson.startSession}
-        onEnd={botsson.endSession}
-        onShowCard={() => setCardOpen(true)}
-      />
+      {/* Overlay for voice-first "Assistert" mode */}
+      {showVoiceOverlay && <VoiceSessionOverlay />}
+
+      {/* Agent control panel — send stages & referral messages */}
+      {!showVoiceOverlay && <AgentControlPanel />}
+
+      {/* Regular bottom-right avatar — hidden during overlay */}
+      {!showVoiceOverlay && (
+        <BotssonAvatar
+          status={botsson.status}
+          isConnected={botsson.isConnected}
+          isSpeaking={botsson.isSpeaking}
+          isMuted={botsson.isMuted}
+          currentText={botsson.currentText}
+          onToggleMic={botsson.toggleMic}
+          onStart={botsson.startSession}
+          onEnd={botsson.endSession}
+          onShowCard={() => setCardOpen(true)}
+        />
+      )}
 
       {mission && (
         <AgentCard

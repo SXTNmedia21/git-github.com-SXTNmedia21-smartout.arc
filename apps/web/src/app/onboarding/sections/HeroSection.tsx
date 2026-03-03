@@ -84,13 +84,12 @@ export function HeroSection() {
                     type="button"
                     onClick={() => {
                       void botsson.startSession();
-                      completeSection("hero");
+                      // completeSection("hero") removed — Lise drives the transition via advanceToNextSection
                     }}
-                    className="flex w-full items-center justify-center gap-3 rounded-2xl bg-white px-6 py-4 text-lg font-semibold text-black transition-colors hover:bg-white/90"
+                    className="flex w-full items-center justify-center gap-3 rounded-2xl bg-white px-8 py-5 text-xl font-semibold text-black transition-colors hover:bg-white/90"
                   >
-                    <Mic className="h-5 w-5" />
-                    Guidet med Lise
-                    <ArrowRight className="h-5 w-5" />
+                    <Mic className="h-6 w-6" />
+                    Assistert
                   </button>
                   <p className="text-center text-sm text-white/30">~5 min</p>
                 </div>
@@ -99,10 +98,10 @@ export function HeroSection() {
                   <button
                     type="button"
                     onClick={() => completeSection("hero")}
-                    className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.05] px-6 py-4 text-lg font-semibold text-white/70 transition-colors hover:bg-white/[0.08]"
+                    className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.05] px-8 py-5 text-xl font-semibold text-white/70 transition-colors hover:bg-white/[0.08]"
                   >
-                    <PenLine className="h-5 w-5" />
-                    Manuelt oppsett
+                    <PenLine className="h-6 w-6" />
+                    Manuelt
                   </button>
                   <p className="text-center text-sm text-white/30">~10 min</p>
                 </div>
@@ -176,7 +175,7 @@ export function HeroSection() {
                 <button
                   type="button"
                   onClick={() => setShowEmailForm(true)}
-                  className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.05] px-8 py-4 text-base text-white/70 transition-colors hover:bg-white/[0.08]"
+                  className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.05] px-8 py-4 text-lg font-semibold text-white/70 transition-colors hover:bg-white/[0.08]"
                 >
                   <Mail className="h-5 w-5" />
                   Opprett konto med e-post

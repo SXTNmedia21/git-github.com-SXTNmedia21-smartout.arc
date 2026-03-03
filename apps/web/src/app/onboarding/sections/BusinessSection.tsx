@@ -1,13 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { Globe, Hash, Pencil, Check, ArrowRight } from "lucide-react";
+import {
+  Globe,
+  Hash,
+  Pencil,
+  Check,
+  ArrowRight,
+  Star,
+  MapPin,
+  ExternalLink,
+  RotateCcw,
+} from "lucide-react";
 import { useOnboarding } from "../WizardContext";
 import { SectionReveal, RevealItem } from "../components/SectionReveal";
 import { DataMaterializer } from "../components/DataMaterializer";
 
 export function BusinessSection() {
-  const { business, scrapeStatus, triggerScrape, updateBusiness, completeSection } =
+  const { business, scrapeStatus, triggerScrape, updateBusiness, completeSection, resetScrape } =
     useOnboarding();
 
   const [urlInput, setUrlInput] = useState(business.website ?? "");
@@ -294,6 +304,63 @@ export function BusinessSection() {
             />
           </div>
 
+          {/* Google Places data */}
+          {(business.googleRating != null || business.googleMapsUrl) && (
+            <div className="mt-6 rounded-xl border border-white/[0.04] bg-white/[0.03] p-5">
+              <div className="mb-3 flex items-center gap-2 text-xs font-medium tracking-wide text-white/30 uppercase">
+                <MapPin className="h-3.5 w-3.5" />
+                Google
+              </div>
+
+              <div className="space-y-3">
+                {business.googleRating != null && (
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: 5 }, (_, i) => (
+                        <Star
+                          key={i}
+                          className={`h-4 w-4 ${
+                            i < Math.round(business.googleRating!)
+                              ? "fill-amber-400 text-amber-400"
+                              : "text-white/20"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-sm text-white">
+                      {business.googleRating}
+                      {business.googleRatingCount != null && (
+                        <span className="text-white/40">
+                          {" "}
+                          ({business.googleRatingCount} anmeldelser)
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                )}
+
+                {business.priceLevel && (
+                  <div>
+                    <span className="text-xs text-white/40">Prisnivå</span>
+                    <span className="ml-2 text-sm text-white">{business.priceLevel}</span>
+                  </div>
+                )}
+
+                {business.googleMapsUrl && (
+                  <a
+                    href={business.googleMapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-sm text-blue-400 transition-colors hover:text-blue-300"
+                  >
+                    Se på Google Maps
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Confirm button */}
           <button
             type="button"
@@ -303,6 +370,17 @@ export function BusinessSection() {
             Ser riktig ut
             <Check className="h-4 w-4" />
           </button>
+
+          <div className="mt-3 text-center">
+            <button
+              type="button"
+              onClick={resetScrape}
+              className="inline-flex items-center gap-1.5 text-sm text-white/30 transition-colors hover:text-white/50"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Skann på nytt
+            </button>
+          </div>
         </div>
       </RevealItem>
     </SectionReveal>

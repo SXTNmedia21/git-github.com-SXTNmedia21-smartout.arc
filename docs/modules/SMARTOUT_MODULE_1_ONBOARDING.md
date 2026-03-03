@@ -30,7 +30,7 @@ changelog:
   - date: 2026-02-28
     change: "Added YAML frontmatter"
   - date: 2026-03-03
-    change: "v3.0: Audit against codebase. Updated wizard (15 steps), invitation table naming, SendGrid, emergency contact on user_identity. Added implementation status markers, Roadmap section. Created ADR-0043/44/45, Learning-0014/15."
+    change: "v3.0: Audit against codebase. Updated wizard (15 steps), invitation table naming, SendGrid, emergency contact on user_identity. Added implementation status markers, Roadmap section. Created ADR-0043/44/45, Learning-0016/17."
 ---
 
 # Module 1: Onboarding & Brukerregistrering
@@ -111,7 +111,7 @@ Admin visits smartout.ai landing page
 
 ### 2.2 Workspace Setup Wizard (15 Steps)
 
-The wizard is implemented as 15 independent step components with 4 modal drawers, managed by `useOnboardingWizard` context hook. State is progressively saved to `onboarding_session` table (JSONB + step index) with 500ms debounce. See Learning-0015.
+The wizard is implemented as 15 independent step components with 4 modal drawers, managed by `useOnboardingWizard` context hook. State is progressively saved to `onboarding_session` table (JSONB + step index) with 500ms debounce. See Learning-0017.
 
 ```
 WORKSPACE SETUP (15 steps)
@@ -586,7 +586,7 @@ invitation ✅ IMPLEMENTED
   updated_at           timestamp
 
 
--- Admin wizard session persistence (Learning-0015: progressive save pattern)
+-- Admin wizard session persistence (Learning-0017: progressive save pattern)
 -- Migration: 00009_onboarding_v3.sql
 onboarding_session ✅ IMPLEMENTED
   id                   uuid (PK)
@@ -813,7 +813,7 @@ All decisions made during the design process:
 | 21  | Invitation table naming       | `invitation` not `workspace_invite` (ADR-0044)                       | Follows snake_case singular convention. workspace_id FK provides scoping.                 |
 | 22  | Email provider                | SendGrid not Resend (ADR-0045)                                       | Already integrated in notifications package. Twilio/SendGrid = one vendor.                |
 | 23  | Wizard architecture           | 15 step components + 4 drawers + context hook (ADR-0041)             | Extracted from 1,882-line monolith. Each step independently testable.                     |
-| 24  | Progressive save              | JSONB + 500ms debounce to `onboarding_session` (Learning-0015)       | Resilient to browser close. Schema changes need no migration.                             |
+| 24  | Progressive save              | JSONB + 500ms debounce to `onboarding_session` (Learning-0017)       | Resilient to browser close. Schema changes need no migration.                             |
 
 ---
 
@@ -843,7 +843,7 @@ Specific considerations for migration from Bubble to Next.js/Supabase:
 - ✅ `invitation` table has RLS: admins/managers can create invites; token-based acceptance via Edge Function
 - ✅ Invite token validation via `accept-invitation` Edge Function (verify token, check expiry, create auth.users + user_identity + profile)
 - ✅ Admin wizard uses `activate_workspace_v3` RPC for atomic workspace creation
-- ✅ Progressive save to `onboarding_session` JSONB (Learning-0015)
+- ✅ Progressive save to `onboarding_session` JSONB (Learning-0017)
 - ⏳ Bulk CSV import — not yet implemented, will be processed server-side via Edge Function
 - ⏳ Sandbox mode — not yet enforced at API layer: will check `Profile.status === 'trainee'` before writing to operational tables
 - ⏳ Module journey checkpoints — seed data to be inserted via migration scripts, versioned with module releases

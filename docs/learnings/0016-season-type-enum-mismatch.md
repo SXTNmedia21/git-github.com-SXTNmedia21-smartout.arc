@@ -1,14 +1,14 @@
 ---
 title: "Season Type Enum Mismatch"
-id: LEARNING_0014
+id: "0016"
 status: canonical
 layer: learning
 created: 2026-03-03
-updated: 2026-03-03
+updated: 2026-03-12
 tags: [enum, onboarding, database, frontend]
 ---
 
-# Learning-0014: Season Type Enum Mismatch Between Frontend and Database
+# Learning-0016: Season Type Enum Mismatch Between Frontend and Database
 
 ## Context
 
