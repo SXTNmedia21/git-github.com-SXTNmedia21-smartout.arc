@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: in_progress
-updated: 2026-03-12
+updated: 2026-03-14
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -13,7 +13,9 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-_None — all worktrees freed._
+| #    | Branch                          | Module     | Status      | Progress             | Blockers      | Health |
+| ---- | ------------------------------- | ---------- | ----------- | -------------------- | ------------- | ------ |
+| wt-3 | `feat/intelligence-pipeline-v2` | onboarding | in_progress | reviewed + committed | 2 design gaps | clean  |
 
 ## Free Slots
 
@@ -21,7 +23,7 @@ _None — all worktrees freed._
 | ----- | --------- |
 | wt-1  | yes       |
 | wt-2  | yes       |
-| wt-3  | yes       |
+| wt-3  | no        |
 | wt-4  | yes       |
 | wt-5  | yes       |
 | wt-20 | yes       |
@@ -117,3 +119,4 @@ _None._
 | 2026-03-11 | onboarding-redesign              | closed            | 19 commits merged. Scroll-based onboarding, voice agent, Google SSO, reset button, AgentCard. wt-2 freed                                                                                       |
 | 2026-03-11 | (cleanup + housekeeping)         | session ended     | Cherry-picked intelligence pipeline edge functions. Closed agent-profile-system. Pruned 29 stale remote branches. Fixed merge conflicts + stray import. Repo fully clean.                      |
 | 2026-03-12 | (env + twilio + tools)           | session           | Resolved stash conflicts, Twilio Edge Function helper, env consolidation, addKeyFact tool, docs updates.                                                                                       |
+| 2026-03-14 | intelligence-pipeline-v2         | session ended     | Team review (3 agents): 8 bugs fixed, committed ae705b7. 15 files, 1126 insertions. 2 design gaps flagged (dept positions, season dates not consumed by RPC).                                  |

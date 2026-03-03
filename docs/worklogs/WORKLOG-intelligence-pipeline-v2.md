@@ -32,11 +32,10 @@ tags: [worklog, intelligence, pipeline]
 
 ## Remaining
 
-- [ ] Code review fixes from Edge Function review (task #1)
-- [ ] Code review fixes from client code review (task #2)
-- [ ] Run `pnpm turbo typecheck` — must pass with 0 errors
-- [ ] Commit all changes
-- [ ] Feature closure gates: user journeys, manual test cases
+- [ ] Decide on design gap: dept `positions` → RPC expects `teams`
+- [ ] Decide on design gap: season `startDate`/`endDate` not consumed by RPC
+- [ ] Run full `pnpm turbo typecheck`
+- [ ] Write user journeys (`docs/journeys/JOURNEY-intelligence-pipeline-v2.md`)
 - [ ] Feature closure: run `/close-feature`
 
 ## Decisions
@@ -59,3 +58,5 @@ tags: [worklog, intelligence, pipeline]
 | 2026-03-14 | —     | Team review started: 3 parallel reviewers (migration+docs, edge functions, client code)   |
 | 2026-03-14 | —     | Migration review: fixed `season_type` default 'standard' → 'default' (invalid enum value) |
 | 2026-03-14 | —     | Documentation updated: plan, worklog, decision log, learning log                          |
+| 2026-03-14 | —     | All review fixes committed (ae705b7). 8 bugs fixed, typecheck clean.                      |
+| 2026-03-14 | —     | Session ended. 2 design gaps pending decision.                                            |

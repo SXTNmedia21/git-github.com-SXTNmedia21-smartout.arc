@@ -13,30 +13,30 @@ tags: [session, boot-sequence, continuity]
 
 ## Last Session
 
-| Field   | Value                                   |
-| ------- | --------------------------------------- |
-| Date    | 2026-03-11                              |
-| Branch  | `development`                           |
-| Feature | env consolidation + Twilio + addKeyFact |
-| Status  | in_progress                             |
+| Field   | Value                           |
+| ------- | ------------------------------- |
+| Date    | 2026-03-14                      |
+| Branch  | `feat/intelligence-pipeline-v2` |
+| Feature | intelligence-pipeline-v2 review |
+| Status  | in_progress                     |
 
 ### What was done
 
-- Resolved 3 stash conflict files (WizardContext.tsx, useBotsson.ts, registry.ts)
-- Created shared Twilio SMS helper for Edge Functions (`supabase/functions/_shared/twilio.ts`)
-- Refactored `create-invitation` to use shared Twilio helper
-- Fixed `saveMemory` type signature mismatch in BotssonActions (1-param vs 3-param)
-- Implemented `addKeyFact` client tool for voice agent (label+value → KeyFactsPanel)
-- Updated PACKAGES.md (added `./sms` export), ENV_VARS.md (Edge Function + service vars)
-- Consolidated all env vars into single `.env.example` (done in previous sub-session)
-- Fixed Brreg name matching + daglig leder fallback (done in previous sub-session)
-- Typecheck 18/18 passing, pushed to development
+- Fixed `database.types.ts` first-line leak (`Connecting to db 5432`)
+- Ran 3-agent team review in parallel:
+  - **Edge Functions**: 5 bugs fixed (untyped catch, wrong 401, `|| null` for 0 employees, missing CORS import, non-null assertion)
+  - **Client code**: 2 bugs fixed (save function wiped intelligence_data, middleware missing onboarding gate)
+  - **Migration**: 1 critical bug fixed (`season_type` default `'standard'` → `'default'`), all docs updated
+- Committed everything as `ae705b7` — 15 files, 1126 insertions
+- Typecheck passes clean
 
 ### Where we stopped
 
-- `addKeyFact` tool implemented but not yet committed
-- Docs updates (PACKAGES.md, ENV_VARS.md, SESSION.md, DASHBOARD.md) not yet committed
-- Some unstaged onboarding files from stash restoration still on disk
+- Feature committed but not closed — still needs:
+  - User journeys (`docs/journeys/JOURNEY-intelligence-pipeline-v2.md`)
+  - 2 design gaps to decide on: dept `positions` dropped by RPC, season `startDate`/`endDate` dropped by RPC
+  - Full `pnpm turbo typecheck` (only ran web filter)
+  - `/close-feature`
 
 ### Known blockers / errors
 
@@ -44,11 +44,12 @@ tags: [session, boot-sequence, continuity]
 
 ### Pending decisions
 
+- [ ] Design gap: `positions` array sent by client but finalize RPC expects `teams` — needs mapping or RPC update
+- [ ] Design gap: Season `startDate`/`endDate` sent by client but RPC ignores them — add to season INSERT?
 - [ ] Push migrations to production (`supabase db push`) — Pontus
 - [ ] CI migration validation job (GitHub Actions) — Claude can write
 - [ ] Set up staging Supabase environment — Pontus
 - [ ] Enable `supabase_vault` extension on production
-- [ ] Lock down port 8000 on droplet with UFW
 
 ---
 
