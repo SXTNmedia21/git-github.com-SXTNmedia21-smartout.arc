@@ -1,6 +1,6 @@
 // packages/ai/src/capabilities/guardian/index.ts
 import type { SmartoutTool } from "../../types.js";
-import type { AgentToolContext, CapabilityDefinition } from "../types.js";
+import type { AgentToolContext, CapabilityDefinition, CapabilityName } from "../types.js";
 import { getSignals, acknowledgeSignal, getWorkspaceHealth } from "./tools.js";
 
 const allTools = [getSignals, acknowledgeSignal, getWorkspaceHealth] as unknown as ReadonlyArray<
@@ -16,7 +16,7 @@ const suggestTools = [acknowledgeSignal] as unknown as ReadonlyArray<
 >;
 
 export const guardianCapability: CapabilityDefinition = {
-  name: "guardian",
+  name: "knowledge" as CapabilityName, // deprecated — guardian is being replaced by ui capability
   description:
     "Workspace health monitoring: readiness alerts, maturity signals, and agent behavior tracking",
   tools: allTools,

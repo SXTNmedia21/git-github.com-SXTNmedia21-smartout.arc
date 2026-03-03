@@ -10,7 +10,7 @@ export type CapabilityName =
   | "communication"
   | "memory"
   | "payroll"
-  | "guardian";
+  | "ui";
 
 export type AuthorityLevel = "autonomous" | "confirm" | "suggest" | "read_only" | "disabled";
 
