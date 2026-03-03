@@ -108,6 +108,10 @@
     "./context/types": {
       "types": "./dist/context/types.d.ts",
       "default": "./dist/context/types.js"
+    },
+    "./context/collector": {
+      "types": "./dist/context/collector.d.ts",
+      "default": "./dist/context/collector.js"
     }
   },
   "scripts": {
