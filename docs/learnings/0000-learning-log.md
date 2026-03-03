@@ -34,3 +34,17 @@ tags: [learnings]
 | 2   | 2026-03-06 | TS strict mode with `noUncheckedIndexedAccess`: `Array.reduce()` without initial value makes `previousValue` possibly undefined. Fix: provide explicit initial value with narrowing guard (`const first = arr[0]; if (!first) return; reduce(..., first)`). | Fixed 5 typecheck errors in SeasonOverviewTab                     |
 | 3   | 2026-03-06 | `npx supabase gen types typescript --local` leaks stderr ("Connecting to db 5432") into stdout when redirected. Must strip first line manually after generation.                                                                                            | Prevented broken database.types.ts                                |
 | 4   | 2026-03-06 | vitest config only includes `src/**/__tests__/**/*.test.ts` — tests outside `__tests__/` dirs are silently ignored.                                                                                                                                         | Placed test file correctly on first attempt after checking config |
+status: in_progress
+updated: 2026-03-04
+created: 2026-03-03
+module: operations
+tags: [learnings]
+---
+
+# Learning Log — daily-standup
+
+| #   | Date       | Learning                                                                                                                                        | Impact                     |
+| --- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| 1   | 2026-03-04 | engine_process vs engine_missions: Domain process engine is SEPARATE from Stage Engine (AI conversations). Different tables, different purpose. | Critical naming awareness  |
+| 2   | 2026-03-04 | Norwegian POS receipts use comma as decimal separator and NOK/kr prefix. OCR regex must handle both formats.                                    | OCR parser accuracy        |
+| 3   | 2026-03-04 | Settlement validation uses dual threshold: percentage OR absolute amount, whichever is greater. Prevents false positives on small amounts.      | Business logic correctness |

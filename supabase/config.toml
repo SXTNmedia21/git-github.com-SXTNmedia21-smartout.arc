@@ -118,6 +118,11 @@ public = false
 file_size_limit = "10MiB"
 allowed_mime_types = ["application/pdf"]
 
+[storage.buckets.settlements]
+public = false
+file_size_limit = "10MiB"
+allowed_mime_types = ["image/jpeg", "image/png", "image/webp", "image/heic"]
+
 # Allow connections via S3 compatible clients
 [storage.s3_protocol]
 enabled = true
@@ -411,4 +416,13 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.sendgrid-webhook]
+verify_jwt = false
+
+[functions.process-settlement-image]
+verify_jwt = false
+
+[functions.validate-settlement]
+verify_jwt = false
+
+[functions.engine-dispatch]
 verify_jwt = false
