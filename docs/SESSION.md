@@ -1,7 +1,7 @@
 ---
 title: Session Log
 status: in_progress
-updated: 2026-03-10
+updated: 2026-03-11
 created: 2026-03-02
 module: meta
 tags: [session, boot-sequence, continuity]
@@ -13,39 +13,43 @@ tags: [session, boot-sequence, continuity]
 
 ## Last Session
 
-| Field   | Value                      |
-| ------- | -------------------------- |
-| Date    | 2026-03-11                 |
-| Branch  | `feat/onboarding-redesign` |
-| Feature | onboarding-redesign        |
-| Status  | ready_for_closure          |
+| Field   | Value                  |
+| ------- | ---------------------- |
+| Date    | 2026-03-11             |
+| Branch  | `development`          |
+| Feature | cleanup + housekeeping |
+| Status  | done                   |
 
 ### What was done
 
-- Completed UI polish: controlled scroll, soft borders, luxury easing, performance optimization
-- Redesigned login: Google SSO primary, collapsible email form
-- Added reset button with proper state + DB session cleanup
-- Added AgentCard panel for voice agent inspection
-- Wired mission registry for onboarding-interview
-- All closure gates verified: WORKLOG, decisions (6), learnings (5), journey (5 flows)
-- Typecheck passes (18/18)
-- Branch already merged to development, docs commit pushed
+- Pushed development to origin (16 commits of migration remediation work)
+- Closed `feat/agent-profile-system` — all closure gates (worklog, journeys, decisions, learnings), wt-1 + branch removed
+- Committed docs housekeeping (narratives, completed plans, infra env example)
+- Cherry-picked 4 commits from `feat/onboarding-intelligence-pipeline` (edge function rewrites, Serper.dev, env vars)
+- Skipped 3 obsolete pipeline commits (conflicted with merged onboarding-redesign)
+- Fixed merge conflict markers in `onboarding/types.ts`
+- Fixed stray `keys-page-client.tsx` (EnvImportDialog wiring)
+- Pruned 29 stale remote `feat/*` branches + 1 orphan `worktree-stage-enginen`
+- Removed wt-3 worktree + local pipeline branch
 
 ### Where we stopped
 
-- Feature ready for closure
-- Run: `~/.claude/scripts/close-feature.sh 2`
+- Repo fully clean: `development` + `main` only (local + remote)
+- No active worktrees, all slots free
+- Typecheck 18/18 FULL TURBO
+- 6 unstaged files on development from another session (env consolidation + gather-intelligence + env-import-dialog)
 
 ### Known blockers / errors
 
-- None (all gates passed)
+- None
 
 ### Pending decisions
 
-- [ ] Continue onboarding-intelligence-pipeline (wt-3)
-- [ ] Sign up for Serper.dev and get API key
-- [ ] Run DailyCloseEngine DB migrations and regenerate `database.types.ts`
+- [ ] Push migrations to production (`supabase db push`) — Pontus
+- [ ] CI migration validation job (GitHub Actions) — Claude can write
+- [ ] Set up staging Supabase environment — Pontus
 - [ ] Enable `supabase_vault` extension on production
+- [ ] Lock down port 8000 on droplet with UFW
 
 ---
 

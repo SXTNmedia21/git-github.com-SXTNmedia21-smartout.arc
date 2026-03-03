@@ -13,9 +13,7 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #   | Branch                                  | Module     | Status      | Progress        | Blocker | State |
-| --- | --------------------------------------- | ---------- | ----------- | --------------- | ------- | ----- |
-| 3   | `feat/onboarding-intelligence-pipeline` | onboarding | in_progress | 5 commits + WIP | —       | dirty |
+_None — all worktrees freed._
 
 ## Free Slots
 
@@ -23,15 +21,14 @@ tags: [dashboard, worktrees, tracking]
 | ----- | --------- |
 | wt-1  | yes       |
 | wt-2  | yes       |
+| wt-3  | yes       |
 | wt-4  | yes       |
 | wt-5  | yes       |
 | wt-20 | yes       |
 
 ## Pending Journeys
 
-| Worktree | Feature                          | Journey File                                                | Status  |
-| -------- | -------------------------------- | ----------------------------------------------------------- | ------- |
-| wt-3     | onboarding-intelligence-pipeline | `docs/journeys/JOURNEY-onboarding-intelligence-pipeline.md` | missing |
+_None._
 
 ## Recent Closures
 
@@ -60,6 +57,7 @@ tags: [dashboard, worktrees, tracking]
 | 2026-03-08 | daily-standup             | `feat/daily-standup`                                               | development |
 | 2026-03-10 | agent-profile-system      | `feat/agent-profile-system`                                        | development |
 | 2026-03-11 | onboarding-redesign       | `feat/onboarding-redesign`                                         | development |
+| 2026-03-11 | intelligence-pipeline     | cherry-picked from `feat/onboarding-intelligence-pipeline`         | development |
 
 ## Session History
 
@@ -117,3 +115,4 @@ tags: [dashboard, worktrees, tracking]
 | 2026-03-10 | agent-profile-system             | merged+closed     | 10 commits, all 11 tasks. wt-1 removed. Migration, types, posture, context, prompts, relationships, router.                                                                                    |
 | 2026-03-10 | (migration remediation)          | session           | Pushed development (16 commits). Cleaned docs, committed landing variants. Closed agent-profile-system.                                                                                        |
 | 2026-03-11 | onboarding-redesign              | closed            | 19 commits merged. Scroll-based onboarding, voice agent, Google SSO, reset button, AgentCard. wt-2 freed                                                                                       |
+| 2026-03-11 | (cleanup + housekeeping)         | session ended     | Cherry-picked intelligence pipeline edge functions. Closed agent-profile-system. Pruned 29 stale remote branches. Fixed merge conflicts + stray import. Repo fully clean.                      |
