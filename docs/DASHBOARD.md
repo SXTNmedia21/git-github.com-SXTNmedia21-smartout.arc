@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: in_progress
-updated: 2026-03-07
+updated: 2026-03-03
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -97,3 +97,4 @@ _None._
 | 2026-03-07 | operation                   | abandoned         | Empty branch (0 commits). Worktree + branch removed.                                                                                                                                           |
 | 2026-03-07 | daily-standup               | abandoned         | Empty branch (0 commits). Worktree + branch removed.                                                                                                                                           |
 | 2026-03-07 | (comms closure)             | session ended     | Verified comms-finish plan (8/8 tasks), closed feature, cf 2 merged. Clean development.                                                                                                        |
+| 2026-03-03 | DO droplet deployment       | session ended     | Fixed all 5 DO services: env vars, swapped keys, DNS A-records (GoDaddy), TLS certs, contract-service Vault fallback. All services verified working.                                           |
