@@ -18,6 +18,7 @@ import {
   appendConversationTurn,
   getConversationHistory,
 } from "../../core/agent-session.js";
+import { emitGuardianEvent } from "../../core/guardian-bus.js";
 import type { AuthContext } from "../../types/auth.js";
 import type { ConversationTurn } from "../../types/agent.js";
 
@@ -95,6 +96,15 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
   };
   await appendConversationTurn(sessionId, userTurn);
 
+  emitGuardianEvent({
+    session_id: sessionId,
+    workspace_id: auth.workspaceId,
+    event_type: "user.message",
+    actor: "user",
+    summary: body.message.length > 100 ? body.message.slice(0, 100) + "\u2026" : body.message,
+    data: { text: body.message, channel: body.channel },
+  });
+
   // Route message through agent pipeline
   const response = await routeAgentMessage({
     message: body.message,
@@ -112,6 +122,18 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
     timestamp: new Date().toISOString(),
   };
   await appendConversationTurn(sessionId, assistantTurn);
+
+  emitGuardianEvent({
+    session_id: sessionId,
+    workspace_id: auth.workspaceId,
+    event_type: "agent.response",
+    actor: "agent",
+    summary:
+      response.response.length > 100
+        ? response.response.slice(0, 100) + "\u2026"
+        : response.response,
+    data: { text: response.response, intent: response.intent },
+  });
 
   return c.json(response, 200);
 });

@@ -9,6 +9,7 @@
 
 import { supabaseAdmin } from "../lib/supabase.js";
 import { buildStagePrompt } from "./prompt-builder.js";
+import { emitGuardianEvent } from "./guardian-bus.js";
 import type { Mission, Stage, Session } from "../types/session.js";
 import type { CreateSessionRequest, CreateSessionResponse } from "../types/api.js";
 import type { AuthContext } from "../types/auth.js";
@@ -167,6 +168,19 @@ export async function createSession(
     return null;
   }
 
+  emitGuardianEvent({
+    session_id: session.id,
+    workspace_id: req.workspace_id,
+    event_type: "session.started",
+    actor: "system",
+    summary: `Session started: ${req.mission_id}`,
+    data: {
+      mission_id: req.mission_id,
+      channel: req.channel,
+      profile_id: req.profile_id ?? null,
+    },
+  });
+
   // Build stage info for response
   const stageInfo = firstStage
     ? {
@@ -256,6 +270,18 @@ export async function abandonSession(sessionId: string): Promise<Session | null>
     .single();
 
   if (error) return null;
+
+  if (updated) {
+    emitGuardianEvent({
+      session_id: sessionId,
+      workspace_id: updated.workspace_id,
+      event_type: "session.abandoned",
+      actor: "system",
+      summary: "Session abandoned",
+      data: { last_stage: updated.current_stage_id },
+    });
+  }
+
   return updated as Session;
 }
 

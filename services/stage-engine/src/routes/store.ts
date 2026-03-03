@@ -12,6 +12,7 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { loadAuthorizedSession } from "../core/session-manager.js";
 import { validateStoreData, writeToInbox } from "../core/inbox-writer.js";
+import { emitGuardianEvent } from "../core/guardian-bus.js";
 import type { AuthContext } from "../types/auth.js";
 
 const store = new Hono<{ Variables: { auth: AuthContext } }>();
@@ -73,6 +74,15 @@ store.post("/sessions/:id/store", zValidator("json", storeSchema), async (c) => 
   if (!entry) {
     return c.json({ error: "INTERNAL_ERROR", message: "Failed to store data", status: 500 }, 500);
   }
+
+  emitGuardianEvent({
+    session_id: sessionId,
+    workspace_id: session.workspace_id,
+    event_type: "data.collected",
+    actor: "agent",
+    summary: `Data collected: ${body.entity_type}`,
+    data: { entity_type: body.entity_type, inbox_id: entry.id },
+  });
 
   return c.json({
     inbox_id: entry.id,
