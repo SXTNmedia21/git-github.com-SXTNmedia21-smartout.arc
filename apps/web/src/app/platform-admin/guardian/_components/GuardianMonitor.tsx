@@ -1,40 +1,39 @@
 "use client";
 
+// UI Events:
+// - action: subscribe(sessionId) — select a session to monitor
+// - action: whisper(sessionId, message) — send admin whisper to agent
+// - visual: 3-panel layout (sessions | events | details)
+
 import { useMemo } from "react";
-import { Shield } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useGuardianSocket } from "../_hooks/useGuardianSocket";
+import type { GuardianEvent, SessionInfo } from "../_hooks/useGuardianSocket";
 import { SessionList } from "./SessionList";
 import { EventFeed } from "./EventFeed";
 import { SessionDetails } from "./SessionDetails";
 import { WhisperInput } from "./WhisperInput";
 
-export function GuardianMonitor() {
-  const { connected, sessions, events, subscribedSession, subscribe, whisper } =
-    useGuardianSocket();
+type GuardianMonitorProps = {
+  sessions: SessionInfo[];
+  events: GuardianEvent[];
+  subscribedSession: string | null;
+  subscribe: (sessionId: string) => void;
+  whisper: (sessionId: string, message: string) => void;
+};
 
+export function GuardianMonitor({
+  sessions,
+  events,
+  subscribedSession,
+  subscribe,
+  whisper,
+}: GuardianMonitorProps) {
   const selectedSession = useMemo(
     () => sessions.find((s) => s.session_id === subscribedSession) ?? null,
     [sessions, subscribedSession],
   );
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col">
-      {/* Header */}
-      <div className="border-border flex items-center justify-between border-b px-4 py-3">
-        <div className="flex items-center gap-2">
-          <Shield className="text-foreground h-5 w-5" />
-          <h1 className="text-foreground text-lg font-semibold">Guardian Monitor</h1>
-        </div>
-        <div className="flex items-center gap-2 text-sm">
-          {/* Semantic status color — deliberate exception from CSS variable rule */}
-          <div
-            className={cn("h-2 w-2 rounded-full", connected ? "bg-emerald-500" : "bg-destructive")}
-          />
-          <span className="text-muted-foreground">{connected ? "Live" : "Disconnected"}</span>
-        </div>
-      </div>
-
+    <div className="border-border flex h-[calc(100vh-12rem)] flex-col overflow-hidden rounded-lg border">
       {/* Three-panel layout */}
       <div className="grid min-h-0 flex-1 grid-cols-[280px_1fr_320px]">
         {/* Left: Session list */}
@@ -67,7 +66,7 @@ export function GuardianMonitor() {
         {/* Right: Session details */}
         <div>
           <div className="border-border border-b px-3 py-2">
-            <span className="text-muted-foreground text-xs font-medium">Details</span>
+            <span className="text-muted-foreground text-xs font-medium">Detaljer</span>
           </div>
           <div className="h-[calc(100%-33px)]">
             <SessionDetails session={selectedSession} events={events} />

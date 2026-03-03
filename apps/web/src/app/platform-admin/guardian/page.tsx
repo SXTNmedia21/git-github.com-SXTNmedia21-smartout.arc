@@ -1,5 +1,5 @@
-import { GuardianMonitor } from "./_components/GuardianMonitor";
+import { GuardianDashboard } from "./_components/GuardianDashboard";
 
 export default function GuardianPage() {
-  return <GuardianMonitor />;
+  return <GuardianDashboard />;
 }
