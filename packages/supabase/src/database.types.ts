@@ -2409,6 +2409,47 @@ export type Database = {
           },
         ]
       }
+      guardian_log: {
+        Row: {
+          actor: string
+          created_at: string
+          data: Json | null
+          event_type: string
+          id: string
+          session_id: string
+          summary: string
+          workspace_id: string
+        }
+        Insert: {
+          actor: string
+          created_at?: string
+          data?: Json | null
+          event_type: string
+          id?: string
+          session_id: string
+          summary: string
+          workspace_id: string
+        }
+        Update: {
+          actor?: string
+          created_at?: string
+          data?: Json | null
+          event_type?: string
+          id?: string
+          session_id?: string
+          summary?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guardian_log_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       guardian_signal: {
         Row: {
           acknowledged_at: string | null
