@@ -1,6 +1,6 @@
 ---
 title: Learning Log
-status: in_progress
+status: done
 updated: 2026-03-06
 created: 2026-03-03
 module: season-planning

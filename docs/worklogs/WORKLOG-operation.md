@@ -1,6 +1,6 @@
 ---
 title: "Worklog — operation"
-status: in_progress
+status: done
 updated: 2026-03-06
 created: 2026-03-03
 module: season-planning
@@ -11,7 +11,7 @@ tags: [module-15, season, budget, calculations]
 
 > Branch: `feat/operation` | Worktree: wt-1 | Started: 2026-03-03
 
-## Status: 🟡 In Progress
+## Status: Done
 
 ## Done
 
@@ -28,7 +28,7 @@ tags: [module-15, season, budget, calculations]
 
 ## Remaining
 
-- [ ] Feature closure deliverables (journeys, decision log entries, learning log entries)
+- [x] Feature closure deliverables (journeys, decision log entries, learning log entries)
 
 ## Decisions
 
@@ -49,3 +49,4 @@ tags: [module-15, season, budget, calculations]
 | 2026-03-06 | 09:25 | Batch 2: Query keys + 4 hooks + barrel export         |
 | 2026-03-06 | 09:35 | Batch 3: 5 UI components + page, TS strict fixes      |
 | 2026-03-06 | 09:45 | Batch 4: Full verification suite passed               |
+| 2026-03-06 | 10:00 | Feature closure: JOURNEY-operation.md created, WORKLOG updated, all gates verified |
