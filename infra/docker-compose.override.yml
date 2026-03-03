@@ -6,18 +6,9 @@
 # ============================================
 
 services:
-  caddy:
-    volumes:
-      - ./Caddyfile.dev:/etc/caddy/Caddyfile
-    ports:
-      - "3070:3070"
-      - "3071:3071"
-      - "3072:3072"
-      - "3073:3073"
-      - "3074:3074"
-      - "80:80"
-
   stage-engine:
+    ports:
+      - "3070:3000"
     environment:
       - ENGINE_URL=http://localhost:3070
       - LOG_LEVEL=debug

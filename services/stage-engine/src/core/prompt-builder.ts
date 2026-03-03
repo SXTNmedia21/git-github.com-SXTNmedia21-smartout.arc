@@ -91,5 +91,17 @@ export function buildStagePrompt(
     sections.push(`## Tuning Notes\n${stage.tuning_notes}`);
   }
 
-  return sections.join("\n\n");
+  let prompt = sections.join("\n\n");
+
+  // Template variable substitution
+  const now = new Date();
+  const dateStr = now.toLocaleDateString("nb-NO", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  prompt = prompt.replaceAll("{{current_date}}", dateStr);
+
+  return prompt;
 }

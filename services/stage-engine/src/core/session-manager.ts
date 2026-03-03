@@ -62,7 +62,17 @@ export async function loadMission(missionId: string): Promise<LoadMissionResult 
     .eq("is_active", true)
     .single();
 
-  if (missionErr || !mission) return null;
+  if (missionErr || !mission) {
+    console.error(
+      "[loadMission] Failed to load mission:",
+      missionId,
+      "error:",
+      missionErr?.message,
+      "data:",
+      mission,
+    );
+    return null;
+  }
 
   const { data: stages, error: stagesErr } = await supabaseAdmin
     .from("engine_stages")

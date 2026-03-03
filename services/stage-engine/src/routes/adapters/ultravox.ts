@@ -63,8 +63,13 @@ ultravox.post("/adapters/ultravox/create-call", zValidator("json", createCallSch
   }
 
   // Build Ultravox tools pointing back to this engine
+  // Skip tools in local dev (Ultravox requires HTTPS for tool callbacks)
   const apiKey = c.req.header("x-api-key") ?? "";
-  const tools = buildUltravoxTools(config.ENGINE_URL, session.session_id, apiKey);
+  const isLocalDev = config.ENGINE_URL.startsWith("http://");
+  const tools = isLocalDev ? [] : buildUltravoxTools(config.ENGINE_URL, session.session_id, apiKey);
+  if (isLocalDev) {
+    console.warn("[ultravox] Local dev: skipping tools (no HTTPS). Voice-only mode.");
+  }
 
   // Create Ultravox call
   const call = await createUltravoxCall({

@@ -1,7 +1,7 @@
 ---
 title: Session Log
 status: in_progress
-updated: 2026-03-16
+updated: 2026-03-20
 created: 2026-03-02
 module: meta
 tags: [session, boot-sequence, continuity]
@@ -13,35 +13,49 @@ tags: [session, boot-sequence, continuity]
 
 ## Last Session
 
-| Field   | Value                      |
-| ------- | -------------------------- |
-| Date    | 2026-03-16                 |
-| Branch  | `feat/onboarding-pipe`     |
-| Feature | onboarding-pipe + guardian |
-| Status  | in_progress                |
+| Field   | Value              |
+| ------- | ------------------ |
+| Date    | 2026-03-19         |
+| Branch  | `development`      |
+| Feature | onboarding-mission |
+| Status  | done               |
 
 ### What was done
 
-- Started new feature: guardian (wt-1, module: ai)
-- Started new feature: onboarding-pipe (wt-2, module: onboarding)
-- Main repo on `development` (correct state)
+- Completed onboarding-as-mission implementation (11/11 tasks):
+  - Schema migration: journey_id FK on engine_missions, journey_step_id on engine_stages
+  - Shared WebSocket protocol types: UICommand, UserAction, SystemEvent (packages/types)
+  - @hono/node-ws installed for Stage Engine WebSocket support
+  - Connection manager: Map<sessionId, Set<WSContext>> with broadcast
+  - WebSocket route: GET /ws/:sessionId with JWT auth + user action buffering
+  - UI capability: 5 tools (navigate_to, fill_field, highlight_element, show_panel, show_toast)
+  - Agent router wired with broadcast callback + buffered user actions
+  - loadMission() extended to load journey + journeySteps
+  - Seed data aligned with existing onboarding-interview mission (6 stages)
+  - Frontend useJourneySocket hook for WebSocket communication
+  - Typecheck: 18/18 packages pass, 0 errors
+- Reviewed prompt tuning design doc (existing work on stage-engine-routing)
+- Closed wt-1 (platform-admin-polish), freed for future work
+- All branches merged and pushed to development
+- Design doc: docs/plans/2026-03-18-onboarding-as-mission-design.md
+- Implementation plan: docs/plans/2026-03-18-onboarding-as-mission-plan.md
 
 ### Where we stopped
 
-- Both features just initialized, ready for work
+- User mentioned **LiveKit** — discussion pending
+- All worktrees freed, no active feature branches
+- Lise transcriptions: NOT persisted (client-side only in useBotsson.ts)
 
 ### Known blockers / errors
 
-- `feat/onboarding` still has 3 commits not yet merged to development
-- Design gap (from prior session): `positions` array sent by client but finalize RPC expects `teams`
-- Design gap (from prior session): Season `startDate`/`endDate` sent by client but RPC ignores them
+- None
 
 ### Pending decisions
 
-- [ ] Fill in PLAN-guardian.md with scope and tasks
-- [ ] Fill in PLAN-onboarding-pipe.md with scope and tasks
-- [ ] Test + merge feat/onboarding to development (still pending)
+- [ ] LiveKit evaluation — replace Ultravox? Landing page? Onboarding?
 - [ ] Push migrations to production (`supabase db push`) — Pontus
+- [ ] Integrate useJourneySocket with onboarding page (next phase)
+- [ ] Persist Lise transcripts (currently ephemeral, client-side only)
 
 ---
 

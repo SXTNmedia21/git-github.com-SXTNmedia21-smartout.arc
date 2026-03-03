@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: in_progress
-updated: 2026-03-16
+updated: 2026-03-20
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -13,30 +13,26 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #   | Branch                 | Module     | Status      | Progress                         | Blockers | Health |
-| --- | ---------------------- | ---------- | ----------- | -------------------------------- | -------- | ------ |
-| —   | `feat/onboarding`      | onboarding | in_progress | 3 commits, needs testing + merge | —        | clean  |
-| 1   | `feat/guardian`        | ai         | in_progress | just started                     | —        | clean  |
-| 2   | `feat/onboarding-pipe` | onboarding | in_progress | just started                     | —        | clean  |
+| #   | Branch | Module | Status | Progress | Blockers | Health |
+| --- | ------ | ------ | ------ | -------- | -------- | ------ |
+| —   | —      | —      | —      | —        | —        | —      |
 
 ## Free Slots
 
-| #     | Available            |
-| ----- | -------------------- |
-| wt-1  | no (guardian)        |
-| wt-2  | no (onboarding-pipe) |
-| wt-3  | yes                  |
-| wt-4  | yes                  |
-| wt-5  | yes                  |
-| wt-20 | yes                  |
+| #     | Available |
+| ----- | --------- |
+| wt-1  | yes       |
+| wt-2  | yes       |
+| wt-3  | yes       |
+| wt-4  | yes       |
+| wt-5  | yes       |
+| wt-20 | yes       |
 
 ## Pending Journeys
 
-| Worktree | Feature                  | Journey File                                        | Status  |
-| -------- | ------------------------ | --------------------------------------------------- | ------- |
-| wt-3     | intelligence-pipeline-v2 | `docs/journeys/JOURNEY-intelligence-pipeline-v2.md` | missing |
-| wt-1     | guardian                 | `docs/journeys/JOURNEY-guardian.md`                 | missing |
-| wt-2     | onboarding-pipe          | `docs/journeys/JOURNEY-onboarding-pipe.md`          | missing |
+| Worktree | Feature | Journey File | Status |
+| -------- | ------- | ------------ | ------ |
+| —        | —       | —            | —      |
 
 ## Recent Closures
 
@@ -66,6 +62,12 @@ tags: [dashboard, worktrees, tracking]
 | 2026-03-10 | agent-profile-system      | `feat/agent-profile-system`                                        | development |
 | 2026-03-11 | onboarding-redesign       | `feat/onboarding-redesign`                                         | development |
 | 2026-03-11 | intelligence-pipeline     | cherry-picked from `feat/onboarding-intelligence-pipeline`         | development |
+| 2026-03-19 | platform-admin-polish     | `feat/platform-admin-polish`                                       | development |
+| 2026-03-19 | landing-mobile-fix        | `feat/landing-mobile-fix`                                          | development |
+| 2026-03-19 | stage-engine-routing      | `feat/stage-engine-routing`                                        | abandoned   |
+| 2026-03-19 | onboarding-mission        | `feat/onboarding-mission`                                          | development |
+| 2026-03-19 | stage-engine-routing      | `feat/stage-engine-routing`                                        | development |
+| 2026-03-19 | journey-portal-fixes      | `feat/journey-portal-fixes`                                        | development |
 
 ## Session History
 
@@ -136,3 +138,12 @@ tags: [dashboard, worktrees, tracking]
 | 2026-03-15 | branch consolidation             | session ended     | Merged 5 branches (guardian, guardina, intelligence-pipeline-v2, onboarding-v2-flow, w-3) into single `feat/onboarding`. Removed 3 worktrees. Resolved 6 merge conflicts. All slots free.                                                                                                                                 |
 | 2026-03-16 | guardian                         | started           | wt-1, module: ai                                                                                                                                                                                                                                                                                                          |
 | 2026-03-16 | onboarding-pipe                  | started           | wt-2, module: onboarding                                                                                                                                                                                                                                                                                                  |
+| 2026-03-18 | (branch cleanup)                 | done              | Deleted onboarding-pipe (wt-2) + remote onboarding-v2-flow. Only feat/onboarding remains.                                                                                                                                                                                                                                 |
+| 2026-03-18 | frontend-designer agent          | done              | Created .claude/agents/frontend-designer.md + design doc. Deep codebase pattern audit.                                                                                                                                                                                                                                    |
+| 2026-03-18 | platform-admin-polish            | started           | wt-1, module: platform-admin — perf fixes + UI/UX polish                                                                                                                                                                                                                                                                  |
+| 2026-03-19 | platform-admin-polish            | closed            | 10 commits merged to development, wt-1 freed                                                                                                                                                                                                                                                                              |
+| 2026-03-19 | landing-mobile-fix               | started           | wt-1, module: landing                                                                                                                                                                                                                                                                                                     |
+| 2026-03-19 | landing-mobile-fix               | closed            | Merged to development, wt-1 freed                                                                                                                                                                                                                                                                                         |
+| 2026-03-19 | stage-engine-routing             | abandoned         | 0 unique commits, empty branch. wt-3 removed.                                                                                                                                                                                                                                                                             |
+| 2026-03-19 | journey-portal-fixes             | closed            | wt-4: Code review remediation — requireGodmode(), audit logging, icon extraction, pagination, types, date formatting. 10 issues fixed.                                                                                                                                                                                    |
+| 2026-03-19 | onboarding-mission               | closed            | 11/11 tasks: mission-journey FK, protocol types, @hono/node-ws, WS connection manager, WS route, UI capability (5 tools), agent router wiring, journey data loading, seed data, frontend hook, typecheck. All merged to development. User mentioned LiveKit — pending next session.                                       |
