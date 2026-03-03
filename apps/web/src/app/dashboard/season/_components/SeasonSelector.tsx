@@ -1,6 +1,6 @@
 "use client";
 
-import { useSeasons, type Season } from "../_hooks";
+import { useSeasons } from "../_hooks";
 
 type Props = {
   selectedSeasonId: string | null;
