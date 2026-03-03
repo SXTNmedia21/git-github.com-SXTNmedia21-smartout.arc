@@ -17,7 +17,6 @@ const ROUTE_MISSION_MAP: Record<string, MissionId> = {
   "/dashboard/organization": "mr-botsson",
   "/dashboard/onboarding-assistant": "onboarding-interview",
   "/dashboard/ai": "mr-botsson",
-  "/dashboard/guardian": "mr-botsson",
   "/dashboard/settings": "mr-botsson",
   "/dashboard/help": "mr-botsson",
   "/dashboard/my-schedule": "shift-assistant",
@@ -114,7 +113,6 @@ import {
   Banknote,
   FileText,
   CalendarDays,
-  Shield,
   ShieldCheck,
   Mic,
 } from "lucide-react";
@@ -576,15 +574,6 @@ export function DashboardShell({
                   isDark={isDark}
                   ai
                   active={isActive("/dashboard/onboarding-assistant")}
-                  isCollapsed={isSidebarCollapsed}
-                />
-                <NavItem
-                  href="/dashboard/guardian"
-                  icon={Shield}
-                  label="Guardian"
-                  isDark={isDark}
-                  ai
-                  active={isActive("/dashboard/guardian")}
                   isCollapsed={isSidebarCollapsed}
                 />
 
