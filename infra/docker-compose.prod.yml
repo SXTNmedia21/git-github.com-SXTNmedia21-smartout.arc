@@ -34,6 +34,8 @@ services:
 
   scrapling:
     restart: always
+    ports:
+      - "8000:8000"
     deploy:
       resources:
         limits:
