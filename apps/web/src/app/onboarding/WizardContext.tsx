@@ -74,6 +74,22 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     }
   }, [scroll.activeSection, scroll.scrollToSection, state.completeSection]);
 
+  // Save agent memory via API
+  const saveMemory = useCallback(
+    async (content: string, memoryType: string, expiresAt?: string) => {
+      try {
+        await fetch("/api/agent/memory", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content, memoryType, expiresAt }),
+        });
+      } catch {
+        // Silently fail — memory is best-effort
+      }
+    },
+    [],
+  );
+
   // Writable actions the agent can invoke via client tools
   const botssonActions: BotssonActions = useMemo(
     () => ({
@@ -83,6 +99,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       addDepartments,
       triggerScrape: state.triggerScrape,
       advanceToNextSection,
+      saveMemory,
     }),
     [
       getOnboardingState,
@@ -91,6 +108,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       addDepartments,
       state.triggerScrape,
       advanceToNextSection,
+      saveMemory,
     ],
   );
 

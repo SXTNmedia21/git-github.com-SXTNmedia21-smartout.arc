@@ -15,6 +15,7 @@ export interface BotssonActions {
   addDepartments: (names: string[]) => void;
   triggerScrape: (url: string, orgNumber: string) => Promise<void>;
   advanceToNextSection: () => void;
+  saveMemory: (content: string, memoryType: string, expiresAt?: string) => Promise<void>;
 }
 
 interface BotssonState {
@@ -121,6 +122,41 @@ const CLIENT_TOOLS = [
       client: {},
     },
   },
+  {
+    temporaryTool: {
+      modelToolName: "saveMemory",
+      description:
+        'Save a memory about the user. Use this when you learn something important that should be remembered across sessions. Type "constant" for permanent facts (name, preferences), "temporal" for time-limited info (current season details, temporary arrangements) with an end date.',
+      dynamicParameters: [
+        {
+          name: "content",
+          location: "PARAMETER_LOCATION_BODY",
+          schema: { type: "string", description: "The memory content — what to remember" },
+          required: true,
+        },
+        {
+          name: "memoryType",
+          location: "PARAMETER_LOCATION_BODY",
+          schema: {
+            type: "string",
+            description: 'Either "constant" (permanent) or "temporal" (expires)',
+          },
+          required: true,
+        },
+        {
+          name: "expiresAt",
+          location: "PARAMETER_LOCATION_BODY",
+          schema: {
+            type: "string",
+            description:
+              "ISO date (YYYY-MM-DD) when this memory expires. Required for temporal memories.",
+          },
+          required: false,
+        },
+      ],
+      client: {},
+    },
+  },
 ];
 
 export function useBotsson(actions?: BotssonActions): BotssonState {
@@ -197,9 +233,30 @@ export function useBotsson(actions?: BotssonActions): BotssonState {
         return JSON.stringify({ success: true, message: "Scrolled to next section" });
       });
 
+      session.registerToolImplementation("saveMemory", (params) => {
+        const content = String(params.content ?? "");
+        const memoryType = String(params.memoryType ?? "constant");
+        const expiresAt = params.expiresAt ? String(params.expiresAt) : undefined;
+        actionsRef.current?.saveMemory(content, memoryType, expiresAt).catch(() => {});
+        return JSON.stringify({ success: true, message: "Memory saved" });
+      });
+
+      let introSent = false;
       session.addEventListener("status", () => {
         if (sessionRef.current === session) {
           setStatus(session.status || "idle");
+
+          // Send inference trigger ONCE when session first becomes LISTENING
+          if (!introSent && session.status === UltravoxSessionStatus.LISTENING) {
+            introSent = true;
+            setTimeout(() => {
+              if (sessionRef.current === session) {
+                session.sendText(
+                  "[Systemmelding: Brukeren er klar. Start samtalen — presenter deg og spør hva de heter.]",
+                );
+              }
+            }, 800);
+          }
         }
       });
 

@@ -16,6 +16,50 @@ interface BotssonAvatarProps {
   onShowCard?: () => void;
 }
 
+/** Animated bars that visualize voice activity */
+function VoiceVisualizer({
+  isSpeaking,
+  isConnected,
+}: {
+  isSpeaking: boolean;
+  isConnected: boolean;
+}) {
+  const barCount = 5;
+
+  return (
+    <div className="flex items-center justify-center gap-[3px]">
+      {Array.from({ length: barCount }).map((_, i) => (
+        <motion.div
+          key={i}
+          className="w-[3px] rounded-full bg-white/70"
+          animate={
+            isSpeaking
+              ? {
+                  height: [4, 14 + Math.random() * 10, 6, 18 + Math.random() * 6, 4],
+                  opacity: [0.5, 0.9, 0.6, 1, 0.5],
+                }
+              : isConnected
+                ? {
+                    height: [3, 6, 3],
+                    opacity: [0.2, 0.4, 0.2],
+                  }
+                : {
+                    height: 3,
+                    opacity: 0.15,
+                  }
+          }
+          transition={{
+            duration: isSpeaking ? 0.6 + i * 0.08 : 2,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: i * 0.07,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 export function BotssonAvatar({
   status,
   isConnected,
@@ -78,7 +122,7 @@ export function BotssonAvatar({
         )}
       </AnimatePresence>
 
-      {/* Avatar button + controls */}
+      {/* Avatar + controls */}
       <div className="flex flex-col items-center gap-2">
         {/* Info button — show when connected or idle */}
         {(isConnected || status === "idle") && onShowCard && (
@@ -108,10 +152,12 @@ export function BotssonAvatar({
           </motion.button>
         )}
 
-        {/* Main avatar */}
+        {/* Main avatar — grows when connected to show visualizer */}
         <button
           onClick={status === "idle" ? onStart : isConnected ? onEnd : undefined}
-          className="group relative flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-black/60 shadow-2xl backdrop-blur-xl transition-all hover:border-white/20 hover:bg-black/80"
+          className={`group relative flex items-center justify-center rounded-full border border-white/10 shadow-2xl backdrop-blur-xl transition-all hover:border-white/20 hover:bg-black/80 ${
+            isConnected ? "h-16 w-16 bg-black/70" : "h-14 w-14 bg-black/60"
+          }`}
         >
           {/* Breathing ring */}
           <motion.div
@@ -119,7 +165,7 @@ export function BotssonAvatar({
             animate={
               isSpeaking
                 ? {
-                    scale: [1, 1.15, 1],
+                    scale: [1, 1.2, 1],
                     opacity: [0.3, 0.6, 0.3],
                   }
                 : isConnected
@@ -133,14 +179,32 @@ export function BotssonAvatar({
                     }
             }
             transition={{
-              duration: isSpeaking ? 1 : 3,
+              duration: isSpeaking ? 0.8 : 3,
               repeat: Infinity,
               ease: "easeInOut",
             }}
           />
 
+          {/* Outer glow when speaking */}
+          {isSpeaking && (
+            <motion.div
+              className="absolute -inset-2 rounded-full border border-white/10"
+              animate={{
+                scale: [1, 1.1, 1],
+                opacity: [0.1, 0.3, 0.1],
+              }}
+              transition={{
+                duration: 1.2,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+            />
+          )}
+
           {isConnecting ? (
             <Loader2 size={24} className="animate-spin text-white/60" />
+          ) : isConnected ? (
+            <VoiceVisualizer isSpeaking={isSpeaking} isConnected={isConnected} />
           ) : (
             <Bot size={24} className="text-white/80" />
           )}
