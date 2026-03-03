@@ -5,7 +5,7 @@ version: "1.0"
 status: canonical
 layer: reference
 created: 2026-02-28
-updated: 2026-03-02
+updated: 2026-03-06
 author: claude
 supersedes: []
 superseded_by: null
@@ -62,8 +62,13 @@ tables:
     zone,
     engine_memory,
     engine_authority_config,
+    season_budget,
+    day_factor,
+    hour_factor,
   ]
 changelog:
+  - date: 2026-03-06
+    change: "Added season_budget, day_factor, hour_factor tables (Module 15 MVP)"
   - date: 2026-03-02
     change: "Added engine_memory and engine_authority_config tables (ADR-0042)"
   - date: 2026-02-28
@@ -93,7 +98,7 @@ Single source of truth for all database tables, enums, RLS patterns, naming conv
 
 ---
 
-## All Tables (49 entities)
+## All Tables (52 entities)
 
 ### Identity Layer (Global -- no workspace_id)
 
@@ -143,6 +148,34 @@ Single source of truth for all database tables, enums, RLS patterns, naming conv
 | Table    | PK          | Purpose                                          |
 | -------- | ----------- | ------------------------------------------------ |
 | `season` | `season_id` | Operational time period. Gamification container. |
+
+### Season Planning (workspace_id scoped, Module 15)
+
+| Table           | PK                 | Purpose                                                                 |
+| --------------- | ------------------ | ----------------------------------------------------------------------- |
+| `season_budget` | `season_budget_id` | Strategic revenue target per season. 1:1 with season. Status lifecycle. |
+| `day_factor`    | `day_factor_id`    | Weekday weight (0=Mon...6=Sun). UNIQUE(season_budget_id, weekday).      |
+| `hour_factor`   | `hour_factor_id`   | Hour weight (0-23). UNIQUE(season_budget_id, hour).                     |
+
+**season_budget key columns:** `season_id` (FK, UNIQUE), `total_target_revenue` (NUMERIC), `base_price_per_guest` (NUMERIC, nullable), `season_price_factor` (NUMERIC, default 1.0), `target_labor_percentage` (NUMERIC, default 0.30), `avg_hourly_wage` (NUMERIC, nullable), `status` (budget_status enum).
+
+**day_factor key columns:** `season_budget_id` (FK CASCADE), `weekday` (SMALLINT 0-6), `factor` (NUMERIC, default 1.0).
+
+**hour_factor key columns:** `season_budget_id` (FK CASCADE), `hour` (SMALLINT 0-23), `factor` (NUMERIC, default 1.0).
+
+**New SQL enum:** `budget_status` (draft, active, locked).
+
+**RLS (dual-auth):** JWT read/write (admin via `is_admin_in_workspace`) + API key read (via `get_api_workspace_id()`). All three tables.
+
+**Indexes:** `season_budget(workspace_id)`, `season_budget(season_id)` UNIQUE, `day_factor(season_budget_id)`, `hour_factor(season_budget_id)`.
+
+**Calculation engine:** `apps/web/src/lib/season-calculations.ts` — pure functions, no DB deps:
+
+- `calculateDayTargets()` — distributes total target across days using weekday factors (normalized)
+- `calculateHourTargets()` — distributes day target across open hours using hour factors
+- `calculateStaffingNeed()` — derives staff count from hour target, labor %, avg wage
+
+**IMPORTANT:** `season_budget` is DIFFERENT from `workspace_budget`. Season budget = strategic per-season planning. Workspace budget = operational per-date targets.
 
 ### Operations (workspace_id scoped)
 
@@ -303,7 +336,7 @@ Tables WITHOUT workspace_id (user_identity, company, platform-admin) are exempt 
 
 ---
 
-## All Enums (30 in database.types.ts)
+## All Enums (31 in database.types.ts)
 
 Enums from `packages/supabase/src/database.types.ts` (auto-generated, never edit manually):
 
@@ -356,6 +389,7 @@ Enums from `packages/supabase/src/database.types.ts` (auto-generated, never edit
 | --------------- | --------------------------------------- |
 | `season_type`   | default, calendar, focus, cycle, custom |
 | `season_status` | draft, active, archived                 |
+| `budget_status` | draft, active, locked                   |
 | `invite_status` | pending, accepted, expired, cancelled   |
 
 ### Contract System
