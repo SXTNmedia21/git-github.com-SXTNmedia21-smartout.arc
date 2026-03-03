@@ -11,3 +11,13 @@ tags: [learnings]
 
 | #   | Date | Learning | Impact |
 | --- | ---- | -------- | ------ |
+
+module: ai
+tags: [learnings]
+
+---
+
+# Learning Log — stage-engine-routing
+
+| #   | Date | Learning | Impact |
+| --- | ---- | -------- | ------ |

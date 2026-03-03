@@ -248,8 +248,9 @@ export async function createSession(
   const progress = `${current}/${total}`;
 
   const systemPrompt = firstStage
-    ? buildStagePrompt(firstStage, context, {})
-    : "You are a helpful assistant. The mission is in free mode — choose a stage to start.";
+    ? buildStagePrompt(firstStage, context, {}, mission.system_prompt)
+    : (mission.system_prompt ??
+      "You are a helpful assistant. The mission is in free mode — choose a stage to start.");
 
   return {
     session_id: session.id,

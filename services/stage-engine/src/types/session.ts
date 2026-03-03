@@ -30,6 +30,7 @@ export type Mission = {
   workspace_id: string | null;
   journey_id: string | null;
   is_active: boolean;
+  system_prompt: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -53,6 +54,7 @@ export type Stage = {
   next_stage: string | null;
   is_required: boolean;
   journey_step_id: string | null;
+  tuning_notes: string | null;
   deferred_templates: unknown[];
   inline_instructions: unknown[];
   created_at: string;

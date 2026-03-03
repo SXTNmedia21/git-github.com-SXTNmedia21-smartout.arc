@@ -11,3 +11,13 @@ tags: [decisions]
 
 | #   | Date | Decision | Status |
 | --- | ---- | -------- | ------ |
+
+module: ai
+tags: [decisions]
+
+---
+
+# Decision Log — stage-engine-routing
+
+| #   | Date | Decision | Status |
+| --- | ---- | -------- | ------ |

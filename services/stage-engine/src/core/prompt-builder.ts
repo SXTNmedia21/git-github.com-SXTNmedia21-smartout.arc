@@ -11,20 +11,27 @@ import type { Stage } from "../types/session.js";
 
 /**
  * Builds a complete system prompt for a stage.
- * Combines stage instructions, personality overlay, context, and history
- * into a single string that any LLM can use.
+ * Combines base mission prompt, stage instructions, personality overlay,
+ * tuning notes, context, and history into a single string.
  *
  * @param stage - The current stage definition
  * @param context - Session context (identity, workspace, custom data)
  * @param collectedData - Data collected from previous stages
+ * @param basePrompt - Optional mission-level base prompt (agent personality)
  * @returns A complete system prompt string
  */
 export function buildStagePrompt(
   stage: Stage,
   context: Record<string, unknown>,
   collectedData: Record<string, unknown>,
+  basePrompt?: string | null,
 ): string {
   const sections: string[] = [];
+
+  // Mission-level base prompt (agent personality, voice rules, etc.)
+  if (basePrompt) {
+    sections.push(basePrompt);
+  }
 
   // Personality overlay (stage-specific tone adjustment)
   if (stage.personality_override) {
@@ -77,6 +84,11 @@ export function buildStagePrompt(
       .map((i) => `- After "${i.after}": ${i.message}`)
       .join("\n");
     sections.push(`## After-Action Instructions\n${inlineBlock}`);
+  }
+
+  // Tuning notes — coaching hints that shape behavior
+  if (stage.tuning_notes) {
+    sections.push(`## Tuning Notes\n${stage.tuning_notes}`);
   }
 
   return sections.join("\n\n");
