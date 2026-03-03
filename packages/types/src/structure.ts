@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { LocationTypeEnum, TeamTypeEnum, ProfileRoleEnum } from "./enums";
+import { LocationTypeEnum, TeamTypeEnum, ProfileRoleEnum } from "./enums.js";
 
 export const DepartmentSchema = z.object({
   department_id: z.string().uuid(),

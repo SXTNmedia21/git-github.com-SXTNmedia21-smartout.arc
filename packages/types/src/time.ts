@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { SeasonTypeEnum, SeasonStatusEnum } from "./enums";
+import { SeasonTypeEnum, SeasonStatusEnum } from "./enums.js";
 
 export const SeasonSchema = z.object({
   season_id: z.string().uuid(),
