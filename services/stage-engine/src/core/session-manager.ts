@@ -10,7 +10,7 @@
 import { supabaseAdmin } from "../lib/supabase.js";
 import { buildStagePrompt } from "./prompt-builder.js";
 import { emitGuardianEvent } from "./guardian-bus.js";
-import type { Mission, Stage, Session } from "../types/session.js";
+import type { Mission, Stage, Session, JourneyStep } from "../types/session.js";
 import type { CreateSessionRequest, CreateSessionResponse } from "../types/api.js";
 import type { AuthContext } from "../types/auth.js";
 
@@ -41,13 +41,20 @@ export async function loadAuthorizedSession(
   return { ok: true, session };
 }
 
+/** Return type for loadMission — includes optional journey data */
+export type LoadMissionResult = {
+  mission: Mission;
+  stages: Stage[];
+  journey: Record<string, unknown> | null;
+  journeySteps: JourneyStep[];
+};
+
 /**
  * Loads a mission and all its stages from the database.
+ * If the mission has a linked journey, also loads the journey and its steps.
  * Returns null if the mission does not exist or is inactive.
  */
-export async function loadMission(
-  missionId: string,
-): Promise<{ mission: Mission; stages: Stage[] } | null> {
+export async function loadMission(missionId: string): Promise<LoadMissionResult | null> {
   const { data: mission, error: missionErr } = await supabaseAdmin
     .from("engine_missions")
     .select("*")
@@ -65,7 +72,34 @@ export async function loadMission(
 
   if (stagesErr || !stages) return null;
 
-  return { mission: mission as Mission, stages: stages as Stage[] };
+  // If mission has a linked journey, load it with steps
+  let journey: Record<string, unknown> | null = null;
+  let journeySteps: JourneyStep[] = [];
+
+  if (mission.journey_id) {
+    const { data: j } = await supabaseAdmin
+      .from("journey")
+      .select("*")
+      .eq("journey_id", mission.journey_id)
+      .single();
+
+    if (j) {
+      journey = j as Record<string, unknown>;
+      const { data: steps } = await supabaseAdmin
+        .from("journey_step")
+        .select("*")
+        .eq("journey_id", j.journey_id)
+        .order("step_order", { ascending: true });
+      journeySteps = (steps ?? []) as JourneyStep[];
+    }
+  }
+
+  return {
+    mission: mission as Mission,
+    stages: stages as Stage[],
+    journey,
+    journeySteps,
+  };
 }
 
 /**
@@ -129,11 +163,11 @@ export async function createSession(
   req: CreateSessionRequest,
   auth: AuthContext,
 ): Promise<CreateSessionResponse | null> {
-  // Load mission and stages
+  // Load mission, stages, and journey data (if linked)
   const result = await loadMission(req.mission_id);
   if (!result) return null;
 
-  const { mission, stages } = result;
+  const { mission, stages, journey, journeySteps } = result;
 
   // Determine first stage based on mission mode
   const firstStage = mission.mode === "free" ? null : (stages[0] ?? null);
@@ -142,7 +176,23 @@ export async function createSession(
   const identityContext = await loadIdentityContext(req.workspace_id, req.user_id, req.profile_id);
 
   // Merge additional context from request
-  const context = { ...identityContext, ...(req.context ?? {}) };
+  const context: Record<string, unknown> = { ...identityContext, ...(req.context ?? {}) };
+
+  // Include journey context if mission is linked to a journey
+  if (journey && journeySteps.length > 0) {
+    context.journey = {
+      title: journey.title,
+      code: journey.code,
+      steps: journeySteps.map((s) => ({
+        step_order: s.step_order,
+        title: s.title,
+        action: s.action,
+        expects: s.expects,
+        screen: s.screen,
+        component: s.component,
+      })),
+    };
+  }
 
   // Create session row
   const { data: session, error } = await supabaseAdmin

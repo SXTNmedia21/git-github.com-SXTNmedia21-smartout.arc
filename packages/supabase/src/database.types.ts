@@ -1994,6 +1994,7 @@ export type Database = {
           description: string | null
           id: string
           is_active: boolean
+          journey_id: string | null
           mode: string
           name: string
           updated_at: string
@@ -2005,6 +2006,7 @@ export type Database = {
           description?: string | null
           id: string
           is_active?: boolean
+          journey_id?: string | null
           mode?: string
           name: string
           updated_at?: string
@@ -2016,12 +2018,20 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          journey_id?: string | null
           mode?: string
           name?: string
           updated_at?: string
           workspace_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "engine_missions_journey_id_fkey"
+            columns: ["journey_id"]
+            isOneToOne: false
+            referencedRelation: "journey"
+            referencedColumns: ["journey_id"]
+          },
           {
             foreignKeyName: "engine_missions_workspace_id_fkey"
             columns: ["workspace_id"]
@@ -2162,6 +2172,7 @@ export type Database = {
           inline_instructions: Json | null
           instructions: string
           is_required: boolean
+          journey_step_id: string | null
           mission_id: string
           next_stage: string | null
           personality_override: string | null
@@ -2180,6 +2191,7 @@ export type Database = {
           inline_instructions?: Json | null
           instructions: string
           is_required?: boolean
+          journey_step_id?: string | null
           mission_id: string
           next_stage?: string | null
           personality_override?: string | null
@@ -2198,6 +2210,7 @@ export type Database = {
           inline_instructions?: Json | null
           instructions?: string
           is_required?: boolean
+          journey_step_id?: string | null
           mission_id?: string
           next_stage?: string | null
           personality_override?: string | null
@@ -2206,6 +2219,13 @@ export type Database = {
           success_criteria?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "engine_stages_journey_step_id_fkey"
+            columns: ["journey_step_id"]
+            isOneToOne: false
+            referencedRelation: "journey_step"
+            referencedColumns: ["journey_step_id"]
+          },
           {
             foreignKeyName: "engine_stages_mission_id_fkey"
             columns: ["mission_id"]
