@@ -8,14 +8,13 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createAdminClient } from "@smartout/supabase/admin";
 import {
   generateE2ETest,
   generateOnboardingDoc,
   generateLinearSpec,
   generateBotssonScript,
 } from "@smartout/ai";
-import { getSuperAdminId } from "@/lib/platform-admin";
+import { requireGodmode, logPlatformAction } from "@/lib/platform-admin";
 
 const RequestSchema = z.object({
   type: z.enum(["e2e", "doc", "linear", "botsson"]),
@@ -35,10 +34,9 @@ type Props = { params: Promise<{ id: string }> };
 export async function POST(request: NextRequest, { params }: Props) {
   const { id } = await params;
 
-  const adminId = await getSuperAdminId();
-  if (!adminId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-
-  const admin = createAdminClient();
+  const result = await requireGodmode();
+  if (result.error) return result.error;
+  const { adminId, admin } = result;
 
   let body: z.infer<typeof RequestSchema>;
   try {
@@ -81,6 +79,11 @@ export async function POST(request: NextRequest, { params }: Props) {
     workspace_id: journey.workspace_id,
     event_type: "output_generated" as never,
     metadata: { output_type: body.type },
+  });
+
+  // Log to platform audit trail
+  await logPlatformAction(adminId, "journey_output_generated", "journey", id, {
+    output_type: body.type,
   });
 
   return NextResponse.json({

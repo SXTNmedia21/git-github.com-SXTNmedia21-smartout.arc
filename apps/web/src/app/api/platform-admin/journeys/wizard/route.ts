@@ -8,8 +8,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createAdminClient } from "@smartout/supabase/admin";
-import { getSuperAdminId } from "@/lib/platform-admin";
+import { requireGodmode } from "@/lib/platform-admin";
 
 const CreateSchema = z.object({
   workspaceId: z.string().uuid(),
@@ -24,10 +23,9 @@ const CreateSchema = z.object({
  * @returns The created wizard session record
  */
 export async function POST(request: NextRequest) {
-  const adminId = await getSuperAdminId();
-  if (!adminId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-
-  const admin = createAdminClient();
+  const result = await requireGodmode();
+  if (result.error) return result.error;
+  const { adminId, admin } = result;
 
   let body: z.infer<typeof CreateSchema>;
   try {
@@ -59,10 +57,9 @@ export async function POST(request: NextRequest) {
  * @returns Array of wizard session summaries
  */
 export async function GET() {
-  const adminId = await getSuperAdminId();
-  if (!adminId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-
-  const admin = createAdminClient();
+  const result = await requireGodmode();
+  if (result.error) return result.error;
+  const { admin } = result;
 
   const { data, error } = await admin
     .from("wizard_session")

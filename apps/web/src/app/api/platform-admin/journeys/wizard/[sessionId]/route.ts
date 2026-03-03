@@ -6,8 +6,7 @@
 // ============================================
 
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@smartout/supabase/admin";
-import { getSuperAdminId } from "@/lib/platform-admin";
+import { requireGodmode } from "@/lib/platform-admin";
 
 type Props = { params: Promise<{ sessionId: string }> };
 
@@ -20,10 +19,9 @@ type Props = { params: Promise<{ sessionId: string }> };
 export async function GET(_request: Request, { params }: Props) {
   const { sessionId } = await params;
 
-  const adminId = await getSuperAdminId();
-  if (!adminId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-
-  const admin = createAdminClient();
+  const result = await requireGodmode();
+  if (result.error) return result.error;
+  const { admin } = result;
 
   const { data, error } = await admin
     .from("wizard_session")
