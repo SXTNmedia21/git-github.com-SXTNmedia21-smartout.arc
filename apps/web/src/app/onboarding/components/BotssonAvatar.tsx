@@ -75,7 +75,10 @@ export function BotssonAvatar({
 
   return (
     <motion.div
-      className="fixed right-8 bottom-8 z-50 flex items-end gap-3"
+      className="fixed right-8 bottom-8 z-50 flex cursor-grab items-end gap-3 active:cursor-grabbing"
+      drag
+      dragMomentum={false}
+      dragElastic={0.1}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 1, duration: 0.6 }}

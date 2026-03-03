@@ -1,13 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { Globe, Hash, Pencil, Check, ArrowRight, Star, MapPin, ExternalLink } from "lucide-react";
+import {
+  Globe,
+  Hash,
+  Pencil,
+  Check,
+  ArrowRight,
+  Star,
+  MapPin,
+  ExternalLink,
+  RotateCcw,
+} from "lucide-react";
 import { useOnboarding } from "../WizardContext";
 import { SectionReveal, RevealItem } from "../components/SectionReveal";
 import { DataMaterializer } from "../components/DataMaterializer";
 
 export function BusinessSection() {
-  const { business, scrapeStatus, triggerScrape, updateBusiness, completeSection } =
+  const { business, scrapeStatus, triggerScrape, updateBusiness, completeSection, resetScrape } =
     useOnboarding();
 
   const [urlInput, setUrlInput] = useState(business.website ?? "");
@@ -360,6 +370,17 @@ export function BusinessSection() {
             Ser riktig ut
             <Check className="h-4 w-4" />
           </button>
+
+          <div className="mt-3 text-center">
+            <button
+              type="button"
+              onClick={resetScrape}
+              className="inline-flex items-center gap-1.5 text-sm text-white/30 transition-colors hover:text-white/50"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Skann på nytt
+            </button>
+          </div>
         </div>
       </RevealItem>
     </SectionReveal>

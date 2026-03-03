@@ -15,17 +15,20 @@ import { getServiceKey } from "@smartout/supabase/vault";
 import type { Json } from "@smartout/supabase";
 
 export async function POST(request: NextRequest) {
-  let apiKey: string;
-  try {
-    apiKey = await getServiceKey(createAdminClient(), "ultravox");
-  } catch {
-    console.error(
-      "[wizard/start] ULTRAVOX_API_KEY not found in Vault. Save it via /platform-admin/keys.",
-    );
-    return NextResponse.json(
-      { error: "Voice assistant is not configured. Contact administrator." },
-      { status: 503 },
-    );
+  // Dev: read from .env.local. Production: read from Supabase Vault.
+  let apiKey: string | undefined = process.env.ULTRAVOX_API_KEY;
+  if (!apiKey) {
+    try {
+      apiKey = await getServiceKey(createAdminClient(), "ultravox");
+    } catch {
+      console.error(
+        "[wizard/start] ULTRAVOX_API_KEY not in env or Vault. Set in .env.local (dev) or /platform-admin/keys (prod).",
+      );
+      return NextResponse.json(
+        { error: "Voice assistant is not configured. Contact administrator." },
+        { status: 503 },
+      );
+    }
   }
 
   try {

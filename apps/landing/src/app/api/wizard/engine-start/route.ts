@@ -12,21 +12,29 @@ import { createAdminClient } from "@smartout/supabase/admin";
 import { getServiceKey } from "@smartout/supabase/vault";
 
 export async function POST(request: NextRequest) {
-  let engineUrl: string;
-  let apiKey: string;
-  try {
-    const admin = createAdminClient();
-    [engineUrl, apiKey] = await Promise.all([
-      getServiceKey(admin, "stage_engine_url"),
-      getServiceKey(admin, "stage_engine_api_key"),
-    ]);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "unknown";
-    console.error(`[engine-start] Vault lookup failed: ${msg}`);
-    return NextResponse.json(
-      { error: "Stage Engine is not configured. Save keys via /platform-admin/keys." },
-      { status: 503 },
-    );
+  // Dev: read from .env.local. Production: read from Supabase Vault.
+  let engineUrl = process.env.STAGE_ENGINE_URL;
+  let apiKey = process.env.STAGE_ENGINE_API_KEY;
+  if (!engineUrl || !apiKey) {
+    try {
+      const admin = createAdminClient();
+      const results = await Promise.all([
+        engineUrl ? Promise.resolve(engineUrl) : getServiceKey(admin, "stage_engine_url"),
+        apiKey ? Promise.resolve(apiKey) : getServiceKey(admin, "stage_engine_api_key"),
+      ]);
+      engineUrl = results[0];
+      apiKey = results[1];
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "unknown";
+      console.error(`[engine-start] Keys not in env or Vault: ${msg}`);
+      return NextResponse.json(
+        {
+          error:
+            "Stage Engine is not configured. Set in .env.local (dev) or /platform-admin/keys (prod).",
+        },
+        { status: 503 },
+      );
+    }
   }
 
   try {

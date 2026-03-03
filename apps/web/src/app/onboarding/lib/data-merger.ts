@@ -20,17 +20,22 @@ interface BrregResponse {
   matched?: boolean;
   orgNumber?: string | null;
   legalName?: string | null;
+  website?: string | null;
   naceCode?: string | null;
   naceDescription?: string | null;
   address?: {
     street?: string;
     postalCode?: string;
     city?: string;
+    municipality?: string;
   } | null;
   dagligLeder?: string | null;
   employeeCount?: number | null;
   companyType?: string | null;
   registrationDate?: string | null;
+  foundingDate?: string | null;
+  vatRegistered?: boolean | null;
+  parentCompany?: string | null;
   [key: string]: unknown;
 }
 

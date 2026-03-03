@@ -33,6 +33,7 @@ export interface OnboardingActions {
   completeSection: (section: OnboardingSection) => void;
   saveMemory: (content: string) => void;
   removeMemory: (id: string) => void;
+  resetScrape: () => void;
   finalize: () => Promise<void>;
   reset: () => Promise<void>;
 }
@@ -340,6 +341,14 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
     setMemories((prev) => prev.filter((m) => m.id !== id));
   }, []);
 
+  // Reset scrape — go back to input fields
+  const resetScrape = useCallback(() => {
+    setScrapeStatus("idle");
+    setScrapeSource(null);
+    setBusiness(EMPTY_BUSINESS_DATA);
+    setDepartments([]);
+  }, []);
+
   // Reset — clear all state and delete onboarding workspace or DB session
   const reset = useCallback(async () => {
     // Delete onboarding workspace if one exists (only if still in onboarding state)
@@ -488,6 +497,7 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
     completeSection,
     saveMemory,
     removeMemory,
+    resetScrape,
     finalize,
     reset,
   };

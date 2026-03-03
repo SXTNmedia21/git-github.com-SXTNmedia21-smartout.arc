@@ -342,7 +342,7 @@ LiveKit Cloud for voice/video calls between employees. Coexists with Ultravox.
 | ------------------------------------------------------ | -------------------------- |
 | `docs/modules/SMARTOUT_MODULE_12_AI.md`                | AI module spec (8 engines) |
 | `docs/modules/SMARTOUT_MODULE_18_WEBRTC.md`            | LiveKit voice/video spec   |
-| `docs/decisions/ADR-0042-agent-architecture.md`        | Agent mode decision        |
+| `docs/decisions/0042-agent-architecture.md`            | Agent mode decision        |
 | `docs/decisions/0036-shift-mcp-server.md`              | Shift MCP decision         |
 | `docs/learnings/0013-ultravox-http-tool-parameters.md` | staticParameters fix       |
 | `services/interview-mcp/README.md`                     | Voice mission system docs  |

@@ -68,12 +68,18 @@ export async function startMissionCall(options: StartCallOptions): Promise<CallR
       mission.firstSpeaker === "agent" ? "FIRST_SPEAKER_AGENT" : "FIRST_SPEAKER_USER";
   }
 
+  // Ultravox API does not support templateContext — resolve placeholders
+  // in the systemPrompt before sending.
   const mergedContext = {
     ...mission.templateContext,
     ...options.templateContext,
   };
   if (Object.keys(mergedContext).length > 0) {
-    callBody.templateContext = mergedContext;
+    let prompt = callBody.systemPrompt as string;
+    for (const [key, value] of Object.entries(mergedContext)) {
+      prompt = prompt.replaceAll(`{{${key}}}`, value);
+    }
+    callBody.systemPrompt = prompt;
   }
 
   if (options.selectedTools && options.selectedTools.length > 0) {

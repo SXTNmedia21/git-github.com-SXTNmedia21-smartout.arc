@@ -1,7 +1,7 @@
 ---
 title: Session Log
 status: in_progress
-updated: 2026-03-12
+updated: 2026-03-14
 created: 2026-03-02
 module: meta
 tags: [session, boot-sequence, continuity]
@@ -13,43 +13,43 @@ tags: [session, boot-sequence, continuity]
 
 ## Last Session
 
-| Field   | Value                           |
-| ------- | ------------------------------- |
-| Date    | 2026-03-14                      |
-| Branch  | `feat/intelligence-pipeline-v2` |
-| Feature | intelligence-pipeline-v2 review |
-| Status  | in_progress                     |
+| Field   | Value                            |
+| ------- | -------------------------------- |
+| Date    | 2026-03-14                       |
+| Branch  | `feat/intelligence-pipeline-v2`  |
+| Feature | intelligence-pipeline-v2 testing |
+| Status  | blocked                          |
 
 ### What was done
 
-- Fixed `database.types.ts` first-line leak (`Connecting to db 5432`)
-- Ran 3-agent team review in parallel:
-  - **Edge Functions**: 5 bugs fixed (untyped catch, wrong 401, `|| null` for 0 employees, missing CORS import, non-null assertion)
-  - **Client code**: 2 bugs fixed (save function wiped intelligence_data, middleware missing onboarding gate)
-  - **Migration**: 1 critical bug fixed (`season_type` default `'standard'` → `'default'`), all docs updated
-- Committed everything as `ae705b7` — 15 files, 1126 insertions
-- Typecheck passes clean
+- Resumed intelligence-pipeline-v2 on wt-3
+- 3-agent team review: 8 bugs fixed (save function overwrite, season_type enum, middleware gate, edge fn error handling)
+- Committed ae705b7 (15 files, 1126 insertions)
+- Fixed database.types.ts first-line leak
+- Restarted Supabase — Edge Runtime now running with Edge Functions
+- Attempted to test onboarding flow end-to-end
 
 ### Where we stopped
 
-- Feature committed but not closed — still needs:
-  - User journeys (`docs/journeys/JOURNEY-intelligence-pipeline-v2.md`)
-  - 2 design gaps to decide on: dept `positions` dropped by RPC, season `startDate`/`endDate` dropped by RPC
-  - Full `pnpm turbo typecheck` (only ran web filter)
-  - `/close-feature`
+- **wt-3 worktree disappeared** during Supabase stop/start cycle
+- Branch `feat/intelligence-pipeline-v2` is safe in git (commit ae705b7)
+- Web server on port 3050 runs from main repo, not wt-3
+- Need to recreate worktree before continuing
 
 ### Known blockers / errors
 
-- None
+- wt-3 directory gone — needs `git worktree add ../wt-3 feat/intelligence-pipeline-v2`
+- Web server (port 3050) runs from main repo — must restart from wt-3 to test v2 changes
 
 ### Pending decisions
 
-- [ ] Design gap: `positions` array sent by client but finalize RPC expects `teams` — needs mapping or RPC update
-- [ ] Design gap: Season `startDate`/`endDate` sent by client but RPC ignores them — add to season INSERT?
+- [ ] Recreate wt-3 worktree for intelligence-pipeline-v2
+- [ ] Restart web server from wt-3 to test v2 changes
+- [ ] Design gap: `positions` array sent by client but finalize RPC expects `teams`
+- [ ] Design gap: Season `startDate`/`endDate` sent by client but RPC ignores them
 - [ ] Push migrations to production (`supabase db push`) — Pontus
-- [ ] CI migration validation job (GitHub Actions) — Claude can write
-- [ ] Set up staging Supabase environment — Pontus
-- [ ] Enable `supabase_vault` extension on production
+- [ ] Create implementation plan for Guardian Agent (writing-plans skill)
+- [ ] Commit accumulated uncommitted changes on development
 
 ---
 

@@ -42,8 +42,8 @@ Module 1 (Onboarding) document describes both implemented and planned features, 
 
 | Learning      | Insight                                        |
 | ------------- | ---------------------------------------------- |
-| Learning-0014 | Season type enum mismatch (frontend vs DB)     |
-| Learning-0015 | Progressive save pattern with debounce + JSONB |
+| Learning-0016 | Season type enum mismatch (frontend vs DB)     |
+| Learning-0017 | Progressive save pattern with debounce + JSONB |
 
 ### 4. Log Updates
 

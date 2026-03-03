@@ -13,10 +13,22 @@ interface BrregEntity {
     poststed?: string;
     kommune?: string;
   };
+  postadresse?: {
+    adresse?: string[];
+    postnummer?: string;
+    poststed?: string;
+  };
+  hjemmeside?: string;
   naeringskode1?: { kode: string; beskrivelse: string };
+  naeringskode2?: { kode: string; beskrivelse: string };
+  naeringskode3?: { kode: string; beskrivelse: string };
   antallAnsatte?: number;
   organisasjonsform?: { kode: string; beskrivelse: string };
   registreringsdatoEnhetsregisteret?: string;
+  stiftelsesdato?: string;
+  registrertIMvaregisteret?: boolean;
+  sisteInnsendteAarsregnskap?: string;
+  overordnetEnhet?: string;
   underAvvikling?: boolean;
   konkurs?: boolean;
 }
@@ -317,7 +329,28 @@ serve(async (req) => {
             brregEntity = details;
             brregMatched = true;
             dagligLeder = leader;
+            companyName = companyName || details.navn;
             console.log(`[intelligence] Brreg found: ${details.navn} (${orgNumber})`);
+            console.log(`[intelligence] Daglig leder: ${dagligLeder || "not found"}`);
+
+            // Auto-scrape website from Brreg if user didn't provide a URL
+            if (!url && details.hjemmeside) {
+              const brregUrl = details.hjemmeside.startsWith("http")
+                ? details.hjemmeside
+                : `https://${details.hjemmeside}`;
+              console.log(`[intelligence] Step 2b: Auto-scraping Brreg website: ${brregUrl}`);
+              try {
+                const scraplingBase =
+                  Deno.env.get("SCRAPLING_SERVICE_URL") || "http://host.docker.internal:8000";
+                scrapedData = await fetchScraplingWithRetry(scraplingBase, brregUrl);
+                console.log("[intelligence] Auto-scrape from Brreg website succeeded");
+              } catch (e: unknown) {
+                console.warn(
+                  "[intelligence] Auto-scrape from Brreg website failed:",
+                  e instanceof Error ? e.message : String(e),
+                );
+              }
+            }
           }
         })(),
       );
@@ -412,19 +445,39 @@ serve(async (req) => {
       matched: brregMatched,
       orgNumber: brregEntity?.organisasjonsnummer || null,
       legalName: brregEntity?.navn || null,
+      website: brregEntity?.hjemmeside || null,
       naceCode: brregEntity?.naeringskode1?.kode || null,
       naceDescription: brregEntity?.naeringskode1?.beskrivelse || null,
+      secondaryIndustries: [
+        brregEntity?.naeringskode2
+          ? {
+              code: brregEntity.naeringskode2.kode,
+              description: brregEntity.naeringskode2.beskrivelse,
+            }
+          : null,
+        brregEntity?.naeringskode3
+          ? {
+              code: brregEntity.naeringskode3.kode,
+              description: brregEntity.naeringskode3.beskrivelse,
+            }
+          : null,
+      ].filter(Boolean),
       address: brregEntity?.forretningsadresse
         ? {
             street: brregEntity.forretningsadresse.adresse?.[0] || "",
             postalCode: brregEntity.forretningsadresse.postnummer || "",
             city: brregEntity.forretningsadresse.poststed || "",
+            municipality: brregEntity.forretningsadresse.kommune || "",
           }
         : null,
       dagligLeder,
       employeeCount: brregEntity?.antallAnsatte ?? null,
       companyType: brregEntity?.organisasjonsform?.beskrivelse || null,
       registrationDate: brregEntity?.registreringsdatoEnhetsregisteret || null,
+      foundingDate: brregEntity?.stiftelsesdato || null,
+      vatRegistered: brregEntity?.registrertIMvaregisteret ?? null,
+      lastAnnualReport: brregEntity?.sisteInnsendteAarsregnskap || null,
+      parentCompany: brregEntity?.overordnetEnhet || null,
     };
 
     // Update workspace with all intelligence data + promoted columns

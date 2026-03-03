@@ -1,3 +1,12 @@
+---
+title: Plan Verification Workflow
+status: draft
+updated: 2026-03-12
+created: 2026-03-01
+module: meta
+tags: [template, plan, verification]
+---
+
 # Plan Verification Workflow
 
 > Use this workflow to verify whether a plan in `docs/plans/` has been fully implemented.
