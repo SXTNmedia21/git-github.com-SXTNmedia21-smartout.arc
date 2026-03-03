@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Building2,
   Plus,
@@ -60,6 +61,7 @@ export function DepartmentsTab({
   onRefresh,
   loading,
 }: DepartmentsTabProps) {
+  const router = useRouter();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -260,7 +262,13 @@ export function DepartmentsTab({
             const showWarning = dept.is_active && posCount === 0;
 
             return (
-              <div key={dept.department_id} className={`group relative ${cardBase}`}>
+              <div
+                key={dept.department_id}
+                className={`group relative cursor-pointer ${cardBase}`}
+                onClick={() =>
+                  router.push(`/dashboard/organization/departments/${dept.department_id}`)
+                }
+              >
                 {/* Color accent bar */}
                 {dept.color && (
                   <div
@@ -299,6 +307,7 @@ export function DepartmentsTab({
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button
+                        onClick={(e) => e.stopPropagation()}
                         className={`rounded-md p-1 opacity-0 transition-all group-hover:opacity-100 ${
                           isDark
                             ? "text-zinc-500 hover:bg-zinc-800"
@@ -367,7 +376,10 @@ export function DepartmentsTab({
 
                 <div className="mt-4 flex flex-wrap items-center gap-3">
                   <button
-                    onClick={() => toggleExpanded(dept.department_id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleExpanded(dept.department_id);
+                    }}
                     className="flex items-center gap-1.5 transition-colors hover:opacity-80"
                   >
                     <Briefcase
@@ -400,6 +412,7 @@ export function DepartmentsTab({
                 {/* Position drill-down */}
                 {isExpanded && (
                   <div
+                    onClick={(e) => e.stopPropagation()}
                     className={`mt-3 space-y-1.5 rounded-lg border p-3 ${
                       isDark ? "border-zinc-800/50 bg-zinc-900/50" : "border-zinc-100 bg-zinc-50"
                     }`}
