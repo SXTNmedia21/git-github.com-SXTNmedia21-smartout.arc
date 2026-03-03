@@ -9,13 +9,20 @@ export async function POST(request: NextRequest) {
   try {
     apiKey = await getServiceKey(createAdminClient(), "ultravox");
   } catch {
-    console.error(
-      "[wizard/start] ULTRAVOX_API_KEY not found in Vault. Save it via /platform-admin/keys.",
-    );
-    return NextResponse.json(
-      { error: "Voice assistant is not configured. Contact administrator." },
-      { status: 503 },
-    );
+    // Fallback to env var for local development
+    const envKey = process.env.ULTRAVOX_API_KEY;
+    if (envKey) {
+      console.warn("[wizard/start] Vault lookup failed, using ULTRAVOX_API_KEY env var fallback.");
+      apiKey = envKey;
+    } else {
+      console.error(
+        "[wizard/start] ULTRAVOX_API_KEY not found in Vault or env. Save it via /platform-admin/keys.",
+      );
+      return NextResponse.json(
+        { error: "Voice assistant is not configured. Contact administrator." },
+        { status: 503 },
+      );
+    }
   }
 
   try {

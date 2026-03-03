@@ -61,6 +61,10 @@ status: done
 updated: 2026-03-10
 created: 2026-03-10
 module: ai
+status: in_progress
+updated: 2026-03-03
+created: 2026-03-03
+module: onboarding
 tags: [decisions]
 
 ---
@@ -75,3 +79,7 @@ tags: [decisions]
 | 4   | 2026-03-10 | Keep legacy buildBotssonPrompt alongside new — backwards compat for unmigrated callers         | Accepted |
 | 5   | 2026-03-10 | Auto-create agent_profile at workspace activation — zero-config, every workspace gets defaults | Accepted |
 | 6   | 2026-03-10 | Parallel 5-way fetch in context collector — latency over sequential simplicity                 | Accepted |
+# Decision Log — onboarding-redesign
+
+| #   | Date | Decision | Status |
+| --- | ---- | -------- | ------ |

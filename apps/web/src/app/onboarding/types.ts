@@ -1,178 +1,115 @@
 /**
  * onboarding/types.ts
- * Shared types for the onboarding wizard.
- * All step components and the useOnboardingWizard hook import from here.
+ * Scroll-based onboarding type system.
+ * Replaces the old 15-step wizard types.
  */
 
-/** All possible wizard steps in order. */
-export const WIZARD_STEPS = [
-  "init",
-  "crawling",
-  "auth",
-  "org_verification",
-  "branding",
-  "season_education",
-  "season_identity",
+export const ONBOARDING_SECTIONS = [
+  "hero",
+  "business",
+  "season",
   "departments",
-  "teams",
-  "locations",
-  "procedures",
-  "battlefield_review",
-  "finalizing",
-  "invite",
+  "contract",
   "done",
 ] as const;
 
-export type WizardStep = (typeof WIZARD_STEPS)[number];
+export type OnboardingSection = (typeof ONBOARDING_SECTIONS)[number];
 
-/**
- * Maps step names to onboarding_session.current_step integer values.
- * The DB column is integer, so we need this mapping for progressive save.
- */
-export const STEP_INDEX: Record<WizardStep, number> = Object.fromEntries(
-  WIZARD_STEPS.map((step, i) => [step, i]),
-) as Record<WizardStep, number>;
-
-/** Reverse mapping: integer -> step name for session resume. */
-export function stepFromIndex(index: number): WizardStep {
-  return WIZARD_STEPS[index] ?? "init";
+/** Section-level progress tracking */
+export interface SectionProgress {
+  section: OnboardingSection;
+  status: "locked" | "active" | "completed";
+  completedAt?: Date;
 }
 
-export interface CoreLocation {
-  id?: string;
+/** Scraped + merged business data */
+export interface BusinessData {
   name: string;
-  description?: string;
-  type?: string;
-  [key: string]: unknown;
-}
-
-export interface CoreTeam {
-  id?: string;
-  name: string;
-  description?: string;
-  roles?: string[];
-  isMultiDepartment?: boolean;
-  [key: string]: unknown;
-}
-
-export interface CoreDepartment {
-  id?: string;
-  name: string;
-  description?: string;
-  teams?: CoreTeam[];
-  isSeasonActive?: boolean;
-  [key: string]: unknown;
-}
-
-export interface CoreProcedure {
-  id?: string;
-  title: string;
-  description?: string;
-  urgency?: string;
-  assignedTo?: string;
-  [key: string]: unknown;
-}
-
-export interface Policy {
-  id: string;
-  title: string;
-  summary: string;
-}
-
-/** Full workspace data accumulated across all wizard steps. */
-export interface WorkspaceData {
-  name: string;
+  legalName: string;
+  orgNumber: string;
   website: string;
   email: string;
   phone: string;
   address: string;
-  ceo: string;
-  employeeCount: string;
+  postalCode: string;
+  city: string;
   industry: string;
-  concept: string;
-  summary: string;
-  slogan: string;
-  locations: CoreLocation[];
-  departments: CoreDepartment[];
-  multiDepartmentTeams: CoreTeam[];
-  procedures: CoreProcedure[];
-  policies: Policy[];
-  pageDictionary: Record<string, string>;
-  images: { src: string; alt: string }[];
-  menus: { href: string; text: string }[];
-  socialLinks: Record<string, string>;
-  reservationUrl: string | null;
-  brandColor: string;
-  communicationTone: string;
-  seasonName: string;
-  seasonStartDate: string;
-  seasonEndDate: string;
-  seasonType: string;
+  industryCode: string;
+  employeeCount: string;
+  logoUrl: string;
+  description: string;
+  openingHours: string;
 }
 
-/** Default empty workspace data for wizard initialization. */
-export const EMPTY_WORKSPACE_DATA: WorkspaceData = {
+/** Season configuration */
+export interface SeasonData {
+  name: string;
+  startDate: string;
+  endDate: string;
+  expectedRevenue: number | null;
+  targetMargin: number | null;
+}
+
+/** Department with selection state */
+export interface DepartmentOption {
+  id: string;
+  name: string;
+  icon: string;
+  selected: boolean;
+  positions: string[];
+}
+
+/** Contract template state */
+export interface ContractData {
+  templateGenerated: boolean;
+  previewUrl: string | null;
+}
+
+/** Full onboarding state */
+export interface OnboardingState {
+  currentSection: OnboardingSection;
+  sections: SectionProgress[];
+  isAuthenticated: boolean;
+  userId: string | null;
+  sessionId: string | null;
+
+  // Section data
+  business: BusinessData;
+  season: SeasonData;
+  departments: DepartmentOption[];
+  contract: ContractData;
+
+  // Scraping state
+  scrapeStatus: "idle" | "scraping" | "done" | "error";
+  scrapeSource: "url" | "org" | "both" | null;
+
+  // Finalization
+  activatedWorkspaceId: string | null;
+  activatedWorkspaceSlug: string | null;
+}
+
+export const EMPTY_BUSINESS_DATA: BusinessData = {
   name: "",
+  legalName: "",
+  orgNumber: "",
   website: "",
   email: "",
   phone: "",
   address: "",
-  ceo: "",
-  employeeCount: "",
+  postalCode: "",
+  city: "",
   industry: "",
-  concept: "",
-  summary: "",
-  slogan: "",
-  locations: [],
-  departments: [],
-  multiDepartmentTeams: [],
-  procedures: [],
-  policies: [],
-  pageDictionary: {},
-  images: [],
-  menus: [],
-  socialLinks: {},
-  reservationUrl: null,
-  brandColor: "#3B82F6",
-  communicationTone: "Professional & Formal",
-  seasonName: "Core Operations",
-  seasonStartDate: "",
-  seasonEndDate: "",
-  seasonType: "default",
+  industryCode: "",
+  employeeCount: "",
+  logoUrl: "",
+  description: "",
+  openingHours: "",
 };
 
-/** Verified org data from Bronnoydsundregistrene lookup. */
-export interface VerifiedOrgData {
-  name: string;
-  address: string;
-  ceo: string;
-  employeeCount?: string;
-  industry?: string;
-  description?: string;
-}
-
-/** Props that every step component receives from the wizard context. */
-export interface WizardContext {
-  step: WizardStep;
-  goTo: (step: WizardStep) => void;
-  workspaceData: WorkspaceData;
-  updateData: (partial: Partial<WorkspaceData>) => void;
-  sessionId: string | null;
-  isAuthenticated: boolean;
-  userId: string | null;
-  error: string | null;
-  setError: (error: string | null) => void;
-
-  /** Org verification state */
-  orgNumberInput: string;
-  setOrgNumberInput: (value: string) => void;
-  verifiedOrgData: VerifiedOrgData | null;
-  setVerifiedOrgData: (data: VerifiedOrgData | null) => void;
-
-  /** Workspace activation result */
-  activatedWorkspaceId: string | null;
-  activatedWorkspaceSlug: string | null;
-
-  /** Finalize the workspace (call activate_workspace_v3) */
-  finalize: () => Promise<void>;
-}
+export const DEFAULT_SEASON_DATA: SeasonData = {
+  name: "",
+  startDate: "",
+  endDate: "",
+  expectedRevenue: null,
+  targetMargin: null,
+};
