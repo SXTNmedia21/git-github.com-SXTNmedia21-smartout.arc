@@ -104,6 +104,10 @@
     "./prompts/posture": {
       "types": "./dist/prompts/posture.d.ts",
       "default": "./dist/prompts/posture.js"
+    },
+    "./context/types": {
+      "types": "./dist/context/types.d.ts",
+      "default": "./dist/context/types.js"
     }
   },
   "scripts": {
