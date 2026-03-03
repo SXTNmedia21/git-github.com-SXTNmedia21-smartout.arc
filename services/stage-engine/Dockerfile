@@ -25,6 +25,8 @@ COPY packages/typescript-config/ ./packages/typescript-config/
 COPY packages/types/ ./packages/types/
 COPY packages/supabase/ ./packages/supabase/
 COPY packages/ai/ ./packages/ai/
+COPY services/stage-engine/tsconfig.json ./services/stage-engine/
+COPY services/stage-engine/src ./services/stage-engine/src
 
 # Build workspace deps in order, then stage-engine
 RUN pnpm --filter @smartout/types build && \
@@ -50,6 +52,7 @@ COPY --from=builder /app/packages/ai/dist ./packages/ai/dist
 COPY --from=builder /app/packages/supabase/src ./packages/supabase/src
 COPY --from=builder /app/services/stage-engine/dist ./services/stage-engine/dist
 
+WORKDIR /app/services/stage-engine
 EXPOSE 3000
 ENV NODE_ENV=production
 CMD ["node", "dist/index.js"]
