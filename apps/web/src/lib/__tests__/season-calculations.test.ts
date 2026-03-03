@@ -74,7 +74,7 @@ describe("calculateDayTargets", () => {
     });
 
     expect(result).toHaveLength(7);
-    expect(result[0].target).toBeCloseTo(500_000 / 7, 0);
+    expect(result[0]!.target).toBeCloseTo(500_000 / 7, 0);
   });
 });
 
@@ -104,8 +104,8 @@ describe("calculateHourTargets", () => {
 
     // Only open hours should have targets
     expect(result).toHaveLength(12);
-    expect(result[0].hour).toBe(10);
-    expect(result[result.length - 1].hour).toBe(21);
+    expect(result[0]!.hour).toBe(10);
+    expect(result[result.length - 1]!.hour).toBe(21);
 
     // Sum should equal day target
     const total = result.reduce((sum, h) => sum + h.target, 0);

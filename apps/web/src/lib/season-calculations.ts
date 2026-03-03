@@ -75,7 +75,7 @@ export function calculateDayTargets(input: {
     const jsDay = d.getUTCDay();
     const weekday = jsDay === 0 ? 6 : jsDay - 1;
     dates.push({
-      date: d.toISOString().split("T")[0],
+      date: d.toISOString().split("T")[0]!,
       weekday,
     });
   }
@@ -91,7 +91,7 @@ export function calculateDayTargets(input: {
   return dates.map((d, i) => ({
     date: d.date,
     weekday: d.weekday,
-    target: baseDailyTarget * (factors[i] / avgFactor),
+    target: baseDailyTarget * (factors[i]! / avgFactor),
   }));
 }
 
@@ -131,8 +131,8 @@ export function calculateHourTargets(input: {
 
   return hours.map((h, i) => ({
     hour: h,
-    target: dayTarget * (activeFactors[i] / totalFactors),
-    factor: activeFactors[i],
+    target: dayTarget * (activeFactors[i]! / totalFactors),
+    factor: activeFactors[i]!,
   }));
 }
 
