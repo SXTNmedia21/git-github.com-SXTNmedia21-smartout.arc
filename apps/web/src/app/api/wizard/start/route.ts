@@ -1,51 +1,93 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { startMissionCall } from "@smartout/ai/missions";
-import { createAdminClient } from "@smartout/supabase/admin";
-import { getServiceKey } from "@smartout/supabase/vault";
+import { createClient } from "@smartout/supabase/server";
 
+/**
+ * POST /api/wizard/start
+ *
+ * Routes voice calls through the Stage Engine instead of calling Ultravox directly.
+ * The stage engine creates a session, builds the prompt (with tuning notes),
+ * wires Guardian monitoring, and returns a join URL.
+ */
 export async function POST(request: NextRequest) {
-  let apiKey: string;
-  try {
-    apiKey = await getServiceKey(createAdminClient(), "ultravox");
-  } catch {
-    // Fallback to env var for local development
-    const envKey = process.env.ULTRAVOX_API_KEY;
-    if (envKey) {
-      console.warn("[wizard/start] Vault lookup failed, using ULTRAVOX_API_KEY env var fallback.");
-      apiKey = envKey;
-    } else {
-      console.error(
-        "[wizard/start] ULTRAVOX_API_KEY not found in Vault or env. Save it via /platform-admin/keys.",
-      );
-      return NextResponse.json(
-        { error: "Voice assistant is not configured. Contact administrator." },
-        { status: 503 },
-      );
-    }
+  const stageEngineUrl = process.env.STAGE_ENGINE_URL;
+  const stageEngineApiKey = process.env.STAGE_ENGINE_API_KEY;
+
+  if (!stageEngineUrl) {
+    console.error("[wizard/start] STAGE_ENGINE_URL is not set.");
+    return NextResponse.json(
+      { error: "Voice assistant is not configured. Contact administrator." },
+      { status: 503 },
+    );
   }
+
+  if (!stageEngineApiKey) {
+    console.error("[wizard/start] STAGE_ENGINE_API_KEY is not set.");
+    return NextResponse.json(
+      { error: "Voice assistant is not configured. Contact administrator." },
+      { status: 503 },
+    );
+  }
+
+  // Get authenticated user + workspace (workspace is optional during onboarding)
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Look up profile — may not exist yet during onboarding
+  const { data: profile } = await supabase
+    .from("profile")
+    .select("profile_id, workspace_id")
+    .eq("user_identity_id", user.id)
+    .limit(1)
+    .single();
 
   try {
     const body = await request.json().catch(() => ({}));
-    const missionId = body.mission_id || "mr-botsson";
-    const selectedTools = Array.isArray(body.selected_tools) ? body.selected_tools : [];
+    const missionId = body.mission_id || "onboarding-interview";
 
-    const result = await startMissionCall({
-      missionId,
-      apiKey,
-      agentId: process.env.ULTRAVOX_AGENT_ID,
-      selectedTools,
-      metadata: {
-        source: "web-dashboard",
-        ...(body.metadata || {}),
+    // During onboarding the workspace may not exist yet — use body override or profile
+    const workspaceId = body.workspace_id ?? profile?.workspace_id;
+
+    if (!workspaceId && missionId !== "onboarding-interview") {
+      return NextResponse.json({ error: "No workspace found" }, { status: 400 });
+    }
+
+    const res = await fetch(`${stageEngineUrl}/adapters/ultravox/create-call`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": stageEngineApiKey,
       },
+      body: JSON.stringify({
+        mission_id: missionId,
+        workspace_id: workspaceId ?? "00000000-0000-0000-0000-000000000000",
+        user_id: user.id,
+        voice: body.voice,
+        language: body.language ?? "no",
+      }),
     });
 
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({ message: "Unknown stage engine error" }));
+      console.error("[wizard/start] Stage engine error:", res.status, errData);
+      return NextResponse.json(
+        { error: errData.message ?? "Failed to start voice session" },
+        { status: res.status },
+      );
+    }
+
+    const data = await res.json();
+
     return NextResponse.json({
-      joinUrl: result.joinUrl,
-      callId: result.callId,
-      mission: result.mission.name,
-      voiceFallbackUsed: result.voiceFallbackUsed,
+      sessionId: data.session_id,
+      joinUrl: data.join_url,
+      callId: data.call_id,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
