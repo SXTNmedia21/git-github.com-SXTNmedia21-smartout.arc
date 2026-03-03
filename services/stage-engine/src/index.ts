@@ -20,6 +20,7 @@ import { fetchRoute } from "./routes/fetch.js";
 import { advance } from "./routes/advance.js";
 import { ultravox } from "./routes/adapters/ultravox.js";
 import { agentChat } from "./routes/agent/chat.js";
+import { attachGuardianWs } from "./routes/guardian.js";
 import { expireStaleSession } from "./core/session-manager.js";
 import { cleanExpiredMemories } from "./core/memory-manager.js";
 
@@ -47,9 +48,14 @@ app.route("/", agentChat);
 // Start server
 const port = config.PORT;
 
-serve({ fetch: app.fetch, port }, (info) => {
+import type { Server } from "node:http";
+
+const server = serve({ fetch: app.fetch, port }, (info) => {
   console.log(`Stage Engine running on port ${info.port}`);
 });
+
+// Attach Guardian WebSocket to the same HTTP server
+attachGuardianWs(server as Server);
 
 // Session expiry + memory cleanup — runs on a configurable interval
 const cleanupMs = config.CLEANUP_INTERVAL_MINUTES * 60 * 1000;

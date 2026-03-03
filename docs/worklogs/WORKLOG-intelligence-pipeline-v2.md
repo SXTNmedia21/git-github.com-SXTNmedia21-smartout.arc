@@ -36,6 +36,11 @@ tags: [worklog, intelligence, pipeline]
 - [ ] Decide on design gap: season `startDate`/`endDate` not consumed by RPC
 - [ ] Run full `pnpm turbo typecheck`
 - [ ] Write user journeys (`docs/journeys/JOURNEY-intelligence-pipeline-v2.md`)
+- [ ] Code review fixes from Edge Function review (task #1)
+- [ ] Code review fixes from client code review (task #2)
+- [ ] Run `pnpm turbo typecheck` — must pass with 0 errors
+- [ ] Commit all changes
+- [ ] Feature closure gates: user journeys, manual test cases
 - [ ] Feature closure: run `/close-feature`
 
 ## Decisions

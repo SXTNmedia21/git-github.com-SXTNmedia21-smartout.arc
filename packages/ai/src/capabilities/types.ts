@@ -9,7 +9,8 @@ export type CapabilityName =
   | "profile"
   | "communication"
   | "memory"
-  | "payroll";
+  | "payroll"
+  | "guardian";
 
 export type AuthorityLevel = "autonomous" | "confirm" | "suggest" | "read_only" | "disabled";
 
@@ -47,6 +48,7 @@ export type Situation =
   | "scheduling"
   | "training"
   | "operations"
+  | "guardian"
   | "general";
 
 export type PostureAdaptFlags = {

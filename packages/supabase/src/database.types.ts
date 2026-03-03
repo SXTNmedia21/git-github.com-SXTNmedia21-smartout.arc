@@ -2408,6 +2408,131 @@ export type Database = {
           },
         ]
       }
+      guardian_log: {
+        Row: {
+          actor: string
+          created_at: string
+          data: Json | null
+          event_type: string
+          id: string
+          session_id: string
+          summary: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          actor: string
+          created_at?: string
+          data?: Json | null
+          event_type: string
+          id?: string
+          session_id: string
+          summary: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          actor?: string
+          created_at?: string
+          data?: Json | null
+          event_type?: string
+          id?: string
+          session_id?: string
+          summary?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guardian_log_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      guardian_signal: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          created_at: string
+          data: Json | null
+          description: string | null
+          domain: string
+          entity_id: string | null
+          entity_label: string | null
+          entity_type: string | null
+          expires_at: string | null
+          id: string
+          resolved_at: string | null
+          severity: string
+          signal_type: string
+          source_check_id: string | null
+          status: string
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          created_at?: string
+          data?: Json | null
+          description?: string | null
+          domain: string
+          entity_id?: string | null
+          entity_label?: string | null
+          entity_type?: string | null
+          expires_at?: string | null
+          id?: string
+          resolved_at?: string | null
+          severity: string
+          signal_type: string
+          source_check_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          created_at?: string
+          data?: Json | null
+          description?: string | null
+          domain?: string
+          entity_id?: string | null
+          entity_label?: string | null
+          entity_type?: string | null
+          expires_at?: string | null
+          id?: string
+          resolved_at?: string | null
+          severity?: string
+          signal_type?: string
+          source_check_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guardian_signal_acknowledged_by_fkey"
+            columns: ["acknowledged_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "guardian_signal_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       hour_factor: {
         Row: {
           created_at: string

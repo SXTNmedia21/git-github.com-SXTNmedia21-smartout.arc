@@ -26,6 +26,7 @@ export const intentSchema = z.object({
     "communication",
     "memory",
     "payroll",
+    "guardian",
     "general",
   ] as const),
   confidence: z.number().min(0).max(1),
@@ -56,6 +57,7 @@ Capabilities:
 - communication: Sending messages, notifications
 - memory: Asking about past conversations or preferences
 - payroll: Salary, overtime, deductions, pay period
+- guardian: Workspace health, readiness alerts, signal monitoring, health checks, overdue training warnings
 - general: Greetings, small talk, unclear intent, meta-questions
 
 The user writes in Norwegian or English. Classify based on intent, not language.

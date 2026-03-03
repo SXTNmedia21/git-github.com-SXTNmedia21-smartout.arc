@@ -51,3 +51,14 @@ tags: [learnings, index]
 ## Feature-Specific Learning Logs
 
 Feature-level learnings are logged in the WORKLOG for each feature branch. See `docs/worklogs/WORKLOG-*.md` for per-feature learnings.
+module: ai
+tags: [learnings]
+
+---
+
+# Learning Log — guardian
+
+| #   | Date       | Learning                                                                                | Impact                                                              |
+| --- | ---------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| 1   | 2026-03-14 | Browser WebSocket API cannot send custom headers — use query param for JWT auth         | All WS endpoints must use `?token=` pattern                         |
+| 2   | 2026-03-14 | Emit guardian events at the action source, not at every call site — prevents duplicates | Check if called function already emits before adding new emit calls |

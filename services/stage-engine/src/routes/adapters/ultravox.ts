@@ -19,6 +19,7 @@ import { buildStagePrompt } from "../../core/prompt-builder.js";
 import { supabaseAdmin } from "../../lib/supabase.js";
 import { createUltravoxCall, buildUltravoxTools } from "../../lib/ultravox.js";
 import { config } from "../../config.js";
+import { emitGuardianEvent } from "../../core/guardian-bus.js";
 import type { AuthContext } from "../../types/auth.js";
 import type { UltravoxNewStageResponse } from "../../types/ultravox.js";
 
@@ -147,6 +148,15 @@ ultravox.post("/adapters/ultravox/store", zValidator("json", uvStoreSchema), asy
     return c.json({ error: "INTERNAL_ERROR", message: "Failed to store data", status: 500 }, 500);
   }
 
+  emitGuardianEvent({
+    session_id: sessionId,
+    workspace_id: session.workspace_id,
+    event_type: "data.collected",
+    actor: "agent",
+    summary: `Voice data collected: ${body.entity_type}`,
+    data: { entity_type: body.entity_type },
+  });
+
   // Return plain text — Ultravox tool result
   return c.text(`Stored ${body.entity_type} successfully. Continue the conversation.`);
 });
@@ -271,6 +281,8 @@ ultravox.post("/adapters/ultravox/advance", zValidator("json", uvAdvanceSchema),
   if (!result) {
     return c.json({ error: "INTERNAL_ERROR", message: "Failed to advance", status: 500 }, 500);
   }
+
+  // Guardian events already emitted inside advanceStage() — no duplicate emit here.
 
   // If mission complete, return text result (no new stage)
   if (result.complete) {

@@ -10,6 +10,7 @@ import { supabaseAdmin } from "../lib/supabase.js";
 import { loadMission } from "./session-manager.js";
 import { buildStagePrompt } from "./prompt-builder.js";
 import { sendWebhook, type WebhookPayload } from "./webhook-sender.js";
+import { emitGuardianEvent } from "./guardian-bus.js";
 import type { Session, Stage, Mission } from "../types/session.js";
 import type { AdvanceRequest, AdvanceResponse, StageInfo } from "../types/api.js";
 
@@ -64,6 +65,15 @@ export async function advanceStage(
       })
       .eq("id", session.id);
 
+    emitGuardianEvent({
+      session_id: session.id,
+      workspace_id: session.workspace_id,
+      event_type: "session.completed",
+      actor: "system",
+      summary: `Session complete (${stages.length}/${stages.length} stages)`,
+      data: { stages_completed: stages.length },
+    });
+
     // Fire completion webhook
     if (session.callback_url) {
       sendWebhook(session.callback_url, {
@@ -99,6 +109,19 @@ export async function advanceStage(
     session.context as Record<string, unknown>,
     session.collected_data as Record<string, unknown>,
   );
+
+  emitGuardianEvent({
+    session_id: session.id,
+    workspace_id: session.workspace_id,
+    event_type: "stage.changed",
+    actor: "system",
+    summary: `Stage: ${session.current_stage_id ?? "start"} → ${nextStage.stage_id}`,
+    data: {
+      from_stage: session.current_stage_id,
+      to_stage: nextStage.stage_id,
+      progress: `${nextIndex + 1}/${stages.length}`,
+    },
+  });
 
   // Fire stage change webhook
   if (session.callback_url) {
