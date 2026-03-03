@@ -103,11 +103,12 @@ export async function advanceStage(
     })
     .eq("id", session.id);
 
-  // Build new system prompt
+  // Build new system prompt (with mission-level base prompt)
   const systemPrompt = buildStagePrompt(
     nextStage,
     session.context as Record<string, unknown>,
     session.collected_data as Record<string, unknown>,
+    mission.system_prompt,
   );
 
   emitGuardianEvent({

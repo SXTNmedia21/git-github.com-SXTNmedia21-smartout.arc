@@ -29,6 +29,7 @@ export type Mission = {
   context_source: string | null;
   workspace_id: string | null;
   is_active: boolean;
+  system_prompt: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -51,6 +52,7 @@ export type Stage = {
   creative_freedom: number;
   next_stage: string | null;
   is_required: boolean;
+  tuning_notes: string | null;
   deferred_templates: unknown[];
   inline_instructions: unknown[];
   created_at: string;
