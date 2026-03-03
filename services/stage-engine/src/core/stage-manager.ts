@@ -26,11 +26,11 @@ export async function advanceStage(
   session: Session,
   req: AdvanceRequest,
 ): Promise<AdvanceResponse | null> {
-  // Load mission and stages (mission_id is guaranteed non-null for mission-mode sessions)
+  // Load mission, stages, and journey data (mission_id is guaranteed non-null for mission-mode sessions)
   const result = await loadMission(session.mission_id!);
   if (!result) return null;
 
-  const { mission, stages } = result;
+  const { mission, stages, journeySteps } = result;
 
   // Find current stage
   const currentStage = stages.find((s) => s.stage_id === session.current_stage_id);
@@ -103,10 +103,26 @@ export async function advanceStage(
     })
     .eq("id", session.id);
 
+  // Build stage context, enriched with linked journey step data
+  const stageContext = { ...(session.context as Record<string, unknown>) };
+  if (nextStage.journey_step_id && journeySteps.length > 0) {
+    const linkedStep = journeySteps.find((s) => s.journey_step_id === nextStage.journey_step_id);
+    if (linkedStep) {
+      stageContext.journeyStep = {
+        action: linkedStep.action,
+        expects: linkedStep.expects,
+        screen: linkedStep.screen,
+        component: linkedStep.component,
+        dataReads: linkedStep.data_reads,
+        dataWrites: linkedStep.data_writes,
+      };
+    }
+  }
+
   // Build new system prompt
   const systemPrompt = buildStagePrompt(
     nextStage,
-    session.context as Record<string, unknown>,
+    stageContext,
     session.collected_data as Record<string, unknown>,
   );
 

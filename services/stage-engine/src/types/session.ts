@@ -28,6 +28,7 @@ export type Mission = {
   mode: MissionMode;
   context_source: string | null;
   workspace_id: string | null;
+  journey_id: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -51,9 +52,31 @@ export type Stage = {
   creative_freedom: number;
   next_stage: string | null;
   is_required: boolean;
+  journey_step_id: string | null;
   deferred_templates: unknown[];
   inline_instructions: unknown[];
   created_at: string;
+};
+
+/**
+ * A journey step loaded from the journey system.
+ * Provides screen/component/action context for stages linked to journeys.
+ */
+export type JourneyStep = {
+  journey_step_id: string;
+  journey_id: string;
+  workspace_id: string;
+  step_order: number;
+  title: string;
+  action: string;
+  expects: string | null;
+  screen: string | null;
+  component: string | null;
+  data_reads: string[];
+  data_writes: string[];
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 /**
