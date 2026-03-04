@@ -16,7 +16,7 @@ import type { AuthContext } from "../types/auth.js";
 
 /**
  * Load completed onboarding data for a profile.
- * Used by Botsson to inherit Lise's collected data.
+ * Used by Botsson to inherit previously collected onboarding data.
  */
 export async function loadOnboardingContext(
   profileId: string,
@@ -148,21 +148,23 @@ export async function loadMission(missionId: string): Promise<LoadMissionResult 
  * This context is stored in the session and available to the agent.
  */
 async function loadIdentityContext(
-  workspaceId: string,
+  workspaceId?: string,
   userId?: string,
   profileId?: string,
 ): Promise<Record<string, unknown>> {
   const context: Record<string, unknown> = {};
 
   // Load workspace info
-  const { data: workspace } = await supabaseAdmin
-    .from("workspace")
-    .select("workspace_id, name, slug")
-    .eq("workspace_id", workspaceId)
-    .single();
+  if (workspaceId) {
+    const { data: workspace } = await supabaseAdmin
+      .from("workspace")
+      .select("workspace_id, name, slug")
+      .eq("workspace_id", workspaceId)
+      .single();
 
-  if (workspace) {
-    context.workspace = workspace;
+    if (workspace) {
+      context.workspace = workspace;
+    }
   }
 
   // Load profile info if profile_id provided

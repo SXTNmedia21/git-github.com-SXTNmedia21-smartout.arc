@@ -69,7 +69,7 @@ export function createGuardianRoute(
           }
 
           workspaceId = profile.workspace_id;
-          client = addClient(wsCtx, workspaceId);
+          client = addClient(wsCtx, workspaceId as string);
           console.log(`[guardian-ws] Client connected for workspace ${workspaceId}`);
 
           // Send current active sessions on connect
