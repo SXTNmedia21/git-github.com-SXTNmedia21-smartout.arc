@@ -6,7 +6,7 @@
 // Run with: pnpm test:e2e (requires engine running + seed data)
 // ============================================
 
-const BASE_URL = process.env.ENGINE_URL || "http://localhost:3070";
+const BASE_URL = process.env.ENGINE_URL || "http://localhost:5010";
 const API_KEY = process.env.TEST_API_KEY || "";
 
 /** Helper: make authenticated requests to the engine */

@@ -8,17 +8,17 @@
 
 # Stage Engine — AI agent orchestration gateway
 engine.smartout.ai {
-	reverse_proxy stage-engine:3000
+	reverse_proxy stage-engine:5010
 }
 
 # Shift MCP — Schedule management tools for AI agents
 schedule-mcp.smartout.ai {
-	reverse_proxy shift-mcp:3001
+	reverse_proxy shift-mcp:5011
 }
 
 # Contract Service — DocuSeal e-signature management
 contract.smartout.ai {
-	reverse_proxy contract-service:3100
+	reverse_proxy contract-service:5012
 }
 
 # n8n — Workflow automation (when deployed)

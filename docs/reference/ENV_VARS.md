@@ -5,7 +5,7 @@ version: "1.0"
 status: canonical
 layer: reference
 created: 2026-02-28
-updated: 2026-03-11
+updated: 2026-03-29
 author: claude
 supersedes: []
 superseded_by: null
@@ -230,7 +230,7 @@ These are set via `supabase/functions/.env` or Supabase Dashboard secrets.
 | Variable               | Required | Notes            |
 | ---------------------- | -------- | ---------------- |
 | `CONTRACT_SERVICE_KEY` | Yes      | Service auth key |
-| `PORT`                 | No       | Default: 3100    |
+| `PORT`                 | No       | Default: 5012    |
 
 ---
 

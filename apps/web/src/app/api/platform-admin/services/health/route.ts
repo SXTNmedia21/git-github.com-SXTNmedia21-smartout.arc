@@ -30,17 +30,17 @@ function getServiceEntries(): ServiceEntry[] {
   return [
     {
       name: "stage-engine",
-      url: env.STAGE_ENGINE_URL ?? "http://localhost:3000",
+      url: env.STAGE_ENGINE_URL ?? "http://localhost:5010",
       healthPath: "/health",
     },
     {
       name: "shift-mcp",
-      url: env.SHIFT_MCP_URL ?? "http://localhost:3001",
+      url: env.SHIFT_MCP_URL ?? "http://localhost:5011",
       healthPath: "/health",
     },
     {
       name: "contract-service",
-      url: env.CONTRACT_SERVICE_URL ?? "http://localhost:3100",
+      url: env.CONTRACT_SERVICE_URL ?? "http://localhost:5012",
       healthPath: "/health",
     },
   ];

@@ -23,9 +23,9 @@ check() {
 FAILED=0
 
 check "Caddy"            "http://localhost:80"
-check "Stage Engine"     "http://localhost:3000/health"
-check "Shift MCP"        "http://localhost:3001/health"
-check "Contract Service" "http://localhost:3100/health"
+check "Stage Engine"     "http://localhost:5010/health"
+check "Shift MCP"        "http://localhost:5011/health"
+check "Contract Service" "http://localhost:5012/health"
 check "Scrapling"        "http://localhost:8000/health"
 check "n8n"              "http://localhost:5678/healthz"
 

@@ -1,7 +1,7 @@
 ---
 title: "Services Architecture & Infrastructure"
 status: canonical
-updated: 2026-03-14
+updated: 2026-03-29
 created: 2026-03-14
 module: infrastructure
 tags: [services, docker, caddy, infra, architecture, api]
@@ -20,9 +20,9 @@ Smartout runs **5 microservices** on a single DigitalOcean Droplet, orchestrated
 
 | Service              | Framework          | Language    | Port | Subdomain                | Auth                        | Status       |
 | -------------------- | ------------------ | ----------- | ---- | ------------------------ | --------------------------- | ------------ |
-| **Stage Engine**     | Hono 4.7           | TypeScript  | 3000 | engine.smartout.ai       | Dual-auth (JWT + API key)   | Active       |
-| **Shift MCP**        | Hono 4.7 + MCP SDK | TypeScript  | 3001 | schedule-mcp.smartout.ai | Dual-auth (JWT + API key)   | Active       |
-| **Contract Service** | Fastify 5.2        | TypeScript  | 3100 | contract.smartout.ai     | Service key (X-Service-Key) | Active       |
+| **Stage Engine**     | Hono 4.7           | TypeScript  | 5010 | engine.smartout.ai       | Dual-auth (JWT + API key)   | Active       |
+| **Shift MCP**        | Hono 4.7 + MCP SDK | TypeScript  | 5011 | schedule-mcp.smartout.ai | Dual-auth (JWT + API key)   | Active       |
+| **Contract Service** | Fastify 5.2        | TypeScript  | 5012 | contract.smartout.ai     | Service key (X-Service-Key) | Active       |
 | **Scrapling**        | FastAPI            | Python 3.12 | 8000 | _(internal only)_        | None                        | Active       |
 | **n8n**              | n8n                | Node.js     | 5678 | n8n.smartout.ai          | Basic auth                  | Not deployed |
 
@@ -53,7 +53,7 @@ Additional API surfaces:
           ▼                   ▼                   ▼
 ┌──────────────────┐ ┌────────────────┐ ┌──────────────────┐
 │ Stage Engine     │ │ Shift MCP      │ │ Contract Service │
-│ :3000 (Hono)     │ │ :3001 (MCP)    │ │ :3100 (Fastify)  │
+│ :5010 (Hono)     │ │ :5011 (MCP)    │ │ :5012 (Fastify)  │
 └────────┬─────────┘ └───────┬────────┘ └────────┬─────────┘
          │                   │                   │
          └───────────────────┼───────────────────┘
@@ -98,18 +98,18 @@ Additional API surfaces:
 **Production routes:**
 
 ```
-engine.smartout.ai       → stage-engine:3000
-schedule-mcp.smartout.ai → shift-mcp:3001
-contract.smartout.ai     → contract-service:3100
+engine.smartout.ai       → stage-engine:5010
+schedule-mcp.smartout.ai → shift-mcp:5011
+contract.smartout.ai     → contract-service:5012
 n8n.smartout.ai          → n8n:5678
 ```
 
 **Development ports:**
 
 ```
-:3070 → stage-engine:3000
-:3071 → shift-mcp:3001
-:3072 → contract-service:3100
+:3070 → stage-engine:5010
+:3071 → shift-mcp:5011
+:3072 → contract-service:5012
 :3073 → scrapling:8000
 :3074 → n8n:5678
 ```
@@ -165,7 +165,7 @@ cd infra && docker compose up --build
 
 **Source:** `services/stage-engine/`
 **Framework:** Hono 4.7.0
-**Port:** 3000
+**Port:** 5010
 **Subdomain:** engine.smartout.ai
 
 ### Authentication
@@ -280,7 +280,7 @@ Dual-auth middleware (`src/middleware/auth.ts`):
 ### Environment Variables
 
 ```
-PORT=3000
+PORT=5010
 ENGINE_URL=https://engine.smartout.ai
 SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
 ULTRAVOX_API_KEY
@@ -298,7 +298,7 @@ CLEANUP_INTERVAL_MINUTES=5
 
 **Source:** `services/shift-mcp/`
 **Framework:** Hono 4.7.0 + MCP SDK 1.27.1
-**Port:** 3001
+**Port:** 5011
 **Subdomain:** schedule-mcp.smartout.ai
 
 ### Authentication
@@ -380,7 +380,7 @@ Example: 09:00–17:30 with 30 min break = 8.0 hours.
 ### Environment Variables
 
 ```
-PORT=3001
+PORT=5011
 SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
 LOG_LEVEL=info
 ```
@@ -393,7 +393,7 @@ LOG_LEVEL=info
 
 **Source:** `services/contract-service/`
 **Framework:** Fastify 5.2.1
-**Port:** 3100
+**Port:** 5012
 **Subdomain:** contract.smartout.ai
 
 ### Authentication
@@ -456,7 +456,7 @@ Status regression prevented via weight comparison (Learning L-0004).
 ### Environment Variables
 
 ```
-PORT=3100
+PORT=5012
 SERVICE_KEY=<smo_svc_* key>
 NODE_ENV=production
 SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
