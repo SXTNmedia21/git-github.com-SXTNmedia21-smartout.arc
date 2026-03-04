@@ -149,7 +149,9 @@ export function useGuardianData(): GuardianData {
         `,
         )
         .eq("workspace_id", workspaceId!)
-        .eq("status", "active");
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(100);
 
       if (error) throw error;
 
@@ -161,7 +163,7 @@ export function useGuardianData(): GuardianData {
         ...new Set(sessions.map((s) => s.mission_id).filter((id): id is string => id !== null)),
       ];
 
-      let stageCounts = new Map<string, number>();
+      const stageCounts = new Map<string, number>();
 
       if (missionIds.length > 0) {
         const { data: stageData, error: stageError } = await supabase

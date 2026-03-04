@@ -33,9 +33,9 @@ export default function AdminDashboard({ isDark }: AdminDashboardProps) {
           <ReconciliationView isDark={isDark} />
         ) : adminView === "activity" ? (
           <ActivityView isDark={isDark} />
-        ) : (
+        ) : adminView === "guardian" ? (
           <GuardianView isDark={isDark} />
-        )}
+        ) : null}
       </div>
 
       <DayControlSheet selectedDate={selectedDate} onClose={handleCloseSheet}>

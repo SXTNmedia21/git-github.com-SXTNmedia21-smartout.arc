@@ -1,6 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
 import {
   Shield,
   Activity,
@@ -323,7 +322,7 @@ function ActiveProtocolsSection({
 }
 
 function SessionCard({ session, isDark }: { session: ActiveEngineSession; isDark: boolean }) {
-  const elapsed = useMemo(() => elapsedTime(session.created_at), [session.created_at]);
+  const elapsed = elapsedTime(session.created_at);
   const stageProgress =
     session.total_stages > 0 ? (session.stage_index / session.total_stages) * 100 : 0;
   const channelBadge = getChannelBadge(session.channel, isDark);
@@ -444,7 +443,7 @@ function SignalFeedSection({ signals, isDark }: { signals: GuardianSignal[]; isD
 }
 
 function SignalRow({ signal, isDark }: { signal: GuardianSignal; isDark: boolean }) {
-  const ago = useMemo(() => timeAgo(signal.created_at), [signal.created_at]);
+  const ago = timeAgo(signal.created_at);
 
   return (
     <div
