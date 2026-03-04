@@ -43,3 +43,4 @@ export { useLeaderPulse } from "./useLeaderPulse";
 export type { LeaderPulse, LeaderPulseStatus } from "./useLeaderPulse";
 export { useGovernanceOverview } from "./use-governance-overview";
 export { useProtocolAssignees } from "./use-protocol-assignees";
+export { useProtocolJourney } from "./use-protocol-journey";
