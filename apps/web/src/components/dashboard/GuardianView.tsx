@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useContext } from "react";
+import { useMemo } from "react";
 import {
   Shield,
   Activity,
@@ -13,55 +13,12 @@ import {
   MessageSquare,
   Compass,
 } from "lucide-react";
-import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { useGuardianData } from "@/app/dashboard/_hooks/useGuardianData";
-
-// ── Types ──────────────────────────────────────────────────────────────
-
-type Severity = "info" | "warning" | "critical";
-
-type GuardianSignalRow = {
-  id: string;
-  signal_type: string;
-  domain: string;
-  severity: Severity;
-  entity_type: string | null;
-  entity_id: string | null;
-  entity_label: string | null;
-  title: string;
-  description: string | null;
-  status: "active" | "acknowledged" | "resolved" | "dismissed";
-  created_at: string;
-};
-
-type ActiveMissionRow = {
-  id: string;
-  mission_id: string;
-  mission_name: string;
-  mission_mode: string;
-  channel: string;
-  status: string;
-  current_stage_id: string | null;
-  stage_index: number;
-  total_stages: number;
-  profile_display_name: string | null;
-  journey_title: string | null;
-  guardian_whisper_count: number;
-  created_at: string;
-  updated_at: string;
-};
-
-type SeasonPulse = {
-  season_name: string;
-  season_id: string;
-  start_date: string;
-  end_date: string;
-  price_factor: number;
-  budget_status: string;
-  total_target_revenue: number;
-  day_factor_today: number;
-  is_high_intensity: boolean;
-};
+import {
+  useGuardianData,
+  type GuardianSignal,
+  type ActiveEngineSession,
+  type SeasonPulse,
+} from "@/app/dashboard/_hooks/useGuardianData";
 
 // ── Helpers ────────────────────────────────────────────────────────────
 
@@ -129,6 +86,8 @@ function getIntensityColors(
   };
 }
 
+type Severity = "info" | "warning" | "critical";
+
 function getSeverityIcon(severity: Severity) {
   switch (severity) {
     case "critical":
@@ -164,10 +123,7 @@ interface GuardianViewProps {
 }
 
 export function GuardianView({ isDark }: GuardianViewProps) {
-  const { workspaceData } = useContext(DashboardContext);
-  const { signals, activeSessions, seasonPulse, counts, isLoading } = useGuardianData(
-    workspaceData?.workspace_id ?? null,
-  );
+  const { signals, sessions, seasonPulse, counts, isLoading } = useGuardianData();
 
   if (isLoading) {
     return (
@@ -188,11 +144,7 @@ export function GuardianView({ isDark }: GuardianViewProps) {
       <SeasonPulseSection seasonPulse={seasonPulse} isDark={isDark} />
 
       {/* Section 2: Active Protocols */}
-      <ActiveProtocolsSection
-        sessions={activeSessions}
-        count={counts.activeMissions}
-        isDark={isDark}
-      />
+      <ActiveProtocolsSection sessions={sessions} count={counts.activeMissions} isDark={isDark} />
 
       {/* Section 3: Signal Feed */}
       <SignalFeedSection signals={signals} isDark={isDark} />
@@ -226,7 +178,7 @@ function SeasonPulseSection({
     );
   }
 
-  const intensity = getIntensity(seasonPulse.price_factor, seasonPulse.day_factor_today);
+  const intensity = getIntensity(seasonPulse.price_factor, seasonPulse.day_factor);
   const intensityLabel = getIntensityLabel(intensity);
   const colors = getIntensityColors(intensity, isDark);
   const intensityBarWidth = Math.min(intensity / 2.5, 1) * 100;
@@ -289,7 +241,7 @@ function SeasonPulseSection({
               Dagfaktor
             </p>
             <p className={`text-lg font-black ${isDark ? "text-white" : "text-zinc-900"}`}>
-              {seasonPulse.day_factor_today.toFixed(2)}x
+              {seasonPulse.day_factor.toFixed(2)}x
             </p>
           </div>
           <div>
@@ -323,7 +275,7 @@ function ActiveProtocolsSection({
   count,
   isDark,
 }: {
-  sessions: ActiveMissionRow[];
+  sessions: ActiveEngineSession[];
   count: number;
   isDark: boolean;
 }) {
@@ -370,7 +322,7 @@ function ActiveProtocolsSection({
   );
 }
 
-function SessionCard({ session, isDark }: { session: ActiveMissionRow; isDark: boolean }) {
+function SessionCard({ session, isDark }: { session: ActiveEngineSession; isDark: boolean }) {
   const elapsed = useMemo(() => elapsedTime(session.created_at), [session.created_at]);
   const stageProgress =
     session.total_stages > 0 ? (session.stage_index / session.total_stages) * 100 : 0;
@@ -388,7 +340,7 @@ function SessionCard({ session, isDark }: { session: ActiveMissionRow; isDark: b
           <h4
             className={`truncate text-sm font-bold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}
           >
-            {session.mission_name}
+            {session.mission_name ?? "Agent Session"}
           </h4>
           {session.journey_title && (
             <p className={`mt-0.5 truncate text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
@@ -405,12 +357,12 @@ function SessionCard({ session, isDark }: { session: ActiveMissionRow; isDark: b
 
       {/* Info row: profile, elapsed, whispers */}
       <div className="mb-3 flex flex-wrap items-center gap-3">
-        {session.profile_display_name && (
+        {(session.profile_first_name || session.profile_last_name) && (
           <span
             className={`flex items-center gap-1 text-xs ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
           >
             <User className="h-3 w-3" />
-            {session.profile_display_name}
+            {[session.profile_first_name, session.profile_last_name].filter(Boolean).join(" ")}
           </span>
         )}
         <span
@@ -458,7 +410,7 @@ function SessionCard({ session, isDark }: { session: ActiveMissionRow; isDark: b
 
 // ── Section 3: Signal Feed ─────────────────────────────────────────────
 
-function SignalFeedSection({ signals, isDark }: { signals: GuardianSignalRow[]; isDark: boolean }) {
+function SignalFeedSection({ signals, isDark }: { signals: GuardianSignal[]; isDark: boolean }) {
   return (
     <div>
       {/* Section header */}
@@ -491,7 +443,7 @@ function SignalFeedSection({ signals, isDark }: { signals: GuardianSignalRow[]; 
   );
 }
 
-function SignalRow({ signal, isDark }: { signal: GuardianSignalRow; isDark: boolean }) {
+function SignalRow({ signal, isDark }: { signal: GuardianSignal; isDark: boolean }) {
   const ago = useMemo(() => timeAgo(signal.created_at), [signal.created_at]);
 
   return (

@@ -3,14 +3,12 @@
 import { useCallback, useContext, useState } from "react";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { ScheduleUIProvider } from "@/app/dashboard/schedule/_components/schedule-ui-context";
-import {
-  DayControlSheet,
-  DayControlPanel,
-} from "@/app/dashboard/schedule/_components/day-control";
+import { DayControlSheet, DayControlPanel } from "@/app/dashboard/schedule/_components/day-control";
 import { TacticalView } from "./TacticalView";
 import { StrategicView } from "./StrategicView";
 import { ReconciliationView } from "./ReconciliationView";
 import { ActivityView } from "./ActivityView";
+import { GuardianView } from "./GuardianView";
 
 interface AdminDashboardProps {
   isDark: boolean;
@@ -33,8 +31,10 @@ export default function AdminDashboard({ isDark }: AdminDashboardProps) {
           <StrategicView isDark={isDark} />
         ) : adminView === "reconciliation" ? (
           <ReconciliationView isDark={isDark} />
-        ) : (
+        ) : adminView === "activity" ? (
           <ActivityView isDark={isDark} />
+        ) : (
+          <GuardianView isDark={isDark} />
         )}
       </div>
 
