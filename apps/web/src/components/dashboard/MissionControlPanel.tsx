@@ -319,14 +319,26 @@ export function MissionControlPanel({ sessionId, onClose, isDark }: MissionContr
   }, [sessionId, selectedStageId, changeStage]);
 
   // ── Elapsed time ───────────────────────────────────────
-  const elapsed = useMemo(() => {
-    if (!sessionMeta?.created_at) return "";
-    const diff = Date.now() - new Date(sessionMeta.created_at).getTime();
-    const minutes = Math.floor(diff / 60_000);
-    if (minutes < 60) return `${minutes}m`;
-    const hours = Math.floor(minutes / 60);
-    const remainMinutes = minutes % 60;
-    return `${hours}t ${remainMinutes}m`;
+  const [elapsed, setElapsed] = useState("");
+  useEffect(() => {
+    if (!sessionMeta?.created_at) {
+      setElapsed("");
+      return;
+    }
+    const update = () => {
+      const diff = Date.now() - new Date(sessionMeta.created_at).getTime();
+      const minutes = Math.floor(diff / 60_000);
+      if (minutes < 60) {
+        setElapsed(`${minutes}m`);
+      } else {
+        const hours = Math.floor(minutes / 60);
+        const remainMinutes = minutes % 60;
+        setElapsed(`${hours}t ${remainMinutes}m`);
+      }
+    };
+    update();
+    const interval = setInterval(update, 60_000);
+    return () => clearInterval(interval);
   }, [sessionMeta?.created_at]);
 
   return (
