@@ -97,6 +97,19 @@ export interface ProcedureData {
   isCustom: boolean;
 }
 
+/** Brreg search candidate — returned by search-brreg Edge Function */
+export interface BrregCandidate {
+  orgNumber: string;
+  name: string;
+  city: string;
+  industry: string;
+  industryCode: string;
+  employeeCount: number | null;
+  score: number;
+  address: string;
+  highConfidence: boolean;
+}
+
 /** Memory saved by Botsson (voice agent) — user-specific knowledge context */
 export interface Memory {
   id: string;

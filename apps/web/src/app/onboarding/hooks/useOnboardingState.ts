@@ -12,6 +12,7 @@ import type {
   LocationData,
   ProcedureData,
   Memory,
+  BrregCandidate,
 } from "../types";
 import { ONBOARDING_SECTIONS, EMPTY_BUSINESS_DATA } from "../types";
 import { mergeBusinessData } from "../lib/data-merger";
@@ -37,6 +38,14 @@ export interface OnboardingActions {
     companyName?: string,
     city?: string,
   ) => Promise<void>;
+  searchCompany: (name: string, city?: string) => Promise<BrregCandidate[]>;
+  identifyCompany: (orgNumber: string) => Promise<{
+    company: Record<string, unknown>;
+    places: unknown;
+    workspaceId: string | null;
+  } | null>;
+  scrapeWebsite: (url: string) => Promise<{ scrapedData: Record<string, unknown> | null } | null>;
+  brregCandidates: BrregCandidate[];
   updateBusiness: (partial: Partial<BusinessData>) => void;
   updateSeason: (partial: Partial<SeasonData>) => void;
   toggleDepartment: (id: string) => void;
@@ -79,6 +88,7 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
 
   const [scrapeStatus, setScrapeStatus] = useState<"idle" | "scraping" | "done" | "error">("idle");
   const [scrapeSource, setScrapeSource] = useState<"url" | "org" | "both" | "name" | null>(null);
+  const [brregCandidates, setBrregCandidates] = useState<BrregCandidate[]>([]);
 
   const [activatedWorkspaceId, setActivatedWorkspaceId] = useState<string | null>(null);
   const [activatedWorkspaceSlug, setActivatedWorkspaceSlug] = useState<string | null>(null);
@@ -443,7 +453,113 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
     setScrapeSource(null);
     setBusiness(EMPTY_BUSINESS_DATA);
     setDepartments([]);
+    setBrregCandidates([]);
   }, []);
+
+  // Progressive intelligence: search company by name
+  const searchCompany = useCallback(
+    async (name: string, city?: string): Promise<BrregCandidate[]> => {
+      try {
+        const { data, error } = await supabase.functions.invoke("search-brreg", {
+          body: { name, city: city || undefined },
+        });
+
+        if (error) throw new Error("Search failed");
+
+        const candidates: BrregCandidate[] = data?.candidates || [];
+        setBrregCandidates(candidates);
+        return candidates;
+      } catch {
+        return [];
+      }
+    },
+    [supabase],
+  );
+
+  // Progressive intelligence: identify company by org number
+  const identifyCompany = useCallback(
+    async (orgNumber: string) => {
+      try {
+        setScrapeStatus("scraping");
+        setScrapeSource("org");
+
+        const { data, error } = await supabase.functions.invoke("identify-company", {
+          body: { orgNumber },
+        });
+
+        if (error) throw new Error("Identification failed");
+
+        const { company, places, workspaceId } = data;
+
+        // Store workspace ID
+        if (workspaceId) {
+          setOnboardingWorkspaceId(workspaceId);
+        }
+
+        // Merge into business data
+        const merged = mergeBusinessData(null, company, places as PlacesData | null);
+        setBusiness(merged);
+        setScrapeStatus("done");
+
+        // Auto-populate departments + procedures from industry
+        const nace = merged.industryCode || resolveNaceCode(merged.industry);
+        const suggestedDepts = getDepartmentsForIndustry(nace);
+        setDepartments(suggestedDepts);
+        const suggestedProcs = getProceduresForIndustry(nace);
+        setProcedures(suggestedProcs);
+
+        return { company, places, workspaceId };
+      } catch {
+        setScrapeStatus("error");
+        return null;
+      }
+    },
+    [supabase],
+  );
+
+  // Progressive intelligence: scrape a website
+  const scrapeWebsite = useCallback(
+    async (url: string) => {
+      try {
+        const { data, error } = await supabase.functions.invoke("scrape-website", {
+          body: { url },
+        });
+
+        if (error) throw new Error("Scrape failed");
+
+        const scrapedData = data?.scrapedData as Record<string, unknown> | null;
+
+        if (scrapedData) {
+          // Merge scraped data into existing business state
+          setBusiness((prev) => ({
+            ...prev,
+            email: (scrapedData.email as string) || prev.email,
+            phone: (scrapedData.phone as string) || prev.phone,
+            description: (scrapedData.summary as string) || prev.description,
+            website: prev.website || url,
+          }));
+
+          // Add scraped locations
+          if (Array.isArray(scrapedData.locations) && scrapedData.locations.length > 0) {
+            const newLocs = (scrapedData.locations as { name: string; type?: string }[]).map(
+              (loc, i) => ({
+                id: `loc-scrape-${Date.now()}-${i}`,
+                name: loc.name,
+                type: (loc.type === "Outdoor" ? "outdoor" : "main") as LocationData["type"],
+                zones: [] as { id: string; name: string }[],
+              }),
+            );
+            setLocations((prev) => [...prev, ...newLocs]);
+          }
+        }
+
+        return { scrapedData };
+      } catch {
+        return null;
+      }
+    },
+    [supabase],
+  );
 
   // Reset — clear all state and delete onboarding workspace or DB session
   const reset = useCallback(async () => {
@@ -484,6 +600,7 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
     setContract({ templateGenerated: false, previewUrl: null });
     setScrapeStatus("idle");
     setScrapeSource(null);
+    setBrregCandidates([]);
     setSessionId(null);
     setOnboardingWorkspaceId(null);
     setActivatedWorkspaceId(null);
@@ -608,7 +725,11 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
     scrapeSource,
     activatedWorkspaceId,
     activatedWorkspaceSlug,
+    brregCandidates,
     triggerScrape,
+    searchCompany,
+    identifyCompany,
+    scrapeWebsite,
     updateBusiness,
     updateSeason,
     toggleDepartment,
