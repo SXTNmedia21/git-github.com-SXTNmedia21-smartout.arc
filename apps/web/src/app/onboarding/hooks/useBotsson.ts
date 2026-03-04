@@ -225,7 +225,10 @@ const CLIENT_TOOLS = [
         {
           name: "url",
           location: "PARAMETER_LOCATION_BODY",
-          schema: { type: "string", description: "Website URL to scrape (e.g. 'https://sjobris.no')" },
+          schema: {
+            type: "string",
+            description: "Website URL to scrape (e.g. 'https://sjobris.no')",
+          },
           required: true,
         },
       ],
@@ -444,8 +447,7 @@ export function useBotsson(actions?: BotssonActions): BotssonState {
       session.registerToolImplementation("identifyCompany", async (params) => {
         try {
           const orgNumber = String(params.orgNumber ?? "");
-          if (!orgNumber)
-            return JSON.stringify({ success: false, error: "orgNumber is required" });
+          if (!orgNumber) return JSON.stringify({ success: false, error: "orgNumber is required" });
 
           const result = await actionsRef.current?.identifyCompany(orgNumber);
           if (!result) return JSON.stringify({ success: false, error: "Identification failed" });

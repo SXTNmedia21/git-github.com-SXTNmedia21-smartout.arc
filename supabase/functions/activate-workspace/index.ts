@@ -43,10 +43,7 @@ serve(async (req) => {
       );
       await adminClient
         .from("agent_profile")
-        .upsert(
-          { workspace_id: data },
-          { onConflict: "workspace_id", ignoreDuplicates: true },
-        );
+        .upsert({ workspace_id: data }, { onConflict: "workspace_id", ignoreDuplicates: true });
     } catch (_agentProfileError) {
       // Non-fatal: workspace activation succeeded even if agent profile creation fails.
       // The profile can be created later via the settings UI.

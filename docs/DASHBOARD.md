@@ -2,6 +2,7 @@
 title: Development Dashboard
 status: in_progress
 updated: 2026-03-04
+
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -13,21 +14,21 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #    | Branch                         | Module        | Status      | Progress      | Blockers | Health |
-| ---- | ------------------------------ | ------------- | ----------- | ------------- | -------- | ------ |
-| wt-1 | `feat/season-engine`           | ai/operations | in_progress | 4 uncommitted | —        | active |
-| wt-2 | `feat/b2b-contract-onboarding` | contracts     | in_progress | clean         | —        | active |
+| #    | Branch                          | Module     | Status      | Progress | Blockers | Health |
+| ---- | ------------------------------- | ---------- | ----------- | -------- | -------- | ------ |
+| wt-1 | `feat/progressive-intelligence` | onboarding | done        | merged   | —        | merged |
+| wt-2 | `feat/b2b-contract-onboarding`  | contracts  | in_progress | clean    | —        | active |
 
 ## Free Slots
 
-| #     | Available                         |
-| ----- | --------------------------------- |
-| wt-1  | no (feat/season-engine)           |
-| wt-2  | no (feat/b2b-contract-onboarding) |
-| wt-3  | yes                               |
-| wt-4  | yes                               |
-| wt-5  | yes                               |
-| wt-20 | yes                               |
+| #     | Available                             |
+| ----- | ------------------------------------- |
+| wt-1  | yes (progressive-intelligence merged) |
+| wt-2  | no (feat/b2b-contract-onboarding)     |
+| wt-3  | yes                                   |
+| wt-4  | yes                                   |
+| wt-5  | yes                                   |
+| wt-20 | yes                                   |
 
 ## Pending Journeys
 
@@ -68,6 +69,7 @@ tags: [dashboard, worktrees, tracking]
 | 2026-03-19 | stage-engine-routing      | `feat/stage-engine-routing`                                        | development |
 | 2026-03-19 | journey-portal-fixes      | `feat/journey-portal-fixes`                                        | development |
 | 2026-03-29 | infra-port-consolidation  | `feat/infra-port-consolidation`                                    | development |
+| 2026-03-04 | progressive-intelligence  | `feat/progressive-intelligence`                                    | development |
 
 ## Session History
 
@@ -155,3 +157,4 @@ tags: [dashboard, worktrees, tracking]
 | 2026-03-27 | landing-polish                   | session ended     | wt-1: Frontend designer agent — 5 commits, 20 files, 13/13 polish items. Hero mockup, CTA gradient, typography, pricing fix, VariantBadge hidden, VariantA animations fixed, shimmer, trust badges, tabs AnimatePresence. Ready for visual review.                                                                        |
 | 2026-03-28 | stage-engine assessment          | session ended     | Engine-architect deep dive: full service assessment, profile_id fix, mission seed data, build verified. Then 7 new commits on development: journey seed, session types, journey/guardian enrichment, Guardian evaluator loop + whisper delivery.                                                                          |
 | 2026-03-29 | infra-port-consolidation         | merged+closed     | wt-2: Port standardization (5000-series), env var consolidation, ADR-0050, Docker builds verified. 29 files, 2 commits. wt-2 freed.                                                                                                                                                                                       |
+| 2026-03-04 | progressive-intelligence         | merged+closed     | wt-1: 3 progressive Edge Functions (search-brreg, identify-company, scrape-website), replaced triggerScrape with 3 async tools, intelligence module in @smartout/ai. 11 commits, 24 files, 1895 insertions.                                                                                                               |

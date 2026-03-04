@@ -11,10 +11,10 @@ serve(async (req) => {
     const { name, city } = await req.json();
 
     if (!name || typeof name !== "string") {
-      return new Response(
-        JSON.stringify({ error: "name is required" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 },
-      );
+      return new Response(JSON.stringify({ error: "name is required" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+      });
     }
 
     console.log(`[search-brreg] Searching for "${name}"${city ? ` in ${city}` : ""}`);
@@ -39,10 +39,10 @@ serve(async (req) => {
 
     console.log(`[search-brreg] Found ${candidates.length} candidates (${matches.length} raw)`);
 
-    return new Response(
-      JSON.stringify({ candidates, matchCount: candidates.length }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
-    );
+    return new Response(JSON.stringify({ candidates, matchCount: candidates.length }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200,
+    });
   } catch (error: unknown) {
     console.error("[search-brreg] Error:", error);
     return new Response(

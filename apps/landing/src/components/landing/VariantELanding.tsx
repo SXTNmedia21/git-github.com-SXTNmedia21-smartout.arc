@@ -332,9 +332,7 @@ export default function VariantELanding() {
       >
         <div className="mx-auto max-w-7xl px-6">
           <div className="mb-16 text-center">
-            <h2 className="mb-4 text-3xl font-bold md:text-5xl">
-              Alt du trenger for å skalere.
-            </h2>
+            <h2 className="mb-4 text-3xl font-bold md:text-5xl">Alt du trenger for å skalere.</h2>
             <p className="mx-auto max-w-2xl text-zinc-400">
               Erstatter 5 forskjellige verktøy med ett sammenhengende operativsystem bygget
               spesifikt for servicebransjen.

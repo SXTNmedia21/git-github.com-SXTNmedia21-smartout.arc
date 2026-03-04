@@ -59,12 +59,8 @@ export function EngagementReport({ communications }: Props) {
     { sent: 0, opened: 0, clicked: 0, failed: 0 },
   );
 
-  const openRate =
-    totals.sent > 0 ? ((totals.opened / totals.sent) * 100).toFixed(1) : "0";
-  const clickRate =
-    totals.opened > 0
-      ? ((totals.clicked / totals.opened) * 100).toFixed(1)
-      : "0";
+  const openRate = totals.sent > 0 ? ((totals.opened / totals.sent) * 100).toFixed(1) : "0";
+  const clickRate = totals.opened > 0 ? ((totals.clicked / totals.opened) * 100).toFixed(1) : "0";
 
   if (communications.length === 0) {
     return (
@@ -102,9 +98,7 @@ export function EngagementReport({ communications }: Props) {
           <TableBody>
             {communications.map((c) => {
               const rate =
-                c.sentCount > 0
-                  ? (((c.openedCount ?? 0) / c.sentCount) * 100).toFixed(1)
-                  : "—";
+                c.sentCount > 0 ? (((c.openedCount ?? 0) / c.sentCount) * 100).toFixed(1) : "—";
               return (
                 <TableRow key={c.id}>
                   <TableCell className="font-medium">{c.subject}</TableCell>
@@ -115,9 +109,7 @@ export function EngagementReport({ communications }: Props) {
                     })}
                   </TableCell>
                   <TableCell className="text-right">{c.sentCount}</TableCell>
-                  <TableCell className="text-right text-blue-500">
-                    {c.openedCount ?? 0}
-                  </TableCell>
+                  <TableCell className="text-right text-blue-500">{c.openedCount ?? 0}</TableCell>
                   <TableCell className="text-right text-purple-500">
                     {c.clickedCount ?? 0}
                   </TableCell>

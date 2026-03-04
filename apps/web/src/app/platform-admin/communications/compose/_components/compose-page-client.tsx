@@ -296,9 +296,7 @@ export function ComposePageClient({ savedTemplates = [] }: ComposePageClientProp
                       <Label>Last inn lagret mal</Label>
                       <Select
                         onValueChange={(id) => {
-                          const t = savedTemplates.find(
-                            (tpl) => tpl.template_id === id,
-                          );
+                          const t = savedTemplates.find((tpl) => tpl.template_id === id);
                           if (t) {
                             setSubject(t.subject ?? "");
                             toast.success(`Mal "${t.name}" lastet`);
@@ -310,10 +308,7 @@ export function ComposePageClient({ savedTemplates = [] }: ComposePageClientProp
                         </SelectTrigger>
                         <SelectContent>
                           {savedTemplates.map((t) => (
-                            <SelectItem
-                              key={t.template_id}
-                              value={t.template_id}
-                            >
+                            <SelectItem key={t.template_id} value={t.template_id}>
                               {t.name} ({t.category})
                             </SelectItem>
                           ))}

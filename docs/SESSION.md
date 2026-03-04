@@ -1,7 +1,7 @@
 ---
 title: Session Log
 status: in_progress
-updated: 2026-03-29
+updated: 2026-03-04
 created: 2026-03-02
 module: meta
 tags: [session, boot-sequence, continuity]
@@ -15,20 +15,25 @@ tags: [session, boot-sequence, continuity]
 
 | Field   | Value                           |
 | ------- | ------------------------------- |
-| Date    | 2026-03-29                      |
-| Branch  | `feat/infra-port-consolidation` |
-| Feature | infra-port-consolidation        |
-| Status  | in_progress                     |
+| Date    | 2026-03-04                      |
+| Branch  | `feat/progressive-intelligence` |
+| Feature | progressive-intelligence        |
+| Status  | done                            |
 
 ### What was done
 
-- Started new feature: infra-port-consolidation
-- Worktree: wt-2
-- Module: infra
+- Implemented full 9-task Progressive Intelligence plan in wt-1
+- Created 3 Edge Functions: search-brreg, identify-company, scrape-website
+- Extracted shared Brreg helpers to `_shared/brreg.ts`
+- Replaced triggerScrape with 3 async progressive tools in useBotsson
+- Updated mission stage prompts for progressive flow
+- Created architecture protocol doc
+- Gathered intelligence tools into `packages/ai/src/tools/intelligence/` (7 files)
+- Merged to development (bb71ba2), typecheck 19/19 pass, pushed
 
 ### Where we stopped
 
-- Feature just initialized, ready for work
+- Feature complete and merged. wt-1 still has the worktree (can be removed).
 
 ### Known blockers / errors
 
@@ -36,7 +41,7 @@ tags: [session, boot-sequence, continuity]
 
 ### Pending decisions
 
-- [ ] Fill in PLAN-infra-port-consolidation.md with scope and tasks
+- [ ] Remove wt-1 worktree + delete feat/progressive-intelligence branch
 - [ ] Visual review of landing polish — carried over
 - [ ] Merge PR #13 to main (Pontus) — carried over
 - [ ] LiveKit evaluation — carried over

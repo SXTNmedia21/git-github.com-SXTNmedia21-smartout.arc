@@ -40,10 +40,10 @@ serve(async (req) => {
     const { url } = await req.json();
 
     if (!url || typeof url !== "string") {
-      return new Response(
-        JSON.stringify({ error: "url is required" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 },
-      );
+      return new Response(JSON.stringify({ error: "url is required" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+      });
     }
 
     console.log(`[scrape-website] Scraping: ${url}`);
@@ -53,14 +53,12 @@ serve(async (req) => {
 
     const scrapedData = await fetchScraplingWithRetry(scraplingBase, url);
 
-    console.log(
-      `[scrape-website] Done. Company: ${scrapedData?.companyName || "unknown"}`,
-    );
+    console.log(`[scrape-website] Done. Company: ${scrapedData?.companyName || "unknown"}`);
 
-    return new Response(
-      JSON.stringify({ scrapedData }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
-    );
+    return new Response(JSON.stringify({ scrapedData }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200,
+    });
   } catch (error: unknown) {
     console.error("[scrape-website] Error:", error);
     return new Response(

@@ -16,6 +16,7 @@ Replaces the monolithic `gather-workspace-intelligence` Edge Function with 3 pro
 **Before:** User finishes interview → `triggerScrape` fire-and-forget → 5-10s silence → system message with all data at once.
 
 **After:**
+
 ```
 Agent hears "Sjøbris"  →  searchCompany(<1s)  →  "Fant Sjøbris AS i Trondheim, stemmer det?"
 User confirms          →  identifyCompany(~2s) →  "23 ansatte, Kongens gate 5, 4.2 på Google"
@@ -66,18 +67,20 @@ Website found          →  scrapeWebsite(~3s)   →  "Fant e-post og 2 lokasjon
 
 ### 1. `search-brreg`
 
-| Field | Value |
-|-------|-------|
-| Auth | JWT (default `verify_jwt = true`) |
-| Method | POST |
-| Latency | <1s |
+| Field   | Value                             |
+| ------- | --------------------------------- |
+| Auth    | JWT (default `verify_jwt = true`) |
+| Method  | POST                              |
+| Latency | <1s                               |
 
 **Input:**
+
 ```json
 { "name": "Sjøbris", "city": "Trondheim" }
 ```
 
 **Output:**
+
 ```json
 {
   "candidates": [
@@ -99,18 +102,20 @@ Website found          →  scrapeWebsite(~3s)   →  "Fant e-post og 2 lokasjon
 
 ### 2. `identify-company`
 
-| Field | Value |
-|-------|-------|
-| Auth | JWT (default `verify_jwt = true`) |
-| Method | POST |
-| Latency | 1-3s (Brreg + Places parallel) |
+| Field   | Value                             |
+| ------- | --------------------------------- |
+| Auth    | JWT (default `verify_jwt = true`) |
+| Method  | POST                              |
+| Latency | 1-3s (Brreg + Places parallel)    |
 
 **Input:**
+
 ```json
 { "orgNumber": "123456789" }
 ```
 
 **Output:**
+
 ```json
 {
   "company": {
@@ -127,25 +132,27 @@ Website found          →  scrapeWebsite(~3s)   →  "Fant e-post og 2 lokasjon
     "vatRegistered": true,
     "foundingDate": "2015-03-15"
   },
-  "places": { "rating": 4.2, "userRatingCount": 150, "..." : "..." },
+  "places": { "rating": 4.2, "userRatingCount": 150, "...": "..." },
   "workspaceId": "uuid-here"
 }
 ```
 
 ### 3. `scrape-website`
 
-| Field | Value |
-|-------|-------|
-| Auth | JWT (default `verify_jwt = true`) |
-| Method | POST |
-| Latency | 2-5s (depends on site) |
+| Field   | Value                             |
+| ------- | --------------------------------- |
+| Auth    | JWT (default `verify_jwt = true`) |
+| Method  | POST                              |
+| Latency | 2-5s (depends on site)            |
 
 **Input:**
+
 ```json
 { "url": "https://sjobris.no" }
 ```
 
 **Output:**
+
 ```json
 {
   "scrapedData": {
@@ -163,24 +170,24 @@ Website found          →  scrapeWebsite(~3s)   →  "Fant e-post og 2 lokasjon
 
 ## Data Sources
 
-| Source | Type | Auth | Latency |
-|--------|------|------|---------|
-| Brreg (enhetsregisteret) | Public API | None needed | <500ms |
-| Google Places | Google API | API key (env) | 500ms-2s |
-| Scrapling | Internal Docker service | None (internal) | 2-5s |
+| Source                   | Type                    | Auth            | Latency  |
+| ------------------------ | ----------------------- | --------------- | -------- |
+| Brreg (enhetsregisteret) | Public API              | None needed     | <500ms   |
+| Google Places            | Google API              | API key (env)   | 500ms-2s |
+| Scrapling                | Internal Docker service | None (internal) | 2-5s     |
 
 ## Data Merge Priority
 
-| Field | Priority |
-|-------|----------|
+| Field                           | Priority              |
+| ------------------------------- | --------------------- |
 | Legal name, org number, address | Brreg (authoritative) |
-| Industry, NACE code | Brreg |
-| Email | Scraped > Places |
-| Phone | Scraped > Places |
-| Website | Brreg > Places |
-| Rating, coordinates, photos | Places only |
-| Description, opening hours | Places > Scraped |
-| Locations, departments | Scraped only |
+| Industry, NACE code             | Brreg                 |
+| Email                           | Scraped > Places      |
+| Phone                           | Scraped > Places      |
+| Website                         | Brreg > Places        |
+| Rating, coordinates, photos     | Places only           |
+| Description, opening hours      | Places > Scraped      |
+| Locations, departments          | Scraped only          |
 
 ## Agent Tool Specifications
 
@@ -204,26 +211,26 @@ Website found          →  scrapeWebsite(~3s)   →  "Fant e-post og 2 lokasjon
 
 ## Stage Integration
 
-| Stage | Tools Used |
-|-------|-----------|
-| greeting (1) | searchCompany → identifyCompany → scrapeWebsite |
-| discovery (2) | getOnboardingState, scrapeWebsite (if not called yet) |
-| confirm-business (3) | getOnboardingState, updateBusiness |
-| season (4) | updateSeason |
-| departments (5) | addDepartments |
-| locations (6) | addLocations, addZones |
-| procedures (7) | addProcedures |
-| welcome (8) | finalizeOnboarding |
+| Stage                | Tools Used                                            |
+| -------------------- | ----------------------------------------------------- |
+| greeting (1)         | searchCompany → identifyCompany → scrapeWebsite       |
+| discovery (2)        | getOnboardingState, scrapeWebsite (if not called yet) |
+| confirm-business (3) | getOnboardingState, updateBusiness                    |
+| season (4)           | updateSeason                                          |
+| departments (5)      | addDepartments                                        |
+| locations (6)        | addLocations, addZones                                |
+| procedures (7)       | addProcedures                                         |
+| welcome (8)          | finalizeOnboarding                                    |
 
 ## Fallback Behavior
 
-| Service | Failure | Agent Response |
-|---------|---------|----------------|
-| Brreg search | No matches | "Fant ikke bedriften. Har du org-nummer?" |
-| Brreg details | 404/error | "Kunne ikke hente detaljer. La meg prøve med nettside." |
-| Google Places | Timeout/error | Proceeds without rating data. Agent skips Google mentions. |
-| Scrapling | Unavailable | Proceeds without scraped data. Agent asks for email/phone manually. |
-| Workspace provisioning | Error | Continues conversation. Provisioning retried on finalize. |
+| Service                | Failure       | Agent Response                                                      |
+| ---------------------- | ------------- | ------------------------------------------------------------------- |
+| Brreg search           | No matches    | "Fant ikke bedriften. Har du org-nummer?"                           |
+| Brreg details          | 404/error     | "Kunne ikke hente detaljer. La meg prøve med nettside."             |
+| Google Places          | Timeout/error | Proceeds without rating data. Agent skips Google mentions.          |
+| Scrapling              | Unavailable   | Proceeds without scraped data. Agent asks for email/phone manually. |
+| Workspace provisioning | Error         | Continues conversation. Provisioning retried on finalize.           |
 
 ## Backwards Compatibility
 
@@ -233,10 +240,10 @@ The `triggerScrape` action in `useOnboardingState` is also kept for the manual f
 
 ## Environment Variables
 
-| Variable | Edge Functions | Required |
-|----------|---------------|----------|
-| `SUPABASE_URL` | All | Yes (auto-injected) |
-| `SUPABASE_ANON_KEY` | identify-company | Yes (auto-injected) |
-| `SUPABASE_SERVICE_ROLE_KEY` | identify-company | Yes (auto-injected) |
-| `SCRAPLING_SERVICE_URL` | scrape-website | No (default: `http://host.docker.internal:8000`) |
-| `GOOGLE_PLACES_API_KEY` | google-places-intelligence | Yes (for Places enrichment) |
+| Variable                    | Edge Functions             | Required                                         |
+| --------------------------- | -------------------------- | ------------------------------------------------ |
+| `SUPABASE_URL`              | All                        | Yes (auto-injected)                              |
+| `SUPABASE_ANON_KEY`         | identify-company           | Yes (auto-injected)                              |
+| `SUPABASE_SERVICE_ROLE_KEY` | identify-company           | Yes (auto-injected)                              |
+| `SCRAPLING_SERVICE_URL`     | scrape-website             | No (default: `http://host.docker.internal:8000`) |
+| `GOOGLE_PLACES_API_KEY`     | google-places-intelligence | Yes (for Places enrichment)                      |

@@ -12,10 +12,10 @@ serve(async (req) => {
     const { orgNumber, companyName, city } = await req.json();
 
     if (!orgNumber || typeof orgNumber !== "string") {
-      return new Response(
-        JSON.stringify({ error: "orgNumber is required" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 },
-      );
+      return new Response(JSON.stringify({ error: "orgNumber is required" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+      });
     }
 
     const cleanOrg = orgNumber.replace(/\s+/g, "");
@@ -89,17 +89,14 @@ serve(async (req) => {
     const provisionPromise = user
       ? (async () => {
           try {
-            const { data: wsId, error } = await adminClient.rpc(
-              "provision_onboarding_workspace",
-              {
-                p_user_id: user.id,
-                p_company_name: resolvedName,
-                p_intelligence_data: {
-                  source_url: `brreg:${cleanOrg}`,
-                  pipeline_started_at: new Date().toISOString(),
-                },
+            const { data: wsId, error } = await adminClient.rpc("provision_onboarding_workspace", {
+              p_user_id: user.id,
+              p_company_name: resolvedName,
+              p_intelligence_data: {
+                source_url: `brreg:${cleanOrg}`,
+                pipeline_started_at: new Date().toISOString(),
               },
-            );
+            });
 
             if (error) {
               console.error("[identify-company] Provisioning failed:", error);
@@ -135,10 +132,10 @@ serve(async (req) => {
       `[identify-company] Done: ${company.legalName}, ws=${workspaceId || "none"}, places=${placesData ? "yes" : "no"}`,
     );
 
-    return new Response(
-      JSON.stringify({ company, places: placesData, workspaceId }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
-    );
+    return new Response(JSON.stringify({ company, places: placesData, workspaceId }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200,
+    });
   } catch (error: unknown) {
     console.error("[identify-company] Error:", error);
     return new Response(

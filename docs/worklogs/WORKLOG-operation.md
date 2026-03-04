@@ -41,12 +41,12 @@ tags: [module-15, season, budget, calculations]
 
 ## Log
 
-| Date       | Time  | Event                                                 |
-| ---------- | ----- | ----------------------------------------------------- |
-| 2026-03-03 | 08:49 | Feature started                                       |
-| 2026-03-06 | 09:00 | Plan written to docs/plans/PLAN-operation.md          |
-| 2026-03-06 | 09:10 | Batch 1: Migration + types + TDD + calculation engine |
-| 2026-03-06 | 09:25 | Batch 2: Query keys + 4 hooks + barrel export         |
-| 2026-03-06 | 09:35 | Batch 3: 5 UI components + page, TS strict fixes      |
-| 2026-03-06 | 09:45 | Batch 4: Full verification suite passed               |
+| Date       | Time  | Event                                                                              |
+| ---------- | ----- | ---------------------------------------------------------------------------------- |
+| 2026-03-03 | 08:49 | Feature started                                                                    |
+| 2026-03-06 | 09:00 | Plan written to docs/plans/PLAN-operation.md                                       |
+| 2026-03-06 | 09:10 | Batch 1: Migration + types + TDD + calculation engine                              |
+| 2026-03-06 | 09:25 | Batch 2: Query keys + 4 hooks + barrel export                                      |
+| 2026-03-06 | 09:35 | Batch 3: 5 UI components + page, TS strict fixes                                   |
+| 2026-03-06 | 09:45 | Batch 4: Full verification suite passed                                            |
 | 2026-03-06 | 10:00 | Feature closure: JOURNEY-operation.md created, WORKLOG updated, all gates verified |
