@@ -198,6 +198,7 @@ export function CustomerDocumentView() {
             address: business.address || undefined,
             postalCode: business.postalCode || undefined,
             city: business.city || undefined,
+            phone: business.phone || undefined,
             industry: business.industry || undefined,
             industryCode: business.industryCode || undefined,
             departments: selectedDepartments.length > 0 ? selectedDepartments : undefined,
@@ -448,7 +449,7 @@ export function CustomerDocumentView() {
               </>
             ) : (
               <>
-                Bekreft
+                Bekreft og send kontrakt
                 <ArrowRight className="h-4 w-4" />
               </>
             )}
@@ -456,7 +457,7 @@ export function CustomerDocumentView() {
 
           {!mustHaveComplete && (
             <p className="mt-3 text-center text-sm text-white/30">
-              Fyll ut alle obligatoriske felt for a sende kontraktet.
+              Fyll ut alle obligatoriske felt for å sende kontraktet.
             </p>
           )}
         </div>

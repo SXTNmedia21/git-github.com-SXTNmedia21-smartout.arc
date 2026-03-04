@@ -23,6 +23,7 @@ const SendContractSchema = z.object({
     address: z.string().optional(),
     postalCode: z.string().optional(),
     city: z.string().optional(),
+    phone: z.string().optional(),
     industry: z.string().optional(),
     industryCode: z.string().optional(),
     departments: z.array(z.string()).optional(),
@@ -72,28 +73,25 @@ export async function POST(request: NextRequest) {
   try {
     const { templateId, workspaceId, recipientName, recipientEmail, businessData } = body;
 
-    // 4. Build value_overrides mapping business data to contract placeholder keys
+    // 4. Build value_overrides mapping business data to contract template placeholder keys.
+    //    Keys must match data-key attributes in the contract_template content_html.
     const valueOverrides: Record<string, string> = {
-      kunde_navn: businessData.name,
+      kunde_firma: businessData.legalName || businessData.name,
       kunde_org_nr: businessData.orgNumber,
-      kunde_kontakt: recipientName,
+      kunde_daglig_leder: recipientName,
       kunde_epost: recipientEmail,
+      kunde_faktura_epost: recipientEmail,
     };
 
-    if (businessData.legalName) {
-      valueOverrides.kunde_juridisk_navn = businessData.legalName;
-    }
     if (businessData.address) {
-      valueOverrides.arbeidssted_adresse = businessData.address;
+      valueOverrides.kunde_adresse = businessData.address;
     }
-    if (businessData.postalCode) {
-      valueOverrides.kunde_postnr = businessData.postalCode;
+    if (businessData.postalCode || businessData.city) {
+      valueOverrides.kunde_postnr_sted =
+        [businessData.postalCode, businessData.city].filter(Boolean).join(", ");
     }
-    if (businessData.city) {
-      valueOverrides.kunde_poststed = businessData.city;
-    }
-    if (businessData.departments?.length) {
-      valueOverrides.avdelinger = businessData.departments.join(", ");
+    if (businessData.phone) {
+      valueOverrides.kunde_tlf = businessData.phone;
     }
 
     // 5. Create contract via contract-service
