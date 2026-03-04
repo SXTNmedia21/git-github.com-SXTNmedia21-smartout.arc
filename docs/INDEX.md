@@ -63,6 +63,7 @@ Master navigation map for all documentation. An agent reads this to find any doc
 | MODULE_4_5        | modules/SMARTOUT_MODULE_4.5_DAILY_SATTLED.md  | in_progress | --                                                         |
 | MODULE_19         | modules/SMARTOUT_MODULE_19_MENU_PRODUCTION.md | draft       | --                                                         |
 | MODULE_20         | modules/SMARTOUT_MODULE_20_INVENTORY.md       | draft       | --                                                         |
+| MODULE_AGENT_SDK  | modules/MODULE_AGENT_SDK.md                   | in_progress | --                                                         |
 | JOURNEY_DEEP_SPEC | modules/journey/SMARTOUT_JOURNEY_DEEP_SPEC.md | in_progress | journey                                                    |
 | JOURNEY_DEV_PLAN  | modules/journey/SMARTOUT_JOURNEY_DEV_PLAN.md  | in_progress | journey                                                    |
 | JOURNEY_REGISTRY  | modules/journey/SMARTOUT_JOURNEY_REGISTRY.md  | in_progress | journey                                                    |
@@ -90,6 +91,7 @@ Master navigation map for all documentation. An agent reads this to find any doc
 | PERF_GOVERNANCE   | architecture/PERFORMANCE_BUILD_GOVERNANCE.md               | canonical             |
 | PRD_03            | architecture/PRD-03_Avstemmingssystem.md                   | canonical             |
 | SCHED_UX_AUDIT    | architecture/SCHEDULE_PAGE_UX_AUDIT_AND_WORKFLOWS.md       | canonical             |
+| AGENT_FRAMEWORK   | architecture/agent-framework.md                            | done                  |
 
 ### Cross-Cutting
 
@@ -132,7 +134,7 @@ Reusable document templates in `docs/templates/`.
 
 ### Decisions (ADRs)
 
-See `docs/decisions/0000-decision-log.md` -- 48 ADRs (0001-0048).
+See `docs/decisions/0000-decision-log.md` -- 49 ADRs (0001-0049).
 
 | id       | File                                                     | Subject                                      |
 | -------- | -------------------------------------------------------- | -------------------------------------------- |
@@ -184,6 +186,7 @@ See `docs/decisions/0000-decision-log.md` -- 48 ADRs (0001-0048).
 | ADR_0046 | decisions/0046-block-based-landing-page-builder.md       | Block-based landing page builder             |
 | ADR_0047 | decisions/0047-schedule-db-persistence.md                | Schedule DB persistence with TanStack Query  |
 | ADR_0048 | decisions/0048-daily-close-engine.md                     | DailyCloseEngine state machine               |
+| ADR_0049 | decisions/0049-agent-sdk-package.md                      | Agent SDK package — @smartout/agent-sdk      |
 
 ### Learnings
 

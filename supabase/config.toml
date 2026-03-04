@@ -429,3 +429,9 @@ verify_jwt = false
 
 [functions.leader-pulse]
 verify_jwt = false
+
+[functions.guardian-sweep]
+verify_jwt = false
+
+[functions.guardian-notify]
+verify_jwt = false
