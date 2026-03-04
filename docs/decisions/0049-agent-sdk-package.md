@@ -59,10 +59,12 @@ The `VoiceSession` interface wraps provider-specific clients:
 type VoiceSession = {
   join(url: string): void;
   leave(): void;
-  muteMic(): void; unmuteMic(): void;
+  muteMic(): void;
+  unmuteMic(): void;
   sendText(text: string): void;
   registerTool(name: string, impl: ClientToolImplementation): void;
-  on(event, handler): void; off(event, handler): void;
+  on(event, handler): void;
+  off(event, handler): void;
 };
 ```
 

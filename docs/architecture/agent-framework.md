@@ -47,10 +47,10 @@ Smartout's agent framework is a unified AI layer powering Mr. Botsson across all
 
 ### Two operation modes in the same service
 
-| Mode | Description | `mission_id` |
-|------|-------------|-------------|
-| `mission` | Structured, stage-by-stage interview. Voice onboarding, guided protocols. | Required |
-| `agent` | Free-form conversation with capability routing. Employee daily assistant. | `null` |
+| Mode      | Description                                                               | `mission_id` |
+| --------- | ------------------------------------------------------------------------- | ------------ |
+| `mission` | Structured, stage-by-stage interview. Voice onboarding, guided protocols. | Required     |
+| `agent`   | Free-form conversation with capability routing. Employee daily assistant. | `null`       |
 
 Both modes share `engine_sessions`, the auth middleware, and the Guardian system.
 
@@ -66,7 +66,7 @@ The core primitive. A tool is framework-agnostic — it has no dependency on Ver
 type SmartoutTool<TCtx = unknown, TSchema extends z.ZodType = z.ZodType> = {
   name: string;
   description: string;
-  schema: TSchema;                                            // Zod schema for input
+  schema: TSchema; // Zod schema for input
   execute: (params: z.infer<TSchema>, ctx: TCtx) => Promise<string>;
 };
 ```
@@ -77,10 +77,10 @@ The `TCtx` type carries session context (workspaceId, profileId, sessionId, supa
 
 Tools are converted to framework-specific formats at the boundary:
 
-| Adapter | File | Target | Key difference |
-|---------|------|--------|---------------|
-| `toVercelTools()` | `adapters/vercel-ai.ts` | Vercel AI SDK `generateText()` | Uses `inputSchema` convention |
-| `toLiveKitTools()` | `adapters/livekit.ts` | `@livekit/agents` | Uses `parameters` convention, peer dep |
+| Adapter            | File                    | Target                         | Key difference                         |
+| ------------------ | ----------------------- | ------------------------------ | -------------------------------------- |
+| `toVercelTools()`  | `adapters/vercel-ai.ts` | Vercel AI SDK `generateText()` | Uses `inputSchema` convention          |
+| `toLiveKitTools()` | `adapters/livekit.ts`   | `@livekit/agents`              | Uses `parameters` convention, peer dep |
 
 ```typescript
 // Usage in agent router (Vercel AI SDK path)
@@ -127,12 +127,12 @@ Mission complete → status=complete, fires callback_url webhook
 
 ### Mission structure
 
-| Table | Role |
-|-------|------|
-| `engine_missions` | Top-level definition: name, mode, system_prompt, journey_id |
-| `engine_stages` | Ordered steps: goal, instructions, success_criteria, next_stage, emotion_hint |
-| `engine_inbox` | Structured data written by the agent during a session |
-| `engine_sessions` | Live session state: current_stage_id, collected_data, context |
+| Table             | Role                                                                          |
+| ----------------- | ----------------------------------------------------------------------------- |
+| `engine_missions` | Top-level definition: name, mode, system_prompt, journey_id                   |
+| `engine_stages`   | Ordered steps: goal, instructions, success_criteria, next_stage, emotion_hint |
+| `engine_inbox`    | Structured data written by the agent during a session                         |
+| `engine_sessions` | Live session state: current_stage_id, collected_data, context                 |
 
 ### Mission modes
 
@@ -143,6 +143,7 @@ Mission complete → status=complete, fires callback_url webhook
 ### Prompt builder
 
 `core/prompt-builder.ts` composes the system prompt from:
+
 1. Mission-level `base_prompt` (personality, voice rules)
 2. Stage `personality_override` + `emotion_hint`
 3. `creative_freedom` level (0 = strictly follow script, 1 = improvise)
@@ -200,13 +201,13 @@ Confidence below 0.7 triggers fallback: all enabled tools are loaded (general mo
 
 Capability tools are filtered by authority level:
 
-| Authority | Tools available |
-|-----------|----------------|
-| `autonomous` | All tools including writes |
-| `confirm` | All tools (UI must confirm before write executes) |
-| `suggest` | Read-only + suggest tools |
-| `read_only` | Read-only tools only |
-| `disabled` | No tools from this capability |
+| Authority    | Tools available                                   |
+| ------------ | ------------------------------------------------- |
+| `autonomous` | All tools including writes                        |
+| `confirm`    | All tools (UI must confirm before write executes) |
+| `suggest`    | Read-only + suggest tools                         |
+| `read_only`  | Read-only tools only                              |
+| `disabled`   | No tools from this capability                     |
 
 ---
 
@@ -245,20 +246,20 @@ guardian.ts (route /guardian/ws)
 
 ### Guardian events
 
-| Event type | Trigger | Actor |
-|-----------|---------|-------|
-| `session.started` | Session created | system |
-| `session.completed` | All stages done | system |
-| `session.abandoned` | Client calls /abandon | system |
-| `stage.changed` | Stage advanced | system |
-| `data.collected` | Voice store called | agent |
-| `guardian.auto_advance` | All fields collected, min_duration met | guardian |
-| `guardian.nudge` | Missing fields after 60s | guardian |
-| `guardian.timeout` | Hard timeout exceeded | guardian |
-| `guardian.timeout_warning` | 80% of max duration | guardian |
-| `guardian.nudge_confirm` | Needs confirmation prompt | guardian |
-| `admin.stage_change` | Admin forced stage change | admin |
-| `admin.whisper` | Admin injected message | admin |
+| Event type                 | Trigger                                | Actor    |
+| -------------------------- | -------------------------------------- | -------- |
+| `session.started`          | Session created                        | system   |
+| `session.completed`        | All stages done                        | system   |
+| `session.abandoned`        | Client calls /abandon                  | system   |
+| `stage.changed`            | Stage advanced                         | system   |
+| `data.collected`           | Voice store called                     | agent    |
+| `guardian.auto_advance`    | All fields collected, min_duration met | guardian |
+| `guardian.nudge`           | Missing fields after 60s               | guardian |
+| `guardian.timeout`         | Hard timeout exceeded                  | guardian |
+| `guardian.timeout_warning` | 80% of max duration                    | guardian |
+| `guardian.nudge_confirm`   | Needs confirmation prompt              | guardian |
+| `admin.stage_change`       | Admin forced stage change              | admin    |
+| `admin.whisper`            | Admin injected message                 | admin    |
 
 ### Guardian whispers
 
@@ -290,6 +291,7 @@ Ultravox platform
 ### Client tools
 
 Registered with `UltravoxSession.registerToolImplementation(name, fn)`. They execute in the browser — no round trip to Stage Engine. Used for:
+
 - Updating UI state (form fields, key facts panel, section scroll)
 - Triggering scraping jobs
 - Saving memories
@@ -297,6 +299,7 @@ Registered with `UltravoxSession.registerToolImplementation(name, fn)`. They exe
 ### HTTP tools (server-side)
 
 Registered as `selectedTools` in the Ultravox call config. Require HTTPS — skipped in local dev. Used for:
+
 - `store` — write structured entity data to `engine_inbox`
 - `fetch` — read session context, inbox, or stage data
 - `advance` — trigger stage transition, returns `X-Ultravox-Response-Type: new-stage`
@@ -308,7 +311,7 @@ Stage transitions during a live call use Ultravox's Call Stages feature:
 ```typescript
 c.header("X-Ultravox-Response-Type", "new-stage");
 return c.json({
-  systemPrompt: newSystemPrompt,  // replaces the LLM's system prompt mid-call
+  systemPrompt: newSystemPrompt, // replaces the LLM's system prompt mid-call
   toolResultText: `Stage: now in "${nextStageId}". Goal: ${goal}`,
 });
 ```
@@ -337,23 +340,24 @@ Default when no row exists: `read_only`.
 
 Currently registered:
 
-| Capability | Description | Status |
-|-----------|-------------|--------|
-| `profile` | Employee info, team membership, contract status | Active |
-| `ui` | Screen navigation, form filling, toast notifications | Active |
-| `knowledge` | Policies, procedures, FAQs | Planned |
-| `schedule` | Shifts, availability | Planned |
-| `training` | Protocol assignments, readiness | Planned |
-| `operations` | Department sessions, checklists | Planned |
-| `communication` | Sending messages, notifications | Planned |
-| `memory` | Past conversations, preferences | Planned |
-| `payroll` | Salary, overtime, pay periods | Planned |
+| Capability      | Description                                          | Status  |
+| --------------- | ---------------------------------------------------- | ------- |
+| `profile`       | Employee info, team membership, contract status      | Active  |
+| `ui`            | Screen navigation, form filling, toast notifications | Active  |
+| `knowledge`     | Policies, procedures, FAQs                           | Planned |
+| `schedule`      | Shifts, availability                                 | Planned |
+| `training`      | Protocol assignments, readiness                      | Planned |
+| `operations`    | Department sessions, checklists                      | Planned |
+| `communication` | Sending messages, notifications                      | Planned |
+| `memory`        | Past conversations, preferences                      | Planned |
+| `payroll`       | Salary, overtime, pay periods                        | Planned |
 
 ### Posture adaptation
 
 **File:** `packages/ai/src/prompts/posture.ts`
 
 The agent's communication style adapts based on:
+
 - **Role** — trainee gets warmer, more verbose responses; manager gets slightly more formal
 - **Situation** — onboarding (+warmth), HACCP (+assertiveness, -humor), scheduling (-verbosity)
 - **Authority level** — `read_only` makes the agent more cautious and formal; `autonomous` adds assertiveness
@@ -402,25 +406,25 @@ Ultravox and LiveKit implement this interface. Future providers (WebRTC, Twilio)
 
 ## Key File Map
 
-| File | Role |
-|------|------|
-| `packages/ai/src/types.ts` | SmartoutTool type + defineTool helper |
-| `packages/ai/src/adapters/vercel-ai.ts` | Converts to Vercel AI SDK format |
-| `packages/ai/src/adapters/livekit.ts` | Converts to LiveKit agent format |
-| `packages/ai/src/router/intent-classifier.ts` | OpenRouter-based capability classifier |
-| `packages/ai/src/router/tool-selector.ts` | Authority-filtered tool selection |
-| `packages/ai/src/capabilities/registry.ts` | Capability registration + lookup |
-| `packages/ai/src/capabilities/types.ts` | CapabilityName, AuthorityLevel, AgentToolContext |
-| `packages/ai/src/prompts/mr-botsson.ts` | System prompt builder (legacy + context-aware) |
-| `packages/ai/src/prompts/posture.ts` | Personality adaptation logic |
-| `services/stage-engine/src/core/session-manager.ts` | Session CRUD, mission loading |
-| `services/stage-engine/src/core/stage-manager.ts` | Stage navigation, mode resolution |
-| `services/stage-engine/src/core/prompt-builder.ts` | Stage prompt assembly |
-| `services/stage-engine/src/core/authority.ts` | Load authority config from DB |
-| `services/stage-engine/src/core/guardian-bus.ts` | Event bus + WS client management |
-| `services/stage-engine/src/core/guardian-evaluator.ts` | Session evaluation loop |
-| `services/stage-engine/src/routes/adapters/ultravox.ts` | Ultravox adapter endpoints |
-| `services/stage-engine/src/routes/guardian.ts` | Guardian WS route |
-| `packages/agent-sdk/src/types.ts` | SDK types (AgentConfig, AgentSession, VoiceProvider) |
-| `packages/agent-sdk/src/tools/registry.ts` | Client tool registry + buildToolKit |
-| `apps/web/src/app/onboarding/hooks/useBotsson.ts` | Legacy voice hook (to be replaced by SDK) |
+| File                                                    | Role                                                 |
+| ------------------------------------------------------- | ---------------------------------------------------- |
+| `packages/ai/src/types.ts`                              | SmartoutTool type + defineTool helper                |
+| `packages/ai/src/adapters/vercel-ai.ts`                 | Converts to Vercel AI SDK format                     |
+| `packages/ai/src/adapters/livekit.ts`                   | Converts to LiveKit agent format                     |
+| `packages/ai/src/router/intent-classifier.ts`           | OpenRouter-based capability classifier               |
+| `packages/ai/src/router/tool-selector.ts`               | Authority-filtered tool selection                    |
+| `packages/ai/src/capabilities/registry.ts`              | Capability registration + lookup                     |
+| `packages/ai/src/capabilities/types.ts`                 | CapabilityName, AuthorityLevel, AgentToolContext     |
+| `packages/ai/src/prompts/mr-botsson.ts`                 | System prompt builder (legacy + context-aware)       |
+| `packages/ai/src/prompts/posture.ts`                    | Personality adaptation logic                         |
+| `services/stage-engine/src/core/session-manager.ts`     | Session CRUD, mission loading                        |
+| `services/stage-engine/src/core/stage-manager.ts`       | Stage navigation, mode resolution                    |
+| `services/stage-engine/src/core/prompt-builder.ts`      | Stage prompt assembly                                |
+| `services/stage-engine/src/core/authority.ts`           | Load authority config from DB                        |
+| `services/stage-engine/src/core/guardian-bus.ts`        | Event bus + WS client management                     |
+| `services/stage-engine/src/core/guardian-evaluator.ts`  | Session evaluation loop                              |
+| `services/stage-engine/src/routes/adapters/ultravox.ts` | Ultravox adapter endpoints                           |
+| `services/stage-engine/src/routes/guardian.ts`          | Guardian WS route                                    |
+| `packages/agent-sdk/src/types.ts`                       | SDK types (AgentConfig, AgentSession, VoiceProvider) |
+| `packages/agent-sdk/src/tools/registry.ts`              | Client tool registry + buildToolKit                  |
+| `apps/web/src/app/onboarding/hooks/useBotsson.ts`       | Legacy voice hook (to be replaced by SDK)            |
