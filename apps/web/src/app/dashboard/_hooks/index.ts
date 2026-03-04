@@ -23,3 +23,13 @@ export { useTrainingReadiness } from "./use-training-readiness";
 export { useBudget } from "./use-budget";
 export type { BudgetPeriodType, BudgetEntry } from "./use-budget";
 export { useWorkforcePipeline } from "./use-workforce-pipeline";
+export { useGuardianData } from "./useGuardianData";
+export type {
+  GuardianSignal,
+  GuardianSignalSeverity,
+  GuardianSignalStatus,
+  ActiveEngineSession,
+  SeasonPulse,
+  GuardianCounts,
+  GuardianData,
+} from "./useGuardianData";
