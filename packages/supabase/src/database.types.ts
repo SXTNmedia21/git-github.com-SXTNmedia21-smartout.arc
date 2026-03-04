@@ -2282,7 +2282,7 @@ export type Database = {
           summary: string | null
           updated_at: string
           user_id: string | null
-          workspace_id: string
+          workspace_id: string | null
         }
         Insert: {
           callback_url?: string | null
@@ -2305,7 +2305,7 @@ export type Database = {
           summary?: string | null
           updated_at?: string
           user_id?: string | null
-          workspace_id: string
+          workspace_id?: string | null
         }
         Update: {
           callback_url?: string | null
@@ -2328,7 +2328,7 @@ export type Database = {
           summary?: string | null
           updated_at?: string
           user_id?: string | null
-          workspace_id?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -3677,6 +3677,66 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "user_identity"
             referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      leader_pulse: {
+        Row: {
+          answer: string | null
+          answered_at: string | null
+          context: Json | null
+          created_at: string
+          delivered_at: string | null
+          delivered_via: string | null
+          id: string
+          profile_id: string
+          question: string
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          answer?: string | null
+          answered_at?: string | null
+          context?: Json | null
+          created_at?: string
+          delivered_at?: string | null
+          delivered_via?: string | null
+          id?: string
+          profile_id: string
+          question: string
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          answer?: string | null
+          answered_at?: string | null
+          context?: Json | null
+          created_at?: string
+          delivered_at?: string | null
+          delivered_via?: string | null
+          id?: string
+          profile_id?: string
+          question?: string
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leader_pulse_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "leader_pulse_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
           },
         ]
       }
@@ -7277,6 +7337,10 @@ export type Database = {
           p_new_key_prefix: string
           p_workspace_id: string
         }
+        Returns: string
+      }
+      seed_onboarding_journey: {
+        Args: { p_workspace_id: string }
         Returns: string
       }
       upsert_secret: {
