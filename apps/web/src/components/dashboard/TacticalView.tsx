@@ -10,6 +10,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { SignalCard } from "./SignalCard";
+import { LeaderPulseCard } from "./LeaderPulseCard";
 import { DayInfoDialog } from "@/app/dashboard/schedule/_components/day-info-dialog";
 import {
   useStaffingCoverage,
@@ -109,6 +110,9 @@ export function TacticalView({ onDateClick }: TacticalViewProps) {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto pr-2 pb-2 duration-500">
+      {/* Leader Pulse — pending engagement questions, self-hides when empty */}
+      <LeaderPulseCard />
+
       {/* Signal Cards — 2 cards, 50/50 width */}
       <div className="grid flex-shrink-0 grid-cols-1 gap-4 md:grid-cols-2">
         <SignalCard

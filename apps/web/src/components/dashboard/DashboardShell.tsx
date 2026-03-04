@@ -484,6 +484,15 @@ export function DashboardShell({
                       active={isActive("/dashboard/organization")}
                       isCollapsed={isSidebarCollapsed}
                     />
+                    <NavItem
+                      href="/dashboard"
+                      icon={Shield}
+                      label="Guardian"
+                      isDark={isDark}
+                      active={isDashboardPage && adminView === "guardian"}
+                      isCollapsed={isSidebarCollapsed}
+                      onClick={() => setAdminView("guardian")}
+                    />
                   </>
                 ) : (
                   <>
@@ -933,6 +942,7 @@ interface NavItemProps {
   isDark?: boolean;
   ai?: boolean;
   isCollapsed?: boolean;
+  onClick?: () => void;
 }
 
 function NavItem({
@@ -944,10 +954,12 @@ function NavItem({
   isDark,
   ai,
   isCollapsed,
+  onClick,
 }: NavItemProps) {
   const content = (
     <Link
       href={href}
+      onClick={onClick}
       className={`group flex items-center rounded-xl transition-all ${
         isCollapsed ? "justify-center px-0 py-2.5" : "justify-between px-3 py-2.5"
       } ${

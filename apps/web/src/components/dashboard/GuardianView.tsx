@@ -12,6 +12,10 @@ import {
   Clock,
   MessageSquare,
   Compass,
+  Check,
+  CheckCheck,
+  X,
+  Loader2,
 } from "lucide-react";
 import {
   useGuardianData,
@@ -19,6 +23,8 @@ import {
   type ActiveEngineSession,
   type SeasonPulse,
 } from "@/app/dashboard/_hooks/useGuardianData";
+import { useGuardianActions } from "@/app/dashboard/_hooks/useGuardianActions";
+import { Button } from "@/components/ui/button";
 import { MissionControlPanel } from "./MissionControlPanel";
 
 // ── Helpers ────────────────────────────────────────────────────────────
@@ -125,6 +131,7 @@ interface GuardianViewProps {
 
 export function GuardianView({ isDark }: GuardianViewProps) {
   const { signals, sessions, seasonPulse, counts, isLoading } = useGuardianData();
+  const actions = useGuardianActions();
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
 
   if (isLoading) {
@@ -154,7 +161,7 @@ export function GuardianView({ isDark }: GuardianViewProps) {
       />
 
       {/* Section 3: Signal Feed */}
-      <SignalFeedSection signals={signals} isDark={isDark} />
+      <SignalFeedSection signals={signals} isDark={isDark} actions={actions} />
 
       {/* Mission Control Panel */}
       <MissionControlPanel
@@ -440,7 +447,17 @@ function SessionCard({
 
 // ── Section 3: Signal Feed ─────────────────────────────────────────────
 
-function SignalFeedSection({ signals, isDark }: { signals: GuardianSignal[]; isDark: boolean }) {
+type GuardianActions = ReturnType<typeof useGuardianActions>;
+
+function SignalFeedSection({
+  signals,
+  isDark,
+  actions,
+}: {
+  signals: GuardianSignal[];
+  isDark: boolean;
+  actions: GuardianActions;
+}) {
   return (
     <div>
       {/* Section header */}
@@ -465,7 +482,7 @@ function SignalFeedSection({ signals, isDark }: { signals: GuardianSignal[]; isD
       ) : (
         <div className="flex flex-col gap-2">
           {signals.map((signal) => (
-            <SignalRow key={signal.id} signal={signal} isDark={isDark} />
+            <SignalRow key={signal.id} signal={signal} isDark={isDark} actions={actions} />
           ))}
         </div>
       )}
@@ -473,8 +490,21 @@ function SignalFeedSection({ signals, isDark }: { signals: GuardianSignal[]; isD
   );
 }
 
-function SignalRow({ signal, isDark }: { signal: GuardianSignal; isDark: boolean }) {
+function SignalRow({
+  signal,
+  isDark,
+  actions,
+}: {
+  signal: GuardianSignal;
+  isDark: boolean;
+  actions: GuardianActions;
+}) {
   const ago = timeAgo(signal.created_at);
+
+  const isActing =
+    actions.acknowledgingId === signal.id ||
+    actions.resolvingId === signal.id ||
+    actions.dismissingId === signal.id;
 
   return (
     <div
@@ -524,7 +554,129 @@ function SignalRow({ signal, isDark }: { signal: GuardianSignal; isDark: boolean
             </span>
           )}
         </div>
+
+        {/* Action buttons */}
+        <SignalActions signal={signal} isDark={isDark} actions={actions} isActing={isActing} />
       </div>
+    </div>
+  );
+}
+
+function SignalActions({
+  signal,
+  isDark,
+  actions,
+  isActing,
+}: {
+  signal: GuardianSignal;
+  isDark: boolean;
+  actions: GuardianActions;
+  isActing: boolean;
+}) {
+  // No actions for resolved or dismissed signals
+  if (signal.status === "resolved" || signal.status === "dismissed") {
+    return (
+      <div className="mt-2">
+        <span
+          className={`rounded px-1.5 py-0.5 text-[10px] font-bold capitalize ${
+            signal.status === "resolved"
+              ? isDark
+                ? "bg-emerald-500/10 text-emerald-400"
+                : "bg-emerald-50 text-emerald-600"
+              : isDark
+                ? "bg-zinc-800 text-zinc-500"
+                : "bg-zinc-100 text-zinc-400"
+          }`}
+        >
+          {signal.status === "resolved" ? "Lost" : "Avvist"}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-2 flex items-center gap-1.5">
+      {signal.status === "active" && (
+        <>
+          <Button
+            variant="ghost"
+            size="sm"
+            className={`h-7 gap-1 px-2 text-[11px] font-semibold ${
+              isDark
+                ? "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
+                : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700"
+            }`}
+            disabled={isActing}
+            onClick={() => actions.acknowledge({ signalId: signal.id })}
+          >
+            {actions.acknowledgingId === signal.id ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <Check className="h-3 w-3" />
+            )}
+            Bekreft
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className={`h-7 gap-1 px-2 text-[11px] font-semibold ${
+              isDark
+                ? "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
+                : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
+            }`}
+            disabled={isActing}
+            onClick={() => actions.dismiss({ signalId: signal.id })}
+          >
+            {actions.dismissingId === signal.id ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <X className="h-3 w-3" />
+            )}
+            Avvis
+          </Button>
+        </>
+      )}
+
+      {signal.status === "acknowledged" && (
+        <>
+          <Button
+            variant="ghost"
+            size="sm"
+            className={`h-7 gap-1 px-2 text-[11px] font-semibold ${
+              isDark
+                ? "text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300"
+                : "text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
+            }`}
+            disabled={isActing}
+            onClick={() => actions.resolve({ signalId: signal.id })}
+          >
+            {actions.resolvingId === signal.id ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <CheckCheck className="h-3 w-3" />
+            )}
+            Los
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className={`h-7 gap-1 px-2 text-[11px] font-semibold ${
+              isDark
+                ? "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
+                : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
+            }`}
+            disabled={isActing}
+            onClick={() => actions.dismiss({ signalId: signal.id })}
+          >
+            {actions.dismissingId === signal.id ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <X className="h-3 w-3" />
+            )}
+            Avvis
+          </Button>
+        </>
+      )}
     </div>
   );
 }
