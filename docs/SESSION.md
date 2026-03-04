@@ -13,27 +13,25 @@ tags: [session, boot-sequence, continuity]
 
 ## Last Session
 
-| Field   | Value                           |
-| ------- | ------------------------------- |
-| Date    | 2026-03-04                      |
-| Branch  | `feat/progressive-intelligence` |
-| Feature | progressive-intelligence        |
-| Status  | done                            |
+| Field   | Value                         |
+| ------- | ----------------------------- |
+| Date    | 2026-03-04                    |
+| Branch  | `feat/season-creation-wizard` |
+| Feature | season-creation-wizard        |
+| Status  | in_progress                   |
 
 ### What was done
 
-- Implemented full 9-task Progressive Intelligence plan in wt-1
-- Created 3 Edge Functions: search-brreg, identify-company, scrape-website
-- Extracted shared Brreg helpers to `_shared/brreg.ts`
-- Replaced triggerScrape with 3 async progressive tools in useBotsson
-- Updated mission stage prompts for progressive flow
-- Created architecture protocol doc
-- Gathered intelligence tools into `packages/ai/src/tools/intelligence/` (7 files)
-- Merged to development (bb71ba2), typecheck 19/19 pass, pushed
+- Started new feature: season-creation-wizard
+- Worktree: wt-1
+- Module: operations
+- Brainstormed design: 8-stage stepper wizard with voice agent + interactive panel + Play simulation
+- Read all season docs (design, implementation plan, module 15, existing UI)
 
 ### Where we stopped
 
-- Feature complete and merged. wt-1 still has the worktree (can be removed).
+- Git ready. Branch created, worktree set up. Design brainstorming in progress.
+- Next: finalize design doc, write implementation plan, start coding.
 
 ### Known blockers / errors
 
@@ -41,7 +39,8 @@ tags: [session, boot-sequence, continuity]
 
 ### Pending decisions
 
-- [ ] Remove wt-1 worktree + delete feat/progressive-intelligence branch
+- [ ] Finalize design doc for season creation wizard
+- [ ] Write implementation plan (phased, each phase delivers something whole)
 - [ ] Visual review of landing polish — carried over
 - [ ] Merge PR #13 to main (Pontus) — carried over
 - [ ] LiveKit evaluation — carried over

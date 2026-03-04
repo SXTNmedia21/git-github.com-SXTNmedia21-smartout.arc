@@ -1,12 +1,16 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { ChevronDown } from "lucide-react";
 import type { SignalStatus } from "@/app/dashboard/_hooks/dashboard-types";
 
 // UI Events:
 // - color-regime: status-based (good=emerald, warning=orange, critical=red)
 // - visual: sparkline renders 7-point SVG trend line
 // - visual: progressBar renders completion bar
+// - visual: ringChart renders animated donut chart
+// - interaction: click toggles expandContent panel
+// - interaction: hover shows subtle glow pulse
 
 type SparklineData = number[];
 
@@ -15,42 +19,66 @@ type ProgressBarData = {
   max: number;
 };
 
+type RingChartData = {
+  value: number;
+  max: number;
+  label?: string;
+};
+
 interface SignalCardProps {
   label: string;
   value: string | number;
   target?: string;
+  subtitle?: string;
   status: SignalStatus;
   icon: ReactNode;
   trend?: { direction: "up" | "down" | "flat"; label: string };
   secondary?: string;
   sparkline?: SparklineData;
   progressBar?: ProgressBarData;
+  ringChart?: RingChartData;
+  expandContent?: ReactNode;
 }
 
 const STATUS_STYLES = {
   good: {
     glow: "bg-emerald-500/10",
+    glowPulse: "bg-emerald-500/20",
     icon: "border-emerald-500/20 bg-emerald-500/10 text-emerald-500",
     value: "text-foreground",
     trend: "text-emerald-500",
     bar: "bg-emerald-500",
     sparkStroke: "stroke-emerald-500",
+    ring: "stroke-emerald-500",
+    ringTrack: "stroke-emerald-500/15",
+    accent: "text-emerald-500",
+    expandBg: "bg-emerald-500/5 border-emerald-500/10",
   },
   warning: {
     glow: "bg-orange-500/10",
+    glowPulse: "bg-orange-500/20",
     icon: "border-orange-500/20 bg-orange-500/10 text-orange-500",
     value: "text-orange-500",
     trend: "text-orange-500",
     bar: "bg-orange-500",
     sparkStroke: "stroke-orange-500",
+    ring: "stroke-orange-500",
+    ringTrack: "stroke-orange-500/15",
+    accent: "text-orange-500",
+    expandBg: "bg-orange-500/5 border-orange-500/10",
   },
   critical: {
     glow: "bg-red-500/10",
+    glowPulse: "bg-red-500/20",
     icon: "border-red-500/20 bg-red-500/10 text-red-500",
     value: "text-red-500",
     trend: "text-red-500",
     bar: "bg-red-500",
     sparkStroke: "stroke-red-500",
+    ring: "stroke-red-500",
+    ringTrack: "stroke-red-500/15",
+    accent: "text-red-500",
+    expandBg: "bg-red-500/5 border-red-500/10",
   },
 } as const;
 
@@ -91,6 +119,56 @@ function Sparkline({ data, className }: { data: SparklineData; className: string
   );
 }
 
+function RingChart({
+  data,
+  ringClass,
+  trackClass,
+  accentClass,
+}: {
+  data: RingChartData;
+  ringClass: string;
+  trackClass: string;
+  accentClass: string;
+}) {
+  const percent = data.max > 0 ? Math.min((data.value / data.max) * 100, 100) : 0;
+  const radius = 28;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (percent / 100) * circumference;
+
+  return (
+    <div className="relative flex items-center justify-center">
+      <svg width="72" height="72" viewBox="0 0 72 72" className="-rotate-90">
+        {/* Track */}
+        <circle
+          cx="36"
+          cy="36"
+          r={radius}
+          fill="none"
+          strokeWidth="6"
+          className={trackClass}
+          strokeLinecap="round"
+        />
+        {/* Progress */}
+        <circle
+          cx="36"
+          cy="36"
+          r={radius}
+          fill="none"
+          strokeWidth="6"
+          className={ringClass}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          style={{ transition: "stroke-dashoffset 1.2s cubic-bezier(0.4, 0, 0.2, 1)" }}
+        />
+      </svg>
+      <span className={`absolute text-xs font-black ${accentClass}`}>
+        {data.label ?? `${Math.round(percent)}%`}
+      </span>
+    </div>
+  );
+}
+
 function ProgressBar({ data, barClass }: { data: ProgressBarData; barClass: string }) {
   const percent = data.max > 0 ? Math.round((data.value / data.max) * 100) : 0;
 
@@ -108,48 +186,116 @@ export function SignalCard({
   label,
   value,
   target,
+  subtitle,
   status,
   icon,
   trend,
   secondary,
   sparkline,
   progressBar,
+  ringChart,
+  expandContent,
 }: SignalCardProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
   const styles = STATUS_STYLES[status];
+  const isClickable = !!expandContent;
 
   return (
-    <div className="group border-border bg-card relative overflow-hidden rounded-2xl border p-5">
+    <div
+      className={`group border-border bg-card relative overflow-hidden rounded-2xl border transition-all duration-300 ${
+        isClickable ? "cursor-pointer" : ""
+      } ${isExpanded ? "shadow-lg" : "hover:shadow-md"}`}
+      onClick={isClickable ? () => setIsExpanded((p) => !p) : undefined}
+    >
+      {/* Ambient glow */}
       <div
-        className={`absolute -top-4 -right-4 h-24 w-24 rounded-full ${styles.glow} blur-2xl transition-colors group-hover:opacity-80`}
+        className={`pointer-events-none absolute -top-4 -right-4 h-24 w-24 rounded-full ${styles.glow} blur-2xl transition-all duration-500 group-hover:h-32 group-hover:w-32 group-hover:opacity-100 ${
+          isExpanded ? `h-32 w-32 ${styles.glowPulse}` : "opacity-60"
+        }`}
       />
-      <div className="relative z-10 mb-3 flex items-center gap-3">
-        <div className={`rounded-lg border p-2 ${styles.icon}`}>{icon}</div>
-        <h3 className="text-muted-foreground text-xs font-bold tracking-widest uppercase">
-          {label}
-        </h3>
-      </div>
-      <div className="relative z-10 flex items-end gap-2">
-        <span className={`text-3xl leading-none font-bold ${styles.value}`}>{value}</span>
-        {sparkline && <Sparkline data={sparkline} className={styles.sparkStroke} />}
-        {target && (
-          <span className="text-muted-foreground mb-0.5 text-sm font-medium">{target}</span>
-        )}
-        {trend && (
-          <span className={`mb-0.5 text-sm font-medium ${styles.trend}`}>
-            {trend.direction === "up" ? "\u2191" : trend.direction === "down" ? "\u2193" : "\u2192"}{" "}
-            {trend.label}
-          </span>
-        )}
-      </div>
-      {progressBar && (
-        <div className="relative z-10">
-          <ProgressBar data={progressBar} barClass={styles.bar} />
+
+      {/* Main content */}
+      <div className="relative z-10 p-5">
+        {/* Header row */}
+        <div className="mb-1 flex items-center gap-3">
+          <div className={`rounded-lg border p-2 ${styles.icon}`}>{icon}</div>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-muted-foreground text-xs font-bold tracking-widest uppercase">
+              {label}
+            </h3>
+            {subtitle && (
+              <p className="text-muted-foreground/70 mt-0.5 text-[10px] leading-tight">
+                {subtitle}
+              </p>
+            )}
+          </div>
+          {isClickable && (
+            <ChevronDown
+              className={`text-muted-foreground h-4 w-4 transition-transform duration-300 ${
+                isExpanded ? "rotate-180" : ""
+              }`}
+            />
+          )}
         </div>
-      )}
-      {secondary && (
-        <p className="text-muted-foreground relative z-10 mt-2 text-xs font-semibold">
-          {secondary}
-        </p>
+
+        {/* Value row */}
+        <div className="mt-3 flex items-end gap-3">
+          {ringChart ? (
+            <RingChart
+              data={ringChart}
+              ringClass={styles.ring}
+              trackClass={styles.ringTrack}
+              accentClass={styles.accent}
+            />
+          ) : (
+            <span className={`text-3xl leading-none font-bold ${styles.value}`}>{value}</span>
+          )}
+
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            {!ringChart && sparkline && (
+              <Sparkline data={sparkline} className={styles.sparkStroke} />
+            )}
+            {ringChart && (
+              <span className={`text-2xl leading-none font-bold ${styles.value}`}>{value}</span>
+            )}
+            <div className="flex flex-wrap items-center gap-2">
+              {target && (
+                <span className="text-muted-foreground text-xs font-medium">{target}</span>
+              )}
+              {trend && (
+                <span className={`text-xs font-medium ${styles.trend}`}>
+                  {trend.direction === "up"
+                    ? "\u2191"
+                    : trend.direction === "down"
+                      ? "\u2193"
+                      : "\u2192"}{" "}
+                  {trend.label}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {progressBar && (
+          <div className="mt-1">
+            <ProgressBar data={progressBar} barClass={styles.bar} />
+          </div>
+        )}
+
+        {secondary && (
+          <p className="text-muted-foreground mt-2 text-xs font-semibold">{secondary}</p>
+        )}
+      </div>
+
+      {/* Expand panel */}
+      {expandContent && (
+        <div
+          className={`relative z-10 overflow-hidden border-t transition-all duration-300 ease-out ${styles.expandBg} ${
+            isExpanded ? "max-h-[400px] opacity-100" : "max-h-0 border-transparent opacity-0"
+          }`}
+        >
+          <div className="p-4">{expandContent}</div>
+        </div>
       )}
     </div>
   );

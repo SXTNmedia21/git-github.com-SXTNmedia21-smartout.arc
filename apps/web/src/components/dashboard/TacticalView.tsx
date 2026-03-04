@@ -8,6 +8,12 @@ import {
   ChevronRight,
   AlertCircle,
   ShieldCheck,
+  BookOpen,
+  ClipboardCheck,
+  GraduationCap,
+  FileSignature,
+  Users,
+  Calendar,
 } from "lucide-react";
 import { SignalCard } from "./SignalCard";
 import { LeaderPulseCard } from "./LeaderPulseCard";
@@ -25,8 +31,9 @@ import {
 // - action: setWeekOffset(0) — "I dag" button resets to current week
 // - action: setShowEventDialog(true) — opens DayInfoDialog
 // - color-regime: status-based (good=emerald, warning=orange, critical=red)
-// - visual: sparkline in Staffing card shows 7-day fill trend
+// - visual: ringChart in Staffing card shows fill donut
 // - visual: progressBar in Training card shows completion ratio
+// - interaction: SignalCards expand on click to show detail breakdown
 // - conditional: training alert strip only renders when pending > 0
 
 interface TacticalViewProps {
@@ -58,6 +65,325 @@ function getStatusTextColor(fillPercent: number): string {
   if (fillPercent >= 80) return "text-orange-500";
   return "text-red-500";
 }
+
+// ── Staffing Expand Content ────────────────────────────────────────────
+
+function StaffingBreakdown({ coverage }: { coverage: DayCoverage[] | undefined }) {
+  if (!coverage || coverage.length === 0) {
+    return <p className="text-muted-foreground text-xs">Ingen data tilgjengelig</p>;
+  }
+
+  const totalShifts = coverage.reduce((s, d) => s + d.totalShifts, 0);
+  const totalAssigned = coverage.reduce((s, d) => s + d.assignedShifts, 0);
+  const totalGaps = totalShifts - totalAssigned;
+
+  return (
+    <div className="space-y-3">
+      <p className="text-muted-foreground text-[11px] leading-relaxed">
+        Staffing coverage viser hvor mange av ukens planlagte skift som har tilordnet personale.
+        100% betyr at alle skift er dekket.
+      </p>
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-background rounded-lg p-2.5 text-center">
+          <p className="text-foreground text-lg font-black">{totalShifts}</p>
+          <p className="text-muted-foreground text-[10px] font-semibold">Planlagte skift</p>
+        </div>
+        <div className="bg-background rounded-lg p-2.5 text-center">
+          <p className="text-lg font-black text-emerald-500">{totalAssigned}</p>
+          <p className="text-muted-foreground text-[10px] font-semibold">Tilordnet</p>
+        </div>
+        <div className="bg-background rounded-lg p-2.5 text-center">
+          <p
+            className={`text-lg font-black ${totalGaps > 0 ? "text-orange-500" : "text-emerald-500"}`}
+          >
+            {totalGaps}
+          </p>
+          <p className="text-muted-foreground text-[10px] font-semibold">Udekket</p>
+        </div>
+      </div>
+      {/* Day-by-day mini bars */}
+      <div className="flex items-end gap-1.5">
+        {coverage.map((d) => {
+          const h = Math.max(d.fillPercent * 0.32, 4);
+          return (
+            <div key={d.date} className="flex flex-1 flex-col items-center gap-1">
+              <div
+                className={`w-full rounded-sm transition-all duration-700 ${getStatusColor(d.fillPercent)}`}
+                style={{ height: `${h}px` }}
+              />
+              <span className="text-muted-foreground text-[9px] font-bold">{d.dayLabel}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Training Expand Content ────────────────────────────────────────────
+
+function TrainingBreakdown({
+  training,
+}: {
+  training:
+    | { totalAssignments: number; completed: number; pending: number; expired: number }
+    | undefined;
+}) {
+  if (!training) {
+    return <p className="text-muted-foreground text-xs">Ingen data tilgjengelig</p>;
+  }
+
+  const items = [
+    {
+      label: "Fullfort",
+      value: training.completed,
+      icon: CheckCircle2,
+      color: "text-emerald-500",
+      bg: "bg-emerald-500/10",
+    },
+    {
+      label: "Ventende",
+      value: training.pending,
+      icon: BookOpen,
+      color: "text-orange-500",
+      bg: "bg-orange-500/10",
+    },
+    {
+      label: "Utlopt",
+      value: training.expired,
+      icon: AlertCircle,
+      color: "text-red-500",
+      bg: "bg-red-500/10",
+    },
+  ];
+
+  return (
+    <div className="space-y-3">
+      <p className="text-muted-foreground text-[11px] leading-relaxed">
+        Training readiness viser hvor mange av de tilordnede opplaeringsprogrammene (protokollene)
+        som er fullfort. 100% betyr at alle ansatte har fullfort all palagt opplaering.
+      </p>
+      <div className="space-y-2">
+        {items.map((item) => (
+          <div key={item.label} className="flex items-center gap-3">
+            <div className={`rounded-md p-1.5 ${item.bg}`}>
+              <item.icon className={`h-3.5 w-3.5 ${item.color}`} />
+            </div>
+            <span className="text-foreground flex-1 text-xs font-semibold">{item.label}</span>
+            <span className={`text-sm font-black ${item.color}`}>{item.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Protocol Cards Section ─────────────────────────────────────────────
+
+const DEMO_PROTOCOLS = [
+  {
+    id: "1",
+    name: "Matservering",
+    policyName: "Hygiene & Servering",
+    status: "active" as const,
+    procedures: 4,
+    proceduresCompleted: 3,
+    controlLists: 2,
+    knowledgeTests: 1,
+    testsPassed: 0,
+    confirmations: 1,
+    confirmationsSigned: 1,
+    assignedTo: 12,
+    completedBy: 8,
+  },
+  {
+    id: "2",
+    name: "Brannvern",
+    policyName: "HMS & Sikkerhet",
+    status: "active" as const,
+    procedures: 3,
+    proceduresCompleted: 3,
+    controlLists: 1,
+    knowledgeTests: 1,
+    testsPassed: 1,
+    confirmations: 1,
+    confirmationsSigned: 1,
+    assignedTo: 18,
+    completedBy: 18,
+  },
+  {
+    id: "3",
+    name: "Kassasystem",
+    policyName: "Daglig Drift",
+    status: "active" as const,
+    procedures: 6,
+    proceduresCompleted: 2,
+    controlLists: 0,
+    knowledgeTests: 2,
+    testsPassed: 1,
+    confirmations: 1,
+    confirmationsSigned: 0,
+    assignedTo: 8,
+    completedBy: 3,
+  },
+  {
+    id: "4",
+    name: "Allergener",
+    policyName: "Mattrygghet (HACCP)",
+    status: "active" as const,
+    procedures: 5,
+    proceduresCompleted: 5,
+    controlLists: 3,
+    knowledgeTests: 1,
+    testsPassed: 1,
+    confirmations: 1,
+    confirmationsSigned: 1,
+    assignedTo: 15,
+    completedBy: 14,
+  },
+];
+
+function ProtocolCardsSection() {
+  return (
+    <div>
+      <div className="mb-3 flex items-center gap-2">
+        <ShieldCheck className="text-muted-foreground h-4 w-4" />
+        <h3 className="text-foreground text-sm font-extrabold">Aktive Protokoller</h3>
+        <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-[10px] font-bold">
+          {DEMO_PROTOCOLS.length}
+        </span>
+      </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {DEMO_PROTOCOLS.map((protocol) => (
+          <ProtocolCard key={protocol.id} protocol={protocol} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ProtocolCard({ protocol }: { protocol: (typeof DEMO_PROTOCOLS)[number] }) {
+  const readiness =
+    protocol.assignedTo > 0 ? Math.round((protocol.completedBy / protocol.assignedTo) * 100) : 100;
+
+  const isComplete = readiness === 100;
+  const statusColor = isComplete
+    ? "border-emerald-500/20"
+    : readiness >= 70
+      ? "border-orange-500/20"
+      : "border-red-500/20";
+
+  const statusBg = isComplete
+    ? "bg-emerald-500/5"
+    : readiness >= 70
+      ? "bg-orange-500/5"
+      : "bg-red-500/5";
+
+  return (
+    <div
+      className={`group border-border bg-card relative overflow-hidden rounded-xl border p-4 transition-all hover:shadow-md ${statusColor}`}
+    >
+      {/* Readiness indicator bar at top */}
+      <div className="bg-muted absolute top-0 right-0 left-0 h-1 overflow-hidden rounded-t-xl">
+        <div
+          className={`h-full transition-all duration-1000 ease-out ${
+            isComplete ? "bg-emerald-500" : readiness >= 70 ? "bg-orange-500" : "bg-red-500"
+          }`}
+          style={{ width: `${readiness}%` }}
+        />
+      </div>
+
+      {/* Header */}
+      <div className="mt-1 mb-3">
+        <div className="flex items-start justify-between">
+          <div className="min-w-0 flex-1">
+            <h4 className="text-foreground truncate text-sm font-bold">{protocol.name}</h4>
+            <p className="text-muted-foreground truncate text-[10px]">{protocol.policyName}</p>
+          </div>
+          <div
+            className={`ml-2 flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-bold ${statusBg} ${
+              isComplete ? "text-emerald-500" : readiness >= 70 ? "text-orange-500" : "text-red-500"
+            }`}
+          >
+            {readiness}%
+          </div>
+        </div>
+      </div>
+
+      {/* Component counts */}
+      <div className="mb-3 grid grid-cols-4 gap-2">
+        <ComponentBadge
+          icon={BookOpen}
+          count={protocol.procedures}
+          done={protocol.proceduresCompleted}
+          label="Prosedyrer"
+        />
+        <ComponentBadge
+          icon={ClipboardCheck}
+          count={protocol.controlLists}
+          done={protocol.controlLists}
+          label="Kontroller"
+        />
+        <ComponentBadge
+          icon={GraduationCap}
+          count={protocol.knowledgeTests}
+          done={protocol.testsPassed}
+          label="Tester"
+        />
+        <ComponentBadge
+          icon={FileSignature}
+          count={protocol.confirmations}
+          done={protocol.confirmationsSigned}
+          label="Bekreftelser"
+        />
+      </div>
+
+      {/* Assignment footer */}
+      <div className="border-border flex items-center gap-2 border-t pt-2.5">
+        <Users className="text-muted-foreground h-3 w-3" />
+        <span className="text-muted-foreground text-[10px] font-semibold">
+          {protocol.completedBy}/{protocol.assignedTo} ansatte fullfort
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function ComponentBadge({
+  icon: Icon,
+  count,
+  done,
+  label,
+}: {
+  icon: typeof BookOpen;
+  count: number;
+  done: number;
+  label: string;
+}) {
+  if (count === 0) {
+    return (
+      <div className="flex flex-col items-center gap-0.5 opacity-30">
+        <Icon className="text-muted-foreground h-3.5 w-3.5" />
+        <span className="text-muted-foreground text-[8px] font-bold">0</span>
+      </div>
+    );
+  }
+
+  const allDone = done >= count;
+
+  return (
+    <div className="flex flex-col items-center gap-0.5" title={label}>
+      <Icon className={`h-3.5 w-3.5 ${allDone ? "text-emerald-500" : "text-muted-foreground"}`} />
+      <span
+        className={`text-[8px] font-bold ${allDone ? "text-emerald-500" : "text-muted-foreground"}`}
+      >
+        {done}/{count}
+      </span>
+    </div>
+  );
+}
+
+// ── Main Component ─────────────────────────────────────────────────────
 
 export function TacticalView({ onDateClick }: TacticalViewProps) {
   const [weekOffset, setWeekOffset] = useState(0);
@@ -91,6 +417,15 @@ export function TacticalView({ onDateClick }: TacticalViewProps) {
     return coverage.map((d: DayCoverage) => d.fillPercent);
   }, [coverage]);
 
+  // Totals for ring chart
+  const totalShifts = useMemo(() => {
+    if (!coverage) return { total: 0, assigned: 0 };
+    return {
+      total: coverage.reduce((s, d) => s + d.totalShifts, 0),
+      assigned: coverage.reduce((s, d) => s + d.assignedShifts, 0),
+    };
+  }, [coverage]);
+
   const staffingStatus =
     overallFill === null
       ? "good"
@@ -116,22 +451,30 @@ export function TacticalView({ onDateClick }: TacticalViewProps) {
       {/* Signal Cards — 2 cards, 50/50 width */}
       <div className="grid flex-shrink-0 grid-cols-1 gap-4 md:grid-cols-2">
         <SignalCard
-          label="Staffing Coverage"
+          label="Bemanning"
+          subtitle="Andel skift med tilordnet personale denne uken"
           value={overallFill !== null ? `${overallFill}%` : "--"}
-          target="target 100%"
+          target="mal 100%"
           status={staffingStatus}
-          icon={<TrendingUp className="h-4 w-4" />}
-          sparkline={sparklineData}
+          icon={<Calendar className="h-4 w-4" />}
+          ringChart={
+            totalShifts.total > 0
+              ? { value: totalShifts.assigned, max: totalShifts.total }
+              : undefined
+          }
+          sparkline={!totalShifts.total ? sparklineData : undefined}
           secondary={
             todayGaps > 0 ? `${todayGaps} ${todayGaps === 1 ? "gap" : "gaps"} i dag` : undefined
           }
+          expandContent={<StaffingBreakdown coverage={coverage} />}
         />
         <SignalCard
-          label="Training Readiness"
+          label="Opplaering"
+          subtitle="Protokoller fullfort av alle tilordnede ansatte"
           value={training ? `${training.readinessPercent}%` : "--"}
-          target="target 100%"
+          target="mal 100%"
           status={trainingStatus}
-          icon={<CheckCircle2 className="h-4 w-4" />}
+          icon={<GraduationCap className="h-4 w-4" />}
           trend={
             training
               ? {
@@ -144,8 +487,12 @@ export function TacticalView({ onDateClick }: TacticalViewProps) {
             training ? { value: training.completed, max: training.totalAssignments } : undefined
           }
           secondary={training && training.pending > 0 ? `${training.pending} ventende` : undefined}
+          expandContent={<TrainingBreakdown training={training} />}
         />
       </div>
+
+      {/* Protocol Cards */}
+      <ProtocolCardsSection />
 
       {/* Weekly Staffing — full width, 7-column compact grid */}
       <div className="border-border bg-card flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border p-4 shadow-sm">

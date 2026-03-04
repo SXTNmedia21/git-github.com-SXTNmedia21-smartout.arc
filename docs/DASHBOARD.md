@@ -17,18 +17,19 @@ tags: [dashboard, worktrees, tracking]
 | #    | Branch                          | Module     | Status      | Progress | Blockers | Health |
 | ---- | ------------------------------- | ---------- | ----------- | -------- | -------- | ------ |
 | wt-1 | `feat/progressive-intelligence` | onboarding | done        | merged   | —        | merged |
+| wt-1 | `feat/season-creation-wizard`   | operations | in_progress | started  | —        | clean  |
 | wt-2 | `feat/b2b-contract-onboarding`  | contracts  | in_progress | clean    | —        | active |
 
 ## Free Slots
 
-| #     | Available                             |
-| ----- | ------------------------------------- |
-| wt-1  | yes (progressive-intelligence merged) |
-| wt-2  | no (feat/b2b-contract-onboarding)     |
-| wt-3  | yes                                   |
-| wt-4  | yes                                   |
-| wt-5  | yes                                   |
-| wt-20 | yes                                   |
+| #     | Available                         |
+| ----- | --------------------------------- |
+| wt-1  | no (feat/season-creation-wizard)  |
+| wt-2  | no (feat/b2b-contract-onboarding) |
+| wt-3  | yes                               |
+| wt-4  | yes                               |
+| wt-5  | yes                               |
+| wt-20 | yes                               |
 
 ## Pending Journeys
 
@@ -70,6 +71,8 @@ tags: [dashboard, worktrees, tracking]
 | 2026-03-19 | journey-portal-fixes      | `feat/journey-portal-fixes`                                        | development |
 | 2026-03-29 | infra-port-consolidation  | `feat/infra-port-consolidation`                                    | development |
 | 2026-03-04 | progressive-intelligence  | `feat/progressive-intelligence`                                    | development |
+
+| 2026-03-04 | season-creation-wizard | started | wt-1, module: operations — Season creation wizard with voice agent, 8-stage stepper, Play simulation |
 
 ## Session History
 

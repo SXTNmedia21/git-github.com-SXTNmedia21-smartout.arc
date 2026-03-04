@@ -211,12 +211,30 @@ export function EmployeeDrawer({ open, onOpenChange, employee }: EmployeeDrawerP
                   Laster turnus...
                 </div>
               ) : (
-                <TurnusGrid
-                  pattern={editPattern}
-                  isEditing={isEditing}
-                  onPatternChange={handlePatternChange}
-                  isDark={isDark}
-                />
+                <>
+                  <p className="text-muted-foreground mb-2 text-[10px]">
+                    Sett faste arbeidstider per ukedag. Klikk Rediger for a endre, deretter
+                    Auto-fyll for a generere vakter.
+                  </p>
+                  {isEditing && (
+                    <TurnusPresets
+                      onApply={(pattern) => {
+                        for (const [day, value] of Object.entries(pattern) as [
+                          keyof RosterPattern,
+                          string | null,
+                        ][]) {
+                          if (value !== null) handlePatternChange(day, value);
+                        }
+                      }}
+                    />
+                  )}
+                  <TurnusGrid
+                    pattern={editPattern}
+                    isEditing={isEditing}
+                    onPatternChange={handlePatternChange}
+                    isDark={isDark}
+                  />
+                </>
               )}
 
               {/* Period selector */}
@@ -311,6 +329,76 @@ export function EmployeeDrawer({ open, onOpenChange, employee }: EmployeeDrawerP
         </ScrollArea>
       </SheetContent>
     </Sheet>
+  );
+}
+
+// ── TurnusPresets — quick-fill patterns ────────────────────────
+
+const TURNUS_PRESETS = [
+  {
+    label: "Dagvakt (08-16)",
+    pattern: {
+      mon: "08:00-16:00",
+      tue: "08:00-16:00",
+      wed: "08:00-16:00",
+      thu: "08:00-16:00",
+      fri: "08:00-16:00",
+      sat: null,
+      sun: null,
+    },
+  },
+  {
+    label: "Kveldsvakt (15-23)",
+    pattern: {
+      mon: "15:00-23:00",
+      tue: "15:00-23:00",
+      wed: "15:00-23:00",
+      thu: "15:00-23:00",
+      fri: "15:00-23:00",
+      sat: null,
+      sun: null,
+    },
+  },
+  {
+    label: "Helgevakt",
+    pattern: {
+      mon: null,
+      tue: null,
+      wed: null,
+      thu: null,
+      fri: "16:00-23:00",
+      sat: "10:00-18:00",
+      sun: "10:00-18:00",
+    },
+  },
+  {
+    label: "Full uke (10-18)",
+    pattern: {
+      mon: "10:00-18:00",
+      tue: "10:00-18:00",
+      wed: "10:00-18:00",
+      thu: "10:00-18:00",
+      fri: "10:00-18:00",
+      sat: "10:00-18:00",
+      sun: null,
+    },
+  },
+] satisfies Array<{ label: string; pattern: RosterPattern }>;
+
+function TurnusPresets({ onApply }: { onApply: (pattern: RosterPattern) => void }) {
+  return (
+    <div className="mb-2 flex flex-wrap gap-1.5">
+      {TURNUS_PRESETS.map((preset) => (
+        <button
+          key={preset.label}
+          type="button"
+          onClick={() => onApply(preset.pattern)}
+          className="border-border bg-muted hover:bg-accent rounded-md border px-2.5 py-1 text-[10px] font-semibold transition-colors"
+        >
+          {preset.label}
+        </button>
+      ))}
+    </div>
   );
 }
 
