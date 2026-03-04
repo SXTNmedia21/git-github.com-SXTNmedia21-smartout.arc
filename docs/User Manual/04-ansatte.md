@@ -101,7 +101,7 @@ SmartOut sporer kompetansen til hver ansatt gjennom fullførte protokoller:
 
 ### For ledere
 
-- **Personaliste** — Oversikt over alle ansatte med filtrering per avdeling, status og rolle
+- **Personalliste** — Oversikt over alle ansatte med filtrering per avdeling, status og rolle
 - **Kompetansematrise** — Visuell oversikt over hvem som kan hva
 - **Progresjonsrapport** — Følg med på onboarding og opplæringsstatus
 

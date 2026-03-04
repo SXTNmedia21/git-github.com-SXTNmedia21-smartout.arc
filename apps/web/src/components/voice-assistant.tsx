@@ -8,17 +8,20 @@ import { usePostHog } from "posthog-js/react";
 import { toast } from "sonner";
 import { MISSION_MANIFEST } from "@smartout/ai/missions";
 import type { MissionId } from "@smartout/ai/missions";
+import type { ClientTools } from "./voice-tools-context";
 
 interface VoiceAssistantProps {
   onClose?: () => void;
   autoStart?: boolean;
   missionId?: MissionId;
+  clientTools?: ClientTools | null;
 }
 
 export default function VoiceAssistant({
   onClose,
   autoStart = false,
   missionId = "mr-botsson",
+  clientTools,
 }: VoiceAssistantProps) {
   const [status, setStatus] = useState<UltravoxSessionStatus | "idle">("idle");
   const [messages, setMessages] = useState<{ role: string; text: string }[]>([]);
@@ -36,6 +39,13 @@ export default function VoiceAssistant({
     try {
       const currentSession = new UltravoxSession();
       sessionRef.current = currentSession;
+
+      // Register client tool implementations BEFORE joinCall
+      if (clientTools?.implementations) {
+        for (const [name, impl] of Object.entries(clientTools.implementations)) {
+          currentSession.registerToolImplementation(name, impl);
+        }
+      }
 
       currentSession.addEventListener("status", () => {
         if (sessionRef.current === currentSession) {
@@ -76,7 +86,10 @@ export default function VoiceAssistant({
         const res = await fetch("/api/wizard/start", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ mission_id: missionId }),
+          body: JSON.stringify({
+            mission_id: missionId,
+            selected_tools: clientTools?.definitions ?? [],
+          }),
         });
         if (res.ok) {
           const data = await res.json();
@@ -146,6 +159,7 @@ export default function VoiceAssistant({
     return () => {
       endSession();
     };
+    // eslint-disable-next-line -- suppress exhaustive-deps: startSession/endSession excluded; only fire on autoStart change
   }, [autoStart]);
 
   const isConnected = ["listening", "thinking", "speaking"].includes(status);

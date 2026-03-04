@@ -1,6 +1,11 @@
+SET search_path TO public, extensions;
+
 -- Seed clause library with V1 Norwegian contract clauses
 -- These are pre-approved clause blocks for the AI template creator.
 -- Each clause is realistic Norwegian B2B contract language for SaaS/service agreements.
+
+-- Add unique constraint for idempotent seeding (title + language is a natural key)
+CREATE UNIQUE INDEX IF NOT EXISTS uq_clause_library_title_language ON clause_library (title, language);
 
 INSERT INTO clause_library (title, summary, content_html, category, contract_types, language, sort_order, is_active)
 VALUES
@@ -297,7 +302,8 @@ VALUES
   'no',
   12,
   true
-);
+)
+ON CONFLICT (title, language) DO NOTHING;
 
 -- English versions
 
@@ -596,4 +602,5 @@ VALUES
   'en',
   12,
   true
-);
+)
+ON CONFLICT (title, language) DO NOTHING;

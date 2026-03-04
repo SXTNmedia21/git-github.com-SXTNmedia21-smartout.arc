@@ -1,3 +1,5 @@
+SET search_path TO public, extensions;
+
 -- Add docuseal_embed_url column to contract table.
 -- signing_url stores a short random token for URL path lookup.
 -- docuseal_embed_url stores the actual DocuSeal embed/signing URL.

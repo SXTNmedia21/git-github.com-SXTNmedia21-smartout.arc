@@ -1,9 +1,19 @@
-import { CalendarDays, Clock, LayoutGrid, Sparkles } from "lucide-react";
+import {
+  CalendarDays,
+  Clock,
+  LayoutGrid,
+  Sparkles,
+  GripVertical,
+  Calendar,
+  FileText,
+  UserPlus,
+} from "lucide-react";
 import {
   DocsArticle,
   Heading,
   SubHeading,
   Paragraph,
+  InfoBox,
   FeatureCard,
 } from "../_components/docs-article";
 
@@ -23,14 +33,15 @@ export default function VaktplanPage() {
           </h1>
         </div>
         <Paragraph>
-          Vaktplanlegging i SmartOut kobler sammen bemanning, kompetanse, arbeidsrett og økonomi —
-          og gir ledere sanntidsoversikt fra tre perspektiver.
+          Vaktplanlegging i SmartOut kobler sammen bemanning, kompetanse, arbeidsrett og
+          &#248;konomi &#8212; og gir ledere sanntidsoversikt fra tre perspektiver.
         </Paragraph>
       </div>
 
       <Heading id="visningsmodi">Tre visningsmodi</Heading>
       <Paragraph>
-        Vaktplanen kan vises på tre måter. Alle viser det samme datasettet fra ulike perspektiver:
+        Vaktplanen kan vises p&#229; tre m&#229;ter. Alle viser det samme datasettet fra ulike
+        perspektiver:
       </Paragraph>
 
       <div className="my-6 overflow-x-auto">
@@ -51,7 +62,7 @@ export default function VaktplanPage() {
             <tr className="border-b border-white/5">
               <td className="py-3 pr-4 font-medium text-white">Ansatt</td>
               <td className="py-3 pr-4">Rader = Ansatte, kolonner = dager</td>
-              <td className="py-3">Se hvem som jobber når</td>
+              <td className="py-3">Se hvem som jobber n&#229;r</td>
             </tr>
             <tr>
               <td className="py-3 pr-4 font-medium text-white">Lokasjon</td>
@@ -62,6 +73,23 @@ export default function VaktplanPage() {
         </table>
       </div>
 
+      <Paragraph>
+        I tillegg finnes en m&#229;nedsvisning som gir &#248;yeblikksbildet for en hel m&#229;ned
+        med kompakt oversikt over bemanning per dag.
+      </Paragraph>
+
+      <Heading id="dra-og-slipp">Dra-og-slipp planlegging</Heading>
+      <div className="my-6 grid gap-3">
+        <FeatureCard icon={GripVertical} title="Visuell planlegging">
+          Dra vakter mellom ansatte, stillinger og dager. Bytt tidspunkt, flytt vakter, eller kopier
+          dem &#8212; alt med mus. Systemet validerer arbeidsrett i sanntid mens du drar.
+        </FeatureCard>
+        <FeatureCard icon={FileText} title="Batchhandlinger">
+          Velg flere vakter og utf&#248;r handlinger p&#229; alle samtidig: slett, flytt, endre
+          status, eller kopier til neste uke. Sparer tid ved store endringer.
+        </FeatureCard>
+      </div>
+
       <Heading id="vaktkort">Vaktkortet</Heading>
       <Paragraph>
         Hver vakt vises som et kort i vaktplanen med tidspunkt, stilling, navn, sted, status og
@@ -69,7 +97,9 @@ export default function VaktplanPage() {
       </Paragraph>
 
       <SubHeading>Seks faner ved klikk</SubHeading>
-      <Paragraph>Klikk på et vaktkort for å åpne det fullstendige vaktdetaljpanelet:</Paragraph>
+      <Paragraph>
+        Klikk p&#229; et vaktkort for &#229; &#229;pne det fullstendige vaktdetaljpanelet:
+      </Paragraph>
 
       <div className="my-6 overflow-x-auto">
         <table className="w-full text-sm">
@@ -82,7 +112,7 @@ export default function VaktplanPage() {
           <tbody className="text-zinc-400">
             <tr className="border-b border-white/5">
               <td className="py-3 pr-4 font-medium text-white">Oversikt</td>
-              <td className="py-3">Tidspunkt, stilling, lønnsinformasjon, pauseberegning</td>
+              <td className="py-3">Tidspunkt, stilling, l&#248;nnsinformasjon, pauseberegning</td>
             </tr>
             <tr className="border-b border-white/5">
               <td className="py-3 pr-4 font-medium text-white">Oppgaver</td>
@@ -90,7 +120,7 @@ export default function VaktplanPage() {
             </tr>
             <tr className="border-b border-white/5">
               <td className="py-3 pr-4 font-medium text-white">Prosedyrer</td>
-              <td className="py-3">Prosedyrer som skal gjennomgås denne vakten</td>
+              <td className="py-3">Prosedyrer som skal gjennomg&#229;s denne vakten</td>
             </tr>
             <tr className="border-b border-white/5">
               <td className="py-3 pr-4 font-medium text-white">Notat</td>
@@ -98,7 +128,7 @@ export default function VaktplanPage() {
             </tr>
             <tr className="border-b border-white/5">
               <td className="py-3 pr-4 font-medium text-white">Historikk</td>
-              <td className="py-3">Endringslogg — hvem endret hva og når</td>
+              <td className="py-3">Endringslogg &#8212; hvem endret hva og n&#229;r</td>
             </tr>
             <tr>
               <td className="py-3 pr-4 font-medium text-white">Bytte</td>
@@ -108,10 +138,27 @@ export default function VaktplanPage() {
         </table>
       </div>
 
+      <Heading id="kontrollpanel">Dagskontrollpanel</Heading>
+      <Paragraph>
+        Klikk p&#229; en dag i vaktplanen for &#229; &#229;pne dagskontrollpanelet. Her ser du all
+        informasjon for den valgte dagen: dagsbriefing, bemanningsoversikt, &#229;pne vakter,
+        frav&#230;r, og muligheten til &#229; sende meldinger eller kringkaste til alle p&#229;
+        vakt.
+      </Paragraph>
+
+      <Heading id="apne-vakter">&#197;pne vakter</Heading>
+      <div className="my-6 grid gap-3">
+        <FeatureCard icon={UserPlus} title="Publiser &#229;pne vakter">
+          N&#229;r du mangler bemanning, opprett en &#229;pen vakt med stilling, tidspunkt og
+          eventuelle kompetansekrav. Ansatte kan melde interesse, og du velger hvem som f&#229;r
+          vakten.
+        </FeatureCard>
+      </div>
+
       <Heading id="ukeperiode">Ukesvisning og publisering</Heading>
       <Paragraph>
         Vaktplanen opererer i ukeperioder. Leder jobber med &laquo;neste uke&raquo; mens
-        &laquo;denne uken&raquo; er publisert og låst.
+        &laquo;denne uken&raquo; er publisert og l&#229;st.
       </Paragraph>
 
       <div className="my-6 overflow-x-auto">
@@ -125,42 +172,51 @@ export default function VaktplanPage() {
           <tbody className="text-zinc-400">
             <tr className="border-b border-white/5">
               <td className="py-3 pr-4 font-medium text-white">Utkast</td>
-              <td className="py-3">Under arbeid — ikke synlig for ansatte</td>
+              <td className="py-3">Under arbeid &#8212; ikke synlig for ansatte</td>
             </tr>
             <tr className="border-b border-white/5">
               <td className="py-3 pr-4 font-medium text-white">Publisert</td>
-              <td className="py-3">Låst og synlig — ansatte ser sine vakter</td>
+              <td className="py-3">L&#229;st og synlig &#8212; ansatte ser sine vakter</td>
             </tr>
             <tr>
               <td className="py-3 pr-4 font-medium text-white">Endret</td>
-              <td className="py-3">Publisert med ettertrinn — ansatte varsles om endringer</td>
+              <td className="py-3">
+                Publisert med ettertrinn &#8212; ansatte varsles om endringer
+              </td>
             </tr>
           </tbody>
         </table>
       </div>
 
+      <InfoBox type="info">
+        N&#229;r du publiserer, kan du se en fullstendig publiseringsoversikt med sammenligning av
+        planlagt vs forrige uke, bemanningsantall, og kostnadsestimat f&#248;r du bekrefter.
+      </InfoBox>
+
       <Heading id="maler">Vaktmaler</Heading>
       <Paragraph>
-        SmartOut støtter maler for å akselerere vaktplanleggingen — fra dagsmaler til hele
-        sesongoppsett.
+        SmartOut st&#248;tter lagring og gjenbruk av vaktmaler for &#229; akselerere planleggingen.
       </Paragraph>
       <div className="my-6 grid gap-3">
-        <FeatureCard icon={LayoutGrid} title="Dagsmaler">
-          Standard bemanning for en dag, f.eks. &laquo;Mandag Kjøkken&raquo;.
+        <FeatureCard icon={LayoutGrid} title="Lagre maler">
+          Lagre den n&#229;v&#230;rende uken som en mal med navn og beskrivelse. Malen inkluderer
+          alle vakter med stillinger, tidspunkter og avdelingskobling.
         </FeatureCard>
-        <FeatureCard icon={CalendarDays} title="Ukemaler">
-          Hele uker med avdelinger, stillinger og tidspunkter.
+        <FeatureCard icon={Calendar} title="Last inn maler">
+          Last inn en lagret mal p&#229; en ny uke. Velg fra listen over tilgjengelige maler. Du kan
+          redigere maler og slette de du ikke trenger lenger.
         </FeatureCard>
         <FeatureCard icon={Clock} title="Sesongmaler">
-          Standardoppsett for hele sesonger — sommersesong, vintersesong.
+          Standardoppsett for hele sesonger &#8212; sommersesong, vintersesong. Bygger p&#229;
+          sesongbudsjettets dagsfaktorer for &#229; tilpasse bemanning.
         </FeatureCard>
       </div>
 
       <Heading id="tilgjengelighet">Tilgjengelighet</Heading>
       <Paragraph>
-        Ansatte registrerer sin tilgjengelighet. Lederen ser dette når de planlegger: Tilgjengelig,
-        Ikke tilgjengelig, Foretrekker (ønsker vakten), eller Foretrekker ikke (helst ikke, men kan
-        om nødvendig).
+        Ansatte registrerer sin tilgjengelighet. Lederen ser dette n&#229;r de planlegger:
+        Tilgjengelig, Ikke tilgjengelig, Foretrekker (&#248;nsker vakten), eller Foretrekker ikke
+        (helst ikke, men kan om n&#248;dvendig).
       </Paragraph>
 
       <Heading id="vaktbytte">Vaktbytte</Heading>
@@ -168,15 +224,15 @@ export default function VaktplanPage() {
       <div className="my-4 space-y-2 text-sm text-zinc-400">
         <div className="flex items-start gap-3">
           <span className="shrink-0 font-bold text-orange-400">1.</span>
-          <span>Ansatt foreslår bytte med en annen person</span>
+          <span>Ansatt foresl&#229;r bytte med en annen person</span>
         </div>
         <div className="flex items-start gap-3">
           <span className="shrink-0 font-bold text-orange-400">2.</span>
-          <span>Den andre aksepterer eller avslår</span>
+          <span>Den andre aksepterer eller avsl&#229;r</span>
         </div>
         <div className="flex items-start gap-3">
           <span className="shrink-0 font-bold text-orange-400">3.</span>
-          <span>Leder godkjenner byttet (om påkrevd)</span>
+          <span>Leder godkjenner byttet (om p&#229;krevd)</span>
         </div>
         <div className="flex items-start gap-3">
           <span className="shrink-0 font-bold text-orange-400">4.</span>
@@ -199,13 +255,13 @@ export default function VaktplanPage() {
           <thead>
             <tr className="border-b border-white/10">
               <th className="py-3 pr-4 text-left font-semibold text-zinc-400">Regel</th>
-              <th className="py-3 text-left font-semibold text-zinc-400">Oppførsel</th>
+              <th className="py-3 text-left font-semibold text-zinc-400">Oppf&#248;rsel</th>
             </tr>
           </thead>
           <tbody className="text-zinc-400">
             <tr className="border-b border-white/5">
               <td className="py-3 pr-4 font-medium text-white">Tidlig stempling</td>
-              <td className="py-3">Konfigurerbar buffer (f.eks. maks 15 min før vaktstart)</td>
+              <td className="py-3">Konfigurerbar buffer (f.eks. maks 15 min f&#248;r vaktstart)</td>
             </tr>
             <tr className="border-b border-white/5">
               <td className="py-3 pr-4 font-medium text-white">Sen ankomst</td>
@@ -213,7 +269,7 @@ export default function VaktplanPage() {
             </tr>
             <tr>
               <td className="py-3 pr-4 font-medium text-white">Manglende utstempling</td>
-              <td className="py-3">Påminnelse + eskalering til leder</td>
+              <td className="py-3">P&#229;minnelse + eskalering til leder</td>
             </tr>
           </tbody>
         </table>
@@ -221,8 +277,8 @@ export default function VaktplanPage() {
 
       <Heading id="arbeidsrett">Arbeidsrett og validering</Heading>
       <Paragraph>
-        Vaktplanen validerer mot norske arbeidstidsregler. Systemet advarer lederen ved brudd før
-        publisering, og kritiske brudd blokkerer publisering.
+        Vaktplanen validerer mot norske arbeidstidsregler. Systemet advarer lederen ved brudd
+        f&#248;r publisering, og kritiske brudd blokkerer publisering.
       </Paragraph>
 
       <div className="my-6 overflow-x-auto">
@@ -261,8 +317,8 @@ export default function VaktplanPage() {
       <Heading id="ai-planlegging">AI-assistert planlegging</Heading>
       <div className="my-6 grid gap-3">
         <FeatureCard icon={Sparkles} title="Smart forslag">
-          Lise foreslår vaktplaner basert på historisk bemanningsbehov, ansattes tilgjengelighet og
-          preferanser, kompetansekrav, budsjettmål fra sesongplanlegging, og
+          Lise foresl&#229;r vaktplaner basert p&#229; historisk bemanningsbehov, ansattes
+          tilgjengelighet og preferanser, kompetansekrav, budsjettm&#229;l fra sesongplanlegging, og
           overtids-/hviletidskrav.
         </FeatureCard>
       </div>

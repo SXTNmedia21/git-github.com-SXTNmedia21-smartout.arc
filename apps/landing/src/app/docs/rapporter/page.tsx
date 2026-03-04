@@ -1,9 +1,18 @@
-import { BarChart3, Camera, TrendingUp, Sparkles } from "lucide-react";
+import {
+  BarChart3,
+  Camera,
+  TrendingUp,
+  Sparkles,
+  CheckCircle2,
+  XCircle,
+  FileText,
+} from "lucide-react";
 import {
   DocsArticle,
   Heading,
   SubHeading,
   Paragraph,
+  InfoBox,
   FeatureCard,
 } from "../_components/docs-article";
 
@@ -23,25 +32,26 @@ export default function RapporterPage() {
           </h1>
         </div>
         <Paragraph>
-          SmartOut sitt rapporteringssystem gjør rå driftsdata om til verifisert forretningssannhet.
-          Fra driftsøkt-signering til daglig avstemming til sesongavslutning.
+          SmartOut sitt rapporteringssystem gj&#248;r r&#229; driftsdata om til verifisert
+          forretningssannhet. Fra drift&#248;kt-signering til daglig avstemming til
+          sesongavslutning.
         </Paragraph>
       </div>
 
-      <Heading id="tre-nivaer">Tre nivåer av avstemming</Heading>
+      <Heading id="tre-nivaer">Tre niv&#229;er av avstemming</Heading>
       <div className="my-6 overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-white/10">
-              <th className="py-3 pr-4 text-left font-semibold text-zinc-400">Nivå</th>
+              <th className="py-3 pr-4 text-left font-semibold text-zinc-400">Niv&#229;</th>
               <th className="py-3 pr-4 text-left font-semibold text-zinc-400">Hvem</th>
-              <th className="py-3 pr-4 text-left font-semibold text-zinc-400">Når</th>
+              <th className="py-3 pr-4 text-left font-semibold text-zinc-400">N&#229;r</th>
               <th className="py-3 text-left font-semibold text-zinc-400">Hva</th>
             </tr>
           </thead>
           <tbody className="text-zinc-400">
             <tr className="border-b border-white/5">
-              <td className="py-3 pr-4 font-medium text-white">Driftsøkt-signering</td>
+              <td className="py-3 pr-4 font-medium text-white">Drift&#248;kt-signering</td>
               <td className="py-3 pr-4">Ansatt</td>
               <td className="py-3 pr-4">Slutten av dagen</td>
               <td className="py-3">Driften er ferdig, oppgavene er gjort</td>
@@ -56,37 +66,88 @@ export default function RapporterPage() {
               <td className="py-3 pr-4 font-medium text-white">Sesongavstemming</td>
               <td className="py-3 pr-4">Admin</td>
               <td className="py-3 pr-4">Sesong slutt</td>
-              <td className="py-3">Budsjett vs faktisk, lærdommer</td>
+              <td className="py-3">Budsjett vs faktisk, l&#230;rdommer</td>
             </tr>
           </tbody>
         </table>
       </div>
 
       <Heading id="daglig">Daglig avstemming</Heading>
+      <Paragraph>
+        Den daglige avstemmingen er organisert som et to-panel-grensesnitt. Til venstre en dagliste
+        med alle dager som trenger gjennomgang. Til h&#248;yre en detaljvisning med tre faner:
+        Omsetning, Vakter og Avvik.
+      </Paragraph>
 
       <SubHeading>Fase 1: Avslutning</SubHeading>
       <Paragraph>
-        Ansatt med høyest ansiennitet som stenger avdelingen utfører avslutningen.
+        Ansatt med h&#248;yest ansiennitet som stenger avdelingen utf&#248;rer avslutningen.
       </Paragraph>
 
       <div className="my-6 grid gap-3">
         <FeatureCard icon={Camera} title="Bildeopplasting">
           Minimum 2 bilder: kassarapport (POS daglig oppsummering) og betalingsterminal-rapport.
-          Valgfritt: Z-rapport og kassetelling.
+          Valgfritt: Z-rapport og kassetelling. Systemet kj&#248;rer OCR automatisk p&#229; bildene.
         </FeatureCard>
       </div>
 
       <Paragraph>
-        Systemet kjører OCR automatisk på bildene og trekker ut: total omsetning, kort vs kontant,
-        MVA-beløp, og antall transaksjoner. Deretter kryssvalideres kassatotal mot terminaltotal.
-        Avvik over terskel (f.eks. 50 kr eller 0,5%) oppretter automatisk et avvik.
+        OCR trekker ut: total omsetning, kort vs kontant, MVA-bel&#248;p og antall transaksjoner.
+        Kasse- og terminaltotaler kryssvalideres. Avvik over terskel (f.eks. 50 kr eller 0,5%)
+        oppretter automatisk et avvik.
       </Paragraph>
 
       <SubHeading>Fase 2: Godkjenning</SubHeading>
       <Paragraph>
-        Neste virkedag godkjenner admin ved å gjennomgå bilder, bekrefte arbeidstimer, og håndtere
-        avvik fra alle domener.
+        Neste virkedag godkjenner admin dagen. Godkjenningspanelet har tre faner:
       </Paragraph>
+
+      <div className="my-6 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-white/10">
+              <th className="py-3 pr-4 text-left font-semibold text-zinc-400">Fane</th>
+              <th className="py-3 text-left font-semibold text-zinc-400">Innhold</th>
+            </tr>
+          </thead>
+          <tbody className="text-zinc-400">
+            <tr className="border-b border-white/5">
+              <td className="py-3 pr-4 font-medium text-white">Omsetning</td>
+              <td className="py-3">
+                Totalt, kort vs kontant, MVA, transaksjoner, OCR-bilder med konfidens
+              </td>
+            </tr>
+            <tr className="border-b border-white/5">
+              <td className="py-3 pr-4 font-medium text-white">Vakter</td>
+              <td className="py-3">
+                Per vakt: planlagt vs faktisk tid, stempling inn/ut, beregnede timer, godkjenning
+              </td>
+            </tr>
+            <tr>
+              <td className="py-3 pr-4 font-medium text-white">Avvik</td>
+              <td className="py-3">
+                Alle avvik med alvorlighetsgrad, domene, kostnadsp&#229;virkning og
+                l&#248;sningsnotater
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div className="my-6 grid gap-3">
+        <FeatureCard icon={CheckCircle2} title="Godkjenning">
+          Admin godkjenner n&#229;r alle blokkerende avvik er l&#248;st og alle ventende vakter er
+          godkjent. Valgfrie godkjenningsnotater kan legges til.
+        </FeatureCard>
+        <FeatureCard icon={XCircle} title="Avvisning">
+          Admin kan avvise med begrunnelse. Avvist dag g&#229;r tilbake i k&#248;en for gjennomgang.
+        </FeatureCard>
+      </div>
+
+      <InfoBox type="warning" title="Blokkerende avvik">
+        Noen avvik blokkerer dagsgodkjenning. Disse m&#229; l&#248;ses f&#248;r admin kan godkjenne.
+        Eksempel: kassadifferanse over terskel, manglende kvittering, eller ubesvart HACCP-avvik.
+      </InfoBox>
 
       <SubHeading>Avviksdomener</SubHeading>
       <div className="my-6 overflow-x-auto">
@@ -99,16 +160,16 @@ export default function RapporterPage() {
           </thead>
           <tbody className="text-zinc-400">
             <tr className="border-b border-white/5">
-              <td className="py-3 pr-4 font-medium text-white">Økonomi</td>
+              <td className="py-3 pr-4 font-medium text-white">&#216;konomi</td>
               <td className="py-3">Kassadifferanse, manglende kvittering</td>
             </tr>
             <tr className="border-b border-white/5">
               <td className="py-3 pr-4 font-medium text-white">Drift</td>
-              <td className="py-3">Ufullførte oppgaver, signering med unntak</td>
+              <td className="py-3">Ufullf&#248;rte oppgaver, signering med unntak</td>
             </tr>
             <tr className="border-b border-white/5">
               <td className="py-3 pr-4 font-medium text-white">Bemanning</td>
-              <td className="py-3">Manglende stempling, overtid, uplanlagt fravær</td>
+              <td className="py-3">Manglende stempling, overtid, uplanlagt frav&#230;r</td>
             </tr>
             <tr className="border-b border-white/5">
               <td className="py-3 pr-4 font-medium text-white">HACCP</td>
@@ -130,12 +191,12 @@ export default function RapporterPage() {
 
       <div className="my-6 grid gap-3">
         <FeatureCard icon={TrendingUp} title="Proaktive KPI-er">
-          Omsetning per åpen time (hva trenger vi å selge?), budsjettbrennrate, og bemanningskostnad
-          fremover.
+          Omsetning per &#229;pen time (hva trenger vi &#229; selge?), budsjettbrennrate, og
+          bemanningskostnad fremover.
         </FeatureCard>
         <FeatureCard icon={BarChart3} title="Reaktive KPI-er">
-          Omsetning per arbeidet time, lønnskostnadsprosent, avviksfrekvens, oppgavefullføring, og
-          HACCP-samsvar.
+          Omsetning per arbeidet time, l&#248;nnskostnadsprosent, avviksfrekvens,
+          oppgavefullf&#248;ring, og HACCP-samsvar.
         </FeatureCard>
       </div>
 
@@ -147,9 +208,9 @@ export default function RapporterPage() {
 
       <Heading id="sesong">Sesongavstemming</Heading>
       <Paragraph>
-        Når en sesong avsluttes: alle daglige avstemminger må være lukket, budsjett vs faktisk
-        sammenlignes, faktor-nøyaktighet evalueres, lærdommer dokumenteres, og faktiske data brukes
-        til å justere fremtidige prognoser.
+        N&#229;r en sesong avsluttes: alle daglige avstemminger m&#229; v&#230;re lukket, budsjett
+        vs faktisk sammenlignes, faktor-n&#248;yaktighet evalueres, l&#230;rdommer dokumenteres, og
+        faktiske data brukes til &#229; justere fremtidige prognoser.
       </Paragraph>
 
       <Heading id="rapporttyper">Rapporttyper</Heading>
@@ -185,13 +246,13 @@ export default function RapporterPage() {
             </tr>
             <tr className="border-b border-white/5">
               <td className="py-3 pr-4 font-medium text-white">Personalrapport</td>
-              <td className="py-3 pr-4">Timer, fravær, kompetanse per ansatt</td>
+              <td className="py-3 pr-4">Timer, frav&#230;r, kompetanse per ansatt</td>
               <td className="py-3">Valgfri</td>
             </tr>
             <tr>
-              <td className="py-3 pr-4 font-medium text-white">Lønnsrapport</td>
+              <td className="py-3 pr-4 font-medium text-white">L&#248;nnsrapport</td>
               <td className="py-3 pr-4">Timer, tillegg, total per ansatt</td>
-              <td className="py-3">Lønnsperiode</td>
+              <td className="py-3">L&#248;nnsperiode</td>
             </tr>
           </tbody>
         </table>
@@ -201,8 +262,8 @@ export default function RapporterPage() {
       <div className="my-6 grid gap-3">
         <FeatureCard icon={Sparkles} title="Lise hjelper med rapportering">
           Automatisk kompilering av daglige og ukentlige rapporter. Anomalideteksjon. Trendanalyse.
-          Naturligspråk-oppsummeringer: &laquo;Denne uken hadde vi 12% høyere omsetning enn forrige
-          uke, drevet av lørdag.&raquo;
+          Naturligspr&#229;k-oppsummeringer: &laquo;Denne uken hadde vi 12% h&#248;yere omsetning
+          enn forrige uke, drevet av l&#248;rdag.&raquo;
         </FeatureCard>
       </div>
     </DocsArticle>

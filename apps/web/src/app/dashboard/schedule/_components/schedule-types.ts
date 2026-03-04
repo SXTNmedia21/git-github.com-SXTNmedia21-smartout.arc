@@ -4,38 +4,19 @@
 // These types are designed to map 1:1 to the future database
 // tables (MODULE_03 §15) so the migration is a drop-in replacement.
 // Connected to: packages/types/src/enums.ts (shared enums)
-// Connected to: schedule-context.tsx (state consumer)
+// Connected to: _hooks/use-shifts.ts, _hooks/use-schedule-computed.ts (data consumers)
 // ============================================
 
-import type { DayCategory, TaskStatus } from "@smartout/types";
+import type {
+  AbsenceType,
+  DayCategory,
+  RequestType,
+  ShiftStatus,
+  TaskStatus,
+} from "@smartout/types";
 
-// ── Absence types (future: move to @smartout/types) ─────────
-// MODULE_03 §7 + Norwegian labor law categories
-export type AbsenceType =
-  | "sick_leave"
-  | "parental_leave"
-  | "vacation"
-  | "unpaid_leave"
-  | "military"
-  | "training"
-  | "welfare";
-
-// ── Request type (availability signaling) ───────────────────
-export type RequestType =
-  | "available"
-  | "not_available"
-  | "prefer_not"
-  | "prefer";
-
-// ── Shift lifecycle (MODULE_03 §11) ─────────────────────────
-// 6 states: created → assigned → published → active → completed → unpublished
-export type ShiftStatus =
-  | "created"
-  | "assigned"
-  | "published"
-  | "active"
-  | "completed"
-  | "unpublished";
+// ── Re-exports from @smartout/types for convenience ─────────
+export type { AbsenceType, DayCategory, RequestType, ShiftStatus, TaskStatus };
 
 // ── Shift (maps to future schedule_shift table) ─────────────
 export type Shift = {
@@ -180,6 +161,3 @@ export type ShiftHistoryEntry = {
 
 // ── Day selection for batch operations (MODULE_03 §5) ───────
 export type SelectedDays = Set<string>;
-
-// ── Re-exports for convenience ──────────────────────────────
-export type { DayCategory, TaskStatus };

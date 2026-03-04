@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -13,9 +13,18 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Navigation from "../../../components/navigation";
+import Footer from "../../../components/footer";
+import { usePageTracking } from "../../../hooks/useTracking";
+import { useScrollTracking } from "../../../hooks/useScrollTracking";
+import { useClickTracking } from "../../../hooks/useClickTracking";
+import { useSessionLifecycle } from "../../../hooks/useSessionLifecycle";
 import NextPageBanner from "../../../components/next-page-banner";
 
 export default function OppgaverRutinerPage() {
+  usePageTracking();
+  useScrollTracking();
+  useClickTracking();
+  useSessionLifecycle();
   const router = useRouter();
   const [tasks, setTasks] = useState([
     {
@@ -67,7 +76,7 @@ export default function OppgaverRutinerPage() {
           </div>
         </div>
 
-        <motion.div
+        <m.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#0a0a0c]/80 shadow-[0_0_50px_-15px_rgba(251,191,36,0.2)] backdrop-blur-3xl"
@@ -185,7 +194,7 @@ export default function OppgaverRutinerPage() {
               </div>
             </div>
           </div>
-        </motion.div>
+        </m.div>
 
         <NextPageBanner
           href="/features/staff-training"
@@ -194,6 +203,7 @@ export default function OppgaverRutinerPage() {
           color="from-fuchsia-500/10"
         />
       </div>
+      <Footer />
     </div>
   );
 }

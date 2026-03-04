@@ -21,6 +21,10 @@ export const env = createEnv({
     CONTRACT_SERVICE_URL: z.string().url().optional(),
     CONTRACT_SERVICE_KEY: z.string().min(16).optional(),
     SCRAPLING_SERVICE_URL: z.string().url().optional(),
+    SERPER_API_KEY: z.string().min(1).optional(),
+    SHIFT_MCP_URL: z.string().url().optional(),
+    STAGE_ENGINE_URL: z.string().url().optional(),
+    STAGE_ENGINE_API_KEY: z.string().min(16).optional(),
     // Allow overriding Node environment for testing
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   },
@@ -32,6 +36,9 @@ export const env = createEnv({
     NEXT_PUBLIC_POSTHOG_HOST: z.string().url().default("https://eu.i.posthog.com"),
     NEXT_PUBLIC_SENTRY_DSN: z.string().url().optional(),
     NEXT_PUBLIC_ROOT_DOMAIN: z.string().default("localhost"),
+    NEXT_PUBLIC_LANDING_URL: z.string().url().optional(),
+    NEXT_PUBLIC_REVALIDATION_SECRET: z.string().optional(),
+    NEXT_PUBLIC_STAGE_ENGINE_URL: z.string().url().optional(),
   },
 
   // For Next.js >= 13.4.4, you only need to destructure client variables:
@@ -42,6 +49,9 @@ export const env = createEnv({
     NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST,
     NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
     NEXT_PUBLIC_ROOT_DOMAIN: process.env.NEXT_PUBLIC_ROOT_DOMAIN,
+    NEXT_PUBLIC_LANDING_URL: process.env.NEXT_PUBLIC_LANDING_URL,
+    NEXT_PUBLIC_REVALIDATION_SECRET: process.env.NEXT_PUBLIC_REVALIDATION_SECRET,
+    NEXT_PUBLIC_STAGE_ENGINE_URL: process.env.NEXT_PUBLIC_STAGE_ENGINE_URL,
   },
 
   // If variables are missing, it will throw an error automatically

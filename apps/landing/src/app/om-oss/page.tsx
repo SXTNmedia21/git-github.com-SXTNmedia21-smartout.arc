@@ -1,15 +1,24 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { ArrowLeft, Users, Target, Heart, ShieldCheck, Zap } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Navigation from "../../components/navigation";
 import Footer from "../../components/footer";
 import { WEB_APP_LINKS } from "../../lib/web-app-url";
+import { usePageTracking, useTrackCta } from "../../hooks/useTracking";
+import { useScrollTracking } from "../../hooks/useScrollTracking";
+import { useClickTracking } from "../../hooks/useClickTracking";
+import { useSessionLifecycle } from "../../hooks/useSessionLifecycle";
 
 export default function OmOssPage() {
   const router = useRouter();
+  usePageTracking();
+  useScrollTracking();
+  useClickTracking();
+  useSessionLifecycle();
+  const trackCta = useTrackCta();
 
   return (
     <div className="relative flex min-h-screen flex-col items-center overflow-hidden bg-[#050505] p-4 pt-24 font-sans text-zinc-100 selection:bg-orange-500/30 sm:p-6 md:p-12 md:pt-28">
@@ -34,7 +43,7 @@ export default function OmOssPage() {
           Tilbake til forside
         </button>
 
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
@@ -54,11 +63,11 @@ export default function OmOssPage() {
             fragmenterte systemer. Vår misjon er å gi restauranter, hoteller og barer teknologien de
             fortjener.
           </p>
-        </motion.div>
+        </m.div>
 
         {/* Core Values Section */}
         <div className="mb-32 grid grid-cols-1 gap-8 md:grid-cols-3">
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -73,9 +82,9 @@ export default function OmOssPage() {
               Vi tror på å fjerne friksjon. Hvert minutt spart på administrasjon er et minutt mer
               til gjestene.
             </p>
-          </motion.div>
+          </m.div>
 
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -90,9 +99,9 @@ export default function OmOssPage() {
               Systemet vårt er bygget for å tåle presset når restauranten er stappfull og marginene
               er små.
             </p>
-          </motion.div>
+          </m.div>
 
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -107,11 +116,11 @@ export default function OmOssPage() {
               Teknologi skal empowerere de ansatte, ikke overvåke dem. Vi designer for glede og
               mestring.
             </p>
-          </motion.div>
+          </m.div>
         </div>
 
         {/* Team / Office Section Placeholder */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, scale: 0.95 }}
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true }}
@@ -126,10 +135,10 @@ export default function OmOssPage() {
               Fra vårt hovedkvarter jobber vi hver dag for å revolusjonere bransjen.
             </p>
           </div>
-        </motion.div>
+        </m.div>
 
         {/* CTA Section */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -144,13 +153,14 @@ export default function OmOssPage() {
               fremtidens restaurantdrift.
             </p>
             <Link
-              href={WEB_APP_LINKS.onboarding}
+              href={WEB_APP_LINKS.login}
+              onClick={() => trackCta("Start din SmartOut i dag")}
               className="inline-flex items-center gap-3 rounded-full bg-white px-10 py-5 text-lg font-black text-zinc-950 shadow-[0_0_40px_rgba(255,255,255,0.2)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_60px_rgba(255,255,255,0.4)]"
             >
               <Zap className="h-5 w-5 text-orange-500" /> Start din SmartOut i dag
             </Link>
           </div>
-        </motion.div>
+        </m.div>
       </div>
       <Footer />
     </div>

@@ -1,0 +1,25 @@
+# ============================================
+# Caddyfile.dev — Smartout reverse proxy (local development)
+# No HTTPS — uses localhost with port-based routing.
+# Use: docker compose -f docker-compose.yml -f docker-compose.override.yml up
+# ============================================
+
+:3070 {
+	reverse_proxy stage-engine:5010
+}
+
+:3071 {
+	reverse_proxy shift-mcp:5011
+}
+
+:3072 {
+	reverse_proxy contract-service:5012
+}
+
+:3073 {
+	reverse_proxy scrapling:8000
+}
+
+:3074 {
+	reverse_proxy n8n:5678
+}

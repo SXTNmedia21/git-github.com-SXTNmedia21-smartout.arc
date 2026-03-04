@@ -1,22 +1,24 @@
 "use client";
 
-import React, { useContext, useState } from "react";
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   Users,
   Briefcase,
   Network,
   Plus,
   Clock,
-  CheckCircle2,
   AlertCircle,
   PanelLeftClose,
   PanelLeftOpen,
   Printer,
 } from "lucide-react";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
+import { useWorkspace } from "@/lib/workspace-context";
 import {
   DndContext,
   type CollisionDetection,
+  type DragEndEvent,
+  type DragStartEvent,
   KeyboardSensor,
   PointerSensor,
   pointerWithin,
@@ -25,27 +27,129 @@ import {
   useSensors,
   useDroppable,
 } from "@dnd-kit/core";
-import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import { sortableKeyboardCoordinates, arrayMove } from "@dnd-kit/sortable";
 import { PlannerCommandBar } from "./_components/planner-command-bar";
 import { StatusStrip } from "./_components/status-strip";
 import { GridSurface } from "./_components/grid-surface";
-import { DayInspector } from "./_components/day-inspector";
 import { GridContent } from "./_components/daily-grid";
 import { ShiftCard, OpenShiftCard, TemplateCard, AbsenceCard } from "./_components/grid-cards";
+import type { Shift, OpenShift, ShiftTemplate } from "./_components/schedule-types";
+
+type TemplateShift = ShiftTemplate["shifts"][number];
 import { ScheduleDragOverlay } from "./_components/schedule-drag-overlay";
-import { DailyBriefingPanel } from "./_components/daily-briefing";
-import {
-  dummyEmployees,
-  dummyDays,
-  dailyShifts,
-  openShiftItems,
-} from "./_components/schedule-data";
-import { ScheduleProvider, useSchedule } from "./_components/schedule-context";
+import { DayControlSheet, DayControlPanel } from "./_components/day-control";
 import { OpenShiftDialog } from "./_components/open-shift-dialog";
+import { CreateTemplateDialog } from "./_components/create-template-dialog";
+import { EditTemplateDialog } from "./_components/edit-template-dialog";
 import { ShiftModal } from "./_components/shift-modal";
 import { BatchActionBar } from "./_components/batch-action-bar";
 import { AbsencePopover } from "./_components/absence-popover";
-import { useScheduleToast } from "./_components/schedule-toasts";
+import { EmployeeDrawer } from "./_components/employee-drawer";
+import { PublishOverviewDialog } from "./_components/publish-overview-dialog";
+import { SendMessageDialog } from "./_components/send-message-dialog";
+import { MonthlyView } from "./_components/monthly-view";
+
+import type { DayColumn } from "./_components/schedule-data";
+
+// ── Employee data from Supabase ──────────────────────────────
+import { useEmployees, type ScheduleEmployee } from "./_hooks/use-employees";
+
+// ── New TanStack Query hooks ────────────────────────────────
+import { ScheduleUIProvider, useScheduleUI } from "./_components/schedule-ui-context";
+import {
+  useShifts,
+  useCreateShift,
+  useUpdateShift,
+  useMoveShift,
+  useDeleteShift,
+  usePublishShifts,
+  useUnpublishShifts,
+} from "./_hooks/use-shifts";
+import { useAbsences, useCreateAbsence, useDeleteAbsence } from "./_hooks/use-absences";
+import {
+  useTemplates,
+  useSaveTemplate,
+  useUpdateTemplate,
+  useDeleteTemplate,
+  useLoadTemplate,
+} from "./_hooks/use-templates";
+import {
+  useOpenShifts,
+  useCreateOpenShift,
+  useDeleteOpenShift,
+  useAssignOpenShift,
+} from "./_hooks/use-open-shifts";
+import {
+  useDayMessages,
+  useCreateDayMessage,
+  useDeleteDayMessage,
+  useDayTasks,
+  useCreateDayTask,
+  useUpdateDayTaskStatus,
+  useDeleteDayTask,
+  useDayBookings,
+  useCreateDayBooking,
+} from "./_hooks/use-day-content";
+import { useScheduleRealtime } from "./_hooks/use-schedule-realtime";
+import { useScheduleComputed } from "./_hooks/use-schedule-computed";
+import { useDayInfo } from "./_hooks/use-day-info";
+import { useVoiceTools } from "@/components/voice-tools-context";
+import { useScheduleVoiceTools } from "./_hooks/use-schedule-voice-tools";
+
+// ---------------------------------------------------------------------------
+// Week range helper — supports week offset for navigation
+// ---------------------------------------------------------------------------
+function getWeekRange(weekOffset = 0): { weekStart: string; weekEnd: string } {
+  const now = new Date();
+  const day = now.getDay();
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - ((day + 6) % 7) + weekOffset * 7);
+  monday.setHours(0, 0, 0, 0);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+
+  // Use local date parts to avoid UTC timezone shift (Norway is UTC+1/+2)
+  const fmt = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+  return { weekStart: fmt(monday), weekEnd: fmt(sunday) };
+}
+
+// ---------------------------------------------------------------------------
+// Generate day columns — supports variable day count (7 or 14)
+// ---------------------------------------------------------------------------
+const DAY_LABELS = ["Man", "Tir", "Ons", "Tor", "Fre", "Lør", "Søn"];
+
+function generateDayColumns(weekStart: string, dayCount = 7): DayColumn[] {
+  const start = new Date(weekStart + "T00:00:00");
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Use local date parts to avoid UTC timezone shift
+  const fmt = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+  return Array.from({ length: dayCount }, (_, i) => {
+    const date = new Date(start);
+    date.setDate(start.getDate() + i);
+    const dateStr = fmt(date);
+    const dayNum = date.getDate();
+    const month = date.getMonth() + 1;
+    const dayOfWeek = date.getDay(); // 0=Sun, 1=Mon...
+    const label = DAY_LABELS[(dayOfWeek + 6) % 7] ?? "";
+
+    return {
+      id: dateStr,
+      label: `${label} ${dayNum}/${month}`,
+      staff: 0,
+      shifts: 0,
+      cost: "0",
+      isToday: date.getTime() === today.getTime(),
+      isHoliday: dayOfWeek === 0 || dayOfWeek === 6,
+      situation: "Normal",
+    };
+  });
+}
 
 // ---------------------------------------------------------------------------
 // Collision detection: pointer-first, rect fallback
@@ -57,172 +161,690 @@ const scheduleCollisionDetection: CollisionDetection = (args) => {
 };
 
 // ---------------------------------------------------------------------------
-// SchedulePage — thin composition layer
+// SchedulePage — thin composition layer with providers
 // ---------------------------------------------------------------------------
 export default function SchedulePage() {
   return (
-    <ScheduleProvider legacyShifts={dailyShifts}>
-      <SchedulePageInner />
-    </ScheduleProvider>
+    <ScheduleUIProvider>
+      <SchedulePageContent />
+    </ScheduleUIProvider>
   );
 }
 
-/**
- * Inner schedule page that has access to the ScheduleProvider context.
- * Separated from the default export so useSchedule() works correctly.
- */
-function SchedulePageInner() {
-  const { isDark, scheduleLayout } = useContext(DashboardContext);
+// ---------------------------------------------------------------------------
+// SchedulePageContent — query hooks + rendering
+// ---------------------------------------------------------------------------
+function SchedulePageContent() {
+  const {
+    isDark,
+    scheduleLayout,
+    scheduleDateOffset,
+    setOnPublishAll,
+    setScheduleDraftCount,
+    scheduleCompactMode,
+  } = useContext(DashboardContext);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [filterSituation, setFilterSituation] = useState("Alle");
-  const [showGuide, setShowGuide] = useState(false);
   const [sidebarMode, setSidebarMode] = useState<"open" | "templates">("open");
+  const [activeStatusFilter, setActiveStatusFilter] = useState<string | null>(null);
+  const [weekSpan, setWeekSpan] = useState<1 | 2>(1);
+  const [publishOverviewOpen, setPublishOverviewOpen] = useState(false);
+  const [sendMessageDialog, setSendMessageDialog] = useState<{
+    open: boolean;
+    dateId: string;
+    dateLabel: string;
+  }>({ open: false, dateId: "", dateLabel: "" });
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 1 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
-  const { state, dispatch, computed } = useSchedule();
-  const dispatchWithToast = useScheduleToast();
+  // ── Week range and day columns (reactive to offset + span) ─
+  const { weekStart, weekEnd } = useMemo(() => {
+    const range = getWeekRange(scheduleDateOffset);
+    if (weekSpan === 2) {
+      // Extend end by 7 days for 2-week view
+      const end = new Date(range.weekStart + "T00:00:00");
+      end.setDate(end.getDate() + 13);
+      return { weekStart: range.weekStart, weekEnd: end.toISOString().split("T")[0] ?? "" };
+    }
+    return range;
+  }, [scheduleDateOffset, weekSpan]);
+  const dayCount = weekSpan === 2 ? 14 : 7;
+  const days = useMemo(() => generateDayColumns(weekStart, dayCount), [weekStart, dayCount]);
+
+  // ── Workspace context ───────────────────────────────────────
+  const { workspace } = useWorkspace();
+
+  // ── TanStack Query hooks ────────────────────────────────────
+  const employeesQuery = useEmployees();
+  const employees = employeesQuery.data ?? [];
+  const shiftsQuery = useShifts(weekStart, weekEnd);
+  const absencesQuery = useAbsences(weekStart, weekEnd);
+  const templatesQuery = useTemplates();
+  const openShiftsQuery = useOpenShifts();
+  const dayMessagesQuery = useDayMessages(weekStart, weekEnd);
+  const dayTasksQuery = useDayTasks(weekStart, weekEnd);
+  const dayBookingsQuery = useDayBookings(weekStart, weekEnd);
+  const { dayInfoByDate } = useDayInfo(weekStart, weekEnd);
+
+  // ── Enrich day columns with day info + real shift/staff/message/task counts ─
+  const enrichedDays = useMemo(() => {
+    const allShifts = shiftsQuery.data ?? [];
+    const allMessages = dayMessagesQuery.data ?? [];
+    const allTasks = dayTasksQuery.data ?? [];
+    return days.map((day) => {
+      const infos = dayInfoByDate.get(day.id) ?? [];
+      const events = infos
+        .filter((d) => d.category === "event")
+        .map((e) => ({ id: e.id, title: e.title }));
+      const notes = infos
+        .filter((d) => d.category !== "event")
+        .map((n) => ({ id: n.id, title: n.title, scope: n.scopeType }));
+
+      // Compute real staff and shift counts from shift data
+      const dayShifts = allShifts.filter((s) => s.dateId === day.id);
+      const uniqueEmployees = new Set(dayShifts.map((s) => s.employeeId).filter(Boolean));
+
+      // Compute message and task counts
+      const dayMsgCount = allMessages.filter((m) => m.dateId === day.id).length;
+      const dayTaskList = allTasks.filter((t) => t.dateId === day.id);
+      const dayTasksDone = dayTaskList.filter((t) => t.status === "completed").length;
+
+      return {
+        ...day,
+        staff: uniqueEmployees.size,
+        shifts: dayShifts.length,
+        messages: dayMsgCount > 0 ? dayMsgCount : undefined,
+        tasks:
+          dayTaskList.length > 0 ? { done: dayTasksDone, total: dayTaskList.length } : undefined,
+        events: events.length > 0 ? events : undefined,
+        dayInfo: notes.length > 0 ? notes : undefined,
+      };
+    });
+  }, [days, dayInfoByDate, shiftsQuery.data, dayMessagesQuery.data, dayTasksQuery.data]);
+
+  // ── Realtime subscription ───────────────────────────────────
+  useScheduleRealtime(weekStart);
+
+  // ── Computed values ─────────────────────────────────────────
+  const computed = useScheduleComputed(
+    shiftsQuery.data ?? [],
+    absencesQuery.data ?? [],
+    (openShiftsQuery.data ?? []).length,
+    templatesQuery.data ?? [],
+    dayMessagesQuery.data ?? [],
+    dayTasksQuery.data ?? [],
+    dayBookingsQuery.data ?? [],
+  );
+
+  // ── Mutation hooks ──────────────────────────────────────────
+  const createShift = useCreateShift(weekStart);
+  const updateShift = useUpdateShift(weekStart);
+  const moveShift = useMoveShift(weekStart);
+  const deleteShift = useDeleteShift(weekStart);
+  const publishShifts = usePublishShifts(weekStart);
+  const unpublishShifts = useUnpublishShifts(weekStart);
+  const createAbsence = useCreateAbsence(weekStart);
+  const deleteAbsence = useDeleteAbsence(weekStart);
+  const saveTemplate = useSaveTemplate();
+  const updateTemplate = useUpdateTemplate();
+  const deleteTemplate = useDeleteTemplate();
+  const loadTemplate = useLoadTemplate(weekStart);
+  const createOpenShift = useCreateOpenShift();
+  const deleteOpenShift = useDeleteOpenShift();
+  const assignOpenShift = useAssignOpenShift(weekStart);
+  const createDayMessage = useCreateDayMessage(weekStart);
+  const deleteDayMessage = useDeleteDayMessage(weekStart);
+  const createDayTask = useCreateDayTask(weekStart);
+  const updateDayTaskStatus = useUpdateDayTaskStatus(weekStart);
+  const deleteDayTask = useDeleteDayTask(weekStart);
+  const createDayBooking = useCreateDayBooking(weekStart);
+
+  // ── Voice tools ─────────────────────────────────────────────
+  const { setClientTools } = useVoiceTools();
+
+  const voiceTools = useScheduleVoiceTools({
+    weekStart,
+    weekEnd,
+    days: enrichedDays,
+    shifts: shiftsQuery.data ?? [],
+    absences: absencesQuery.data ?? [],
+    employees,
+    computed,
+    mutations: {
+      createShift: (input) =>
+        createShift.mutateAsync(input as Parameters<typeof createShift.mutateAsync>[0]),
+      updateShift: (input) =>
+        updateShift.mutateAsync(input as Parameters<typeof updateShift.mutateAsync>[0]),
+      deleteShift: (id) => deleteShift.mutateAsync(id),
+      publishShifts: (ids) => publishShifts.mutateAsync(ids),
+    },
+  });
+
+  // Register/unregister tools when schedule page mounts/unmounts
+  useEffect(() => {
+    setClientTools(voiceTools);
+    return () => setClientTools(null);
+  }, [voiceTools, setClientTools]);
+
+  // ── UI-only context ─────────────────────────────────────────
+  const scheduleUI = useScheduleUI();
+
+  // Bridge: "Se dagsliste" sets selectedDayId in UI context → open DayControlSheet
+  useEffect(() => {
+    if (scheduleUI.selectedDayId) {
+      setSelectedDate(scheduleUI.selectedDayId);
+      scheduleUI.setSelectedDay(null);
+    }
+  }, [scheduleUI.selectedDayId, scheduleUI.setSelectedDay]);
+
+  // ── Derived values ──────────────────────────────────────────
+  const shifts = useMemo(() => shiftsQuery.data ?? [], [shiftsQuery.data]);
+  const templates = templatesQuery.data ?? [];
+  const openShifts = openShiftsQuery.data ?? [];
   const statusSummary = computed.getStatusSummary();
+
+  // ── Employee custom order + compact sort ──────────────────
+  const [employeeOrder, setEmployeeOrder] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const stored = localStorage.getItem("schedule-employee-order");
+      return stored ? (JSON.parse(stored) as string[]) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Persist custom order to localStorage
+  const saveEmployeeOrder = useCallback((order: string[]) => {
+    setEmployeeOrder(order);
+    try {
+      localStorage.setItem("schedule-employee-order", JSON.stringify(order));
+    } catch {
+      /* ignore quota errors */
+    }
+  }, []);
+
+  // Build a set of employee IDs with shifts this week for compact sort
+  const employeesWithShifts = useMemo(() => {
+    const set = new Set<string>();
+    for (const s of shifts) {
+      if (s.employeeId) set.add(s.employeeId);
+    }
+    return set;
+  }, [shifts]);
+
+  // Sorted employees: apply custom order first, then compact auto-sort
+  const sortedEmployees = useMemo(() => {
+    const sorted = [...employees];
+
+    // Apply custom order if any
+    if (employeeOrder.length > 0) {
+      const orderIndex = new Map(employeeOrder.map((id, i) => [id, i]));
+      sorted.sort((a, b) => {
+        const ai = orderIndex.get(a.id) ?? Infinity;
+        const bi = orderIndex.get(b.id) ?? Infinity;
+        return ai - bi;
+      });
+    }
+
+    // When compact, employees with shifts float to top
+    if (scheduleCompactMode) {
+      sorted.sort((a, b) => {
+        const aHas = employeesWithShifts.has(a.id) ? 0 : 1;
+        const bHas = employeesWithShifts.has(b.id) ? 0 : 1;
+        return aHas - bHas;
+      });
+    }
+
+    return sorted;
+  }, [employees, employeeOrder, scheduleCompactMode, employeesWithShifts]);
+
+  // ── Location-based employee filtering ─────────────────────
+  const { activeLocation } = useContext(DashboardContext);
+
+  const locationFilteredEmployees = useMemo(() => {
+    if (!activeLocation || activeLocation === "Alle Lokasjoner") return sortedEmployees;
+    const loc = activeLocation.toLowerCase();
+    return sortedEmployees.filter((emp) => {
+      const dept = (emp.jobTitle || "").toLowerCase();
+      const team = (emp.team || "").toLowerCase();
+      const role = (emp.role || "").toLowerCase();
+      // Match location to employee attributes
+      return (
+        dept.includes(loc) ||
+        team.includes(loc) ||
+        role.includes(loc) ||
+        loc.includes(dept) ||
+        loc.includes(team)
+      );
+    });
+  }, [sortedEmployees, activeLocation]);
+
+  // ── Situation-filtered day columns ────────────────────────
+  const situationFilteredDays = useMemo(() => {
+    if (filterSituation === "Alle") return enrichedDays;
+    return enrichedDays.map((day) => {
+      const hasEvents = (day.events?.length ?? 0) > 0;
+      const hasAlerts = day.coverageAlert != null;
+      let dimmed = false;
+
+      if (filterSituation === "Selskap") {
+        // Dim days without events/bookings
+        dimmed = !hasEvents;
+      } else if (filterSituation === "Krise") {
+        // Dim days without coverage alerts
+        dimmed = !hasAlerts;
+      } else if (filterSituation === "Normal") {
+        // Dim days that have events or alerts (show only "normal" days)
+        dimmed = hasEvents || hasAlerts;
+      }
+
+      return { ...day, situation: dimmed ? "__dimmed__" : day.situation };
+    });
+  }, [enrichedDays, filterSituation]);
+
+  // Register the publish-all callback and draft count with the DashboardShell header.
+  // Both setOnPublishAll and setScheduleDraftCount write to refs (no context re-render),
+  // so they are safe to call during render without causing infinite loops.
+  const draftIds = useMemo(
+    () =>
+      shifts
+        .filter((s: Shift) => s.status === "created" || s.status === "assigned")
+        .map((s: Shift) => s.id),
+    [shifts],
+  );
+  const draftCount = draftIds.length;
+
+  const publishMutateRef = useRef(publishShifts.mutate);
+  const draftIdsRef = useRef(draftIds);
+
+  // ── Ctrl+drag copy mode ─────────────────────────────────────
+  /** Tracks whether Ctrl/Meta is currently held (updated via keyboard listeners). */
+  const isCtrlHeldRef = useRef(false);
+  /** True when the current drag started with Ctrl held (copy-drag). */
+  const isCopyDragRef = useRef(false);
+
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    const nativeEvent = event.activatorEvent as MouseEvent | TouchEvent | KeyboardEvent;
+    const ctrlHeld = "ctrlKey" in nativeEvent && (nativeEvent.ctrlKey || nativeEvent.metaKey);
+    isCopyDragRef.current = ctrlHeld;
+  }, []);
+
+  // Track Ctrl/Meta key state globally so we know at drop time
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Control" || e.key === "Meta") isCtrlHeldRef.current = true;
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.key === "Control" || e.key === "Meta") isCtrlHeldRef.current = false;
+    };
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+    };
+  }, []);
+
+  // Sync refs + draft count and publish callback to DashboardShell
+  // Opens the publish overview dialog instead of publishing directly
+  useEffect(() => {
+    publishMutateRef.current = publishShifts.mutate;
+    draftIdsRef.current = draftIds;
+    setScheduleDraftCount(draftCount);
+    setOnPublishAll(draftCount > 0 ? () => setPublishOverviewOpen(true) : null);
+    return () => {
+      setScheduleDraftCount(0);
+      setOnPublishAll(null);
+    };
+  }, [draftCount, draftIds, publishShifts.mutate, setScheduleDraftCount, setOnPublishAll]);
 
   /**
    * Handles DnD drop events.
    * Parses droppable ID format: "cell::employeeId::dateId" or "day-header::dateId"
-   * and dispatches the appropriate action based on drag source type.
-   * Uses dispatchWithToast so DnD actions get toast feedback.
+   * and calls the appropriate mutation based on drag source type.
    */
-  const handleDragEnd = (event: import("@dnd-kit/core").DragEndEvent) => {
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over) return;
 
     const sourceType = active.data.current?.type as string | undefined;
+
+    // ── Employee row reorder ───────────────────────────────────
+    if (sourceType === "employee-sort") {
+      if (active.id !== over.id) {
+        const currentIds = sortedEmployees.map((e) => e.id);
+        const oldIndex = currentIds.indexOf(String(active.id));
+        const newIndex = currentIds.indexOf(String(over.id));
+        if (oldIndex !== -1 && newIndex !== -1) {
+          saveEmployeeOrder(arrayMove(currentIds, oldIndex, newIndex));
+        }
+      }
+      return;
+    }
+
     const droppableId = String(over.id);
 
     // Parse droppable ID
     const cellMatch = droppableId.match(/^cell::(.+)::(.+)$/);
     const dayHeaderMatch = droppableId.match(/^day-header::(.+)$/);
 
-    if (cellMatch && sourceType === "shift") {
-      // Shift dropped on employee cell → move shift
+    // Shift dropped on open shift zone → convert to open shift
+    if (droppableId === "open-shift-zone" && sourceType === "shift") {
+      const shiftId = active.data.current?.shiftId as string | undefined;
+      if (shiftId) {
+        const sourceShift = shifts.find((s: Shift) => s.id === shiftId);
+        if (sourceShift) {
+          createOpenShift.mutate({
+            id: crypto.randomUUID(),
+            title: sourceShift.role,
+            startTime: sourceShift.startTime,
+            endTime: sourceShift.endTime,
+            role: sourceShift.role,
+            dayCategory: sourceShift.dayCategory,
+          });
+          // Remove the original assigned shift
+          deleteShift.mutate(shiftId);
+        }
+      }
+    } else if (cellMatch && sourceType === "shift") {
       const [, toEmployeeId, toDateId] = cellMatch;
       const shiftId = active.data.current?.shiftId as string | undefined;
       if (shiftId && toEmployeeId && toDateId) {
-        dispatchWithToast({
-          type: "MOVE_SHIFT",
-          payload: { shiftId, toEmployeeId, toDateId },
-        });
+        if (isCopyDragRef.current && isCtrlHeldRef.current) {
+          // Ctrl+drag → duplicate shift to target cell
+          const sourceShift = shifts.find((s: Shift) => s.id === shiftId);
+          if (sourceShift) {
+            createShift.mutate({
+              id: crypto.randomUUID(),
+              employeeId: toEmployeeId,
+              dateId: toDateId,
+              role: sourceShift.role,
+              positionId: sourceShift.positionId,
+              teamId: sourceShift.teamId,
+              startTime: sourceShift.startTime,
+              endTime: sourceShift.endTime,
+              workHours: sourceShift.workHours,
+              status: sourceShift.status === "published" ? "created" : sourceShift.status,
+              dayCategory: sourceShift.dayCategory,
+              zone: sourceShift.zone,
+              indicator: sourceShift.indicator,
+              isPublished: false,
+              breaks: sourceShift.breaks,
+              notes: sourceShift.notes,
+            });
+          }
+        } else {
+          // Normal drag → move shift
+          moveShift.mutate({ id: shiftId, employeeId: toEmployeeId, dateId: toDateId });
+        }
       }
     } else if (cellMatch && sourceType === "open-shift") {
-      // Open shift dropped on employee cell → assign
+      // Open shift dropped on employee cell -> assign
       const [, employeeId, dateId] = cellMatch;
       if (employeeId && dateId) {
-        dispatchWithToast({
-          type: "ASSIGN_OPEN_SHIFT",
-          payload: { openShiftId: String(active.id), employeeId, dateId },
-        });
+        const openShift = openShifts.find((os: OpenShift) => os.id === String(active.id));
+        if (openShift) {
+          assignOpenShift.mutate({
+            openShiftId: String(active.id),
+            shift: {
+              id: crypto.randomUUID(),
+              employeeId,
+              dateId,
+              role: openShift.role ?? "",
+              startTime: openShift.startTime,
+              endTime: openShift.endTime,
+              workHours: 0,
+              status: "assigned",
+              dayCategory: openShift.dayCategory ?? "morning",
+              indicator: "orange",
+              isPublished: false,
+              breaks: 0,
+            },
+          });
+        }
       }
     } else if (cellMatch && sourceType === "shift-template") {
-      // Template dropped on employee cell → create shift from template
+      // Template dropped on employee cell -> create shifts from template
       const templateId = active.data.current?.templateId as string | undefined;
-      const [, _employeeId, dateId] = cellMatch;
+      const [, , dateId] = cellMatch;
       if (templateId && dateId) {
-        dispatchWithToast({
-          type: "LOAD_TEMPLATE",
-          payload: { templateId, targetDateId: dateId },
-        });
+        const template = templates.find((t: ShiftTemplate) => t.id === templateId);
+        if (template) {
+          const shiftsToCreate = template.shifts.map((s: TemplateShift) => ({
+            id: crypto.randomUUID(),
+            employeeId: s.employeeId,
+            dateId,
+            role: s.role,
+            startTime: s.startTime,
+            endTime: s.endTime,
+            workHours: s.workHours,
+            status: s.status,
+            dayCategory: s.dayCategory,
+            indicator: s.indicator,
+            isPublished: false,
+            breaks: s.breaks,
+            positionId: s.positionId,
+            teamId: s.teamId,
+            zone: s.zone,
+            notes: s.notes,
+          }));
+          loadTemplate.mutate({ template, shifts: shiftsToCreate });
+        }
       }
     } else if (dayHeaderMatch && sourceType === "shift-template") {
-      // Template dropped on day header → apply whole template to day
+      // Template dropped on day header -> apply whole template to day
       const templateId = active.data.current?.templateId as string | undefined;
       const [, dateId] = dayHeaderMatch;
       if (templateId && dateId) {
-        dispatchWithToast({
-          type: "LOAD_TEMPLATE",
-          payload: { templateId, targetDateId: dateId },
-        });
+        const template = templates.find((t: ShiftTemplate) => t.id === templateId);
+        if (template) {
+          const shiftsToCreate = template.shifts.map((s: TemplateShift) => ({
+            id: crypto.randomUUID(),
+            employeeId: s.employeeId,
+            dateId,
+            role: s.role,
+            startTime: s.startTime,
+            endTime: s.endTime,
+            workHours: s.workHours,
+            status: s.status,
+            dayCategory: s.dayCategory,
+            indicator: s.indicator,
+            isPublished: false,
+            breaks: s.breaks,
+            positionId: s.positionId,
+            teamId: s.teamId,
+            zone: s.zone,
+            notes: s.notes,
+          }));
+          loadTemplate.mutate({ template, shifts: shiftsToCreate });
+        }
       }
     }
+
+    // Always reset copy-drag state after drop
+    isCopyDragRef.current = false;
   };
+
+  const handleDragCancel = useCallback(() => {
+    isCopyDragRef.current = false;
+  }, []);
+
+  const isLoading = shiftsQuery.isLoading;
 
   return (
     <div
       className={`flex flex-1 flex-col ${isDark ? "bg-[#050505]" : "bg-zinc-50"} relative h-full overflow-hidden rounded-2xl border border-white/[0.04] font-sans text-zinc-100 shadow-2xl print:block print:h-auto print:overflow-visible print:border-none print:bg-white print:shadow-none`}
     >
-      {/* AMBIENT BACKGROUND */}
-      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-2xl opacity-10">
-        <div className="absolute top-[-10%] left-[-10%] h-[500px] w-[500px] rounded-full bg-orange-600/20 mix-blend-screen blur-[120px]" />
-      </div>
+      {isLoading ? (
+        <div className="flex h-full flex-1 items-center justify-center">
+          <p className="text-sm text-zinc-500">Laster vaktplan...</p>
+        </div>
+      ) : (
+        <>
+          {/* AMBIENT BACKGROUND */}
+          <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-2xl opacity-10">
+            <div className="absolute top-[-10%] left-[-10%] h-[500px] w-[500px] rounded-full bg-orange-600/20 mix-blend-screen blur-[120px]" />
+          </div>
 
-      <PlannerCommandBar
-        isDark={isDark}
-        filterSituation={filterSituation}
-        setFilterSituation={setFilterSituation}
-        showGuide={showGuide}
-        setShowGuide={setShowGuide}
-      />
+          {/* MAIN CONTENT AREA — sidebar spans full height alongside command bar, status strip, and grid */}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={scheduleCollisionDetection}
+            autoScroll={false}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
+          >
+            <div className="flex flex-1 overflow-hidden">
+              {/* Sidebar — full height from top of schedule container to bottom */}
+              <ScheduleSidebar
+                isDark={isDark}
+                isSidebarOpen={isSidebarOpen}
+                sidebarMode={sidebarMode}
+                setSidebarMode={setSidebarMode}
+                templates={templates}
+                openShifts={openShifts}
+              />
 
-      <StatusStrip isDark={isDark} statusSummary={statusSummary} />
-
-      {/* MAIN CONTENT AREA */}
-      <DndContext
-        sensors={sensors}
-        collisionDetection={scheduleCollisionDetection}
-        autoScroll={false}
-        onDragEnd={handleDragEnd}
-      >
-        <GridSurface
-          isDark={isDark}
-          leftSidebar={
-            <ScheduleSidebar
-              isDark={isDark}
-              isSidebarOpen={isSidebarOpen}
-              sidebarMode={sidebarMode}
-              setSidebarMode={setSidebarMode}
-            />
-          }
-          centerContent={
-            <>
-              {scheduleLayout === "daily" && (
-                <GridContent
-                  isSidebarOpen={isSidebarOpen}
-                  setIsSidebarOpen={setIsSidebarOpen}
-                  onDateClick={setSelectedDate}
+              {/* Main content column — command bar, status strip, then grid */}
+              <div className="flex min-w-0 flex-1 flex-col">
+                <PlannerCommandBar
+                  isDark={isDark}
                   filterSituation={filterSituation}
+                  setFilterSituation={setFilterSituation}
+                  weekSpan={weekSpan}
+                  setWeekSpan={setWeekSpan}
+                  scheduleLayout={scheduleLayout}
                 />
-              )}
-              {scheduleLayout === "weekly" && (
-                <WeeklyGridContent
-                  isSidebarOpen={isSidebarOpen}
-                  setIsSidebarOpen={setIsSidebarOpen}
-                  onDateClick={setSelectedDate}
-                />
-              )}
-              {scheduleLayout === "monthly" && (
-                <MonthlyGridContent
-                  isSidebarOpen={isSidebarOpen}
-                  setIsSidebarOpen={setIsSidebarOpen}
-                />
-              )}
-              {scheduleLayout === "list" && <ListGridContent onDateClick={setSelectedDate} />}
-            </>
-          }
-          dayInspector={
-            <DayInspector isDark={isDark} selectedDate={selectedDate}>
-              <DailyBriefingPanel date={selectedDate} onClose={() => setSelectedDate(null)} />
-            </DayInspector>
-          }
-        />
 
-        <ScheduleDragOverlay isDark={isDark} />
-      </DndContext>
+                <GridSurface
+                  isDark={isDark}
+                  centerContent={
+                    <>
+                      {scheduleLayout === "daily" && (
+                        <GridContent
+                          isSidebarOpen={isSidebarOpen}
+                          setIsSidebarOpen={setIsSidebarOpen}
+                          onDateClick={setSelectedDate}
+                          filterSituation={filterSituation}
+                          activeStatusFilter={activeStatusFilter}
+                          visibleDays={situationFilteredDays}
+                          employees={locationFilteredEmployees}
+                        />
+                      )}
+                      {scheduleLayout === "weekly" && (
+                        <WeeklyGridContent
+                          isSidebarOpen={isSidebarOpen}
+                          setIsSidebarOpen={setIsSidebarOpen}
+                          onDateClick={setSelectedDate}
+                          filterSituation={filterSituation}
+                          shifts={shifts}
+                          computed={computed}
+                          scheduleUI={scheduleUI}
+                          employees={employees}
+                        />
+                      )}
+                      {scheduleLayout === "monthly" && (
+                        <MonthlyView
+                          onDateClick={setSelectedDate}
+                          shifts={shifts}
+                          computed={computed}
+                          employees={employees}
+                        />
+                      )}
+                      {scheduleLayout === "list" && (
+                        <ListGridContent
+                          onDateClick={setSelectedDate}
+                          shifts={shifts}
+                          computed={computed}
+                          days={days}
+                          employees={employees}
+                        />
+                      )}
+                    </>
+                  }
+                  dayInspector={
+                    <DayControlSheet
+                      selectedDate={selectedDate}
+                      onClose={() => setSelectedDate(null)}
+                    >
+                      <DayControlPanel date={selectedDate} onClose={() => setSelectedDate(null)} />
+                    </DayControlSheet>
+                  }
+                />
 
-      {/* Global modals and overlays rendered at the page level */}
-      <ShiftModal />
-      <BatchActionBar />
-      <AbsencePopover />
+                <StatusStrip
+                  isDark={isDark}
+                  statusSummary={statusSummary}
+                  activeFilter={activeStatusFilter}
+                  onFilterClick={setActiveStatusFilter}
+                />
+              </div>
+            </div>
+
+            <ScheduleDragOverlay isDark={isDark} />
+          </DndContext>
+
+          {/* Global modals and overlays rendered at the page level */}
+          <ShiftModal />
+          <BatchActionBar />
+          <AbsencePopover />
+          <EmployeeDrawer
+            open={!!scheduleUI.selectedEmployeeId}
+            onOpenChange={(open) => {
+              if (!open) scheduleUI.setSelectedEmployee(null);
+            }}
+            employee={
+              employees.find((e: ScheduleEmployee) => e.id === scheduleUI.selectedEmployeeId) ??
+              null
+            }
+          />
+          <PublishOverviewDialog
+            open={publishOverviewOpen}
+            onOpenChange={setPublishOverviewOpen}
+            shifts={shifts}
+            employees={employees}
+            onPublish={(ids) => publishShifts.mutate(ids)}
+            isPublishing={publishShifts.isPending}
+          />
+          <SendMessageDialog
+            open={sendMessageDialog.open}
+            onOpenChange={(open) => setSendMessageDialog((prev) => ({ ...prev, open }))}
+            dateId={sendMessageDialog.dateId}
+            dateLabel={sendMessageDialog.dateLabel}
+            shifts={shifts}
+            employees={employees}
+          />
+        </>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// OpenShiftDropZone — droppable area for converting shifts to open shifts
+// ---------------------------------------------------------------------------
+function OpenShiftDropZone({ isDark, children }: { isDark: boolean; children: React.ReactNode }) {
+  const { setNodeRef, isOver } = useDroppable({ id: "open-shift-zone" });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`min-h-[60px] rounded-xl border-2 border-dashed p-2 transition-all ${
+        isOver ? "border-amber-500/50 bg-amber-500/10" : `border-transparent ${isDark ? "" : ""}`
+      }`}
+    >
+      {children}
+      {isOver && (
+        <p className="mt-2 text-center text-[10px] font-bold tracking-wider text-amber-400 uppercase">
+          Slipp for å gjøre åpen
+        </p>
+      )}
     </div>
   );
 }
@@ -235,25 +857,30 @@ function ScheduleSidebar({
   isSidebarOpen,
   sidebarMode,
   setSidebarMode,
+  templates,
+  openShifts,
 }: {
   isDark: boolean;
   isSidebarOpen: boolean;
   sidebarMode: "open" | "templates";
   setSidebarMode: (m: "open" | "templates") => void;
+  templates: ShiftTemplate[];
+  openShifts: { id: string; title: string; time: string }[];
 }) {
-  const { state } = useSchedule();
   const [openShiftDialogOpen, setOpenShiftDialogOpen] = React.useState(false);
+  const [createTemplateOpen, setCreateTemplateOpen] = React.useState(false);
+  const [editingTemplate, setEditingTemplate] = React.useState<ShiftTemplate | null>(null);
 
   // Group templates by department
   const templatesByDept = React.useMemo(() => {
-    const map = new Map<string, typeof state.templates>();
-    for (const t of state.templates) {
+    const map = new Map<string, typeof templates>();
+    for (const t of templates) {
       const existing = map.get(t.department) ?? [];
       existing.push(t);
       map.set(t.department, existing);
     }
     return map;
-  }, [state.templates]);
+  }, [templates]);
 
   return (
     <aside
@@ -265,13 +892,13 @@ function ScheduleSidebar({
         >
           <button
             onClick={() => setSidebarMode("open")}
-            className={`flex-1 rounded-lg py-1.5 text-[10px] font-bold transition-all ${sidebarMode === "open" ? (isDark ? "bg-zinc-800 text-white shadow-sm" : "bg-white text-zinc-900 shadow-sm") : "text-zinc-500 hover:text-zinc-400"}`}
+            className={`flex-1 rounded-lg py-1.5 text-xs font-bold transition-all ${sidebarMode === "open" ? (isDark ? "bg-zinc-800 text-white shadow-sm" : "bg-white text-zinc-900 shadow-sm") : "text-zinc-500 hover:text-zinc-400"}`}
           >
             Ledige vakter
           </button>
           <button
             onClick={() => setSidebarMode("templates")}
-            className={`flex-1 rounded-lg py-1.5 text-[10px] font-bold transition-all ${sidebarMode === "templates" ? (isDark ? "bg-zinc-800 text-white shadow-sm" : "bg-white text-zinc-900 shadow-sm") : "text-zinc-500 hover:text-zinc-400"}`}
+            className={`flex-1 rounded-lg py-1.5 text-xs font-bold transition-all ${sidebarMode === "templates" ? (isDark ? "bg-zinc-800 text-white shadow-sm" : "bg-white text-zinc-900 shadow-sm") : "text-zinc-500 hover:text-zinc-400"}`}
           >
             Vaktmaler
           </button>
@@ -280,7 +907,7 @@ function ScheduleSidebar({
         {sidebarMode === "open" ? (
           <>
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-[10px] font-black tracking-widest text-zinc-500 uppercase xl:text-xs">
+              <h3 className="text-xs font-black tracking-widest text-zinc-500 uppercase">
                 Åpen Vakt
               </h3>
               <button
@@ -291,47 +918,70 @@ function ScheduleSidebar({
                 <Plus className="h-3.5 w-3.5" />
               </button>
             </div>
-            <div className="space-y-3">
-              {state.openShifts.map((shift) => (
-                <OpenShiftCard key={shift.id} id={shift.id} title={shift.title} time={shift.time} />
-              ))}
-              {state.openShifts.length === 0 && (
-                <p className="text-center text-[10px] text-zinc-500">Ingen åpne vakter</p>
-              )}
-            </div>
+            <OpenShiftDropZone isDark={isDark}>
+              <div className="space-y-3">
+                {openShifts.map((shift) => (
+                  <OpenShiftCard
+                    key={shift.id}
+                    id={shift.id}
+                    title={shift.title}
+                    time={shift.time}
+                  />
+                ))}
+                {openShifts.length === 0 && (
+                  <p className="text-center text-xs text-zinc-500">Ingen åpne vakter</p>
+                )}
+              </div>
+            </OpenShiftDropZone>
             <OpenShiftDialog open={openShiftDialogOpen} onOpenChange={setOpenShiftDialogOpen} />
           </>
         ) : (
           <>
-            <h3 className="mb-4 text-[10px] font-black tracking-widest text-zinc-500 uppercase xl:text-xs">
+            <h3 className="mb-4 text-xs font-black tracking-widest text-zinc-500 uppercase">
               Maler per avdeling
             </h3>
             <div className="space-y-6">
               {Array.from(templatesByDept.entries()).map(([dept, templates]) => (
                 <div key={dept}>
-                  <h4 className="mb-3 flex items-center gap-1.5 border-b border-white/5 pb-1 text-[10px] font-black tracking-widest text-zinc-400 uppercase">
+                  <h4 className="mb-3 flex items-center gap-1.5 border-b border-white/5 pb-1 text-xs font-black tracking-widest text-zinc-400 uppercase">
                     <Briefcase className="h-3.5 w-3.5" /> {dept}
                   </h4>
                   <div className="space-y-2">
                     {templates.map((t) => (
-                      <TemplateCard
+                      <div
                         key={t.id}
-                        id={t.id}
-                        title={t.name}
-                        team={t.department}
-                        hours={t.shifts[0]?.time ?? ""}
-                        routines={t.shifts.length}
-                      />
+                        onClick={() => setEditingTemplate(t)}
+                        className="cursor-pointer"
+                      >
+                        <TemplateCard
+                          id={t.id}
+                          title={t.name}
+                          team={t.department}
+                          hours={t.shifts[0]?.time ?? ""}
+                          routines={t.shifts.length}
+                        />
+                      </div>
                     ))}
                   </div>
                 </div>
               ))}
               <button
+                onClick={() => setCreateTemplateOpen(true)}
                 className={`flex w-full items-center justify-center gap-2 border border-dashed py-2 ${isDark ? "border-zinc-500/30 text-zinc-500 hover:bg-white/5 hover:text-white" : "border-zinc-300 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"} rounded-xl text-xs font-bold transition-all`}
               >
                 <Plus className="h-3.5 w-3.5" /> Opprett ny mal
               </button>
             </div>
+            <CreateTemplateDialog open={createTemplateOpen} onOpenChange={setCreateTemplateOpen} />
+            {editingTemplate && (
+              <EditTemplateDialog
+                open={!!editingTemplate}
+                onOpenChange={(o) => {
+                  if (!o) setEditingTemplate(null);
+                }}
+                template={editingTemplate}
+              />
+            )}
           </>
         )}
       </div>
@@ -346,24 +996,65 @@ function WeeklyGridContent({
   isSidebarOpen,
   setIsSidebarOpen,
   onDateClick,
+  filterSituation,
+  shifts,
+  computed,
+  scheduleUI,
+  employees,
 }: {
   isSidebarOpen: boolean;
   setIsSidebarOpen: (v: boolean) => void;
   onDateClick?: (d: string) => void;
+  filterSituation: string;
+  shifts: import("./_components/schedule-types").Shift[];
+  computed: import("./_hooks/use-schedule-computed").ScheduleComputed;
+  scheduleUI: ReturnType<typeof useScheduleUI>;
+  employees: ScheduleEmployee[];
 }) {
   const { isDark, scheduleView, weeklyPeriodCount } = useContext(DashboardContext);
   const columns = Array.from({ length: weeklyPeriodCount }, (_, i) => i + 1);
 
+  /**
+   * Groups employees dynamically based on the current scheduleView.
+   * - "team": grouped by team name
+   * - "jobb": grouped by job title / role
+   * - "ansatt": flat list with no grouping headers
+   */
+  const groupedEmployees = React.useMemo(() => {
+    if (scheduleView === "team") {
+      const map = new Map<string, ScheduleEmployee[]>();
+      for (const emp of employees) {
+        const key = emp.team || "Uten team";
+        const list = map.get(key) ?? [];
+        list.push(emp);
+        map.set(key, list);
+      }
+      return Array.from(map.entries());
+    }
+    if (scheduleView === "jobb") {
+      const map = new Map<string, ScheduleEmployee[]>();
+      for (const emp of employees) {
+        const key = emp.jobTitle || emp.role || "Ukjent";
+        const list = map.get(key) ?? [];
+        list.push(emp);
+        map.set(key, list);
+      }
+      return Array.from(map.entries());
+    }
+    // "ansatt" — flat list, single group
+    return [["Alle ansatte", employees] as [string, ScheduleEmployee[]]];
+  }, [scheduleView, employees]);
+
   return (
-    <div className="flex w-full">
+    <div className="flex h-full w-full overflow-y-auto">
       <div
         className={`w-[200px] shrink-0 border-r border-white/5 xl:w-[250px] ${isDark ? "bg-[#0a0a0c]/60" : "bg-white/80"} sticky left-0 z-30 flex flex-col shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)] backdrop-blur-md`}
       >
         <div
-          className={`h-24 border-b xl:h-28 ${isDark ? "border-white/5" : "border-zinc-200"} relative flex flex-col justify-between p-4`}
+          className={`sticky top-0 z-30 h-24 border-b xl:h-28 ${isDark ? "border-white/5 bg-[#0a0a0c]" : "border-zinc-200 bg-white"} relative flex flex-col justify-between p-4`}
         >
           <div className="flex w-full items-center justify-between">
-            <div className="flex items-center gap-1.5 text-[9px] font-bold tracking-widest text-zinc-500 uppercase xl:text-[10px]">
+            <div className="flex items-center gap-1.5 text-[11px] font-bold tracking-widest text-zinc-500 uppercase xl:text-xs">
               <Network className="h-3.5 w-3.5 text-orange-500" />
               Rullerende
             </div>
@@ -381,7 +1072,7 @@ function WeeklyGridContent({
           <div
             className={`mt-auto rounded-lg border border-white/5 px-2 py-1 ${isDark ? "bg-[#050505]" : "bg-zinc-50"}`}
           >
-            <span className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase">
+            <span className="text-xs font-bold tracking-widest text-zinc-500 uppercase">
               Visning:{" "}
               {scheduleView === "ansatt" ? "Ansatt" : scheduleView === "jobb" ? "Rolle" : "Team"}
             </span>
@@ -389,98 +1080,103 @@ function WeeklyGridContent({
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          <TeamGroup title="Kjøkken" count={2}>
-            <EntityRow
-              name="Lars Erik Johansen"
-              subtitle="Sous Chef"
-              hours="38.5"
-              shifts="5"
-              avatarColor="bg-blue-500/20 text-blue-400 border-blue-500/30"
-              initials="LJ"
-            />
-            <EntityRow
-              name="Ahmad Reza"
-              subtitle="Kokk"
-              hours="30"
-              shifts="4"
-              avatarColor="bg-orange-500/20 text-orange-400 border-orange-500/30"
-              initials="AR"
-            />
-          </TeamGroup>
-          <TeamGroup title="Sal & Service" count={1}>
-            <EntityRow
-              name="Ingrid Haugen"
-              subtitle="Manager"
-              hours="40"
-              shifts="5"
-              avatarColor="bg-purple-500/20 text-purple-400 border-purple-500/30"
-              initials="IH"
-            />
-          </TeamGroup>
-          <TeamGroup title="Drift" count={1}>
-            <EntityRow
-              name="Fatima Abdi"
-              subtitle="Housekeeping"
-              hours="24"
-              shifts="4"
-              avatarColor="bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-              initials="FA"
-            />
-          </TeamGroup>
+          {groupedEmployees.map(([groupName, groupEmps]) => (
+            <TeamGroup key={groupName} title={groupName} count={groupEmps.length}>
+              {groupEmps.map((emp) => {
+                const stats = computed.getEmployeeStats(emp.id);
+                return (
+                  <EntityRow
+                    key={emp.id}
+                    name={emp.name}
+                    subtitle={scheduleView === "jobb" ? emp.team : emp.jobTitle || emp.role}
+                    hours={stats.totalHours.toFixed(1)}
+                    shifts={String(stats.shiftCount)}
+                    avatarColor={emp.avatarColor}
+                    initials={emp.initials}
+                    onClick={() => scheduleUI.setSelectedEmployee(emp.id)}
+                  />
+                );
+              })}
+            </TeamGroup>
+          ))}
         </div>
       </div>
 
-      {columns.map((col) => (
-        <div
-          key={col}
-          className={`min-w-0 flex-1 border-r ${isDark ? "border-white/5" : "border-zinc-200"} flex flex-col transition-colors hover:bg-white/[0.02] ${col === 3 ? "bg-orange-500/[0.02]" : ""}`}
-        >
-          <div
-            onClick={() => onDateClick && onDateClick(`Uke ${col}`)}
-            className={`sticky top-0 h-24 border-b border-white/5 p-3 xl:h-28 xl:p-4 ${isDark ? "bg-[#0a0a0c]/80" : "bg-white/90"} relative z-20 flex cursor-pointer flex-col items-center justify-center backdrop-blur-xl hover:bg-white/5`}
-          >
-            {col === 3 && (
-              <div className="absolute top-2 right-2 rounded border border-orange-500/30 bg-orange-500/20 px-1.5 py-0.5 text-[9px] font-black text-orange-400 uppercase">
-                Aktiv
-              </div>
-            )}
-            <h2
-              className={`font-black tracking-tighter ${weeklyPeriodCount > 5 ? "text-lg xl:text-xl" : "text-xl xl:text-3xl"} ${col === 3 ? "text-orange-400" : isDark ? "text-white" : "text-zinc-900"}`}
-            >
-              {col}
-            </h2>
-            <span className="mt-1 text-[9px] font-bold tracking-widest text-zinc-500 uppercase xl:text-[10px]">
-              Uke / Periode
-            </span>
-          </div>
+      {columns.map((col) => {
+        /**
+         * Determines the situation-based background tint for this column.
+         * - "Selskap": even columns get an orange tint (simulating booking days)
+         * - "Krise": every 3rd column gets a red tint (simulating coverage risk days)
+         * - "Normal" / "Alle": only the active column (3) gets a subtle orange tint
+         */
+        const situationTint =
+          filterSituation === "Selskap" && col % 2 === 0
+            ? "bg-orange-500/[0.04]"
+            : filterSituation === "Krise" && col % 3 === 0
+              ? "bg-rose-500/[0.04]"
+              : col === 3
+                ? "bg-orange-500/[0.02]"
+                : "";
 
-          <WeeklyGridCell>
-            {col % 2 !== 0 ? (
-              <ShiftCard role="Sous Chef" time="5 vakter" status="published" indicator="blue" />
-            ) : (
-              <WeeklyEmptyCell />
-            )}
-          </WeeklyGridCell>
-          <WeeklyGridCell>
-            <ShiftCard
-              role="Manager"
-              time="5 vakter"
-              status={col === 3 ? "active" : "published"}
-              indicator="purple"
-            />
-          </WeeklyGridCell>
-          <WeeklyGridCell>
-            {col % 4 === 0 ? (
-              <AbsenceCard type="Avspasering" reason="Rotasjon" />
-            ) : (
-              <ShiftCard role="Kokk" time="4 vakter" status="draft" indicator="orange" />
-            )}
-          </WeeklyGridCell>
-          <WeeklyGridCell>
-            <ShiftCard role="Housekeeping" time="4 vakter" status="published" indicator="emerald" />
-          </WeeklyGridCell>
-        </div>
-      ))}
+        return (
+          <div
+            key={col}
+            className={`min-w-0 flex-1 border-r ${isDark ? "border-white/5" : "border-zinc-200"} flex flex-col transition-colors hover:bg-white/[0.02] ${situationTint}`}
+          >
+            <div
+              onClick={() => onDateClick && onDateClick(`Uke ${col}`)}
+              className={`sticky top-0 h-24 border-b border-white/5 p-3 xl:h-28 xl:p-4 ${isDark ? "bg-[#0a0a0c]/80" : "bg-white/90"} relative z-20 flex cursor-pointer flex-col items-center justify-center backdrop-blur-xl hover:bg-white/5`}
+            >
+              {col === 3 && (
+                <div className="absolute top-2 right-2 rounded border border-orange-500/30 bg-orange-500/20 px-1.5 py-0.5 text-[11px] font-black text-orange-400 uppercase">
+                  Aktiv
+                </div>
+              )}
+              <h2
+                className={`font-black tracking-tighter ${weeklyPeriodCount > 5 ? "text-lg xl:text-xl" : "text-xl xl:text-3xl"} ${col === 3 ? "text-orange-400" : isDark ? "text-white" : "text-zinc-900"}`}
+              >
+                {col}
+              </h2>
+              <span className="mt-1 text-[11px] font-bold tracking-widest text-zinc-500 uppercase xl:text-xs">
+                Uke / Periode
+              </span>
+            </div>
+
+            <WeeklyGridCell>
+              {col % 2 !== 0 ? (
+                <ShiftCard role="Sous Chef" time="5 vakter" status="published" indicator="blue" />
+              ) : (
+                <WeeklyEmptyCell
+                  onClick={() => scheduleUI.setCreateShiftContext({ dateId: `week::${col}` })}
+                />
+              )}
+            </WeeklyGridCell>
+            <WeeklyGridCell>
+              <ShiftCard
+                role="Manager"
+                time="5 vakter"
+                status={col === 3 ? "active" : "published"}
+                indicator="purple"
+              />
+            </WeeklyGridCell>
+            <WeeklyGridCell>
+              {col % 4 === 0 ? (
+                <AbsenceCard type="Avspasering" reason="Rotasjon" />
+              ) : (
+                <ShiftCard role="Kokk" time="4 vakter" status="draft" indicator="orange" />
+              )}
+            </WeeklyGridCell>
+            <WeeklyGridCell>
+              <ShiftCard
+                role="Housekeeping"
+                time="4 vakter"
+                status="published"
+                indicator="emerald"
+              />
+            </WeeklyGridCell>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -506,7 +1202,7 @@ function TeamGroup({
           {title}
         </span>
         <span
-          className={`text-[9px] font-medium text-zinc-400 ${isDark ? "bg-white/10" : "bg-zinc-200"} rounded px-1.5 py-0.5`}
+          className={`text-[10px] font-medium text-zinc-400 ${isDark ? "bg-white/10" : "bg-zinc-200"} rounded px-1.5 py-0.5`}
         >
           {count}
         </span>
@@ -524,6 +1220,7 @@ function EntityRow({
   avatarColor,
   initials,
   contractedHours = 37.5,
+  onClick,
 }: {
   name: string;
   subtitle?: string;
@@ -532,6 +1229,7 @@ function EntityRow({
   avatarColor: string;
   initials: string;
   contractedHours?: number;
+  onClick?: () => void;
 }) {
   const { isDark } = useContext(DashboardContext);
   const scheduledHours = parseFloat(hours) || 0;
@@ -545,24 +1243,25 @@ function EntityRow({
 
   return (
     <div
+      onClick={onClick}
       className={`group flex h-24 cursor-pointer items-center gap-2 border-b border-white/5 p-2 transition-colors hover:bg-white/[0.02] ${isDark ? "bg-[#0a0a0c]" : "bg-white"}`}
     >
       <div
-        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border text-[9px] font-black ${avatarColor}`}
+        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border text-[10px] font-black ${avatarColor}`}
       >
         {initials}
       </div>
       <div className="min-w-0 flex-1">
         <h3
-          className={`text-[11px] font-bold xl:text-xs ${isDark ? "text-white" : "text-zinc-900"} truncate leading-tight transition-colors group-hover:text-zinc-300`}
+          className={`text-xs font-bold xl:text-[13px] ${isDark ? "text-white" : "text-zinc-900"} truncate leading-tight transition-colors group-hover:text-zinc-300`}
         >
           {name}
         </h3>
-        <p className="mb-1 truncate text-[9px] leading-tight text-zinc-500 xl:text-[10px]">
+        <p className="mb-1 truncate text-[11px] leading-tight text-zinc-500 xl:text-xs">
           {subtitle}
         </p>
         <div className="mt-1 space-y-1">
-          <div className="flex items-center justify-between text-[8px] font-bold tracking-widest uppercase">
+          <div className="flex items-center justify-between text-[10px] font-bold tracking-widest uppercase">
             <span className="text-zinc-500">{shifts} vakter</span>
             <span className={isOvertime ? "text-red-400" : "text-zinc-400"}>
               {hours} <span className="text-zinc-600">/{contractedHours}</span>
@@ -598,10 +1297,11 @@ function WeeklyGridCell({ children, id }: { children?: React.ReactNode; id?: str
   );
 }
 
-function WeeklyEmptyCell() {
+function WeeklyEmptyCell({ onClick }: { onClick?: () => void }) {
   const { isDark } = useContext(DashboardContext);
   return (
     <button
+      onClick={onClick}
       className={`absolute inset-x-1 inset-y-1 rounded-md border border-dashed ${isDark ? "border-white/10" : "border-zinc-300"} flex cursor-pointer items-center justify-center bg-white/[0.01] text-orange-500/0 opacity-0 transition-all hover:border-orange-500/30 hover:bg-white/[0.03] hover:text-orange-500/50 hover:opacity-100`}
     >
       <Plus className="h-4 w-4" />
@@ -610,175 +1310,22 @@ function WeeklyEmptyCell() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// MONTHLY HEATMAP (Strategic View)
-// ═══════════════════════════════════════════════════════════════════════════
-function MonthlyGridContent({
-  isSidebarOpen,
-  setIsSidebarOpen,
-}: {
-  isSidebarOpen: boolean;
-  setIsSidebarOpen: (v: boolean) => void;
-}) {
-  const { isDark } = useContext(DashboardContext);
-  const columns = Array.from({ length: 31 }, (_, i) => i + 1);
-
-  return (
-    <div
-      className={`flex h-full w-full min-w-[800px] flex-col ${isDark ? "bg-[#050505]" : "bg-zinc-50"}`}
-    >
-      <div
-        className={`h-16 shrink-0 border-b border-white/5 ${isDark ? "bg-[#0a0a0c]/80" : "bg-white/90"} sticky top-0 z-30 flex items-center gap-6 px-6`}
-      >
-        <div className="flex w-[200px] items-center gap-1.5 text-[10px] font-bold tracking-widest text-zinc-500 uppercase">
-          <Clock className="h-3.5 w-3.5 text-orange-500" />
-          Måned: Dekning &amp; Kostnad
-        </div>
-        <div className="flex flex-1 gap-8">
-          <div className="flex flex-col">
-            <span className="mb-0.5 text-[9px] font-bold tracking-wider text-zinc-500 uppercase">
-              Est. Lønnskostnad
-            </span>
-            <span className={`text-sm font-black ${isDark ? "text-white" : "text-zinc-900"}`}>
-              482,500 <span className="text-[10px] font-medium text-zinc-500">NOK</span>
-            </span>
-          </div>
-          <div className="flex flex-col">
-            <span className="mb-0.5 text-[9px] font-bold tracking-wider text-zinc-500 uppercase">
-              Lønn % av Salg
-            </span>
-            <span className="text-sm font-black text-green-400">
-              28.4% <span className="text-[10px] font-medium text-zinc-500">(Mål 30%)</span>
-            </span>
-          </div>
-          <div className="flex flex-col">
-            <span className="mb-0.5 text-[9px] font-bold tracking-wider text-zinc-500 uppercase">
-              Underbemannede Vakter
-            </span>
-            <span className="text-sm font-black text-rose-400">
-              12 <span className="text-[10px] font-medium text-zinc-500">denne måneden</span>
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex min-h-0 flex-1">
-        <div
-          className={`w-[200px] shrink-0 border-r border-white/5 xl:w-[250px] ${isDark ? "bg-[#0a0a0c]/60" : "bg-white/80"} sticky left-0 z-20 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)]`}
-        >
-          <div
-            className={`h-[60px] border-b ${isDark ? "border-white/5" : "border-zinc-200"} bg-transparent`}
-          />
-          <div className="flex-1 overflow-y-auto">
-            <TeamCoverageRow title="Kjøkken" target={8} current={7} />
-            <TeamCoverageRow title="Sal & Service" target={12} current={12} isPerfect />
-            <TeamCoverageRow title="Bar" target={4} current={3} isWarning />
-            <TeamCoverageRow title="Drift / Renhold" target={3} current={3} isPerfect />
-          </div>
-        </div>
-
-        <div className="flex min-w-0 flex-1 overflow-x-auto">
-          {columns.map((col) => {
-            const isWeekend = col % 7 === 6 || col % 7 === 0;
-            const isToday = col === 15;
-
-            const getHeatmapColor = (rowIdx: number) => {
-              if (isWeekend && rowIdx === 2) return "bg-rose-500/20 border-rose-500/50";
-              if (rowIdx === 0 && col % 5 === 0) return "bg-orange-500/20 border-orange-500/50";
-              return "bg-emerald-500/10 border-emerald-500/20";
-            };
-
-            return (
-              <div
-                key={col}
-                className={`min-w-[32px] flex-1 border-r sm:min-w-[40px] ${isDark ? "border-white/5" : "border-zinc-200"} flex flex-col transition-colors ${isToday ? "bg-orange-500/[0.04]" : isWeekend ? "bg-indigo-500/[0.02]" : ""}`}
-              >
-                <div
-                  className={`sticky top-0 h-[60px] border-b border-white/5 p-1 ${isDark ? "bg-[#0a0a0c]/80" : "bg-white/90"} group relative z-10 flex cursor-pointer flex-col items-center justify-end pb-2 backdrop-blur-xl hover:bg-white/5`}
-                >
-                  {isToday && (
-                    <div className="absolute top-1 right-1/2 h-1.5 w-1.5 translate-x-1/2 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.8)]" />
-                  )}
-                  <h2
-                    className={`text-[11px] font-black tracking-tight xl:text-xs ${isToday ? "text-orange-400" : isWeekend ? "text-indigo-400" : isDark ? "text-white" : "text-zinc-900"}`}
-                  >
-                    {col}
-                  </h2>
-                  <span
-                    className={`mt-0.5 text-[6px] font-bold tracking-widest uppercase ${isWeekend ? "text-indigo-500" : "text-zinc-600"}`}
-                  >
-                    {isWeekend ? "Heg" : "Hvd"}
-                  </span>
-                </div>
-                <HeatmapCell colorClass={getHeatmapColor(0)} />
-                <HeatmapCell colorClass={getHeatmapColor(1)} />
-                <HeatmapCell colorClass={getHeatmapColor(2)} />
-                <HeatmapCell colorClass={getHeatmapColor(3)} />
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function TeamCoverageRow({
-  title,
-  target,
-  current,
-  isWarning,
-  isPerfect,
-}: {
-  title: string;
-  target: number;
-  current: number;
-  isWarning?: boolean;
-  isPerfect?: boolean;
-}) {
-  const { isDark } = useContext(DashboardContext);
-  return (
-    <div
-      className={`h-16 border-b ${isDark ? "border-white/5" : "border-zinc-200"} flex cursor-pointer flex-col justify-center px-4 py-2 hover:bg-white/[0.02]`}
-    >
-      <h3
-        className={`text-xs font-bold ${isDark ? "text-white" : "text-zinc-900"} mb-1.5 leading-none tracking-tight`}
-      >
-        {title}
-      </h3>
-      <div className="flex items-center gap-2">
-        <span
-          className={`text-[10px] font-black ${isPerfect ? "text-emerald-400" : isWarning ? "text-rose-400" : "text-orange-400"}`}
-        >
-          {current} <span className="font-medium text-zinc-500">/ {target} dekket</span>
-        </span>
-        {!isPerfect && (
-          <AlertCircle
-            className={`h-3.5 w-3.5 ${isWarning ? "text-rose-400" : "text-orange-400"}`}
-          />
-        )}
-      </div>
-    </div>
-  );
-}
-
-function HeatmapCell({ colorClass }: { colorClass: string }) {
-  const { isDark } = useContext(DashboardContext);
-  return (
-    <div className={`h-16 border-b ${isDark ? "border-white/5" : "border-zinc-200"} px-0.5 py-1`}>
-      <div
-        className={`h-full w-full rounded-sm border ${colorClass} cursor-pointer opacity-80 transition-opacity hover:opacity-100`}
-        title="Klikk for detaljer"
-      />
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
 // LIST VIEW (Printable Weekly)
 // ═══════════════════════════════════════════════════════════════════════════
-function ListGridContent({ onDateClick }: { onDateClick: (d: string) => void }) {
+function ListGridContent({
+  onDateClick,
+  shifts,
+  computed,
+  days,
+  employees,
+}: {
+  onDateClick: (d: string) => void;
+  shifts: import("./_components/schedule-types").Shift[];
+  computed: import("./_hooks/use-schedule-computed").ScheduleComputed;
+  days: DayColumn[];
+  employees: ScheduleEmployee[];
+}) {
   const { isDark } = useContext(DashboardContext);
-  const { state, computed } = useSchedule();
 
   return (
     <div
@@ -805,7 +1352,7 @@ function ListGridContent({ onDateClick }: { onDateClick: (d: string) => void }) 
       </div>
 
       <div className="space-y-8 print:space-y-4">
-        {dummyDays.map((day) => {
+        {days.map((day) => {
           const dayShifts = computed
             .getShiftsForDay(day.id)
             .sort((a, b) => a.time.localeCompare(b.time));
@@ -828,12 +1375,12 @@ function ListGridContent({ onDateClick }: { onDateClick: (d: string) => void }) 
                     {day.label}
                   </h3>
                   {day.isToday && (
-                    <span className="rounded-md border border-orange-500/20 bg-orange-500/10 px-2 py-0.5 text-[10px] font-bold tracking-widest text-orange-400 uppercase print:border-gray-300">
+                    <span className="rounded-md border border-orange-500/20 bg-orange-500/10 px-2 py-0.5 text-xs font-bold tracking-widest text-orange-400 uppercase print:border-gray-300">
                       I Dag
                     </span>
                   )}
                 </div>
-                <div className="hidden gap-3 text-[10px] font-bold tracking-widest text-zinc-500 uppercase sm:flex print:hidden">
+                <div className="hidden gap-3 text-xs font-bold tracking-widest text-zinc-500 uppercase sm:flex print:hidden">
                   <span className="flex items-center gap-1">
                     <Users className="h-3.5 w-3.5" /> {day.staff} Ansatte
                   </span>
@@ -845,7 +1392,7 @@ function ListGridContent({ onDateClick }: { onDateClick: (d: string) => void }) 
 
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 print:grid-cols-2">
                 {dayShifts.map((shift) => {
-                  const emp = dummyEmployees.find((e) => e.id === shift.employeeId);
+                  const emp = employees.find((e) => e.id === shift.employeeId);
                   if (!emp) return null;
                   return (
                     <div
@@ -853,7 +1400,7 @@ function ListGridContent({ onDateClick }: { onDateClick: (d: string) => void }) 
                       className={`flex items-start gap-3 rounded-xl border p-3 ${isDark ? "border-white/5 bg-[#0a0a0c] hover:border-white/10" : "border-zinc-200 bg-zinc-50 hover:border-zinc-300"} transition-colors print:border-gray-200 print:bg-white`}
                     >
                       <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-zinc-800 print:border-black">
-                        {emp.role === "Leder" ? (
+                        {emp.role === "manager" || emp.role === "admin" || emp.role === "owner" ? (
                           <Briefcase className="h-4 w-4 text-purple-400" />
                         ) : (
                           <Users className="h-4 w-4 text-zinc-400" />
@@ -866,11 +1413,11 @@ function ListGridContent({ onDateClick }: { onDateClick: (d: string) => void }) 
                           {emp.name}
                         </span>
                         <div className="mt-0.5 flex items-center justify-between">
-                          <span className="truncate text-[10px] font-bold tracking-widest text-[#a1a1aa] uppercase print:text-gray-600">
+                          <span className="truncate text-xs font-bold tracking-widest text-[#a1a1aa] uppercase print:text-gray-600">
                             {shift.role}
                           </span>
                           <span
-                            className={`shrink-0 text-[10px] font-black tracking-widest ${isDark ? "text-orange-400" : "text-orange-600"} flex items-center gap-1 print:text-black`}
+                            className={`shrink-0 text-xs font-black tracking-widest ${isDark ? "text-orange-400" : "text-orange-600"} flex items-center gap-1 print:text-black`}
                           >
                             <Clock className="h-3 w-3 text-orange-500/50" />{" "}
                             {shift.time || "Hele Dagen"}

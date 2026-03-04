@@ -45,7 +45,7 @@ export function DocumentOutline({ editor }: DocumentOutlineProps) {
       }
     });
     return items;
-  }, [editor, editor?.state.doc]);
+  }, [editor]);
 
   function scrollToSection(pos: number) {
     if (!editor) return;
@@ -70,7 +70,7 @@ export function DocumentOutline({ editor }: DocumentOutlineProps) {
       if (node.type.name === "signatureField") count++;
     });
     return count;
-  }, [editor, editor?.state.doc]);
+  }, [editor]);
 
   const placeholderCount = useMemo(() => {
     if (!editor) return 0;
@@ -79,7 +79,7 @@ export function DocumentOutline({ editor }: DocumentOutlineProps) {
       if (node.type.name === "placeholderField") count++;
     });
     return count;
-  }, [editor, editor?.state.doc]);
+  }, [editor]);
 
   return (
     <div className="flex h-full flex-col">

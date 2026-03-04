@@ -22,5 +22,6 @@ export function webAppUrl(path: string): string {
 export const WEB_APP_LINKS = {
   onboarding: webAppUrl("/onboarding"),
   login: webAppUrl("/login"),
+  signup: webAppUrl("/signup"),
   dashboard: webAppUrl("/dashboard"),
 } as const;

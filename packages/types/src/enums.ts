@@ -99,6 +99,30 @@ export const DayCategoryEnum = z.enum([
 ]);
 export type DayCategory = z.infer<typeof DayCategoryEnum>;
 
+export const ShiftStatusEnum = z.enum([
+  "created",
+  "assigned",
+  "published",
+  "active",
+  "completed",
+  "unpublished",
+]);
+export type ShiftStatus = z.infer<typeof ShiftStatusEnum>;
+
+export const AbsenceTypeEnum = z.enum([
+  "sick_leave",
+  "parental_leave",
+  "vacation",
+  "unpaid_leave",
+  "military",
+  "training",
+  "welfare",
+]);
+export type AbsenceType = z.infer<typeof AbsenceTypeEnum>;
+
+export const RequestTypeEnum = z.enum(["available", "not_available", "prefer_not", "prefer"]);
+export type RequestType = z.infer<typeof RequestTypeEnum>;
+
 export const IndustryEnum = z.enum(["restaurant", "hotel", "cafe", "bar", "catering", "other"]);
 export type Industry = z.infer<typeof IndustryEnum>;
 
@@ -128,3 +152,84 @@ export const TeamTypeEnum = z.enum([
   "custom",
 ]);
 export type TeamType = z.infer<typeof TeamTypeEnum>;
+
+// Journey system enums
+export const JourneyStatusEnum = z.enum([
+  "idea",
+  "wizard",
+  "defined",
+  "ready_impl",
+  "building",
+  "review",
+  "ready_test",
+  "testing",
+  "ready_validation",
+  "implemented",
+  "active",
+  "inactive",
+  "broken",
+]);
+export type JourneyStatus = z.infer<typeof JourneyStatusEnum>;
+
+export const JourneyActorEnum = z.enum(["employee", "trainee", "manager", "admin", "owner", "all"]);
+export type JourneyActor = z.infer<typeof JourneyActorEnum>;
+
+export const JourneyPlatformEnum = z.enum(["mobile", "desktop", "both"]);
+export type JourneyPlatform = z.infer<typeof JourneyPlatformEnum>;
+
+export const JourneyPriorityEnum = z.enum(["P0", "P1", "P2", "P3"]);
+export type JourneyPriority = z.infer<typeof JourneyPriorityEnum>;
+
+export const JourneyModuleEnum = z.enum([
+  "core",
+  "onboarding",
+  "org",
+  "scheduling",
+  "operations",
+  "haccp",
+  "training",
+  "absence",
+  "payroll",
+  "communication",
+  "reports",
+  "settings",
+  "ai",
+  "season",
+  "governance",
+  "contracts",
+  "certifications",
+  "meta",
+]);
+export type JourneyModule = z.infer<typeof JourneyModuleEnum>;
+
+export const JourneyEventTypeEnum = z.enum([
+  "status_change",
+  "test_run",
+  "output_generated",
+  "edit",
+  "comment",
+]);
+export type JourneyEventType = z.infer<typeof JourneyEventTypeEnum>;
+
+export const JourneyTestResultEnum = z.enum(["pass", "fail", "skip", "running"]);
+export type JourneyTestResult = z.infer<typeof JourneyTestResultEnum>;
+
+export const JourneyTestTypeEnum = z.enum(["automated", "manual"]);
+export type JourneyTestType = z.infer<typeof JourneyTestTypeEnum>;
+
+export const JourneyPhaseEnum = z.enum(["definition", "planning", "build", "test", "release"]);
+export type JourneyPhase = z.infer<typeof JourneyPhaseEnum>;
+
+// Wizard session enums
+export const WizardSessionStatusEnum = z.enum(["active", "completed", "abandoned"]);
+export type WizardSessionStatus = z.infer<typeof WizardSessionStatusEnum>;
+
+export const WizardPhaseEnum = z.enum([
+  "discovery",
+  "classification",
+  "steps",
+  "testing",
+  "documentation",
+  "review",
+]);
+export type WizardPhase = z.infer<typeof WizardPhaseEnum>;

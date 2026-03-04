@@ -314,7 +314,7 @@ The portal at `app.smartout.ai` serves as the entry point for users with access 
 
 ### 7.3 Super Admin View
 
-Available only to users with `super_admin` role. Shows all workspaces across all companies with operational metrics.
+Available only to users with `is_godmode = true` on `user_identity`. Shows all workspaces across all companies with operational metrics.
 
 ---
 
@@ -371,7 +371,7 @@ Four agent teams execute this architecture. Each team has a defined scope, file 
 |                |                                                                                                      |
 | -------------- | ---------------------------------------------------------------------------------------------------- |
 | **Scope**      | Next.js middleware, subdomain detection, URL rewriting                                               |
-| **Files**      | `middleware.ts`, `next.config.js`                                                                    |
+| **Files**      | `middleware.ts`, `next.config.ts`                                                                    |
 | **Depends on** | Team 2 (needs slug column to exist)                                                                  |
 | **Criteria**   | {slug}.smartout.ai rewrites to /workspace/{slug}; reserved subdomains pass through; local dev parity |
 

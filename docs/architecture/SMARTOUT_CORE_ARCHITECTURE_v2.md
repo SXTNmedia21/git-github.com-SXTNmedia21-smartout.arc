@@ -226,7 +226,7 @@ User ──── CompanyMember ──── Company
 Person. Login. One per human regardless of how many jobs they have.
 
 ```
-user
+user_identity
   user_id              uuid (PK)
   email                string (unique, login identifier)
   phone                string | null (SMS notifications, voice AI)
@@ -297,7 +297,7 @@ Thin bridge between User and Company. "Do you belong to this company?"
 ```
 company_member
   company_member_id    uuid (PK)
-  user_id              fk → user
+  user_id              fk → user_identity
   company_id           fk → company
   role                 owner | admin | member
   title                string | null (freetext: 'CEO', 'Regional Manager' — display only)
@@ -356,7 +356,7 @@ Rich bridge User ↔ Workspace. Work identity. All daily work flows from here.
 profile
   profile_id           uuid (PK)
   profile_code         string (human-readable: EMP-001)
-  user_id              fk → user
+  user_id              fk → user_identity
   workspace_id         fk → workspace
   company_id           fk → company (denormalized for quick access)
 

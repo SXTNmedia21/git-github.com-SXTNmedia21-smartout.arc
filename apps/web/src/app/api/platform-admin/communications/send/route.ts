@@ -14,6 +14,7 @@ import {
   RECIPIENT_SOFT_CAP,
   type AudienceFilter,
   type EmailTemplate,
+  type SendGridTemplateData,
 } from "@smartout/notifications";
 import type { Json } from "@smartout/supabase";
 
@@ -26,6 +27,30 @@ const AudienceFilterSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("user_ids"), userIds: z.array(z.string().uuid()) }),
 ]);
 
+const TemplateDataSchema = z.object({
+  header: z.string(),
+  main_title: z.string().optional(),
+  message: z.string().optional(),
+  subTitle: z.string().optional(),
+  message2: z.string().optional(),
+  items: z
+    .array(
+      z.object({
+        image: z.string().optional(),
+        title: z.string(),
+        description: z.string().optional(),
+        benefits: z.array(z.string()).optional(),
+        link: z.string().optional(),
+      }),
+    )
+    .optional(),
+  linkText: z.string().optional(),
+  link: z.string().optional(),
+  footer_title: z.string().optional(),
+  footer_message: z.string().optional(),
+  hero_image: z.string().optional(),
+});
+
 const SendRequestSchema = z.object({
   audience: AudienceFilterSchema,
   template: z.enum([
@@ -34,11 +59,15 @@ const SendRequestSchema = z.object({
     "trial-reminder",
     "payment-reminder",
     "contract-reminder",
+    "sendgrid-dynamic",
   ]),
   subject: z.string().min(1).max(200),
-  message: z.string().min(1).max(10000),
+  message: z.string().max(10000).optional(),
   confirmed: z.boolean().optional(),
   idempotencyKey: z.string().optional(),
+  sendgridTemplateId: z.string().optional(),
+  templateData: TemplateDataSchema.optional(),
+  multilingual: z.boolean().default(false),
 });
 
 export async function POST(request: NextRequest) {
@@ -54,7 +83,17 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { audience, template, subject, message, confirmed, idempotencyKey } = parsed.data;
+  const {
+    audience,
+    template,
+    subject,
+    message,
+    confirmed,
+    idempotencyKey,
+    sendgridTemplateId,
+    templateData,
+  } = parsed.data;
+  const isDynamic = template === "sendgrid-dynamic" && sendgridTemplateId && templateData;
   const admin = createAdminClient();
 
   // Kill switch
@@ -144,7 +183,7 @@ export async function POST(request: NextRequest) {
     .insert({
       super_admin_id: adminId,
       subject,
-      message_body: message,
+      message_body: message ?? "",
       template,
       classification,
       audience_filter: audience as unknown as Json,
@@ -152,6 +191,8 @@ export async function POST(request: NextRequest) {
       idempotency_key: idempotencyKey ?? null,
       recipient_count: activeRecipients.length,
       status: "sending",
+      sendgrid_template_id: sendgridTemplateId ?? null,
+      template_data: templateData ? (templateData as unknown as Json) : null,
     } as never)
     .select("communication_id")
     .single();
@@ -162,14 +203,15 @@ export async function POST(request: NextRequest) {
 
   const jobId = (commLog as { communication_id: string }).communication_id;
 
-  // Create recipient entries
+  // Create recipient entries (include locale for multilingual sending)
   const recipientRows = activeRecipients.map(
-    (r: { userId: string; email: string; name: string }) => ({
+    (r: { userId: string; email: string; name: string; locale: string }) => ({
       communication_id: jobId,
       user_id: r.userId,
       email: r.email,
       name: r.name,
       status: "pending",
+      locale: r.locale ?? "no",
     }),
   );
 
@@ -179,9 +221,15 @@ export async function POST(request: NextRequest) {
   try {
     const result = await createEmailJob(admin, {
       template: template as EmailTemplate,
-      variables: { subject, message, title: subject },
+      variables: { subject, message: message ?? "", title: subject },
       audience: audience as AudienceFilter,
       adminId,
+      ...(isDynamic
+        ? {
+            sendgridTemplateId,
+            templateData: templateData as SendGridTemplateData,
+          }
+        : {}),
     });
 
     // Update communication log

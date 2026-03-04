@@ -1,53 +1,64 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Activity,
   Users,
   MapPin,
   Building2,
   Network,
-  ChevronDown,
   Filter,
   Layers,
   ArrowUpRight,
   ArrowDownRight,
+  X,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useWorkforcePipeline, useTrainingReadiness } from "@/app/dashboard/_hooks";
+
+type TimeRange = "today" | "7d" | "14d" | "30d" | "90d";
+
+const RANGE_OPTIONS: { id: TimeRange; label: string }[] = [
+  { id: "today", label: "Today" },
+  { id: "7d", label: "7d" },
+  { id: "14d", label: "14d" },
+  { id: "30d", label: "30d" },
+  { id: "90d", label: "90d" },
+];
+
+const RANGE_DAYS: Record<TimeRange, number> = {
+  today: 1,
+  "7d": 7,
+  "14d": 14,
+  "30d": 30,
+  "90d": 90,
+};
 
 // Helper to generate mock heatmap data
-// Generates an array of rows, each with 30 days of data (0-100 values)
-const generateHeatmapData = (labels: string[]) => {
+const generateHeatmapData = (labels: string[], numDays: number) => {
   return labels.map((label) => ({
-    id: label.toLowerCase().replace(/\\s+/g, "-"),
+    id: label.toLowerCase().replace(/\s+/g, "-"),
     label,
-    data: Array.from({ length: 30 }, () => Math.floor(Math.random() * 100)),
+    data: Array.from({ length: numDays }, () => Math.floor(Math.random() * 100)),
   }));
 };
 
-const LOCATIONS = generateHeatmapData([
-  "Bårdshaug Vegkro",
+const LOCATION_LABELS = [
+  "Baardshaug Vegkro",
   "Trondheim City",
   "Oslo S Kiosk",
   "Lillehammer Diner",
   "Stavanger FNB",
-]);
-const DEPARTMENTS = generateHeatmapData([
-  "Kjøkken",
-  "Servering",
-  "Oppvask",
-  "Renhold",
-  "Lager",
-  "Sikkerhet",
-]);
-const TEAMS = generateHeatmapData([
+];
+const DEPARTMENT_LABELS = ["Kjokken", "Servering", "Oppvask", "Renhold", "Lager", "Sikkerhet"];
+const TEAM_LABELS = [
   "Morgenfuglene",
   "Kveldsgjengen",
   "Helgeteamet",
   "Sommervikarer",
   "VIP Catering",
-]);
-const EMPLOYEES = generateHeatmapData([
+];
+const EMPLOYEE_LABELS = [
   "Anna Olsen",
   "Ola Nordmann",
   "Kari Svendsen",
@@ -58,28 +69,62 @@ const EMPLOYEES = generateHeatmapData([
   "Per Lie",
   "Marianne Berg",
   "Knut Lunde",
-]);
+];
+
+const TAB_LABELS: Record<string, string[]> = {
+  locations: LOCATION_LABELS,
+  departments: DEPARTMENT_LABELS,
+  teams: TEAM_LABELS,
+  employees: EMPLOYEE_LABELS,
+};
+
+/** Generate day column labels based on range */
+const getDayLabels = (days: number): { index: number; label: string }[] => {
+  if (days <= 1) return [{ index: 0, label: "1" }];
+  const step = days <= 7 ? 1 : days <= 14 ? 2 : days <= 30 ? 5 : 10;
+  const labels: { index: number; label: string }[] = [];
+  for (let i = 0; i < days; i += step) {
+    labels.push({ index: i, label: String(i + 1) });
+  }
+  // Always include the last day
+  if (labels[labels.length - 1]?.index !== days - 1) {
+    labels.push({ index: days - 1, label: String(days) });
+  }
+  return labels;
+};
 
 export function ActivityView({ isDark }: { isDark: boolean }) {
   const [activeTab, setActiveTab] = useState<"locations" | "departments" | "teams" | "employees">(
     "locations",
   );
-  const [timeframe] = useState("Siste 30 dager");
+  const [timeRange, setTimeRange] = useState<TimeRange>("30d");
+  const [selectedCell, setSelectedCell] = useState<{ row: string; dayIndex: number } | null>(null);
+  const days = RANGE_DAYS[timeRange];
+  const isExpanded = selectedCell !== null;
 
-  // Select active dataset based on tab
-  let activeData = LOCATIONS;
-  if (activeTab === "departments") activeData = DEPARTMENTS;
-  if (activeTab === "teams") activeData = TEAMS;
-  if (activeTab === "employees") activeData = EMPLOYEES;
+  function handleCellClick(rowLabel: string, dayIndex: number) {
+    setSelectedCell((prev) =>
+      prev?.row === rowLabel && prev?.dayIndex === dayIndex ? null : { row: rowLabel, dayIndex },
+    );
+  }
 
-  // Determine color intensity based on value (0-100)
-  const getIntensityClass = (val: number, isDark: boolean) => {
-    if (val === 0) return isDark ? "bg-zinc-800/30" : "bg-zinc-100";
-    if (val < 20) return isDark ? "bg-indigo-500/10" : "bg-indigo-100";
-    if (val < 40) return isDark ? "bg-indigo-500/30" : "bg-indigo-200";
-    if (val < 60) return isDark ? "bg-indigo-500/50" : "bg-indigo-300";
-    if (val < 80) return isDark ? "bg-indigo-500/80" : "bg-indigo-400";
-    return "bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]"; // High intensity
+  const { data: pipeline } = useWorkforcePipeline();
+  const { data: training } = useTrainingReadiness();
+
+  const activeData = useMemo(() => {
+    const labels = TAB_LABELS[activeTab] ?? LOCATION_LABELS;
+    return generateHeatmapData(labels, days);
+  }, [activeTab, days]);
+
+  const dayLabels = useMemo(() => getDayLabels(days), [days]);
+
+  const getIntensityClass = (val: number, dark: boolean) => {
+    if (val === 0) return dark ? "bg-muted/30" : "bg-muted";
+    if (val < 20) return dark ? "bg-indigo-500/10" : "bg-indigo-100";
+    if (val < 40) return dark ? "bg-indigo-500/30" : "bg-indigo-200";
+    if (val < 60) return dark ? "bg-indigo-500/50" : "bg-indigo-300";
+    if (val < 80) return dark ? "bg-indigo-500/80" : "bg-indigo-400";
+    return "bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]";
   };
 
   return (
@@ -87,167 +132,282 @@ export function ActivityView({ isDark }: { isDark: boolean }) {
       {/* Header */}
       <div className="flex flex-shrink-0 flex-col justify-between gap-4 pt-2 md:flex-row md:items-center">
         <div>
-          <h1
-            className={`flex items-center gap-3 text-2xl font-black tracking-tight ${isDark ? "text-zinc-100" : "text-zinc-900"}`}
-          >
+          <h1 className="text-foreground flex items-center gap-3 text-2xl font-black tracking-tight">
             <div
               className={`rounded-xl p-2 ${isDark ? "bg-indigo-500/20 text-indigo-400 shadow-[0_0_20px_rgba(99,102,241,0.2)]" : "bg-indigo-100 text-indigo-600"}`}
             >
               <Activity className="h-5 w-5" />
             </div>
-            Aktivitets & Heatmap Dashboard
+            Activity & Heatmap Dashboard
           </h1>
-          <p className={`mt-1 max-w-2xl text-sm ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
-            Visualiser tverrgående aktivitet, belastning og intensitet (vakter, oppgaver, omsetning)
-            på tvers av hele bedriften. Jo sterkere farge, jo høyere aktivitet.
+          <p className="text-muted-foreground mt-1 max-w-2xl text-sm">
+            Visualize cross-cutting activity, load and intensity across the business.
           </p>
         </div>
 
-        <div className="relative z-20 flex gap-2">
-          <button
-            className={`flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-bold transition-all ${isDark ? "border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-white" : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"}`}
-          >
+        <div className="relative z-20 flex items-center gap-2">
+          <button className="border-border bg-background text-foreground hover:bg-muted flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-bold transition-all">
             <Filter className="h-4 w-4" /> Filter
           </button>
-          <button
-            className={`flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-bold transition-all ${isDark ? "border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-white" : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"}`}
-          >
-            {timeframe} <ChevronDown className="h-4 w-4" />
-          </button>
+          <div className="bg-muted/50 flex items-center gap-1 rounded-lg p-1">
+            {RANGE_OPTIONS.map((opt) => (
+              <button
+                key={opt.id}
+                onClick={() => setTimeRange(opt.id)}
+                className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                  timeRange === opt.id
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Quick Stats Grid */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-        <StatCard
-          isDark={isDark}
-          title="Total AktivitetScore"
-          value="94.2k"
-          trend="+12.5%"
-          isPositive={true}
-          subtitle="Vs forrige måned"
-        />
-        <StatCard
-          isDark={isDark}
-          title="Høyeste Intensitet"
-          value="Fredager"
-          trend="Kveldsgjengen"
-          isPositive={true}
-          subtitle="Mest aktiv part"
-        />
-        <StatCard
-          isDark={isDark}
-          title="Laveste Intensitet"
-          value="Søndag M."
-          trend="-5.2%"
-          isPositive={false}
-          subtitle="Under budsjettgrense"
-        />
-        <StatCard
-          isDark={isDark}
-          title="Brukere Involvert"
-          value="1,240"
-          trend="+43"
-          isPositive={true}
-          subtitle="Nye aktive denne uken"
-        />
-      </div>
-
-      {/* Tabs for Heatmap Categories */}
-      <div className="mt-4">
-        <div
-          className={`inline-flex rounded-2xl border p-1.5 shadow-sm ${isDark ? "border-zinc-800 bg-[#0a0a0c]" : "border-zinc-200 bg-zinc-100"}`}
-        >
-          <TabBtn
-            active={activeTab === "locations"}
-            onClick={() => setActiveTab("locations")}
-            icon={<MapPin className="h-4 w-4" />}
-            label="Lokasjoner"
+      {/* Quick Stats Grid — hidden when heatmap expanded */}
+      {!isExpanded && (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+          <StatCard
             isDark={isDark}
+            title="Active Staff"
+            value={pipeline ? String(pipeline.activeStaff) : "--"}
+            trend={pipeline ? `+${pipeline.newHires30d} new` : ""}
+            isPositive={true}
+            subtitle="Currently employed"
           />
-          <TabBtn
-            active={activeTab === "departments"}
-            onClick={() => setActiveTab("departments")}
-            icon={<Building2 className="h-4 w-4" />}
-            label="Avdelinger"
+          <StatCard
             isDark={isDark}
+            title="Training Readiness"
+            value={training ? `${training.readinessPercent}%` : "--"}
+            trend={training ? `${training.completed}/${training.totalAssignments}` : ""}
+            isPositive={!training || training.readinessPercent >= 80}
+            subtitle="Protocol completion"
           />
-          <TabBtn
-            active={activeTab === "teams"}
-            onClick={() => setActiveTab("teams")}
-            icon={<Network className="h-4 w-4" />}
-            label="Team"
+          <StatCard
             isDark={isDark}
+            title="Highest Intensity"
+            value="Fridays"
+            trend="Kveldsgjengen"
+            isPositive={true}
+            subtitle="Most active"
           />
-          <TabBtn
-            active={activeTab === "employees"}
-            onClick={() => setActiveTab("employees")}
-            icon={<Users className="h-4 w-4" />}
-            label="Brukere"
+          <StatCard
             isDark={isDark}
+            title="Lowest Intensity"
+            value="Sunday AM"
+            trend="-5.2%"
+            isPositive={false}
+            subtitle="Below budget threshold"
           />
         </div>
-      </div>
+      )}
 
-      {/* The Heatmap Visualizer */}
-      <div
-        className={`flex flex-1 flex-col overflow-hidden rounded-3xl border shadow-sm ${isDark ? "border-zinc-800 bg-[#0c0c0e]" : "border-zinc-200 bg-white"}`}
-      >
+      {/* Training Progress — hidden when heatmap expanded */}
+      {!isExpanded && training && training.totalAssignments > 0 && (
+        <div className="border-border bg-background rounded-2xl border p-5 shadow-sm">
+          <h3 className="text-muted-foreground mb-4 text-sm font-bold tracking-widest uppercase">
+            Training Progress
+          </h3>
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <div className="flex h-4 overflow-hidden rounded-full">
+                <div
+                  className="bg-emerald-500 transition-all duration-700"
+                  style={{
+                    width: `${(training.completed / training.totalAssignments) * 100}%`,
+                  }}
+                />
+                <div
+                  className="bg-amber-500 transition-all duration-700"
+                  style={{
+                    width: `${(training.pending / training.totalAssignments) * 100}%`,
+                  }}
+                />
+                <div className="bg-muted flex-1" />
+              </div>
+            </div>
+            <div className="flex gap-4 text-xs font-semibold">
+              <span className="flex items-center gap-1">
+                <div className="h-2 w-2 rounded-full bg-emerald-500" />
+                Completed ({training.completed})
+              </span>
+              <span className="flex items-center gap-1">
+                <div className="h-2 w-2 rounded-full bg-amber-500" />
+                Pending ({training.pending})
+              </span>
+              {training.expired > 0 && (
+                <span className="flex items-center gap-1">
+                  <div className="bg-muted-foreground/40 h-2 w-2 rounded-full" />
+                  Expired ({training.expired})
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tabs for Heatmap Categories — hidden when heatmap expanded */}
+      {!isExpanded && (
+        <div className="mt-4">
+          <div className="border-border bg-muted inline-flex rounded-2xl border p-1.5 shadow-sm">
+            <TabBtn
+              active={activeTab === "locations"}
+              onClick={() => setActiveTab("locations")}
+              icon={<MapPin className="h-4 w-4" />}
+              label="Locations"
+              isDark={isDark}
+            />
+            <TabBtn
+              active={activeTab === "departments"}
+              onClick={() => setActiveTab("departments")}
+              icon={<Building2 className="h-4 w-4" />}
+              label="Departments"
+              isDark={isDark}
+            />
+            <TabBtn
+              active={activeTab === "teams"}
+              onClick={() => setActiveTab("teams")}
+              icon={<Network className="h-4 w-4" />}
+              label="Teams"
+              isDark={isDark}
+            />
+            <TabBtn
+              active={activeTab === "employees"}
+              onClick={() => setActiveTab("employees")}
+              icon={<Users className="h-4 w-4" />}
+              label="Users"
+              isDark={isDark}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* The Heatmap Visualizer — expands to fill when a cell is selected */}
+      <div className="border-border bg-background flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border shadow-sm">
+        {/* Expanded toolbar — shown only when expanded */}
+        {isExpanded && (
+          <div className="border-border flex flex-shrink-0 flex-wrap items-center gap-3 border-b px-4 py-2">
+            <button
+              onClick={() => setSelectedCell(null)}
+              className="text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg p-1 transition-colors"
+              title="Collapse"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <span className="text-foreground text-sm font-bold">
+              {selectedCell.row} — Day {selectedCell.dayIndex + 1}
+            </span>
+
+            <div className="bg-border h-4 w-px" />
+
+            <div className="bg-muted/50 flex items-center gap-0.5 rounded-lg p-0.5">
+              <TabBtn
+                active={activeTab === "locations"}
+                onClick={() => setActiveTab("locations")}
+                icon={<MapPin className="h-3 w-3" />}
+                label="Locations"
+                isDark={isDark}
+              />
+              <TabBtn
+                active={activeTab === "departments"}
+                onClick={() => setActiveTab("departments")}
+                icon={<Building2 className="h-3 w-3" />}
+                label="Departments"
+                isDark={isDark}
+              />
+              <TabBtn
+                active={activeTab === "teams"}
+                onClick={() => setActiveTab("teams")}
+                icon={<Network className="h-3 w-3" />}
+                label="Teams"
+                isDark={isDark}
+              />
+              <TabBtn
+                active={activeTab === "employees"}
+                onClick={() => setActiveTab("employees")}
+                icon={<Users className="h-3 w-3" />}
+                label="Users"
+                isDark={isDark}
+              />
+            </div>
+
+            <div className="flex-1" />
+
+            <div className="bg-muted/50 flex items-center gap-0.5 rounded-lg p-0.5">
+              {RANGE_OPTIONS.map((opt) => (
+                <button
+                  key={opt.id}
+                  onClick={() => setTimeRange(opt.id)}
+                  className={`rounded-md px-2 py-1 text-[10px] font-bold transition-colors ${
+                    timeRange === opt.id
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Heatmap Legend */}
-        <div
-          className={`flex flex-wrap items-center justify-between gap-4 border-b p-4 ${isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-zinc-50"}`}
-        >
-          <h3
-            className={`flex items-center gap-2 text-lg font-bold ${isDark ? "text-zinc-200" : "text-zinc-800"}`}
-          >
+        <div className="border-border bg-muted/50 flex flex-wrap items-center justify-between gap-4 border-b p-4">
+          <h3 className="text-foreground flex items-center gap-2 text-lg font-bold">
             <Layers className="h-5 w-5 opacity-50" />
             {activeTab === "locations"
-              ? "Lokasjons-Intensitet"
+              ? "Location Intensity"
               : activeTab === "departments"
-                ? "Avdelings-Intensitet"
+                ? "Department Intensity"
                 : activeTab === "teams"
-                  ? "Team-Intensitet"
-                  : "Bruker-Intensitet"}
+                  ? "Team Intensity"
+                  : "User Intensity"}
           </h3>
 
           <div className="flex items-center gap-2 text-xs font-semibold">
-            <span className={isDark ? "text-zinc-500" : "text-zinc-500"}>Rolig</span>
+            <span className="text-muted-foreground">Quiet</span>
             <div className="mx-2 flex gap-1">
-              <div
-                className={`h-4 w-4 rounded-sm ${isDark ? "bg-zinc-800/30" : "bg-zinc-100"}`}
-              ></div>
+              <div className={`h-4 w-4 rounded-sm ${isDark ? "bg-muted/30" : "bg-muted"}`} />
               <div
                 className={`h-4 w-4 rounded-sm ${isDark ? "bg-indigo-500/10" : "bg-indigo-100"}`}
-              ></div>
+              />
               <div
                 className={`h-4 w-4 rounded-sm ${isDark ? "bg-indigo-500/30" : "bg-indigo-200"}`}
-              ></div>
+              />
               <div
                 className={`h-4 w-4 rounded-sm ${isDark ? "bg-indigo-500/50" : "bg-indigo-300"}`}
-              ></div>
+              />
               <div
                 className={`h-4 w-4 rounded-sm ${isDark ? "bg-indigo-500/80" : "bg-indigo-400"}`}
-              ></div>
-              <div className={`h-4 w-4 rounded-sm bg-indigo-500`}></div>
+              />
+              <div className="h-4 w-4 rounded-sm bg-indigo-500" />
             </div>
-            <span className={isDark ? "text-zinc-500" : "text-zinc-500"}>Pulsende / Høy</span>
+            <span className="text-muted-foreground">High</span>
           </div>
         </div>
 
         {/* Heatmap Grid container */}
-        <div className="flex-1 overflow-auto p-6">
-          <div className="min-w-[800px]">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-2 pt-2 pb-1">
+          <div className="flex min-h-0 flex-1 flex-col">
             {/* Days Header */}
-            <div className="mb-2 flex">
-              <div className="w-48 flex-shrink-0"></div> {/* Spacer for row labels */}
-              <div className="flex flex-1 justify-between px-2 text-[10px] font-bold tracking-wider text-zinc-500 uppercase">
-                <span>1.</span>
-                <span>5.</span>
-                <span>10.</span>
-                <span>15.</span>
-                <span>20.</span>
-                <span>25.</span>
-                <span>30.</span>
+            <div className="mb-0.5 flex items-end">
+              <div className="w-16 flex-shrink-0" />
+              <div className="flex flex-1">
+                {Array.from({ length: days }, (_, i) => {
+                  const labelEntry = dayLabels.find((d) => d.index === i);
+                  return (
+                    <span
+                      key={i}
+                      className="text-muted-foreground flex-1 text-center text-[10px] font-medium"
+                    >
+                      {labelEntry ? labelEntry.label : ""}
+                    </span>
+                  );
+                })}
               </div>
             </div>
 
@@ -260,22 +420,23 @@ export function ActivityView({ isDark }: { isDark: boolean }) {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ duration: 0.3 }}
-                  className="group mb-2 -ml-1 flex cursor-crosshair items-center rounded-lg p-1 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
+                  className="group hover:bg-muted/50 flex min-h-[20px] flex-1 cursor-crosshair items-center rounded-sm transition-colors"
                 >
-                  {/* Label */}
-                  <div
-                    className={`w-48 flex-shrink-0 truncate pr-4 text-sm font-semibold ${isDark ? "text-zinc-300 group-hover:text-white" : "text-zinc-700 group-hover:text-black"}`}
-                  >
+                  <div className="text-muted-foreground group-hover:text-foreground w-16 flex-shrink-0 truncate pr-1.5 text-[10px] font-semibold">
                     {row.label}
                   </div>
 
-                  {/* Cells (30 days) */}
-                  <div className="flex h-5 flex-1 gap-1">
+                  <div className="flex flex-1">
                     {row.data.map((val, cellIdx) => (
                       <div
                         key={cellIdx}
-                        title={`${row.label} - Dag ${cellIdx + 1}: Score ${val}`}
-                        className={`relative flex-1 cursor-pointer rounded-[3px] transition-all duration-300 hover:z-10 hover:scale-[1.15] ${getIntensityClass(val, isDark)}`}
+                        title={`${row.label} - Day ${cellIdx + 1}: Score ${val}`}
+                        onClick={() => handleCellClick(row.label, cellIdx)}
+                        className={`min-h-[14px] flex-1 cursor-pointer transition-all duration-300 hover:z-10 hover:brightness-125 ${
+                          selectedCell?.row === row.label && selectedCell?.dayIndex === cellIdx
+                            ? "ring-foreground ring-2"
+                            : ""
+                        } ${getIntensityClass(val, isDark)}`}
                       />
                     ))}
                   </div>
@@ -284,6 +445,29 @@ export function ActivityView({ isDark }: { isDark: boolean }) {
             </AnimatePresence>
           </div>
         </div>
+
+        {/* Activity Detail Panel — shown at bottom of expanded heatmap */}
+        {isExpanded && (
+          <div className="border-border max-h-[40%] shrink-0 overflow-y-auto border-t p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <h4 className="text-foreground text-sm font-bold">
+                {selectedCell.row} — Day {selectedCell.dayIndex + 1}
+              </h4>
+              <button
+                onClick={() => setSelectedCell(null)}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <ActivityDetailPanel
+              label={selectedCell.row}
+              dayIndex={selectedCell.dayIndex}
+              days={days}
+              isDark={isDark}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -302,33 +486,27 @@ interface StatCardProps {
 
 function StatCard({ isDark, title, value, trend, isPositive, subtitle }: StatCardProps) {
   return (
-    <div
-      className={`relative flex flex-col justify-between overflow-hidden rounded-2xl border p-5 shadow-sm ${isDark ? "border-zinc-800 bg-[#0a0a0c]" : "border-zinc-200 bg-white"}`}
-    >
+    <div className="border-border bg-background relative flex flex-col justify-between overflow-hidden rounded-2xl border p-5 shadow-sm">
       <div className="relative z-10 mb-4 flex items-start justify-between">
-        <span
-          className={`text-xs font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-500"}`}
-        >
+        <span className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
           {title}
         </span>
-        <span
-          className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-bold ${isPositive ? (isDark ? "bg-emerald-500/10 text-emerald-400" : "bg-emerald-50 text-emerald-600") : isDark ? "bg-red-500/10 text-red-400" : "bg-red-50 text-red-600"}`}
-        >
-          {isPositive ? (
-            <ArrowUpRight className="h-3 w-3" />
-          ) : (
-            <ArrowDownRight className="h-3 w-3" />
-          )}
-          {trend}
-        </span>
+        {trend && (
+          <span
+            className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-bold ${isPositive ? (isDark ? "bg-emerald-500/10 text-emerald-400" : "bg-emerald-50 text-emerald-600") : isDark ? "bg-red-500/10 text-red-400" : "bg-red-50 text-red-600"}`}
+          >
+            {isPositive ? (
+              <ArrowUpRight className="h-3 w-3" />
+            ) : (
+              <ArrowDownRight className="h-3 w-3" />
+            )}
+            {trend}
+          </span>
+        )}
       </div>
       <div className="relative z-10">
-        <div className={`text-2xl font-black ${isDark ? "text-white" : "text-zinc-900"}`}>
-          {value}
-        </div>
-        <div className={`mt-1 text-xs ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
-          {subtitle}
-        </div>
+        <div className="text-foreground text-2xl font-black">{value}</div>
+        <div className="text-muted-foreground mt-1 text-xs">{subtitle}</div>
       </div>
     </div>
   );
@@ -346,9 +524,76 @@ function TabBtn({ active, onClick, icon, label, isDark }: TabBtnProps) {
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-all ${active ? (isDark ? "border border-zinc-700 bg-zinc-800 text-white shadow-[0_0_15px_rgba(255,255,255,0.05)]" : "border border-zinc-200/50 bg-white text-zinc-900 shadow-sm") : isDark ? "text-zinc-500 hover:bg-zinc-900 hover:text-zinc-300" : "border border-transparent text-zinc-500 hover:bg-zinc-200/50 hover:text-zinc-700"}`}
+      className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-all ${active ? "border-border bg-background text-foreground border shadow-sm" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground border border-transparent"}`}
     >
       {icon} {label}
     </button>
+  );
+}
+
+function ActivityDetailPanel({
+  label,
+  dayIndex,
+  days,
+  isDark,
+}: {
+  label: string;
+  dayIndex: number;
+  days: number;
+  isDark: boolean;
+}) {
+  if (days === 1) {
+    const hours = Array.from({ length: 17 }, (_, i) => i + 6);
+    return (
+      <div className="space-y-1">
+        <p className="text-muted-foreground mb-2 text-xs">Hourly breakdown</p>
+        {hours.map((h) => {
+          const activity = (h * 17 + 43) % 100;
+          return (
+            <div key={h} className="flex items-center gap-3">
+              <span className="text-muted-foreground w-12 font-mono text-xs">
+                {String(h).padStart(2, "0")}:00
+              </span>
+              <div className="bg-muted/30 h-4 flex-1 overflow-hidden rounded-sm">
+                <div
+                  className="h-full bg-indigo-500/60 transition-all"
+                  style={{ width: `${activity}%` }}
+                />
+              </div>
+              <span className="text-muted-foreground w-8 text-right text-xs">{activity}</span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  const entries = Array.from({ length: 5 }, (_, i) => ({
+    time: `${8 + i * 2}:${i % 2 === 0 ? "00" : "30"}`,
+    event: ["Shift start", "Training session", "Break period", "Inspection", "Shift end"][i],
+    score: (i * 23 + 37) % 100,
+  }));
+
+  return (
+    <div className="space-y-2">
+      <p className="text-muted-foreground mb-2 text-xs">Activity log for day {dayIndex + 1}</p>
+      {entries.map((e, i) => (
+        <div key={i} className="border-border flex items-center gap-3 rounded-lg border p-2">
+          <span className="text-muted-foreground w-12 font-mono text-xs">{e.time}</span>
+          <span className="text-foreground flex-1 text-sm">{e.event}</span>
+          <div
+            className={`rounded px-2 py-0.5 text-xs font-bold ${
+              e.score >= 80
+                ? "bg-emerald-500/10 text-emerald-500"
+                : e.score >= 50
+                  ? "bg-amber-500/10 text-amber-500"
+                  : "bg-red-500/10 text-red-500"
+            }`}
+          >
+            {e.score}
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }

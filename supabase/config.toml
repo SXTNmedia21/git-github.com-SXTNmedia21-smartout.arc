@@ -7,7 +7,7 @@ project_id = "smartout.ai"
 [api]
 enabled = true
 # Port to use for the API URL.
-port = 55331
+port = 54321
 # Schemas to expose in your API. Tables, views and stored procedures in this schema will get API
 # endpoints. `public` and `graphql_public` schemas are included by default.
 schemas = ["public", "graphql_public"]
@@ -26,11 +26,12 @@ enabled = false
 
 [db]
 # Port to use for the local database URL.
-port = 55432
+port = 54322
 # Port used by db diff command to initialize the shadow database.
-shadow_port = 55430
+shadow_port = 54320
 # Maximum amount of time to wait for health check when starting the local database.
-health_timeout = "2m"
+# Commented out: not supported by Supabase branching config parser.
+# health_timeout = "2m"
 # The database major version to use. This has to be the same as your remote database's. Run `SHOW
 # server_version;` on the remote database to check.
 major_version = 17
@@ -38,7 +39,7 @@ major_version = 17
 [db.pooler]
 enabled = false
 # Port to use for the local connection pooler.
-port = 55439
+port = 54329
 # Specifies when a server connection can be reused by other clients.
 # Configure one of the supported pooler modes: `transaction`, `session`.
 pool_mode = "transaction"
@@ -47,8 +48,8 @@ default_pool_size = 20
 # Maximum number of client connections allowed.
 max_client_conn = 100
 
-# [db.vault]
-# secret_key = "env(SECRET_VALUE)"
+[db.vault]
+secret_key = "env(VAULT_SECRET_KEY)"
 
 [db.migrations]
 # If disabled, migrations will be skipped during a db push or reset.
@@ -88,7 +89,7 @@ enabled = true
 [studio]
 enabled = true
 # Port to use for Supabase Studio.
-port = 55433
+port = 54323
 # External URL of the API server that frontend connects to.
 api_url = "http://127.0.0.1"
 # OpenAI API Key to use for Supabase AI in the Supabase Studio.
@@ -99,7 +100,7 @@ openai_api_key = "env(OPENAI_API_KEY)"
 [inbucket]
 enabled = true
 # Port to use for the email testing server web interface.
-port = 55434
+port = 54324
 # Uncomment to expose additional ports for testing user applications that send emails.
 # smtp_port = 54325
 # pop3_port = 54326
@@ -116,6 +117,11 @@ file_size_limit = "50MiB"
 public = false
 file_size_limit = "10MiB"
 allowed_mime_types = ["application/pdf"]
+
+[storage.buckets.settlements]
+public = false
+file_size_limit = "10MiB"
+allowed_mime_types = ["image/jpeg", "image/png", "image/webp", "image/heic"]
 
 # Allow connections via S3 compatible clients
 [storage.s3_protocol]
@@ -369,7 +375,7 @@ deno_version = 2
 
 [analytics]
 enabled = true
-port = 55437
+port = 54327
 # Configure one of the supported backends: `postgres`, `bigquery`.
 backend = "postgres"
 
@@ -397,6 +403,9 @@ entrypoint = "./functions/create-invitation/index.ts"
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/create-invitation/*.html" ]
 
+[functions.accept-invitation]
+verify_jwt = false
+
 [functions.validate-api-key]
 verify_jwt = false
 
@@ -404,4 +413,25 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.workspace-api]
+verify_jwt = false
+
+[functions.sendgrid-webhook]
+verify_jwt = false
+
+[functions.process-settlement-image]
+verify_jwt = false
+
+[functions.validate-settlement]
+verify_jwt = false
+
+[functions.engine-dispatch]
+verify_jwt = false
+
+[functions.leader-pulse]
+verify_jwt = false
+
+[functions.guardian-sweep]
+verify_jwt = false
+
+[functions.guardian-notify]
 verify_jwt = false

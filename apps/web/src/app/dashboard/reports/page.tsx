@@ -1,31 +1,45 @@
-import { Activity } from "lucide-react";
+// ============================================
+// reports/page.tsx
+// AI-driven custom report builder page.
+// Split-panel layout: saved reports + report viewer on the left,
+// AI chat panel on the right. Users build reports through
+// a guided conversation with Mr. Botsson.
+// Connected to: _components/ReportsChatPanel.tsx (AI chat)
+// Connected to: _components/SavedReportsGrid.tsx (saved reports grid)
+// Connected to: _components/ReportViewer.tsx (data visualization)
+// ============================================
 
-export default function ReportsPage() {
-  const formattedName = "reports";
+import { ReportsPageShell } from "./_components/ReportsPageShell";
+import { createClient } from "@smartout/supabase/server";
+import { redirect } from "next/navigation";
 
-  return (
-    <>
-      <div className="mb-6">
-        <h1 className="mb-2 text-3xl font-extrabold tracking-tight text-white capitalize">
-          {formattedName} Overview
-        </h1>
-        <p className="text-sm text-zinc-400">Manage and view your {formattedName} data here.</p>
-      </div>
+/**
+ * Server component that resolves auth + workspace context,
+ * then renders the interactive client shell.
+ */
+export default async function ReportsPage() {
+  const supabase = await createClient();
 
-      <div className="flex flex-1 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-zinc-800 bg-zinc-900/20 p-12 transition-colors">
-        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-zinc-800">
-          <Activity className="h-8 w-8 text-zinc-500" />
-        </div>
-        <h2 className="mb-2 text-xl font-bold text-zinc-200 capitalize">
-          {formattedName} is under construction!
-        </h2>
-        <p className="max-w-sm text-center text-zinc-500">
-          We are currently building this section. To see a working demo of the components, navigate
-          to
-          <strong className="mx-1 text-orange-500">Live Operations</strong>
-          in the sidebar.
-        </p>
-      </div>
-    </>
-  );
+  // Auth check — redirect to login if not authenticated
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  // Get workspace from user's profile (profile has both workspace_id and profile_id)
+  const { data: profile } = await supabase
+    .from("profile")
+    .select("workspace_id, profile_id")
+    .eq("user_id", user.id)
+    .limit(1)
+    .single();
+
+  if (!profile) {
+    redirect("/login");
+  }
+
+  return <ReportsPageShell workspaceId={profile.workspace_id} />;
 }

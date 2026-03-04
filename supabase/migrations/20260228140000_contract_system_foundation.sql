@@ -1,27 +1,46 @@
+SET search_path TO public, extensions;
+
 -- =============================================================
 -- Migration: Contract System Foundation
 -- Evolves existing platform_contract_* tables and adds new tables
 -- per docs/architecture/SMARTOUT_CONTRACT_SYSTEM.md Section 3
 -- =============================================================
 
--- ─── 1. Rename existing platform tables ─────────────────────────
-ALTER TABLE public.platform_contract_template RENAME TO contract_template;
-ALTER TABLE public.platform_contract_instance RENAME TO contract;
+-- ─── 1. Rename existing platform tables (if they exist) ─────────
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'platform_contract_template') THEN
+    ALTER TABLE public.platform_contract_template RENAME TO contract_template;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'platform_contract_instance') THEN
+    ALTER TABLE public.platform_contract_instance RENAME TO contract;
+  END IF;
+END $$;
 
--- Rename triggers to match new table names
-ALTER TRIGGER set_platform_contract_template_updated_at
-  ON public.contract_template
-  RENAME TO set_contract_template_updated_at;
+-- Rename triggers (if they exist)
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'set_platform_contract_template_updated_at') THEN
+    ALTER TRIGGER set_platform_contract_template_updated_at ON public.contract_template RENAME TO set_contract_template_updated_at;
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'set_platform_contract_instance_updated_at') THEN
+    ALTER TRIGGER set_platform_contract_instance_updated_at ON public.contract RENAME TO set_contract_updated_at;
+  END IF;
+END $$;
 
-ALTER TRIGGER set_platform_contract_instance_updated_at
-  ON public.contract
-  RENAME TO set_contract_updated_at;
-
--- Rename indexes
-ALTER INDEX idx_platform_contract_company RENAME TO idx_contract_company;
-ALTER INDEX idx_platform_contract_workspace RENAME TO idx_contract_ws;
-ALTER INDEX idx_platform_contract_status RENAME TO idx_contract_status;
-ALTER INDEX idx_platform_contract_template RENAME TO idx_contract_template;
+-- Rename indexes (if they exist)
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_platform_contract_company') THEN
+    ALTER INDEX idx_platform_contract_company RENAME TO idx_contract_company;
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_platform_contract_workspace') THEN
+    ALTER INDEX idx_platform_contract_workspace RENAME TO idx_contract_ws;
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_platform_contract_status') THEN
+    ALTER INDEX idx_platform_contract_status RENAME TO idx_contract_status;
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_platform_contract_template') THEN
+    ALTER INDEX idx_platform_contract_template RENAME TO idx_contract_template;
+  END IF;
+END $$;
 
 -- ─── 2. Evolve contract_template ────────────────────────────────
 -- Keep existing: template_id, name, description, docuseal_template_id,
@@ -88,8 +107,8 @@ CREATE TABLE IF NOT EXISTS public.contract_event (
   created_at      timestamptz DEFAULT now()
 );
 
-CREATE INDEX idx_event_contract ON public.contract_event(contract_id);
-CREATE INDEX idx_event_type ON public.contract_event(event_type);
+CREATE INDEX IF NOT EXISTS idx_event_contract ON public.contract_event(contract_id);
+CREATE INDEX IF NOT EXISTS idx_event_type ON public.contract_event(event_type);
 
 -- ─── 5. Create contract_reminder ────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.contract_reminder (
@@ -107,10 +126,10 @@ CREATE TABLE IF NOT EXISTS public.contract_reminder (
   created_at      timestamptz DEFAULT now()
 );
 
-CREATE INDEX idx_reminder_pending
+CREATE INDEX IF NOT EXISTS idx_reminder_pending
   ON public.contract_reminder(scheduled_at)
   WHERE status = 'scheduled';
-CREATE INDEX idx_reminder_contract
+CREATE INDEX IF NOT EXISTS idx_reminder_contract
   ON public.contract_reminder(contract_id);
 
 -- ─── 6. Create message_template ─────────────────────────────────
@@ -169,14 +188,17 @@ ALTER TABLE public.workspace
 -- contract_template: workspace-scoped + system templates visible to all
 ALTER TABLE public.contract_template ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view system templates" ON public.contract_template;
 CREATE POLICY "Users can view system templates"
   ON public.contract_template FOR SELECT
   USING (is_system = true);
 
+DROP POLICY IF EXISTS "Users can view workspace templates" ON public.contract_template;
 CREATE POLICY "Users can view workspace templates"
   ON public.contract_template FOR SELECT
   USING (workspace_id IN (SELECT get_workspace_ids_for_user(auth.uid())));
 
+DROP POLICY IF EXISTS "Admins can manage workspace templates" ON public.contract_template;
 CREATE POLICY "Admins can manage workspace templates"
   ON public.contract_template FOR ALL
   USING (is_admin_in_workspace(workspace_id, auth.uid()));
@@ -184,10 +206,12 @@ CREATE POLICY "Admins can manage workspace templates"
 -- contract: workspace-scoped
 ALTER TABLE public.contract ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view workspace contracts" ON public.contract;
 CREATE POLICY "Users can view workspace contracts"
   ON public.contract FOR SELECT
   USING (workspace_id IN (SELECT get_workspace_ids_for_user(auth.uid())));
 
+DROP POLICY IF EXISTS "Admins can manage workspace contracts" ON public.contract;
 CREATE POLICY "Admins can manage workspace contracts"
   ON public.contract FOR ALL
   USING (is_admin_in_workspace(workspace_id, auth.uid()));
@@ -195,6 +219,7 @@ CREATE POLICY "Admins can manage workspace contracts"
 -- contract_event: read-only via contract access
 ALTER TABLE public.contract_event ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view events for accessible contracts" ON public.contract_event;
 CREATE POLICY "Users can view events for accessible contracts"
   ON public.contract_event FOR SELECT
   USING (
@@ -208,6 +233,7 @@ CREATE POLICY "Users can view events for accessible contracts"
 -- contract_reminder: admin only
 ALTER TABLE public.contract_reminder ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Admins can view workspace reminders" ON public.contract_reminder;
 CREATE POLICY "Admins can view workspace reminders"
   ON public.contract_reminder FOR SELECT
   USING (workspace_id IN (SELECT get_workspace_ids_for_user(auth.uid())));
@@ -215,6 +241,7 @@ CREATE POLICY "Admins can view workspace reminders"
 -- clause_library: read-only for all authenticated users
 ALTER TABLE public.clause_library ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Authenticated users can view clauses" ON public.clause_library;
 CREATE POLICY "Authenticated users can view clauses"
   ON public.clause_library FOR SELECT
   TO authenticated

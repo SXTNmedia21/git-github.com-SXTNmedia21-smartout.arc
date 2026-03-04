@@ -44,12 +44,14 @@ serve(async (req) => {
     }
 
     // 3. Call the Python Scrapling Microservice raw scrape endpoint
-    const scraplingUrl =
+    // Base URL for scrapling service — no trailing slash, no path
+    // Docker: http://scrapling:8000 | Local: http://host.docker.internal:8000
+    const scraplingBase =
       Deno.env.get("SCRAPLING_SERVICE_URL") || "http://host.docker.internal:8000";
 
-    console.log(`Calling Scrapling Microservice Raw Scrape at: ${scraplingUrl}/scrape-raw`);
+    console.log(`Calling Scrapling Microservice Raw Scrape at: ${scraplingBase}/scrape-raw`);
 
-    const extractionResponse = await fetch(`${scraplingUrl}/scrape-raw`, {
+    const extractionResponse = await fetch(`${scraplingBase}/scrape-raw`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

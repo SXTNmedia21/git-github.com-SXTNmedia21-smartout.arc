@@ -13,7 +13,10 @@ export const env = createEnv({
     JWT_SECRET: z.string().min(32).optional(),
     SESSION_SECRET: z.string().min(32).optional(),
     ULTRAVOX_API_KEY: z.string().optional(),
+    STAGE_ENGINE_URL: z.string().url().optional(),
+    STAGE_ENGINE_API_KEY: z.string().optional(),
     INTERVJU_MCP_WEBHOOK_SECRET: z.string().optional(),
+    REVALIDATION_SECRET: z.string().min(16).optional(),
     // Allow overriding Node environment for testing
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   },
@@ -24,7 +27,7 @@ export const env = createEnv({
     NEXT_PUBLIC_WEB_APP_URL: z.string().url().optional(),
     NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
     NEXT_PUBLIC_POSTHOG_HOST: z.string().url().default("https://eu.i.posthog.com"),
-    NEXT_PUBLIC_LANDING_VARIANT: z.enum(["B", "E"]).default("B"),
+    NEXT_PUBLIC_LANDING_VARIANT: z.enum(["B", "E", "T", "K", "A", "F", "S"]).default("B"),
   },
 
   // For Next.js >= 13.4.4, you only need to destructure client variables:

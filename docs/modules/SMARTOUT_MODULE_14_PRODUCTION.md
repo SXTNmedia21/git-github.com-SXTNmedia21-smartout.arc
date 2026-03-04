@@ -39,7 +39,7 @@ changelog:
 
 # Module 14: Production & Menu Management
 
-> **Smartout.io** — Functional documentation for migration  
+> **Smartout.ai** — Functional documentation for migration
 > Version 1.0 | February 2026
 >
 > **New module.** Introduces the food production data model and calculation engine: ingredients, recipes, dishes, menus, bookings, production plans, and waste tracking. This is the operational kitchen motor that replaces the paper binder.

@@ -24,7 +24,7 @@ changelog:
 
 # SMARTOUT — UI Architecture & Screen Inventory
 
-> **Smartout.io** — User Journeys, Screen Architecture, and Component Library
+> **Smartout.ai** — User Journeys, Screen Architecture, and Component Library
 > Version 1.0 | February 2026
 > **Status:** Draft — decisions needed before implementation
 

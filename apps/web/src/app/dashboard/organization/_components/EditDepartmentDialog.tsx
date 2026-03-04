@@ -9,12 +9,13 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import type { DepartmentRow } from "./types";
+import type { DepartmentRow, ProfileRow } from "./types";
 import { COLOR_PRESETS, ICON_PRESETS, toSlug } from "./types";
 import { ICON_COMPONENTS } from "./constants";
 
 type EditDepartmentDialogProps = {
   department: DepartmentRow;
+  profiles: ProfileRow[];
   isDark: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -23,6 +24,7 @@ type EditDepartmentDialogProps = {
 
 export function EditDepartmentDialog({
   department,
+  profiles,
   isDark,
   open,
   onOpenChange,
@@ -32,6 +34,9 @@ export function EditDepartmentDialog({
   const [description, setDescription] = useState(department.description ?? "");
   const [selectedColor, setSelectedColor] = useState<string | null>(department.color);
   const [selectedIcon, setSelectedIcon] = useState<string | null>(department.icon);
+  const [managerProfileId, setManagerProfileId] = useState<string | null>(
+    department.manager_profile_id,
+  );
   const [saving, setSaving] = useState(false);
 
   const inputClass = `w-full rounded-lg border px-4 py-2.5 text-sm transition-all focus:outline-none focus:ring-1 ${
@@ -60,6 +65,7 @@ export function EditDepartmentDialog({
         description: description.trim() || null,
         color: selectedColor,
         icon: selectedIcon,
+        manager_profile_id: managerProfileId,
       })
       .eq("department_id", department.department_id);
 
@@ -160,6 +166,22 @@ export function EditDepartmentDialog({
                 );
               })}
             </div>
+          </div>
+
+          <div>
+            <label className={labelClass}>Department Manager</label>
+            <select
+              value={managerProfileId ?? ""}
+              onChange={(e) => setManagerProfileId(e.target.value || null)}
+              className={`${inputClass} appearance-none`}
+            >
+              <option value="">No manager assigned</option>
+              {profiles.map((p) => (
+                <option key={p.profile_id} value={p.profile_id}>
+                  {p.display_name} ({p.role})
+                </option>
+              ))}
+            </select>
           </div>
 
           {name.trim() && (

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
   MessageSquare,
@@ -27,6 +27,11 @@ import {
 import { useRouter } from "next/navigation";
 import type { MissionId } from "@smartout/ai/missions";
 import Navigation from "../../../components/navigation";
+import Footer from "../../../components/footer";
+import { usePageTracking } from "../../../hooks/useTracking";
+import { useScrollTracking } from "../../../hooks/useScrollTracking";
+import { useClickTracking } from "../../../hooks/useClickTracking";
+import { useSessionLifecycle } from "../../../hooks/useSessionLifecycle";
 import NextPageBanner from "../../../components/next-page-banner";
 
 function useWalkieTalkie({
@@ -190,6 +195,10 @@ const CHATS_DATA = [
 ];
 
 export default function KommunikasjonPage() {
+  usePageTracking();
+  useScrollTracking();
+  useClickTracking();
+  useSessionLifecycle();
   const router = useRouter();
 
   // UI States
@@ -296,7 +305,7 @@ export default function KommunikasjonPage() {
           </div>
         </div>
 
-        <motion.div
+        <m.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           className="relative flex h-[70vh] flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#0a0a0c]/80 shadow-[0_0_50px_-15px_rgba(34,211,238,0.2)] backdrop-blur-3xl md:min-h-0 md:flex-1"
@@ -534,7 +543,7 @@ export default function KommunikasjonPage() {
                     <div className="flex min-h-0 min-w-0 flex-1 flex-col">
                       {/* Walkie-Talkie Active Banner */}
                       {isCalling && (
-                        <motion.div
+                        <m.div
                           initial={{ height: 0, opacity: 0 }}
                           animate={{ height: "auto", opacity: 1 }}
                           className="flex items-center gap-4 overflow-hidden border-b border-emerald-500/20 bg-emerald-950/40 p-4 backdrop-blur-md"
@@ -563,7 +572,7 @@ export default function KommunikasjonPage() {
                           </div>
                           <div className="flex h-6 shrink-0 items-center gap-1 px-4">
                             {[1, 2, 3, 4].map((i) => (
-                              <motion.div
+                              <m.div
                                 key={i}
                                 animate={
                                   uvStatus === "active"
@@ -580,7 +589,7 @@ export default function KommunikasjonPage() {
                               />
                             ))}
                           </div>
-                        </motion.div>
+                        </m.div>
                       )}
 
                       {/* Message Area */}
@@ -590,7 +599,7 @@ export default function KommunikasjonPage() {
                         </div>
                         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                         {activeChat.messages.map((msg: any) => (
-                          <motion.div
+                          <m.div
                             key={msg.id}
                             initial={{ opacity: 0, scale: 0.95, y: 10 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -645,7 +654,7 @@ export default function KommunikasjonPage() {
                                 </div>
                               </div>
                             )}
-                          </motion.div>
+                          </m.div>
                         ))}
                       </div>
 
@@ -687,7 +696,7 @@ export default function KommunikasjonPage() {
                     {/* Members Sidebar (Expandable) */}
                     <AnimatePresence>
                       {showMembers && (
-                        <motion.div
+                        <m.div
                           initial={{ width: 0, opacity: 0 }}
                           animate={{ width: 240, opacity: 1 }}
                           exit={{ width: 0, opacity: 0 }}
@@ -747,7 +756,7 @@ export default function KommunikasjonPage() {
                               },
                             )}
                           </div>
-                        </motion.div>
+                        </m.div>
                       )}
                     </AnimatePresence>
                   </div>
@@ -755,7 +764,7 @@ export default function KommunikasjonPage() {
               )}
             </div>
           </div>
-        </motion.div>
+        </m.div>
 
         <NextPageBanner
           href="/features/shiftplanner"
@@ -764,6 +773,7 @@ export default function KommunikasjonPage() {
           color="from-orange-500/10"
         />
       </div>
+      <Footer />
     </div>
   );
 }

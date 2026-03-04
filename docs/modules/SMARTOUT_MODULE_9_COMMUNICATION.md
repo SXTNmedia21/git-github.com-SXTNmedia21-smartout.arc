@@ -32,7 +32,7 @@ changelog:
 
 # Module 9: Kommunikasjon (Communication)
 
-> **Smartout.io** — Functional documentation for migration
+> **Smartout.ai** — Functional documentation for migration
 > Version 1.0 | February 2026
 > **Dependencies:** Core Architecture v2 (Profile, Team, Department), Module 4 (Handoff, Day Brief, Session Notes, AI Operations), Module 12 (Communication Engine)
 
@@ -51,7 +51,7 @@ Communication in Smartout is the connective tissue between all other modules. It
 | **In-app chat**        | Supabase Realtime                            | Team coordination, quick questions, shift chat             | Real-time        |
 | **Push notifications** | Expo Push (React Native), Web Push (Next.js) | Task alerts, shift reminders, training nudges              | Seconds          |
 | **SMS**                | Twilio                                       | Critical alerts, employees who don't use the app regularly | Seconds          |
-| **Email**              | Resend                                       | Formal communications, schedules, payslips, invite links   | Minutes          |
+| **Email**              | SendGrid                                     | Formal communications, schedules, payslips, invite links   | Minutes          |
 | **Voice**              | Twilio + Ultravox                            | AI handoff calls, emergency escalations                    | Real-time        |
 | **In-app alerts**      | App UI                                       | Non-urgent notifications, status updates                   | On next app open |
 
@@ -554,7 +554,7 @@ Templates are configurable per workspace. AI can suggest improvements based on o
 | ---------------------------------- | ------------------------------------------------------------------------------------- | ---------- |
 | **1. Notification infrastructure** | `notification` table. Multi-channel delivery (push + in-app). Preference handling.    | Week 1–3   |
 | **2. Push notifications**          | Expo Push setup (React Native). Web Push setup (Next.js). Token management.           | Week 4–5   |
-| **3. SMS & Email**                 | Twilio integration for SMS. Resend integration for email. Template system.            | Week 6–7   |
+| **3. SMS & Email**                 | Twilio integration for SMS. SendGrid integration for email. Template system.          | Week 6–7   |
 | **4. Team chat**                   | `chat_channel`, `chat_message` tables. Supabase Realtime. Department + team channels. | Week 8–10  |
 | **5. Session channels**            | Auto-create on session start. System messages (briefs, handoffs). Auto-archive.       | Week 11–12 |
 | **6. Announcements**               | `announcement` table. Read confirmation. Admin UI. Multi-channel delivery.            | Week 13–14 |
@@ -572,7 +572,7 @@ Specific considerations for migration from Bubble to Next.js/Supabase:
 - **Read receipts:** `chat_message_read` is very high-volume (messages × readers). Consider: only track for DMs and channels with `requires_read_confirmation`, not for large department channels.
 - **Push tokens:** Store Expo Push tokens and Web Push subscriptions per device, linked to Profile. Users can have multiple devices.
 - **SMS costs:** Twilio SMS costs per message. Use sparingly — only for CRITICAL/HIGH priority when push isn't available. Track delivery success to avoid sending SMS to invalid numbers.
-- **Email delivery:** Resend handles deliverability. Use workspace branding (logo, colors) in email templates.
+- **Email delivery:** SendGrid handles deliverability. Use workspace branding (logo, colors) in email templates.
 - **RLS for chat:** Users can only see messages in channels they're a member of. Channel membership derived from org structure (department/team) or explicit membership (custom/direct).
 - **Session channel lifecycle:** Auto-create via Edge Function when session becomes `active`. Auto-archive when session `closed`. Archived channels are read-only but searchable.
 - **Notification deduplication:** Edge Function that creates notifications should check for existing unread notifications of the same type/source to avoid spam.

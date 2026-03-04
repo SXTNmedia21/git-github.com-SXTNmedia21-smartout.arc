@@ -9,7 +9,7 @@ import {
   CompanyMemberRoleEnum,
   IndustryEnum,
   InviteStatusEnum,
-} from "./enums";
+} from "./enums.js";
 
 export const UserSchema = z.object({
   user_id: z.string().uuid(),

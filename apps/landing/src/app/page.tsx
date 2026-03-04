@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { Suspense, useState, useEffect } from "react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import type { Variants } from "framer-motion";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import {
   Mic,
   ArrowRight,
@@ -25,22 +25,34 @@ import {
   GraduationCap,
   MessageSquare,
   ListTodo,
-  Globe,
   Sparkles,
+  BellRing,
+  CalendarCheck,
+  ArrowUp,
 } from "lucide-react";
 import Navigation from "../components/navigation";
 import Footer from "../components/footer";
-import WorkspaceAnalyzer from "../components/workspace-analyzer";
-import { WEB_APP_LINKS } from "../lib/web-app-url";
-import VariantELanding from "../components/landing/VariantELanding";
-import { getEnvVariant, getDevOverride } from "../lib/landing-variant";
-
-const VoiceAssistant = dynamic(() => import("../components/voice-assistant"), {
+const WorkspaceAnalyzer = dynamic(() => import("../components/workspace-analyzer"), {
   ssr: false,
   loading: () => (
-    <div className="h-[600px] w-full rounded-[40px] border border-white/10 bg-[#0a0a0c]/50 backdrop-blur-xl" />
+    <div className="mx-auto h-[120px] w-full max-w-2xl animate-pulse rounded-2xl border border-white/10 bg-[#0a0a0c]/80" />
   ),
 });
+import { WEB_APP_LINKS } from "../lib/web-app-url";
+
+const VariantELanding = dynamic(() => import("../components/landing/VariantELanding"));
+const VariantTLanding = dynamic(() => import("../components/landing/VariantTLanding"));
+const VariantKLanding = dynamic(() => import("../components/landing/VariantKLanding"));
+const VariantALanding = dynamic(() => import("../components/landing/VariantALanding"));
+const VariantFLanding = dynamic(() => import("../components/landing/VariantFLanding"));
+const VariantSLanding = dynamic(() => import("../components/landing/VariantSLanding"));
+const VoiceDemoWidget = dynamic(() => import("../components/landing/VoiceDemoWidget"));
+import { useVariant } from "../lib/landing-variant";
+import { usePageTracking, useTrackCta } from "../hooks/useTracking";
+import { useScrollTracking } from "../hooks/useScrollTracking";
+import { useClickTracking } from "../hooks/useClickTracking";
+import { useSessionLifecycle } from "../hooks/useSessionLifecycle";
+import { VARIANT_VOICE_CONFIG, VARIANT_AI_SECTION } from "../lib/variant-voice-config";
 
 const MOCK_LOCATIONS = [
   {
@@ -132,15 +144,38 @@ const MOCK_SEASONS = [
 ];
 
 export default function SmartoutLandingPage() {
-  const [variant, setVariant] = useState(() => {
-    const override = getDevOverride();
-    return override || getEnvVariant();
-  });
-  const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+  return (
+    <Suspense>
+      <SmartoutLandingPageContent />
+    </Suspense>
+  );
+}
+
+function SmartoutLandingPageContent() {
+  const { variant } = useVariant();
+  // Track page view once per browser session (fire-and-forget, no blocking)
+  usePageTracking();
+  useScrollTracking();
+  useClickTracking();
+  useSessionLifecycle();
+  const trackCta = useTrackCta();
   const [activeTab, setActiveTab] = useState("locations");
-  const onboardingHref = WEB_APP_LINKS.onboarding;
+  const [showBackToTop, setShowBackToTop] = useState(false);
+
+  useEffect(() => {
+    function onScroll() {
+      setShowBackToTop(window.scrollY > 600);
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   if (variant === "E") return <VariantELanding />;
+  if (variant === "T") return <VariantTLanding />;
+  if (variant === "K") return <VariantKLanding />;
+  if (variant === "A") return <VariantALanding />;
+  if (variant === "F") return <VariantFLanding />;
+  if (variant === "S") return <VariantSLanding />;
 
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
@@ -163,30 +198,21 @@ export default function SmartoutLandingPage() {
     <div className="relative min-h-screen overflow-x-hidden bg-[#050505] font-sans text-white selection:bg-orange-500/30">
       {/* Dynamic Premium Background */}
       <div className="pointer-events-none fixed inset-0 z-0 bg-[#050505]">
-        {/* Subtle Grid Pattern */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] bg-[size:24px_24px]"></div>
+        {/* Subtle Grid Pattern — masked to fade out at edges */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] bg-[size:24px_24px]" />
 
-        {/* Noise overlay - reduced complexity for performance */}
+        {/* Ambient Glowing Orbs — slow float animation, GPU-composited */}
         <div
-          className="absolute inset-0 opacity-[0.010]"
-          style={{
-            backgroundImage:
-              'url(\'data:image/svg+xml,%3Csvg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="n"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23n)"/%3E%3C/svg%3E\')',
-          }}
-        ></div>
-
-        {/* Refined Glowing Orbs with Hardware Acceleration */}
-        <div
-          className="absolute top-[-10%] left-[-10%] h-[50vw] w-[50vw] rounded-full bg-orange-600/10 mix-blend-screen blur-[100px] will-change-[opacity] motion-safe:animate-pulse"
-          style={{ animationDuration: "8s" }}
+          className="motion-safe:animate-glow-shift absolute top-[-10%] left-[-10%] h-[50vw] w-[50vw] rounded-full bg-orange-600/8 mix-blend-screen blur-[100px]"
+          style={{ animationDelay: "0s" }}
         />
         <div
-          className="absolute top-[20%] right-[-10%] h-[40vw] w-[40vw] rounded-full bg-rose-600/10 mix-blend-screen blur-[120px] will-change-[opacity] motion-safe:animate-pulse"
-          style={{ animationDuration: "12s" }}
+          className="motion-safe:animate-glow-shift absolute top-[20%] right-[-10%] h-[40vw] w-[40vw] rounded-full bg-rose-600/8 mix-blend-screen blur-[120px]"
+          style={{ animationDelay: "-3s" }}
         />
         <div
-          className="absolute bottom-[-20%] left-[20%] h-[60vw] w-[60vw] rounded-full bg-purple-600/10 mix-blend-screen blur-[120px] will-change-[opacity] motion-safe:animate-pulse"
-          style={{ animationDuration: "10s" }}
+          className="motion-safe:animate-glow-shift absolute bottom-[-20%] left-[20%] h-[60vw] w-[60vw] rounded-full bg-purple-600/6 mix-blend-screen blur-[120px]"
+          style={{ animationDelay: "-5s" }}
         />
       </div>
 
@@ -195,16 +221,17 @@ export default function SmartoutLandingPage() {
 
       <main className="relative z-10 mx-auto max-w-7xl px-6 pt-24 pb-12 sm:pt-32 sm:pb-20">
         {/* MAIN HERO SECTION */}
-        <div className="relative flex min-h-0 flex-col items-center justify-center gap-6 pt-10 pb-6 text-center sm:min-h-[calc(100dvh-120px)] sm:gap-8 sm:pt-20 sm:pb-10">
-          <motion.div
+        <div className="relative flex min-h-[calc(100dvh-6rem)] flex-col items-center justify-center pb-6 text-center sm:min-h-[calc(100dvh-120px)] sm:gap-8 sm:pt-20 sm:pb-10">
+          <m.div
             initial="hidden"
             animate="visible"
             variants={containerVariants}
             className="z-20 mx-auto flex max-w-5xl flex-col items-center"
           >
-            <motion.div
+            {/* Badge — desktop only */}
+            <m.div
               variants={itemVariants}
-              className="group relative mb-4 inline-flex items-center gap-2 overflow-hidden rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white shadow-xl backdrop-blur-md sm:mb-8"
+              className="group relative mb-8 hidden items-center gap-2 overflow-hidden rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white shadow-xl backdrop-blur-md sm:inline-flex"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-orange-500/20 to-rose-500/20 opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
               <div className="absolute -inset-[1px] rounded-full bg-gradient-to-r from-orange-500 to-rose-500 opacity-0 blur-sm transition-opacity duration-500 group-hover:opacity-30" />
@@ -212,66 +239,77 @@ export default function SmartoutLandingPage() {
               <span className="relative z-10">
                 Den komplette plattformen for serveringsbransjen
               </span>
-            </motion.div>
+            </m.div>
 
-            <motion.h1
+            {/* Headline — dominant on mobile */}
+            <m.h1
               variants={itemVariants}
-              className="mb-4 text-4xl leading-[1.05] font-black tracking-tighter drop-shadow-2xl sm:mb-8 sm:text-6xl md:text-8xl lg:text-[7.5rem]"
+              className="mb-6 text-[3.5rem] leading-[0.95] font-black tracking-tighter drop-shadow-2xl sm:mb-8 sm:text-5xl md:text-7xl lg:text-[7.5rem]"
             >
-              Én plattform. <br />
-              <span className="relative inline-block">
-                <span className="absolute -inset-2 bg-gradient-to-r from-orange-500 via-rose-500 to-purple-600 opacity-20 blur"></span>
-                <span className="relative bg-gradient-to-r from-orange-400 via-rose-400 to-purple-400 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(251,146,60,0.3)]">
+              <m.span
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.3 }}
+                className="block"
+              >
+                Én plattform.
+              </m.span>
+              <m.span
+                initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 1, delay: 0.6, type: "spring", stiffness: 80 }}
+                className="relative mt-1 inline-block sm:mt-0"
+              >
+                <span className="absolute -inset-4 bg-gradient-to-r from-orange-500 via-rose-500 to-purple-600 opacity-25 blur-xl"></span>
+                <span className="text-shimmer relative bg-gradient-to-r from-orange-400 via-rose-400 to-orange-400 bg-clip-text text-transparent drop-shadow-[0_0_20px_rgba(251,146,60,0.4)]">
                   Full kontroll.
                 </span>
-              </span>
-            </motion.h1>
+              </m.span>
+            </m.h1>
 
-            <motion.p
+            {/* Subtext */}
+            <m.p
               variants={itemVariants}
-              className="mb-8 max-w-3xl text-lg leading-relaxed font-medium text-zinc-400 sm:mb-12 sm:text-xl md:text-2xl"
+              className="mb-10 max-w-md px-2 text-[15px] leading-relaxed font-medium text-zinc-500 sm:mb-12 sm:max-w-3xl sm:px-0 sm:text-xl sm:text-zinc-400 md:text-2xl"
             >
               Samle vaktplaner, HR, kommunikasjon, stemplingsur og internkontroll i ett og samme
               lynraske system. Reduser kaos og øk fortjenesten.
-            </motion.p>
+            </m.p>
 
-            <motion.div
+            {/* CTAs — subtle on mobile, bold on desktop */}
+            <m.div
               variants={itemVariants}
-              className="flex flex-wrap items-center justify-center gap-6"
+              className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-6"
             >
               <Link
-                href={onboardingHref}
-                className="group relative flex items-center justify-center gap-3 rounded-full bg-white px-10 py-5 text-lg font-black text-zinc-950 shadow-[0_0_40px_rgba(255,255,255,0.2)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_60px_rgba(255,255,255,0.4)]"
+                href={WEB_APP_LINKS.login}
+                onClick={() => trackCta("Opprett din SmartOut")}
+                className="group relative flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-orange-600 to-rose-600 px-6 py-3 text-sm font-bold text-white shadow-[0_0_30px_rgba(249,115,22,0.2)] transition-all duration-300 hover:shadow-[0_0_60px_rgba(249,115,22,0.4)] sm:px-10 sm:py-5 sm:text-lg sm:font-black"
               >
-                <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-orange-500 to-rose-500 opacity-20 blur transition duration-500 group-hover:opacity-50"></div>
-                <span className="relative flex items-center gap-3">
-                  Opprett din SmartOut{" "}
-                  <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+                <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-orange-500 to-rose-500 opacity-30 blur transition duration-500 group-hover:opacity-50" />
+                <span className="relative flex items-center gap-2">
+                  Opprett din SmartOut
+                  <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1 sm:h-5 sm:w-5" />
                 </span>
               </Link>
 
               <a
                 href="#lise"
-                className="group relative flex items-center justify-center gap-3 overflow-hidden rounded-full px-10 py-5 text-lg transition-all duration-300 hover:-translate-y-1"
+                className="group flex items-center justify-center gap-2 rounded-full border border-white/10 px-6 py-3 text-sm font-medium text-zinc-400 transition-all duration-300 hover:border-white/20 hover:text-white sm:bg-white/5 sm:px-10 sm:py-5 sm:text-lg sm:font-bold sm:text-white sm:backdrop-blur-md"
               >
-                <div className="absolute inset-0 rounded-full border border-white/10 bg-white/5 backdrop-blur-md transition-colors group-hover:bg-white/10" />
-                <div className="absolute inset-0 bg-gradient-to-r from-zinc-800/50 to-zinc-700/50 opacity-0 transition-opacity group-hover:opacity-100" />
-                <div className="absolute -inset-[1px] rounded-full bg-gradient-to-r from-white/20 to-white/0 opacity-0 blur-[1px] transition-opacity group-hover:opacity-100" />
-                <span className="relative font-bold text-white group-hover:drop-shadow-md">
-                  Møt AI-assistenten Lise
-                </span>
+                Møt AI-assistenten Lise
               </a>
-            </motion.div>
-          </motion.div>
+            </m.div>
+          </m.div>
 
           {/* Abstract App Mockup Visual */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 100 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, delay: 0.4, type: "spring", stiffness: 50 }}
-            className="relative z-10 mt-12 hidden w-full max-w-6xl md:block"
+            className="relative z-10 hidden w-full max-w-6xl md:mt-12 md:block"
           >
-            <motion.div
+            <m.div
               animate={{ y: [0, -12, 0] }}
               transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
             >
@@ -286,92 +324,157 @@ export default function SmartoutLandingPage() {
                   <div className="ml-4 h-6 w-64 rounded-full bg-white/5" />
                 </div>
                 {/* Dashboard mockup content */}
-                <div className="grid h-[500px] grid-cols-12 gap-8 p-8">
+                <div className="grid h-[500px] grid-cols-12 gap-4 p-6">
                   {/* Sidebar */}
-                  <div className="col-span-3 flex flex-col gap-4">
-                    <div className="mb-8 h-12 w-full rounded-2xl bg-white/5" />
-                    {[...Array(6)].map((_, i) => (
+                  <div className="col-span-3 flex flex-col gap-2">
+                    <div className="mb-4 flex items-center gap-2 rounded-xl bg-white/5 px-3 py-2.5">
+                      <div className="h-6 w-6 rounded-lg bg-orange-500/30" />
+                      <span className="text-xs font-bold text-white/60">SmartOut</span>
+                    </div>
+                    {[
+                      { label: "Dashboard", active: true },
+                      { label: "Vaktplan", active: false },
+                      { label: "Ansatte", active: false },
+                      { label: "Prosedyrer", active: false },
+                      { label: "Kommunikasjon", active: false },
+                      { label: "Innstillinger", active: false },
+                    ].map((item) => (
                       <div
-                        key={i}
-                        className="h-10 w-full rounded-xl border border-white/5 bg-white/5"
-                      />
+                        key={item.label}
+                        className={`flex items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-semibold ${
+                          item.active
+                            ? "border border-orange-500/20 bg-orange-500/10 text-orange-400"
+                            : "text-white/30"
+                        }`}
+                      >
+                        <div
+                          className={`h-1.5 w-1.5 rounded-full ${item.active ? "bg-orange-400" : "bg-white/20"}`}
+                        />
+                        {item.label}
+                      </div>
                     ))}
                   </div>
                   {/* Main Content */}
-                  <div className="col-span-9 flex flex-col gap-8">
-                    <div className="flex h-40 w-full flex-col justify-end rounded-3xl border border-orange-500/20 bg-gradient-to-br from-orange-500/20 to-rose-500/5 p-8">
-                      <div className="mb-4 h-8 w-1/3 rounded-lg bg-white/10" />
-                      <div className="h-4 w-1/4 rounded-lg bg-white/5" />
+                  <div className="col-span-9 flex flex-col gap-4">
+                    {/* Stat cards row */}
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
+                        <div className="mb-1 text-[10px] font-semibold text-white/30">Ansatte</div>
+                        <div className="text-2xl font-black text-white">142</div>
+                        <div className="mt-1 text-[10px] font-semibold text-emerald-400">
+                          +12 denne mnd
+                        </div>
+                      </div>
+                      <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
+                        <div className="mb-1 text-[10px] font-semibold text-white/30">
+                          Beredskap
+                        </div>
+                        <div className="text-2xl font-black text-white">87%</div>
+                        <div className="mt-1 flex items-center gap-1">
+                          <div className="h-1 w-16 overflow-hidden rounded-full bg-white/10">
+                            <div className="h-full w-[87%] rounded-full bg-emerald-500" />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="rounded-2xl border border-orange-500/20 bg-orange-500/5 p-4">
+                        <div className="mb-1 text-[10px] font-semibold text-white/30">Avvik</div>
+                        <div className="text-2xl font-black text-orange-400">4</div>
+                        <div className="mt-1 text-[10px] font-semibold text-orange-400/60">
+                          Krever oppfølging
+                        </div>
+                      </div>
                     </div>
-                    <div className="grid flex-1 grid-cols-3 gap-6">
-                      <div className="col-span-2 rounded-3xl border border-white/5 bg-white/5 p-6" />
-                      <div className="col-span-1 flex flex-col gap-4 rounded-3xl border border-white/5 bg-white/5 p-6">
-                        {[...Array(4)].map((_, i) => (
+                    {/* Schedule preview row */}
+                    <div className="flex-1 rounded-2xl border border-white/5 bg-white/[0.03] p-4">
+                      <div className="mb-3 flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-white/50">Vaktplan i dag</span>
+                        <span className="rounded-full bg-white/5 px-2 py-0.5 text-[9px] font-bold text-white/30">
+                          Man 3. mars
+                        </span>
+                      </div>
+                      <div className="space-y-2">
+                        {[
+                          { name: "Emma H.", time: "07:00–15:00", status: "active" },
+                          { name: "Khalid M.", time: "11:00–19:00", status: "active" },
+                          { name: "Jonas B.", time: "15:00–23:00", status: "upcoming" },
+                          { name: "Maria K.", time: "15:00–23:00", status: "upcoming" },
+                        ].map((shift) => (
                           <div
-                            key={i}
-                            className="w-full flex-1 rounded-xl border border-white/5 bg-white/5"
-                          />
+                            key={shift.name}
+                            className="flex items-center justify-between rounded-lg bg-white/[0.02] px-3 py-1.5"
+                          >
+                            <div className="flex items-center gap-2">
+                              <div
+                                className={`h-1.5 w-1.5 rounded-full ${shift.status === "active" ? "bg-emerald-400" : "bg-white/20"}`}
+                              />
+                              <span className="text-[11px] font-semibold text-white/60">
+                                {shift.name}
+                              </span>
+                            </div>
+                            <span className="text-[10px] font-medium text-white/30">
+                              {shift.time}
+                            </span>
+                          </div>
                         ))}
+                      </div>
+                    </div>
+                    {/* Bottom row: activity + compliance */}
+                    <div className="grid grid-cols-5 gap-3">
+                      <div className="col-span-3 rounded-2xl border border-white/5 bg-white/[0.03] p-4">
+                        <span className="text-[11px] font-bold text-white/50">
+                          Aktivitet denne uken
+                        </span>
+                        <div className="mt-3 flex items-end gap-1.5">
+                          {[40, 65, 80, 55, 90, 70, 45].map((h, i) => (
+                            <div key={i} className="flex-1">
+                              <div
+                                className="rounded-sm bg-gradient-to-t from-orange-500/40 to-orange-500/10"
+                                style={{ height: `${h}px` }}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="col-span-2 rounded-2xl border border-emerald-500/10 bg-emerald-500/5 p-4">
+                        <span className="text-[11px] font-bold text-white/50">Compliance</span>
+                        <div className="mt-2 flex items-center gap-2">
+                          <div className="text-lg font-black text-emerald-400">100%</div>
+                        </div>
+                        <div className="mt-1 text-[9px] font-semibold text-emerald-400/50">
+                          IK-mat oppdatert
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </motion.div>
-          </motion.div>
+            </m.div>
+          </m.div>
         </div>
 
         {/* BRAND / INTEGRATION MARQUEE */}
         <div className="relative mt-12 mb-8 flex w-full items-center overflow-hidden py-6 sm:mt-32 sm:mb-12 sm:py-12">
-          <div className="pointer-events-none absolute top-0 bottom-0 left-0 z-10 w-48 bg-gradient-to-r from-zinc-950 to-transparent"></div>
-          <div className="pointer-events-none absolute top-0 right-0 bottom-0 z-10 w-48 bg-gradient-to-l from-zinc-950 to-transparent"></div>
-          <motion.div
+          {/* Edge fade masks */}
+          <div className="pointer-events-none absolute top-0 bottom-0 left-0 z-10 w-32 bg-gradient-to-r from-[#050505] to-transparent sm:w-48" />
+          <div className="pointer-events-none absolute top-0 right-0 bottom-0 z-10 w-32 bg-gradient-to-l from-[#050505] to-transparent sm:w-48" />
+          <m.div
             initial={{ x: 0 }}
             animate={{ x: "-50%" }}
             transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
-            className="flex w-max items-center gap-24 px-4 whitespace-nowrap opacity-50"
+            className="flex w-max items-center gap-12 px-4 whitespace-nowrap opacity-60 sm:gap-24"
           >
-            <div className="flex items-center gap-2 text-2xl font-black tracking-tighter text-zinc-400">
-              <Zap className="h-5 w-5" />
-              TRIPLETEX
-            </div>
-            <div className="flex items-center gap-2 text-2xl font-black tracking-tighter text-zinc-400">
-              <Building2 className="h-5 w-5" />
-              VISMA
-            </div>
-            <div className="flex items-center gap-2 text-2xl font-black tracking-tighter text-zinc-400">
-              <Users className="h-5 w-5" />
-              ZETTLE
-            </div>
-            <div className="flex items-center gap-2 text-2xl font-black tracking-tighter text-zinc-400">
-              <Target className="h-5 w-5" />
-              LIGHTSPEED
-            </div>
-            <div className="flex items-center gap-2 text-2xl font-black tracking-tighter text-zinc-400">
-              <ShieldCheck className="h-5 w-5" />
-              POWEROFFICE
-            </div>
-            <div className="flex items-center gap-2 text-2xl font-black tracking-tighter text-zinc-400">
-              <Zap className="h-5 w-5" />
-              TRIPLETEX
-            </div>
-            <div className="flex items-center gap-2 text-2xl font-black tracking-tighter text-zinc-400">
-              <Building2 className="h-5 w-5" />
-              VISMA
-            </div>
-            <div className="flex items-center gap-2 text-2xl font-black tracking-tighter text-zinc-400">
-              <Users className="h-5 w-5" />
-              ZETTLE
-            </div>
-            <div className="flex items-center gap-2 text-2xl font-black tracking-tighter text-zinc-400">
-              <Target className="h-5 w-5" />
-              LIGHTSPEED
-            </div>
-            <div className="flex items-center gap-2 text-2xl font-black tracking-tighter text-zinc-400">
-              <ShieldCheck className="h-5 w-5" />
-              POWEROFFICE
-            </div>
-          </motion.div>
+            {/* Render integration brands twice for seamless loop */}
+            {[0, 1].map((set) =>
+              ["TRIPLETEX", "VISMA", "ZETTLE", "LIGHTSPEED", "POWEROFFICE"].map((name) => (
+                <span
+                  key={`${set}-${name}`}
+                  className="text-lg font-black tracking-[0.15em] text-zinc-500 sm:text-2xl"
+                >
+                  {name}
+                </span>
+              )),
+            )}
+          </m.div>
         </div>
 
         {/* LISE HERO SECTION */}
@@ -382,26 +485,25 @@ export default function SmartoutLandingPage() {
           {/* Soft background glow for Lise section */}
           <div className="pointer-events-none absolute top-1/2 left-1/2 h-[800px] w-[800px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-orange-500/5 mix-blend-screen blur-[120px]" />
 
-          <motion.div
+          <m.div
             className="max-w-2xl flex-1"
             initial="hidden"
             animate="visible"
             variants={containerVariants}
           >
-            <motion.div
+            <m.div
               variants={itemVariants}
-              className="mb-4 inline-flex items-center gap-2 rounded-full border border-orange-500/20 bg-orange-500/10 px-3 py-1 text-xs font-bold tracking-wider text-orange-400 uppercase sm:mb-6"
+              className="mb-4 hidden items-center gap-2 rounded-full border border-orange-500/20 bg-orange-500/10 px-3 py-1 text-xs font-bold tracking-wider text-orange-400 uppercase sm:mb-6 sm:inline-flex"
             >
               <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-400 opacity-75"></span>
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-orange-500"></span>
               </span>
               Møt fremtidens workforce management
-            </motion.div>
+            </m.div>
 
-            <motion.h1
+            <m.h1
               variants={itemVariants}
-              className="mb-4 text-4xl leading-[1.1] font-extrabold tracking-tight sm:mb-6 sm:text-5xl md:text-7xl"
+              className="mb-4 text-4xl leading-[1.1] font-black tracking-tight sm:mb-6 sm:text-5xl md:text-7xl"
             >
               Møt{" "}
               <span className="bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent">
@@ -409,27 +511,28 @@ export default function SmartoutLandingPage() {
               </span>
               ,<br />
               din digitale kollega.
-            </motion.h1>
+            </m.h1>
 
-            <motion.p
+            <m.p
               variants={itemVariants}
               className="mb-6 max-w-xl text-base leading-relaxed text-zinc-400 sm:mb-10 sm:text-lg md:text-xl"
             >
               SmartOut er bygget for den norske serveringsbransjen. Reduser administrativt arbeid
               fra timer til minutter, integrer ansatte på tvers av språkbarrierer, og få full
               kontroll over lønnskostnader og compliance (Mattilsynet/Arbeidstilsynet) i sanntid.
-            </motion.p>
+            </m.p>
 
-            <motion.div variants={itemVariants} className="flex flex-wrap items-center gap-4">
-              <button
-                onClick={() => setIsAssistantOpen(true)}
-                className="group relative flex items-center gap-3 rounded-full bg-white px-8 py-4 text-lg font-bold text-zinc-950 shadow-[0_0_40px_rgba(255,255,255,0.1)] transition-all duration-300 hover:scale-105 hover:shadow-[0_0_60px_rgba(255,255,255,0.2)]"
+            <m.div variants={itemVariants} className="flex flex-wrap items-center gap-4">
+              <a
+                href="#smartout-ai"
+                onClick={() => trackCta("Start Lise Botsson")}
+                className="group relative flex items-center gap-3 rounded-full bg-white px-8 py-4 text-lg font-bold text-zinc-950 shadow-[0_0_40px_rgba(255,255,255,0.1)] transition-all duration-300 hover:shadow-[0_0_60px_rgba(249,115,22,0.25)]"
               >
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-500 text-white transition-transform group-hover:scale-110">
                   <Mic className="h-4 w-4" />
                 </div>
                 Start Lise Botsson
-              </button>
+              </a>
 
               <a
                 href="#workspace"
@@ -437,18 +540,18 @@ export default function SmartoutLandingPage() {
               >
                 Utforsk konsepter <ArrowRight className="h-4 w-4" />
               </a>
-            </motion.div>
+            </m.div>
 
-            <motion.div
+            <m.div
               variants={itemVariants}
-              className="mt-10 grid grid-cols-3 gap-3 sm:mt-12 sm:flex sm:items-center sm:gap-6"
+              className="mt-10 hidden sm:mt-12 sm:flex sm:items-center sm:gap-6"
             >
               {[
-                { icon: Clock, label: "Tidsbesparelse" },
-                { icon: ShieldCheck, label: "100% Compliance" },
-                { icon: Users, label: "Høy Retensjon" },
+                { icon: Clock, label: "3 timer spart/dag" },
+                { icon: ShieldCheck, label: "100% compliance" },
+                { icon: Users, label: "42% lavere turnover" },
               ].map((stat, i) => (
-                <motion.div
+                <m.div
                   key={stat.label}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -459,80 +562,26 @@ export default function SmartoutLandingPage() {
                   <span className="text-center text-[11px] font-semibold text-zinc-500 sm:text-sm">
                     {stat.label}
                   </span>
-                </motion.div>
+                </m.div>
               ))}
-            </motion.div>
-          </motion.div>
+            </m.div>
+          </m.div>
 
-          {/* Voice Assistant Floating Widget */}
-          <div className="w-full lg:w-[450px]">
-            <AnimatePresence mode="wait">
-              {isAssistantOpen ? (
-                <motion.div
-                  key="assistant"
-                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                  className="relative z-50 h-[400px] w-full sm:h-[600px]"
-                >
-                  <VoiceAssistant
-                    autoStart
-                    missionId="landing-demo"
-                    onClose={() => setIsAssistantOpen(false)}
-                  />
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="placeholder"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="group relative flex h-[360px] w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded-3xl border border-white/10 bg-[#0a0a0c]/50 p-6 text-center shadow-2xl backdrop-blur-xl transition-colors hover:border-orange-500/30 sm:h-[600px] sm:rounded-[40px] sm:p-10"
-                  onClick={() => setIsAssistantOpen(true)}
-                >
-                  <div className="absolute inset-0 z-10 bg-gradient-to-t from-[#050505]/90 to-transparent" />
-                  <div className="absolute -inset-2 z-0 bg-gradient-to-r from-orange-500/0 via-orange-500/10 to-transparent opacity-0 blur-2xl transition-opacity duration-1000 group-hover:opacity-100" />
-                  <motion.div
-                    animate={{
-                      scale: [1, 1.05, 1],
-                      boxShadow: [
-                        "0 0 0px rgba(249,115,22,0)",
-                        "0 0 20px rgba(249,115,22,0.1)",
-                        "0 0 0px rgba(249,115,22,0)",
-                      ],
-                    }}
-                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                    className="relative z-20 mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-white/5 bg-white/5 transition-colors group-hover:border-orange-500/20 group-hover:bg-orange-500/10 sm:mb-6 sm:h-24 sm:w-24"
-                  >
-                    <div className="absolute inset-0 rounded-full border border-orange-500/20 opacity-0 group-hover:animate-ping group-hover:opacity-100" />
-                    <Mic className="h-7 w-7 text-zinc-500 transition-colors group-hover:text-orange-500 sm:h-10 sm:w-10" />
-                  </motion.div>
-                  <h3 className="relative z-20 mb-1 text-lg font-bold text-white sm:mb-2 sm:text-2xl">
-                    Lise venter...
-                  </h3>
-                  <p className="relative z-20 mb-4 max-w-xs text-sm text-zinc-500 sm:mb-8 sm:text-base">
-                    Klikk her for å vekke röstassistenten og still spørsmål om vaktplan, onboarding
-                    eller rutiner.
-                  </p>
-
-                  <div className="relative z-20 flex items-center gap-2 rounded-full border border-zinc-700/50 bg-zinc-800/80 px-4 py-2 text-xs font-bold text-zinc-400 shadow-xl transition-colors group-hover:bg-zinc-800 group-hover:text-zinc-300">
-                    Trykk for å koble til <ArrowRight className="h-3 w-3" />
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+          {/* Voice Assistant — single instance in SmartOut AI section below */}
         </div>
+
+        {/* ─── Divider ─── */}
+        <div className="section-divider relative z-10 my-12 sm:my-20" />
 
         {/* INTERACTIVE WORKSPACE SECTION */}
         <section
           id="workspace"
-          className="relative z-10 mt-12 flex min-h-0 flex-col justify-center py-16 sm:mt-20 sm:min-h-[100dvh] sm:py-32"
+          className="relative z-10 flex min-h-0 flex-col justify-center py-16 sm:min-h-[100dvh] sm:py-32"
         >
           {/* Ambient Glow */}
           <div className="pointer-events-none absolute top-0 right-0 h-[600px] w-[600px] rounded-full bg-blue-500/5 mix-blend-screen blur-[150px]" />
 
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
@@ -540,14 +589,12 @@ export default function SmartoutLandingPage() {
             className="mb-8 text-center sm:mb-16"
           >
             <h2 className="mb-3 text-2xl font-black tracking-tight text-white sm:mb-6 sm:text-4xl">
-              Se for deg ditt fremtidige workspace
+              Ditt fremtidige workspace
             </h2>
-            <p className="mx-auto max-w-2xl text-sm text-zinc-400 sm:text-lg">
-              Restaurantdrift er komplekst. Derfor er Smartout bygget for å speile din virkelighet
-              tvers av alle aspekter. Slik organiserer stjernene bedriften sin for å overholde
-              Arbeidstilsynets og Mattilsynets krav:
+            <p className="mx-auto hidden max-w-2xl text-lg text-zinc-400 sm:block">
+              Bygget for å speile din virkelighet — lokasjoner, prosedyrer og sesonger.
             </p>
-          </motion.div>
+          </m.div>
 
           {/* Interactive Tabs */}
           <div className="mb-8 flex justify-center gap-1.5 px-2 sm:mb-12 sm:gap-3 sm:px-4">
@@ -579,219 +626,187 @@ export default function SmartoutLandingPage() {
 
           {/* Tab Content Panels */}
           <div className="relative min-h-[350px]">
-            {/* Locations Panel */}
-            {activeTab === "locations" && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4 }}
-              >
-                <div className="mx-auto mb-6 max-w-2xl text-center sm:mb-10">
-                  <h3 className="mb-2 text-lg font-black text-white sm:mb-3 sm:text-2xl">
-                    Din arbeidsplass, delt opp og organisert
-                  </h3>
-                  <p className="mb-6 text-sm leading-relaxed text-zinc-400 sm:text-base">
-                    Del opp virksomheten i lokasjoner, soner og utstyr — og knytt rutiner,
-                    dokumentasjon og opplæring direkte til stedet der arbeidet skjer.
-                  </p>
-                  <div className="flex flex-wrap justify-center gap-3">
-                    {["Flerlokasjon", "Soner & Utstyr", "Stedsbasert opplæring"].map((tag, i) => (
-                      <motion.span
-                        key={tag}
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.3, delay: 0.2 + i * 0.07 }}
-                        className="rounded-full border border-orange-500/20 bg-orange-500/5 px-3 py-1 text-xs font-bold text-orange-300"
+            <AnimatePresence mode="wait">
+              {/* Locations Panel */}
+              {activeTab === "locations" && (
+                <m.div
+                  key="locations"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="mx-auto mb-6 max-w-2xl text-center sm:mb-10">
+                    <h3 className="mb-2 text-lg font-black text-white sm:text-2xl">
+                      Din arbeidsplass, delt opp og organisert
+                    </h3>
+                    <p className="hidden text-base leading-relaxed text-zinc-400 sm:block">
+                      Del opp virksomheten i lokasjoner, soner og utstyr — knytt rutiner og
+                      opplæring direkte til stedet.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 gap-6 sm:gap-8 md:grid-cols-3">
+                    {MOCK_LOCATIONS.map((loc, i) => (
+                      <m.div
+                        key={loc.id}
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: i * 0.1 }}
                       >
-                        {tag}
-                      </motion.span>
+                        <Link
+                          href={loc.href}
+                          className="group relative block overflow-hidden rounded-3xl border border-white/5 bg-[#0a0a0c]/40 p-6 shadow-2xl backdrop-blur-3xl transition-all duration-500 hover:-translate-y-2 hover:border-white/10 sm:rounded-[40px] sm:p-10"
+                        >
+                          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-50 transition-all duration-500 group-hover:via-orange-500/50 group-hover:opacity-100" />
+                          <div className="absolute -inset-1 bg-gradient-to-b from-orange-500/5 to-transparent opacity-0 blur-xl transition-opacity duration-500 group-hover:opacity-100" />
+                          <div className="relative z-10 mb-5 flex h-12 w-12 items-center justify-center rounded-2xl border border-orange-500/10 bg-gradient-to-tr from-orange-600/20 to-orange-400/5 shadow-inner transition-all duration-500 group-hover:scale-110 group-hover:bg-orange-600/30 sm:mb-8 sm:h-16 sm:w-16 sm:rounded-[24px]">
+                            <loc.icon className="h-6 w-6 text-orange-400 drop-shadow-[0_0_15px_rgba(251,146,60,0.5)] sm:h-8 sm:w-8" />
+                          </div>
+                          <h3 className="mb-1 text-lg font-bold text-white sm:mb-2 sm:text-2xl">
+                            {loc.name}
+                          </h3>
+                          <div className="flex items-center justify-between text-sm font-medium text-zinc-400">
+                            <span>{loc.city}</span>
+                            <span className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-black/50 px-2 py-1 text-xs sm:px-3 sm:py-1.5 sm:text-sm">
+                              <Users className="h-3.5 w-3.5 text-orange-400 sm:h-4 sm:w-4" />{" "}
+                              {loc.employees}
+                            </span>
+                          </div>
+                        </Link>
+                      </m.div>
                     ))}
                   </div>
-                </div>
-                <div className="grid grid-cols-1 gap-6 sm:gap-8 md:grid-cols-3">
-                  {MOCK_LOCATIONS.map((loc, i) => (
-                    <motion.div
-                      key={loc.id}
-                      initial={{ opacity: 0, y: 30 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, delay: i * 0.1 }}
-                    >
-                      <Link
-                        href={loc.href}
-                        className="group relative block overflow-hidden rounded-3xl border border-white/5 bg-[#0a0a0c]/40 p-6 shadow-2xl backdrop-blur-3xl transition-all duration-500 hover:-translate-y-2 hover:border-white/10 sm:rounded-[40px] sm:p-10"
-                      >
-                        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-50 transition-all duration-500 group-hover:via-orange-500/50 group-hover:opacity-100" />
-                        <div className="absolute -inset-1 bg-gradient-to-b from-orange-500/5 to-transparent opacity-0 blur-xl transition-opacity duration-500 group-hover:opacity-100" />
-                        <div className="relative z-10 mb-5 flex h-12 w-12 items-center justify-center rounded-2xl border border-orange-500/10 bg-gradient-to-tr from-orange-600/20 to-orange-400/5 shadow-inner transition-all duration-500 group-hover:scale-110 group-hover:bg-orange-600/30 sm:mb-8 sm:h-16 sm:w-16 sm:rounded-[24px]">
-                          <loc.icon className="h-6 w-6 text-orange-400 drop-shadow-[0_0_15px_rgba(251,146,60,0.5)] sm:h-8 sm:w-8" />
-                        </div>
-                        <h3 className="mb-1 text-lg font-bold text-white sm:mb-2 sm:text-2xl">
-                          {loc.name}
-                        </h3>
-                        <div className="flex items-center justify-between text-sm font-medium text-zinc-400">
-                          <span>{loc.city}</span>
-                          <span className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-black/50 px-2 py-1 text-xs sm:px-3 sm:py-1.5 sm:text-sm">
-                            <Users className="h-3.5 w-3.5 text-orange-400 sm:h-4 sm:w-4" />{" "}
-                            {loc.employees}
-                          </span>
-                        </div>
-                      </Link>
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
+                </m.div>
+              )}
 
-            {/* Procedures Panel */}
-            {activeTab === "procedures" && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4 }}
-              >
-                <div className="mx-auto mb-6 max-w-2xl text-center sm:mb-10">
-                  <h3 className="mb-2 text-lg font-black text-white sm:mb-3 sm:text-2xl">
-                    Sjekklister, kontrollister og verifiseringsplaner
-                  </h3>
-                  <p className="mb-6 text-sm leading-relaxed text-zinc-400 sm:text-base">
-                    Bygg prosedyrer som sikrer at alt blir gjort riktig, hver gang. Fra
-                    morgenrutiner til IK-mat — med sporbar signering og automatisk oppfølging.
-                  </p>
-                  <div className="flex flex-wrap justify-center gap-3">
-                    {["Sporbar signering", "Automatisk oppfølging", "HACCP-klar"].map((tag, i) => (
-                      <motion.span
-                        key={tag}
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.3, delay: 0.2 + i * 0.07 }}
-                        className="rounded-full border border-emerald-500/20 bg-emerald-500/5 px-3 py-1 text-xs font-bold text-emerald-300"
+              {/* Procedures Panel */}
+              {activeTab === "procedures" && (
+                <m.div
+                  key="procedures"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="mx-auto mb-6 max-w-2xl text-center sm:mb-10">
+                    <h3 className="mb-2 text-lg font-black text-white sm:text-2xl">
+                      Sjekklister og verifiseringsplaner
+                    </h3>
+                    <p className="hidden text-base leading-relaxed text-zinc-400 sm:block">
+                      Alt blir gjort riktig, hver gang. Sporbar signering og automatisk oppfølging.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-4">
+                    {MOCK_PROCEDURES.map((proc, i) => (
+                      <m.div
+                        key={proc.id}
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.45, delay: i * 0.08 }}
                       >
-                        {tag}
-                      </motion.span>
+                        <Link
+                          href={proc.href}
+                          className="group relative flex flex-col items-center overflow-hidden rounded-2xl border border-white/5 bg-[#0a0a0c]/40 p-5 text-center shadow-2xl backdrop-blur-xl transition-all duration-300 hover:-translate-y-2 hover:border-white/10 sm:rounded-[32px] sm:p-8"
+                        >
+                          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                          <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                          <div
+                            className={`relative z-10 mb-4 flex h-14 w-14 items-center justify-center rounded-xl border border-white/10 bg-black/50 ${proc.color} shadow-inner transition-transform duration-500 group-hover:scale-110 sm:mb-6 sm:h-20 sm:w-20 sm:rounded-2xl`}
+                          >
+                            <proc.icon className="h-7 w-7 sm:h-10 sm:w-10" />
+                          </div>
+                          <h3 className="mb-2 text-sm font-bold text-white sm:mb-3 sm:text-xl">
+                            {proc.name}
+                          </h3>
+                          <span className="rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-bold tracking-widest text-zinc-500 uppercase sm:px-3 sm:py-1 sm:text-sm">
+                            {proc.taskCount} Oppgaver
+                          </span>
+                        </Link>
+                      </m.div>
                     ))}
                   </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-4">
-                  {MOCK_PROCEDURES.map((proc, i) => (
-                    <motion.div
-                      key={proc.id}
-                      initial={{ opacity: 0, y: 30 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.45, delay: i * 0.08 }}
-                    >
-                      <Link
-                        href={proc.href}
-                        className="group relative flex flex-col items-center overflow-hidden rounded-2xl border border-white/5 bg-[#0a0a0c]/40 p-5 text-center shadow-2xl backdrop-blur-xl transition-all duration-300 hover:-translate-y-2 hover:border-white/10 sm:rounded-[32px] sm:p-8"
-                      >
-                        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                        <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                        <div
-                          className={`relative z-10 mb-4 flex h-14 w-14 items-center justify-center rounded-xl border border-white/10 bg-black/50 ${proc.color} shadow-inner transition-transform duration-500 group-hover:scale-110 sm:mb-6 sm:h-20 sm:w-20 sm:rounded-2xl`}
-                        >
-                          <proc.icon className="h-7 w-7 sm:h-10 sm:w-10" />
-                        </div>
-                        <h3 className="mb-2 text-sm font-bold text-white sm:mb-3 sm:text-xl">
-                          {proc.name}
-                        </h3>
-                        <span className="rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-bold tracking-widest text-zinc-500 uppercase sm:px-3 sm:py-1 sm:text-sm">
-                          {proc.taskCount} Oppgaver
-                        </span>
-                      </Link>
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
+                </m.div>
+              )}
 
-            {/* Seasons Panel */}
-            {activeTab === "seasons" && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4 }}
-              >
-                <div className="mx-auto mb-6 max-w-2xl text-center sm:mb-10">
-                  <h3 className="mb-2 text-lg font-black text-white sm:mb-3 sm:text-2xl">
-                    Modulbasert drift, sesong for sesong
-                  </h3>
-                  <p className="mb-6 text-sm leading-relaxed text-zinc-400 sm:text-base">
-                    Organiser hele virksomheten i sesonger. Lagre innstillinger, menyer, vaktplaner
-                    og rutiner per sesong — og aktiver med ett klikk når tiden er inne.
-                  </p>
-                  <div className="flex flex-wrap justify-center gap-3">
-                    {["Ett-klikk aktivering", "Lagrede oppsett", "Sesongbasert meny"].map(
-                      (tag, i) => (
-                        <motion.span
-                          key={tag}
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ duration: 0.3, delay: 0.2 + i * 0.07 }}
-                          className="rounded-full border border-blue-500/20 bg-blue-500/5 px-3 py-1 text-xs font-bold text-blue-300"
-                        >
-                          {tag}
-                        </motion.span>
-                      ),
-                    )}
+              {/* Seasons Panel */}
+              {activeTab === "seasons" && (
+                <m.div
+                  key="seasons"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="mx-auto mb-6 max-w-2xl text-center sm:mb-10">
+                    <h3 className="mb-2 text-lg font-black text-white sm:text-2xl">
+                      Modulbasert drift, sesong for sesong
+                    </h3>
+                    <p className="hidden text-base leading-relaxed text-zinc-400 sm:block">
+                      Lagre innstillinger, menyer og rutiner per sesong — aktiver med ett klikk.
+                    </p>
                   </div>
-                </div>
-                <div className="grid grid-cols-1 gap-6 sm:gap-8 md:grid-cols-3">
-                  {MOCK_SEASONS.map((season, i) => (
-                    <motion.div
-                      key={season.id}
-                      initial={{ opacity: 0, y: 30 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, delay: i * 0.1 }}
-                    >
-                      <Link
-                        href={season.href}
-                        className={`block rounded-3xl border p-6 shadow-2xl backdrop-blur-xl sm:rounded-[32px] sm:p-10 ${season.active ? "border-orange-500/40 bg-orange-500/10 shadow-[0_0_40px_-10px_rgba(249,115,22,0.3)]" : "border-white/5 bg-[#0a0a0c]/40 hover:border-white/10 hover:bg-[#0a0a0c]/60"} group relative overflow-hidden transition-all duration-300 hover:-translate-y-2`}
+                  <div className="grid grid-cols-1 gap-6 sm:gap-8 md:grid-cols-3">
+                    {MOCK_SEASONS.map((season, i) => (
+                      <m.div
+                        key={season.id}
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: i * 0.1 }}
                       >
-                        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                        {season.active && (
-                          <span className="absolute top-4 right-4 z-10 rounded-full bg-gradient-to-r from-orange-500 to-rose-500 px-2.5 py-1 text-[10px] font-black tracking-wider text-white uppercase shadow-lg sm:top-6 sm:right-6 sm:px-3 sm:py-1.5 sm:text-xs">
-                            Aktiv nå
-                          </span>
-                        )}
-                        <season.icon
-                          className={`mb-5 h-8 w-8 sm:mb-8 sm:h-12 sm:w-12 ${season.active ? "text-orange-400" : "text-zinc-500"}`}
-                        />
-                        <h3 className="mb-1 text-xl font-black text-white sm:mb-2 sm:text-3xl">
-                          {season.name}
-                        </h3>
-                        <p className="text-sm font-medium text-zinc-400 sm:text-lg">
-                          {season.period}
-                        </p>
-                      </Link>
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
+                        <Link
+                          href={season.href}
+                          className={`block rounded-3xl border p-6 shadow-2xl backdrop-blur-xl sm:rounded-[32px] sm:p-10 ${season.active ? "border-orange-500/40 bg-orange-500/10 shadow-[0_0_40px_-10px_rgba(249,115,22,0.3)]" : "border-white/5 bg-[#0a0a0c]/40 hover:border-white/10 hover:bg-[#0a0a0c]/60"} group relative overflow-hidden transition-all duration-300 hover:-translate-y-2`}
+                        >
+                          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                          {season.active && (
+                            <span className="absolute top-4 right-4 z-10 rounded-full bg-gradient-to-r from-orange-500 to-rose-500 px-2.5 py-1 text-[10px] font-black tracking-wider text-white uppercase shadow-lg sm:top-6 sm:right-6 sm:px-3 sm:py-1.5 sm:text-xs">
+                              Aktiv nå
+                            </span>
+                          )}
+                          <season.icon
+                            className={`mb-5 h-8 w-8 sm:mb-8 sm:h-12 sm:w-12 ${season.active ? "text-orange-400" : "text-zinc-500"}`}
+                          />
+                          <h3 className="mb-1 text-xl font-black text-white sm:mb-2 sm:text-3xl">
+                            {season.name}
+                          </h3>
+                          <p className="text-sm font-medium text-zinc-400 sm:text-lg">
+                            {season.period}
+                          </p>
+                        </Link>
+                      </m.div>
+                    ))}
+                  </div>
+                </m.div>
+              )}
+            </AnimatePresence>
           </div>
         </section>
 
+        {/* ─── Divider ─── */}
+        <div className="section-divider relative z-10 my-12 sm:my-20" />
+
         {/* COMPLIANCE SECTION */}
-        <section className="relative z-10 mt-12 py-16 sm:mt-20 sm:py-40">
+        <section className="relative z-10 py-20 sm:py-40">
           {/* Blended background for compliance */}
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-emerald-950/10 to-transparent" />
           <div className="pointer-events-none absolute top-1/2 left-1/2 h-[600px] w-[1000px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-500/5 blur-[150px]" />
 
           <div className="relative z-10 mx-auto max-w-7xl px-6 text-center">
-            <motion.div
+            <m.div
               initial={{ opacity: 0, scale: 0.9 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
               className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 sm:mb-8 sm:h-20 sm:w-20"
             >
-              <motion.div
+              <m.div
                 animate={{ scale: [1, 1.1, 1] }}
                 transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
               >
                 <ShieldCheck className="h-7 w-7 sm:h-10 sm:w-10" />
-              </motion.div>
-            </motion.div>
-            <motion.h2
+              </m.div>
+            </m.div>
+            <m.h2
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -799,8 +814,8 @@ export default function SmartoutLandingPage() {
               className="mb-4 text-2xl font-black tracking-tight text-white sm:mb-6 sm:text-5xl"
             >
               Sov godt om natten.
-            </motion.h2>
-            <motion.p
+            </m.h2>
+            <m.p
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -809,13 +824,13 @@ export default function SmartoutLandingPage() {
             >
               Når Mattilsynet eller Arbeidstilsynet banker på døren, er alt klart. Vi sikrer at du
               automatisk følger regelverket for arbeidstid, pauser, og IK-mat.
-            </motion.p>
+            </m.p>
 
             <div className="relative mx-auto grid max-w-5xl grid-cols-1 gap-2 text-left sm:gap-8 md:grid-cols-2">
               {/* Decorative divider */}
               <div className="absolute top-1/2 left-1/2 hidden h-3/4 w-px -translate-x-1/2 -translate-y-1/2 bg-gradient-to-b from-transparent via-emerald-500/20 to-transparent md:block"></div>
 
-              <motion.div
+              <m.div
                 initial={{ opacity: 0, x: -20 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
@@ -842,8 +857,8 @@ export default function SmartoutLandingPage() {
                     bygget rett inn i rutinemodulen.
                   </p>
                 </div>
-              </motion.div>
-              <motion.div
+              </m.div>
+              <m.div
                 initial={{ opacity: 0, x: 20 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
@@ -870,7 +885,7 @@ export default function SmartoutLandingPage() {
                     som sperrer for ulovlig overtid.
                   </p>
                 </div>
-              </motion.div>
+              </m.div>
             </div>
           </div>
         </section>
@@ -880,26 +895,22 @@ export default function SmartoutLandingPage() {
           id="features"
           className="relative z-10 flex min-h-0 flex-col justify-center py-16 pt-8 sm:min-h-[100dvh] sm:py-40 sm:pt-20"
         >
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.8 }}
             className="mx-auto mb-10 max-w-3xl sm:mb-20 lg:text-center"
           >
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-orange-500/20 bg-orange-500/10 px-3 py-1 text-xs font-bold tracking-widest text-orange-400 uppercase sm:mb-6 sm:text-sm">
-              <Zap className="h-4 w-4" /> Neste generasjons plattform
-            </div>
             <h2 className="mb-4 text-3xl leading-tight font-black tracking-tight text-white sm:mb-6 sm:text-4xl">
               Ikke bare programvare.
               <br />
               En ny måte å jobbe på.
             </h2>
-            <p className="px-2 text-base text-zinc-400 sm:px-0 sm:text-lg">
-              Vi har byttet ut de gamle, trege systemene med et lynraskt, AI-drevet grensesnitt som
-              de ansatte faktisk elsker å bruke. Tidsbesparende for ledere, motiverende for teamet.
+            <p className="hidden text-lg text-zinc-400 sm:block">
+              Lynraskt, AI-drevet grensesnitt. Tidsbesparende for ledere, motiverende for teamet.
             </p>
-          </motion.div>
+          </m.div>
 
           <div className="grid grid-cols-1 gap-4 sm:gap-8 md:grid-cols-2 lg:grid-cols-3">
             <FeatureCard
@@ -953,21 +964,21 @@ export default function SmartoutLandingPage() {
           </div>
         </section>
 
+        {/* ─── Divider ─── */}
+        <div className="section-divider relative z-10 my-12 sm:my-20" />
+
         {/* ONBOARDING PROMISE SECTION */}
-        <section className="relative z-10 py-16 sm:py-40">
+        <section className="relative z-10 py-20 sm:py-32">
           <div className="mx-auto max-w-7xl px-6">
             <div className="grid grid-cols-1 items-center gap-10 sm:gap-16 lg:grid-cols-2">
-              <motion.div
+              <m.div
                 initial={{ opacity: 0, x: -40 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.8 }}
                 className="relative z-10"
               >
-                <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1 text-xs font-bold tracking-widest text-blue-400 uppercase">
-                  <Sparkles className="h-4 w-4" /> AI-drevet Onboarding
-                </div>
-                <h2 className="mb-6 text-4xl font-black tracking-tight text-white sm:text-5xl md:text-6xl">
+                <h2 className="mb-6 text-3xl font-black tracking-tight text-white sm:text-5xl md:text-6xl">
                   I gang på minutter,
                   <br />
                   ikke måneder.
@@ -977,7 +988,7 @@ export default function SmartoutLandingPage() {
                   og vår AI skraper menyer, åpningstider, lokasjoner og bygger systemet for deg helt
                   automatisk.
                 </p>
-                <motion.ul
+                <m.ul
                   initial="hidden"
                   whileInView="visible"
                   viewport={{ once: true }}
@@ -987,7 +998,7 @@ export default function SmartoutLandingPage() {
                   }}
                   className="mb-6 space-y-4 sm:mb-10 sm:space-y-6"
                 >
-                  <motion.li
+                  <m.li
                     variants={{ hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0 } }}
                     className="flex items-center gap-4 text-lg font-medium text-zinc-300"
                   >
@@ -995,8 +1006,8 @@ export default function SmartoutLandingPage() {
                       <CheckCircle2 className="h-6 w-6" />
                     </div>
                     Skriv inn din nåværende nettside
-                  </motion.li>
-                  <motion.li
+                  </m.li>
+                  <m.li
                     variants={{ hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0 } }}
                     className="flex items-center gap-4 text-lg font-medium text-zinc-300"
                   >
@@ -1004,8 +1015,8 @@ export default function SmartoutLandingPage() {
                       <Sparkles className="h-6 w-6" />
                     </div>
                     AI analyserer og bygger arbeidsplassen
-                  </motion.li>
-                  <motion.li
+                  </m.li>
+                  <m.li
                     variants={{ hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0 } }}
                     className="flex items-center gap-4 text-lg font-medium text-zinc-300"
                   >
@@ -1013,10 +1024,10 @@ export default function SmartoutLandingPage() {
                       <Users className="h-6 w-6" />
                     </div>
                     Inviter ansatte og start opp med en gang
-                  </motion.li>
-                </motion.ul>
-              </motion.div>
-              <motion.div
+                  </m.li>
+                </m.ul>
+              </m.div>
+              <m.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
@@ -1027,24 +1038,18 @@ export default function SmartoutLandingPage() {
                 <div className="relative z-10">
                   <WorkspaceAnalyzer />
                 </div>
-              </motion.div>
+              </m.div>
             </div>
           </div>
         </section>
 
+        {/* ─── Divider ─── */}
+        <div className="section-divider relative z-10 my-12 sm:my-20" />
+
         {/* PRICING SECTION */}
-        <section id="priser" className="relative z-10 mt-4 py-16 sm:mt-10 sm:py-32">
+        <section id="priser" className="relative z-10 py-20 sm:py-32">
           <div className="mx-auto max-w-7xl px-6 text-center">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="mb-6 inline-flex items-center gap-2 rounded-full border border-purple-500/20 bg-purple-500/10 px-3 py-1 text-xs font-bold tracking-widest text-purple-400 uppercase"
-            >
-              <Sparkles className="h-4 w-4" /> Enkel Prismodell
-            </motion.div>
-            <motion.h2
+            <m.h2
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -1054,8 +1059,8 @@ export default function SmartoutLandingPage() {
               Mindre admin.
               <br />
               Mer på bunnlinjen.
-            </motion.h2>
-            <motion.p
+            </m.h2>
+            <m.p
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -1064,9 +1069,9 @@ export default function SmartoutLandingPage() {
             >
               Vi gir deg alt du trenger for å drive restauranten din mer lønnsomt — til en pris som
               gir mening.
-            </motion.p>
+            </m.p>
 
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -1079,17 +1084,71 @@ export default function SmartoutLandingPage() {
                 Se våre priser og pakker
                 <ArrowRight className="h-5 w-5 text-purple-400 transition-transform group-hover:translate-x-1" />
               </Link>
-            </motion.div>
+            </m.div>
+          </div>
+        </section>
+
+        {/* ─── Divider ─── */}
+        <div className="section-divider relative z-10 my-12 sm:my-20" />
+
+        {/* SMARTOUT AI SECTION */}
+        <section id="smartout-ai" className="relative z-10 py-20 sm:py-32">
+          <div className="pointer-events-none absolute top-1/2 left-1/2 h-[800px] w-[800px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-orange-500/5 mix-blend-screen blur-[120px]" />
+
+          <div className="mx-auto max-w-7xl px-6">
+            <m.div
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 0.8 }}
+              className="mb-10 text-center sm:mb-16"
+            >
+              <h2 className="mb-3 text-3xl font-black tracking-tight text-white sm:mb-6 sm:text-5xl">
+                {VARIANT_AI_SECTION.B.heading}
+              </h2>
+              <p className="mx-auto max-w-2xl text-sm text-zinc-400 sm:text-lg">
+                {VARIANT_AI_SECTION.B.subheading}
+              </p>
+            </m.div>
+
+            <div className="grid gap-10 lg:grid-cols-2">
+              {/* AI capability cards */}
+              <div className="space-y-6">
+                {VARIANT_AI_SECTION.B.capabilities.map((cap, i) => (
+                  <m.div
+                    key={cap.title}
+                    initial={{ opacity: 0, x: -20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5, delay: i * 0.12 }}
+                    className="group rounded-2xl border border-white/5 bg-white/[0.02] p-6 transition-colors hover:border-orange-500/20 hover:bg-orange-500/[0.03]"
+                  >
+                    <div className="mb-3 flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/10">
+                        {i === 0 && <Mic className="h-5 w-5 text-orange-400" />}
+                        {i === 1 && <BellRing className="h-5 w-5 text-orange-400" />}
+                        {i === 2 && <CalendarCheck className="h-5 w-5 text-orange-400" />}
+                      </div>
+                      <h3 className="text-lg font-bold text-white">{cap.title}</h3>
+                    </div>
+                    <p className="text-sm leading-relaxed text-zinc-400">{cap.description}</p>
+                  </m.div>
+                ))}
+              </div>
+
+              {/* Voice demo widget */}
+              <VoiceDemoWidget config={VARIANT_VOICE_CONFIG.B} height="460px" />
+            </div>
           </div>
         </section>
 
         {/* CTA Footer Section */}
-        <section className="relative z-10 mt-4 overflow-hidden py-16 sm:mt-10 sm:py-32 md:py-48">
+        <section className="relative z-10 overflow-hidden py-20 sm:py-32 md:py-48">
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0a0a0c]/80 to-[#0a0a0c]"></div>
           <div className="pointer-events-none absolute top-1/2 left-1/2 h-[800px] w-[1200px] -translate-x-1/2 -translate-y-1/2 rounded-[50%] bg-orange-500/10 blur-[150px]"></div>
 
           <div className="relative mx-auto max-w-4xl px-6 text-center">
-            <motion.h2
+            <m.h2
               initial={{ opacity: 0, scale: 0.9 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
@@ -1097,40 +1156,50 @@ export default function SmartoutLandingPage() {
               className="mb-6 text-4xl font-black tracking-tight text-white sm:mb-8 sm:text-5xl"
             >
               Klar for fremtiden?
-            </motion.h2>
-            <motion.div
+            </m.h2>
+            <m.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: 0.2 }}
               className="flex w-full justify-center"
             >
-              <Link href={onboardingHref} className="group relative w-full sm:w-auto">
-                <div className="absolute -inset-2 rounded-full bg-gradient-to-r from-orange-500 to-rose-500 opacity-50 blur-xl transition duration-500 group-hover:opacity-100"></div>
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  className="relative mx-auto flex w-full items-center justify-center gap-3 rounded-full bg-white px-8 py-4 text-sm font-black text-zinc-950 shadow-[0_0_40px_rgba(255,255,255,0.2)] transition-all group-hover:-translate-y-1 group-hover:shadow-[0_0_60px_rgba(255,255,255,0.4)] sm:w-auto sm:px-12 sm:py-5 sm:text-lg"
-                >
-                  <motion.span
-                    animate={{ rotate: [0, 10, -10, 0] }}
-                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                    className="inline-flex"
-                  >
-                    <Globe className="h-5 w-5 text-orange-600 drop-shadow-sm" />
-                  </motion.span>
+              <Link
+                href={WEB_APP_LINKS.login}
+                onClick={() => trackCta("Kom i gang")}
+                className="group relative block w-full sm:inline-block sm:w-auto"
+              >
+                <div className="absolute -inset-2 rounded-full bg-gradient-to-r from-orange-500 to-rose-500 opacity-40 blur-xl transition duration-500 group-hover:opacity-80" />
+                <span className="relative flex w-full items-center justify-center gap-3 rounded-full bg-white px-8 py-4 text-sm font-black text-zinc-950 shadow-[0_0_40px_rgba(255,255,255,0.15)] transition-all duration-300 group-hover:shadow-[0_0_60px_rgba(255,255,255,0.3)] sm:w-auto sm:px-12 sm:py-5 sm:text-lg">
                   Kom i gang
-                </motion.button>
+                  <ArrowRight className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1" />
+                </span>
               </Link>
-            </motion.div>
+            </m.div>
           </div>
         </section>
       </main>
+
+      {/* Floating back-to-top */}
+      <button
+        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        className={`fixed right-5 bottom-6 z-50 flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-[#0a0a0c]/90 text-zinc-400 shadow-lg backdrop-blur-md transition-all duration-300 hover:border-orange-500/30 hover:text-orange-400 sm:right-8 sm:bottom-8 sm:h-12 sm:w-12 ${
+          showBackToTop
+            ? "translate-y-0 opacity-100"
+            : "pointer-events-none translate-y-4 opacity-0"
+        }`}
+        aria-label="Tilbake til toppen"
+      >
+        <ArrowUp className="h-5 w-5" />
+      </button>
 
       <Footer />
     </div>
   );
 }
 
+// UI Events:
+// - nav: href (feature card click — links to feature detail page)
 function FeatureCard({
   icon: Icon,
   title,
@@ -1147,40 +1216,39 @@ function FeatureCard({
   href?: string;
 }) {
   const cardContent = (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 40 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-50px" }}
       transition={{ duration: 0.6, delay }}
-      whileHover={{ y: -10 }}
-      className={`group relative h-full overflow-hidden rounded-2xl border border-white/5 bg-[#0a0a0c]/40 shadow-2xl backdrop-blur-2xl transition-all duration-500 hover:border-white/10 sm:rounded-[32px] ${href ? "cursor-pointer" : ""}`}
+      className={`group relative h-full overflow-hidden rounded-2xl border border-white/5 bg-[#0a0a0c]/40 shadow-2xl backdrop-blur-2xl transition-all duration-500 hover:-translate-y-2 hover:border-white/10 hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)] sm:rounded-[32px] ${href ? "cursor-pointer" : ""}`}
     >
+      {/* Top edge highlight on hover */}
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      {/* Color glow behind card on hover */}
       <div
         className={`absolute -inset-1 bg-gradient-to-b ${color} opacity-0 blur-2xl transition-opacity duration-500 group-hover:opacity-10`}
-      ></div>
+      />
 
       <div className="relative z-10 flex h-full flex-col p-5 sm:p-8">
-        <motion.div
-          animate={{ y: [0, -3, 0] }}
-          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: delay * 2 }}
-          className={`h-11 w-11 rounded-xl bg-gradient-to-tr ${color} mb-4 p-[1px] shadow-2xl sm:mb-6 sm:h-14 sm:w-14 sm:rounded-2xl`}
+        <div
+          className={`h-11 w-11 rounded-xl bg-gradient-to-tr ${color} mb-4 p-[1px] shadow-2xl transition-transform duration-500 group-hover:scale-110 sm:mb-6 sm:h-14 sm:w-14 sm:rounded-2xl`}
         >
           <div className="flex h-full w-full items-center justify-center rounded-2xl bg-[#111]">
             <Icon className="h-6 w-6 text-white drop-shadow-md" />
           </div>
-        </motion.div>
-        <h3 className="mb-2 flex items-center justify-between text-lg font-bold tracking-tight text-white transition-all group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-zinc-400 group-hover:bg-clip-text group-hover:text-transparent sm:mb-4 sm:text-xl">
+        </div>
+        <h3 className="mb-2 flex items-center justify-between text-lg font-bold tracking-tight text-white transition-colors duration-300 sm:mb-4 sm:text-xl">
           {title}
           {href && (
-            <ArrowRight className="h-5 w-5 -translate-x-4 transform opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:text-zinc-300 group-hover:opacity-100" />
+            <ArrowRight className="h-5 w-5 -translate-x-4 transform text-zinc-400 opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:text-white group-hover:opacity-100" />
           )}
         </h3>
         <p className="text-sm leading-relaxed font-medium text-zinc-400 sm:text-base">
           {description}
         </p>
       </div>
-    </motion.div>
+    </m.div>
   );
 
   if (href) {

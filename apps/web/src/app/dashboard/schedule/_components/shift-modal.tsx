@@ -50,8 +50,12 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 
-import { useSchedule } from "./schedule-context";
-import { dummyEmployees } from "./schedule-data";
+import type { Shift } from "./schedule-types";
+import { useScheduleUI } from "./schedule-ui-context";
+import { useShifts, useCreateShift, useUpdateShift, useDeleteShift } from "../_hooks/use-shifts";
+import { useWeekRange } from "../_hooks/use-week-range";
+import { useEmployees, type ScheduleEmployee } from "../_hooks/use-employees";
+import { AVAILABLE_ZONES } from "./schedule-data";
 import type { DayCategory, ShiftStatus } from "./schedule-types";
 
 // ── Constants ───────────────────────────────────────────────
@@ -71,6 +75,20 @@ const DAY_CATEGORY_OPTIONS: { value: DayCategory; label: string }[] = [
   { value: "evening", label: "Kveld" },
   { value: "night", label: "Natt" },
   { value: "weekend", label: "Helg" },
+];
+
+/** Common shift time presets for quick-fill buttons */
+const SHIFT_PRESETS: {
+  label: string;
+  startTime: string;
+  endTime: string;
+  dayCategory: DayCategory;
+}[] = [
+  { label: "Morgenvakt", startTime: "06:00", endTime: "14:00", dayCategory: "morning" },
+  { label: "Dagvakt", startTime: "08:00", endTime: "16:00", dayCategory: "morning" },
+  { label: "Kveldsvakt", startTime: "15:00", endTime: "23:00", dayCategory: "evening" },
+  { label: "Nattvakt", startTime: "22:00", endTime: "06:00", dayCategory: "night" },
+  { label: "Delt vakt", startTime: "10:00", endTime: "14:00", dayCategory: "midday" },
 ];
 
 /** Notification channel options */
@@ -116,15 +134,11 @@ function inferDayCategory(startTime: string): DayCategory {
  * @param breakMinutes - Break duration in minutes
  * @returns Work hours as a decimal number
  */
-function calculateWorkHours(
-  startTime: string,
-  endTime: string,
-  breakMinutes: number,
-): number {
+function calculateWorkHours(startTime: string, endTime: string, breakMinutes: number): number {
   const [startH, startM] = startTime.split(":").map(Number);
   const [endH, endM] = endTime.split(":").map(Number);
 
-  let startTotal = (startH ?? 0) * 60 + (startM ?? 0);
+  const startTotal = (startH ?? 0) * 60 + (startM ?? 0);
   let endTotal = (endH ?? 0) * 60 + (endM ?? 0);
 
   // Handle overnight shifts
@@ -152,6 +166,8 @@ function getStatusBadgeVariant(
       return "secondary";
     case "unpublished":
       return "destructive";
+    case "created":
+    case "assigned":
     default:
       return "outline";
   }
@@ -174,6 +190,8 @@ function getStatusLabel(status: ShiftStatus): string {
       return "Fullført";
     case "unpublished":
       return "Avpublisert";
+    default:
+      return status;
   }
 }
 
@@ -209,15 +227,34 @@ type ShiftFormState = {
  * 6. Innstillinger — Break duration, special conditions
  */
 export function ShiftModal() {
-  const { state, dispatch, computed } = useSchedule();
+  const { selectedShiftId, createShiftContext, setSelectedShift, setCreateShiftContext } =
+    useScheduleUI();
+  const { weekStart, weekEnd } = useWeekRange();
+  const shiftsQuery = useShifts(weekStart, weekEnd);
+  const shifts = useMemo(() => (shiftsQuery.data ?? []) as Shift[], [shiftsQuery.data]);
+  const employeesQuery = useEmployees();
+  const employees = useMemo<ScheduleEmployee[]>(
+    () => employeesQuery.data ?? [],
+    [employeesQuery.data],
+  );
+  const createShiftMutation = useCreateShift(weekStart);
+  const updateShiftMutation = useUpdateShift(weekStart);
+  const deleteShiftMutation = useDeleteShift(weekStart);
+
+  /** Unique job titles / roles and teams derived from real employee data */
+  const availableRoles = useMemo(
+    () => [...new Set(employees.map((e) => e.jobTitle || e.role).filter((v): v is string => !!v))],
+    [employees],
+  );
+  const availableTeams = useMemo(
+    () => [...new Set(employees.map((e) => e.team).filter((v): v is string => !!v))],
+    [employees],
+  );
 
   // Determine mode: edit (existing shift) or create (new shift)
-  const isOpen =
-    state.selectedShiftId !== null || state.createShiftContext !== null;
-  const isEditMode = state.selectedShiftId !== null;
-  const existingShift = isEditMode
-    ? state.shifts.find((s) => s.id === state.selectedShiftId)
-    : null;
+  const isOpen = selectedShiftId !== null || createShiftContext !== null;
+  const isEditMode = selectedShiftId !== null;
+  const existingShift = isEditMode ? shifts.find((s: Shift) => s.id === selectedShiftId) : null;
 
   // ── Form state ──────────────────────────────────────────
 
@@ -244,12 +281,11 @@ export function ShiftModal() {
   useEffect(() => {
     if (existingShift) {
       // Edit mode: pre-fill from existing shift
+      const emp = employees.find((e) => e.id === existingShift.employeeId);
       setForm({
         employeeId: existingShift.employeeId ?? "",
         role: existingShift.role,
-        team:
-          dummyEmployees.find((e) => e.id === existingShift.employeeId)?.team ??
-          "",
+        team: emp?.team ?? "",
         startTime: existingShift.startTime,
         endTime: existingShift.endTime,
         dayCategory: existingShift.dayCategory,
@@ -259,17 +295,15 @@ export function ShiftModal() {
         breaks: existingShift.breaks,
         specialConditions: existingShift.notes ?? "",
       });
-    } else if (state.createShiftContext) {
+    } else if (createShiftContext) {
       // Create mode: pre-fill from context, rest is empty
-      const employee = state.createShiftContext.employeeId
-        ? dummyEmployees.find(
-            (e) => e.id === state.createShiftContext?.employeeId,
-          )
+      const employee = createShiftContext.employeeId
+        ? employees.find((e) => e.id === createShiftContext?.employeeId)
         : null;
 
       setForm({
-        employeeId: state.createShiftContext.employeeId ?? "",
-        role: employee?.role ?? "",
+        employeeId: createShiftContext.employeeId ?? "",
+        role: (employee?.jobTitle || employee?.role) ?? "",
         team: employee?.team ?? "",
         startTime: "08:00",
         endTime: "16:00",
@@ -281,9 +315,9 @@ export function ShiftModal() {
         specialConditions: "",
       });
     }
-    setShiftTasks([]);
+    setShiftTasks((prev) => (prev.length === 0 ? prev : []));
     setNewTaskLabel("");
-  }, [existingShift, state.createShiftContext]);
+  }, [existingShift, createShiftContext, employees]);
 
   // ── Computed values ─────────────────────────────────────
 
@@ -292,17 +326,15 @@ export function ShiftModal() {
     [form.startTime, form.endTime, form.breaks],
   );
 
-  const dateId = isEditMode
-    ? existingShift?.dateId
-    : state.createShiftContext?.dateId;
+  const dateId = isEditMode ? existingShift?.dateId : createShiftContext?.dateId;
 
   // ── Handlers ────────────────────────────────────────────
 
   /** Closes the modal and resets both selectedShiftId and createShiftContext */
   const handleClose = useCallback(() => {
-    dispatch({ type: "SET_SELECTED_SHIFT", payload: null });
-    dispatch({ type: "SET_CREATE_SHIFT_CONTEXT", payload: null });
-  }, [dispatch]);
+    setSelectedShift(null);
+    setCreateShiftContext(null);
+  }, [setSelectedShift, setCreateShiftContext]);
 
   /** Updates a single form field */
   const updateField = useCallback(
@@ -313,15 +345,18 @@ export function ShiftModal() {
   );
 
   /** Auto-fill role and team when employee changes */
-  const handleEmployeeChange = useCallback((employeeId: string) => {
-    const employee = dummyEmployees.find((e) => e.id === employeeId);
-    setForm((prev) => ({
-      ...prev,
-      employeeId,
-      role: employee?.role ?? prev.role,
-      team: employee?.team ?? prev.team,
-    }));
-  }, []);
+  const handleEmployeeChange = useCallback(
+    (employeeId: string) => {
+      const employee = employees.find((e) => e.id === employeeId);
+      setForm((prev) => ({
+        ...prev,
+        employeeId,
+        role: (employee?.jobTitle || employee?.role) ?? prev.role,
+        team: employee?.team ?? prev.team,
+      }));
+    },
+    [employees],
+  );
 
   /** Auto-calculate day category when start time changes */
   const handleStartTimeChange = useCallback((startTime: string) => {
@@ -347,61 +382,45 @@ export function ShiftModal() {
 
   /** Save shift (create or update) */
   const handleSave = useCallback(() => {
-    const timeDisplay = `${form.startTime} - ${form.endTime}`;
-    const hours = calculateWorkHours(
-      form.startTime,
-      form.endTime,
-      form.breaks,
-    );
+    const hours = calculateWorkHours(form.startTime, form.endTime, form.breaks);
     const status: ShiftStatus =
-      form.employeeId && form.isPublished
-        ? "published"
-        : form.employeeId
-          ? "assigned"
-          : "created";
+      form.employeeId && form.isPublished ? "published" : form.employeeId ? "assigned" : "created";
 
     if (isEditMode && existingShift) {
       // Update existing shift
-      dispatch({
-        type: "UPDATE_SHIFT",
-        payload: {
-          id: existingShift.id,
-          changes: {
-            employeeId: form.employeeId || null,
-            role: form.role,
-            time: timeDisplay,
-            startTime: form.startTime,
-            endTime: form.endTime,
-            workHours: hours,
-            dayCategory: form.dayCategory,
-            zone: form.zone || undefined,
-            status,
-            isPublished: form.isPublished,
-            breaks: form.breaks,
-            notes: form.specialConditions || undefined,
-          },
-        },
-      });
-    } else if (dateId) {
-      // Create new shift
-      dispatch({
-        type: "ADD_SHIFT",
-        payload: {
+      updateShiftMutation.mutate({
+        id: existingShift.id,
+        patch: {
           employeeId: form.employeeId || null,
-          dateId,
           role: form.role,
-          time: timeDisplay,
           startTime: form.startTime,
           endTime: form.endTime,
           workHours: hours,
-          status,
           dayCategory: form.dayCategory,
           zone: form.zone || undefined,
-          indicator: "blue",
+          status,
           isPublished: form.isPublished,
           breaks: form.breaks,
           notes: form.specialConditions || undefined,
         },
+      });
+    } else if (dateId) {
+      // Create new shift
+      createShiftMutation.mutate({
+        id: crypto.randomUUID(),
+        employeeId: form.employeeId || null,
+        dateId,
+        role: form.role,
+        startTime: form.startTime,
+        endTime: form.endTime,
+        workHours: hours,
+        status,
+        dayCategory: form.dayCategory,
+        zone: form.zone || undefined,
+        indicator: "blue",
+        isPublished: form.isPublished,
+        breaks: form.breaks,
+        notes: form.specialConditions || undefined,
       });
     }
 
@@ -411,21 +430,20 @@ export function ShiftModal() {
     isEditMode,
     existingShift,
     dateId,
-    dispatch,
+    createShiftMutation,
+    updateShiftMutation,
     handleClose,
   ]);
 
   /** Delete shift with confirmation */
   const handleDelete = useCallback(() => {
     if (!existingShift) return;
-    const confirmed = window.confirm(
-      "Er du sikker på at du vil slette dette skiftet?",
-    );
+    const confirmed = window.confirm("Er du sikker på at du vil slette dette skiftet?");
     if (confirmed) {
-      dispatch({ type: "DELETE_SHIFT", payload: { id: existingShift.id } });
+      deleteShiftMutation.mutate(existingShift.id);
       handleClose();
     }
-  }, [existingShift, dispatch, handleClose]);
+  }, [existingShift, deleteShiftMutation, handleClose]);
 
   /** Add a local task to the shift */
   const handleAddTask = useCallback(() => {
@@ -464,8 +482,7 @@ export function ShiftModal() {
 
   const payBreakdown = useMemo(() => {
     const base = workHours * BASE_HOURLY_RATE;
-    const isEveningOrNight =
-      form.dayCategory === "evening" || form.dayCategory === "night";
+    const isEveningOrNight = form.dayCategory === "evening" || form.dayCategory === "night";
     const isWeekend = form.dayCategory === "weekend";
 
     const eveningSupplement = isEveningOrNight ? base * EVENING_SUPPLEMENT : 0;
@@ -478,9 +495,19 @@ export function ShiftModal() {
   // ── History entries for Historie tab ────────────────────
 
   const historyEntries = useMemo(() => {
-    if (!existingShift) return [];
-    return computed.getHistoryForShift(existingShift.id);
-  }, [existingShift, computed]);
+    // History is now handled by the database audit log.
+    // Placeholder: return empty array. The audit log hook
+    // can be wired in when the shift is persisted.
+    return [] as {
+      id: string;
+      eventType: string;
+      field?: string;
+      oldValue?: string;
+      newValue?: string;
+      actor: string;
+      timestamp: string;
+    }[];
+  }, [existingShift]);
 
   // ── Render ──────────────────────────────────────────────
 
@@ -488,470 +515,522 @@ export function ShiftModal() {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
-            {isEditMode ? "Rediger skift" : "Nytt skift"}
-          </DialogTitle>
-          <DialogDescription>
-            {isEditMode
-              ? "Endre detaljer for dette skiftet"
-              : "Opprett et nytt skift for denne dagen"}
-          </DialogDescription>
-        </DialogHeader>
-
-        <Tabs defaultValue="detaljer" className="mt-2">
-          <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="detaljer" className="text-xs">
-              <Clock className="mr-1 h-3 w-3" />
-              Detaljer
-            </TabsTrigger>
-            <TabsTrigger value="funksjoner" className="text-xs">
-              <Settings className="mr-1 h-3 w-3" />
-              Funksjoner
-            </TabsTrigger>
-            <TabsTrigger value="historie" className="text-xs">
-              <History className="mr-1 h-3 w-3" />
-              Historie
-            </TabsTrigger>
-            <TabsTrigger value="lonn" className="text-xs">
-              <Wallet className="mr-1 h-3 w-3" />
-              Lønn
-            </TabsTrigger>
-            <TabsTrigger value="oppgaver" className="text-xs">
-              <ListChecks className="mr-1 h-3 w-3" />
-              Oppgaver
-            </TabsTrigger>
-            <TabsTrigger value="innstillinger" className="text-xs">
-              <Settings className="mr-1 h-3 w-3" />
-              Innstillinger
-            </TabsTrigger>
-          </TabsList>
-
-          {/* ── Tab 1: Detaljer ─────────────────────────────── */}
-          <TabsContent value="detaljer" className="space-y-4 mt-4">
-            {/* Employee select */}
-            <div className="space-y-2">
-              <Label htmlFor="employee">Ansatt</Label>
-              <Select
-                value={form.employeeId}
-                onValueChange={handleEmployeeChange}
+      <DialogContent className="max-h-[85vh] max-w-2xl gap-0 overflow-y-auto p-0">
+        {/* Header with status accent */}
+        <div className="border-border relative overflow-hidden rounded-t-lg border-b px-6 pt-6 pb-4">
+          {isEditMode && existingShift && (
+            <div
+              className={`absolute top-0 left-0 h-1 w-full ${
+                existingShift.status === "published"
+                  ? "bg-emerald-500"
+                  : existingShift.status === "active"
+                    ? "bg-blue-500"
+                    : existingShift.status === "completed"
+                      ? "bg-zinc-500"
+                      : "bg-orange-500"
+              }`}
+            />
+          )}
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div
+                className={`flex h-10 w-10 items-center justify-center rounded-xl ${
+                  isEditMode
+                    ? "bg-orange-500/10 text-orange-500"
+                    : "bg-emerald-500/10 text-emerald-500"
+                }`}
               >
-                <SelectTrigger id="employee">
-                  <SelectValue placeholder="Velg ansatt (valgfritt)" />
-                </SelectTrigger>
-                <SelectContent>
-                  {dummyEmployees.map((emp) => (
-                    <SelectItem key={emp.id} value={emp.id}>
-                      {emp.name} — {emp.role}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <Clock className="h-5 w-5" />
+              </div>
+              <div>
+                <DialogTitle className="text-base">
+                  {isEditMode ? "Rediger skift" : "Nytt skift"}
+                </DialogTitle>
+                <DialogDescription className="text-xs">
+                  {isEditMode && existingShift
+                    ? `${dateId} · ${getStatusLabel(existingShift.status)}`
+                    : dateId
+                      ? `Opprett skift for ${dateId}`
+                      : "Opprett et nytt skift"}
+                </DialogDescription>
+              </div>
+              {isEditMode && existingShift && (
+                <Badge variant={getStatusBadgeVariant(existingShift.status)} className="ml-auto">
+                  {getStatusLabel(existingShift.status)}
+                </Badge>
+              )}
             </div>
+          </DialogHeader>
+        </div>
 
-            {/* Role + Team row */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="role">Rolle</Label>
-                <Input
-                  id="role"
-                  value={form.role}
-                  onChange={(e) => updateField("role", e.target.value)}
-                  placeholder="f.eks. Sous Chef"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="team">Team</Label>
-                <Input
-                  id="team"
-                  value={form.team}
-                  onChange={(e) => updateField("team", e.target.value)}
-                  placeholder="f.eks. Kjøkken"
-                />
-              </div>
-            </div>
+        <div className="px-6 pt-4 pb-2">
+          <Tabs defaultValue="detaljer">
+            <TabsList
+              className={`mb-4 grid w-full ${isEditMode ? "grid-cols-6" : "grid-cols-4"} h-9`}
+            >
+              <TabsTrigger value="detaljer" className="gap-1.5 text-[11px]">
+                <Clock className="h-3 w-3" />
+                Detaljer
+              </TabsTrigger>
+              <TabsTrigger value="funksjoner" className="gap-1.5 text-[11px]">
+                <Settings className="h-3 w-3" />
+                Funksjoner
+              </TabsTrigger>
+              {isEditMode && (
+                <TabsTrigger value="historie" className="gap-1.5 text-[11px]">
+                  <History className="h-3 w-3" />
+                  Historie
+                </TabsTrigger>
+              )}
+              {isEditMode && (
+                <TabsTrigger value="lonn" className="gap-1.5 text-[11px]">
+                  <Wallet className="h-3 w-3" />
+                  Lønn
+                </TabsTrigger>
+              )}
+              <TabsTrigger value="oppgaver" className="gap-1.5 text-[11px]">
+                <ListChecks className="h-3 w-3" />
+                Oppgaver
+              </TabsTrigger>
+              <TabsTrigger value="innstillinger" className="gap-1.5 text-[11px]">
+                <Settings className="h-3 w-3" />
+                Innstillinger
+              </TabsTrigger>
+            </TabsList>
 
-            {/* Date display (read-only) */}
-            {dateId && (
+            {/* ── Tab 1: Detaljer ─────────────────────────────── */}
+            <TabsContent value="detaljer" className="mt-4 space-y-3">
+              {/* Employee select */}
               <div className="space-y-2">
-                <Label>Dato</Label>
-                <div className="flex items-center gap-2 rounded-md border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
-                  <Calendar className="h-4 w-4" />
-                  {dateId}
-                </div>
-              </div>
-            )}
-
-            {/* Start + End time row */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="startTime">Starttid</Label>
-                <Input
-                  id="startTime"
-                  type="time"
-                  value={form.startTime}
-                  onChange={(e) => handleStartTimeChange(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="endTime">Sluttid</Label>
-                <Input
-                  id="endTime"
-                  type="time"
-                  value={form.endTime}
-                  onChange={(e) => updateField("endTime", e.target.value)}
-                />
-              </div>
-            </div>
-
-            {/* Work hours display */}
-            <div className="text-sm text-muted-foreground">
-              Arbeidstimer: {workHours.toFixed(1)}t (inkl. {form.breaks} min
-              pause)
-            </div>
-
-            {/* Day category + Zone row */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="dayCategory">Dagkategori</Label>
-                <Select
-                  value={form.dayCategory}
-                  onValueChange={(v) =>
-                    updateField("dayCategory", v as DayCategory)
-                  }
-                >
-                  <SelectTrigger id="dayCategory">
-                    <SelectValue />
+                <Label htmlFor="employee">Ansatt</Label>
+                <Select value={form.employeeId} onValueChange={handleEmployeeChange}>
+                  <SelectTrigger id="employee">
+                    <SelectValue placeholder="Velg ansatt (valgfritt)" />
                   </SelectTrigger>
                   <SelectContent>
-                    {DAY_CATEGORY_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
+                    {employees.map((emp) => (
+                      <SelectItem key={emp.id} value={emp.id}>
+                        {emp.name} — {emp.jobTitle || emp.role}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="zone">Sone</Label>
-                <Input
-                  id="zone"
-                  value={form.zone}
-                  onChange={(e) => updateField("zone", e.target.value)}
-                  placeholder="f.eks. Hovedkjøkken"
-                />
-              </div>
-            </div>
 
-            {/* Status badge (read-only in edit mode) */}
-            {isEditMode && existingShift && (
-              <div className="space-y-2">
-                <Label>Status</Label>
-                <div>
-                  <Badge variant={getStatusBadgeVariant(existingShift.status)}>
-                    {getStatusLabel(existingShift.status)}
-                  </Badge>
+              {/* Role + Team row */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="role">Rolle</Label>
+                  <Select value={form.role} onValueChange={(v) => updateField("role", v)}>
+                    <SelectTrigger id="role">
+                      <SelectValue placeholder="Velg rolle" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableRoles.map((r) => (
+                        <SelectItem key={r} value={r}>
+                          {r}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="team">Team</Label>
+                  <Select value={form.team} onValueChange={(v) => updateField("team", v)}>
+                    <SelectTrigger id="team">
+                      <SelectValue placeholder="Velg team" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableTeams.map((t) => (
+                        <SelectItem key={t} value={t}>
+                          {t}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-            )}
 
-            {/* Publish toggle + notification channels */}
-            <div className="space-y-3 rounded-md border border-border p-3">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="publish-toggle" className="cursor-pointer">
-                  Publiser skift
-                </Label>
-                <Switch
-                  id="publish-toggle"
-                  checked={form.isPublished}
-                  onCheckedChange={(checked) =>
-                    updateField("isPublished", checked)
-                  }
-                />
-              </div>
-
-              {form.isPublished && (
+              {/* Date display (read-only) */}
+              {dateId && (
                 <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">
-                    Varslingskanaler
-                  </Label>
-                  <div className="flex gap-2">
-                    {NOTIFICATION_CHANNELS.map((ch) => {
-                      const Icon = ch.icon;
-                      const isActive = form.notificationChannels.has(ch.id);
-                      return (
-                        <Button
-                          key={ch.id}
-                          type="button"
-                          variant={isActive ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => toggleChannel(ch.id)}
-                          className="gap-1.5"
-                        >
-                          <Icon className="h-3.5 w-3.5" />
-                          {ch.label}
-                        </Button>
-                      );
-                    })}
+                  <Label>Dato</Label>
+                  <div className="border-border bg-muted text-muted-foreground flex items-center gap-2 rounded-md border px-3 py-2 text-sm">
+                    <Calendar className="h-4 w-4" />
+                    {dateId}
                   </div>
                 </div>
               )}
-            </div>
-          </TabsContent>
 
-          {/* ── Tab 2: Funksjoner ───────────────────────────── */}
-          <TabsContent value="funksjoner" className="mt-4">
-            <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
-              <Settings className="mb-3 h-10 w-10 opacity-30" />
-              <p className="text-sm">
-                Tilleggsfunksjoner konfigureres per workspace
-              </p>
-            </div>
-          </TabsContent>
-
-          {/* ── Tab 3: Historie ──────────────────────────────── */}
-          <TabsContent value="historie" className="mt-4">
-            {historyEntries.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
-                <History className="mb-3 h-10 w-10 opacity-30" />
-                <p className="text-sm">Ingen historikk ennå</p>
+              {/* Shift time presets for quick-fill */}
+              <div className="space-y-1.5">
+                <Label className="text-muted-foreground text-xs">Hurtigvalg</Label>
+                <div className="flex flex-wrap gap-1.5">
+                  {SHIFT_PRESETS.map((preset) => (
+                    <Button
+                      key={preset.label}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-[11px]"
+                      onClick={() => {
+                        setForm((prev) => ({
+                          ...prev,
+                          startTime: preset.startTime,
+                          endTime: preset.endTime,
+                          dayCategory: preset.dayCategory,
+                        }));
+                      }}
+                    >
+                      {preset.label}
+                    </Button>
+                  ))}
+                </div>
               </div>
-            ) : (
-              <div className="space-y-2">
-                {historyEntries.map((entry) => (
-                  <div
-                    key={entry.id}
-                    className="flex items-start gap-3 rounded-md border border-border p-3 text-sm"
+
+              {/* Start + End time row with inline work hours */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label htmlFor="startTime" className="text-xs">
+                    Starttid
+                  </Label>
+                  <Input
+                    id="startTime"
+                    type="time"
+                    value={form.startTime}
+                    onChange={(e) => handleStartTimeChange(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="endTime" className="text-xs">
+                    Sluttid
+                  </Label>
+                  <Input
+                    id="endTime"
+                    type="time"
+                    value={form.endTime}
+                    onChange={(e) => updateField("endTime", e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="text-muted-foreground -mt-1 text-xs">
+                {workHours.toFixed(1)}t arbeid (inkl. {form.breaks} min pause)
+              </div>
+
+              {/* Day category + Zone row */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="dayCategory">Dagkategori</Label>
+                  <Select
+                    value={form.dayCategory}
+                    onValueChange={(v) => updateField("dayCategory", v as DayCategory)}
                   >
-                    <div className="mt-0.5 flex-shrink-0">
-                      <History className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs">
-                          {entry.eventType}
-                        </Badge>
-                        {entry.field && (
-                          <span className="text-muted-foreground">
-                            {entry.field}
-                          </span>
-                        )}
-                      </div>
-                      {(entry.oldValue || entry.newValue) && (
-                        <div className="mt-1 text-xs text-muted-foreground">
-                          {entry.oldValue && (
-                            <span className="line-through">
-                              {entry.oldValue}
-                            </span>
-                          )}
-                          {entry.oldValue && entry.newValue && " → "}
-                          {entry.newValue && (
-                            <span className="font-medium text-foreground">
-                              {entry.newValue}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                      <div className="mt-1 text-xs text-muted-foreground">
-                        {entry.actor} —{" "}
-                        {new Date(entry.timestamp).toLocaleString("nb-NO")}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-
-          {/* ── Tab 4: Lønnsgrunnlag ────────────────────────── */}
-          <TabsContent value="lonn" className="mt-4">
-            <div className="space-y-4">
-              <div className="rounded-md border border-border">
-                <div className="border-b border-border px-4 py-3">
-                  <h4 className="text-sm font-medium">Beregnet lønn</h4>
+                    <SelectTrigger id="dayCategory">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DAY_CATEGORY_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <div className="space-y-3 p-4">
-                  {/* Base pay */}
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      Grunnlønn ({workHours.toFixed(1)}t x {BASE_HOURLY_RATE}{" "}
-                      NOK)
-                    </span>
-                    <span>{payBreakdown.base.toFixed(0)} NOK</span>
-                  </div>
-
-                  {/* Evening supplement */}
-                  {payBreakdown.eveningSupplement > 0 && (
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">
-                        Kveld/natt-tillegg (+{EVENING_SUPPLEMENT * 100}%)
-                      </span>
-                      <span>
-                        {payBreakdown.eveningSupplement.toFixed(0)} NOK
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Weekend supplement */}
-                  {payBreakdown.weekendSupplement > 0 && (
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">
-                        Helgetillegg (+{WEEKEND_SUPPLEMENT * 100}%)
-                      </span>
-                      <span>
-                        {payBreakdown.weekendSupplement.toFixed(0)} NOK
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Separator */}
-                  <div className="border-t border-border" />
-
-                  {/* Total */}
-                  <div className="flex items-center justify-between font-medium">
-                    <span>Totalt</span>
-                    <span>{payBreakdown.total.toFixed(0)} NOK</span>
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="zone">Sone</Label>
+                  <Select value={form.zone} onValueChange={(v) => updateField("zone", v)}>
+                    <SelectTrigger id="zone">
+                      <SelectValue placeholder="Velg sone" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {AVAILABLE_ZONES.map((z) => (
+                        <SelectItem key={z} value={z}>
+                          {z}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
-              <p className="text-xs text-muted-foreground">
-                Estimat basert på standardsatser. Faktisk lønn beregnes av
-                lønnssystem.
-              </p>
-            </div>
-          </TabsContent>
+              {/* Publish toggle + notification channels */}
+              <div className="border-border space-y-3 rounded-md border p-3">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="publish-toggle" className="cursor-pointer">
+                    Publiser skift
+                  </Label>
+                  <Switch
+                    id="publish-toggle"
+                    checked={form.isPublished}
+                    onCheckedChange={(checked) => updateField("isPublished", checked)}
+                  />
+                </div>
 
-          {/* ── Tab 5: Oppgaver ──────────────────────────────── */}
-          <TabsContent value="oppgaver" className="mt-4">
-            <div className="space-y-4">
-              {/* Add task input */}
-              <div className="flex gap-2">
-                <Input
-                  value={newTaskLabel}
-                  onChange={(e) => setNewTaskLabel(e.target.value)}
-                  placeholder="Legg til oppgave..."
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAddTask();
-                    }
-                  }}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={handleAddTask}
-                  disabled={!newTaskLabel.trim()}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
+                {form.isPublished && (
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground text-xs">Varslingskanaler</Label>
+                    <div className="flex gap-2">
+                      {NOTIFICATION_CHANNELS.map((ch) => {
+                        const Icon = ch.icon;
+                        const isActive = form.notificationChannels.has(ch.id);
+                        return (
+                          <Button
+                            key={ch.id}
+                            type="button"
+                            variant={isActive ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => toggleChannel(ch.id)}
+                            className="gap-1.5"
+                          >
+                            <Icon className="h-3.5 w-3.5" />
+                            {ch.label}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
+            </TabsContent>
 
-              {/* Task list */}
-              {shiftTasks.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
-                  <ListChecks className="mb-3 h-10 w-10 opacity-30" />
-                  <p className="text-sm">Ingen oppgaver lagt til</p>
+            {/* ── Tab 2: Funksjoner ───────────────────────────── */}
+            <TabsContent value="funksjoner" className="mt-4">
+              <div className="text-muted-foreground flex flex-col items-center justify-center py-12 text-center">
+                <Settings className="mb-3 h-10 w-10 opacity-30" />
+                <p className="text-sm">Tilleggsfunksjoner konfigureres per workspace</p>
+              </div>
+            </TabsContent>
+
+            {/* ── Tab 3: Historie ──────────────────────────────── */}
+            <TabsContent value="historie" className="mt-4">
+              {historyEntries.length === 0 ? (
+                <div className="text-muted-foreground flex flex-col items-center justify-center py-12 text-center">
+                  <History className="mb-3 h-10 w-10 opacity-30" />
+                  <p className="text-sm">Ingen historikk ennå</p>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {shiftTasks.map((task) => (
+                  {historyEntries.map((entry) => (
                     <div
-                      key={task.id}
-                      className="flex items-center gap-3 rounded-md border border-border p-2.5"
+                      key={entry.id}
+                      className="border-border flex items-start gap-3 rounded-md border p-3 text-sm"
                     >
-                      <button
-                        type="button"
-                        onClick={() => handleToggleTask(task.id)}
-                        className="flex-shrink-0 text-muted-foreground hover:text-foreground"
-                      >
-                        <CheckCircle2
-                          className={`h-5 w-5 ${
-                            task.status === "completed"
-                              ? "text-emerald-500"
-                              : ""
-                          }`}
-                        />
-                      </button>
-                      <span
-                        className={`flex-1 text-sm ${
-                          task.status === "completed"
-                            ? "text-muted-foreground line-through"
-                            : ""
-                        }`}
-                      >
-                        {task.label}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteTask(task.id)}
-                        className="flex-shrink-0 text-muted-foreground hover:text-destructive"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
+                      <div className="mt-0.5 flex-shrink-0">
+                        <History className="text-muted-foreground h-4 w-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs">
+                            {entry.eventType}
+                          </Badge>
+                          {entry.field && (
+                            <span className="text-muted-foreground">{entry.field}</span>
+                          )}
+                        </div>
+                        {(entry.oldValue || entry.newValue) && (
+                          <div className="text-muted-foreground mt-1 text-xs">
+                            {entry.oldValue && (
+                              <span className="line-through">{entry.oldValue}</span>
+                            )}
+                            {entry.oldValue && entry.newValue && " → "}
+                            {entry.newValue && (
+                              <span className="text-foreground font-medium">{entry.newValue}</span>
+                            )}
+                          </div>
+                        )}
+                        <div className="text-muted-foreground mt-1 text-xs">
+                          {entry.actor} — {new Date(entry.timestamp).toLocaleString("nb-NO")}
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
               )}
-            </div>
-          </TabsContent>
+            </TabsContent>
 
-          {/* ── Tab 6: Innstillinger ────────────────────────── */}
-          <TabsContent value="innstillinger" className="mt-4 space-y-4">
-            {/* Break duration */}
-            <div className="space-y-2">
-              <Label htmlFor="breaks">Pausevarighet (minutter)</Label>
-              <Input
-                id="breaks"
-                type="number"
-                min={0}
-                max={120}
-                value={form.breaks}
-                onChange={(e) =>
-                  updateField("breaks", Math.max(0, parseInt(e.target.value) || 0))
-                }
-              />
-              <p className="text-xs text-muted-foreground">
-                Arbeidstimer justeres automatisk ({workHours.toFixed(1)}t etter
-                pause)
-              </p>
-            </div>
+            {/* ── Tab 4: Lønnsgrunnlag ────────────────────────── */}
+            <TabsContent value="lonn" className="mt-4">
+              <div className="space-y-4">
+                <div className="border-border rounded-md border">
+                  <div className="border-border border-b px-4 py-3">
+                    <h4 className="text-sm font-medium">Beregnet lønn</h4>
+                  </div>
+                  <div className="space-y-3 p-4">
+                    {/* Base pay */}
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">
+                        Grunnlønn ({workHours.toFixed(1)}t x {BASE_HOURLY_RATE} NOK)
+                      </span>
+                      <span>{payBreakdown.base.toFixed(0)} NOK</span>
+                    </div>
 
-            {/* Special conditions */}
-            <div className="space-y-2">
-              <Label htmlFor="specialConditions">Spesielle betingelser</Label>
-              <Textarea
-                id="specialConditions"
-                value={form.specialConditions}
-                onChange={(e) =>
-                  updateField("specialConditions", e.target.value)
-                }
-                placeholder="Eventuelle merknader, spesialkrav, etc."
-                rows={4}
-              />
-            </div>
-          </TabsContent>
-        </Tabs>
+                    {/* Evening supplement */}
+                    {payBreakdown.eveningSupplement > 0 && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          Kveld/natt-tillegg (+{EVENING_SUPPLEMENT * 100}%)
+                        </span>
+                        <span>{payBreakdown.eveningSupplement.toFixed(0)} NOK</span>
+                      </div>
+                    )}
 
-        <DialogFooter className="mt-4 gap-2 sm:gap-0">
+                    {/* Weekend supplement */}
+                    {payBreakdown.weekendSupplement > 0 && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          Helgetillegg (+{WEEKEND_SUPPLEMENT * 100}%)
+                        </span>
+                        <span>{payBreakdown.weekendSupplement.toFixed(0)} NOK</span>
+                      </div>
+                    )}
+
+                    {/* Separator */}
+                    <div className="border-border border-t" />
+
+                    {/* Total */}
+                    <div className="flex items-center justify-between font-medium">
+                      <span>Totalt</span>
+                      <span>{payBreakdown.total.toFixed(0)} NOK</span>
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-muted-foreground text-xs">
+                  Estimat basert på standardsatser. Faktisk lønn beregnes av lønnssystem.
+                </p>
+              </div>
+            </TabsContent>
+
+            {/* ── Tab 5: Oppgaver ──────────────────────────────── */}
+            <TabsContent value="oppgaver" className="mt-4">
+              <div className="space-y-4">
+                {/* Add task input */}
+                <div className="flex gap-2">
+                  <Input
+                    value={newTaskLabel}
+                    onChange={(e) => setNewTaskLabel(e.target.value)}
+                    placeholder="Legg til oppgave..."
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddTask();
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={handleAddTask}
+                    disabled={!newTaskLabel.trim()}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                {/* Task list */}
+                {shiftTasks.length === 0 ? (
+                  <div className="text-muted-foreground flex flex-col items-center justify-center py-8 text-center">
+                    <ListChecks className="mb-3 h-10 w-10 opacity-30" />
+                    <p className="text-sm">Ingen oppgaver lagt til</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {shiftTasks.map((task) => (
+                      <div
+                        key={task.id}
+                        className="border-border flex items-center gap-3 rounded-md border p-2.5"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => handleToggleTask(task.id)}
+                          className="text-muted-foreground hover:text-foreground flex-shrink-0"
+                        >
+                          <CheckCircle2
+                            className={`h-5 w-5 ${
+                              task.status === "completed" ? "text-emerald-500" : ""
+                            }`}
+                          />
+                        </button>
+                        <span
+                          className={`flex-1 text-sm ${
+                            task.status === "completed" ? "text-muted-foreground line-through" : ""
+                          }`}
+                        >
+                          {task.label}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteTask(task.id)}
+                          className="text-muted-foreground hover:text-destructive flex-shrink-0"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+
+            {/* ── Tab 6: Innstillinger ────────────────────────── */}
+            <TabsContent value="innstillinger" className="mt-4 space-y-4">
+              {/* Break duration */}
+              <div className="space-y-2">
+                <Label htmlFor="breaks">Pausevarighet (minutter)</Label>
+                <Input
+                  id="breaks"
+                  type="number"
+                  min={0}
+                  max={120}
+                  value={form.breaks}
+                  onChange={(e) =>
+                    updateField("breaks", Math.max(0, parseInt(e.target.value) || 0))
+                  }
+                />
+                <p className="text-muted-foreground text-xs">
+                  Arbeidstimer justeres automatisk ({workHours.toFixed(1)}t etter pause)
+                </p>
+              </div>
+
+              {/* Special conditions */}
+              <div className="space-y-2">
+                <Label htmlFor="specialConditions">Spesielle betingelser</Label>
+                <Textarea
+                  id="specialConditions"
+                  value={form.specialConditions}
+                  onChange={(e) => updateField("specialConditions", e.target.value)}
+                  placeholder="Eventuelle merknader, spesialkrav, etc."
+                  rows={4}
+                />
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+
+        <DialogFooter className="border-border gap-2 border-t px-6 py-4 sm:gap-0">
           {isEditMode && (
             <Button
               type="button"
               variant="destructive"
+              size="sm"
               onClick={handleDelete}
               className="mr-auto gap-1.5"
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="h-3.5 w-3.5" />
               Slett
             </Button>
           )}
-          <Button type="button" variant="outline" onClick={handleClose}>
+          <Button type="button" variant="outline" size="sm" onClick={handleClose}>
             Avbryt
           </Button>
-          <Button type="button" onClick={handleSave}>
+          <Button
+            type="button"
+            size="sm"
+            onClick={handleSave}
+            className="bg-orange-600 text-white hover:bg-orange-700"
+          >
             {isEditMode ? "Lagre endringer" : "Opprett skift"}
           </Button>
         </DialogFooter>

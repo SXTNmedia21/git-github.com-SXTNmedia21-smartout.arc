@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   MapPin,
   Plus,
@@ -63,6 +64,7 @@ export function LocationsTab({
   onRefresh,
   loading,
 }: LocationsTabProps) {
+  const router = useRouter();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -306,7 +308,11 @@ export function LocationsTab({
             const locAssets = assetsByLocation[loc.location_id] ?? [];
 
             return (
-              <div key={loc.location_id} className={`group relative ${cardBase}`}>
+              <div
+                key={loc.location_id}
+                className={`group relative cursor-pointer ${cardBase}`}
+                onClick={() => router.push(`/dashboard/organization/locations/${loc.location_id}`)}
+              >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <GripVertical
@@ -334,6 +340,7 @@ export function LocationsTab({
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button
+                        onClick={(e) => e.stopPropagation()}
                         className={`rounded-md p-1 opacity-0 transition-all group-hover:opacity-100 ${
                           isDark
                             ? "text-zinc-500 hover:bg-zinc-800"
@@ -401,7 +408,10 @@ export function LocationsTab({
                   )}
 
                   <button
-                    onClick={() => toggleExpandedZones(loc.location_id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleExpandedZones(loc.location_id);
+                    }}
                     className="flex items-center gap-1.5 transition-colors hover:opacity-80"
                   >
                     <Layers className={`h-3 w-3 ${isDark ? "text-zinc-600" : "text-zinc-400"}`} />
@@ -416,7 +426,10 @@ export function LocationsTab({
                   </button>
 
                   <button
-                    onClick={() => toggleExpandedAssets(loc.location_id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleExpandedAssets(loc.location_id);
+                    }}
                     className="flex items-center gap-1.5 transition-colors hover:opacity-80"
                   >
                     <Package className={`h-3 w-3 ${isDark ? "text-zinc-600" : "text-zinc-400"}`} />
@@ -447,6 +460,7 @@ export function LocationsTab({
                 {/* Zone drill-down */}
                 {isZonesExpanded && (
                   <div
+                    onClick={(e) => e.stopPropagation()}
                     className={`mt-3 space-y-1.5 rounded-lg border p-3 ${
                       isDark ? "border-zinc-800/50 bg-zinc-900/50" : "border-zinc-100 bg-zinc-50"
                     }`}
@@ -544,6 +558,7 @@ export function LocationsTab({
                 {/* Asset drill-down */}
                 {isAssetsExpanded && (
                   <div
+                    onClick={(e) => e.stopPropagation()}
                     className={`mt-3 space-y-1.5 rounded-lg border p-3 ${
                       isDark ? "border-zinc-800/50 bg-zinc-900/50" : "border-zinc-100 bg-zinc-50"
                     }`}

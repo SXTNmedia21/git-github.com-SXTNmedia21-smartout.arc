@@ -1,10 +1,98 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+interface SerperOrganicResult {
+  title: string;
+  link: string;
+  snippet: string;
+  position: number;
+}
+
+interface SerperNewsResult {
+  title: string;
+  link: string;
+  snippet: string;
+  date: string;
+  source: string;
+}
+
+interface SerperKnowledgeGraph {
+  title?: string;
+  rating?: number;
+  ratingCount?: number;
+  type?: string;
+  description?: string;
+}
+
+interface WebSearchResult {
+  rating: number | null;
+  reviewCount: number | null;
+  newsArticles: { title: string; url: string; snippet: string }[];
+  seasonalPatterns: string[];
+  mentions: string[];
+  jobListings: string[];
+}
+
+const SEASONAL_KEYWORDS = [
+  "sommermeny",
+  "julebord",
+  "påske",
+  "vinter",
+  "sommer",
+  "terrasse",
+  "uteservering",
+  "sesong",
+  "nyttår",
+  "valentines",
+  "17. mai",
+  "sommersesong",
+  "vintersesong",
+];
+
+const JOB_KEYWORDS = [
+  "stilling",
+  "ledig",
+  "søker",
+  "ansette",
+  "bartender",
+  "kokk",
+  "servitør",
+  "chef",
+  "waiter",
+  "sous chef",
+  "kjøkkensjef",
+  "hovmester",
+  "sommelier",
+];
+
+function extractSeasonalPatterns(texts: string[]): string[] {
+  const found = new Set<string>();
+  const joined = texts.join(" ").toLowerCase();
+  for (const keyword of SEASONAL_KEYWORDS) {
+    if (joined.includes(keyword.toLowerCase())) {
+      found.add(keyword);
+    }
+  }
+  return [...found];
+}
+
+function extractJobListings(results: SerperOrganicResult[]): string[] {
+  const jobs: string[] = [];
+  for (const r of results) {
+    const text = `${r.title} ${r.snippet}`.toLowerCase();
+    for (const keyword of JOB_KEYWORDS) {
+      if (text.includes(keyword.toLowerCase())) {
+        jobs.push(r.title);
+        break;
+      }
+    }
+  }
+  return jobs.slice(0, 5);
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -12,74 +100,94 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      {
-        global: { headers: { Authorization: req.headers.get("Authorization")! } },
-      },
-    );
+    const { companyName, city } = await req.json();
 
-    const payload = await req.json();
-    const { sessionId, companyName, scrapedData } = payload;
-
-    if (!sessionId || !companyName) {
-      return new Response(JSON.stringify({ error: "sessionId and companyName are required." }), {
+    if (!companyName) {
+      return new Response(JSON.stringify({ error: "companyName is required." }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 400,
       });
     }
 
-    console.log(`Starting background intelligence for ${companyName} (${sessionId})`);
+    const apiKey = Deno.env.get("SERPER_API_KEY");
+    if (!apiKey) {
+      console.warn("SERPER_API_KEY not configured, returning empty results");
+      const empty: WebSearchResult = {
+        rating: null,
+        reviewCount: null,
+        newsArticles: [],
+        seasonalPatterns: [],
+        mentions: [],
+        jobListings: [],
+      };
+      return new Response(JSON.stringify(empty), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
 
-    // 1. Perform mock Web Search (Replace with real SerpAPI/Brave Search later)
-    const webSearchData = {
-      rating: 4.3,
-      reviewCount: 127,
-      classification: ["Restaurant", "Bar"],
-      mentions: ["Great terrace in summer", "Award winning cocktails"],
-      seasonalPatterns: ["Sommermeny", "Julebord"],
-      jobListings: ["Sous Chef", "Bartender"],
+    const searchQuery = `"${companyName}" ${city || ""}`.trim();
+    const headers = {
+      "X-API-KEY": apiKey,
+      "Content-Type": "application/json",
     };
 
-    // Save web search data to DB
-    const { error: updateError } = await supabaseClient
-      .from("onboarding_session")
-      .update({ web_search_data: webSearchData })
-      .eq("id", sessionId);
+    // Run search + news in parallel
+    const [searchRes, newsRes] = await Promise.all([
+      fetch("https://google.serper.dev/search", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ q: searchQuery, gl: "no", hl: "no", num: 10 }),
+      })
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null),
+      fetch("https://google.serper.dev/news", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ q: searchQuery, gl: "no", hl: "no", num: 5 }),
+      })
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null),
+    ]);
 
-    if (updateError) console.error("Error saving web search data:", updateError);
+    const organic: SerperOrganicResult[] = searchRes?.organic || [];
+    const kg: SerperKnowledgeGraph | null = searchRes?.knowledgeGraph || null;
+    const news: SerperNewsResult[] = newsRes?.news || [];
 
-    // 2. Trigger AI Analysis
-    const edgeFunctionUrl = Deno.env.get("SUPABASE_URL")
-      ? `${Deno.env.get("SUPABASE_URL")}/functions/v1`
-      : "http://host.docker.internal:54321/functions/v1";
+    const allSnippets = [...organic.map((r) => r.snippet), ...news.map((r) => r.snippet)];
 
-    await fetch(`${edgeFunctionUrl}/analyze-workspace`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: req.headers.get("Authorization")!,
-      },
-      body: JSON.stringify({
-        sessionId,
-        companyName,
-        scrapedData,
-        webSearchData,
-      }),
-    });
+    const result: WebSearchResult = {
+      rating: kg?.rating || null,
+      reviewCount: kg?.ratingCount || null,
+      newsArticles: news.map((n) => ({
+        title: n.title,
+        url: n.link,
+        snippet: n.snippet,
+      })),
+      seasonalPatterns: extractSeasonalPatterns(allSnippets),
+      mentions: organic.slice(0, 5).map((r) => r.snippet),
+      jobListings: extractJobListings(organic),
+    };
 
-    return new Response(JSON.stringify({ success: true }), {
+    return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
   } catch (error: unknown) {
-    console.error("Function Error:", error);
+    console.error("Web search error:", error);
+    // Return empty results on error — web search is nice-to-have
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
+      JSON.stringify({
+        rating: null,
+        reviewCount: null,
+        newsArticles: [],
+        seasonalPatterns: [],
+        mentions: [],
+        jobListings: [],
+      }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 400,
+        status: 200,
       },
     );
   }

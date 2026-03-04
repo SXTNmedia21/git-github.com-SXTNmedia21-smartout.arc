@@ -1,0 +1,1470 @@
+---
+title: "Module 20: Inventory & Supply Chain"
+status: draft
+updated: 2026-03-11
+created: 2026-03-01
+module: inventory
+tags: [inventory, supply-chain, procurement]
+---
+
+# Module 20: Inventory & Supply Chain
+
+> **Summary:** Closed-loop inventory management for restaurant operations. Covers the full raw material lifecycle: demand → order → receiving → storage → production → service → waste → analysis. Integrates deeply with Operations (Module 4) via session tasks and deviations, HACCP (Module 5) via batch traceability and temperature control, and Org Structure (Module 2) via storage locations. Four engines: Order & Receiving, Storage & Location, Deviation (Avviksmotor), and Traceability.
+
+**Status:** Specification (pre-implementation)
+**Dependencies:** Core Architecture, Module 2 (Org Structure), Module 4 (Operations), Module 5 (HACCP)
+**Build Phase:** Post-Phase 6 (after Training module, before or parallel with Communication)
+
+---
+
+## Table of Contents
+
+1. [Purpose & Problem Statement](#1-purpose--problem-statement)
+2. [Architecture Overview — Four Engines](#2-architecture-overview--four-engines)
+3. [Raw Material Lifecycle — Full Circle](#3-raw-material-lifecycle--full-circle)
+4. [Engine 1: Order & Receiving](#4-engine-1-order--receiving)
+5. [Engine 2: Storage & Location](#5-engine-2-storage--location)
+6. [Engine 3: Deviation (Avviksmotor)](#6-engine-3-deviation-avviksmotor)
+7. [Engine 4: Traceability (Produktsporing)](#7-engine-4-traceability-produktsporing)
+8. [Supplier Management & Scoring](#8-supplier-management--scoring)
+9. [Data Entities](#9-data-entities)
+10. [Integration Points](#10-integration-points)
+11. [User Journeys](#11-user-journeys)
+12. [Mobile UX Flows](#12-mobile-ux-flows)
+13. [Build Phases (Baby Steps)](#13-build-phases-baby-steps)
+14. [Decisions Log](#14-decisions-log)
+
+---
+
+## 1. Purpose & Problem Statement
+
+### 1.1 What This Module Does
+
+Establishes an **operational control motor** in Smartout that:
+
+- Controls the full flow of goods from order to guest
+- Registers and handles delivery deviations with forced accountability
+- Documents IK-Mat / HACCP traceability requirements
+- Provides full batch traceability for selected products
+- Creates decision-making data for management (varekost, svinn, leverandørkvalitet)
+
+**This is not a registration module. This is an operational control motor.**
+
+### 1.2 The Real Problem
+
+Restaurants lose 2–5% margin annually from invisible supply chain failures:
+
+| Problem                                     | Consequence                                                 |
+| ------------------------------------------- | ----------------------------------------------------------- |
+| No delivery documentation                   | Deviations forgotten, no follow-up                          |
+| No photos of damaged goods                  | No evidence for credit claims                               |
+| Phone call to supplier, then forget         | Credit notes never arrive                                   |
+| Inventory never adjusted for rejected goods | COGS is wrong, margin is wrong                              |
+| No learning from deviation patterns         | Same suppliers keep failing without consequence             |
+| No standardized storage locations           | New staff can't find things, FIFO breaks, waste increases   |
+| No batch traceability                       | Cannot respond to product recalls (Mattilsynet requirement) |
+
+### 1.3 Design Principles
+
+1. **Nothing happens automatically without confirmation** — the system proposes, humans confirm
+2. **Every deviation becomes an operational event** — not a note, an event with status and lifecycle
+3. **Deviations must be closed before day-end** — forced accountability through session sign-off
+4. **The system knows what's coming** — deliveries are expected events, not surprises
+5. **Storage is standardized** — every item has a defined home, not "just put it in the fridge"
+6. **Traceability is relational** — batch → transformation → dish → service, not just batch numbers
+
+---
+
+## 2. Architecture Overview — Four Engines
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    MODULE 8: INVENTORY                           │
+│                                                                  │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
+│  │   ORDER &    │  │  STORAGE &   │  │  DEVIATION   │          │
+│  │  RECEIVING   │──│  LOCATION    │──│   ENGINE     │          │
+│  │   ENGINE     │  │   ENGINE     │  │ (Avviksmotor)│          │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘          │
+│         │                  │                  │                   │
+│         └──────────┬───────┴──────────┬──────┘                  │
+│                    │                   │                          │
+│              ┌─────┴─────┐     ┌──────┴──────┐                  │
+│              │TRACEABILITY│     │  SUPPLIER   │                  │
+│              │  ENGINE    │     │  SCORING    │                  │
+│              │(Sporbarhet)│     │  (derived)  │                  │
+│              └────────────┘     └─────────────┘                  │
+│                                                                  │
+│  Integrations:                                                   │
+│  ← Module 2: Location, Zone, Asset (storage structure)          │
+│  ← Module 4: Session tasks, session notes, Day Brief            │
+│  ← Module 5: HACCP CCPs, temperature control, deviation chain   │
+│  ← Module 3: Shift schedule (who is responsible for receiving)  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+All four engines are interconnected. A delivery triggers receiving, which may trigger deviations, which trigger operational consequences. Storage locations are inherited from Org Structure. Traceability wraps around the full chain.
+
+---
+
+## 3. Raw Material Lifecycle — Full Circle
+
+The complete lifecycle of a raw material in a restaurant:
+
+```
+1. DEMAND        →  Need arises (forecast, stock level, menu change)
+2. ORDER         →  Purchase order created/sent to supplier
+3. CONFIRMATION  →  Supplier confirms order (mail/API)
+4. DELIVERY      →  Goods arrive, physical inspection
+5. DEVIATION     →  Anything wrong? Register, document, escalate
+6. STORAGE       →  Place goods in correct location (FIFO)
+7. PRODUCTION    →  Transform raw materials (cutting, cooking)
+8. SERVICE       →  Dish served to guest
+9. WASTE         →  Register unusable portions
+10. ANALYSIS     →  Improve next order cycle
+```
+
+**If any link breaks, the entire chain leaks margin.**
+
+The lifecycle forms a closed loop — analysis from step 10 feeds back into step 1. Smartout's role is to digitize, enforce, and learn from every step.
+
+---
+
+## 4. Engine 1: Order & Receiving
+
+### 4.1 Supplier Database
+
+Every workspace maintains a supplier registry.
+
+```
+supplier
+  supplier_id          uuid (PK)
+  workspace_id         fk → workspace
+
+  -- Identity
+  name                 string ("Bama Gruppen AS", "Asko Norge")
+  org_number           string | null (Norwegian org number for lookup)
+  contact_name         string | null
+  contact_email        string | null
+  contact_phone        string | null
+
+  -- Delivery config
+  delivery_days        integer[] | null ([1,3,5] = Mon, Wed, Fri)
+  delivery_window_start time | null (e.g., 06:00)
+  delivery_window_end  time | null (e.g., 11:00)
+  lead_time_hours      integer | null (order → delivery typical time)
+
+  -- Receiving responsibility
+  receiving_department_id  fk → department | null
+  receiving_role       string | null ("kitchen_leader", "service_leader")
+
+  -- Agreement
+  agreement_type       credit | return | replacement | none
+  payment_terms        string | null ("30 dager netto")
+
+  -- Classification
+  category             produce | meat | fish | dairy | dry_goods |
+                       beverages | wine | spirits | cleaning | equipment | other
+
+  -- Scoring (calculated, updated by system)
+  deviation_rate       decimal | null (% of deliveries with deviations)
+  avg_response_time_hours decimal | null
+  quality_score        decimal | null (0-100)
+  last_scored_at       timestamp | null
+
+  is_active            boolean
+  created_at           timestamp
+  updated_at           timestamp
+```
+
+**Supplier ↔ Receiving responsibility:** Each supplier type maps to a department/role. When a delivery is expected, Smartout matches the supplier's `receiving_department_id` and `receiving_role` against the active shift schedule to determine **who** should receive it.
+
+### 4.2 Products (Varekort)
+
+Products are the items you order. Each product belongs to a supplier and has storage, traceability, and cost data.
+
+```
+product
+  product_id           uuid (PK)
+  workspace_id         fk → workspace
+  supplier_id          fk → supplier
+
+  -- Identity
+  name                 string ("Indrefilet storfe", "Gulrot 10 kg")
+  sku                  string | null (supplier's product code)
+  description          text | null
+  category             produce | meat | fish | dairy | dry_goods |
+                       beverages | wine | spirits | cleaning | other
+
+  -- Units
+  order_unit           kg | liter | piece | box | case | pallet | bag
+  order_unit_size      decimal | null (e.g., 10 for "10 kg bag")
+  storage_unit         kg | liter | piece | portion
+  conversion_factor    decimal | null (order_unit → storage_unit)
+
+  -- Cost
+  unit_price           decimal | null (price per order_unit)
+  currency             string default 'NOK'
+
+  -- Storage
+  primary_location_id  fk → location | null
+  primary_zone         string | null (zone name within location)
+  secondary_location_id fk → location | null
+  temperature_requirement  ambient | chilled | frozen | null
+  fifo_required        boolean default true
+
+  -- Traceability
+  is_tracked           boolean default false (selected for full batch tracking)
+  requires_temp_at_receiving boolean default false
+
+  -- Stock management
+  min_stock_level      decimal | null
+  max_stock_level      decimal | null
+  reorder_point        decimal | null
+
+  -- Classification
+  allergen_ids         uuid[] | null (fk → allergen, if allergen module exists)
+  is_critical          boolean default false (service-critical item)
+
+  is_active            boolean
+  created_at           timestamp
+  updated_at           timestamp
+```
+
+**Key design choice:** `is_tracked` determines whether this product enters the full Traceability Engine (Engine 4). Not every product needs batch-level tracking. Tracked products are typically high-risk (meat, fish) or legally required.
+
+### 4.3 Purchase Orders
+
+Orders can enter Smartout in three ways:
+
+1. **Manual creation** — admin/manager creates order in Smartout
+2. **Email parsing** — order confirmation forwarded to Smartout, AI extracts structured data
+3. **API integration** — direct connection to supplier's ordering system
+
+```
+purchase_order
+  order_id             uuid (PK)
+  workspace_id         fk → workspace
+  supplier_id          fk → supplier
+
+  -- Identity
+  order_number         string (external order reference)
+  internal_ref         string | null (Smartout-generated reference)
+
+  -- Timing
+  ordered_at           timestamp
+  expected_delivery_date date
+  expected_delivery_window_start time | null
+  expected_delivery_window_end   time | null
+
+  -- Status
+  status               draft | submitted | confirmed |
+                       partially_received | received |
+                       disputed | closed
+
+  -- Totals (calculated from line items)
+  total_amount         decimal | null
+  currency             string default 'NOK'
+
+  -- Source
+  source               manual | email_parsed | api
+  source_ref           string | null (email ID, API reference)
+
+  -- Receiving
+  received_by          fk → profile | null
+  received_at          timestamp | null
+
+  -- Notes
+  notes                text | null
+
+  created_by           fk → profile
+  created_at           timestamp
+  updated_at           timestamp
+```
+
+### 4.4 Order Line Items
+
+```
+purchase_order_line
+  line_id              uuid (PK)
+  order_id             fk → purchase_order
+  product_id           fk → product
+
+  -- Ordered
+  ordered_quantity     decimal
+  ordered_unit         string
+  unit_price           decimal
+  line_total           decimal
+
+  -- Received
+  received_quantity    decimal | null
+  received_status      pending | accepted | partial | rejected
+
+  -- Deviation (if any)
+  deviation_id         fk → delivery_deviation | null
+
+  created_at           timestamp
+  updated_at           timestamp
+```
+
+### 4.5 The Delivery Event
+
+When an order's `expected_delivery_date` matches today, the system automatically creates a **delivery event** — a planned operational occurrence.
+
+```
+delivery_event
+  event_id             uuid (PK)
+  workspace_id         fk → workspace
+  order_id             fk → purchase_order
+  supplier_id          fk → supplier
+
+  -- Timing
+  expected_date        date
+  expected_window_start time | null
+  expected_window_end  time | null
+
+  -- Assignment (auto-calculated from supplier config + shift schedule)
+  assigned_to          fk → profile | null
+  assigned_role        string | null
+  assigned_department_id fk → department | null
+
+  -- Status
+  status               expected | notified | in_progress |
+                       completed | missed | cancelled
+
+  -- Confirmation
+  confirmed_by         fk → profile | null
+  confirmed_at         timestamp | null
+
+  -- Session link
+  session_id           fk → department_session | null
+  session_task_id      fk → session_task | null
+
+  created_at           timestamp
+  updated_at           timestamp
+```
+
+**How assignment works:**
+
+```
+Supplier "Bama" has:
+  receiving_department_id: Kitchen
+  receiving_role: kitchen_leader
+
+Today's delivery expected: 07:00-11:00
+
+System checks:
+  → Kitchen department active today? YES
+  → Who has kitchen_leader role on morning shift? → Anna
+
+Result:
+  → Anna gets push notification:
+    "Du er ansvarlig for mottak av 2 leveranser i dag."
+  → Delivery event appears on her session task board
+```
+
+### 4.6 Receiving Flow
+
+When the delivery arrives, the assigned person opens Smartout:
+
+```
+Receiving flow:
+  1. Open "Dagens leveranser" (Today's deliveries)
+  2. Select the relevant delivery event
+  3. System shows all order lines with expected quantities
+  4. Employee checks each line:
+     - Quantity OK? → Confirm
+     - Quality OK? → Confirm
+     - Temperature OK? (if chilled/frozen) → Record value
+     - Any deviation? → Register (see Engine 3)
+  5. Sign off receiving
+  6. System adjusts stock levels for accepted goods
+  7. Storage instructions shown (see Engine 2)
+```
+
+**Critical rule:** Only accepted quantities enter the stock system. Rejected goods are logged as deviations but never counted as inventory.
+
+### 4.7 Receiving as Session Task
+
+The delivery event materializes as a `session_task` in the active department session:
+
+```
+session_task (auto-created from delivery_event):
+  title: "Varemottak: Bama — Ordre #847392"
+  category: "inventory"
+  source_type: system
+  source_ref_id: → delivery_event.event_id
+  priority: high (if contains critical items) | normal
+  is_required: true
+  assigned_to: Anna (from delivery_event.assigned_to)
+  scheduled_at: 07:00 (from expected_window_start)
+
+  completion_data: {
+    "lines_checked": 12,
+    "lines_accepted": 10,
+    "lines_with_deviation": 2,
+    "deviations": ["dev-uuid-1", "dev-uuid-2"],
+    "temperature_readings": [
+      { "product_id": "...", "value": 3.2, "unit": "celsius", "within_limits": true }
+    ],
+    "photos": ["url1", "url2"]
+  }
+```
+
+This integrates directly with Module 4's session task system — the receiving task appears alongside other operational tasks, counts toward gamification points, and must be completed for session sign-off.
+
+---
+
+## 5. Engine 2: Storage & Location
+
+### 5.1 Design Principle
+
+Storage in Smartout is **not a separate system**. It extends Module 2's existing Location → Zone hierarchy with inventory-specific semantics.
+
+```
+Module 2 already provides:
+  Workspace → Building → Location → Zone → Asset
+
+Module 8 adds:
+  Storage Location (extends Zone with inventory attributes)
+  Product ↔ Storage Location mapping
+  Placement instructions at receiving
+  FIFO enforcement
+```
+
+### 5.2 Storage Location (Extension of Zone)
+
+Rather than creating a parallel location system, we add inventory-specific attributes to zones:
+
+```
+storage_zone_config
+  config_id            uuid (PK)
+  zone_id              fk → zone (from Module 2)
+  workspace_id         fk → workspace
+
+  -- Temperature
+  temperature_type     ambient | chilled | frozen
+  temp_min             decimal | null
+  temp_max             decimal | null
+
+  -- Capacity
+  capacity_type        shelves | bins | floor | mixed
+  total_capacity       integer | null
+  current_utilization  decimal | null (percentage, updated periodically)
+
+  -- Rules
+  allowed_categories   text[] | null (["produce", "dairy"] — what can be stored here)
+  restricted_items     uuid[] | null (products that must NOT be here — allergen separation)
+  fifo_enforced        boolean default true
+
+  -- Layout
+  shelf_count          integer | null
+  bin_count            integer | null
+  sort_order           integer
+
+  is_active            boolean
+  created_at           timestamp
+  updated_at           timestamp
+```
+
+### 5.3 Product ↔ Storage Mapping
+
+Each product has a primary (and optional secondary) storage location defined on the product record itself (see section 4.2). This creates micro-instructions during unpacking:
+
+```
+After receiving is confirmed:
+
+Smartout shows placement list:
+  ┌─────────────────────────────────────┐
+  │  Plassering av varer                │
+  │                                     │
+  │  Gulrot 10 kg                       │
+  │  → Kjøl 1 → Grønnsakshylle         │
+  │  ☐ Bekreftet                        │
+  │                                     │
+  │  Indrefilet 12 kg                   │
+  │  → Kjøl 2 → Kjøtthylle → Kasse 3   │
+  │  ☐ Bekreftet                        │
+  │                                     │
+  │  Rødvin Barolo 6 fl                 │
+  │  → Vinrom → Hylle A → Seksjon 3    │
+  │  ☐ Bekreftet                        │
+  │                                     │
+  │  ⚠️ FIFO: Legg nye bak gamle       │
+  │                                     │
+  │  [Fullfør plassering ✓]            │
+  └─────────────────────────────────────┘
+```
+
+**Employee must confirm each placement.** This reduces guessing, eliminates "han pleier å vite", and standardizes onboarding for new staff.
+
+### 5.4 Storage Optimization Principles
+
+Three principles from retail logistics, adapted for restaurant:
+
+**1. ABC Analysis**
+
+- A-items (high turnover): easily accessible positions
+- B-items (medium): standard positions
+- C-items (rare): back positions
+
+The system can calculate ABC classification from usage data over time and suggest relocation.
+
+**2. Pick Efficiency**
+
+- Items used together → stored near each other
+- Morning prep items → front of morning-accessible storage
+- Closing items → accessible during closing shift
+
+**3. Temperature & Risk Separation**
+
+- Raw meat ≠ ready-to-eat (HACCP requirement)
+- Allergens separated (labeling minimum, physical separation preferred)
+- Cleaning chemicals away from food storage
+
+### 5.5 Stock Levels
+
+Stock is updated at specific events:
+
+| Event                                   | Stock Change                    |
+| --------------------------------------- | ------------------------------- |
+| Receiving confirmed (accepted qty only) | + quantity                      |
+| Deviation registered (rejected qty)     | No change (never entered stock) |
+| Production/transformation registered    | - raw material, + semi-finished |
+| Waste registered                        | - quantity                      |
+| Stock count (manual correction)         | ± adjustment                    |
+
+```
+stock_level
+  stock_id             uuid (PK)
+  workspace_id         fk → workspace
+  product_id           fk → product
+
+  -- Current
+  current_quantity     decimal
+  unit                 string
+  last_updated_at      timestamp
+
+  -- Location
+  zone_id              fk → zone | null
+
+  -- Batch (if tracked product)
+  batch_id             fk → product_batch | null
+
+  -- Metadata
+  last_count_date      date | null (last physical stock count)
+  last_count_by        fk → profile | null
+```
+
+```
+stock_movement
+  movement_id          uuid (PK)
+  workspace_id         fk → workspace
+  product_id           fk → product
+
+  -- What
+  movement_type        receiving | production | waste |
+                       adjustment | transfer | return
+  quantity             decimal (positive = in, negative = out)
+  unit                 string
+
+  -- Context
+  reference_type       purchase_order | production_log |
+                       waste_log | stock_count | transfer
+  reference_id         uuid | null
+  batch_id             fk → product_batch | null
+
+  -- Where
+  from_zone_id         fk → zone | null
+  to_zone_id           fk → zone | null
+
+  -- Who
+  performed_by         fk → profile
+  performed_at         timestamp
+  notes                text | null
+
+  created_at           timestamp
+```
+
+---
+
+## 6. Engine 3: Deviation (Avviksmotor)
+
+### 6.1 Core Principle
+
+**Everything that deviates from the order becomes an operational event.**
+
+Not a note. Not a phone call. An event with:
+
+- Status lifecycle
+- Forced accountability
+- Economic tracking
+- Mandatory closure
+
+### 6.2 Deviation Types
+
+```
+delivery_deviation
+  deviation_id         uuid (PK)
+  workspace_id         fk → workspace
+
+  -- Source
+  order_id             fk → purchase_order
+  order_line_id        fk → purchase_order_line
+  delivery_event_id    fk → delivery_event
+  supplier_id          fk → supplier
+  product_id           fk → product
+
+  -- What
+  deviation_type       missing | damaged | temperature |
+                       wrong_product | wrong_quantity |
+                       quality | expired | overdelivery
+
+  -- Details
+  expected_quantity    decimal
+  actual_quantity      decimal | null
+  description          text
+  temperature_reading  decimal | null (if temperature deviation)
+
+  -- Evidence
+  photo_urls           text[] | null (Supabase Storage paths)
+
+  -- Criticality assessment
+  is_critical          boolean default false
+  affects_service      boolean default false
+  requires_substitute  boolean default false
+  requires_menu_change boolean default false
+
+  -- Economic
+  unit_price           decimal | null (from order line)
+  deviation_amount     decimal | null (calculated: missing qty × price)
+
+  -- Status lifecycle
+  status               registered | supplier_notified |
+                       awaiting_response | credit_requested |
+                       credit_received | replacement_received |
+                       loss_accepted | closed
+
+  -- Communication
+  supplier_notified_at timestamp | null
+  supplier_notified_method email | phone | api | null
+  supplier_response    text | null
+  supplier_responded_at timestamp | null
+
+  -- Credit tracking
+  credit_note_number   string | null
+  credit_note_amount   decimal | null
+  credit_note_received_at timestamp | null
+
+  -- Resolution
+  resolved_by          fk → profile | null
+  resolved_at          timestamp | null
+  resolution_notes     text | null
+
+  -- Session link
+  session_id           fk → department_session | null
+  session_task_id      fk → session_task | null
+
+  -- Who
+  registered_by        fk → profile
+  registered_at        timestamp
+  created_at           timestamp
+  updated_at           timestamp
+```
+
+### 6.3 Deviation Status Lifecycle
+
+```
+registered
+  │
+  ├──→ supplier_notified (email/API sent after human confirmation)
+  │      │
+  │      ├──→ awaiting_response (timer starts)
+  │      │      │
+  │      │      ├──→ credit_requested (supplier agrees)
+  │      │      │      │
+  │      │      │      ├──→ credit_received → closed ✓
+  │      │      │      └──→ (timeout) → escalate to manager
+  │      │      │
+  │      │      ├──→ replacement_received → closed ✓
+  │      │      │
+  │      │      └──→ (no response after X hours) → escalate
+  │      │
+  │      └──→ loss_accepted (manager decides to absorb cost) → closed ✓
+  │
+  └──→ closed (immediate close: e.g., overdelivery accepted)
+```
+
+**Key rule:** A deviation can only be closed when economics are resolved:
+
+- Credit note received and matched, OR
+- Replacement delivered and accepted, OR
+- Manager explicitly accepts the loss
+
+**Open deviations block session sign-off.** This forces daily resolution.
+
+### 6.4 Operational Consequences
+
+When a deviation involves a critical item, the system creates operational follow-up:
+
+```
+Deviation registered: Skinka 5 kg mangler (critical item)
+
+System evaluates:
+  is_critical: true
+  affects_service: true (used in 3 menu items today)
+
+System creates:
+  1. session_task → Kjøkkensjef:
+     "Vurder menyendring — skinke mangler (5 kg)"
+     priority: high
+
+  2. session_task → Daglig leder:
+     "Kontakt leverandør — avklar løsning for manglende skinke"
+     priority: high
+
+  3. session_note (category: supply):
+     "Leveringsavvik: 5 kg skinke mangler fra Asko ordre #12345.
+      Påvirker: Toast Skagen, Club Sandwich, Skinke & Melon."
+     → Flagged in Day Brief automatically
+```
+
+**Everything requires confirmation.** The system proposes actions but never sends emails, creates tasks, or adjusts stock without human sign-off.
+
+### 6.5 Supplier Communication Templates
+
+When the human confirms "notify supplier," Smartout generates:
+
+```
+Email template (auto-populated, reviewed before send):
+
+Subject: Leveringsavvik — Ordre #{order_number} — {date}
+
+Til: {supplier.contact_email}
+
+Vi har mottatt leveranse knyttet til ordre #{order_number},
+levert {delivery_date}.
+
+Følgende avvik er registrert:
+
+Produkt: {product.name}
+Bestilt: {ordered_quantity} {unit}
+Avvik: {deviation_type_text}
+Beskrivelse: {description}
+Beløp: {deviation_amount} NOK
+
+Se vedlagt dokumentasjon.
+
+Vi ber om {credit/replacement/resolution} i henhold til
+avtalevilkår.
+
+Vennligst bekreft mottak av denne henvendelsen.
+
+Med vennlig hilsen,
+{workspace.name}
+{registered_by.display_name}
+```
+
+Photos are attached automatically from the deviation record.
+
+---
+
+## 7. Engine 4: Traceability (Produktsporing)
+
+### 7.1 Legal Context (Norway)
+
+Under IK-Mat / Mattilsynet / HACCP regulations:
+
+- You **must** be able to document: who you bought from, when you received, batch/lot, when used, in which products
+- You **must** maintain control of the cold chain and document that it's unbroken
+- You **must** be able to trace forward and backward if a product recall occurs
+- You do **not** need to log temperature on everything — but you must have routines and document deviations
+
+**Traceability ≠ temperature registration.** They are two different control functions. Traceability is relational logic (batch → product → dish). Temperature is a control point.
+
+### 7.2 What Gets Tracked
+
+Not every product needs full batch traceability. This is configurable per product via the `is_tracked` flag.
+
+**Typically tracked:**
+
+- Meat (all types)
+- Fish and seafood
+- Dairy (especially unpasteurized)
+- Eggs
+- Any allergen-containing product with recall risk
+
+**Typically not tracked at batch level:**
+
+- Dry goods (flour, sugar, salt)
+- Beverages (unless premium wine)
+- Cleaning supplies
+
+### 7.3 Product Batch
+
+When a tracked product is received, a batch is created:
+
+```
+product_batch
+  batch_id             uuid (PK)
+  workspace_id         fk → workspace
+  product_id           fk → product
+
+  -- External identity
+  supplier_batch_number string | null (from packaging)
+  supplier_lot_number  string | null
+
+  -- Internal identity
+  internal_tracking_id string (auto-generated: "IF-2026-02-27-01")
+
+  -- Dates
+  received_at          timestamp
+  expiry_date          date | null
+  production_date      date | null (from packaging)
+
+  -- Receiving
+  order_id             fk → purchase_order | null
+  received_by          fk → profile
+  receiving_temp       decimal | null (temperature at receiving, celsius)
+
+  -- Quantity
+  original_quantity    decimal
+  remaining_quantity   decimal
+  unit                 string
+
+  -- Status
+  status               active | depleted | expired | recalled | disposed
+
+  -- Storage
+  stored_in_zone_id    fk → zone | null
+
+  -- FIFO
+  fifo_position        integer | null (1 = use first)
+
+  created_at           timestamp
+  updated_at           timestamp
+```
+
+**Internal tracking ID format:** `{product_code}-{date}-{sequence}`
+Example: `IF-2026-02-27-01` = Indrefilet, received Feb 27 2026, first batch that day.
+
+**Physical labeling requirement:** The employee must label the physical product with the internal tracking ID. Without this, the digital system has no connection to the physical world.
+
+### 7.4 Batch Transformation
+
+When raw materials are processed (cutting, cooking, portioning), the system records a transformation:
+
+```
+batch_transformation
+  transformation_id    uuid (PK)
+  workspace_id         fk → workspace
+
+  -- Source batch(es)
+  source_batch_id      fk → product_batch
+  source_quantity_used decimal
+  source_unit          string
+
+  -- Result
+  result_description   string ("Biffer", "Tartarkjøtt", "Trim")
+  result_quantity      decimal
+  result_unit          string
+
+  -- Context
+  transformed_by       fk → profile
+  transformed_at       timestamp
+
+  -- New batch (if result becomes a new trackable item)
+  result_batch_id      fk → product_batch | null
+
+  notes                text | null
+  created_at           timestamp
+```
+
+**Example:**
+
+```
+Source: Batch IF-2026-02-27-01 (Indrefilet 12 kg)
+
+Transformations:
+  → 8 × Biff (200g each) = 1.6 kg
+  → 2 × Tartar (300g each) = 0.6 kg
+  → Trim = 1.2 kg
+  → (remaining: 8.6 kg still in batch)
+
+All results inherit the source batch:
+  IF-2026-02-27-01 → Biff, Tartar, Trim
+```
+
+### 7.5 Batch → Dish → Service Linkage
+
+When a tracked batch is used in a dish during service:
+
+```
+batch_usage_log
+  usage_id             uuid (PK)
+  workspace_id         fk → workspace
+  batch_id             fk → product_batch
+
+  -- What
+  quantity_used        decimal
+  unit                 string
+
+  -- Context
+  dish_name            string | null ("Grillet indrefilet")
+  menu_item_id         uuid | null (if menu module exists)
+
+  -- When
+  used_at              timestamp
+  session_id           fk → department_session | null
+  service_period       lunch | dinner | brunch | other | null
+
+  -- Who
+  used_by              fk → profile | null
+
+  notes                text | null
+  created_at           timestamp
+```
+
+### 7.6 Product Recall (Tilbakekalling)
+
+When a recall occurs, Smartout can answer:
+
+```
+Input: "Batch 84739 fra Nortura er tilbakekalt — salmonella."
+
+System finds:
+  → product_batch WHERE supplier_batch_number = '84739'
+
+  → All transformations from that batch
+
+  → All usage_log entries
+
+  → All sessions where it was used
+
+  → Date range of guest exposure
+
+Output:
+  ┌─────────────────────────────────────────┐
+  │  TILBAKEKALLINGSRAPPORT                 │
+  │                                         │
+  │  Produkt: Indrefilet storfe             │
+  │  Leverandør: Nortura                    │
+  │  Batch: 84739                           │
+  │  Intern ID: IF-2026-02-27-01            │
+  │                                         │
+  │  Mottatt: 27. feb 2026                  │
+  │  Mengde: 12 kg                          │
+  │  Status: Delvis brukt (3.4 kg gjenstår) │
+  │                                         │
+  │  Brukt i:                               │
+  │  • 27. feb — Middag — 4 × Grillet IF    │
+  │  • 28. feb — Lunsj — 2 × Tartar        │
+  │  • 28. feb — Middag — 6 × Grillet IF    │
+  │                                         │
+  │  Gjenstående mengde:                    │
+  │  ⚠️ 3.4 kg i Kjøl 2 — MÅ KASTES       │
+  │                                         │
+  │  Tiltak:                                │
+  │  ☐ Fjern fra lager                      │
+  │  ☐ Merk som destruert                   │
+  │  ☐ Kontakt Mattilsynet (valgfritt)      │
+  │  ☐ Varsle berørte gjester (valgfritt)   │
+  └─────────────────────────────────────────┘
+```
+
+This is crisis management capability. It separates Smartout from note-taking apps.
+
+---
+
+## 8. Supplier Management & Scoring
+
+### 8.1 Automatic Scoring
+
+After 3–6 months of data, Smartout can calculate supplier performance:
+
+```
+Supplier score components:
+
+1. Delivery Precision (40%)
+   - % of orders delivered on correct date
+   - % of orders delivered within time window
+
+2. Quality Score (30%)
+   - Deviation rate (deviations / total line items)
+   - Deviation types weighted:
+     - Damaged: -5 points
+     - Missing: -3 points
+     - Temperature breach: -8 points
+     - Wrong product: -4 points
+     - Quality issue: -6 points
+
+3. Response Time (15%)
+   - Average time from deviation notification to response
+   - Average time from credit request to credit received
+
+4. Completeness (15%)
+   - % of orders fully delivered (no partial)
+   - % of correct quantities (within ±5%)
+```
+
+### 8.2 Supplier Dashboard
+
+Managers see:
+
+```
+┌──────────────────────────────────────────────────┐
+│  Leverandøroversikt                              │
+│                                                  │
+│  Bama Gruppen AS          Score: 87/100  ★★★★☆  │
+│  Siste 90 dager: 24 leveranser, 3 avvik         │
+│  Avviksrate: 12.5%                              │
+│  Snitt responstid: 4.2 timer                    │
+│                                                  │
+│  Asko Norge               Score: 72/100  ★★★☆☆  │
+│  Siste 90 dager: 36 leveranser, 11 avvik        │
+│  Avviksrate: 30.6%                              │
+│  Snitt responstid: 18.4 timer                   │
+│                                                  │
+│  [Se detaljer]  [Last ned rapport]               │
+└──────────────────────────────────────────────────┘
+```
+
+**This gives negotiation power.** When you can show a supplier that 30% of their deliveries have deviations, the conversation changes.
+
+---
+
+## 9. Data Entities
+
+### 9.1 New Entities Introduced by This Module
+
+| Entity                   | Purpose                                         | Key Relationships                             |
+| ------------------------ | ----------------------------------------------- | --------------------------------------------- |
+| **supplier**             | Supplier registry                               | Workspace                                     |
+| **product**              | Item master (varekort)                          | Supplier, Zone (storage)                      |
+| **purchase_order**       | Purchase orders                                 | Supplier, Profile                             |
+| **purchase_order_line**  | Order line items                                | Purchase order, Product                       |
+| **delivery_event**       | Expected delivery occurrence                    | Purchase order, Supplier, Session, Profile    |
+| **delivery_deviation**   | Deviation from expected delivery                | Order, Order line, Supplier, Product, Session |
+| **storage_zone_config**  | Inventory attributes for zones                  | Zone (Module 2)                               |
+| **stock_level**          | Current stock per product (per zone, per batch) | Product, Zone, Batch                          |
+| **stock_movement**       | Audit trail of all stock changes                | Product, Zone, Batch, Profile                 |
+| **product_batch**        | Batch/lot tracking for traced products          | Product, Purchase order, Zone                 |
+| **batch_transformation** | Raw → processed product transformation          | Batch (source), Batch (result)                |
+| **batch_usage_log**      | Batch used in dish/service                      | Batch, Session                                |
+
+### 9.2 Extended Entities
+
+| Entity           | Module   | Extension                                                                  |
+| ---------------- | -------- | -------------------------------------------------------------------------- |
+| **zone**         | Module 2 | `storage_zone_config` adds temp requirements, capacity, allowed categories |
+| **session_task** | Module 4 | Delivery receiving materializes as session tasks                           |
+| **session_note** | Module 4 | Deviation consequences create session notes (category: supply)             |
+
+### 9.3 Enum Types
+
+```sql
+-- Supplier category
+CREATE TYPE supplier_category AS ENUM (
+  'produce', 'meat', 'fish', 'dairy', 'dry_goods',
+  'beverages', 'wine', 'spirits', 'cleaning', 'equipment', 'other'
+);
+
+-- Product category (same values, separate type for clarity)
+CREATE TYPE product_category AS ENUM (
+  'produce', 'meat', 'fish', 'dairy', 'dry_goods',
+  'beverages', 'wine', 'spirits', 'cleaning', 'other'
+);
+
+-- Purchase order status
+CREATE TYPE purchase_order_status AS ENUM (
+  'draft', 'submitted', 'confirmed', 'partially_received',
+  'received', 'disputed', 'closed'
+);
+
+-- Order line received status
+CREATE TYPE order_line_status AS ENUM (
+  'pending', 'accepted', 'partial', 'rejected'
+);
+
+-- Delivery event status
+CREATE TYPE delivery_event_status AS ENUM (
+  'expected', 'notified', 'in_progress',
+  'completed', 'missed', 'cancelled'
+);
+
+-- Deviation type
+CREATE TYPE deviation_type AS ENUM (
+  'missing', 'damaged', 'temperature', 'wrong_product',
+  'wrong_quantity', 'quality', 'expired', 'overdelivery'
+);
+
+-- Deviation status
+CREATE TYPE deviation_status AS ENUM (
+  'registered', 'supplier_notified', 'awaiting_response',
+  'credit_requested', 'credit_received', 'replacement_received',
+  'loss_accepted', 'closed'
+);
+
+-- Stock movement type
+CREATE TYPE stock_movement_type AS ENUM (
+  'receiving', 'production', 'waste',
+  'adjustment', 'transfer', 'return'
+);
+
+-- Temperature requirement
+CREATE TYPE temperature_requirement AS ENUM (
+  'ambient', 'chilled', 'frozen'
+);
+
+-- Batch status
+CREATE TYPE batch_status AS ENUM (
+  'active', 'depleted', 'expired', 'recalled', 'disposed'
+);
+
+-- Supplier agreement type
+CREATE TYPE supplier_agreement_type AS ENUM (
+  'credit', 'return', 'replacement', 'none'
+);
+```
+
+---
+
+## 10. Integration Points
+
+### 10.1 Module Integration Map
+
+| Module                           | Integration                                                                                                                                                                                            |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Module 2 (Org Structure)**     | Zone → storage_zone_config. Location hierarchy for storage placement. Asset for equipment (scales, thermometers).                                                                                      |
+| **Module 3 (Scheduling)**        | Shift schedule determines who receives deliveries. Delivery event assignment uses active shift + role matching.                                                                                        |
+| **Module 4 (Operations)**        | Delivery events → session_tasks. Deviations → session_notes (category: supply). Critical deviations → Day Brief. Open deviations block session sign-off. Points awarded for completed receiving tasks. |
+| **Module 5 (HACCP)**             | Temperature readings at receiving feed HACCP logs. Batch traceability is HACCP Principle 4 (monitoring). Deviation flagging triggers HACCP runbooks when food safety is involved.                      |
+| **Module 6 (Training)**          | Receiving procedure can be a trainable Protocol. New staff complete "Varemottak" procedure before first receiving shift.                                                                               |
+| **Module 9 (Communication)**     | Deviation notifications pushed to relevant channels. Supplier communication (email) generated from deviation engine.                                                                                   |
+| **Module 12 (AI — Mr. Botsson)** | AI parses order confirmation emails. AI classifies deviation severity. AI compiles supply summaries for Day Brief. AI detects patterns ("Supplier X has 3 deviations this week").                      |
+
+### 10.2 Session Integration Detail
+
+The inventory module operates **within** the Department Session framework:
+
+```
+Department Session (Kitchen, Monday Feb 24)
+  │
+  ├── Hook fires: "Forbered varemottak" (30 min before first expected delivery)
+  │     → Creates session_task for receiving prep
+  │
+  ├── Delivery Event materializes:
+  │     → session_task: "Varemottak: Bama — Ordre #847392"
+  │     → Assigned to Anna (morning shift, kitchen_leader role)
+  │
+  ├── Anna completes receiving:
+  │     → 10 lines accepted
+  │     → 2 deviations registered
+  │     → Stock levels updated for accepted goods
+  │     → Storage placement instructions shown
+  │
+  ├── Deviation creates follow-up:
+  │     → session_task: "Vurder menyendring — skinke mangler"
+  │     → session_note: "Leveringsavvik registrert — se detaljer"
+  │     → Day Brief includes: "2 leveringsavvik i dag"
+  │
+  ├── Production tasks (later in day):
+  │     → Batch transformation logged
+  │     → Batch usage logged per dish
+  │
+  └── Session sign-off checks:
+        → ☐ All delivery events confirmed?
+        → ☐ All deviations resolved or escalated?
+        → ☐ Stock levels updated?
+        → Cannot sign off until resolved ✓
+```
+
+---
+
+## 11. User Journeys
+
+### 11.1 Journey: Normal Delivery (No Deviations)
+
+```
+07:00 — Anna punches in, opens Smartout
+  → Shift Brief: "Du har 2 leveranser i dag: Bama (07:30) og Asko (09:00)"
+
+07:35 — Bama truck arrives
+  → Anna opens "Dagens leveranser" → selects Bama delivery
+  → System shows 12 line items from order #847392
+  → Anna checks each item:
+      Gulrot 10 kg ✓
+      Paprika 5 kg ✓
+      Salat 3 stk ✓
+      ... (all 12 lines checked and accepted)
+  → Temperature logged for chilled items: 3.2°C ✓
+  → Anna taps "Godkjenn mottak" ✓
+
+07:45 — Placement instructions appear
+  → "Plasser gulrot i: Kjøl 1 → Grønnsakshylle"
+  → "Plasser paprika i: Kjøl 1 → Grønnsakshylle"
+  → Anna confirms each placement ✓
+  → Stock levels automatically updated
+
+08:00 — Task completed
+  → +15 points awarded (receiving task complete)
+  → Delivery event status → "completed"
+  → No deviations → no follow-up needed
+```
+
+### 11.2 Journey: Delivery with Deviations
+
+```
+09:05 — Asko truck arrives
+  → Anna opens delivery event for Asko
+  → System shows 18 line items from order #12345
+
+  → Line 7: Indrefilet 12 kg
+    → Anna opens package: looks OK ✓
+    → Temperature: 2.8°C ✓ (within 0–4°C)
+    → Accepts line ✓
+
+  → Line 12: Gulrot 10 kg
+    → Anna sees 2 damaged carrots
+    → Taps "Registrer avvik"
+    → Deviation type: "Skadet vare"
+    → Quantity: 2 stk
+    → Description: "Mekanisk skade, synlig mold"
+    → Takes photo 📸
+    → Submits ✓
+
+  → Line 15: Rødvin Barolo
+    → 1 bottle smashed in transport
+    → Taps "Registrer avvik"
+    → Deviation type: "Skadet vare"
+    → Quantity: 1 flaske
+    → Description: "Knust i transport"
+    → Takes photo 📸
+    → Submits ✓
+
+09:20 — Receiving completed (16 accepted, 2 deviations)
+  → System shows deviation summary:
+    "2 avvik registrert. Total avviksbeløp: 342 NOK"
+  → "Vil du sende avviksmelding til Asko?" [Ja, send] [Vent]
+  → Anna taps "Ja, send"
+  → System shows pre-filled email → Anna reviews → Confirms ✓
+  → Email sent with photos attached
+  → Deviation status → "supplier_notified"
+
+09:25 — Stock adjusted
+  → Only accepted quantities added to stock
+  → Rejected items never entered inventory
+  → Placement instructions for accepted goods shown
+
+14:00 — Asko responds
+  → Email received: "Krediterer 342 NOK på neste faktura"
+  → Manager reviews → Updates deviation:
+    credit_note_number: "KN-2026-0284"
+    credit_note_amount: 342.00
+  → Status → "credit_received" → "closed" ✓
+```
+
+### 11.3 Journey: Critical Missing Item
+
+```
+09:05 — Delivery from Asko
+  → Line 3: Skinke 5 kg — MISSING
+  → Anna taps "Registrer avvik" → Type: "Manglende vare"
+  → System detects: product.is_critical = true
+  → System asks:
+    "Skinke er kritisk vare. Påvirker dette dagens service?"
+    [Ja] [Nei] [Usikker]
+  → Anna taps "Ja"
+  → System asks:
+    "Trenger du substitutt?" [Ja] [Nei]
+  → Anna taps "Ja"
+
+  → System creates automatically:
+    1. session_task → Kjøkkensjef Lars:
+       "Vurder menyendring — skinke mangler (5 kg)"
+    2. session_task → Daglig leder Marie:
+       "Kontakt leverandør — avklar løsning"
+    3. session_note (supply):
+       "Leveringsavvik: 5 kg skinke mangler. Påvirker: Toast Skagen,
+        Club Sandwich, Skinke & Melon."
+    4. Day Brief updated with warning
+
+  → Lars gets push notification:
+    "⚠️ Kritisk vare mangler: Skinke 5 kg. Vurder tiltak."
+```
+
+---
+
+## 12. Mobile UX Flows
+
+### 12.1 Today's Deliveries (Tab: Hjem → Feed)
+
+```
+┌─────────────────────────────────┐
+│  📦 Dagens leveranser           │
+│                                 │
+│  ┌─────────────────────────────┐│
+│  │ ○ Bama         07:30-11:00 ││
+│  │   12 linjer · Ordre #847392││
+│  │   Status: Forventet        ││
+│  │   Ansvarlig: Du            ││
+│  └─────────────────────────────┘│
+│  ┌─────────────────────────────┐│
+│  │ ○ Asko         09:00-12:00 ││
+│  │   18 linjer · Ordre #12345 ││
+│  │   Status: Forventet        ││
+│  │   Ansvarlig: Du            ││
+│  └─────────────────────────────┘│
+│  ┌─────────────────────────────┐│
+│  │ ○ Vinimport    Ettermiddag ││
+│  │   6 linjer · Ordre #V-884  ││
+│  │   Status: Forventet        ││
+│  │   Ansvarlig: Erik (servis) ││
+│  └─────────────────────────────┘│
+└─────────────────────────────────┘
+```
+
+### 12.2 Receiving Check (Single Line Item)
+
+```
+┌─────────────────────────────────┐
+│  ← Varemottak: Asko            │
+│  Ordre #12345 · Linje 7/18     │
+│                                 │
+│  Indrefilet storfe              │
+│  Bestilt: 12 kg                 │
+│  Pris: 289 NOK/kg              │
+│                                 │
+│  Mengde OK?     [12 kg] ✓      │
+│  Kvalitet OK?   [✓]            │
+│  Temp (°C):     [2.8] ✓        │
+│  Grense: 0–4°C                 │
+│                                 │
+│  [Godkjenn ✓]  [Avvik ⚠️]     │
+│                                 │
+│  ──────────────────────────     │
+│  Neste: Gulrot 10 kg     →     │
+└─────────────────────────────────┘
+```
+
+### 12.3 Deviation Registration
+
+```
+┌─────────────────────────────────┐
+│  ← Registrer avvik              │
+│  Gulrot 10 kg · Ordre #12345   │
+│                                 │
+│  Avvikstype:                    │
+│  ┌──────────────────────┐      │
+│  │ ○ Manglende vare     │      │
+│  │ ● Skadet vare        │      │
+│  │ ○ Temperaturavvik    │      │
+│  │ ○ Feil vare          │      │
+│  │ ○ Kvalitetsavvik     │      │
+│  └──────────────────────┘      │
+│                                 │
+│  Antall:  [2] stk              │
+│                                 │
+│  Beskrivelse:                   │
+│  [Mekanisk skade, synlig mold] │
+│                                 │
+│  📸 Ta bilde                    │
+│  [bilde1.jpg ✓]                │
+│                                 │
+│  [Registrer avvik ✓]           │
+└─────────────────────────────────┘
+```
+
+---
+
+## 13. Build Phases (Baby Steps)
+
+### Phase 1: Foundation (MVP)
+
+| Step | What                                                   | Depends On             |
+| ---- | ------------------------------------------------------ | ---------------------- |
+| 8.1  | Supplier CRUD (database + admin UI)                    | Core tables            |
+| 8.2  | Product CRUD (database + admin UI)                     | 8.1                    |
+| 8.3  | Purchase order CRUD (manual creation)                  | 8.1, 8.2               |
+| 8.4  | Delivery event auto-generation (from order dates)      | 8.3                    |
+| 8.5  | Receiving flow (mobile: check lines, confirm)          | 8.4, Module 4 sessions |
+| 8.6  | Deviation registration (type, qty, photo, description) | 8.5                    |
+| 8.7  | Deviation status lifecycle (manual transitions)        | 8.6                    |
+| 8.8  | Session task integration (receiving as session_task)   | 8.5, Module 4          |
+
+**Deliverable:** Staff can receive deliveries, register deviations with photos, and track resolution. Fully integrated with daily session workflow.
+
+### Phase 2: Storage & Stock
+
+| Step | What                                        | Depends On |
+| ---- | ------------------------------------------- | ---------- |
+| 8.9  | Storage zone config (extend Module 2 zones) | Module 2   |
+| 8.10 | Product ↔ storage location mapping          | 8.2, 8.9   |
+| 8.11 | Placement instructions at receiving         | 8.10, 8.5  |
+| 8.12 | Stock level tracking (receive → stock)      | 8.5        |
+| 8.13 | Stock movement audit trail                  | 8.12       |
+| 8.14 | Manual stock count (adjustment flow)        | 8.12       |
+
+**Deliverable:** Staff know where to put things. Stock levels are accurate. Full audit trail of all movements.
+
+### Phase 3: Traceability
+
+| Step | What                                               | Depends On       |
+| ---- | -------------------------------------------------- | ---------------- |
+| 8.15 | Batch creation at receiving (for tracked products) | 8.5              |
+| 8.16 | Internal tracking ID generation + label printing   | 8.15             |
+| 8.17 | Batch transformation logging                       | 8.15             |
+| 8.18 | Batch usage logging (batch → dish → session)       | 8.15             |
+| 8.19 | Recall report generation                           | 8.15, 8.17, 8.18 |
+
+**Deliverable:** Full HACCP traceability for selected products. Can respond to Mattilsynet recalls with exact data.
+
+### Phase 4: Intelligence
+
+| Step | What                                                   | Depends On          |
+| ---- | ------------------------------------------------------ | ------------------- |
+| 8.20 | Supplier scoring (auto-calculated from deviation data) | 8.6, 3+ months data |
+| 8.21 | Supplier dashboard                                     | 8.20                |
+| 8.22 | Email parsing for order confirmations (AI)             | 8.3, Module 12      |
+| 8.23 | Deviation pattern detection (AI)                       | 8.6, Module 12      |
+| 8.24 | Stock forecasting (demand prediction)                  | 8.12, Module 4 data |
+| 8.25 | Waste analysis and reporting                           | 8.12, 8.13          |
+
+**Deliverable:** Actionable intelligence. Supplier negotiation data. Predictive ordering. Waste reduction.
+
+---
+
+## 14. Decisions Log
+
+| #   | Decision                                                    | Choice                                                          | Rationale                                                                                   |
+| --- | ----------------------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| 1   | Separate inventory module vs. extend Operations             | Separate module (Module 8)                                      | Inventory has its own data model, lifecycle, and complexity. Too large for a submodule.     |
+| 2   | Storage locations: separate system vs. extend Org Structure | Extend existing Zone model                                      | Avoids parallel location hierarchies. Zone already has the right granularity.               |
+| 3   | Full batch tracking: all products vs. selected              | Selected products only (is_tracked flag)                        | Full tracking on everything is impractical for restaurants. Risk-based approach per HACCP.  |
+| 4   | Automatic supplier email on deviation                       | Requires human confirmation before send                         | Core principle: nothing happens without human sign-off. Prevents accidental communication.  |
+| 5   | Deviation closure                                           | Only when economics resolved (credit/replacement/accepted loss) | Without economic closure, margin leaks silently. Forced accountability.                     |
+| 6   | Open deviations block session sign-off                      | Yes                                                             | Forces daily resolution. Prevents accumulation of unresolved issues.                        |
+| 7   | Delivery assignment                                         | Auto-calculated from supplier config + shift schedule           | Eliminates "hvem skal ta imot?" problem. System knows who's responsible.                    |
+| 8   | Stock adjustment timing                                     | Only accepted goods enter stock, immediately on confirmation    | Prevents inventory inflation from unresolved deviations.                                    |
+| 9   | Temperature at receiving                                    | Only for products with requires_temp_at_receiving flag          | Not legally required for all products. Targeted approach reduces friction.                  |
+| 10  | Physical labeling for batches                               | Required (internal tracking ID on physical product)             | Without physical-digital connection, traceability is theater.                               |
+| 11  | Supplier scoring                                            | Automatic from deviation data, visible to managers              | Gives negotiation leverage. Data-driven supplier management.                                |
+| 12  | Order input method                                          | Three channels: manual, email parsing, API                      | Different suppliers use different systems. Must support all.                                |
+| 13  | Waste tracking scope                                        | Stock movement type, not separate module                        | Waste is just a stock movement (type: waste). No need for separate waste module.            |
+| 14  | Integration with Module 4                                   | Delivery events materialize as session_tasks                    | Receiving is an operational task. It belongs in the daily workflow, not in a separate silo. |
+
+---
+
+## Source
+
+This module specification is based on operational analysis conducted with Martin Lundqvist, incorporating:
+
+- Full raw material lifecycle mapping
+- Real-world deviation handling patterns
+- Norwegian IK-Mat / HACCP traceability requirements
+- Retail logistics principles adapted for restaurant operations
+- Three-tier implementation approach (registration → control → intelligence)
+
+---
+
+_This module transforms inventory management from reactive chaos ("ring leverandøren") to proactive control ("lukket sirkel med sporbarhet"). The four engines work together to ensure that no margin disappears silently, no deviation goes unresolved, and no product recall goes unanswered._

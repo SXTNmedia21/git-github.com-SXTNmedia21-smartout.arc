@@ -405,7 +405,7 @@ export function UsersClient({ users: initialUsers }: UsersClientProps) {
         )}
 
         {/* Table */}
-        <div className="border-border rounded-md border">
+        <div className="border-border overflow-x-auto rounded-md border">
           <Table>
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (

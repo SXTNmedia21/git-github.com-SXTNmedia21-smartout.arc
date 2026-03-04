@@ -1,0 +1,77 @@
+// ============================================
+// tracking.tsx
+// Client-side tracking components for use in both
+// Server Components and Client Components.
+//
+// FullTracker: renders nothing, activates ALL tracking
+//              (page views, scroll depth, clicks, session lifecycle)
+// PageTracker: renders nothing, fires a page_view event only
+//              (kept for backward compat on simple redirect pages)
+// TrackedCta: a Link wrapper that fires cta_click on click
+//
+// Server Components can't call hooks directly, so these
+// small client components bridge that gap.
+//
+// Connected to: hooks/useTracking.ts (page view + CTA tracking)
+//               hooks/useScrollTracking.ts (scroll depth)
+//               hooks/useClickTracking.ts (click tracking)
+//               hooks/useSessionLifecycle.ts (heartbeat + session end)
+// ============================================
+
+"use client";
+
+import Link from "next/link";
+import type { ComponentProps } from "react";
+import { usePageTracking, useTrackCta } from "../hooks/useTracking";
+import { useScrollTracking } from "../hooks/useScrollTracking";
+import { useClickTracking } from "../hooks/useClickTracking";
+import { useSessionLifecycle } from "../hooks/useSessionLifecycle";
+
+/**
+ * Invisible component that fires a page_view event once per session.
+ * Drop this into any page (server or client) to enable page tracking.
+ * Renders nothing — zero layout impact.
+ */
+export function PageTracker() {
+  usePageTracking();
+  return null;
+}
+
+/**
+ * Full tracking component that activates all tracking hooks:
+ * page views, scroll depth, click tracking, and session lifecycle.
+ * Drop this into any main landing page to enable comprehensive tracking.
+ * Renders nothing — zero layout impact.
+ */
+export function FullTracker() {
+  usePageTracking();
+  useScrollTracking();
+  useClickTracking();
+  useSessionLifecycle();
+  return null;
+}
+
+/**
+ * A Link component that also fires a cta_click tracking event.
+ * Use this for CTA buttons in Server Components where you can't
+ * call useTrackCta() directly.
+ *
+ * @param label - The visible button text sent as the event label
+ * @param props - All standard Next.js Link props
+ */
+export function TrackedCta({ label, ...props }: ComponentProps<typeof Link> & { label: string }) {
+  const trackCta = useTrackCta();
+
+  return (
+    <Link
+      {...props}
+      onClick={(e) => {
+        trackCta(label);
+        // Preserve any existing onClick handler
+        if (typeof props.onClick === "function") {
+          props.onClick(e);
+        }
+      }}
+    />
+  );
+}

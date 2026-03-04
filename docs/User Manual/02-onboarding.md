@@ -51,7 +51,7 @@ Lederen kan følge med på progresjonen fra dashbordet:
 
 | Statusindikator       | Betydning                                     |
 | --------------------- | --------------------------------------------- |
-| Ikke startet          | Trainee har ikke åpnet modulen enda           |
+| Ikke startet          | Trainee har ikke åpnet modulen ennå           |
 | Pågår                 | Trainee har begynt, men ikke fullført         |
 | Venter på godkjenning | Trainee har fullført, men leder må signere av |
 | Fullført              | Modulen er godkjent                           |

@@ -109,6 +109,7 @@ export default function PeoplePage() {
 
         return {
           id: p.profile_id,
+          profileId: p.profile_id,
           name: p.display_name,
           email: ui?.email ?? "",
           role: p.job_title ?? p.role,

@@ -34,7 +34,7 @@ changelog:
 
 # Module 2: Organisasjonsstruktur (Organization Structure)
 
-> **Smartout.io** — Functional documentation for migration  
+> **Smartout.ai** — Functional documentation for migration
 > Version 1.0 | February 2026
 
 ---

@@ -12,6 +12,7 @@ import { useState } from "react";
 import { CalendarCheck } from "lucide-react";
 import { toast } from "sonner";
 
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -31,7 +32,8 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 
-import { useSchedule } from "./schedule-context";
+import { useCreateDayBooking } from "../_hooks/use-day-content";
+import { useWeekRange } from "../_hooks/use-week-range";
 
 // ── Props ────────────────────────────────────────────────────
 
@@ -52,7 +54,8 @@ type BookingDialogProps = {
  * @param onOpenChange - Callback when open state changes
  */
 export function BookingDialog({ dateId, open, onOpenChange }: BookingDialogProps) {
-  const { dispatch } = useSchedule();
+  const { weekStart } = useWeekRange();
+  const createDayBooking = useCreateDayBooking(weekStart);
 
   // Form state
   const [title, setTitle] = useState("");
@@ -96,20 +99,23 @@ export function BookingDialog({ dateId, open, onOpenChange }: BookingDialogProps
       return;
     }
 
-    dispatch({
-      type: "ADD_BOOKING",
-      payload: {
-        dateId,
-        title: title.trim(),
-        guestCount: parsedGuests,
-        menu: menu.trim() || "Ikke spesifisert",
-        time: time.trim() || "TBD",
-        location: location.trim() || "Ikke tildelt",
-        status,
-        isVip,
-        notes: notes.trim() || undefined,
-        contactPerson: contactPerson.trim() || undefined,
-      },
+    if (!time.trim() || !/^\d{2}:\d{2}$/.test(time.trim())) {
+      toast.error("Tidspunkt er påkrevd (HH:MM)");
+      return;
+    }
+
+    createDayBooking.mutate({
+      id: crypto.randomUUID(),
+      dateId,
+      title: title.trim(),
+      guestCount: parsedGuests,
+      menu: menu.trim() || "Ikke spesifisert",
+      time: time.trim(),
+      location: location.trim() || "Ikke tildelt",
+      status,
+      isVip,
+      notes: notes.trim() || undefined,
+      contactPerson: contactPerson.trim() || undefined,
     });
 
     toast.success(`Booking "${title.trim()}" lagt til`);
@@ -119,16 +125,21 @@ export function BookingDialog({ dateId, open, onOpenChange }: BookingDialogProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <CalendarCheck className="h-5 w-5 text-orange-400" />
-            Ny booking
-          </DialogTitle>
-          <DialogDescription>Legg til en reservasjon eller et selskap for dagen.</DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-w-md gap-0 p-0">
+        <div className="border-border relative overflow-hidden rounded-t-lg border-b px-6 pt-6 pb-4">
+          <div className="absolute top-0 left-0 h-1 w-full bg-indigo-500" />
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarCheck className="h-5 w-5 text-orange-400" />
+              Ny booking
+            </DialogTitle>
+            <DialogDescription>
+              Legg til en reservasjon eller et selskap for dagen.
+            </DialogDescription>
+          </DialogHeader>
+        </div>
 
-        <div className="grid gap-4 py-2">
+        <div className="grid gap-4 px-6 py-4">
           {/* Title */}
           <div className="grid gap-1.5">
             <Label htmlFor="booking-title">Tittel *</Label>
@@ -205,9 +216,7 @@ export function BookingDialog({ dateId, open, onOpenChange }: BookingDialogProps
               <Label htmlFor="booking-vip">VIP</Label>
               <div className="flex h-9 items-center">
                 <Switch id="booking-vip" checked={isVip} onCheckedChange={setIsVip} />
-                <span className="text-muted-foreground ml-2 text-xs">
-                  {isVip ? "Ja" : "Nei"}
-                </span>
+                <span className="text-muted-foreground ml-2 text-xs">{isVip ? "Ja" : "Nei"}</span>
               </div>
             </div>
           </div>
@@ -236,19 +245,17 @@ export function BookingDialog({ dateId, open, onOpenChange }: BookingDialogProps
           </div>
         </div>
 
-        <DialogFooter>
-          <button
-            onClick={() => onOpenChange(false)}
-            className="text-muted-foreground hover:text-foreground rounded-md px-4 py-2 text-sm font-medium transition-colors"
-          >
+        <DialogFooter className="border-border border-t px-6 py-4">
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Avbryt
-          </button>
-          <button
+          </Button>
+          <Button
+            size="sm"
+            className="bg-indigo-600 text-white hover:bg-indigo-700"
             onClick={handleSubmit}
-            className="rounded-md border border-orange-500/30 bg-orange-500/20 px-4 py-2 text-sm font-bold text-orange-400 transition-all hover:bg-orange-500/30"
           >
             Legg til booking
-          </button>
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

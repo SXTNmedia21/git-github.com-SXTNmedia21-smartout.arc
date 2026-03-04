@@ -1,5 +1,5 @@
-import { Ratelimit } from "https://cdn.skypack.dev/@upstash/ratelimit@latest";
-import { Redis } from "https://deno.land/x/upstash_redis/mod.ts";
+import { Ratelimit } from "npm:@upstash/ratelimit@2";
+import { Redis } from "npm:@upstash/redis@1";
 
 let ratelimit: Ratelimit | null = null;
 

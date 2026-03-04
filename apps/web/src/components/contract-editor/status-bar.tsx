@@ -33,7 +33,7 @@ export function StatusBar({
     });
 
     return { sections, placeholders, signatures };
-  }, [editor, editor?.state.doc]);
+  }, [editor]);
 
   const saveStatus = isSaving ? (
     <span className="flex items-center gap-1 text-yellow-500">

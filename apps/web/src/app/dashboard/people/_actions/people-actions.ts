@@ -65,3 +65,18 @@ export async function cancelInvitation(invitationId: string) {
 
   if (error) throw new Error(error.message);
 }
+
+export async function bulkUpdateProfiles(
+  profileIds: string[],
+  workspaceId: string,
+  updates: Record<string, unknown>,
+) {
+  const supabase = await getClient();
+  const { error } = await supabase
+    .from("profile")
+    .update(updates)
+    .in("profile_id", profileIds)
+    .eq("workspace_id", workspaceId);
+
+  if (error) throw new Error(error.message);
+}

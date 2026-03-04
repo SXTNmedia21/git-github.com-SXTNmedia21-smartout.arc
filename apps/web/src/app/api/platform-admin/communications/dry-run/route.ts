@@ -47,7 +47,16 @@ export async function POST(request: NextRequest) {
         email: r.email,
       }));
 
-    return NextResponse.json({ recipientCount, sampleRecipients });
+    // Locale breakdown for multilingual sending
+    const localeBreakdown: Record<string, number> = {};
+    for (const r of allRecipients) {
+      const locale = (r as { locale?: string }).locale || "no";
+      localeBreakdown[locale] = (localeBreakdown[locale] ?? 0) + 1;
+    }
+
+    const preview = sampleRecipients.map((r) => `${r.name} <${r.email}>`).join(", ");
+
+    return NextResponse.json({ recipientCount, sampleRecipients, localeBreakdown, preview });
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Failed to resolve audience" },

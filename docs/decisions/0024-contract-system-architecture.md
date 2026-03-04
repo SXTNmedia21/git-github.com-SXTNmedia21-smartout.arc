@@ -53,7 +53,7 @@ Smartout needs a contract system that handles B2B client contracts (Smartout <->
 
 ### Signing Experience
 
-1. **Embedded in Smartout domain** — `@docuseal/react` DocusealForm component at smartout.io/sign/[token]
+1. **Embedded in Smartout domain** — `@docuseal/react` DocusealForm component at smartout.ai/sign/[token]
 2. **DocuSeal redirect** — Redirect to DocuSeal's hosted signing page
 3. **Custom signing UI** — Build own signing interface
 
@@ -106,7 +106,7 @@ Chosen: **HTML with `{{placeholder}}` tokens**, because:
 
 Chosen: **Embedded via `@docuseal/react`**, because:
 
-- Full brand control — signing happens at smartout.io/sign/[token]
+- Full brand control — signing happens at smartout.ai/sign/[token]
 - Consistent user experience without external redirects
 - DocuSeal's React component handles signature capture, field validation, and submission
 - Signing events are captured via webhooks for audit trail
@@ -124,7 +124,7 @@ Chosen: **Rename to clean names**, because:
 
 - **Good, because** all contract operations go through the microservice, creating a clean abstraction boundary. No code outside `services/contract-service/` should import DocuSeal SDKs directly.
 - **Good, because** HTML templates with placeholders are simple to understand, test, and debug. AI agents can read and modify templates without special tooling.
-- **Good, because** the embedded signing experience keeps users within smartout.io, maintaining brand consistency.
+- **Good, because** the embedded signing experience keeps users within smartout.ai, maintaining brand consistency.
 - **Bad, because** the standalone microservice adds deployment complexity (separate Docker container, health checks, service key management).
 - **Bad, because** Tiptap has a learning curve for custom extension development.
 - **Agent Impact:**

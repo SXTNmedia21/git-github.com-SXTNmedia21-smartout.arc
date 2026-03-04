@@ -6,13 +6,14 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { EmailJob, EmailJobOptions, SendEmailResult } from "./types";
+import type { EmailJob, EmailJobOptions, SendEmailResult, SendGridTemplateData } from "./types";
 import { resolveAudience } from "./audiences";
 import { classifyEmail, filterSuppressed, validateSender } from "./compliance";
 import { isOutboundEmailEnabled } from "./kill-switch";
 import { checkRateLimit, RECIPIENT_HARD_CAP } from "./rate-limit";
-import { sendEmailBatch } from "./sendgrid";
+import { sendDynamicTemplateBatch, sendEmailBatch } from "./sendgrid";
 import { renderTemplate } from "./templates";
+import { getServiceKey } from "@smartout/supabase/vault";
 
 const JOB_BATCH_SIZE = 100;
 
@@ -74,19 +75,38 @@ export async function createEmailJob(
     failedCount: 0,
   };
 
+  // Fetch SendGrid API key from Vault
+  const sendgridKey = await getServiceKey(adminClient, "sendgrid");
+
   // Store job metadata for processing
   // We store in communication_log-compatible format when possible,
   // but for platform-level sends we track the job in memory and process immediately
-  const result = await processEmailBatches(
-    activeRecipients.map((r) => ({
-      email: r.email,
-      name: r.name,
-      locale: r.locale,
-    })),
-    opts.template,
-    opts.variables,
-    fromEmail,
-  );
+  const isDynamic =
+    opts.template === "sendgrid-dynamic" && opts.sendgridTemplateId && opts.templateData;
+
+  const result = isDynamic
+    ? await processDynamicTemplateBatches(
+        activeRecipients.map((r) => ({
+          email: r.email,
+          name: r.name,
+          locale: r.locale,
+        })),
+        opts.sendgridTemplateId!,
+        opts.templateData!,
+        fromEmail,
+        sendgridKey,
+      )
+    : await processEmailBatches(
+        activeRecipients.map((r) => ({
+          email: r.email,
+          name: r.name,
+          locale: r.locale,
+        })),
+        opts.template,
+        opts.variables,
+        fromEmail,
+        sendgridKey,
+      );
 
   job.status = result.failed > 0 ? "completed" : "completed";
   job.processedCount = result.sent + result.failed;
@@ -101,6 +121,7 @@ async function processEmailBatches(
   template: EmailJobOptions["template"],
   variables: Record<string, string>,
   fromEmail: string,
+  apiKey: string,
 ): Promise<SendEmailResult> {
   let totalSent = 0;
   let totalFailed = 0;
@@ -118,7 +139,48 @@ async function processEmailBatches(
       };
     });
 
-    const result = await sendEmailBatch(emailsToSend, fromEmail);
+    const result = await sendEmailBatch(emailsToSend, fromEmail, apiKey);
+    totalSent += result.sent;
+    totalFailed += result.failed;
+    allErrors.push(...result.errors);
+  }
+
+  return { sent: totalSent, failed: totalFailed, errors: allErrors };
+}
+
+async function processDynamicTemplateBatches(
+  recipients: Array<{ email: string; name: string; locale: string }>,
+  templateId: string,
+  templateData: SendGridTemplateData,
+  fromEmail: string,
+  apiKey: string,
+  translatedVersions?: Map<string, SendGridTemplateData>,
+): Promise<SendEmailResult> {
+  // Group recipients by locale for multilingual sending
+  const byLocale = new Map<string, typeof recipients>();
+  for (const r of recipients) {
+    const locale = r.locale || "no";
+    const group = byLocale.get(locale) ?? [];
+    group.push(r);
+    byLocale.set(locale, group);
+  }
+
+  let totalSent = 0;
+  let totalFailed = 0;
+  const allErrors: Array<{ email: string; error: string }> = [];
+
+  for (const [locale, localeRecipients] of byLocale) {
+    const data = translatedVersions?.get(locale) ?? templateData;
+
+    const emailsToSend = localeRecipients.map((r) => ({
+      email: r.email,
+      templateData: {
+        ...data,
+        recipient: r.name,
+      },
+    }));
+
+    const result = await sendDynamicTemplateBatch(emailsToSend, templateId, fromEmail, apiKey);
     totalSent += result.sent;
     totalFailed += result.failed;
     allErrors.push(...result.errors);

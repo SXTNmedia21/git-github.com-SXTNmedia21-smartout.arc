@@ -66,7 +66,7 @@ const features: Feature[] = [
   {
     icon: CalendarDays,
     title: "Vaktplan",
-    description: "Tre visningsmodi, vaktkort, maler, vaktbytte og stemplingsur",
+    description: "Tre visningsmodi, dra-og-slipp, maler, vaktbytte og stemplingsur",
     href: "/docs/vaktplan",
   },
   {
@@ -90,13 +90,13 @@ const features: Feature[] = [
   {
     icon: MessageSquare,
     title: "Kommunikasjon",
-    description: "Chat, varsler, kunngjøringer, eskalering og stille timer",
+    description: "Chat med sanntidslevering, kunngjøringer, varslingssystem og eskalering",
     href: "/docs/kommunikasjon",
   },
   {
     icon: Bot,
     title: "Lise AI-assistent",
-    description: "8 AI-motorer, autorisasjonsnivåer, stemmegrensesnitt og hendelseslogg",
+    description: "8 kapabiliteter, konfigurerbare autorisasjonsnivåer, stemme og hendelseslogg",
     href: "/docs/ai-assistent",
   },
   {

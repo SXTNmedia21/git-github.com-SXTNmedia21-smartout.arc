@@ -1,12 +1,13 @@
-import Link from "next/link";
 import { ArrowRight, CheckCircle2, Zap, Star } from "lucide-react";
 import Navigation from "../../components/navigation";
 import Footer from "../../components/footer";
 import { WEB_APP_LINKS } from "../../lib/web-app-url";
+import { FullTracker, TrackedCta } from "../../components/tracking";
 
 export default function PricingPage() {
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-[#050505] font-sans text-white selection:bg-orange-500/30">
+      <FullTracker />
       {/* Dynamic Premium Background */}
       <div className="pointer-events-none fixed inset-0 z-0 bg-[#050505]">
         {/* Subtle Grid Pattern */}
@@ -51,8 +52,8 @@ export default function PricingPage() {
           <h1 className="mb-6 text-5xl leading-[1.05] font-black tracking-tighter drop-shadow-2xl md:text-7xl">
             Full kontroll til <br />
             <span className="relative inline-block">
-              <span className="absolute -inset-2 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600 opacity-20 blur"></span>
-              <span className="relative bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(52,211,153,0.3)]">
+              <span className="absolute -inset-2 bg-gradient-to-r from-orange-500 via-rose-500 to-orange-600 opacity-20 blur"></span>
+              <span className="relative bg-gradient-to-r from-orange-400 via-rose-400 to-orange-400 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(251,146,60,0.3)]">
                 en fast pris.
               </span>
             </span>
@@ -66,7 +67,7 @@ export default function PricingPage() {
 
         <div className="mx-auto grid max-w-5xl grid-cols-1 gap-8 md:grid-cols-2">
           {/* Basic Plan */}
-          <div className="group relative flex flex-col overflow-hidden rounded-[40px] border border-white/5 bg-[#0a0a0c]/40 p-10 shadow-2xl backdrop-blur-2xl transition-all duration-500 hover:border-white/10">
+          <div className="group relative flex flex-col overflow-hidden rounded-3xl border border-white/5 bg-[#0a0a0c]/40 p-6 shadow-2xl backdrop-blur-2xl transition-all duration-500 hover:border-white/10 sm:rounded-[40px] sm:p-10">
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
             <div className="absolute -inset-1 bg-gradient-to-b from-blue-500/5 to-transparent opacity-0 blur-2xl transition-opacity duration-500 group-hover:opacity-100"></div>
 
@@ -99,16 +100,17 @@ export default function PricingPage() {
               </ul>
             </div>
 
-            <Link
-              href={WEB_APP_LINKS.onboarding}
+            <TrackedCta
+              label="Kom i gang"
+              href={WEB_APP_LINKS.login}
               className="relative z-10 w-full rounded-2xl border border-white/10 bg-white/5 py-4 text-center font-bold text-white transition-colors hover:bg-white/10"
             >
               Kom i gang
-            </Link>
+            </TrackedCta>
           </div>
 
           {/* Pro Plan */}
-          <div className="group relative flex transform flex-col overflow-hidden rounded-[40px] border border-orange-500/20 bg-[#0a0a0c]/60 p-10 shadow-[0_20px_80px_-20px_rgba(249,115,22,0.3)] backdrop-blur-2xl transition-all duration-500 hover:border-orange-500/40 md:-translate-y-4">
+          <div className="group relative flex transform flex-col overflow-hidden rounded-3xl border border-orange-500/20 bg-[#0a0a0c]/60 p-6 shadow-[0_20px_80px_-20px_rgba(249,115,22,0.3)] backdrop-blur-2xl transition-all duration-500 hover:border-orange-500/40 sm:rounded-[40px] sm:p-10 md:-translate-y-4">
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-orange-500/50 to-transparent opacity-100 transition-all duration-500" />
             <div className="absolute -inset-4 bg-gradient-to-b from-orange-500/10 to-transparent opacity-50 blur-3xl transition-opacity duration-500 group-hover:opacity-100"></div>
 
@@ -148,12 +150,16 @@ export default function PricingPage() {
               </ul>
             </div>
 
-            <Link href={WEB_APP_LINKS.onboarding} className="group relative block w-full">
+            <TrackedCta
+              label="Velg Pro"
+              href={WEB_APP_LINKS.login}
+              className="group relative block w-full"
+            >
               <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-500 opacity-40 blur transition duration-500 group-hover:opacity-70"></div>
               <div className="relative flex w-full items-center justify-center gap-2 rounded-2xl bg-white py-4 text-center font-black text-zinc-950 shadow-[0_0_30px_rgba(255,255,255,0.2)] transition-all group-hover:-translate-y-0.5">
                 Velg Pro <ArrowRight className="h-4 w-4" />
               </div>
-            </Link>
+            </TrackedCta>
           </div>
         </div>
       </main>

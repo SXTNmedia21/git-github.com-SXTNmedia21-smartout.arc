@@ -21,6 +21,7 @@ import type {
   ZoneRow,
   AssetRow,
   SetupCheckItem,
+  ProfileRow,
 } from "./_components/types";
 
 export default function OrganizationPage() {
@@ -42,6 +43,7 @@ export default function OrganizationPage() {
   const [zoneCounts, setZoneCounts] = useState<CountMap>({});
   const [assetCounts, setAssetCounts] = useState<CountMap>({});
   const [memberCounts, setMemberCounts] = useState<CountMap>({});
+  const [profiles, setProfiles] = useState<ProfileRow[]>([]);
   const [profileCount, setProfileCount] = useState(0);
 
   const fetchData = useCallback(async () => {
@@ -79,8 +81,9 @@ export default function OrganizationPage() {
       supabase.from("asset").select("*").eq("workspace_id", wid).order("sort_order"),
       supabase
         .from("profile")
-        .select("profile_id", { count: "exact", head: true })
-        .eq("workspace_id", wid),
+        .select("profile_id, display_name, role, department_id, status, is_active")
+        .eq("workspace_id", wid)
+        .eq("is_active", true),
       supabase
         .from("policy")
         .select("policy_id, policy_scope, scope_ref_id")
@@ -131,7 +134,9 @@ export default function OrganizationPage() {
       setAssetCounts(map);
     }
 
-    setProfileCount(profilesRes.count ?? 0);
+    const fetchedProfiles = (profilesRes.data ?? []) as ProfileRow[];
+    setProfiles(fetchedProfiles);
+    setProfileCount(fetchedProfiles.length);
 
     // Phase 2: Team members (needs team IDs, no workspace_id column)
     const teamIds = fetchedTeams.map((t) => t.team_id);
@@ -297,6 +302,7 @@ export default function OrganizationPage() {
         {activeTab === "departments" && (
           <DepartmentsTab
             departments={departments}
+            profiles={profiles}
             positionCounts={positionCounts}
             positionsByDept={positionsByDept}
             policyCounts={entityPolicyCounts}
@@ -324,6 +330,7 @@ export default function OrganizationPage() {
           <TeamsTab
             teams={teams}
             departments={departments}
+            profiles={profiles}
             memberCounts={memberCounts}
             policyCounts={entityPolicyCounts}
             isDark={isDark}

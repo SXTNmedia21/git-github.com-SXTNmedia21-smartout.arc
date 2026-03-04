@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import {
   ArrowLeft,
   BookOpen,
@@ -12,9 +12,18 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Navigation from "../../../components/navigation";
+import Footer from "../../../components/footer";
+import { usePageTracking } from "../../../hooks/useTracking";
+import { useScrollTracking } from "../../../hooks/useScrollTracking";
+import { useClickTracking } from "../../../hooks/useClickTracking";
+import { useSessionLifecycle } from "../../../hooks/useSessionLifecycle";
 import NextPageBanner from "../../../components/next-page-banner";
 
 export default function HROpplaeringPage() {
+  usePageTracking();
+  useScrollTracking();
+  useClickTracking();
+  useSessionLifecycle();
   const router = useRouter();
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [isAnswered, setIsAnswered] = useState(false);
@@ -61,7 +70,7 @@ export default function HROpplaeringPage() {
         </div>
 
         {/* The Mock App Area */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#0a0a0c]/80 p-6 shadow-[0_0_50px_-15px_rgba(217,70,239,0.3)] backdrop-blur-3xl sm:p-8 md:p-12"
@@ -146,7 +155,7 @@ export default function HROpplaeringPage() {
               </div>
             </div>
           </div>
-        </motion.div>
+        </m.div>
 
         <NextPageBanner
           href="/features/haccp-complience"
@@ -155,6 +164,7 @@ export default function HROpplaeringPage() {
           color="from-rose-500/10"
         />
       </div>
+      <Footer />
     </div>
   );
 }

@@ -23,7 +23,7 @@ changelog:
 
 # Smartout — Technical Architecture & Stack
 
-> **Smartout.io** — Foundation documentation
+> **Smartout.ai** — Foundation documentation
 > Version 1.0 | February 2026
 > **Source:** SMARTOUT_COMPLETE_DOCUMENTATION.md, Sections 1, 6, 7
 > **See also:** SMARTOUT_CORE_ARCHITECTURE_v2.md (detailed), SMARTOUT_UI_ARCHITECTURE.md (UI screens)
@@ -34,7 +34,7 @@ changelog:
 
 | Layer         | Technology                                                          | Purpose                                         |
 | ------------- | ------------------------------------------------------------------- | ----------------------------------------------- |
-| Web Dashboard | Next.js 14+ (App Router, TypeScript)                                | Admin + employee desktop experience             |
+| Web Dashboard | Next.js 16 (App Router, TypeScript)                                 | Admin + employee desktop experience             |
 | Mobile App    | React Native + Expo (TypeScript)                                    | Runtime restaurant operations                   |
 | Backend       | Supabase (PostgreSQL, Auth, Storage, Realtime, Edge Functions)      | All backend services                            |
 | Automation    | n8n (complex workflows) + Supabase Edge Functions (simple triggers) | Business logic orchestration                    |
@@ -46,7 +46,7 @@ changelog:
 | Data Fetching | TanStack Query (React Query)                                        | Client-side caching & fetching                  |
 | Real-time     | Supabase Realtime                                                   | Live updates (chat, session status, task board) |
 | SMS           | Twilio                                                              | SMS notifications, OTP, voice                   |
-| Email         | Resend                                                              | Transactional email                             |
+| Email         | SendGrid                                                            | Transactional email                             |
 | Voice AI      | Ultravox + Twilio                                                   | AI voice conversations                          |
 | Payments      | Stripe                                                              | Subscription billing                            |
 | Vector Search | pgvector (Supabase)                                                 | RAG / Knowledge Engine embeddings               |

@@ -10,6 +10,13 @@ const eslintConfig = defineConfig([
   {
     files: ["**/*.{ts,tsx}"],
     rules: {
+      // Allow underscore-prefixed args (e.g. _request in route handlers, _report
+      // in callbacks) to signal intentional non-use without triggering warnings.
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
+
       // React Compiler rules — downgrade from error to warning.
       // These fire on legitimate data-fetching patterns (useCallback + useEffect)
       // that the compiler cannot auto-optimize.

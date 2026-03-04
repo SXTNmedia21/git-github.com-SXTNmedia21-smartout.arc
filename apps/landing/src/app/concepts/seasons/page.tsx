@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import {
   ArrowLeft,
   Leaf,
@@ -16,9 +16,18 @@ import {
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Navigation from "../../../components/navigation";
+import Footer from "../../../components/footer";
+import { usePageTracking } from "../../../hooks/useTracking";
+import { useScrollTracking } from "../../../hooks/useScrollTracking";
+import { useClickTracking } from "../../../hooks/useClickTracking";
+import { useSessionLifecycle } from "../../../hooks/useSessionLifecycle";
 import NextPageBanner from "../../../components/next-page-banner";
 
 export default function SesongerPage() {
+  usePageTracking();
+  useScrollTracking();
+  useClickTracking();
+  useSessionLifecycle();
   const router = useRouter();
   const [selected, setSelected] = useState(1);
 
@@ -140,7 +149,7 @@ export default function SesongerPage() {
 
             {/* Active season display */}
             <div className="relative z-10 flex flex-1 flex-col justify-center">
-              <motion.div
+              <m.div
                 key={selected}
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -170,7 +179,7 @@ export default function SesongerPage() {
                   <CheckCircle2 className="h-4 w-4" />
                   {currentSeason.routines} Rutiner Modifisert
                 </div>
-              </motion.div>
+              </m.div>
             </div>
           </div>
 
@@ -196,7 +205,7 @@ export default function SesongerPage() {
             ].map((feat, i) => {
               const Icon = feat.icon;
               return (
-                <motion.div
+                <m.div
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.1 * (i + 1) }}
@@ -226,7 +235,7 @@ export default function SesongerPage() {
                       <p className="text-sm leading-relaxed text-zinc-500">{feat.desc}</p>
                     </div>
                   </div>
-                </motion.div>
+                </m.div>
               );
             })}
           </div>
@@ -239,6 +248,7 @@ export default function SesongerPage() {
           color="from-cyan-500/10"
         />
       </div>
+      <Footer />
     </div>
   );
 }

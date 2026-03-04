@@ -123,13 +123,17 @@ export function BillingClient({ companies, mrrData }: BillingClientProps) {
       : undefined;
 
   // Chart data for MRR trend
-  const chartData = mrrData.map((d) => ({
-    date: new Date(d.metric_date).toLocaleDateString("no-NO", {
-      month: "short",
-      day: "numeric",
-    }),
-    mrr: d.metric_value,
-  }));
+  const chartData = useMemo(
+    () =>
+      mrrData.map((d) => ({
+        date: new Date(d.metric_date).toLocaleDateString("no-NO", {
+          month: "short",
+          day: "numeric",
+        }),
+        mrr: d.metric_value,
+      })),
+    [mrrData],
+  );
 
   // Unique plans for filter dropdown
   const uniquePlans = useMemo(() => {
@@ -283,17 +287,15 @@ export function BillingClient({ companies, mrrData }: BillingClientProps) {
                   <Mail className="h-4 w-4" />
                   Send Payment Reminder
                 </DropdownMenuItem>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <DropdownMenuItem disabled>
-                        <ExternalLink className="h-4 w-4" />
-                        View in Stripe
-                      </DropdownMenuItem>
-                    </TooltipTrigger>
-                    <TooltipContent side="left">Stripe integration coming</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <DropdownMenuItem disabled>
+                      <ExternalLink className="h-4 w-4" />
+                      View in Stripe
+                    </DropdownMenuItem>
+                  </TooltipTrigger>
+                  <TooltipContent side="left">Stripe integration coming</TooltipContent>
+                </Tooltip>
               </DropdownMenuContent>
             </DropdownMenu>
           );
@@ -432,47 +434,49 @@ export function BillingClient({ companies, mrrData }: BillingClientProps) {
           </div>
 
           {/* Table */}
-          <div className="border-border rounded-md border">
-            <Table>
-              <TableHeader>
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <TableHead
-                        key={header.id}
-                        className="text-xs font-medium tracking-wider uppercase"
-                      >
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(header.column.columnDef.header, header.getContext())}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {table.getRowModel().rows?.length ? (
-                  table.getRowModel().rows.map((row) => (
-                    <TableRow key={row.id}>
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id} className="text-sm">
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </TableCell>
+          <div className="border-border overflow-x-auto rounded-md border">
+            <TooltipProvider>
+              <Table>
+                <TableHeader>
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <TableRow key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => (
+                        <TableHead
+                          key={header.id}
+                          className="text-xs font-medium tracking-wider uppercase"
+                        >
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(header.column.columnDef.header, header.getContext())}
+                        </TableHead>
                       ))}
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      className="text-muted-foreground h-24 text-center"
-                    >
-                      No companies found.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                  ))}
+                </TableHeader>
+                <TableBody>
+                  {table.getRowModel().rows?.length ? (
+                    table.getRowModel().rows.map((row) => (
+                      <TableRow key={row.id}>
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell key={cell.id} className="text-sm">
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell
+                        colSpan={columns.length}
+                        className="text-muted-foreground h-24 text-center"
+                      >
+                        No companies found.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TooltipProvider>
           </div>
 
           {/* Pagination */}

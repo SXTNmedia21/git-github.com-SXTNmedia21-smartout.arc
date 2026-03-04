@@ -13,6 +13,7 @@ import { useState } from "react";
 import {
   BookmarkPlus,
   BookOpen,
+  CalendarPlus,
   ClipboardPaste,
   Copy,
   FileText,
@@ -31,14 +32,19 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { useSchedule } from "./schedule-context";
+import type { Shift } from "./schedule-types";
+import { useScheduleUI } from "./schedule-ui-context";
+import { useShifts, usePublishShifts, useUnpublishShifts, usePasteDay } from "../_hooks/use-shifts";
+import { useWeekRange } from "../_hooks/use-week-range";
 import { SaveTemplateDialog } from "./save-template-dialog";
 import { LoadTemplateSheet } from "./load-template-sheet";
 import { DayMessageDialog } from "./day-message-dialog";
+import { DayInfoDialog } from "./day-info-dialog";
 import { BroadcastDialog } from "./broadcast-dialog";
 
 // ── Props ───────────────────────────────────────────────────
@@ -60,23 +66,37 @@ type DayContextMenuProps = {
  * @returns DropdownMenu with all day operations
  */
 export function DayContextMenu({ dateId, dateLabel, isDark }: DayContextMenuProps) {
-  const { state, dispatch, computed } = useSchedule();
+  const {
+    clipboard,
+    selectedDays,
+    toggleDaySelection,
+    setCreateShiftContext,
+    setSelectedDay,
+    setClipboard,
+    copyDay,
+  } = useScheduleUI();
+  const { weekStart, weekEnd } = useWeekRange();
+  const { data: shifts = [] as Shift[] } = useShifts(weekStart, weekEnd);
+  const publishShifts = usePublishShifts(weekStart);
+  const unpublishShifts = useUnpublishShifts(weekStart);
+  const pasteDay = usePasteDay(weekStart);
 
   // Local dialog/sheet state
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
   const [loadTemplateOpen, setLoadTemplateOpen] = useState(false);
   const [dayMessageOpen, setDayMessageOpen] = useState(false);
+  const [dayInfoOpen, setDayInfoOpen] = useState(false);
   const [broadcastOpen, setBroadcastOpen] = useState(false);
 
   // Derived conditions for enabling/disabling menu items
-  const dayShifts = computed.getShiftsForDay(dateId);
+  const dayShifts = shifts.filter((s: Shift) => s.dateId === dateId);
   const hasShifts = dayShifts.length > 0;
   const hasUnpublished = dayShifts.some(
-    (s) => s.status === "created" || s.status === "assigned",
+    (s: Shift) => s.status === "created" || s.status === "assigned",
   );
-  const hasPublished = dayShifts.some((s) => s.status === "published");
-  const hasClipboard = state.clipboard !== null;
-  const isSelected = state.selectedDays.has(dateId);
+  const hasPublished = dayShifts.some((s: Shift) => s.status === "published");
+  const hasClipboard = clipboard !== null;
+  const isSelected = selectedDays.has(dateId);
 
   return (
     <>
@@ -85,18 +105,16 @@ export function DayContextMenu({ dateId, dateLabel, isDark }: DayContextMenuProp
           <Button
             variant="ghost"
             size="icon"
-            className={`h-6 w-6 ${isDark ? "text-white/60 hover:text-white hover:bg-white/10" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}
+            className="text-muted-foreground hover:bg-muted hover:text-foreground h-6 w-6"
           >
             <MoreVertical className="h-3.5 w-3.5" />
             <span className="sr-only">Dagmeny for {dateLabel}</span>
           </Button>
         </DropdownMenuTrigger>
 
-        <DropdownMenuContent align="end" className="w-52">
-          {/* Selection toggle */}
-          <DropdownMenuItem
-            onClick={() => dispatch({ type: "SELECT_DAY", payload: { dateId } })}
-          >
+        <DropdownMenuContent align="end" className="z-50 w-52">
+          {/* Selection & Create */}
+          <DropdownMenuItem onClick={() => toggleDaySelection(dateId)}>
             {isSelected ? (
               <SquareCheck className="mr-2 h-4 w-4" />
             ) : (
@@ -105,15 +123,7 @@ export function DayContextMenu({ dateId, dateLabel, isDark }: DayContextMenuProp
             Velg dag
           </DropdownMenuItem>
 
-          {/* Create shift */}
-          <DropdownMenuItem
-            onClick={() =>
-              dispatch({
-                type: "SET_CREATE_SHIFT_CONTEXT",
-                payload: { dateId },
-              })
-            }
-          >
+          <DropdownMenuItem onClick={() => setCreateShiftContext({ dateId })}>
             <Plus className="mr-2 h-4 w-4" />
             Opprett vakt
           </DropdownMenuItem>
@@ -121,9 +131,17 @@ export function DayContextMenu({ dateId, dateLabel, isDark }: DayContextMenuProp
           <DropdownMenuSeparator />
 
           {/* Publish / Unpublish */}
+          <DropdownMenuLabel className="text-muted-foreground text-[10px] font-semibold tracking-wider uppercase">
+            Publisering
+          </DropdownMenuLabel>
           <DropdownMenuItem
             disabled={!hasUnpublished}
-            onClick={() => dispatch({ type: "PUBLISH_DAY", payload: { dateId } })}
+            onClick={() => {
+              const draftIds = dayShifts
+                .filter((s: Shift) => s.status === "created" || s.status === "assigned")
+                .map((s: Shift) => s.id);
+              if (draftIds.length > 0) publishShifts.mutate(draftIds);
+            }}
           >
             <Send className="mr-2 h-4 w-4" />
             Publiser dag
@@ -131,7 +149,12 @@ export function DayContextMenu({ dateId, dateLabel, isDark }: DayContextMenuProp
 
           <DropdownMenuItem
             disabled={!hasPublished}
-            onClick={() => dispatch({ type: "UNPUBLISH_DAY", payload: { dateId } })}
+            onClick={() => {
+              const publishedIds = dayShifts
+                .filter((s: Shift) => s.status === "published")
+                .map((s: Shift) => s.id);
+              if (publishedIds.length > 0) unpublishShifts.mutate(publishedIds);
+            }}
           >
             <Undo2 className="mr-2 h-4 w-4" />
             Avpubliser dag
@@ -140,21 +163,27 @@ export function DayContextMenu({ dateId, dateLabel, isDark }: DayContextMenuProp
           <DropdownMenuSeparator />
 
           {/* Copy / Paste */}
+          <DropdownMenuLabel className="text-muted-foreground text-[10px] font-semibold tracking-wider uppercase">
+            Kopier / Lim inn
+          </DropdownMenuLabel>
           <DropdownMenuItem
             disabled={!hasShifts}
-            onClick={() =>
-              dispatch({ type: "COPY_DAY", payload: { dateId, dateLabel } })
-            }
+            onClick={() => copyDay(dateId, dateLabel, dayShifts)}
           >
             <Copy className="mr-2 h-4 w-4" />
             Kopier dag
           </DropdownMenuItem>
 
           <DropdownMenuItem
-            disabled={!hasClipboard}
-            onClick={() =>
-              dispatch({ type: "PASTE_DAY", payload: { targetDateId: dateId } })
-            }
+            disabled={!hasClipboard || pasteDay.isPending}
+            onClick={() => {
+              if (clipboard) {
+                pasteDay.mutate(
+                  { targetDateId: dateId, shifts: clipboard.shifts },
+                  { onSuccess: () => setClipboard(null) },
+                );
+              }
+            }}
           >
             <ClipboardPaste className="mr-2 h-4 w-4" />
             Lim inn dag
@@ -163,6 +192,9 @@ export function DayContextMenu({ dateId, dateLabel, isDark }: DayContextMenuProp
           <DropdownMenuSeparator />
 
           {/* Templates */}
+          <DropdownMenuLabel className="text-muted-foreground text-[10px] font-semibold tracking-wider uppercase">
+            Maler
+          </DropdownMenuLabel>
           <DropdownMenuItem onClick={() => setSaveTemplateOpen(true)}>
             <BookmarkPlus className="mr-2 h-4 w-4" />
             Lagre som mal
@@ -176,9 +208,17 @@ export function DayContextMenu({ dateId, dateLabel, isDark }: DayContextMenuProp
           <DropdownMenuSeparator />
 
           {/* Day info & broadcast */}
+          <DropdownMenuLabel className="text-muted-foreground text-[10px] font-semibold tracking-wider uppercase">
+            Kommunikasjon
+          </DropdownMenuLabel>
+          <DropdownMenuItem onClick={() => setDayInfoOpen(true)}>
+            <CalendarPlus className="mr-2 h-4 w-4" />
+            Legg til daginfo
+          </DropdownMenuItem>
+
           <DropdownMenuItem onClick={() => setDayMessageOpen(true)}>
             <FileText className="mr-2 h-4 w-4" />
-            Opprett daginfo
+            Opprett melding
           </DropdownMenuItem>
 
           <DropdownMenuItem onClick={() => setBroadcastOpen(true)}>
@@ -189,9 +229,7 @@ export function DayContextMenu({ dateId, dateLabel, isDark }: DayContextMenuProp
           <DropdownMenuSeparator />
 
           {/* Day inspector */}
-          <DropdownMenuItem
-            onClick={() => dispatch({ type: "SET_SELECTED_DAY", payload: dateId })}
-          >
+          <DropdownMenuItem onClick={() => setSelectedDay(dateId)}>
             <List className="mr-2 h-4 w-4" />
             Se dagsliste
           </DropdownMenuItem>
@@ -211,17 +249,11 @@ export function DayContextMenu({ dateId, dateLabel, isDark }: DayContextMenuProp
         onOpenChange={setLoadTemplateOpen}
       />
 
-      <DayMessageDialog
-        dateId={dateId}
-        open={dayMessageOpen}
-        onOpenChange={setDayMessageOpen}
-      />
+      <DayMessageDialog dateId={dateId} open={dayMessageOpen} onOpenChange={setDayMessageOpen} />
 
-      <BroadcastDialog
-        dateId={dateId}
-        open={broadcastOpen}
-        onOpenChange={setBroadcastOpen}
-      />
+      <DayInfoDialog dateId={dateId} open={dayInfoOpen} onOpenChange={setDayInfoOpen} />
+
+      <BroadcastDialog dateId={dateId} open={broadcastOpen} onOpenChange={setBroadcastOpen} />
     </>
   );
 }

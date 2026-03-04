@@ -1,3 +1,12 @@
+---
+title: "Journey Deep Spec"
+status: in_progress
+updated: 2026-03-11
+created: 2026-03-01
+module: journey
+tags: [journey, spec, deep-dive]
+---
+
 # SMARTOUT — Journey Deep Specification
 
 > **The Complete Contract**

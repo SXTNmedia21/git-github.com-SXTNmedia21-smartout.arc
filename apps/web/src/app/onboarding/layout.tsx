@@ -1,11 +1,12 @@
-import React from "react";
+import type { Metadata } from "next";
+
+export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Kom i gang | Smartout",
+  description: "Sett opp arbeidsplassen din på under fem minutter.",
+};
 
 export default function OnboardingLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-950 p-4 text-zinc-50 sm:p-8">
-      <div className="relative flex h-[90vh] w-full max-w-screen-2xl overflow-hidden rounded-3xl border border-zinc-800/60 bg-zinc-900 shadow-2xl">
-        {children}
-      </div>
-    </div>
-  );
+  return <div className="h-dvh w-full overflow-hidden bg-[oklch(0.10_0.01_250)]">{children}</div>;
 }

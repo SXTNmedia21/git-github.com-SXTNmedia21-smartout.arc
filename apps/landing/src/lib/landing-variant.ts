@@ -1,35 +1,21 @@
-export type LandingVariant = "B" | "E";
+"use client";
 
-const DEFAULT_VARIANT: LandingVariant = "B";
-const STORAGE_KEY = "landing_variant";
+import { useSearchParams } from "next/navigation";
 
-function isValidVariant(v: string | null | undefined): v is LandingVariant {
-  return v === "B" || v === "E";
-}
-
-/** Returns the env-var-based variant (safe for SSR). */
-export function getEnvVariant(): LandingVariant {
-  const envVal = process.env.NEXT_PUBLIC_LANDING_VARIANT;
-  return isValidVariant(envVal) ? envVal : DEFAULT_VARIANT;
-}
+const VALID_VARIANTS = ["E", "T", "K", "A", "F", "S"] as const;
+type Variant = (typeof VALID_VARIANTS)[number] | null;
 
 /**
- * Returns the dev override variant from query param or localStorage.
- * Client-only. Returns null in production or on server.
+ * Reads the landing page variant from the `?v=` query parameter.
+ * Returns null (default variant) if no valid variant is specified.
  */
-export function getDevOverride(): LandingVariant | null {
-  if (typeof window === "undefined") return null;
-  if (process.env.NODE_ENV !== "development") return null;
+export function useVariant(): { variant: Variant } {
+  const searchParams = useSearchParams();
+  const v = searchParams.get("v")?.toUpperCase() ?? null;
 
-  const params = new URLSearchParams(window.location.search);
-  const qp = params.get("variant");
-  if (isValidVariant(qp)) {
-    localStorage.setItem(STORAGE_KEY, qp);
-    return qp;
+  if (v && VALID_VARIANTS.includes(v as (typeof VALID_VARIANTS)[number])) {
+    return { variant: v as Variant };
   }
 
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (isValidVariant(stored)) return stored;
-
-  return null;
+  return { variant: null };
 }

@@ -4,6 +4,7 @@ import { ArrowRight, LogIn } from "lucide-react";
 import Navigation from "../../components/navigation";
 import Footer from "../../components/footer";
 import { WEB_APP_LINKS } from "../../lib/web-app-url";
+import { FullTracker, TrackedCta } from "../../components/tracking";
 
 export const metadata: Metadata = {
   title: "Logg inn — SmartOut",
@@ -43,6 +44,7 @@ export default function LoginPage() {
       </div>
 
       {/* Navigation */}
+      <FullTracker />
       <Navigation />
 
       <main className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6 pt-16">
@@ -52,16 +54,17 @@ export default function LoginPage() {
           </div>
           <h1 className="mb-3 text-3xl font-black tracking-tighter">Logg inn</h1>
           <p className="mb-10 text-zinc-400">Gå til SmartOut dashboardet for å logge inn.</p>
-          <Link
+          <TrackedCta
+            label="Gå til innlogging"
             href={WEB_APP_LINKS.login}
             className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white py-4 font-bold text-zinc-950 shadow-[0_0_30px_rgba(255,255,255,0.1)] transition-all hover:shadow-[0_0_40px_rgba(255,255,255,0.2)]"
           >
             Gå til innlogging <ArrowRight className="h-4 w-4" />
-          </Link>
+          </TrackedCta>
           <p className="mt-6 text-sm text-zinc-500">
             Har du ikke konto?{" "}
             <Link
-              href={WEB_APP_LINKS.onboarding}
+              href={WEB_APP_LINKS.login}
               className="font-semibold text-orange-400 hover:text-orange-300"
             >
               Kom i gang

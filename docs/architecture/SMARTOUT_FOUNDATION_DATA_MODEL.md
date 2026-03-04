@@ -35,7 +35,7 @@ changelog:
 
 # Smartout — Core Data Model
 
-> **Smartout.io** — Foundation documentation
+> **Smartout.ai** — Foundation documentation
 > Version 1.0 | February 2026
 > **Source:** SMARTOUT_COMPLETE_DOCUMENTATION.md, Sections 2, 3, 4
 > **Authoritative source:** SMARTOUT_CORE_ARCHITECTURE_v2.md
@@ -48,7 +48,7 @@ changelog:
 
 - **If multiple modules need it → Core. If only one module → Module.**
 - **Core has no business logic** — only identity, relationships, access control, and governance
-- ALL tables (except user, company, company_member) have `workspace_id`
+- ALL tables (except user_identity, company, company_member) have `workspace_id`
 - UUIDs for all primary keys
 - `created_at` and `updated_at` on every table
 

@@ -28,7 +28,7 @@ changelog:
 
 # Module 5: HACCP & Matsikkerhet (Food Safety)
 
-> **Smartout.io** — Functional documentation for migration
+> **Smartout.ai** — Functional documentation for migration
 > Version 1.0 | February 2026
 > **Dependencies:** Core Architecture v2 (Governance Model), Module 2 (Assets, Locations, Zones), Module 4 (Department Sessions, Session Tasks, Hooks)
 

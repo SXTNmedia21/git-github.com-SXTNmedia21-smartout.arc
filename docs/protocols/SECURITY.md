@@ -13,7 +13,7 @@ depends_on:
 
 # Security Protocol
 
-> **Smartout.io** — Mandatory development and operations protocol
+> **Smartout.ai** — Mandatory development and operations protocol
 > **Status:** ACTIVE — All team members and AI agents must follow this protocol.
 > **Enforced by:** CLAUDE.md reference, PR checklist, deployment pipeline
 > **Architecture docs:** `SMARTOUT_SECRET_API_INFRASTRUCTURE.md`, `SMARTOUT_ADMIN_KEY_MANAGEMENT.md`
@@ -55,11 +55,11 @@ LAW 3: Never commit a key, token, or secret to Git.
 
 ### 2.2 Key Storage Tiers
 
-| Tier   | What                                                | Storage                                  | Why                                                                                             |
-| ------ | --------------------------------------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| Tier 1 | Workspace API keys (`smo_sk_`)                      | SHA-256 hash in `platform_api_key` table | Raw key shown once at creation, only hash stored. 256-bit entropy makes brute force impossible. |
-| Tier 2 | External secrets (Stripe, Twilio, Resend, DocuSeal) | Supabase Vault (pgsodium, AES-256-GCM)   | Needs plaintext retrieval for API calls                                                         |
-| Tier 3 | Service-to-service keys (`smo_svc_`)                | SHA-256 hash in `platform_api_key` table | Internal auth between n8n/Vercel and Edge Functions                                             |
+| Tier   | What                                                  | Storage                                  | Why                                                                                             |
+| ------ | ----------------------------------------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Tier 1 | Workspace API keys (`smo_sk_`)                        | SHA-256 hash in `platform_api_key` table | Raw key shown once at creation, only hash stored. 256-bit entropy makes brute force impossible. |
+| Tier 2 | External secrets (Stripe, Twilio, SendGrid, DocuSeal) | Supabase Vault (pgsodium, AES-256-GCM)   | Needs plaintext retrieval for API calls                                                         |
+| Tier 3 | Service-to-service keys (`smo_svc_`)                  | SHA-256 hash in `platform_api_key` table | Internal auth between n8n/Vercel and Edge Functions                                             |
 
 **Why SHA-256, not bcrypt for Tier 1/3:** API keys generated with `randomBytes(32)` have 256 bits of entropy. Brute-forcing SHA-256 at that entropy level is computationally impossible (2^256 combinations). bcrypt's deliberate ~100ms delay exists to protect low-entropy passwords — applying it to every API request creates a throughput bottleneck with zero security benefit.
 
@@ -235,7 +235,7 @@ RULES for any UI that displays or manages keys:
 | Workspace API keys        | No hard limit               | Never (customer's choice) | —                     |
 | Stripe secret key         | 90 days                     | 45 days remaining         | Admin dashboard alert |
 | Twilio auth token         | 90 days                     | 45 days remaining         | Admin dashboard alert |
-| Resend API key            | 90 days                     | 45 days remaining         | Admin dashboard alert |
+| SendGrid API key          | 90 days                     | 45 days remaining         | Admin dashboard alert |
 | DocuSeal API key          | 90 days                     | 45 days remaining         | Admin dashboard alert |
 | Service-to-service keys   | 180 days                    | 30 days remaining         | Super-admin alert     |
 | Supabase service role key | Never (managed by Supabase) | —                         | —                     |

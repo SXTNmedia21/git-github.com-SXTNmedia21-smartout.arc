@@ -1,85 +1,70 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { createClient } from "@smartout/supabase/server";
 import { WorkspaceProvider, type WorkspaceData } from "@/lib/workspace-context";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
+import { QueryProvider } from "./query-provider";
+import {
+  getUser,
+  getWorkspaceBySlug,
+  getWorkspaceById,
+  getProfileInWorkspace,
+  getFirstProfile,
+} from "./_data/queries";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const headersList = await headers();
   const slug = headersList.get("x-workspace-slug");
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getUser();
 
   if (!user) {
     redirect("/login");
   }
 
   let workspace: WorkspaceData | null = null;
+  let profileId: string | null = null;
 
   if (slug) {
-    // Workspace subdomain: query workspace by slug
-    const { data: wsData } = await supabase
-      .from("workspace")
-      .select(
-        "workspace_id, company_id, name, slug, logo_url, currency, language, country, timezone, contract_status",
-      )
-      .eq("slug", slug)
-      .single();
+    // Workspace subdomain: query workspace by slug (cached)
+    const wsData = await getWorkspaceBySlug(slug);
 
     if (!wsData) {
       redirect("/access-denied?reason=workspace-not-found");
     }
 
-    const wsRow = wsData as unknown as WorkspaceData;
-
-    // Verify user has profile in this workspace
-    const { data: profile } = await supabase
-      .from("profile")
-      .select("profile_id")
-      .eq("user_id", user.id)
-      .eq("workspace_id", wsRow.workspace_id)
-      .single();
+    // Verify user has profile in this workspace (cached)
+    const profile = await getProfileInWorkspace(user.id, wsData.workspace_id);
 
     if (!profile) {
       redirect("/access-denied?reason=no-profile");
     }
 
-    workspace = wsRow;
+    profileId = profile.profile_id;
+    workspace = wsData;
   } else {
     // No subdomain (local dev or legacy) — use first workspace
-    const { data: profileData } = (await supabase
-      .from("profile")
-      .select("workspace_id")
-      .eq("user_id", user.id)
-      .limit(1)
-      .single()) as { data: { workspace_id: string } | null };
+    const profileData = await getFirstProfile(user.id);
 
     if (profileData?.workspace_id) {
-      const { data: wsData } = await supabase
-        .from("workspace")
-        .select(
-          "workspace_id, company_id, name, slug, logo_url, currency, language, country, timezone, contract_status",
-        )
-        .eq("workspace_id", profileData.workspace_id)
-        .single();
+      profileId = profileData.profile_id;
+      const wsData = await getWorkspaceById(profileData.workspace_id);
 
       if (wsData) {
-        workspace = wsData as unknown as WorkspaceData;
+        workspace = wsData;
       }
     }
   }
 
   if (workspace) {
     return (
-      <WorkspaceProvider workspace={workspace}>
-        <DashboardShell>{children}</DashboardShell>
-      </WorkspaceProvider>
+      <QueryProvider>
+        <WorkspaceProvider workspace={workspace}>
+          <DashboardShell profileId={profileId}>{children}</DashboardShell>
+        </WorkspaceProvider>
+      </QueryProvider>
     );
   }
 
-  // Fallback: no workspace found at all
-  return <DashboardShell>{children}</DashboardShell>;
+  // No workspace found — redirect instead of rendering without WorkspaceProvider
+  redirect("/onboarding");
 }

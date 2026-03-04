@@ -1,0 +1,212 @@
+---
+title: "Module: Agent SDK (@smartout/agent-sdk)"
+id: MODULE_AGENT_SDK
+status: in_progress
+updated: 2026-03-30
+created: 2026-03-30
+module: ai
+tags: [agent-sdk, voice, client-tools, ultravox, livekit]
+---
+
+# Module: Agent SDK (`@smartout/agent-sdk`)
+
+The agent-sdk is the unified client-side package for all Smartout AI agent interactions. It provides a single React hook (`useAgent`), a `VoiceProvider` interface for pluggable backends, and a `ClientTool` registry.
+
+**Status:** Initial structure built (WS1). Hook implementation in progress.
+**ADR:** `docs/decisions/0043-agent-sdk-package.md`
+**Architecture:** `docs/architecture/agent-framework.md`
+
+---
+
+## 1. Purpose
+
+Replaces the ad-hoc `useBotsson` hook and any future per-feature voice implementations with a single, tested, provider-agnostic abstraction. All agent-enabled UIs import from `@smartout/agent-sdk` — never from `ultravox-client` directly.
+
+---
+
+## 2. Key Files
+
+```
+packages/agent-sdk/
+├── src/
+│   ├── types.ts                   — All SDK types (AgentConfig, AgentSession, VoiceProvider, ClientTool)
+│   ├── providers/
+│   │   ├── voice-provider.ts      — Re-exports VoiceProvider, VoiceSession interfaces
+│   │   ├── ultravox.ts            — Ultravox VoiceSession implementation
+│   │   ├── livekit.ts             — LiveKit VoiceSession stub
+│   │   └── index.ts               — Provider exports
+│   ├── tools/
+│   │   ├── types.ts               — ClientTool, ClientToolKit, ClientToolParameter
+│   │   ├── registry.ts            — buildToolKit(), createToolRegistry()
+│   │   ├── onboarding.ts          — Onboarding client tools
+│   │   ├── dashboard.ts           — Dashboard client tools
+│   │   └── index.ts               — Tool exports
+│   └── context/
+│       └── session-context.ts     — Session-scoped context passed to tool implementations
+└── package.json                   — @smartout/agent-sdk, peer: react, ultravox-client (optional)
+```
+
+---
+
+## 3. Public API
+
+### Types (`@smartout/agent-sdk`)
+
+```typescript
+// Status of the voice/agent session
+type AgentStatus =
+  | "idle"
+  | "connecting"
+  | "listening"
+  | "thinking"
+  | "speaking"
+  | "disconnecting"
+  | "disconnected";
+
+// A single conversation turn
+type TranscriptEntry = { role: "user" | "agent"; text: string };
+
+// A client-side tool the voice agent can invoke
+type ClientTool = {
+  name: string;
+  description: string;
+  parameters: ClientToolParameter[];
+  implementation: (params: Record<string, unknown>) => string | Promise<string>;
+};
+
+// Bundled definitions + implementations, sent to voice provider
+type ClientToolKit = {
+  definitions: ClientToolDefinition[]; // Sent to Ultravox as selected_tools
+  implementations: Record<string, ClientToolImplementation>; // Registered in browser
+};
+
+// Config for useAgent hook
+type AgentConfig = {
+  missionId: MissionId;
+  tools?: ClientToolKit;
+  provider?: "ultravox" | "livekit";
+  channel?: "voice" | "chat" | "phone";
+  autoStart?: boolean;
+  apiEndpoint?: string;
+  apiParams?: Record<string, unknown>;
+  onDebug?: (entry: DebugEntry) => void;
+  onStatusChange?: (status: AgentStatus) => void;
+  onTranscript?: (transcript: TranscriptEntry[]) => void;
+};
+
+// Return value of useAgent
+type AgentSession = {
+  status: AgentStatus;
+  isConnected: boolean;
+  isSpeaking: boolean;
+  isMuted: boolean;
+  currentText: string;
+  transcript: TranscriptEntry[];
+  debugLog: DebugEntry[];
+  startSession: () => Promise<void>;
+  endSession: () => void;
+  toggleMic: () => void;
+  sendContext: (text: string) => void;
+};
+```
+
+### Hooks (`@smartout/agent-sdk/hooks`)
+
+```typescript
+// Primary entry point — replaces useBotsson
+function useAgent(config: AgentConfig): AgentSession;
+```
+
+### VoiceProvider interface (`@smartout/agent-sdk/providers`)
+
+```typescript
+type VoiceSession = {
+  join(url: string): void;
+  leave(): void;
+  muteMic(): void;
+  unmuteMic(): void;
+  isMicMuted: boolean;
+  sendText(text: string): void;
+  registerTool(name: string, impl: ClientToolImplementation): void;
+  on(event: VoiceSessionEvent, handler: VoiceSessionEventHandler): void;
+  off(event: VoiceSessionEvent, handler: VoiceSessionEventHandler): void;
+};
+
+type VoiceProvider = {
+  name: string;
+  createSession(): VoiceSession;
+};
+```
+
+### Tools (`@smartout/agent-sdk/tools`)
+
+```typescript
+// Build a ClientToolKit from an array of ClientTool definitions
+function buildToolKit(tools: ClientTool[]): ClientToolKit;
+
+// Mutable registry for dynamic tool management
+function createToolRegistry(): ToolRegistry;
+```
+
+---
+
+## 4. Usage
+
+```typescript
+// In a client component:
+import { useAgent, buildToolKit } from "@smartout/agent-sdk";
+import { onboardingTools } from "@smartout/agent-sdk/tools";
+
+export function OnboardingVoice() {
+  const agent = useAgent({
+    missionId: "onboarding-interview",
+    tools: buildToolKit(onboardingTools({ onUpdateBusiness, onAddDepartments })),
+    provider: "ultravox",
+  });
+
+  return <button onClick={agent.startSession}>Start</button>;
+}
+```
+
+---
+
+## 5. Dependencies
+
+| Dependency                        | Why                                       |
+| --------------------------------- | ----------------------------------------- |
+| `@smartout/ai`                    | MissionId type from mission registry      |
+| `react` (peer)                    | useAgent hook uses React hooks internally |
+| `ultravox-client` (optional peer) | Ultravox provider implementation          |
+
+The package does NOT import `@livekit/agents`. The LiveKit provider is a stub until LiveKit replaces Ultravox.
+
+---
+
+## 6. Consumers
+
+| Consumer             | Location                       | Status                    |
+| -------------------- | ------------------------------ | ------------------------- |
+| Onboarding wizard    | `apps/web/src/app/onboarding/` | Migrating from useBotsson |
+| Future employee chat | `apps/web/src/app/dashboard/`  | Planned                   |
+| Mobile app           | `apps/mobile/` (future)        | Planned                   |
+
+---
+
+## 7. Configuration
+
+No runtime config. The `apiEndpoint` in `AgentConfig` defaults to `/api/wizard/start` — the Next.js API route that proxies to Stage Engine's `/adapters/ultravox/create-call`.
+
+For the mission registry (`MissionId`), see `packages/ai/src/missions/registry.ts`.
+
+---
+
+## 8. Migration from useBotsson
+
+`useBotsson` at `apps/web/src/app/onboarding/hooks/useBotsson.ts` is the predecessor. It hard-codes the Ultravox client, tool definitions, and session start logic in one file.
+
+Migration steps:
+
+1. Extract tool definitions into `packages/agent-sdk/src/tools/onboarding.ts` — done
+2. Implement `useAgent` hook (in progress)
+3. Replace `useBotsson` import with `useAgent` in `apps/web/src/app/onboarding/`
+4. Delete `useBotsson.ts`

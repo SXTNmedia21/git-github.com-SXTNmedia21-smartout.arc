@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Building2,
   Plus,
@@ -9,6 +10,8 @@ import {
   ChevronDown,
   AlertTriangle,
   Pencil,
+  UserCircle,
+  ArrowRightLeft,
 } from "lucide-react";
 import { createClient } from "@smartout/supabase/client";
 import { toast } from "sonner";
@@ -27,15 +30,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { DepartmentRow, PositionRow, CountMap } from "./types";
+import type { DepartmentRow, PositionRow, CountMap, ProfileRow } from "./types";
 import { COLOR_PRESETS, ICON_PRESETS, toSlug } from "./types";
 import { ICON_COMPONENTS } from "./constants";
 import { EditDepartmentDialog } from "./EditDepartmentDialog";
 import { CreatePositionDialog } from "./CreatePositionDialog";
 import { EditPositionDialog } from "./EditPositionDialog";
+import { MovePositionDialog } from "./MovePositionDialog";
 
 type DepartmentsTabProps = {
   departments: DepartmentRow[];
+  profiles: ProfileRow[];
   positionCounts: CountMap;
   positionsByDept: Record<string, PositionRow[]>;
   policyCounts: CountMap;
@@ -47,6 +52,7 @@ type DepartmentsTabProps = {
 
 export function DepartmentsTab({
   departments,
+  profiles,
   positionCounts,
   positionsByDept,
   policyCounts,
@@ -55,6 +61,7 @@ export function DepartmentsTab({
   onRefresh,
   loading,
 }: DepartmentsTabProps) {
+  const router = useRouter();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -69,6 +76,7 @@ export function DepartmentsTab({
   // Position CRUD state
   const [createPosDeptId, setCreatePosDeptId] = useState<string | null>(null);
   const [editPosition, setEditPosition] = useState<PositionRow | null>(null);
+  const [movePosition, setMovePosition] = useState<PositionRow | null>(null);
 
   const cardBase = `rounded-2xl border p-5 transition-all ${
     isDark
@@ -254,7 +262,13 @@ export function DepartmentsTab({
             const showWarning = dept.is_active && posCount === 0;
 
             return (
-              <div key={dept.department_id} className={`group relative ${cardBase}`}>
+              <div
+                key={dept.department_id}
+                className={`group relative cursor-pointer ${cardBase}`}
+                onClick={() =>
+                  router.push(`/dashboard/organization/departments/${dept.department_id}`)
+                }
+              >
                 {/* Color accent bar */}
                 {dept.color && (
                   <div
@@ -293,6 +307,7 @@ export function DepartmentsTab({
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button
+                        onClick={(e) => e.stopPropagation()}
                         className={`rounded-md p-1 opacity-0 transition-all group-hover:opacity-100 ${
                           isDark
                             ? "text-zinc-500 hover:bg-zinc-800"
@@ -326,6 +341,23 @@ export function DepartmentsTab({
                   </p>
                 )}
 
+                {dept.manager_profile_id &&
+                  (() => {
+                    const manager = profiles.find((p) => p.profile_id === dept.manager_profile_id);
+                    return manager ? (
+                      <div className="mt-1 flex items-center gap-1.5">
+                        <UserCircle
+                          className={`h-3 w-3 ${isDark ? "text-zinc-600" : "text-zinc-400"}`}
+                        />
+                        <span
+                          className={`text-xs font-medium ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+                        >
+                          {manager.display_name}
+                        </span>
+                      </div>
+                    ) : null;
+                  })()}
+
                 {/* Validation warning */}
                 {showWarning && (
                   <div
@@ -344,7 +376,10 @@ export function DepartmentsTab({
 
                 <div className="mt-4 flex flex-wrap items-center gap-3">
                   <button
-                    onClick={() => toggleExpanded(dept.department_id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleExpanded(dept.department_id);
+                    }}
                     className="flex items-center gap-1.5 transition-colors hover:opacity-80"
                   >
                     <Briefcase
@@ -377,6 +412,7 @@ export function DepartmentsTab({
                 {/* Position drill-down */}
                 {isExpanded && (
                   <div
+                    onClick={(e) => e.stopPropagation()}
                     className={`mt-3 space-y-1.5 rounded-lg border p-3 ${
                       isDark ? "border-zinc-800/50 bg-zinc-900/50" : "border-zinc-100 bg-zinc-50"
                     }`}
@@ -438,6 +474,10 @@ export function DepartmentsTab({
                                 <DropdownMenuItem onClick={() => setEditPosition(pos)}>
                                   <Pencil className="mr-2 h-3.5 w-3.5" />
                                   Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setMovePosition(pos)}>
+                                  <ArrowRightLeft className="mr-2 h-3.5 w-3.5" />
+                                  Move to Department
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator className={isDark ? "bg-zinc-800" : ""} />
                                 <DropdownMenuItem onClick={() => togglePositionActive(pos)}>
@@ -638,6 +678,7 @@ export function DepartmentsTab({
       {editDept && (
         <EditDepartmentDialog
           department={editDept}
+          profiles={profiles}
           isDark={isDark}
           open={!!editDept}
           onOpenChange={(open) => {
@@ -671,6 +712,20 @@ export function DepartmentsTab({
           open={!!editPosition}
           onOpenChange={(open) => {
             if (!open) setEditPosition(null);
+          }}
+          onSave={onRefresh}
+        />
+      )}
+
+      {/* Move Position Dialog */}
+      {movePosition && (
+        <MovePositionDialog
+          position={movePosition}
+          departments={departments}
+          isDark={isDark}
+          open={!!movePosition}
+          onOpenChange={(open) => {
+            if (!open) setMovePosition(null);
           }}
           onSave={onRefresh}
         />

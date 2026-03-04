@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
   Clock,
@@ -22,6 +22,11 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Navigation from "../../../components/navigation";
+import Footer from "../../../components/footer";
+import { usePageTracking } from "../../../hooks/useTracking";
+import { useScrollTracking } from "../../../hooks/useScrollTracking";
+import { useClickTracking } from "../../../hooks/useClickTracking";
+import { useSessionLifecycle } from "../../../hooks/useSessionLifecycle";
 import NextPageBanner from "../../../components/next-page-banner";
 
 // ─── Shift data ─────────────────────────────────────────────────────────────
@@ -110,7 +115,7 @@ function ShiftDetailView({ shift, onClose }: { shift: ShiftLog; onClose: () => v
   const isApproved = shift.status === "approved";
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, x: 30 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 30 }}
@@ -231,13 +236,17 @@ function ShiftDetailView({ shift, onClose }: { shift: ShiftLog; onClose: () => v
           </div>
         </div>
       </div>
-    </motion.div>
+    </m.div>
   );
 }
 
 // ─── Main Page ──────────────────────────────────────────────────────────────
 
 export default function TimeforingPage() {
+  usePageTracking();
+  useScrollTracking();
+  useClickTracking();
+  useSessionLifecycle();
   const router = useRouter();
   const [isClockedIn, setIsClockedIn] = useState(false);
   const [currentTime, setCurrentTime] = useState("");
@@ -315,7 +324,7 @@ export default function TimeforingPage() {
 
         <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
           {/* Punch Clock Widget */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             className="relative flex min-h-[500px] flex-col items-center justify-center overflow-hidden rounded-[3rem] border border-white/10 bg-[#0a0a0c]/80 p-12 text-center shadow-[0_0_50px_-15px_rgba(59,130,246,0.2)] backdrop-blur-3xl"
@@ -333,7 +342,7 @@ export default function TimeforingPage() {
               </h2>
 
               {isClockedIn && (
-                <motion.div
+                <m.div
                   initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="mb-12 flex flex-col items-center"
@@ -343,7 +352,7 @@ export default function TimeforingPage() {
                     skift
                   </div>
                   <p className="font-mono text-3xl font-bold text-emerald-100">{elapsedTime}</p>
-                </motion.div>
+                </m.div>
               )}
 
               <button
@@ -358,7 +367,7 @@ export default function TimeforingPage() {
                 }`}
               >
                 {isAuthenticating ? (
-                  <motion.div
+                  <m.div
                     animate={{ rotate: 360 }}
                     transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
                     className="absolute inset-0 rounded-full border-t-2 border-r-2 border-white/50"
@@ -396,11 +405,11 @@ export default function TimeforingPage() {
                 </p>
               )}
             </div>
-          </motion.div>
+          </m.div>
 
           {/* Shift Log + Detail View */}
           <div className="flex flex-col gap-6">
-            <motion.div
+            <m.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               className="relative flex flex-1 flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-[#0a0a0c]/80 backdrop-blur-3xl"
@@ -420,7 +429,7 @@ export default function TimeforingPage() {
                   {SHIFT_LOGS.map((log, i) => {
                     const isApproved = log.status === "approved";
                     return (
-                      <motion.button
+                      <m.button
                         key={log.id}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -457,7 +466,7 @@ export default function TimeforingPage() {
 
                         {/* Chevron */}
                         <ChevronRight className="h-4 w-4 shrink-0 text-zinc-600 transition-transform group-hover:translate-x-0.5 group-hover:text-zinc-400" />
-                      </motion.button>
+                      </m.button>
                     );
                   })}
                 </div>
@@ -475,10 +484,10 @@ export default function TimeforingPage() {
                   <ShiftDetailView shift={selectedShift} onClose={() => setSelectedShift(null)} />
                 )}
               </AnimatePresence>
-            </motion.div>
+            </m.div>
 
             {/* Automatiske Tillegg card */}
-            <motion.div
+            <m.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2 }}
@@ -495,7 +504,7 @@ export default function TimeforingPage() {
                 Systemet legger automatisk til kvelds- og nattillegg basert på din tariff og
                 arbeidstid.
               </p>
-            </motion.div>
+            </m.div>
           </div>
         </div>
 
@@ -506,6 +515,7 @@ export default function TimeforingPage() {
           color="from-violet-500/10"
         />
       </div>
+      <Footer />
     </div>
   );
 }

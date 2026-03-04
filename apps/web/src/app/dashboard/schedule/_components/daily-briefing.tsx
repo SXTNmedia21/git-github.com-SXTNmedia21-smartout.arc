@@ -1,15 +1,16 @@
 // ============================================
 // daily-briefing.tsx
 // Rich day detail panel (DayInspector) with 4 tabs:
-// Oversikt, Dagsinfo (Meldinger), Selskap/Booking, Oppgaver.
-// All tabs are wired to the schedule context for live state.
-// Connected to: schedule-context.tsx (state + dispatch)
+// Oversikt, Dagsinfo (Meldinger), Reservasjoner, Oppgaver.
+// v2: Bottom sheet with fullscreen expand, compact header,
+// timeline view, employee list, budget edit, broadcast dialog.
+// Connected to: schedule-ui-context.tsx (fullscreen state)
 // Connected to: schedule-data.ts (dummyDays for dateId lookup)
 // Connected to: booking-dialog.tsx (manual booking creation)
 // ============================================
 "use client";
 
-import { useContext, useMemo, useState } from "react";
+import { useCallback, useContext, useMemo, useRef, useState } from "react";
 import {
   X,
   Info,
@@ -31,43 +32,88 @@ import {
   Trash2,
   Star,
   Loader2,
+  Maximize2,
+  Minimize2,
+  Pencil,
+  Phone,
+  Send,
+  CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { useSchedule } from "./schedule-context";
-import { dummyDays, dummyEmployees } from "./schedule-data";
+import type {
+  Shift,
+  Absence,
+  DayMessage,
+  DayTask,
+  DayBooking,
+  OpenShift,
+  ShiftTemplate,
+} from "./schedule-types";
+import { useScheduleUI } from "./schedule-ui-context";
+import { useShifts, useUpdateShift } from "../_hooks/use-shifts";
+import { useAbsences } from "../_hooks/use-absences";
+import { useOpenShifts } from "../_hooks/use-open-shifts";
+import { useTemplates } from "../_hooks/use-templates";
+import {
+  useDayMessages,
+  useCreateDayMessage,
+  useDeleteDayMessage,
+  useDayTasks,
+  useCreateDayTask,
+  useUpdateDayTaskStatus,
+  useDeleteDayTask,
+  useDayBookings,
+} from "../_hooks/use-day-content";
+import { useScheduleComputed } from "../_hooks/use-schedule-computed";
+import { useWeekRange } from "../_hooks/use-week-range";
+import { useEmployees, type ScheduleEmployee } from "../_hooks/use-employees";
 import { BookingDialog } from "./booking-dialog";
 import type { TaskStatus } from "./schedule-types";
 
-// ── Helper: resolve dateId from the display label ────────────
+// ── Helper: format ISO date for display ──────────────────────
 
-/**
- * Maps a display label (e.g. "Man 22/12") to the corresponding
- * dateId in dummyDays (e.g. "d1"). Returns null if not found.
- */
-function resolveDateId(dateLabel: string | null): string | null {
-  if (!dateLabel) return null;
-  const match = dummyDays.find((d) => d.label === dateLabel);
-  return match?.id ?? null;
+const DAY_NAMES_FULL = ["Sondag", "Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lordag"];
+const MONTH_NAMES = [
+  "januar",
+  "februar",
+  "mars",
+  "april",
+  "mai",
+  "juni",
+  "juli",
+  "august",
+  "september",
+  "oktober",
+  "november",
+  "desember",
+];
+
+function formatDateLabel(dateId: string | null): string {
+  if (!dateId) return "";
+  const date = new Date(dateId + "T00:00:00");
+  const dayName = DAY_NAMES_FULL[date.getDay()] ?? "";
+  return `${dayName} ${date.getDate()}. ${MONTH_NAMES[date.getMonth()] ?? ""}`.toUpperCase();
 }
 
 // ── Helper: format NOK currency ──────────────────────────────
 
-/**
- * Formats a number as Norwegian kroner string.
- * Example: 14350 → "14 350 kr"
- */
 function formatNok(amount: number): string {
   return `${amount.toLocaleString("nb-NO")} kr`;
 }
 
 // ── Helper: format work hours ────────────────────────────────
 
-/**
- * Formats decimal hours into "Xt Ym" display.
- * Example: 8.5 → "8t 30m"
- */
 function formatHours(hours: number): string {
   const h = Math.floor(hours);
   const m = Math.round((hours - h) * 60);
@@ -77,9 +123,6 @@ function formatHours(hours: number): string {
 
 // ── Helper: cycle task status ────────────────────────────────
 
-/**
- * Returns the next status in the cycle: pending → in_progress → completed.
- */
 function nextTaskStatus(current: TaskStatus): TaskStatus {
   switch (current) {
     case "pending":
@@ -93,8 +136,15 @@ function nextTaskStatus(current: TaskStatus): TaskStatus {
   }
 }
 
+// ── Helper: parse time string to hour number ─────────────────
+
+function timeToHour(time: string): number {
+  const [h, m] = time.split(":").map(Number);
+  return (h ?? 0) + (m ?? 0) / 60;
+}
+
 // ---------------------------------------------------------------------------
-// DailyBriefingPanel — rich day detail panel (no DnD interaction)
+// DailyBriefingPanel — rich day detail panel (bottom sheet content)
 // ---------------------------------------------------------------------------
 export function DailyBriefingPanel({
   date,
@@ -104,71 +154,90 @@ export function DailyBriefingPanel({
   onClose: () => void;
 }) {
   const { isDark } = useContext(DashboardContext);
+  const { dayControlFullscreen, setDayControlFullscreen } = useScheduleUI();
   const [activeTab, setActiveTab] = useState<"oversikt" | "meldinger" | "bookings" | "oppgaver">(
     "oversikt",
   );
 
-  // Resolve the dateId from the label string
-  const dateId = useMemo(() => resolveDateId(date), [date]);
+  const dateId = date;
+  const dateLabel = useMemo(() => formatDateLabel(date), [date]);
 
   if (!date) return null;
 
+  function handleClose() {
+    setDayControlFullscreen(false);
+    onClose();
+  }
+
   return (
     <div className="relative flex h-full w-full flex-col">
-      {/* Header */}
-      <div
-        className={`shrink-0 border-b ${isDark ? "border-white/10" : "border-zinc-300"} bg-gradient-to-r from-[#0a0a0c]/40 to-orange-500/[0.02]`}
-      >
-        <div className="p-5 pb-3">
-          <div className="mb-4 flex items-start justify-between">
-            <div className="flex flex-col">
-              <span className="mb-0.5 text-[10px] font-bold tracking-widest text-orange-400 uppercase">
-                Kontrollsenter for dag
-              </span>
-              <h2
-                className={`text-xl font-black ${isDark ? "text-white" : "text-zinc-900"} tracking-tight`}
-              >
-                {date}
-              </h2>
-            </div>
-            <button
-              onClick={onClose}
-              className={`p-2 text-zinc-400 hover:text-white ${isDark ? "hover:bg-white/10" : "hover:bg-zinc-200"} rounded-xl transition-all`}
+      {/* Compact Header */}
+      <div className={`shrink-0 border-b ${isDark ? "border-white/10" : "border-zinc-200"}`}>
+        <div className="flex items-center gap-3 px-5 py-4">
+          {/* Title */}
+          <div className="min-w-0 flex-1">
+            <span className="text-[9px] font-bold tracking-widest text-orange-400 uppercase">
+              Kontrollsenter
+            </span>
+            <h2
+              className={`truncate text-sm font-black ${isDark ? "text-white" : "text-zinc-900"} leading-tight tracking-tight`}
             >
-              <X className="h-5 w-5" />
-            </button>
+              {dateLabel}
+            </h2>
           </div>
 
-          <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1 lg:gap-4">
-            <TabButton
-              active={activeTab === "oversikt"}
-              onClick={() => setActiveTab("oversikt")}
-              icon={<Info className="h-3.5 w-3.5" />}
-              label="Oversikt"
-            />
-            <TabButton
-              active={activeTab === "meldinger"}
-              onClick={() => setActiveTab("meldinger")}
-              icon={<MessageSquare className="h-3.5 w-3.5" />}
-              label="Dagsinfo"
-            />
-            <TabButton
-              active={activeTab === "bookings"}
-              onClick={() => setActiveTab("bookings")}
-              icon={<CalendarCheck className="h-3.5 w-3.5" />}
-              label="Selskap / Booking"
-            />
-            <TabButton
-              active={activeTab === "oppgaver"}
-              onClick={() => setActiveTab("oppgaver")}
-              icon={<ListTodo className="h-3.5 w-3.5" />}
-              label="Oppgaver"
-            />
+          {/* Actions */}
+          <div className="flex shrink-0 items-center gap-1">
+            <button
+              onClick={() => setDayControlFullscreen(!dayControlFullscreen)}
+              className={`rounded-lg p-1.5 text-zinc-400 transition-all ${isDark ? "hover:bg-white/10 hover:text-white" : "hover:bg-zinc-100 hover:text-zinc-700"}`}
+              title={dayControlFullscreen ? "Minimer" : "Fullskjerm"}
+            >
+              {dayControlFullscreen ? (
+                <Minimize2 className="h-4 w-4" />
+              ) : (
+                <Maximize2 className="h-4 w-4" />
+              )}
+            </button>
+            <button
+              onClick={handleClose}
+              className={`rounded-lg p-1.5 text-zinc-400 transition-all ${isDark ? "hover:bg-white/10 hover:text-white" : "hover:bg-zinc-100 hover:text-zinc-700"}`}
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
+        </div>
+
+        {/* Tabs - compact single row */}
+        <div className="no-scrollbar flex gap-0 overflow-x-auto border-t border-white/5 px-5">
+          <TabButton
+            active={activeTab === "oversikt"}
+            onClick={() => setActiveTab("oversikt")}
+            icon={<Info className="h-3 w-3" />}
+            label="Oversikt"
+          />
+          <TabButton
+            active={activeTab === "meldinger"}
+            onClick={() => setActiveTab("meldinger")}
+            icon={<MessageSquare className="h-3 w-3" />}
+            label="Dagsinfo"
+          />
+          <TabButton
+            active={activeTab === "bookings"}
+            onClick={() => setActiveTab("bookings")}
+            icon={<CalendarCheck className="h-3 w-3" />}
+            label="Reservasjoner"
+          />
+          <TabButton
+            active={activeTab === "oppgaver"}
+            onClick={() => setActiveTab("oppgaver")}
+            icon={<ListTodo className="h-3 w-3" />}
+            label="Oppgaver"
+          />
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-4 pb-6">
         {activeTab === "oversikt" && <OversiktTab isDark={isDark} dateId={dateId} />}
         {activeTab === "meldinger" && <MeldingerTab isDark={isDark} dateId={dateId} />}
         {activeTab === "bookings" && <BookingsTab isDark={isDark} dateId={dateId} />}
@@ -182,161 +251,772 @@ export function DailyBriefingPanel({
 }
 
 // ---------------------------------------------------------------------------
-// Footer Broadcast
+// Footer Broadcast — now opens a dialog instead of instant toast
 // ---------------------------------------------------------------------------
 
-/**
- * Footer with "Push Vakt" and "SMS" broadcast buttons.
- * Staff count comes from the schedule context.
- */
 function FooterBroadcast({ isDark, dateId }: { isDark: boolean; dateId: string | null }) {
-  const { computed } = useSchedule();
-  const staffCount = dateId ? computed.getDayStats(dateId).staffCount : 0;
+  const { weekStart, weekEnd } = useWeekRange();
+  const { data: shifts = [] as Shift[] } = useShifts(weekStart, weekEnd);
+  const [broadcastType, setBroadcastType] = useState<"push" | "sms" | null>(null);
+
+  const staffCount = dateId
+    ? new Set(
+        shifts
+          .filter((s: Shift) => s.dateId === dateId)
+          .map((s: Shift) => s.employeeId)
+          .filter(Boolean),
+      ).size
+    : 0;
 
   return (
-    <div className={`border-t border-white/10 p-5 ${isDark ? "bg-[#0a0a0c]" : "bg-white"}`}>
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="flex items-center gap-1.5 text-[11px] font-bold tracking-widest text-zinc-500 uppercase">
-          <Megaphone className="h-3.5 w-3.5" /> Kringkast til alle på vakt
-        </h3>
-        <span className="text-[10px] font-medium text-zinc-600">{staffCount} ansatte</span>
+    <>
+      <div
+        className={`shrink-0 border-t px-5 py-4 ${isDark ? "border-white/10 bg-[#0a0a0c]" : "border-zinc-200 bg-white"}`}
+      >
+        <div className="flex items-center gap-3">
+          <Megaphone className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+          <span className="text-[10px] font-bold tracking-wider text-zinc-500 uppercase">
+            Kringkast ({staffCount})
+          </span>
+          <div className="flex-1" />
+          <button
+            onClick={() => setBroadcastType("push")}
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[10px] font-bold transition-all ${isDark ? "bg-white/5 text-white hover:bg-white/10" : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"} border ${isDark ? "border-white/10" : "border-zinc-200"}`}
+          >
+            <MessageCircle className="h-3.5 w-3.5 text-blue-400" /> Push
+          </button>
+          <button
+            onClick={() => setBroadcastType("sms")}
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[10px] font-bold transition-all ${isDark ? "bg-white/5 text-white hover:bg-white/10" : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"} border ${isDark ? "border-white/10" : "border-zinc-200"}`}
+          >
+            <Mail className="h-3.5 w-3.5 text-orange-400" /> SMS
+          </button>
+        </div>
       </div>
-      <div className="flex gap-2">
-        <button
-          onClick={() => toast(`Push-varsler sendt til ${staffCount} ansatte`)}
-          className={`flex flex-1 items-center justify-center gap-2 bg-white/5 ${isDark ? "hover:bg-white/10" : "hover:bg-zinc-200"} rounded-xl border border-white/10 py-2.5 text-xs font-bold text-white transition-all hover:border-white/20`}
+
+      {/* Broadcast Dialog */}
+      {broadcastType && dateId && (
+        <BroadcastMessageDialog
+          type={broadcastType}
+          dateId={dateId}
+          staffCount={staffCount}
+          open={!!broadcastType}
+          onOpenChange={(open) => {
+            if (!open) setBroadcastType(null);
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Broadcast Message Dialog — Task 7: message field + daginfo checkbox
+// ---------------------------------------------------------------------------
+
+function BroadcastMessageDialog({
+  type,
+  dateId,
+  staffCount,
+  open,
+  onOpenChange,
+}: {
+  type: "push" | "sms";
+  dateId: string;
+  staffCount: number;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [message, setMessage] = useState("");
+  const [includeDaginfo, setIncludeDaginfo] = useState(false);
+
+  function handleSend() {
+    const method = type === "push" ? "Push-varsler" : "SMS";
+    const extra = includeDaginfo ? " (med daginfo)" : "";
+    toast.success(`${method} sendt til ${staffCount} ansatte${extra}`);
+    setMessage("");
+    setIncludeDaginfo(false);
+    onOpenChange(false);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            {type === "push" ? (
+              <MessageCircle className="h-5 w-5 text-blue-400" />
+            ) : (
+              <Mail className="h-5 w-5 text-orange-400" />
+            )}
+            Send {type === "push" ? "Push-melding" : "SMS"}
+          </DialogTitle>
+          <DialogDescription>
+            Til {staffCount} {staffCount === 1 ? "ansatt" : "ansatte"} på vakt
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          <textarea
+            placeholder="Skriv melding..."
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            className="border-input focus:border-ring h-24 w-full resize-none rounded-lg border bg-transparent p-3 text-sm focus:outline-none"
+          />
+
+          <label className="flex cursor-pointer items-center gap-2">
+            <input
+              type="checkbox"
+              checked={includeDaginfo}
+              onChange={(e) => setIncludeDaginfo(e.target.checked)}
+              className="border-input h-4 w-4 rounded accent-orange-500"
+            />
+            <span className="text-muted-foreground text-sm">Pakk med daginfo</span>
+          </label>
+        </div>
+
+        <DialogFooter className="flex-row gap-2 sm:justify-end">
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+            Avbryt
+          </Button>
+          <Button onClick={handleSend}>
+            <Send className="mr-1.5 h-3.5 w-3.5" />
+            Send {type === "push" ? "Push" : "SMS"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Oversikt Tab — with timeline, employee list, budget edit, extra fields
+// ---------------------------------------------------------------------------
+
+function OversiktTab({ isDark, dateId }: { isDark: boolean; dateId: string | null }) {
+  const { weekStart, weekEnd } = useWeekRange();
+  const { data: shifts = [] as Shift[] } = useShifts(weekStart, weekEnd);
+  const { data: absences = [] as Absence[] } = useAbsences(weekStart, weekEnd);
+  const { data: openShiftsData = [] as OpenShift[] } = useOpenShifts();
+  const { data: templates = [] as ShiftTemplate[] } = useTemplates();
+  const { data: dayMessages = [] as DayMessage[] } = useDayMessages(weekStart, weekEnd);
+  const { data: dayTasks = [] as DayTask[] } = useDayTasks(weekStart, weekEnd);
+  const { data: dayBookings = [] as DayBooking[] } = useDayBookings(weekStart, weekEnd);
+  const { setSelectedShift } = useScheduleUI();
+  const updateShift = useUpdateShift(weekStart);
+
+  const computed = useScheduleComputed(
+    shifts,
+    absences,
+    openShiftsData.length,
+    templates,
+    dayMessages,
+    dayTasks,
+    dayBookings,
+  );
+
+  const stats = dateId ? computed.getDayStats(dateId) : null;
+  const dayShifts = dateId ? computed.getShiftsForDay(dateId) : [];
+
+  const employeesQuery = useEmployees();
+  const employees: ScheduleEmployee[] = employeesQuery.data ?? [];
+
+  const totalWorkHours = dayShifts.reduce((sum, s) => sum + s.workHours, 0);
+
+  // Budget edit state
+  const [isEditingBudget, setIsEditingBudget] = useState(false);
+  const [budget, setBudget] = useState(15000);
+  const [openingHours, setOpeningHours] = useState("11:00 - 23:00");
+  const [dutyManagers, setDutyManagers] = useState("");
+  const [lastYearData, setLastYearData] = useState({ staff: 8, cost: 18400, hours: 52 });
+
+  // Find duty managers from shifts (role includes "manager")
+  const managerShifts = dayShifts.filter(
+    (s) => s.role.toLowerCase().includes("manager") || s.indicator === "purple",
+  );
+  const managerNames = managerShifts
+    .map((s) => {
+      const emp = s.employeeId ? employees.find((e) => e.id === s.employeeId) : null;
+      return emp?.name;
+    })
+    .filter(Boolean);
+
+  // Build timeline data
+  const timelineData = useMemo(() => {
+    return dayShifts
+      .filter((s) => s.employeeId)
+      .map((s) => {
+        const emp = employees.find((e) => e.id === s.employeeId);
+        return {
+          shiftId: s.id,
+          name: emp?.name ?? "Ukjent",
+          initials: emp?.initials ?? "??",
+          avatarColor: emp?.avatarColor ?? "bg-zinc-500/20 text-zinc-400 border-zinc-500/30",
+          role: s.role,
+          startHour: timeToHour(s.startTime),
+          endHour: timeToHour(s.endTime),
+          startTime: s.startTime,
+          endTime: s.endTime,
+          time: s.time,
+          status: s.status,
+          zone: s.zone,
+          team: emp?.team,
+        };
+      });
+  }, [dayShifts, employees]);
+
+  return (
+    <div className="animate-in fade-in slide-in-from-bottom-2 space-y-6">
+      {/* KPI Cards with budget edit */}
+      <section>
+        <div className="mb-3 flex items-center justify-between">
+          <h3
+            className={`text-[10px] font-bold tracking-widest uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+          >
+            Nokkeltall
+          </h3>
+          <button
+            onClick={() => setIsEditingBudget(!isEditingBudget)}
+            className="flex items-center gap-1 text-[10px] font-bold text-orange-400 hover:text-orange-300"
+          >
+            <Pencil className="h-3 w-3" />
+            {isEditingBudget ? "Lagre" : "Rediger"}
+          </button>
+        </div>
+
+        <div className="grid grid-cols-4 gap-2">
+          <KpiCard
+            isDark={isDark}
+            label="Est. Kostnad"
+            value={stats ? formatNok(stats.estimatedCost) : "—"}
+          />
+          <KpiCard
+            isDark={isDark}
+            label="Budsjett"
+            value={formatNok(budget)}
+            editing={isEditingBudget}
+            editValue={budget}
+            onEditChange={(v) => setBudget(Number(v))}
+          />
+          <KpiCard isDark={isDark} label="Timer" value={formatHours(totalWorkHours)} />
+          <KpiCard isDark={isDark} label="Ansatte" value={String(stats?.staffCount ?? 0)} />
+        </div>
+      </section>
+
+      {/* Extra info row: opening hours, duty manager, last year */}
+      <section
+        className={`rounded-xl border p-3 ${isDark ? "border-white/10 bg-white/[0.03]" : "border-zinc-200 bg-zinc-50"}`}
+      >
+        <div className="grid grid-cols-1 gap-2 text-[11px] md:grid-cols-3">
+          <div>
+            <span className="font-bold text-zinc-500">Apningstider:</span>{" "}
+            {isEditingBudget ? (
+              <input
+                type="text"
+                value={openingHours}
+                onChange={(e) => setOpeningHours(e.target.value)}
+                className="border-input ml-1 w-28 rounded border bg-transparent px-1.5 py-0.5 text-[11px]"
+              />
+            ) : (
+              <span className={isDark ? "text-white" : "text-zinc-900"}>{openingHours}</span>
+            )}
+          </div>
+          <div>
+            <span className="font-bold text-zinc-500">Duty Manager:</span>{" "}
+            {isEditingBudget ? (
+              <input
+                type="text"
+                value={dutyManagers || managerNames.join(", ")}
+                onChange={(e) => setDutyManagers(e.target.value)}
+                className="border-input ml-1 w-40 rounded border bg-transparent px-1.5 py-0.5 text-[11px]"
+              />
+            ) : (
+              <span className={isDark ? "text-white" : "text-zinc-900"}>
+                {dutyManagers || managerNames.join(", ") || "Ingen"}
+              </span>
+            )}
+          </div>
+          <div>
+            <span className="font-bold text-zinc-500">Forrige ar:</span>{" "}
+            <span className={isDark ? "text-zinc-400" : "text-zinc-600"}>
+              {lastYearData.staff} ans, {formatNok(lastYearData.cost)}, {lastYearData.hours}t
+            </span>
+          </div>
+        </div>
+      </section>
+
+      {/* Timeline — Gantt-style 06:00-23:00 */}
+      <section>
+        <h3
+          className={`mb-3 text-[10px] font-bold tracking-widest uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
         >
-          <MessageCircle className="h-4 w-4 text-blue-400" /> Push Vakt
-        </button>
-        <button
-          onClick={() => toast(`SMS sendt til ${staffCount} ansatte`)}
-          className={`flex flex-1 items-center justify-center gap-2 bg-white/5 ${isDark ? "hover:bg-white/10" : "hover:bg-zinc-200"} rounded-xl border border-white/10 py-2.5 text-xs font-bold text-white transition-all hover:border-white/20`}
+          Tidslinje
+        </h3>
+        <TimelineView
+          isDark={isDark}
+          entries={timelineData}
+          onShiftClick={setSelectedShift}
+          onTimeChange={(shiftId, newStart, newEnd) => {
+            const startMins =
+              parseInt(newStart.split(":")[0] ?? "0", 10) * 60 +
+              parseInt(newStart.split(":")[1] ?? "0", 10);
+            let endMins =
+              parseInt(newEnd.split(":")[0] ?? "0", 10) * 60 +
+              parseInt(newEnd.split(":")[1] ?? "0", 10);
+            if (endMins <= startMins) endMins += 24 * 60;
+            const workHours = Math.max(0, (endMins - startMins) / 60);
+            updateShift.mutate({
+              id: shiftId,
+              patch: { startTime: newStart, endTime: newEnd, workHours },
+            });
+          }}
+        />
+      </section>
+
+      {/* Employee list */}
+      <section>
+        <h3
+          className={`mb-3 text-[10px] font-bold tracking-widest uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
         >
-          <Mail className="h-4 w-4 text-orange-400" /> SMS
-        </button>
+          Ansatte pa vakt ({timelineData.length})
+        </h3>
+        <div className="space-y-2">
+          {timelineData.length === 0 ? (
+            <p className="py-4 text-center text-xs text-zinc-500">
+              Ingen ansatte pa vakt denne dagen
+            </p>
+          ) : (
+            timelineData.map((entry) => (
+              <EmployeeRow
+                key={entry.shiftId}
+                isDark={isDark}
+                name={entry.name}
+                initials={entry.initials}
+                avatarColor={entry.avatarColor}
+                role={entry.role}
+                time={entry.time}
+                status={entry.status}
+                zone={entry.zone}
+                team={entry.team}
+                onShiftClick={() => setSelectedShift(entry.shiftId)}
+              />
+            ))
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// KPI Card
+// ---------------------------------------------------------------------------
+
+function KpiCard({
+  isDark,
+  label,
+  value,
+  editing,
+  editValue,
+  onEditChange,
+}: {
+  isDark: boolean;
+  label: string;
+  value: string;
+  editing?: boolean;
+  editValue?: number;
+  onEditChange?: (v: string) => void;
+}) {
+  return (
+    <div
+      className={`rounded-xl border p-3 ${isDark ? "border-white/10 bg-white/5" : "border-zinc-200 bg-white"}`}
+    >
+      <span className="block text-[9px] font-bold tracking-widest text-zinc-500 uppercase">
+        {label}
+      </span>
+      {editing && onEditChange ? (
+        <input
+          type="number"
+          value={editValue}
+          onChange={(e) => onEditChange(e.target.value)}
+          className="border-input mt-1 w-full rounded border bg-transparent px-1 py-0.5 text-sm font-black"
+        />
+      ) : (
+        <div
+          className={`mt-1 text-base leading-tight font-black ${isDark ? "text-white" : "text-zinc-900"}`}
+        >
+          {value}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Timeline View — Gantt-style bar chart
+// ---------------------------------------------------------------------------
+
+const TIMELINE_START = 6; // 06:00
+const TIMELINE_END = 23; // 23:00
+const TIMELINE_HOURS = TIMELINE_END - TIMELINE_START;
+
+type TimelineEntry = {
+  shiftId: string;
+  name: string;
+  initials: string;
+  avatarColor: string;
+  role: string;
+  startHour: number;
+  endHour: number;
+  startTime: string;
+  endTime: string;
+  time: string;
+  status: string;
+  zone?: string;
+  team?: string;
+};
+
+function TimelineView({
+  isDark,
+  entries,
+  onShiftClick,
+  onTimeChange,
+}: {
+  isDark: boolean;
+  entries: TimelineEntry[];
+  onShiftClick: (id: string) => void;
+  onTimeChange?: (shiftId: string, newStart: string, newEnd: string) => void;
+}) {
+  const hours = Array.from({ length: TIMELINE_HOURS + 1 }, (_, i) => TIMELINE_START + i);
+
+  return (
+    <div
+      className={`overflow-x-auto rounded-xl border ${isDark ? "border-white/10 bg-white/[0.03]" : "border-zinc-200 bg-zinc-50"} p-4`}
+    >
+      {/* Hour labels */}
+      <div className="mb-1 flex">
+        <div className="w-24 shrink-0" />
+        <div className="relative flex-1">
+          <div className="flex justify-between">
+            {hours.map((h) => (
+              <span key={h} className="w-0 text-center text-[9px] font-bold text-zinc-500">
+                {String(h).padStart(2, "0")}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Grid lines + bars */}
+      {entries.length === 0 ? (
+        <p className="py-6 text-center text-xs text-zinc-500">Ingen vakter</p>
+      ) : (
+        entries.map((entry) => (
+          <TimelineBar
+            key={entry.shiftId}
+            isDark={isDark}
+            entry={entry}
+            hours={hours}
+            onShiftClick={onShiftClick}
+            onTimeChange={onTimeChange}
+          />
+        ))
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// TimelineBar — individual draggable/resizable shift bar
+// ---------------------------------------------------------------------------
+
+/** Convert hour (decimal) to "HH:MM" string */
+function hourToTimeStr(h: number): string {
+  const wrapped = ((h % 24) + 24) % 24;
+  const hrs = Math.floor(wrapped);
+  const mins = Math.round((wrapped - hrs) * 60);
+  return `${String(hrs).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
+}
+
+/** Snap a decimal hour to nearest 15-minute increment */
+function snapHour(h: number): number {
+  return Math.round(h * 4) / 4;
+}
+
+function TimelineBar({
+  isDark,
+  entry,
+  hours,
+  onShiftClick,
+  onTimeChange,
+}: {
+  isDark: boolean;
+  entry: TimelineEntry;
+  hours: number[];
+  onShiftClick: (id: string) => void;
+  onTimeChange?: (shiftId: string, newStart: string, newEnd: string) => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [dragState, setDragState] = useState<{
+    type: "move" | "start" | "end";
+    startHour: number;
+    endHour: number;
+  } | null>(null);
+
+  const currentStart = dragState ? dragState.startHour : entry.startHour;
+  const rawEnd = dragState ? dragState.endHour : entry.endHour;
+  const currentEnd = rawEnd <= currentStart ? rawEnd + 24 : rawEnd;
+
+  const startPct = Math.max(0, ((currentStart - TIMELINE_START) / TIMELINE_HOURS) * 100);
+  const endPct = Math.min(100, ((currentEnd - TIMELINE_START) / TIMELINE_HOURS) * 100);
+  const widthPct = Math.max(endPct - startPct, 1.5);
+
+  const displayStart = dragState ? hourToTimeStr(dragState.startHour) : entry.startTime;
+  const displayEnd = dragState ? hourToTimeStr(dragState.endHour) : entry.endTime;
+
+  /** Convert a pixel X offset within the container to a decimal hour */
+  const pxToHour = useCallback((clientX: number): number => {
+    if (!containerRef.current) return TIMELINE_START;
+    const rect = containerRef.current.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    return TIMELINE_START + pct * TIMELINE_HOURS;
+  }, []);
+
+  const handlePointerDown = useCallback(
+    (type: "move" | "start" | "end", e: React.PointerEvent) => {
+      if (!onTimeChange) return;
+      e.preventDefault();
+      e.stopPropagation();
+
+      const originX = e.clientX;
+      const origStart = entry.startHour;
+      const origEnd = entry.endHour <= entry.startHour ? entry.endHour + 24 : entry.endHour;
+      const duration = origEnd - origStart;
+
+      const onMove = (ev: PointerEvent) => {
+        const currentHour = pxToHour(ev.clientX);
+        const originHour = pxToHour(originX);
+        const delta = currentHour - originHour;
+
+        if (type === "move") {
+          const newStart = snapHour(origStart + delta);
+          const newEnd = snapHour(newStart + duration);
+          setDragState({ type, startHour: newStart, endHour: newEnd });
+        } else if (type === "start") {
+          const newStart = snapHour(origStart + delta);
+          if (newStart < origEnd - 0.25) {
+            setDragState({ type, startHour: newStart, endHour: entry.endHour });
+          }
+        } else {
+          const newEnd = snapHour(origEnd + delta);
+          if (newEnd > origStart + 0.25) {
+            setDragState({ type, startHour: entry.startHour, endHour: newEnd });
+          }
+        }
+      };
+
+      const onUp = () => {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        setDragState((prev) => {
+          if (prev) {
+            const newStartStr = hourToTimeStr(prev.startHour);
+            const newEndStr = hourToTimeStr(prev.endHour);
+            if (newStartStr !== entry.startTime || newEndStr !== entry.endTime) {
+              onTimeChange(entry.shiftId, newStartStr, newEndStr);
+            }
+          }
+          return null;
+        });
+      };
+
+      // Initialize drag state
+      setDragState({ type, startHour: origStart, endHour: entry.endHour });
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+    },
+    [entry, onTimeChange, pxToHour],
+  );
+
+  const meta = [entry.zone, entry.team].filter(Boolean).join(" · ");
+
+  return (
+    <div className="group/bar mb-2 flex items-center">
+      {/* Name + role label */}
+      <div className="w-24 shrink-0 pr-3">
+        <div
+          className={`truncate text-[11px] leading-tight font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}
+        >
+          {entry.name.split(" ")[0]}
+        </div>
+        <div className="truncate text-[9px] leading-tight text-zinc-500">{entry.role}</div>
+      </div>
+
+      {/* Bar container */}
+      <div
+        ref={containerRef}
+        className={`relative h-8 flex-1 rounded-md ${isDark ? "bg-white/[0.04]" : "bg-zinc-200/40"}`}
+      >
+        {/* Grid lines */}
+        {hours.map((h) => (
+          <div
+            key={h}
+            className={`absolute top-0 h-full w-px ${isDark ? "bg-white/[0.06]" : "bg-zinc-300/40"}`}
+            style={{ left: `${((h - TIMELINE_START) / TIMELINE_HOURS) * 100}%` }}
+          />
+        ))}
+
+        {/* Shift bar */}
+        <div
+          className={`absolute top-1 h-6 rounded-md transition-shadow ${
+            dragState
+              ? "z-10 bg-orange-500 shadow-[0_0_12px_rgba(249,115,22,0.5)]"
+              : "bg-orange-500/80 group-hover/bar:shadow-[0_0_8px_rgba(249,115,22,0.3)] hover:bg-orange-500"
+          } ${onTimeChange ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"}`}
+          style={{ left: `${startPct}%`, width: `${widthPct}%` }}
+          onPointerDown={onTimeChange ? (e) => handlePointerDown("move", e) : undefined}
+          onClick={(e) => {
+            if (!dragState) {
+              e.stopPropagation();
+              onShiftClick(entry.shiftId);
+            }
+          }}
+        >
+          {/* Bar content */}
+          <div className="flex h-full items-center gap-1.5 overflow-hidden px-1.5">
+            <span className="truncate text-[9px] leading-none font-bold text-white">
+              {displayStart} - {displayEnd}
+            </span>
+            {meta && (
+              <span className="hidden truncate text-[8px] leading-none text-white/60 xl:inline">
+                {meta}
+              </span>
+            )}
+          </div>
+
+          {/* Left resize handle (start time) */}
+          {onTimeChange && (
+            <div
+              className="absolute top-0 left-0 h-full w-2 cursor-col-resize opacity-0 transition-opacity group-hover/bar:opacity-100"
+              onPointerDown={(e) => handlePointerDown("start", e)}
+            >
+              <div className="absolute top-1/2 left-0.5 h-3 w-0.5 -translate-y-1/2 rounded-full bg-white/80" />
+            </div>
+          )}
+
+          {/* Right resize handle (end time) */}
+          {onTimeChange && (
+            <div
+              className="absolute top-0 right-0 h-full w-2 cursor-col-resize opacity-0 transition-opacity group-hover/bar:opacity-100"
+              onPointerDown={(e) => handlePointerDown("end", e)}
+            >
+              <div className="absolute top-1/2 right-0.5 h-3 w-0.5 -translate-y-1/2 rounded-full bg-white/80" />
+            </div>
+          )}
+        </div>
+
+        {/* Time tooltip during drag */}
+        {dragState && (
+          <div
+            className="pointer-events-none absolute -top-6 z-20 rounded bg-zinc-900 px-2 py-0.5 text-[10px] font-bold whitespace-nowrap text-orange-300 shadow-lg"
+            style={{ left: `${startPct + widthPct / 2}%`, transform: "translateX(-50%)" }}
+          >
+            {displayStart} - {displayEnd}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Oversikt Tab
+// Employee Row
 // ---------------------------------------------------------------------------
 
-/**
- * Overview tab showing shift manager and key metrics from context state.
- */
-function OversiktTab({ isDark, dateId }: { isDark: boolean; dateId: string | null }) {
-  const { computed, dispatch } = useSchedule();
-
-  // Get stats and shifts for this day from context
-  const stats = dateId ? computed.getDayStats(dateId) : null;
-  const dayShifts = dateId ? computed.getShiftsForDay(dateId) : [];
-
-  // Find the manager shift (role includes "Manager" or is the first purple indicator)
-  const managerShift = dayShifts.find(
-    (s) => s.role.toLowerCase().includes("manager") || s.indicator === "purple",
-  );
-
-  // Resolve manager name from employees
-  const managerEmployee = managerShift?.employeeId
-    ? dummyEmployees.find((e) => e.id === managerShift.employeeId)
-    : null;
-
-  // Calculate total work hours from all shifts for this day
-  const totalWorkHours = dayShifts.reduce((sum, s) => sum + s.workHours, 0);
+function EmployeeRow({
+  isDark,
+  name,
+  initials,
+  avatarColor,
+  role,
+  time,
+  status,
+  zone,
+  team,
+  onShiftClick,
+}: {
+  isDark: boolean;
+  name: string;
+  initials: string;
+  avatarColor: string;
+  role: string;
+  time: string;
+  status: string;
+  zone?: string;
+  team?: string;
+  onShiftClick: () => void;
+}) {
+  const isActive = status === "published" || status === "active";
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-2 space-y-8">
-      {/* Vaktansvarlig section */}
-      <section>
-        <div className="mb-3 flex items-center gap-2">
-          <div className="flex h-6 w-6 items-center justify-center rounded-md border border-purple-500/30 bg-purple-500/20 text-purple-400">
-            <Briefcase className="h-3.5 w-3.5" />
-          </div>
-          <h3 className={`text-sm font-bold ${isDark ? "text-white" : "text-zinc-900"}`}>
-            Vaktansvarlig
-          </h3>
-        </div>
-        {managerEmployee && managerShift ? (
-          <div
-            onClick={() => dispatch({ type: "SET_SELECTED_SHIFT", payload: managerShift.id })}
-            className={`p-4 ${isDark ? "bg-white/5" : "bg-zinc-100"} group flex cursor-pointer items-center justify-between rounded-2xl border border-white/10 transition-colors hover:border-white/20`}
-          >
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full border border-purple-500/30 bg-purple-500/20 text-xs font-black text-purple-400">
-                {managerEmployee.initials}
-              </div>
-              <div className="flex flex-col">
-                <span
-                  className={`text-sm font-bold ${isDark ? "text-white" : "text-zinc-900"} transition-colors group-hover:text-purple-400`}
-                >
-                  {managerEmployee.name}
-                </span>
-                <span className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase">
-                  {managerShift.role} &bull; {managerShift.time}
-                </span>
-              </div>
-            </div>
-            <ChevronDown className="h-4 w-4 text-zinc-600" />
-          </div>
+    <div
+      className={`flex items-center gap-3 rounded-xl border p-3 transition-colors ${isDark ? "border-white/5 bg-white/[0.03] hover:border-white/10" : "border-zinc-200 bg-white hover:border-zinc-300"}`}
+    >
+      {/* Status indicator */}
+      <div className="shrink-0">
+        {isActive ? (
+          <CheckCircle2 className="h-4 w-4 text-emerald-400" />
         ) : (
-          <div
-            className={`p-4 ${isDark ? "bg-white/5" : "bg-zinc-100"} rounded-2xl border border-white/10`}
-          >
-            <span className="text-xs text-zinc-500">Ingen vaktansvarlig tildelt</span>
+          <Clock className="h-4 w-4 text-zinc-500" />
+        )}
+      </div>
+
+      {/* Avatar */}
+      <div
+        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-[10px] font-black ${avatarColor}`}
+      >
+        {initials}
+      </div>
+
+      {/* Info */}
+      <button onClick={onShiftClick} className="min-w-0 flex-1 text-left">
+        <div className={`truncate text-xs font-bold ${isDark ? "text-white" : "text-zinc-900"}`}>
+          {name}
+        </div>
+        <div className="text-[10px] text-zinc-500">
+          {time} &middot; {role}
+        </div>
+        {(zone || team) && (
+          <div className="mt-0.5 flex items-center gap-2 text-[9px] text-zinc-500">
+            {zone && (
+              <span className="flex items-center gap-0.5">
+                <MapPin className="h-2.5 w-2.5" /> {zone}
+              </span>
+            )}
+            {team && (
+              <span className="flex items-center gap-0.5">
+                <Users className="h-2.5 w-2.5" /> {team}
+              </span>
+            )}
           </div>
         )}
-      </section>
+      </button>
 
-      {/* Key metrics section */}
-      <section>
-        <h3 className={`text-sm font-bold ${isDark ? "text-white" : "text-zinc-900"} mb-3`}>
-          Dagens nøkkeltall
-        </h3>
-        <div className="grid grid-cols-2 gap-3">
-          <div
-            className={`rounded-xl border p-4 ${isDark ? "border-white/10 bg-white/5" : "border-zinc-200 bg-zinc-50"}`}
-          >
-            <span className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase">
-              Est. Kostnad
-            </span>
-            <div className={`text-lg font-black ${isDark ? "text-white" : "text-zinc-900"} mt-1`}>
-              {stats ? formatNok(stats.estimatedCost) : "—"}
-            </div>
-          </div>
-          <div
-            className={`rounded-xl border p-4 ${isDark ? "border-white/10 bg-white/5" : "border-zinc-200 bg-zinc-50"}`}
-          >
-            <span className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase">
-              Totale Timer
-            </span>
-            <div className={`text-lg font-black ${isDark ? "text-white" : "text-zinc-900"} mt-1`}>
-              {formatHours(totalWorkHours)}
-            </div>
-          </div>
-          <div
-            className={`rounded-xl border p-4 ${isDark ? "border-white/10 bg-white/5" : "border-zinc-200 bg-zinc-50"}`}
-          >
-            <span className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase">
-              Ansatte
-            </span>
-            <div className={`text-lg font-black ${isDark ? "text-white" : "text-zinc-900"} mt-1`}>
-              {stats?.staffCount ?? 0}
-            </div>
-          </div>
-          <div
-            className={`rounded-xl border p-4 ${isDark ? "border-white/10 bg-white/5" : "border-zinc-200 bg-zinc-50"}`}
-          >
-            <span className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase">
-              Vakter
-            </span>
-            <div className={`text-lg font-black ${isDark ? "text-white" : "text-zinc-900"} mt-1`}>
-              {stats?.shiftCount ?? 0}
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Contact */}
+      <div className="flex shrink-0 items-center gap-1.5">
+        <button
+          onClick={() => toast.info(`Ringer ${name}...`)}
+          className={`rounded-lg p-1.5 ${isDark ? "hover:bg-white/10" : "hover:bg-zinc-100"} text-zinc-500 transition-colors hover:text-blue-400`}
+        >
+          <Phone className="h-3.5 w-3.5" />
+        </button>
+        <button
+          onClick={() => toast.info(`SMS til ${name}...`)}
+          className={`rounded-lg p-1.5 ${isDark ? "hover:bg-white/10" : "hover:bg-zinc-100"} text-zinc-500 transition-colors hover:text-orange-400`}
+        >
+          <Mail className="h-3.5 w-3.5" />
+        </button>
+      </div>
     </div>
   );
 }
@@ -345,52 +1025,41 @@ function OversiktTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
 // Meldinger Tab (Dagsinfo)
 // ---------------------------------------------------------------------------
 
-/**
- * Day messages tab with form for creating new messages
- * and a list of active messages from context.
- */
 function MeldingerTab({ isDark, dateId }: { isDark: boolean; dateId: string | null }) {
-  const { computed, dispatch } = useSchedule();
+  const { profileId } = useContext(DashboardContext);
+  const { weekStart, weekEnd } = useWeekRange();
+  const { data: dayMessagesData = [] as DayMessage[] } = useDayMessages(weekStart, weekEnd);
+  const createDayMessage = useCreateDayMessage(weekStart);
+  const deleteDayMessage = useDeleteDayMessage(weekStart);
 
-  // Form state
   const [content, setContent] = useState("");
   const [audience, setAudience] = useState<"all" | "leaders" | string>("all");
   const [visibility, setVisibility] = useState<"all_day" | "until_16" | "permanent">("all_day");
 
-  // Get messages for this day from context
-  const messages = dateId ? computed.getMessagesForDay(dateId) : [];
+  const messages = dateId ? dayMessagesData.filter((m: DayMessage) => m.dateId === dateId) : [];
 
-  /**
-   * Publishes a new day message via dispatch.
-   * Validates that content is not empty and dateId is set.
-   */
   function handlePublish() {
     if (!dateId) return;
     if (!content.trim()) {
-      toast.error("Skriv en beskjed først");
+      toast.error("Skriv en beskjed forst");
       return;
     }
 
-    dispatch({
-      type: "ADD_MESSAGE",
-      payload: {
-        dateId,
-        title: content.trim().slice(0, 50),
-        content: content.trim(),
-        audience,
-        visibility,
-        author: "Du",
-        isAlert: false,
-      },
+    createDayMessage.mutate({
+      id: crypto.randomUUID(),
+      dateId,
+      title: content.trim().slice(0, 50),
+      content: content.trim(),
+      audience,
+      visibility,
+      author: profileId ?? "",
+      isAlert: false,
     });
 
     toast.success("Oppslag publisert");
     setContent("");
   }
 
-  /**
-   * Maps audience values to display labels.
-   */
   function audienceLabel(value: string): string {
     switch (value) {
       case "all":
@@ -402,9 +1071,6 @@ function MeldingerTab({ isDark, dateId }: { isDark: boolean; dateId: string | nu
     }
   }
 
-  /**
-   * Maps visibility values to display labels.
-   */
   function visibilityLabel(value: string): string {
     switch (value) {
       case "all_day":
@@ -442,7 +1108,7 @@ function MeldingerTab({ isDark, dateId }: { isDark: boolean; dateId: string | nu
                 onChange={(e) => setAudience(e.target.value)}
                 className="cursor-pointer bg-transparent text-[11px] font-bold text-zinc-300 outline-none"
               >
-                <option value="all">Alle På Vakt</option>
+                <option value="all">Alle Pa Vakt</option>
                 <option value="leaders">Kun Ledere</option>
                 <option value="Servering">Servering (Team)</option>
               </select>
@@ -480,7 +1146,7 @@ function MeldingerTab({ isDark, dateId }: { isDark: boolean; dateId: string | nu
         {messages.length === 0 ? (
           <p className="py-4 text-center text-xs text-zinc-500">Ingen oppslag for denne dagen</p>
         ) : (
-          messages.map((msg) => (
+          messages.map((msg: DayMessage) => (
             <MessageCard
               key={msg.id}
               title={msg.title}
@@ -490,7 +1156,7 @@ function MeldingerTab({ isDark, dateId }: { isDark: boolean; dateId: string | nu
               content={msg.content}
               alert={msg.isAlert}
               onDelete={() => {
-                dispatch({ type: "DELETE_MESSAGE", payload: { id: msg.id } });
+                deleteDayMessage.mutate(msg.id);
                 toast("Oppslag slettet");
               }}
             />
@@ -502,24 +1168,17 @@ function MeldingerTab({ isDark, dateId }: { isDark: boolean; dateId: string | nu
 }
 
 // ---------------------------------------------------------------------------
-// Bookings Tab
+// Bookings Tab (Reservasjoner)
 // ---------------------------------------------------------------------------
 
-/**
- * Bookings tab showing reservations from context.
- * Includes inline detail expansion and a dialog for adding new bookings.
- */
 function BookingsTab({ isDark, dateId }: { isDark: boolean; dateId: string | null }) {
-  const { computed } = useSchedule();
+  const { weekStart, weekEnd } = useWeekRange();
+  const { data: dayBookingsData = [] as DayBooking[] } = useDayBookings(weekStart, weekEnd);
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
   const [expandedBookingId, setExpandedBookingId] = useState<string | null>(null);
 
-  // Get bookings for this day from context
-  const bookings = dateId ? computed.getBookingsForDay(dateId) : [];
+  const bookings = dateId ? dayBookingsData.filter((b: DayBooking) => b.dateId === dateId) : [];
 
-  /**
-   * Maps booking status to display badge styling.
-   */
   function statusBadge(status: string, isVip: boolean) {
     switch (status) {
       case "confirmed":
@@ -551,7 +1210,7 @@ function BookingsTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
         <h4
           className={`text-xs font-bold ${isDark ? "text-zinc-400" : "text-zinc-500"} tracking-widest uppercase`}
         >
-          Reservasjoner og Selskap ({bookings.length})
+          Reservasjoner ({bookings.length})
         </h4>
         <button
           onClick={() => setBookingDialogOpen(true)}
@@ -562,12 +1221,10 @@ function BookingsTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
       </div>
 
       {bookings.length === 0 ? (
-        <p className="py-8 text-center text-xs text-zinc-500">
-          Ingen bookinger for denne dagen
-        </p>
+        <p className="py-8 text-center text-xs text-zinc-500">Ingen bookinger for denne dagen</p>
       ) : (
         <div className="space-y-3">
-          {bookings.map((booking) => {
+          {bookings.map((booking: DayBooking) => {
             const isExpanded = expandedBookingId === booking.id;
 
             return (
@@ -595,16 +1252,13 @@ function BookingsTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
                     </span>
                   </div>
                   <button
-                    onClick={() =>
-                      setExpandedBookingId(isExpanded ? null : booking.id)
-                    }
+                    onClick={() => setExpandedBookingId(isExpanded ? null : booking.id)}
                     className="text-[10px] font-bold text-blue-400 hover:text-blue-300"
                   >
                     {isExpanded ? "Skjul detaljer" : "Se detaljer"}
                   </button>
                 </div>
 
-                {/* Expanded detail section */}
                 {isExpanded && (
                   <div className="mt-3 space-y-2 border-t border-white/5 pt-3">
                     {booking.contactPerson && (
@@ -629,7 +1283,6 @@ function BookingsTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
         </div>
       )}
 
-      {/* Booking creation dialog */}
       {dateId && (
         <BookingDialog
           dateId={dateId}
@@ -645,33 +1298,26 @@ function BookingsTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
 // Oppgaver Tab
 // ---------------------------------------------------------------------------
 
-/**
- * Tasks tab with inline creation, category filters, status toggling,
- * and task deletion. All data from schedule context.
- */
 function OppgaverTab({ isDark, dateId }: { isDark: boolean; dateId: string | null }) {
-  const { computed, dispatch } = useSchedule();
+  const { weekStart, weekEnd } = useWeekRange();
+  const { data: dayTasksData = [] as DayTask[] } = useDayTasks(weekStart, weekEnd);
+  const createDayTask = useCreateDayTask(weekStart);
+  const updateDayTaskStatus = useUpdateDayTaskStatus(weekStart);
+  const deleteDayTask = useDeleteDayTask(weekStart);
 
-  // Local state for task creation and filtering
   const [newTaskLabel, setNewTaskLabel] = useState("");
   const [filter, setFilter] = useState<"all" | "routine" | "delegated">("all");
 
-  // Get tasks for this day from context, filtered by category
-  const allTasks = dateId ? computed.getTasksForDay(dateId) : [];
+  const allTasks = dateId ? dayTasksData.filter((t: DayTask) => t.dateId === dateId) : [];
   const filteredTasks =
-    filter === "all" ? allTasks : allTasks.filter((t) => t.category === filter);
+    filter === "all" ? allTasks : allTasks.filter((t: DayTask) => t.category === filter);
 
-  // Compute completion stats
-  const completedCount = allTasks.filter((t) => t.status === "completed").length;
+  const completedCount = allTasks.filter((t: DayTask) => t.status === "completed").length;
   const totalCount = allTasks.length;
 
-  // Category counts for filter chips
-  const routineCount = allTasks.filter((t) => t.category === "routine").length;
-  const delegatedCount = allTasks.filter((t) => t.category === "delegated").length;
+  const routineCount = allTasks.filter((t: DayTask) => t.category === "routine").length;
+  const delegatedCount = allTasks.filter((t: DayTask) => t.category === "delegated").length;
 
-  /**
-   * Adds a new task via dispatch. Defaults to "all" category and "pending" status.
-   */
   function handleAddTask() {
     if (!dateId) return;
     if (!newTaskLabel.trim()) {
@@ -679,32 +1325,36 @@ function OppgaverTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
       return;
     }
 
-    dispatch({
-      type: "ADD_TASK",
-      payload: {
-        dateId,
-        label: newTaskLabel.trim(),
-        status: "pending",
-        category: "all",
-        highlight: false,
-      },
+    createDayTask.mutate({
+      id: crypto.randomUUID(),
+      dateId,
+      label: newTaskLabel.trim(),
+      status: "pending",
+      category: "all",
+      highlight: false,
     });
 
     toast.success("Oppgave lagt til");
     setNewTaskLabel("");
   }
 
-  /**
-   * Returns the CSS class and icon for a given task status.
-   */
   function statusIcon(status: TaskStatus) {
     switch (status) {
       case "completed":
-        return { icon: <CheckSquare className="h-3.5 w-3.5" />, classes: "border-emerald-500 bg-emerald-500 text-[#050505]" };
+        return {
+          icon: <CheckSquare className="h-3.5 w-3.5" />,
+          classes: "border-emerald-500 bg-emerald-500 text-[#050505]",
+        };
       case "in_progress":
-        return { icon: <Loader2 className="h-3.5 w-3.5 animate-spin" />, classes: "border-blue-500 bg-blue-500/20 text-blue-400" };
+        return {
+          icon: <Loader2 className="h-3.5 w-3.5 animate-spin" />,
+          classes: "border-blue-500 bg-blue-500/20 text-blue-400",
+        };
       default:
-        return { icon: <CheckSquare className="h-3.5 w-3.5" />, classes: "border-zinc-600 text-transparent hover:border-orange-500" };
+        return {
+          icon: <CheckSquare className="h-3.5 w-3.5" />,
+          classes: "border-zinc-600 text-transparent hover:border-orange-500",
+        };
     }
   }
 
@@ -714,10 +1364,10 @@ function OppgaverTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
         <h3
           className={`text-xs font-bold ${isDark ? "text-zinc-500" : "text-zinc-400"} tracking-widest uppercase`}
         >
-          Gjøremål &amp; Rutiner
+          Gjoremal &amp; Rutiner
         </h3>
         <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
-          {completedCount} / {totalCount} Utført
+          {completedCount} / {totalCount} Utfort
         </span>
       </div>
       <div className="space-y-2">
@@ -725,7 +1375,7 @@ function OppgaverTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
         <div className="mb-4 flex gap-2">
           <input
             type="text"
-            placeholder="Planlegg nytt gjøremål for dagen..."
+            placeholder="Planlegg nytt gjoremal for dagen..."
             value={newTaskLabel}
             onChange={(e) => setNewTaskLabel(e.target.value)}
             onKeyDown={(e) => {
@@ -784,10 +1434,12 @@ function OppgaverTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
         {/* Task list */}
         {filteredTasks.length === 0 ? (
           <p className="py-4 text-center text-xs text-zinc-500">
-            {filter === "all" ? "Ingen oppgaver for denne dagen" : "Ingen oppgaver i denne kategorien"}
+            {filter === "all"
+              ? "Ingen oppgaver for denne dagen"
+              : "Ingen oppgaver i denne kategorien"}
           </p>
         ) : (
-          filteredTasks.map((task) => {
+          filteredTasks.map((task: DayTask) => {
             const { icon, classes } = statusIcon(task.status);
             const isDone = task.status === "completed";
             const isInProgress = task.status === "in_progress";
@@ -805,12 +1457,11 @@ function OppgaverTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
                 key={task.id}
                 className={`flex items-center gap-3 rounded-xl border p-3 transition-colors ${base}`}
               >
-                {/* Status toggle button */}
                 <button
                   onClick={() =>
-                    dispatch({
-                      type: "UPDATE_TASK_STATUS",
-                      payload: { id: task.id, status: nextTaskStatus(task.status) },
+                    updateDayTaskStatus.mutate({
+                      id: task.id,
+                      patch: { status: nextTaskStatus(task.status) },
                     })
                   }
                   className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors ${classes}`}
@@ -818,22 +1469,19 @@ function OppgaverTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
                   {icon}
                 </button>
 
-                {/* Task label */}
                 <span
                   className={`truncate text-xs font-medium ${isDone ? "text-zinc-500 line-through" : "text-zinc-200"}`}
                 >
                   {task.label}
                 </span>
 
-                {/* Highlight dot */}
                 {task.highlight && (
                   <span className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.8)]" />
                 )}
 
-                {/* Delete button */}
                 <button
                   onClick={() => {
-                    dispatch({ type: "DELETE_TASK", payload: { id: task.id } });
+                    deleteDayTask.mutate(task.id);
                     toast("Oppgave slettet");
                   }}
                   className="ml-auto shrink-0 text-zinc-600 transition-colors hover:text-rose-400"
@@ -853,10 +1501,6 @@ function OppgaverTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
 // Small reusable pieces
 // ---------------------------------------------------------------------------
 
-/**
- * Tab button for the header tab bar.
- * Highlights with orange when active.
- */
 function TabButton({
   active,
   label,
@@ -872,17 +1516,13 @@ function TabButton({
   return (
     <button
       onClick={onClick}
-      className={`flex shrink-0 items-center gap-1.5 border-b-2 pb-2 text-[11px] font-bold whitespace-nowrap transition-all ${active ? (isDark ? "border-orange-500 text-orange-400" : "border-orange-500 text-orange-500") : "border-transparent text-zinc-500 hover:text-zinc-400"} px-2`}
+      className={`flex shrink-0 items-center gap-1 border-b-2 px-3 py-2 text-[10px] font-bold whitespace-nowrap transition-all ${active ? (isDark ? "border-orange-500 text-orange-400" : "border-orange-500 text-orange-500") : "border-transparent text-zinc-500 hover:text-zinc-400"}`}
     >
       {icon} {label}
     </button>
   );
 }
 
-/**
- * Individual message card with delete action.
- * Used in the Meldinger tab.
- */
 function MessageCard({
   title,
   audience,

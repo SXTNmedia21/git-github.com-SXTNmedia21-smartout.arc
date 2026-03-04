@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import {
   ArrowLeft,
   Key,
@@ -12,9 +12,18 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Navigation from "../../../components/navigation";
+import Footer from "../../../components/footer";
+import { usePageTracking } from "../../../hooks/useTracking";
+import { useScrollTracking } from "../../../hooks/useScrollTracking";
+import { useClickTracking } from "../../../hooks/useClickTracking";
+import { useSessionLifecycle } from "../../../hooks/useSessionLifecycle";
 import NextPageBanner from "../../../components/next-page-banner";
 
 export default function ProsedyrerPage() {
+  usePageTracking();
+  useScrollTracking();
+  useClickTracking();
+  useSessionLifecycle();
   const router = useRouter();
   const tasks = [
     {
@@ -91,7 +100,7 @@ export default function ProsedyrerPage() {
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           {/* Workflow Mockup */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             className="relative flex min-h-[600px] flex-col overflow-hidden rounded-[2.5rem] border border-white/10 bg-[#0a0a0c]/80 p-8 shadow-[0_0_50px_-15px_rgba(244,63,94,0.15)] backdrop-blur-3xl md:p-12 lg:col-span-2"
@@ -167,7 +176,7 @@ export default function ProsedyrerPage() {
                 ))}
               </div>
             </div>
-          </motion.div>
+          </m.div>
 
           {/* Features checklist */}
           <div className="flex flex-col gap-6">
@@ -197,7 +206,7 @@ export default function ProsedyrerPage() {
                 border: "border-emerald-500/20",
               },
             ].map((feat, i) => (
-              <motion.div
+              <m.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1 * (i + 1) }}
@@ -211,7 +220,7 @@ export default function ProsedyrerPage() {
                 </div>
                 <h3 className="mb-2 text-xl font-bold text-white">{feat.title}</h3>
                 <p className="text-sm leading-relaxed font-medium text-zinc-400">{feat.desc}</p>
-              </motion.div>
+              </m.div>
             ))}
           </div>
         </div>
@@ -223,6 +232,7 @@ export default function ProsedyrerPage() {
           color="from-fuchsia-500/10"
         />
       </div>
+      <Footer />
     </div>
   );
 }

@@ -26,7 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useSchedule } from "./schedule-context";
+import { useCreateOpenShift } from "../_hooks/use-open-shifts";
 import type { DayCategory } from "./schedule-types";
 
 type OpenShiftDialogProps = {
@@ -40,7 +40,7 @@ type OpenShiftDialogProps = {
  * until dragged onto an employee cell.
  */
 export function OpenShiftDialog({ open, onOpenChange }: OpenShiftDialogProps) {
-  const { dispatch } = useSchedule();
+  const createOpenShift = useCreateOpenShift();
 
   const [title, setTitle] = useState("");
   const [role, setRole] = useState("");
@@ -67,17 +67,14 @@ export function OpenShiftDialog({ open, onOpenChange }: OpenShiftDialogProps) {
   const handleSubmit = () => {
     if (!title.trim()) return;
 
-    dispatch({
-      type: "ADD_OPEN_SHIFT",
-      payload: {
-        title: title.trim(),
-        time: `${startTime}-${endTime}`,
-        startTime,
-        endTime,
-        department: department || undefined,
-        role: role || undefined,
-        dayCategory,
-      },
+    createOpenShift.mutate({
+      id: crypto.randomUUID(),
+      title: title.trim(),
+      startTime,
+      endTime,
+      department: department || undefined,
+      role: role || undefined,
+      dayCategory,
     });
 
     resetForm();
@@ -86,12 +83,15 @@ export function OpenShiftDialog({ open, onOpenChange }: OpenShiftDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="border-border bg-background sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-foreground">Opprett åpen vakt</DialogTitle>
-        </DialogHeader>
+      <DialogContent className="border-border bg-background gap-0 p-0 sm:max-w-md">
+        <div className="border-border relative overflow-hidden rounded-t-lg border-b px-6 pt-6 pb-4">
+          <div className="absolute top-0 left-0 h-1 w-full bg-amber-500" />
+          <DialogHeader>
+            <DialogTitle className="text-foreground text-base">Opprett åpen vakt</DialogTitle>
+          </DialogHeader>
+        </div>
 
-        <div className="space-y-4 py-2">
+        <div className="space-y-4 px-6 py-4">
           <div className="space-y-1.5">
             <Label className="text-xs">Tittel</Label>
             <Input
@@ -161,12 +161,17 @@ export function OpenShiftDialog({ open, onOpenChange }: OpenShiftDialogProps) {
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="border-border border-t px-6 py-4">
           <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
             Avbryt
           </Button>
-          <Button size="sm" onClick={handleSubmit} disabled={!title.trim()}>
-            Opprett
+          <Button
+            size="sm"
+            onClick={handleSubmit}
+            disabled={!title.trim()}
+            className="bg-amber-600 text-white hover:bg-amber-700"
+          >
+            Opprett vakt
           </Button>
         </DialogFooter>
       </DialogContent>

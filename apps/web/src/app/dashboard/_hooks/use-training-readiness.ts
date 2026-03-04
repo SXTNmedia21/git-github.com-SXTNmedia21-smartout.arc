@@ -1,0 +1,55 @@
+"use client";
+
+import { useQuery } from "@tanstack/react-query";
+import { useWorkspaceOptional } from "@/lib/workspace-context";
+import { createClient } from "@smartout/supabase/client";
+import { dashboardKeys } from "./dashboard-keys";
+import type { TrainingReadinessData } from "./dashboard-types";
+
+/**
+ * Fetches training readiness data: protocol assignment completion rates.
+ * Joins through profile to filter by workspace.
+ * Connected to: TacticalView task completion, StrategicView training KPI
+ */
+export function useTrainingReadiness() {
+  const ctx = useWorkspaceOptional();
+  const workspaceId = ctx?.workspace.workspace_id;
+
+  return useQuery({
+    queryKey: dashboardKeys.trainingReadiness(workspaceId ?? "none"),
+    enabled: !!workspaceId,
+    staleTime: 5 * 60 * 1000, // 5 minutes — semi-stable training readiness
+    queryFn: async (): Promise<TrainingReadinessData> => {
+      const wsId = workspaceId!;
+      const supabase = createClient();
+
+      // Fetch all protocol assignments for workspace profiles
+      const { data, error } = await supabase
+        .from("protocol_assignment")
+        .select("status, profile!inner(workspace_id)")
+        .eq("profile.workspace_id", wsId);
+
+      if (error) throw error;
+
+      const assignments = data ?? [];
+      const total = assignments.length;
+      let completed = 0;
+      let pending = 0;
+      let expired = 0;
+
+      for (const a of assignments) {
+        if (a.status === "completed") completed++;
+        else if (a.status === "pending") pending++;
+        else if (a.status === "expired") expired++;
+      }
+
+      return {
+        totalAssignments: total,
+        completed,
+        pending,
+        expired,
+        readinessPercent: total > 0 ? Math.round((completed / total) * 100) : 100,
+      };
+    },
+  });
+}

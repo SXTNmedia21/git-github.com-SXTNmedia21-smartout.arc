@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useContext, useRef, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import {
   Search,
   Filter,
@@ -22,12 +23,14 @@ import { PeopleRowActions } from "./people-row-actions";
 import type { ConfirmAction } from "./people-row-actions";
 import { ConfirmationDialog } from "@/components/platform-admin/confirmation-dialog";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   updateProfileRole,
   updateProfileDepartment,
   deactivateProfile,
   resetUserPassword,
   cancelInvitation,
+  bulkUpdateProfiles,
 } from "../_actions/people-actions";
 import type { Enums } from "@smartout/supabase";
 
@@ -54,6 +57,7 @@ export function PeopleDataTable({
   currentUserRole: ProfileRole;
   onRefresh: () => void;
 }) {
+  const router = useRouter();
   const { isDark, workspaceData } = useContext(DashboardContext);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDept, setSelectedDept] = useState("All");
@@ -78,6 +82,7 @@ export function PeopleDataTable({
   const isTransitioning = useRef(false);
 
   const workspaceId = workspaceData?.workspace_id ?? "";
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   async function handleRoleChange(profileId: string, newRole: string) {
     try {
@@ -227,6 +232,29 @@ export function PeopleDataTable({
     return result;
   }, [employees, activeFilter, searchTerm, selectedDept]);
 
+  const selectableEmployees = filteredEmployees.filter(
+    (e) => e.status !== "invited" && e.profileId,
+  );
+  const allSelected =
+    selectableEmployees.length > 0 && selectableEmployees.every((e) => selectedIds.has(e.id));
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(selectableEmployees.map((e) => e.id)));
+    }
+  }
+
   return (
     <div
       className={`flex min-h-0 flex-1 flex-col ${isDark ? "border-zinc-800/50 bg-zinc-950" : "border-zinc-200 bg-white"} relative overflow-hidden rounded-2xl border shadow-xl`}
@@ -286,6 +314,128 @@ export function PeopleDataTable({
         </div>
       </div>
 
+      {/* Bulk Action Bar */}
+      {selectedIds.size > 0 && (
+        <div
+          className={`flex items-center gap-3 border-b px-5 py-3 ${
+            isDark ? "border-zinc-800 bg-orange-500/5" : "border-zinc-200 bg-orange-50"
+          }`}
+        >
+          <span
+            className={`text-sm font-semibold ${isDark ? "text-orange-400" : "text-orange-600"}`}
+          >
+            {selectedIds.size} selected
+          </span>
+          <div className="flex items-center gap-2">
+            {/* Assign Department */}
+            <select
+              onChange={async (e) => {
+                const value = e.target.value;
+                if (!value) return;
+                const profileIds = Array.from(selectedIds)
+                  .map((id) => employees.find((emp) => emp.id === id)?.profileId)
+                  .filter((pid): pid is string => !!pid);
+                try {
+                  await bulkUpdateProfiles(profileIds, workspaceId, { department_id: value });
+                  toast.success(`Updated department for ${profileIds.length} profiles`);
+                  setSelectedIds(new Set());
+                  onRefresh();
+                } catch {
+                  toast.error("Failed to update departments");
+                }
+                e.target.value = "";
+              }}
+              className={`rounded-lg border px-2 py-1.5 text-xs ${
+                isDark
+                  ? "border-zinc-700 bg-zinc-900 text-zinc-300"
+                  : "border-zinc-200 bg-white text-zinc-700"
+              }`}
+            >
+              <option value="">Assign Dept...</option>
+              {departments.map((d) => (
+                <option key={d.department_id} value={d.department_id}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+            {/* Change Role */}
+            <select
+              onChange={async (e) => {
+                const value = e.target.value;
+                if (!value) return;
+                const profileIds = Array.from(selectedIds)
+                  .map((id) => employees.find((emp) => emp.id === id)?.profileId)
+                  .filter((pid): pid is string => !!pid);
+                try {
+                  await bulkUpdateProfiles(profileIds, workspaceId, { role: value });
+                  toast.success(`Updated role for ${profileIds.length} profiles`);
+                  setSelectedIds(new Set());
+                  onRefresh();
+                } catch {
+                  toast.error("Failed to update roles");
+                }
+                e.target.value = "";
+              }}
+              className={`rounded-lg border px-2 py-1.5 text-xs ${
+                isDark
+                  ? "border-zinc-700 bg-zinc-900 text-zinc-300"
+                  : "border-zinc-200 bg-white text-zinc-700"
+              }`}
+            >
+              <option value="">Change Role...</option>
+              <option value="employee">Employee</option>
+              <option value="manager">Manager</option>
+              <option value="admin">Admin</option>
+            </select>
+            {/* Change Status */}
+            <select
+              onChange={async (e) => {
+                const value = e.target.value;
+                if (!value) return;
+                const profileIds = Array.from(selectedIds)
+                  .map((id) => employees.find((emp) => emp.id === id)?.profileId)
+                  .filter((pid): pid is string => !!pid);
+                const isActive = value === "active" || value === "trainee";
+                try {
+                  await bulkUpdateProfiles(profileIds, workspaceId, {
+                    status: value,
+                    is_active: isActive,
+                  });
+                  toast.success(`Updated status for ${profileIds.length} profiles`);
+                  setSelectedIds(new Set());
+                  onRefresh();
+                } catch {
+                  toast.error("Failed to update statuses");
+                }
+                e.target.value = "";
+              }}
+              className={`rounded-lg border px-2 py-1.5 text-xs ${
+                isDark
+                  ? "border-zinc-700 bg-zinc-900 text-zinc-300"
+                  : "border-zinc-200 bg-white text-zinc-700"
+              }`}
+            >
+              <option value="">Change Status...</option>
+              <option value="active">Active</option>
+              <option value="trainee">Trainee</option>
+              <option value="inactive">Inactive</option>
+              <option value="offboarding">Offboarding</option>
+            </select>
+            {/* Clear */}
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className={`rounded-lg border px-2 py-1.5 text-xs font-semibold ${
+                isDark
+                  ? "border-zinc-700 bg-zinc-900 text-zinc-400 hover:text-zinc-200"
+                  : "border-zinc-200 bg-white text-zinc-500 hover:text-zinc-700"
+              }`}
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Table Body */}
       <div className="flex-1 overflow-auto" onScroll={handleScroll}>
         {loading ? (
@@ -305,6 +455,9 @@ export function PeopleDataTable({
               className={`sticky top-0 ${isDark ? "border-zinc-800 bg-zinc-950/95" : "border-zinc-200 bg-white/95"} z-10 border-b backdrop-blur`}
             >
               <tr>
+                <th className="w-12 px-3 py-4">
+                  <Checkbox checked={allSelected} onCheckedChange={toggleSelectAll} />
+                </th>
                 <th className="px-6 py-4 text-xs font-bold tracking-widest text-zinc-500 uppercase">
                   Employee
                 </th>
@@ -324,9 +477,21 @@ export function PeopleDataTable({
               {filteredEmployees.map((emp) => (
                 <tr
                   key={emp.id}
-                  onClick={() => setSelectedEmployee(emp)}
+                  onClick={() =>
+                    emp.profileId
+                      ? router.push(`/dashboard/people/${emp.profileId}`)
+                      : setSelectedEmployee(emp)
+                  }
                   className={`group ${isDark ? "hover:bg-zinc-900/50" : "hover:bg-zinc-50"} cursor-pointer transition-colors`}
                 >
+                  <td className="px-3 py-4" onClick={(e) => e.stopPropagation()}>
+                    {emp.status !== "invited" && emp.profileId && (
+                      <Checkbox
+                        checked={selectedIds.has(emp.id)}
+                        onCheckedChange={() => toggleSelect(emp.id)}
+                      />
+                    )}
+                  </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="relative">
@@ -334,6 +499,7 @@ export function PeopleDataTable({
                           className={`flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border font-bold ${isDark ? "border-zinc-700 bg-zinc-800 text-zinc-400" : "border-zinc-200 bg-zinc-100 text-zinc-500"}`}
                         >
                           {emp.avatar ? (
+                            // eslint-disable-next-line -- suppress no-img-element: dynamic user avatar with unknown dimensions; next/image requires explicit width/height
                             <img
                               src={emp.avatar}
                               alt={emp.name}
@@ -433,8 +599,10 @@ export function PeopleDataTable({
       {/* Slide-out Employee Profile Sheet */}
       <EmployeeProfileCard
         employee={selectedEmployee}
+        departments={departments}
         isOpen={!!selectedEmployee}
         onClose={() => setSelectedEmployee(null)}
+        onRefresh={onRefresh}
       />
 
       {/* Invite Modal */}

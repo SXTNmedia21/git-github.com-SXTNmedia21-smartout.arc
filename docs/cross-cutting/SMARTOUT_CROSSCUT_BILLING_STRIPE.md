@@ -23,7 +23,7 @@ changelog:
 
 # Cross-Cutting: Payments, Billing & Stripe Integration
 
-> **Smartout.io** — Cross-cutting documentation
+> **Smartout.ai** — Cross-cutting documentation
 > Version 1.0 | February 2026
 > **Source:** SMARTOUT_COMPLETE_DOCUMENTATION.md, Section 24
 > **See also:** SMARTOUT_MODULE_13_MULTITENANT.md (subscription tables, plan tiers, enforcement)

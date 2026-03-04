@@ -1,10 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { corsHeaders } from "../_shared/cors.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -15,58 +11,66 @@ serve(async (req) => {
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      {
-        global: { headers: { Authorization: req.headers.get("Authorization")! } },
-      },
+      { global: { headers: { Authorization: req.headers.get("Authorization")! } } },
     );
 
     const {
       data: { user },
+      error: userError,
     } = await supabaseClient.auth.getUser();
+    if (userError || !user) throw new Error("Unauthorized");
 
-    if (!user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 401,
-      });
-    }
+    const { workspaceId, workspaceData } = await req.json();
+    if (!workspaceId) throw new Error("Missing workspaceId");
+    if (!workspaceData) throw new Error("Missing workspaceData");
 
-    const payload = await req.json();
-    const { companyName, locations, departments, policies } = payload;
+    // Verify the workspace belongs to this user and is in onboarding state
+    const { data: profile } = await supabaseClient
+      .from("profile")
+      .select("workspace_id")
+      .eq("user_id", user.id)
+      .eq("workspace_id", workspaceId)
+      .single();
 
-    if (!companyName) {
-      return new Response(JSON.stringify({ error: "Company name is required." }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 400,
-      });
-    }
+    if (!profile) throw new Error("Workspace not found or access denied");
 
-    // Call the database function to handle the atomic transaction
-    const { data: result, error } = await supabaseClient.rpc("create_workspace_transaction", {
-      p_user_id: user.id,
-      p_company_name: companyName,
-      p_locations: locations || [],
-      p_departments: departments || [],
-      p_policies: policies || [],
+    // Use service-role client for the RPC (SECURITY DEFINER)
+    const adminClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    );
+
+    const { data, error: rpcError } = await adminClient.rpc("finalize_onboarding_workspace", {
+      p_workspace_id: workspaceId,
+      p_data: workspaceData,
     });
 
-    if (error) {
-      console.error("Transaction Error:", error);
-      throw error;
-    }
+    if (rpcError) throw rpcError;
 
-    return new Response(JSON.stringify({ success: true, workspace_id: result }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
-  } catch (error: unknown) {
-    console.error("Function Error:", error);
+    // Fetch the workspace slug for redirect
+    const { data: ws } = await adminClient
+      .from("workspace")
+      .select("slug")
+      .eq("workspace_id", data)
+      .single();
+
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
+      JSON.stringify({
+        success: true,
+        workspaceId: data,
+        slug: ws?.slug ?? null,
+      }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 400,
+        status: 200,
       },
     );
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    const status = message === "Unauthorized" ? 401 : 400;
+    return new Response(JSON.stringify({ error: message }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status,
+    });
   }
 });

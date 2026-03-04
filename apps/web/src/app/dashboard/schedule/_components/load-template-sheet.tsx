@@ -29,7 +29,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-import { useSchedule } from "./schedule-context";
+import type { Shift, ShiftTemplate } from "./schedule-types";
+import { useShifts } from "../_hooks/use-shifts";
+import { useTemplates, useLoadTemplate } from "../_hooks/use-templates";
+import { useWeekRange } from "../_hooks/use-week-range";
 
 // ── Props ───────────────────────────────────────────────────
 
@@ -50,33 +53,33 @@ type LoadTemplateSheetProps = {
  * @returns shadcn Sheet sliding from the right
  */
 export function LoadTemplateSheet({ dateId, open, onOpenChange }: LoadTemplateSheetProps) {
-  const { state, dispatch, computed } = useSchedule();
+  const { weekStart, weekEnd } = useWeekRange();
+  const { data: shifts = [] as Shift[] } = useShifts(weekStart, weekEnd);
+  const { data: templates = [] as ShiftTemplate[] } = useTemplates();
+  const loadTemplateMutation = useLoadTemplate(weekStart);
 
   // Confirmation dialog state for conflict warning
   const [confirmTemplateId, setConfirmTemplateId] = useState<string | null>(null);
 
-  const existingShifts = computed.getShiftsForDay(dateId);
+  const existingShifts = shifts.filter((s: Shift) => s.dateId === dateId);
   const hasExistingShifts = existingShifts.length > 0;
 
   // Group templates by department
-  const grouped = state.templates.reduce<Record<string, typeof state.templates>>(
-    (acc, template) => {
-      const dept = template.department || "Ingen avdeling";
-      if (!acc[dept]) acc[dept] = [];
-      acc[dept].push(template);
-      return acc;
-    },
-    {},
-  );
+  const grouped = templates.reduce<Record<string, typeof templates>>((acc, template) => {
+    const dept = template.department || "Ingen avdeling";
+    if (!acc[dept]) acc[dept] = [];
+    acc[dept].push(template);
+    return acc;
+  }, {});
 
   /**
    * Computes the time range string for a template's shifts.
    * Finds the earliest start and latest end across all shifts.
    */
-  function getTimeRange(shifts: typeof state.templates[number]["shifts"]): string {
-    if (shifts.length === 0) return "--";
-    const starts = shifts.map((s) => s.startTime).sort();
-    const ends = shifts.map((s) => s.endTime).sort();
+  function getTimeRange(templateShifts: (typeof templates)[number]["shifts"]): string {
+    if (templateShifts.length === 0) return "--";
+    const starts = templateShifts.map((s) => s.startTime).sort();
+    const ends = templateShifts.map((s) => s.endTime).sort();
     return `${starts[0]} - ${ends[ends.length - 1]}`;
   }
 
@@ -92,12 +95,29 @@ export function LoadTemplateSheet({ dateId, open, onOpenChange }: LoadTemplateSh
     }
   }
 
-  /** Dispatches LOAD_TEMPLATE and closes the sheet. */
+  /** Loads template shifts as real shifts and closes the sheet. */
   function applyTemplate(templateId: string) {
-    dispatch({
-      type: "LOAD_TEMPLATE",
-      payload: { templateId, targetDateId: dateId },
-    });
+    const template = templates.find((t) => t.id === templateId);
+    if (!template) return;
+
+    const newShifts = template.shifts.map((s) => ({
+      id: crypto.randomUUID(),
+      employeeId: s.employeeId,
+      dateId,
+      role: s.role,
+      startTime: s.startTime,
+      endTime: s.endTime,
+      workHours: s.workHours,
+      status: "created" as const,
+      dayCategory: s.dayCategory,
+      zone: s.zone,
+      indicator: s.indicator,
+      isPublished: false,
+      breaks: s.breaks,
+      notes: s.notes,
+    }));
+
+    loadTemplateMutation.mutate({ template, shifts: newShifts });
     setConfirmTemplateId(null);
     onOpenChange(false);
   }
@@ -111,19 +131,15 @@ export function LoadTemplateSheet({ dateId, open, onOpenChange }: LoadTemplateSh
               <BookOpen className="h-5 w-5" />
               Last inn mal
             </SheetTitle>
-            <SheetDescription>
-              Velg en mal for a legge til vakter pa denne dagen.
-            </SheetDescription>
+            <SheetDescription>Velg en mal for a legge til vakter pa denne dagen.</SheetDescription>
           </SheetHeader>
 
           <ScrollArea className="mt-6 h-[calc(100vh-10rem)]">
-            {state.templates.length === 0 ? (
+            {templates.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
-                <BookOpen className="mb-3 h-10 w-10 text-muted-foreground/50" />
-                <p className="text-sm text-muted-foreground">
-                  Ingen maler lagret enna.
-                </p>
-                <p className="text-xs text-muted-foreground/70">
+                <BookOpen className="text-muted-foreground/50 mb-3 h-10 w-10" />
+                <p className="text-muted-foreground text-sm">Ingen maler lagret enna.</p>
+                <p className="text-muted-foreground/70 text-xs">
                   Bruk &quot;Lagre som mal&quot; fra dagmenyen for a opprette en.
                 </p>
               </div>
@@ -131,7 +147,7 @@ export function LoadTemplateSheet({ dateId, open, onOpenChange }: LoadTemplateSh
               <div className="space-y-6 pr-4">
                 {Object.entries(grouped).map(([dept, templates]) => (
                   <div key={dept}>
-                    <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    <h3 className="text-muted-foreground mb-3 text-xs font-medium tracking-wider uppercase">
                       {dept}
                     </h3>
 
@@ -139,13 +155,13 @@ export function LoadTemplateSheet({ dateId, open, onOpenChange }: LoadTemplateSh
                       {templates.map((template) => (
                         <div
                           key={template.id}
-                          className="flex items-center justify-between rounded-lg border border-border p-3 transition-colors hover:bg-muted/50"
+                          className="border-border hover:bg-muted/50 flex items-center justify-between rounded-lg border p-3 transition-colors"
                         >
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium text-foreground">
+                            <p className="text-foreground truncate text-sm font-medium">
                               {template.name}
                             </p>
-                            <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
+                            <div className="text-muted-foreground mt-1 flex items-center gap-3 text-xs">
                               <span className="flex items-center gap-1">
                                 <Users className="h-3 w-3" />
                                 {template.shifts.length}{" "}
@@ -190,8 +206,8 @@ export function LoadTemplateSheet({ dateId, open, onOpenChange }: LoadTemplateSh
             <DialogTitle>Erstatt eksisterende vakter?</DialogTitle>
             <DialogDescription>
               Denne dagen har allerede {existingShifts.length}{" "}
-              {existingShifts.length === 1 ? "vakt" : "vakter"}.
-              Malen vil legge til nye vakter i tillegg til de eksisterende.
+              {existingShifts.length === 1 ? "vakt" : "vakter"}. Malen vil legge til nye vakter i
+              tillegg til de eksisterende.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

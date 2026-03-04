@@ -88,21 +88,14 @@ export async function POST(request: NextRequest) {
   const d = body.data;
   const admin = createAdminClient();
 
-  // Check for duplicate vault_secret_name
+  // Check if vault_secret_name already exists (upsert pattern)
   const { data: existing } = await admin
     .from("platform_external_secret")
     .select("id")
     .eq("vault_secret_name", d.vault_secret_name)
     .maybeSingle();
 
-  if (existing) {
-    return NextResponse.json(
-      { error: "A secret with this vault name already exists" },
-      { status: 409 },
-    );
-  }
-
-  // Store secret in Vault via RPC wrapper
+  // Store secret in Vault via RPC wrapper (upsert handles both create and update)
   const vaultDescription = `provider:${d.provider} env:${d.environment}${d.workspace_id ? ` workspace:${d.workspace_id}` : ""}`;
   const { error: vaultError } = await admin.rpc("upsert_secret", {
     p_name: d.vault_secret_name,
@@ -117,8 +110,49 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Create metadata row
   const now = new Date().toISOString();
+
+  if (existing) {
+    // Update existing metadata row
+    const { data: secretRow, error: updateError } = await admin
+      .from("platform_external_secret")
+      .update({
+        provider: d.provider,
+        environment: d.environment,
+        description: d.description ?? null,
+        rotation_reminder_days: d.rotation_reminder_days,
+        last_rotated_at: now,
+        last_rotated_by: adminId,
+        is_active: true,
+      })
+      .eq("id", existing.id)
+      .select("id, provider, vault_secret_name, environment, created_at")
+      .single();
+
+    if (updateError || !secretRow) {
+      return NextResponse.json(
+        { error: updateError?.message ?? "Failed to update secret metadata" },
+        { status: 500 },
+      );
+    }
+
+    await logPlatformAction(
+      adminId,
+      "rotate_external_secret",
+      "platform_external_secret",
+      secretRow.id,
+      {
+        provider: d.provider,
+        vault_secret_name: d.vault_secret_name,
+        environment: d.environment,
+        workspace_id: d.workspace_id ?? null,
+      },
+    );
+
+    return NextResponse.json({ data: secretRow });
+  }
+
+  // Create new metadata row
   const { data: secretRow, error: insertError } = await admin
     .from("platform_external_secret")
     .insert({
@@ -161,4 +195,73 @@ export async function POST(request: NextRequest) {
     },
     { status: 201 },
   );
+}
+
+// ---------------------------------------------------------------------------
+// DELETE — Remove an external secret (Vault + metadata row)
+// ---------------------------------------------------------------------------
+
+const DeleteSecretSchema = z.object({
+  id: z.string().uuid(),
+});
+
+export async function DELETE(request: NextRequest) {
+  const adminId = await getSuperAdminId();
+  if (!adminId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const body = DeleteSecretSchema.safeParse(await request.json());
+  if (!body.success) {
+    return NextResponse.json({ error: body.error.flatten().fieldErrors }, { status: 400 });
+  }
+
+  const admin = createAdminClient();
+
+  // Fetch the metadata row to get the vault_secret_name
+  const { data: secret, error: fetchError } = await admin
+    .from("platform_external_secret")
+    .select("id, vault_secret_name, provider")
+    .eq("id", body.data.id)
+    .single();
+
+  if (fetchError || !secret) {
+    return NextResponse.json({ error: "Secret not found" }, { status: 404 });
+  }
+
+  // Delete from Vault first
+  const { error: vaultError } = await admin.rpc("delete_vault_secret", {
+    secret_name: secret.vault_secret_name,
+  });
+
+  if (vaultError) {
+    return NextResponse.json(
+      { error: `Failed to delete from Vault: ${vaultError.message}` },
+      { status: 500 },
+    );
+  }
+
+  // Delete metadata row
+  const { error: deleteError } = await admin
+    .from("platform_external_secret")
+    .delete()
+    .eq("id", secret.id);
+
+  if (deleteError) {
+    return NextResponse.json(
+      { error: `Failed to delete metadata: ${deleteError.message}` },
+      { status: 500 },
+    );
+  }
+
+  await logPlatformAction(
+    adminId,
+    "delete_external_secret",
+    "platform_external_secret",
+    secret.id,
+    {
+      provider: secret.provider,
+      vault_secret_name: secret.vault_secret_name,
+    },
+  );
+
+  return NextResponse.json({ success: true });
 }

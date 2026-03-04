@@ -7,7 +7,29 @@ export type EmailTemplate =
   | "workspace-notification"
   | "trial-reminder"
   | "payment-reminder"
-  | "contract-reminder";
+  | "contract-reminder"
+  | "sendgrid-dynamic";
+
+export type SendGridTemplateData = {
+  header: string;
+  recipient?: string;
+  main_title?: string;
+  message?: string;
+  subTitle?: string;
+  message2?: string;
+  items?: Array<{
+    image?: string;
+    title: string;
+    description?: string;
+    benefits?: string[];
+    link?: string;
+  }>;
+  linkText?: string;
+  link?: string;
+  footer_title?: string;
+  footer_message?: string;
+  hero_image?: string;
+};
 
 export type EmailClassification = "transactional" | "broadcast";
 
@@ -53,4 +75,12 @@ export type EmailJobOptions = {
   audience: AudienceFilter;
   fromEmail?: string;
   adminId: string;
+  sendgridTemplateId?: string;
+  templateData?: SendGridTemplateData;
+};
+
+export type SmsResult = {
+  sent: number;
+  failed: number;
+  errors: Array<{ phone: string; error: string }>;
 };

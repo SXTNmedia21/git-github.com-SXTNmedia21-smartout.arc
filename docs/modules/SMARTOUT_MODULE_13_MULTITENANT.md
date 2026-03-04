@@ -30,7 +30,7 @@ changelog:
 
 # Module 13: Multi-Tenant & Skalering (Multi-Tenancy & Scaling)
 
-> **Smartout.io** — Functional documentation for migration
+> **Smartout.ai** — Functional documentation for migration
 > Version 1.0 | February 2026
 > **Dependencies:** Core Architecture v2 (Workspace, Company, Profile, all tables with workspace_id)
 
@@ -306,16 +306,16 @@ For Smartout's internal team to manage the platform:
 
 ```sql
 -- Super-admin flag on user (NOT on profile)
-ALTER TABLE "user" ADD COLUMN is_super_admin boolean DEFAULT false;
+ALTER TABLE "user_identity" ADD COLUMN is_godmode boolean DEFAULT false;
 
 -- Super-admin RLS bypass
 CREATE POLICY "super_admin_access" ON [table_name]
   FOR ALL
   USING (
     EXISTS (
-      SELECT 1 FROM "user"
+      SELECT 1 FROM "user_identity"
       WHERE user_id = auth.uid()
-      AND is_super_admin = true
+      AND is_godmode = true
     )
   );
 ```

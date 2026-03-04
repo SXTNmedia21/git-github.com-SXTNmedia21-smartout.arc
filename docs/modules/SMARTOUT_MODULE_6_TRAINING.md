@@ -29,7 +29,7 @@ changelog:
 
 # Module 6: Opplæring & Kompetanse (Training & Competence)
 
-> **Smartout.io** — Functional documentation for migration
+> **Smartout.ai** — Functional documentation for migration
 > Version 1.0 | February 2026
 > **Dependencies:** Core Architecture v2 (Governance Model, Readiness), Module 1 (Trainee Mode, Module Journeys), Module 2 (Position, Department, Team), Module 4 (Operations, Gamification), Module 5 (HACCP Certifications)
 
@@ -514,7 +514,7 @@ When an active employee moves to a new Department or Team:
 New Season with new Protocols:
 
 - AI detects unfinished protocols for existing employees
-- Proactive outreach: "Sommersesong er i gang. Du har 3 nye rutiner å lære for uteterrassen."
+- Proactive outreach: "Sommersesongen er i gang. Du har 3 nye rutiner å lære for uteterrassen."
 - Season-specific training can have deadlines (e.g., "must be completed before season start")
 
 ### 9.3 Continuous Learning

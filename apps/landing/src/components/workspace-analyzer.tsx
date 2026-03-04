@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import {
   Globe,
   Star,
@@ -160,7 +160,7 @@ export default function WorkspaceAnalyzer() {
       <AnimatePresence mode="wait">
         {/* ─── Input Phase ─────────────────────────────────────────── */}
         {phase === "input" && (
-          <motion.div
+          <m.div
             key="input"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -193,12 +193,12 @@ export default function WorkspaceAnalyzer() {
             <p className="mt-3 text-center text-xs text-zinc-500">
               Skriv inn nettadressen til arbeidsplassen din for en gratis analyse
             </p>
-          </motion.div>
+          </m.div>
         )}
 
         {/* ─── Analyzing Phase ─────────────────────────────────────── */}
         {phase === "analyzing" && (
-          <motion.div
+          <m.div
             key="analyzing"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -219,7 +219,7 @@ export default function WorkspaceAnalyzer() {
                 const Icon = step.icon;
 
                 return (
-                  <motion.div
+                  <m.div
                     key={step.label}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: isWaiting ? 0.3 : 1, x: 0 }}
@@ -250,16 +250,16 @@ export default function WorkspaceAnalyzer() {
                     >
                       {step.label}
                     </span>
-                  </motion.div>
+                  </m.div>
                 );
               })}
             </div>
-          </motion.div>
+          </m.div>
         )}
 
         {/* ─── Results Phase ───────────────────────────────────────── */}
         {phase === "results" && (
-          <motion.div
+          <m.div
             key="results"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -272,7 +272,7 @@ export default function WorkspaceAnalyzer() {
               {MOCK_SCORES.map((score, i) => {
                 const Icon = score.icon;
                 return (
-                  <motion.div
+                  <m.div
                     key={score.label}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -291,7 +291,7 @@ export default function WorkspaceAnalyzer() {
                     </div>
                     {/* Progress bar */}
                     <div className="mb-3 h-1 overflow-hidden rounded-full bg-white/5">
-                      <motion.div
+                      <m.div
                         initial={{ width: 0 }}
                         animate={{
                           width: `${(score.value / score.max) * 100}%`,
@@ -307,31 +307,31 @@ export default function WorkspaceAnalyzer() {
                       />
                     </div>
                     <p className="text-xs leading-relaxed text-zinc-500">{score.insight}</p>
-                  </motion.div>
+                  </m.div>
                 );
               })}
             </div>
 
             {/* CTAs */}
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5, duration: 0.35 }}
               className="flex flex-col items-center gap-3 pt-2 sm:flex-row sm:justify-center"
             >
               <a
-                href={WEB_APP_LINKS.onboarding}
+                href={WEB_APP_LINKS.login}
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-bold text-zinc-950 transition-colors hover:bg-zinc-200 sm:w-auto"
               >
                 Registrer deg <ArrowRight className="h-4 w-4" />
               </a>
               <a
-                href={WEB_APP_LINKS.onboarding}
+                href={WEB_APP_LINKS.login}
                 className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-6 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-white/10 sm:w-auto"
               >
                 Optimaliser din arbeidsplass
               </a>
-            </motion.div>
+            </m.div>
 
             {/* Reset link */}
             <div className="text-center">
@@ -342,7 +342,7 @@ export default function WorkspaceAnalyzer() {
                 Analyser en annen arbeidsplass
               </button>
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </div>

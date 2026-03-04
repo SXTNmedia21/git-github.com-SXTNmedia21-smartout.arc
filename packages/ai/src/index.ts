@@ -18,7 +18,34 @@ export { ONBOARDING_TOOLS } from "./tools/onboarding";
 export { CONTRACT_TOOLS } from "./tools/contract";
 export type { EditorAction, ContractEditorState, ContractToolContext } from "./tools/contract";
 
-// Agents — import via subpath: @smartout/ai/agents/onboarding, @smartout/ai/agents/docs, @smartout/ai/agents/contract
+// Report tools
+export { REPORT_TOOLS } from "./tools/report";
+export type { ReportConfig, ReportToolContext } from "./tools/report";
+
+// Intelligence tools
+export { INTELLIGENCE_TOOLS } from "./tools/intelligence";
+export type { IntelligenceToolContext } from "./tools/intelligence";
+
+// Journey tools
+export { JOURNEY_TOOLS } from "./tools/journey";
+export type { JourneyToolContext } from "./tools/journey";
+
+// Doc retrieval tools (RAG)
+export { DOC_TOOLS, searchPlatformDocs, getDocByPath } from "./tools/docs";
+export type { DocToolContext } from "./tools/docs";
+
+// Embedding
+export { getQueryEmbedding } from "./embedding";
+
+// Journey output generators
+export {
+  generateE2ETest,
+  generateOnboardingDoc,
+  generateLinearSpec,
+  generateBotssonScript,
+} from "./generators";
+
+// Agents — import via subpath: @smartout/ai/agents/onboarding, @smartout/ai/agents/docs, @smartout/ai/agents/contract, @smartout/ai/agents/reports
 // (not re-exported from barrel to avoid pulling heavy deps into unrelated routes)
 
 // Missions (Ultravox agent configurations)

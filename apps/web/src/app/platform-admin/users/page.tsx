@@ -15,9 +15,10 @@ export default async function UsersPage() {
       .from("user_identity")
       .select(
         "user_id, email, first_name, last_name, is_godmode, is_active, last_login_at, created_at",
+        { count: "exact" },
       )
       .order("created_at", { ascending: false })
-      .limit(250),
+      .limit(1000),
     admin.from("profile").select("user_id"),
   ]);
 

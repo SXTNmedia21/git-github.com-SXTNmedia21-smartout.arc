@@ -27,14 +27,14 @@ All routes for the web dashboard (`apps/web`), landing page (`apps/landing`), an
 
 ### Public Pages (no auth)
 
-| Route             | Purpose                                         | Module     |
-| ----------------- | ----------------------------------------------- | ---------- |
-| `/login`          | Login page                                      | Auth       |
-| `/signup`         | Signup page                                     | Auth       |
-| `/reset-password` | Password reset                                  | Auth       |
-| `/auth/callback`  | Auth callback handler                           | Auth       |
-| `/access-denied`  | Access denied (invalid workspace or no profile) | Auth       |
-| `/invite/[token]` | Invitation acceptance                           | Onboarding |
+| Route                | Purpose                                         | Module     |
+| -------------------- | ----------------------------------------------- | ---------- |
+| `/login`             | Login page                                      | Auth       |
+| `/signup`            | Signup page                                     | Auth       |
+| `/reset-password`    | Password reset                                  | Auth       |
+| `/api/auth/callback` | Auth callback handler (code exchange)           | Auth       |
+| `/access-denied`     | Access denied (invalid workspace or no profile) | Auth       |
+| `/invite/[token]`    | Invitation acceptance                           | Onboarding |
 
 ### Signing Pages (public, no auth)
 

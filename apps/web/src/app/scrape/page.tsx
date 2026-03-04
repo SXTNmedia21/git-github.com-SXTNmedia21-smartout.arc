@@ -46,8 +46,9 @@ export default function ScrapeTestPage() {
     setRawData(null);
 
     try {
-      // Hitting the Python Microservice directly for local testing Diagnostics
-      const res = await fetch("http://localhost:8000/scrape-raw", {
+      // Calls the server-side proxy route which forwards to the Scrapling service.
+      // The actual service URL (SCRAPLING_SERVICE_URL) stays server-side.
+      const res = await fetch("/api/scrape/raw", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -242,6 +243,7 @@ export default function ScrapeTestPage() {
                         key={i}
                         className="group relative flex aspect-square items-center justify-center overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900"
                       >
+                        {/* eslint-disable-next-line -- suppress no-img-element: dynamic user content with unknown dimensions from external scraped URLs */}
                         <img
                           src={img.src}
                           alt={img.alt || "Scraped image"}

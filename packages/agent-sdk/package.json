@@ -1,0 +1,56 @@
+{
+  "name": "@smartout/agent-sdk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./hooks": {
+      "types": "./dist/hooks/index.d.ts",
+      "default": "./dist/hooks/index.js"
+    },
+    "./providers": {
+      "types": "./dist/providers/index.d.ts",
+      "default": "./dist/providers/index.js"
+    },
+    "./tools": {
+      "types": "./dist/tools/index.d.ts",
+      "default": "./dist/tools/index.js"
+    },
+    "./components": {
+      "types": "./dist/components/index.d.ts",
+      "default": "./dist/components/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/",
+    "clean": "rimraf dist .turbo"
+  },
+  "dependencies": {
+    "@smartout/ai": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0",
+    "ultravox-client": "*"
+  },
+  "peerDependenciesMeta": {
+    "ultravox-client": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@smartout/eslint-config": "workspace:^",
+    "@smartout/typescript-config": "workspace:*",
+    "@types/react": "^19",
+    "react": "^19",
+    "typescript": "^5",
+    "ultravox-client": "*"
+  }
+}

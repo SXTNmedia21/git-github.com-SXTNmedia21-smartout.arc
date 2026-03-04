@@ -25,14 +25,14 @@ changelog:
 
 # Modul 3: Vaktplanlegging (Shift Planning)
 
-> **Smartout.io** — Funksjonell dokumentasjon for migrering
+> **Smartout.ai** — Funksjonell dokumentasjon for migrering
 > Versjon 1.0 | Februar 2026
 
 ---
 
 ## 1. Moduloversikt
 
-Vaktplanlegging er en kjerneadministrasjonsside i Smartout som lar ledere planlegge, publisere og administrere vakter for alle ansatte. Modulen fungerer som den sentrale huben der bemanning, oppgaver, fravær, kostnader og kommunikasjon møtes i én visuell grensesnitt.
+Vaktplanlegging er en kjerneadministrasjonsside i Smartout som lar ledere planlegge, publisere og administrere vakter for alle ansatte. Modulen fungerer som den sentrale huben der bemanning, oppgaver, fravær, kostnader og kommunikasjon møtes i ett visuelt grensesnitt.
 
 Modulen er designet rundt slik restauranter og hoteller faktisk tenker om bemanning: dekning per rolle, teamkapasitet og individuell tilgjengelighet. Grensesnittet støtter tre primære perspektiver og gir verktøy for daglig drift, maler og massepublisering.
 
@@ -248,7 +248,7 @@ Publisering er nøkkelmekanismen som gjør vakter synlige for ansatte.
 Ved publisering kan leder velge varslingskanal per vakt:
 
 - **Push:** In-app push-notifikasjon (standard, foretrukket)
-- **E-post:** Via Resend integrasjon
+- **E-post:** Via SendGrid-integrasjon
 - **SMS:** Via Twilio integrasjon
 - Varslingsvalg kan også konfigureres globalt per workspace
 
@@ -318,6 +318,6 @@ Spesifikke hensyn for migrering fra Bubble til Next.js/Supabase:
 - Publiseringslogikk utløser Edge Functions for varsling
 - Vakthistorikk implementeres som append-only tabell for audit trail
 - Fargekoding konfigureres per workspace, ikke hardkodes
-- Kostnadberegning per dag kjøres som aggregert view/funksjon i PostgreSQL
+- Kostnadsberegning per dag kjøres som aggregert view/funksjon i PostgreSQL
 - RLS-policyer sikrer at ansatte kun ser publiserte vakter i sin avdeling
 - Offline-støtte for stemplingsfunksjonalitet via React Native lokal lagring

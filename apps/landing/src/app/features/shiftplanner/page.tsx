@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import {
   ArrowLeft,
   Plus,
@@ -23,9 +23,18 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Navigation from "../../../components/navigation";
+import Footer from "../../../components/footer";
+import { usePageTracking } from "../../../hooks/useTracking";
+import { useScrollTracking } from "../../../hooks/useScrollTracking";
+import { useClickTracking } from "../../../hooks/useClickTracking";
+import { useSessionLifecycle } from "../../../hooks/useSessionLifecycle";
 import NextPageBanner from "../../../components/next-page-banner";
 
 export default function VaktlisteLonnPage() {
+  usePageTracking();
+  useScrollTracking();
+  useClickTracking();
+  useSessionLifecycle();
   const router = useRouter();
   const [scheduleLayout, setScheduleLayout] = useState<"daily" | "weekly" | "monthly">("daily");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -79,7 +88,7 @@ export default function VaktlisteLonnPage() {
           </div>
         </div>
 
-        <motion.div
+        <m.div
           initial={{ opacity: 0, scale: 0.98, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ delay: 0.1 }}
@@ -253,7 +262,7 @@ export default function VaktlisteLonnPage() {
               )}
             </main>
           </div>
-        </motion.div>
+        </m.div>
 
         <NextPageBanner
           href="/features/task-rutines"
@@ -262,6 +271,7 @@ export default function VaktlisteLonnPage() {
           color="from-amber-500/10"
         />
       </div>
+      <Footer />
     </div>
   );
 }

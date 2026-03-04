@@ -9,7 +9,7 @@
 // ============================================
 "use client";
 
-import { useState } from "react";
+import { useContext, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -32,7 +32,10 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 
-import { useSchedule } from "./schedule-context";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
+
+import { useCreateDayMessage } from "../_hooks/use-day-content";
+import { useWeekRange } from "../_hooks/use-week-range";
 
 // ── Props ───────────────────────────────────────────────────
 
@@ -53,7 +56,9 @@ type DayMessageDialogProps = {
  * @returns shadcn Dialog component
  */
 export function DayMessageDialog({ dateId, open, onOpenChange }: DayMessageDialogProps) {
-  const { dispatch } = useSchedule();
+  const { weekStart } = useWeekRange();
+  const createDayMessage = useCreateDayMessage(weekStart);
+  const { profileId } = useContext(DashboardContext);
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -74,17 +79,15 @@ export function DayMessageDialog({ dateId, open, onOpenChange }: DayMessageDialo
   function handleSubmit() {
     if (!title.trim()) return;
 
-    dispatch({
-      type: "ADD_MESSAGE",
-      payload: {
-        dateId,
-        title: title.trim(),
-        content: content.trim(),
-        audience: audience as "all" | "leaders" | string,
-        visibility: visibility as "all_day" | "until_16" | "permanent",
-        author: "System",
-        isAlert,
-      },
+    createDayMessage.mutate({
+      id: crypto.randomUUID(),
+      dateId,
+      title: title.trim(),
+      content: content.trim(),
+      audience: audience as "all" | "leaders" | string,
+      visibility: visibility as "all_day" | "until_16" | "permanent",
+      author: profileId ?? "",
+      isAlert,
     });
 
     resetForm();
@@ -99,15 +102,18 @@ export function DayMessageDialog({ dateId, open, onOpenChange }: DayMessageDialo
         onOpenChange(value);
       }}
     >
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Opprett daginfo</DialogTitle>
-          <DialogDescription>
-            Legg til en melding som vises for ansatte som jobber denne dagen.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="gap-0 p-0 sm:max-w-md">
+        <div className="border-border relative overflow-hidden rounded-t-lg border-b px-6 pt-6 pb-4">
+          <div className="absolute top-0 left-0 h-1 w-full bg-blue-500" />
+          <DialogHeader>
+            <DialogTitle>Opprett daginfo</DialogTitle>
+            <DialogDescription>
+              Legg til en melding som vises for ansatte som jobber denne dagen.
+            </DialogDescription>
+          </DialogHeader>
+        </div>
 
-        <div className="grid gap-4 py-4">
+        <div className="grid gap-4 px-6 py-4">
           {/* Title */}
           <div className="grid gap-2">
             <Label htmlFor="msg-title">Tittel</Label>
@@ -164,26 +170,25 @@ export function DayMessageDialog({ dateId, open, onOpenChange }: DayMessageDialo
           </div>
 
           {/* Alert toggle */}
-          <div className="flex items-center justify-between rounded-lg border border-border p-3">
+          <div className="border-border flex items-center justify-between rounded-lg border p-3">
             <div className="space-y-0.5">
               <Label htmlFor="msg-alert">Merk som varsel</Label>
-              <p className="text-xs text-muted-foreground">
-                Varsler vises med uthevet styling
-              </p>
+              <p className="text-muted-foreground text-xs">Varsler vises med uthevet styling</p>
             </div>
-            <Switch
-              id="msg-alert"
-              checked={isAlert}
-              onCheckedChange={setIsAlert}
-            />
+            <Switch id="msg-alert" checked={isAlert} onCheckedChange={setIsAlert} />
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="border-border border-t px-6 py-4">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Avbryt
           </Button>
-          <Button onClick={handleSubmit} disabled={!title.trim()}>
+          <Button
+            size="sm"
+            className="bg-blue-600 text-white hover:bg-blue-700"
+            onClick={handleSubmit}
+            disabled={!title.trim()}
+          >
             Opprett melding
           </Button>
         </DialogFooter>

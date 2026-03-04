@@ -1,0 +1,9 @@
+export default function OnboardingAssistantLoading() {
+  return (
+    <div className="flex flex-col gap-6 p-6">
+      <div className="bg-muted h-8 w-56 animate-pulse rounded-lg" />
+      <div className="bg-muted h-32 animate-pulse rounded-lg" />
+      <div className="bg-muted h-48 animate-pulse rounded-lg" />
+    </div>
+  );
+}

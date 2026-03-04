@@ -23,7 +23,7 @@ changelog:
 
 # Cross-Cutting: Internationalization (i18n)
 
-> **Smartout.io** — Cross-cutting documentation
+> **Smartout.ai** — Cross-cutting documentation
 > Version 1.0 | February 2026
 > **Source:** SMARTOUT_COMPLETE_DOCUMENTATION.md, Section 27
 

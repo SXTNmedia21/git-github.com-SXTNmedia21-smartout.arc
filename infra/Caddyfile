@@ -1,0 +1,27 @@
+# ============================================
+# Caddyfile — Smartout reverse proxy (production)
+# Auto-provisions HTTPS via Let's Encrypt.
+# Internal services (scrapling) have no route — network-isolated.
+# Connected to: infra/docker-compose.yml (caddy service)
+# Connected to: ADR-0040 (Infrastructure stays in monorepo)
+# ============================================
+
+# Stage Engine — AI agent orchestration gateway
+engine.smartout.ai {
+	reverse_proxy stage-engine:5010
+}
+
+# Shift MCP — Schedule management tools for AI agents
+schedule-mcp.smartout.ai {
+	reverse_proxy shift-mcp:5011
+}
+
+# Contract Service — DocuSeal e-signature management
+contract.smartout.ai {
+	reverse_proxy contract-service:5012
+}
+
+# n8n — Workflow automation (when deployed)
+n8n.smartout.ai {
+	reverse_proxy n8n:5678
+}

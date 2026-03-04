@@ -5,7 +5,7 @@ version: "1.0"
 status: canonical
 layer: reference
 created: 2026-02-28
-updated: 2026-02-28
+updated: 2026-03-06
 author: claude
 supersedes: []
 superseded_by: null
@@ -57,10 +57,20 @@ tables:
     routine,
     runbook,
     runbook_step,
+    schedule_shift,
     team_member,
     zone,
+    engine_memory,
+    engine_authority_config,
+    season_budget,
+    day_factor,
+    hour_factor,
   ]
 changelog:
+  - date: 2026-03-06
+    change: "Added season_budget, day_factor, hour_factor tables (Module 15 MVP)"
+  - date: 2026-03-02
+    change: "Added engine_memory and engine_authority_config tables (ADR-0042)"
   - date: 2026-02-28
     change: "Initial version -- consolidated from CLAUDE.md + CORE_ARCH_V2 + FOUNDATION_DATA_MODEL + database.types.ts"
 ---
@@ -88,7 +98,7 @@ Single source of truth for all database tables, enums, RLS patterns, naming conv
 
 ---
 
-## All Tables (47 entities)
+## All Tables (52 entities)
 
 ### Identity Layer (Global -- no workspace_id)
 
@@ -139,6 +149,34 @@ Single source of truth for all database tables, enums, RLS patterns, naming conv
 | -------- | ----------- | ------------------------------------------------ |
 | `season` | `season_id` | Operational time period. Gamification container. |
 
+### Season Planning (workspace_id scoped, Module 15)
+
+| Table           | PK                 | Purpose                                                                 |
+| --------------- | ------------------ | ----------------------------------------------------------------------- |
+| `season_budget` | `season_budget_id` | Strategic revenue target per season. 1:1 with season. Status lifecycle. |
+| `day_factor`    | `day_factor_id`    | Weekday weight (0=Mon...6=Sun). UNIQUE(season_budget_id, weekday).      |
+| `hour_factor`   | `hour_factor_id`   | Hour weight (0-23). UNIQUE(season_budget_id, hour).                     |
+
+**season_budget key columns:** `season_id` (FK, UNIQUE), `total_target_revenue` (NUMERIC), `base_price_per_guest` (NUMERIC, nullable), `season_price_factor` (NUMERIC, default 1.0), `target_labor_percentage` (NUMERIC, default 0.30), `avg_hourly_wage` (NUMERIC, nullable), `status` (budget_status enum).
+
+**day_factor key columns:** `season_budget_id` (FK CASCADE), `weekday` (SMALLINT 0-6), `factor` (NUMERIC, default 1.0).
+
+**hour_factor key columns:** `season_budget_id` (FK CASCADE), `hour` (SMALLINT 0-23), `factor` (NUMERIC, default 1.0).
+
+**New SQL enum:** `budget_status` (draft, active, locked).
+
+**RLS (dual-auth):** JWT read/write (admin via `is_admin_in_workspace`) + API key read (via `get_api_workspace_id()`). All three tables.
+
+**Indexes:** `season_budget(workspace_id)`, `season_budget(season_id)` UNIQUE, `day_factor(season_budget_id)`, `hour_factor(season_budget_id)`.
+
+**Calculation engine:** `apps/web/src/lib/season-calculations.ts` — pure functions, no DB deps:
+
+- `calculateDayTargets()` — distributes total target across days using weekday factors (normalized)
+- `calculateHourTargets()` — distributes day target across open hours using hour factors
+- `calculateStaffingNeed()` — derives staff count from hour target, labor %, avg wage
+
+**IMPORTANT:** `season_budget` is DIFFERENT from `workspace_budget`. Season budget = strategic per-season planning. Workspace budget = operational per-date targets.
+
 ### Operations (workspace_id scoped)
 
 | Table                 | PK                       | Purpose                                                               |
@@ -147,6 +185,42 @@ Single source of truth for all database tables, enums, RLS patterns, naming conv
 | `onboarding_session`  | `onboarding_session_id`  | AI onboarding session state and context.                              |
 | `invitation`          | `invitation_id`          | Workspace invitations. Status: pending, accepted, expired, cancelled. |
 | `employment_contract` | `employment_contract_id` | Employment contracts (uses `contract_status` enum).                   |
+
+### Schedule (workspace_id scoped, ADR-0036)
+
+| Table            | PK                  | Purpose                                                                                  |
+| ---------------- | ------------------- | ---------------------------------------------------------------------------------------- |
+| `schedule_shift` | `schedule_shift_id` | Individual work shifts. FK to profile (employee), position, team. Has RLS JWT + API key. |
+
+**Key columns:** `shift_date` (DATE), `start_time`/`end_time` (TIME), `work_hours` (NUMERIC(4,2) computed), `breaks` (INTEGER minutes), `status` (shift_status enum), `day_category` (day_category enum), `is_published` (BOOLEAN), `employee_id` (nullable → unassigned shift), `zone`, `indicator` (default 'blue'), `notes`.
+
+**FKs:** `workspace_id` → workspace (CASCADE), `employee_id` → profile (SET NULL), `position_id` → position (SET NULL), `team_id` → team (SET NULL).
+
+**RLS (8 policies, dual-auth):**
+
+- JWT: `jwt_read_schedule_shift` (SELECT, workspace member), `jwt_insert/update/delete_schedule_shift` (admin via `is_admin_in_workspace`)
+- API key: `api_key_read/insert/update/delete_schedule_shift` (via `get_api_workspace_id()`)
+
+**Indexes:** `(workspace_id, shift_date)`, `(employee_id, shift_date)`, `(workspace_id, status)`
+
+**New SQL enums:** `shift_status` (created, assigned, published, active, completed, unpublished), `day_category` (morning, midday, afternoon, evening, night, weekend).
+
+**Planned future tables:** `absence`, `shift_template`, `shift_history`, `shift_task`, `day_info`.
+
+### AI / Agent (workspace_id scoped, ADR-0042)
+
+| Table                     | PK                           | Purpose                                                                                                       |
+| ------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `engine_memory`           | `engine_memory_id`           | Persistent agent memories with pgvector embeddings. Semantic retrieval for context. RLS: workspace isolation. |
+| `engine_authority_config` | `engine_authority_config_id` | Per-workspace, per-capability authority levels. UNIQUE(workspace_id, capability).                             |
+
+**engine_sessions changes (ADR-0042):** Added `mode` column — 'mission' (structured stages) or 'agent' (free-form conversation). Agent sessions have NULL `mission_id`. The `mission_id` FK is now nullable.
+
+**engine_memory key columns:** `workspace_id`, `profile_id`, `category` (preference, fact, context, feedback), `content` (TEXT), `embedding` (vector(1536) via pgvector), `importance` (0-10 scale), `last_accessed_at`.
+
+**engine_authority_config key columns:** `workspace_id`, `capability` (TEXT — e.g. profile, schedule, training), `authority_level` (ai_authority_level enum: autonomous, notify_suggest, notify, escalate, never), `config` (JSONB for capability-specific settings).
+
+**RLS:** Both tables use dual-auth (JWT + API key) workspace isolation pattern.
 
 ### Communication (workspace_id scoped)
 
@@ -252,7 +326,7 @@ Tables WITHOUT workspace_id (user_identity, company, platform-admin) are exempt 
 - User-facing operations: RLS client (anon key)
 - Admin/trigger operations: service role client
 - Platform-admin tables: no RLS, service role only
-- `user_identity.is_super_admin` (boolean, default false) gates platform-admin access
+- `user_identity.is_godmode` (boolean, default false) gates platform-admin access
 
 ---
 
@@ -262,7 +336,7 @@ Tables WITHOUT workspace_id (user_identity, company, platform-admin) are exempt 
 
 ---
 
-## All Enums (30 in database.types.ts)
+## All Enums (31 in database.types.ts)
 
 Enums from `packages/supabase/src/database.types.ts` (auto-generated, never edit manually):
 
@@ -302,12 +376,20 @@ Enums from `packages/supabase/src/database.types.ts` (auto-generated, never edit
 | `routine_assigned_to_type`      | team, role, profile                                     |
 | `trigger_type`                  | scheduled, event                                        |
 
+### Schedule
+
+| Enum           | Values                                                       |
+| -------------- | ------------------------------------------------------------ |
+| `shift_status` | created, assigned, published, active, completed, unpublished |
+| `day_category` | morning, midday, afternoon, evening, night, weekend          |
+
 ### Operations & Time
 
 | Enum            | Values                                  |
 | --------------- | --------------------------------------- |
 | `season_type`   | default, calendar, focus, cycle, custom |
 | `season_status` | draft, active, archived                 |
+| `budget_status` | draft, active, locked                   |
 | `invite_status` | pending, accepted, expired, cancelled   |
 
 ### Contract System
@@ -337,7 +419,7 @@ These enums are defined in `packages/types/src/enums.ts` as Zod schemas but may 
 - `SessionStatus`: upcoming, active, pending_signoff, closed, missed
 - `TaskStatus`: pending, available, in_progress, completed, skipped, overdue, escalated
 - `HookType`: pre_open, open, scheduled, pre_close, close, custom
-- `DayCategory`: morning, midday, afternoon, evening, night, weekend
+- ~~`DayCategory`~~: now `day_category` DB enum (migration 20260301300000)
 - `EmploymentCategory`: full_time, part_time, temporary, flexible, apprentice
 - `ContractType`: permanent, temporary, freelance, apprentice, substitute
 - `RateType`: fixed, hourly, multiplier, percentage, calculated

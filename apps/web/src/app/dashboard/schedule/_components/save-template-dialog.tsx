@@ -7,7 +7,7 @@
 // ============================================
 "use client";
 
-import { useState } from "react";
+import { useContext, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -22,7 +22,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
-import { useSchedule } from "./schedule-context";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
+
+import type { Shift } from "./schedule-types";
+import { useShifts } from "../_hooks/use-shifts";
+import { useSaveTemplate } from "../_hooks/use-templates";
+import { useWeekRange } from "../_hooks/use-week-range";
 
 // ── Props ───────────────────────────────────────────────────
 
@@ -43,13 +48,16 @@ type SaveTemplateDialogProps = {
  * @returns shadcn Dialog component
  */
 export function SaveTemplateDialog({ dateId, open, onOpenChange }: SaveTemplateDialogProps) {
-  const { dispatch, computed } = useSchedule();
+  const { weekStart, weekEnd } = useWeekRange();
+  const { data: shifts = [] as Shift[] } = useShifts(weekStart, weekEnd);
+  const saveTemplateMutation = useSaveTemplate();
+  const { profileId } = useContext(DashboardContext);
 
   const [name, setName] = useState("");
   const [department, setDepartment] = useState("");
   const [includeAssignments, setIncludeAssignments] = useState(false);
 
-  const dayShifts = computed.getShiftsForDay(dateId);
+  const dayShifts = shifts.filter((s: Shift) => s.dateId === dateId);
   const shiftCount = dayShifts.length;
 
   /** Resets form fields to defaults. */
@@ -59,18 +67,32 @@ export function SaveTemplateDialog({ dateId, open, onOpenChange }: SaveTemplateD
     setIncludeAssignments(false);
   }
 
-  /** Dispatches the save action and closes the dialog. */
+  /** Creates a template from the day's shifts and saves via mutation. */
   function handleSave() {
     if (!name.trim()) return;
 
-    dispatch({
-      type: "SAVE_DAY_AS_TEMPLATE",
-      payload: {
-        dateId,
-        name: name.trim(),
-        department: department.trim(),
-        includeAssignments,
-      },
+    const templateShifts = dayShifts.map(
+      ({
+        id: _id,
+        dateId: _dateId,
+        createdAt: _c,
+        updatedAt: _u,
+        isPublished: _p,
+        ...rest
+      }: Shift) => ({
+        ...rest,
+        employeeId: includeAssignments ? rest.employeeId : null,
+        status: "created" as const,
+      }),
+    );
+
+    saveTemplateMutation.mutate({
+      id: crypto.randomUUID(),
+      name: name.trim(),
+      department: department.trim(),
+      shifts: templateShifts,
+      includeAssignments,
+      createdBy: profileId ?? "",
     });
 
     resetForm();
@@ -85,16 +107,19 @@ export function SaveTemplateDialog({ dateId, open, onOpenChange }: SaveTemplateD
         onOpenChange(value);
       }}
     >
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Lagre dag som mal</DialogTitle>
-          <DialogDescription>
-            Lagre dagens {shiftCount} {shiftCount === 1 ? "vakt" : "vakter"} som en
-            gjenbrukbar mal.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="gap-0 p-0 sm:max-w-md">
+        <div className="border-border relative overflow-hidden rounded-t-lg border-b px-6 pt-6 pb-4">
+          <div className="absolute top-0 left-0 h-1 w-full bg-violet-500" />
+          <DialogHeader>
+            <DialogTitle>Lagre dag som mal</DialogTitle>
+            <DialogDescription>
+              Lagre dagens {shiftCount} {shiftCount === 1 ? "vakt" : "vakter"} som en gjenbrukbar
+              mal.
+            </DialogDescription>
+          </DialogHeader>
+        </div>
 
-        <div className="grid gap-4 py-4">
+        <div className="grid gap-4 px-6 py-4">
           {/* Template name */}
           <div className="grid gap-2">
             <Label htmlFor="template-name">Navn</Label>
@@ -118,10 +143,10 @@ export function SaveTemplateDialog({ dateId, open, onOpenChange }: SaveTemplateD
           </div>
 
           {/* Include staff toggle */}
-          <div className="flex items-center justify-between rounded-lg border border-border p-3">
+          <div className="border-border flex items-center justify-between rounded-lg border p-3">
             <div className="space-y-0.5">
               <Label htmlFor="include-staff">Inkluder ansattilordninger</Label>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-muted-foreground text-xs">
                 Lagre hvilke ansatte som er tilordnet hver vakt
               </p>
             </div>
@@ -133,17 +158,22 @@ export function SaveTemplateDialog({ dateId, open, onOpenChange }: SaveTemplateD
           </div>
 
           {/* Preview */}
-          <div className="rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground">
+          <div className="bg-muted/50 text-muted-foreground rounded-lg p-3 text-sm">
             {shiftCount} {shiftCount === 1 ? "vakt" : "vakter"} vil bli lagret i malen
             {includeAssignments ? " med ansattilordninger" : ""}.
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="border-border border-t px-6 py-4">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Avbryt
           </Button>
-          <Button onClick={handleSave} disabled={!name.trim()}>
+          <Button
+            size="sm"
+            className="bg-violet-600 text-white hover:bg-violet-700"
+            onClick={handleSave}
+            disabled={!name.trim()}
+          >
             Lagre mal
           </Button>
         </DialogFooter>

@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Sparkles, ArrowRight } from "lucide-react";
 import Navigation from "../../components/navigation";
 import Footer from "../../components/footer";
 import { WEB_APP_LINKS } from "../../lib/web-app-url";
+import { FullTracker, TrackedCta } from "../../components/tracking";
 
 export const metadata: Metadata = {
   title: "Venteliste — SmartOut",
@@ -39,6 +39,7 @@ export default function WaitlistPage() {
       </div>
 
       {/* Navigation */}
+      <FullTracker />
       <Navigation />
 
       {/* Main Content — centered card */}
@@ -68,12 +69,16 @@ export default function WaitlistPage() {
               </p>
 
               {/* CTA Button */}
-              <Link href={WEB_APP_LINKS.onboarding} className="group/btn relative inline-block">
+              <TrackedCta
+                label="Kom i gang"
+                href={WEB_APP_LINKS.login}
+                className="group/btn relative inline-block"
+              >
                 <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-500 opacity-40 blur transition duration-500 group-hover/btn:opacity-70" />
                 <div className="relative flex items-center justify-center gap-2 rounded-2xl bg-white px-10 py-4 font-black text-zinc-950 shadow-[0_0_30px_rgba(255,255,255,0.2)] transition-all group-hover/btn:-translate-y-0.5">
                   Kom i gang <ArrowRight className="h-4 w-4" />
                 </div>
-              </Link>
+              </TrackedCta>
             </div>
           </div>
         </div>

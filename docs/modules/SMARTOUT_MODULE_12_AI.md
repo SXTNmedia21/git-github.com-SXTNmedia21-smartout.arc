@@ -2,7 +2,7 @@
 title: "Module 12: AI-Laget — Mr. Botsson"
 id: MODULE_12
 version: "1.0"
-status: canonical
+status: draft
 layer: module
 created: 2026-02-24
 updated: 2026-02-28
@@ -26,7 +26,7 @@ changelog:
 
 # Module 12: AI-Laget — Mr. Botsson
 
-> **Smartout.io** — Functional documentation for migration
+> **Smartout.ai** — Functional documentation for migration
 > Version 1.0 | February 2026
 > **Dependencies:** All modules (AI operates across the entire platform)
 > **Status:** PLACEHOLDER — requires detailed specification

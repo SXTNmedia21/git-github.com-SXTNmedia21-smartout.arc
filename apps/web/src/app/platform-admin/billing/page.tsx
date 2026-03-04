@@ -18,8 +18,10 @@ export default async function BillingPage() {
       .from("company")
       .select(
         "company_id, name, org_number, subscription_plan, subscription_status, trial_ends_at, created_at",
+        { count: "exact" },
       )
-      .order("created_at", { ascending: false }),
+      .order("created_at", { ascending: false })
+      .limit(500),
     admin
       .from("platform_metrics_daily")
       .select("date, mrr_nok")

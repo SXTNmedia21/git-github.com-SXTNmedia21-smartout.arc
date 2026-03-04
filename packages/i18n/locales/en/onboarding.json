@@ -1,0 +1,167 @@
+{
+  "init": {
+    "title": "Let's build your workspace.",
+    "subtitle": "Provide your company's website address and we'll automatically generate your structure, departments, and core policies.",
+    "placeholder": "your-webpage.com",
+    "scan": "Scan & Generate",
+    "skip": "Skip"
+  },
+  "crawling": {
+    "title": "Analyzing {url}...",
+    "subtitle": "Extracting company structure, locations, and generating standard operational policies."
+  },
+  "auth": {
+    "title": "Save your progress",
+    "subtitle": "Create an account to keep everything we just found about your business.",
+    "createAccount": "Create Account",
+    "signIn": "Sign In",
+    "emailPlaceholder": "Email address",
+    "passwordPlaceholder": "Password (min. 8 characters)",
+    "confirmPlaceholder": "Confirm password",
+    "submitSignup": "Create Account & Continue",
+    "submitSignin": "Sign In & Continue",
+    "skip": "Skip for now (you can create an account later)",
+    "passwordMismatch": "Passwords do not match",
+    "passwordTooShort": "Password must be at least 8 characters"
+  },
+  "orgVerification": {
+    "title": "Verify Company Identity",
+    "subtitle": "Enter your Norwegian organization number to pull official public records for your workspace.",
+    "placeholder": "Organization number (9 digits)",
+    "search": "Search Business Registry",
+    "skip": "Skip this step for now",
+    "tryAgain": "Try Again",
+    "confirm": "Looks correct",
+    "invalidOrg": "A valid Norwegian organization number has 9 digits."
+  },
+  "branding": {
+    "title": "Your Branding & Voice",
+    "subtitle": "Set up your company's visual identity and communication style.",
+    "logo": "Company Logo",
+    "logoHint": "Click to upload or drag & drop",
+    "slogan": "Company Slogan",
+    "brandColor": "Brand Color",
+    "tone": "Communication Tone",
+    "next": "Generate Contract & Proceed",
+    "back": "Back"
+  },
+  "seasonEducation": {
+    "title": "The Concept of Seasons",
+    "subtitle": "In Smartout, everything operates in Seasons. Reset budgets, update menus, and change setups seamlessly.",
+    "whyTitle": "Why Seasons?",
+    "whyBody": "Instead of a continuously growing, unmanageable system, Smartout uses Seasons. A Season can be permanent (like \"Core Operations\") or temporal (like \"Summer 2024\"). This lets you archive past performance, assign seasonal staff cleanly, and switch entire operational configurations overnight.",
+    "next": "I understand, let's build one"
+  },
+  "seasonIdentity": {
+    "title": "Name Your First Season",
+    "subtitle": "Define the timeframe and identity for your initial setup.",
+    "name": "Season Name",
+    "nameHint": "Used internally and for your staff to identify the current active configuration.",
+    "startDate": "Start Date (Optional)",
+    "endDate": "End Date (Optional)",
+    "type": "Season Type",
+    "permanent": "Permanent Season",
+    "permanentDesc": "A continuous baseline configuration. You can always archive it or spin up a new season later.",
+    "temporal": "Temporal Season",
+    "temporalDesc": "Strict temporal bounds (e.g. Summer 2024). Perfect for pop-ups or high-season changes.",
+    "next": "Setup Departments",
+    "back": "Back"
+  },
+  "departments": {
+    "title": "Define Departments",
+    "subtitle": "What is a department? It's a dedicated area with its own shift plan and procedures.",
+    "active": "Active Departments",
+    "empty": "No departments installed yet.",
+    "emptyHint": "Click a suggestion below or create a custom one.",
+    "addCustom": "+ Create Custom Department",
+    "addShort": "+ Add Custom",
+    "useInSeason": "Use in Season",
+    "notUsed": "Not used in {season}",
+    "remove": "Remove",
+    "suggestions": "Recommended for your industry",
+    "next": "Setup Teams",
+    "back": "Back"
+  },
+  "teams": {
+    "title": "Define Teams",
+    "subtitle": "If Departments are the \"areas,\" Teams are the \"people.\"",
+    "setup": "Teams Setup",
+    "noDepts": "You haven't defined any departments yet.",
+    "addTeam": "+ Add Team",
+    "noTeams": "No teams added",
+    "crossDept": "Cross-Department Teams",
+    "crossDeptHint": "Teams that operate across multiple departments (e.g., Management).",
+    "noCrossDept": "No cross-department teams added",
+    "next": "Verify Locations",
+    "back": "Back"
+  },
+  "locations": {
+    "title": "Setup Locations",
+    "subtitle": "Define where your business operates physically.",
+    "hq": "Main Office / Headquarters",
+    "noDesc": "No description",
+    "add": "+ Add another Location",
+    "edit": "Edit",
+    "next": "Setup Procedures",
+    "back": "Back"
+  },
+  "procedures": {
+    "title": "Define Procedures",
+    "subtitle": "Set up the standard operating procedures and tasks for your departments.",
+    "initial": "Initial Tasks & Routines",
+    "noDepts": "You must define departments before creating procedures.",
+    "empty": "No procedures created yet.",
+    "add": "+ Create Custom Procedure",
+    "editDetails": "Edit Details",
+    "next": "Final Review",
+    "back": "Back"
+  },
+  "review": {
+    "title": "Battlefield Review",
+    "subtitle": "Is everything looking sharp, general? Here is the final battle plan.",
+    "identity": "Identity & Brand",
+    "season": "Initial Season",
+    "locations": "Locations",
+    "departments": "Departments",
+    "procedures": "Procedures",
+    "edit": "Edit",
+    "goBack": "Wait, go back",
+    "activate": "Activate Workspace"
+  },
+  "finalizing": {
+    "title": "Finalizing Workspace",
+    "subtitle": "Saving structure, injecting policies, and spinning up your dashboard..."
+  },
+  "invite": {
+    "title": "Invite your first team member",
+    "subtitle": "{name} is ready! Bring someone onboard.",
+    "email": "Email Invite",
+    "phone": "SMS Invite",
+    "link": "Shareable Link",
+    "sent": "Sent!",
+    "enterDashboard": "Enter Dashboard",
+    "skip": "Skip for now"
+  },
+  "done": {
+    "title": "You're All Set!",
+    "subtitle": "Welcome to the future of hospitality management.",
+    "dashboard": "Enter Dashboard"
+  },
+  "drawers": {
+    "editDepartment": "Edit Department",
+    "editTeam": "Edit Team",
+    "editLocation": "Edit Location",
+    "editProcedure": "Edit Procedure",
+    "name": "Internal Name",
+    "description": "Description",
+    "teamName": "Team Name",
+    "locationName": "Location Name",
+    "procedureTitle": "Procedure Title",
+    "urgency": "Urgency Level",
+    "assignTo": "Assign to Department",
+    "instructions": "Instructions",
+    "done": "Done",
+    "remove": "Remove",
+    "crossDept": "Cross-Department Team"
+  }
+}

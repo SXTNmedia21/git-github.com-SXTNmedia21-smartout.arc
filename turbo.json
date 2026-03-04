@@ -1,5 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalPassThroughEnv": ["*"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -22,6 +23,12 @@
       "persistent": true
     },
     "clean": {
+      "cache": false
+    },
+    "docs:ingest": {
+      "cache": false
+    },
+    "docs:validate": {
       "cache": false
     }
   }

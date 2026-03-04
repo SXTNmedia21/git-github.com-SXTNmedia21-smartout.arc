@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main, development, develop]
+    branches: [main, development]
   pull_request:
-    branches: [main, development, develop]
+    branches: [main, development]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -14,6 +14,7 @@ env:
   SKIP_ENV_VALIDATION: true
 
 jobs:
+  # ── Fast checks (parallel, ~1 min each) ────────────────────────
   lint:
     name: Lint
     runs-on: ubuntu-latest
@@ -53,62 +54,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
 
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    needs: [typecheck]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: Build all apps
-        env:
-          # Placeholder values for CI build — @supabase/ssr validates these
-          # exist at client creation time. Real values are set in Vercel.
-          NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-key
-        run: pnpm turbo run build
-      - name: Upload web build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: web-next-build
-          path: apps/web/.next
-          include-hidden-files: true
-      - name: Upload landing build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: landing-next-build
-          path: apps/landing/.next
-          include-hidden-files: true
-
-  verify:
-    name: Post-Build Verification
-    runs-on: ubuntu-latest
-    needs: [build]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-
-      - name: Verify package exports
-        run: |
-          pnpm --filter @smartout/types exec tsc --noEmit
-          pnpm --filter @smartout/supabase exec tsc --noEmit
-          pnpm --filter @smartout/ui exec tsc --noEmit
-          pnpm --filter @smartout/telemetry exec tsc --noEmit
-
   build-health:
     name: Build Health
     runs-on: ubuntu-latest
-    needs: [build]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -125,13 +73,75 @@ jobs:
           name: build-health-report
           path: artifacts/quality/build-health-report.json
 
+  api-docs-go-live-guard:
+    name: API Docs Go-Live Guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm api:docs:verify-go-live
+
+  # ── Build (parallel with checks, no longer waits for typecheck) ─
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build all apps
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-key
+        run: pnpm turbo run build
+      - name: Upload web build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-next-build
+          path: apps/web/.next
+          include-hidden-files: true
+      - name: Upload landing build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: landing-next-build
+          path: apps/landing/.next
+          include-hidden-files: true
+
+  # ── Post-build (needs build artifacts) ──────────────────────────
+  verify:
+    name: Post-Build Verification
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Verify package exports
+        run: |
+          pnpm --filter @smartout/types exec tsc --noEmit
+          pnpm --filter @smartout/supabase exec tsc --noEmit
+          pnpm --filter @smartout/ui exec tsc --noEmit
+          pnpm --filter @smartout/telemetry exec tsc --noEmit
+
   perf-budgets:
     name: Performance Budgets
     runs-on: ubuntu-latest
     needs: [build]
     env:
       PERF_ENFORCEMENT: ${{ github.event_name == 'pull_request' && 'warn' || 'fail' }}
-      # Placeholder values — web app needs these to start for perf audits
       NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-key
     strategy:
@@ -181,17 +191,3 @@ jobs:
         with:
           name: perf-report-${{ matrix.app }}
           path: artifacts/perf/*
-
-  api-docs-go-live-guard:
-    name: API Docs Go-Live Guard
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: Verify go-live API spec is up to date
-        run: pnpm api:docs:verify-go-live

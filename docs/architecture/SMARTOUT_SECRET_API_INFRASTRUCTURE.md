@@ -12,7 +12,7 @@ depends_on:
 
 # Smartout — Secret & API Key Infrastructure
 
-> **Smartout.io** — Architectural blueprint for migration
+> **Smartout.ai** — Architectural blueprint for migration
 > Version 1.0 | February 2026
 > **Dependencies:** Core Architecture v2, Module 13 (Multi-Tenant & Scaling), Supabase Vault (pgsodium)
 
@@ -33,7 +33,7 @@ Category 1: Workspace API Keys (keys Smartout issues to customers)
   → Auth: x-api-key header → hash lookup → workspace context → RLS
 
 Category 2: External Service Secrets (keys third parties issue to Smartout)
-  → Smartout calls Stripe, Twilio, Resend, DocuSeal
+  → Smartout calls Stripe, Twilio, SendGrid, DocuSeal
   → Storage: Encrypted in Supabase Vault (pgsodium)
   → Auth: Edge Function reads from Vault → calls external API
 
@@ -536,12 +536,12 @@ $$;
 | Stripe   | Secret key       | `stripe_{env}_{workspace_slug}` |
 | Twilio   | Auth token       | `twilio_auth_token`             |
 | Twilio   | Account SID      | `twilio_account_sid`            |
-| Resend   | API key          | `resend_api_key`                |
+| SendGrid | API key          | `sendgrid_api_key`              |
 | DocuSeal | API key          | `docuseal_api_key`              |
 | Ultravox | API key          | `ultravox_api_key`              |
 | Upstash  | Redis REST token | `upstash_redis_token`           |
 
-Platform-level secrets (Twilio, Resend, etc.) are global. Workspace-specific secrets (e.g., per-workspace Stripe Connect accounts) include the workspace identifier in the name.
+Platform-level secrets (Twilio, SendGrid, etc.) are global. Workspace-specific secrets (e.g., per-workspace Stripe Connect accounts) include the workspace identifier in the name.
 
 ### 3.2 Vault Storage & Retrieval
 
@@ -666,7 +666,7 @@ Vault stores the encrypted value, but we need metadata (last rotated, who rotate
 CREATE TABLE platform_external_secret (
   id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id        UUID REFERENCES workspace(workspace_id),  -- NULL = platform-level
-  provider            TEXT NOT NULL,                             -- stripe, twilio, resend, docuseal
+  provider            TEXT NOT NULL,                             -- stripe, twilio, sendgrid, docuseal
   environment         TEXT NOT NULL DEFAULT 'live' CHECK (environment IN ('live', 'test')),
   vault_secret_name   TEXT NOT NULL UNIQUE,                     -- FK to vault.secrets.name
   description         TEXT,
@@ -798,7 +798,7 @@ USING (
   EXISTS (
     SELECT 1 FROM user_identity
     WHERE user_id = auth.uid()
-    AND is_super_admin = true
+    AND is_godmode = true
   )
 );
 ```

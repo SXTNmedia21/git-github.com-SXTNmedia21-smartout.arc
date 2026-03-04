@@ -151,6 +151,7 @@ const components: Components = {
 
   img: ({ src, alt }) => (
     <span className="my-6 block">
+      {/* eslint-disable-next-line -- suppress no-img-element: markdown renderer handles arbitrary external image URLs */}
       <img src={src} alt={alt ?? ""} className="max-w-full rounded-xl border border-white/[0.06]" />
     </span>
   ),
