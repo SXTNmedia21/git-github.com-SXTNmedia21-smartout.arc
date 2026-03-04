@@ -44,3 +44,6 @@ artifacts/
 !.claude/skills/
 
 .vercel
+.env*.local
+supabase/.env
+client_secret_*.json

@@ -94,69 +94,76 @@ export default async function SelectWorkspacePage() {
           className="animate-auth-in border-border/60 bg-background/70 rounded-2xl border p-8 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.06)] backdrop-blur-xl"
           style={{ animationDelay: "80ms" }}
         >
-          <div className="animate-auth-in mb-6" style={{ animationDelay: "140ms" }}>
-            <h1 className="font-heading text-foreground text-[1.85rem] leading-tight tracking-tight">
-              Mine workspaces
-            </h1>
-            <p className="text-muted-foreground mt-1.5 text-[0.875rem]">
-              Velg en workspace for å komme i gang.
-            </p>
-          </div>
+          {workspaces.length > 0 ? (
+            <>
+              <div className="animate-auth-in mb-6" style={{ animationDelay: "140ms" }}>
+                <h1 className="font-heading text-foreground text-[1.85rem] leading-tight tracking-tight">
+                  Mine workspaces
+                </h1>
+                <p className="text-muted-foreground mt-1.5 text-[0.875rem]">
+                  Velg en workspace for å komme i gang.
+                </p>
+              </div>
 
-          {/* Workspace list */}
-          {workspaces.length > 0 && (
-            <div className="animate-auth-in space-y-3" style={{ animationDelay: "200ms" }}>
-              {workspaces.map((ws) => {
-                const href = isProduction
-                  ? `https://${ws.slug}.${rootDomain}/dashboard`
-                  : "/dashboard";
+              <div className="animate-auth-in space-y-3" style={{ animationDelay: "200ms" }}>
+                {workspaces.map((ws) => {
+                  const href = isProduction
+                    ? `https://${ws.slug}.${rootDomain}/dashboard`
+                    : "/dashboard";
 
-                return (
-                  <Link
-                    key={ws.workspace_id}
-                    href={href}
-                    className="group border-border bg-background hover:border-brand-orange/30 flex items-center gap-4 rounded-xl border p-4 transition-all duration-200 hover:shadow-[0_0_0_3px_oklch(0.65_0.22_40/0.08)]"
-                  >
-                    <div className="bg-brand-orange/10 text-brand-orange flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-base font-bold">
-                      {ws.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-foreground truncate text-sm font-semibold">{ws.name}</p>
-                      <p className="text-muted-foreground truncate text-xs">
-                        {ws.slug}.{rootDomain} &middot; {ws.role}
-                      </p>
-                    </div>
-                    <span className="text-muted-foreground/40 group-hover:text-brand-orange transition-transform duration-150 group-hover:translate-x-0.5">
-                      &rarr;
-                    </span>
-                  </Link>
-                );
-              })}
-            </div>
+                  return (
+                    <Link
+                      key={ws.workspace_id}
+                      href={href}
+                      className="group border-border bg-background hover:border-brand-orange/30 flex items-center gap-4 rounded-xl border p-4 transition-all duration-200 hover:shadow-[0_0_0_3px_oklch(0.65_0.22_40/0.08)]"
+                    >
+                      <div className="bg-brand-orange/10 text-brand-orange flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-base font-bold">
+                        {ws.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-foreground truncate text-sm font-semibold">{ws.name}</p>
+                        <p className="text-muted-foreground truncate text-xs">
+                          {ws.slug}.{rootDomain} &middot; {ws.role}
+                        </p>
+                      </div>
+                      <span className="text-muted-foreground/40 group-hover:text-brand-orange transition-transform duration-150 group-hover:translate-x-0.5">
+                        &rarr;
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
+
+              <div className="animate-auth-in mt-6" style={{ animationDelay: "260ms" }}>
+                <Link
+                  href="/onboarding"
+                  className="text-brand-orange hover:text-brand-orange/80 flex w-full justify-center text-sm font-medium transition-colors duration-150"
+                >
+                  + Opprett ny workspace
+                </Link>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="animate-auth-in mb-6 text-center" style={{ animationDelay: "140ms" }}>
+                <h1 className="font-heading text-foreground text-[1.85rem] leading-tight tracking-tight">
+                  Velkommen til Smartout!
+                </h1>
+                <p className="text-muted-foreground mt-2 text-[0.875rem] leading-relaxed">
+                  Du er først ute. La oss sette opp arbeidsplassen din.
+                </p>
+              </div>
+
+              <div className="animate-auth-in mt-2" style={{ animationDelay: "200ms" }}>
+                <Link
+                  href="/onboarding"
+                  className="bg-brand-orange flex w-full justify-center rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-[0_2px_12px_oklch(0.65_0.22_40/0.25)] transition-all duration-200 hover:shadow-[0_4px_20px_oklch(0.65_0.22_40/0.35)] hover:brightness-110 active:scale-[0.98]"
+                >
+                  Opprett workspace
+                </Link>
+              </div>
+            </>
           )}
-
-          {/* Empty state */}
-          {workspaces.length === 0 && (
-            <div
-              className="animate-auth-in border-border/80 bg-background/50 rounded-xl border border-dashed px-6 py-8 text-center"
-              style={{ animationDelay: "200ms" }}
-            >
-              <p className="text-muted-foreground text-sm">Du har ingen workspaces ennå.</p>
-            </div>
-          )}
-
-          {/* Create workspace button */}
-          <div
-            className="animate-auth-in mt-6"
-            style={{ animationDelay: workspaces.length > 0 ? "260ms" : "260ms" }}
-          >
-            <Link
-              href="/onboarding"
-              className="bg-brand-orange flex w-full justify-center rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-[0_2px_12px_oklch(0.65_0.22_40/0.25)] transition-all duration-200 hover:shadow-[0_4px_20px_oklch(0.65_0.22_40/0.35)] hover:brightness-110 active:scale-[0.98]"
-            >
-              Opprett workspace
-            </Link>
-          </div>
         </div>
       </div>
     </div>
