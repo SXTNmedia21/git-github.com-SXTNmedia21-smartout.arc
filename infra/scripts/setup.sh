@@ -2,7 +2,7 @@
 # ============================================
 # setup.sh — First-time setup for Smartout infrastructure
 # Verifies Docker is available and creates .env from template.
-# Connected to: infra/.env.example (template)
+# Connected to: .env.example (root — single source of truth)
 # ============================================
 
 set -euo pipefail
@@ -33,9 +33,10 @@ echo ""
 
 # Create .env if missing
 if [ ! -f "$INFRA_DIR/.env" ]; then
-  cp "$INFRA_DIR/.env.example" "$INFRA_DIR/.env"
-  echo "Created .env from template."
-  echo "IMPORTANT: Edit .env and fill in your values before starting."
+  REPO_ROOT="$(dirname "$INFRA_DIR")"
+  cp "$REPO_ROOT/.env.example" "$INFRA_DIR/.env"
+  echo "Created .env from root .env.example."
+  echo "IMPORTANT: Edit infra/.env and fill in your values before starting."
 else
   echo ".env already exists — skipping."
 fi
