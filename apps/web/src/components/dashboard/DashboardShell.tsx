@@ -34,7 +34,7 @@ function resolveMissionForRoute(pathname: string): MissionId {
   return (match !== undefined ? ROUTE_MISSION_MAP[match] : undefined) ?? "mr-botsson";
 }
 
-export type AdminViewType = "tactical" | "strategic" | "reconciliation" | "activity";
+export type AdminViewType = "tactical" | "strategic" | "reconciliation" | "activity" | "guardian";
 export type ScheduleLayoutMode = "daily" | "weekly" | "monthly" | "list";
 export type ScheduleViewMode = "ansatt" | "jobb" | "team";
 
@@ -113,6 +113,7 @@ import {
   Banknote,
   FileText,
   CalendarDays,
+  Shield,
   ShieldCheck,
   Mic,
 } from "lucide-react";
@@ -861,6 +862,21 @@ export function DashboardShell({
                       }`}
                     >
                       Aktivitet
+                    </button>
+                    <button
+                      onClick={() => setAdminView("guardian")}
+                      className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                        adminView === "guardian"
+                          ? isDark
+                            ? "bg-zinc-800 text-white shadow-sm"
+                            : "bg-white text-zinc-900 shadow-sm"
+                          : isDark
+                            ? "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
+                            : "text-zinc-500 hover:bg-zinc-200/50 hover:text-zinc-700"
+                      }`}
+                    >
+                      <Shield className="h-3.5 w-3.5" />
+                      Guardian
                     </button>
                   </div>
                 )}
