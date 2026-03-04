@@ -32,13 +32,22 @@ export function useProtocolAssignees(protocolId: string | null) {
 
       if (error) throw error;
 
-      return (data ?? []).map((row) => {
-        const profile = row.profile as unknown as {
+      type AssignmentRow = {
+        assignment_id: string;
+        profile_id: string;
+        status: string;
+        assigned_at: string;
+        completed_at: string | null;
+        profile: {
           display_name: string;
           avatar_url: string | null;
           role: string;
           workspace_id: string;
         };
+      };
+
+      return ((data ?? []) as unknown as AssignmentRow[]).map((row) => {
+        const profile = row.profile;
 
         return {
           assignmentId: row.assignment_id,

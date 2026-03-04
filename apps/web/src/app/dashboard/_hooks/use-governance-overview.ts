@@ -33,7 +33,7 @@ export function useGovernanceOverview() {
       if (protocolError) throw protocolError;
       if (!protocols || protocols.length === 0) return [];
 
-      const protocolIds = protocols.map((p) => p.protocol_id);
+      const protocolIds = protocols.map((p: { protocol_id: string }) => p.protocol_id);
 
       // Fetch all assignments for these protocols (workspace-scoped via protocol)
       const { data: assignments, error: assignmentError } = await supabase
@@ -64,29 +64,34 @@ export function useGovernanceOverview() {
       }
 
       // Build overview items
-      const items: ProtocolOverviewItem[] = protocols.map((p) => {
-        const counts = countMap.get(p.protocol_id) ?? {
-          completed: 0,
-          pending: 0,
-          expired: 0,
-          total: 0,
-        };
-        // policy is returned as object or null from the join
-        const policy = p.policy as { policy_type: string } | null;
-
-        return {
-          protocolId: p.protocol_id,
-          protocolName: p.name,
-          protocolDescription: p.description,
-          policyType: policy?.policy_type ?? "custom",
-          totalAssigned: counts.total,
-          completedCount: counts.completed,
-          pendingCount: counts.pending,
-          expiredCount: counts.expired,
-          completionPercent:
-            counts.total > 0 ? Math.round((counts.completed / counts.total) * 100) : 0,
-        };
-      });
+      const items: ProtocolOverviewItem[] = protocols.map(
+        (p: {
+          protocol_id: string;
+          name: string;
+          description: string | null;
+          status: string;
+          policy: { policy_type: string } | null;
+        }) => {
+          const counts = countMap.get(p.protocol_id) ?? {
+            completed: 0,
+            pending: 0,
+            expired: 0,
+            total: 0,
+          };
+          return {
+            protocolId: p.protocol_id,
+            protocolName: p.name,
+            protocolDescription: p.description,
+            policyType: p.policy?.policy_type ?? "custom",
+            totalAssigned: counts.total,
+            completedCount: counts.completed,
+            pendingCount: counts.pending,
+            expiredCount: counts.expired,
+            completionPercent:
+              counts.total > 0 ? Math.round((counts.completed / counts.total) * 100) : 0,
+          };
+        },
+      );
 
       // Sort by worst completion first
       items.sort((a, b) => a.completionPercent - b.completionPercent);
