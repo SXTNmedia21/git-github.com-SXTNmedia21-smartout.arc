@@ -59,7 +59,7 @@ services:
       - smartout-internal
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5010/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:5010/health"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -82,7 +82,7 @@ services:
     networks:
       - smartout-internal
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5011/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:5011/health"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -112,7 +112,7 @@ services:
     networks:
       - smartout-internal
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5012/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:5012/health"]
       interval: 30s
       timeout: 5s
       retries: 3
