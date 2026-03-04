@@ -1,3 +1,5 @@
+SET search_path TO public, extensions;
+
 -- ============================================
 -- 20260301200000_engine_tables.sql
 -- Creates the 4 core tables for the Stage Engine:
@@ -14,7 +16,7 @@
 -- Missions have modes: sequential (ordered stages), free (agent chooses),
 -- or hybrid (fixed start/end, free middle).
 -- ----------------------------------------
-CREATE TABLE engine_missions (
+CREATE TABLE IF NOT EXISTS engine_missions (
   id              TEXT PRIMARY KEY,
   name            TEXT NOT NULL,
   description     TEXT,
@@ -31,25 +33,27 @@ ALTER TABLE engine_missions ENABLE ROW LEVEL SECURITY;
 
 -- Global missions (workspace_id IS NULL) are readable by everyone.
 -- Workspace missions are readable by workspace members (JWT) or API key auth.
+DROP POLICY IF EXISTS "read_missions" ON engine_missions;
 CREATE POLICY "read_missions" ON engine_missions
 FOR SELECT USING (
   workspace_id IS NULL
   OR workspace_id IN (
-    SELECT workspace_id FROM profile
+    SELECT workspace_id FROM public.profile
     WHERE user_id = auth.uid() AND is_active = true
   )
   OR workspace_id = NULLIF(current_setting('app.workspace_id', true), '')::uuid
 );
 
 -- Only service role can insert/update/delete missions
+DROP POLICY IF EXISTS "manage_missions" ON engine_missions;
 CREATE POLICY "manage_missions" ON engine_missions
 FOR ALL USING (
   auth.role() = 'service_role'
 );
 
-CREATE INDEX idx_engine_missions_context ON engine_missions (context_source)
+CREATE INDEX IF NOT EXISTS idx_engine_missions_context ON engine_missions (context_source)
   WHERE is_active = true;
-CREATE INDEX idx_engine_missions_workspace ON engine_missions (workspace_id)
+CREATE INDEX IF NOT EXISTS idx_engine_missions_workspace ON engine_missions (workspace_id)
   WHERE is_active = true;
 
 -- ----------------------------------------
@@ -57,7 +61,7 @@ CREATE INDEX idx_engine_missions_workspace ON engine_missions (workspace_id)
 -- A stage is one step within a mission. Contains agent instructions,
 -- personality overlay, and navigation rules.
 -- ----------------------------------------
-CREATE TABLE engine_stages (
+CREATE TABLE IF NOT EXISTS engine_stages (
   id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   mission_id              TEXT NOT NULL REFERENCES engine_missions(id) ON DELETE CASCADE,
   stage_id                TEXT NOT NULL,
@@ -83,24 +87,26 @@ CREATE TABLE engine_stages (
 ALTER TABLE engine_stages ENABLE ROW LEVEL SECURITY;
 
 -- Stages inherit mission visibility via subquery on engine_missions
+DROP POLICY IF EXISTS "read_stages" ON engine_stages;
 CREATE POLICY "read_stages" ON engine_stages
 FOR SELECT USING (
   mission_id IN (SELECT id FROM engine_missions)
 );
 
+DROP POLICY IF EXISTS "manage_stages" ON engine_stages;
 CREATE POLICY "manage_stages" ON engine_stages
 FOR ALL USING (
   auth.role() = 'service_role'
 );
 
-CREATE INDEX idx_engine_stages_mission ON engine_stages (mission_id, stage_order);
+CREATE INDEX IF NOT EXISTS idx_engine_stages_mission ON engine_stages (mission_id, stage_order);
 
 -- ----------------------------------------
 -- engine_sessions
 -- A session is one active run of a mission. Tracks user identity,
 -- current stage, collected data, and lifecycle status.
 -- ----------------------------------------
-CREATE TABLE engine_sessions (
+CREATE TABLE IF NOT EXISTS engine_sessions (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   mission_id      TEXT NOT NULL REFERENCES engine_missions(id),
   workspace_id    UUID NOT NULL REFERENCES workspace(workspace_id),
@@ -125,22 +131,23 @@ CREATE TABLE engine_sessions (
 ALTER TABLE engine_sessions ENABLE ROW LEVEL SECURITY;
 
 -- Workspace isolation: JWT users see their workspace, API key auth uses set_config
+DROP POLICY IF EXISTS "workspace_isolation_sessions" ON engine_sessions;
 CREATE POLICY "workspace_isolation_sessions" ON engine_sessions
 FOR ALL USING (
   workspace_id IN (
-    SELECT workspace_id FROM profile
+    SELECT workspace_id FROM public.profile
     WHERE user_id = auth.uid() AND is_active = true
   )
   OR workspace_id = NULLIF(current_setting('app.workspace_id', true), '')::uuid
 );
 
-CREATE INDEX idx_engine_sessions_workspace_status
+CREATE INDEX IF NOT EXISTS idx_engine_sessions_workspace_status
   ON engine_sessions (workspace_id, status)
   WHERE status = 'active';
-CREATE INDEX idx_engine_sessions_expiry
+CREATE INDEX IF NOT EXISTS idx_engine_sessions_expiry
   ON engine_sessions (expires_at)
   WHERE status = 'active';
-CREATE INDEX idx_engine_sessions_mission
+CREATE INDEX IF NOT EXISTS idx_engine_sessions_mission
   ON engine_sessions (mission_id, workspace_id, status);
 
 -- ----------------------------------------
@@ -148,7 +155,7 @@ CREATE INDEX idx_engine_sessions_mission
 -- Generic data inbox where agents store collected information.
 -- Categorized by entity_type, processed asynchronously later.
 -- ----------------------------------------
-CREATE TABLE engine_inbox (
+CREATE TABLE IF NOT EXISTS engine_inbox (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   session_id      UUID NOT NULL REFERENCES engine_sessions(id) ON DELETE CASCADE,
   stage_id        TEXT NOT NULL,
@@ -163,15 +170,16 @@ CREATE TABLE engine_inbox (
 ALTER TABLE engine_inbox ENABLE ROW LEVEL SECURITY;
 
 -- Workspace isolation matches sessions policy
+DROP POLICY IF EXISTS "workspace_isolation_inbox" ON engine_inbox;
 CREATE POLICY "workspace_isolation_inbox" ON engine_inbox
 FOR ALL USING (
   workspace_id IN (
-    SELECT workspace_id FROM profile
+    SELECT workspace_id FROM public.profile
     WHERE user_id = auth.uid() AND is_active = true
   )
   OR workspace_id = NULLIF(current_setting('app.workspace_id', true), '')::uuid
 );
 
-CREATE INDEX idx_engine_inbox_session ON engine_inbox (session_id, stage_id);
-CREATE INDEX idx_engine_inbox_processing ON engine_inbox (workspace_id, processed)
+CREATE INDEX IF NOT EXISTS idx_engine_inbox_session ON engine_inbox (session_id, stage_id);
+CREATE INDEX IF NOT EXISTS idx_engine_inbox_processing ON engine_inbox (workspace_id, processed)
   WHERE processed = false;

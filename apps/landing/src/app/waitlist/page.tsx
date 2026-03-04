@@ -71,7 +71,7 @@ export default function WaitlistPage() {
               {/* CTA Button */}
               <TrackedCta
                 label="Kom i gang"
-                href={WEB_APP_LINKS.onboarding}
+                href={WEB_APP_LINKS.login}
                 className="group/btn relative inline-block"
               >
                 <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-500 opacity-40 blur transition duration-500 group-hover/btn:opacity-70" />

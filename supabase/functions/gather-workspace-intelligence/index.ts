@@ -265,36 +265,41 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
 
+    // Auth is optional — unauthenticated callers get intelligence data without workspace provisioning
     const {
       data: { user },
     } = await supabaseClient.auth.getUser();
-    if (!user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 401,
-      });
-    }
 
-    const { url, orgNumber: rawOrgNumber } = await req.json();
+    const {
+      url,
+      orgNumber: rawOrgNumber,
+      companyName: rawCompanyName,
+      city: rawCity,
+    } = await req.json();
     const orgNumber = rawOrgNumber?.replace(/\s+/g, "") || "";
+    const inputCompanyName = rawCompanyName?.trim() || "";
+    const inputCity = rawCity?.trim() || "";
 
-    if (!url && !orgNumber) {
-      return new Response(JSON.stringify({ error: "URL or org number is required." }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 400,
-      });
+    if (!url && !orgNumber && !inputCompanyName) {
+      return new Response(
+        JSON.stringify({ error: "URL, org number, or company name is required." }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400,
+        },
+      );
     }
 
     console.log(
-      `[intelligence] Starting pipeline — url: ${url || "(none)"}, orgNumber: ${orgNumber || "(none)"}`,
+      `[intelligence] Starting pipeline — url: ${url || "(none)"}, orgNumber: ${orgNumber || "(none)"}, companyName: ${inputCompanyName || "(none)"}, city: ${inputCity || "(none)"}`,
     );
 
     // ══════════════════════════════════════════════════════════════
-    // PHASE A (parallel): Scrape website + Brreg direct lookup
+    // PHASE A (parallel): Scrape website + Brreg direct/name lookup
     // ══════════════════════════════════════════════════════════════
 
     let scrapedData: Record<string, unknown> | null = null;
-    let companyName: string | null = null;
+    let companyName: string | null = inputCompanyName || null;
     let brregEntity: BrregEntity | null = null;
     let dagligLeder: string | null = null;
     let brregMatched = false;
@@ -309,7 +314,8 @@ serve(async (req) => {
             Deno.env.get("SCRAPLING_SERVICE_URL") || "http://host.docker.internal:8000";
           console.log("[intelligence] Phase A: Scraping...");
           scrapedData = await fetchScraplingWithRetry(scraplingBase, url);
-          companyName = (scrapedData as Record<string, unknown>)?.companyName as string | null;
+          companyName =
+            companyName || ((scrapedData as Record<string, unknown>)?.companyName as string | null);
           console.log(`[intelligence] Scraped company: ${companyName || "unknown"}`);
         })(),
       );
@@ -356,12 +362,58 @@ serve(async (req) => {
       );
     }
 
+    // Name-only path: search Brreg by company name (no URL, no org number)
+    if (!url && !orgNumber && inputCompanyName) {
+      phaseAPromises.push(
+        (async () => {
+          console.log(
+            `[intelligence] Phase A: Name-only path — searching Brreg for "${inputCompanyName}"...`,
+          );
+          brregEntity = await searchBrregByName(inputCompanyName, inputCity || null);
+
+          if (brregEntity) {
+            brregMatched = true;
+            const matchedOrgNumber = brregEntity.organisasjonsnummer;
+            const [fullDetails, leader] = await Promise.all([
+              fetchBrregDetails(matchedOrgNumber),
+              fetchDagligLeder(matchedOrgNumber),
+            ]);
+            if (fullDetails) brregEntity = fullDetails;
+            dagligLeder = leader;
+            companyName = companyName || brregEntity?.navn || inputCompanyName;
+            console.log(
+              `[intelligence] Brreg name match: ${brregEntity?.navn} (${matchedOrgNumber})`,
+            );
+
+            // Auto-scrape website from Brreg result
+            if (brregEntity?.hjemmeside) {
+              const brregUrl = brregEntity.hjemmeside.startsWith("http")
+                ? brregEntity.hjemmeside
+                : `https://${brregEntity.hjemmeside}`;
+              console.log(`[intelligence] Auto-scraping Brreg website: ${brregUrl}`);
+              try {
+                const scraplingBase =
+                  Deno.env.get("SCRAPLING_SERVICE_URL") || "http://host.docker.internal:8000";
+                scrapedData = await fetchScraplingWithRetry(scraplingBase, brregUrl);
+                console.log("[intelligence] Auto-scrape from Brreg website succeeded");
+              } catch (e: unknown) {
+                console.warn(
+                  "[intelligence] Auto-scrape from Brreg website failed:",
+                  e instanceof Error ? e.message : String(e),
+                );
+              }
+            }
+          }
+        })(),
+      );
+    }
+
     await Promise.allSettled(phaseAPromises);
 
-    // If no org number but we have a scraped name, search Brreg by name
-    if (!orgNumber && companyName) {
+    // If we scraped a website but have no Brreg match yet, search by scraped name
+    if (!brregMatched && !orgNumber && companyName) {
       const scrapedCity: string | null =
-        ((scrapedData as Record<string, unknown>)?.city as string) ??
+        (inputCity || ((scrapedData as Record<string, unknown>)?.city as string)) ??
         (((scrapedData as Record<string, unknown>)?.address as Record<string, unknown>)
           ?.city as string) ??
         null;
@@ -397,35 +449,43 @@ serve(async (req) => {
     }
 
     // ══════════════════════════════════════════════════════════════
-    // PHASE B: Create workspace via provision RPC
+    // PHASE B: Create workspace via provision RPC (only if authenticated)
     // ══════════════════════════════════════════════════════════════
 
-    console.log(`[intelligence] Phase B: Provisioning workspace for "${companyName}"...`);
+    const sourceUrl = url || (orgNumber ? `brreg:${orgNumber}` : `name:${inputCompanyName}`);
+    let workspaceId: string | null = null;
 
-    const { data: workspaceId, error: provisionError } = await adminClient.rpc(
-      "provision_onboarding_workspace",
-      {
-        p_user_id: user.id,
-        p_company_name: companyName,
-        p_intelligence_data: {
-          source_url: url || `brreg:${orgNumber}`,
-          pipeline_started_at: new Date().toISOString(),
+    if (user) {
+      console.log(`[intelligence] Phase B: Provisioning workspace for "${companyName}"...`);
+
+      const { data: wsId, error: provisionError } = await adminClient.rpc(
+        "provision_onboarding_workspace",
+        {
+          p_user_id: user.id,
+          p_company_name: companyName,
+          p_intelligence_data: {
+            source_url: sourceUrl,
+            pipeline_started_at: new Date().toISOString(),
+          },
         },
-      },
-    );
+      );
 
-    if (provisionError) {
-      console.error("Failed to provision workspace:", provisionError);
-      throw new Error(`Workspace provisioning failed: ${provisionError.message}`);
+      if (provisionError) {
+        console.error("Failed to provision workspace:", provisionError);
+        throw new Error(`Workspace provisioning failed: ${provisionError.message}`);
+      }
+
+      workspaceId = wsId;
+      console.log(`[intelligence] Workspace provisioned: ${workspaceId}`);
+    } else {
+      console.log("[intelligence] Phase B: Skipping workspace provisioning (no auth)");
     }
-
-    console.log(`[intelligence] Workspace provisioned: ${workspaceId}`);
 
     // ══════════════════════════════════════════════════════════════
     // PHASE C (parallel): Places + Web Search
     // ══════════════════════════════════════════════════════════════
 
-    const city = brregEntity?.forretningsadresse?.poststed || "";
+    const city = brregEntity?.forretningsadresse?.poststed || inputCity || "";
 
     console.log(`[intelligence] Phase C: Parallel lookups for "${companyName}" in "${city}"...`);
 
@@ -480,44 +540,46 @@ serve(async (req) => {
       parentCompany: brregEntity?.overordnetEnhet || null,
     };
 
-    // Update workspace with all intelligence data + promoted columns
-    const updatePayload: Record<string, unknown> = {
-      intelligence_data: {
-        source_url: url || `brreg:${orgNumber}`,
-        pipeline_completed_at: new Date().toISOString(),
-        scraped: scrapedData,
-        brreg: brregResponse,
-        places: placesData,
-        webSearch: webSearchData,
-      },
-    };
+    // Update workspace with all intelligence data + promoted columns (only if workspace was created)
+    if (workspaceId) {
+      const updatePayload: Record<string, unknown> = {
+        intelligence_data: {
+          source_url: sourceUrl,
+          pipeline_completed_at: new Date().toISOString(),
+          scraped: scrapedData,
+          brreg: brregResponse,
+          places: placesData,
+          webSearch: webSearchData,
+        },
+      };
 
-    // Promote Places data to dedicated columns
-    if (placesData) {
-      const places = placesData as Record<string, unknown>;
-      if (places.location) {
-        const loc = places.location as { lat: number; lng: number };
-        updatePayload.latitude = loc.lat;
-        updatePayload.longitude = loc.lng;
+      // Promote Places data to dedicated columns
+      if (placesData) {
+        const places = placesData as Record<string, unknown>;
+        if (places.location) {
+          const loc = places.location as { lat: number; lng: number };
+          updatePayload.latitude = loc.lat;
+          updatePayload.longitude = loc.lng;
+        }
+        if (places.googleMapsUri) updatePayload.google_maps_url = places.googleMapsUri;
+        if (places.rating != null) updatePayload.google_rating = places.rating;
+        if (places.userRatingCount != null)
+          updatePayload.google_rating_count = places.userRatingCount;
+        if (places.priceLevel) updatePayload.google_price_level = places.priceLevel;
+        if (places.placeId) updatePayload.google_place_id = places.placeId;
       }
-      if (places.googleMapsUri) updatePayload.google_maps_url = places.googleMapsUri;
-      if (places.rating != null) updatePayload.google_rating = places.rating;
-      if (places.userRatingCount != null)
-        updatePayload.google_rating_count = places.userRatingCount;
-      if (places.priceLevel) updatePayload.google_price_level = places.priceLevel;
-      if (places.placeId) updatePayload.google_place_id = places.placeId;
+
+      const { error: updateError } = await adminClient
+        .from("workspace")
+        .update(updatePayload)
+        .eq("workspace_id", workspaceId);
+
+      if (updateError) {
+        console.error("Failed to update workspace with intelligence:", updateError);
+      }
     }
 
-    const { error: updateError } = await adminClient
-      .from("workspace")
-      .update(updatePayload)
-      .eq("workspace_id", workspaceId);
-
-    if (updateError) {
-      console.error("Failed to update workspace with intelligence:", updateError);
-    }
-
-    console.log(`[intelligence] Pipeline complete. Workspace: ${workspaceId}`);
+    console.log(`[intelligence] Pipeline complete. Workspace: ${workspaceId || "(no workspace)"}`);
 
     return new Response(
       JSON.stringify({

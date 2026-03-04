@@ -1,3 +1,5 @@
+SET search_path TO public, extensions;
+
 -- Contract reminder message templates (Journey A: Self-Service Trial)
 INSERT INTO message_template (key, channel, category, subject_no, subject_en, body_no, body_en, cta_label_no, cta_label_en, cta_url_template, sms_body_no, sms_body_en)
 VALUES
@@ -77,4 +79,5 @@ VALUES
    'Hei {{client_contact_name}},\n\nVi sendte deg en avtale for 3 dager siden. Den venter fortsatt på gjennomgang.\n\nHar du spørsmål? Svar på denne e-posten.',
    'Hi {{client_contact_name}},\n\nWe sent you an agreement 3 days ago. It''s still awaiting review.\n\nHave questions? Reply to this email.',
    'Åpne avtale', 'Open agreement',
-   'https://smartout.io/sign/{{token}}', NULL, NULL);
+   'https://smartout.io/sign/{{token}}', NULL, NULL)
+ON CONFLICT (key) DO NOTHING;

@@ -1,3 +1,5 @@
+SET search_path TO public, extensions;
+
 -- ============================================
 -- Agent Profile System
 -- Two new tables + engine_memory extensions
@@ -5,7 +7,7 @@
 -- ============================================
 
 -- 1. agent_profile — one per workspace, Mr. Botsson's DNA
-CREATE TABLE agent_profile (
+CREATE TABLE IF NOT EXISTS agent_profile (
   id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id       uuid NOT NULL REFERENCES workspace(workspace_id) ON DELETE CASCADE,
 
@@ -42,17 +44,20 @@ CREATE TABLE agent_profile (
 
 ALTER TABLE agent_profile ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "agent_profile_read" ON agent_profile;
 CREATE POLICY "agent_profile_read" ON agent_profile
   FOR SELECT USING (
     workspace_id IN (SELECT get_workspace_ids_for_user(auth.uid()))
   );
 
+DROP POLICY IF EXISTS "agent_profile_write" ON agent_profile;
 CREATE POLICY "agent_profile_write" ON agent_profile
   FOR ALL USING (
     workspace_id IN (SELECT get_workspace_ids_for_user(auth.uid()))
     AND is_admin_in_workspace(auth.uid(), workspace_id)
   );
 
+DROP POLICY IF EXISTS "api_key_agent_profile_read" ON agent_profile;
 CREATE POLICY "api_key_agent_profile_read" ON agent_profile
   FOR SELECT USING (
     workspace_id = (current_setting('app.workspace_id', true))::uuid
@@ -66,7 +71,7 @@ COMMENT ON TABLE agent_profile IS 'Per-workspace AI agent identity: voice DNA, p
 
 
 -- 2. agent_relationship — one per agent × employee
-CREATE TABLE agent_relationship (
+CREATE TABLE IF NOT EXISTS agent_relationship (
   id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id        uuid NOT NULL REFERENCES workspace(workspace_id) ON DELETE CASCADE,
   agent_profile_id    uuid NOT NULL REFERENCES agent_profile(id) ON DELETE CASCADE,
@@ -104,25 +109,28 @@ CREATE TABLE agent_relationship (
 
 ALTER TABLE agent_relationship ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "agent_relationship_read_own" ON agent_relationship;
 CREATE POLICY "agent_relationship_read_own" ON agent_relationship
   FOR SELECT USING (
-    profile_id IN (SELECT p.profile_id FROM profile p WHERE p.user_id = auth.uid())
+    profile_id IN (SELECT p.profile_id FROM public.profile p WHERE p.user_id = auth.uid())
   );
 
+DROP POLICY IF EXISTS "agent_relationship_read_admin" ON agent_relationship;
 CREATE POLICY "agent_relationship_read_admin" ON agent_relationship
   FOR SELECT USING (
     workspace_id IN (SELECT get_workspace_ids_for_user(auth.uid()))
     AND is_admin_in_workspace(auth.uid(), workspace_id)
   );
 
+DROP POLICY IF EXISTS "api_key_agent_relationship_read" ON agent_relationship;
 CREATE POLICY "api_key_agent_relationship_read" ON agent_relationship
   FOR SELECT USING (
     workspace_id = (current_setting('app.workspace_id', true))::uuid
   );
 
-CREATE INDEX idx_agent_relationship_workspace ON agent_relationship(workspace_id);
-CREATE INDEX idx_agent_relationship_profile ON agent_relationship(profile_id);
-CREATE INDEX idx_agent_relationship_composite ON agent_relationship(agent_profile_id, relationship_score DESC);
+CREATE INDEX IF NOT EXISTS idx_agent_relationship_workspace ON agent_relationship(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_agent_relationship_profile ON agent_relationship(profile_id);
+CREATE INDEX IF NOT EXISTS idx_agent_relationship_composite ON agent_relationship(agent_profile_id, relationship_score DESC);
 
 CREATE OR REPLACE TRIGGER set_agent_relationship_updated_at
   BEFORE UPDATE ON agent_relationship
@@ -132,13 +140,16 @@ COMMENT ON TABLE agent_relationship IS 'Per-agent-per-employee relationship: fam
 
 
 -- 3. Extend engine_memory
-ALTER TABLE engine_memory
-  ADD COLUMN agent_profile_id uuid REFERENCES agent_profile(id) ON DELETE SET NULL,
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'engine_memory' AND column_name = 'agent_profile_id') THEN
+    ALTER TABLE engine_memory ADD COLUMN IF NOT EXISTS agent_profile_id uuid REFERENCES agent_profile(id) ON DELETE SET NULL,
   ADD COLUMN scope text NOT NULL DEFAULT 'personal' CHECK (scope IN ('personal', 'team', 'workspace')),
   ADD COLUMN importance decimal NOT NULL DEFAULT 0.5 CHECK (importance BETWEEN 0.0 AND 1.0);
+  END IF;
+END $$;
 
-CREATE INDEX idx_engine_memory_agent ON engine_memory(agent_profile_id);
-CREATE INDEX idx_engine_memory_scope ON engine_memory(workspace_id, scope);
+CREATE INDEX IF NOT EXISTS idx_engine_memory_agent ON engine_memory(agent_profile_id);
+CREATE INDEX IF NOT EXISTS idx_engine_memory_scope ON engine_memory(workspace_id, scope);
 
 COMMENT ON COLUMN engine_memory.scope IS 'personal = this profile only, team = team-wide, workspace = everyone';
 COMMENT ON COLUMN engine_memory.importance IS '0-1 ranking for retrieval priority';

@@ -8,6 +8,9 @@ import { createClient } from "@smartout/supabase/server";
  * Routes voice calls through the Stage Engine instead of calling Ultravox directly.
  * The stage engine creates a session, builds the prompt (with tuning notes),
  * wires Guardian monitoring, and returns a join URL.
+ *
+ * Auth: Optional. Onboarding works without login (user has no account yet).
+ * Other missions require authentication.
  */
 export async function POST(request: NextRequest) {
   const stageEngineUrl = process.env.STAGE_ENGINE_URL;
@@ -29,30 +32,32 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Get authenticated user + workspace (workspace is optional during onboarding)
+  // Try to get authenticated user — may be null during onboarding
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  // Look up profile — may not exist yet during onboarding
-  const { data: profile } = await supabase
-    .from("profile")
-    .select("profile_id, workspace_id")
-    .eq("user_identity_id", user.id)
-    .limit(1)
-    .single();
-
   try {
     const body = await request.json().catch(() => ({}));
     const missionId = body.mission_id || "onboarding-interview";
 
-    // During onboarding the workspace may not exist yet — use body override or profile
-    const workspaceId = body.workspace_id ?? profile?.workspace_id;
+    // Onboarding does not require auth — user has no account yet
+    if (!user && missionId !== "onboarding-interview") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Look up profile — may not exist yet during onboarding
+    let workspaceId: string | undefined;
+    if (user) {
+      const { data: profile } = await supabase
+        .from("profile")
+        .select("profile_id, workspace_id")
+        .eq("user_id", user.id)
+        .limit(1)
+        .single();
+      workspaceId = body.workspace_id ?? profile?.workspace_id;
+    }
 
     if (!workspaceId && missionId !== "onboarding-interview") {
       return NextResponse.json({ error: "No workspace found" }, { status: 400 });
@@ -66,10 +71,12 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         mission_id: missionId,
-        workspace_id: workspaceId ?? "00000000-0000-0000-0000-000000000000",
-        user_id: user.id,
+        workspace_id: workspaceId,
+        user_id: user?.id,
         voice: body.voice,
         language: body.language ?? "no",
+        first_speaker: body.first_speaker ?? "agent",
+        selected_tools: body.selected_tools,
       }),
     });
 

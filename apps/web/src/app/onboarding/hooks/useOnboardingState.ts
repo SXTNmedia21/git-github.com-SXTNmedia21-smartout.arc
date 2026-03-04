@@ -9,13 +9,19 @@ import type {
   BusinessData,
   SeasonData,
   DepartmentOption,
+  LocationData,
+  ProcedureData,
   Memory,
 } from "../types";
 import { ONBOARDING_SECTIONS, EMPTY_BUSINESS_DATA } from "../types";
 import { mergeBusinessData } from "../lib/data-merger";
 import type { PlacesData } from "../lib/data-merger";
 import { suggestSeason } from "../lib/season-suggestions";
-import { getDepartmentsForIndustry, resolveNaceCode } from "../lib/industry-defaults";
+import {
+  getDepartmentsForIndustry,
+  getProceduresForIndustry,
+  resolveNaceCode,
+} from "../lib/industry-defaults";
 
 const SAVE_DEBOUNCE_MS = 500;
 
@@ -25,11 +31,22 @@ const INITIAL_SECTIONS = ONBOARDING_SECTIONS.map((s, i) => ({
 }));
 
 export interface OnboardingActions {
-  triggerScrape: (url: string, orgNumber: string) => Promise<void>;
+  triggerScrape: (
+    url: string,
+    orgNumber: string,
+    companyName?: string,
+    city?: string,
+  ) => Promise<void>;
   updateBusiness: (partial: Partial<BusinessData>) => void;
   updateSeason: (partial: Partial<SeasonData>) => void;
   toggleDepartment: (id: string) => void;
   addCustomDepartment: (name: string) => void;
+  addLocation: (name: string, type?: LocationData["type"]) => void;
+  removeLocation: (id: string) => void;
+  addZone: (locationId: string, zoneName: string) => void;
+  removeZone: (locationId: string, zoneId: string) => void;
+  toggleProcedure: (id: string) => void;
+  addCustomProcedure: (name: string) => void;
   completeSection: (section: OnboardingSection) => void;
   saveMemory: (content: string) => void;
   removeMemory: (id: string) => void;
@@ -51,6 +68,8 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
   const [business, setBusiness] = useState<BusinessData>(EMPTY_BUSINESS_DATA);
   const [season, setSeason] = useState<SeasonData>(suggestSeason());
   const [departments, setDepartments] = useState<DepartmentOption[]>([]);
+  const [locations, setLocations] = useState<LocationData[]>([]);
+  const [procedures, setProcedures] = useState<ProcedureData[]>([]);
   const [contract, setContract] = useState({
     templateGenerated: false,
     previewUrl: null as string | null,
@@ -59,7 +78,7 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
   const [memories, setMemories] = useState<Memory[]>([]);
 
   const [scrapeStatus, setScrapeStatus] = useState<"idle" | "scraping" | "done" | "error">("idle");
-  const [scrapeSource, setScrapeSource] = useState<"url" | "org" | "both" | null>(null);
+  const [scrapeSource, setScrapeSource] = useState<"url" | "org" | "both" | "name" | null>(null);
 
   const [activatedWorkspaceId, setActivatedWorkspaceId] = useState<string | null>(null);
   const [activatedWorkspaceSlug, setActivatedWorkspaceSlug] = useState<string | null>(null);
@@ -142,10 +161,12 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
             setBusiness(merged);
             setScrapeStatus("done");
 
-            // Auto-populate departments from industry
+            // Auto-populate departments + procedures from industry
             const nace = merged.industryCode || resolveNaceCode(merged.industry);
             const suggestedDepts = getDepartmentsForIndustry(nace);
             setDepartments(suggestedDepts);
+            const suggestedProcs = getProceduresForIndustry(nace);
+            setProcedures(suggestedProcs);
           }
 
           return; // Resumed from workspace
@@ -271,14 +292,26 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
 
   // Scraping
   const triggerScrape = useCallback(
-    async (url: string, orgNumber: string) => {
+    async (url: string, orgNumber: string, companyName?: string, city?: string) => {
       setScrapeStatus("scraping");
-      const source = url && orgNumber ? "both" : url ? "url" : "org";
-      setScrapeSource(source);
+      const source =
+        companyName && !url && !orgNumber
+          ? "name"
+          : url && orgNumber
+            ? "both"
+            : url
+              ? "url"
+              : "org";
+      setScrapeSource(source as "url" | "org" | "both" | "name");
 
       try {
         const { data, error } = await supabase.functions.invoke("gather-workspace-intelligence", {
-          body: { url: url || undefined, orgNumber: orgNumber || undefined },
+          body: {
+            url: url || undefined,
+            orgNumber: orgNumber || undefined,
+            companyName: companyName || undefined,
+            city: city || undefined,
+          },
         });
 
         if (error) throw new Error("Scraping failed");
@@ -299,10 +332,25 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
         setBusiness(merged);
         setScrapeStatus("done");
 
-        // Auto-populate departments from industry
+        // Auto-populate departments + procedures from industry
         const nace = merged.industryCode || resolveNaceCode(merged.industry);
         const suggestedDepts = getDepartmentsForIndustry(nace);
         setDepartments(suggestedDepts);
+        const suggestedProcs = getProceduresForIndustry(nace);
+        setProcedures(suggestedProcs);
+
+        // Auto-populate locations from scraped data
+        if (scrapedData?.locations?.length) {
+          const newLocs = (scrapedData.locations as { name: string; type?: string }[]).map(
+            (loc, i) => ({
+              id: `loc-scrape-${Date.now()}-${i}`,
+              name: loc.name,
+              type: (loc.type === "Outdoor" ? "outdoor" : "main") as LocationData["type"],
+              zones: [] as { id: string; name: string }[],
+            }),
+          );
+          setLocations((prev) => [...prev, ...newLocs]);
+        }
       } catch {
         setScrapeStatus("error");
       }
@@ -327,6 +375,54 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
       const id = `custom-${Date.now()}-${prev.length}`;
       return [...prev, { id, name, icon: "plus", selected: true, positions: [] }];
     });
+  }, []);
+
+  // Locations
+  const addLocation = useCallback((name: string, type: LocationData["type"] = "main") => {
+    setLocations((prev) => [
+      ...prev,
+      { id: `loc-${Date.now()}-${prev.length}`, name, type, zones: [] },
+    ]);
+  }, []);
+
+  const removeLocation = useCallback((id: string) => {
+    setLocations((prev) => prev.filter((l) => l.id !== id));
+  }, []);
+
+  const addZone = useCallback((locationId: string, zoneName: string) => {
+    setLocations((prev) =>
+      prev.map((loc) =>
+        loc.id === locationId
+          ? {
+              ...loc,
+              zones: [
+                ...loc.zones,
+                { id: `zone-${Date.now()}-${loc.zones.length}`, name: zoneName },
+              ],
+            }
+          : loc,
+      ),
+    );
+  }, []);
+
+  const removeZone = useCallback((locationId: string, zoneId: string) => {
+    setLocations((prev) =>
+      prev.map((loc) =>
+        loc.id === locationId ? { ...loc, zones: loc.zones.filter((z) => z.id !== zoneId) } : loc,
+      ),
+    );
+  }, []);
+
+  // Procedures
+  const toggleProcedure = useCallback((id: string) => {
+    setProcedures((prev) => prev.map((p) => (p.id === id ? { ...p, selected: !p.selected } : p)));
+  }, []);
+
+  const addCustomProcedure = useCallback((name: string) => {
+    setProcedures((prev) => [
+      ...prev,
+      { id: `proc-custom-${Date.now()}-${prev.length}`, name, selected: true, isCustom: true },
+    ]);
   }, []);
 
   // Agent-driven memories — knowledge context saved by Lise
@@ -382,6 +478,8 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
     setBusiness(EMPTY_BUSINESS_DATA);
     setSeason(suggestSeason());
     setDepartments([]);
+    setLocations([]);
+    setProcedures([]);
     setMemories([]);
     setContract({ templateGenerated: false, previewUrl: null });
     setScrapeStatus("idle");
@@ -402,6 +500,14 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
         .filter((d) => d.selected)
         .map((d) => ({ name: d.name, positions: d.positions }));
 
+      const selectedProcs = procedures.filter((p) => p.selected).map((p) => p.name);
+
+      const locationPayload = locations.map((loc) => ({
+        name: loc.name,
+        type: loc.type,
+        zones: loc.zones.map((z) => z.name),
+      }));
+
       const workspacePayload = {
         name: business.name,
         legalName: business.legalName,
@@ -415,6 +521,8 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
         summary: business.description,
         website: business.website,
         departments: selectedDepts,
+        locations: locationPayload,
+        procedures: selectedProcs,
         seasonName: season.name,
         seasonStartDate: season.startDate,
         seasonEndDate: season.endDate,
@@ -471,7 +579,16 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
       console.error("Finalization error:", err);
       throw err;
     }
-  }, [business, season, departments, sessionId, onboardingWorkspaceId, supabase]);
+  }, [
+    business,
+    season,
+    departments,
+    locations,
+    procedures,
+    sessionId,
+    onboardingWorkspaceId,
+    supabase,
+  ]);
 
   return {
     currentSection,
@@ -483,6 +600,8 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
     business,
     season,
     departments,
+    locations,
+    procedures,
     contract,
     memories,
     scrapeStatus,
@@ -494,6 +613,12 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
     updateSeason,
     toggleDepartment,
     addCustomDepartment,
+    addLocation,
+    removeLocation,
+    addZone,
+    removeZone,
+    toggleProcedure,
+    addCustomProcedure,
     completeSection,
     saveMemory,
     removeMemory,

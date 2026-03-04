@@ -27,6 +27,9 @@ const envSchema = z.object({
   // ULTRAVOX_API_KEY and OPENROUTER_API_KEY are loaded from Vault at runtime.
   // See src/secrets.ts — only SUPABASE_URL + SERVICE_ROLE_KEY needed as env vars.
 
+  /** Dev-only API key — bypasses platform_api_key DB lookup in local dev */
+  DEV_API_KEY: z.string().optional(),
+
   /** Log level */
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
 

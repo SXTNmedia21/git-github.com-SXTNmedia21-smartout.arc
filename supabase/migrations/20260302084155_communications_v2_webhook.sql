@@ -1,3 +1,5 @@
+SET search_path TO public, extensions;
+
 -- Communications v2: counter increment function for webhook events
 
 CREATE OR REPLACE FUNCTION increment_communication_counter(

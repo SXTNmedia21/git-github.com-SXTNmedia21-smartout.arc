@@ -10,7 +10,7 @@ import type { MissionMode, SessionChannel, Stage } from "./session.js";
 /** POST /sessions — request body */
 export type CreateSessionRequest = {
   mission_id: string;
-  workspace_id: string;
+  workspace_id?: string;
   user_id?: string;
   profile_id?: string;
   channel: SessionChannel;

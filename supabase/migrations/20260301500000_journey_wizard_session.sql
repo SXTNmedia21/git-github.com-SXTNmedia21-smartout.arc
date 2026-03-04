@@ -1,3 +1,5 @@
+SET search_path TO public, extensions;
+
 -- ============================================
 -- Journey wizard session table.
 -- Stores AI wizard conversations for defining new journeys.
@@ -7,10 +9,16 @@
 -- ============================================
 
 -- Wizard session status
-CREATE TYPE wizard_session_status AS ENUM ('active', 'completed', 'abandoned');
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'wizard_session_status') THEN
+    CREATE TYPE wizard_session_status AS ENUM ('active', 'completed', 'abandoned');
+  END IF;
+END $$;;
 
 -- Wizard phase progression
-CREATE TYPE wizard_phase AS ENUM (
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'wizard_phase') THEN
+    CREATE TYPE wizard_phase AS ENUM (
   'discovery',
   'classification',
   'steps',
@@ -18,13 +26,15 @@ CREATE TYPE wizard_phase AS ENUM (
   'documentation',
   'review'
 );
+  END IF;
+END $$;;
 
 -- Wizard session table
-CREATE TABLE wizard_session (
+CREATE TABLE IF NOT EXISTS wizard_session (
   wizard_session_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id uuid NOT NULL REFERENCES workspace(workspace_id) ON DELETE CASCADE,
   journey_id uuid REFERENCES journey(journey_id) ON DELETE SET NULL,
-  status wizard_session_status NOT NULL DEFAULT 'active',
+  status public.wizard_session_status NOT NULL DEFAULT 'active',
   current_phase wizard_phase NOT NULL DEFAULT 'discovery',
   messages jsonb NOT NULL DEFAULT '[]',
   draft_journey jsonb NOT NULL DEFAULT '{}',
@@ -35,11 +45,12 @@ CREATE TABLE wizard_session (
 );
 
 -- Indexes
-CREATE INDEX idx_wizard_session_workspace ON wizard_session(workspace_id);
-CREATE INDEX idx_wizard_session_status ON wizard_session(status);
-CREATE INDEX idx_wizard_session_created_by ON wizard_session(created_by);
+CREATE INDEX IF NOT EXISTS idx_wizard_session_workspace ON wizard_session(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_wizard_session_status ON wizard_session(status);
+CREATE INDEX IF NOT EXISTS idx_wizard_session_created_by ON wizard_session(created_by);
 
 -- Updated_at trigger
+DROP TRIGGER IF EXISTS set_wizard_session_updated_at ON wizard_session;
 CREATE TRIGGER set_wizard_session_updated_at
   BEFORE UPDATE ON wizard_session
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -48,12 +59,14 @@ CREATE TRIGGER set_wizard_session_updated_at
 ALTER TABLE wizard_session ENABLE ROW LEVEL SECURITY;
 
 -- Platform admin (godmode) full access
+DROP POLICY IF EXISTS "godmode_wizard_session_all" ON wizard_session;
 CREATE POLICY "godmode_wizard_session_all" ON wizard_session
   FOR ALL USING (
-    EXISTS (SELECT 1 FROM user_identity WHERE user_id = auth.uid() AND is_godmode = true)
+    EXISTS (SELECT 1 FROM public.user_identity WHERE user_id = auth.uid() AND is_godmode = true)
   );
 
 -- Workspace-scoped read access
+DROP POLICY IF EXISTS "workspace_wizard_session_read" ON wizard_session;
 CREATE POLICY "workspace_wizard_session_read" ON wizard_session
   FOR SELECT USING (
     workspace_id IN (SELECT get_workspace_ids_for_user(auth.uid()))

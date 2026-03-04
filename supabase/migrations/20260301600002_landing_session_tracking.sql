@@ -1,3 +1,5 @@
+SET search_path TO public, extensions;
+
 -- ============================================
 -- 20260301600000_landing_session_tracking.sql
 -- Creates landing_visitor and landing_session tables,
@@ -16,7 +18,7 @@
 -- links to user_identity if they later sign up, and supports
 -- manual tagging by platform admins.
 -- No RLS — service role access only (platform-admin table).
-CREATE TABLE public.landing_visitor (
+CREATE TABLE IF NOT EXISTS public.landing_visitor (
   id                uuid PRIMARY KEY,                          -- = smo_vid cookie value
   first_seen        timestamptz NOT NULL DEFAULT now(),
   last_seen         timestamptz NOT NULL DEFAULT now(),
@@ -35,10 +37,10 @@ CREATE TABLE public.landing_visitor (
 );
 
 -- Recent visitors first (admin dashboard default sort)
-CREATE INDEX idx_landing_visitor_last_seen ON public.landing_visitor(last_seen DESC);
+CREATE INDEX IF NOT EXISTS idx_landing_visitor_last_seen ON public.landing_visitor(last_seen DESC);
 
 -- Quick lookup when linking visitor to signed-up user
-CREATE INDEX idx_landing_visitor_identity ON public.landing_visitor(user_identity_id) WHERE user_identity_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_landing_visitor_identity ON public.landing_visitor(user_identity_id) WHERE user_identity_id IS NOT NULL;
 
 -- ======================
 -- 2. landing_session
@@ -46,7 +48,7 @@ CREATE INDEX idx_landing_visitor_identity ON public.landing_visitor(user_identit
 -- One row per browser tab session. Aggregates event-level data
 -- into session-level metrics for funnel analysis.
 -- No RLS — service role access only (platform-admin table).
-CREATE TABLE public.landing_session (
+CREATE TABLE IF NOT EXISTS public.landing_session (
   id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   visitor_id        uuid NOT NULL REFERENCES public.landing_visitor(id) ON DELETE CASCADE,
   session_id        text NOT NULL,
@@ -67,24 +69,27 @@ CREATE TABLE public.landing_session (
 );
 
 -- All sessions for a given visitor
-CREATE INDEX idx_landing_session_visitor ON public.landing_session(visitor_id);
+CREATE INDEX IF NOT EXISTS idx_landing_session_visitor ON public.landing_session(visitor_id);
 
 -- Recent sessions first (admin dashboard)
-CREATE INDEX idx_landing_session_started ON public.landing_session(started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_landing_session_started ON public.landing_session(started_at DESC);
 
 -- Lookup by session_id (from cookie/sessionStorage value)
-CREATE UNIQUE INDEX idx_landing_session_sid ON public.landing_session(session_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_landing_session_sid ON public.landing_session(session_id);
 
 -- ======================
 -- 3. Extend landing_event
 -- ======================
 -- Add visitor_id FK so events can be grouped by visitor.
 -- session_id column already exists (text) — just add indexes.
-ALTER TABLE public.landing_event
-  ADD COLUMN visitor_id uuid REFERENCES public.landing_visitor(id) ON DELETE SET NULL;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'landing_event' AND column_name = 'visitor_id') THEN
+    ALTER TABLE public.landing_event ADD COLUMN IF NOT EXISTS visitor_id uuid REFERENCES public.landing_visitor(id) ON DELETE SET NULL;
+  END IF;
+END $$;
 
 -- Events by visitor (for visitor detail view)
-CREATE INDEX idx_landing_event_visitor ON public.landing_event(visitor_id) WHERE visitor_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_landing_event_visitor ON public.landing_event(visitor_id) WHERE visitor_id IS NOT NULL;
 
 -- Events by session (for session replay / timeline)
-CREATE INDEX idx_landing_event_session ON public.landing_event(session_id) WHERE session_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_landing_event_session ON public.landing_event(session_id) WHERE session_id IS NOT NULL;

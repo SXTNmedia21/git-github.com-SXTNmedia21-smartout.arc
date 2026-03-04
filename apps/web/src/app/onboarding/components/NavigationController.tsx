@@ -9,8 +9,10 @@ const SECTION_LABELS: Record<OnboardingSection, string> = {
   business: "Bedrift",
   season: "Sesong",
   departments: "Avdelinger",
+  locations: "Lokasjoner",
+  procedures: "Prosedyrer",
   contract: "Kontrakt",
-  done: "Ferdig",
+  welcome: "Velkommen",
 };
 
 export function NavigationController() {

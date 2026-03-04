@@ -1,3 +1,5 @@
+SET search_path TO public, extensions;
+
 -- Migration: invitation_token_lookup_policy
 -- Purpose: Allow unauthenticated users to look up an invitation by its token.
 -- This is needed for the /invite/[token] page where the invitee has no auth session.
@@ -9,6 +11,7 @@
 --   1. Token is a UUID — not guessable (122 bits of entropy)
 --   2. Only reveals email + status + workspace name (via join)
 --   3. The accept-invitation Edge Function uses service_role for writes
+DROP POLICY IF EXISTS "Anyone can read invitation by token" ON public.invitation;
 CREATE POLICY "Anyone can read invitation by token"
   ON public.invitation FOR SELECT
   TO anon, authenticated

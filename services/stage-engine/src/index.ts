@@ -22,7 +22,7 @@ import { advance } from "./routes/advance.js";
 import { ultravox } from "./routes/adapters/ultravox.js";
 import { agentChat } from "./routes/agent/chat.js";
 import { createWsRoute } from "./routes/ws.js";
-import { attachGuardianWs } from "./routes/guardian.js";
+import { createGuardianRoute } from "./routes/guardian.js";
 import { expireStaleSession } from "./core/session-manager.js";
 import { cleanExpiredMemories } from "./core/memory-manager.js";
 import { evaluateAllActiveSessions } from "./core/guardian-evaluator.js";
@@ -53,11 +53,10 @@ app.route("/", fetchRoute);
 app.route("/", advance);
 app.route("/", ultravox);
 app.route("/", agentChat);
+app.route("/", createGuardianRoute(upgradeWebSocket));
 
 // Start server
 const port = config.PORT;
-
-import type { Server } from "node:http";
 
 const server = serve({ fetch: app.fetch, port }, (info) => {
   console.log(`Stage Engine running on port ${info.port}`);
@@ -66,8 +65,7 @@ const server = serve({ fetch: app.fetch, port }, (info) => {
 // Inject Hono WebSocket handler for /ws/:sessionId
 injectWebSocket(server);
 
-// Attach Guardian WebSocket to the same HTTP server
-attachGuardianWs(server as Server);
+// Guardian WebSocket is now registered as a Hono route (via createGuardianRoute)
 
 // Session expiry + memory cleanup — runs on a configurable interval
 const cleanupMs = config.CLEANUP_INTERVAL_MINUTES * 60 * 1000;

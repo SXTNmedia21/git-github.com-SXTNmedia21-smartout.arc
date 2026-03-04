@@ -1,13 +1,15 @@
 ---
-title: "User Journeys — Onboarding Flow"
-status: done
-updated: 2026-03-02
+title: "User Journeys — Onboarding Flow (v1 - SUPERSEDED)"
+status: archived
+updated: 2026-03-29
 created: 2026-03-02
 module: onboarding
-tags: [onboarding, wizard, workspace-activation, user-journey]
+tags: [onboarding, wizard, workspace-activation, user-journey, archived]
 ---
 
-# User Journeys — Onboarding Flow
+# User Journeys — Onboarding Flow (v1 - SUPERSEDED)
+
+> **ARKIVERT**: Denne journeyen beskriver den mellomliggende onboarding-flyten (etter 15-stegs wizard men for scroll-basert redesign). Se `JOURNEY-onboarding-redesign.md` for gjeldende flyt.
 
 ## Journey: New User Creates Workspace via Website Scan
 

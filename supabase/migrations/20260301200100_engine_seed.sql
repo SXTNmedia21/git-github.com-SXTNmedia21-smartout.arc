@@ -1,3 +1,5 @@
+SET search_path TO public, extensions;
+
 -- ============================================
 -- 20260301200100_engine_seed.sql
 -- Seeds a test mission "discovery-call" with 3 stages for E2E testing.
@@ -15,7 +17,8 @@ VALUES (
   NULL,
   NULL,
   true
-);
+)
+ON CONFLICT (id) DO NOTHING;
 
 -- Stage 1: Greeting — learn who they are
 INSERT INTO engine_stages (
@@ -35,7 +38,8 @@ INSERT INTO engine_stages (
   0.8,
   'problem',
   true
-);
+)
+ON CONFLICT (mission_id, stage_id) DO NOTHING;
 
 -- Stage 2: Problem — understand their challenge
 INSERT INTO engine_stages (
@@ -55,7 +59,8 @@ INSERT INTO engine_stages (
   0.7,
   'confirm',
   true
-);
+)
+ON CONFLICT (mission_id, stage_id) DO NOTHING;
 
 -- Stage 3: Confirm — summarize and verify
 INSERT INTO engine_stages (
@@ -75,4 +80,5 @@ INSERT INTO engine_stages (
   0.6,
   NULL,
   true
-);
+)
+ON CONFLICT (mission_id, stage_id) DO NOTHING;

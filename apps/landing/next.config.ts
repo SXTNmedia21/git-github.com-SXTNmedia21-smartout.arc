@@ -19,6 +19,9 @@ if (existsSync(rootEnvPath)) {
 
 const nextConfig: NextConfig = {
   turbopack: {},
+  experimental: {
+    optimizePackageImports: ["lucide-react", "framer-motion", "@radix-ui/react-icons"],
+  },
   images: {
     formats: ["image/avif", "image/webp"],
     remotePatterns: [

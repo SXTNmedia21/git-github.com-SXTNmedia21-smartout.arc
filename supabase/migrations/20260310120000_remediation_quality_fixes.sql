@@ -1,3 +1,5 @@
+SET search_path TO public, extensions;
+
 -- ============================================
 -- 20260310120000_remediation_quality_fixes.sql
 -- Remediation migration: fixes quality issues across recent tables.

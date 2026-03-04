@@ -36,6 +36,15 @@ app.addHook("onRequest", async (request, reply) => {
         "Content-Type": "application/json",
       },
     });
+
+    // If Edge Function itself errored (5xx), fall back to env var check
+    if (!res.ok && res.status >= 500) {
+      if (serviceKey !== config.SERVICE_KEY) {
+        return reply.status(401).send({ error: "Unauthorized" });
+      }
+      return;
+    }
+
     const body = (await res.json()) as { valid: boolean; workspace_id?: string };
     if (!body.valid) {
       return reply.status(401).send({ error: "Unauthorized: invalid service key" });
@@ -43,7 +52,7 @@ app.addHook("onRequest", async (request, reply) => {
     // Attach workspace context for downstream use
     request.workspaceId = body.workspace_id;
   } catch {
-    // Fallback: if validate-api-key is unavailable, check legacy env var
+    // Fallback: if validate-api-key is unreachable, check legacy env var
     if (serviceKey !== config.SERVICE_KEY) {
       return reply.status(401).send({ error: "Unauthorized" });
     }

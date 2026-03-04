@@ -17,20 +17,37 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
 
-    const supabase = createClient();
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const supabase = createClient();
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (authError) {
-      setError(authError.message);
+      if (authError) {
+        if (
+          authError.message === "Failed to fetch" ||
+          authError.message.includes("Failed to fetch")
+        ) {
+          setError("Kunne ikke koble til serveren. Prøv igjen om litt.");
+          setLoading(false);
+          return;
+        }
+        setError(authError.message);
+        setLoading(false);
+        return;
+      }
+
+      router.push("/dashboard");
+      router.refresh();
+    } catch (err) {
+      if (err instanceof TypeError && err.message === "Failed to fetch") {
+        setError("Kunne ikke koble til serveren. Prøv igjen om litt.");
+      } else {
+        setError("Noe gikk galt. Prøv igjen.");
+      }
       setLoading(false);
-      return;
     }
-
-    router.push("/dashboard");
-    router.refresh();
   }
 
   return (
@@ -38,14 +55,14 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-8">
         <div>
           <h2 className="text-foreground mt-6 text-center text-3xl font-bold tracking-tight">
-            Sign in to your account
+            Logg inn
           </h2>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="-space-y-px rounded-md shadow-sm">
             <div>
               <label htmlFor="email-address" className="sr-only">
-                Email address
+                E-postadresse
               </label>
               <input
                 id="email-address"
@@ -56,12 +73,12 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="text-foreground bg-background ring-border placeholder:text-muted-foreground focus:ring-primary relative block w-full rounded-t-md border-0 px-3 py-1.5 ring-1 ring-inset focus:z-10 focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6"
-                placeholder="Email address"
+                placeholder="E-postadresse"
               />
             </div>
             <div>
               <label htmlFor="password" className="sr-only">
-                Password
+                Passord
               </label>
               <input
                 id="password"
@@ -72,7 +89,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="text-foreground bg-background ring-border placeholder:text-muted-foreground focus:ring-primary relative block w-full rounded-b-md border-0 px-3 py-1.5 ring-1 ring-inset focus:z-10 focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6"
-                placeholder="Password"
+                placeholder="Passord"
               />
             </div>
           </div>
@@ -82,7 +99,7 @@ export default function LoginPage() {
           <div className="flex items-center justify-between">
             <div className="text-sm leading-6">
               <Link href="/signup" className="text-primary hover:text-primary/80 font-semibold">
-                Don&apos;t have an account? Sign up
+                Har du ikke konto? Opprett konto
               </Link>
             </div>
           </div>
@@ -93,7 +110,7 @@ export default function LoginPage() {
               disabled={loading}
               className="group bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:outline-primary relative flex w-full justify-center rounded-md px-3 py-2 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
             >
-              {loading ? "Signing in..." : "Sign in"}
+              {loading ? "Logger inn..." : "Logg inn"}
             </button>
           </div>
         </form>

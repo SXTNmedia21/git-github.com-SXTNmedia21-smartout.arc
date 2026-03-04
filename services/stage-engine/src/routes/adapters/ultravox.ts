@@ -22,7 +22,7 @@ import { config } from "../../config.js";
 import { emitGuardianEvent } from "../../core/guardian-bus.js";
 import { evaluateSession } from "../../core/guardian-evaluator.js";
 import type { AuthContext } from "../../types/auth.js";
-import type { UltravoxNewStageResponse } from "../../types/ultravox.js";
+import type { UltravoxNewStageResponse, UltravoxTool } from "../../types/ultravox.js";
 
 const ultravox = new Hono<{ Variables: { auth: AuthContext } }>();
 
@@ -30,10 +30,12 @@ const ultravox = new Hono<{ Variables: { auth: AuthContext } }>();
 
 const createCallSchema = z.object({
   mission_id: z.string().min(1),
-  workspace_id: z.string().uuid(),
+  workspace_id: z.string().uuid().optional(),
   user_id: z.string().uuid().optional(),
   voice: z.string().optional(),
   language: z.string().optional(),
+  first_speaker: z.enum(["user", "agent"]).optional(),
+  selected_tools: z.array(z.record(z.unknown())).optional(),
 });
 
 /**
@@ -49,7 +51,7 @@ ultravox.post("/adapters/ultravox/create-call", zValidator("json", createCallSch
   const session = await createSession(
     {
       mission_id: body.mission_id,
-      workspace_id: body.workspace_id,
+      workspace_id: body.workspace_id ?? undefined,
       user_id: body.user_id,
       channel: "voice",
     },
@@ -64,19 +66,31 @@ ultravox.post("/adapters/ultravox/create-call", zValidator("json", createCallSch
   }
 
   // Build Ultravox tools pointing back to this engine
-  // Skip tools in local dev (Ultravox requires HTTPS for tool callbacks)
+  // Skip HTTP tools in local dev (Ultravox requires HTTPS for tool callbacks)
+  // Client tools (with client: {}) always work — they run in the browser
   const apiKey = c.req.header("x-api-key") ?? "";
   const isLocalDev = config.ENGINE_URL.startsWith("http://");
-  const tools = isLocalDev ? [] : buildUltravoxTools(config.ENGINE_URL, session.session_id, apiKey);
+  const httpTools = isLocalDev
+    ? []
+    : buildUltravoxTools(config.ENGINE_URL, session.session_id, apiKey);
   if (isLocalDev) {
-    console.warn("[ultravox] Local dev: skipping tools (no HTTPS). Voice-only mode.");
+    console.warn(
+      "[ultravox] Local dev: skipping HTTP tools (no HTTPS). Client tools still active.",
+    );
   }
+  const clientTools = (body.selected_tools ?? []) as UltravoxTool[];
+  const tools: UltravoxTool[] = [...httpTools, ...clientTools];
 
   // Create Ultravox call
+  const firstSpeaker =
+    body.first_speaker === "agent"
+      ? ("FIRST_SPEAKER_AGENT" as const)
+      : ("FIRST_SPEAKER_USER" as const);
   const call = await createUltravoxCall({
     systemPrompt: session.system_prompt,
     voice: body.voice,
     languageHint: body.language ?? "no",
+    firstSpeaker,
     selectedTools: tools,
   });
 
@@ -154,14 +168,16 @@ ultravox.post("/adapters/ultravox/store", zValidator("json", uvStoreSchema), asy
     return c.json({ error: "INTERNAL_ERROR", message: "Failed to store data", status: 500 }, 500);
   }
 
-  emitGuardianEvent({
-    session_id: sessionId,
-    workspace_id: session.workspace_id,
-    event_type: "data.collected",
-    actor: "agent",
-    summary: `Voice data collected: ${body.entity_type}`,
-    data: { entity_type: body.entity_type },
-  });
+  if (session.workspace_id) {
+    emitGuardianEvent({
+      session_id: sessionId,
+      workspace_id: session.workspace_id,
+      event_type: "data.collected",
+      actor: "agent",
+      summary: `Voice data collected: ${body.entity_type}`,
+      data: { entity_type: body.entity_type },
+    });
+  }
 
   // Fire-and-forget guardian evaluation after voice data collected
   evaluateSession(sessionId).catch((err) => console.error("Guardian eval after voice store:", err));

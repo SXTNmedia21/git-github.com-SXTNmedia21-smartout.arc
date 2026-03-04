@@ -62,8 +62,10 @@
   --color-onboarding-business: oklch(0.12 0.02 60);
   --color-onboarding-season: oklch(0.11 0.03 35);
   --color-onboarding-departments: oklch(0.1 0.02 150);
+  --color-onboarding-locations: oklch(0.11 0.02 180);
+  --color-onboarding-procedures: oklch(0.1 0.02 220);
   --color-onboarding-contract: oklch(0.12 0.01 280);
-  --color-onboarding-done: oklch(0.11 0.03 80);
+  --color-onboarding-welcome: oklch(0.11 0.03 80);
   --color-onboarding-glow: oklch(0.75 0.15 55);
   --color-onboarding-glass: oklch(1 0 0 / 0.05);
   --color-onboarding-glass-border: oklch(1 0 0 / 0.08);

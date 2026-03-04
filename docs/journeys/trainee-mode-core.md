@@ -1,13 +1,15 @@
 ---
 title: "User Journey: Trainee Mode & Core Journey"
-status: approved
+status: draft
 created: 2026-03-01
-updated: 2026-03-01
+updated: 2026-03-29
 module: onboarding
-tags: [user-journey, trainee, module-journeys, checkpoints]
+tags: [user-journey, trainee, module-journeys, checkpoints, not-implemented]
 ---
 
 # User Journey: Trainee Mode & Core Journey
+
+> **STATUS: DESIGN SPEC** -- Tabellene `trainee_journey`, `module_journey`, `module_journey_checkpoint` og `profile_checkpoint_progress` er IKKE opprettet i databasen ennaa. Denne journeyen beskriver planlagt funksjonalitet. `profile.status = 'trainee'` finnes i koden, men trainee-systemet med sjekkpunkter og modul-reiser er ikke implementert.
 
 ## 1. Overview
 

@@ -1,7 +1,9 @@
+SET search_path TO public, extensions;
+
 -- 20260302000100_engine_authority_config.sql
 -- Per-workspace, per-capability authority configuration for Mr. Botsson.
 
-CREATE TABLE engine_authority_config (
+CREATE TABLE IF NOT EXISTS engine_authority_config (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id  UUID NOT NULL REFERENCES workspace(workspace_id),
   capability    TEXT NOT NULL,
@@ -15,22 +17,25 @@ CREATE TABLE engine_authority_config (
 
 ALTER TABLE engine_authority_config ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "admin_manage_authority" ON engine_authority_config;
 CREATE POLICY "admin_manage_authority" ON engine_authority_config
 FOR ALL USING (
   workspace_id IN (
-    SELECT workspace_id FROM profile
+    SELECT workspace_id FROM public.profile
     WHERE user_id = auth.uid() AND is_active = true AND role IN ('admin', 'owner')
   )
 );
 
+DROP POLICY IF EXISTS "api_key_read_authority" ON engine_authority_config;
 CREATE POLICY "api_key_read_authority" ON engine_authority_config
 FOR SELECT USING (
   workspace_id = NULLIF(current_setting('app.workspace_id', true), '')::uuid
 );
 
+DROP POLICY IF EXISTS "service_manage_authority" ON engine_authority_config;
 CREATE POLICY "service_manage_authority" ON engine_authority_config
 FOR ALL USING (
   auth.role() = 'service_role'
 );
 
-CREATE INDEX idx_authority_workspace ON engine_authority_config (workspace_id);
+CREATE INDEX IF NOT EXISTS idx_authority_workspace ON engine_authority_config (workspace_id);

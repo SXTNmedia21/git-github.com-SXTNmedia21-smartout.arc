@@ -13,6 +13,7 @@
 import type { Context, Next } from "hono";
 import { supabaseAdmin, createUserClient } from "../lib/supabase.js";
 import { hashApiKey } from "../lib/crypto.js";
+import { config } from "../config.js";
 import type { AuthContext } from "../types/auth.js";
 
 /**
@@ -27,11 +28,26 @@ export async function authMiddleware(c: Context, next: Next): Promise<Response |
     return next();
   }
 
+  // Guardian WebSocket — auth handled in the upgrade handler (guardian.ts)
+  if (c.req.path.startsWith("/guardian/")) {
+    return next();
+  }
+
   const apiKey = c.req.header("x-api-key");
   const authHeader = c.req.header("authorization");
 
   // Try API key first
   if (apiKey) {
+    // Dev shortcut: accept DEV_API_KEY without DB lookup
+    if (config.DEV_API_KEY && apiKey === config.DEV_API_KEY) {
+      c.set("auth", {
+        method: "api_key",
+        workspaceId: "00000000-0000-0000-0000-000000000000",
+        scopes: ["*"],
+      } satisfies AuthContext);
+      return next();
+    }
+
     const auth = await validateApiKey(apiKey);
     if (auth) {
       c.set("auth", auth);

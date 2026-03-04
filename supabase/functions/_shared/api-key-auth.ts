@@ -1,6 +1,6 @@
 import { Pool } from "https://deno.land/x/postgres@v0.17.0/mod.ts";
 
-const pool = new Pool(Deno.env.get("DATABASE_URL")!, 3, true);
+const pool = new Pool(Deno.env.get("DATABASE_URL") ?? Deno.env.get("SUPABASE_DB_URL")!, 3, true);
 
 export interface ApiKeyContext {
   keyId: string;

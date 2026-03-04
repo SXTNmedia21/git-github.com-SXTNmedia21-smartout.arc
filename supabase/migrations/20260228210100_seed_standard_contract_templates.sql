@@ -1,3 +1,5 @@
+SET search_path TO public, extensions;
+
 -- Migration: Seed two standard contract templates
 -- 1. Smartout Onboarding & Drift (B2B implementation agreement — like Spåtind)
 -- 2. Smartout Lisens- og brukeravtale (SaaS license + DPA — like Villa Mat)

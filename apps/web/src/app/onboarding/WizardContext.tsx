@@ -49,9 +49,23 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
         endDate: state.season.endDate,
       },
       departments: state.departments.filter((d) => d.selected).map((d) => d.name),
+      locations: state.locations.map((l) => ({
+        name: l.name,
+        type: l.type,
+        zones: l.zones.map((z) => z.name),
+      })),
+      procedures: state.procedures.filter((p) => p.selected).map((p) => p.name),
       scrapeStatus: state.scrapeStatus,
     }),
-    [scroll.activeSection, state.business, state.season, state.departments, state.scrapeStatus],
+    [
+      scroll.activeSection,
+      state.business,
+      state.season,
+      state.departments,
+      state.locations,
+      state.procedures,
+      state.scrapeStatus,
+    ],
   );
 
   // Helper: add multiple departments by name (called by agent)
@@ -98,6 +112,50 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     [state.saveMemory],
   );
 
+  // Helper: add locations by name+type (called by agent)
+  const addLocations = useCallback(
+    (locs: { name: string; type?: string }[]) => {
+      for (const loc of locs) {
+        const locType = (loc.type as "main" | "outdoor" | "satellite" | "other") || "main";
+        state.addLocation(loc.name, locType);
+      }
+    },
+    [state.addLocation],
+  );
+
+  // Helper: add zones to a location by name match (called by agent)
+  const addZones = useCallback(
+    (locationName: string, zones: { name: string }[]) => {
+      const loc = state.locations.find((l) => l.name.toLowerCase() === locationName.toLowerCase());
+      if (loc) {
+        for (const zone of zones) {
+          state.addZone(loc.id, zone.name);
+        }
+      }
+    },
+    [state.locations, state.addZone],
+  );
+
+  // Helper: add procedures by name (called by agent)
+  const addProcedures = useCallback(
+    (names: string[]) => {
+      for (const name of names) {
+        // Check if procedure already exists
+        const exists = state.procedures.some((p) => p.name.toLowerCase() === name.toLowerCase());
+        if (!exists) {
+          state.addCustomProcedure(name);
+        } else {
+          // Ensure existing procedure is selected
+          const proc = state.procedures.find((p) => p.name.toLowerCase() === name.toLowerCase());
+          if (proc && !proc.selected) {
+            state.toggleProcedure(proc.id);
+          }
+        }
+      }
+    },
+    [state.procedures, state.addCustomProcedure, state.toggleProcedure],
+  );
+
   // Writable actions the agent can invoke via client tools
   const botssonActions: BotssonActions = useMemo(
     () => ({
@@ -105,6 +163,9 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       updateBusiness: state.updateBusiness,
       updateSeason: state.updateSeason,
       addDepartments,
+      addLocations,
+      addZones,
+      addProcedures,
       triggerScrape: state.triggerScrape,
       advanceToNextSection,
       addKeyFact,
@@ -115,6 +176,9 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       state.updateBusiness,
       state.updateSeason,
       addDepartments,
+      addLocations,
+      addZones,
+      addProcedures,
       state.triggerScrape,
       advanceToNextSection,
       addKeyFact,
@@ -146,7 +210,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     // Don't push section context until at least 30s into the session
     // This prevents interrupting Lise's intro in the first moments
     const elapsed = sessionStartRef.current ? Date.now() - sessionStartRef.current : 0;
-    if (elapsed < 30_000 && section !== "hero" && section !== "done") return;
+    if (elapsed < 30_000 && section !== "hero" && section !== "welcome") return;
 
     const messages: Record<string, string | null> = {
       hero: null,
@@ -161,8 +225,21 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
               .join(", ")}.`
           : ""
       }]`,
+      locations: `[Systemmelding: Brukeren har scrollet til lokasjonsseksjonen. Spør hvor de holder til — har de flere lokaler? ${
+        state.locations.length > 0
+          ? `Allerede lagt til: ${state.locations.map((l) => l.name).join(", ")}.`
+          : ""
+      }]`,
+      procedures: `[Systemmelding: Brukeren har scrollet til prosedyreseksjonen. Anbefal standardprosedyrer for bransjen. ${
+        state.procedures.filter((p) => p.selected).length > 0
+          ? `Valgt: ${state.procedures
+              .filter((p) => p.selected)
+              .map((p) => p.name)
+              .join(", ")}.`
+          : ""
+      }]`,
       contract: `[Systemmelding: Brukeren har scrollet til kontraktseksjonen. Fullfør det du snakker om naturlig.]`,
-      done: `[Systemmelding: Brukeren er ferdig med onboarding! Avslutt med en varm velkomst. Bedrift: ${state.business.name || "ikke angitt"}, sesong: ${state.season.name || "ikke angitt"}, ${state.departments.filter((d) => d.selected).length} avdelinger.]`,
+      welcome: `[Systemmelding: Brukeren er ferdig med onboarding! Avslutt med en varm velkomst. Bedrift: ${state.business.name || "ikke angitt"}, sesong: ${state.season.name || "ikke angitt"}, ${state.departments.filter((d) => d.selected).length} avdelinger, ${state.locations.length} lokasjoner, ${state.procedures.filter((p) => p.selected).length} prosedyrer.]`,
     };
 
     const msg = messages[section];
@@ -174,6 +251,8 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     state.business.name,
     state.season.name,
     state.departments,
+    state.locations,
+    state.procedures,
     botsson.sendContext,
     botsson.isConnected,
   ]);
@@ -185,15 +264,34 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     prevScrapeRef.current = state.scrapeStatus;
 
     if (state.scrapeStatus === "scraping") {
-      botsson.sendContext("Skanner bedriften nå...");
+      botsson.sendContext(
+        "[Systemmelding: Skanner bedriften nå... Big Board vises. Fortell brukeren at du leter.]",
+      );
     } else if (state.scrapeStatus === "done") {
       const b = state.business;
-      botsson.sendContext(
-        `Skanning ferdig! Fant: ${b.name || "ukjent"}, bransje: ${b.industry || "ukjent"}.`,
-      );
+      const deptNames = state.departments.filter((d) => d.selected).map((d) => d.name);
+      const locNames = state.locations.map((l) => l.name);
+      const procNames = state.procedures.filter((p) => p.selected).map((p) => p.name);
+      const parts = [
+        `[Systemmelding: Skanning ferdig! Fant:`,
+        `- Bedrift: ${b.name || "ukjent"} (${b.industry || "ukjent bransje"})${b.employeeCount ? `, ${b.employeeCount} ansatte` : ""}`,
+        b.address || b.city ? `- Adresse: ${[b.address, b.city].filter(Boolean).join(", ")}` : null,
+        b.googleRating
+          ? `- Google: ${b.googleRating}/5${b.googleRatingCount ? ` (${b.googleRatingCount} anmeldelser)` : ""}`
+          : null,
+        deptNames.length > 0
+          ? `- ${deptNames.length} avdelinger foreslått: ${deptNames.join(", ")}`
+          : null,
+        locNames.length > 0
+          ? `- ${locNames.length} lokasjoner funnet: ${locNames.join(", ")}`
+          : null,
+        procNames.length > 0 ? `- ${procNames.length} prosedyrer foreslått` : null,
+        `Gå gjennom resultatet med brukeren. Spør om det ser riktig ut.]`,
+      ].filter(Boolean);
+      botsson.sendContext(parts.join("\n"));
     } else if (state.scrapeStatus === "error") {
       botsson.sendContext(
-        "Skanningen feilet. Brukeren kan prøve igjen eller fortelle deg manuelt.",
+        "[Systemmelding: Skanningen feilet. Brukeren kan prøve igjen eller fortelle deg manuelt.]",
       );
     }
   }, [state.scrapeStatus, state.business, botsson.sendContext]);

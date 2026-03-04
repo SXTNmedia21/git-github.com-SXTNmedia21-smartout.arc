@@ -1,13 +1,15 @@
 ---
 title: "User Journeys — Auth Screens Redesign"
-status: done
-updated: 2026-03-03
+status: review
+updated: 2026-03-29
 created: 2026-03-03
 module: auth
 tags: [auth, login, signup, reset-password, ui, journeys]
 ---
 
 # User Journeys — Auth Screens Redesign
+
+> **MERK**: `/login`, `/signup` og `/reset-password` finnes i koden. Men `/update-password` og `/auth/error` rutene er IKKE implementert ennaa. Journeyene for password update og auth error er planlagt.
 
 ## Journey: New User Signs Up
 

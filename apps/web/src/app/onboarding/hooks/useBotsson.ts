@@ -13,7 +13,15 @@ export interface BotssonActions {
   updateBusiness: (partial: Partial<BusinessData>) => void;
   updateSeason: (partial: Partial<SeasonData>) => void;
   addDepartments: (names: string[]) => void;
-  triggerScrape: (url: string, orgNumber: string) => Promise<void>;
+  addLocations: (locs: { name: string; type?: string }[]) => void;
+  addZones: (locationName: string, zones: { name: string }[]) => void;
+  addProcedures: (names: string[]) => void;
+  triggerScrape: (
+    url: string,
+    orgNumber: string,
+    companyName?: string,
+    city?: string,
+  ) => Promise<void>;
   advanceToNextSection: () => void;
   addKeyFact: (label: string, value: string) => void;
   saveMemory: (content: string, memoryType: string, expiresAt?: string) => Promise<void>;
@@ -101,9 +109,66 @@ const CLIENT_TOOLS = [
   },
   {
     temporaryTool: {
+      modelToolName: "addLocations",
+      description:
+        'Add physical locations. Pass a JSON array of location objects with name and optional type ("main", "outdoor", "satellite", "other"). Example: [{"name": "Sjøbris Restaurant", "type": "main"}, {"name": "Uteserveringen", "type": "outdoor"}]',
+      dynamicParameters: [
+        {
+          name: "locations",
+          location: "PARAMETER_LOCATION_BODY",
+          schema: {
+            type: "string",
+            description: "JSON array of location objects with name and optional type",
+          },
+          required: true,
+        },
+      ],
+      client: {},
+    },
+  },
+  {
+    temporaryTool: {
+      modelToolName: "addZones",
+      description:
+        'Add zones within a specific location. Pass the location name and a JSON array of zone objects. Example: locationName="Sjøbris Restaurant", zones=[{"name": "Bar"}, {"name": "Spisesal"}]',
+      dynamicParameters: [
+        {
+          name: "locationName",
+          location: "PARAMETER_LOCATION_BODY",
+          schema: { type: "string", description: "Name of the location to add zones to" },
+          required: true,
+        },
+        {
+          name: "zones",
+          location: "PARAMETER_LOCATION_BODY",
+          schema: { type: "string", description: "JSON array of zone objects with name" },
+          required: true,
+        },
+      ],
+      client: {},
+    },
+  },
+  {
+    temporaryTool: {
+      modelToolName: "addProcedures",
+      description:
+        'Add or enable procedures by name. Pass a JSON array of procedure name strings. Existing procedures are enabled, new ones are created. Example: ["Temperaturkontroll", "Allergenhåndtering", "Varemottak"]',
+      dynamicParameters: [
+        {
+          name: "names",
+          location: "PARAMETER_LOCATION_BODY",
+          schema: { type: "string", description: "JSON array of procedure name strings" },
+          required: true,
+        },
+      ],
+      client: {},
+    },
+  },
+  {
+    temporaryTool: {
       modelToolName: "triggerScrape",
       description:
-        "Trigger a scan of the business. Pass either a website URL or org number (or both).",
+        "Trigger a scan of the business. Pass company name + city for auto-lookup, or a website URL, or org number, or any combination.",
       dynamicParameters: [
         {
           name: "url",
@@ -115,6 +180,21 @@ const CLIENT_TOOLS = [
           name: "orgNumber",
           location: "PARAMETER_LOCATION_BODY",
           schema: { type: "string", description: "Norwegian org number" },
+          required: false,
+        },
+        {
+          name: "companyName",
+          location: "PARAMETER_LOCATION_BODY",
+          schema: { type: "string", description: "Business name to search for (e.g. 'Sjøbris')" },
+          required: false,
+        },
+        {
+          name: "city",
+          location: "PARAMETER_LOCATION_BODY",
+          schema: {
+            type: "string",
+            description: "City where the business is located (e.g. 'Trondheim')",
+          },
           required: false,
         },
       ],
@@ -259,10 +339,52 @@ export function useBotsson(actions?: BotssonActions): BotssonState {
         }
       });
 
+      session.registerToolImplementation("addLocations", (params) => {
+        try {
+          const locs = JSON.parse(String(params.locations ?? "[]")) as {
+            name: string;
+            type?: string;
+          }[];
+          actionsRef.current?.addLocations(locs);
+          return JSON.stringify({ success: true, added: locs.length });
+        } catch {
+          return JSON.stringify({ success: false, error: "Invalid JSON" });
+        }
+      });
+
+      session.registerToolImplementation("addZones", (params) => {
+        try {
+          const locationName = String(params.locationName ?? "");
+          const zones = JSON.parse(String(params.zones ?? "[]")) as { name: string }[];
+          actionsRef.current?.addZones(locationName, zones);
+          return JSON.stringify({
+            success: true,
+            location: locationName,
+            zonesAdded: zones.length,
+          });
+        } catch {
+          return JSON.stringify({ success: false, error: "Invalid JSON" });
+        }
+      });
+
+      session.registerToolImplementation("addProcedures", (params) => {
+        try {
+          const names = JSON.parse(String(params.names ?? "[]")) as string[];
+          actionsRef.current?.addProcedures(names);
+          return JSON.stringify({ success: true, added: names });
+        } catch {
+          return JSON.stringify({ success: false, error: "Invalid JSON" });
+        }
+      });
+
       session.registerToolImplementation("triggerScrape", (params) => {
         const url = String(params.url ?? "");
         const orgNumber = String(params.orgNumber ?? "");
-        actionsRef.current?.triggerScrape(url, orgNumber).catch(() => {});
+        const companyName = String(params.companyName ?? "");
+        const city = String(params.city ?? "");
+        actionsRef.current
+          ?.triggerScrape(url, orgNumber, companyName || undefined, city || undefined)
+          .catch(() => {});
         return JSON.stringify({ success: true, message: "Scan started" });
       });
 
@@ -309,25 +431,11 @@ export function useBotsson(actions?: BotssonActions): BotssonState {
         }
       }) as EventListener);
 
-      let introSent = false;
       session.addEventListener("status", () => {
         if (sessionRef.current === session) {
           const newStatus = session.status || "idle";
           setStatus(newStatus);
           addDebug("status", String(newStatus));
-
-          // Send inference trigger ONCE when session first becomes LISTENING
-          if (!introSent && session.status === UltravoxSessionStatus.LISTENING) {
-            introSent = true;
-            setTimeout(() => {
-              if (sessionRef.current === session) {
-                const msg =
-                  "[Systemmelding: Brukeren er klar. Start samtalen — presenter deg og spør hva de heter.]";
-                addDebug("inference", msg);
-                session.sendText(msg);
-              }
-            }, 800);
-          }
         }
       });
 
@@ -356,6 +464,8 @@ export function useBotsson(actions?: BotssonActions): BotssonState {
         body: JSON.stringify({
           mission_id: "onboarding-interview",
           selected_tools: CLIENT_TOOLS,
+          voice: "d082550b-596a-42f7-9356-840b4a095d3f",
+          first_speaker: "agent",
         }),
       });
 

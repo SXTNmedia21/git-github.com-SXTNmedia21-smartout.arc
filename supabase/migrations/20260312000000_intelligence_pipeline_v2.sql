@@ -1,3 +1,5 @@
+SET search_path TO public, extensions;
+
 -- Migration: 20260312000000_intelligence_pipeline_v2.sql
 -- Description: Intelligence Pipeline v2 — early workspace creation, Google Places data columns,
 --              provision_onboarding_workspace and finalize_onboarding_workspace RPCs.

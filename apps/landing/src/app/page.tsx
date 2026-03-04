@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import type { Variants } from "framer-motion";
@@ -26,13 +26,18 @@ import {
   MessageSquare,
   ListTodo,
   Sparkles,
-  Bot,
   BellRing,
   CalendarCheck,
+  ArrowUp,
 } from "lucide-react";
 import Navigation from "../components/navigation";
 import Footer from "../components/footer";
-import WorkspaceAnalyzer from "../components/workspace-analyzer";
+const WorkspaceAnalyzer = dynamic(() => import("../components/workspace-analyzer"), {
+  ssr: false,
+  loading: () => (
+    <div className="mx-auto h-[120px] w-full max-w-2xl animate-pulse rounded-2xl border border-white/10 bg-[#0a0a0c]/80" />
+  ),
+});
 import { WEB_APP_LINKS } from "../lib/web-app-url";
 
 const VariantELanding = dynamic(() => import("../components/landing/VariantELanding"));
@@ -155,7 +160,15 @@ function SmartoutLandingPageContent() {
   useSessionLifecycle();
   const trackCta = useTrackCta();
   const [activeTab, setActiveTab] = useState("locations");
-  const onboardingHref = WEB_APP_LINKS.onboarding;
+  const [showBackToTop, setShowBackToTop] = useState(false);
+
+  useEffect(() => {
+    function onScroll() {
+      setShowBackToTop(window.scrollY > 600);
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   if (variant === "E") return <VariantELanding />;
   if (variant === "T") return <VariantTLanding />;
@@ -208,16 +221,17 @@ function SmartoutLandingPageContent() {
 
       <main className="relative z-10 mx-auto max-w-7xl px-6 pt-24 pb-12 sm:pt-32 sm:pb-20">
         {/* MAIN HERO SECTION */}
-        <div className="relative flex min-h-0 flex-col items-center justify-center gap-6 pt-10 pb-6 text-center sm:min-h-[calc(100dvh-120px)] sm:gap-8 sm:pt-20 sm:pb-10">
+        <div className="relative flex min-h-[calc(100dvh-6rem)] flex-col items-center justify-center pb-6 text-center sm:min-h-[calc(100dvh-120px)] sm:gap-8 sm:pt-20 sm:pb-10">
           <m.div
             initial="hidden"
             animate="visible"
             variants={containerVariants}
             className="z-20 mx-auto flex max-w-5xl flex-col items-center"
           >
+            {/* Badge — desktop only */}
             <m.div
               variants={itemVariants}
-              className="group relative mb-4 inline-flex items-center gap-2 overflow-hidden rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white shadow-xl backdrop-blur-md sm:mb-8"
+              className="group relative mb-8 hidden items-center gap-2 overflow-hidden rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white shadow-xl backdrop-blur-md sm:inline-flex"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-orange-500/20 to-rose-500/20 opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
               <div className="absolute -inset-[1px] rounded-full bg-gradient-to-r from-orange-500 to-rose-500 opacity-0 blur-sm transition-opacity duration-500 group-hover:opacity-30" />
@@ -227,46 +241,61 @@ function SmartoutLandingPageContent() {
               </span>
             </m.div>
 
+            {/* Headline — dominant on mobile */}
             <m.h1
               variants={itemVariants}
-              className="mb-4 text-3xl leading-[1.05] font-black tracking-tighter drop-shadow-2xl sm:mb-8 sm:text-5xl md:text-7xl lg:text-[7.5rem]"
+              className="mb-6 text-[3.5rem] leading-[0.95] font-black tracking-tighter drop-shadow-2xl sm:mb-8 sm:text-5xl md:text-7xl lg:text-[7.5rem]"
             >
-              Én plattform. <br />
-              <span className="relative inline-block">
-                <span className="absolute -inset-2 bg-gradient-to-r from-orange-500 via-rose-500 to-purple-600 opacity-20 blur"></span>
-                <span className="text-shimmer relative bg-gradient-to-r from-orange-400 via-rose-400 to-orange-400 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(251,146,60,0.3)]">
+              <m.span
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.3 }}
+                className="block"
+              >
+                Én plattform.
+              </m.span>
+              <m.span
+                initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 1, delay: 0.6, type: "spring", stiffness: 80 }}
+                className="relative mt-1 inline-block sm:mt-0"
+              >
+                <span className="absolute -inset-4 bg-gradient-to-r from-orange-500 via-rose-500 to-purple-600 opacity-25 blur-xl"></span>
+                <span className="text-shimmer relative bg-gradient-to-r from-orange-400 via-rose-400 to-orange-400 bg-clip-text text-transparent drop-shadow-[0_0_20px_rgba(251,146,60,0.4)]">
                   Full kontroll.
                 </span>
-              </span>
+              </m.span>
             </m.h1>
 
+            {/* Subtext */}
             <m.p
               variants={itemVariants}
-              className="mb-8 max-w-3xl text-lg leading-relaxed font-medium text-zinc-400 sm:mb-12 sm:text-xl md:text-2xl"
+              className="mb-10 max-w-md px-2 text-[15px] leading-relaxed font-medium text-zinc-500 sm:mb-12 sm:max-w-3xl sm:px-0 sm:text-xl sm:text-zinc-400 md:text-2xl"
             >
               Samle vaktplaner, HR, kommunikasjon, stemplingsur og internkontroll i ett og samme
               lynraske system. Reduser kaos og øk fortjenesten.
             </m.p>
 
+            {/* CTAs — subtle on mobile, bold on desktop */}
             <m.div
               variants={itemVariants}
-              className="flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-6"
+              className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-6"
             >
               <Link
-                href={onboardingHref}
+                href={WEB_APP_LINKS.login}
                 onClick={() => trackCta("Opprett din SmartOut")}
-                className="group relative flex w-full items-center justify-center gap-3 rounded-full bg-gradient-to-r from-orange-600 to-rose-600 px-8 py-4 text-base font-black text-white shadow-[0_0_40px_rgba(249,115,22,0.25)] transition-all duration-300 hover:shadow-[0_0_60px_rgba(249,115,22,0.4)] sm:w-auto sm:px-10 sm:py-5 sm:text-lg"
+                className="group relative flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-orange-600 to-rose-600 px-6 py-3 text-sm font-bold text-white shadow-[0_0_30px_rgba(249,115,22,0.2)] transition-all duration-300 hover:shadow-[0_0_60px_rgba(249,115,22,0.4)] sm:px-10 sm:py-5 sm:text-lg sm:font-black"
               >
                 <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-orange-500 to-rose-500 opacity-30 blur transition duration-500 group-hover:opacity-50" />
-                <span className="relative flex items-center gap-3">
-                  Opprett din SmartOut{" "}
-                  <ArrowRight className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1" />
+                <span className="relative flex items-center gap-2">
+                  Opprett din SmartOut
+                  <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1 sm:h-5 sm:w-5" />
                 </span>
               </Link>
 
               <a
                 href="#lise"
-                className="group relative flex w-full items-center justify-center gap-3 overflow-hidden rounded-full border border-white/10 bg-white/5 px-8 py-4 text-base font-bold text-white backdrop-blur-md transition-all duration-300 hover:border-white/20 hover:bg-white/10 sm:w-auto sm:px-10 sm:py-5 sm:text-lg"
+                className="group flex items-center justify-center gap-2 rounded-full border border-white/10 px-6 py-3 text-sm font-medium text-zinc-400 transition-all duration-300 hover:border-white/20 hover:text-white sm:bg-white/5 sm:px-10 sm:py-5 sm:text-lg sm:font-bold sm:text-white sm:backdrop-blur-md"
               >
                 Møt AI-assistenten Lise
               </a>
@@ -318,7 +347,9 @@ function SmartoutLandingPageContent() {
                             : "text-white/30"
                         }`}
                       >
-                        <div className={`h-1.5 w-1.5 rounded-full ${item.active ? "bg-orange-400" : "bg-white/20"}`} />
+                        <div
+                          className={`h-1.5 w-1.5 rounded-full ${item.active ? "bg-orange-400" : "bg-white/20"}`}
+                        />
                         {item.label}
                       </div>
                     ))}
@@ -330,10 +361,14 @@ function SmartoutLandingPageContent() {
                       <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
                         <div className="mb-1 text-[10px] font-semibold text-white/30">Ansatte</div>
                         <div className="text-2xl font-black text-white">142</div>
-                        <div className="mt-1 text-[10px] font-semibold text-emerald-400">+12 denne mnd</div>
+                        <div className="mt-1 text-[10px] font-semibold text-emerald-400">
+                          +12 denne mnd
+                        </div>
                       </div>
                       <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
-                        <div className="mb-1 text-[10px] font-semibold text-white/30">Beredskap</div>
+                        <div className="mb-1 text-[10px] font-semibold text-white/30">
+                          Beredskap
+                        </div>
                         <div className="text-2xl font-black text-white">87%</div>
                         <div className="mt-1 flex items-center gap-1">
                           <div className="h-1 w-16 overflow-hidden rounded-full bg-white/10">
@@ -344,14 +379,18 @@ function SmartoutLandingPageContent() {
                       <div className="rounded-2xl border border-orange-500/20 bg-orange-500/5 p-4">
                         <div className="mb-1 text-[10px] font-semibold text-white/30">Avvik</div>
                         <div className="text-2xl font-black text-orange-400">4</div>
-                        <div className="mt-1 text-[10px] font-semibold text-orange-400/60">Krever oppfølging</div>
+                        <div className="mt-1 text-[10px] font-semibold text-orange-400/60">
+                          Krever oppfølging
+                        </div>
                       </div>
                     </div>
                     {/* Schedule preview row */}
                     <div className="flex-1 rounded-2xl border border-white/5 bg-white/[0.03] p-4">
                       <div className="mb-3 flex items-center justify-between">
                         <span className="text-[11px] font-bold text-white/50">Vaktplan i dag</span>
-                        <span className="rounded-full bg-white/5 px-2 py-0.5 text-[9px] font-bold text-white/30">Man 3. mars</span>
+                        <span className="rounded-full bg-white/5 px-2 py-0.5 text-[9px] font-bold text-white/30">
+                          Man 3. mars
+                        </span>
                       </div>
                       <div className="space-y-2">
                         {[
@@ -360,12 +399,21 @@ function SmartoutLandingPageContent() {
                           { name: "Jonas B.", time: "15:00–23:00", status: "upcoming" },
                           { name: "Maria K.", time: "15:00–23:00", status: "upcoming" },
                         ].map((shift) => (
-                          <div key={shift.name} className="flex items-center justify-between rounded-lg bg-white/[0.02] px-3 py-1.5">
+                          <div
+                            key={shift.name}
+                            className="flex items-center justify-between rounded-lg bg-white/[0.02] px-3 py-1.5"
+                          >
                             <div className="flex items-center gap-2">
-                              <div className={`h-1.5 w-1.5 rounded-full ${shift.status === "active" ? "bg-emerald-400" : "bg-white/20"}`} />
-                              <span className="text-[11px] font-semibold text-white/60">{shift.name}</span>
+                              <div
+                                className={`h-1.5 w-1.5 rounded-full ${shift.status === "active" ? "bg-emerald-400" : "bg-white/20"}`}
+                              />
+                              <span className="text-[11px] font-semibold text-white/60">
+                                {shift.name}
+                              </span>
                             </div>
-                            <span className="text-[10px] font-medium text-white/30">{shift.time}</span>
+                            <span className="text-[10px] font-medium text-white/30">
+                              {shift.time}
+                            </span>
                           </div>
                         ))}
                       </div>
@@ -373,7 +421,9 @@ function SmartoutLandingPageContent() {
                     {/* Bottom row: activity + compliance */}
                     <div className="grid grid-cols-5 gap-3">
                       <div className="col-span-3 rounded-2xl border border-white/5 bg-white/[0.03] p-4">
-                        <span className="text-[11px] font-bold text-white/50">Aktivitet denne uken</span>
+                        <span className="text-[11px] font-bold text-white/50">
+                          Aktivitet denne uken
+                        </span>
                         <div className="mt-3 flex items-end gap-1.5">
                           {[40, 65, 80, 55, 90, 70, 45].map((h, i) => (
                             <div key={i} className="flex-1">
@@ -390,7 +440,9 @@ function SmartoutLandingPageContent() {
                         <div className="mt-2 flex items-center gap-2">
                           <div className="text-lg font-black text-emerald-400">100%</div>
                         </div>
-                        <div className="mt-1 text-[9px] font-semibold text-emerald-400/50">IK-mat oppdatert</div>
+                        <div className="mt-1 text-[9px] font-semibold text-emerald-400/50">
+                          IK-mat oppdatert
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -413,13 +465,7 @@ function SmartoutLandingPageContent() {
           >
             {/* Render integration brands twice for seamless loop */}
             {[0, 1].map((set) =>
-              [
-                "TRIPLETEX",
-                "VISMA",
-                "ZETTLE",
-                "LIGHTSPEED",
-                "POWEROFFICE",
-              ].map((name) => (
+              ["TRIPLETEX", "VISMA", "ZETTLE", "LIGHTSPEED", "POWEROFFICE"].map((name) => (
                 <span
                   key={`${set}-${name}`}
                   className="text-lg font-black tracking-[0.15em] text-zinc-500 sm:text-2xl"
@@ -447,10 +493,9 @@ function SmartoutLandingPageContent() {
           >
             <m.div
               variants={itemVariants}
-              className="mb-4 inline-flex items-center gap-2 rounded-full border border-orange-500/20 bg-orange-500/10 px-3 py-1 text-xs font-bold tracking-wider text-orange-400 uppercase sm:mb-6"
+              className="mb-4 hidden items-center gap-2 rounded-full border border-orange-500/20 bg-orange-500/10 px-3 py-1 text-xs font-bold tracking-wider text-orange-400 uppercase sm:mb-6 sm:inline-flex"
             >
               <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-400 opacity-75"></span>
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-orange-500"></span>
               </span>
               Møt fremtidens workforce management
@@ -499,7 +544,7 @@ function SmartoutLandingPageContent() {
 
             <m.div
               variants={itemVariants}
-              className="mt-10 grid grid-cols-3 gap-3 sm:mt-12 sm:flex sm:items-center sm:gap-6"
+              className="mt-10 hidden sm:mt-12 sm:flex sm:items-center sm:gap-6"
             >
               {[
                 { icon: Clock, label: "3 timer spart/dag" },
@@ -522,14 +567,11 @@ function SmartoutLandingPageContent() {
             </m.div>
           </m.div>
 
-          {/* Voice Assistant Floating Widget */}
-          <div className="w-full lg:w-[450px]">
-            <VoiceDemoWidget config={VARIANT_VOICE_CONFIG.B} height="600px" />
-          </div>
+          {/* Voice Assistant — single instance in SmartOut AI section below */}
         </div>
 
         {/* ─── Divider ─── */}
-        <div className="section-divider relative z-10 my-8 sm:my-16" />
+        <div className="section-divider relative z-10 my-12 sm:my-20" />
 
         {/* INTERACTIVE WORKSPACE SECTION */}
         <section
@@ -547,12 +589,10 @@ function SmartoutLandingPageContent() {
             className="mb-8 text-center sm:mb-16"
           >
             <h2 className="mb-3 text-2xl font-black tracking-tight text-white sm:mb-6 sm:text-4xl">
-              Se for deg ditt fremtidige workspace
+              Ditt fremtidige workspace
             </h2>
-            <p className="mx-auto max-w-2xl text-sm text-zinc-400 sm:text-lg">
-              Restaurantdrift er komplekst. Derfor er Smartout bygget for å speile din virkelighet
-              tvers av alle aspekter. Slik organiserer stjernene bedriften sin for å overholde
-              Arbeidstilsynets og Mattilsynets krav:
+            <p className="mx-auto hidden max-w-2xl text-lg text-zinc-400 sm:block">
+              Bygget for å speile din virkelighet — lokasjoner, prosedyrer og sesonger.
             </p>
           </m.div>
 
@@ -587,209 +627,166 @@ function SmartoutLandingPageContent() {
           {/* Tab Content Panels */}
           <div className="relative min-h-[350px]">
             <AnimatePresence mode="wait">
-            {/* Locations Panel */}
-            {activeTab === "locations" && (
-              <m.div
-                key="locations"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3 }}
-              >
-                <div className="mx-auto mb-6 max-w-2xl text-center sm:mb-10">
-                  <h3 className="mb-2 text-lg font-black text-white sm:mb-3 sm:text-2xl">
-                    Din arbeidsplass, delt opp og organisert
-                  </h3>
-                  <p className="mb-6 text-sm leading-relaxed text-zinc-400 sm:text-base">
-                    Del opp virksomheten i lokasjoner, soner og utstyr — og knytt rutiner,
-                    dokumentasjon og opplæring direkte til stedet der arbeidet skjer.
-                  </p>
-                  <div className="flex flex-wrap justify-center gap-3">
-                    {["Flerlokasjon", "Soner & Utstyr", "Stedsbasert opplæring"].map((tag, i) => (
-                      <m.span
-                        key={tag}
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.3, delay: 0.2 + i * 0.07 }}
-                        className="rounded-full border border-orange-500/20 bg-orange-500/5 px-3 py-1 text-xs font-bold text-orange-300"
+              {/* Locations Panel */}
+              {activeTab === "locations" && (
+                <m.div
+                  key="locations"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="mx-auto mb-6 max-w-2xl text-center sm:mb-10">
+                    <h3 className="mb-2 text-lg font-black text-white sm:text-2xl">
+                      Din arbeidsplass, delt opp og organisert
+                    </h3>
+                    <p className="hidden text-base leading-relaxed text-zinc-400 sm:block">
+                      Del opp virksomheten i lokasjoner, soner og utstyr — knytt rutiner og
+                      opplæring direkte til stedet.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 gap-6 sm:gap-8 md:grid-cols-3">
+                    {MOCK_LOCATIONS.map((loc, i) => (
+                      <m.div
+                        key={loc.id}
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: i * 0.1 }}
                       >
-                        {tag}
-                      </m.span>
+                        <Link
+                          href={loc.href}
+                          className="group relative block overflow-hidden rounded-3xl border border-white/5 bg-[#0a0a0c]/40 p-6 shadow-2xl backdrop-blur-3xl transition-all duration-500 hover:-translate-y-2 hover:border-white/10 sm:rounded-[40px] sm:p-10"
+                        >
+                          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-50 transition-all duration-500 group-hover:via-orange-500/50 group-hover:opacity-100" />
+                          <div className="absolute -inset-1 bg-gradient-to-b from-orange-500/5 to-transparent opacity-0 blur-xl transition-opacity duration-500 group-hover:opacity-100" />
+                          <div className="relative z-10 mb-5 flex h-12 w-12 items-center justify-center rounded-2xl border border-orange-500/10 bg-gradient-to-tr from-orange-600/20 to-orange-400/5 shadow-inner transition-all duration-500 group-hover:scale-110 group-hover:bg-orange-600/30 sm:mb-8 sm:h-16 sm:w-16 sm:rounded-[24px]">
+                            <loc.icon className="h-6 w-6 text-orange-400 drop-shadow-[0_0_15px_rgba(251,146,60,0.5)] sm:h-8 sm:w-8" />
+                          </div>
+                          <h3 className="mb-1 text-lg font-bold text-white sm:mb-2 sm:text-2xl">
+                            {loc.name}
+                          </h3>
+                          <div className="flex items-center justify-between text-sm font-medium text-zinc-400">
+                            <span>{loc.city}</span>
+                            <span className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-black/50 px-2 py-1 text-xs sm:px-3 sm:py-1.5 sm:text-sm">
+                              <Users className="h-3.5 w-3.5 text-orange-400 sm:h-4 sm:w-4" />{" "}
+                              {loc.employees}
+                            </span>
+                          </div>
+                        </Link>
+                      </m.div>
                     ))}
                   </div>
-                </div>
-                <div className="grid grid-cols-1 gap-6 sm:gap-8 md:grid-cols-3">
-                  {MOCK_LOCATIONS.map((loc, i) => (
-                    <m.div
-                      key={loc.id}
-                      initial={{ opacity: 0, y: 30 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, delay: i * 0.1 }}
-                    >
-                      <Link
-                        href={loc.href}
-                        className="group relative block overflow-hidden rounded-3xl border border-white/5 bg-[#0a0a0c]/40 p-6 shadow-2xl backdrop-blur-3xl transition-all duration-500 hover:-translate-y-2 hover:border-white/10 sm:rounded-[40px] sm:p-10"
-                      >
-                        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-50 transition-all duration-500 group-hover:via-orange-500/50 group-hover:opacity-100" />
-                        <div className="absolute -inset-1 bg-gradient-to-b from-orange-500/5 to-transparent opacity-0 blur-xl transition-opacity duration-500 group-hover:opacity-100" />
-                        <div className="relative z-10 mb-5 flex h-12 w-12 items-center justify-center rounded-2xl border border-orange-500/10 bg-gradient-to-tr from-orange-600/20 to-orange-400/5 shadow-inner transition-all duration-500 group-hover:scale-110 group-hover:bg-orange-600/30 sm:mb-8 sm:h-16 sm:w-16 sm:rounded-[24px]">
-                          <loc.icon className="h-6 w-6 text-orange-400 drop-shadow-[0_0_15px_rgba(251,146,60,0.5)] sm:h-8 sm:w-8" />
-                        </div>
-                        <h3 className="mb-1 text-lg font-bold text-white sm:mb-2 sm:text-2xl">
-                          {loc.name}
-                        </h3>
-                        <div className="flex items-center justify-between text-sm font-medium text-zinc-400">
-                          <span>{loc.city}</span>
-                          <span className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-black/50 px-2 py-1 text-xs sm:px-3 sm:py-1.5 sm:text-sm">
-                            <Users className="h-3.5 w-3.5 text-orange-400 sm:h-4 sm:w-4" />{" "}
-                            {loc.employees}
-                          </span>
-                        </div>
-                      </Link>
-                    </m.div>
-                  ))}
-                </div>
-              </m.div>
-            )}
+                </m.div>
+              )}
 
-            {/* Procedures Panel */}
-            {activeTab === "procedures" && (
-              <m.div
-                key="procedures"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3 }}
-              >
-                <div className="mx-auto mb-6 max-w-2xl text-center sm:mb-10">
-                  <h3 className="mb-2 text-lg font-black text-white sm:mb-3 sm:text-2xl">
-                    Sjekklister, kontrollister og verifiseringsplaner
-                  </h3>
-                  <p className="mb-6 text-sm leading-relaxed text-zinc-400 sm:text-base">
-                    Bygg prosedyrer som sikrer at alt blir gjort riktig, hver gang. Fra
-                    morgenrutiner til IK-mat — med sporbar signering og automatisk oppfølging.
-                  </p>
-                  <div className="flex flex-wrap justify-center gap-3">
-                    {["Sporbar signering", "Automatisk oppfølging", "HACCP-klar"].map((tag, i) => (
-                      <m.span
-                        key={tag}
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.3, delay: 0.2 + i * 0.07 }}
-                        className="rounded-full border border-emerald-500/20 bg-emerald-500/5 px-3 py-1 text-xs font-bold text-emerald-300"
+              {/* Procedures Panel */}
+              {activeTab === "procedures" && (
+                <m.div
+                  key="procedures"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="mx-auto mb-6 max-w-2xl text-center sm:mb-10">
+                    <h3 className="mb-2 text-lg font-black text-white sm:text-2xl">
+                      Sjekklister og verifiseringsplaner
+                    </h3>
+                    <p className="hidden text-base leading-relaxed text-zinc-400 sm:block">
+                      Alt blir gjort riktig, hver gang. Sporbar signering og automatisk oppfølging.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-4">
+                    {MOCK_PROCEDURES.map((proc, i) => (
+                      <m.div
+                        key={proc.id}
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.45, delay: i * 0.08 }}
                       >
-                        {tag}
-                      </m.span>
+                        <Link
+                          href={proc.href}
+                          className="group relative flex flex-col items-center overflow-hidden rounded-2xl border border-white/5 bg-[#0a0a0c]/40 p-5 text-center shadow-2xl backdrop-blur-xl transition-all duration-300 hover:-translate-y-2 hover:border-white/10 sm:rounded-[32px] sm:p-8"
+                        >
+                          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                          <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                          <div
+                            className={`relative z-10 mb-4 flex h-14 w-14 items-center justify-center rounded-xl border border-white/10 bg-black/50 ${proc.color} shadow-inner transition-transform duration-500 group-hover:scale-110 sm:mb-6 sm:h-20 sm:w-20 sm:rounded-2xl`}
+                          >
+                            <proc.icon className="h-7 w-7 sm:h-10 sm:w-10" />
+                          </div>
+                          <h3 className="mb-2 text-sm font-bold text-white sm:mb-3 sm:text-xl">
+                            {proc.name}
+                          </h3>
+                          <span className="rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-bold tracking-widest text-zinc-500 uppercase sm:px-3 sm:py-1 sm:text-sm">
+                            {proc.taskCount} Oppgaver
+                          </span>
+                        </Link>
+                      </m.div>
                     ))}
                   </div>
-                </div>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-4">
-                  {MOCK_PROCEDURES.map((proc, i) => (
-                    <m.div
-                      key={proc.id}
-                      initial={{ opacity: 0, y: 30 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.45, delay: i * 0.08 }}
-                    >
-                      <Link
-                        href={proc.href}
-                        className="group relative flex flex-col items-center overflow-hidden rounded-2xl border border-white/5 bg-[#0a0a0c]/40 p-5 text-center shadow-2xl backdrop-blur-xl transition-all duration-300 hover:-translate-y-2 hover:border-white/10 sm:rounded-[32px] sm:p-8"
-                      >
-                        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                        <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                        <div
-                          className={`relative z-10 mb-4 flex h-14 w-14 items-center justify-center rounded-xl border border-white/10 bg-black/50 ${proc.color} shadow-inner transition-transform duration-500 group-hover:scale-110 sm:mb-6 sm:h-20 sm:w-20 sm:rounded-2xl`}
-                        >
-                          <proc.icon className="h-7 w-7 sm:h-10 sm:w-10" />
-                        </div>
-                        <h3 className="mb-2 text-sm font-bold text-white sm:mb-3 sm:text-xl">
-                          {proc.name}
-                        </h3>
-                        <span className="rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-bold tracking-widest text-zinc-500 uppercase sm:px-3 sm:py-1 sm:text-sm">
-                          {proc.taskCount} Oppgaver
-                        </span>
-                      </Link>
-                    </m.div>
-                  ))}
-                </div>
-              </m.div>
-            )}
+                </m.div>
+              )}
 
-            {/* Seasons Panel */}
-            {activeTab === "seasons" && (
-              <m.div
-                key="seasons"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3 }}
-              >
-                <div className="mx-auto mb-6 max-w-2xl text-center sm:mb-10">
-                  <h3 className="mb-2 text-lg font-black text-white sm:mb-3 sm:text-2xl">
-                    Modulbasert drift, sesong for sesong
-                  </h3>
-                  <p className="mb-6 text-sm leading-relaxed text-zinc-400 sm:text-base">
-                    Organiser hele virksomheten i sesonger. Lagre innstillinger, menyer, vaktplaner
-                    og rutiner per sesong — og aktiver med ett klikk når tiden er inne.
-                  </p>
-                  <div className="flex flex-wrap justify-center gap-3">
-                    {["Ett-klikk aktivering", "Lagrede oppsett", "Sesongbasert meny"].map(
-                      (tag, i) => (
-                        <m.span
-                          key={tag}
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ duration: 0.3, delay: 0.2 + i * 0.07 }}
-                          className="rounded-full border border-blue-500/20 bg-blue-500/5 px-3 py-1 text-xs font-bold text-blue-300"
-                        >
-                          {tag}
-                        </m.span>
-                      ),
-                    )}
+              {/* Seasons Panel */}
+              {activeTab === "seasons" && (
+                <m.div
+                  key="seasons"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="mx-auto mb-6 max-w-2xl text-center sm:mb-10">
+                    <h3 className="mb-2 text-lg font-black text-white sm:text-2xl">
+                      Modulbasert drift, sesong for sesong
+                    </h3>
+                    <p className="hidden text-base leading-relaxed text-zinc-400 sm:block">
+                      Lagre innstillinger, menyer og rutiner per sesong — aktiver med ett klikk.
+                    </p>
                   </div>
-                </div>
-                <div className="grid grid-cols-1 gap-6 sm:gap-8 md:grid-cols-3">
-                  {MOCK_SEASONS.map((season, i) => (
-                    <m.div
-                      key={season.id}
-                      initial={{ opacity: 0, y: 30 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, delay: i * 0.1 }}
-                    >
-                      <Link
-                        href={season.href}
-                        className={`block rounded-3xl border p-6 shadow-2xl backdrop-blur-xl sm:rounded-[32px] sm:p-10 ${season.active ? "border-orange-500/40 bg-orange-500/10 shadow-[0_0_40px_-10px_rgba(249,115,22,0.3)]" : "border-white/5 bg-[#0a0a0c]/40 hover:border-white/10 hover:bg-[#0a0a0c]/60"} group relative overflow-hidden transition-all duration-300 hover:-translate-y-2`}
+                  <div className="grid grid-cols-1 gap-6 sm:gap-8 md:grid-cols-3">
+                    {MOCK_SEASONS.map((season, i) => (
+                      <m.div
+                        key={season.id}
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: i * 0.1 }}
                       >
-                        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                        {season.active && (
-                          <span className="absolute top-4 right-4 z-10 rounded-full bg-gradient-to-r from-orange-500 to-rose-500 px-2.5 py-1 text-[10px] font-black tracking-wider text-white uppercase shadow-lg sm:top-6 sm:right-6 sm:px-3 sm:py-1.5 sm:text-xs">
-                            Aktiv nå
-                          </span>
-                        )}
-                        <season.icon
-                          className={`mb-5 h-8 w-8 sm:mb-8 sm:h-12 sm:w-12 ${season.active ? "text-orange-400" : "text-zinc-500"}`}
-                        />
-                        <h3 className="mb-1 text-xl font-black text-white sm:mb-2 sm:text-3xl">
-                          {season.name}
-                        </h3>
-                        <p className="text-sm font-medium text-zinc-400 sm:text-lg">
-                          {season.period}
-                        </p>
-                      </Link>
-                    </m.div>
-                  ))}
-                </div>
-              </m.div>
-            )}
+                        <Link
+                          href={season.href}
+                          className={`block rounded-3xl border p-6 shadow-2xl backdrop-blur-xl sm:rounded-[32px] sm:p-10 ${season.active ? "border-orange-500/40 bg-orange-500/10 shadow-[0_0_40px_-10px_rgba(249,115,22,0.3)]" : "border-white/5 bg-[#0a0a0c]/40 hover:border-white/10 hover:bg-[#0a0a0c]/60"} group relative overflow-hidden transition-all duration-300 hover:-translate-y-2`}
+                        >
+                          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                          {season.active && (
+                            <span className="absolute top-4 right-4 z-10 rounded-full bg-gradient-to-r from-orange-500 to-rose-500 px-2.5 py-1 text-[10px] font-black tracking-wider text-white uppercase shadow-lg sm:top-6 sm:right-6 sm:px-3 sm:py-1.5 sm:text-xs">
+                              Aktiv nå
+                            </span>
+                          )}
+                          <season.icon
+                            className={`mb-5 h-8 w-8 sm:mb-8 sm:h-12 sm:w-12 ${season.active ? "text-orange-400" : "text-zinc-500"}`}
+                          />
+                          <h3 className="mb-1 text-xl font-black text-white sm:mb-2 sm:text-3xl">
+                            {season.name}
+                          </h3>
+                          <p className="text-sm font-medium text-zinc-400 sm:text-lg">
+                            {season.period}
+                          </p>
+                        </Link>
+                      </m.div>
+                    ))}
+                  </div>
+                </m.div>
+              )}
             </AnimatePresence>
           </div>
         </section>
 
         {/* ─── Divider ─── */}
-        <div className="section-divider relative z-10 my-8 sm:my-16" />
+        <div className="section-divider relative z-10 my-12 sm:my-20" />
 
         {/* COMPLIANCE SECTION */}
-        <section className="relative z-10 py-16 sm:py-40">
+        <section className="relative z-10 py-20 sm:py-40">
           {/* Blended background for compliance */}
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-emerald-950/10 to-transparent" />
           <div className="pointer-events-none absolute top-1/2 left-1/2 h-[600px] w-[1000px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-500/5 blur-[150px]" />
@@ -905,17 +902,13 @@ function SmartoutLandingPageContent() {
             transition={{ duration: 0.8 }}
             className="mx-auto mb-10 max-w-3xl sm:mb-20 lg:text-center"
           >
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-orange-500/20 bg-orange-500/10 px-3 py-1 text-xs font-bold tracking-widest text-orange-400 uppercase sm:mb-6 sm:text-sm">
-              <Zap className="h-4 w-4" /> Neste generasjons plattform
-            </div>
             <h2 className="mb-4 text-3xl leading-tight font-black tracking-tight text-white sm:mb-6 sm:text-4xl">
               Ikke bare programvare.
               <br />
               En ny måte å jobbe på.
             </h2>
-            <p className="px-2 text-base text-zinc-400 sm:px-0 sm:text-lg">
-              Vi har byttet ut de gamle, trege systemene med et lynraskt, AI-drevet grensesnitt som
-              de ansatte faktisk elsker å bruke. Tidsbesparende for ledere, motiverende for teamet.
+            <p className="hidden text-lg text-zinc-400 sm:block">
+              Lynraskt, AI-drevet grensesnitt. Tidsbesparende for ledere, motiverende for teamet.
             </p>
           </m.div>
 
@@ -972,10 +965,10 @@ function SmartoutLandingPageContent() {
         </section>
 
         {/* ─── Divider ─── */}
-        <div className="section-divider relative z-10 my-8 sm:my-16" />
+        <div className="section-divider relative z-10 my-12 sm:my-20" />
 
         {/* ONBOARDING PROMISE SECTION */}
-        <section className="relative z-10 py-16 sm:py-32">
+        <section className="relative z-10 py-20 sm:py-32">
           <div className="mx-auto max-w-7xl px-6">
             <div className="grid grid-cols-1 items-center gap-10 sm:gap-16 lg:grid-cols-2">
               <m.div
@@ -985,10 +978,7 @@ function SmartoutLandingPageContent() {
                 transition={{ duration: 0.8 }}
                 className="relative z-10"
               >
-                <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1 text-xs font-bold tracking-widest text-blue-400 uppercase">
-                  <Sparkles className="h-4 w-4" /> AI-drevet Onboarding
-                </div>
-                <h2 className="mb-6 text-4xl font-black tracking-tight text-white sm:text-5xl md:text-6xl">
+                <h2 className="mb-6 text-3xl font-black tracking-tight text-white sm:text-5xl md:text-6xl">
                   I gang på minutter,
                   <br />
                   ikke måneder.
@@ -1054,20 +1044,11 @@ function SmartoutLandingPageContent() {
         </section>
 
         {/* ─── Divider ─── */}
-        <div className="section-divider relative z-10 my-8 sm:my-16" />
+        <div className="section-divider relative z-10 my-12 sm:my-20" />
 
         {/* PRICING SECTION */}
-        <section id="priser" className="relative z-10 py-16 sm:py-32">
+        <section id="priser" className="relative z-10 py-20 sm:py-32">
           <div className="mx-auto max-w-7xl px-6 text-center">
-            <m.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="mb-6 inline-flex items-center gap-2 rounded-full border border-purple-500/20 bg-purple-500/10 px-3 py-1 text-xs font-bold tracking-widest text-purple-400 uppercase"
-            >
-              <Sparkles className="h-4 w-4" /> Enkel Prismodell
-            </m.div>
             <m.h2
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -1108,10 +1089,10 @@ function SmartoutLandingPageContent() {
         </section>
 
         {/* ─── Divider ─── */}
-        <div className="section-divider relative z-10 my-8 sm:my-16" />
+        <div className="section-divider relative z-10 my-12 sm:my-20" />
 
         {/* SMARTOUT AI SECTION */}
-        <section id="smartout-ai" className="relative z-10 py-16 sm:py-32">
+        <section id="smartout-ai" className="relative z-10 py-20 sm:py-32">
           <div className="pointer-events-none absolute top-1/2 left-1/2 h-[800px] w-[800px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-orange-500/5 mix-blend-screen blur-[120px]" />
 
           <div className="mx-auto max-w-7xl px-6">
@@ -1122,10 +1103,6 @@ function SmartoutLandingPageContent() {
               transition={{ duration: 0.8 }}
               className="mb-10 text-center sm:mb-16"
             >
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-orange-500/20 bg-orange-500/10 px-3 py-1 text-xs font-bold tracking-wider text-orange-400 uppercase sm:mb-6">
-                <Bot className="h-3.5 w-3.5" />
-                SmartOut AI
-              </div>
               <h2 className="mb-3 text-3xl font-black tracking-tight text-white sm:mb-6 sm:text-5xl">
                 {VARIANT_AI_SECTION.B.heading}
               </h2>
@@ -1166,7 +1143,7 @@ function SmartoutLandingPageContent() {
         </section>
 
         {/* CTA Footer Section */}
-        <section className="relative z-10 overflow-hidden py-16 sm:py-32 md:py-48">
+        <section className="relative z-10 overflow-hidden py-20 sm:py-32 md:py-48">
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0a0a0c]/80 to-[#0a0a0c]"></div>
           <div className="pointer-events-none absolute top-1/2 left-1/2 h-[800px] w-[1200px] -translate-x-1/2 -translate-y-1/2 rounded-[50%] bg-orange-500/10 blur-[150px]"></div>
 
@@ -1188,7 +1165,7 @@ function SmartoutLandingPageContent() {
               className="flex w-full justify-center"
             >
               <Link
-                href={onboardingHref}
+                href={WEB_APP_LINKS.login}
                 onClick={() => trackCta("Kom i gang")}
                 className="group relative block w-full sm:inline-block sm:w-auto"
               >
@@ -1202,6 +1179,19 @@ function SmartoutLandingPageContent() {
           </div>
         </section>
       </main>
+
+      {/* Floating back-to-top */}
+      <button
+        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        className={`fixed right-5 bottom-6 z-50 flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-[#0a0a0c]/90 text-zinc-400 shadow-lg backdrop-blur-md transition-all duration-300 hover:border-orange-500/30 hover:text-orange-400 sm:right-8 sm:bottom-8 sm:h-12 sm:w-12 ${
+          showBackToTop
+            ? "translate-y-0 opacity-100"
+            : "pointer-events-none translate-y-4 opacity-0"
+        }`}
+        aria-label="Tilbake til toppen"
+      >
+        <ArrowUp className="h-5 w-5" />
+      </button>
 
       <Footer />
     </div>

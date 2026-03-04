@@ -1,3 +1,5 @@
+SET search_path TO public, extensions;
+
 -- ============================================
 -- 20260302000000_seed_landing_variants.sql
 -- Seeds the 7 existing landing page variants with
@@ -20,6 +22,8 @@ BEGIN
   -- Persona: Daglig leder, orange accent
   -- Source: apps/landing/src/app/page.tsx
   -- ══════════════════════════════════════════════
+
+  IF NOT EXISTS (SELECT 1 FROM public.landing_variant WHERE slug = 'default') THEN
 
   INSERT INTO public.landing_variant (slug, name, status, is_default, theme, meta_title, meta_description, voice_config, sort_order)
   VALUES (
@@ -71,12 +75,15 @@ BEGIN
     '{}'::jsonb);
   b_order := b_order + 1;
 
+  END IF; -- default
 
   -- ══════════════════════════════════════════════
   -- VARIANT E — Action (Lars Erik)
   -- Persona: Kjøkkensjef, orange-action accent
   -- Source: apps/landing/src/components/landing/VariantELanding.tsx
   -- ══════════════════════════════════════════════
+
+  IF NOT EXISTS (SELECT 1 FROM public.landing_variant WHERE slug = 'action') THEN
 
   INSERT INTO public.landing_variant (slug, name, status, is_default, theme, meta_title, meta_description, voice_config, sort_order)
   VALUES (
@@ -121,12 +128,15 @@ BEGIN
     '{}'::jsonb);
   b_order := b_order + 1;
 
+  END IF; -- action
 
   -- ══════════════════════════════════════════════
   -- VARIANT T — Enterprise (Thomas)
   -- Persona: Senior HR-direktør, slate accent
   -- Source: apps/landing/src/components/landing/VariantTLanding.tsx
   -- ══════════════════════════════════════════════
+
+  IF NOT EXISTS (SELECT 1 FROM public.landing_variant WHERE slug = 'enterprise') THEN
 
   INSERT INTO public.landing_variant (slug, name, status, is_default, theme, meta_title, meta_description, voice_config, sort_order)
   VALUES (
@@ -178,12 +188,15 @@ BEGIN
     '{}'::jsonb);
   b_order := b_order + 1;
 
+  END IF; -- enterprise
 
   -- ══════════════════════════════════════════════
   -- VARIANT K — Konsulent (Katrine)
   -- Persona: Bransjerådgiver, emerald accent
   -- Source: apps/landing/src/components/landing/VariantKLanding.tsx
   -- ══════════════════════════════════════════════
+
+  IF NOT EXISTS (SELECT 1 FROM public.landing_variant WHERE slug = 'consultant') THEN
 
   INSERT INTO public.landing_variant (slug, name, status, is_default, theme, meta_title, meta_description, voice_config, sort_order)
   VALUES (
@@ -235,12 +248,15 @@ BEGIN
     '{}'::jsonb);
   b_order := b_order + 1;
 
+  END IF; -- consultant
 
   -- ══════════════════════════════════════════════
   -- VARIANT A — Inkluderende (Ahmad)
   -- Persona: Hotellsjef, amber accent
   -- Source: apps/landing/src/components/landing/VariantALanding.tsx
   -- ══════════════════════════════════════════════
+
+  IF NOT EXISTS (SELECT 1 FROM public.landing_variant WHERE slug = 'inclusive') THEN
 
   INSERT INTO public.landing_variant (slug, name, status, is_default, theme, meta_title, meta_description, voice_config, sort_order)
   VALUES (
@@ -292,12 +308,15 @@ BEGIN
     '{}'::jsonb);
   b_order := b_order + 1;
 
+  END IF; -- inclusive
 
   -- ══════════════════════════════════════════════
   -- VARIANT F — Tilgjengelig (Fatima)
   -- Persona: Renholdsarbeider, yellow accent
   -- Source: apps/landing/src/components/landing/VariantFLanding.tsx
   -- ══════════════════════════════════════════════
+
+  IF NOT EXISTS (SELECT 1 FROM public.landing_variant WHERE slug = 'accessibility') THEN
 
   INSERT INTO public.landing_variant (slug, name, status, is_default, theme, meta_title, meta_description, voice_config, sort_order)
   VALUES (
@@ -342,12 +361,15 @@ BEGIN
     '{}'::jsonb);
   b_order := b_order + 1;
 
+  END IF; -- accessibility
 
   -- ══════════════════════════════════════════════
   -- VARIANT S — Eleganse (Signe)
   -- Persona: Sommelier, rose accent
   -- Source: apps/landing/src/components/landing/VariantSLanding.tsx
   -- ══════════════════════════════════════════════
+
+  IF NOT EXISTS (SELECT 1 FROM public.landing_variant WHERE slug = 'elegance') THEN
 
   INSERT INTO public.landing_variant (slug, name, status, is_default, theme, meta_title, meta_description, voice_config, sort_order)
   VALUES (
@@ -398,5 +420,7 @@ BEGIN
     '{"heading": "Er du klar til å sette en ny standard?", "subheading": "", "buttons": [{"label": "Kom i gang", "href": "/onboarding", "style": "outline"}], "background": "dark"}'::jsonb,
     '{}'::jsonb);
   b_order := b_order + 1;
+
+  END IF; -- elegance
 
 END $$;

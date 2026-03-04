@@ -1,3 +1,5 @@
+SET search_path TO public, extensions;
+
 -- Migration: workspace_slug_constraints
 -- Purpose: Global slug uniqueness, format validation, reserved slugs table,
 --          auto-generation trigger for subdomain routing.
@@ -45,13 +47,18 @@ ALTER TABLE public.workspace
   DROP CONSTRAINT IF EXISTS workspace_company_id_slug_key;
 
 -- Add global unique constraint
-ALTER TABLE public.workspace
-  ADD CONSTRAINT workspace_slug_unique UNIQUE (slug);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'workspace_slug_unique') THEN
+    ALTER TABLE public.workspace ADD CONSTRAINT workspace_slug_unique UNIQUE (slug);
+  END IF;
+END $$;
 
 -- Add format validation (3-50 chars, lowercase alphanumeric + hyphens)
-ALTER TABLE public.workspace
-  ADD CONSTRAINT workspace_slug_format
-  CHECK (slug ~ '^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$');
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'workspace_slug_format') THEN
+    ALTER TABLE public.workspace ADD CONSTRAINT workspace_slug_format CHECK (slug ~ '^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$');
+  END IF;
+END $$;
 
 -- ============================================================================
 -- 3. Slug Generation Trigger Function
@@ -110,6 +117,7 @@ $$;
 -- ============================================================================
 DROP TRIGGER IF EXISTS trg_workspace_generate_slug ON public.workspace;
 
+DROP TRIGGER IF EXISTS trg_workspace_generate_slug ON public.workspace;
 CREATE TRIGGER trg_workspace_generate_slug
   BEFORE INSERT ON public.workspace
   FOR EACH ROW

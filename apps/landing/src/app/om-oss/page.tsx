@@ -153,7 +153,7 @@ export default function OmOssPage() {
               fremtidens restaurantdrift.
             </p>
             <Link
-              href={WEB_APP_LINKS.onboarding}
+              href={WEB_APP_LINKS.login}
               onClick={() => trackCta("Start din SmartOut i dag")}
               className="inline-flex items-center gap-3 rounded-full bg-white px-10 py-5 text-lg font-black text-zinc-950 shadow-[0_0_40px_rgba(255,255,255,0.2)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_60px_rgba(255,255,255,0.4)]"
             >

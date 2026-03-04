@@ -1,3 +1,5 @@
+SET search_path TO public, extensions;
+
 -- ============================================
 -- 20260304100000_engine_process_tables.sql
 -- Creates the 6 core tables for the Domain Process Engine:
@@ -12,7 +14,7 @@
 
 -- ── engine_process ─────────────────────────────────────────
 -- Reusable process templates. E.g. "daily_close", "onboarding_14d"
-CREATE TABLE public.engine_process (
+CREATE TABLE IF NOT EXISTS public.engine_process (
   id            TEXT PRIMARY KEY,               -- human-readable: "daily_close"
   name          TEXT NOT NULL,
   description   TEXT,
@@ -25,18 +27,20 @@ CREATE TABLE public.engine_process (
 
 ALTER TABLE engine_process ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "read_engine_process" ON engine_process;
 CREATE POLICY "read_engine_process" ON engine_process
 FOR SELECT USING (
   workspace_id IS NULL
   OR workspace_id IN (SELECT get_workspace_ids_for_user(auth.uid()))
   OR workspace_id = NULLIF(current_setting('app.workspace_id', true), '')::uuid
 );
+DROP POLICY IF EXISTS "manage_engine_process" ON engine_process;
 CREATE POLICY "manage_engine_process" ON engine_process
 FOR ALL USING (auth.role() = 'service_role');
 
 -- ── engine_step ────────────────────────────────────────────
 -- Steps within a process. step_group enables parallel execution.
-CREATE TABLE public.engine_step (
+CREATE TABLE IF NOT EXISTS public.engine_step (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   process_id      TEXT NOT NULL REFERENCES engine_process(id) ON DELETE CASCADE,
   step_order      INTEGER NOT NULL,
@@ -52,18 +56,20 @@ CREATE TABLE public.engine_step (
 
 ALTER TABLE engine_step ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "read_engine_step" ON engine_step;
 CREATE POLICY "read_engine_step" ON engine_step
 FOR SELECT USING (
   process_id IN (SELECT id FROM engine_process)
 );
+DROP POLICY IF EXISTS "manage_engine_step" ON engine_step;
 CREATE POLICY "manage_engine_step" ON engine_step
 FOR ALL USING (auth.role() = 'service_role');
 
-CREATE INDEX idx_engine_step_process ON engine_step (process_id, step_order);
+CREATE INDEX IF NOT EXISTS idx_engine_step_process ON engine_step (process_id, step_order);
 
 -- ── engine_trigger ─────────────────────────────────────────
 -- Maps event types to process starts.
-CREATE TABLE public.engine_trigger (
+CREATE TABLE IF NOT EXISTS public.engine_trigger (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   event_type    TEXT NOT NULL,                    -- "session.closing_started", "shift.completed"
   process_id    TEXT NOT NULL REFERENCES engine_process(id) ON DELETE CASCADE,
@@ -76,21 +82,23 @@ CREATE TABLE public.engine_trigger (
 
 ALTER TABLE engine_trigger ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "read_engine_trigger" ON engine_trigger;
 CREATE POLICY "read_engine_trigger" ON engine_trigger
 FOR SELECT USING (
   workspace_id IS NULL
   OR workspace_id IN (SELECT get_workspace_ids_for_user(auth.uid()))
   OR workspace_id = NULLIF(current_setting('app.workspace_id', true), '')::uuid
 );
+DROP POLICY IF EXISTS "manage_engine_trigger" ON engine_trigger;
 CREATE POLICY "manage_engine_trigger" ON engine_trigger
 FOR ALL USING (auth.role() = 'service_role');
 
-CREATE INDEX idx_engine_trigger_event ON engine_trigger (event_type)
+CREATE INDEX IF NOT EXISTS idx_engine_trigger_event ON engine_trigger (event_type)
   WHERE is_active = true;
 
 -- ── engine_event ───────────────────────────────────────────
 -- Event log. All events that enter the system.
-CREATE TABLE public.engine_event (
+CREATE TABLE IF NOT EXISTS public.engine_event (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   event_type      TEXT NOT NULL,
   payload         JSONB NOT NULL DEFAULT '{}',
@@ -101,22 +109,24 @@ CREATE TABLE public.engine_event (
 
 ALTER TABLE engine_event ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "read_engine_event" ON engine_event;
 CREATE POLICY "read_engine_event" ON engine_event
 FOR SELECT USING (
   workspace_id IN (SELECT get_workspace_ids_for_user(auth.uid()))
   OR workspace_id = NULLIF(current_setting('app.workspace_id', true), '')::uuid
 );
+DROP POLICY IF EXISTS "manage_engine_event" ON engine_event;
 CREATE POLICY "manage_engine_event" ON engine_event
 FOR ALL USING (auth.role() = 'service_role');
 
-CREATE UNIQUE INDEX idx_engine_event_idempotency
+CREATE UNIQUE INDEX IF NOT EXISTS idx_engine_event_idempotency
   ON engine_event (idempotency_key) WHERE idempotency_key IS NOT NULL;
-CREATE INDEX idx_engine_event_type ON engine_event (event_type, fired_at DESC);
-CREATE INDEX idx_engine_event_workspace ON engine_event (workspace_id, fired_at DESC);
+CREATE INDEX IF NOT EXISTS idx_engine_event_type ON engine_event (event_type, fired_at DESC);
+CREATE INDEX IF NOT EXISTS idx_engine_event_workspace ON engine_event (workspace_id, fired_at DESC);
 
 -- ── engine_state ───────────────────────────────────────────
 -- Running process instances. One row per active process run.
-CREATE TABLE public.engine_state (
+CREATE TABLE IF NOT EXISTS public.engine_state (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   trigger_id      UUID REFERENCES engine_trigger(id),
   process_id      TEXT NOT NULL REFERENCES engine_process(id),
@@ -155,27 +165,29 @@ CREATE TABLE public.engine_state (
 
 ALTER TABLE engine_state ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "read_engine_state" ON engine_state;
 CREATE POLICY "read_engine_state" ON engine_state
 FOR SELECT USING (
   workspace_id IN (SELECT get_workspace_ids_for_user(auth.uid()))
   OR workspace_id = NULLIF(current_setting('app.workspace_id', true), '')::uuid
 );
+DROP POLICY IF EXISTS "manage_engine_state" ON engine_state;
 CREATE POLICY "manage_engine_state" ON engine_state
 FOR ALL USING (auth.role() = 'service_role');
 
-CREATE INDEX idx_engine_state_entity ON engine_state (entity_type, entity_id);
-CREATE INDEX idx_engine_state_workspace_status ON engine_state (workspace_id, status)
+CREATE INDEX IF NOT EXISTS idx_engine_state_entity ON engine_state (entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_engine_state_workspace_status ON engine_state (workspace_id, status)
   WHERE status IN ('pending', 'active', 'waiting');
-CREATE INDEX idx_engine_state_process ON engine_state (process_id, status);
+CREATE INDEX IF NOT EXISTS idx_engine_state_process ON engine_state (process_id, status);
 
 -- Prevent duplicate active processes per entity
-CREATE UNIQUE INDEX idx_engine_state_unique_active
+CREATE UNIQUE INDEX IF NOT EXISTS idx_engine_state_unique_active
   ON engine_state (entity_type, entity_id, process_id)
   WHERE status IN ('pending', 'active', 'waiting');
 
 -- ── engine_delayed_trigger ─────────────────────────────────
 -- Timer queue for delayed trigger firing. pg_cron polls this.
-CREATE TABLE public.engine_delayed_trigger (
+CREATE TABLE IF NOT EXISTS public.engine_delayed_trigger (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   trigger_id    UUID NOT NULL REFERENCES engine_trigger(id),
   event_id      UUID NOT NULL REFERENCES engine_event(id),
@@ -187,15 +199,17 @@ CREATE TABLE public.engine_delayed_trigger (
 
 ALTER TABLE engine_delayed_trigger ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "read_engine_delayed_trigger" ON engine_delayed_trigger;
 CREATE POLICY "read_engine_delayed_trigger" ON engine_delayed_trigger
 FOR SELECT USING (
   workspace_id IN (SELECT get_workspace_ids_for_user(auth.uid()))
   OR workspace_id = NULLIF(current_setting('app.workspace_id', true), '')::uuid
 );
+DROP POLICY IF EXISTS "manage_engine_delayed_trigger" ON engine_delayed_trigger;
 CREATE POLICY "manage_engine_delayed_trigger" ON engine_delayed_trigger
 FOR ALL USING (auth.role() = 'service_role');
 
-CREATE INDEX idx_engine_delayed_trigger_fire
+CREATE INDEX IF NOT EXISTS idx_engine_delayed_trigger_fire
   ON engine_delayed_trigger (fire_at) WHERE fired = false;
 
 -- ── Comments ───────────────────────────────────────────────

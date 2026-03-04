@@ -1,3 +1,5 @@
+SET search_path TO public, extensions;
+
 -- ============================================
 -- 20260301600000_schedule_persistence_tables.sql
 -- Creates all remaining schedule tables for DB persistence:
@@ -11,14 +13,30 @@
 
 -- ── New Enums ──────────────────────────────────────────────────
 
-CREATE TYPE absence_status AS ENUM ('pending', 'approved', 'rejected');
-CREATE TYPE booking_status AS ENUM ('confirmed', 'pending', 'cancelled');
-CREATE TYPE message_visibility AS ENUM ('all_day', 'until_16', 'permanent');
-CREATE TYPE audit_operation AS ENUM ('INSERT', 'UPDATE', 'DELETE');
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'absence_status') THEN
+    CREATE TYPE absence_status AS ENUM ('pending', 'approved', 'rejected');
+  END IF;
+END $$;;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'booking_status') THEN
+    CREATE TYPE booking_status AS ENUM ('confirmed', 'pending', 'cancelled');
+  END IF;
+END $$;;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'message_visibility') THEN
+    CREATE TYPE message_visibility AS ENUM ('all_day', 'until_16', 'permanent');
+  END IF;
+END $$;;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'audit_operation') THEN
+    CREATE TYPE audit_operation AS ENUM ('INSERT', 'UPDATE', 'DELETE');
+  END IF;
+END $$;;
 
 -- ── schedule_absence ───────────────────────────────────────────
 
-CREATE TABLE public.schedule_absence (
+CREATE TABLE IF NOT EXISTS public.schedule_absence (
   schedule_absence_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id        UUID NOT NULL REFERENCES public.workspace(workspace_id) ON DELETE CASCADE,
   employee_id         UUID NOT NULL REFERENCES public.profile(profile_id) ON DELETE CASCADE,
@@ -38,36 +56,45 @@ COMMENT ON TABLE public.schedule_absence IS 'Employee absences (sick leave, vaca
 
 ALTER TABLE public.schedule_absence ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "jwt_read_schedule_absence" ON public.schedule_absence;
 CREATE POLICY "jwt_read_schedule_absence" ON public.schedule_absence FOR SELECT
   USING (workspace_id IN (SELECT get_workspace_ids_for_user(auth.uid())));
+DROP POLICY IF EXISTS "jwt_insert_schedule_absence" ON public.schedule_absence;
 CREATE POLICY "jwt_insert_schedule_absence" ON public.schedule_absence FOR INSERT
   WITH CHECK (is_admin_in_workspace(auth.uid(), workspace_id));
+DROP POLICY IF EXISTS "jwt_update_schedule_absence" ON public.schedule_absence;
 CREATE POLICY "jwt_update_schedule_absence" ON public.schedule_absence FOR UPDATE
   USING (is_admin_in_workspace(auth.uid(), workspace_id))
   WITH CHECK (is_admin_in_workspace(auth.uid(), workspace_id));
+DROP POLICY IF EXISTS "jwt_delete_schedule_absence" ON public.schedule_absence;
 CREATE POLICY "jwt_delete_schedule_absence" ON public.schedule_absence FOR DELETE
   USING (is_admin_in_workspace(auth.uid(), workspace_id));
 
+DROP POLICY IF EXISTS "api_key_read_schedule_absence" ON public.schedule_absence;
 CREATE POLICY "api_key_read_schedule_absence" ON public.schedule_absence FOR SELECT
   USING (workspace_id = get_api_workspace_id());
+DROP POLICY IF EXISTS "api_key_insert_schedule_absence" ON public.schedule_absence;
 CREATE POLICY "api_key_insert_schedule_absence" ON public.schedule_absence FOR INSERT
   WITH CHECK (workspace_id = get_api_workspace_id());
+DROP POLICY IF EXISTS "api_key_update_schedule_absence" ON public.schedule_absence;
 CREATE POLICY "api_key_update_schedule_absence" ON public.schedule_absence FOR UPDATE
   USING (workspace_id = get_api_workspace_id())
   WITH CHECK (workspace_id = get_api_workspace_id());
+DROP POLICY IF EXISTS "api_key_delete_schedule_absence" ON public.schedule_absence;
 CREATE POLICY "api_key_delete_schedule_absence" ON public.schedule_absence FOR DELETE
   USING (workspace_id = get_api_workspace_id());
 
-CREATE INDEX idx_schedule_absence_workspace_date ON public.schedule_absence (workspace_id, shift_date);
-CREATE INDEX idx_schedule_absence_employee_date ON public.schedule_absence (employee_id, shift_date);
+CREATE INDEX IF NOT EXISTS idx_schedule_absence_workspace_date ON public.schedule_absence (workspace_id, shift_date);
+CREATE INDEX IF NOT EXISTS idx_schedule_absence_employee_date ON public.schedule_absence (employee_id, shift_date);
 
+DROP TRIGGER IF EXISTS set_schedule_absence_updated_at ON public.schedule_absence;
 CREATE TRIGGER set_schedule_absence_updated_at
   BEFORE UPDATE ON public.schedule_absence
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 -- ── schedule_template ──────────────────────────────────────────
 
-CREATE TABLE public.schedule_template (
+CREATE TABLE IF NOT EXISTS public.schedule_template (
   schedule_template_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id         UUID NOT NULL REFERENCES public.workspace(workspace_id) ON DELETE CASCADE,
   name                 TEXT NOT NULL,
@@ -82,35 +109,44 @@ COMMENT ON TABLE public.schedule_template IS 'Reusable shift templates for a day
 
 ALTER TABLE public.schedule_template ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "jwt_read_schedule_template" ON public.schedule_template;
 CREATE POLICY "jwt_read_schedule_template" ON public.schedule_template FOR SELECT
   USING (workspace_id IN (SELECT get_workspace_ids_for_user(auth.uid())));
+DROP POLICY IF EXISTS "jwt_insert_schedule_template" ON public.schedule_template;
 CREATE POLICY "jwt_insert_schedule_template" ON public.schedule_template FOR INSERT
   WITH CHECK (is_admin_in_workspace(auth.uid(), workspace_id));
+DROP POLICY IF EXISTS "jwt_update_schedule_template" ON public.schedule_template;
 CREATE POLICY "jwt_update_schedule_template" ON public.schedule_template FOR UPDATE
   USING (is_admin_in_workspace(auth.uid(), workspace_id))
   WITH CHECK (is_admin_in_workspace(auth.uid(), workspace_id));
+DROP POLICY IF EXISTS "jwt_delete_schedule_template" ON public.schedule_template;
 CREATE POLICY "jwt_delete_schedule_template" ON public.schedule_template FOR DELETE
   USING (is_admin_in_workspace(auth.uid(), workspace_id));
 
+DROP POLICY IF EXISTS "api_key_read_schedule_template" ON public.schedule_template;
 CREATE POLICY "api_key_read_schedule_template" ON public.schedule_template FOR SELECT
   USING (workspace_id = get_api_workspace_id());
+DROP POLICY IF EXISTS "api_key_insert_schedule_template" ON public.schedule_template;
 CREATE POLICY "api_key_insert_schedule_template" ON public.schedule_template FOR INSERT
   WITH CHECK (workspace_id = get_api_workspace_id());
+DROP POLICY IF EXISTS "api_key_update_schedule_template" ON public.schedule_template;
 CREATE POLICY "api_key_update_schedule_template" ON public.schedule_template FOR UPDATE
   USING (workspace_id = get_api_workspace_id())
   WITH CHECK (workspace_id = get_api_workspace_id());
+DROP POLICY IF EXISTS "api_key_delete_schedule_template" ON public.schedule_template;
 CREATE POLICY "api_key_delete_schedule_template" ON public.schedule_template FOR DELETE
   USING (workspace_id = get_api_workspace_id());
 
-CREATE INDEX idx_schedule_template_workspace ON public.schedule_template (workspace_id);
+CREATE INDEX IF NOT EXISTS idx_schedule_template_workspace ON public.schedule_template (workspace_id);
 
+DROP TRIGGER IF EXISTS set_schedule_template_updated_at ON public.schedule_template;
 CREATE TRIGGER set_schedule_template_updated_at
   BEFORE UPDATE ON public.schedule_template
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 -- ── schedule_template_shift ────────────────────────────────────
 
-CREATE TABLE public.schedule_template_shift (
+CREATE TABLE IF NOT EXISTS public.schedule_template_shift (
   schedule_template_shift_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   template_id                UUID NOT NULL REFERENCES public.schedule_template(schedule_template_id) ON DELETE CASCADE,
   employee_id                UUID REFERENCES public.profile(profile_id) ON DELETE SET NULL,
@@ -119,7 +155,7 @@ CREATE TABLE public.schedule_template_shift (
   end_time                   TIME NOT NULL,
   work_hours                 NUMERIC(4,2) NOT NULL DEFAULT 0,
   breaks                     INTEGER NOT NULL DEFAULT 0,
-  day_category               day_category NOT NULL,
+  day_category               public.day_category NOT NULL,
   zone                       TEXT,
   indicator                  TEXT NOT NULL DEFAULT 'blue',
   notes                      TEXT
@@ -129,43 +165,49 @@ COMMENT ON TABLE public.schedule_template_shift IS 'Individual shift entries wit
 
 ALTER TABLE public.schedule_template_shift ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "jwt_read_schedule_template_shift" ON public.schedule_template_shift;
 CREATE POLICY "jwt_read_schedule_template_shift" ON public.schedule_template_shift FOR SELECT
   USING (template_id IN (
     SELECT schedule_template_id FROM public.schedule_template
     WHERE workspace_id IN (SELECT get_workspace_ids_for_user(auth.uid()))
   ));
+DROP POLICY IF EXISTS "jwt_insert_schedule_template_shift" ON public.schedule_template_shift;
 CREATE POLICY "jwt_insert_schedule_template_shift" ON public.schedule_template_shift FOR INSERT
   WITH CHECK (template_id IN (
     SELECT schedule_template_id FROM public.schedule_template
     WHERE is_admin_in_workspace(auth.uid(), workspace_id)
   ));
+DROP POLICY IF EXISTS "jwt_update_schedule_template_shift" ON public.schedule_template_shift;
 CREATE POLICY "jwt_update_schedule_template_shift" ON public.schedule_template_shift FOR UPDATE
   USING (template_id IN (
     SELECT schedule_template_id FROM public.schedule_template
     WHERE is_admin_in_workspace(auth.uid(), workspace_id)
   ));
+DROP POLICY IF EXISTS "jwt_delete_schedule_template_shift" ON public.schedule_template_shift;
 CREATE POLICY "jwt_delete_schedule_template_shift" ON public.schedule_template_shift FOR DELETE
   USING (template_id IN (
     SELECT schedule_template_id FROM public.schedule_template
     WHERE is_admin_in_workspace(auth.uid(), workspace_id)
   ));
 
+DROP POLICY IF EXISTS "api_key_read_schedule_template_shift" ON public.schedule_template_shift;
 CREATE POLICY "api_key_read_schedule_template_shift" ON public.schedule_template_shift FOR SELECT
   USING (template_id IN (
     SELECT schedule_template_id FROM public.schedule_template
     WHERE workspace_id = get_api_workspace_id()
   ));
+DROP POLICY IF EXISTS "api_key_write_schedule_template_shift" ON public.schedule_template_shift;
 CREATE POLICY "api_key_write_schedule_template_shift" ON public.schedule_template_shift FOR ALL
   USING (template_id IN (
     SELECT schedule_template_id FROM public.schedule_template
     WHERE workspace_id = get_api_workspace_id()
   ));
 
-CREATE INDEX idx_schedule_template_shift_template ON public.schedule_template_shift (template_id);
+CREATE INDEX IF NOT EXISTS idx_schedule_template_shift_template ON public.schedule_template_shift (template_id);
 
 -- ── schedule_open_shift ────────────────────────────────────────
 
-CREATE TABLE public.schedule_open_shift (
+CREATE TABLE IF NOT EXISTS public.schedule_open_shift (
   schedule_open_shift_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id           UUID NOT NULL REFERENCES public.workspace(workspace_id) ON DELETE CASCADE,
   title                  TEXT NOT NULL,
@@ -173,7 +215,7 @@ CREATE TABLE public.schedule_open_shift (
   end_time               TIME NOT NULL,
   department             TEXT,
   role                   TEXT,
-  day_category           day_category,
+  day_category           public.day_category,
   created_at             TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at             TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -182,30 +224,37 @@ COMMENT ON TABLE public.schedule_open_shift IS 'Unassigned shifts available for 
 
 ALTER TABLE public.schedule_open_shift ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "jwt_read_schedule_open_shift" ON public.schedule_open_shift;
 CREATE POLICY "jwt_read_schedule_open_shift" ON public.schedule_open_shift FOR SELECT
   USING (workspace_id IN (SELECT get_workspace_ids_for_user(auth.uid())));
+DROP POLICY IF EXISTS "jwt_insert_schedule_open_shift" ON public.schedule_open_shift;
 CREATE POLICY "jwt_insert_schedule_open_shift" ON public.schedule_open_shift FOR INSERT
   WITH CHECK (is_admin_in_workspace(auth.uid(), workspace_id));
+DROP POLICY IF EXISTS "jwt_update_schedule_open_shift" ON public.schedule_open_shift;
 CREATE POLICY "jwt_update_schedule_open_shift" ON public.schedule_open_shift FOR UPDATE
   USING (is_admin_in_workspace(auth.uid(), workspace_id))
   WITH CHECK (is_admin_in_workspace(auth.uid(), workspace_id));
+DROP POLICY IF EXISTS "jwt_delete_schedule_open_shift" ON public.schedule_open_shift;
 CREATE POLICY "jwt_delete_schedule_open_shift" ON public.schedule_open_shift FOR DELETE
   USING (is_admin_in_workspace(auth.uid(), workspace_id));
 
+DROP POLICY IF EXISTS "api_key_read_schedule_open_shift" ON public.schedule_open_shift;
 CREATE POLICY "api_key_read_schedule_open_shift" ON public.schedule_open_shift FOR SELECT
   USING (workspace_id = get_api_workspace_id());
+DROP POLICY IF EXISTS "api_key_write_schedule_open_shift" ON public.schedule_open_shift;
 CREATE POLICY "api_key_write_schedule_open_shift" ON public.schedule_open_shift FOR ALL
   USING (workspace_id = get_api_workspace_id());
 
-CREATE INDEX idx_schedule_open_shift_workspace ON public.schedule_open_shift (workspace_id);
+CREATE INDEX IF NOT EXISTS idx_schedule_open_shift_workspace ON public.schedule_open_shift (workspace_id);
 
+DROP TRIGGER IF EXISTS set_schedule_open_shift_updated_at ON public.schedule_open_shift;
 CREATE TRIGGER set_schedule_open_shift_updated_at
   BEFORE UPDATE ON public.schedule_open_shift
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 -- ── schedule_day_message ───────────────────────────────────────
 
-CREATE TABLE public.schedule_day_message (
+CREATE TABLE IF NOT EXISTS public.schedule_day_message (
   schedule_day_message_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id            UUID NOT NULL REFERENCES public.workspace(workspace_id) ON DELETE CASCADE,
   shift_date              DATE NOT NULL,
@@ -223,30 +272,37 @@ COMMENT ON TABLE public.schedule_day_message IS 'Daily messages visible in sched
 
 ALTER TABLE public.schedule_day_message ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "jwt_read_schedule_day_message" ON public.schedule_day_message;
 CREATE POLICY "jwt_read_schedule_day_message" ON public.schedule_day_message FOR SELECT
   USING (workspace_id IN (SELECT get_workspace_ids_for_user(auth.uid())));
+DROP POLICY IF EXISTS "jwt_insert_schedule_day_message" ON public.schedule_day_message;
 CREATE POLICY "jwt_insert_schedule_day_message" ON public.schedule_day_message FOR INSERT
   WITH CHECK (is_admin_in_workspace(auth.uid(), workspace_id));
+DROP POLICY IF EXISTS "jwt_update_schedule_day_message" ON public.schedule_day_message;
 CREATE POLICY "jwt_update_schedule_day_message" ON public.schedule_day_message FOR UPDATE
   USING (is_admin_in_workspace(auth.uid(), workspace_id))
   WITH CHECK (is_admin_in_workspace(auth.uid(), workspace_id));
+DROP POLICY IF EXISTS "jwt_delete_schedule_day_message" ON public.schedule_day_message;
 CREATE POLICY "jwt_delete_schedule_day_message" ON public.schedule_day_message FOR DELETE
   USING (is_admin_in_workspace(auth.uid(), workspace_id));
 
+DROP POLICY IF EXISTS "api_key_read_schedule_day_message" ON public.schedule_day_message;
 CREATE POLICY "api_key_read_schedule_day_message" ON public.schedule_day_message FOR SELECT
   USING (workspace_id = get_api_workspace_id());
+DROP POLICY IF EXISTS "api_key_write_schedule_day_message" ON public.schedule_day_message;
 CREATE POLICY "api_key_write_schedule_day_message" ON public.schedule_day_message FOR ALL
   USING (workspace_id = get_api_workspace_id());
 
-CREATE INDEX idx_schedule_day_message_workspace_date ON public.schedule_day_message (workspace_id, shift_date);
+CREATE INDEX IF NOT EXISTS idx_schedule_day_message_workspace_date ON public.schedule_day_message (workspace_id, shift_date);
 
+DROP TRIGGER IF EXISTS set_schedule_day_message_updated_at ON public.schedule_day_message;
 CREATE TRIGGER set_schedule_day_message_updated_at
   BEFORE UPDATE ON public.schedule_day_message
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 -- ── schedule_day_task ──────────────────────────────────────────
 
-CREATE TABLE public.schedule_day_task (
+CREATE TABLE IF NOT EXISTS public.schedule_day_task (
   schedule_day_task_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id         UUID NOT NULL REFERENCES public.workspace(workspace_id) ON DELETE CASCADE,
   shift_date           DATE NOT NULL,
@@ -264,30 +320,37 @@ COMMENT ON TABLE public.schedule_day_task IS 'Daily operational tasks shown in s
 
 ALTER TABLE public.schedule_day_task ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "jwt_read_schedule_day_task" ON public.schedule_day_task;
 CREATE POLICY "jwt_read_schedule_day_task" ON public.schedule_day_task FOR SELECT
   USING (workspace_id IN (SELECT get_workspace_ids_for_user(auth.uid())));
+DROP POLICY IF EXISTS "jwt_insert_schedule_day_task" ON public.schedule_day_task;
 CREATE POLICY "jwt_insert_schedule_day_task" ON public.schedule_day_task FOR INSERT
   WITH CHECK (is_admin_in_workspace(auth.uid(), workspace_id));
+DROP POLICY IF EXISTS "jwt_update_schedule_day_task" ON public.schedule_day_task;
 CREATE POLICY "jwt_update_schedule_day_task" ON public.schedule_day_task FOR UPDATE
   USING (is_admin_in_workspace(auth.uid(), workspace_id))
   WITH CHECK (is_admin_in_workspace(auth.uid(), workspace_id));
+DROP POLICY IF EXISTS "jwt_delete_schedule_day_task" ON public.schedule_day_task;
 CREATE POLICY "jwt_delete_schedule_day_task" ON public.schedule_day_task FOR DELETE
   USING (is_admin_in_workspace(auth.uid(), workspace_id));
 
+DROP POLICY IF EXISTS "api_key_read_schedule_day_task" ON public.schedule_day_task;
 CREATE POLICY "api_key_read_schedule_day_task" ON public.schedule_day_task FOR SELECT
   USING (workspace_id = get_api_workspace_id());
+DROP POLICY IF EXISTS "api_key_write_schedule_day_task" ON public.schedule_day_task;
 CREATE POLICY "api_key_write_schedule_day_task" ON public.schedule_day_task FOR ALL
   USING (workspace_id = get_api_workspace_id());
 
-CREATE INDEX idx_schedule_day_task_workspace_date ON public.schedule_day_task (workspace_id, shift_date);
+CREATE INDEX IF NOT EXISTS idx_schedule_day_task_workspace_date ON public.schedule_day_task (workspace_id, shift_date);
 
+DROP TRIGGER IF EXISTS set_schedule_day_task_updated_at ON public.schedule_day_task;
 CREATE TRIGGER set_schedule_day_task_updated_at
   BEFORE UPDATE ON public.schedule_day_task
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 -- ── schedule_day_booking ───────────────────────────────────────
 
-CREATE TABLE public.schedule_day_booking (
+CREATE TABLE IF NOT EXISTS public.schedule_day_booking (
   schedule_day_booking_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id            UUID NOT NULL REFERENCES public.workspace(workspace_id) ON DELETE CASCADE,
   shift_date              DATE NOT NULL,
@@ -308,30 +371,37 @@ COMMENT ON TABLE public.schedule_day_booking IS 'Reservations and bookings shown
 
 ALTER TABLE public.schedule_day_booking ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "jwt_read_schedule_day_booking" ON public.schedule_day_booking;
 CREATE POLICY "jwt_read_schedule_day_booking" ON public.schedule_day_booking FOR SELECT
   USING (workspace_id IN (SELECT get_workspace_ids_for_user(auth.uid())));
+DROP POLICY IF EXISTS "jwt_insert_schedule_day_booking" ON public.schedule_day_booking;
 CREATE POLICY "jwt_insert_schedule_day_booking" ON public.schedule_day_booking FOR INSERT
   WITH CHECK (is_admin_in_workspace(auth.uid(), workspace_id));
+DROP POLICY IF EXISTS "jwt_update_schedule_day_booking" ON public.schedule_day_booking;
 CREATE POLICY "jwt_update_schedule_day_booking" ON public.schedule_day_booking FOR UPDATE
   USING (is_admin_in_workspace(auth.uid(), workspace_id))
   WITH CHECK (is_admin_in_workspace(auth.uid(), workspace_id));
+DROP POLICY IF EXISTS "jwt_delete_schedule_day_booking" ON public.schedule_day_booking;
 CREATE POLICY "jwt_delete_schedule_day_booking" ON public.schedule_day_booking FOR DELETE
   USING (is_admin_in_workspace(auth.uid(), workspace_id));
 
+DROP POLICY IF EXISTS "api_key_read_schedule_day_booking" ON public.schedule_day_booking;
 CREATE POLICY "api_key_read_schedule_day_booking" ON public.schedule_day_booking FOR SELECT
   USING (workspace_id = get_api_workspace_id());
+DROP POLICY IF EXISTS "api_key_write_schedule_day_booking" ON public.schedule_day_booking;
 CREATE POLICY "api_key_write_schedule_day_booking" ON public.schedule_day_booking FOR ALL
   USING (workspace_id = get_api_workspace_id());
 
-CREATE INDEX idx_schedule_day_booking_workspace_date ON public.schedule_day_booking (workspace_id, shift_date);
+CREATE INDEX IF NOT EXISTS idx_schedule_day_booking_workspace_date ON public.schedule_day_booking (workspace_id, shift_date);
 
+DROP TRIGGER IF EXISTS set_schedule_day_booking_updated_at ON public.schedule_day_booking;
 CREATE TRIGGER set_schedule_day_booking_updated_at
   BEFORE UPDATE ON public.schedule_day_booking
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 -- ── schedule_audit_log ─────────────────────────────────────────
 
-CREATE TABLE public.schedule_audit_log (
+CREATE TABLE IF NOT EXISTS public.schedule_audit_log (
   audit_log_id    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id    UUID NOT NULL REFERENCES public.workspace(workspace_id) ON DELETE CASCADE,
   table_name      TEXT NOT NULL,
@@ -348,14 +418,16 @@ COMMENT ON TABLE public.schedule_audit_log IS 'Row-level audit trail for all sch
 
 ALTER TABLE public.schedule_audit_log ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "jwt_read_schedule_audit_log" ON public.schedule_audit_log;
 CREATE POLICY "jwt_read_schedule_audit_log" ON public.schedule_audit_log FOR SELECT
   USING (workspace_id IN (SELECT get_workspace_ids_for_user(auth.uid())));
 
+DROP POLICY IF EXISTS "api_key_read_schedule_audit_log" ON public.schedule_audit_log;
 CREATE POLICY "api_key_read_schedule_audit_log" ON public.schedule_audit_log FOR SELECT
   USING (workspace_id = get_api_workspace_id());
 
-CREATE INDEX idx_schedule_audit_log_row ON public.schedule_audit_log (table_name, row_id);
-CREATE INDEX idx_schedule_audit_log_workspace ON public.schedule_audit_log (workspace_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_schedule_audit_log_row ON public.schedule_audit_log (table_name, row_id);
+CREATE INDEX IF NOT EXISTS idx_schedule_audit_log_workspace ON public.schedule_audit_log (workspace_id, created_at DESC);
 
 -- ── Audit trigger function ─────────────────────────────────────
 
@@ -425,34 +497,42 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ── Attach audit triggers to all schedule tables ───────────────
 
+DROP TRIGGER IF EXISTS audit_schedule_shift ON public.schedule_shift;
 CREATE TRIGGER audit_schedule_shift
   AFTER INSERT OR UPDATE OR DELETE ON public.schedule_shift
   FOR EACH ROW EXECUTE FUNCTION public.audit_schedule_changes();
 
+DROP TRIGGER IF EXISTS audit_schedule_absence ON public.schedule_absence;
 CREATE TRIGGER audit_schedule_absence
   AFTER INSERT OR UPDATE OR DELETE ON public.schedule_absence
   FOR EACH ROW EXECUTE FUNCTION public.audit_schedule_changes();
 
+DROP TRIGGER IF EXISTS audit_schedule_template ON public.schedule_template;
 CREATE TRIGGER audit_schedule_template
   AFTER INSERT OR UPDATE OR DELETE ON public.schedule_template
   FOR EACH ROW EXECUTE FUNCTION public.audit_schedule_changes();
 
+DROP TRIGGER IF EXISTS audit_schedule_template_shift ON public.schedule_template_shift;
 CREATE TRIGGER audit_schedule_template_shift
   AFTER INSERT OR UPDATE OR DELETE ON public.schedule_template_shift
   FOR EACH ROW EXECUTE FUNCTION public.audit_schedule_changes();
 
+DROP TRIGGER IF EXISTS audit_schedule_open_shift ON public.schedule_open_shift;
 CREATE TRIGGER audit_schedule_open_shift
   AFTER INSERT OR UPDATE OR DELETE ON public.schedule_open_shift
   FOR EACH ROW EXECUTE FUNCTION public.audit_schedule_changes();
 
+DROP TRIGGER IF EXISTS audit_schedule_day_message ON public.schedule_day_message;
 CREATE TRIGGER audit_schedule_day_message
   AFTER INSERT OR UPDATE OR DELETE ON public.schedule_day_message
   FOR EACH ROW EXECUTE FUNCTION public.audit_schedule_changes();
 
+DROP TRIGGER IF EXISTS audit_schedule_day_task ON public.schedule_day_task;
 CREATE TRIGGER audit_schedule_day_task
   AFTER INSERT OR UPDATE OR DELETE ON public.schedule_day_task
   FOR EACH ROW EXECUTE FUNCTION public.audit_schedule_changes();
 
+DROP TRIGGER IF EXISTS audit_schedule_day_booking ON public.schedule_day_booking;
 CREATE TRIGGER audit_schedule_day_booking
   AFTER INSERT OR UPDATE OR DELETE ON public.schedule_day_booking
   FOR EACH ROW EXECUTE FUNCTION public.audit_schedule_changes();
@@ -510,10 +590,13 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ── Enable Supabase Realtime on schedule tables ────────────────
 
-ALTER PUBLICATION supabase_realtime ADD TABLE
-  public.schedule_shift,
-  public.schedule_absence,
-  public.schedule_open_shift,
-  public.schedule_day_message,
-  public.schedule_day_task,
-  public.schedule_day_booking;
+DO $$
+BEGIN
+  -- Add each table individually to avoid failure if already in publication
+  BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.schedule_shift; EXCEPTION WHEN duplicate_object THEN NULL; END;
+  BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.schedule_absence; EXCEPTION WHEN duplicate_object THEN NULL; END;
+  BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.schedule_open_shift; EXCEPTION WHEN duplicate_object THEN NULL; END;
+  BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.schedule_day_message; EXCEPTION WHEN duplicate_object THEN NULL; END;
+  BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.schedule_day_task; EXCEPTION WHEN duplicate_object THEN NULL; END;
+  BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.schedule_day_booking; EXCEPTION WHEN duplicate_object THEN NULL; END;
+END $$;

@@ -1,4 +1,4 @@
-import type { DepartmentOption } from "../types";
+import type { DepartmentOption, ProcedureData } from "../types";
 
 export const INDUSTRY_NACE_MAP: Record<string, string> = {
   restaurant: "56.101",
@@ -65,6 +65,49 @@ export function getDepartmentsForIndustry(naceCode: string): DepartmentOption[] 
 
 export function getPositionsForDepartment(departmentName: string): string[] {
   return POSITION_MAP[departmentName] ?? [];
+}
+
+const PROCEDURE_CONFIGS: Record<string, { name: string; preselected: boolean }[]> = {
+  "56.101": [
+    { name: "Temperaturkontroll", preselected: true },
+    { name: "Allergenhåndtering", preselected: true },
+    { name: "Åpningsrutine", preselected: true },
+    { name: "Stengerutine", preselected: true },
+    { name: "Varemottak", preselected: false },
+    { name: "Renholdsplan", preselected: false },
+    { name: "Brannrutine", preselected: false },
+  ],
+  "55.101": [
+    { name: "Innsjekk-rutine", preselected: true },
+    { name: "Utsjekk-rutine", preselected: true },
+    { name: "Renholdsprotokoll", preselected: true },
+    { name: "Brannrutine", preselected: true },
+    { name: "Temperaturkontroll", preselected: false },
+    { name: "Nattevakt-rutine", preselected: false },
+  ],
+  "56.301": [
+    { name: "Åpningsrutine", preselected: true },
+    { name: "Stengerutine", preselected: true },
+    { name: "Alderskontroll", preselected: true },
+    { name: "Renholdsplan", preselected: false },
+    { name: "Brannrutine", preselected: false },
+  ],
+  default: [
+    { name: "Åpningsrutine", preselected: true },
+    { name: "Stengerutine", preselected: true },
+    { name: "Brannrutine", preselected: true },
+    { name: "HMS-sjekk", preselected: false },
+  ],
+};
+
+export function getProceduresForIndustry(naceCode: string): ProcedureData[] {
+  const config = PROCEDURE_CONFIGS[naceCode] ?? PROCEDURE_CONFIGS["default"]!;
+  return config.map((proc, i) => ({
+    id: `proc-${i}`,
+    name: proc.name,
+    selected: proc.preselected,
+    isCustom: false,
+  }));
 }
 
 export function resolveNaceCode(industry: string): string {

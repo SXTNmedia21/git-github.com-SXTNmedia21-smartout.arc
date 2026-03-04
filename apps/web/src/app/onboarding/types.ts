@@ -9,8 +9,10 @@ export const ONBOARDING_SECTIONS = [
   "business",
   "season",
   "departments",
+  "locations",
+  "procedures",
   "contract",
-  "done",
+  "welcome",
 ] as const;
 
 export type OnboardingSection = (typeof ONBOARDING_SECTIONS)[number];
@@ -73,6 +75,28 @@ export interface ContractData {
   previewUrl: string | null;
 }
 
+/** A zone within a location */
+export interface ZoneData {
+  id: string;
+  name: string;
+}
+
+/** A physical location */
+export interface LocationData {
+  id: string;
+  name: string;
+  type: "main" | "outdoor" | "satellite" | "other";
+  zones: ZoneData[];
+}
+
+/** A standard procedure */
+export interface ProcedureData {
+  id: string;
+  name: string;
+  selected: boolean;
+  isCustom: boolean;
+}
+
 /** Memory saved by Lise (voice agent) — user-specific knowledge context */
 export interface Memory {
   id: string;
@@ -93,11 +117,13 @@ export interface OnboardingState {
   business: BusinessData;
   season: SeasonData;
   departments: DepartmentOption[];
+  locations: LocationData[];
+  procedures: ProcedureData[];
   contract: ContractData;
 
   // Scraping state
   scrapeStatus: "idle" | "scraping" | "done" | "error";
-  scrapeSource: "url" | "org" | "both" | null;
+  scrapeSource: "url" | "org" | "both" | "name" | null;
 
   // Agent-driven memories (knowledge context saved by Lise)
   memories: Memory[];

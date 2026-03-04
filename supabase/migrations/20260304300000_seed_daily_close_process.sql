@@ -1,3 +1,5 @@
+SET search_path TO public, extensions;
+
 -- ============================================
 -- 20260304300000_seed_daily_close_process.sql
 -- Seeds the DailyClose process definition + triggers.
@@ -8,7 +10,8 @@
 
 INSERT INTO engine_process (id, name, description) VALUES
 ('daily_close', 'Daily Close & Reconciliation',
- 'Two-phase daily reconciliation: employee settlement → admin approval. Source: PD + Module 10.');
+ 'Two-phase daily reconciliation: employee settlement → admin approval. Source: PD + Module 10.')
+ON CONFLICT (id) DO NOTHING;
 
 -- ── Steps ──────────────────────────────────────────────────
 -- Groups: 1 = parallel close tasks, 2 = parallel validation, NULL = sequential
@@ -91,14 +94,21 @@ INSERT INTO engine_step (process_id, step_order, step_group, action_type, action
   "template": "day_closed",
   "channel": "system",
   "description": "Fire day_closed event for KPI dashboard and season reconciliation"
-}', null);
+}', null)
+ON CONFLICT (process_id, step_order) DO NOTHING;
 
 -- ── Triggers ───────────────────────────────────────────────
 
 -- Trigger 1: Department session moves to pending_signoff → start close
-INSERT INTO engine_trigger (event_type, process_id, condition, is_active) VALUES
-('department_session.pending_signoff', 'daily_close', null, true);
+INSERT INTO engine_trigger (event_type, process_id, condition, is_active)
+SELECT 'department_session.pending_signoff', 'daily_close', null, true
+WHERE NOT EXISTS (
+  SELECT 1 FROM engine_trigger WHERE event_type = 'department_session.pending_signoff' AND process_id = 'daily_close'
+);
 
 -- Trigger 2: Last punch-out for department → start close (fallback)
-INSERT INTO engine_trigger (event_type, process_id, condition, delay_seconds, is_active) VALUES
-('shift.last_checkout', 'daily_close', null, 300, true);  -- 5min delay
+INSERT INTO engine_trigger (event_type, process_id, condition, delay_seconds, is_active)
+SELECT 'shift.last_checkout', 'daily_close', null, 300, true  -- 5min delay
+WHERE NOT EXISTS (
+  SELECT 1 FROM engine_trigger WHERE event_type = 'shift.last_checkout' AND process_id = 'daily_close'
+);

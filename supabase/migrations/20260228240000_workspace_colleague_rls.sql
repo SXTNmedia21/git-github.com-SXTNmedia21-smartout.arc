@@ -1,6 +1,9 @@
+SET search_path TO public, extensions;
+
 -- Allow workspace members to read user_identity data for colleagues in their workspace.
 -- Required for the people page to display employee contact info (email, phone).
 
+DROP POLICY IF EXISTS "Workspace members can read colleague identity" ON public.user_identity;
 CREATE POLICY "Workspace members can read colleague identity"
   ON public.user_identity FOR SELECT
   USING (

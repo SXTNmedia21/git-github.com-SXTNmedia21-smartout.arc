@@ -1,7 +1,16 @@
-import { WebSocketServer, type WebSocket } from "ws";
-import type { Server } from "node:http";
+// ============================================
+// guardian.ts
+// Guardian WebSocket route using Hono's built-in WebSocket support.
+// Dashboard connects to monitor and control active agent sessions.
+// Auth via JWT query param (?token=...), checked in onOpen.
+// Connected to: src/core/guardian-bus.ts (client management, event broadcasting)
+// Connected to: src/core/session-manager.ts (session loading)
+// Connected to: src/core/stage-manager.ts (stage advancement)
+// ============================================
+
+import { Hono } from "hono";
+import type { createNodeWebSocket } from "@hono/node-ws";
 import { supabaseAdmin, createUserClient } from "../lib/supabase.js";
-import { hashApiKey } from "../lib/crypto.js";
 import {
   addClient,
   removeClient,
@@ -14,98 +23,83 @@ import { loadAuthorizedSession } from "../core/session-manager.js";
 import { advanceStage } from "../core/stage-manager.js";
 import type { GuardianCommand } from "../types/guardian.js";
 
-/**
- * Attaches the Guardian WebSocket server to the HTTP server.
- * Handles auth on upgrade, then routes commands from clients.
- */
-export function attachGuardianWs(server: Server): void {
-  const wss = new WebSocketServer({ noServer: true });
+export function createGuardianRoute(
+  upgradeWebSocket: ReturnType<typeof createNodeWebSocket>["upgradeWebSocket"],
+) {
+  const guardian = new Hono();
 
-  // Handle upgrade manually for auth
-  server.on("upgrade", async (req, socket, head) => {
-    const url = new URL(req.url ?? "", `http://${req.headers.host}`);
-    if (url.pathname !== "/guardian/ws") return;
+  guardian.get(
+    "/guardian/ws",
+    upgradeWebSocket((c) => {
+      let workspaceId: string | null = null;
+      let client: ReturnType<typeof addClient> | null = null;
 
-    // Authenticate (check headers + query param token)
-    const workspaceId = await authenticateUpgrade(req.headers, url);
-    if (!workspaceId) {
-      socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
-      socket.destroy();
-      return;
-    }
+      return {
+        async onOpen(_event, wsCtx) {
+          // Validate auth — JWT in query param
+          const token = c.req.query("token");
+          if (!token) {
+            wsCtx.close(4001, "Missing token");
+            return;
+          }
 
-    wss.handleUpgrade(req, socket, head, (ws) => {
-      wss.emit("connection", ws, workspaceId);
-    });
-  });
+          // Validate JWT
+          const userClient = createUserClient(token);
+          const {
+            data: { user },
+            error,
+          } = await userClient.auth.getUser();
+          if (error || !user) {
+            wsCtx.close(4001, "Invalid token");
+            return;
+          }
 
-  wss.on("connection", (ws: WebSocket, workspaceId: string) => {
-    const client = addClient(ws, workspaceId);
-    console.log(`[guardian-ws] Client connected for workspace ${workspaceId}`);
+          // Get user's workspace + verify admin/owner role
+          const { data: profile } = await supabaseAdmin
+            .from("profile")
+            .select("workspace_id, role")
+            .eq("user_id", user.id)
+            .eq("is_active", true)
+            .limit(1)
+            .single();
 
-    // Send current active sessions on connect
-    sendSessionList(client);
+          if (!profile || !["admin", "owner"].includes(profile.role)) {
+            wsCtx.close(4003, "Forbidden — admin or owner role required");
+            return;
+          }
 
-    ws.on("message", async (raw) => {
-      try {
-        const cmd = JSON.parse(raw.toString()) as GuardianCommand;
-        await handleCommand(cmd, workspaceId, client);
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : "unknown error";
-        ws.send(JSON.stringify({ type: "error", message: msg }));
-      }
-    });
+          workspaceId = profile.workspace_id;
+          client = addClient(wsCtx, workspaceId);
+          console.log(`[guardian-ws] Client connected for workspace ${workspaceId}`);
 
-    ws.on("close", () => {
-      removeClient(client);
-      console.log(`[guardian-ws] Client disconnected`);
-    });
-  });
-}
+          // Send current active sessions on connect
+          sendSessionList(client);
+        },
 
-/** Auth for WebSocket upgrade — checks x-api-key, Authorization header, or ?token query param */
-async function authenticateUpgrade(
-  headers: Record<string, string | string[] | undefined>,
-  url: URL,
-): Promise<string | null> {
-  const apiKey = headers["x-api-key"] as string | undefined;
-  const authHeader = headers["authorization"] as string | undefined;
-  const queryToken = url.searchParams.get("token");
+        async onMessage(event, wsCtx) {
+          if (!workspaceId || !client) return;
 
-  if (apiKey) {
-    const hash = hashApiKey(apiKey);
-    const { data } = await supabaseAdmin
-      .from("platform_api_key")
-      .select("workspace_id")
-      .eq("key_hash", hash)
-      .eq("version", "current")
-      .single();
-    return data?.workspace_id ?? null;
-  }
+          try {
+            const raw = typeof event.data === "string" ? event.data : String(event.data);
+            const cmd = JSON.parse(raw) as GuardianCommand;
+            await handleCommand(cmd, workspaceId, client);
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : "unknown error";
+            wsCtx.send(JSON.stringify({ type: "error", message: msg }));
+          }
+        },
 
-  // JWT auth — from Authorization header or ?token query param
-  const jwtToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : queryToken;
+        onClose() {
+          if (client) {
+            removeClient(client);
+            console.log(`[guardian-ws] Client disconnected`);
+          }
+        },
+      };
+    }),
+  );
 
-  if (jwtToken) {
-    const client = createUserClient(jwtToken);
-    const {
-      data: { user },
-    } = await client.auth.getUser();
-    if (!user) return null;
-
-    const { data: profile } = await supabaseAdmin
-      .from("profile")
-      .select("workspace_id, role")
-      .eq("user_id", user.id)
-      .eq("is_active", true)
-      .limit(1)
-      .single();
-
-    if (!profile || !["admin", "owner"].includes(profile.role)) return null;
-    return profile.workspace_id;
-  }
-
-  return null;
+  return guardian;
 }
 
 /** Handle incoming commands from dashboard */

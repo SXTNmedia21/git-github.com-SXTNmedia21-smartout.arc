@@ -58,7 +58,7 @@ export default function SignupPage() {
           <p className="mb-10 text-zinc-400">Start din SmartOut-reise i dag.</p>
           <TrackedCta
             label="Kom i gang"
-            href={WEB_APP_LINKS.onboarding}
+            href={WEB_APP_LINKS.login}
             className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white py-4 font-bold text-zinc-950 shadow-[0_0_30px_rgba(255,255,255,0.1)] transition-all hover:shadow-[0_0_40px_rgba(255,255,255,0.2)]"
           >
             Kom i gang <ArrowRight className="h-4 w-4" />

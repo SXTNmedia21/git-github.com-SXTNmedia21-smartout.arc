@@ -121,12 +121,14 @@ High-level rules that MUST be followed. No exceptions.
 
 Reusable document templates in `docs/templates/`.
 
-| id           | File                      | Purpose                      |
-| ------------ | ------------------------- | ---------------------------- |
-| TPL_DECISION | templates/decision.md     | ADR template                 |
-| TPL_LEARNING | templates/learning.md     | Learning record template     |
-| TPL_ARCH     | templates/architecture.md | Architecture doc template    |
-| TPL_PLAN     | templates/plan.md         | Implementation plan template |
+| id           | File                              | Purpose                       |
+| ------------ | --------------------------------- | ----------------------------- |
+| TPL_DECISION | templates/decision.md             | ADR template                  |
+| TPL_LEARNING | templates/learning.md             | Learning record template      |
+| TPL_ARCH     | templates/architecture.md         | Architecture doc template     |
+| TPL_PLAN     | templates/plan.md                 | Implementation plan template  |
+| TPL_PLANVER  | templates/plan-verification.md    | Plan completeness check       |
+| TPL_FEATVER  | templates/feature-verification.md | Code correctness verification |
 
 ### Decisions (ADRs)
 

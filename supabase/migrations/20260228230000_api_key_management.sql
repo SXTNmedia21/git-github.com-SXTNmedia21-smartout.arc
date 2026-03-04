@@ -1,3 +1,5 @@
+SET search_path TO public, extensions;
+
 -- =============================================================
 -- API Key Management System
 -- 3-tier: SHA-256 hashed keys (Tier 1+3), Vault for external secrets (Tier 2)
@@ -29,18 +31,20 @@ $$;
 -- ── Enums ──
 
 DO $$ BEGIN
-  CREATE TYPE public.api_key_version_status AS ENUM ('current', 'previous', 'revoked');
-EXCEPTION WHEN duplicate_object THEN NULL;
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'api_key_version_status') THEN
+    CREATE TYPE public.api_key_version_status AS ENUM ('current', 'previous', 'revoked');
+  END IF;
 END $$;
 
 DO $$ BEGIN
-  CREATE TYPE public.api_key_type AS ENUM ('workspace', 'service');
-EXCEPTION WHEN duplicate_object THEN NULL;
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'api_key_type') THEN
+    CREATE TYPE public.api_key_type AS ENUM ('workspace', 'service');
+  END IF;
 END $$;
 
 -- ── API Key Registry (Tier 1 + Tier 3) ──
 
-CREATE TABLE public.platform_api_key (
+CREATE TABLE IF NOT EXISTS public.platform_api_key (
   id                    uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id          uuid REFERENCES public.workspace(workspace_id) ON DELETE CASCADE,
   company_id            uuid REFERENCES public.company(company_id) ON DELETE CASCADE,
@@ -49,7 +53,7 @@ CREATE TABLE public.platform_api_key (
   -- Identity
   name                  text NOT NULL,
   description           text,
-  key_type              api_key_type NOT NULL DEFAULT 'workspace',
+  key_type              public.api_key_type NOT NULL DEFAULT 'workspace',
   environment           text NOT NULL DEFAULT 'live' CHECK (environment IN ('live', 'test')),
 
   -- Key material (ONLY hash stored, never plaintext)
@@ -57,7 +61,7 @@ CREATE TABLE public.platform_api_key (
   key_prefix            varchar(40) NOT NULL,
 
   -- Version & rotation
-  version               api_key_version_status NOT NULL DEFAULT 'current',
+  version               public.api_key_version_status NOT NULL DEFAULT 'current',
   rotation_number       integer NOT NULL DEFAULT 1,
   grace_period_ends_at  timestamptz,
 
@@ -86,21 +90,21 @@ CREATE TABLE public.platform_api_key (
 );
 
 -- Indexes
-CREATE INDEX idx_api_key_hash_active
+CREATE INDEX IF NOT EXISTS idx_api_key_hash_active
   ON public.platform_api_key (key_hash)
   WHERE version IN ('current', 'previous');
 
-CREATE INDEX idx_api_key_workspace
+CREATE INDEX IF NOT EXISTS idx_api_key_workspace
   ON public.platform_api_key (workspace_id, key_type, environment)
   WHERE version != 'revoked';
 
-CREATE INDEX idx_api_key_grace_expiry
+CREATE INDEX IF NOT EXISTS idx_api_key_grace_expiry
   ON public.platform_api_key (grace_period_ends_at)
   WHERE version = 'previous' AND grace_period_ends_at IS NOT NULL;
 
 -- ── Usage Tracking (hourly buckets, not per-request) ──
 
-CREATE TABLE public.platform_api_key_usage (
+CREATE TABLE IF NOT EXISTS public.platform_api_key_usage (
   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   api_key_id      uuid NOT NULL REFERENCES public.platform_api_key(id) ON DELETE CASCADE,
   period_start    timestamptz NOT NULL,
@@ -113,12 +117,12 @@ CREATE TABLE public.platform_api_key_usage (
   CONSTRAINT uq_key_period UNIQUE (api_key_id, period_start)
 );
 
-CREATE INDEX idx_usage_key_period
+CREATE INDEX IF NOT EXISTS idx_usage_key_period
   ON public.platform_api_key_usage (api_key_id, period_start DESC);
 
 -- ── External Secret Metadata (Tier 2) ──
 
-CREATE TABLE public.platform_external_secret (
+CREATE TABLE IF NOT EXISTS public.platform_external_secret (
   id                    uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id          uuid REFERENCES public.workspace(workspace_id),
   provider              text NOT NULL,
@@ -142,16 +146,18 @@ CREATE TABLE public.platform_external_secret (
   updated_at            timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_external_secret_workspace ON public.platform_external_secret (workspace_id);
-CREATE INDEX idx_external_secret_provider ON public.platform_external_secret (provider);
-CREATE INDEX idx_external_secret_rotation_due ON public.platform_external_secret (last_rotated_at)
+CREATE INDEX IF NOT EXISTS idx_external_secret_workspace ON public.platform_external_secret (workspace_id);
+CREATE INDEX IF NOT EXISTS idx_external_secret_provider ON public.platform_external_secret (provider);
+CREATE INDEX IF NOT EXISTS idx_external_secret_rotation_due ON public.platform_external_secret (last_rotated_at)
   WHERE is_active = true;
 
 -- ── Updated_at Triggers ──
 
+DROP TRIGGER IF EXISTS set_updated_at ON public.platform_api_key;
 CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.platform_api_key
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
+DROP TRIGGER IF EXISTS set_updated_at ON public.platform_external_secret;
 CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.platform_external_secret
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
@@ -209,12 +215,12 @@ BEGIN
     $fn$;
 
     -- Lock down Vault wrappers: only service_role
-    REVOKE EXECUTE ON FUNCTION get_secret FROM public, anon, authenticated;
-    GRANT EXECUTE ON FUNCTION get_secret TO service_role;
-    REVOKE EXECUTE ON FUNCTION upsert_secret FROM public, anon, authenticated;
-    GRANT EXECUTE ON FUNCTION upsert_secret TO service_role;
-    REVOKE EXECUTE ON FUNCTION delete_vault_secret FROM public, anon, authenticated;
-    GRANT EXECUTE ON FUNCTION delete_vault_secret TO service_role;
+    REVOKE EXECUTE ON FUNCTION public.get_secret(text) FROM PUBLIC, anon, authenticated;
+    GRANT EXECUTE ON FUNCTION public.get_secret(text) TO service_role;
+    REVOKE EXECUTE ON FUNCTION public.upsert_secret(text, text, text) FROM PUBLIC, anon, authenticated;
+    GRANT EXECUTE ON FUNCTION public.upsert_secret(text, text, text) TO service_role;
+    REVOKE EXECUTE ON FUNCTION public.delete_vault_secret(text) FROM PUBLIC, anon, authenticated;
+    GRANT EXECUTE ON FUNCTION public.delete_vault_secret(text) TO service_role;
 
   ELSE
     RAISE NOTICE 'vault schema not found, skipping vault wrapper functions';
@@ -226,7 +232,7 @@ $$;
 
 CREATE OR REPLACE FUNCTION public.rotate_api_key(
   p_workspace_id    uuid,
-  p_key_type        api_key_type,
+  p_key_type        public.api_key_type,
   p_environment     text,
   p_new_key_hash    varchar(64),
   p_new_key_prefix  varchar(40),
@@ -240,7 +246,7 @@ DECLARE
   v_next_rotation integer;
 BEGIN
   SELECT COALESCE(MAX(rotation_number), 0) + 1 INTO v_next_rotation
-  FROM platform_api_key
+  FROM public.platform_api_key
   WHERE workspace_id IS NOT DISTINCT FROM p_workspace_id
     AND key_type = p_key_type AND environment = p_environment;
 
@@ -269,7 +275,7 @@ BEGIN
     p_workspace_id, company_id, created_by, name, description,
     p_key_type, p_environment, p_new_key_hash, p_new_key_prefix,
     'current', v_next_rotation, scopes, rate_limit_per_minute
-  FROM platform_api_key
+  FROM public.platform_api_key
   WHERE workspace_id IS NOT DISTINCT FROM p_workspace_id
     AND key_type = p_key_type AND environment = p_environment
     AND version = 'previous'
@@ -325,37 +331,43 @@ ALTER TABLE public.platform_api_key_usage ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.platform_external_secret ENABLE ROW LEVEL SECURITY;
 
 -- Super-admin: full access to everything
+DROP POLICY IF EXISTS "super_admin_all" ON public.platform_api_key;
 CREATE POLICY "super_admin_all" ON public.platform_api_key FOR ALL
-USING (EXISTS (SELECT 1 FROM user_identity WHERE user_id = auth.uid() AND is_super_admin = true));
+USING (EXISTS (SELECT 1 FROM public.user_identity WHERE user_id = auth.uid() AND is_super_admin = true));
 
+DROP POLICY IF EXISTS "super_admin_all" ON public.platform_api_key_usage;
 CREATE POLICY "super_admin_all" ON public.platform_api_key_usage FOR ALL
-USING (EXISTS (SELECT 1 FROM user_identity WHERE user_id = auth.uid() AND is_super_admin = true));
+USING (EXISTS (SELECT 1 FROM public.user_identity WHERE user_id = auth.uid() AND is_super_admin = true));
 
+DROP POLICY IF EXISTS "super_admin_all" ON public.platform_external_secret;
 CREATE POLICY "super_admin_all" ON public.platform_external_secret FOR ALL
-USING (EXISTS (SELECT 1 FROM user_identity WHERE user_id = auth.uid() AND is_super_admin = true));
+USING (EXISTS (SELECT 1 FROM public.user_identity WHERE user_id = auth.uid() AND is_super_admin = true));
 
 -- Workspace admin/owner: manage their own keys (V2: workspace self-service)
+DROP POLICY IF EXISTS "workspace_admin_keys" ON public.platform_api_key;
 CREATE POLICY "workspace_admin_keys" ON public.platform_api_key FOR ALL
 USING (
   workspace_id IN (
-    SELECT p.workspace_id FROM profile p
+    SELECT p.workspace_id FROM public.profile p
     WHERE p.user_id = auth.uid() AND p.role IN ('admin', 'owner')
   )
 );
 
+DROP POLICY IF EXISTS "workspace_admin_usage" ON public.platform_api_key_usage;
 CREATE POLICY "workspace_admin_usage" ON public.platform_api_key_usage FOR SELECT
 USING (
   api_key_id IN (
-    SELECT pak.id FROM platform_api_key pak
-    JOIN profile p ON p.workspace_id = pak.workspace_id
+    SELECT pak.id FROM public.platform_api_key pak
+    JOIN public.profile p ON p.workspace_id = pak.workspace_id
     WHERE p.user_id = auth.uid() AND p.role IN ('admin', 'owner')
   )
 );
 
+DROP POLICY IF EXISTS "owner_external_secrets" ON public.platform_external_secret;
 CREATE POLICY "owner_external_secrets" ON public.platform_external_secret FOR ALL
 USING (
   workspace_id IN (
-    SELECT p.workspace_id FROM profile p
+    SELECT p.workspace_id FROM public.profile p
     WHERE p.user_id = auth.uid() AND p.role = 'owner'
   )
 );

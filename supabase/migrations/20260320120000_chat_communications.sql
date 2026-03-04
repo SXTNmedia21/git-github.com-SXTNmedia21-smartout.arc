@@ -1,3 +1,5 @@
+SET search_path TO public, extensions;
+
 -- ============================================
 -- Chat Communications Portal
 -- Module: communications
@@ -8,10 +10,14 @@
 -- ============================================
 
 -- ── Enum ─────────────────────────────────────────────────────
-CREATE TYPE public.chat_conversation_type AS ENUM ('group', 'dm', 'ai');
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'chat_conversation_type') THEN
+    CREATE TYPE public.chat_conversation_type AS ENUM ('group', 'dm', 'ai');
+  END IF;
+END $$;;
 
 -- ── chat_conversation ────────────────────────────────────────
-CREATE TABLE public.chat_conversation (
+CREATE TABLE IF NOT EXISTS public.chat_conversation (
   id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id       UUID NOT NULL REFERENCES public.workspace(workspace_id) ON DELETE CASCADE,
   type               public.chat_conversation_type NOT NULL,
@@ -29,7 +35,7 @@ COMMENT ON COLUMN public.chat_conversation.type IS 'group = team/dept channel, d
 COMMENT ON COLUMN public.chat_conversation.name IS 'Display name. NULL for DM (derive from participants).';
 
 -- ── chat_participant ─────────────────────────────────────────
-CREATE TABLE public.chat_participant (
+CREATE TABLE IF NOT EXISTS public.chat_participant (
   id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   conversation_id    UUID NOT NULL REFERENCES public.chat_conversation(id) ON DELETE CASCADE,
   profile_id         UUID NOT NULL REFERENCES public.profile(profile_id) ON DELETE CASCADE,
@@ -47,7 +53,7 @@ COMMENT ON TABLE public.chat_participant IS 'Links profiles to conversations. le
 COMMENT ON COLUMN public.chat_participant.last_read_at IS 'Timestamp of last read — used for unread badge calculation.';
 
 -- ── chat_message ─────────────────────────────────────────────
-CREATE TABLE public.chat_message (
+CREATE TABLE IF NOT EXISTS public.chat_message (
   id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   conversation_id    UUID NOT NULL REFERENCES public.chat_conversation(id) ON DELETE CASCADE,
   sender_id          UUID NOT NULL REFERENCES public.profile(profile_id) ON DELETE CASCADE,
@@ -70,6 +76,7 @@ COMMENT ON COLUMN public.chat_message.reply_to_id IS 'Self-FK for threaded repli
 ALTER TABLE public.chat_conversation ENABLE ROW LEVEL SECURITY;
 
 -- JWT: read if you are a participant
+DROP POLICY IF EXISTS "jwt_read_chat_conversation" ON public.chat_conversation;
 CREATE POLICY "jwt_read_chat_conversation"
   ON public.chat_conversation FOR SELECT
   USING (
@@ -81,6 +88,7 @@ CREATE POLICY "jwt_read_chat_conversation"
   );
 
 -- JWT: insert if workspace member
+DROP POLICY IF EXISTS "jwt_insert_chat_conversation" ON public.chat_conversation;
 CREATE POLICY "jwt_insert_chat_conversation"
   ON public.chat_conversation FOR INSERT
   WITH CHECK (
@@ -88,6 +96,7 @@ CREATE POLICY "jwt_insert_chat_conversation"
   );
 
 -- JWT: update if conversation admin
+DROP POLICY IF EXISTS "jwt_update_chat_conversation" ON public.chat_conversation;
 CREATE POLICY "jwt_update_chat_conversation"
   ON public.chat_conversation FOR UPDATE
   USING (
@@ -100,6 +109,7 @@ CREATE POLICY "jwt_update_chat_conversation"
   );
 
 -- API key: read
+DROP POLICY IF EXISTS "api_key_read_chat_conversation" ON public.chat_conversation;
 CREATE POLICY "api_key_read_chat_conversation"
   ON public.chat_conversation FOR SELECT
   USING (workspace_id = get_api_workspace_id());
@@ -108,6 +118,7 @@ CREATE POLICY "api_key_read_chat_conversation"
 ALTER TABLE public.chat_participant ENABLE ROW LEVEL SECURITY;
 
 -- JWT: read if you are in the same conversation
+DROP POLICY IF EXISTS "jwt_read_chat_participant" ON public.chat_participant;
 CREATE POLICY "jwt_read_chat_participant"
   ON public.chat_participant FOR SELECT
   USING (
@@ -119,6 +130,7 @@ CREATE POLICY "jwt_read_chat_participant"
   );
 
 -- JWT: insert (add participants) if conversation admin or conversation creator
+DROP POLICY IF EXISTS "jwt_insert_chat_participant" ON public.chat_participant;
 CREATE POLICY "jwt_insert_chat_participant"
   ON public.chat_participant FOR INSERT
   WITH CHECK (
@@ -135,6 +147,7 @@ CREATE POLICY "jwt_insert_chat_participant"
   );
 
 -- JWT: update own participant record (mute, last_read_at)
+DROP POLICY IF EXISTS "jwt_update_chat_participant" ON public.chat_participant;
 CREATE POLICY "jwt_update_chat_participant"
   ON public.chat_participant FOR UPDATE
   USING (
@@ -142,6 +155,7 @@ CREATE POLICY "jwt_update_chat_participant"
   );
 
 -- API key: read
+DROP POLICY IF EXISTS "api_key_read_chat_participant" ON public.chat_participant;
 CREATE POLICY "api_key_read_chat_participant"
   ON public.chat_participant FOR SELECT
   USING (
@@ -155,6 +169,7 @@ CREATE POLICY "api_key_read_chat_participant"
 ALTER TABLE public.chat_message ENABLE ROW LEVEL SECURITY;
 
 -- JWT: read if participant in conversation
+DROP POLICY IF EXISTS "jwt_read_chat_message" ON public.chat_message;
 CREATE POLICY "jwt_read_chat_message"
   ON public.chat_message FOR SELECT
   USING (
@@ -166,6 +181,7 @@ CREATE POLICY "jwt_read_chat_message"
   );
 
 -- JWT: insert if participant and sender is self
+DROP POLICY IF EXISTS "jwt_insert_chat_message" ON public.chat_message;
 CREATE POLICY "jwt_insert_chat_message"
   ON public.chat_message FOR INSERT
   WITH CHECK (
@@ -178,6 +194,7 @@ CREATE POLICY "jwt_insert_chat_message"
   );
 
 -- JWT: update own messages (edit, soft-delete)
+DROP POLICY IF EXISTS "jwt_update_chat_message" ON public.chat_message;
 CREATE POLICY "jwt_update_chat_message"
   ON public.chat_message FOR UPDATE
   USING (
@@ -185,6 +202,7 @@ CREATE POLICY "jwt_update_chat_message"
   );
 
 -- API key: read
+DROP POLICY IF EXISTS "api_key_read_chat_message" ON public.chat_message;
 CREATE POLICY "api_key_read_chat_message"
   ON public.chat_message FOR SELECT
   USING (
@@ -195,33 +213,36 @@ CREATE POLICY "api_key_read_chat_message"
   );
 
 -- ── Indexes ──────────────────────────────────────────────────
-CREATE INDEX idx_chat_conversation_workspace
+CREATE INDEX IF NOT EXISTS idx_chat_conversation_workspace
   ON public.chat_conversation (workspace_id);
 
-CREATE INDEX idx_chat_participant_conversation
+CREATE INDEX IF NOT EXISTS idx_chat_participant_conversation
   ON public.chat_participant (conversation_id)
   WHERE left_at IS NULL;
 
-CREATE INDEX idx_chat_participant_profile
+CREATE INDEX IF NOT EXISTS idx_chat_participant_profile
   ON public.chat_participant (profile_id)
   WHERE left_at IS NULL;
 
-CREATE INDEX idx_chat_message_conversation_created
+CREATE INDEX IF NOT EXISTS idx_chat_message_conversation_created
   ON public.chat_message (conversation_id, created_at DESC);
 
-CREATE INDEX idx_chat_message_reply_to
+CREATE INDEX IF NOT EXISTS idx_chat_message_reply_to
   ON public.chat_message (reply_to_id)
   WHERE reply_to_id IS NOT NULL;
 
 -- ── Triggers ─────────────────────────────────────────────────
+DROP TRIGGER IF EXISTS set_chat_conversation_updated_at ON public.chat_conversation;
 CREATE TRIGGER set_chat_conversation_updated_at
   BEFORE UPDATE ON public.chat_conversation
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
+DROP TRIGGER IF EXISTS set_chat_participant_updated_at ON public.chat_participant;
 CREATE TRIGGER set_chat_participant_updated_at
   BEFORE UPDATE ON public.chat_participant
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
+DROP TRIGGER IF EXISTS set_chat_message_updated_at ON public.chat_message;
 CREATE TRIGGER set_chat_message_updated_at
   BEFORE UPDATE ON public.chat_message
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();

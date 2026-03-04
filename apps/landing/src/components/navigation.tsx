@@ -94,10 +94,10 @@ export default function Navigation() {
             </Suspense>
           )}
           <Link
-            href={WEB_APP_LINKS.onboarding}
+            href={WEB_APP_LINKS.login}
             className="group ml-2 flex items-center gap-2 rounded-full bg-white px-5 py-2 text-sm font-bold text-zinc-950 shadow-[0_0_20px_rgba(255,255,255,0.08)] transition-all duration-300 hover:bg-zinc-100 hover:shadow-[0_0_30px_rgba(255,255,255,0.15)]"
           >
-            Kom i gang
+            Logg inn
             <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
           </Link>
         </div>
@@ -105,10 +105,10 @@ export default function Navigation() {
         {/* Mobile: CTA + hamburger */}
         <div className="flex items-center gap-3 md:hidden">
           <Link
-            href={WEB_APP_LINKS.onboarding}
+            href={WEB_APP_LINKS.login}
             className="flex items-center gap-1.5 rounded-full bg-white px-4 py-2.5 text-sm font-bold text-zinc-950"
           >
-            Kom i gang <ArrowRight className="h-3.5 w-3.5" />
+            Logg inn <ArrowRight className="h-3.5 w-3.5" />
           </Link>
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
@@ -142,42 +142,30 @@ export default function Navigation() {
         </div>
       </div>
 
-      {/* Mobile dropdown with animation */}
-      <AnimatePresence>
-        {mobileOpen && (
-          <m.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
-            className="overflow-hidden border-t border-white/5 bg-[#0a0a0c]/95 backdrop-blur-3xl md:hidden"
-          >
-            <div className="mx-auto max-w-7xl space-y-1 px-6 py-4">
-              {NAV_LINKS.map((link, i) => (
-                <m.div
-                  key={link.href}
-                  initial={{ opacity: 0, x: -12 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.05, duration: 0.2 }}
-                >
-                  <Link
-                    href={link.href}
-                    onClick={() => setMobileOpen(false)}
-                    className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-colors hover:bg-white/5 ${
-                      isActive(link.href) ? "text-white" : "text-zinc-400"
-                    }`}
-                  >
-                    {isActive(link.href) && (
-                      <span className="h-1.5 w-1.5 rounded-full bg-orange-500" />
-                    )}
-                    {link.label}
-                  </Link>
-                </m.div>
-              ))}
-            </div>
-          </m.div>
-        )}
-      </AnimatePresence>
+      {/* Mobile dropdown — CSS-only animation for performance */}
+      <div
+        className={`grid border-t border-white/5 bg-[#0a0a0c]/95 backdrop-blur-3xl transition-[grid-template-rows] duration-200 ease-out md:hidden ${
+          mobileOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+        }`}
+      >
+        <div className="overflow-hidden">
+          <div className="mx-auto max-w-7xl space-y-1 px-6 py-4">
+            {NAV_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setMobileOpen(false)}
+                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-colors hover:bg-white/5 ${
+                  isActive(link.href) ? "text-white" : "text-zinc-400"
+                }`}
+              >
+                {isActive(link.href) && <span className="h-1.5 w-1.5 rounded-full bg-orange-500" />}
+                {link.label}
+              </Link>
+            ))}
+          </div>
+        </div>
+      </div>
     </nav>
   );
 }

@@ -320,13 +320,13 @@ export default function WorkspaceAnalyzer() {
               className="flex flex-col items-center gap-3 pt-2 sm:flex-row sm:justify-center"
             >
               <a
-                href={WEB_APP_LINKS.onboarding}
+                href={WEB_APP_LINKS.login}
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-bold text-zinc-950 transition-colors hover:bg-zinc-200 sm:w-auto"
               >
                 Registrer deg <ArrowRight className="h-4 w-4" />
               </a>
               <a
-                href={WEB_APP_LINKS.onboarding}
+                href={WEB_APP_LINKS.login}
                 className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-6 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-white/10 sm:w-auto"
               >
                 Optimaliser din arbeidsplass

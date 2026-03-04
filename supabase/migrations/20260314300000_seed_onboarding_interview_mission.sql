@@ -1,3 +1,5 @@
+SET search_path TO public, extensions;
+
 -- Seed onboarding-interview mission into engine_missions + engine_stages
 -- This moves Lise's onboarding flow from the hardcoded registry to the database,
 -- enabling it to run through the stage engine with Guardian monitoring.

@@ -1,3 +1,5 @@
+SET search_path TO public, extensions;
+
 -- Add locale column to platform_communication_recipient for multilingual sending
 ALTER TABLE platform_communication_recipient
   ADD COLUMN IF NOT EXISTS locale text NOT NULL DEFAULT 'no';

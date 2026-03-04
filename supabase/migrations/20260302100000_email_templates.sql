@@ -1,7 +1,9 @@
+SET search_path TO public, extensions;
+
 -- Email Template Creator for platform communications
 -- Stores structured email templates with configurable sections
 
-CREATE TABLE platform_email_template (
+CREATE TABLE IF NOT EXISTS platform_email_template (
   template_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name text NOT NULL,
   category text NOT NULL DEFAULT 'custom',

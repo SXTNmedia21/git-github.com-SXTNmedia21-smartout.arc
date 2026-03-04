@@ -35,7 +35,7 @@ export type UltravoxStaticParameter = {
   value: string;
 };
 
-/** Ultravox tool definition for HTTP tools */
+/** Ultravox tool definition for HTTP tools (server-side, called via HTTP) */
 export type UltravoxHttpTool = {
   temporaryTool: {
     modelToolName: string;
@@ -54,6 +54,24 @@ export type UltravoxHttpTool = {
   };
 };
 
+/** Ultravox tool definition for client tools (browser-side, called via SDK) */
+export type UltravoxClientTool = {
+  temporaryTool: {
+    modelToolName: string;
+    description: string;
+    dynamicParameters: Array<{
+      name: string;
+      location: "PARAMETER_LOCATION_BODY";
+      schema: Record<string, unknown>;
+      required: boolean;
+    }>;
+    client: Record<string, never>;
+  };
+};
+
+/** Any Ultravox tool — HTTP or client */
+export type UltravoxTool = UltravoxHttpTool | UltravoxClientTool;
+
 /**
  * Ultravox new-stage response body.
  * Returned with header X-Ultravox-Response-Type: new-stage
@@ -62,7 +80,7 @@ export type UltravoxHttpTool = {
 export type UltravoxNewStageResponse = {
   systemPrompt: string;
   toolResultText: string;
-  selectedTools?: UltravoxHttpTool[];
+  selectedTools?: UltravoxTool[];
   temperature?: number;
   voice?: string;
   languageHint?: string;
@@ -75,7 +93,8 @@ export type UltravoxCreateCallPayload = {
   voice?: string;
   languageHint?: string;
   temperature?: number;
-  selectedTools: UltravoxHttpTool[];
+  firstSpeaker?: "FIRST_SPEAKER_USER" | "FIRST_SPEAKER_AGENT";
+  selectedTools: UltravoxTool[];
   medium?: { serverWebSocket?: { inputSampleRate: number; outputSampleRate: number } };
 };
 

@@ -1,15 +1,17 @@
 ---
-title: "User Journey: Admin Workspace Setup"
-status: approved
+title: "User Journey: Admin Workspace Setup (SUPERSEDED)"
+status: archived
 created: 2026-03-01
-updated: 2026-03-01
+updated: 2026-03-29
 module: onboarding
-tags: [user-journey, admin, wizard, workspace-setup]
+tags: [user-journey, admin, wizard, workspace-setup, archived]
 ---
 
-# User Journey: Admin Workspace Setup
+# User Journey: Admin Workspace Setup (SUPERSEDED)
 
-## Overview
+> **ARKIVERT**: Denne journeyen beskriver den gamle 15-stegs onboarding-wizarden. Den er erstattet av den nye 6-seksjons scroll-baserte onboardingen. Se `JOURNEY-onboarding-redesign.md` for gjeldende flyt, og `JOURNEY-onboarding-mission.md` for voice agent-onboarding.
+
+## Overview (Historical)
 
 The Admin Workspace Setup Wizard guides a new admin through creating and activating their Smartout workspace. The wizard collects company information, organizational structure, and branding before activating the workspace and optionally inviting team members.
 

@@ -64,7 +64,7 @@ export default function LoginPage() {
           <p className="mt-6 text-sm text-zinc-500">
             Har du ikke konto?{" "}
             <Link
-              href={WEB_APP_LINKS.onboarding}
+              href={WEB_APP_LINKS.login}
               className="font-semibold text-orange-400 hover:text-orange-300"
             >
               Kom i gang

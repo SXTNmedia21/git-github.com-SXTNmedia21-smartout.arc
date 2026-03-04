@@ -102,7 +102,7 @@ export default function PricingPage() {
 
             <TrackedCta
               label="Kom i gang"
-              href={WEB_APP_LINKS.onboarding}
+              href={WEB_APP_LINKS.login}
               className="relative z-10 w-full rounded-2xl border border-white/10 bg-white/5 py-4 text-center font-bold text-white transition-colors hover:bg-white/10"
             >
               Kom i gang
@@ -152,7 +152,7 @@ export default function PricingPage() {
 
             <TrackedCta
               label="Velg Pro"
-              href={WEB_APP_LINKS.onboarding}
+              href={WEB_APP_LINKS.login}
               className="group relative block w-full"
             >
               <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-500 opacity-40 blur transition duration-500 group-hover:opacity-70"></div>

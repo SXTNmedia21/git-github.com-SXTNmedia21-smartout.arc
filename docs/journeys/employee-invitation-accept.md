@@ -1,13 +1,15 @@
 ---
 title: "User Journey: Employee Invitation & Acceptance"
-status: approved
+status: review
 created: 2026-03-01
-updated: 2026-03-01
+updated: 2026-03-29
 module: onboarding
 tags: [user-journey, employee, invitation, acceptance]
 ---
 
 # User Journey: Employee Invitation & Acceptance
+
+> **MERK**: Invitasjons- og akseptflyten er implementert (Edge Functions `create-invitation` og `accept-invitation`, `/invite/[token]` side). Men `trainee_journey`-tabellen finnes IKKE i databasen ennaa. Steg som refererer til `trainee_journey` er planlagt funksjonalitet.
 
 ## Overview
 

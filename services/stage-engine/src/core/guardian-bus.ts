@@ -1,9 +1,15 @@
-import type { WebSocket } from "ws";
 import { supabaseAdmin } from "../lib/supabase.js";
 import type { GuardianEvent, GuardianServerMessage } from "../types/guardian.js";
 
+/** Minimal WebSocket interface — works with both `ws` library and Hono WSContext */
+type GuardianSocket = {
+  send(data: string | ArrayBuffer | Uint8Array): void;
+  readyState: number;
+  close?(code?: number, reason?: string): void;
+};
+
 type ClientInfo = {
-  ws: WebSocket;
+  ws: GuardianSocket;
   workspaceId: string;
   subscribedSessions: Set<string>;
 };
@@ -13,7 +19,7 @@ const clients: Set<ClientInfo> = new Set();
 /**
  * Register a new WebSocket client for a workspace.
  */
-export function addClient(ws: WebSocket, workspaceId: string): ClientInfo {
+export function addClient(ws: GuardianSocket, workspaceId: string): ClientInfo {
   const client: ClientInfo = { ws, workspaceId, subscribedSessions: new Set() };
   clients.add(client);
   return client;
@@ -99,9 +105,9 @@ export async function sendSessionList(client: ClientInfo): Promise<void> {
   send(client.ws, msg);
 }
 
-/** Helper: send JSON to WebSocket */
-function send(ws: WebSocket, msg: GuardianServerMessage): void {
-  if (ws.readyState === ws.OPEN) {
+/** Helper: send JSON to WebSocket (readyState 1 = OPEN) */
+function send(ws: GuardianSocket, msg: GuardianServerMessage): void {
+  if (ws.readyState === 1) {
     ws.send(JSON.stringify(msg));
   }
 }

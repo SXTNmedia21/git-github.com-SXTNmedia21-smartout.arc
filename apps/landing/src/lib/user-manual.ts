@@ -54,17 +54,27 @@ function slugify(input: string) {
     .replace(/^-+|-+$/g, "");
 }
 
+function stripFrontmatter(markdown: string) {
+  if (!markdown.startsWith("---")) return markdown;
+  const closing = markdown.indexOf("---", 3);
+  if (closing === -1) return markdown;
+  return markdown.slice(closing + 3);
+}
+
 function extractTitle(markdown: string, fallback: string) {
-  const firstHeading = markdown.match(/^#\s+(.+)$/m)?.[1]?.trim();
+  const body = stripFrontmatter(markdown);
+  const firstHeading = body.match(/^#\s+(.+)$/m)?.[1]?.trim();
   return firstHeading || fallback;
 }
 
 function extractExcerpt(markdown: string) {
-  const lines = markdown
+  const body = stripFrontmatter(markdown);
+  const lines = body
     .split("\n")
     .map((line) => line.trim())
-    .filter((line) => line.length > 0 && !line.startsWith("#"));
-  return lines[0] || "Se dokumentasjonssiden for detaljer.";
+    .filter((line) => line.length > 0 && !line.startsWith("#") && line !== "---");
+  const first = lines[0] || "Se dokumentasjonssiden for detaljer.";
+  return first.startsWith("> ") ? first.slice(2) : first;
 }
 
 export function getUserManualDocs(): UserManualDoc[] {

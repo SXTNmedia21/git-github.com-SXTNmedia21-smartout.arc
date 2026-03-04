@@ -1,3 +1,5 @@
+SET search_path TO public, extensions;
+
 -- ═══════════════════════════════════════════════════════════════
 -- Migration 20260228120000: Platform Communication System
 -- Module 17 — Super Admin Backoffice
@@ -6,7 +8,7 @@
 
 -- ─── Job-Level Communication Log ───────────────────────────────
 -- Tracks each broadcast/targeted send initiated by a super admin
-CREATE TABLE public.platform_communication_log (
+CREATE TABLE IF NOT EXISTS public.platform_communication_log (
   communication_id    uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   super_admin_id      uuid NOT NULL REFERENCES public.user_identity(user_id),
   subject             text NOT NULL,
@@ -26,15 +28,15 @@ CREATE TABLE public.platform_communication_log (
   updated_at          timestamptz DEFAULT now()
 );
 
-CREATE INDEX idx_comm_admin ON public.platform_communication_log (super_admin_id, created_at DESC);
-CREATE INDEX idx_comm_time ON public.platform_communication_log (created_at DESC);
-CREATE INDEX idx_comm_status ON public.platform_communication_log (status);
-CREATE INDEX idx_comm_workspace ON public.platform_communication_log (workspace_id) WHERE workspace_id IS NOT NULL;
-CREATE UNIQUE INDEX idx_comm_idempotency ON public.platform_communication_log (idempotency_key) WHERE idempotency_key IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_comm_admin ON public.platform_communication_log (super_admin_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_comm_time ON public.platform_communication_log (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_comm_status ON public.platform_communication_log (status);
+CREATE INDEX IF NOT EXISTS idx_comm_workspace ON public.platform_communication_log (workspace_id) WHERE workspace_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_comm_idempotency ON public.platform_communication_log (idempotency_key) WHERE idempotency_key IS NOT NULL;
 
 -- ─── Per-Recipient Delivery Tracking ───────────────────────────
 -- One row per recipient per communication job
-CREATE TABLE public.platform_communication_recipient (
+CREATE TABLE IF NOT EXISTS public.platform_communication_recipient (
   recipient_id        uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   communication_id    uuid NOT NULL REFERENCES public.platform_communication_log(communication_id) ON DELETE CASCADE,
   user_id             uuid REFERENCES public.user_identity(user_id),
@@ -47,13 +49,13 @@ CREATE TABLE public.platform_communication_recipient (
   created_at          timestamptz DEFAULT now()
 );
 
-CREATE INDEX idx_recipient_comm ON public.platform_communication_recipient (communication_id);
-CREATE INDEX idx_recipient_user ON public.platform_communication_recipient (user_id) WHERE user_id IS NOT NULL;
-CREATE INDEX idx_recipient_status ON public.platform_communication_recipient (status);
+CREATE INDEX IF NOT EXISTS idx_recipient_comm ON public.platform_communication_recipient (communication_id);
+CREATE INDEX IF NOT EXISTS idx_recipient_user ON public.platform_communication_recipient (user_id) WHERE user_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_recipient_status ON public.platform_communication_recipient (status);
 
 -- ─── Email Suppression List ─────────────────────────────────────
 -- Hard bounces and unsubscribes — checked before every send
-CREATE TABLE public.platform_email_suppression (
+CREATE TABLE IF NOT EXISTS public.platform_email_suppression (
   suppression_id      uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   email               text NOT NULL,
   reason              text NOT NULL,                      -- 'bounce', 'unsubscribe', 'complaint', 'manual'
@@ -61,4 +63,4 @@ CREATE TABLE public.platform_email_suppression (
   created_at          timestamptz DEFAULT now()
 );
 
-CREATE UNIQUE INDEX idx_suppression_email ON public.platform_email_suppression (email);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_suppression_email ON public.platform_email_suppression (email);

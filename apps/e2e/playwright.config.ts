@@ -29,21 +29,23 @@ export default defineConfig({
   /* Output directory for test artifacts */
   outputDir: "./test-results",
 
-  /* Start dev servers before running tests */
-  webServer: [
-    {
-      command: "pnpm --filter web dev",
-      url: "http://127.0.0.1:3050",
-      reuseExistingServer: !process.env.CI,
-      timeout: 120_000,
-    },
-    {
-      command: "pnpm --filter landing dev",
-      url: "http://127.0.0.1:3055",
-      reuseExistingServer: !process.env.CI,
-      timeout: 120_000,
-    },
-  ],
+  /* Start dev servers before running tests (skip with SKIP_WEB_SERVER=1) */
+  ...(!process.env.SKIP_WEB_SERVER && {
+    webServer: [
+      {
+        command: "pnpm --filter web dev",
+        url: "http://127.0.0.1:3060",
+        reuseExistingServer: !process.env.CI,
+        timeout: 120_000,
+      },
+      {
+        command: "pnpm --filter landing dev",
+        url: "http://127.0.0.1:3055",
+        reuseExistingServer: !process.env.CI,
+        timeout: 120_000,
+      },
+    ],
+  }),
 
   /* Configure projects for major browsers and different local apps */
   projects: [
@@ -59,7 +61,7 @@ export default defineConfig({
       name: "web",
       use: {
         ...devices["Desktop Chrome"],
-        baseURL: "http://localhost:3050",
+        baseURL: "http://localhost:3060",
       },
       testIgnore: /landing\.spec\.ts/,
     },

@@ -1,9 +1,15 @@
+SET search_path TO public, extensions;
+
 -- Migration: invitation_sms_support
 -- Description: Add phone and invite_type columns to invitation table for SMS and link invite support.
 -- Connected to: docs/plans/2026-03-01-admin-wizard-completion.md
 
 -- Create the invite_type enum (email, sms, link)
-CREATE TYPE public.invite_type AS ENUM ('email', 'sms', 'link');
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'invite_type') THEN
+    CREATE TYPE public.invite_type AS ENUM ('email', 'sms', 'link');
+  END IF;
+END $$;;
 
 -- Add new columns
 ALTER TABLE public.invitation
@@ -30,9 +36,11 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_invitation_unique_phone
   WHERE phone IS NOT NULL;
 
 -- Check constraint: must have email or phone (or be a link invite)
-ALTER TABLE public.invitation
-  ADD CONSTRAINT invitation_contact_check
-  CHECK (email IS NOT NULL OR phone IS NOT NULL OR invite_type = 'link');
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'invitation_contact_check') THEN
+    ALTER TABLE public.invitation ADD CONSTRAINT invitation_contact_check CHECK (email IS NOT NULL OR phone IS NOT NULL OR invite_type = 'link');
+  END IF;
+END $$;
 
 -- Index for phone lookups
 CREATE INDEX IF NOT EXISTS idx_invitation_phone

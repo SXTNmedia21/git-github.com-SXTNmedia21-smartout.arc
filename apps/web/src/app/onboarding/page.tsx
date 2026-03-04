@@ -16,8 +16,10 @@ import { HeroSection } from "./sections/HeroSection";
 import { BusinessSection } from "./sections/BusinessSection";
 import { SeasonSection } from "./sections/SeasonSection";
 import { DepartmentsSection } from "./sections/DepartmentsSection";
+import { LocationsSection } from "./sections/LocationsSection";
+import { ProceduresSection } from "./sections/ProceduresSection";
 import { ContractSection } from "./sections/ContractSection";
-import { DoneSection } from "./sections/DoneSection";
+import { WelcomeSection } from "./sections/WelcomeSection";
 import type { OnboardingSection } from "./types";
 import { ONBOARDING_SECTIONS } from "./types";
 
@@ -26,8 +28,10 @@ const SECTION_COMPONENTS: Record<OnboardingSection, React.ComponentType> = {
   business: BusinessSection,
   season: SeasonSection,
   departments: DepartmentsSection,
+  locations: LocationsSection,
+  procedures: ProceduresSection,
   contract: ContractSection,
-  done: DoneSection,
+  welcome: WelcomeSection,
 };
 
 function ProgressBar() {

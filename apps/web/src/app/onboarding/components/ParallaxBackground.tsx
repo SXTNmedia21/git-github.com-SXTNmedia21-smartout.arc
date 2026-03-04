@@ -9,8 +9,10 @@ const SECTION_COLORS: Record<OnboardingSection, string> = {
   business: "var(--color-onboarding-business)",
   season: "var(--color-onboarding-season)",
   departments: "var(--color-onboarding-departments)",
+  locations: "var(--color-onboarding-locations)",
+  procedures: "var(--color-onboarding-procedures)",
   contract: "var(--color-onboarding-contract)",
-  done: "var(--color-onboarding-done)",
+  welcome: "var(--color-onboarding-welcome)",
 };
 
 interface ParallaxBackgroundProps {

@@ -1,3 +1,5 @@
+SET search_path TO public, extensions;
+
 -- ═══════════════════════════════════════════════════════════════
 -- Migration: Communications v2 — Template Data + Engagement Tracking + Webhook Events
 -- Module 17 — Super Admin Backoffice

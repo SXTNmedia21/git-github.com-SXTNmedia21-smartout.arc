@@ -1,3 +1,5 @@
+SET search_path TO public, extensions;
+
 -- Migration: Add attachments JSONB column to contract_template + storage bucket
 -- Purpose: Enable PDF file attachments on contract templates (DPA, vedlegg, etc.)
 
@@ -22,6 +24,7 @@ ON CONFLICT (id) DO NOTHING;
 -- 3. Storage RLS policies
 
 -- Authenticated users can read attachments
+DROP POLICY IF EXISTS "Authenticated users can read contract attachments" ON storage.objects;
 CREATE POLICY "Authenticated users can read contract attachments"
   ON storage.objects FOR SELECT
   TO authenticated
@@ -31,6 +34,7 @@ CREATE POLICY "Authenticated users can read contract attachments"
 -- This means only server actions with service role can upload
 
 -- Authenticated users can delete their own uploads (via server action proxy)
+DROP POLICY IF EXISTS "Authenticated users can delete contract attachments" ON storage.objects;
 CREATE POLICY "Authenticated users can delete contract attachments"
   ON storage.objects FOR DELETE
   TO authenticated

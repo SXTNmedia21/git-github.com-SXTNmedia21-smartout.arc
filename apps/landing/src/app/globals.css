@@ -16,6 +16,7 @@
   --animate-ping: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
   --animate-float: float 6s ease-in-out infinite;
   --animate-glow-shift: glow-shift 8s ease-in-out infinite;
+  --animate-hero-glow: hero-glow 4s ease-in-out infinite;
 }
 
 /* ─── Custom Keyframes ──────────────────────────────────── */
@@ -28,6 +29,19 @@
   }
   50% {
     transform: translateY(-20px) scale(1.02);
+  }
+}
+
+/* Gentle glow pulse for hero gradient text */
+@keyframes hero-glow {
+  0%,
+  100% {
+    opacity: 0.2;
+    filter: blur(16px);
+  }
+  50% {
+    opacity: 0.35;
+    filter: blur(20px);
   }
 }
 

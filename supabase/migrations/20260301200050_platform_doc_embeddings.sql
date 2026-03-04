@@ -1,3 +1,5 @@
+SET search_path TO public, extensions;
+
 -- ============================================
 -- 20260301200000_platform_doc_embeddings.sql
 -- Creates the platform_doc_chunk table for documentation RAG.
@@ -10,7 +12,9 @@
 CREATE EXTENSION IF NOT EXISTS vector;
 
 -- Document type enum for classifying chunks by source
-CREATE TYPE doc_type AS ENUM (
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'doc_type') THEN
+    CREATE TYPE doc_type AS ENUM (
   'adr',
   'module',
   'architecture',
@@ -20,10 +24,12 @@ CREATE TYPE doc_type AS ENUM (
   'roadmap',
   'other'
 );
+  END IF;
+END $$;;
 
 -- Platform-level table: no workspace_id, no RLS
 -- Accessed only via service role (ingestion pipeline)
-CREATE TABLE platform_doc_chunk (
+CREATE TABLE IF NOT EXISTS platform_doc_chunk (
   chunk_id       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   source_path    TEXT NOT NULL,
   source_hash    TEXT NOT NULL,
@@ -43,6 +49,7 @@ CREATE TABLE platform_doc_chunk (
 );
 
 -- Auto-update updated_at using existing trigger function
+DROP TRIGGER IF EXISTS set_platform_doc_chunk_updated_at ON platform_doc_chunk;
 CREATE TRIGGER set_platform_doc_chunk_updated_at
   BEFORE UPDATE ON platform_doc_chunk
   FOR EACH ROW
@@ -50,18 +57,18 @@ CREATE TRIGGER set_platform_doc_chunk_updated_at
 
 -- HNSW index for fast approximate nearest neighbor search
 -- cosine distance is best for normalized text embeddings
-CREATE INDEX idx_platform_doc_chunk_embedding
+CREATE INDEX IF NOT EXISTS idx_platform_doc_chunk_embedding
   ON platform_doc_chunk
   USING hnsw (embedding vector_cosine_ops);
 
 -- B-tree indexes for filtering and lookup
-CREATE INDEX idx_platform_doc_chunk_source_path
+CREATE INDEX IF NOT EXISTS idx_platform_doc_chunk_source_path
   ON platform_doc_chunk (source_path);
 
-CREATE INDEX idx_platform_doc_chunk_doc_type
+CREATE INDEX IF NOT EXISTS idx_platform_doc_chunk_doc_type
   ON platform_doc_chunk (doc_type);
 
-CREATE INDEX idx_platform_doc_chunk_content_hash
+CREATE INDEX IF NOT EXISTS idx_platform_doc_chunk_content_hash
   ON platform_doc_chunk (content_hash);
 
 /**

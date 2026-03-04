@@ -1,3 +1,5 @@
+SET search_path TO public, extensions;
+
 -- Seed the onboarding journey definition (J-ONBOARD-001).
 -- The journey table requires workspace_id NOT NULL, so we create a reusable
 -- function that seeds the journey + steps for a given workspace.
@@ -125,7 +127,7 @@ DECLARE
   ws record;
   result uuid;
 BEGIN
-  FOR ws IN SELECT workspace_id FROM workspace LOOP
+  FOR ws IN SELECT workspace_id FROM public.workspace LOOP
     result := seed_onboarding_journey(ws.workspace_id);
     RAISE NOTICE 'Seeded onboarding journey for workspace %: journey_id=%', ws.workspace_id, result;
   END LOOP;

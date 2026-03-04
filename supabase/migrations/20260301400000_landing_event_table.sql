@@ -1,3 +1,5 @@
+SET search_path TO public, extensions;
+
 -- ============================================
 -- 20260301400000_landing_event_table.sql
 -- Creates the landing_event table for tracking
@@ -8,7 +10,7 @@
 
 -- Tracks anonymous events from the public landing page.
 -- No RLS — service role access only, consistent with other platform-admin tables.
-CREATE TABLE public.landing_event (
+CREATE TABLE IF NOT EXISTS public.landing_event (
   id          uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   event_type  text NOT NULL,  -- 'page_view' | 'voice_session_started' | 'cta_click'
   variant     text,           -- 'B' | 'E' | 'T' | 'K' | 'A' | 'F' | 'S'
@@ -21,7 +23,7 @@ CREATE TABLE public.landing_event (
 );
 
 -- Primary access pattern: recent events in reverse chronological order
-CREATE INDEX idx_landing_event_time ON public.landing_event (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_landing_event_time ON public.landing_event (created_at DESC);
 
 -- Filtering by event type (e.g., count voice sessions today)
-CREATE INDEX idx_landing_event_type ON public.landing_event (event_type, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_landing_event_type ON public.landing_event (event_type, created_at DESC);

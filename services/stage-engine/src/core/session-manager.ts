@@ -251,7 +251,7 @@ export async function createSession(
     .from("engine_sessions")
     .insert({
       mission_id: req.mission_id,
-      workspace_id: req.workspace_id,
+      workspace_id: req.workspace_id ?? null,
       user_id: req.user_id ?? null,
       profile_id: req.profile_id ?? null,
       channel: req.channel,
@@ -273,18 +273,20 @@ export async function createSession(
     return null;
   }
 
-  emitGuardianEvent({
-    session_id: session.id,
-    workspace_id: req.workspace_id,
-    event_type: "session.started",
-    actor: "system",
-    summary: `Session started: ${req.mission_id}`,
-    data: {
-      mission_id: req.mission_id,
-      channel: req.channel,
-      profile_id: req.profile_id ?? null,
-    },
-  });
+  if (req.workspace_id) {
+    emitGuardianEvent({
+      session_id: session.id,
+      workspace_id: req.workspace_id,
+      event_type: "session.started",
+      actor: "system",
+      summary: `Session started: ${req.mission_id}`,
+      data: {
+        mission_id: req.mission_id,
+        channel: req.channel,
+        profile_id: req.profile_id ?? null,
+      },
+    });
+  }
 
   // Build stage info for response
   const stageInfo = firstStage
