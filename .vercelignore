@@ -2,21 +2,27 @@
 # Without /, gitignore syntax matches at ANY depth (e.g., docs/ would
 # also remove apps/landing/src/app/docs/ — breaking the build).
 
-# Python services — deployed separately (DigitalOcean)
+# ── Build cache (5.4GB combined) ────────────────────────────
+.next
+.turbo
+*.tsbuildinfo
+
+# ── Not deployed to Vercel ──────────────────────────────────
 /services/
-
-# Documentation — not deployed
 /docs/
-
-# CI scripts and artifacts — not deployed
 /scripts/
 /artifacts/
-
-# Claude Code config
-/.claude/
-
-# GitHub Actions — not deployed
-/.github/
-
-# Python AI agents — deployed separately
 /agents/
+/infra/
+/supabase/
+/apps/e2e/
+
+# ── Dev tooling & config ───────────────────────────────────
+/.claude/
+/.github/
+/.husky/
+/.cursor/
+
+# ── Packages not imported by web or landing ────────────────
+/packages/docs-pipeline/
+/packages/agent-sdk/
