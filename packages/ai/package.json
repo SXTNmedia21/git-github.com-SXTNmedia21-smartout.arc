@@ -66,6 +66,10 @@
       "types": "./dist/agents/reports.d.ts",
       "default": "./dist/agents/reports.js"
     },
+    "./tools/intelligence": {
+      "types": "./dist/tools/intelligence/index.d.ts",
+      "default": "./dist/tools/intelligence/index.js"
+    },
     "./tools/journey": {
       "types": "./dist/tools/journey/index.d.ts",
       "default": "./dist/tools/journey/index.js"

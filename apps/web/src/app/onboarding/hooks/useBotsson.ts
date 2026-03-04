@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { UltravoxSession, UltravoxSessionStatus, Role } from "ultravox-client";
 import { toast } from "sonner";
-import type { BusinessData, SeasonData } from "../types";
+import type { BusinessData, SeasonData, BrregCandidate } from "../types";
 
 type GetOnboardingState = () => Record<string, unknown>;
 
@@ -22,6 +22,13 @@ export interface BotssonActions {
     companyName?: string,
     city?: string,
   ) => Promise<void>;
+  searchCompany: (name: string, city?: string) => Promise<BrregCandidate[]>;
+  identifyCompany: (orgNumber: string) => Promise<{
+    company: Record<string, unknown>;
+    places: unknown;
+    workspaceId: string | null;
+  } | null>;
+  scrapeWebsite: (url: string) => Promise<{ scrapedData: Record<string, unknown> | null } | null>;
   advanceToNextSection: () => void;
   addKeyFact: (label: string, value: string) => void;
   saveMemory: (content: string, memoryType: string, expiresAt?: string) => Promise<void>;
@@ -167,27 +174,15 @@ const CLIENT_TOOLS = [
   },
   {
     temporaryTool: {
-      modelToolName: "triggerScrape",
+      modelToolName: "searchCompany",
       description:
-        "Trigger a scan of the business. Pass company name + city for auto-lookup, or a website URL, or org number, or any combination.",
+        "Search for a Norwegian company by name in Brønnøysundregistrene. Returns candidates with org number, city, industry. Use as soon as you know the company name. Returns data you can narrate to the user.",
       dynamicParameters: [
         {
-          name: "url",
+          name: "name",
           location: "PARAMETER_LOCATION_BODY",
-          schema: { type: "string", description: "Website URL to scan" },
-          required: false,
-        },
-        {
-          name: "orgNumber",
-          location: "PARAMETER_LOCATION_BODY",
-          schema: { type: "string", description: "Norwegian org number" },
-          required: false,
-        },
-        {
-          name: "companyName",
-          location: "PARAMETER_LOCATION_BODY",
-          schema: { type: "string", description: "Business name to search for (e.g. 'Sjøbris')" },
-          required: false,
+          schema: { type: "string", description: "Company name to search for (e.g. 'Sjøbris')" },
+          required: true,
         },
         {
           name: "city",
@@ -197,6 +192,41 @@ const CLIENT_TOOLS = [
             description: "City where the business is located (e.g. 'Trondheim')",
           },
           required: false,
+        },
+      ],
+      client: {},
+    },
+  },
+  {
+    temporaryTool: {
+      modelToolName: "identifyCompany",
+      description:
+        "Confirm and identify a company using its org number from searchCompany results. Returns full details: address, CEO, Google rating, website. Also creates the workspace.",
+      dynamicParameters: [
+        {
+          name: "orgNumber",
+          location: "PARAMETER_LOCATION_BODY",
+          schema: {
+            type: "string",
+            description: "Norwegian org number (9 digits) from searchCompany results",
+          },
+          required: true,
+        },
+      ],
+      client: {},
+    },
+  },
+  {
+    temporaryTool: {
+      modelToolName: "scrapeWebsite",
+      description:
+        "Scrape a website to extract email, phone, locations, departments, menus. Call when you know the business website URL (from identifyCompany results or user input).",
+      dynamicParameters: [
+        {
+          name: "url",
+          location: "PARAMETER_LOCATION_BODY",
+          schema: { type: "string", description: "Website URL to scrape (e.g. 'https://sjobris.no')" },
+          required: true,
         },
       ],
       client: {},
@@ -387,15 +417,89 @@ export function useBotsson(actions?: BotssonActions): BotssonState {
         }
       });
 
-      session.registerToolImplementation("triggerScrape", (params) => {
-        const url = String(params.url ?? "");
-        const orgNumber = String(params.orgNumber ?? "");
-        const companyName = String(params.companyName ?? "");
-        const city = String(params.city ?? "");
-        actionsRef.current
-          ?.triggerScrape(url, orgNumber, companyName || undefined, city || undefined)
-          .catch(() => {});
-        return JSON.stringify({ success: true, message: "Scan started" });
+      session.registerToolImplementation("searchCompany", async (params) => {
+        try {
+          const name = String(params.name ?? "");
+          const city = String(params.city ?? "");
+          if (!name) return JSON.stringify({ found: false, count: 0, candidates: [] });
+
+          const candidates = await actionsRef.current?.searchCompany(name, city || undefined);
+          return JSON.stringify({
+            found: (candidates?.length ?? 0) > 0,
+            count: candidates?.length ?? 0,
+            candidates: (candidates ?? []).map((c) => ({
+              orgNumber: c.orgNumber,
+              name: c.name,
+              city: c.city,
+              industry: c.industry,
+              employeeCount: c.employeeCount,
+              highConfidence: c.highConfidence,
+            })),
+          });
+        } catch {
+          return JSON.stringify({ found: false, count: 0, candidates: [], error: "Search failed" });
+        }
+      });
+
+      session.registerToolImplementation("identifyCompany", async (params) => {
+        try {
+          const orgNumber = String(params.orgNumber ?? "");
+          if (!orgNumber)
+            return JSON.stringify({ success: false, error: "orgNumber is required" });
+
+          const result = await actionsRef.current?.identifyCompany(orgNumber);
+          if (!result) return JSON.stringify({ success: false, error: "Identification failed" });
+
+          const company = result.company as Record<string, unknown>;
+          const places = result.places as Record<string, unknown> | null;
+
+          return JSON.stringify({
+            success: true,
+            company: {
+              legalName: company.legalName,
+              address: company.address,
+              city: company.city,
+              industry: company.industry,
+              employeeCount: company.employeeCount,
+              dagligLeder: company.dagligLeder,
+              website: company.website,
+            },
+            google: places
+              ? {
+                  rating: (places as Record<string, unknown>).rating,
+                  ratingCount: (places as Record<string, unknown>).userRatingCount,
+                  priceLevel: (places as Record<string, unknown>).priceLevel,
+                }
+              : null,
+            workspaceCreated: !!result.workspaceId,
+          });
+        } catch {
+          return JSON.stringify({ success: false, error: "Identification failed" });
+        }
+      });
+
+      session.registerToolImplementation("scrapeWebsite", async (params) => {
+        try {
+          const url = String(params.url ?? "");
+          if (!url) return JSON.stringify({ success: false, error: "url is required" });
+
+          const result = await actionsRef.current?.scrapeWebsite(url);
+          const scraped = result?.scrapedData;
+
+          return JSON.stringify({
+            success: !!scraped,
+            email: (scraped as Record<string, unknown>)?.email || null,
+            phone: (scraped as Record<string, unknown>)?.phone || null,
+            locationCount: Array.isArray((scraped as Record<string, unknown>)?.locations)
+              ? ((scraped as Record<string, unknown>).locations as unknown[]).length
+              : 0,
+            departmentCount: Array.isArray((scraped as Record<string, unknown>)?.departments)
+              ? ((scraped as Record<string, unknown>).departments as unknown[]).length
+              : 0,
+          });
+        } catch {
+          return JSON.stringify({ success: false, error: "Scrape failed" });
+        }
       });
 
       session.registerToolImplementation("advanceToNextSection", () => {

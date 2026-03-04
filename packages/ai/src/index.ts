@@ -22,6 +22,10 @@ export type { EditorAction, ContractEditorState, ContractToolContext } from "./t
 export { REPORT_TOOLS } from "./tools/report";
 export type { ReportConfig, ReportToolContext } from "./tools/report";
 
+// Intelligence tools
+export { INTELLIGENCE_TOOLS } from "./tools/intelligence";
+export type { IntelligenceToolContext } from "./tools/intelligence";
+
 // Journey tools
 export { JOURNEY_TOOLS } from "./tools/journey";
 export type { JourneyToolContext } from "./tools/journey";
