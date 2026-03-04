@@ -41,3 +41,4 @@ export type {
 export { useGuardianActions } from "./useGuardianActions";
 export { useLeaderPulse } from "./useLeaderPulse";
 export type { LeaderPulse, LeaderPulseStatus } from "./useLeaderPulse";
+export { useGovernanceOverview } from "./use-governance-overview";
