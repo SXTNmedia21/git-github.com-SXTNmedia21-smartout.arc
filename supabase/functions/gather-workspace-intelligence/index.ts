@@ -6,8 +6,6 @@ import {
   searchBrregByName,
   fetchBrregDetails,
   fetchDagligLeder,
-  scoreBrregMatch,
-  normalizeName,
 } from "../_shared/brreg.ts";
 
 // --- Scrapling helper ---
