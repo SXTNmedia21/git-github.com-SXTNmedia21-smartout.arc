@@ -9,6 +9,7 @@ import {
   useMemo,
   type ReactNode,
 } from "react";
+import { useRouter } from "next/navigation";
 import { useOnboardingState, type OnboardingActions } from "./hooks/useOnboardingState";
 import { useScrollProgress } from "./hooks/useScrollProgress";
 import { useBotsson, type BotssonActions } from "./hooks/useBotsson";
@@ -29,6 +30,7 @@ const OnboardingContext = createContext<OnboardingContextValue | null>(null);
 
 export function OnboardingProvider({ children }: { children: ReactNode }) {
   const containerRef = useRef<HTMLElement>(null);
+  const router = useRouter();
   const state = useOnboardingState();
   const scroll = useScrollProgress(containerRef);
 
@@ -112,6 +114,27 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     [state.saveMemory],
   );
 
+  // Finalize onboarding — called by Botsson's finalizeOnboarding tool
+  const finalizeOnboarding = useCallback(async (): Promise<{
+    success: boolean;
+    slug?: string;
+    error?: string;
+  }> => {
+    try {
+      await state.finalize();
+      // Give Botsson time to say "Velkommen!" before redirect
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 2000);
+      return { success: true };
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : "Finalization failed",
+      };
+    }
+  }, [state.finalize, router]);
+
   // Helper: add locations by name+type (called by agent)
   const addLocations = useCallback(
     (locs: { name: string; type?: string }[]) => {
@@ -170,6 +193,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       advanceToNextSection,
       addKeyFact,
       saveMemory,
+      finalizeOnboarding,
     }),
     [
       getOnboardingState,
@@ -183,12 +207,13 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       advanceToNextSection,
       addKeyFact,
       saveMemory,
+      finalizeOnboarding,
     ],
   );
 
   const botsson = useBotsson(botssonActions);
 
-  // Push section changes to voice agent — but only after Lise has had time to introduce herself
+  // Push section changes to voice agent — but only after Botsson has had time to introduce himself
   const prevSectionRef = useRef<OnboardingSection | null>(null);
   const sessionStartRef = useRef<number | null>(null);
 
@@ -208,7 +233,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     prevSectionRef.current = section;
 
     // Don't push section context until at least 30s into the session
-    // This prevents interrupting Lise's intro in the first moments
+    // This prevents interrupting Botsson's intro in the first moments
     const elapsed = sessionStartRef.current ? Date.now() - sessionStartRef.current : 0;
     if (elapsed < 30_000 && section !== "hero" && section !== "welcome") return;
 

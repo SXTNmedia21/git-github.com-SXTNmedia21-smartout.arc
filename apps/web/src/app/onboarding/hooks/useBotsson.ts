@@ -25,6 +25,7 @@ export interface BotssonActions {
   advanceToNextSection: () => void;
   addKeyFact: (label: string, value: string) => void;
   saveMemory: (content: string, memoryType: string, expiresAt?: string) => Promise<void>;
+  finalizeOnboarding: () => Promise<{ success: boolean; slug?: string; error?: string }>;
 }
 
 export interface DebugEntry {
@@ -270,6 +271,15 @@ const CLIENT_TOOLS = [
       client: {},
     },
   },
+  {
+    temporaryTool: {
+      modelToolName: "finalizeOnboarding",
+      description:
+        "Finalize the onboarding and activate the workspace. Call this when all sections are complete and the user is ready. Creates the workspace, departments, locations, procedures, and redirects to the dashboard. Only call once — after the user confirms they are done.",
+      dynamicParameters: [],
+      client: {},
+    },
+  },
 ];
 
 export function useBotsson(actions?: BotssonActions): BotssonState {
@@ -410,6 +420,28 @@ export function useBotsson(actions?: BotssonActions): BotssonState {
         return JSON.stringify({ success: true, message: "Memory saved" });
       });
 
+      session.registerToolImplementation("finalizeOnboarding", async () => {
+        try {
+          const result = await actionsRef.current?.finalizeOnboarding();
+          if (result?.success) {
+            return JSON.stringify({
+              success: true,
+              message: "Workspace activated! Redirecting to dashboard.",
+              slug: result.slug,
+            });
+          }
+          return JSON.stringify({
+            success: false,
+            error: result?.error ?? "Finalization failed",
+          });
+        } catch (err) {
+          return JSON.stringify({
+            success: false,
+            error: err instanceof Error ? err.message : "Unknown error",
+          });
+        }
+      });
+
       // Capture ALL data messages for debug — tool calls, transcripts, state changes
       session.addEventListener("data_message", ((e: Event) => {
         if (sessionRef.current !== session) return;
@@ -464,7 +496,7 @@ export function useBotsson(actions?: BotssonActions): BotssonState {
         body: JSON.stringify({
           mission_id: "onboarding-interview",
           selected_tools: CLIENT_TOOLS,
-          voice: "d082550b-596a-42f7-9356-840b4a095d3f",
+          voice: "Mark",
           first_speaker: "agent",
         }),
       });

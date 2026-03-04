@@ -425,7 +425,7 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
     ]);
   }, []);
 
-  // Agent-driven memories — knowledge context saved by Lise
+  // Agent-driven memories — knowledge context saved by Botsson
   const saveMemory = useCallback((content: string) => {
     setMemories((prev) => [
       ...prev,

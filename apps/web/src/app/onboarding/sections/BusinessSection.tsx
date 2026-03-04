@@ -43,7 +43,7 @@ export function BusinessSection() {
           <p className="mt-4 text-xl leading-relaxed text-white/50">
             {scrapeStatus === "scraping"
               ? "Vi scanner nettet for alt vi kan finne."
-              : "Stemmer dette? Lise hjelper deg gjennom resten."}
+              : "Stemmer dette? Botsson hjelper deg gjennom resten."}
           </p>
         </RevealItem>
 

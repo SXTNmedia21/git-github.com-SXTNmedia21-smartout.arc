@@ -93,7 +93,7 @@ export function BotssonAvatar({
             exit={{ opacity: 0, scale: 0.8, x: 10 }}
             className="mb-2 max-w-[240px] rounded-2xl rounded-br-sm border border-white/[0.06] bg-black/60 px-4 py-3 text-sm leading-relaxed text-white/40 shadow-2xl backdrop-blur-xl"
           >
-            Lise er klar
+            Botsson er klar
           </motion.div>
         )}
 

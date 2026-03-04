@@ -97,7 +97,7 @@ export interface ProcedureData {
   isCustom: boolean;
 }
 
-/** Memory saved by Lise (voice agent) — user-specific knowledge context */
+/** Memory saved by Botsson (voice agent) — user-specific knowledge context */
 export interface Memory {
   id: string;
   content: string;
@@ -125,7 +125,7 @@ export interface OnboardingState {
   scrapeStatus: "idle" | "scraping" | "done" | "error";
   scrapeSource: "url" | "org" | "both" | "name" | null;
 
-  // Agent-driven memories (knowledge context saved by Lise)
+  // Agent-driven memories (knowledge context saved by Botsson)
   memories: Memory[];
 
   // Finalization

@@ -84,7 +84,7 @@ export function HeroSection() {
                     type="button"
                     onClick={() => {
                       void botsson.startSession();
-                      // completeSection("hero") removed — Lise drives the transition via advanceToNextSection
+                      // completeSection("hero") removed — Botsson drives the transition via advanceToNextSection
                     }}
                     className="flex w-full items-center justify-center gap-3 rounded-2xl bg-white px-8 py-5 text-xl font-semibold text-black transition-colors hover:bg-white/90"
                   >

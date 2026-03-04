@@ -111,7 +111,7 @@ export function VoiceSessionOverlay() {
                   </div>
                 </div>
 
-                <p className="text-lg text-white/50">Kobler til Lise...</p>
+                <p className="text-lg text-white/50">Kobler til Botsson...</p>
               </motion.div>
             )}
 

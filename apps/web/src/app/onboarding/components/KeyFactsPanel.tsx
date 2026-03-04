@@ -22,7 +22,7 @@ export function KeyFactsPanel() {
           transition={{ duration: 0.5, ease: EASE }}
         >
           <p className="font-mono text-[10px] tracking-widest text-white/30 uppercase">
-            Lise husker
+            Botsson husker
           </p>
 
           <AnimatePresence initial={false}>
