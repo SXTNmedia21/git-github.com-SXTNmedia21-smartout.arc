@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Shield,
   Activity,
@@ -18,6 +19,7 @@ import {
   type ActiveEngineSession,
   type SeasonPulse,
 } from "@/app/dashboard/_hooks/useGuardianData";
+import { MissionControlPanel } from "./MissionControlPanel";
 
 // ── Helpers ────────────────────────────────────────────────────────────
 
@@ -123,6 +125,7 @@ interface GuardianViewProps {
 
 export function GuardianView({ isDark }: GuardianViewProps) {
   const { signals, sessions, seasonPulse, counts, isLoading } = useGuardianData();
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -143,10 +146,22 @@ export function GuardianView({ isDark }: GuardianViewProps) {
       <SeasonPulseSection seasonPulse={seasonPulse} isDark={isDark} />
 
       {/* Section 2: Active Protocols */}
-      <ActiveProtocolsSection sessions={sessions} count={counts.activeMissions} isDark={isDark} />
+      <ActiveProtocolsSection
+        sessions={sessions}
+        count={counts.activeMissions}
+        isDark={isDark}
+        onSessionClick={setSelectedSessionId}
+      />
 
       {/* Section 3: Signal Feed */}
       <SignalFeedSection signals={signals} isDark={isDark} />
+
+      {/* Mission Control Panel */}
+      <MissionControlPanel
+        sessionId={selectedSessionId}
+        onClose={() => setSelectedSessionId(null)}
+        isDark={isDark}
+      />
     </div>
   );
 }
@@ -273,10 +288,12 @@ function ActiveProtocolsSection({
   sessions,
   count,
   isDark,
+  onSessionClick,
 }: {
   sessions: ActiveEngineSession[];
   count: number;
   isDark: boolean;
+  onSessionClick: (sessionId: string) => void;
 }) {
   return (
     <div>
@@ -313,7 +330,12 @@ function ActiveProtocolsSection({
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
           {sessions.map((session) => (
-            <SessionCard key={session.id} session={session} isDark={isDark} />
+            <SessionCard
+              key={session.id}
+              session={session}
+              isDark={isDark}
+              onClick={() => onSessionClick(session.id)}
+            />
           ))}
         </div>
       )}
@@ -321,7 +343,15 @@ function ActiveProtocolsSection({
   );
 }
 
-function SessionCard({ session, isDark }: { session: ActiveEngineSession; isDark: boolean }) {
+function SessionCard({
+  session,
+  isDark,
+  onClick,
+}: {
+  session: ActiveEngineSession;
+  isDark: boolean;
+  onClick: () => void;
+}) {
   const elapsed = elapsedTime(session.created_at);
   const stageProgress =
     session.total_stages > 0 ? (session.stage_index / session.total_stages) * 100 : 0;
@@ -329,7 +359,8 @@ function SessionCard({ session, isDark }: { session: ActiveEngineSession; isDark
 
   return (
     <div
-      className={`group relative overflow-hidden rounded-2xl border p-4 transition-all hover:shadow-md ${
+      onClick={onClick}
+      className={`group relative cursor-pointer overflow-hidden rounded-2xl border p-4 transition-all hover:shadow-md ${
         isDark ? "border-zinc-800 bg-[#0c0c0e] hover:border-zinc-700" : "border-zinc-200 bg-white"
       }`}
     >
