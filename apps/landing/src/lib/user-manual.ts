@@ -31,7 +31,7 @@ function resolveManualDirectory() {
     }
   }
 
-  throw new Error(`Could not locate docs/${MANUAL_DIR_NAME} from ${process.cwd()}`);
+  return null;
 }
 
 function toTitleCase(input: string) {
@@ -79,6 +79,7 @@ function extractExcerpt(markdown: string) {
 
 export function getUserManualDocs(): UserManualDoc[] {
   const manualDir = resolveManualDirectory();
+  if (!manualDir) return [];
   const files = fs
     .readdirSync(manualDir)
     .filter((file) => file.toLowerCase().endsWith(".md") && file.toLowerCase() !== "index.md");
@@ -130,6 +131,7 @@ export function getUserManualNavigation(): UserManualNavItem[] {
 
 export function getUserManualIndexMarkdown() {
   const manualDir = resolveManualDirectory();
+  if (!manualDir) return "# User Manual\n\nDokumentation er ikke tilgjengelig i dette miljøet.";
   const indexPath = path.join(manualDir, "INDEX.md");
   if (!fs.existsSync(indexPath)) {
     return "# User Manual\n\nIndex page is missing.";
