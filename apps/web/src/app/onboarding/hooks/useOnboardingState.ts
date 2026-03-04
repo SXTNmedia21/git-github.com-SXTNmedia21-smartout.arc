@@ -427,6 +427,7 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
         seasonName: season.name,
         seasonStartDate: season.startDate,
         seasonEndDate: season.endDate,
+        contractId: contract.contractId,
       };
 
       let workspaceId: string;
@@ -480,7 +481,7 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
       console.error("Finalization error:", err);
       throw err;
     }
-  }, [business, season, departments, sessionId, onboardingWorkspaceId, supabase]);
+  }, [business, season, departments, contract, sessionId, onboardingWorkspaceId, supabase]);
 
   return {
     currentSection,

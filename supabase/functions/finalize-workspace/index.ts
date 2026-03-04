@@ -47,6 +47,26 @@ serve(async (req) => {
 
     if (rpcError) throw rpcError;
 
+    // Link the onboarding contract to this workspace
+    if (workspaceData.contractId) {
+      await adminClient
+        .from("contract")
+        .update({
+          workspace_id: data,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("contract_id", workspaceData.contractId);
+
+      // Set workspace contract_status to pending_contract
+      await adminClient
+        .from("workspace")
+        .update({
+          contract_status: "pending_contract",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("workspace_id", data);
+    }
+
     // Fetch the workspace slug for redirect
     const { data: ws } = await adminClient
       .from("workspace")
