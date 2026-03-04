@@ -43,16 +43,29 @@ export async function contractRoutes(app: FastifyInstance) {
   app.post("/contracts", async (request, reply) => {
     const body = createContractSchema.parse(request.body);
 
-    // Fetch template
-    const { data: template, error: tplErr } = await supabase
-      .from("contract_template")
-      .select("*")
-      .eq("template_id", body.template_id)
-      .single();
+    // Fetch template and workspace (for company_id) in parallel
+    const [templateResult, workspaceResult] = await Promise.all([
+      supabase
+        .from("contract_template")
+        .select("*")
+        .eq("template_id", body.template_id)
+        .single(),
+      supabase
+        .from("workspace")
+        .select("company_id")
+        .eq("workspace_id", body.workspace_id)
+        .single(),
+    ]);
 
-    if (tplErr || !template) {
+    if (templateResult.error || !templateResult.data) {
       return reply.status(404).send({ error: "Template not found" });
     }
+
+    const template = templateResult.data;
+
+    // Workspace may not exist yet during onboarding (placeholder ID).
+    // company_id is resolved later when the workspace is finalized.
+    const companyId = workspaceResult.data?.company_id ?? null;
 
     // Generate contract number
     const { data: numResult } = await supabase.rpc("generate_contract_number" as never);
@@ -79,6 +92,7 @@ export async function contractRoutes(app: FastifyInstance) {
     const { data: contract, error: insertErr } = await supabase
       .from("contract")
       .insert({
+        company_id: companyId,
         workspace_id: body.workspace_id,
         template_id: body.template_id,
         contract_type: body.contract_type,
