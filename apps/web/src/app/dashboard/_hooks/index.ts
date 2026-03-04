@@ -33,3 +33,5 @@ export type {
   GuardianCounts,
   GuardianData,
 } from "./useGuardianData";
+export { useLeaderPulse } from "./useLeaderPulse";
+export type { LeaderPulse, LeaderPulseStatus } from "./useLeaderPulse";

@@ -61,4 +61,7 @@ export const dashboardKeys = {
 
   guardianSeasonPulse: (workspaceId: string) =>
     ["dashboard", "guardian-season-pulse", workspaceId] as const,
+
+  // Leader Pulse
+  leaderPulse: (workspaceId: string) => ["dashboard", "leader-pulse", workspaceId] as const,
 };
