@@ -118,6 +118,7 @@ import {
   Mic,
 } from "lucide-react";
 
+import { ContractPendingBanner } from "./ContractPendingBanner";
 import { ActionStrip } from "@/components/dashboard/ActionStrip";
 import { UserMenu } from "@/components/dashboard/UserMenu";
 import { VoiceToolsProvider, useVoiceTools } from "@/components/voice-tools-context";
@@ -350,6 +351,8 @@ export function DashboardShell({
             <UserMenu isDark={isDark} />
           </div>
         </header>
+
+        <ContractPendingBanner />
 
         <div className="relative flex flex-1 overflow-hidden">
           {/* LEFT SIDEBAR NAVIGATION */}
