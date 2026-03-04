@@ -26,6 +26,7 @@ import { attachGuardianWs } from "./routes/guardian.js";
 import { expireStaleSession } from "./core/session-manager.js";
 import { cleanExpiredMemories } from "./core/memory-manager.js";
 import { evaluateAllActiveSessions } from "./core/guardian-evaluator.js";
+import { evaluateCalendarTriggers } from "./core/calendar-guardian.js";
 
 // Load external API keys from Vault before starting the server
 await loadSecrets();
@@ -96,5 +97,15 @@ setInterval(async () => {
   }
 }, 30_000);
 console.log("[guardian] Evaluation loop running every 30 seconds");
+
+// Calendar guardian — checks season-lifecycle sessions against time-based rules every 60s
+setInterval(async () => {
+  try {
+    await evaluateCalendarTriggers();
+  } catch (err) {
+    console.error("[calendar-guardian] Evaluation loop error:", err);
+  }
+}, 60_000);
+console.log("[calendar-guardian] Season calendar check running every 60 seconds");
 
 export { app };
