@@ -24,14 +24,14 @@ const STAGES = [
 type Stage = (typeof STAGES)[number];
 
 const PHASE_MAP: Record<Stage, { label: string; color: string }> = {
-  seed: { label: "UPPTÄCKT", color: "text-blue-400" },
-  revenue: { label: "FÖRBEREDELSE", color: "text-amber-400" },
-  concept: { label: "FÖRBEREDELSE", color: "text-amber-400" },
-  staffing: { label: "FÖRBEREDELSE", color: "text-amber-400" },
-  prepare: { label: "FÖRBEREDELSE", color: "text-amber-400" },
-  ready: { label: "FÖRBEREDELSE", color: "text-amber-400" },
+  seed: { label: "OPPDAGELSE", color: "text-blue-400" },
+  revenue: { label: "FORBEREDELSE", color: "text-amber-400" },
+  concept: { label: "FORBEREDELSE", color: "text-amber-400" },
+  staffing: { label: "FORBEREDELSE", color: "text-amber-400" },
+  prepare: { label: "FORBEREDELSE", color: "text-amber-400" },
+  ready: { label: "FORBEREDELSE", color: "text-amber-400" },
   running: { label: "DRIFT", color: "text-emerald-400" },
-  reflect: { label: "REFLEKTION", color: "text-purple-400" },
+  reflect: { label: "REFLEKSJON", color: "text-purple-400" },
 };
 
 const STAGE_LABELS: Record<Stage, string> = {
@@ -46,24 +46,24 @@ const STAGE_LABELS: Record<Stage, string> = {
 };
 
 const PHASE_GLOW: Record<string, string> = {
-  UPPTÄCKT: "bg-blue-500/10",
-  FÖRBEREDELSE: "bg-amber-500/10",
+  OPPDAGELSE: "bg-blue-500/10",
+  FORBEREDELSE: "bg-amber-500/10",
   DRIFT: "bg-emerald-500/10",
-  REFLEKTION: "bg-purple-500/10",
+  REFLEKSJON: "bg-purple-500/10",
 };
 
 const PHASE_DOT_FILL: Record<string, string> = {
-  UPPTÄCKT: "bg-blue-400",
-  FÖRBEREDELSE: "bg-amber-400",
+  OPPDAGELSE: "bg-blue-400",
+  FORBEREDELSE: "bg-amber-400",
   DRIFT: "bg-emerald-400",
-  REFLEKTION: "bg-purple-400",
+  REFLEKSJON: "bg-purple-400",
 };
 
 const PHASE_RING: Record<string, string> = {
-  UPPTÄCKT: "ring-blue-400/50",
-  FÖRBEREDELSE: "ring-amber-400/50",
+  OPPDAGELSE: "ring-blue-400/50",
+  FORBEREDELSE: "ring-amber-400/50",
   DRIFT: "ring-emerald-400/50",
-  REFLEKTION: "ring-purple-400/50",
+  REFLEKSJON: "ring-purple-400/50",
 };
 
 function getSeasonIcon(type: string) {
