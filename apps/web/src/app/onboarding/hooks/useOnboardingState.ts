@@ -9,6 +9,7 @@ import type {
   BusinessData,
   SeasonData,
   DepartmentOption,
+  ContractData,
   Memory,
 } from "../types";
 import { ONBOARDING_SECTIONS, EMPTY_BUSINESS_DATA } from "../types";
@@ -28,6 +29,7 @@ export interface OnboardingActions {
   triggerScrape: (url: string, orgNumber: string) => Promise<void>;
   updateBusiness: (partial: Partial<BusinessData>) => void;
   updateSeason: (partial: Partial<SeasonData>) => void;
+  updateContract: (partial: Partial<ContractData>) => void;
   toggleDepartment: (id: string) => void;
   addCustomDepartment: (name: string) => void;
   completeSection: (section: OnboardingSection) => void;
@@ -51,9 +53,12 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
   const [business, setBusiness] = useState<BusinessData>(EMPTY_BUSINESS_DATA);
   const [season, setSeason] = useState<SeasonData>(suggestSeason());
   const [departments, setDepartments] = useState<DepartmentOption[]>([]);
-  const [contract, setContract] = useState({
+  const [contract, setContract] = useState<ContractData>({
     templateGenerated: false,
-    previewUrl: null as string | null,
+    previewUrl: null,
+    contractId: null,
+    contractSent: false,
+    signingUrl: null,
   });
 
   const [memories, setMemories] = useState<Memory[]>([]);
@@ -318,6 +323,10 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
     setSeason((prev) => ({ ...prev, ...partial }));
   }, []);
 
+  const updateContract = useCallback((partial: Partial<ContractData>) => {
+    setContract((prev) => ({ ...prev, ...partial }));
+  }, []);
+
   const toggleDepartment = useCallback((id: string) => {
     setDepartments((prev) => prev.map((d) => (d.id === id ? { ...d, selected: !d.selected } : d)));
   }, []);
@@ -383,7 +392,7 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
     setSeason(suggestSeason());
     setDepartments([]);
     setMemories([]);
-    setContract({ templateGenerated: false, previewUrl: null });
+    setContract({ templateGenerated: false, previewUrl: null, contractId: null, contractSent: false, signingUrl: null });
     setScrapeStatus("idle");
     setScrapeSource(null);
     setSessionId(null);
@@ -492,6 +501,7 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
     triggerScrape,
     updateBusiness,
     updateSeason,
+    updateContract,
     toggleDepartment,
     addCustomDepartment,
     completeSection,

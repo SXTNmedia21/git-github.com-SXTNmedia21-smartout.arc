@@ -71,6 +71,9 @@ export interface DepartmentOption {
 export interface ContractData {
   templateGenerated: boolean;
   previewUrl: string | null;
+  contractId: string | null;
+  contractSent: boolean;
+  signingUrl: string | null;
 }
 
 /** Memory saved by Lise (voice agent) — user-specific knowledge context */
