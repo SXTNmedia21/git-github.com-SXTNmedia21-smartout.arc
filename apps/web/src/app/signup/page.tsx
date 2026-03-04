@@ -1,25 +1,17 @@
 "use client";
 
-/**
- * signup/page.tsx
- * Self-service signup page for new users.
- *
- * Flow:
- * 1. User enters email + password
- * 2. Calls supabase.auth.signUp()
- * 3. On success: redirect to dashboard (email auto-confirmed in dev,
- *    confirmation email in production)
- *
- * Fail-safe: If Supabase is unreachable, stores email in localStorage
- * so the user can be contacted when the system is ready.
- *
- * Note: This creates a user_identity via the handle_new_user() trigger.
- * The user will need a workspace invitation to access any workspace.
- */
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { createClient } from "@smartout/supabase/client";
+
+// UI Events:
+// - nav: /dashboard (form submit success, localhost)
+// - nav: /login (footer link, success state link)
+// - nav: / (offline state link)
+// - action: handleSubmit() (signup form)
+// - action: handleGoogleSignup() (Google SSO button)
 
 const PENDING_SIGNUP_KEY = "smartout_pending_signup";
 
@@ -30,18 +22,19 @@ interface PendingSignup {
 
 function savePendingSignup(email: string) {
   try {
-    const pending: PendingSignup = { email, savedAt: new Date().toISOString() };
-    localStorage.setItem(PENDING_SIGNUP_KEY, JSON.stringify(pending));
+    localStorage.setItem(
+      PENDING_SIGNUP_KEY,
+      JSON.stringify({ email, savedAt: new Date().toISOString() }),
+    );
   } catch {
-    // localStorage unavailable — silent fail
+    // silent
   }
 }
 
 function getPendingSignup(): PendingSignup | null {
   try {
     const raw = localStorage.getItem(PENDING_SIGNUP_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as PendingSignup;
+    return raw ? (JSON.parse(raw) as PendingSignup) : null;
   } catch {
     return null;
   }
@@ -70,14 +63,32 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [savedOffline, setSavedOffline] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
-  // On mount: check for pending signup and try to complete it
+  async function handleGoogleSignup() {
+    setError(null);
+    setGoogleLoading(true);
+    try {
+      const supabase = createClient();
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: window.location.origin + "/api/auth/callback?next=/dashboard",
+        },
+      });
+      if (oauthError) {
+        setError(oauthError.message);
+        setGoogleLoading(false);
+      }
+    } catch {
+      setError("Noe gikk galt med Google-registrering.");
+      setGoogleLoading(false);
+    }
+  }
+
   useEffect(() => {
     const pending = getPendingSignup();
-    if (!pending) return;
-
-    // If we have a pending signup, pre-fill the email
-    setEmail(pending.email);
+    if (pending) setEmail(pending.email);
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -104,7 +115,6 @@ export default function SignupPage() {
       });
 
       if (authError) {
-        // Check if it's a network error
         if (isNetworkError(authError)) {
           savePendingSignup(email);
           setSavedOffline(true);
@@ -116,11 +126,8 @@ export default function SignupPage() {
         return;
       }
 
-      // Signup succeeded — clear any pending
       clearPendingSignup();
 
-      // In dev: auto-confirmed, redirect to dashboard
-      // In prod: show confirmation message
       if (process.env.NEXT_PUBLIC_ROOT_DOMAIN === "localhost") {
         router.push("/dashboard");
         router.refresh();
@@ -129,7 +136,6 @@ export default function SignupPage() {
         setLoading(false);
       }
     } catch (err) {
-      // Network-level failure (fetch itself throws)
       if (isNetworkError(err)) {
         savePendingSignup(email);
         setSavedOffline(true);
@@ -143,21 +149,27 @@ export default function SignupPage() {
 
   if (savedOffline) {
     return (
-      <div className="bg-background flex min-h-screen items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
-        <div className="w-full max-w-md space-y-6 text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-amber-500/10">
-            <span className="text-3xl">📋</span>
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[oklch(0.985_0.005_60)] px-4">
+        <div className="pointer-events-none fixed inset-0 overflow-hidden">
+          <div className="absolute -top-[40%] left-1/2 h-[80vh] w-[80vh] -translate-x-1/2 rounded-full bg-[oklch(0.92_0.04_55)] blur-[120px]" />
+        </div>
+        <div className="relative z-10 w-full max-w-[400px]">
+          <div className="animate-auth-in border-border/60 bg-background/70 rounded-2xl border p-8 text-center shadow-[0_4px_24px_-4px_rgba(0,0,0,0.06)] backdrop-blur-xl">
+            <div className="bg-warning/10 mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl">
+              <span className="text-2xl">📋</span>
+            </div>
+            <h2 className="font-heading text-foreground text-2xl">Registreringen er lagret</h2>
+            <p className="text-muted-foreground mt-3 text-sm leading-relaxed">
+              Vi har lagret e-postadressen din <strong className="text-foreground">{email}</strong>{" "}
+              lokalt. Registreringen fullføres automatisk neste gang du besøker denne siden.
+            </p>
+            <Link
+              href="/"
+              className="text-brand-orange hover:text-brand-orange/80 mt-6 inline-block text-sm font-medium transition-colors duration-150"
+            >
+              Tilbake til forsiden
+            </Link>
           </div>
-          <h2 className="text-foreground text-2xl font-bold">Registreringen er lagret</h2>
-          <p className="text-muted-foreground">
-            Vi har lagret e-postadressen din <strong className="text-foreground">{email}</strong>{" "}
-            lokalt. Systemet er midlertidig utilgjengelig, men registreringen din vil bli fullført
-            automatisk neste gang du besøker denne siden.
-          </p>
-          <p className="text-muted-foreground text-sm">Du kan trygt lukke denne fanen.</p>
-          <Link href="/" className="text-primary hover:text-primary/80 text-sm font-semibold">
-            Tilbake til forsiden
-          </Link>
         </div>
       </div>
     );
@@ -165,50 +177,101 @@ export default function SignupPage() {
 
   if (success) {
     return (
-      <div className="bg-background flex min-h-screen items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
-        <div className="w-full max-w-md space-y-6 text-center">
-          <h2 className="text-foreground text-2xl font-bold">Sjekk e-posten din</h2>
-          <p className="text-muted-foreground">
-            Vi har sendt en bekreftelseslenke til{" "}
-            <strong className="text-foreground">{email}</strong>. Klikk på lenken for å aktivere
-            kontoen din.
-          </p>
-          <Link href="/login" className="text-primary hover:text-primary/80 text-sm font-semibold">
-            Tilbake til innlogging
-          </Link>
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[oklch(0.985_0.005_60)] px-4">
+        <div className="pointer-events-none fixed inset-0 overflow-hidden">
+          <div className="absolute -top-[40%] left-1/2 h-[80vh] w-[80vh] -translate-x-1/2 rounded-full bg-[oklch(0.92_0.04_55)] blur-[120px]" />
+        </div>
+        <div className="relative z-10 w-full max-w-[400px]">
+          <div className="animate-auth-in border-border/60 bg-background/70 rounded-2xl border p-8 text-center shadow-[0_4px_24px_-4px_rgba(0,0,0,0.06)] backdrop-blur-xl">
+            <div className="bg-success/10 mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl">
+              <span className="text-2xl">✉️</span>
+            </div>
+            <h2 className="font-heading text-foreground text-2xl">Sjekk e-posten din</h2>
+            <p className="text-muted-foreground mt-3 text-sm leading-relaxed">
+              Vi har sendt en bekreftelseslenke til{" "}
+              <strong className="text-foreground">{email}</strong>.
+            </p>
+            <Link
+              href="/login"
+              className="text-brand-orange hover:text-brand-orange/80 mt-6 inline-block text-sm font-medium transition-colors duration-150"
+            >
+              Tilbake til innlogging
+            </Link>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-background flex min-h-screen items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-8">
-        <div>
-          <h2 className="text-foreground mt-6 text-center text-3xl font-bold tracking-tight">
-            Opprett konto
-          </h2>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[oklch(0.985_0.005_60)] px-4">
+      {/* Warm ambient glow — two overlapping orbs for depth */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute -top-[40%] left-1/2 h-[80vh] w-[80vh] -translate-x-1/2 rounded-full bg-[oklch(0.92_0.04_55)] blur-[120px]" />
+        <div className="absolute -right-[10%] -bottom-[20%] h-[50vh] w-[50vh] rounded-full bg-[oklch(0.95_0.02_40)] blur-[100px]" />
+      </div>
+
+      <div className="relative z-10 w-full max-w-[400px]">
+        {/* Logo — enters first */}
+        <div className="animate-auth-in mb-8 text-center" style={{ animationDelay: "0ms" }}>
+          <Image
+            src="/smartout-logo.png"
+            alt="Smartout"
+            width={140}
+            height={48}
+            className="inline-block"
+            priority
+          />
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="email-address" className="sr-only">
-                E-postadresse
+
+        {/* Frosted glass card */}
+        <div
+          className="animate-auth-in border-border/60 bg-background/70 rounded-2xl border p-8 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.06)] backdrop-blur-xl"
+          style={{ animationDelay: "80ms" }}
+        >
+          {/* Heading */}
+          <div className="animate-auth-in mb-6 text-center" style={{ animationDelay: "140ms" }}>
+            <h1 className="font-heading text-foreground text-[1.85rem] leading-tight tracking-tight">
+              Kom i gang
+            </h1>
+            <p className="text-muted-foreground mt-1.5 text-[0.875rem]">
+              Opprett konto for å starte med Smartout.
+            </p>
+          </div>
+
+          {/* Error */}
+          {error && (
+            <div className="border-destructive/20 bg-destructive/5 text-destructive mb-5 rounded-lg border px-4 py-3 text-center text-sm">
+              {error}
+            </div>
+          )}
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="animate-auth-in" style={{ animationDelay: "200ms" }}>
+              <label
+                htmlFor="email"
+                className="text-foreground mb-1.5 block text-[0.8125rem] font-medium"
+              >
+                E-post
               </label>
               <input
-                id="email-address"
+                id="email"
                 name="email"
                 type="email"
                 autoComplete="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="text-foreground bg-background ring-border placeholder:text-muted-foreground focus:ring-primary relative block w-full rounded-md border-0 px-3 py-1.5 ring-1 ring-inset focus:z-10 focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6"
-                placeholder="E-postadresse"
+                className="border-border bg-background text-foreground placeholder:text-muted-foreground/50 focus:border-brand-orange block w-full rounded-xl border px-4 py-2.5 text-sm shadow-sm transition-[border-color,box-shadow] duration-200 focus:shadow-[0_0_0_3px_oklch(0.65_0.22_40/0.1)] focus:outline-none"
+                placeholder="din@epost.no"
               />
             </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
+            <div className="animate-auth-in" style={{ animationDelay: "260ms" }}>
+              <label
+                htmlFor="password"
+                className="text-foreground mb-1.5 block text-[0.8125rem] font-medium"
+              >
                 Passord
               </label>
               <input
@@ -220,12 +283,15 @@ export default function SignupPage() {
                 minLength={8}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="text-foreground bg-background ring-border placeholder:text-muted-foreground focus:ring-primary relative block w-full rounded-md border-0 px-3 py-1.5 ring-1 ring-inset focus:z-10 focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6"
-                placeholder="Passord (min. 8 tegn)"
+                className="border-border bg-background text-foreground placeholder:text-muted-foreground/50 focus:border-brand-orange block w-full rounded-xl border px-4 py-2.5 text-sm shadow-sm transition-[border-color,box-shadow] duration-200 focus:shadow-[0_0_0_3px_oklch(0.65_0.22_40/0.1)] focus:outline-none"
+                placeholder="Min. 8 tegn"
               />
             </div>
-            <div>
-              <label htmlFor="confirm-password" className="sr-only">
+            <div className="animate-auth-in" style={{ animationDelay: "320ms" }}>
+              <label
+                htmlFor="confirm-password"
+                className="text-foreground mb-1.5 block text-[0.8125rem] font-medium"
+              >
                 Bekreft passord
               </label>
               <input
@@ -237,32 +303,78 @@ export default function SignupPage() {
                 minLength={8}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="text-foreground bg-background ring-border placeholder:text-muted-foreground focus:ring-primary relative block w-full rounded-md border-0 px-3 py-1.5 ring-1 ring-inset focus:z-10 focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6"
+                className="border-border bg-background text-foreground placeholder:text-muted-foreground/50 focus:border-brand-orange block w-full rounded-xl border px-4 py-2.5 text-sm shadow-sm transition-[border-color,box-shadow] duration-200 focus:shadow-[0_0_0_3px_oklch(0.65_0.22_40/0.1)] focus:outline-none"
                 placeholder="Bekreft passord"
               />
             </div>
-          </div>
 
-          {error && <p className="text-destructive text-center text-sm">{error}</p>}
+            <div className="animate-auth-in pt-1" style={{ animationDelay: "380ms" }}>
+              <button
+                type="submit"
+                disabled={loading}
+                className="bg-brand-orange flex w-full justify-center rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-[0_2px_12px_oklch(0.65_0.22_40/0.25)] transition-all duration-200 hover:shadow-[0_4px_20px_oklch(0.65_0.22_40/0.35)] hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:hover:brightness-100"
+              >
+                {loading ? "Oppretter konto..." : "Opprett konto"}
+              </button>
+            </div>
+          </form>
 
-          <div className="flex items-center justify-between">
-            <div className="text-sm leading-6">
-              <Link href="/login" className="text-primary hover:text-primary/80 font-semibold">
-                Har du allerede en konto? Logg inn
-              </Link>
+          {/* Divider */}
+          <div className="animate-auth-in relative my-6" style={{ animationDelay: "420ms" }}>
+            <div className="absolute inset-0 flex items-center">
+              <div className="border-border/80 w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-background/70 text-muted-foreground px-3 backdrop-blur-sm">
+                eller
+              </span>
             </div>
           </div>
 
-          <div>
+          {/* Google SSO */}
+          <div className="animate-auth-in" style={{ animationDelay: "460ms" }}>
             <button
-              type="submit"
-              disabled={loading}
-              className="group bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:outline-primary relative flex w-full justify-center rounded-md px-3 py-2 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
+              type="button"
+              onClick={handleGoogleSignup}
+              disabled={googleLoading || loading}
+              className="border-border bg-background text-foreground hover:border-border/60 hover:bg-accent flex w-full items-center justify-center gap-3 rounded-xl border px-4 py-2.5 text-sm font-medium shadow-sm transition-all duration-200 hover:shadow-md active:scale-[0.98] disabled:opacity-50"
             >
-              {loading ? "Oppretter konto..." : "Opprett konto"}
+              <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24">
+                <path
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
+                  fill="#4285F4"
+                />
+                <path
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  fill="#34A853"
+                />
+                <path
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                  fill="#FBBC05"
+                />
+                <path
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                  fill="#EA4335"
+                />
+              </svg>
+              {googleLoading ? "Registrerer..." : "Fortsett med Google"}
             </button>
           </div>
-        </form>
+        </div>
+
+        {/* Footer link */}
+        <p
+          className="animate-auth-in text-muted-foreground mt-8 text-center text-sm"
+          style={{ animationDelay: "520ms" }}
+        >
+          Har du allerede konto?{" "}
+          <Link
+            href="/login"
+            className="text-brand-orange hover:text-brand-orange/80 font-medium transition-colors duration-150"
+          >
+            Logg inn
+          </Link>
+        </p>
       </div>
     </div>
   );

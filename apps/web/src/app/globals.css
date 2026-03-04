@@ -92,6 +92,22 @@
   }
 }
 
+/* Auth page entrance animations */
+@keyframes auth-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility animate-auth-in {
+  animation: auth-fade-up 0.5s ease-out both;
+}
+
 /* Scrollbar — unlayered for maximum specificity over browser defaults */
 * {
   scrollbar-width: thin;
