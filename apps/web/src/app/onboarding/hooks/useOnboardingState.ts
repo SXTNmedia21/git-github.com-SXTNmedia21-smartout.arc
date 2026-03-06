@@ -60,7 +60,7 @@ export interface OnboardingActions {
   saveMemory: (content: string) => void;
   removeMemory: (id: string) => void;
   resetScrape: () => void;
-  finalize: () => Promise<void>;
+  finalize: () => Promise<{ workspaceId: string; slug: string | null }>;
   reset: () => Promise<void>;
 }
 
@@ -611,7 +611,7 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
   }, [sessionId, onboardingWorkspaceId, supabase]);
 
   // Finalize — use finalize-workspace if we have an onboarding workspace, else activate-workspace
-  const finalize = useCallback(async () => {
+  const finalize = useCallback(async (): Promise<{ workspaceId: string; slug: string | null }> => {
     try {
       const selectedDepts = departments
         .filter((d) => d.selected)
@@ -626,12 +626,14 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
       }));
 
       const workspacePayload = {
-        name: business.name,
+        name: business.name || "Min bedrift",
         legalName: business.legalName,
         orgNumber: business.orgNumber,
         email: business.email,
         phone: business.phone,
-        address: `${business.address}, ${business.postalCode} ${business.city}`,
+        address: [business.address, [business.postalCode, business.city].filter(Boolean).join(" ")]
+          .filter(Boolean)
+          .join(", "),
         industry: business.industry,
         industryCode: business.industryCode,
         employeeCount: business.employeeCount,
@@ -640,7 +642,8 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
         departments: selectedDepts,
         locations: locationPayload,
         procedures: selectedProcs,
-        seasonName: season.name,
+        seasonName: season.name || "Sesong 1",
+        seasonType: "default",
         seasonStartDate: season.startDate,
         seasonEndDate: season.endDate,
       };
@@ -692,6 +695,8 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
           })
           .eq("id", sessionId);
       }
+
+      return { workspaceId, slug };
     } catch (err) {
       console.error("Finalization error:", err);
       throw err;

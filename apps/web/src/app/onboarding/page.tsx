@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { OnboardingProvider, useOnboarding } from "./WizardContext";
 import { ParallaxBackground } from "./components/ParallaxBackground";
+import { AmbientBackground } from "./components/AmbientBackground";
 import { BotssonAvatar } from "./components/BotssonAvatar";
 import { VoiceSessionOverlay } from "./components/VoiceSessionOverlay";
 import { KeyFactsPanel } from "./components/KeyFactsPanel";
@@ -26,10 +27,10 @@ import { ONBOARDING_SECTIONS } from "./types";
 const SECTION_COMPONENTS: Record<OnboardingSection, React.ComponentType> = {
   hero: HeroSection,
   business: BusinessSection,
-  season: SeasonSection,
   departments: DepartmentsSection,
   locations: LocationsSection,
   procedures: ProceduresSection,
+  season: SeasonSection,
   contract: ContractSection,
   welcome: WelcomeSection,
 };
@@ -58,6 +59,7 @@ function ScrollContainer() {
 
   return (
     <>
+      <AmbientBackground />
       <ProgressBar />
       <NavigationController />
       <KeyFactsPanel />
@@ -73,15 +75,13 @@ function ScrollContainer() {
             <section key={section} data-section={section} className="relative min-h-dvh">
               <ParallaxBackground section={section} containerRef={containerRef} />
               <motion.div
-                className="relative z-10 flex min-h-dvh items-center justify-center px-6"
-                initial={{ opacity: 0, y: 60 }}
+                className="relative z-10 min-h-dvh"
+                initial={{ opacity: 0, y: 40 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.2 }}
-                transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+                viewport={{ once: true, amount: 0.15 }}
+                transition={{ duration: 1.0, ease: [0.16, 1, 0.3, 1] }}
               >
-                <div className="w-full max-w-2xl">
-                  <SectionComponent />
-                </div>
+                <SectionComponent />
               </motion.div>
             </section>
           );

@@ -121,12 +121,17 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     error?: string;
   }> => {
     try {
-      await state.finalize();
+      const { slug } = await state.finalize();
       // Give Botsson time to say "Velkommen!" before redirect
       setTimeout(() => {
-        router.push("/dashboard");
+        const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN;
+        if (rootDomain && rootDomain !== "localhost" && slug) {
+          window.location.href = `https://${slug}.${rootDomain}/dashboard`;
+        } else {
+          router.push("/dashboard");
+        }
       }, 2000);
-      return { success: true };
+      return { success: true, slug: slug ?? undefined };
     } catch (err) {
       return {
         success: false,

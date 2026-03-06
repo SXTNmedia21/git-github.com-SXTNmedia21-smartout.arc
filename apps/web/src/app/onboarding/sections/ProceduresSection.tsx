@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { ClipboardCheck, Plus, X } from "lucide-react";
+import { Plus, X, AlertTriangle } from "lucide-react";
+import { motion } from "framer-motion";
 import { useOnboarding } from "../WizardContext";
-import { SectionReveal, RevealItem } from "../components/SectionReveal";
 
 export function ProceduresSection() {
   const { procedures, toggleProcedure, addCustomProcedure, completeSection, business } =
@@ -11,6 +11,7 @@ export function ProceduresSection() {
 
   const [showInput, setShowInput] = useState(false);
   const [customName, setCustomName] = useState("");
+  const [pendingDeselect, setPendingDeselect] = useState<string | null>(null);
 
   function handleAdd() {
     const trimmed = customName.trim();
@@ -20,68 +21,136 @@ export function ProceduresSection() {
     setShowInput(false);
   }
 
+  function handleToggle(id: string) {
+    const proc = procedures.find((p) => p.id === id);
+    if (!proc) return;
+    if (proc.recommended && proc.selected) {
+      setPendingDeselect(id);
+      return;
+    }
+    toggleProcedure(id);
+  }
+
+  function confirmDeselect() {
+    if (pendingDeselect) {
+      toggleProcedure(pendingDeselect);
+      setPendingDeselect(null);
+    }
+  }
+
   const selectedCount = procedures.filter((p) => p.selected).length;
   const industryLabel = business.industry || "din bransje";
+  const pendingProc = pendingDeselect ? procedures.find((p) => p.id === pendingDeselect) : null;
 
   return (
-    <SectionReveal>
-      <RevealItem>
-        <h2 className="font-heading text-6xl leading-[1.1] tracking-tight text-white">
-          Prosedyrer
-        </h2>
-      </RevealItem>
-
-      <RevealItem>
-        <p className="mt-4 text-xl leading-relaxed text-white/50">
-          Basert p&aring; {industryLabel} anbefaler vi disse prosedyrene. Du kan tilpasse dem senere
-          i dashboardet.
-        </p>
-      </RevealItem>
-
-      <RevealItem>
-        <div className="mt-8 rounded-2xl border border-white/[0.06] bg-white/[0.07] p-8 shadow-lg shadow-black/20">
-          <div className="flex items-center gap-2 text-sm text-white/40">
-            <ClipboardCheck className="size-4" />
-            <span>
-              {selectedCount} av {procedures.length} valgt
-            </span>
+    <div className="flex min-h-dvh flex-col lg:flex-row">
+      <div className="flex flex-col justify-center border-r border-white/[0.04] px-10 py-20 lg:w-[38%] lg:px-16">
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <p className="text-xs font-semibold tracking-[0.25em] text-white/20 uppercase">
+            Prosedyrer
+          </p>
+          <h2 className="font-heading mt-6 text-[clamp(3.5rem,7vw,6rem)] leading-[0.9] tracking-tight text-white">
+            Dette
+            <br />
+            burde
+            <br />
+            <span className="text-white/25">dere ha.</span>
+          </h2>
+          <p className="mt-6 text-lg leading-relaxed text-white/35">
+            Basert på {industryLabel}.
+            <br />
+            Du kan alltid legge til flere i dashboardet.
+          </p>
+          <div className="mt-4 flex items-center gap-2 text-sm text-white/25">
+            <span className="text-white/50 tabular-nums">{selectedCount}</span>
+            <span>av {procedures.length} valgt</span>
           </div>
+          <div className="mt-10">
+            <button
+              type="button"
+              onClick={() => completeSection("procedures")}
+              className="flex w-full items-center justify-center gap-3 rounded-2xl bg-white py-4 text-lg font-semibold text-black transition-colors hover:bg-white/90"
+            >
+              Bekreft prosedyrer →
+            </button>
+          </div>
+        </motion.div>
+      </div>
 
-          <div className="mt-4 flex flex-col gap-2">
-            {procedures.map((proc) => (
-              <button
-                key={proc.id}
-                type="button"
-                onClick={() => toggleProcedure(proc.id)}
-                className={`flex items-center justify-between rounded-xl border px-4 py-3 text-left transition-all ${
-                  proc.selected
-                    ? "border-white/[0.12] bg-white/15 text-white"
-                    : "border-white/[0.03] bg-white/5 text-white/40"
-                }`}
-              >
-                <span className="flex items-center gap-3">
-                  <span
-                    className={`flex size-5 items-center justify-center rounded-md border text-xs ${
-                      proc.selected
-                        ? "border-white/20 bg-white/20 text-white"
-                        : "border-white/10 text-transparent"
-                    }`}
-                  >
-                    &#10003;
-                  </span>
-                  {proc.name}
-                  {proc.isCustom && (
-                    <span className="rounded-md bg-white/10 px-1.5 py-0.5 text-xs text-white/50">
-                      Egendefinert
-                    </span>
-                  )}
+      <div className="flex flex-col justify-start overflow-y-auto px-10 py-20 lg:w-[62%] lg:px-16">
+        <div className="flex flex-col gap-2">
+          {procedures.map((proc, i) => (
+            <motion.button
+              key={proc.id}
+              type="button"
+              onClick={() => handleToggle(proc.id)}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.05, duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+              className={`flex items-center justify-between rounded-2xl border px-5 py-4 text-left transition-all ${
+                proc.selected
+                  ? "border-white/[0.12] bg-white/[0.08] text-white"
+                  : "border-white/[0.03] bg-white/[0.03] text-white/35 hover:border-white/[0.08] hover:text-white/55"
+              }`}
+            >
+              <span className="flex items-center gap-3">
+                <span
+                  className={`flex size-5 shrink-0 items-center justify-center rounded-md border text-xs ${
+                    proc.selected
+                      ? "border-white/20 bg-white/20 text-white"
+                      : "border-white/10 text-transparent"
+                  }`}
+                >
+                  ✓
                 </span>
-              </button>
-            ))}
-          </div>
+                <span className="text-base">{proc.name}</span>
+                {proc.recommended && (
+                  <span className="rounded-md bg-emerald-500/[0.12] px-1.5 py-0.5 text-xs text-emerald-400">
+                    Anbefalt
+                  </span>
+                )}
+                {proc.isCustom && (
+                  <span className="rounded-md bg-white/[0.08] px-1.5 py-0.5 text-xs text-white/40">
+                    Egendefinert
+                  </span>
+                )}
+              </span>
+            </motion.button>
+          ))}
+
+          {pendingProc && (
+            <div className="mt-2 flex items-start gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/[0.08] px-5 py-4">
+              <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-400" />
+              <div className="flex flex-col gap-2">
+                <p className="text-sm text-amber-200">
+                  <strong>{pendingProc.name}</strong> er anbefalt for din bransje. Sikker?
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={confirmDeselect}
+                    className="rounded-lg bg-white/10 px-3 py-1.5 text-xs text-white hover:bg-white/15"
+                  >
+                    Ja, fjern
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPendingDeselect(null)}
+                    className="rounded-lg px-3 py-1.5 text-xs text-white/40 hover:text-white/60"
+                  >
+                    Behold
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {showInput ? (
-            <div className="mt-4 flex items-center gap-3">
+            <div className="mt-2 flex items-center gap-3">
               <input
                 type="text"
                 value={customName}
@@ -94,13 +163,13 @@ export function ProceduresSection() {
                   }
                 }}
                 placeholder="Prosedyrenavn"
-                className="flex-1 rounded-xl border border-white/[0.06] bg-white/5 px-4 py-3 text-white transition-colors outline-none placeholder:text-white/30 focus:border-white/20"
+                className="flex-1 rounded-2xl border border-white/[0.08] bg-white/5 px-5 py-4 text-base text-white outline-none placeholder:text-white/25 focus:border-white/20"
                 autoFocus
               />
               <button
                 type="button"
                 onClick={handleAdd}
-                className="rounded-xl bg-white/10 px-4 py-3 text-white transition-colors hover:bg-white/15"
+                className="rounded-2xl bg-white/10 px-5 py-4 text-base text-white hover:bg-white/15"
               >
                 Legg til
               </button>
@@ -110,7 +179,7 @@ export function ProceduresSection() {
                   setShowInput(false);
                   setCustomName("");
                 }}
-                className="p-2 text-white/40 transition-colors hover:text-white/60"
+                className="p-2 text-white/30 hover:text-white/60"
               >
                 <X className="size-5" />
               </button>
@@ -119,22 +188,14 @@ export function ProceduresSection() {
             <button
               type="button"
               onClick={() => setShowInput(true)}
-              className="mt-4 flex items-center gap-2 text-sm text-white/40 transition-colors hover:text-white/60"
+              className="mt-2 flex items-center gap-2 px-2 text-sm text-white/25 transition-colors hover:text-white/50"
             >
               <Plus className="size-4" />
               Legg til egen prosedyre
             </button>
           )}
-
-          <button
-            type="button"
-            onClick={() => completeSection("procedures")}
-            className="mt-6 w-full cursor-pointer rounded-2xl bg-white py-4 text-lg font-semibold text-black transition-colors hover:bg-white/90"
-          >
-            Bekreft prosedyrer
-          </button>
         </div>
-      </RevealItem>
-    </SectionReveal>
+      </div>
+    </div>
   );
 }

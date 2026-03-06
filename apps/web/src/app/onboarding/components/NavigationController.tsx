@@ -1,6 +1,7 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import Link from "next/link";
 import { useOnboarding } from "../WizardContext";
 import { ONBOARDING_SECTIONS, type OnboardingSection } from "../types";
 
@@ -60,6 +61,18 @@ export function NavigationController() {
       >
         <ChevronRight className="h-4 w-4" />
       </button>
+
+      {/* Divider */}
+      <div className="mx-1 h-4 w-px bg-white/[0.08]" />
+
+      {/* Exit — always visible */}
+      <Link
+        href="/dashboard"
+        className="flex h-7 w-7 items-center justify-center rounded-full text-white/30 transition-colors hover:bg-white/10 hover:text-white/70"
+        title="Gå til dashboard"
+      >
+        <X className="h-3.5 w-3.5" />
+      </Link>
     </div>
   );
 }

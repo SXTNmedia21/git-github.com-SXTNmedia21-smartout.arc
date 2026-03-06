@@ -7,10 +7,10 @@
 export const ONBOARDING_SECTIONS = [
   "hero",
   "business",
-  "season",
   "departments",
   "locations",
   "procedures",
+  "season",
   "contract",
   "welcome",
 ] as const;
@@ -95,6 +95,8 @@ export interface ProcedureData {
   name: string;
   selected: boolean;
   isCustom: boolean;
+  /** Recommended procedures show a warning when deselected */
+  recommended?: boolean;
 }
 
 /** Brreg search candidate — returned by search-brreg Edge Function */

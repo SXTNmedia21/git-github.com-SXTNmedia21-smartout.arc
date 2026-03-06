@@ -100,14 +100,50 @@ const PROCEDURE_CONFIGS: Record<string, { name: string; preselected: boolean }[]
   ],
 };
 
+/** Names that count as "opening" or "closing" procedures */
+const OPENING_NAMES = ["åpningsrutine", "innsjekk-rutine"];
+const CLOSING_NAMES = ["stengerutine", "lukkerutine", "utsjekk-rutine"];
+
 export function getProceduresForIndustry(naceCode: string): ProcedureData[] {
   const config = PROCEDURE_CONFIGS[naceCode] ?? PROCEDURE_CONFIGS["default"]!;
-  return config.map((proc, i) => ({
-    id: `proc-${i}`,
-    name: proc.name,
-    selected: proc.preselected,
-    isCustom: false,
-  }));
+
+  const procedures: ProcedureData[] = config.map((proc, i) => {
+    const lower = proc.name.toLowerCase();
+    const isRecommended = OPENING_NAMES.includes(lower) || CLOSING_NAMES.includes(lower);
+    return {
+      id: `proc-${i}`,
+      name: proc.name,
+      selected: proc.preselected,
+      isCustom: false,
+      recommended: isRecommended,
+    };
+  });
+
+  // Ensure opening + closing are always present (regardless of industry)
+  const hasOpening = procedures.some((p) => OPENING_NAMES.includes(p.name.toLowerCase()));
+  const hasClosing = procedures.some((p) => CLOSING_NAMES.includes(p.name.toLowerCase()));
+
+  if (!hasOpening) {
+    procedures.unshift({
+      id: `proc-open-default`,
+      name: "Åpningsrutine",
+      selected: true,
+      isCustom: false,
+      recommended: true,
+    });
+  }
+
+  if (!hasClosing) {
+    procedures.splice(hasOpening ? 1 : 1, 0, {
+      id: `proc-close-default`,
+      name: "Lukkerutine",
+      selected: true,
+      isCustom: false,
+      recommended: true,
+    });
+  }
+
+  return procedures;
 }
 
 export function resolveNaceCode(industry: string): string {
