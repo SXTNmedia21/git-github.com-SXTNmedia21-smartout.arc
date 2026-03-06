@@ -22,6 +22,13 @@ import {
 } from "./handlers/reports.ts";
 import { handleGetSignals, handleGetGuardianLog } from "./handlers/guardian.ts";
 import { handleGetEvents } from "./handlers/events.ts";
+import { handleGetSuppliers, handleGetSupplierOrders } from "./handlers/suppliers.ts";
+import { handleGetWasteLogs } from "./handlers/waste.ts";
+import {
+  handleGetAssets,
+  handleGetAssetMaintenance,
+  handleGetAssetDowntime,
+} from "./handlers/equipment.ts";
 
 // ── Route handlers ──
 
@@ -50,6 +57,12 @@ routes["GET /v1/budgets"] = handleGetBudgets;
 routes["GET /v1/signals"] = handleGetSignals;
 routes["GET /v1/guardian-log"] = handleGetGuardianLog;
 routes["GET /v1/events"] = handleGetEvents;
+routes["GET /v1/suppliers"] = handleGetSuppliers;
+routes["GET /v1/supplier-orders"] = handleGetSupplierOrders;
+routes["GET /v1/waste-logs"] = handleGetWasteLogs;
+routes["GET /v1/assets"] = handleGetAssets;
+routes["GET /v1/asset-maintenance"] = handleGetAssetMaintenance;
+routes["GET /v1/asset-downtime"] = handleGetAssetDowntime;
 
 // ── Main router ──
 
