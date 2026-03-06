@@ -6,10 +6,15 @@
 # ============================================
 
 services:
+  caddy:
+    volumes:
+      - ./Caddyfile.dev:/etc/caddy/Caddyfile
+
   stage-engine:
     ports:
       - "5010:5010"
     environment:
+      - SUPABASE_URL=${SUPABASE_URL:-http://host.docker.internal:54321}
       - ENGINE_URL=http://localhost:5010
       - LOG_LEVEL=debug
 
@@ -17,12 +22,14 @@ services:
     ports:
       - "5011:5011"
     environment:
+      - SUPABASE_URL=${SUPABASE_URL:-http://host.docker.internal:54321}
       - LOG_LEVEL=debug
 
   contract-service:
     ports:
       - "5012:5012"
     environment:
+      - SUPABASE_URL=${SUPABASE_URL:-http://host.docker.internal:54321}
       - NODE_ENV=development
       - APP_URL=http://localhost:3050
 

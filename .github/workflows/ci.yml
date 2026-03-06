@@ -86,6 +86,32 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm api:docs:verify-go-live
 
+  # ── Docker builds (verify images compile) ────────────────────
+  docker-build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - name: stage-engine
+            dockerfile: services/stage-engine/Dockerfile
+          - name: shift-mcp
+            dockerfile: services/shift-mcp/Dockerfile
+          - name: contract-service
+            dockerfile: services/contract-service/Dockerfile
+          - name: scrapling
+            dockerfile: services/scrapling/Dockerfile
+            context: services/scrapling
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build ${{ matrix.service.name }}
+        run: |
+          docker build \
+            -f ${{ matrix.service.dockerfile }} \
+            -t smartout/${{ matrix.service.name }}:ci \
+            ${{ matrix.service.context || '.' }}
+
   # ── Build (parallel with checks, no longer waits for typecheck) ─
   build:
     name: Build
