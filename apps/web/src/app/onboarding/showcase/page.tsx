@@ -179,7 +179,7 @@ export default function OnboardingShowcasePage() {
   );
 
   const [stepIndex, setStepIndex] = useState(0);
-  const activeStep = manuscriptSteps[stepIndex] ?? manuscriptSteps[manuscriptSteps.length - 1];
+  const activeStep = (manuscriptSteps[stepIndex] ?? manuscriptSteps[manuscriptSteps.length - 1])!;
 
   const runNextManuscriptStep = useCallback(() => {
     const step = manuscriptSteps[stepIndex];

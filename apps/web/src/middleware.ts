@@ -60,7 +60,8 @@ async function getCachedGodmodeStatus(
  * Applies showcase mode toggle from query/cookie and emits a request-scoped header
  * that server components can read to bypass onboarding redirects during demos.
  */
-function applyShowcaseMode(request: NextRequest, response: NextResponse): void {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- dual next package resolution causes NextResponse type mismatch
+function applyShowcaseMode(request: NextRequest, response: any): void {
   const showcaseQuery = request.nextUrl.searchParams.get("showcase");
   const hasShowcaseCookie = request.cookies.get(SHOWCASE_COOKIE)?.value === "1";
 
