@@ -26,6 +26,7 @@ import { KeyFactsPanel } from "./components/KeyFactsPanel";
 import { NavigationController } from "./components/NavigationController";
 import { AgentControlPanel } from "./components/AgentControlPanel";
 import { AlertOrchestra } from "./_components/AlertOrchestra";
+import { EnginePlaypark } from "./_components/EnginePlaypark";
 import { HeroSection } from "./sections/HeroSection";
 import { BusinessSection } from "./sections/BusinessSection";
 import { SeasonSection } from "./sections/SeasonSection";
@@ -568,6 +569,9 @@ function SystemRoom() {
           </div>
         </section>
       </main>
+
+      {/* Engine Agent Playpark — top layer */}
+      <EnginePlaypark />
 
       {showVoiceOverlay && <VoiceSessionOverlay />}
       {!showVoiceOverlay && <AgentControlPanel />}
