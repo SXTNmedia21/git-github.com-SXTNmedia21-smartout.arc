@@ -14,6 +14,12 @@ import { handleGetContracts } from "./handlers/contracts.ts";
 import { handleGetProtocols, handleGetAssignments } from "./handlers/training.ts";
 import { handleGetShifts, handleGetAbsences } from "./handlers/schedules.ts";
 import { handleGetSessions, handleGetDeviations } from "./handlers/operations.ts";
+import {
+  handleGetReconciliations,
+  handleGetShiftApprovals,
+  handleGetKpiTargets,
+  handleGetBudgets,
+} from "./handlers/reports.ts";
 
 // ── Route handlers ──
 
@@ -35,6 +41,10 @@ routes["GET /v1/shifts"] = handleGetShifts;
 routes["GET /v1/absences"] = handleGetAbsences;
 routes["GET /v1/sessions"] = handleGetSessions;
 routes["GET /v1/deviations"] = handleGetDeviations;
+routes["GET /v1/reconciliations"] = handleGetReconciliations;
+routes["GET /v1/shift-approvals"] = handleGetShiftApprovals;
+routes["GET /v1/kpi-targets"] = handleGetKpiTargets;
+routes["GET /v1/budgets"] = handleGetBudgets;
 
 // ── Main router ──
 
