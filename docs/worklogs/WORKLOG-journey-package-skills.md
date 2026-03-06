@@ -1,6 +1,6 @@
 ---
 title: "Worklog — journey-package-skills"
-status: in_progress
+status: done
 updated: 2026-03-06
 created: 2026-03-06
 module: meta
@@ -8,18 +8,24 @@ tags: [skills, journey-package, mission]
 ---
 # Worklog — journey-package-skills
 > Branch: `feat/journey-package-skills` | Worktree: wt-3 | Started: 2026-03-06
-## Status: 🟡 In Progress
+## Status: Done
 ## Done
+- [x] Built `/roadmap` skill (`.claude/skills/roadmap.md`) — commit b238a78
+- [x] Built `/journey` skill (`.claude/skills/journey.md`) — commit b238a78
 - [x] Built `/mission` skill (`.claude/skills/mission.md`)
-- [x] Design doc (`docs/plans/2026-03-06-mission-skill-design.md`)
+- [x] Design doc — /mission (`docs/plans/2026-03-06-mission-skill-design.md`)
+- [x] Design doc — full system (`docs/plans/2026-03-06-journey-package-skills-design.md`)
+- [x] Validated /roadmap on J-001 Admin Onboarding — `docs/Roadmaps/Admin onboarding/Roadmap.md`
+- [x] Validated /journey on J-016 Check My Schedule (P2) — `docs/Roadmaps/check-my-schedule/`
+- [x] Validated /journey on J-019 Punch Into Shift (P0) — `docs/Roadmaps/punch-into-shift/`
 - [x] Test 1: punch-into-shift — found missing triage gate, fixed
-- [x] Test 2: engine-architect dry run on admin onboarding — found 12 gaps, fixed all
+- [x] Test 2: engine-architect dry run on admin onboarding — 12 gaps found, fixed all
 - [x] Test 3: re-verification — all 9 fixes pass, 3 new issues found (N1-N3), fixed N1+N3
 - [x] Guardian integration: read all Guardian docs (20+ files), added full Guardian Integration section to skill
+- [x] Fix issues from Guardian integration test: F1-F2 (event flow clarity), G4 (data_writes format), G7 (Mission.md Guardian table), G2 (stage_started_at)
+- [x] Align mission-training.md SQL template (N2) — added is_required, journey_step_id, escalation_instructions
 
 ## Remaining
-- [ ] Align mission-training.md SQL template (N2, low priority)
-- [x] Fix issues from Guardian integration test: F1-F2 (event flow clarity), G4 (data_writes format), G7 (Mission.md Guardian table), G2 (stage_started_at)
 - [ ] Push branch
 
 ## Decisions
@@ -53,3 +59,6 @@ tags: [skills, journey-package, mission]
 | 2026-03-06 | — | Added 4 Guardian-specific common mistakes |
 | 2026-03-06 | — | Test 4: engine-architect Guardian verification — 11 PASS, 4 FAIL (low), 9 GAP |
 | 2026-03-06 | — | Fixed: F1 (event persistence clarity), F2 (workspace_id condition), G4 (data_writes format), G7 (Mission.md Guardian table), G2 (stage_started_at) |
+| 2026-03-06 | — | Aligned mission-training.md SQL template with /mission skill (N2 fix) |
+| 2026-03-06 | — | Created journey package skills design doc (9-skill system overview, dependency chain, validation results) |
+| 2026-03-06 | — | Updated worklog to done status — all tasks complete |
