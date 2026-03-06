@@ -17,9 +17,10 @@ Rebuild from Bubble.io. Live Stripe billing + DocuSign contracts. Modern stack, 
 1. **Code + database schema** → always wins
 2. **This file** → conventions, rules, critical traps
 3. **docs/reference/** → DATABASE, ROUTES, PACKAGES, ENV_VARS
-4. **docs/modules/** → business logic (17 modules)
-5. **docs/architecture/** → system design decisions
-6. **docs/cross-cutting/** → GDPR, billing, security, i18n
+4. **docs/engines/** → Event Motor domain packaging (industry, niche, role capability, environment, handbook)
+5. **docs/modules/** → business logic (17 modules)
+6. **docs/architecture/** → system design decisions
+7. **docs/cross-cutting/** → GDPR, billing, security, i18n
 
 > Master map: `docs/INDEX.md` | All docs have YAML frontmatter.
 
@@ -138,6 +139,24 @@ smartout_v3/
 - **Trainee Mode** — Sandbox. Real UI, no live impact. 48h escalation.
 - **Season** — Time period wrapping operations. Own leaderboard and point rules.
 - **Season Budget** — Strategic revenue target per season. 1:1 with season. Contains total target, labor %, avg hourly wage, base price per guest. Day/hour factors distribute targets across weekdays and hours. Calculation engine: `apps/web/src/lib/season-calculations.ts` (pure functions, no DB deps). UI: `/dashboard/season` with 4 tabs (overview, budget, day-factors, hour-factors).
+
+---
+
+## Industry Engine Layer (Mandatory)
+
+- Canonical path for the first industry package: `docs/engines/industri-inteligence/hospitalety/`
+- This engine package is the central documentation for:
+  - Event-layer specialization by industry
+  - AI council and personas
+  - Default policy baselines
+  - Template families (structure/pipeline/journey)
+  - Testing profiles
+  - Relevance mapping
+  - Company handbook template
+  - Role capability profiles
+  - Environment baseline
+  - Niche specialization
+- When implementing or modifying event-layer, onboarding, readiness, or journey/testing behavior, consult this engine package before making changes.
 
 ---
 
