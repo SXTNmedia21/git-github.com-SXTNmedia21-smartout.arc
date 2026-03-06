@@ -39,6 +39,13 @@ Define repeatable interaction patterns for how AI engages users, operators, and 
 - `guardian + operator` for monitored autonomy
 - `human-in-the-loop` for high-impact decisions
 
+## Persona and Mission Fit
+
+- Every mission should bind to a named agent persona.
+- Persona defines tone, specialty boundaries, and escalation style.
+- Stage transitions may change persona emphasis, but not mission-level constraints.
+- Skill access is stage-bound and authority-bound, not persona-unlimited.
+
 ## Pattern Selection Signals
 
 - risk level

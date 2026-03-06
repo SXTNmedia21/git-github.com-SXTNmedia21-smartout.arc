@@ -22,16 +22,20 @@ Define what context AI can use, how it is prioritized, and how it remains safe, 
 
 ## Context Layers
 
-1. **Identity context**  
+1. **Mission context**  
+   Mission instructions, success criteria, and non-goals.
+2. **Persona context**  
+   Agent personality profile, specialty boundaries, and response posture.
+3. **Identity context**  
    Role, permissions, workspace, language.
-2. **Session context**  
+4. **Session context**  
    Active mission/session state and recent events.
-3. **Domain context**  
+5. **Domain context**  
    Industry package assumptions, policies, and templates.
-4. **Memory context**  
+6. **Memory context**  
    Retrieved memory snippets with relevance thresholds.
-5. **Execution context**  
-   Available tools, authority state, current goals.
+7. **Execution context**  
+   Available stage skills/tools, authority state, current goals.
 
 ## Packing Rules
 
@@ -39,6 +43,7 @@ Define what context AI can use, how it is prioritized, and how it remains safe, 
 - Include authoritative sources before inferred context.
 - Time-box event context to avoid stale state decisions.
 - Do not include sensitive secrets in model-visible context.
+- For mission sessions, always bind context to current stage scope.
 
 ## Context Quality Checks
 
