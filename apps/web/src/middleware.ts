@@ -34,7 +34,7 @@ function copySessionCookies(
  * This removes repeated is_godmode lookups during quick route-to-route navigation.
  */
 async function getCachedGodmodeStatus(
-  adminClient: ReturnType<typeof createClient>,
+  adminClient: { from: (table: string) => ReturnType<ReturnType<typeof createClient>["from"]> },
   userId: string,
 ): Promise<boolean> {
   const now = Date.now();
