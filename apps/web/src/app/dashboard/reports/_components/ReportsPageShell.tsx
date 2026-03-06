@@ -48,7 +48,7 @@ type SavedReport = {
 };
 
 type ReportsPageShellProps = {
-  workspaceId: string;
+  workspaceId?: string;
 };
 
 const TABS = [
@@ -59,8 +59,9 @@ const TABS = [
   { value: "saved", label: "Mine rapporter", icon: BookmarkCheck },
 ] as const;
 
-export function ReportsPageShell({ workspaceId }: ReportsPageShellProps) {
-  const { isDark } = useContext(DashboardContext);
+export function ReportsPageShell({ workspaceId: workspaceIdProp }: ReportsPageShellProps) {
+  const { isDark, workspaceData } = useContext(DashboardContext);
+  const workspaceId = workspaceIdProp ?? workspaceData?.workspace_id ?? "";
   const [aiDrawerOpen, setAiDrawerOpen] = useState(false);
   const [activeReportData, setActiveReportData] = useState<ReportData | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -153,24 +154,32 @@ export function ReportsPageShell({ workspaceId }: ReportsPageShellProps) {
               {activeReportData && (
                 <ReportViewer data={activeReportData} onClose={handleCloseViewer} />
               )}
-              <SavedReportsGrid
-                workspaceId={workspaceId}
-                refreshKey={refreshKey}
-                onSelectReport={handleSelectReport}
-              />
+              {workspaceId ? (
+                <SavedReportsGrid
+                  workspaceId={workspaceId}
+                  refreshKey={refreshKey}
+                  onSelectReport={handleSelectReport}
+                />
+              ) : (
+                <div className="text-muted-foreground text-sm">
+                  Arbeidsrom ikke tilgjengelig for rapporter enda.
+                </div>
+              )}
             </div>
           </TabsContent>
         </div>
       </Tabs>
 
       {/* AI Report Drawer */}
-      <AiReportDrawer
-        open={aiDrawerOpen}
-        onOpenChange={setAiDrawerOpen}
-        workspaceId={workspaceId}
-        onReportData={handleReportData}
-        onReportSaved={handleReportSaved}
-      />
+      {workspaceId ? (
+        <AiReportDrawer
+          open={aiDrawerOpen}
+          onOpenChange={setAiDrawerOpen}
+          workspaceId={workspaceId}
+          onReportData={handleReportData}
+          onReportSaved={handleReportSaved}
+        />
+      ) : null}
     </div>
   );
 }

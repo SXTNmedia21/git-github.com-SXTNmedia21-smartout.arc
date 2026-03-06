@@ -11,9 +11,35 @@ import {
   getFirstProfile,
 } from "./_data/queries";
 
-export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+/**
+ * Enforces workspace contract status redirects for dashboard routes.
+ * Why: keep middleware lightweight and run this check where workspace data
+ * is already loaded for the request.
+ */
+function enforceWorkspaceContractStatus(workspace: WorkspaceData): void {
+  const status = workspace.contract_status;
+  if (!status) return;
+
+  if (status === "setup" || status === "onboarding") {
+    redirect("/onboarding");
+  }
+
+  if (status === "deactivated") {
+    redirect("/blocked");
+  }
+}
+
+export default async function DashboardLayout({
+  children,
+  params: _params,
+}: {
+  children: React.ReactNode;
+  params?: Promise<Record<string, string>>;
+}) {
   const headersList = await headers();
   const slug = headersList.get("x-workspace-slug");
+  // Local dev: support ?ws=<workspace_id> to select a specific workspace
+  const wsParam = headersList.get("x-workspace-id-param");
 
   const user = await getUser();
 
@@ -41,8 +67,20 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
     profileId = profile.profile_id;
     workspace = wsData;
-  } else {
-    // No subdomain (local dev or legacy) — use first workspace
+  } else if (wsParam) {
+    // Local dev: specific workspace selected via ?ws= query param
+    const profile = await getProfileInWorkspace(user.id, wsParam);
+    if (profile) {
+      profileId = profile.profile_id;
+      const wsData = await getWorkspaceById(wsParam);
+      if (wsData) {
+        workspace = wsData;
+      }
+    }
+  }
+
+  if (!workspace) {
+    // Fallback: use best workspace
     const profileData = await getFirstProfile(user.id);
 
     if (profileData?.workspace_id) {
@@ -56,6 +94,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   if (workspace) {
+    enforceWorkspaceContractStatus(workspace);
+
     return (
       <QueryProvider>
         <WorkspaceProvider workspace={workspace}>

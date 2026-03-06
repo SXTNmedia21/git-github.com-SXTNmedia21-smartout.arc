@@ -1,14 +1,26 @@
 "use client";
 
 import { useCallback, useContext, useState } from "react";
+import dynamic from "next/dynamic";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { ScheduleUIProvider } from "@/app/dashboard/schedule/_components/schedule-ui-context";
 import { DayControlSheet, DayControlPanel } from "@/app/dashboard/schedule/_components/day-control";
-import { TacticalView } from "./TacticalView";
-import { StrategicView } from "./StrategicView";
-import { ReconciliationView } from "./ReconciliationView";
-import { ActivityView } from "./ActivityView";
-import { GuardianView } from "./GuardianView";
+
+const TacticalView = dynamic(() =>
+  import("./TacticalView").then((m) => ({ default: m.TacticalView })),
+);
+const StrategicView = dynamic(() =>
+  import("./StrategicView").then((m) => ({ default: m.StrategicView })),
+);
+const ReconciliationView = dynamic(() =>
+  import("./ReconciliationView").then((m) => ({ default: m.ReconciliationView })),
+);
+const ActivityView = dynamic(() =>
+  import("./ActivityView").then((m) => ({ default: m.ActivityView })),
+);
+const GuardianView = dynamic(() =>
+  import("./GuardianView").then((m) => ({ default: m.GuardianView })),
+);
 
 interface AdminDashboardProps {
   isDark: boolean;

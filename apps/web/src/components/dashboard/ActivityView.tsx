@@ -9,17 +9,20 @@ import {
   Network,
   Filter,
   Layers,
-  ArrowUpRight,
-  ArrowDownRight,
+  TrendingUp,
+  TrendingDown,
+  ShieldCheck,
+  BarChart2,
   X,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useWorkforcePipeline, useTrainingReadiness } from "@/app/dashboard/_hooks";
+import { DashboardCard } from "./DashboardCard";
 
 type TimeRange = "today" | "7d" | "14d" | "30d" | "90d";
 
 const RANGE_OPTIONS: { id: TimeRange; label: string }[] = [
-  { id: "today", label: "Today" },
+  { id: "today", label: "I dag" },
   { id: "7d", label: "7d" },
   { id: "14d", label: "14d" },
   { id: "30d", label: "30d" },
@@ -138,16 +141,16 @@ export function ActivityView({ isDark }: { isDark: boolean }) {
             >
               <Activity className="h-5 w-5" />
             </div>
-            Activity & Heatmap Dashboard
+            Aktivitet & Varmekart
           </h1>
           <p className="text-muted-foreground mt-1 max-w-2xl text-sm">
-            Visualize cross-cutting activity, load and intensity across the business.
+            Visualiser aktivitet, belastning og intensitet på tvers av virksomheten.
           </p>
         </div>
 
         <div className="relative z-20 flex items-center gap-2">
           <button className="border-border bg-background text-foreground hover:bg-muted flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-bold transition-all">
-            <Filter className="h-4 w-4" /> Filter
+            <Filter className="h-4 w-4" /> Filtrer
           </button>
           <div className="bg-muted/50 flex items-center gap-1 rounded-lg p-1">
             {RANGE_OPTIONS.map((opt) => (
@@ -170,37 +173,56 @@ export function ActivityView({ isDark }: { isDark: boolean }) {
       {/* Quick Stats Grid — hidden when heatmap expanded */}
       {!isExpanded && (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-          <StatCard
+          <DashboardCard
             isDark={isDark}
-            title="Active Staff"
+            label="Aktive ansatte"
             value={pipeline ? String(pipeline.activeStaff) : "--"}
-            trend={pipeline ? `+${pipeline.newHires30d} new` : ""}
-            isPositive={true}
-            subtitle="Currently employed"
+            icon={<Users className="h-4 w-4" />}
+            status="good"
+            trend={
+              pipeline ? { direction: "up", label: `+${pipeline.newHires30d} nye` } : undefined
+            }
+            explanation="Ansatte som er aktive og tilordnet vakter i arbeidsrommet."
           />
-          <StatCard
+          <DashboardCard
             isDark={isDark}
-            title="Training Readiness"
+            label="Opplæringsberedskap"
             value={training ? `${training.readinessPercent}%` : "--"}
-            trend={training ? `${training.completed}/${training.totalAssignments}` : ""}
-            isPositive={!training || training.readinessPercent >= 80}
-            subtitle="Protocol completion"
+            icon={<ShieldCheck className="h-4 w-4" />}
+            status={
+              !training || training.readinessPercent >= 80
+                ? "good"
+                : training.readinessPercent >= 60
+                  ? "warning"
+                  : "bad"
+            }
+            trend={
+              training
+                ? {
+                    direction: training.readinessPercent >= 80 ? "up" : "down",
+                    label: `${training.completed}/${training.totalAssignments}`,
+                  }
+                : undefined
+            }
+            explanation="Andel protokolltildelinger fullført av aktive ansatte."
           />
-          <StatCard
+          <DashboardCard
             isDark={isDark}
-            title="Highest Intensity"
-            value="Fridays"
-            trend="Kveldsgjengen"
-            isPositive={true}
-            subtitle="Most active"
+            label="Høyest intensitet"
+            value="Fredager"
+            icon={<TrendingUp className="h-4 w-4" />}
+            status="good"
+            secondary="Kveldsgjengen"
+            explanation="Ukedagen og teamet med høyest registrert aktivitetsnivå i valgt periode."
           />
-          <StatCard
+          <DashboardCard
             isDark={isDark}
-            title="Lowest Intensity"
-            value="Sunday AM"
-            trend="-5.2%"
-            isPositive={false}
-            subtitle="Below budget threshold"
+            label="Lavest intensitet"
+            value="Søndag FM"
+            icon={<TrendingDown className="h-4 w-4" />}
+            status="warning"
+            secondary="-5.2% vs budsjett"
+            explanation="Ukedagen og perioden som er under budsjettterskel for aktivitet."
           />
         </div>
       )}
@@ -209,7 +231,7 @@ export function ActivityView({ isDark }: { isDark: boolean }) {
       {!isExpanded && training && training.totalAssignments > 0 && (
         <div className="border-border bg-background rounded-2xl border p-5 shadow-sm">
           <h3 className="text-muted-foreground mb-4 text-sm font-bold tracking-widest uppercase">
-            Training Progress
+            Opplæringsframgang
           </h3>
           <div className="flex items-center gap-4">
             <div className="flex-1">
@@ -232,16 +254,16 @@ export function ActivityView({ isDark }: { isDark: boolean }) {
             <div className="flex gap-4 text-xs font-semibold">
               <span className="flex items-center gap-1">
                 <div className="h-2 w-2 rounded-full bg-emerald-500" />
-                Completed ({training.completed})
+                Fullført ({training.completed})
               </span>
               <span className="flex items-center gap-1">
                 <div className="h-2 w-2 rounded-full bg-amber-500" />
-                Pending ({training.pending})
+                Ventende ({training.pending})
               </span>
               {training.expired > 0 && (
                 <span className="flex items-center gap-1">
                   <div className="bg-muted-foreground/40 h-2 w-2 rounded-full" />
-                  Expired ({training.expired})
+                  Utløpt ({training.expired})
                 </span>
               )}
             </div>
@@ -257,28 +279,28 @@ export function ActivityView({ isDark }: { isDark: boolean }) {
               active={activeTab === "locations"}
               onClick={() => setActiveTab("locations")}
               icon={<MapPin className="h-4 w-4" />}
-              label="Locations"
+              label="Lokasjoner"
               isDark={isDark}
             />
             <TabBtn
               active={activeTab === "departments"}
               onClick={() => setActiveTab("departments")}
               icon={<Building2 className="h-4 w-4" />}
-              label="Departments"
+              label="Avdelinger"
               isDark={isDark}
             />
             <TabBtn
               active={activeTab === "teams"}
               onClick={() => setActiveTab("teams")}
               icon={<Network className="h-4 w-4" />}
-              label="Teams"
+              label="Team"
               isDark={isDark}
             />
             <TabBtn
               active={activeTab === "employees"}
               onClick={() => setActiveTab("employees")}
               icon={<Users className="h-4 w-4" />}
-              label="Users"
+              label="Brukere"
               isDark={isDark}
             />
           </div>
@@ -299,7 +321,7 @@ export function ActivityView({ isDark }: { isDark: boolean }) {
             </button>
 
             <span className="text-foreground text-sm font-bold">
-              {selectedCell.row} — Day {selectedCell.dayIndex + 1}
+              {selectedCell.row} — Dag {selectedCell.dayIndex + 1}
             </span>
 
             <div className="bg-border h-4 w-px" />
@@ -309,28 +331,28 @@ export function ActivityView({ isDark }: { isDark: boolean }) {
                 active={activeTab === "locations"}
                 onClick={() => setActiveTab("locations")}
                 icon={<MapPin className="h-3 w-3" />}
-                label="Locations"
+                label="Lokasjoner"
                 isDark={isDark}
               />
               <TabBtn
                 active={activeTab === "departments"}
                 onClick={() => setActiveTab("departments")}
                 icon={<Building2 className="h-3 w-3" />}
-                label="Departments"
+                label="Avdelinger"
                 isDark={isDark}
               />
               <TabBtn
                 active={activeTab === "teams"}
                 onClick={() => setActiveTab("teams")}
                 icon={<Network className="h-3 w-3" />}
-                label="Teams"
+                label="Team"
                 isDark={isDark}
               />
               <TabBtn
                 active={activeTab === "employees"}
                 onClick={() => setActiveTab("employees")}
                 icon={<Users className="h-3 w-3" />}
-                label="Users"
+                label="Brukere"
                 isDark={isDark}
               />
             </div>
@@ -360,16 +382,16 @@ export function ActivityView({ isDark }: { isDark: boolean }) {
           <h3 className="text-foreground flex items-center gap-2 text-lg font-bold">
             <Layers className="h-5 w-5 opacity-50" />
             {activeTab === "locations"
-              ? "Location Intensity"
+              ? "Lokasjonsintensitet"
               : activeTab === "departments"
-                ? "Department Intensity"
+                ? "Avdelingsintensitet"
                 : activeTab === "teams"
-                  ? "Team Intensity"
-                  : "User Intensity"}
+                  ? "Teamintensitet"
+                  : "Brukerintensitet"}
           </h3>
 
           <div className="flex items-center gap-2 text-xs font-semibold">
-            <span className="text-muted-foreground">Quiet</span>
+            <span className="text-muted-foreground">Stille</span>
             <div className="mx-2 flex gap-1">
               <div className={`h-4 w-4 rounded-sm ${isDark ? "bg-muted/30" : "bg-muted"}`} />
               <div
@@ -386,7 +408,7 @@ export function ActivityView({ isDark }: { isDark: boolean }) {
               />
               <div className="h-4 w-4 rounded-sm bg-indigo-500" />
             </div>
-            <span className="text-muted-foreground">High</span>
+            <span className="text-muted-foreground">Høy</span>
           </div>
         </div>
 
@@ -451,7 +473,7 @@ export function ActivityView({ isDark }: { isDark: boolean }) {
           <div className="border-border max-h-[40%] shrink-0 overflow-y-auto border-t p-4">
             <div className="mb-3 flex items-center justify-between">
               <h4 className="text-foreground text-sm font-bold">
-                {selectedCell.row} — Day {selectedCell.dayIndex + 1}
+                {selectedCell.row} — Dag {selectedCell.dayIndex + 1}
               </h4>
               <button
                 onClick={() => setSelectedCell(null)}
@@ -474,43 +496,6 @@ export function ActivityView({ isDark }: { isDark: boolean }) {
 }
 
 // Subcomponents
-
-interface StatCardProps {
-  isDark: boolean;
-  title: string;
-  value: string;
-  trend: string;
-  isPositive: boolean;
-  subtitle: string;
-}
-
-function StatCard({ isDark, title, value, trend, isPositive, subtitle }: StatCardProps) {
-  return (
-    <div className="border-border bg-background relative flex flex-col justify-between overflow-hidden rounded-2xl border p-5 shadow-sm">
-      <div className="relative z-10 mb-4 flex items-start justify-between">
-        <span className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
-          {title}
-        </span>
-        {trend && (
-          <span
-            className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-bold ${isPositive ? (isDark ? "bg-emerald-500/10 text-emerald-400" : "bg-emerald-50 text-emerald-600") : isDark ? "bg-red-500/10 text-red-400" : "bg-red-50 text-red-600"}`}
-          >
-            {isPositive ? (
-              <ArrowUpRight className="h-3 w-3" />
-            ) : (
-              <ArrowDownRight className="h-3 w-3" />
-            )}
-            {trend}
-          </span>
-        )}
-      </div>
-      <div className="relative z-10">
-        <div className="text-foreground text-2xl font-black">{value}</div>
-        <div className="text-muted-foreground mt-1 text-xs">{subtitle}</div>
-      </div>
-    </div>
-  );
-}
 
 interface TabBtnProps {
   active: boolean;
@@ -546,7 +531,7 @@ function ActivityDetailPanel({
     const hours = Array.from({ length: 17 }, (_, i) => i + 6);
     return (
       <div className="space-y-1">
-        <p className="text-muted-foreground mb-2 text-xs">Hourly breakdown</p>
+        <p className="text-muted-foreground mb-2 text-xs">Time-for-time fordeling</p>
         {hours.map((h) => {
           const activity = (h * 17 + 43) % 100;
           return (
@@ -570,13 +555,13 @@ function ActivityDetailPanel({
 
   const entries = Array.from({ length: 5 }, (_, i) => ({
     time: `${8 + i * 2}:${i % 2 === 0 ? "00" : "30"}`,
-    event: ["Shift start", "Training session", "Break period", "Inspection", "Shift end"][i],
+    event: ["Vaktstart", "Opplæringsøkt", "Pause", "Inspeksjon", "Vaktslutt"][i],
     score: (i * 23 + 37) % 100,
   }));
 
   return (
     <div className="space-y-2">
-      <p className="text-muted-foreground mb-2 text-xs">Activity log for day {dayIndex + 1}</p>
+      <p className="text-muted-foreground mb-2 text-xs">Aktivitetslogg for dag {dayIndex + 1}</p>
       {entries.map((e, i) => (
         <div key={i} className="border-border flex items-center gap-3 rounded-lg border p-2">
           <span className="text-muted-foreground w-12 font-mono text-xs">{e.time}</span>

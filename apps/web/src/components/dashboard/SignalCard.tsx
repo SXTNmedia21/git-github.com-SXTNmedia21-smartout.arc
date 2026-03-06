@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
 import type { SignalStatus } from "@/app/dashboard/_hooks/dashboard-types";
 
@@ -11,6 +11,34 @@ import type { SignalStatus } from "@/app/dashboard/_hooks/dashboard-types";
 // - visual: ringChart renders animated donut chart
 // - interaction: click toggles expandContent panel
 // - interaction: hover shows subtle glow pulse
+
+/** Parse a value like "74%" → { num: 74, suffix: "%" } or 74 → { num: 74, suffix: "" } */
+function parseNumeric(value: string | number): { num: number; suffix: string } | null {
+  if (typeof value === "number") return { num: value, suffix: "" };
+  const match = /^(\d+(?:\.\d+)?)(.*)?$/.exec(value.trim());
+  if (!match || match[1] === undefined) return null;
+  return { num: parseFloat(match[1]), suffix: match[2] ?? "" };
+}
+
+function useCountUp(target: number, duration = 1100): number {
+  const [current, setCurrent] = useState(0);
+  const rafRef = useRef<number>(0);
+
+  useEffect(() => {
+    const startTime = performance.now();
+    const tick = (now: number) => {
+      const t = Math.min((now - startTime) / duration, 1);
+      // ease-out cubic
+      const eased = 1 - Math.pow(1 - t, 3);
+      setCurrent(Math.round(eased * target));
+      if (t < 1) rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [target, duration]);
+
+  return current;
+}
 
 type SparklineData = number[];
 
@@ -38,6 +66,9 @@ interface SignalCardProps {
   progressBar?: ProgressBarData;
   ringChart?: RingChartData;
   expandContent?: ReactNode;
+  defaultExpanded?: boolean;
+  isActive?: boolean;
+  onCardClick?: () => void;
 }
 
 const STATUS_STYLES = {
@@ -130,10 +161,19 @@ function RingChart({
   trackClass: string;
   accentClass: string;
 }) {
-  const percent = data.max > 0 ? Math.min((data.value / data.max) * 100, 100) : 0;
+  const targetPercent = data.max > 0 ? Math.min((data.value / data.max) * 100, 100) : 0;
+  const [mounted, setMounted] = useState(false);
+  const animatedCount = useCountUp(Math.round(targetPercent), 1200);
+
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 60);
+    return () => clearTimeout(t);
+  }, []);
+
   const radius = 28;
   const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (percent / 100) * circumference;
+  const displayPercent = mounted ? targetPercent : 0;
+  const strokeDashoffset = circumference - (displayPercent / 100) * circumference;
 
   return (
     <div className="relative flex items-center justify-center">
@@ -163,7 +203,7 @@ function RingChart({
         />
       </svg>
       <span className={`absolute text-xs font-black ${accentClass}`}>
-        {data.label ?? `${Math.round(percent)}%`}
+        {data.label ?? `${mounted ? animatedCount : 0}%`}
       </span>
     </div>
   );
@@ -171,12 +211,18 @@ function RingChart({
 
 function ProgressBar({ data, barClass }: { data: ProgressBarData; barClass: string }) {
   const percent = data.max > 0 ? Math.round((data.value / data.max) * 100) : 0;
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 60);
+    return () => clearTimeout(t);
+  }, []);
 
   return (
     <div className="bg-muted mt-2 h-1.5 w-full overflow-hidden rounded-full">
       <div
         className={`h-full rounded-full ${barClass} transition-all duration-1000 ease-out`}
-        style={{ width: `${percent}%` }}
+        style={{ width: mounted ? `${percent}%` : "0%" }}
       />
     </div>
   );
@@ -195,17 +241,32 @@ export function SignalCard({
   progressBar,
   ringChart,
   expandContent,
+  defaultExpanded = false,
+  isActive,
+  onCardClick,
 }: SignalCardProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpandedInternal, setIsExpandedInternal] = useState(defaultExpanded);
+  // If onCardClick is provided, card is externally controlled — use isActive
+  const isControlled = onCardClick !== undefined;
+  const isExpanded = isControlled ? (isActive ?? false) : isExpandedInternal;
+  const isClickable = isControlled || !!expandContent;
   const styles = STATUS_STYLES[status];
-  const isClickable = !!expandContent;
+
+  // Count-up animation for numeric values (e.g. "74%" or 85)
+  const parsed = parseNumeric(value);
+  const countedUp = useCountUp(parsed?.num ?? 0, 1100);
+  const displayValue = parsed !== null ? `${countedUp}${parsed.suffix}` : value;
 
   return (
     <div
-      className={`group border-border bg-card relative overflow-hidden rounded-2xl border transition-all duration-300 ${
-        isClickable ? "cursor-pointer" : ""
-      } ${isExpanded ? "shadow-lg" : "hover:shadow-md"}`}
-      onClick={isClickable ? () => setIsExpanded((p) => !p) : undefined}
+      className={`group border-border bg-card relative overflow-hidden rounded-2xl border shadow-sm transition-all duration-300 hover:shadow-md ${isClickable ? "cursor-pointer" : ""} ${isExpanded ? "shadow-md" : ""}`}
+      onClick={
+        isClickable
+          ? isControlled
+            ? onCardClick
+            : () => setIsExpandedInternal((v) => !v)
+          : undefined
+      }
     >
       {/* Ambient glow */}
       <div
@@ -248,7 +309,9 @@ export function SignalCard({
               accentClass={styles.accent}
             />
           ) : (
-            <span className={`text-3xl leading-none font-bold ${styles.value}`}>{value}</span>
+            <span className={`text-3xl leading-none font-bold ${styles.value}`}>
+              {displayValue}
+            </span>
           )}
 
           <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -256,7 +319,9 @@ export function SignalCard({
               <Sparkline data={sparkline} className={styles.sparkStroke} />
             )}
             {ringChart && (
-              <span className={`text-2xl leading-none font-bold ${styles.value}`}>{value}</span>
+              <span className={`text-2xl leading-none font-bold ${styles.value}`}>
+                {displayValue}
+              </span>
             )}
             <div className="flex flex-wrap items-center gap-2">
               {target && (
@@ -287,14 +352,20 @@ export function SignalCard({
         )}
       </div>
 
-      {/* Expand panel */}
+      {/* Expand panel — grid-rows trick for smooth height animation */}
       {expandContent && (
         <div
-          className={`relative z-10 overflow-hidden border-t transition-all duration-300 ease-out ${styles.expandBg} ${
-            isExpanded ? "max-h-[400px] opacity-100" : "max-h-0 border-transparent opacity-0"
-          }`}
+          className={`relative z-10 border-t ${isExpanded ? styles.expandBg : "border-transparent"}`}
+          style={{
+            display: "grid",
+            gridTemplateRows: isExpanded ? "1fr" : "0fr",
+            transition: "grid-template-rows 380ms cubic-bezier(0.4, 0, 0.2, 1), opacity 280ms ease",
+            opacity: isExpanded ? 1 : 0,
+          }}
         >
-          <div className="p-4">{expandContent}</div>
+          <div style={{ overflow: "hidden" }}>
+            <div className="p-4">{expandContent}</div>
+          </div>
         </div>
       )}
     </div>

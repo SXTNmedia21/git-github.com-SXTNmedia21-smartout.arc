@@ -235,6 +235,28 @@ function SchedulePageContent() {
     const allShifts = shiftsQuery.data ?? [];
     const allMessages = dayMessagesQuery.data ?? [];
     const allTasks = dayTasksQuery.data ?? [];
+
+    // Build per-day indexes once to avoid repeated O(days * list) scans during render.
+    const shiftsByDate = new Map<string, Shift[]>();
+    for (const shift of allShifts) {
+      const list = shiftsByDate.get(shift.dateId) ?? [];
+      list.push(shift);
+      shiftsByDate.set(shift.dateId, list);
+    }
+
+    const messageCountByDate = new Map<string, number>();
+    for (const message of allMessages) {
+      messageCountByDate.set(message.dateId, (messageCountByDate.get(message.dateId) ?? 0) + 1);
+    }
+
+    const taskSummaryByDate = new Map<string, { total: number; done: number }>();
+    for (const task of allTasks) {
+      const summary = taskSummaryByDate.get(task.dateId) ?? { total: 0, done: 0 };
+      summary.total += 1;
+      if (task.status === "completed") summary.done += 1;
+      taskSummaryByDate.set(task.dateId, summary);
+    }
+
     return days.map((day) => {
       const infos = dayInfoByDate.get(day.id) ?? [];
       const events = infos
@@ -244,22 +266,19 @@ function SchedulePageContent() {
         .filter((d) => d.category !== "event")
         .map((n) => ({ id: n.id, title: n.title, scope: n.scopeType }));
 
-      // Compute real staff and shift counts from shift data
-      const dayShifts = allShifts.filter((s) => s.dateId === day.id);
+      const dayShifts = shiftsByDate.get(day.id) ?? [];
       const uniqueEmployees = new Set(dayShifts.map((s) => s.employeeId).filter(Boolean));
-
-      // Compute message and task counts
-      const dayMsgCount = allMessages.filter((m) => m.dateId === day.id).length;
-      const dayTaskList = allTasks.filter((t) => t.dateId === day.id);
-      const dayTasksDone = dayTaskList.filter((t) => t.status === "completed").length;
+      const dayMsgCount = messageCountByDate.get(day.id) ?? 0;
+      const dayTaskSummary = taskSummaryByDate.get(day.id);
 
       return {
         ...day,
         staff: uniqueEmployees.size,
         shifts: dayShifts.length,
         messages: dayMsgCount > 0 ? dayMsgCount : undefined,
-        tasks:
-          dayTaskList.length > 0 ? { done: dayTasksDone, total: dayTaskList.length } : undefined,
+        tasks: dayTaskSummary
+          ? { done: dayTaskSummary.done, total: dayTaskSummary.total }
+          : undefined,
         events: events.length > 0 ? events : undefined,
         dayInfo: notes.length > 0 ? notes : undefined,
       };
@@ -1326,6 +1345,10 @@ function ListGridContent({
   employees: ScheduleEmployee[];
 }) {
   const { isDark } = useContext(DashboardContext);
+  const employeeById = useMemo(
+    () => new Map(employees.map((employee) => [employee.id, employee])),
+    [employees],
+  );
 
   return (
     <div
@@ -1392,7 +1415,7 @@ function ListGridContent({
 
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 print:grid-cols-2">
                 {dayShifts.map((shift) => {
-                  const emp = employees.find((e) => e.id === shift.employeeId);
+                  const emp = employeeById.get(shift.employeeId);
                   if (!emp) return null;
                   return (
                     <div

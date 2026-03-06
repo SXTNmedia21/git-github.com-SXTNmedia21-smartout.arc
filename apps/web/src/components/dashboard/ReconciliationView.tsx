@@ -1,29 +1,59 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   Calendar,
   Clock,
   ChevronLeft,
   ChevronRight,
-  Building2,
-  Users,
-  AlertCircle,
   Check,
   X,
+  ArrowUpRight,
+  MessageSquare,
+  CheckCircle2,
+  Send,
+  RotateCcw,
+  Users,
+  Timer,
+  Building2,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
 import { useDepartmentShifts } from "@/app/dashboard/_hooks";
-import type { DepartmentShiftGroup } from "@/app/dashboard/_hooks/dashboard-types";
-import {
-  SwipeReconciliation,
-  type ShiftForReview,
-} from "@/components/dashboard/SwipeReconciliation";
+import type {
+  DepartmentShiftGroup,
+  DepartmentShiftDetail,
+} from "@/app/dashboard/_hooks/dashboard-types";
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+type ShiftStatus = "pending" | "approved" | "disputed" | "handoff";
+type ShiftDecisions = Record<string, ShiftStatus>;
+type HandoffDraft = { shiftId: string; message: string };
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr);
-  return d.toLocaleDateString("en-GB", { weekday: "short", month: "short", day: "numeric" });
+  return d.toLocaleDateString("nb-NO", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+function formatDateShort(dateStr: string): string {
+  const d = new Date(dateStr);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  if (d.toDateString() === today.toDateString()) return "I dag";
+  if (d.toDateString() === yesterday.toDateString()) return "I går";
+  return d.toLocaleDateString("nb-NO", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
 }
 
 function getDateOffset(offset: number): string {
@@ -39,399 +69,563 @@ function formatTime(time: string): string {
   return timePart.slice(0, 5);
 }
 
-type ViewMode = "table" | "swipe" | "cards";
+// ── Main Component ────────────────────────────────────────────────────────────
 
 export function ReconciliationView({ isDark }: { isDark: boolean }) {
-  const [dateOffset, setDateOffset] = useState(0);
+  // Default to yesterday — the morning routine starts here
+  const [dateOffset, setDateOffset] = useState(-1);
   const selectedDate = getDateOffset(dateOffset);
-  const [expandedDept, setExpandedDept] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>("table");
+
+  const [decisions, setDecisions] = useState<ShiftDecisions>({});
+  const [handoffDraft, setHandoffDraft] = useState<HandoffDraft | null>(null);
+  const [dayApproved, setDayApproved] = useState(false);
 
   const { data: departments, isLoading } = useDepartmentShifts(selectedDate);
 
-  // Flatten all shifts for table and swipe views
-  const flatShifts = useMemo<ShiftForReview[]>(() => {
+  const allShifts = useMemo(() => {
     if (!departments) return [];
-    return departments.flatMap((dept) =>
-      dept.shifts.map((s) => ({
-        id: s.shiftId,
-        employee_name: s.employeeName ?? "Unassigned",
-        department_name: dept.departmentName,
-        department_color: dept.departmentColor ?? "#6366f1",
-        role: s.role ?? "—",
-        start_time: s.startTime ?? "—",
-        end_time: s.endTime ?? "—",
-        work_hours: s.workHours ?? 0,
-      })),
-    );
+    return departments.flatMap((d) => d.shifts);
   }, [departments]);
 
+  const totalShifts = allShifts.length;
+  const handledCount = allShifts.filter(
+    (s) => decisions[s.shiftId] && decisions[s.shiftId] !== "pending",
+  ).length;
+  const allHandled = totalShifts > 0 && handledCount === totalShifts;
+
+  const decide = useCallback((shiftId: string, status: ShiftStatus) => {
+    setDecisions((prev) => ({ ...prev, [shiftId]: status }));
+    if (status === "approved") toast.success("Vakt godkjent");
+    if (status === "disputed") toast.error("Vakt bestridt — flagget for oppfølging");
+  }, []);
+
+  const resetShift = useCallback(
+    (shiftId: string) => {
+      setDecisions((prev) => {
+        const next = { ...prev };
+        delete next[shiftId];
+        return next;
+      });
+      if (handoffDraft?.shiftId === shiftId) setHandoffDraft(null);
+    },
+    [handoffDraft],
+  );
+
+  const sendHandoff = useCallback((shiftId: string) => {
+    setDecisions((prev) => ({ ...prev, [shiftId]: "handoff" }));
+    setHandoffDraft(null);
+    toast.success("Handoff sendt til ansatt via Smartout");
+  }, []);
+
+  const approveDay = useCallback(() => {
+    setDayApproved(true);
+    toast.success(`${formatDateShort(selectedDate)} godkjent og låst ✓`);
+  }, [selectedDate]);
+
+  const changeDate = useCallback((newOffset: number) => {
+    setDateOffset(newOffset);
+    setDecisions({});
+    setDayApproved(false);
+    setHandoffDraft(null);
+  }, []);
+
   return (
-    <div className="animate-in fade-in flex min-h-0 min-w-0 flex-1 flex-col gap-6 overflow-y-auto pr-2 pb-6 duration-500">
-      {/* Header */}
-      <div className="flex flex-shrink-0 flex-col justify-between gap-4 pt-2 md:flex-row md:items-center">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-0 overflow-y-auto">
+      {/* ── Page header ── */}
+      <div className="flex flex-shrink-0 flex-col justify-between gap-4 pt-2 pb-6 md:flex-row md:items-start">
         <div>
-          <h1 className="text-foreground text-2xl font-black tracking-tight">
-            Daily Reconciliation
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            Review shifts and hours by department for sign-off.
+          <h1 className="text-foreground text-2xl font-black tracking-tight">Daglig avstemming</h1>
+          <p className="text-muted-foreground mt-0.5 text-sm">
+            Gjennomgå vakter og bekreft driften for godkjenning.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          {/* View Toggle */}
-          <div className="bg-muted/50 flex items-center gap-1 rounded-lg p-1">
-            <button
-              onClick={() => setViewMode("table")}
-              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                viewMode === "table"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground"
-              }`}
-            >
-              Table
-            </button>
-            <button
-              onClick={() => setViewMode("swipe")}
-              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                viewMode === "swipe"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground"
-              }`}
-            >
-              Swipe
-            </button>
-            <button
-              onClick={() => setViewMode("cards")}
-              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                viewMode === "cards"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground"
-              }`}
-            >
-              Cards
-            </button>
+        {/* Date navigation */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => changeDate(dateOffset - 1)}
+            className="border-border text-muted-foreground hover:bg-muted/50 rounded-lg border p-2 transition-colors"
+            aria-label="Forrige dag"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+
+          <div className="border-border bg-background flex items-center gap-2.5 rounded-xl border px-4 py-2 shadow-sm">
+            <Calendar className="text-muted-foreground h-4 w-4 shrink-0" />
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-foreground text-sm font-bold">
+                {formatDateShort(selectedDate)}
+              </span>
+              <span className="text-muted-foreground hidden text-xs sm:block">
+                {formatDate(selectedDate).split(" ").slice(1).join(" ")}
+              </span>
+            </div>
           </div>
 
-          {/* Date Navigation */}
-          <div className="flex items-center gap-2">
+          <button
+            onClick={() => changeDate(dateOffset + 1)}
+            className="border-border text-muted-foreground hover:bg-muted/50 rounded-lg border p-2 transition-colors"
+            aria-label="Neste dag"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+
+          {dateOffset !== -1 && (
             <button
-              onClick={() => setDateOffset((o) => o - 1)}
-              className="border-border text-muted-foreground hover:bg-muted/50 rounded-lg border p-2 transition-colors"
+              onClick={() => changeDate(-1)}
+              className="text-muted-foreground hover:text-foreground rounded-lg px-3 py-2 text-xs font-semibold transition-colors"
             >
-              <ChevronLeft className="h-4 w-4" />
+              I går
             </button>
-            <div
-              className={`flex items-center gap-2 rounded-xl border px-4 py-2 ${isDark ? "border-zinc-800 bg-[#0c0c0e]" : "border-border bg-background shadow-sm"}`}
-            >
-              <Calendar className="text-muted-foreground h-4 w-4" />
-              <span className="text-foreground text-sm font-bold">{formatDate(selectedDate)}</span>
-            </div>
-            <button
-              onClick={() => setDateOffset((o) => o + 1)}
-              className="border-border text-muted-foreground hover:bg-muted/50 rounded-lg border p-2 transition-colors"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-            {dateOffset !== 0 && (
-              <button
-                onClick={() => setDateOffset(0)}
-                className="text-muted-foreground hover:text-foreground rounded-lg px-3 py-2 text-xs font-semibold"
-              >
-                Today
-              </button>
-            )}
-          </div>
+          )}
         </div>
       </div>
 
-      {/* Content */}
+      {/* ── Main content ── */}
       {isLoading ? (
-        <LoadingSkeleton isDark={isDark} />
+        <LoadingSkeleton />
       ) : !departments || departments.length === 0 ? (
-        <EmptyState selectedDate={selectedDate} />
-      ) : viewMode === "table" ? (
-        <ShiftTable departments={departments} isDark={isDark} />
-      ) : viewMode === "swipe" ? (
-        <SwipeReconciliation
-          shifts={flatShifts}
-          onApprove={(id) => toast.success(`Shift ${id.slice(0, 8)} approved`)}
-          onReject={(id) => toast.error(`Shift ${id.slice(0, 8)} flagged`)}
-          isDark={isDark}
+        <EmptyState date={selectedDate} />
+      ) : dayApproved ? (
+        <DayApprovedState
+          date={selectedDate}
+          total={totalShifts}
+          onReset={() => {
+            setDayApproved(false);
+            setDecisions({});
+          }}
         />
       ) : (
-        /* Cards view — original department card grid */
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {departments.map((dept: DepartmentShiftGroup) => (
-            <DepartmentCard
+        <div className="flex flex-col gap-3 pb-24">
+          {/* Progress summary */}
+          <ProgressHeader
+            total={totalShifts}
+            handled={handledCount}
+            allHandled={allHandled}
+            departments={departments}
+          />
+
+          {/* One section per department */}
+          {departments.map((dept) => (
+            <DeptSection
               key={dept.departmentId}
               dept={dept}
-              isDark={isDark}
-              isExpanded={expandedDept === dept.departmentId}
-              onToggle={() =>
-                setExpandedDept((prev) => (prev === dept.departmentId ? null : dept.departmentId))
+              decisions={decisions}
+              handoffDraft={handoffDraft}
+              onDecide={decide}
+              onResetShift={resetShift}
+              onHandoffOpen={(shiftId) => setHandoffDraft({ shiftId, message: "" })}
+              onHandoffChange={(msg) =>
+                setHandoffDraft((prev) => (prev ? { ...prev, message: msg } : null))
               }
+              onHandoffSend={sendHandoff}
+              onHandoffCancel={() => setHandoffDraft(null)}
             />
           ))}
+
+          {/* Sticky approve CTA */}
+          <AnimatePresence>
+            {allHandled && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 12 }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                className="border-border bg-background fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-6 rounded-2xl border px-6 py-4 shadow-xl"
+              >
+                <div>
+                  <p className="text-foreground text-sm font-bold">Alle vakter behandlet</p>
+                  <p className="text-muted-foreground text-xs">
+                    {handledCount} av {totalShifts} godkjent eller håndtert
+                  </p>
+                </div>
+                <button
+                  onClick={approveDay}
+                  className="flex items-center gap-2 rounded-xl bg-emerald-500 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-emerald-600 active:scale-95"
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  Godkjenn dag
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
     </div>
   );
 }
 
-/* ---------- Table View ---------- */
+// ── Progress Header ───────────────────────────────────────────────────────────
 
-function ShiftTable({
+function ProgressHeader({
+  total,
+  handled,
+  allHandled,
   departments,
-  isDark,
 }: {
+  total: number;
+  handled: number;
+  allHandled: boolean;
   departments: DepartmentShiftGroup[];
-  isDark: boolean;
 }) {
+  const totalHours = departments.reduce((s, d) => s + d.totalHours, 0);
+  const pct = total > 0 ? Math.round((handled / total) * 100) : 0;
+
   return (
-    <div className="border-border overflow-x-auto rounded-xl border">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-border text-muted-foreground border-b text-left text-[11px] tracking-wider uppercase">
-            <th className="px-4 py-3">Employee</th>
-            <th className="px-4 py-3">Department</th>
-            <th className="px-4 py-3">Role</th>
-            <th className="px-4 py-3">Shift</th>
-            <th className="px-4 py-3 text-right">Hours</th>
-            <th className="px-4 py-3 text-center">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {departments.flatMap((dept) =>
-            dept.shifts.map((shift) => (
-              <tr
-                key={shift.shiftId}
-                className="border-border/50 hover:bg-muted/30 border-b transition-colors"
-              >
-                {/* Employee */}
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2.5">
-                    <div
-                      className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
-                      style={{ backgroundColor: dept.departmentColor ?? "#6366f1" }}
-                    >
-                      {(shift.employeeName ?? "?")
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")
-                        .toUpperCase()
-                        .slice(0, 2)}
-                    </div>
-                    <span className="text-foreground font-medium">
-                      {shift.employeeName ?? "Unassigned"}
-                    </span>
-                  </div>
-                </td>
-
-                {/* Department */}
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    {dept.departmentColor && (
-                      <div
-                        className="h-2 w-2 rounded-full"
-                        style={{ backgroundColor: dept.departmentColor }}
-                      />
-                    )}
-                    <span className="text-muted-foreground">{dept.departmentName}</span>
-                  </div>
-                </td>
-
-                {/* Role */}
-                <td className="text-muted-foreground px-4 py-3">{shift.role}</td>
-
-                {/* Shift time */}
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-1.5">
-                    <Clock className="text-muted-foreground h-3.5 w-3.5" />
-                    <span className="text-foreground">
-                      {formatTime(shift.startTime)} - {formatTime(shift.endTime)}
-                    </span>
-                  </div>
-                </td>
-
-                {/* Hours */}
-                <td className="text-foreground px-4 py-3 text-right font-bold">
-                  {shift.workHours.toFixed(1)}h
-                </td>
-
-                {/* Action */}
-                <td className="px-4 py-3">
-                  <div className="flex items-center justify-center gap-1.5">
-                    <button
-                      onClick={() => toast.success(`Shift ${shift.shiftId.slice(0, 8)} approved`)}
-                      className={`rounded-lg p-1.5 transition-colors ${
-                        isDark
-                          ? "text-emerald-400 hover:bg-emerald-500/10"
-                          : "text-emerald-600 hover:bg-emerald-50"
-                      }`}
-                      title="Approve"
-                    >
-                      <Check className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => toast.error(`Shift ${shift.shiftId.slice(0, 8)} flagged`)}
-                      className={`rounded-lg p-1.5 transition-colors ${
-                        isDark ? "text-red-400 hover:bg-red-500/10" : "text-red-600 hover:bg-red-50"
-                      }`}
-                      title="Flag"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            )),
-          )}
-        </tbody>
-      </table>
-
-      {/* Summary footer */}
-      <div className="border-border flex items-center justify-between border-t px-4 py-3">
-        <span className="text-muted-foreground text-xs font-semibold">
-          {departments.reduce((sum, d) => sum + d.shifts.length, 0)} shifts across{" "}
-          {departments.length} departments
+    <div className="border-border bg-background rounded-2xl border p-4">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5">
+            <Users className="text-muted-foreground h-3.5 w-3.5" />
+            <span className="text-foreground text-sm font-bold">{total} vakter</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Timer className="text-muted-foreground h-3.5 w-3.5" />
+            <span className="text-foreground text-sm font-bold">
+              {totalHours.toFixed(1)}h totalt
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Building2 className="text-muted-foreground h-3.5 w-3.5" />
+            <span className="text-foreground text-sm font-bold">
+              {departments.length} {departments.length === 1 ? "avdeling" : "avdelinger"}
+            </span>
+          </div>
+        </div>
+        <span
+          className={`text-sm font-bold ${allHandled ? "text-emerald-500" : "text-muted-foreground"}`}
+        >
+          {handled}/{total} behandlet
         </span>
-        <span className="text-foreground text-xs font-bold">
-          {departments.reduce((sum, d) => sum + d.totalHours, 0).toFixed(1)}h total
-        </span>
+      </div>
+
+      {/* Progress bar */}
+      <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
+        <div
+          className={`h-full rounded-full transition-all duration-500 ${
+            allHandled ? "bg-emerald-500" : "bg-orange-400"
+          }`}
+          style={{ width: `${pct}%` }}
+        />
       </div>
     </div>
   );
 }
 
-/* ---------- Department Card (original view) ---------- */
+// ── Department Section ────────────────────────────────────────────────────────
 
-function DepartmentCard({
+function DeptSection({
   dept,
-  isDark,
-  isExpanded,
-  onToggle,
+  decisions,
+  handoffDraft,
+  onDecide,
+  onResetShift,
+  onHandoffOpen,
+  onHandoffChange,
+  onHandoffSend,
+  onHandoffCancel,
 }: {
   dept: DepartmentShiftGroup;
-  isDark: boolean;
-  isExpanded: boolean;
-  onToggle: () => void;
+  decisions: ShiftDecisions;
+  handoffDraft: HandoffDraft | null;
+  onDecide: (id: string, s: ShiftStatus) => void;
+  onResetShift: (id: string) => void;
+  onHandoffOpen: (id: string) => void;
+  onHandoffChange: (msg: string) => void;
+  onHandoffSend: (id: string) => void;
+  onHandoffCancel: () => void;
 }) {
-  const unassigned = dept.shifts.filter((s) => !s.employeeId).length;
+  const deptHandled = dept.shifts.filter(
+    (s) => decisions[s.shiftId] && decisions[s.shiftId] !== "pending",
+  ).length;
+  const deptTotal = dept.shifts.length;
+  const allDeptDone = deptHandled === deptTotal;
 
   return (
-    <motion.div
-      layout
-      className={`cursor-pointer overflow-hidden rounded-2xl border transition-colors ${
-        isDark
-          ? "border-zinc-800 bg-[#0c0c0e] hover:border-zinc-700"
-          : "border-border bg-background hover:border-border/80"
-      }`}
-      onClick={onToggle}
-    >
-      <div className="p-5">
-        <div className="mb-3 flex items-start justify-between">
-          <div className="flex items-center gap-2">
-            {dept.departmentColor && (
-              <div
-                className="h-3 w-3 rounded-full"
-                style={{ backgroundColor: dept.departmentColor }}
-              />
-            )}
-            <h3 className="text-foreground text-lg font-bold">{dept.departmentName}</h3>
-          </div>
-          {unassigned > 0 && (
-            <span
-              className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold ${isDark ? "bg-orange-500/15 text-orange-400" : "bg-orange-50 text-orange-600"}`}
-            >
-              <AlertCircle className="h-3 w-3" /> {unassigned} open
-            </span>
+    <div className="border-border overflow-hidden rounded-2xl border">
+      {/* Department header */}
+      <div className="bg-muted/30 flex items-center justify-between px-4 py-3">
+        <div className="flex items-center gap-2.5">
+          {dept.departmentColor && (
+            <div
+              className="h-2.5 w-2.5 rounded-full"
+              style={{ backgroundColor: dept.departmentColor }}
+            />
           )}
+          <span className="text-foreground text-sm font-bold">{dept.departmentName}</span>
+          <span className="text-muted-foreground text-xs">
+            {dept.shifts.length} vakter · {dept.totalHours.toFixed(1)}h
+          </span>
         </div>
-
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <div className="text-muted-foreground text-xs font-semibold uppercase">Staff</div>
-            <div className="flex items-center gap-1">
-              <Users className="text-muted-foreground h-3.5 w-3.5" />
-              <span className="text-foreground text-lg font-black">{dept.staffCount}</span>
-            </div>
-          </div>
-          <div>
-            <div className="text-muted-foreground text-xs font-semibold uppercase">Shifts</div>
-            <span className="text-foreground text-lg font-black">{dept.shifts.length}</span>
-          </div>
-          <div>
-            <div className="text-muted-foreground text-xs font-semibold uppercase">Hours</div>
-            <span className="text-foreground text-lg font-black">{dept.totalHours.toFixed(1)}</span>
-          </div>
-        </div>
+        <span
+          className={`text-xs font-semibold transition-colors ${
+            allDeptDone ? "text-emerald-500" : "text-muted-foreground"
+          }`}
+        >
+          {deptHandled}/{deptTotal}
+        </span>
       </div>
 
-      {/* Expandable Shift List */}
+      {/* Shift rows */}
+      <div className="divide-border divide-y">
+        {dept.shifts.map((shift) => (
+          <ShiftRow
+            key={shift.shiftId}
+            shift={shift}
+            deptColor={dept.departmentColor}
+            status={decisions[shift.shiftId] ?? "pending"}
+            handoffDraft={handoffDraft?.shiftId === shift.shiftId ? handoffDraft : null}
+            onDecide={(s) => onDecide(shift.shiftId, s)}
+            onReset={() => onResetShift(shift.shiftId)}
+            onHandoffOpen={() => onHandoffOpen(shift.shiftId)}
+            onHandoffChange={onHandoffChange}
+            onHandoffSend={() => onHandoffSend(shift.shiftId)}
+            onHandoffCancel={onHandoffCancel}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Shift Row ─────────────────────────────────────────────────────────────────
+
+const STATUS_CONFIG: Record<ShiftStatus, { label: string; pill: string }> = {
+  pending: {
+    label: "Venter",
+    pill: "text-muted-foreground bg-muted/60",
+  },
+  approved: {
+    label: "Godkjent",
+    pill: "text-emerald-600 bg-emerald-500/10 dark:text-emerald-400",
+  },
+  disputed: {
+    label: "Bestridt",
+    pill: "text-red-600 bg-red-500/10 dark:text-red-400",
+  },
+  handoff: {
+    label: "Handoff sendt",
+    pill: "text-blue-600 bg-blue-500/10 dark:text-blue-400",
+  },
+};
+
+function ShiftRow({
+  shift,
+  deptColor,
+  status,
+  handoffDraft,
+  onDecide,
+  onReset,
+  onHandoffOpen,
+  onHandoffChange,
+  onHandoffSend,
+  onHandoffCancel,
+}: {
+  shift: DepartmentShiftDetail;
+  deptColor: string | null;
+  status: ShiftStatus;
+  handoffDraft: HandoffDraft | null;
+  onDecide: (s: ShiftStatus) => void;
+  onReset: () => void;
+  onHandoffOpen: () => void;
+  onHandoffChange: (msg: string) => void;
+  onHandoffSend: () => void;
+  onHandoffCancel: () => void;
+}) {
+  const isHandled = status !== "pending";
+  const cfg = STATUS_CONFIG[status];
+  const initials = (shift.employeeName ?? "?")
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+
+  return (
+    <div className={`transition-opacity duration-300 ${isHandled ? "opacity-50" : "opacity-100"}`}>
+      {/* Main row */}
+      <div className="flex items-center gap-3 px-4 py-3.5">
+        {/* Dept color stripe */}
+        <div
+          className="h-8 w-0.5 shrink-0 rounded-full"
+          style={{ backgroundColor: deptColor ?? "#6366f1" }}
+        />
+
+        {/* Avatar */}
+        <div
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white"
+          style={{ backgroundColor: deptColor ?? "#6366f1" }}
+        >
+          {initials}
+        </div>
+
+        {/* Name + role + time */}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline gap-2">
+            <span className="text-foreground truncate text-sm font-semibold">
+              {shift.employeeName ?? "Ikke tildelt"}
+            </span>
+            <span className="text-muted-foreground shrink-0 text-xs">{shift.role}</span>
+          </div>
+          <div className="text-muted-foreground mt-0.5 flex items-center gap-1.5 text-xs">
+            <Clock className="h-3 w-3 shrink-0" />
+            <span>
+              {formatTime(shift.startTime)} – {formatTime(shift.endTime)}
+            </span>
+            <span className="text-foreground font-semibold">· {shift.workHours.toFixed(1)}h</span>
+          </div>
+        </div>
+
+        {/* Status pill */}
+        <span
+          className={`hidden shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold sm:block ${cfg.pill}`}
+        >
+          {cfg.label}
+        </span>
+
+        {/* Action buttons */}
+        {!isHandled ? (
+          <div className="flex shrink-0 items-center gap-0.5">
+            <button
+              onClick={() => onDecide("approved")}
+              title="Godkjenn"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-emerald-500 transition-colors hover:bg-emerald-500/10 active:scale-90"
+            >
+              <Check className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => onDecide("disputed")}
+              title="Bestrid"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-red-500 transition-colors hover:bg-red-500/10 active:scale-90"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <button
+              onClick={onHandoffOpen}
+              title="Send handoff — be om avklaring"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-blue-500 transition-colors hover:bg-blue-500/10 active:scale-90"
+            >
+              <ArrowUpRight className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={onReset}
+            title="Angre"
+            className="text-muted-foreground hover:text-foreground flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
+
+      {/* Handoff inline panel */}
       <AnimatePresence>
-        {isExpanded && (
+        {handoffDraft && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.18, ease: "easeInOut" }}
             className="overflow-hidden"
           >
-            <div
-              className={`border-t px-5 py-3 ${isDark ? "border-zinc-800 bg-zinc-900/30" : "border-border bg-muted/30"}`}
-            >
-              <h4 className="text-muted-foreground mb-2 text-xs font-bold tracking-wider uppercase">
-                Shifts & Hours
-              </h4>
-              <div className="space-y-2">
-                {dept.shifts.map((shift) => (
-                  <div key={shift.shiftId} className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2">
-                      <Clock className="text-muted-foreground h-3.5 w-3.5" />
-                      <span className="text-foreground">
-                        {shift.startTime} - {shift.endTime}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-muted-foreground text-xs">{shift.role}</span>
-                      <span className="text-foreground font-bold">{shift.workHours}h</span>
-                    </div>
-                  </div>
-                ))}
+            <div className="mx-4 mb-3 rounded-xl border border-blue-500/20 bg-blue-500/5 px-4 py-3">
+              <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-blue-500">
+                <MessageSquare className="h-3.5 w-3.5" />
+                Send melding til {shift.employeeName ?? "ansatt"}
+              </p>
+              <textarea
+                value={handoffDraft.message}
+                onChange={(e) => onHandoffChange(e.target.value)}
+                placeholder={`Hei — trenger avklaring om vakten ${formatTime(shift.startTime)}–${formatTime(shift.endTime)}. Kan du bekrefte timene?`}
+                rows={2}
+                autoFocus
+                className="border-border bg-background text-foreground placeholder:text-muted-foreground w-full resize-none rounded-lg border px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-blue-500/50"
+              />
+              <div className="mt-2 flex items-center justify-between">
+                <span className="text-muted-foreground text-[11px]">
+                  Sendes via Smartout-meldinger
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={onHandoffCancel}
+                    className="text-muted-foreground hover:text-foreground rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+                  >
+                    Avbryt
+                  </button>
+                  <button
+                    onClick={onHandoffSend}
+                    className="flex items-center gap-1.5 rounded-lg bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-blue-600 active:scale-95"
+                  >
+                    <Send className="h-3 w-3" />
+                    Send handoff
+                  </button>
+                </div>
               </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </div>
   );
 }
 
-/* ---------- Loading / Empty ---------- */
+// ── Day Approved State ────────────────────────────────────────────────────────
 
-function LoadingSkeleton({ isDark }: { isDark: boolean }) {
+function DayApprovedState({
+  date,
+  total,
+  onReset,
+}: {
+  date: string;
+  total: number;
+  onReset: () => void;
+}) {
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {Array.from({ length: 3 }).map((_, i) => (
+    <div className="flex flex-1 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-emerald-500/30 bg-emerald-500/5 p-12">
+      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/10">
+        <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+      </div>
+      <p className="text-foreground text-lg font-bold">{formatDateShort(date)} er godkjent</p>
+      <p className="text-muted-foreground mt-1 text-sm">
+        {total} vakter bekreftet — {formatDate(date)}
+      </p>
+      <button
+        onClick={onReset}
+        className="text-muted-foreground hover:text-foreground mt-5 text-xs font-medium underline-offset-2 transition-colors hover:underline"
+      >
+        Åpne igjen og angre
+      </button>
+    </div>
+  );
+}
+
+// ── Loading / Empty ───────────────────────────────────────────────────────────
+
+function LoadingSkeleton() {
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="border-border bg-muted/20 h-20 animate-pulse rounded-2xl border" />
+      {[1, 2, 3, 4].map((i) => (
         <div
           key={i}
-          className={`h-40 animate-pulse rounded-2xl border ${isDark ? "border-zinc-800 bg-zinc-900/50" : "border-border bg-muted/30"}`}
+          className="border-border bg-muted/10 h-14 animate-pulse rounded-xl border"
+          style={{ animationDelay: `${i * 80}ms` }}
         />
       ))}
     </div>
   );
 }
 
-function EmptyState({ selectedDate }: { selectedDate: string }) {
+function EmptyState({ date }: { date: string }) {
   return (
     <div className="border-border flex flex-1 items-center justify-center rounded-2xl border-2 border-dashed p-12">
       <div className="text-center">
-        <Building2 className="text-muted-foreground mx-auto mb-3 h-8 w-8 opacity-20" />
+        <Calendar className="text-muted-foreground mx-auto mb-3 h-8 w-8 opacity-20" />
         <p className="text-muted-foreground font-semibold">
-          No shifts scheduled for {formatDate(selectedDate)}
+          Ingen vakter planlagt for {formatDateShort(date)}
         </p>
+        <p className="text-muted-foreground mt-1 text-xs">{formatDate(date)}</p>
       </div>
     </div>
   );

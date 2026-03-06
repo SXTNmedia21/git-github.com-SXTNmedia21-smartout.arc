@@ -3,19 +3,17 @@
 import React, { useState, useRef, useEffect } from "react";
 import {
   Percent,
-  AlertCircle,
-  CheckCircle2,
   ArrowUpRight,
   ArrowDownRight,
   ShieldCheck,
   Users,
   Activity,
   Target,
+  CheckCircle2,
   Briefcase,
   Building2,
   MapPin,
   Settings,
-  Pencil,
   SlidersHorizontal,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -32,9 +30,10 @@ import {
 import { useWorkforcePipeline, useTrainingReadiness, useKpiTargets } from "@/app/dashboard/_hooks";
 import type { KpiMetric } from "@/app/dashboard/_hooks";
 import { BudgetSettingsPanel } from "./BudgetSettingsPanel";
+import { DashboardCard } from "./DashboardCard";
 
 const LOCATIONS = [
-  { id: "all", name: "All Locations" },
+  { id: "all", name: "Alle lokasjoner" },
   { id: "baardshaug", name: "Bårdshaug Vegkro" },
   { id: "trondheim", name: "Trondheim City" },
   { id: "oslo", name: "Oslo S (Kiosk)" },
@@ -98,19 +97,19 @@ const KPI_CONFIG: {
   unit: string;
   benchmark: string;
 }[] = [
-  { metric: "cost_of_sales", label: "Cost of Sales Target", unit: "%", benchmark: "< 30%" },
-  { metric: "turnover_90d", label: "Turnover Target", unit: "%", benchmark: "< 15%" },
-  { metric: "absence_rate", label: "Absence Threshold", unit: "%", benchmark: "< 4%" },
+  { metric: "cost_of_sales", label: "Mål varekostnad", unit: "%", benchmark: "< 30%" },
+  { metric: "turnover_90d", label: "Mål personalomsetning", unit: "%", benchmark: "< 15%" },
+  { metric: "absence_rate", label: "Fraværsterskel", unit: "%", benchmark: "< 4%" },
   {
     metric: "time_to_job_ready",
-    label: "Time to Job-Ready Target",
-    unit: "Days",
-    benchmark: "< 7 Days",
+    label: "Mål tid til jobbklar",
+    unit: "Dager",
+    benchmark: "< 7 dager",
   },
-  { metric: "task_completion", label: "Task Completion Target", unit: "%", benchmark: "> 90%" },
+  { metric: "task_completion", label: "Mål oppgavefullføring", unit: "%", benchmark: "> 90%" },
   {
     metric: "training_readiness",
-    label: "Training Readiness Target",
+    label: "Mål opplæringsberedskap",
     unit: "%",
     benchmark: "100%",
   },
@@ -143,7 +142,7 @@ export function StrategicView({ isDark }: StrategicViewProps) {
           <h1
             className={`text-base font-black tracking-tight ${isDark ? "text-zinc-100" : "text-zinc-900"}`}
           >
-            Strategic Insights
+            Strategisk innsikt
           </h1>
         </div>
 
@@ -152,7 +151,7 @@ export function StrategicView({ isDark }: StrategicViewProps) {
         {/* Budget toggle - more compact */}
         <button
           onClick={() => setShowBudget(!showBudget)}
-          title="Budget Settings"
+          title="Budsjettinnstillinger"
           className={`flex items-center gap-1.5 rounded-lg border p-1.5 text-[10px] font-bold transition-colors ${
             showBudget
               ? isDark
@@ -164,7 +163,7 @@ export function StrategicView({ isDark }: StrategicViewProps) {
           }`}
         >
           <SlidersHorizontal className="h-3.5 w-3.5" />
-          <span className="hidden md:inline">Budget</span>
+          <span className="hidden md:inline">Budsjett</span>
         </button>
 
         <div className="flex-1" />
@@ -219,7 +218,7 @@ export function StrategicView({ isDark }: StrategicViewProps) {
             >
               <KPICard
                 isDark={isDark}
-                title="Cost of Sales %"
+                title="Varekostnad %"
                 metric="cost_of_sales"
                 value={`${data.payroll}%`}
                 targetValue={targets.cost_of_sales}
@@ -228,13 +227,13 @@ export function StrategicView({ isDark }: StrategicViewProps) {
                 icon={<Percent className="h-5 w-5" />}
                 color="emerald"
                 unit="%"
-                explanation="Calculated by dividing total payroll costs by total revenue over the selected period (rolling 30 days). Adjust the target to trigger earlier warnings."
+                explanation="Beregnes ved å dele totale lønnskostnader på total omsetning i valgt periode (rullerende 30 dager). Juster målet for å utløse tidligere varsler."
                 onTargetSave={handleTargetSave}
               />
 
               <KPICard
                 isDark={isDark}
-                title="90-Day Turnover"
+                title="90-dagers personalomsetning"
                 metric="turnover_90d"
                 value={`${data.turn}%`}
                 targetValue={targets.turnover_90d}
@@ -243,13 +242,13 @@ export function StrategicView({ isDark }: StrategicViewProps) {
                 icon={<Users className="h-5 w-5" />}
                 color="blue"
                 unit="%"
-                explanation="Calculated by taking the number of separated employees divided by the average number of employees over 90 days. Measured against your target."
+                explanation="Beregnes ved å dele antall ansatte som har sluttet på gjennomsnittlig antall ansatte over 90 dager. Måles mot ditt satte mål."
                 onTargetSave={handleTargetSave}
               />
 
               <KPICard
                 isDark={isDark}
-                title="Absence Rate"
+                title="Fraværsrate"
                 metric="absence_rate"
                 value={`${data.abs}%`}
                 targetValue={targets.absence_rate}
@@ -258,13 +257,13 @@ export function StrategicView({ isDark }: StrategicViewProps) {
                 icon={<Activity className="h-5 w-5" />}
                 color="orange"
                 unit="%"
-                explanation="Total recorded absence hours divided by total expected working hours for the month-to-date. Used to detect early signs of team fatigue."
+                explanation="Totale registrerte fraværstimer delt på totale forventede arbeidstimer hittil denne måneden. Brukes til å oppdage tidlige tegn på teamutmattelse."
                 onTargetSave={handleTargetSave}
               />
 
               <KPICard
                 isDark={isDark}
-                title="Time to Job-Ready"
+                title="Tid til jobbklar"
                 metric="time_to_job_ready"
                 value={`${data.onboarding}d`}
                 targetValue={targets.time_to_job_ready}
@@ -272,14 +271,14 @@ export function StrategicView({ isDark }: StrategicViewProps) {
                 status={data.onboarding > targets.time_to_job_ready ? "bad" : "good"}
                 icon={<Target className="h-5 w-5" />}
                 color="purple"
-                unit="days"
-                explanation="The average number of days between an employee's first shift and the completion of all required onboarding paths including compliance checks."
+                unit="dager"
+                explanation="Gjennomsnittlig antall dager mellom en ansatts første vakt og fullføring av alle påkrevde onboarding-løp inkludert samsvarskontroller."
                 onTargetSave={handleTargetSave}
               />
 
               <KPICard
                 isDark={isDark}
-                title="Task Completion"
+                title="Oppgavefullføring"
                 metric="task_completion"
                 value={`${data.task}%`}
                 targetValue={targets.task_completion}
@@ -288,13 +287,13 @@ export function StrategicView({ isDark }: StrategicViewProps) {
                 icon={<CheckCircle2 className="h-5 w-5" />}
                 color="indigo"
                 unit="%"
-                explanation="Percentage of assigned workplace tasks (opening, closing, maintenance) completed across all shifts matching the location filter."
+                explanation="Andel tildelte arbeidsoppgaver (åpning, stenging, vedlikehold) fullført på tvers av alle vakter som matcher lokasjonsfilter."
                 onTargetSave={handleTargetSave}
               />
 
               <KPICard
                 isDark={isDark}
-                title="Training Readiness"
+                title="Opplæringsberedskap"
                 metric="training_readiness"
                 value={
                   selectedLocId === "all" && training
@@ -313,7 +312,7 @@ export function StrategicView({ isDark }: StrategicViewProps) {
                 icon={<ShieldCheck className="h-5 w-5" />}
                 color="stone"
                 unit="%"
-                explanation="Percentage of protocol assignments completed by active staff. Measures overall workforce readiness."
+                explanation="Andel protokolltildelinger fullført av aktive ansatte. Måler den totale bemanningsberedskapen."
                 onTargetSave={handleTargetSave}
               />
             </motion.div>
@@ -334,10 +333,10 @@ export function StrategicView({ isDark }: StrategicViewProps) {
               <h2
                 className={`text-base font-extrabold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}
               >
-                Turnover Trend & Forecast
+                Personalomsetning – trend og prognose
               </h2>
               <p className={`mt-1 max-w-xl text-sm ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
-                Rolling 6-month historical data vs industry benchmark target.
+                Rullerende 6-måneder historiske data mot bransjestandard.
               </p>
             </div>
             <button
@@ -345,7 +344,7 @@ export function StrategicView({ isDark }: StrategicViewProps) {
               className={`flex items-center gap-2 rounded-xl border p-2 transition-colors ${isDark ? "border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800" : "border-zinc-200 bg-zinc-50 text-zinc-700 hover:bg-zinc-100"}`}
             >
               <Settings className="h-4 w-4" />
-              <span className="hidden text-xs font-bold md:inline">Configure Goals</span>
+              <span className="hidden text-xs font-bold md:inline">Konfigurer mål</span>
             </button>
           </div>
 
@@ -367,33 +366,33 @@ export function StrategicView({ isDark }: StrategicViewProps) {
           <h2
             className={`mb-3 text-base font-extrabold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}
           >
-            Workforce Pipeline
+            Bemanningspipeline
           </h2>
 
           <div className="relative z-10 flex flex-1 flex-col justify-center space-y-4">
             <PipelineRow
               isDark={isDark}
               icon={<Users className="h-5 w-5" />}
-              title="Active Staff"
+              title="Aktive ansatte"
               value={selectedLocId === "all" && pipeline ? pipeline.activeStaff : data.pipeline}
-              subtitle="Currently Employed"
+              subtitle="Ansatt nå"
             />
             <div className={`h-px w-full ${isDark ? "bg-zinc-800" : "bg-zinc-100"}`} />
             <PipelineRow
               isDark={isDark}
               icon={<ArrowUpRight className="h-5 w-5 text-emerald-500" />}
-              title="New Hires (30d)"
+              title="Nyansatte (30d)"
               value={`+${selectedLocId === "all" && pipeline ? pipeline.newHires30d : data.hires}`}
-              subtitle="Onboarded"
+              subtitle="Onboardet"
               highlight
             />
             <div className={`h-px w-full ${isDark ? "bg-zinc-800" : "bg-zinc-100"}`} />
             <PipelineRow
               isDark={isDark}
               icon={<ArrowDownRight className="h-5 w-5 text-red-500" />}
-              title="Departures (30d)"
+              title="Sluttet (30d)"
               value={`-${selectedLocId === "all" && pipeline ? pipeline.departures30d : data.resig}`}
-              subtitle="Departures"
+              subtitle="Avganger"
               alert={
                 (selectedLocId === "all" && pipeline ? pipeline.departures30d : data.resig) > 2
               }
@@ -404,10 +403,10 @@ export function StrategicView({ isDark }: StrategicViewProps) {
               icon={<Briefcase className="h-5 w-5" />}
               title="Onboarding"
               value={
-                selectedLocId === "all" && pipeline ? pipeline.onboarding : `${data.tenure} mo`
+                selectedLocId === "all" && pipeline ? pipeline.onboarding : `${data.tenure} mnd`
               }
               subtitle={
-                selectedLocId === "all" && pipeline ? "Currently in training" : "Retention Length"
+                selectedLocId === "all" && pipeline ? "Under opplæring nå" : "Ansettelseslengde"
               }
             />
           </div>
@@ -420,10 +419,10 @@ export function StrategicView({ isDark }: StrategicViewProps) {
           className={`${isDark ? "border-zinc-800 bg-[#0c0c0e] text-white" : "bg-white text-zinc-900"} max-w-2xl`}
         >
           <DialogHeader>
-            <DialogTitle className="text-xl">Configure Workspace KPIs</DialogTitle>
+            <DialogTitle className="text-xl">Konfigurer arbeidsrom-KPIer</DialogTitle>
             <DialogDescription className={`${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
-              Modify threshold targets used across all reporting logic in SmartOut. Thresholds are
-              used to highlight alerts and assess overall health.
+              Endre terskelgrenser som brukes i all rapporteringslogikk i SmartOut. Terskler brukes
+              til å fremheve varsler og vurdere overordnet helse.
             </DialogDescription>
           </DialogHeader>
 
@@ -434,7 +433,7 @@ export function StrategicView({ isDark }: StrategicViewProps) {
                   key={cfg.metric}
                   isDark={isDark}
                   label={`${cfg.label} (${cfg.unit})`}
-                  benchmark={`Benchmark: ${cfg.benchmark}`}
+                  benchmark={`Referanseverdi: ${cfg.benchmark}`}
                   value={targets[cfg.metric]}
                   onSave={(val) => handleTargetSave(cfg.metric, val)}
                 />
@@ -444,9 +443,9 @@ export function StrategicView({ isDark }: StrategicViewProps) {
               className={`rounded-xl border p-4 ${isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-zinc-50"}`}
             >
               <p className={`text-xs ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
-                <b>Note on Calculations:</b> SmartOut derives these KPIs uniquely. &quot;Cost of
-                Sales&quot; takes payroll directly out of Live Shift timings multiplied by hourly
-                rates, and contrasts it with integrated POS revenue over that same period.
+                <b>Om beregningene:</b> SmartOut beregner disse KPI-ene på en unik måte.
+                &quot;Varekostnad&quot; hentes direkte fra live vakttider multiplisert med
+                timesatser, og sammenlignes med integrert kassaomsetning i samme periode.
               </p>
             </div>
           </div>
@@ -532,12 +531,9 @@ function KPICard({
   targetDisplay,
   status,
   icon,
-  color,
   unit,
   onTargetSave,
 }: KPICardProps) {
-  const isBad = status === "bad";
-  const [showExplanation, setShowExplanation] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editValue, setEditValue] = useState(targetValue);
   const prevTarget = useRef(targetValue);
@@ -560,91 +556,18 @@ function KPICard({
   return (
     <Popover open={editOpen} onOpenChange={setEditOpen}>
       <PopoverTrigger asChild>
-        <div
-          onMouseEnter={() => {
-            if (!editOpen) setShowExplanation(true);
-          }}
-          onMouseLeave={() => setShowExplanation(false)}
-          className={`group relative min-h-[100px] cursor-pointer overflow-hidden rounded-2xl border p-4 transition-all hover:shadow-md ${isDark ? "border-zinc-800 bg-[#0c0c0e] hover:border-zinc-700" : "border-zinc-200 bg-white"}`}
-        >
-          <AnimatePresence mode="wait">
-            {!showExplanation ? (
-              <motion.div
-                key="front"
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -5 }}
-                transition={{ duration: 0.15 }}
-                className="flex h-full flex-col"
-              >
-                <div
-                  className={`absolute -top-6 -right-6 h-24 w-24 rounded-full opacity-20 blur-2xl transition-opacity group-hover:opacity-40 bg-${color}-500`}
-                />
-                <div className="relative z-10 mb-2 flex items-start justify-between">
-                  <div
-                    className={`rounded-xl border p-2.5 ${isDark ? "border-zinc-800 bg-zinc-900 text-zinc-300" : "border-zinc-200 bg-zinc-50 text-zinc-600"}`}
-                  >
-                    {icon}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div
-                      className={`rounded p-1 opacity-0 transition-opacity group-hover:opacity-100 ${isDark ? "text-zinc-500 hover:text-zinc-300" : "text-zinc-400 hover:text-zinc-600"}`}
-                    >
-                      <Pencil className="h-3 w-3" />
-                    </div>
-                    {isBad ? (
-                      <div
-                        className={`flex items-center gap-1 rounded px-2 py-1 text-[10px] font-bold tracking-widest uppercase shadow-sm ${isDark ? "border border-red-500/20 bg-red-500/10 text-red-400" : "border border-red-200 bg-red-50 text-red-600"}`}
-                      >
-                        <AlertCircle className="h-3 w-3" /> Action
-                      </div>
-                    ) : (
-                      <div
-                        className={`flex items-center gap-1 rounded px-2 py-1 text-[10px] font-bold tracking-widest uppercase shadow-sm ${isDark ? "border border-emerald-500/20 bg-emerald-500/10 text-emerald-400" : "border border-emerald-200 bg-emerald-50 text-emerald-600"}`}
-                      >
-                        <CheckCircle2 className="h-3 w-3" /> OK
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="relative z-10 flex flex-1 flex-col justify-end">
-                  <h3
-                    className={`mb-1 text-sm font-bold ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-                  >
-                    {title}
-                  </h3>
-                  <div className="flex items-end gap-3">
-                    <span
-                      className={`text-2xl leading-none font-black ${isDark ? "text-white" : "text-zinc-900"} ${isBad ? (isDark ? "!text-red-400" : "!text-red-600") : ""}`}
-                    >
-                      {value}
-                    </span>
-                    <span
-                      className={`mb-1 text-xs font-semibold ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                    >
-                      target {targetDisplay}
-                    </span>
-                  </div>
-                </div>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="back"
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -5 }}
-                transition={{ duration: 0.15 }}
-                className={`relative z-10 flex h-full flex-col justify-center ${isDark ? "text-zinc-300" : "text-zinc-700"}`}
-              >
-                <h3 className="mb-2 text-sm font-bold break-words text-emerald-500">
-                  How is this calculated?
-                </h3>
-                <p className="text-xs leading-relaxed opacity-90">
-                  {explanation || "Calculation standard set by AI Council documentation."}
-                </p>
-              </motion.div>
-            )}
-          </AnimatePresence>
+        <div>
+          <DashboardCard
+            label={title}
+            value={value}
+            icon={icon}
+            status={status}
+            explanation={
+              explanation ?? "Beregningsstandard fastsatt av AI Council-dokumentasjonen."
+            }
+            target={`mål ${targetDisplay}`}
+            isDark={isDark}
+          />
         </div>
       </PopoverTrigger>
       <PopoverContent
@@ -654,7 +577,7 @@ function KPICard({
       >
         <div className="flex flex-col gap-3">
           <label className={`text-xs font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-            Edit Target ({unit})
+            Endre mål ({unit})
           </label>
           <input
             type="number"
@@ -669,13 +592,13 @@ function KPICard({
           />
           <div className="flex items-center justify-between">
             <span className={`text-[10px] ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
-              Press Enter to save
+              Trykk Enter for å lagre
             </span>
             <button
               onClick={commitEdit}
               className="rounded-md bg-emerald-600 px-3 py-1 text-xs font-bold text-white transition-colors hover:bg-emerald-500"
             >
-              Save
+              Lagre
             </button>
           </div>
         </div>
@@ -701,7 +624,7 @@ function TurnoverChart({
   }[location as "all" | "baardshaug" | "trondheim" | "oslo"]!;
 
   const maxVal = Math.max(...chartData, 30);
-  const months = ["Sep", "Oct", "Nov", "Dec", "Jan", "Feb"];
+  const months = ["Sep", "Okt", "Nov", "Des", "Jan", "Feb"];
 
   const targetPct = 100 - (targetLineValue / maxVal) * 100;
 
@@ -716,7 +639,7 @@ function TurnoverChart({
           <span
             className={`absolute -top-3 right-0 bg-white px-2 pb-1 text-[10px] font-bold dark:bg-[#0c0c0e] ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
           >
-            Target {targetLineValue}%
+            Mål {targetLineValue}%
           </span>
         </div>
       </AnimatePresence>

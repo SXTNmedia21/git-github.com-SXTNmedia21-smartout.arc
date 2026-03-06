@@ -87,7 +87,7 @@ export const DashboardContext = createContext({
   setScheduleCompactMode: (_val: boolean) => {
     void _val;
   },
-  workspaceData: null as { workspace_id: string; company_id: string; name: string } | null,
+  workspaceData: null as { workspace_id: string; company_id: string | null; name: string } | null,
   profileId: null as string | null,
 });
 import Link from "next/link";
@@ -120,6 +120,7 @@ import {
 
 import { ActionStrip } from "@/components/dashboard/ActionStrip";
 import { UserMenu } from "@/components/dashboard/UserMenu";
+import { WorkspaceSwitcher } from "@/components/dashboard/WorkspaceSwitcher";
 import { VoiceToolsProvider, useVoiceTools } from "@/components/voice-tools-context";
 // Popover imports removed — location selector moved to PlannerCommandBar
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -127,7 +128,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 const LazyVoiceAssistant = dynamic(() => import("@/components/voice-assistant"), {
   ssr: false,
   loading: () => (
-    <div className="h-[600px] w-[350px] rounded-2xl border border-zinc-800 bg-zinc-950/80 backdrop-blur-xl" />
+    <div className="border-border bg-background/80 h-[600px] w-[350px] rounded-2xl border backdrop-blur-xl" />
   ),
 });
 
@@ -291,34 +292,42 @@ export function DashboardShell({
     <VoiceToolsProvider>
       <div
         className={`flex h-screen flex-col overflow-hidden font-sans transition-colors duration-300 selection:bg-orange-500/30 ${
-          isDark ? "dark bg-zinc-950 text-zinc-100" : "bg-zinc-50 text-zinc-900"
-        } print:block print:h-auto print:overflow-visible`}
+          isDark ? "dark" : ""
+        } bg-background text-foreground print:block print:h-auto print:overflow-visible`}
       >
         {/* TOP CONTEXT BAR */}
+        {/* UI Events:
+            - action: toggleTheme() (sun/moon button)
+            - action: openVoiceAssistant() (mic button)
+            - color-regime: isDark — dark=near-black, light=warm-cream header with orange accent */}
         <header
-          className={`relative z-30 flex h-14 items-center justify-between px-6 transition-colors duration-300 ${
-            isDark ? "border-b border-zinc-800 bg-[#0a0a0c]" : "bg-zinc-900 text-white shadow-md"
+          className={`relative z-30 flex h-14 items-center justify-between border-b px-6 transition-colors duration-300 ${
+            isDark
+              ? "border-border bg-background"
+              : "border-[oklch(0.91_0.004_55)] bg-[oklch(0.98_0.003_55)] shadow-sm"
           } print:hidden`}
         >
           <div className="flex items-center gap-6">
-            <div
-              className={`flex cursor-pointer items-center gap-2 rounded-lg px-3 py-1.5 transition-colors ${
-                isDark ? "bg-zinc-900 hover:bg-zinc-800" : "bg-zinc-800 hover:bg-zinc-700"
-              }`}
-            >
-              <Building2 className="h-4 w-4 text-orange-500" />
-              <span className="text-sm font-bold text-white">
-                {workspaceData?.name ?? "Workspace"}
-              </span>
-              <ChevronRight className="h-3.5 w-3.5 rotate-90 text-zinc-400" />
-            </div>
+            <WorkspaceSwitcher isDark={isDark} />
 
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-zinc-400">Season:</span>
-              <span className="font-semibold text-white">Vinter 2026</span>
-              <div className="ml-2 flex items-center gap-1.5 rounded border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-emerald-400">
+              <span className={isDark ? "text-muted-foreground" : "text-[oklch(0.52_0.02_50)]"}>
+                Sesong:
+              </span>
+              <span
+                className={`font-semibold ${isDark ? "text-foreground" : "text-[oklch(0.25_0.01_50)]"}`}
+              >
+                Vinter 2026
+              </span>
+              <div
+                className={`ml-2 flex items-center gap-1.5 rounded border px-2 py-0.5 ${
+                  isDark
+                    ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
+                    : "border-emerald-200 bg-emerald-50 text-emerald-700"
+                }`}
+              >
                 <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
-                <span className="text-[10px] font-bold tracking-wider uppercase">Active</span>
+                <span className="text-[10px] font-bold tracking-wider uppercase">Aktiv</span>
               </div>
             </div>
           </div>
@@ -326,7 +335,11 @@ export function DashboardShell({
           <div className="flex items-center gap-4">
             <button
               onClick={() => setIsDark(!isDark)}
-              className={`rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-white`}
+              className={`rounded-md p-1.5 transition-colors ${
+                isDark
+                  ? "text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                  : "text-[oklch(0.48_0.02_50)] hover:bg-[oklch(0.93_0.005_55)] hover:text-[oklch(0.25_0.01_50)]"
+              }`}
             >
               {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
@@ -335,7 +348,13 @@ export function DashboardShell({
             <div className="relative">
               <button
                 onClick={() => setIsAssistantOpen(!isAssistantOpen)}
-                className={`rounded-md p-1.5 transition-colors ${isAssistantOpen ? "bg-orange-500/20 text-orange-400" : "text-zinc-400 hover:bg-zinc-800 hover:text-white"}`}
+                className={`rounded-md p-1.5 transition-colors ${
+                  isAssistantOpen
+                    ? "bg-orange-500/20 text-orange-400"
+                    : isDark
+                      ? "text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                      : "text-[oklch(0.48_0.02_50)] hover:bg-[oklch(0.93_0.005_55)] hover:text-[oklch(0.25_0.01_50)]"
+                }`}
               >
                 <Mic className="h-4 w-4" />
               </button>
@@ -353,18 +372,25 @@ export function DashboardShell({
 
         <div className="relative flex flex-1 overflow-hidden">
           {/* LEFT SIDEBAR NAVIGATION */}
+          {/* UI Events:
+              - nav: all NavItem hrefs
+              - action: toggleSidebarCollapse() (chevron button)
+              - action: toggleAdminMode() (bottom toggle)
+              - color-regime: isDark — dark=near-black, light=warm-cream gradient */}
           <aside
             className={`z-20 flex flex-col overflow-hidden border-r transition-[width] duration-200 ${
               isSidebarCollapsed ? "w-16" : "w-64"
             } ${
-              isDark ? "border-zinc-800 bg-[#0c0c0e]" : "border-zinc-200 bg-white shadow-sm"
+              isDark
+                ? "border-zinc-800 bg-[#0c0c0e]"
+                : "border-[oklch(0.91_0.004_55)] bg-[oklch(0.98_0.003_55)] shadow-[1px_0_12px_-4px_oklch(0.6_0.05_50/0.08)]"
             } print:hidden`}
           >
             <TooltipProvider delayDuration={0}>
               {/* Sidebar collapse toggle — top */}
               <div
                 className={`flex items-center border-b ${isSidebarCollapsed ? "justify-center px-2" : "justify-end px-4"} py-3 ${
-                  isDark ? "border-zinc-800" : "border-zinc-200"
+                  isDark ? "border-zinc-800" : "border-[oklch(0.92_0.004_55)]"
                 }`}
               >
                 <button
@@ -372,7 +398,7 @@ export function DashboardShell({
                   className={`rounded-lg p-1.5 transition-colors ${
                     isDark
                       ? "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
-                      : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
+                      : "text-[oklch(0.52_0.02_50)] hover:bg-[oklch(0.94_0.005_55)] hover:text-[oklch(0.3_0.02_50)]"
                   }`}
                 >
                   {isSidebarCollapsed ? (
@@ -384,23 +410,23 @@ export function DashboardShell({
               </div>
 
               <nav
-                className={`hide-scrollbar relative flex-1 space-y-1 overflow-y-auto py-4 ${isSidebarCollapsed ? "px-2" : "px-4"}`}
+                className={`scroll-overlay hide-scrollbar relative flex-1 space-y-1 py-4 ${isSidebarCollapsed ? "px-2" : "px-4"}`}
               >
                 {isAdminMode ? (
                   <>
                     {!isSidebarCollapsed && (
                       <div
                         className={`mt-2 mb-3 px-3 text-[10px] font-bold tracking-widest uppercase ${
-                          isDark ? "text-zinc-500" : "text-zinc-400"
+                          isDark ? "text-zinc-500" : "text-[oklch(0.60_0.018_45)]"
                         }`}
                       >
-                        Management
+                        Ledelse
                       </div>
                     )}
                     <NavItem
                       href="/dashboard"
                       icon={LayoutDashboard}
-                      label="Dashboard"
+                      label="Oversikt"
                       isDark={isDark}
                       active={isActive("/dashboard")}
                       isCollapsed={isSidebarCollapsed}
@@ -408,16 +434,16 @@ export function DashboardShell({
                     <NavItem
                       href="/dashboard/people"
                       icon={Users}
-                      label="People"
+                      label="Ansatte"
                       isDark={isDark}
-                      badge="2 Req"
+                      badge="2 Forespørsler"
                       active={isActive("/dashboard/people")}
                       isCollapsed={isSidebarCollapsed}
                     />
                     <NavItem
                       href="/dashboard/schedule"
                       icon={CalendarDays}
-                      label="Schedule"
+                      label="Vaktplan"
                       isDark={isDark}
                       active={isActive("/dashboard/schedule")}
                       isCollapsed={isSidebarCollapsed}
@@ -426,17 +452,17 @@ export function DashboardShell({
                     {!isSidebarCollapsed && (
                       <div
                         className={`mt-6 mb-3 px-3 text-[10px] font-bold tracking-widest uppercase ${
-                          isDark ? "text-zinc-500" : "text-zinc-400"
+                          isDark ? "text-zinc-500" : "text-[oklch(0.60_0.018_45)]"
                         }`}
                       >
-                        Operations
+                        Operasjoner
                       </div>
                     )}
                     {isSidebarCollapsed && <div className="mt-4" />}
                     <NavItem
                       href="/dashboard/operations"
                       icon={Activity}
-                      label="Live Operations"
+                      label="Drift"
                       isDark={isDark}
                       active={isActive("/dashboard/operations")}
                       isCollapsed={isSidebarCollapsed}
@@ -444,7 +470,7 @@ export function DashboardShell({
                     <NavItem
                       href="/dashboard/reports"
                       icon={TrendingUp}
-                      label="Reports"
+                      label="Rapporter"
                       isDark={isDark}
                       active={isActive("/dashboard/reports")}
                       isCollapsed={isSidebarCollapsed}
@@ -453,17 +479,17 @@ export function DashboardShell({
                     {!isSidebarCollapsed && (
                       <div
                         className={`mt-6 mb-3 px-3 text-[10px] font-bold tracking-widest uppercase ${
-                          isDark ? "text-zinc-500" : "text-zinc-400"
+                          isDark ? "text-zinc-500" : "text-[oklch(0.60_0.018_45)]"
                         }`}
                       >
-                        Administration
+                        Administrasjon
                       </div>
                     )}
                     {isSidebarCollapsed && <div className="mt-4" />}
                     <NavItem
                       href="/dashboard/governance"
                       icon={ShieldCheck}
-                      label="Governance"
+                      label="HMS"
                       isDark={isDark}
                       active={isActive("/dashboard/governance")}
                       isCollapsed={isSidebarCollapsed}
@@ -471,7 +497,7 @@ export function DashboardShell({
                     <NavItem
                       href="/dashboard/season"
                       icon={Gamepad2}
-                      label="Season"
+                      label="Sesong"
                       isDark={isDark}
                       active={isActive("/dashboard/season")}
                       isCollapsed={isSidebarCollapsed}
@@ -479,7 +505,7 @@ export function DashboardShell({
                     <NavItem
                       href="/dashboard/organization"
                       icon={Building2}
-                      label="Organization"
+                      label="Organisasjon"
                       isDark={isDark}
                       active={isActive("/dashboard/organization")}
                       isCollapsed={isSidebarCollapsed}
@@ -487,7 +513,7 @@ export function DashboardShell({
                     <NavItem
                       href="/dashboard"
                       icon={Shield}
-                      label="Guardian"
+                      label="Vakt"
                       isDark={isDark}
                       active={isDashboardPage && adminView === "guardian"}
                       isCollapsed={isSidebarCollapsed}
@@ -499,16 +525,16 @@ export function DashboardShell({
                     {!isSidebarCollapsed && (
                       <div
                         className={`mt-2 mb-3 px-3 text-[10px] font-bold tracking-widest uppercase ${
-                          isDark ? "text-zinc-500" : "text-zinc-400"
+                          isDark ? "text-zinc-500" : "text-[oklch(0.60_0.018_45)]"
                         }`}
                       >
-                        My Workspace
+                        Mitt arbeidsrom
                       </div>
                     )}
                     <NavItem
                       href="/dashboard"
                       icon={LayoutDashboard}
-                      label="Dashboard"
+                      label="Oversikt"
                       isDark={isDark}
                       active={isActive("/dashboard")}
                       isCollapsed={isSidebarCollapsed}
@@ -516,7 +542,7 @@ export function DashboardShell({
                     <NavItem
                       href="/dashboard/my-schedule"
                       icon={Calendar}
-                      label="My Schedule"
+                      label="Min vaktplan"
                       isDark={isDark}
                       active={isActive("/dashboard/my-schedule")}
                       isCollapsed={isSidebarCollapsed}
@@ -524,16 +550,16 @@ export function DashboardShell({
                     <NavItem
                       href="/dashboard/my-training"
                       icon={GraduationCap}
-                      label="My Training"
+                      label="Min opplæring"
                       isDark={isDark}
-                      badge="1 Due"
+                      badge="1 forfalt"
                       active={isActive("/dashboard/my-training")}
                       isCollapsed={isSidebarCollapsed}
                     />
                     <NavItem
                       href="/dashboard/my-cv"
                       icon={FileText}
-                      label="My CV & Profile"
+                      label="Min profil"
                       isDark={isDark}
                       active={isActive("/dashboard/my-cv")}
                       isCollapsed={isSidebarCollapsed}
@@ -541,7 +567,7 @@ export function DashboardShell({
                     <NavItem
                       href="/dashboard/my-salary"
                       icon={Banknote}
-                      label="My Salary"
+                      label="Min lønn"
                       isDark={isDark}
                       active={isActive("/dashboard/my-salary")}
                       isCollapsed={isSidebarCollapsed}
@@ -555,7 +581,7 @@ export function DashboardShell({
                       isDark ? "text-zinc-500" : "text-zinc-400"
                     }`}
                   >
-                    Communication
+                    Kommunikasjon
                   </div>
                 )}
                 {isSidebarCollapsed && <div className="mt-4" />}
@@ -580,7 +606,7 @@ export function DashboardShell({
                 <NavItem
                   href="/dashboard/onboarding-assistant"
                   icon={Bot}
-                  label="Onboarding Copilot"
+                  label="Onboarding-assistent"
                   isDark={isDark}
                   ai
                   active={isActive("/dashboard/onboarding-assistant")}
@@ -591,7 +617,7 @@ export function DashboardShell({
                   <NavItem
                     href="/dashboard/settings"
                     icon={Settings}
-                    label="Settings"
+                    label="Innstillinger"
                     isDark={isDark}
                     active={isActive("/dashboard/settings")}
                     isCollapsed={isSidebarCollapsed}
@@ -599,7 +625,7 @@ export function DashboardShell({
                   <NavItem
                     href="/dashboard/help"
                     icon={HelpCircle}
-                    label="Help"
+                    label="Hjelp"
                     isDark={isDark}
                     active={isActive("/dashboard/help")}
                     isCollapsed={isSidebarCollapsed}
@@ -610,7 +636,9 @@ export function DashboardShell({
               {/* Sidebar bottom controls */}
               <div
                 className={`border-t ${isSidebarCollapsed ? "p-2" : "p-4"} ${
-                  isDark ? "border-zinc-800 bg-[#0a0a0c]" : "border-zinc-200 bg-zinc-50/50"
+                  isDark
+                    ? "border-zinc-800 bg-[#0a0a0c]"
+                    : "border-[oklch(0.92_0.004_55)] bg-[oklch(0.96_0.004_55)]"
                 } space-y-2`}
               >
                 {/* Admin/Employee toggle */}
@@ -626,9 +654,7 @@ export function DashboardShell({
                         : "border-zinc-200 bg-white text-zinc-700 shadow-sm"
                   }`}
                 >
-                  {!isSidebarCollapsed && (
-                    <span>{isAdminMode ? "Admin Mode" : "Employee Mode"}</span>
-                  )}
+                  {!isSidebarCollapsed && <span>{isAdminMode ? "Adminmodus" : "Ansattmodus"}</span>}
                   <div
                     className={`flex h-4 w-8 items-center rounded-full p-0.5 transition-colors ${
                       isAdminMode ? "bg-orange-500" : "bg-zinc-400"
@@ -648,7 +674,7 @@ export function DashboardShell({
           {/* MAIN CONTENT AREA */}
           <main
             className={`relative flex h-full flex-1 flex-col overflow-hidden transition-colors duration-300 ${
-              isDark ? "bg-zinc-950" : "bg-zinc-50"
+              isDark ? "bg-zinc-950" : "bg-[oklch(0.965_0.003_55)]"
             } print:block print:h-auto print:overflow-visible print:bg-white`}
           >
             {/* ACTION BAR */}
@@ -656,30 +682,49 @@ export function DashboardShell({
               className={`sticky top-0 z-10 flex h-16 flex-shrink-0 items-center justify-between border-b px-6 transition-colors duration-300 md:px-8 ${
                 isDark
                   ? "border-zinc-900 bg-zinc-950/90"
-                  : "border-zinc-200 bg-white/90 shadow-sm backdrop-blur-md"
+                  : "border-[oklch(0.92_0.004_55)] bg-[oklch(0.98_0.003_55/0.92)] shadow-sm backdrop-blur-md"
               } print:hidden`}
             >
               <div
                 className={`flex items-center gap-2.5 text-sm ${
-                  isDark ? "text-zinc-400" : "text-zinc-500"
+                  isDark ? "text-zinc-400" : "text-[oklch(0.52_0.02_50)]"
                 }`}
               >
                 <span
                   className={`cursor-pointer transition-colors ${
-                    isDark ? "hover:text-zinc-200" : "hover:text-zinc-900"
+                    isDark ? "hover:text-zinc-200" : "hover:text-[oklch(0.25_0.015_45)]"
                   }`}
                 >
-                  {isAdminMode ? "Operations" : "Workspace"}
+                  {isAdminMode ? "Drift" : "Arbeidsrom"}
                 </span>
                 <ChevronRight className="h-3.5 w-3.5" />
                 <span
                   className={`rounded-md border px-2.5 py-1 font-semibold capitalize shadow-sm ${
                     isDark
                       ? "border-zinc-800 bg-zinc-900 text-zinc-100"
-                      : "border-zinc-200 bg-white text-zinc-900"
+                      : "border-[oklch(0.88_0.015_50)] bg-[oklch(0.95_0.004_55)] text-[oklch(0.22_0.02_45)]"
                   }`}
                 >
-                  {pathname.split("/").pop() || "Dashboard"}
+                  {(
+                    {
+                      schedule: "Vaktplan",
+                      people: "Ansatte",
+                      reports: "Rapporter",
+                      operations: "Drift",
+                      governance: "HMS",
+                      season: "Sesong",
+                      organization: "Organisasjon",
+                      settings: "Innstillinger",
+                      help: "Hjelp",
+                      chat: "Chat",
+                      ai: "Mr. Botsson",
+                      "onboarding-assistant": "Onboarding-assistent",
+                      "my-schedule": "Min vaktplan",
+                      "my-training": "Min opplæring",
+                      "my-cv": "Min profil",
+                      "my-salary": "Min lønn",
+                    } as Record<string, string>
+                  )[pathname.split("/").pop() ?? ""] ?? "Oversikt"}
                 </span>
               </div>
 
@@ -828,7 +873,7 @@ export function DashboardShell({
                             : "text-zinc-500 hover:bg-zinc-200/50 hover:text-zinc-700"
                       }`}
                     >
-                      Tactical
+                      Taktisk
                     </button>
                     <button
                       onClick={() => setAdminView("strategic")}
@@ -842,7 +887,7 @@ export function DashboardShell({
                             : "text-zinc-500 hover:bg-zinc-200/50 hover:text-zinc-700"
                       }`}
                     >
-                      Strategic
+                      Strategisk
                     </button>
                     <button
                       onClick={() => setAdminView("reconciliation")}
@@ -885,7 +930,7 @@ export function DashboardShell({
                       }`}
                     >
                       <Shield className="h-3.5 w-3.5" />
-                      Guardian
+                      Vakt
                     </button>
                   </div>
                 )}
@@ -902,7 +947,7 @@ export function DashboardShell({
                     />
                     <input
                       type="text"
-                      placeholder="Search operations..."
+                      placeholder="Søk i drift..."
                       className={`w-64 rounded-lg border py-2 pr-4 pl-9 text-sm shadow-sm transition-all focus:ring-1 focus:outline-none ${
                         isDark
                           ? "border-zinc-800 bg-zinc-900 text-zinc-100 placeholder:text-zinc-500 hover:bg-zinc-800/80 focus:border-orange-500/50 focus:ring-orange-500/50"
@@ -915,7 +960,7 @@ export function DashboardShell({
             </div>
 
             <DashboardContext.Provider value={dashboardContextValue}>
-              <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-6 md:p-8 print:block print:h-auto print:overflow-visible print:p-0">
+              <div className="scroll-overlay flex min-h-0 flex-1 flex-col p-6 md:p-8 print:block print:h-auto print:overflow-visible print:p-0">
                 {isAdminMode && isDashboardPage && (
                   <div className="mb-4 flex-shrink-0">
                     <ActionStrip isDark={isDark} />
@@ -959,6 +1004,7 @@ function NavItem({
   const content = (
     <Link
       href={href}
+      prefetch={false}
       onClick={onClick}
       className={`group flex items-center rounded-xl transition-all ${
         isCollapsed ? "justify-center px-0 py-2.5" : "justify-between px-3 py-2.5"
@@ -966,10 +1012,10 @@ function NavItem({
         active
           ? isDark
             ? "border border-zinc-700/50 bg-zinc-800/80 font-semibold text-white"
-            : "border border-zinc-200/50 bg-zinc-100 font-bold text-zinc-900"
+            : "border border-[oklch(0.87_0.015_45/0.5)] bg-[oklch(0.93_0.006_52)] font-bold text-[oklch(0.22_0.02_45)] shadow-sm"
           : isDark
             ? "border border-transparent text-zinc-500 hover:bg-zinc-900/50 hover:text-zinc-200"
-            : "border border-transparent text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"
+            : "border border-transparent text-[oklch(0.50_0.02_50)] hover:bg-[oklch(0.95_0.005_55)] hover:text-[oklch(0.25_0.015_45)]"
       }`}
     >
       <div className={`flex items-center ${isCollapsed ? "" : "gap-3"}`}>
@@ -980,10 +1026,10 @@ function NavItem({
               : active
                 ? isDark
                   ? "text-zinc-200"
-                  : "text-zinc-800"
+                  : "text-[oklch(0.55_0.18_42)]"
                 : isDark
                   ? "text-zinc-500 group-hover:text-zinc-400"
-                  : "text-zinc-400 group-hover:text-zinc-600"
+                  : "text-[oklch(0.55_0.03_50)] group-hover:text-[oklch(0.38_0.05_45)]"
           }`}
         />
         {!isCollapsed && (
@@ -997,7 +1043,7 @@ function NavItem({
           className={`h-1.5 w-1.5 rounded-full ${
             isDark
               ? "bg-orange-500 shadow-[0_0_10px_rgba(234,88,12,0.8)]"
-              : "bg-orange-500 shadow-sm"
+              : "bg-orange-500 shadow-[0_0_6px_rgba(234,88,12,0.4)]"
           }`}
         />
       )}

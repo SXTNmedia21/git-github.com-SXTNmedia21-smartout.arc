@@ -10,6 +10,7 @@ const ReactQueryDevtools = dynamic(
 );
 
 export function QueryProvider({ children }: { children: ReactNode }) {
+  const isDevelopment = process.env.NODE_ENV === "development";
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -28,7 +29,7 @@ export function QueryProvider({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       {children}
-      <ReactQueryDevtools initialIsOpen={false} />
+      {isDevelopment ? <ReactQueryDevtools initialIsOpen={false} /> : null}
     </QueryClientProvider>
   );
 }

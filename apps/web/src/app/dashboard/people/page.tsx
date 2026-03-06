@@ -47,7 +47,7 @@ type InvitationRow = {
 export default function PeoplePage() {
   const [isCompact, setIsCompact] = useState(false);
   const [activeFilter, setActiveFilter] = useState<MetricFilter>("all");
-  const { isDark, workspaceData } = useContext(DashboardContext);
+  const { isDark, workspaceData, profileId } = useContext(DashboardContext);
 
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -59,7 +59,7 @@ export default function PeoplePage() {
     if (!workspaceData?.workspace_id) return;
     const supabase = createClient();
 
-    const [profilesRes, deptsRes, invitesRes, currentUserRes] = await Promise.all([
+    const [profilesRes, deptsRes, invitesRes] = await Promise.all([
       supabase
         .from("profile")
         .select(
@@ -84,24 +84,16 @@ export default function PeoplePage() {
         .eq("workspace_id", workspaceData.workspace_id)
         .eq("status", "pending")
         .returns<InvitationRow[]>(),
-      supabase.auth.getUser(),
     ]);
 
-    // Resolve current user's role in this workspace
-    if (currentUserRes.data?.user) {
-      const { data: myProfile } = await supabase
-        .from("profile")
-        .select("role")
-        .eq("workspace_id", workspaceData.workspace_id)
-        .eq("user_id", currentUserRes.data.user.id)
-        .returns<{ role: ProfileRole }[]>()
-        .single();
-      if (myProfile) {
-        setCurrentUserRole(myProfile.role);
-      }
-    }
-
     if (profilesRes.data) {
+      const currentProfile = profileId
+        ? profilesRes.data.find((profile) => profile.profile_id === profileId)
+        : undefined;
+      if (currentProfile) {
+        setCurrentUserRole(currentProfile.role as ProfileRole);
+      }
+
       const mapped: Employee[] = profilesRes.data.map((p) => {
         const dept = p.department;
         const ui = p.user_identity;
@@ -154,7 +146,7 @@ export default function PeoplePage() {
     }
 
     setLoading(false);
-  }, [workspaceData?.workspace_id]);
+  }, [workspaceData?.workspace_id, profileId]);
 
   useEffect(() => {
     fetchData();

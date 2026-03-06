@@ -69,18 +69,36 @@ export const getProfileInWorkspace = cache(async (userId: string, workspaceId: s
 });
 
 /**
- * Get the user's first profile (for local dev / legacy routing without slug).
+ * Get the user's best profile (for local dev / legacy routing without slug).
+ * Prefers non-onboarding workspaces, then most recently created.
  * Returns workspace_id + profile_id, or null.
  * Cached: deduplicated within the request.
  */
 export const getFirstProfile = cache(async (userId: string) => {
   const supabase = await createClient();
-  const { data } = (await supabase
+  const { data } = await supabase
     .from("profile")
-    .select("workspace_id, profile_id")
+    .select("workspace_id, profile_id, workspace:workspace!inner(contract_status)")
     .eq("user_id", userId)
-    .limit(1)
-    .single()) as { data: { workspace_id: string; profile_id: string } | null };
+    .order("created_at", { ascending: false })
+    .limit(10);
 
-  return data;
+  if (!data || data.length === 0) return null;
+
+  const profiles = data as Array<{
+    workspace_id: string;
+    profile_id: string;
+    workspace: { contract_status: string | null };
+  }>;
+
+  // Prefer active workspace over onboarding/setup ones
+  const active = profiles.find(
+    (p) =>
+      p.workspace.contract_status &&
+      p.workspace.contract_status !== "onboarding" &&
+      p.workspace.contract_status !== "setup",
+  );
+
+  const best = active ?? profiles[0]!;
+  return { workspace_id: best.workspace_id, profile_id: best.profile_id };
 });
