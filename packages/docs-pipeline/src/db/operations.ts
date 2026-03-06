@@ -270,6 +270,61 @@ export async function findSemanticDuplicates(
   return duplicates;
 }
 
+// --- Workspace doc chunk operations ---
+
+/** Batch size for workspace chunk upserts */
+const WORKSPACE_BATCH_SIZE = 50;
+
+/**
+ * Row shape for upserting into workspace_doc_chunk.
+ */
+export type WorkspaceChunkRow = {
+  workspace_id: string;
+  source_type: string;
+  source_path: string;
+  source_hash: string;
+  content_hash: string;
+  chunk_index: number;
+  title: string | null;
+  content: string;
+  token_count: number;
+  metadata: Record<string, unknown>;
+  embedding: number[] | null;
+};
+
+/**
+ * Upserts workspace content chunks into workspace_doc_chunk.
+ *
+ * Why: Workspace content (handbook chapters, policies, protocols, procedures)
+ * changes over time. Upsert with onConflict ensures we update existing chunks
+ * rather than creating duplicates.
+ *
+ * @param supabase - Service-role Supabase client
+ * @param rows - Array of chunk rows to upsert
+ */
+export async function upsertWorkspaceChunks(
+  supabase: SupabaseClient,
+  rows: WorkspaceChunkRow[],
+): Promise<void> {
+  if (rows.length === 0) return;
+
+  for (let i = 0; i < rows.length; i += WORKSPACE_BATCH_SIZE) {
+    const batch = rows.slice(i, i + WORKSPACE_BATCH_SIZE);
+
+    // workspace_doc_chunk may not be in database.types.ts yet — cast to any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any).from("workspace_doc_chunk").upsert(batch, {
+      onConflict: "workspace_id,source_path,chunk_index",
+    });
+
+    if (error) {
+      throw new Error(
+        `Failed to upsert workspace chunk batch (${i}-${i + batch.length}): ${error.message}`,
+      );
+    }
+  }
+}
+
 /**
  * Computes cosine similarity between two vectors.
  *
