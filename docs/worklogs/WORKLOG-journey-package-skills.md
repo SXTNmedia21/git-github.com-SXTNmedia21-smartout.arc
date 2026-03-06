@@ -70,3 +70,4 @@ tags: [skills, journey-package, mission]
 | 2026-03-06 | —     | Aligned mission-training.md SQL template with /mission skill (N2 fix)                                                                              |
 | 2026-03-06 | —     | Created journey package skills design doc (9-skill system overview, dependency chain, validation results)                                          |
 | 2026-03-06 | —     | Updated worklog to done status — all tasks complete                                                                                                |
+| 2026-03-06 | 16:59 | Feature closed and merged to development                                                                                                           |
