@@ -73,6 +73,9 @@ export interface DepartmentOption {
 export interface ContractData {
   templateGenerated: boolean;
   previewUrl: string | null;
+  contractId: string | null;
+  contractSent: boolean;
+  signingUrl: string | null;
 }
 
 /** A zone within a location */

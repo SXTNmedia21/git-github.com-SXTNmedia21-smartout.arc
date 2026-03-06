@@ -11,6 +11,7 @@ import type {
   DepartmentOption,
   LocationData,
   ProcedureData,
+  ContractData,
   Memory,
   BrregCandidate,
 } from "../types";
@@ -48,6 +49,7 @@ export interface OnboardingActions {
   brregCandidates: BrregCandidate[];
   updateBusiness: (partial: Partial<BusinessData>) => void;
   updateSeason: (partial: Partial<SeasonData>) => void;
+  updateContract: (partial: Partial<ContractData>) => void;
   toggleDepartment: (id: string) => void;
   addCustomDepartment: (name: string) => void;
   addLocation: (name: string, type?: LocationData["type"]) => void;
@@ -79,9 +81,12 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
   const [departments, setDepartments] = useState<DepartmentOption[]>([]);
   const [locations, setLocations] = useState<LocationData[]>([]);
   const [procedures, setProcedures] = useState<ProcedureData[]>([]);
-  const [contract, setContract] = useState({
+  const [contract, setContract] = useState<ContractData>({
     templateGenerated: false,
-    previewUrl: null as string | null,
+    previewUrl: null,
+    contractId: null,
+    contractSent: false,
+    signingUrl: null,
   });
 
   const [memories, setMemories] = useState<Memory[]>([]);
@@ -376,6 +381,10 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
     setSeason((prev) => ({ ...prev, ...partial }));
   }, []);
 
+  const updateContract = useCallback((partial: Partial<ContractData>) => {
+    setContract((prev) => ({ ...prev, ...partial }));
+  }, []);
+
   const toggleDepartment = useCallback((id: string) => {
     setDepartments((prev) => prev.map((d) => (d.id === id ? { ...d, selected: !d.selected } : d)));
   }, []);
@@ -597,7 +606,13 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
     setLocations([]);
     setProcedures([]);
     setMemories([]);
-    setContract({ templateGenerated: false, previewUrl: null });
+    setContract({
+      templateGenerated: false,
+      previewUrl: null,
+      contractId: null,
+      contractSent: false,
+      signingUrl: null,
+    });
     setScrapeStatus("idle");
     setScrapeSource(null);
     setBrregCandidates([]);
@@ -646,6 +661,7 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
         seasonType: "default",
         seasonStartDate: season.startDate,
         seasonEndDate: season.endDate,
+        contractId: contract.contractId,
       };
 
       let workspaceId: string;
@@ -664,6 +680,19 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
 
         if (rpcError) throw new Error(`Failed to finalize workspace: ${rpcError.message}`);
         workspaceId = rpcResult ?? onboardingWorkspaceId;
+
+        // Link contract to workspace if one was generated during onboarding
+        if (workspacePayload.contractId) {
+          await supabase
+            .from("contract")
+            .update({ workspace_id: workspaceId, updated_at: new Date().toISOString() })
+            .eq("contract_id", workspacePayload.contractId);
+
+          await supabase
+            .from("workspace")
+            .update({ contract_status: "pending_contract", updated_at: new Date().toISOString() })
+            .eq("workspace_id", workspaceId);
+        }
 
         const { data: ws } = await supabase
           .from("workspace")
@@ -715,6 +744,7 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
     departments,
     locations,
     procedures,
+    contract,
     sessionId,
     onboardingWorkspaceId,
     supabase,
@@ -745,6 +775,7 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
     scrapeWebsite,
     updateBusiness,
     updateSeason,
+    updateContract,
     toggleDepartment,
     addCustomDepartment,
     addLocation,
