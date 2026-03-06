@@ -2,11 +2,12 @@
 title: AI Harness
 id: ENGINE_AI_HARNESS
 version: "0.1"
-status: draft
+status: reference
 layer: architecture
 created: 2026-03-06
 updated: 2026-03-06
 owner: platform
+superseded_by: AI_RUNTIME_SYSTEM_DEFINITION_V1
 tags:
   - ai
   - harness
@@ -14,6 +15,8 @@ tags:
 ---
 
 # AI Harness
+
+> Reference snapshot only: canonical harness/runtime contract lives in `docs/architecture/AI_RUNTIME_SYSTEM_DEFINITION_V1.md`.
 
 ## Purpose
 
@@ -75,6 +78,19 @@ No stage should run without this contract.
 - persona defines communication tone and decision posture
 - persona can narrow or expand skill usage within mission limits
 - persona must never bypass authority, policy, or stage constraints
+
+## Guardian Hooks (Call Runtime)
+
+For call sessions with guardian enabled, the harness must process:
+
+- `call.created` -> initialize guardian connection context
+- `call.joined` -> start guardian supervision
+- `sentiment.monitor.started` -> start 1-second sentiment checks
+- `sentiment.alert` -> emit intervention guidance
+- `call.ended` -> stop checks and finalize report
+- `guardian.report.submitted` -> close guardian lifecycle
+
+See `docs/engines/artificial-inteligence/05-runtime-contracts.md` for strict runtime contracts.
 
 ## Output Contract
 

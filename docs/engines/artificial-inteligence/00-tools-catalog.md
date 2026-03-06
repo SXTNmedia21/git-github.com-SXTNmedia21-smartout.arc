@@ -2,11 +2,12 @@
 title: AI Tools Catalog
 id: ENGINE_AI_TOOLS_CATALOG
 version: "0.1"
-status: draft
+status: reference
 layer: architecture
 created: 2026-03-06
 updated: 2026-03-06
 owner: platform
+superseded_by: AI_RUNTIME_SYSTEM_DEFINITION_V1
 tags:
   - ai
   - tools
@@ -14,6 +15,8 @@ tags:
 ---
 
 # AI Tools Catalog
+
+> Reference snapshot only: canonical runtime/tool contracts live in `docs/architecture/AI_RUNTIME_SYSTEM_DEFINITION_V1.md`.
 
 ## Purpose
 

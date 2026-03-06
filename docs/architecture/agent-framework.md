@@ -1,13 +1,16 @@
 ---
 title: Agent Framework Architecture
-status: done
+status: reference
 updated: 2026-03-30
 created: 2026-03-30
 module: ai
+superseded_by: AI_RUNTIME_SYSTEM_DEFINITION_V1
 tags: [architecture, agent, stage-engine, guardian, voice]
 ---
 
 # Agent Framework Architecture
+
+> Reference note: Runtime architecture contracts are canonical in `docs/architecture/AI_RUNTIME_SYSTEM_DEFINITION_V1.md`. This document is implementation-oriented and must not define competing normative rules.
 
 Smartout's agent framework is a unified AI layer powering Mr. Botsson across all interaction channels — voice, chat, phone, and autonomous. The framework runs inside the Stage Engine (Hono microservice, port 5000) and uses the `@smartout/ai` package for shared abstractions.
 
