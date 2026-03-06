@@ -23,8 +23,14 @@ import {
   CHART_COLORS,
   chartTheme,
 } from "./report-data";
+import type { ReportInsightCard } from "./report-insight-types";
 
-export function TrainingSection({ isDark }: { isDark: boolean }) {
+type TrainingSectionProps = {
+  isDark: boolean;
+  onOpenInsight: (insight: ReportInsightCard) => void;
+};
+
+export function TrainingSection({ isDark, onOpenInsight }: TrainingSectionProps) {
   const theme = chartTheme(isDark);
 
   const totalAssigned = PROTOCOL_COMPLIANCE.reduce((s, p) => s + p.assigned, 0);
@@ -41,6 +47,33 @@ export function TrainingSection({ isDark }: { isDark: boolean }) {
           icon={ShieldCheck}
           color={avgCompliance >= 80 ? "emerald" : avgCompliance >= 60 ? "orange" : "red"}
           isDark={isDark}
+          onClick={() =>
+            onOpenInsight({
+              cardId: "training-avg-compliance",
+              title: "Gj.snitt Compliance",
+              summary: "Juster terskler for compliance-vurdering og kritikalitet.",
+              factors: [
+                {
+                  id: "complianceTarget",
+                  label: "Compliance-mål",
+                  value: 85,
+                  min: 40,
+                  max: 100,
+                  step: 1,
+                  unit: "%",
+                },
+                {
+                  id: "criticalWeight",
+                  label: "Kritisk vekt",
+                  value: 1.5,
+                  min: 0.5,
+                  max: 3,
+                  step: 0.1,
+                  unit: "x",
+                },
+              ],
+            })
+          }
         />
         <MiniKpi
           label="Totalt tildelt"
@@ -48,6 +81,32 @@ export function TrainingSection({ isDark }: { isDark: boolean }) {
           icon={Users}
           color="blue"
           isDark={isDark}
+          onClick={() =>
+            onOpenInsight({
+              cardId: "training-total-assigned",
+              title: "Totalt tildelt",
+              summary: "Finjuster antall tildelinger og kapasitetsgrenser.",
+              factors: [
+                {
+                  id: "assignmentCap",
+                  label: "Maks aktive tildelinger",
+                  value: 120,
+                  min: 20,
+                  max: 300,
+                  step: 5,
+                },
+                {
+                  id: "newAssignmentRate",
+                  label: "Ny tildelingsrate",
+                  value: 10,
+                  min: 0,
+                  max: 50,
+                  step: 1,
+                  unit: "%",
+                },
+              ],
+            })
+          }
         />
         <MiniKpi
           label="Fullfort"
@@ -55,6 +114,33 @@ export function TrainingSection({ isDark }: { isDark: boolean }) {
           icon={GraduationCap}
           color="emerald"
           isDark={isDark}
+          onClick={() =>
+            onOpenInsight({
+              cardId: "training-completed",
+              title: "Fullfort",
+              summary: "Juster forventet fullføringsgrad og oppfølgingsintensitet.",
+              factors: [
+                {
+                  id: "completionTarget",
+                  label: "Fullføringsmål",
+                  value: 90,
+                  min: 40,
+                  max: 100,
+                  step: 1,
+                  unit: "%",
+                },
+                {
+                  id: "followupFrequency",
+                  label: "Oppfølging",
+                  value: 2,
+                  min: 1,
+                  max: 7,
+                  step: 1,
+                  unit: "ganger/uke",
+                },
+              ],
+            })
+          }
         />
         <MiniKpi
           label="Forfalt"
@@ -62,11 +148,67 @@ export function TrainingSection({ isDark }: { isDark: boolean }) {
           icon={AlertTriangle}
           color={OVERDUE_ASSIGNMENTS.length > 0 ? "orange" : "emerald"}
           isDark={isDark}
+          onClick={() =>
+            onOpenInsight({
+              cardId: "training-overdue",
+              title: "Forfalt",
+              summary: "Juster regler for forfall og eskalering av opplæringskrav.",
+              factors: [
+                {
+                  id: "overdueDays",
+                  label: "Forfallsgrense",
+                  value: 7,
+                  min: 1,
+                  max: 30,
+                  step: 1,
+                  unit: "dager",
+                },
+                {
+                  id: "escalationDays",
+                  label: "Eskalering etter",
+                  value: 3,
+                  min: 1,
+                  max: 14,
+                  step: 1,
+                  unit: "dager",
+                },
+              ],
+            })
+          }
         />
       </div>
 
       {/* Protocol Compliance — replicates GuardianView pattern */}
-      <div className={`rounded-2xl border p-5 ${theme.cardBorder} ${theme.cardBg}`}>
+      <div
+        onClick={() =>
+          onOpenInsight({
+            cardId: "training-protocol-compliance",
+            title: "Protokoll Compliance",
+            summary: "Juster terskler per protokoll for varsel og prioritering.",
+            factors: [
+              {
+                id: "criticalProtocolThreshold",
+                label: "Kritisk terskel",
+                value: 70,
+                min: 30,
+                max: 100,
+                step: 1,
+                unit: "%",
+              },
+              {
+                id: "protocolWeight",
+                label: "Protokollvekt",
+                value: 1.2,
+                min: 0.5,
+                max: 2.5,
+                step: 0.1,
+                unit: "x",
+              },
+            ],
+          })
+        }
+        className={`cursor-pointer rounded-2xl border p-5 ${theme.cardBorder} ${theme.cardBg}`}
+      >
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ShieldCheck className={`h-4 w-4 ${isDark ? "text-zinc-400" : "text-zinc-500"}`} />
@@ -164,7 +306,36 @@ export function TrainingSection({ isDark }: { isDark: boolean }) {
       {/* Row 2: Completion Trend + Overdue */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         {/* Completion Trend Chart */}
-        <div className={`rounded-2xl border p-5 ${theme.cardBorder} ${theme.cardBg}`}>
+        <div
+          onClick={() =>
+            onOpenInsight({
+              cardId: "training-completion-trend",
+              title: "Fullforingstrender",
+              summary: "Juster trendfaktorer for startet/fullført/utgått.",
+              factors: [
+                {
+                  id: "completionGrowth",
+                  label: "Forventet vekst",
+                  value: 8,
+                  min: -20,
+                  max: 40,
+                  step: 1,
+                  unit: "%",
+                },
+                {
+                  id: "expiredTolerance",
+                  label: "Toleranse utgått",
+                  value: 5,
+                  min: 0,
+                  max: 30,
+                  step: 1,
+                  unit: "%",
+                },
+              ],
+            })
+          }
+          className={`cursor-pointer rounded-2xl border p-5 ${theme.cardBorder} ${theme.cardBg}`}
+        >
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <GraduationCap className={`h-4 w-4 ${isDark ? "text-zinc-400" : "text-zinc-500"}`} />
@@ -221,7 +392,35 @@ export function TrainingSection({ isDark }: { isDark: boolean }) {
         </div>
 
         {/* Overdue Assignments */}
-        <div className={`rounded-2xl border p-5 ${theme.cardBorder} ${theme.cardBg}`}>
+        <div
+          onClick={() =>
+            onOpenInsight({
+              cardId: "training-overdue-list",
+              title: "Forfalte tilordninger",
+              summary: "Juster når oppgaver anses forfalte og hvordan de prioriteres.",
+              factors: [
+                {
+                  id: "riskWeight",
+                  label: "Risikovekt",
+                  value: 1.3,
+                  min: 0.5,
+                  max: 3,
+                  step: 0.1,
+                  unit: "x",
+                },
+                {
+                  id: "dailyEscalations",
+                  label: "Daglige eskaleringer",
+                  value: 2,
+                  min: 0,
+                  max: 10,
+                  step: 1,
+                },
+              ],
+            })
+          }
+          className={`cursor-pointer rounded-2xl border p-5 ${theme.cardBorder} ${theme.cardBg}`}
+        >
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <AlertTriangle className={`h-4 w-4 ${isDark ? "text-red-400" : "text-red-500"}`} />
@@ -287,12 +486,14 @@ function MiniKpi({
   icon: Icon,
   color,
   isDark,
+  onClick,
 }: {
   label: string;
   value: string;
   icon: typeof ShieldCheck;
   color: "emerald" | "blue" | "orange" | "red";
   isDark: boolean;
+  onClick: () => void;
 }) {
   const colorMap = {
     emerald: {
@@ -321,7 +522,8 @@ function MiniKpi({
 
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl border p-4 ${c.border} ${
+      onClick={onClick}
+      className={`relative cursor-pointer overflow-hidden rounded-2xl border p-4 ${c.border} ${
         isDark ? "bg-[#0c0c0e]" : "bg-white"
       }`}
     >

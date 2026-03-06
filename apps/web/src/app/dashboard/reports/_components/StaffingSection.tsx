@@ -27,14 +27,49 @@ import {
   CHART_COLORS,
   chartTheme,
 } from "./report-data";
+import type { ReportInsightCard } from "./report-insight-types";
 
-export function StaffingSection({ isDark }: { isDark: boolean }) {
+type StaffingSectionProps = {
+  isDark: boolean;
+  onOpenInsight: (insight: ReportInsightCard) => void;
+};
+
+export function StaffingSection({ isDark, onOpenInsight }: StaffingSectionProps) {
   const theme = chartTheme(isDark);
 
   return (
     <div className="flex flex-col gap-5">
       {/* Weekly Coverage Chart */}
-      <div className={`rounded-2xl border p-5 ${theme.cardBorder} ${theme.cardBg}`}>
+      <div
+        onClick={() =>
+          onOpenInsight({
+            cardId: "staffing-weekly-coverage",
+            title: "Vaktdekning denne uken",
+            summary: "Juster behovsfaktor og dekningsmål for å simulere ukesbehov.",
+            factors: [
+              {
+                id: "demandFactor",
+                label: "Behovsfaktor",
+                value: 1,
+                min: 0.5,
+                max: 2,
+                step: 0.1,
+                unit: "x",
+              },
+              {
+                id: "coverageTarget",
+                label: "Dekningsmål",
+                value: 92,
+                min: 60,
+                max: 100,
+                step: 1,
+                unit: "%",
+              },
+            ],
+          })
+        }
+        className={`cursor-pointer rounded-2xl border p-5 text-left ${theme.cardBorder} ${theme.cardBg}`}
+      >
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <CalendarCheck className={`h-4 w-4 ${isDark ? "text-zinc-400" : "text-zinc-500"}`} />
@@ -93,7 +128,35 @@ export function StaffingSection({ isDark }: { isDark: boolean }) {
       {/* Row 2: Shift Types + Labor Hours */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         {/* Shift Type Distribution */}
-        <div className={`rounded-2xl border p-5 ${theme.cardBorder} ${theme.cardBg}`}>
+        <div
+          onClick={() =>
+            onOpenInsight({
+              cardId: "staffing-shift-distribution",
+              title: "Vaktfordeling",
+              summary: "Finjuster vekting mellom vakttyper for bedre balanse i turnus.",
+              factors: [
+                {
+                  id: "eveningWeight",
+                  label: "Kveldsvekt",
+                  value: 1.2,
+                  min: 0.5,
+                  max: 2,
+                  step: 0.1,
+                  unit: "x",
+                },
+                {
+                  id: "splitShiftLimit",
+                  label: "Maks deltevakter",
+                  value: 12,
+                  min: 0,
+                  max: 40,
+                  step: 1,
+                },
+              ],
+            })
+          }
+          className={`cursor-pointer rounded-2xl border p-5 text-left ${theme.cardBorder} ${theme.cardBg}`}
+        >
           <div className="mb-4 flex items-center gap-2">
             <Clock className={`h-4 w-4 ${isDark ? "text-zinc-400" : "text-zinc-500"}`} />
             <h3 className={`text-sm font-extrabold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}>
@@ -143,7 +206,36 @@ export function StaffingSection({ isDark }: { isDark: boolean }) {
         </div>
 
         {/* Labor Hours Trend */}
-        <div className={`rounded-2xl border p-5 ${theme.cardBorder} ${theme.cardBg}`}>
+        <div
+          onClick={() =>
+            onOpenInsight({
+              cardId: "staffing-labor-hours",
+              title: "Arbeidstimer (4 uker)",
+              summary: "Juster timeramme og budsjettlinje for plan/faktisk sammenligning.",
+              factors: [
+                {
+                  id: "plannedHoursCap",
+                  label: "Planlagte timer (tak)",
+                  value: 640,
+                  min: 450,
+                  max: 900,
+                  step: 5,
+                  unit: "t",
+                },
+                {
+                  id: "budgetHours",
+                  label: "Budsjettert timer",
+                  value: 600,
+                  min: 450,
+                  max: 900,
+                  step: 5,
+                  unit: "t",
+                },
+              ],
+            })
+          }
+          className={`cursor-pointer rounded-2xl border p-5 text-left ${theme.cardBorder} ${theme.cardBg}`}
+        >
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <BarChart3 className={`h-4 w-4 ${isDark ? "text-zinc-400" : "text-zinc-500"}`} />
@@ -219,7 +311,36 @@ export function StaffingSection({ isDark }: { isDark: boolean }) {
       </div>
 
       {/* Unfilled Shifts */}
-      <div className={`rounded-2xl border p-5 ${theme.cardBorder} ${theme.cardBg}`}>
+      <div
+        onClick={() =>
+          onOpenInsight({
+            cardId: "staffing-unfilled-shifts",
+            title: "Udekte vakter",
+            summary: "Juster terskler for når vakter markeres som kritiske.",
+            factors: [
+              {
+                id: "criticalUnfilledThreshold",
+                label: "Kritisk terskel",
+                value: 2,
+                min: 1,
+                max: 6,
+                step: 1,
+                unit: "vakter",
+              },
+              {
+                id: "escalationHours",
+                label: "Eskaleringstid",
+                value: 24,
+                min: 1,
+                max: 72,
+                step: 1,
+                unit: "timer",
+              },
+            ],
+          })
+        }
+        className={`cursor-pointer rounded-2xl border p-5 text-left ${theme.cardBorder} ${theme.cardBg}`}
+      >
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <AlertTriangle

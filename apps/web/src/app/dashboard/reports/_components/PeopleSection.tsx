@@ -28,8 +28,14 @@ import {
   CHART_COLORS,
   chartTheme,
 } from "./report-data";
+import type { ReportInsightCard } from "./report-insight-types";
 
-export function PeopleSection({ isDark }: { isDark: boolean }) {
+type PeopleSectionProps = {
+  isDark: boolean;
+  onOpenInsight: (insight: ReportInsightCard) => void;
+};
+
+export function PeopleSection({ isDark, onOpenInsight }: PeopleSectionProps) {
   const theme = chartTheme(isDark);
   const totalEmployees = ROLE_DISTRIBUTION.reduce((s, r) => s + r.count, 0);
   const totalByStatus = STATUS_BREAKDOWN.reduce((s, r) => s + r.count, 0);
@@ -39,7 +45,36 @@ export function PeopleSection({ isDark }: { isDark: boolean }) {
       {/* Row 1: Role Distribution (Donut) + Status Breakdown (Bars) */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         {/* Role Distribution */}
-        <div className={`rounded-2xl border p-5 ${theme.cardBorder} ${theme.cardBg}`}>
+        <div
+          onClick={() =>
+            onOpenInsight({
+              cardId: "people-role-distribution",
+              title: "Rollefordeling",
+              summary: "Simuler hvordan bemanningsmiks mellom roller påvirker total kapasitet.",
+              factors: [
+                {
+                  id: "juniorShare",
+                  label: "Andel juniorroller",
+                  value: 28,
+                  min: 0,
+                  max: 100,
+                  step: 1,
+                  unit: "%",
+                },
+                {
+                  id: "seniorShare",
+                  label: "Andel seniorroller",
+                  value: 22,
+                  min: 0,
+                  max: 100,
+                  step: 1,
+                  unit: "%",
+                },
+              ],
+            })
+          }
+          className={`cursor-pointer rounded-2xl border p-5 text-left ${theme.cardBorder} ${theme.cardBg}`}
+        >
           <div className="mb-4 flex items-center gap-2">
             <Briefcase className={`h-4 w-4 ${isDark ? "text-zinc-400" : "text-zinc-500"}`} />
             <h3 className={`text-sm font-extrabold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}>
@@ -117,7 +152,36 @@ export function PeopleSection({ isDark }: { isDark: boolean }) {
         </div>
 
         {/* Status Breakdown */}
-        <div className={`rounded-2xl border p-5 ${theme.cardBorder} ${theme.cardBg}`}>
+        <div
+          onClick={() =>
+            onOpenInsight({
+              cardId: "people-status-breakdown",
+              title: "Medarbeiderstatus",
+              summary: "Juster statusmiks for å se effekt på tilgjengelig kapasitet.",
+              factors: [
+                {
+                  id: "activeTarget",
+                  label: "Mål andel aktive",
+                  value: 80,
+                  min: 30,
+                  max: 100,
+                  step: 1,
+                  unit: "%",
+                },
+                {
+                  id: "traineeLimit",
+                  label: "Maks trainee-andel",
+                  value: 20,
+                  min: 0,
+                  max: 60,
+                  step: 1,
+                  unit: "%",
+                },
+              ],
+            })
+          }
+          className={`cursor-pointer rounded-2xl border p-5 text-left ${theme.cardBorder} ${theme.cardBg}`}
+        >
           <div className="mb-4 flex items-center gap-2">
             <Users className={`h-4 w-4 ${isDark ? "text-zinc-400" : "text-zinc-500"}`} />
             <h3 className={`text-sm font-extrabold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}>
@@ -189,7 +253,36 @@ export function PeopleSection({ isDark }: { isDark: boolean }) {
       {/* Row 2: Tenure Distribution + Department Headcount */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         {/* Tenure Distribution */}
-        <div className={`rounded-2xl border p-5 ${theme.cardBorder} ${theme.cardBg}`}>
+        <div
+          onClick={() =>
+            onOpenInsight({
+              cardId: "people-tenure",
+              title: "Ansiennitet",
+              summary: "Juster vekting for erfaringsnivå i teamet.",
+              factors: [
+                {
+                  id: "newHireRate",
+                  label: "Nyansettelsesrate",
+                  value: 12,
+                  min: 0,
+                  max: 50,
+                  step: 1,
+                  unit: "%",
+                },
+                {
+                  id: "retentionTarget",
+                  label: "Retention-mål",
+                  value: 85,
+                  min: 50,
+                  max: 100,
+                  step: 1,
+                  unit: "%",
+                },
+              ],
+            })
+          }
+          className={`cursor-pointer rounded-2xl border p-5 text-left ${theme.cardBorder} ${theme.cardBg}`}
+        >
           <div className="mb-4 flex items-center gap-2">
             <Clock className={`h-4 w-4 ${isDark ? "text-zinc-400" : "text-zinc-500"}`} />
             <h3 className={`text-sm font-extrabold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}>
@@ -225,7 +318,36 @@ export function PeopleSection({ isDark }: { isDark: boolean }) {
         </div>
 
         {/* Department Headcount Table */}
-        <div className={`rounded-2xl border p-5 ${theme.cardBorder} ${theme.cardBg}`}>
+        <div
+          onClick={() =>
+            onOpenInsight({
+              cardId: "people-departments",
+              title: "Avdelingsoversikt",
+              summary: "Juster avdelingsfaktorer for beredskap og opplæring.",
+              factors: [
+                {
+                  id: "deptReadinessWeight",
+                  label: "Beredskapsvekt",
+                  value: 1,
+                  min: 0.5,
+                  max: 2,
+                  step: 0.1,
+                  unit: "x",
+                },
+                {
+                  id: "deptTrainingWeight",
+                  label: "Opplæringsvekt",
+                  value: 1,
+                  min: 0.5,
+                  max: 2,
+                  step: 0.1,
+                  unit: "x",
+                },
+              ],
+            })
+          }
+          className={`cursor-pointer rounded-2xl border p-5 text-left ${theme.cardBorder} ${theme.cardBg}`}
+        >
           <div className="mb-4 flex items-center gap-2">
             <Building2 className={`h-4 w-4 ${isDark ? "text-zinc-400" : "text-zinc-500"}`} />
             <h3 className={`text-sm font-extrabold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}>

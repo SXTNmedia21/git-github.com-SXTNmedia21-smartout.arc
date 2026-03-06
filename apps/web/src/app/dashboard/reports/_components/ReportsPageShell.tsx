@@ -28,6 +28,8 @@ import { TrainingSection } from "./TrainingSection";
 import { SavedReportsGrid } from "./SavedReportsGrid";
 import { ReportViewer } from "./ReportViewer";
 import { AiReportDrawer } from "./AiReportDrawer";
+import { ReportInsightDrawer } from "./ReportInsightDrawer";
+import type { ReportInsightCard } from "./report-insight-types";
 
 type ReportData = {
   summary: Record<string, unknown>[];
@@ -65,6 +67,14 @@ export function ReportsPageShell({ workspaceId: workspaceIdProp }: ReportsPageSh
   const [aiDrawerOpen, setAiDrawerOpen] = useState(false);
   const [activeReportData, setActiveReportData] = useState<ReportData | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [insightDrawerOpen, setInsightDrawerOpen] = useState(false);
+  const [activeInsight, setActiveInsight] = useState<ReportInsightCard | null>(null);
+  const [insightStateByCard, setInsightStateByCard] = useState<Record<string, ReportInsightCard>>(
+    {},
+  );
+  const [insightDefaultsByCard, setInsightDefaultsByCard] = useState<
+    Record<string, ReportInsightCard>
+  >({});
 
   const handleReportData = useCallback((data: unknown) => {
     setActiveReportData(data as ReportData);
@@ -81,6 +91,87 @@ export function ReportsPageShell({ workspaceId: workspaceIdProp }: ReportsPageSh
   const handleCloseViewer = useCallback(() => {
     setActiveReportData(null);
   }, []);
+
+  /**
+   * Opens the insight drawer for the selected report card.
+   */
+  const handleOpenInsight = useCallback((insight: ReportInsightCard) => {
+    setInsightDefaultsByCard((previous) => ({
+      ...previous,
+      [insight.cardId]: previous[insight.cardId] ?? insight,
+    }));
+
+    setInsightStateByCard((previous) => {
+      const currentInsight = previous[insight.cardId] ?? insight;
+      setActiveInsight(currentInsight);
+      return {
+        ...previous,
+        [insight.cardId]: currentInsight,
+      };
+    });
+
+    setInsightDrawerOpen(true);
+  }, []);
+
+  /**
+   * Updates one variable for the selected report insight card.
+   */
+  const handleInsightFactorChange = useCallback(
+    (cardId: string, factorId: string, value: number) => {
+      setInsightStateByCard((previous) => {
+        const currentCard = previous[cardId];
+        if (!currentCard) return previous;
+
+        const nextCard: ReportInsightCard = {
+          ...currentCard,
+          factors: currentCard.factors.map((factor) =>
+            factor.id === factorId
+              ? {
+                  ...factor,
+                  value: Math.min(factor.max, Math.max(factor.min, value)),
+                }
+              : factor,
+          ),
+        };
+
+        setActiveInsight((active) => (active?.cardId === cardId ? nextCard : active));
+
+        return {
+          ...previous,
+          [cardId]: nextCard,
+        };
+      });
+    },
+    [],
+  );
+
+  /**
+   * Restores factors for one insight card to its original defaults.
+   */
+  const handleResetInsightCard = useCallback(
+    (cardId: string) => {
+      const original = insightDefaultsByCard[cardId];
+      if (!original) return;
+
+      setInsightStateByCard((previous) => ({
+        ...previous,
+        [cardId]: {
+          ...original,
+          factors: original.factors.map((factor) => ({ ...factor })),
+        },
+      }));
+
+      setActiveInsight((active) =>
+        active?.cardId === cardId
+          ? {
+              ...original,
+              factors: original.factors.map((factor) => ({ ...factor })),
+            }
+          : active,
+      );
+    },
+    [insightDefaultsByCard],
+  );
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -134,19 +225,19 @@ export function ReportsPageShell({ workspaceId: workspaceIdProp }: ReportsPageSh
 
         <div className="min-h-0 flex-1 overflow-y-auto pr-1 pb-6">
           <TabsContent value="overview" className="mt-0">
-            <OverviewSection isDark={isDark} />
+            <OverviewSection isDark={isDark} onOpenInsight={handleOpenInsight} />
           </TabsContent>
 
           <TabsContent value="people" className="mt-0">
-            <PeopleSection isDark={isDark} />
+            <PeopleSection isDark={isDark} onOpenInsight={handleOpenInsight} />
           </TabsContent>
 
           <TabsContent value="staffing" className="mt-0">
-            <StaffingSection isDark={isDark} />
+            <StaffingSection isDark={isDark} onOpenInsight={handleOpenInsight} />
           </TabsContent>
 
           <TabsContent value="training" className="mt-0">
-            <TrainingSection isDark={isDark} />
+            <TrainingSection isDark={isDark} onOpenInsight={handleOpenInsight} />
           </TabsContent>
 
           <TabsContent value="saved" className="mt-0">
@@ -180,6 +271,15 @@ export function ReportsPageShell({ workspaceId: workspaceIdProp }: ReportsPageSh
           onReportSaved={handleReportSaved}
         />
       ) : null}
+
+      <ReportInsightDrawer
+        isDark={isDark}
+        open={insightDrawerOpen}
+        onOpenChange={setInsightDrawerOpen}
+        insight={activeInsight}
+        onFactorChange={handleInsightFactorChange}
+        onResetCard={handleResetInsightCard}
+      />
     </div>
   );
 }

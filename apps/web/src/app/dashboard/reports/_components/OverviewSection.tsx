@@ -33,6 +33,8 @@ import {
   CHART_COLORS,
   chartTheme,
 } from "./report-data";
+import type { ReportInsightCard } from "./report-insight-types";
+import { OverviewDeepInsights } from "./OverviewDeepInsights";
 
 // ── Color Config ────────────────────────────────────────────────────────
 
@@ -63,7 +65,12 @@ const KPI_ICONS = [Users, ShieldCheck, CalendarCheck, GraduationCap];
 
 // ── Main Component ──────────────────────────────────────────────────────
 
-export function OverviewSection({ isDark }: { isDark: boolean }) {
+type OverviewSectionProps = {
+  isDark: boolean;
+  onOpenInsight: (insight: ReportInsightCard) => void;
+};
+
+export function OverviewSection({ isDark, onOpenInsight }: OverviewSectionProps) {
   const theme = chartTheme(isDark);
 
   return (
@@ -76,7 +83,34 @@ export function OverviewSection({ isDark }: { isDark: boolean }) {
           return (
             <div
               key={kpi.label}
-              className={`relative overflow-hidden rounded-2xl border p-4 ${colors.border(isDark)} ${
+              onClick={() =>
+                onOpenInsight({
+                  cardId: `overview-kpi-${kpi.label.toLowerCase().replace(/\s+/g, "-")}`,
+                  title: `${kpi.label} - Innsikt`,
+                  summary: "Juster KPI-drivere for scenarioanalyse av denne metrikken.",
+                  factors: [
+                    {
+                      id: "target",
+                      label: "Målnivå",
+                      value: 80,
+                      min: 40,
+                      max: 100,
+                      step: 1,
+                      unit: "%",
+                    },
+                    {
+                      id: "sensitivity",
+                      label: "Sensitivitet",
+                      value: 1,
+                      min: 0.5,
+                      max: 2,
+                      step: 0.1,
+                      unit: "x",
+                    },
+                  ],
+                })
+              }
+              className={`relative cursor-pointer overflow-hidden rounded-2xl border p-4 ${colors.border(isDark)} ${
                 isDark ? "bg-[#0c0c0e]" : "bg-white"
               }`}
             >
@@ -127,7 +161,34 @@ export function OverviewSection({ isDark }: { isDark: boolean }) {
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-5">
         {/* 7-Day Trend — wider */}
         <div
-          className={`col-span-1 rounded-2xl border p-5 lg:col-span-3 ${theme.cardBorder} ${theme.cardBg}`}
+          onClick={() =>
+            onOpenInsight({
+              cardId: "overview-trend-7d",
+              title: "Ytelse siste 7 dager",
+              summary: "Simuler hvordan daglig trend påvirkes av terskler og trendvekting.",
+              factors: [
+                {
+                  id: "trendWeight",
+                  label: "Trendvekting",
+                  value: 1.2,
+                  min: 0.5,
+                  max: 2,
+                  step: 0.1,
+                  unit: "x",
+                },
+                {
+                  id: "alertThreshold",
+                  label: "Alarmterskel",
+                  value: 70,
+                  min: 40,
+                  max: 95,
+                  step: 1,
+                  unit: "%",
+                },
+              ],
+            })
+          }
+          className={`col-span-1 cursor-pointer rounded-2xl border p-5 lg:col-span-3 ${theme.cardBorder} ${theme.cardBg}`}
         >
           <div className="mb-4 flex items-center justify-between">
             <h3 className={`text-sm font-extrabold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}>
@@ -215,7 +276,34 @@ export function OverviewSection({ isDark }: { isDark: boolean }) {
 
         {/* Department Comparison — narrower */}
         <div
-          className={`col-span-1 rounded-2xl border p-5 lg:col-span-2 ${theme.cardBorder} ${theme.cardBg}`}
+          onClick={() =>
+            onOpenInsight({
+              cardId: "overview-departments",
+              title: "Avdelinger",
+              summary: "Juster faktorene bak dekning, beredskap og opplæring per avdeling.",
+              factors: [
+                {
+                  id: "coverageTarget",
+                  label: "Dekningsmål",
+                  value: 90,
+                  min: 60,
+                  max: 100,
+                  step: 1,
+                  unit: "%",
+                },
+                {
+                  id: "trainingWeight",
+                  label: "Opplæringsvekt",
+                  value: 1,
+                  min: 0.5,
+                  max: 2,
+                  step: 0.1,
+                  unit: "x",
+                },
+              ],
+            })
+          }
+          className={`col-span-1 cursor-pointer rounded-2xl border p-5 lg:col-span-2 ${theme.cardBorder} ${theme.cardBg}`}
         >
           <h3
             className={`mb-4 text-sm font-extrabold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}
@@ -276,7 +364,34 @@ export function OverviewSection({ isDark }: { isDark: boolean }) {
         {TOP_INSIGHTS.map((insight) => (
           <div
             key={insight.label}
-            className={`flex items-start gap-3 rounded-2xl border p-4 ${theme.cardBorder} ${theme.cardBg}`}
+            onClick={() =>
+              onOpenInsight({
+                cardId: `overview-insight-${insight.label.toLowerCase().replace(/\s+/g, "-")}`,
+                title: insight.label,
+                summary: insight.detail,
+                factors: [
+                  {
+                    id: "priorityWeight",
+                    label: "Prioritetsvekt",
+                    value: 1,
+                    min: 0.5,
+                    max: 2,
+                    step: 0.1,
+                    unit: "x",
+                  },
+                  {
+                    id: "impactScore",
+                    label: "Påvirkningsscore",
+                    value: 65,
+                    min: 0,
+                    max: 100,
+                    step: 1,
+                    unit: "%",
+                  },
+                ],
+              })
+            }
+            className={`flex cursor-pointer items-start gap-3 rounded-2xl border p-4 ${theme.cardBorder} ${theme.cardBg}`}
           >
             <div
               className={`mt-0.5 rounded-lg border p-1.5 ${
@@ -305,6 +420,8 @@ export function OverviewSection({ isDark }: { isDark: boolean }) {
           </div>
         ))}
       </div>
+
+      <OverviewDeepInsights isDark={isDark} onOpenInsight={onOpenInsight} />
     </div>
   );
 }

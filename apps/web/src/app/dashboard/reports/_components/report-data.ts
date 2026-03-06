@@ -224,3 +224,54 @@ export const TOP_INSIGHTS = [
   { label: "Flest ansatte", value: "Sal", detail: "22 medarbeidere" },
   { label: "Kritisk protokoll", value: "Kassasystem", detail: "38% fullfort" },
 ];
+
+// ── Deep Insights: Entity Steering + Heatmap ────────────────────────────
+
+export const ENTITY_STEERING_STACK = [
+  {
+    id: "locations",
+    label: "Locations",
+    subtitle: "Steder med omsetning",
+    value: 12,
+    turnoverNok: 3_850_000,
+    controlLevel: 62,
+    trendLabel: "+6.2% siste 30d",
+  },
+  {
+    id: "profiles",
+    label: "Profiles",
+    subtitle: "Aktive profiler i drift",
+    value: 47,
+    turnoverNok: 5_420_000,
+    controlLevel: 58,
+    trendLabel: "+3.1% siste 30d",
+  },
+  {
+    id: "departments",
+    label: "Departments",
+    subtitle: "Avdelinger med KPI-sporing",
+    value: 9,
+    turnoverNok: 4_980_000,
+    controlLevel: 67,
+    trendLabel: "+4.8% siste 30d",
+  },
+] as const;
+
+export const HEATMAP_LABELS = {
+  locations: [
+    "Baardshaug Vegkro",
+    "Trondheim City",
+    "Oslo S Kiosk",
+    "Lillehammer Diner",
+    "Stavanger FNB",
+  ],
+  profiles: [
+    "Anna Olsen",
+    "Ola Nordmann",
+    "Kari Svendsen",
+    "Jens Hansen",
+    "Bente Johansen",
+    "Svein Eide",
+  ],
+  departments: ["Kjokken", "Servering", "Bar", "Oppvask", "Renhold", "Lager"],
+} as const;
