@@ -234,18 +234,23 @@ Skip steps 3-5 only if the table is internal-only (platform-admin, audit logs).
 
 #### Canonical Scope List (source of truth)
 
-| Scope              | Tables                                        | Status  |
-| ------------------ | --------------------------------------------- | ------- |
-| `profiles:read`    | profile, department, location, team, position | Active  |
-| `schedules:read`   | schedule_shift                                | Active  |
-| `schedules:write`  | schedule_shift                                | Active  |
-| `operations:read`  | department_session (future)                   | Planned |
-| `operations:write` | department_session (future)                   | Planned |
-| `haccp:read`       | haccp_log (future)                            | Planned |
-| `haccp:write`      | haccp_log (future)                            | Planned |
-| `training:read`    | protocol, protocol_assignment                 | Active  |
-| `reports:read`     | aggregated views (future)                     | Planned |
-| `contracts:read`   | employment_contract                           | Active  |
+| Scope              | Tables                                                                       | Status  |
+| ------------------ | ---------------------------------------------------------------------------- | ------- |
+| `profiles:read`    | profile, department, location, team, position                                | Active  |
+| `schedules:read`   | schedule_shift, schedule_absence                                             | Active  |
+| `schedules:write`  | schedule_shift                                                               | Active  |
+| `operations:read`  | department_session, deviation                                                | Active  |
+| `operations:write` | department_session (future)                                                  | Planned |
+| `reports:read`     | daily_reconciliation, shift_approval, workspace_kpi_target, workspace_budget | Active  |
+| `guardian:read`    | guardian_signal, guardian_log                                                | Active  |
+| `events:read`      | engine_event                                                                 | Active  |
+| `suppliers:read`   | supplier, supplier_order                                                     | Active  |
+| `waste:read`       | waste_log                                                                    | Active  |
+| `equipment:read`   | asset, asset_maintenance, asset_downtime                                     | Active  |
+| `training:read`    | protocol, protocol_assignment                                                | Active  |
+| `contracts:read`   | employment_contract                                                          | Active  |
+| `haccp:read`       | haccp_log (future)                                                           | Planned |
+| `haccp:write`      | haccp_log (future)                                                           | Planned |
 
 To add a new scope: (1) add to this table, (2) add handler in `workspace-api/handlers/`, (3) register route in `workspace-api/index.ts`, (4) add to API registry, (5) update preset bundles in `SMARTOUT_SECRET_API_INFRASTRUCTURE.md` §2.4.
 
