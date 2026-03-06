@@ -9,6 +9,14 @@ const VoiceAssistant = dynamic(() => import("@/components/voice-assistant"), {
   ssr: false,
 });
 
+const GlobalSearchPalette = dynamic(
+  () =>
+    import("@/components/dashboard/GlobalSearchPalette").then((m) => ({
+      default: m.GlobalSearchPalette,
+    })),
+  { ssr: false },
+);
+
 const ROUTE_MISSION_MAP: Record<string, MissionId> = {
   "/dashboard": "mr-botsson",
   "/dashboard/schedule": "shift-assistant",
@@ -1783,6 +1791,7 @@ export function DashboardShell({
             </div>
 
             <DashboardContext.Provider value={dashboardContextValue}>
+              <GlobalSearchPalette />
               <div className="scroll-overlay flex min-h-0 flex-1 flex-col overflow-hidden p-6 md:p-8 print:block print:h-auto print:overflow-visible print:p-0">
                 {isAdminMode && isDashboardPage && (
                   <>
