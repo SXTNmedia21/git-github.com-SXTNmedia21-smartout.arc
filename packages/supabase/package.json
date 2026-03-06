@@ -32,6 +32,10 @@
     "./database.types": {
       "types": "./src/database.types.ts",
       "default": "./src/database.types.ts"
+    },
+    "./service-config": {
+      "types": "./src/service-config.ts",
+      "default": "./src/service-config.ts"
     }
   },
   "scripts": {
