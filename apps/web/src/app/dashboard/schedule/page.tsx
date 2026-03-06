@@ -729,6 +729,8 @@ function SchedulePageContent() {
         computed={computed}
         focusDayInUI={focusDayInUI}
         setSelectedDate={setSelectedDate}
+        createShift={createShift}
+        updateShift={updateShift}
         deleteShift={deleteShift}
         publishShifts={publishShifts}
       />
