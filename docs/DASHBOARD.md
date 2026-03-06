@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: in_progress
-updated: 2026-04-08
+updated: 2026-04-10
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -13,16 +13,18 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #    | Branch                        | Module | Status      | Progress | Blockers | Health |
-| ---- | ----------------------------- | ------ | ----------- | -------- | -------- | ------ |
-| wt-3 | `feat/journey-package-skills` | meta   | in_progress | unknown  | —        | —      |
+| #    | Branch                        | Module     | Status      | Progress     | Blockers | Health |
+| ---- | ----------------------------- | ---------- | ----------- | ------------ | -------- | ------ |
+| wt-1 | `feat/season-engine-complete` | operations | in_progress | just started | —        | clean  |
+| wt-2 | `feat/document-mode`          | document   | in_progress | just started | —        | clean  |
+| wt-3 | `feat/journey-package-skills` | meta       | in_progress | unknown      | —        | —      |
 
 ## Free Slots
 
 | #     | Available                        |
 | ----- | -------------------------------- |
-| wt-1  | yes                              |
-| wt-2  | yes                              |
+| wt-1  | no (feat/season-engine-complete) |
+| wt-2  | no (feat/document-mode)          |
 | wt-3  | no (feat/journey-package-skills) |
 | wt-4  | yes                              |
 | wt-5  | yes                              |
@@ -30,7 +32,10 @@ tags: [dashboard, worktrees, tracking]
 
 ## Pending Journeys
 
-_None_
+| WT   | Feature                | Journey File                                      | Status  |
+| ---- | ---------------------- | ------------------------------------------------- | ------- |
+| wt-1 | season-engine-complete | `docs/journeys/JOURNEY-season-engine-complete.md` | missing |
+| wt-2 | document-mode          | `docs/journeys/JOURNEY-document-mode.md`          | missing |
 
 ## Recent Closures
 
@@ -181,3 +186,6 @@ _None_
 | 2026-04-08 | service-layer                    | merged+closed     | 9 commits merged (8 feature + 1 seed). pnpm-lock conflict resolved. wt-4 removed, branch deleted. PR #34 superseded.                                                                                                                                                                                                      |
 | 2026-04-08 | onboarding-showcase-system-room  | merged+closed     | 1 commit merged (40 files). Showcase page conflict resolved. wt-5 removed, branch deleted.                                                                                                                                                                                                                                |
 | 2026-04-08 | (cleanup + finalize fix)         | session ended     | Closed 4 worktrees, 8 dev commits, 3 merges, pushed. Fixed finalize-workspace: bypass edge fn timeout → direct RPC, create company on-the-fly for NULL company_id. 12 uncommitted files remain.                                                                                                                           |
+| 2026-04-09 | (git cleanup)                    | done              | Merged feat/b2b-contract-onboarding (12 commits, 6 conflicts). Deleted progressive-intelligence. Pushed development.                                                                                                                                                                                                      |
+| 2026-04-09 | season-engine-complete           | started           | wt-1, module: operations — Complete season-engine tools, merge old branch, wire SeasonCard                                                                                                                                                                                                                                |
+| 2026-04-09 | document-mode                    | started           | wt-2, module: document — Document Mode toggle, handbook editor, 10-chapter nav, Tiptap canvas                                                                                                                                                                                                                             |

@@ -324,6 +324,50 @@ New tab in EnginePlaypark (tab 9) that visualizes the three-layer composition.
 - Toggle context layers on/off to see prompt impact
 - Color-coded prompt preview shows which layer contributes which section
 
+### Element "Context = YES" Display
+
+Each selectable item in the handshake UI (page, function, capability, context layer, policy, environment block)
+must expose a visible context-state badge in the item row:
+
+- `Context: YES` when the item is included in the current assembled prompt
+- `Context: NO` when excluded by toggle/filter/selection state
+
+This badge should be shown both:
+
+1. inline on the element itself, and
+2. in the side info panel ("page item information") for the currently selected element.
+
+Minimum item metadata in the side info panel:
+
+- item type (`system_page`, `system_function`, `system_capability`, `system_context_layer`, `industry_*`)
+- source table key
+- active selectors (industry/niche/role)
+- context state (`YES` or `NO`)
+- reason (`included by layer`, `excluded by toggle`, `no niche match`, etc.)
+
+### Dark Mode Visual Contract (Cards + Special Shifts)
+
+The handshake view and related schedule/report cards MUST follow a dark-mode readability contract:
+
+1. **Card Contrast Baseline**
+   - Dark surfaces use `bg-zinc-950/90` or equivalent high-contrast token surface.
+   - Card borders in dark mode use `border-zinc-700` minimum (never blend into background).
+   - Primary text in cards uses high-contrast foreground (`text-zinc-100` or token equivalent).
+   - Secondary text remains readable (`text-zinc-300` / `text-zinc-400`) and never drops below readable contrast.
+
+2. **Interactive State Visibility**
+   - Hover, focus, and selected states MUST show both border and background change in dark mode.
+   - Selected elements require a visible ring/border accent (not color-only text changes).
+
+3. **Special Shift Visibility**
+   - Special shifts (night/weekend and explicitly tagged shift variants) MUST have a dedicated visual treatment.
+   - In dark mode, special shift indicators use an emphasized contrast pair (`amber` surface + high-contrast text).
+   - "Special shift" state must be readable at a glance in list cards and detail modals.
+
+4. **Side Information Readability**
+   - "Page item information" / side-info panels must keep the same contrast contract as cards.
+   - Metadata labels and values must be distinguishable in dark mode without hover interaction.
+
 ### Data Source
 
 Static constants in component, structured identically to DB schema. When runtime wiring is done, these become real Supabase queries.
@@ -366,6 +410,7 @@ Add to "Database — Critical Traps":
 
 ## Changelog
 
-| Date       | Change                                             |
-| ---------- | -------------------------------------------------- |
-| 2026-03-06 | Initial design — 9 tables, seed data, Playpark tab |
+| Date       | Change                                                       |
+| ---------- | ------------------------------------------------------------ |
+| 2026-03-06 | Initial design — 9 tables, seed data, Playpark tab           |
+| 2026-03-06 | Added dark-mode visual contract for cards and special shifts |
