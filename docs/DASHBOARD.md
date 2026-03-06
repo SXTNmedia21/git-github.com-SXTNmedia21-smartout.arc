@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: in_progress
-updated: 2026-04-07
+updated: 2026-04-08
 
 created: 2026-03-02
 module: meta
@@ -14,25 +14,29 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #    | Branch                        | Module     | Status      | Progress  | Blockers | Health |
-| ---- | ----------------------------- | ---------- | ----------- | --------- | -------- | ------ |
-| wt-1 | `feat/season-creation-wizard` | operations | in_progress | started   | —        | clean  |
-| wt-2 | `feat/governance-admin-ui`    | governance | in_progress | 6 commits | —        | active |
+| #    | Branch                                 | Module         | Status        | Progress     | Blockers | Health |
+| ---- | -------------------------------------- | -------------- | ------------- | ------------ | -------- | ------ |
+| wt-1 | `feat/season-creation-wizard`          | operations     | in_progress   | started      | —        | clean  |
+| wt-2 | `feat/governance-admin-ui`             | governance     | in_progress   | 6 commits    | —        | active |
+| wt-4 | `feat/service-layer`                   | platform-admin | PR open (#34) | 8 commits    | —        | clean  |
+| wt-5 | `feat/onboarding-showcase-system-room` | onboarding     | in_progress   | just started | —        | clean  |
 
 ## Free Slots
 
-| #     | Available                        |
-| ----- | -------------------------------- |
-| wt-1  | no (feat/season-creation-wizard) |
-| wt-2  | no (feat/governance-admin-ui)    |
-| wt-3  | yes                              |
-| wt-4  | yes                              |
-| wt-5  | yes                              |
-| wt-20 | yes                              |
+| #     | Available                                 |
+| ----- | ----------------------------------------- |
+| wt-1  | no (feat/season-creation-wizard)          |
+| wt-2  | no (feat/governance-admin-ui)             |
+| wt-3  | yes                                       |
+| wt-4  | no (feat/service-layer)                   |
+| wt-5  | no (feat/onboarding-showcase-system-room) |
+| wt-20 | yes                                       |
 
 ## Pending Journeys
 
 | wt-2 | infra-port-consolidation | `docs/journeys/JOURNEY-infra-port-consolidation.md` | missing |
+| wt-4 | service-layer | `docs/journeys/JOURNEY-service-layer.md` | missing |
+| wt-5 | onboarding-showcase-system-room | `docs/journeys/JOURNEY-onboarding-showcase-system-room.md` | missing |
 
 ## Recent Closures
 
@@ -169,3 +173,8 @@ tags: [dashboard, worktrees, tracking]
 | 2026-04-05 | onboarding pipeline + routing    | session ended     | Fixed finalize-workspace (verify_jwt), fixed redirect loop (middleware picks best workspace), WorkspaceSwitcher dropdown, select-workspace archive button, ?ws= param routing, Brreg fuzzy search, scrapling improvements (email/logo/phone), workspace-first model, Workspace Keys design plan.                          |
 | 2026-04-06 | restaurant-template              | session ended     | Completed full restaurant industry template: 12 SQL files, 32 policies, 22 protocols, 51 procedures (238 steps), 24 routines, 18 control lists, 11 tests, 50 contracts. Built+tested alcohol-labor.sql, updated \_apply.sql + OVERVIEW.md. All tested on seed workspace.                                                  |
 | 2026-04-07 | service-contracts + detail page  | session ended     | Built service contracts with full API surface (3 research agents). Updated service-detail-client.tsx with EndpointTestCard components. Added contract-service auth injection to test proxy. Stage Engine: 14 endpoints, Contract Service: 15, Scrapling: 5, Shift MCP: 2.                                                 |
+| 2026-04-07 | (git cleanup)                    | session ended     | Committed 81+ accumulated files into 10 logical commits. Fixed 3 type errors. Pushed to origin/development. Repo clean.                                                                                                                                                                                                   |
+| 2026-04-08 | service-layer                    | started           | wt-4, module: platform-admin — Service config CRUD, Redis cache, Vercel/Docker sync                                                                                                                                                                                                                                       |
+| 2026-03-06 | onboarding-showcase-system-room  | started           | wt-5, module: onboarding — Interactive system room with journey telemetry, policy guards, scrape normalization                                                                                                                                                                                                            |
+| 2026-04-08 | service-layer                    | session ended     | All 12 tasks complete. 8 commits, typecheck 19/19, PR #34 open. wt-4 preserved.                                                                                                                                                                                                                                           |
+| 2026-04-08 | doner-bros + governance-ui       | session ended     | Cherry-picked governance UI from wt-2 (3 hooks, 4 components). Fixed all governance type errors. Created Doner Bros seed (50 employees, 5 locations, 9mo shifts, 1177 assignments). Staged but uncommitted.                                                                                                               |
