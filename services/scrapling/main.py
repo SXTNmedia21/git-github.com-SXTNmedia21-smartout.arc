@@ -1,7 +1,9 @@
 from datetime import datetime
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from scrapling import Fetcher
 import urllib.parse
@@ -10,16 +12,45 @@ import re
 
 app = FastAPI(title="SmartOut Scrapling Microservice")
 
+DASHBOARD_HTML = (Path(__file__).parent / "dashboard.html").read_text()
+
+@app.get("/", response_class=HTMLResponse)
+def dashboard():
+    return DASHBOARD_HTML
+
 # CORS disabled — scrapling runs on internal Docker network only.
 # No external Caddy route exists. If this service is exposed publicly,
 # add explicit allowed origins here.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[],
+    allow_origins=["*"],
     allow_credentials=False,
     allow_methods=["POST", "GET"],
     allow_headers=["Content-Type"],
 )
+
+class TripAdvisorRequest(BaseModel):
+    url: Optional[str] = None
+    company_name: Optional[str] = None
+    city: Optional[str] = None
+    max_pages: int = 5  # Each page has ~10 reviews
+
+class ReviewModel(BaseModel):
+    title: str
+    text: str
+    rating: int  # 1-5
+    date: str
+    author: str
+    language: Optional[str] = None
+
+class TripAdvisorResponse(BaseModel):
+    restaurant_name: Optional[str] = None
+    overall_rating: Optional[float] = None
+    total_reviews: Optional[int] = None
+    tripadvisor_url: str
+    best_reviews: list[ReviewModel]
+    worst_reviews: list[ReviewModel]
+    all_reviews_count: int
 
 class ScrapeConfig(BaseModel):
     include_company_info: bool = True
@@ -67,6 +98,8 @@ class ExtractResponse(BaseModel):
     email: Optional[str] = None
     phone: Optional[str] = None
     summary: Optional[str] = None
+    description: Optional[str] = None
+    logoUrl: Optional[str] = None
     pageDictionary: Optional[dict[str, str]] = None
     images: list[ImageModel] = []
     menus: list[LinkModel] = []
@@ -79,6 +112,27 @@ def clean_url(url: str) -> str:
         target_url = f"https://{target_url}"
     return target_url
 
+def fetch_with_fallback(url: str):
+    """Fetch URL, falling back to without www if SSL fails."""
+    target = clean_url(url)
+    try:
+        return Fetcher.get(target)
+    except Exception as e:
+        err_str = str(e).lower()
+        if "ssl" in err_str or "certificate" in err_str:
+            # Try without www or with www
+            from urllib.parse import urlparse
+            parsed = urlparse(target)
+            if parsed.hostname and parsed.hostname.startswith("www."):
+                alt = target.replace("://www.", "://", 1)
+            else:
+                alt = target.replace("://", "://www.", 1)
+            try:
+                return Fetcher.get(alt)
+            except:
+                pass
+        raise
+
 @app.post("/extract", response_model=ExtractResponse)
 def extract_workspace_data(req: ExtractRequest):
     if not req.url:
@@ -87,7 +141,7 @@ def extract_workspace_data(req: ExtractRequest):
     try:
         config = req.config or ScrapeConfig()
         target_url = clean_url(req.url)
-        page = Fetcher.get(target_url)
+        page = fetch_with_fallback(req.url)
         
         title = page.css("title::text").get("Unknown Company")
         description = page.css("meta[name='description']::attr(content)").get("")
@@ -120,18 +174,61 @@ def extract_workspace_data(req: ExtractRequest):
         email = None
         phone = None
         summary = description.strip() if description else ""
+        logo_url = None
 
-        if True: # Always extract contact info if possible
+        # --- EMAIL: try mailto links first, then regex on text ---
+        for a in anchor_nodes:
+            href = a.attrib.get("href", "")
+            if href.startswith("mailto:"):
+                email = href.replace("mailto:", "").split("?")[0].strip()
+                break
+        if not email:
+            # Also check the full HTML for mailto links the CSS selector might miss
+            html_str = str(page.body) if hasattr(page, 'body') else clean_text
+            mailto_match = re.search(r'mailto:([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)', html_str)
+            if mailto_match:
+                email = mailto_match.group(1)
+        if not email:
             email_match = re.search(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+", clean_text)
             if email_match:
                 email = email_match.group(0)
-                
-            phone_match = re.search(r"(?:\+47|0047)?[\s\-]?(\d{2,3}[\s\-]?\d{2}[\s\-]?\d{2,3})", clean_text)
+
+        # --- PHONE: Norwegian format (8 digits, often XX XX XX XX or XXX XX XXX) ---
+        # Try tel: links first
+        for a in anchor_nodes:
+            href = a.attrib.get("href", "")
+            if href.startswith("tel:"):
+                phone = href.replace("tel:", "").replace("%20", " ").strip()
+                break
+        if not phone:
+            phone_match = re.search(r"(?:\+47\s?)?(\d{2}\s?\d{2}\s?\d{2}\s?\d{2})", clean_text)
             if phone_match:
                 phone = phone_match.group(0).strip()
-                
-            if not summary and clean_text:
-                 summary = clean_text[:300] + "..."
+
+        # --- SUMMARY / DESCRIPTION ---
+        if not summary and clean_text:
+            summary = clean_text[:300] + "..."
+
+        # --- LOGO: favicon, apple-touch-icon, or img with logo/brand in src/alt ---
+        logo_candidates = [
+            page.css("link[rel='apple-touch-icon']::attr(href)").get(""),
+            page.css("link[rel='icon'][type='image/png']::attr(href)").get(""),
+            page.css("link[rel='shortcut icon']::attr(href)").get(""),
+            page.css("link[rel='icon']::attr(href)").get(""),
+            page.css("meta[property='og:image']::attr(content)").get(""),
+        ]
+        for candidate in logo_candidates:
+            if candidate:
+                logo_url = urllib.parse.urljoin(target_url, candidate)
+                break
+        # Also look for img tags with logo in src or alt
+        if not logo_url:
+            for img in page.css("img"):
+                src = img.attrib.get("src", "")
+                alt = img.attrib.get("alt", "")
+                if "logo" in src.lower() or "logo" in alt.lower() or "brand" in src.lower():
+                    logo_url = urllib.parse.urljoin(target_url, src)
+                    break
 
         detected_locations = []
         if config.include_locations:
@@ -223,12 +320,14 @@ def extract_workspace_data(req: ExtractRequest):
                 seen_urls.add(m.href)
 
         return ExtractResponse(
-            companyName=title.strip(), 
-            locations=detected_locations, 
+            companyName=title.strip(),
+            locations=detected_locations,
             departments=detected_departments,
             email=email,
             phone=phone,
             summary=summary,
+            description=description.strip() if description else None,
+            logoUrl=logo_url,
             pageDictionary=page_dictionary if config.include_dictionary else None,
             images=images,
             menus=unique_menus,
@@ -249,7 +348,7 @@ def scrape_raw_data(req: ExtractRequest):
     target_url = clean_url(req.url)
 
     try:
-        page = Fetcher.get(target_url)
+        page = fetch_with_fallback(req.url)
         
         title = page.css("title::text").get("")
         description = page.css("meta[name='description']::attr(content)").get("")
@@ -294,6 +393,20 @@ def scrape_raw_data(req: ExtractRequest):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/tripadvisor", response_model=TripAdvisorResponse)
+def scrape_tripadvisor(req: TripAdvisorRequest):
+    """Scrape TripAdvisor reviews — returns 10 best and 10 worst.
+
+    TODO: TripAdvisor blocks direct scraping (403 + JS rendering).
+    Integrate Apify TripAdvisor actor or similar service.
+    """
+    raise HTTPException(
+        status_code=501,
+        detail="TripAdvisor scraping requires Apify integration (not yet configured). "
+               "Provide an Apify API key or use the Serper web-search-intelligence endpoint for basic rating data.",
+    )
+
 
 @app.get("/health")
 async def health():

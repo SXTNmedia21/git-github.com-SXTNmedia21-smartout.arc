@@ -1,3 +1,3 @@
-  UPDATE user
-  SET is_godmode = true
-  WHERE email = 'admin@smartout.local';
+ UPDATE auth.users
+ SET phone_change = '+4755555555'                                                                                                                                
+  WHERE phone_change IS NULL;   

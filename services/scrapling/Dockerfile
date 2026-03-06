@@ -34,7 +34,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY --from=builder /app/deps /app/deps
 ENV PYTHONPATH=/app/deps
-COPY main.py ./
+COPY main.py dashboard.html ./
 
 EXPOSE 8000
 USER nobody
