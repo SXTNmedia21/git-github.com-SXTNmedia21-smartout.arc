@@ -12,7 +12,7 @@ import { getSuperAdminId, logPlatformAction } from "@/lib/platform-admin";
 const CreateWorkspaceSchema = z.object({
   // Company
   is_new_company: z.boolean(),
-  company_id: z.string().uuid().optional(),
+  company_id: z.string().uuid().optional().or(z.literal("")),
   company_name: z.string().min(1).optional(),
   company_org_number: z.string().min(1).optional(),
   company_email: z.string().email().optional().or(z.literal("")),
@@ -38,17 +38,20 @@ const CreateWorkspaceSchema = z.object({
   phone: z.string().optional().or(z.literal("")),
   is_active: z.boolean().default(true),
 
-  // Pricing
-  price_per_employee: z.number().min(0),
+  // Pricing (Stripe-aligned)
+  price_per_employee: z.number().min(0).optional(),
   monthly_cost: z.number().min(0).optional(),
-  billing_interval: z.enum(["monthly", "quarterly", "yearly"]).default("monthly"),
+  billing_interval: z.enum(["month", "year"]).default("month"),
   onboarding_package: z.enum(["small", "medium", "large", "enterprise", "custom"]).optional(),
   onboarding_cost: z.number().min(0).optional(),
   discount_percent: z.number().min(0).max(100).optional(),
+  discount_amount: z.number().min(0).optional(),
+  discount_duration: z.enum(["once", "repeating", "forever"]).optional(),
+  discount_duration_months: z.number().int().min(1).optional(),
   discount_label: z.string().optional().or(z.literal("")),
   trial_days: z.number().int().min(0).optional(),
   pricing_currency: z.enum(["NOK", "SEK", "DKK", "EUR"]).optional(),
-  effective_from: z.string().min(1),
+  effective_from: z.string().optional().or(z.literal("")),
   effective_until: z.string().optional().or(z.literal("")),
   pricing_notes: z.string().optional().or(z.literal("")),
 
@@ -58,7 +61,6 @@ const CreateWorkspaceSchema = z.object({
   // Subscription
   subscription_plan: z.enum(["trial", "starter", "professional", "enterprise"]).optional(),
   subscription_status: z.enum(["trial", "active"]).optional(),
-  trial_ends_at: z.string().optional().or(z.literal("")),
 });
 
 // ---------------------------------------------------------------------------
@@ -123,7 +125,7 @@ export async function POST(request: NextRequest) {
   const admin = createAdminClient();
 
   // 1. Resolve or create company
-  let companyId = d.company_id;
+  let companyId = d.company_id || undefined;
 
   if (d.is_new_company) {
     if (!d.company_name || !d.company_org_number) {
@@ -201,29 +203,36 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Update company subscription if provided
-    if (d.subscription_plan || d.subscription_status || d.trial_ends_at) {
+    if (d.subscription_plan || d.subscription_status) {
       const updates: Record<string, unknown> = {};
       if (d.subscription_plan) updates.subscription_plan = d.subscription_plan;
       if (d.subscription_status) updates.subscription_status = d.subscription_status;
-      if (d.trial_ends_at) updates.trial_ends_at = d.trial_ends_at;
+      // Calculate trial_ends_at from trial_days
+      if (d.trial_days && d.trial_days > 0) {
+        const trialEnd = new Date();
+        trialEnd.setDate(trialEnd.getDate() + d.trial_days);
+        updates.trial_ends_at = trialEnd.toISOString();
+      }
 
       await admin.from("company").update(updates).eq("company_id", companyId);
     }
 
     // 4. Insert pricing_terms
+    // Map Stripe billing interval to existing DB values
+    const billingIntervalMap = { month: "monthly", year: "yearly" } as const;
     await admin.from("pricing_terms").insert({
       company_id: companyId,
       workspace_id: workspace.workspace_id,
-      price_per_employee: d.price_per_employee,
+      price_per_employee: d.price_per_employee ?? 0,
       monthly_cost: d.monthly_cost ?? null,
       currency: d.pricing_currency ?? d.currency,
-      billing_interval: d.billing_interval,
+      billing_interval: billingIntervalMap[d.billing_interval] ?? "monthly",
       onboarding_package: d.onboarding_package ?? null,
       onboarding_cost: d.onboarding_cost ?? null,
       discount_percent: d.discount_percent ?? null,
       discount_label: d.discount_label || null,
       trial_days: d.trial_days ?? null,
-      effective_from: d.effective_from,
+      effective_from: d.effective_from || new Date().toISOString().split("T")[0],
       effective_until: d.effective_until || null,
       notes: d.pricing_notes || null,
       created_by: adminId,
