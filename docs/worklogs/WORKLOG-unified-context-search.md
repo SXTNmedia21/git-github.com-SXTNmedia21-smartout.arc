@@ -1,6 +1,6 @@
 ---
 title: "Worklog — unified-context-search"
-status: in_progress
+status: done
 updated: 2026-03-06
 created: 2026-03-06
 module: search
@@ -9,7 +9,7 @@ tags: [search, context, cmdk, vector, bootstrap]
 
 # Worklog — unified-context-search
 
-## Status: 🟡 In Progress
+## Status: ✅ Done
 
 ## Done
 
@@ -46,11 +46,12 @@ tags: [search, context, cmdk, vector, bootstrap]
 
 ## Log
 
-| Date       | Time | Event                                                                   |
-| ---------- | ---- | ----------------------------------------------------------------------- |
-| 2026-03-06 | —    | Feature started: unified-context-search on wt-1                         |
-| 2026-03-06 | —    | Wave 1 complete: vector schema, bootstrap contract, CmdK palette        |
-| 2026-03-06 | —    | Wave 2 complete: search RPCs, ingestion pipeline, orchestrator + routes |
-| 2026-03-06 | —    | Wave 3 complete: AI workspace tool, telemetry + load script             |
-| 2026-03-06 | —    | Wave 4 complete: docs updated, all type errors fixed                    |
-| 2026-03-06 | —    | Pushed to origin, 12 commits                                            |
+| Date       | Time  | Event                                                                   |
+| ---------- | ----- | ----------------------------------------------------------------------- |
+| 2026-03-06 | —     | Feature started: unified-context-search on wt-1                         |
+| 2026-03-06 | —     | Wave 1 complete: vector schema, bootstrap contract, CmdK palette        |
+| 2026-03-06 | —     | Wave 2 complete: search RPCs, ingestion pipeline, orchestrator + routes |
+| 2026-03-06 | —     | Wave 3 complete: AI workspace tool, telemetry + load script             |
+| 2026-03-06 | —     | Wave 4 complete: docs updated, all type errors fixed                    |
+| 2026-03-06 | —     | Pushed to origin, 12 commits                                            |
+| 2026-03-06 | 19:28 | Feature closed and merged to development                                |
