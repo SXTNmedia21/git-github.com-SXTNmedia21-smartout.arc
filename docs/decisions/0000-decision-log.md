@@ -6,6 +6,18 @@ created: 2026-03-04
 module: operations
 tags: [decisions]
 ---
+
 # Decision Log — season-creation-wizard
-| # | Date | Decision | Status |
-|---|------|----------|--------|
+
+| #   | Date | Decision | Status |
+| --- | ---- | -------- | ------ |
+
+module: governance
+tags: [decisions]
+
+---
+
+# Decision Log — governance-admin-ui
+
+| #   | Date | Decision | Status |
+| --- | ---- | -------- | ------ |

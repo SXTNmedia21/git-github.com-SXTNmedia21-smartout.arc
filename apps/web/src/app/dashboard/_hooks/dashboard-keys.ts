@@ -72,6 +72,6 @@ export const dashboardKeys = {
   protocolAssignees: (workspaceId: string, protocolId: string) =>
     ["dashboard", "protocol-assignees", workspaceId, protocolId] as const,
 
-  protocolJourney: (workspaceId: string, protocolId: string) =>
-    ["dashboard", "protocol-journey", workspaceId, protocolId] as const,
+  protocolJourney: (workspaceId: string, assignmentId: string) =>
+    ["dashboard", "protocol-journey", workspaceId, assignmentId] as const,
 };

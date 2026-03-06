@@ -105,6 +105,14 @@ export type ProtocolAssignee = {
   completedAt: string | null;
 };
 
+export type JourneyPhase = {
+  name: string;
+  type: "procedures" | "test" | "confirmation";
+  total: number;
+  completed: number;
+  status: "not_started" | "in_progress" | "completed";
+};
+
 export type JourneyStep = {
   stepId: string;
   title: string;
@@ -113,14 +121,6 @@ export type JourneyStep = {
   isRequired: boolean;
   estimatedMinutes: number | null;
   isCompleted: boolean;
-};
-
-export type JourneyPhase = {
-  name: string;
-  type: "procedures" | "test" | "confirmation";
-  total: number;
-  completed: number;
-  status: "completed" | "in_progress" | "not_started";
 };
 
 export type ProtocolJourneyData = {
