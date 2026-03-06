@@ -17,7 +17,7 @@ type DocumentModeState = {
 const DocumentModeContext = createContext<DocumentModeState | null>(null);
 
 export function DocumentModeProvider({ children }: { children: ReactNode }) {
-  const [activeChapterKey, setActiveChapterKey] = useState(HANDBOOK_CHAPTERS[0].key);
+  const [activeChapterKey, setActiveChapterKey] = useState(HANDBOOK_CHAPTERS[0]?.key ?? "welcome");
   const [panelTab, setPanelTab] = useState<PanelTab>("tools");
   const [isDirty, setIsDirty] = useState(false);
 

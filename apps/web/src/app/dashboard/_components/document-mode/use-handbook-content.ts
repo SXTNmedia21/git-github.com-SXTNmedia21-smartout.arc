@@ -31,7 +31,10 @@ export function useHandbookChapter(chapterKey: string) {
   const query = useQuery({
     queryKey: handbookKeys.chapter(wsId ?? "none", chapterKey),
     queryFn: async (): Promise<HandbookChapterRow | null> => {
-      const { data, error } = await supabase
+      // TODO: Remove cast once migration is applied and types regenerated
+      const { data, error } = await (
+        supabase as unknown as { from: (t: string) => ReturnType<typeof supabase.from> }
+      )
         .from("handbook_chapter")
         .select("*")
         .eq("workspace_id", wsId!)
@@ -39,7 +42,7 @@ export function useHandbookChapter(chapterKey: string) {
         .maybeSingle();
 
       if (error) throw error;
-      return data;
+      return data as HandbookChapterRow | null;
     },
     enabled: !!wsId && !!chapterKey,
     staleTime: 5 * 60 * 1000,
@@ -69,16 +72,21 @@ export function useSaveHandbookChapter() {
       title: string;
       content: JSONContent;
     }) => {
-      const { error } = await supabase.from("handbook_chapter").upsert(
-        {
-          workspace_id: wsId!,
-          chapter_key: chapterKey,
-          title,
-          content,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "workspace_id,chapter_key" },
-      );
+      // TODO: Remove cast once migration is applied and types regenerated
+      const { error } = await (
+        supabase as unknown as { from: (t: string) => ReturnType<typeof supabase.from> }
+      )
+        .from("handbook_chapter")
+        .upsert(
+          {
+            workspace_id: wsId!,
+            chapter_key: chapterKey,
+            title,
+            content,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "workspace_id,chapter_key" },
+        );
 
       if (error) throw error;
     },
