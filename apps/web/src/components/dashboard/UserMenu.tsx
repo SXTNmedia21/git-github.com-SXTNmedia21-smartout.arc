@@ -27,6 +27,11 @@ type IdentityRow = {
 
 export function UserMenu({ isDark }: { isDark: boolean }) {
   const [user, setUser] = useState<UserData | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     async function fetchUser() {
@@ -68,6 +73,24 @@ export function UserMenu({ isDark }: { isDark: boolean }) {
 
   const displayName = user?.displayName ?? "...";
   const initials = user?.initials ?? "..";
+
+  if (!isMounted) {
+    return (
+      <button
+        type="button"
+        className="group flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1 transition-colors hover:bg-zinc-800/50 focus:outline-none"
+      >
+        <div className="text-right">
+          <p className="text-sm leading-tight font-semibold text-white">{displayName}</p>
+          <p className="text-[10px] font-bold tracking-wider text-zinc-400 uppercase">Admin</p>
+        </div>
+        <div className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-700 bg-zinc-800">
+          <span className="text-xs font-bold text-zinc-300">{initials}</span>
+        </div>
+        <ChevronDown className="h-4 w-4 text-zinc-500 transition-colors group-hover:text-white" />
+      </button>
+    );
+  }
 
   return (
     <DropdownMenu>

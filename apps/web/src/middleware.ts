@@ -11,6 +11,8 @@ type GodmodeCacheEntry = {
 
 const GODMODE_CACHE_TTL_MS = 30_000;
 const godmodeCache = new Map<string, GodmodeCacheEntry>();
+const SHOWCASE_COOKIE = "smartout_showcase";
+const SHOWCASE_COOKIE_AGE_SECONDS = 4 * 60 * 60;
 
 /**
  * Copy auth cookies from the session response onto a redirect response.
@@ -52,6 +54,33 @@ async function getCachedGodmodeStatus(
   const isGodmode = Boolean(data?.is_godmode);
   godmodeCache.set(userId, { isGodmode, expiresAt: now + GODMODE_CACHE_TTL_MS });
   return isGodmode;
+}
+
+/**
+ * Applies showcase mode toggle from query/cookie and emits a request-scoped header
+ * that server components can read to bypass onboarding redirects during demos.
+ */
+function applyShowcaseMode(request: NextRequest, response: NextResponse): void {
+  const showcaseQuery = request.nextUrl.searchParams.get("showcase");
+  const hasShowcaseCookie = request.cookies.get(SHOWCASE_COOKIE)?.value === "1";
+
+  let showcaseEnabled = hasShowcaseCookie;
+
+  if (showcaseQuery === "1") {
+    showcaseEnabled = true;
+    response.cookies.set(SHOWCASE_COOKIE, "1", {
+      path: "/",
+      maxAge: SHOWCASE_COOKIE_AGE_SECONDS,
+      sameSite: "lax",
+    });
+  } else if (showcaseQuery === "0") {
+    showcaseEnabled = false;
+    response.cookies.delete(SHOWCASE_COOKIE);
+  }
+
+  if (showcaseEnabled && request.nextUrl.pathname.startsWith("/dashboard")) {
+    response.headers.set("x-showcase-mode", "1");
+  }
 }
 
 export async function middleware(request: NextRequest): Promise<Response> {
@@ -100,19 +129,24 @@ export async function middleware(request: NextRequest): Promise<Response> {
   // ── 4. Portal (app.smartout.ai) ──
   if (subdomain.type === "portal") {
     const pathname = request.nextUrl.pathname;
+    const showcaseRequested =
+      request.nextUrl.searchParams.get("showcase") === "1" ||
+      request.cookies.get(SHOWCASE_COOKIE)?.value === "1";
 
     // Portal root → workspace selector
     if (pathname === "/") {
       const redir = NextResponse.redirect(new URL("/select-workspace", request.url));
       copySessionCookies(response, redir);
+      applyShowcaseMode(request, redir);
       return redir;
     }
 
     // Portal /dashboard* → redirect to workspace selector
     // (user hit /dashboard on the portal subdomain — no workspace context available)
-    if (pathname.startsWith("/dashboard")) {
+    if (pathname.startsWith("/dashboard") && !showcaseRequested) {
       const redir = NextResponse.redirect(new URL("/select-workspace", request.url));
       copySessionCookies(response, redir);
+      applyShowcaseMode(request, redir);
       return redir;
     }
 
@@ -121,6 +155,7 @@ export async function middleware(request: NextRequest): Promise<Response> {
       if (!sessionUser) {
         const redir = NextResponse.redirect(new URL("/login", request.url));
         copySessionCookies(response, redir);
+        applyShowcaseMode(request, redir);
         return redir;
       }
 
@@ -128,6 +163,7 @@ export async function middleware(request: NextRequest): Promise<Response> {
       if (!serviceRoleKey) {
         const redir = NextResponse.redirect(new URL("/select-workspace", request.url));
         copySessionCookies(response, redir);
+        applyShowcaseMode(request, redir);
         return redir;
       }
 
@@ -136,10 +172,11 @@ export async function middleware(request: NextRequest): Promise<Response> {
       if (!isGodmode) {
         const redir = NextResponse.redirect(new URL("/select-workspace", request.url));
         copySessionCookies(response, redir);
+        applyShowcaseMode(request, redir);
         return redir;
       }
     }
-
+    applyShowcaseMode(request, response);
     return response;
   }
 
@@ -155,12 +192,13 @@ export async function middleware(request: NextRequest): Promise<Response> {
       const redir = NextResponse.redirect(new URL("/dashboard", request.url));
       copySessionCookies(response, redir);
       redir.headers.set("x-workspace-slug", slug);
+      applyShowcaseMode(request, redir);
       return redir;
     }
-
+    applyShowcaseMode(request, response);
     return response;
   }
-
+  applyShowcaseMode(request, response);
   return response;
 }
 
@@ -170,12 +208,15 @@ export async function middleware(request: NextRequest): Promise<Response> {
  */
 async function handleLegacyRouting(request: NextRequest): Promise<Response> {
   if (request.nextUrl.pathname === "/") {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    const redir = NextResponse.redirect(new URL("/dashboard", request.url));
+    applyShowcaseMode(request, redir);
+    return redir;
   }
 
   const { response, user: sessionUser } = await updateSession(
     request as unknown as Parameters<typeof updateSession>[0],
   );
+  applyShowcaseMode(request, response);
 
   const pathname = request.nextUrl.pathname;
   const needsDashboardGate = pathname.startsWith("/dashboard");
@@ -193,6 +234,7 @@ async function handleLegacyRouting(request: NextRequest): Promise<Response> {
     if (needsAdminGate) {
       const redir = NextResponse.redirect(new URL("/login", request.url));
       copySessionCookies(response, redir);
+      applyShowcaseMode(request, redir);
       return redir;
     }
     return response;
@@ -203,6 +245,7 @@ async function handleLegacyRouting(request: NextRequest): Promise<Response> {
     if (needsAdminGate) {
       const redir = NextResponse.redirect(new URL("/dashboard", request.url));
       copySessionCookies(response, redir);
+      applyShowcaseMode(request, redir);
       return redir;
     }
     return response;
@@ -216,6 +259,7 @@ async function handleLegacyRouting(request: NextRequest): Promise<Response> {
     if (!isGodmode) {
       const redir = NextResponse.redirect(new URL("/dashboard", request.url));
       copySessionCookies(response, redir);
+      applyShowcaseMode(request, redir);
       return redir;
     }
   }

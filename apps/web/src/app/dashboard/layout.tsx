@@ -11,6 +11,19 @@ import {
   getFirstProfile,
 } from "./_data/queries";
 
+const SHOWCASE_WORKSPACE: WorkspaceData = {
+  workspace_id: "00000000-0000-0000-0000-000000000000",
+  company_id: null,
+  name: "Dunner Bros Demo Workspace",
+  slug: "showcase",
+  logo_url: null,
+  currency: "NOK",
+  language: "nb",
+  country: "NO",
+  timezone: "Europe/Oslo",
+  contract_status: "active",
+};
+
 /**
  * Enforces workspace contract status redirects for dashboard routes.
  * Why: keep middleware lightweight and run this check where workspace data
@@ -38,12 +51,22 @@ export default async function DashboardLayout({
 }) {
   const headersList = await headers();
   const slug = headersList.get("x-workspace-slug");
+  const isShowcaseMode = headersList.get("x-showcase-mode") === "1";
   // Local dev: support ?ws=<workspace_id> to select a specific workspace
   const wsParam = headersList.get("x-workspace-id-param");
 
   const user = await getUser();
 
   if (!user) {
+    if (isShowcaseMode) {
+      return (
+        <QueryProvider>
+          <WorkspaceProvider workspace={SHOWCASE_WORKSPACE}>
+            <DashboardShell profileId={null}>{children}</DashboardShell>
+          </WorkspaceProvider>
+        </QueryProvider>
+      );
+    }
     redirect("/login");
   }
 
@@ -94,7 +117,9 @@ export default async function DashboardLayout({
   }
 
   if (workspace) {
-    enforceWorkspaceContractStatus(workspace);
+    if (!isShowcaseMode) {
+      enforceWorkspaceContractStatus(workspace);
+    }
 
     return (
       <QueryProvider>
@@ -106,5 +131,15 @@ export default async function DashboardLayout({
   }
 
   // No workspace found — redirect instead of rendering without WorkspaceProvider
+  if (isShowcaseMode) {
+    return (
+      <QueryProvider>
+        <WorkspaceProvider workspace={SHOWCASE_WORKSPACE}>
+          <DashboardShell profileId={profileId}>{children}</DashboardShell>
+        </WorkspaceProvider>
+      </QueryProvider>
+    );
+  }
+
   redirect("/onboarding");
 }

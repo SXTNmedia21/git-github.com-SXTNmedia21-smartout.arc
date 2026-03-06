@@ -37,6 +37,122 @@ function resolveMissionForRoute(pathname: string): MissionId {
 export type AdminViewType = "tactical" | "strategic" | "reconciliation" | "activity" | "guardian";
 export type ScheduleLayoutMode = "daily" | "weekly" | "monthly" | "list";
 export type ScheduleViewMode = "ansatt" | "jobb" | "team";
+type VoiceSessionContext = {
+  page: string;
+  story: string;
+  workingElements: string[];
+  availableInputs: string[];
+};
+
+function buildVoiceSessionContext(pathname: string, adminView: AdminViewType): VoiceSessionContext {
+  if (pathname === "/dashboard") {
+    if (adminView === "guardian") {
+      return {
+        page: "dashboard.guardian",
+        story:
+          "Du er i event center. Forklar hva systemet fanger opp, hvorfor signalene betyr noe, og hvilken handling lederen bør ta nå.",
+        workingElements: [
+          "Guardian signal stream",
+          "Mission control panel",
+          "Critical alerts list",
+          "Compliance checkpoints",
+        ],
+        availableInputs: [
+          "Active guardian signals",
+          "Workspace context",
+          "Current admin view (guardian)",
+          "User follow-up questions",
+        ],
+      };
+    }
+
+    return {
+      page: "dashboard.overview",
+      story:
+        "Du er i showcase-oversikt. Fortell hva som skjer nå, hva Smartout tolker, og hva neste beste steg er i demoen.",
+      workingElements: [
+        "Showcase step strip",
+        "Action strip",
+        "Strategic KPI cards",
+        "Top tactical/strategic view switcher",
+      ],
+      availableInputs: [
+        "Current dashboard view",
+        "Action item counters",
+        "Workspace context",
+        "User-selected showcase step",
+      ],
+    };
+  }
+
+  if (pathname.startsWith("/dashboard/schedule")) {
+    return {
+      page: "dashboard.schedule",
+      story:
+        "Du viser templates og operativ kontroll. Forklar hvordan teamet standardiserer uker og justerer bemanning raskt.",
+      workingElements: [
+        "Template load/save controls",
+        "Layout switcher (uke/rullerende/maned/vaktliste)",
+        "Publish button",
+        "Date and period navigation",
+      ],
+      availableInputs: [
+        "Schedule layout mode",
+        "Date offset and period size",
+        "Draft count",
+        "Realtime schedule updates",
+      ],
+    };
+  }
+
+  if (pathname.startsWith("/dashboard/reports")) {
+    return {
+      page: "dashboard.reports",
+      story:
+        "Du viser analytics. Knyt tall til beslutninger: hva har skjedd, hva betyr det, og hva bør lederen prioritere.",
+      workingElements: [
+        "Report tabs",
+        "Trend charts",
+        "Staffing insights",
+        "Training/readiness summaries",
+      ],
+      availableInputs: [
+        "Selected report tab",
+        "Chart data loaded in current view",
+        "Workspace metrics",
+        "User-selected analysis focus",
+      ],
+    };
+  }
+
+  if (pathname.startsWith("/onboarding")) {
+    return {
+      page: "onboarding",
+      story:
+        "Du viser system intelligence. Forklar hvordan Smartout finner bedriftsdata, foreslar struktur, og reduserer manuelt oppsett.",
+      workingElements: [
+        "Business discovery cards",
+        "Section progress flow",
+        "Procedures/departments setup",
+        "Welcome activation summary",
+      ],
+      availableInputs: [
+        "Current onboarding section",
+        "Detected company data",
+        "Manual field corrections",
+        "Section completion state",
+      ],
+    };
+  }
+
+  return {
+    page: "dashboard.generic",
+    story:
+      "Forklar hva brukeren ser pa denne siden, hvilke handlinger som er tilgjengelige, og hva neste naturlige steg er.",
+    workingElements: ["Current page widgets", "Primary navigation", "Context bar"],
+    availableInputs: ["Current route", "Workspace context", "User intent"],
+  };
+}
 
 export const DashboardContext = createContext({
   isAdminMode: true,
@@ -138,10 +254,12 @@ const LazyVoiceAssistant = dynamic(() => import("@/components/voice-assistant"),
 function VoiceAssistantWithTools({
   isOpen,
   missionId,
+  sessionContext,
   onClose,
 }: {
   isOpen: boolean;
   missionId: MissionId;
+  sessionContext: VoiceSessionContext;
   onClose: () => void;
 }) {
   const { clientTools } = useVoiceTools();
@@ -149,11 +267,110 @@ function VoiceAssistantWithTools({
   return (
     <div className="pointer-events-auto absolute top-full right-0 z-50 mt-4 origin-top-right shadow-2xl">
       <LazyVoiceAssistant
-        autoStart
+        autoStart={false}
         missionId={missionId}
+        sessionContext={sessionContext}
         clientTools={clientTools}
         onClose={onClose}
       />
+    </div>
+  );
+}
+
+function ShowcaseStrip({
+  isDark,
+  onSelectView,
+}: {
+  isDark: boolean;
+  onSelectView: (view: AdminViewType) => void;
+}) {
+  return (
+    <div
+      className={`flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-4 py-3 ${
+        isDark ? "border-orange-500/25 bg-orange-500/10" : "border-orange-200 bg-orange-50"
+      }`}
+    >
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <div className="flex items-center gap-2">
+          <span
+            className={`rounded-md border px-2 py-1 text-[10px] font-bold tracking-widest uppercase ${
+              isDark
+                ? "border-orange-500/30 bg-orange-500/20 text-orange-300"
+                : "border-orange-300 bg-orange-100 text-orange-700"
+            }`}
+          >
+            Showcase
+          </span>
+          <span className={`text-sm font-semibold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}>
+            Dunner Bros demo path
+          </span>
+        </div>
+        <p className={`truncate text-xs ${isDark ? "text-zinc-300" : "text-zinc-600"}`}>
+          Event captured - system interprets - Smartout recommends action.
+        </p>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          onClick={() => onSelectView("strategic")}
+          className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors ${
+            isDark
+              ? "border-zinc-700 bg-zinc-900 text-zinc-100 hover:bg-zinc-800"
+              : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100"
+          }`}
+        >
+          1. Dashboard Insights
+        </button>
+        <button
+          onClick={() => onSelectView("guardian")}
+          className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors ${
+            isDark
+              ? "border-zinc-700 bg-zinc-900 text-zinc-100 hover:bg-zinc-800"
+              : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100"
+          }`}
+        >
+          2. Event Handlers
+        </button>
+        <Link
+          href="/dashboard/schedule"
+          className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors ${
+            isDark
+              ? "border-zinc-700 bg-zinc-900 text-zinc-100 hover:bg-zinc-800"
+              : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100"
+          }`}
+        >
+          3. Templates
+        </Link>
+        <Link
+          href="/dashboard/reports"
+          className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors ${
+            isDark
+              ? "border-zinc-700 bg-zinc-900 text-zinc-100 hover:bg-zinc-800"
+              : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100"
+          }`}
+        >
+          4. Analytics
+        </Link>
+        <Link
+          href="/onboarding"
+          className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors ${
+            isDark
+              ? "border-zinc-700 bg-zinc-900 text-zinc-100 hover:bg-zinc-800"
+              : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100"
+          }`}
+        >
+          5. System Intelligence
+        </Link>
+        <Link
+          href="/dashboard/reports"
+          className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors ${
+            isDark
+              ? "border-amber-400/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20"
+              : "border-amber-300 bg-amber-100 text-amber-800 hover:bg-amber-200"
+          }`}
+        >
+          Backup Start
+        </Link>
+      </div>
     </div>
   );
 }
@@ -166,8 +383,9 @@ export function DashboardShell({
   profileId?: string | null;
 }) {
   const [isDark, setIsDark] = useState(true);
+  const [isDemoMode, setIsDemoMode] = useState(true);
   const [isAdminMode, setIsAdminMode] = useState(true);
-  const [adminView, setAdminView] = useState<AdminViewType>("tactical");
+  const [adminView, setAdminView] = useState<AdminViewType>("strategic");
   const [scheduleLayout, setScheduleLayout] = useState<ScheduleLayoutMode>("daily");
   const [scheduleView, setScheduleView] = useState<ScheduleViewMode>("ansatt");
   const [activeLocation, setActiveLocation] = useState("Alle Lokasjoner");
@@ -334,6 +552,21 @@ export function DashboardShell({
 
           <div className="flex items-center gap-4">
             <button
+              onClick={() => setIsDemoMode((prev) => !prev)}
+              className={`rounded-md border px-2.5 py-1 text-[11px] font-bold tracking-wide transition-colors ${
+                isDemoMode
+                  ? isDark
+                    ? "border-orange-500/30 bg-orange-500/15 text-orange-300"
+                    : "border-orange-300 bg-orange-100 text-orange-700"
+                  : isDark
+                    ? "border-zinc-700 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
+                    : "border-zinc-300 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-800"
+              }`}
+            >
+              Showcase {isDemoMode ? "On" : "Off"}
+            </button>
+
+            <button
               onClick={() => setIsDark(!isDark)}
               className={`rounded-md p-1.5 transition-colors ${
                 isDark
@@ -362,6 +595,7 @@ export function DashboardShell({
               <VoiceAssistantWithTools
                 isOpen={isAssistantOpen}
                 missionId={resolveMissionForRoute(pathname)}
+                sessionContext={buildVoiceSessionContext(pathname, adminView)}
                 onClose={() => setIsAssistantOpen(false)}
               />
             </div>
@@ -413,113 +647,169 @@ export function DashboardShell({
                 className={`scroll-overlay hide-scrollbar relative flex-1 space-y-1 py-4 ${isSidebarCollapsed ? "px-2" : "px-4"}`}
               >
                 {isAdminMode ? (
-                  <>
-                    {!isSidebarCollapsed && (
-                      <div
-                        className={`mt-2 mb-3 px-3 text-[10px] font-bold tracking-widest uppercase ${
-                          isDark ? "text-zinc-500" : "text-[oklch(0.60_0.018_45)]"
-                        }`}
-                      >
-                        Ledelse
-                      </div>
-                    )}
-                    <NavItem
-                      href="/dashboard"
-                      icon={LayoutDashboard}
-                      label="Oversikt"
-                      isDark={isDark}
-                      active={isActive("/dashboard")}
-                      isCollapsed={isSidebarCollapsed}
-                    />
-                    <NavItem
-                      href="/dashboard/people"
-                      icon={Users}
-                      label="Ansatte"
-                      isDark={isDark}
-                      badge="2 Forespørsler"
-                      active={isActive("/dashboard/people")}
-                      isCollapsed={isSidebarCollapsed}
-                    />
-                    <NavItem
-                      href="/dashboard/schedule"
-                      icon={CalendarDays}
-                      label="Vaktplan"
-                      isDark={isDark}
-                      active={isActive("/dashboard/schedule")}
-                      isCollapsed={isSidebarCollapsed}
-                    />
+                  isDemoMode ? (
+                    <>
+                      {!isSidebarCollapsed && (
+                        <div
+                          className={`mt-2 mb-3 px-3 text-[10px] font-bold tracking-widest uppercase ${
+                            isDark ? "text-zinc-500" : "text-[oklch(0.60_0.018_45)]"
+                          }`}
+                        >
+                          Showcase
+                        </div>
+                      )}
+                      <NavItem
+                        href="/dashboard"
+                        icon={LayoutDashboard}
+                        label="Oversikt"
+                        isDark={isDark}
+                        active={isActive("/dashboard")}
+                        isCollapsed={isSidebarCollapsed}
+                      />
+                      <NavItem
+                        href="/dashboard"
+                        icon={Shield}
+                        label="Event Center"
+                        isDark={isDark}
+                        active={isDashboardPage && adminView === "guardian"}
+                        isCollapsed={isSidebarCollapsed}
+                        onClick={() => setAdminView("guardian")}
+                        useButton
+                      />
+                      <NavItem
+                        href="/dashboard/schedule"
+                        icon={CalendarDays}
+                        label="Templates"
+                        isDark={isDark}
+                        active={isActive("/dashboard/schedule")}
+                        isCollapsed={isSidebarCollapsed}
+                      />
+                      <NavItem
+                        href="/dashboard/reports"
+                        icon={TrendingUp}
+                        label="Analytics"
+                        isDark={isDark}
+                        active={isActive("/dashboard/reports")}
+                        isCollapsed={isSidebarCollapsed}
+                      />
+                      <NavItem
+                        href="/onboarding"
+                        icon={Bot}
+                        label="System Intelligence"
+                        isDark={isDark}
+                        active={false}
+                        isCollapsed={isSidebarCollapsed}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      {!isSidebarCollapsed && (
+                        <div
+                          className={`mt-2 mb-3 px-3 text-[10px] font-bold tracking-widest uppercase ${
+                            isDark ? "text-zinc-500" : "text-[oklch(0.60_0.018_45)]"
+                          }`}
+                        >
+                          Ledelse
+                        </div>
+                      )}
+                      <NavItem
+                        href="/dashboard"
+                        icon={LayoutDashboard}
+                        label="Oversikt"
+                        isDark={isDark}
+                        active={isActive("/dashboard")}
+                        isCollapsed={isSidebarCollapsed}
+                      />
+                      <NavItem
+                        href="/dashboard/people"
+                        icon={Users}
+                        label="Ansatte"
+                        isDark={isDark}
+                        badge="2 Forespørsler"
+                        active={isActive("/dashboard/people")}
+                        isCollapsed={isSidebarCollapsed}
+                      />
+                      <NavItem
+                        href="/dashboard/schedule"
+                        icon={CalendarDays}
+                        label="Vaktplan"
+                        isDark={isDark}
+                        active={isActive("/dashboard/schedule")}
+                        isCollapsed={isSidebarCollapsed}
+                      />
 
-                    {!isSidebarCollapsed && (
-                      <div
-                        className={`mt-6 mb-3 px-3 text-[10px] font-bold tracking-widest uppercase ${
-                          isDark ? "text-zinc-500" : "text-[oklch(0.60_0.018_45)]"
-                        }`}
-                      >
-                        Operasjoner
-                      </div>
-                    )}
-                    {isSidebarCollapsed && <div className="mt-4" />}
-                    <NavItem
-                      href="/dashboard/operations"
-                      icon={Activity}
-                      label="Drift"
-                      isDark={isDark}
-                      active={isActive("/dashboard/operations")}
-                      isCollapsed={isSidebarCollapsed}
-                    />
-                    <NavItem
-                      href="/dashboard/reports"
-                      icon={TrendingUp}
-                      label="Rapporter"
-                      isDark={isDark}
-                      active={isActive("/dashboard/reports")}
-                      isCollapsed={isSidebarCollapsed}
-                    />
+                      {!isSidebarCollapsed && (
+                        <div
+                          className={`mt-6 mb-3 px-3 text-[10px] font-bold tracking-widest uppercase ${
+                            isDark ? "text-zinc-500" : "text-[oklch(0.60_0.018_45)]"
+                          }`}
+                        >
+                          Operasjoner
+                        </div>
+                      )}
+                      {isSidebarCollapsed && <div className="mt-4" />}
+                      <NavItem
+                        href="/dashboard/operations"
+                        icon={Activity}
+                        label="Drift"
+                        isDark={isDark}
+                        active={isActive("/dashboard/operations")}
+                        isCollapsed={isSidebarCollapsed}
+                      />
+                      <NavItem
+                        href="/dashboard/reports"
+                        icon={TrendingUp}
+                        label="Rapporter"
+                        isDark={isDark}
+                        active={isActive("/dashboard/reports")}
+                        isCollapsed={isSidebarCollapsed}
+                      />
 
-                    {!isSidebarCollapsed && (
-                      <div
-                        className={`mt-6 mb-3 px-3 text-[10px] font-bold tracking-widest uppercase ${
-                          isDark ? "text-zinc-500" : "text-[oklch(0.60_0.018_45)]"
-                        }`}
-                      >
-                        Administrasjon
-                      </div>
-                    )}
-                    {isSidebarCollapsed && <div className="mt-4" />}
-                    <NavItem
-                      href="/dashboard/governance"
-                      icon={ShieldCheck}
-                      label="HMS"
-                      isDark={isDark}
-                      active={isActive("/dashboard/governance")}
-                      isCollapsed={isSidebarCollapsed}
-                    />
-                    <NavItem
-                      href="/dashboard/season"
-                      icon={Gamepad2}
-                      label="Sesong"
-                      isDark={isDark}
-                      active={isActive("/dashboard/season")}
-                      isCollapsed={isSidebarCollapsed}
-                    />
-                    <NavItem
-                      href="/dashboard/organization"
-                      icon={Building2}
-                      label="Organisasjon"
-                      isDark={isDark}
-                      active={isActive("/dashboard/organization")}
-                      isCollapsed={isSidebarCollapsed}
-                    />
-                    <NavItem
-                      href="/dashboard"
-                      icon={Shield}
-                      label="Vakt"
-                      isDark={isDark}
-                      active={isDashboardPage && adminView === "guardian"}
-                      isCollapsed={isSidebarCollapsed}
-                      onClick={() => setAdminView("guardian")}
-                    />
-                  </>
+                      {!isSidebarCollapsed && (
+                        <div
+                          className={`mt-6 mb-3 px-3 text-[10px] font-bold tracking-widest uppercase ${
+                            isDark ? "text-zinc-500" : "text-[oklch(0.60_0.018_45)]"
+                          }`}
+                        >
+                          Administrasjon
+                        </div>
+                      )}
+                      {isSidebarCollapsed && <div className="mt-4" />}
+                      <NavItem
+                        href="/dashboard/governance"
+                        icon={ShieldCheck}
+                        label="HMS"
+                        isDark={isDark}
+                        active={isActive("/dashboard/governance")}
+                        isCollapsed={isSidebarCollapsed}
+                      />
+                      <NavItem
+                        href="/dashboard/season"
+                        icon={Gamepad2}
+                        label="Sesong"
+                        isDark={isDark}
+                        active={isActive("/dashboard/season")}
+                        isCollapsed={isSidebarCollapsed}
+                      />
+                      <NavItem
+                        href="/dashboard/organization"
+                        icon={Building2}
+                        label="Organisasjon"
+                        isDark={isDark}
+                        active={isActive("/dashboard/organization")}
+                        isCollapsed={isSidebarCollapsed}
+                      />
+                      <NavItem
+                        href="/dashboard"
+                        icon={Shield}
+                        label="Vakt"
+                        isDark={isDark}
+                        active={isDashboardPage && adminView === "guardian"}
+                        isCollapsed={isSidebarCollapsed}
+                        onClick={() => setAdminView("guardian")}
+                      />
+                    </>
+                  )
                 ) : (
                   <>
                     {!isSidebarCollapsed && (
@@ -575,62 +865,66 @@ export function DashboardShell({
                   </>
                 )}
 
-                {!isSidebarCollapsed && (
-                  <div
-                    className={`mt-6 mb-3 px-3 text-[10px] font-bold tracking-widest uppercase ${
-                      isDark ? "text-zinc-500" : "text-zinc-400"
-                    }`}
-                  >
-                    Kommunikasjon
-                  </div>
-                )}
-                {isSidebarCollapsed && <div className="mt-4" />}
-                <NavItem
-                  href="/dashboard/chat"
-                  icon={MessageSquare}
-                  label="Chat"
-                  isDark={isDark}
-                  badge="3"
-                  active={isActive("/dashboard/chat")}
-                  isCollapsed={isSidebarCollapsed}
-                />
-                <NavItem
-                  href="/dashboard/ai"
-                  icon={Bot}
-                  label="Mr. Botsson"
-                  isDark={isDark}
-                  ai
-                  active={isActive("/dashboard/ai")}
-                  isCollapsed={isSidebarCollapsed}
-                />
-                <NavItem
-                  href="/dashboard/onboarding-assistant"
-                  icon={Bot}
-                  label="Onboarding-assistent"
-                  isDark={isDark}
-                  ai
-                  active={isActive("/dashboard/onboarding-assistant")}
-                  isCollapsed={isSidebarCollapsed}
-                />
+                {!isDemoMode && (
+                  <>
+                    {!isSidebarCollapsed && (
+                      <div
+                        className={`mt-6 mb-3 px-3 text-[10px] font-bold tracking-widest uppercase ${
+                          isDark ? "text-zinc-500" : "text-zinc-400"
+                        }`}
+                      >
+                        Kommunikasjon
+                      </div>
+                    )}
+                    {isSidebarCollapsed && <div className="mt-4" />}
+                    <NavItem
+                      href="/dashboard/chat"
+                      icon={MessageSquare}
+                      label="Chat"
+                      isDark={isDark}
+                      badge="3"
+                      active={isActive("/dashboard/chat")}
+                      isCollapsed={isSidebarCollapsed}
+                    />
+                    <NavItem
+                      href="/dashboard/ai"
+                      icon={Bot}
+                      label="Mr. Botsson"
+                      isDark={isDark}
+                      ai
+                      active={isActive("/dashboard/ai")}
+                      isCollapsed={isSidebarCollapsed}
+                    />
+                    <NavItem
+                      href="/dashboard/onboarding-assistant"
+                      icon={Bot}
+                      label="Onboarding-assistent"
+                      isDark={isDark}
+                      ai
+                      active={isActive("/dashboard/onboarding-assistant")}
+                      isCollapsed={isSidebarCollapsed}
+                    />
 
-                <div className="mt-8 space-y-1 pt-4">
-                  <NavItem
-                    href="/dashboard/settings"
-                    icon={Settings}
-                    label="Innstillinger"
-                    isDark={isDark}
-                    active={isActive("/dashboard/settings")}
-                    isCollapsed={isSidebarCollapsed}
-                  />
-                  <NavItem
-                    href="/dashboard/help"
-                    icon={HelpCircle}
-                    label="Hjelp"
-                    isDark={isDark}
-                    active={isActive("/dashboard/help")}
-                    isCollapsed={isSidebarCollapsed}
-                  />
-                </div>
+                    <div className="mt-8 space-y-1 pt-4">
+                      <NavItem
+                        href="/dashboard/settings"
+                        icon={Settings}
+                        label="Innstillinger"
+                        isDark={isDark}
+                        active={isActive("/dashboard/settings")}
+                        isCollapsed={isSidebarCollapsed}
+                      />
+                      <NavItem
+                        href="/dashboard/help"
+                        icon={HelpCircle}
+                        label="Hjelp"
+                        isDark={isDark}
+                        active={isActive("/dashboard/help")}
+                        isCollapsed={isSidebarCollapsed}
+                      />
+                    </div>
+                  </>
+                )}
               </nav>
 
               {/* Sidebar bottom controls */}
@@ -962,9 +1256,11 @@ export function DashboardShell({
             <DashboardContext.Provider value={dashboardContextValue}>
               <div className="scroll-overlay flex min-h-0 flex-1 flex-col p-6 md:p-8 print:block print:h-auto print:overflow-visible print:p-0">
                 {isAdminMode && isDashboardPage && (
-                  <div className="mb-4 flex-shrink-0">
-                    <ActionStrip isDark={isDark} />
-                  </div>
+                  <>
+                    <div className="mb-4 flex-shrink-0">
+                      <ActionStrip isDark={isDark} />
+                    </div>
+                  </>
                 )}
                 {children}
               </div>
@@ -988,6 +1284,7 @@ interface NavItemProps {
   ai?: boolean;
   isCollapsed?: boolean;
   onClick?: () => void;
+  useButton?: boolean;
 }
 
 function NavItem({
@@ -1000,24 +1297,22 @@ function NavItem({
   ai,
   isCollapsed,
   onClick,
+  useButton,
 }: NavItemProps) {
-  const content = (
-    <Link
-      href={href}
-      prefetch={false}
-      onClick={onClick}
-      className={`group flex items-center rounded-xl transition-all ${
-        isCollapsed ? "justify-center px-0 py-2.5" : "justify-between px-3 py-2.5"
-      } ${
-        active
-          ? isDark
-            ? "border border-zinc-700/50 bg-zinc-800/80 font-semibold text-white"
-            : "border border-[oklch(0.87_0.015_45/0.5)] bg-[oklch(0.93_0.006_52)] font-bold text-[oklch(0.22_0.02_45)] shadow-sm"
-          : isDark
-            ? "border border-transparent text-zinc-500 hover:bg-zinc-900/50 hover:text-zinc-200"
-            : "border border-transparent text-[oklch(0.50_0.02_50)] hover:bg-[oklch(0.95_0.005_55)] hover:text-[oklch(0.25_0.015_45)]"
-      }`}
-    >
+  const baseClassName = `group flex items-center rounded-xl transition-all ${
+    isCollapsed ? "justify-center px-0 py-2.5" : "justify-between px-3 py-2.5"
+  } ${
+    active
+      ? isDark
+        ? "border border-zinc-700/50 bg-zinc-800/80 font-semibold text-white"
+        : "border border-[oklch(0.87_0.015_45/0.5)] bg-[oklch(0.93_0.006_52)] font-bold text-[oklch(0.22_0.02_45)] shadow-sm"
+      : isDark
+        ? "border border-transparent text-zinc-500 hover:bg-zinc-900/50 hover:text-zinc-200"
+        : "border border-transparent text-[oklch(0.50_0.02_50)] hover:bg-[oklch(0.95_0.005_55)] hover:text-[oklch(0.25_0.015_45)]"
+  }`;
+
+  const inner = (
+    <>
       <div className={`flex items-center ${isCollapsed ? "" : "gap-3"}`}>
         <Icon
           className={`h-[18px] w-[18px] shrink-0 transition-colors ${
@@ -1061,6 +1356,16 @@ function NavItem({
           {badge}
         </span>
       )}
+    </>
+  );
+
+  const content = useButton ? (
+    <button type="button" onClick={onClick} className={baseClassName}>
+      {inner}
+    </button>
+  ) : (
+    <Link href={href} prefetch={false} onClick={onClick} className={baseClassName}>
+      {inner}
     </Link>
   );
 

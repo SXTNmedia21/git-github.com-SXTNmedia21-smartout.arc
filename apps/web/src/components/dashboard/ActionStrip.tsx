@@ -43,7 +43,7 @@ const CHIP_CONFIG = [
     key: "pendingProtocols" as const,
     icon: BookOpen,
     label: "Protocols",
-    href: "/dashboard/governance",
+    href: "/dashboard/reports",
     priorityColor: {
       dark: "bg-blue-500/15 text-blue-400 border-blue-500/20",
       light: "bg-blue-50 text-blue-600 border-blue-200",

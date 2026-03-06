@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { motion } from "framer-motion";
 import { Mic, MicOff, Sparkles, X, Activity, Bot, Loader2 } from "lucide-react";
 import { UltravoxSession, UltravoxSessionStatus, Role } from "ultravox-client";
 import { usePostHog } from "posthog-js/react";
@@ -14,6 +13,12 @@ interface VoiceAssistantProps {
   onClose?: () => void;
   autoStart?: boolean;
   missionId?: MissionId;
+  sessionContext?: {
+    page: string;
+    story: string;
+    workingElements: string[];
+    availableInputs: string[];
+  };
   clientTools?: ClientTools | null;
 }
 
@@ -21,11 +26,13 @@ export default function VoiceAssistant({
   onClose,
   autoStart = false,
   missionId = "mr-botsson",
+  sessionContext,
   clientTools,
 }: VoiceAssistantProps) {
   const [status, setStatus] = useState<UltravoxSessionStatus | "idle">("idle");
   const [messages, setMessages] = useState<{ role: string; text: string }[]>([]);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
+  const [agentSpeaksEnabled, setAgentSpeaksEnabled] = useState(false);
   const sessionRef = useRef<UltravoxSession | null>(null);
   const posthog = usePostHog();
 
@@ -34,11 +41,52 @@ export default function VoiceAssistant({
     [missionId],
   );
 
+  type UltravoxSpeakerControls = UltravoxSession & {
+    muteSpeaker?: () => void;
+    unmuteSpeaker?: () => void;
+    setOutputMedium?: (medium: "voice" | "text") => void;
+  };
+
+  const isConnectedStatus = (currentStatus: UltravoxSessionStatus | "idle" | undefined) => {
+    return (
+      currentStatus === UltravoxSessionStatus.LISTENING ||
+      currentStatus === UltravoxSessionStatus.THINKING ||
+      currentStatus === UltravoxSessionStatus.SPEAKING
+    );
+  };
+
+  const applyAgentAudioState = (enabled: boolean) => {
+    const session = sessionRef.current as UltravoxSpeakerControls | null;
+    if (!session) return;
+    const currentStatus = session.status;
+    const canSetOutputMedium = isConnectedStatus(currentStatus);
+
+    try {
+      if (enabled) {
+        session.unmuteSpeaker?.();
+        if (canSetOutputMedium) {
+          session.setOutputMedium?.("voice");
+        }
+        return;
+      }
+      session.muteSpeaker?.();
+      if (canSetOutputMedium) {
+        session.setOutputMedium?.("text");
+      }
+    } catch (error) {
+      // Ignore transient pre-connect state errors.
+      console.debug("[VoiceAssistant] Skipping speaker state change until connected", error);
+    }
+  };
+
   const startSession = async () => {
     setStatus(UltravoxSessionStatus.CONNECTING);
     try {
       const currentSession = new UltravoxSession();
       sessionRef.current = currentSession;
+      // Chat-first behavior: keep mic muted until user explicitly presses "Snakk".
+      currentSession.muteMic();
+      setIsMuted(true);
 
       // Register client tool implementations BEFORE joinCall
       if (clientTools?.implementations) {
@@ -50,6 +98,9 @@ export default function VoiceAssistant({
       currentSession.addEventListener("status", () => {
         if (sessionRef.current === currentSession) {
           setStatus(currentSession.status || "idle");
+          if (isConnectedStatus(currentSession.status)) {
+            applyAgentAudioState(agentSpeaksEnabled);
+          }
         }
       });
 
@@ -88,6 +139,9 @@ export default function VoiceAssistant({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             mission_id: missionId,
+            // User should always start the conversation.
+            first_speaker: "user",
+            context: sessionContext,
             selected_tools: clientTools?.definitions ?? [],
           }),
         });
@@ -113,10 +167,14 @@ export default function VoiceAssistant({
 
       if (joinUrl && sessionRef.current === currentSession) {
         currentSession.joinCall(joinUrl);
+        // Enforce muted mic after connect as well.
+        currentSession.muteMic();
+        setIsMuted(true);
         posthog?.capture("voice_session_started", { mission_id: missionId });
       } else if (!joinUrl && sessionRef.current === currentSession) {
         setStatus("idle");
         setMessages([{ role: "agent", text: manifest.greeting }]);
+        toast.error("Kunne ikke starte stemme. Sjekk at Stage Engine/Ultravox er tilgjengelig.");
       }
     } catch (error) {
       console.error("[VoiceAssistant] Failed to start session:", error);
@@ -138,16 +196,22 @@ export default function VoiceAssistant({
     if (onClose) onClose();
   };
 
-  const toggleMute = () => {
-    if (sessionRef.current) {
-      if (isMuted) {
-        sessionRef.current.unmuteMic();
-        setIsMuted(false);
-      } else {
-        sessionRef.current.muteMic();
-        setIsMuted(true);
-      }
+  const toggleMicMute = () => {
+    const session = sessionRef.current;
+    if (!session) return;
+    if (isMuted) {
+      session.unmuteMic();
+      setIsMuted(false);
+      return;
     }
+    session.muteMic();
+    setIsMuted(true);
+  };
+
+  const toggleAgentSpeaks = () => {
+    const nextEnabled = !agentSpeaksEnabled;
+    setAgentSpeaksEnabled(nextEnabled);
+    applyAgentAudioState(nextEnabled);
   };
 
   useEffect(() => {
@@ -161,6 +225,10 @@ export default function VoiceAssistant({
     };
     // eslint-disable-next-line -- suppress exhaustive-deps: startSession/endSession excluded; only fire on autoStart change
   }, [autoStart]);
+
+  useEffect(() => {
+    applyAgentAudioState(agentSpeaksEnabled);
+  }, [agentSpeaksEnabled]);
 
   const isConnected = ["listening", "thinking", "speaking"].includes(status);
 
@@ -187,7 +255,7 @@ export default function VoiceAssistant({
             <p className="flex items-center gap-1 text-xs text-zinc-400">
               {isConnected ? (
                 <>
-                  <span className="h-1.5 w-1.5 rounded-full bg-orange-500" /> Samtalen pågår
+                  <span className="h-1.5 w-1.5 rounded-full bg-orange-500" /> Chat aktiv
                 </>
               ) : status === UltravoxSessionStatus.CONNECTING ||
                 status === UltravoxSessionStatus.DISCONNECTING ? (
@@ -227,11 +295,9 @@ export default function VoiceAssistant({
           </div>
         ) : (
           messages.map((msg, idx) => (
-            <motion.div
+            <div
               key={idx}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}
+              className={`animate-in fade-in slide-in-from-bottom-2 flex flex-col duration-200 ${msg.role === "user" ? "items-end" : "items-start"}`}
             >
               <div className="mb-1 flex items-center gap-2">
                 <span className="text-[10px] font-bold tracking-wider text-zinc-500 uppercase">
@@ -246,7 +312,7 @@ export default function VoiceAssistant({
               >
                 {msg.text}
               </div>
-            </motion.div>
+            </div>
           ))
         )}
       </div>
@@ -258,41 +324,39 @@ export default function VoiceAssistant({
             onClick={startSession}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 py-3 font-bold text-white shadow-lg shadow-orange-500/20 transition-all hover:bg-orange-400"
           >
-            <Mic className="h-5 w-5" /> Starta samtale
+            <Mic className="h-5 w-5" /> Start chat
           </button>
         ) : (
-          <div className="flex w-full items-center justify-center gap-4">
+          <div className="flex w-full flex-col items-stretch gap-2">
             <button
-              onClick={toggleMute}
-              className={`rounded-full p-4 transition-all ${isMuted ? "border border-red-500/20 bg-red-500/20 text-red-500 hover:bg-red-500/30" : "border border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700"}`}
+              onClick={toggleAgentSpeaks}
+              className={`rounded-full p-4 transition-all ${
+                agentSpeaksEnabled
+                  ? "border border-orange-300 bg-orange-500 text-white shadow-lg shadow-orange-500/30"
+                  : "border border-zinc-700 bg-zinc-800 text-zinc-200 hover:bg-zinc-700"
+              }`}
             >
-              {isMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-            </button>
-
-            <div className="flex flex-1 justify-center">
-              <div className="flex h-6 items-center gap-1">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <motion.div
-                    key={i}
-                    animate={
-                      isConnected && !isMuted
-                        ? {
-                            height: ["20%", "80%", "40%", "100%", "20%"],
-                            opacity: [0.5, 1, 0.5],
-                          }
-                        : { height: "20%", opacity: 0.3 }
-                    }
-                    transition={{
-                      repeat: Infinity,
-                      duration: 1.5,
-                      delay: i * 0.1,
-                      ease: "easeInOut",
-                    }}
-                    className="w-1.5 rounded-full bg-orange-500"
-                  />
-                ))}
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold tracking-wide uppercase">Agent speaks</span>
+                <span className="text-xs font-black">{agentSpeaksEnabled ? "ON" : "OFF"}</span>
               </div>
-            </div>
+            </button>
+            <button
+              onClick={toggleMicMute}
+              className={`rounded-full p-4 transition-all ${
+                isMuted
+                  ? "border border-red-500/20 bg-red-500/20 text-red-500 hover:bg-red-500/30"
+                  : "border border-emerald-300 bg-emerald-500 text-white shadow-lg shadow-emerald-500/30"
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold tracking-wide uppercase">Mute mic</span>
+                <span className="flex items-center gap-2 text-xs font-black">
+                  {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                  {isMuted ? "ON" : "OFF"}
+                </span>
+              </div>
+            </button>
 
             <button
               onClick={handleClose}
