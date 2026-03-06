@@ -44,3 +44,5 @@ export type { LeaderPulse, LeaderPulseStatus } from "./useLeaderPulse";
 export { useGovernanceOverview } from "./use-governance-overview";
 export { useProtocolAssignees } from "./use-protocol-assignees";
 export { useProtocolJourney } from "./use-protocol-journey";
+export { useActiveSeason } from "./use-active-season";
+export type { ActiveSeasonData } from "./use-active-season";

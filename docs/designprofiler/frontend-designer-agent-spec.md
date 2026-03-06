@@ -1,3 +1,12 @@
+---
+title: "Frontend Designer Agent Spec"
+status: draft
+updated: 2026-04-10
+created: 2026-03-01
+module: design
+tags: []
+---
+
 # Frontend Designer Agent Spec (Legacy Reference)
 
 This document is now a supplemental design reference only.

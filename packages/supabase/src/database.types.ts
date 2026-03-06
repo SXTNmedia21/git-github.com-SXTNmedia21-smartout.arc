@@ -539,6 +539,7 @@ export type Database = {
           contract_types: string[] | null
           created_at: string | null
           id: string
+          industry_codes: string[] | null
           is_active: boolean | null
           language: string
           sort_order: number | null
@@ -553,6 +554,7 @@ export type Database = {
           contract_types?: string[] | null
           created_at?: string | null
           id?: string
+          industry_codes?: string[] | null
           is_active?: boolean | null
           language?: string
           sort_order?: number | null
@@ -567,6 +569,7 @@ export type Database = {
           contract_types?: string[] | null
           created_at?: string | null
           id?: string
+          industry_codes?: string[] | null
           is_active?: boolean | null
           language?: string
           sort_order?: number | null
@@ -845,7 +848,7 @@ export type Database = {
         Row: {
           audit_log_url: string | null
           auto_create_workspace: boolean | null
-          company_id: string
+          company_id: string | null
           contract_id: string
           contract_number: string | null
           contract_type: string
@@ -882,7 +885,7 @@ export type Database = {
         Insert: {
           audit_log_url?: string | null
           auto_create_workspace?: boolean | null
-          company_id: string
+          company_id?: string | null
           contract_id?: string
           contract_number?: string | null
           contract_type?: string
@@ -919,7 +922,7 @@ export type Database = {
         Update: {
           audit_log_url?: string | null
           auto_create_workspace?: boolean | null
-          company_id?: string
+          company_id?: string | null
           contract_id?: string
           contract_number?: string | null
           contract_type?: string
@@ -2269,7 +2272,7 @@ export type Database = {
           context: Json
           created_at: string
           current_stage_id: string | null
-          expires_at: string
+          expires_at: string | null
           guardian_whisper_count: number
           id: string
           journey_id: string | null
@@ -2292,7 +2295,7 @@ export type Database = {
           context?: Json
           created_at?: string
           current_stage_id?: string | null
-          expires_at?: string
+          expires_at?: string | null
           guardian_whisper_count?: number
           id?: string
           journey_id?: string | null
@@ -2315,7 +2318,7 @@ export type Database = {
           context?: Json
           created_at?: string
           current_stage_id?: string | null
-          expires_at?: string
+          expires_at?: string | null
           guardian_whisper_count?: number
           id?: string
           journey_id?: string | null
@@ -7462,54 +7465,6 @@ export type Database = {
       seed_onboarding_journey: {
         Args: { p_workspace_id: string }
         Returns: string
-      }
-      template_restaurant_alcohol_labor: {
-        Args: { p_workspace_id: string }
-        Returns: undefined
-      }
-      template_restaurant_assignments: {
-        Args: { p_workspace_id: string }
-        Returns: undefined
-      }
-      template_restaurant_budget: {
-        Args: { p_workspace_id: string }
-        Returns: undefined
-      }
-      template_restaurant_contracts: {
-        Args: { p_workspace_id: string }
-        Returns: undefined
-      }
-      template_restaurant_departments: {
-        Args: { p_workspace_id: string }
-        Returns: undefined
-      }
-      template_restaurant_employees: {
-        Args: { p_workspace_id: string }
-        Returns: undefined
-      }
-      template_restaurant_governance: {
-        Args: { p_workspace_id: string }
-        Returns: undefined
-      }
-      template_restaurant_locations: {
-        Args: { p_workspace_id: string }
-        Returns: undefined
-      }
-      template_restaurant_mattilsynet: {
-        Args: { p_workspace_id: string }
-        Returns: undefined
-      }
-      template_restaurant_policies: {
-        Args: { p_workspace_id: string }
-        Returns: undefined
-      }
-      template_restaurant_schedule: {
-        Args: { p_workspace_id: string }
-        Returns: undefined
-      }
-      template_restaurant_teams: {
-        Args: { p_workspace_id: string }
-        Returns: undefined
       }
       upsert_secret: {
         Args: { p_description?: string; p_name: string; p_secret: string }

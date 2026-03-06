@@ -1,3 +1,12 @@
+---
+title: "AGENT_DRIVEN_UI_ARCHITECTURE"
+status: draft
+updated: 2026-04-10
+created: 2026-03-01
+module: ai
+tags: []
+---
+
 # Agent-Driven Dynamic UI Architecture (v2)
 
 This document defines the strict architectural patterns required to build highly dynamic, agent-controlled UI containers (like the Onboarding flow or Journey runners).

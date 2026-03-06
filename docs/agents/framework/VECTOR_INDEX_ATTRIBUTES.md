@@ -1,3 +1,12 @@
+---
+title: "VECTOR_INDEX_ATTRIBUTES"
+status: draft
+updated: 2026-04-10
+created: 2026-03-01
+module: ai
+tags: []
+---
+
 # Event Motor Vector Index: Attributes & Variables
 
 This document defines the raw attributes, metadata variables, and state definitions that must be captured by the Event Motor to feed the Vector Store. The Index Specialist will use these to calculate weights, factors, multipliers, and overall engagement scores.

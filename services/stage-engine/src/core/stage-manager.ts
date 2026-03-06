@@ -7,12 +7,13 @@
 // ============================================
 
 import { supabaseAdmin } from "../lib/supabase.js";
-import { loadMission } from "./session-manager.js";
+import { loadMission, createSession } from "./session-manager.js";
 import { buildStagePrompt } from "./prompt-builder.js";
 import { sendWebhook, type WebhookPayload } from "./webhook-sender.js";
 import { emitGuardianEvent } from "./guardian-bus.js";
 import type { Session, Stage, Mission } from "../types/session.js";
 import type { AdvanceRequest, AdvanceResponse, StageInfo } from "../types/api.js";
+import { SEASON_LIFECYCLE_MISSION_ID } from "@smartout/ai";
 
 /**
  * Advances a session to the next stage.
@@ -82,6 +83,38 @@ export async function advanceStage(
         collected_data: session.collected_data as Record<string, unknown>,
         timestamp: new Date().toISOString(),
       });
+    }
+
+    // Onboarding → Season lifecycle handoff
+    // When onboarding collects season data (stage 4), automatically spawn a season-lifecycle session
+    if (session.mission_id === "onboarding-interview") {
+      const collectedData = session.collected_data as Record<string, unknown>;
+      const seasonData = collectedData?.season as Record<string, unknown> | undefined;
+
+      if (seasonData?.name || seasonData?.startDate || seasonData?.start_date) {
+        try {
+          await createSession(
+            {
+              mission_id: SEASON_LIFECYCLE_MISSION_ID,
+              workspace_id: session.workspace_id,
+              user_id: session.user_id ?? undefined,
+              profile_id: session.profile_id ?? undefined,
+              channel: "autonomous",
+              context: { source: "onboarding", inherited_season: seasonData },
+            },
+            {
+              method: "jwt",
+              workspaceId: session.workspace_id,
+              userId: session.user_id ?? undefined,
+            },
+          );
+          console.log(
+            `[stage-manager] Onboarding→Season handoff: created season-lifecycle session for workspace ${session.workspace_id}`,
+          );
+        } catch (err) {
+          console.error("[stage-manager] Failed to create season-lifecycle session:", err);
+        }
+      }
     }
 
     return {

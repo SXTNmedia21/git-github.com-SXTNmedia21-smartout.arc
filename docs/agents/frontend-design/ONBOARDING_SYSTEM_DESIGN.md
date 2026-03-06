@@ -1,3 +1,12 @@
+---
+title: "ONBOARDING_SYSTEM_DESIGN"
+status: draft
+updated: 2026-04-10
+created: 2026-03-01
+module: ai
+tags: []
+---
+
 # Onboarding System Design & Architecture
 
 ## Overview

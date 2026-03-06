@@ -27,10 +27,16 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@smartout/ui";
-import { useWorkforcePipeline, useTrainingReadiness, useKpiTargets } from "@/app/dashboard/_hooks";
+import {
+  useWorkforcePipeline,
+  useTrainingReadiness,
+  useKpiTargets,
+  useActiveSeason,
+} from "@/app/dashboard/_hooks";
 import type { KpiMetric } from "@/app/dashboard/_hooks";
 import { BudgetSettingsPanel } from "./BudgetSettingsPanel";
 import { DashboardCard } from "./DashboardCard";
+import { SeasonCard } from "./SeasonCard";
 
 const LOCATIONS = [
   { id: "all", name: "Alle lokasjoner" },
@@ -125,6 +131,7 @@ export function StrategicView({ isDark }: StrategicViewProps) {
   const [showBudget, setShowBudget] = useState(false);
 
   const { targets, updateTarget } = useKpiTargets();
+  const { data: activeSeason } = useActiveSeason();
 
   const data = defaultMetrics[selectedLocId as keyof typeof defaultMetrics];
   const { data: pipeline } = useWorkforcePipeline();
@@ -412,6 +419,9 @@ export function StrategicView({ isDark }: StrategicViewProps) {
           </div>
         </div>
       </div>
+
+      {/* Season Lifecycle Card */}
+      <SeasonCard season={activeSeason ?? null} />
 
       {/* Target Configuration Modal */}
       <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>

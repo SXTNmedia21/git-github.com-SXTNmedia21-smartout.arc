@@ -1,6 +1,9 @@
 import type { AgentMission } from "./types";
 import { SCHEDULE_TOOL_DEFINITIONS } from "../tools/schedule";
 
+/** Shared constant for the season-lifecycle mission ID. Used across stage-engine, hooks, and tools. */
+export const SEASON_LIFECYCLE_MISSION_ID = "season-lifecycle" as const;
+
 /**
  * All available Ultravox agent missions.
  *

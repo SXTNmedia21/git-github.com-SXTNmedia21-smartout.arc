@@ -13,6 +13,7 @@ import { emitGuardianEvent } from "./guardian-bus.js";
 import type { Mission, Stage, Session, JourneyStep } from "../types/session.js";
 import type { CreateSessionRequest, CreateSessionResponse } from "../types/api.js";
 import type { AuthContext } from "../types/auth.js";
+import { SEASON_LIFECYCLE_MISSION_ID } from "@smartout/ai";
 
 /**
  * Load completed onboarding data for a profile.
@@ -248,6 +249,10 @@ export async function createSession(
     context.journey = journeyContext;
   }
 
+  // Long-lived missions (e.g. season-lifecycle) never expire
+  const isLongLived = mission.id === SEASON_LIFECYCLE_MISSION_ID;
+  const expiresAt = isLongLived ? null : new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
   // Create session row
   const { data: session, error } = await supabaseAdmin
     .from("engine_sessions")
@@ -266,6 +271,7 @@ export async function createSession(
       journey_id: mission.journey_id ?? null,
       stage_started_at: new Date().toISOString(),
       guardian_whisper_count: 0,
+      expires_at: expiresAt,
     })
     .select()
     .single();
@@ -348,8 +354,12 @@ export async function getSession(sessionId: string): Promise<Session | null> {
 
   if (error || !session) return null;
 
-  // Check if expired
-  if (session.status === "active" && new Date(session.expires_at) < new Date()) {
+  // Check if expired (long-lived sessions have expires_at = null and never expire)
+  if (
+    session.status === "active" &&
+    session.expires_at !== null &&
+    new Date(session.expires_at) < new Date()
+  ) {
     await supabaseAdmin
       .from("engine_sessions")
       .update({ status: "expired", updated_at: new Date().toISOString() })
@@ -405,6 +415,7 @@ export async function expireStaleSession(): Promise<number> {
     .from("engine_sessions")
     .update({ status: "expired", updated_at: new Date().toISOString() })
     .eq("status", "active")
+    .not("expires_at", "is", null)
     .lt("expires_at", new Date().toISOString())
     .select("id");
 

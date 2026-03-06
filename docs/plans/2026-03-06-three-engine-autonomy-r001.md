@@ -1,3 +1,12 @@
+---
+title: "Three Engine Autonomy R001"
+status: draft
+updated: 2026-04-10
+created: 2026-03-06
+module: meta
+tags: []
+---
+
 # Three-Engine Autonomy (R-001) Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.

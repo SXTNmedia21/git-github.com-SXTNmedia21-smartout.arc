@@ -1,3 +1,12 @@
+---
+title: "Smartout Modern Dark"
+status: draft
+updated: 2026-04-10
+created: 2026-03-01
+module: design
+tags: []
+---
+
 # Designprofil: Smartout Modern Dark (Onboarding & Dashboard)
 
 Detta dokument sammanfattar designprofilen och utseendet från applikationens centrala delar (ex. "Sesongplanlegging" och Dashboardshell). Syftet med detta dokument är att säkra designkonsensus och kunna återanvända samma estetik i framtida komponenter.

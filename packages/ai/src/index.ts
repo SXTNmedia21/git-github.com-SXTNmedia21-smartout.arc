@@ -40,6 +40,10 @@ export {
 } from "./tools/schedule";
 export type { ScheduleClientToolDefinition } from "./tools/schedule";
 
+// Season tools
+export { SEASON_TOOLS } from "./tools/season";
+export type { SeasonToolContext } from "./tools/season";
+
 // Doc retrieval tools (RAG)
 export { DOC_TOOLS, searchPlatformDocs, getDocByPath } from "./tools/docs";
 export type { DocToolContext } from "./tools/docs";
@@ -66,5 +70,6 @@ export {
   getMissionIds,
   startMissionCall,
   MissionIdSchema,
+  SEASON_LIFECYCLE_MISSION_ID,
 } from "./missions";
 export type { MissionId, AgentMission, StartCallOptions, CallResult } from "./missions";
