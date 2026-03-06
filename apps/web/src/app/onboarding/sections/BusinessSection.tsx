@@ -332,7 +332,7 @@ export function BusinessSection() {
               onClick={() => setShowSkipPicker(!showSkipPicker)}
               className="flex items-center gap-1.5 text-sm text-white/20 transition-colors hover:text-white/40"
             >
-              Hopp over (dev)
+              Bruk demo-data
               <ChevronDown
                 className={`h-3 w-3 transition-transform ${showSkipPicker ? "rotate-180" : ""}`}
               />
@@ -346,7 +346,7 @@ export function BusinessSection() {
                   exit={{ opacity: 0, y: -4 }}
                   className="absolute bottom-full left-0 mb-2 w-64 rounded-xl border border-white/[0.08] bg-[#1a1a1a] p-2 shadow-xl"
                 >
-                  <p className="mb-2 px-2 text-xs text-white/30">Velg bransje for testdata:</p>
+                  <p className="mb-2 px-2 text-xs text-white/30">Velg bransje for demo-data:</p>
                   {DEV_SKIP_INDUSTRIES.map((ind) => (
                     <button
                       key={ind.value}

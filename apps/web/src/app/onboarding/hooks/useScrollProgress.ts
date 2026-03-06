@@ -18,7 +18,7 @@ export function useScrollProgress(
   const [activeSection, setActiveSection] = useState<OnboardingSection>("hero");
 
   const sectionIndex = ONBOARDING_SECTIONS.indexOf(activeSection);
-  const totalProgress = sectionIndex / ONBOARDING_SECTIONS.length;
+  const totalProgress = Math.min(1, (sectionIndex + 1) / ONBOARDING_SECTIONS.length);
 
   useEffect(() => {
     const container = containerRef.current;
