@@ -195,7 +195,17 @@ export function PeopleDataTable({
   );
 
   const deptNames = useMemo(() => {
-    return ["All", ...departments.map((d) => d.name)];
+    const seen = new Set<string>(["All"]);
+    const values = ["All"];
+
+    for (const department of departments) {
+      const name = department.name.trim();
+      if (!name || seen.has(name)) continue;
+      seen.add(name);
+      values.push(name);
+    }
+
+    return values;
   }, [departments]);
 
   const filteredEmployees = useMemo(() => {

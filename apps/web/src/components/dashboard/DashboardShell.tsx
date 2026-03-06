@@ -5,6 +5,10 @@ import dynamic from "next/dynamic";
 import type { MissionId } from "@smartout/ai/missions";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 
+const VoiceAssistant = dynamic(() => import("@/components/voice-assistant"), {
+  ssr: false,
+});
+
 const ROUTE_MISSION_MAP: Record<string, MissionId> = {
   "/dashboard": "mr-botsson",
   "/dashboard/schedule": "shift-assistant",
@@ -241,13 +245,6 @@ import { VoiceToolsProvider, useVoiceTools } from "@/components/voice-tools-cont
 // Popover imports removed — location selector moved to PlannerCommandBar
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-const LazyVoiceAssistant = dynamic(() => import("@/components/voice-assistant"), {
-  ssr: false,
-  loading: () => (
-    <div className="border-border bg-background/80 h-[600px] w-[350px] rounded-2xl border backdrop-blur-xl" />
-  ),
-});
-
 /** Demo location options for the schedule page location selector */
 // LOCATIONS moved to schedule PlannerCommandBar
 
@@ -266,7 +263,7 @@ function VoiceAssistantWithTools({
   if (!isOpen) return null;
   return (
     <div className="pointer-events-auto absolute top-full right-0 z-50 mt-4 origin-top-right shadow-2xl">
-      <LazyVoiceAssistant
+      <VoiceAssistant
         autoStart={false}
         missionId={missionId}
         sessionContext={sessionContext}
