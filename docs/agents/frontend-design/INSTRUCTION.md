@@ -1,3 +1,12 @@
+---
+title: "INSTRUCTION"
+status: draft
+updated: 2026-04-10
+created: 2026-03-01
+module: ai
+tags: []
+---
+
 # Frontend UI Architect Agent: System Prompt & Instruction
 
 > Canonical execution contract lives in `SUBAGENT_SPEC.md`.  

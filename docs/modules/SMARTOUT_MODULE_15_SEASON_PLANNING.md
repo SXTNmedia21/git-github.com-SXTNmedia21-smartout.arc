@@ -1,3 +1,12 @@
+---
+title: "SMARTOUT_MODULE_15_SEASON_PLANNING"
+status: draft
+updated: 2026-04-10
+created: 2026-03-01
+module: operations
+tags: []
+---
+
 \*\*---
 title: "Module 15: Season Planning & Budget Engine"
 id: MODULE_15

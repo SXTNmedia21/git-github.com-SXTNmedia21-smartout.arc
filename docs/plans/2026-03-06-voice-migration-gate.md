@@ -1,3 +1,12 @@
+---
+title: "Voice Migration Gate"
+status: draft
+updated: 2026-04-10
+created: 2026-03-06
+module: meta
+tags: []
+---
+
 # Voice Migration Decision Gate
 
 ## Purpose

@@ -32,8 +32,9 @@ tags: [season, engine, ai-tools, guardian, dashboard]
 
 ## Remaining
 
-- [ ] User journey documentation (JOURNEY-season-engine-complete.md)
-- [ ] Final decision/learning log registration
+- [x] User journey documentation (JOURNEY-season-engine-complete.md)
+- [x] Final decision/learning log registration
+- [x] YAML frontmatter on all docs/ markdown files (31 files fixed)
 - [ ] Commit doc updates
 - [ ] Feature closure (cf 1)
 
