@@ -38,6 +38,7 @@ export default function VoiceAssistant({
   const isStartingRef = useRef(false);
   const pendingOutputMediumRef = useRef<"voice" | "text" | null>(null);
   const connectedReadyCapturedRef = useRef(false);
+  const connectWatchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const posthog = usePostHog();
 
   const manifest = useMemo(
@@ -68,6 +69,13 @@ export default function VoiceAssistant({
     },
     [posthog, missionId],
   );
+
+  const clearConnectWatchdog = useCallback(() => {
+    if (connectWatchdogRef.current) {
+      clearTimeout(connectWatchdogRef.current);
+      connectWatchdogRef.current = null;
+    }
+  }, []);
 
   /**
    * Applies the desired speaker/output mode when session is connected.
@@ -136,6 +144,8 @@ export default function VoiceAssistant({
           setStatus(nextStatus);
 
           if (isConnectedStatus(nextStatus)) {
+            clearConnectWatchdog();
+            setStartErrorMessage(null);
             if (!connectedReadyCapturedRef.current) {
               connectedReadyCapturedRef.current = true;
               trackVoiceEvent("connected_ready", {
@@ -143,6 +153,21 @@ export default function VoiceAssistant({
               });
             }
             applyAgentAudioState(agentSpeaksEnabled, "connected_status");
+          }
+
+          if (
+            nextStatus === UltravoxSessionStatus.DISCONNECTED &&
+            !connectedReadyCapturedRef.current
+          ) {
+            clearConnectWatchdog();
+            sessionRef.current = null;
+            setStatus("idle");
+            setStartErrorMessage("Kunne ikke koble til tale. Prøv igjen om noen sekunder.");
+            toast.error("Kunne ikke koble til tale. Prøv igjen om noen sekunder.");
+            trackVoiceEvent("session_connect_failed", {
+              status: String(nextStatus),
+              reason: "disconnected_before_ready",
+            });
           }
         }
       });
@@ -226,6 +251,20 @@ export default function VoiceAssistant({
         // Enforce muted mic after connect as well.
         currentSession.muteMic();
         setIsMuted(true);
+        clearConnectWatchdog();
+        connectWatchdogRef.current = setTimeout(() => {
+          if (sessionRef.current !== currentSession || connectedReadyCapturedRef.current) return;
+          try {
+            currentSession.leaveCall();
+          } catch {
+            // no-op cleanup
+          }
+          sessionRef.current = null;
+          setStatus("idle");
+          setStartErrorMessage("Tilkobling tok for lang tid. Prøv igjen.");
+          toast.error("Tilkobling tok for lang tid. Prøv igjen.");
+          trackVoiceEvent("session_connect_timeout", { timeout_ms: 15000 });
+        }, 15000);
         trackVoiceEvent("join_call_invoked", { has_join_url: true });
         posthog?.capture("voice_session_started", { mission_id: missionId });
       } else if (!joinUrl && sessionRef.current === currentSession) {
@@ -260,6 +299,7 @@ export default function VoiceAssistant({
     applyAgentAudioState,
     posthog,
     agentSpeaksEnabled,
+    clearConnectWatchdog,
   ]);
 
   const endSession = useCallback(
@@ -267,6 +307,7 @@ export default function VoiceAssistant({
       isStartingRef.current = false;
       pendingOutputMediumRef.current = null;
       connectedReadyCapturedRef.current = false;
+      clearConnectWatchdog();
 
       const session = sessionRef.current;
       sessionRef.current = null;
@@ -281,7 +322,7 @@ export default function VoiceAssistant({
       setStatus("idle");
       trackVoiceEvent("session_end_reason", { reason });
     },
-    [posthog, missionId, trackVoiceEvent],
+    [posthog, missionId, trackVoiceEvent, clearConnectWatchdog],
   );
 
   const handleClose = () => {

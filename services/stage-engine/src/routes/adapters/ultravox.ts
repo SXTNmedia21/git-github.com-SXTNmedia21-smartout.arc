@@ -97,17 +97,23 @@ ultravox.post("/adapters/ultravox/create-call", zValidator("json", createCallSch
     selectedTools: tools,
   });
 
-  if (!call) {
+  if (!call.ok) {
     return c.json(
-      { error: "INTERNAL_ERROR", message: "Failed to create Ultravox call", status: 500 },
+      {
+        error: call.error,
+        message: "Failed to create Ultravox call",
+        details: call.details,
+        upstream_status: call.status,
+        status: 500,
+      },
       500,
     );
   }
 
   return c.json({
     session_id: session.session_id,
-    call_id: call.callId,
-    join_url: call.joinUrl,
+    call_id: call.data.callId,
+    join_url: call.data.joinUrl,
   });
 });
 
