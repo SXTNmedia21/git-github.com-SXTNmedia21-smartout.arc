@@ -31,11 +31,16 @@ import {
 
 // ── Query: Fetch messages for a week ─────────────────────────
 
-export function useDayMessages(weekStart: string, weekEnd: string) {
+export function useDayMessages(
+  weekStart: string,
+  weekEnd: string,
+  options?: { enabled?: boolean },
+) {
   const { workspace } = useWorkspace();
 
   return useQuery({
     queryKey: scheduleKeys.dayMessages(workspace.workspace_id, weekStart),
+    enabled: options?.enabled ?? true,
     staleTime: 2 * 60 * 1000, // 2 minutes — volatile daily content
     queryFn: async () => {
       const supabase = createClient();
@@ -157,11 +162,12 @@ export function useDeleteDayMessage(weekStart: string) {
 
 // ── Query: Fetch tasks for a week ────────────────────────────
 
-export function useDayTasks(weekStart: string, weekEnd: string) {
+export function useDayTasks(weekStart: string, weekEnd: string, options?: { enabled?: boolean }) {
   const { workspace } = useWorkspace();
 
   return useQuery({
     queryKey: scheduleKeys.dayTasks(workspace.workspace_id, weekStart),
+    enabled: options?.enabled ?? true,
     staleTime: 2 * 60 * 1000, // 2 minutes — volatile daily content
     queryFn: async () => {
       const supabase = createClient();
@@ -334,11 +340,16 @@ export function useDeleteDayTask(weekStart: string) {
 
 // ── Query: Fetch bookings for a week ─────────────────────────
 
-export function useDayBookings(weekStart: string, weekEnd: string) {
+export function useDayBookings(
+  weekStart: string,
+  weekEnd: string,
+  options?: { enabled?: boolean },
+) {
   const { workspace } = useWorkspace();
 
   return useQuery({
     queryKey: scheduleKeys.dayBookings(workspace.workspace_id, weekStart),
+    enabled: options?.enabled ?? true,
     staleTime: 2 * 60 * 1000, // 2 minutes — volatile daily content
     queryFn: async () => {
       const supabase = createClient();

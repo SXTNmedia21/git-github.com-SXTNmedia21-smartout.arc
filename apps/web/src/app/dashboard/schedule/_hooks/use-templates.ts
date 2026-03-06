@@ -36,11 +36,12 @@ type TemplateWithShifts = TemplateRow & { schedule_template_shift: TemplateShift
 // Query: Fetch all templates for workspace
 // ══════════════════════════════════════════════════════════════
 
-export function useTemplates() {
+export function useTemplates(options?: { enabled?: boolean }) {
   const { workspace } = useWorkspace();
 
   return useQuery({
     queryKey: scheduleKeys.templates(workspace.workspace_id),
+    enabled: options?.enabled ?? true,
     queryFn: async () => {
       const supabase = createClient();
 

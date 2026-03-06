@@ -6,10 +6,17 @@ import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
 import { scheduleKeys } from "./schedule-keys";
 
-export function useScheduleRealtime(weekStart: string) {
+type ScheduleRealtimeOptions = {
+  includeDayContent?: boolean;
+  includeOpenShifts?: boolean;
+};
+
+export function useScheduleRealtime(weekStart: string, options?: ScheduleRealtimeOptions) {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
   const workspaceId = workspace.workspace_id;
+  const includeDayContent = options?.includeDayContent ?? true;
+  const includeOpenShifts = options?.includeOpenShifts ?? true;
 
   useEffect(() => {
     const supabase = createClient();
@@ -43,50 +50,56 @@ export function useScheduleRealtime(weekStart: string) {
             queryKey: scheduleKeys.absences(workspaceId, weekStart),
           });
         },
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "schedule_day_message",
-          filter: `workspace_id=eq.${workspaceId}`,
-        },
-        () => {
-          queryClient.invalidateQueries({
-            queryKey: scheduleKeys.dayMessages(workspaceId, weekStart),
-          });
-        },
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "schedule_day_task",
-          filter: `workspace_id=eq.${workspaceId}`,
-        },
-        () => {
-          queryClient.invalidateQueries({
-            queryKey: scheduleKeys.dayTasks(workspaceId, weekStart),
-          });
-        },
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "schedule_day_booking",
-          filter: `workspace_id=eq.${workspaceId}`,
-        },
-        () => {
-          queryClient.invalidateQueries({
-            queryKey: scheduleKeys.dayBookings(workspaceId, weekStart),
-          });
-        },
-      )
-      .on(
+      );
+
+    if (includeDayContent) {
+      channel
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "schedule_day_message",
+            filter: `workspace_id=eq.${workspaceId}`,
+          },
+          () => {
+            queryClient.invalidateQueries({
+              queryKey: scheduleKeys.dayMessages(workspaceId, weekStart),
+            });
+          },
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "schedule_day_task",
+            filter: `workspace_id=eq.${workspaceId}`,
+          },
+          () => {
+            queryClient.invalidateQueries({
+              queryKey: scheduleKeys.dayTasks(workspaceId, weekStart),
+            });
+          },
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "schedule_day_booking",
+            filter: `workspace_id=eq.${workspaceId}`,
+          },
+          () => {
+            queryClient.invalidateQueries({
+              queryKey: scheduleKeys.dayBookings(workspaceId, weekStart),
+            });
+          },
+        );
+    }
+
+    if (includeOpenShifts) {
+      channel.on(
         "postgres_changes",
         {
           event: "*",
@@ -99,11 +112,13 @@ export function useScheduleRealtime(weekStart: string) {
             queryKey: scheduleKeys.openShifts(workspaceId),
           });
         },
-      )
-      .subscribe();
+      );
+    }
+
+    channel.subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [workspaceId, weekStart, queryClient]);
+  }, [workspaceId, weekStart, queryClient, includeDayContent, includeOpenShifts]);
 }
