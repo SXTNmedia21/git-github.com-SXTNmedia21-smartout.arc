@@ -1,6 +1,6 @@
 ---
 title: "Worklog — document-mode"
-status: in_progress
+status: done
 updated: 2026-03-06
 created: 2026-03-06
 module: document
@@ -11,7 +11,7 @@ tags: [handbook, editor, tiptap]
 
 > Branch: `feat/document-mode` | Worktree: wt-2 | Started: 2026-03-06
 
-## Status: 🟡 In Progress
+## Status: ✅ Done
 
 ## Done
 
@@ -42,3 +42,4 @@ tags: [handbook, editor, tiptap]
 | 2026-03-06 | --    | Reviewed all 9 scaffolding files + DashboardShell integration            |
 | 2026-03-06 | --    | Fixed 13 typecheck errors across canvas, panel, and use-handbook-content |
 | 2026-03-06 | --    | Typecheck clean -- all fixes verified                                    |
+| 2026-03-06 | 19:35 | Feature closed and merged to development                                 |
