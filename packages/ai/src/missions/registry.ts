@@ -20,7 +20,7 @@ export const MISSIONS: Record<string, AgentMission> = {
     voice: "Mark",
     temperature: 0.6,
     maxDurationSeconds: 1800,
-    firstSpeaker: "agent",
+    firstSpeaker: "user",
     initialOutputMedium: "voice",
     systemPrompt: `Du er Botsson. Du setter opp Smartout for nye kunder gjennom en samtale.
 
@@ -294,7 +294,8 @@ REGLER:
 3. Sjekk tilgjengelighet og fravær før du foreslår ansatte
 4. Flagg overtid over 37.5 timer og helgejobbing
 5. Norsk er standard — bytt språk kun hvis brukeren gjør det
-6. Hold svarene korte og presise — ledere har det travelt`,
+6. Hold svarene korte og presise — ledere har det travelt
+7. Ikke forklar ting uoppfordret. Svar kun på det brukeren spør om, eller det som er nødvendig for å utføre en endring.`,
   },
 } as const;
 

@@ -15,7 +15,6 @@ import { createSession, loadAuthorizedSession } from "../../core/session-manager
 import { advanceStage } from "../../core/stage-manager.js";
 import { validateStoreData, writeToInbox } from "../../core/inbox-writer.js";
 import { loadMission } from "../../core/session-manager.js";
-import { buildStagePrompt } from "../../core/prompt-builder.js";
 import { supabaseAdmin } from "../../lib/supabase.js";
 import { createUltravoxCall, buildUltravoxTools } from "../../lib/ultravox.js";
 import { config } from "../../config.js";
@@ -32,9 +31,11 @@ const createCallSchema = z.object({
   mission_id: z.string().min(1),
   workspace_id: z.string().uuid().optional(),
   user_id: z.string().uuid().optional(),
+  profile_id: z.string().uuid().optional(),
   voice: z.string().optional(),
   language: z.string().optional(),
   first_speaker: z.enum(["user", "agent"]).optional(),
+  context: z.record(z.unknown()).optional(),
   selected_tools: z.array(z.record(z.unknown())).optional(),
 });
 
@@ -53,6 +54,8 @@ ultravox.post("/adapters/ultravox/create-call", zValidator("json", createCallSch
       mission_id: body.mission_id,
       workspace_id: body.workspace_id ?? undefined,
       user_id: body.user_id,
+      profile_id: body.profile_id,
+      context: body.context,
       channel: "voice",
     },
     auth,

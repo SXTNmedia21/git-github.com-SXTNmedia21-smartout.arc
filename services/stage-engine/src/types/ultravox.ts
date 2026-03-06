@@ -10,6 +10,7 @@ export type CreateUltravoxCallRequest = {
   mission_id: string;
   workspace_id: string;
   user_id?: string;
+  profile_id?: string;
   voice?: string;
   language?: string;
 };
