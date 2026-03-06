@@ -193,6 +193,7 @@ function SchedulePageContent() {
   const [weekSpan, setWeekSpan] = useState<1 | 2>(1);
   const [publishOverviewOpen, setPublishOverviewOpen] = useState(false);
   const [highlightedDayId, setHighlightedDayId] = useState<string | null>(null);
+  const [loadSecondaryData, setLoadSecondaryData] = useState(false);
   const [sendMessageDialog, setSendMessageDialog] = useState<{
     open: boolean;
     dateId: string;
@@ -240,6 +241,29 @@ function SchedulePageContent() {
     };
   }, []);
 
+  // Let the primary schedule grid render first, then load secondary datasets when idle.
+  useEffect(() => {
+    const globalWindow = window as Window & {
+      requestIdleCallback?: (cb: IdleRequestCallback, options?: IdleRequestOptions) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+
+    if (typeof globalWindow.requestIdleCallback === "function") {
+      const idleId = globalWindow.requestIdleCallback(
+        () => {
+          setLoadSecondaryData(true);
+        },
+        { timeout: 1200 },
+      );
+      return () => {
+        globalWindow.cancelIdleCallback?.(idleId);
+      };
+    }
+
+    const timeoutId = window.setTimeout(() => setLoadSecondaryData(true), 300);
+    return () => window.clearTimeout(timeoutId);
+  }, []);
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 1 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -262,17 +286,20 @@ function SchedulePageContent() {
   // ── Workspace context ───────────────────────────────────────
   const { workspace } = useWorkspace();
 
+  const shouldLoadSidebarData = loadSecondaryData || isSidebarOpen || sidebarMode === "templates";
+  const shouldLoadDayContent = loadSecondaryData || selectedDate !== null || sendMessageDialog.open;
+
   // ── TanStack Query hooks ────────────────────────────────────
   const employeesQuery = useEmployees();
   const employees = employeesQuery.data ?? [];
   const shiftsQuery = useShifts(weekStart, weekEnd);
   const absencesQuery = useAbsences(weekStart, weekEnd);
-  const templatesQuery = useTemplates();
-  const openShiftsQuery = useOpenShifts();
-  const dayMessagesQuery = useDayMessages(weekStart, weekEnd);
-  const dayTasksQuery = useDayTasks(weekStart, weekEnd);
-  const dayBookingsQuery = useDayBookings(weekStart, weekEnd);
-  const { dayInfoByDate } = useDayInfo(weekStart, weekEnd);
+  const templatesQuery = useTemplates({ enabled: shouldLoadSidebarData });
+  const openShiftsQuery = useOpenShifts({ enabled: shouldLoadSidebarData });
+  const dayMessagesQuery = useDayMessages(weekStart, weekEnd, { enabled: shouldLoadDayContent });
+  const dayTasksQuery = useDayTasks(weekStart, weekEnd, { enabled: shouldLoadDayContent });
+  const dayBookingsQuery = useDayBookings(weekStart, weekEnd, { enabled: shouldLoadDayContent });
+  const { dayInfoByDate } = useDayInfo(weekStart, weekEnd, { enabled: shouldLoadDayContent });
 
   // ── Enrich day columns with day info + real shift/staff/message/task counts ─
   const enrichedDays = useMemo(() => {
@@ -330,7 +357,10 @@ function SchedulePageContent() {
   }, [days, dayInfoByDate, shiftsQuery.data, dayMessagesQuery.data, dayTasksQuery.data]);
 
   // ── Realtime subscription ───────────────────────────────────
-  useScheduleRealtime(weekStart);
+  useScheduleRealtime(weekStart, {
+    includeDayContent: shouldLoadDayContent,
+    includeOpenShifts: shouldLoadSidebarData,
+  });
 
   // ── Computed values ─────────────────────────────────────────
   const computed = useScheduleComputed(
@@ -729,6 +759,8 @@ function SchedulePageContent() {
         computed={computed}
         focusDayInUI={focusDayInUI}
         setSelectedDate={setSelectedDate}
+        createShift={createShift}
+        updateShift={updateShift}
         deleteShift={deleteShift}
         publishShifts={publishShifts}
       />
