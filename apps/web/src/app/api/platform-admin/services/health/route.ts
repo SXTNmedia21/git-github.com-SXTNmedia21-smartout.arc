@@ -24,10 +24,26 @@ type ServiceEntry = {
   name: string;
   url: string | undefined;
   healthPath: string;
+  headers?: Record<string, string>;
+  acceptRedirect?: boolean;
 };
 
 function getServiceEntries(): ServiceEntry[] {
   return [
+    {
+      name: "caddy",
+      url: "http://localhost:80",
+      healthPath: "/",
+      acceptRedirect: true,
+    },
+    {
+      name: "supabase",
+      url: env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321",
+      healthPath: "/rest/v1/",
+      headers: {
+        apikey: env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
+      },
+    },
     {
       name: "stage-engine",
       url: env.STAGE_ENGINE_URL ?? "http://localhost:5010",
@@ -41,6 +57,11 @@ function getServiceEntries(): ServiceEntry[] {
     {
       name: "contract-service",
       url: env.CONTRACT_SERVICE_URL ?? "http://localhost:5012",
+      healthPath: "/health",
+    },
+    {
+      name: "scrapling",
+      url: env.SCRAPLING_SERVICE_URL ?? "http://localhost:8000",
       healthPath: "/health",
     },
   ];
@@ -69,8 +90,12 @@ async function checkService(entry: ServiceEntry): Promise<ServiceResult> {
   try {
     const res = await fetch(`${baseUrl}${entry.healthPath}`, {
       signal: controller.signal,
+      redirect: entry.acceptRedirect ? "manual" : "follow",
+      headers: entry.headers,
     });
     const responseTime = Date.now() - start;
+
+    const isHealthy = res.ok || (entry.acceptRedirect && res.status >= 300 && res.status < 400);
 
     let version: string | null = null;
     if (res.ok) {
@@ -85,11 +110,11 @@ async function checkService(entry: ServiceEntry): Promise<ServiceResult> {
     return {
       name: entry.name,
       url: baseUrl,
-      status: res.ok ? "healthy" : "degraded",
+      status: isHealthy ? "healthy" : "degraded",
       responseTime,
       checkedAt,
       version,
-      error: res.ok ? undefined : `HTTP ${res.status}`,
+      error: isHealthy ? undefined : `HTTP ${res.status}`,
     };
   } catch (e) {
     return {

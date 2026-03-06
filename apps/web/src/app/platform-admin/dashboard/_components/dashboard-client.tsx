@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 import {
   Megaphone,
   CreditCard,
@@ -18,7 +18,17 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ComposeEmailSheet } from "@/components/platform-admin/compose-email-sheet";
+
+const ComposeEmailSheet = dynamic(
+  () =>
+    import("@/components/platform-admin/compose-email-sheet").then((mod) => mod.ComposeEmailSheet),
+  { ssr: false },
+);
+const SubscriptionDistributionChart = dynamic(
+  () =>
+    import("./subscription-distribution-chart").then((mod) => mod.SubscriptionDistributionChart),
+  { ssr: false },
+);
 
 type SubscriptionDistribution = {
   name: string;
@@ -94,6 +104,7 @@ function getActivityDescription(entry: ActivityEntry): string {
 
 export function DashboardClient({ subscriptionData, recentActivity }: DashboardClientProps) {
   const [composeOpen, setComposeOpen] = useState(false);
+  const [composeMounted, setComposeMounted] = useState(false);
 
   const filteredSubscriptionData = useMemo(
     () => subscriptionData.filter((d) => d.value > 0),
@@ -113,7 +124,10 @@ export function DashboardClient({ subscriptionData, recentActivity }: DashboardC
             <Button
               variant="outline"
               className="h-auto flex-col gap-2 py-4"
-              onClick={() => setComposeOpen(true)}
+              onClick={() => {
+                setComposeMounted(true);
+                setComposeOpen(true);
+              }}
             >
               <Megaphone className="h-5 w-5" />
               <span className="text-xs">Send Announcement</span>
@@ -149,35 +163,7 @@ export function DashboardClient({ subscriptionData, recentActivity }: DashboardC
           </CardHeader>
           <CardContent>
             {hasSubscriptionData ? (
-              <div className="h-[260px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={filteredSubscriptionData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={50}
-                      outerRadius={90}
-                      paddingAngle={2}
-                      dataKey="value"
-                    >
-                      {filteredSubscriptionData.map((entry) => (
-                        <Cell key={entry.name} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "hsl(var(--popover))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "6px",
-                        color: "hsl(var(--popover-foreground))",
-                        fontSize: "12px",
-                      }}
-                    />
-                    <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "12px" }} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
+              <SubscriptionDistributionChart data={filteredSubscriptionData} />
             ) : (
               <div className="text-muted-foreground flex h-[260px] items-center justify-center text-sm">
                 No subscription data yet
@@ -223,7 +209,9 @@ export function DashboardClient({ subscriptionData, recentActivity }: DashboardC
         </Card>
       </div>
 
-      <ComposeEmailSheet open={composeOpen} onOpenChange={setComposeOpen} />
+      {composeMounted ? (
+        <ComposeEmailSheet open={composeOpen} onOpenChange={setComposeOpen} />
+      ) : null}
     </>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import {
   ArrowUp,
   ArrowDown,
@@ -12,8 +13,12 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Sparkline } from "@/components/platform-admin/sparkline";
 import { cn } from "@/lib/utils";
+
+const Sparkline = dynamic(
+  () => import("@/components/platform-admin/sparkline").then((mod) => mod.Sparkline),
+  { ssr: false },
+);
 
 const ICON_MAP: Record<string, LucideIcon> = {
   Building2,

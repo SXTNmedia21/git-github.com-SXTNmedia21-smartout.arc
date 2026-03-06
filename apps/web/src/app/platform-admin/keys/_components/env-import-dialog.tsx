@@ -251,7 +251,7 @@ export function EnvImportDialog({ open, onOpenChange, onImported }: EnvImportDia
               value={rawText}
               onChange={(e) => setRawText(e.target.value)}
               rows={rawText ? 10 : 3}
-              className="font-mono text-xs"
+              className="[field-sizing:fixed] max-h-64 resize-none overflow-y-auto font-mono text-xs"
             />
           </div>
         ) : (
