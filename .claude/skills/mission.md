@@ -484,6 +484,17 @@ ON CONFLICT (id) DO UPDATE SET
   system_prompt = EXCLUDED.system_prompt,
   updated_at = now();
 
+-- Optional columns (uncomment if needed):
+--   emotion_hint TEXT — injected into prompt builder part 3 (e.g., 'excited', 'calm')
+--   deferred_templates JSONB — advanced: templates rendered after stage completes
+--   inline_instructions JSONB — advanced: injected mid-stage by Guardian
+
+-- WARNING: If reordering stages, DELETE old stages first. The schema has
+-- UNIQUE(mission_id, stage_order) — inserting a new order value that conflicts
+-- with an existing stage will fail. Pattern:
+--   DELETE FROM engine_stages WHERE mission_id = '{mission-id}';
+--   INSERT INTO engine_stages (...) VALUES (...);
+
 INSERT INTO engine_stages (
   mission_id, stage_id, stage_order, goal, instructions, success_criteria,
   personality_override, creative_freedom, tuning_notes, next_stage,
