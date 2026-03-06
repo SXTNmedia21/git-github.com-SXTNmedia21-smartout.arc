@@ -248,6 +248,8 @@ trackability:
         auto_advance: true|false
 ```
 
+**Guardian wiring requirement:** For Guardian to evaluate a stage, it needs `journey_step_id` on the `engine_stages` row. Without it, Guardian skips the stage entirely. See Guardian Integration below.
+
 ### Triggerability
 
 Every mission defines how to start and test:
@@ -258,6 +260,114 @@ triggerability:
   test_invocation: "{how to start it in dev — curl command or UI path}"
   mission_training_link: "Use /mission-training to iterate on stages"
 ```
+
+## Guardian Integration
+
+The Guardian is the "second hand on the wheel" — a background process in the Stage Engine that monitors every active session, evaluates progress, and intervenes when needed. **Missions don't connect to Guardian manually** — the integration is automatic through the event bus and evaluation loop.
+
+### How Events Flow
+
+```
+Mission session starts
+  → createSession() emits "session.started" (only if workspace_id is set)
+  → Guardian bus broadcasts to WebSocket clients (admin dashboard)
+
+ALL events are also persisted to guardian_log table (fire-and-forget).
+
+Every stage change
+  → advanceStage() emits "stage.changed"
+
+Every data store
+  → POST /sessions/:id/store emits "data.collected"
+  → Triggers immediate Guardian evaluation (fire-and-forget)
+
+Every 30 seconds
+  → Guardian evaluator checks ALL active sessions with journey_id
+  → Per stage: checks data completeness, timing, auto-advance
+
+Agent messages
+  → chat.ts emits "user.message" + "agent.response"
+
+Session end
+  → "session.completed" or "session.abandoned"
+```
+
+### What Makes Guardian Work Per Stage
+
+Guardian evaluates stages by reading the **linked journey step** (via `journey_step_id` on `engine_stages`). The journey step provides:
+
+| Journey step field | Guardian behavior |
+|-------------------|-------------------|
+| `data_writes` | Fields Guardian checks for completeness. When ALL present → stage is "done". |
+| `min_duration_seconds` | Minimum time before auto-advance (prevents rushing). |
+| `max_duration_seconds` | Hard timeout. At 80% → warning whisper. At 100% → timeout whisper. |
+| `required_confirmation` | If true, Guardian nudges agent to ask user for confirmation before advancing. |
+
+Guardian calculates elapsed time from `session.stage_started_at` (set automatically by `createSession()` and `advanceStage()`). No manual wiring needed for timing.
+
+**Critical:** If `journey_step_id` is NULL on a stage, Guardian **skips evaluation entirely** for that stage. Agent-added stages (greeting, wrapup) intentionally have NULL — they don't need Guardian oversight.
+
+### Guardian Interventions
+
+Guardian intervenes by writing to `collected_data._whispers[]` on the session. The agent receives these as invisible system instructions on the next response cycle.
+
+| Intervention | Trigger | What Guardian does |
+|-------------|---------|-------------------|
+| **Auto-advance** | All `data_writes` collected + `min_duration` passed + no `required_confirmation` | Calls `advanceStage()` directly |
+| **Nudge confirm** | All data collected + `required_confirmation` + 30s elapsed | Whispers: "Spør bruker om bekreftelse" |
+| **Missing field nudge** | 60s elapsed + fields still missing | Whispers: "Spør om: {missing fields}" |
+| **Timeout warning** | 80% of `max_duration` elapsed | Whispers: "{N} sekunder igjen, mangler: {fields}" |
+| **Hard timeout** | 100% of `max_duration` elapsed | Whispers: "Timeout — avslutt steget" |
+
+### data_writes Format
+
+Guardian uses dot-notation and array-notation to check `collected_data` on the session:
+
+| Pattern | Example | What Guardian checks |
+|---------|---------|---------------------|
+| Simple key | `"company_name"` | `collected_data.company_name` is not null/empty |
+| Nested path | `"company.name"` | `collected_data.company.name` is not null/empty |
+| Array check | `"departments[]"` | `collected_data.departments` is a non-empty array |
+
+**Trap:** If the agent stores data at `collected_data.company.name` but the journey step has `data_writes: ["company_name"]`, Guardian will never find it and keep nudging. Match the path exactly to how the agent stores data via the `store` endpoint.
+
+### Wiring Checklist for Mission Authors
+
+1. **Set `journey_step_id`** on every stage that maps to a journey step (UUID FK to `journey_step.journey_step_id`)
+2. **Leave `journey_step_id` NULL** for agent-added stages (greeting, wrapup, context loading)
+3. **Ensure journey steps have `data_writes`** — these are the fields Guardian watches
+4. **Set timing on journey steps** — `min_duration_seconds` and `max_duration_seconds`
+5. **Set `required_confirmation`** on journey steps where user must explicitly agree before advancing
+6. **The mission must have `journey_id`** — set on `engine_missions` so sessions inherit it
+
+### Admin Dashboard (Guardian Monitor)
+
+When a mission session is active, admins can connect to `/guardian/ws` and:
+- **Watch** — see all events in real-time (session started, stage changed, data collected, agent responses)
+- **Subscribe** — filter events to a specific session
+- **Whisper** — inject invisible instructions to the agent mid-conversation
+- **Change stage** — force the agent to a different stage
+
+The `/mission` skill doesn't need to configure any of this — it's built into the Stage Engine. But the Mission.md should document what Guardian watches per stage (data_writes, timing) so operators know what to expect on the dashboard.
+
+### Event Types Reference
+
+| Event | Actor | When |
+|-------|-------|------|
+| `session.started` | system | Session created |
+| `stage.changed` | system | Stage advanced |
+| `data.collected` | agent | Data stored via `/store` |
+| `user.message` | user | User sends message |
+| `agent.response` | agent | Agent replies |
+| `session.completed` | system | All stages done |
+| `session.abandoned` | system | Session abandoned |
+| `guardian.auto_advance` | guardian | Guardian auto-advanced a stage |
+| `guardian.nudge` | guardian | Guardian nudged for missing data |
+| `guardian.nudge_confirm` | guardian | Guardian asked for user confirmation |
+| `guardian.timeout` | guardian | Stage timed out |
+| `guardian.timeout_warning` | guardian | 80% of max duration reached |
+| `admin.stage_change` | admin | Admin forced stage change |
+| `admin.whisper` | admin | Admin sent whisper to agent |
 
 ## System Prompt
 
@@ -418,6 +528,16 @@ Related package docs:
 
 {Repeat for each stage}
 
+## Guardian Configuration
+
+| Stage | data_writes | min_duration | max_duration | required_confirmation | journey_step_id |
+|-------|------------|-------------|-------------|----------------------|----------------|
+| {greeting} | — | — | — | — | NULL (agent-added) |
+| {stage-id} | {field1, field2} | {N}s | {N}s | {true/false} | {uuid} |
+
+> Guardian evaluates stages every 30s. Stages with `journey_step_id = NULL` are skipped.
+> `data_writes` paths must match exactly how the agent stores data (dot-notation, array-notation supported).
+
 ## Guardrails
 
 - {Rule the agent must never break}
@@ -466,7 +586,7 @@ SET search_path TO public, extensions;
 -- {timestamp}_seed_{mission-id}_mission.sql
 -- Seeds {mission-name} mission into engine_missions + engine_stages.
 
-INSERT INTO engine_missions (id, name, description, mode, workspace_id, is_active, system_prompt)
+INSERT INTO engine_missions (id, name, description, mode, workspace_id, is_active, system_prompt, journey_id)
 VALUES (
   '{mission-id}',
   '{Mission Display Name}',
@@ -474,7 +594,9 @@ VALUES (
   '{sequential|free|hybrid}',
   NULL,  -- NULL = global template
   true,
-  E'{system_prompt with \\n for newlines}'
+  E'{system_prompt with \\n for newlines}',
+  NULL   -- journey_id: UUID FK to journey table. REQUIRED for Guardian evaluation.
+         -- If journey exists in DB, set this. If journey is doc-only, leave NULL.
 )
 ON CONFLICT (id) DO UPDATE SET
   name = EXCLUDED.name,
@@ -482,6 +604,7 @@ ON CONFLICT (id) DO UPDATE SET
   mode = EXCLUDED.mode,
   is_active = EXCLUDED.is_active,
   system_prompt = EXCLUDED.system_prompt,
+  journey_id = EXCLUDED.journey_id,
   updated_at = now();
 
 -- Optional columns (uncomment if needed):
@@ -509,7 +632,8 @@ INSERT INTO engine_stages (
  '{tuning_notes or NULL}',
  '{next-stage-id}',
  true,   -- is_required: false only for optional/skippable stages
- NULL,   -- journey_step_id: FK to journey_steps if Guardian timing is wired
+ NULL,   -- journey_step_id: UUID FK to journey_step. SET THIS for Guardian evaluation.
+         -- NULL only for agent-added stages (greeting, wrapup) with no journey step.
  NULL),  -- escalation_instructions: what to do if stage fails
 
 -- ... more stages ...
@@ -549,6 +673,8 @@ After generating, verify:
 6. **Failure signals** — At least: abandon, rage_quit, stuck, timeout.
 7. **Idempotent SQL** — Uses `ON CONFLICT ... DO UPDATE`.
 8. **Norwegian instructions** — User-facing text in Norwegian, technical in English.
+9. **Guardian wiring** — `journey_step_id` set on every stage that maps to a journey step. NULL only for agent-added stages.
+10. **Journey link** — `journey_id` set on `engine_missions` if journey exists in DB.
 
 ## After Generation
 
@@ -574,3 +700,7 @@ After generating, verify:
 - **Missing system_prompt** — The base personality prompt is the foundation. Don't skip it.
 - **Trusting tool names from Journey** — Journey docs use conceptual names. Always grep for real `modelToolName` in the codebase.
 - **No greeting stage** — Voice missions almost always need a rapport-building opener. Check if one is needed.
+- **Missing `journey_step_id`** — Without this FK on `engine_stages`, Guardian cannot evaluate the stage. It's the bridge between mission stages and Guardian's auto-advance/timing/nudge logic.
+- **Missing `journey_id` on mission** — Without `journey_id` on `engine_missions`, the session won't have journey context and Guardian's 30s evaluation loop will skip it entirely.
+- **Setting `journey_step_id` on greeting/wrapup stages** — Agent-added stages have no journey step. Setting a random UUID will break Guardian evaluation. Leave NULL.
+- **Forgetting `data_writes` on journey steps** — Guardian checks these fields for completeness. If the journey step has no `data_writes`, Guardian has nothing to evaluate and won't auto-advance.
