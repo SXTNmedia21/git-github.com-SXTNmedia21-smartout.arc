@@ -48,6 +48,7 @@ import { EmployeeDrawer } from "./_components/employee-drawer";
 import { PublishOverviewDialog } from "./_components/publish-overview-dialog";
 import { SendMessageDialog } from "./_components/send-message-dialog";
 import { MonthlyView } from "./_components/monthly-view";
+import { SCHEDULE_LAYERS } from "./_components/schedule-layers";
 
 import type { DayColumn } from "./_components/schedule-data";
 
@@ -178,6 +179,7 @@ function SchedulePageContent() {
   const {
     isDark,
     scheduleLayout,
+    setScheduleLayout,
     scheduleDateOffset,
     setOnPublishAll,
     setScheduleDraftCount,
@@ -190,11 +192,53 @@ function SchedulePageContent() {
   const [activeStatusFilter, setActiveStatusFilter] = useState<string | null>(null);
   const [weekSpan, setWeekSpan] = useState<1 | 2>(1);
   const [publishOverviewOpen, setPublishOverviewOpen] = useState(false);
+  const [highlightedDayId, setHighlightedDayId] = useState<string | null>(null);
   const [sendMessageDialog, setSendMessageDialog] = useState<{
     open: boolean;
     dateId: string;
     dateLabel: string;
   }>({ open: false, dateId: "", dateLabel: "" });
+  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /**
+   * Scrolls to a schedule day header, briefly highlights it, and optionally
+   * opens the day planner sheet for that date.
+   */
+  const focusDayInUI = useCallback(
+    (dateId: string, openPlanner: boolean) => {
+      if (!dateId) return;
+
+      if (scheduleLayout !== "daily") {
+        setScheduleLayout("daily");
+      }
+
+      // Wait one frame for layout updates, then center the day header.
+      requestAnimationFrame(() => {
+        const dayHeader = document.querySelector(
+          `[data-schedule-day-id="${dateId}"]`,
+        ) as HTMLElement | null;
+        dayHeader?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+      });
+
+      setHighlightedDayId(dateId);
+      if (highlightTimerRef.current) {
+        clearTimeout(highlightTimerRef.current);
+      }
+      highlightTimerRef.current = setTimeout(() => setHighlightedDayId(null), 3500);
+
+      if (openPlanner) {
+        setSelectedDate(dateId);
+      }
+    },
+    [scheduleLayout, setScheduleLayout],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (highlightTimerRef.current) {
+        clearTimeout(highlightTimerRef.current);
+      }
+    };
+  }, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 1 } }),
@@ -333,17 +377,20 @@ function SchedulePageContent() {
     absences: absencesQuery.data ?? [],
     employees,
     computed,
+    uiActions: {
+      focusDay: (dateId: string) => focusDayInUI(dateId, false),
+      openDayPlanner: (dateId: string) => focusDayInUI(dateId, true),
+      closeDayPlanner: () => setSelectedDate(null),
+    },
     mutations: {
       createShift: (input) =>
         createShift.mutateAsync(input as Parameters<typeof createShift.mutateAsync>[0]),
-      updateShift: (input) =>
-        updateShift.mutateAsync(input as Parameters<typeof updateShift.mutateAsync>[0]),
+      updateShift: (input) => updateShift.mutateAsync(input),
       deleteShift: (id) => deleteShift.mutateAsync(id),
       publishShifts: (ids) => publishShifts.mutateAsync(ids),
     },
   });
 
-  // Register/unregister tools when schedule page mounts/unmounts
   useEffect(() => {
     setClientTools(voiceTools);
     return () => setClientTools(null);
@@ -697,7 +744,7 @@ function SchedulePageContent() {
 
   return (
     <div
-      className={`flex flex-1 flex-col ${isDark ? "bg-[#050505]" : "bg-zinc-50"} relative h-full overflow-hidden rounded-2xl border border-white/[0.04] font-sans text-zinc-100 shadow-2xl print:block print:h-auto print:overflow-visible print:border-none print:bg-white print:shadow-none`}
+      className={`flex flex-1 flex-col ${isDark ? "bg-[#050505]" : "bg-zinc-50"} relative isolate h-full overflow-hidden rounded-2xl border border-white/[0.04] font-sans text-zinc-100 shadow-2xl print:block print:h-auto print:overflow-visible print:border-none print:bg-white print:shadow-none`}
     >
       {isLoading ? (
         <div className="flex h-full flex-1 items-center justify-center">
@@ -754,6 +801,7 @@ function SchedulePageContent() {
                           activeStatusFilter={activeStatusFilter}
                           visibleDays={situationFilteredDays}
                           employees={locationFilteredEmployees}
+                          highlightedDayId={highlightedDayId}
                         />
                       )}
                       {scheduleLayout === "weekly" && (
@@ -903,7 +951,8 @@ function ScheduleSidebar({
 
   return (
     <aside
-      className={`border-r border-white/[0.04] ${isDark ? "bg-[#0a0a0c]/40" : "bg-white/60"} z-20 hidden shrink-0 flex-col backdrop-blur-md transition-all duration-300 ease-in-out lg:flex ${isSidebarOpen ? "w-64 opacity-100 xl:w-72" : "w-0 overflow-hidden border-none opacity-0"} print:hidden`}
+      className={`border-r border-white/[0.04] ${isDark ? "bg-[#0a0a0c]/40" : "bg-white/60"} hidden shrink-0 flex-col backdrop-blur-md transition-all duration-300 ease-in-out lg:flex ${isSidebarOpen ? "w-64 opacity-100 xl:w-72" : "w-0 overflow-hidden border-none opacity-0"} print:hidden`}
+      style={{ zIndex: SCHEDULE_LAYERS.stickyHeaders }}
     >
       <div className="flex w-64 flex-1 flex-col overflow-y-auto p-4 xl:w-72 xl:p-5">
         <div
@@ -1067,10 +1116,12 @@ function WeeklyGridContent({
   return (
     <div className="flex h-full w-full overflow-y-auto">
       <div
-        className={`w-[200px] shrink-0 border-r border-white/5 xl:w-[250px] ${isDark ? "bg-[#0a0a0c]/60" : "bg-white/80"} sticky left-0 z-30 flex flex-col shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)] backdrop-blur-md`}
+        className={`w-[200px] shrink-0 border-r border-white/5 xl:w-[250px] ${isDark ? "bg-[#0a0a0c]/60" : "bg-white/80"} sticky left-0 flex flex-col shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)] backdrop-blur-md`}
+        style={{ zIndex: SCHEDULE_LAYERS.stickyHeaders }}
       >
         <div
-          className={`sticky top-0 z-30 h-24 border-b xl:h-28 ${isDark ? "border-white/5 bg-[#0a0a0c]" : "border-zinc-200 bg-white"} relative flex flex-col justify-between p-4`}
+          className={`sticky top-0 h-24 border-b xl:h-28 ${isDark ? "border-white/5 bg-[#0a0a0c]" : "border-zinc-200 bg-white"} relative flex flex-col justify-between p-4`}
+          style={{ zIndex: SCHEDULE_LAYERS.stickyHeaders }}
         >
           <div className="flex w-full items-center justify-between">
             <div className="flex items-center gap-1.5 text-[11px] font-bold tracking-widest text-zinc-500 uppercase xl:text-xs">
@@ -1144,7 +1195,8 @@ function WeeklyGridContent({
           >
             <div
               onClick={() => onDateClick && onDateClick(`Uke ${col}`)}
-              className={`sticky top-0 h-24 border-b border-white/5 p-3 xl:h-28 xl:p-4 ${isDark ? "bg-[#0a0a0c]/80" : "bg-white/90"} relative z-20 flex cursor-pointer flex-col items-center justify-center backdrop-blur-xl hover:bg-white/5`}
+              className={`sticky top-0 h-24 border-b border-white/5 p-3 xl:h-28 xl:p-4 ${isDark ? "bg-[#0a0a0c]/80" : "bg-white/90"} relative flex cursor-pointer flex-col items-center justify-center backdrop-blur-xl hover:bg-white/5`}
+              style={{ zIndex: SCHEDULE_LAYERS.stickyContent }}
             >
               {col === 3 && (
                 <div className="absolute top-2 right-2 rounded border border-orange-500/30 bg-orange-500/20 px-1.5 py-0.5 text-[11px] font-black text-orange-400 uppercase">

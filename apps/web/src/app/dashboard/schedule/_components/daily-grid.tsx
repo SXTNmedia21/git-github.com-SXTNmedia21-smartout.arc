@@ -22,6 +22,7 @@ import { useAbsences } from "../_hooks/use-absences";
 import type { ScheduleEmployee } from "../_hooks/use-employees";
 import { DayContextMenu } from "./day-context-menu";
 import type { Shift as ScheduleShift, Absence } from "./schedule-types";
+import { SCHEDULE_LAYERS } from "./schedule-layers";
 
 // ---------------------------------------------------------------------------
 // GridContent — daily schedule grid (the perf-critical DnD subtree)
@@ -34,6 +35,7 @@ export function GridContent({
   activeStatusFilter = null,
   visibleDays,
   employees,
+  highlightedDayId,
 }: {
   isSidebarOpen: boolean;
   setIsSidebarOpen: (v: boolean) => void;
@@ -42,6 +44,7 @@ export function GridContent({
   activeStatusFilter?: string | null;
   visibleDays: DayColumn[];
   employees: ScheduleEmployee[];
+  highlightedDayId?: string | null;
 }) {
   const { isDark, scheduleView } = useContext(DashboardContext);
   // Derive week range from the actual visible day columns (respects navigation offset + week span)
@@ -184,6 +187,7 @@ export function GridContent({
         isSidebarOpen={isSidebarOpen}
         setIsSidebarOpen={setIsSidebarOpen}
         onDateClick={onDateClick}
+        highlightedDayId={highlightedDayId ?? null}
       />
 
       <div className="w-full flex-1 pb-20">
@@ -296,6 +300,7 @@ const DayHeaders = React.memo(function DayHeaders({
   isSidebarOpen,
   setIsSidebarOpen,
   onDateClick,
+  highlightedDayId,
 }: {
   isDark: boolean;
   scheduleView: string;
@@ -303,12 +308,14 @@ const DayHeaders = React.memo(function DayHeaders({
   isSidebarOpen: boolean;
   setIsSidebarOpen: (v: boolean) => void;
   onDateClick: (d: string) => void;
+  highlightedDayId: string | null;
 }) {
   return (
-    <div className="sticky top-0 z-40 flex w-full">
+    <div className="sticky top-0 flex w-full" style={{ zIndex: SCHEDULE_LAYERS.stickyHeaders }}>
       {/* Sticky corner cell */}
       <div
-        className={`w-[260px] shrink-0 border-r border-b border-white/[0.04] ${isDark ? "bg-[#0a0a0c]/95" : "bg-white/95"} sticky left-0 z-50 flex h-16 flex-col justify-center p-3 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)] backdrop-blur-xl`}
+        className={`w-[260px] shrink-0 border-r border-b border-white/[0.04] ${isDark ? "bg-[#0a0a0c]/95" : "bg-white/95"} sticky left-0 flex h-16 flex-col justify-center p-3 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)] backdrop-blur-xl`}
+        style={{ zIndex: SCHEDULE_LAYERS.stickyCorner }}
       >
         <div className="flex w-full items-center justify-between">
           <div className="flex items-center gap-2 text-xs font-bold tracking-widest text-zinc-500 uppercase">
@@ -330,7 +337,13 @@ const DayHeaders = React.memo(function DayHeaders({
 
       {/* Day column headers — fixed width */}
       {visibleDays.map((day) => (
-        <DroppableDayHeader key={day.id} day={day} isDark={isDark} onDateClick={onDateClick} />
+        <DroppableDayHeader
+          key={day.id}
+          day={day}
+          isDark={isDark}
+          onDateClick={onDateClick}
+          isHighlighted={highlightedDayId === day.id}
+        />
       ))}
     </div>
   );
@@ -343,17 +356,20 @@ function DroppableDayHeader({
   day,
   isDark,
   onDateClick,
+  isHighlighted,
 }: {
   day: DayColumn;
   isDark: boolean;
   onDateClick: (d: string) => void;
+  isHighlighted: boolean;
 }) {
   const { isOver, setNodeRef } = useDroppable({ id: `day-header::${day.id}` });
 
   return (
     <div
       ref={setNodeRef}
-      className={`min-w-0 flex-1 border-r border-b border-white/[0.03] ${isDark ? "bg-[#0a0a0c]/90" : "bg-white/95"} group/day relative flex h-16 cursor-pointer flex-col justify-center p-2 backdrop-blur-xl transition-colors hover:bg-white/5 ${day.isToday ? "bg-orange-500/[0.06]" : ""} ${isOver ? "rounded-lg border-dashed border-orange-500/50 bg-orange-500/20" : ""} ${day.situation === "__dimmed__" ? "opacity-30" : ""}`}
+      data-schedule-day-id={day.id}
+      className={`min-w-0 flex-1 border-r border-b border-white/[0.03] ${isDark ? "bg-[#0a0a0c]/90" : "bg-white/95"} group/day relative flex h-16 cursor-pointer flex-col justify-center p-2 backdrop-blur-xl transition-colors hover:bg-white/5 ${day.isToday ? "bg-orange-500/[0.06]" : ""} ${isOver ? "rounded-lg border-dashed border-orange-500/50 bg-orange-500/20" : ""} ${day.situation === "__dimmed__" ? "opacity-30" : ""} ${isHighlighted ? "shadow-[0_0_0_1px_rgba(251,146,60,0.35)] ring-2 ring-orange-400/70 ring-inset" : ""}`}
       onClick={() => onDateClick(day.id)}
     >
       {day.coverageAlert ? (
@@ -411,7 +427,8 @@ export const GroupHeader = React.memo(function GroupHeader({
   return (
     <div className="group/header flex w-full">
       <div
-        className={`w-[260px] shrink-0 border-r border-b border-white/[0.04] ${isDark ? "bg-white/[0.03]" : "bg-zinc-100"} relative sticky left-0 z-30 flex h-9 items-center justify-between px-4 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)]`}
+        className={`w-[260px] shrink-0 border-r border-b border-white/[0.04] ${isDark ? "bg-white/[0.03]" : "bg-zinc-100"} relative sticky left-0 flex h-9 items-center justify-between px-4 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)]`}
+        style={{ zIndex: SCHEDULE_LAYERS.stickyHeaders }}
       >
         <span
           className={`text-[11px] font-bold ${isDark ? "text-white" : "text-zinc-900"} tracking-wider uppercase`}
@@ -461,7 +478,7 @@ function SortableEmployeeRow(props: SortableEmployeeRowProps) {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
-    zIndex: isDragging ? 50 : undefined,
+    zIndex: isDragging ? SCHEDULE_LAYERS.stickyCorner : undefined,
     position: "relative" as const,
   };
 
@@ -518,7 +535,8 @@ export const EmployeeRow = React.memo(function EmployeeRow({
     <div className="group/row flex w-full">
       {/* Sticky employee info panel — clickable to open drawer */}
       <div
-        className={`w-[260px] shrink-0 border-r border-b border-white/[0.04] ${isDark ? "bg-[#0a0a0c]" : "bg-white"} sticky left-0 z-30 flex cursor-pointer items-center shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)] transition-colors group-hover/row:bg-white/[0.02] ${isCompact ? "h-[52px] min-h-0 gap-2 p-2" : "min-h-[100px] gap-3 p-3"}`}
+        className={`w-[260px] shrink-0 border-r border-b border-white/[0.04] ${isDark ? "bg-[#0a0a0c]" : "bg-white"} sticky left-0 flex cursor-pointer items-center shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)] transition-colors group-hover/row:bg-white/[0.02] ${isCompact ? "h-[52px] min-h-0 gap-2 p-2" : "min-h-[100px] gap-3 p-3"}`}
+        style={{ zIndex: SCHEDULE_LAYERS.stickyHeaders }}
         onClick={() => onSelectEmployee?.(employee.id)}
       >
         {/* Drag handle + avatar */}

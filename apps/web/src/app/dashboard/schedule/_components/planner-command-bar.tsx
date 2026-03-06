@@ -13,6 +13,7 @@ import {
   Rows3,
 } from "lucide-react";
 import { DashboardContext, type ScheduleViewMode } from "@/components/dashboard/DashboardShell";
+import { SCHEDULE_LAYERS } from "./schedule-layers";
 
 type PlannerCommandBarProps = {
   isDark: boolean;
@@ -41,7 +42,10 @@ export function PlannerCommandBar({
   } = useContext(DashboardContext);
 
   return (
-    <div className="border-border bg-background/80 relative z-50 flex shrink-0 flex-wrap items-center justify-between border-b px-4 py-1 backdrop-blur-md print:hidden">
+    <div
+      className="border-border bg-background/80 relative flex shrink-0 flex-wrap items-center justify-between border-b px-4 py-1 backdrop-blur-md print:hidden"
+      style={{ zIndex: SCHEDULE_LAYERS.stickyContent }}
+    >
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="flex items-center gap-1.5 text-xs font-black tracking-tight">
           <CalendarDays className="h-4 w-4 text-orange-500" />

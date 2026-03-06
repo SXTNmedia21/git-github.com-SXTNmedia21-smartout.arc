@@ -18,6 +18,11 @@ type ScheduleVoiceToolsInput = {
   absences: Absence[];
   employees: ScheduleEmployee[];
   computed: ScheduleComputed;
+  uiActions?: {
+    focusDay: (dateId: string) => void;
+    openDayPlanner: (dateId: string) => void;
+    closeDayPlanner: () => void;
+  };
   mutations?: {
     createShift: (input: Record<string, unknown>) => Promise<unknown>;
     updateShift: (input: { id: string; patch: Record<string, unknown> }) => Promise<unknown>;
@@ -226,6 +231,53 @@ const TOOL_DEFINITIONS: ClientToolDefinition[] = [
       client: {},
     },
   },
+  {
+    temporaryTool: {
+      modelToolName: "focusDay",
+      description:
+        "Scroll to a day in the visible schedule and highlight it for showcase guidance. Does not open the day planner.",
+      dynamicParameters: [
+        {
+          name: "day",
+          location: "PARAMETER_LOCATION_BODY",
+          schema: {
+            type: "string",
+            description:
+              "Day name or date (YYYY-MM-DD) to focus and highlight in the schedule grid",
+          },
+          required: true,
+        },
+      ],
+      client: {},
+    },
+  },
+  {
+    temporaryTool: {
+      modelToolName: "openDayPlanner",
+      description:
+        "Open the day planner for a specific day, scroll to that day in the schedule grid, and highlight it.",
+      dynamicParameters: [
+        {
+          name: "day",
+          location: "PARAMETER_LOCATION_BODY",
+          schema: {
+            type: "string",
+            description: "Day name or date (YYYY-MM-DD) to open in day planner",
+          },
+          required: true,
+        },
+      ],
+      client: {},
+    },
+  },
+  {
+    temporaryTool: {
+      modelToolName: "closeDayPlanner",
+      description: "Close the currently open day planner sheet if it is visible.",
+      dynamicParameters: [],
+      client: {},
+    },
+  },
 ];
 
 // -- Day name resolution --------------------------------------------------
@@ -279,6 +331,53 @@ function resolveDateId(
   }
 
   return null;
+}
+
+/**
+ * Normalizes person names for tolerant voice matching.
+ * Why: Voice input can produce variant spellings (e.g. Alexander/Aleksander)
+ * and diacritics. We normalize to a comparable search form.
+ */
+function normalizeNameForMatch(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/æ/g, "ae")
+    .replace(/ø/g, "o")
+    .replace(/å/g, "a")
+    .replace(/x/g, "ks")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Finds the best matching employee by tolerant name search.
+ * Why: Human names are frequently misspelled in speech-to-text transcripts.
+ */
+function findEmployeeByName(
+  employees: ScheduleEmployee[],
+  rawQuery: string,
+): ScheduleEmployee | null {
+  const query = normalizeNameForMatch(rawQuery);
+  if (!query) return null;
+
+  // 1) Direct normalized contains/startsWith match.
+  const direct = employees.find((employee) => {
+    const normalizedName = normalizeNameForMatch(employee.name);
+    return normalizedName.includes(query) || normalizedName.startsWith(query);
+  });
+  if (direct) return direct;
+
+  // 2) Token overlap fallback ("alex bryn" should match full name).
+  const queryTokens = query.split(" ").filter(Boolean);
+  const tokenMatch = employees.find((employee) => {
+    const normalizedName = normalizeNameForMatch(employee.name);
+    return queryTokens.every((token) => normalizedName.includes(token));
+  });
+
+  return tokenMatch ?? null;
 }
 
 // -- Hook -----------------------------------------------------------------
@@ -359,17 +458,13 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
 
     const getEmployeeSchedule: ClientToolImplementation = (params) => {
       const d = dataRef.current;
-      const nameQuery = ((params.employeeName as string) ?? "").toLowerCase();
-
-      const employee = d.employees.find(
-        (e) =>
-          e.name.toLowerCase().includes(nameQuery) || e.name.toLowerCase().startsWith(nameQuery),
-      );
+      const rawNameQuery = (params.employeeName as string) ?? "";
+      const employee = findEmployeeByName(d.employees, rawNameQuery);
 
       if (!employee) {
         const names = d.employees.map((e) => e.name).join(", ");
         return JSON.stringify({
-          error: `No employee matching "${nameQuery}". Available: ${names}`,
+          error: `No employee matching "${rawNameQuery}". Available: ${names}`,
         });
       }
 
@@ -454,12 +549,12 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
 
     const createShiftTool: ClientToolImplementation = async (params) => {
       const d = dataRef.current;
-      if (!d.mutations) return JSON.stringify({ error: "Mutations not available" });
+      if (!d.mutations?.createShift) return JSON.stringify({ error: "Mutations not available" });
 
-      const nameQuery = ((params.employeeName as string) ?? "").toLowerCase();
-      const employee = d.employees.find((e) => e.name.toLowerCase().includes(nameQuery));
+      const rawNameQuery = (params.employeeName as string) ?? "";
+      const employee = findEmployeeByName(d.employees, rawNameQuery);
       if (!employee) {
-        return JSON.stringify({ error: `No employee matching "${nameQuery}"` });
+        return JSON.stringify({ error: `No employee matching "${rawNameQuery}"` });
       }
 
       const dateId = resolveDateId((params.day as string) ?? "", d.days);
@@ -506,12 +601,12 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
 
     const updateShiftTool: ClientToolImplementation = async (params) => {
       const d = dataRef.current;
-      if (!d.mutations) return JSON.stringify({ error: "Mutations not available" });
+      if (!d.mutations?.updateShift) return JSON.stringify({ error: "Mutations not available" });
 
-      const nameQuery = ((params.employeeName as string) ?? "").toLowerCase();
-      const employee = d.employees.find((e) => e.name.toLowerCase().includes(nameQuery));
+      const rawNameQuery = (params.employeeName as string) ?? "";
+      const employee = findEmployeeByName(d.employees, rawNameQuery);
       if (!employee) {
-        return JSON.stringify({ error: `No employee matching "${nameQuery}"` });
+        return JSON.stringify({ error: `No employee matching "${rawNameQuery}"` });
       }
 
       const dateId = resolveDateId((params.day as string) ?? "", d.days);
@@ -560,10 +655,10 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
       const d = dataRef.current;
       if (!d.mutations) return JSON.stringify({ error: "Mutations not available" });
 
-      const nameQuery = ((params.employeeName as string) ?? "").toLowerCase();
-      const employee = d.employees.find((e) => e.name.toLowerCase().includes(nameQuery));
+      const rawNameQuery = (params.employeeName as string) ?? "";
+      const employee = findEmployeeByName(d.employees, rawNameQuery);
       if (!employee) {
-        return JSON.stringify({ error: `No employee matching "${nameQuery}"` });
+        return JSON.stringify({ error: `No employee matching "${rawNameQuery}"` });
       }
 
       const dateId = resolveDateId((params.day as string) ?? "", d.days);
@@ -630,6 +725,55 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
       }
     };
 
+    const focusDayTool: ClientToolImplementation = (params) => {
+      const d = dataRef.current;
+      const dayInput = (params.day as string) ?? "";
+      const dateId = resolveDateId(dayInput, d.days);
+      if (!dateId) {
+        return JSON.stringify({ error: `Could not resolve day "${dayInput}"` });
+      }
+      if (!d.uiActions) {
+        return JSON.stringify({ error: "UI actions are not available on this page" });
+      }
+
+      d.uiActions.focusDay(dateId);
+      const dayLabel = d.days.find((day) => day.id === dateId)?.label ?? dateId;
+      return JSON.stringify({
+        success: true,
+        message: `Focused and highlighted ${dayLabel}`,
+        dateId,
+      });
+    };
+
+    const openDayPlannerTool: ClientToolImplementation = (params) => {
+      const d = dataRef.current;
+      const dayInput = (params.day as string) ?? "";
+      const dateId = resolveDateId(dayInput, d.days);
+      if (!dateId) {
+        return JSON.stringify({ error: `Could not resolve day "${dayInput}"` });
+      }
+      if (!d.uiActions) {
+        return JSON.stringify({ error: "UI actions are not available on this page" });
+      }
+
+      d.uiActions.openDayPlanner(dateId);
+      const dayLabel = d.days.find((day) => day.id === dateId)?.label ?? dateId;
+      return JSON.stringify({
+        success: true,
+        message: `Opened day planner for ${dayLabel}`,
+        dateId,
+      });
+    };
+
+    const closeDayPlannerTool: ClientToolImplementation = () => {
+      const d = dataRef.current;
+      if (!d.uiActions) {
+        return JSON.stringify({ error: "UI actions are not available on this page" });
+      }
+      d.uiActions.closeDayPlanner();
+      return JSON.stringify({ success: true, message: "Closed day planner" });
+    };
+
     // -- Combine definitions and implementations ----------------------
 
     const allDefinitions = [...TOOL_DEFINITIONS];
@@ -642,6 +786,9 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
       updateShift: updateShiftTool,
       deleteShift: deleteShiftTool,
       publishShifts: publishShiftsTool,
+      focusDay: focusDayTool,
+      openDayPlanner: openDayPlannerTool,
+      closeDayPlanner: closeDayPlannerTool,
     };
 
     return {
