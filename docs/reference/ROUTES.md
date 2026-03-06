@@ -125,6 +125,13 @@ All routes for the web dashboard (`apps/web`), landing page (`apps/landing`), an
 | `/api/onboarding-agent` | POST   | Onboarding AI agent   |
 | `/api/contract-agent`   | POST   | AI contract assistant |
 
+### Context & Search
+
+| Route                    | Method | Purpose                                                       |
+| ------------------------ | ------ | ------------------------------------------------------------- |
+| `/api/context/bootstrap` | GET    | Deterministic bootstrap context (role, perms)                 |
+| `/api/search`            | GET    | Orchestrated multi-mode search (instance+semantic+dependency) |
+
 ### Wizard
 
 | Route               | Method | Purpose                |
