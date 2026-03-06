@@ -41,6 +41,20 @@ export type AgentMission = {
   greeting: string;
   uiDescription: string;
   stages?: MissionStageOverride[];
+  /** Client-side tool definitions shipped with this mission (Ultravox format). */
+  clientTools?: ReadonlyArray<{
+    temporaryTool: {
+      modelToolName: string;
+      description: string;
+      dynamicParameters: ReadonlyArray<{
+        name: string;
+        location: "PARAMETER_LOCATION_BODY";
+        schema: Record<string, unknown>;
+        required?: boolean;
+      }>;
+      client: Record<string, never>;
+    };
+  }>;
 };
 
 export type MissionManifestEntry = {
