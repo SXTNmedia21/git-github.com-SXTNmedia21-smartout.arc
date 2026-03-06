@@ -21,6 +21,7 @@ import {
   handleGetBudgets,
 } from "./handlers/reports.ts";
 import { handleGetSignals, handleGetGuardianLog } from "./handlers/guardian.ts";
+import { handleGetEvents } from "./handlers/events.ts";
 
 // ── Route handlers ──
 
@@ -48,6 +49,7 @@ routes["GET /v1/kpi-targets"] = handleGetKpiTargets;
 routes["GET /v1/budgets"] = handleGetBudgets;
 routes["GET /v1/signals"] = handleGetSignals;
 routes["GET /v1/guardian-log"] = handleGetGuardianLog;
+routes["GET /v1/events"] = handleGetEvents;
 
 // ── Main router ──
 
