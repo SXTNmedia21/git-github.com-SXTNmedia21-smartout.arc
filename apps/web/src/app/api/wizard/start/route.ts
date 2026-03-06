@@ -25,6 +25,7 @@ type CreateCallPayload = {
  * Other missions require authentication.
  */
 export async function POST(request: NextRequest) {
+  const requestId = crypto.randomUUID();
   const stageEngineUrl = process.env.STAGE_ENGINE_URL;
   const stageEngineApiKey = process.env.STAGE_ENGINE_API_KEY;
 
@@ -55,6 +56,12 @@ export async function POST(request: NextRequest) {
     const missionId = body.mission_id || "onboarding-interview";
     const isShowcaseVoice =
       typeof body.context?.page === "string" && body.context.page.startsWith("dashboard.");
+    console.info("[wizard/start] session_start_requested", {
+      request_id: requestId,
+      mission_id: missionId,
+      context_page: typeof body.context?.page === "string" ? body.context.page : "unknown",
+      selected_tool_count: Array.isArray(body.selected_tools) ? body.selected_tools.length : 0,
+    });
 
     // Onboarding does not require auth — user has no account yet
     if (!user && missionId !== "onboarding-interview" && !isShowcaseVoice) {
@@ -102,6 +109,13 @@ export async function POST(request: NextRequest) {
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({ message: "Unknown stage engine error" }));
+      console.error("[wizard/start] create_call_failed", {
+        request_id: requestId,
+        mission_id: missionId,
+        status: res.status,
+        provider_error: errData.error ?? "unknown_error",
+        provider_message: errData.message ?? "Unknown stage engine error",
+      });
       const missionNotFound =
         res.status === 404 &&
         (errData.error === "NOT_FOUND" || String(errData.message ?? "").includes("not found"));
@@ -125,6 +139,11 @@ export async function POST(request: NextRequest) {
 
         if (fallbackRes.ok) {
           const fallbackData = await fallbackRes.json();
+          console.info("[wizard/start] mission_fallback_used", {
+            request_id: requestId,
+            requested_mission: missionId,
+            actual_mission: "mr-botsson",
+          });
           return NextResponse.json({
             sessionId: fallbackData.session_id,
             joinUrl: fallbackData.join_url,
@@ -132,6 +151,7 @@ export async function POST(request: NextRequest) {
             missionFallbackUsed: true,
             requestedMission: missionId,
             actualMission: "mr-botsson",
+            requestId,
           });
         }
 
@@ -144,30 +164,45 @@ export async function POST(request: NextRequest) {
           fallbackErr,
         );
         return NextResponse.json(
-          { error: fallbackErr.message ?? "Failed to start voice session" },
+          {
+            error: fallbackErr.message ?? "Failed to start voice session",
+            requestId,
+          },
           { status: fallbackRes.status },
         );
       }
 
       console.error("[wizard/start] Stage engine error:", res.status, errData);
       return NextResponse.json(
-        { error: errData.message ?? "Failed to start voice session" },
+        {
+          error: errData.message ?? "Failed to start voice session",
+          requestId,
+        },
         { status: res.status },
       );
     }
 
     const data = await res.json();
+    console.info("[wizard/start] join_url_received", {
+      request_id: requestId,
+      mission_id: missionId,
+      call_id: data.call_id,
+    });
 
     return NextResponse.json({
       sessionId: data.session_id,
       joinUrl: data.join_url,
       callId: data.call_id,
+      requestId,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
-    console.error("[wizard/start] Failed:", message);
+    console.error("[wizard/start] session_start_failed", {
+      request_id: requestId,
+      error: message,
+    });
     return NextResponse.json(
-      { error: "Failed to start voice session", details: message },
+      { error: "Failed to start voice session", details: message, requestId },
       { status: 502 },
     );
   }

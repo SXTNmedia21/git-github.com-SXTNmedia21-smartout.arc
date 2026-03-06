@@ -57,6 +57,8 @@ import { useEmployees, type ScheduleEmployee } from "./_hooks/use-employees";
 
 // ── New TanStack Query hooks ────────────────────────────────
 import { ScheduleUIProvider, useScheduleUI } from "./_components/schedule-ui-context";
+import { AgentProposalsProvider } from "./_components/agent-proposals-context";
+import { ScheduleVoiceToolsBridge } from "./_components/schedule-voice-tools-bridge";
 import {
   useShifts,
   useCreateShift,
@@ -94,8 +96,6 @@ import {
 import { useScheduleRealtime } from "./_hooks/use-schedule-realtime";
 import { useScheduleComputed } from "./_hooks/use-schedule-computed";
 import { useDayInfo } from "./_hooks/use-day-info";
-import { useVoiceTools } from "@/components/voice-tools-context";
-import { useScheduleVoiceTools } from "./_hooks/use-schedule-voice-tools";
 
 // ---------------------------------------------------------------------------
 // Week range helper — supports week offset for navigation
@@ -365,36 +365,6 @@ function SchedulePageContent() {
   const updateDayTaskStatus = useUpdateDayTaskStatus(weekStart);
   const deleteDayTask = useDeleteDayTask(weekStart);
   const createDayBooking = useCreateDayBooking(weekStart);
-
-  // ── Voice tools ─────────────────────────────────────────────
-  const { setClientTools } = useVoiceTools();
-
-  const voiceTools = useScheduleVoiceTools({
-    weekStart,
-    weekEnd,
-    days: enrichedDays,
-    shifts: shiftsQuery.data ?? [],
-    absences: absencesQuery.data ?? [],
-    employees,
-    computed,
-    uiActions: {
-      focusDay: (dateId: string) => focusDayInUI(dateId, false),
-      openDayPlanner: (dateId: string) => focusDayInUI(dateId, true),
-      closeDayPlanner: () => setSelectedDate(null),
-    },
-    mutations: {
-      createShift: (input) =>
-        createShift.mutateAsync(input as Parameters<typeof createShift.mutateAsync>[0]),
-      updateShift: (input) => updateShift.mutateAsync(input),
-      deleteShift: (id) => deleteShift.mutateAsync(id),
-      publishShifts: (ids) => publishShifts.mutateAsync(ids),
-    },
-  });
-
-  useEffect(() => {
-    setClientTools(voiceTools);
-    return () => setClientTools(null);
-  }, [voiceTools, setClientTools]);
 
   // ── UI-only context ─────────────────────────────────────────
   const scheduleUI = useScheduleUI();
@@ -743,153 +713,176 @@ function SchedulePageContent() {
   const isLoading = shiftsQuery.isLoading;
 
   return (
-    <div
-      className={`flex flex-1 flex-col ${isDark ? "bg-[#050505]" : "bg-zinc-50"} relative isolate h-full overflow-hidden rounded-2xl border border-white/[0.04] font-sans text-zinc-100 shadow-2xl print:block print:h-auto print:overflow-visible print:border-none print:bg-white print:shadow-none`}
+    <AgentProposalsProvider
+      createShift={(input) =>
+        createShift.mutateAsync(input as Parameters<typeof createShift.mutateAsync>[0])
+      }
+      updateShift={(input) => updateShift.mutateAsync(input)}
     >
-      {isLoading ? (
-        <div className="flex h-full flex-1 items-center justify-center">
-          <p className="text-sm text-zinc-500">Laster vaktplan...</p>
-        </div>
-      ) : (
-        <>
-          {/* AMBIENT BACKGROUND */}
-          <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-2xl opacity-10">
-            <div className="absolute top-[-10%] left-[-10%] h-[500px] w-[500px] rounded-full bg-orange-600/20 mix-blend-screen blur-[120px]" />
+      <ScheduleVoiceToolsBridge
+        weekStart={weekStart}
+        weekEnd={weekEnd}
+        enrichedDays={enrichedDays}
+        shifts={shiftsQuery.data ?? []}
+        absences={absencesQuery.data ?? []}
+        employees={employees}
+        computed={computed}
+        focusDayInUI={focusDayInUI}
+        setSelectedDate={setSelectedDate}
+        deleteShift={deleteShift}
+        publishShifts={publishShifts}
+      />
+      <div
+        className={`flex flex-1 flex-col ${isDark ? "bg-[#050505]" : "bg-zinc-50"} relative isolate h-full overflow-hidden rounded-2xl border border-white/[0.04] font-sans text-zinc-100 shadow-2xl print:block print:h-auto print:overflow-visible print:border-none print:bg-white print:shadow-none`}
+      >
+        {isLoading ? (
+          <div className="flex h-full flex-1 items-center justify-center">
+            <p className="text-sm text-zinc-500">Laster vaktplan...</p>
           </div>
-
-          {/* MAIN CONTENT AREA — sidebar spans full height alongside command bar, status strip, and grid */}
-          <DndContext
-            sensors={sensors}
-            collisionDetection={scheduleCollisionDetection}
-            autoScroll={false}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-            onDragCancel={handleDragCancel}
-          >
-            <div className="flex flex-1 overflow-hidden">
-              {/* Sidebar — full height from top of schedule container to bottom */}
-              <ScheduleSidebar
-                isDark={isDark}
-                isSidebarOpen={isSidebarOpen}
-                sidebarMode={sidebarMode}
-                setSidebarMode={setSidebarMode}
-                templates={templates}
-                openShifts={openShifts}
-              />
-
-              {/* Main content column — command bar, status strip, then grid */}
-              <div className="flex min-w-0 flex-1 flex-col">
-                <PlannerCommandBar
-                  isDark={isDark}
-                  filterSituation={filterSituation}
-                  setFilterSituation={setFilterSituation}
-                  weekSpan={weekSpan}
-                  setWeekSpan={setWeekSpan}
-                  scheduleLayout={scheduleLayout}
-                />
-
-                <GridSurface
-                  isDark={isDark}
-                  centerContent={
-                    <>
-                      {scheduleLayout === "daily" && (
-                        <GridContent
-                          isSidebarOpen={isSidebarOpen}
-                          setIsSidebarOpen={setIsSidebarOpen}
-                          onDateClick={setSelectedDate}
-                          filterSituation={filterSituation}
-                          activeStatusFilter={activeStatusFilter}
-                          visibleDays={situationFilteredDays}
-                          employees={locationFilteredEmployees}
-                          highlightedDayId={highlightedDayId}
-                        />
-                      )}
-                      {scheduleLayout === "weekly" && (
-                        <WeeklyGridContent
-                          isSidebarOpen={isSidebarOpen}
-                          setIsSidebarOpen={setIsSidebarOpen}
-                          onDateClick={setSelectedDate}
-                          filterSituation={filterSituation}
-                          shifts={shifts}
-                          computed={computed}
-                          scheduleUI={scheduleUI}
-                          employees={employees}
-                        />
-                      )}
-                      {scheduleLayout === "monthly" && (
-                        <MonthlyView
-                          onDateClick={setSelectedDate}
-                          shifts={shifts}
-                          computed={computed}
-                          employees={employees}
-                        />
-                      )}
-                      {scheduleLayout === "list" && (
-                        <ListGridContent
-                          onDateClick={setSelectedDate}
-                          shifts={shifts}
-                          computed={computed}
-                          days={days}
-                          employees={employees}
-                        />
-                      )}
-                    </>
-                  }
-                  dayInspector={
-                    <DayControlSheet
-                      selectedDate={selectedDate}
-                      onClose={() => setSelectedDate(null)}
-                    >
-                      <DayControlPanel date={selectedDate} onClose={() => setSelectedDate(null)} />
-                    </DayControlSheet>
-                  }
-                />
-
-                <StatusStrip
-                  isDark={isDark}
-                  statusSummary={statusSummary}
-                  activeFilter={activeStatusFilter}
-                  onFilterClick={setActiveStatusFilter}
-                />
-              </div>
+        ) : (
+          <>
+            {/* AMBIENT BACKGROUND */}
+            <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-2xl opacity-10">
+              <div className="absolute top-[-10%] left-[-10%] h-[500px] w-[500px] rounded-full bg-orange-600/20 mix-blend-screen blur-[120px]" />
             </div>
 
-            <ScheduleDragOverlay isDark={isDark} />
-          </DndContext>
+            {/* MAIN CONTENT AREA — sidebar spans full height alongside command bar, status strip, and grid */}
+            <DndContext
+              sensors={sensors}
+              collisionDetection={scheduleCollisionDetection}
+              autoScroll={false}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              onDragCancel={handleDragCancel}
+            >
+              <div className="flex flex-1 overflow-hidden">
+                {/* Sidebar — full height from top of schedule container to bottom */}
+                <ScheduleSidebar
+                  isDark={isDark}
+                  isSidebarOpen={isSidebarOpen}
+                  sidebarMode={sidebarMode}
+                  setSidebarMode={setSidebarMode}
+                  templates={templates}
+                  openShifts={openShifts}
+                />
 
-          {/* Global modals and overlays rendered at the page level */}
-          <ShiftModal />
-          <BatchActionBar />
-          <AbsencePopover />
-          <EmployeeDrawer
-            open={!!scheduleUI.selectedEmployeeId}
-            onOpenChange={(open) => {
-              if (!open) scheduleUI.setSelectedEmployee(null);
-            }}
-            employee={
-              employees.find((e: ScheduleEmployee) => e.id === scheduleUI.selectedEmployeeId) ??
-              null
-            }
-          />
-          <PublishOverviewDialog
-            open={publishOverviewOpen}
-            onOpenChange={setPublishOverviewOpen}
-            shifts={shifts}
-            employees={employees}
-            onPublish={(ids) => publishShifts.mutate(ids)}
-            isPublishing={publishShifts.isPending}
-          />
-          <SendMessageDialog
-            open={sendMessageDialog.open}
-            onOpenChange={(open) => setSendMessageDialog((prev) => ({ ...prev, open }))}
-            dateId={sendMessageDialog.dateId}
-            dateLabel={sendMessageDialog.dateLabel}
-            shifts={shifts}
-            employees={employees}
-          />
-        </>
-      )}
-    </div>
+                {/* Main content column — command bar, status strip, then grid */}
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <PlannerCommandBar
+                    isDark={isDark}
+                    filterSituation={filterSituation}
+                    setFilterSituation={setFilterSituation}
+                    weekSpan={weekSpan}
+                    setWeekSpan={setWeekSpan}
+                    scheduleLayout={scheduleLayout}
+                  />
+
+                  <GridSurface
+                    isDark={isDark}
+                    centerContent={
+                      <>
+                        {scheduleLayout === "daily" && (
+                          <GridContent
+                            isSidebarOpen={isSidebarOpen}
+                            setIsSidebarOpen={setIsSidebarOpen}
+                            onDateClick={setSelectedDate}
+                            filterSituation={filterSituation}
+                            activeStatusFilter={activeStatusFilter}
+                            visibleDays={situationFilteredDays}
+                            employees={locationFilteredEmployees}
+                            highlightedDayId={highlightedDayId}
+                          />
+                        )}
+                        {scheduleLayout === "weekly" && (
+                          <WeeklyGridContent
+                            isSidebarOpen={isSidebarOpen}
+                            setIsSidebarOpen={setIsSidebarOpen}
+                            onDateClick={setSelectedDate}
+                            filterSituation={filterSituation}
+                            shifts={shifts}
+                            computed={computed}
+                            scheduleUI={scheduleUI}
+                            employees={employees}
+                          />
+                        )}
+                        {scheduleLayout === "monthly" && (
+                          <MonthlyView
+                            onDateClick={setSelectedDate}
+                            shifts={shifts}
+                            computed={computed}
+                            employees={employees}
+                          />
+                        )}
+                        {scheduleLayout === "list" && (
+                          <ListGridContent
+                            onDateClick={setSelectedDate}
+                            shifts={shifts}
+                            computed={computed}
+                            days={days}
+                            employees={employees}
+                          />
+                        )}
+                      </>
+                    }
+                    dayInspector={
+                      <DayControlSheet
+                        selectedDate={selectedDate}
+                        onClose={() => setSelectedDate(null)}
+                      >
+                        <DayControlPanel
+                          date={selectedDate}
+                          onClose={() => setSelectedDate(null)}
+                        />
+                      </DayControlSheet>
+                    }
+                  />
+
+                  <StatusStrip
+                    isDark={isDark}
+                    statusSummary={statusSummary}
+                    activeFilter={activeStatusFilter}
+                    onFilterClick={setActiveStatusFilter}
+                  />
+                </div>
+              </div>
+
+              <ScheduleDragOverlay isDark={isDark} />
+            </DndContext>
+
+            {/* Global modals and overlays rendered at the page level */}
+            <ShiftModal />
+            <BatchActionBar />
+            <AbsencePopover />
+            <EmployeeDrawer
+              open={!!scheduleUI.selectedEmployeeId}
+              onOpenChange={(open) => {
+                if (!open) scheduleUI.setSelectedEmployee(null);
+              }}
+              employee={
+                employees.find((e: ScheduleEmployee) => e.id === scheduleUI.selectedEmployeeId) ??
+                null
+              }
+            />
+            <PublishOverviewDialog
+              open={publishOverviewOpen}
+              onOpenChange={setPublishOverviewOpen}
+              shifts={shifts}
+              employees={employees}
+              onPublish={(ids) => publishShifts.mutate(ids)}
+              isPublishing={publishShifts.isPending}
+            />
+            <SendMessageDialog
+              open={sendMessageDialog.open}
+              onOpenChange={(open) => setSendMessageDialog((prev) => ({ ...prev, open }))}
+              dateId={sendMessageDialog.dateId}
+              dateLabel={sendMessageDialog.dateLabel}
+              shifts={shifts}
+              employees={employees}
+            />
+          </>
+        )}
+      </div>
+    </AgentProposalsProvider>
   );
 }
 

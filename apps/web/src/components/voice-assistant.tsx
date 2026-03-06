@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Mic, MicOff, Sparkles, X, Activity, Bot, Loader2 } from "lucide-react";
 import { UltravoxSession, UltravoxSessionStatus, Role } from "ultravox-client";
 import { usePostHog } from "posthog-js/react";
@@ -33,7 +33,11 @@ export default function VoiceAssistant({
   const [messages, setMessages] = useState<{ role: string; text: string }[]>([]);
   const [isMuted, setIsMuted] = useState(true);
   const [agentSpeaksEnabled, setAgentSpeaksEnabled] = useState(false);
+  const [startErrorMessage, setStartErrorMessage] = useState<string | null>(null);
   const sessionRef = useRef<UltravoxSession | null>(null);
+  const isStartingRef = useRef(false);
+  const pendingOutputMediumRef = useRef<"voice" | "text" | null>(null);
+  const connectedReadyCapturedRef = useRef(false);
   const posthog = usePostHog();
 
   const manifest = useMemo(
@@ -55,32 +59,63 @@ export default function VoiceAssistant({
     );
   };
 
-  const applyAgentAudioState = (enabled: boolean) => {
-    const session = sessionRef.current as UltravoxSpeakerControls | null;
-    if (!session) return;
-    const currentStatus = session.status;
-    const canSetOutputMedium = isConnectedStatus(currentStatus);
+  const trackVoiceEvent = useCallback(
+    (event: string, payload: Record<string, unknown> = {}) => {
+      posthog?.capture(event, {
+        mission_id: missionId,
+        ...payload,
+      });
+    },
+    [posthog, missionId],
+  );
 
-    try {
-      if (enabled) {
-        session.unmuteSpeaker?.();
-        if (canSetOutputMedium) {
-          session.setOutputMedium?.("voice");
+  /**
+   * Applies the desired speaker/output mode when session is connected.
+   * If still connecting, we queue the desired medium and flush once ready.
+   */
+  const applyAgentAudioState = useCallback(
+    (enabled: boolean, source: string) => {
+      const desiredMedium = enabled ? "voice" : "text";
+      pendingOutputMediumRef.current = desiredMedium;
+
+      const session = sessionRef.current as UltravoxSpeakerControls | null;
+      if (!session) return;
+      if (!isConnectedStatus(session.status)) return;
+
+      try {
+        if (enabled) {
+          session.unmuteSpeaker?.();
+        } else {
+          session.muteSpeaker?.();
         }
-        return;
+        session.setOutputMedium?.(desiredMedium);
+        pendingOutputMediumRef.current = null;
+        trackVoiceEvent("output_mode_applied", {
+          source,
+          medium: desiredMedium,
+          status: String(session.status ?? "unknown"),
+        });
+      } catch (error) {
+        // Keep pending value for next connected status tick.
+        console.debug("[VoiceAssistant] Deferring speaker state change", error);
       }
-      session.muteSpeaker?.();
-      if (canSetOutputMedium) {
-        session.setOutputMedium?.("text");
-      }
-    } catch (error) {
-      // Ignore transient pre-connect state errors.
-      console.debug("[VoiceAssistant] Skipping speaker state change until connected", error);
-    }
-  };
+    },
+    [trackVoiceEvent],
+  );
 
-  const startSession = async () => {
+  const startSession = useCallback(async () => {
+    if (isStartingRef.current) return;
+    if (sessionRef.current && status !== "idle") return;
+
+    isStartingRef.current = true;
+    connectedReadyCapturedRef.current = false;
+    setStartErrorMessage(null);
     setStatus(UltravoxSessionStatus.CONNECTING);
+    trackVoiceEvent("session_start_requested", {
+      context_page: sessionContext?.page ?? "unknown",
+      selected_tool_count: clientTools?.definitions?.length ?? 0,
+    });
+
     try {
       const currentSession = new UltravoxSession();
       sessionRef.current = currentSession;
@@ -97,9 +132,17 @@ export default function VoiceAssistant({
 
       currentSession.addEventListener("status", () => {
         if (sessionRef.current === currentSession) {
-          setStatus(currentSession.status || "idle");
-          if (isConnectedStatus(currentSession.status)) {
-            applyAgentAudioState(agentSpeaksEnabled);
+          const nextStatus = currentSession.status || "idle";
+          setStatus(nextStatus);
+
+          if (isConnectedStatus(nextStatus)) {
+            if (!connectedReadyCapturedRef.current) {
+              connectedReadyCapturedRef.current = true;
+              trackVoiceEvent("connected_ready", {
+                status: String(nextStatus),
+              });
+            }
+            applyAgentAudioState(agentSpeaksEnabled, "connected_status");
           }
         }
       });
@@ -148,6 +191,10 @@ export default function VoiceAssistant({
         if (res.ok) {
           const data = await res.json();
           joinUrl = data.joinUrl;
+          trackVoiceEvent("join_url_received", {
+            mission_fallback_used: Boolean(data.missionFallbackUsed),
+            voice_fallback_used: Boolean(data.voiceFallbackUsed),
+          });
           if (data.voiceFallbackUsed) {
             posthog?.capture("voice_fallback_used", {
               mission_id: missionId,
@@ -158,11 +205,20 @@ export default function VoiceAssistant({
           const errorData = await res
             .json()
             .catch(() => ({ error: "Failed to start voice session" }));
+          setStartErrorMessage(errorData.error ?? "Kunne ikke starte stemmesesjon");
           toast.error(errorData.error ?? "Kunne ikke starte stemmesesjon");
+          trackVoiceEvent("join_url_failed", {
+            status_code: res.status,
+            error: errorData.error ?? "unknown_error",
+          });
         }
       } catch (err) {
         console.warn("[VoiceAssistant] Could not fetch joinUrl:", err);
+        setStartErrorMessage("Nettverksfeil ved oppstart av stemmesesjon");
         toast.error("Nettverksfeil ved oppstart av stemmesesjon");
+        trackVoiceEvent("join_url_failed", {
+          error: err instanceof Error ? err.message : "unknown_error",
+        });
       }
 
       if (joinUrl && sessionRef.current === currentSession) {
@@ -170,35 +226,72 @@ export default function VoiceAssistant({
         // Enforce muted mic after connect as well.
         currentSession.muteMic();
         setIsMuted(true);
+        trackVoiceEvent("join_call_invoked", { has_join_url: true });
         posthog?.capture("voice_session_started", { mission_id: missionId });
       } else if (!joinUrl && sessionRef.current === currentSession) {
+        sessionRef.current = null;
         setStatus("idle");
-        setMessages([{ role: "agent", text: manifest.greeting }]);
+        setMessages([
+          { role: "agent", text: manifest.greeting },
+          {
+            role: "agent",
+            text: "Voice is unavailable right now. You can retry, or continue with guided text actions.",
+          },
+        ]);
         toast.error("Kunne ikke starte stemme. Sjekk at Stage Engine/Ultravox er tilgjengelig.");
       }
     } catch (error) {
       console.error("[VoiceAssistant] Failed to start session:", error);
+      setStartErrorMessage("Kunne ikke starte stemmesesjon");
       if (sessionRef.current) setStatus("idle");
+      trackVoiceEvent("session_start_failed", {
+        error: error instanceof Error ? error.message : "unknown_error",
+      });
+    } finally {
+      isStartingRef.current = false;
     }
-  };
+  }, [
+    status,
+    missionId,
+    manifest.greeting,
+    sessionContext,
+    clientTools,
+    trackVoiceEvent,
+    applyAgentAudioState,
+    posthog,
+    agentSpeaksEnabled,
+  ]);
 
-  const endSession = () => {
-    if (sessionRef.current) {
-      sessionRef.current.leaveCall();
+  const endSession = useCallback(
+    (reason: string) => {
+      isStartingRef.current = false;
+      pendingOutputMediumRef.current = null;
+      connectedReadyCapturedRef.current = false;
+
+      const session = sessionRef.current;
       sessionRef.current = null;
-      posthog?.capture("voice_session_ended", { mission_id: missionId });
-    }
-    setStatus("idle");
-  };
+      if (session) {
+        try {
+          session.leaveCall();
+        } catch (error) {
+          console.debug("[VoiceAssistant] leaveCall failed", error);
+        }
+        posthog?.capture("voice_session_ended", { mission_id: missionId });
+      }
+      setStatus("idle");
+      trackVoiceEvent("session_end_reason", { reason });
+    },
+    [posthog, missionId, trackVoiceEvent],
+  );
 
   const handleClose = () => {
-    endSession();
+    endSession("close_button");
     if (onClose) onClose();
   };
 
   const toggleMicMute = () => {
     const session = sessionRef.current;
-    if (!session) return;
+    if (!session || !isConnectedStatus(session.status)) return;
     if (isMuted) {
       session.unmuteMic();
       setIsMuted(false);
@@ -211,7 +304,7 @@ export default function VoiceAssistant({
   const toggleAgentSpeaks = () => {
     const nextEnabled = !agentSpeaksEnabled;
     setAgentSpeaksEnabled(nextEnabled);
-    applyAgentAudioState(nextEnabled);
+    applyAgentAudioState(nextEnabled, "toggle_button");
   };
 
   useEffect(() => {
@@ -221,14 +314,13 @@ export default function VoiceAssistant({
       }, 0);
     }
     return () => {
-      endSession();
+      endSession("component_unmount");
     };
-    // eslint-disable-next-line -- suppress exhaustive-deps: startSession/endSession excluded; only fire on autoStart change
-  }, [autoStart]);
+  }, [autoStart, endSession, startSession]);
 
   useEffect(() => {
-    applyAgentAudioState(agentSpeaksEnabled);
-  }, [agentSpeaksEnabled]);
+    applyAgentAudioState(agentSpeaksEnabled, "state_effect");
+  }, [agentSpeaksEnabled, applyAgentAudioState]);
 
   const isConnected = ["listening", "thinking", "speaking"].includes(status);
 
@@ -320,12 +412,17 @@ export default function VoiceAssistant({
       {/* Controls */}
       <div className="flex flex-col items-center gap-3 border-t border-zinc-800 bg-zinc-900/50 p-4">
         {status === "idle" ? (
-          <button
-            onClick={startSession}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 py-3 font-bold text-white shadow-lg shadow-orange-500/20 transition-all hover:bg-orange-400"
-          >
-            <Mic className="h-5 w-5" /> Start chat
-          </button>
+          <div className="flex w-full flex-col gap-2">
+            <button
+              onClick={() => void startSession()}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 py-3 font-bold text-white shadow-lg shadow-orange-500/20 transition-all hover:bg-orange-400"
+            >
+              <Mic className="h-5 w-5" /> {startErrorMessage ? "Prøv igjen" : "Start chat"}
+            </button>
+            {startErrorMessage ? (
+              <p className="text-center text-xs text-amber-300">{startErrorMessage}</p>
+            ) : null}
+          </div>
         ) : (
           <div className="flex w-full flex-col items-stretch gap-2">
             <button
