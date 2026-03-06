@@ -4,6 +4,10 @@ import { invalidateServiceConfig } from "@smartout/supabase/service-config";
 
 type RouteContext = { params: Promise<{ slug: string }> };
 
+// TODO: Remove once service_config migration is applied and types regenerated
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const svcTable = (client: any) => client.from("service_config") as any;
+
 /** GET /api/platform-admin/services/config/[slug] — Get single service */
 export async function GET(_request: NextRequest, { params }: RouteContext) {
   const auth = await requireGodmode();
@@ -11,11 +15,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
 
   const { slug } = await params;
 
-  const { data, error } = await auth.admin
-    .from("service_config")
-    .select("*")
-    .eq("slug", slug)
-    .single();
+  const { data, error } = await svcTable(auth.admin).select("*").eq("slug", slug).single();
 
   if (error || !data) return NextResponse.json({ error: "Service not found" }, { status: 404 });
 
@@ -31,8 +31,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
   const body = await request.json();
 
   // Verify service exists
-  const { data: existing } = await auth.admin
-    .from("service_config")
+  const { data: existing } = await svcTable(auth.admin)
     .select("service_id")
     .eq("slug", slug)
     .single();
@@ -44,8 +43,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
   delete body.slug;
   delete body.created_at;
 
-  const { data, error } = await auth.admin
-    .from("service_config")
+  const { data, error } = await svcTable(auth.admin)
     .update(body)
     .eq("slug", slug)
     .select()
@@ -69,15 +67,14 @@ export async function DELETE(_request: NextRequest, { params }: RouteContext) {
 
   const { slug } = await params;
 
-  const { data: existing } = await auth.admin
-    .from("service_config")
+  const { data: existing } = await svcTable(auth.admin)
     .select("service_id")
     .eq("slug", slug)
     .single();
 
   if (!existing) return NextResponse.json({ error: "Service not found" }, { status: 404 });
 
-  const { error } = await auth.admin.from("service_config").delete().eq("slug", slug);
+  const { error } = await svcTable(auth.admin).delete().eq("slug", slug);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 

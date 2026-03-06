@@ -33,7 +33,10 @@ type HealthCheckEntry = {
 /** Build health check entries from service_config table + special overrides */
 async function getHealthCheckEntries(): Promise<HealthCheckEntry[]> {
   const admin = createAdminClient();
-  const { data: services } = await admin
+  // TODO: Remove cast once service_config migration is applied and types regenerated
+  const { data: services } = await (
+    admin as unknown as { from: (t: string) => ReturnType<typeof admin.from> }
+  )
     .from("service_config")
     .select("name, slug, host_url, health_endpoint, type, status")
     .in("type", ["docker", "edge-function"])

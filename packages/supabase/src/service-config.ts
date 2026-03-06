@@ -1,11 +1,31 @@
 import { createAdminClient } from "./admin";
-import type { Database } from "./database.types";
 
-export type ServiceConfig = Database["public"]["Tables"]["service_config"]["Row"];
+// TODO: Remove manual type once service_config migration is applied and types regenerated
+export type ServiceConfig = {
+  service_id: string;
+  slug: string;
+  name: string;
+  type: string;
+  description: string | null;
+  host_url: string | null;
+  health_endpoint: string | null;
+  docker_service_name: string | null;
+  docker_image: string | null;
+  vercel_project_id: string | null;
+  config: Record<string, unknown>;
+  env_schema: Array<{ key: string; required: boolean; change_type: string; description: string }>;
+  vault_secrets: string[];
+  port: number | null;
+  tags: string[];
+  is_critical: boolean;
+  status: string;
+  created_at: string;
+  updated_at: string;
+};
 
-export type ServiceConfigInsert = Database["public"]["Tables"]["service_config"]["Insert"];
+export type ServiceConfigInsert = Partial<ServiceConfig> & { slug: string; name: string };
 
-export type ServiceConfigUpdate = Database["public"]["Tables"]["service_config"]["Update"];
+export type ServiceConfigUpdate = Partial<ServiceConfig>;
 
 const CACHE_TTL_MS = 60_000; // 60 seconds
 
@@ -64,9 +84,16 @@ export async function getServiceConfig(slug: string): Promise<ServiceConfig | nu
 
   // 3. Fetch from DB
   const admin = createAdminClient();
-  const { data, error } = await admin.from("service_config").select("*").eq("slug", slug).single();
+  // TODO: Remove cast once migration is applied and types regenerated
+  const { data, error } = await (
+    admin as unknown as { from: (t: string) => ReturnType<typeof admin.from> }
+  )
+    .from("service_config")
+    .select("*")
+    .eq("slug", slug)
+    .single();
 
-  const config = error || !data ? null : data;
+  const config = error || !data ? null : (data as unknown as ServiceConfig);
 
   // 4. Store in both caches
   memoryCache.set(cacheKey, { data: config, expires: now + CACHE_TTL_MS });
@@ -84,10 +111,16 @@ export async function getServiceConfig(slug: string): Promise<ServiceConfig | nu
 /** Get ALL services (for admin UI listing) — not cached aggressively */
 export async function getAllServiceConfigs(): Promise<ServiceConfig[]> {
   const admin = createAdminClient();
-  const { data, error } = await admin.from("service_config").select("*").order("name");
+  // TODO: Remove cast once migration is applied and types regenerated
+  const { data, error } = await (
+    admin as unknown as { from: (t: string) => ReturnType<typeof admin.from> }
+  )
+    .from("service_config")
+    .select("*")
+    .order("name");
 
   if (error || !data) return [];
-  return data;
+  return data as unknown as ServiceConfig[];
 }
 
 /** Invalidate cache for a specific service (after config update) */

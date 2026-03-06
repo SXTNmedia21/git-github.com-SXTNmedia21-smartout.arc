@@ -18,6 +18,17 @@ tags: [learnings]
 
 ---
 
+# Learning Log — unified-context-search
+
+| #   | Date       | Learning                                                                                                   | Impact                                                                          |
+| --- | ---------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| 1   | 2026-03-06 | Pre-existing type errors (service_config, leader_pulse) block pre-push hooks on all branches               | Must fix in feature branch or they block every push; svcTable() pattern works   |
+| 2   | 2026-03-06 | sed replacements on multi-line `.from()` chains break when property access spans lines                     | Use Edit tool or helper function approach instead of sed for TS refactors       |
+| 3   | 2026-03-06 | 4-wave parallel agent execution works cleanly when agents touch non-overlapping files                      | Can safely run 3 agents per wave on same worktree                               |
+| 4   | 2026-03-06 | supabase.rpc() calls to new RPCs fail typecheck before types regen — cast via `(supabase.rpc as Function)` | Same pattern as .from() casts; grep for TODO to find all when migration applied |
+
+---
+
 # Learning Log — season-creation-wizard
 
 | #   | Date | Learning | Impact |
@@ -34,6 +45,7 @@ updated: 2026-03-06
 created: 2026-03-06
 module: meta
 tags: [learnings]
+
 ---
 
 # Learning Log

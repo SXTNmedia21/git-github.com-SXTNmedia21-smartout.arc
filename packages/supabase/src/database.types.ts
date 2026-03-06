@@ -848,7 +848,7 @@ export type Database = {
         Row: {
           audit_log_url: string | null
           auto_create_workspace: boolean | null
-          company_id: string | null
+          company_id: string
           contract_id: string
           contract_number: string | null
           contract_type: string
@@ -885,7 +885,7 @@ export type Database = {
         Insert: {
           audit_log_url?: string | null
           auto_create_workspace?: boolean | null
-          company_id?: string | null
+          company_id: string
           contract_id?: string
           contract_number?: string | null
           contract_type?: string
@@ -922,7 +922,7 @@ export type Database = {
         Update: {
           audit_log_url?: string | null
           auto_create_workspace?: boolean | null
-          company_id?: string | null
+          company_id?: string
           contract_id?: string
           contract_number?: string | null
           contract_type?: string
@@ -2272,7 +2272,7 @@ export type Database = {
           context: Json
           created_at: string
           current_stage_id: string | null
-          expires_at: string | null
+          expires_at: string
           guardian_whisper_count: number
           id: string
           journey_id: string | null
@@ -2285,7 +2285,7 @@ export type Database = {
           summary: string | null
           updated_at: string
           user_id: string | null
-          workspace_id: string | null
+          workspace_id: string
         }
         Insert: {
           callback_url?: string | null
@@ -2295,7 +2295,7 @@ export type Database = {
           context?: Json
           created_at?: string
           current_stage_id?: string | null
-          expires_at?: string | null
+          expires_at?: string
           guardian_whisper_count?: number
           id?: string
           journey_id?: string | null
@@ -2308,7 +2308,7 @@ export type Database = {
           summary?: string | null
           updated_at?: string
           user_id?: string | null
-          workspace_id?: string | null
+          workspace_id: string
         }
         Update: {
           callback_url?: string | null
@@ -2318,7 +2318,7 @@ export type Database = {
           context?: Json
           created_at?: string
           current_stage_id?: string | null
-          expires_at?: string | null
+          expires_at?: string
           guardian_whisper_count?: number
           id?: string
           journey_id?: string | null
@@ -2331,7 +2331,7 @@ export type Database = {
           summary?: string | null
           updated_at?: string
           user_id?: string | null
-          workspace_id?: string | null
+          workspace_id?: string
         }
         Relationships: [
           {
@@ -3680,66 +3680,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "user_identity"
             referencedColumns: ["user_id"]
-          },
-        ]
-      }
-      leader_pulse: {
-        Row: {
-          answer: string | null
-          answered_at: string | null
-          context: Json | null
-          created_at: string
-          delivered_at: string | null
-          delivered_via: string | null
-          id: string
-          profile_id: string
-          question: string
-          status: string
-          updated_at: string
-          workspace_id: string
-        }
-        Insert: {
-          answer?: string | null
-          answered_at?: string | null
-          context?: Json | null
-          created_at?: string
-          delivered_at?: string | null
-          delivered_via?: string | null
-          id?: string
-          profile_id: string
-          question: string
-          status?: string
-          updated_at?: string
-          workspace_id: string
-        }
-        Update: {
-          answer?: string | null
-          answered_at?: string | null
-          context?: Json | null
-          created_at?: string
-          delivered_at?: string | null
-          delivered_via?: string | null
-          id?: string
-          profile_id?: string
-          question?: string
-          status?: string
-          updated_at?: string
-          workspace_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "leader_pulse_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profile"
-            referencedColumns: ["profile_id"]
-          },
-          {
-            foreignKeyName: "leader_pulse_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspace"
-            referencedColumns: ["workspace_id"]
           },
         ]
       }
@@ -6414,122 +6354,6 @@ export type Database = {
           },
         ]
       }
-      service_config: {
-        Row: {
-          config: Json
-          created_at: string
-          description: string | null
-          docker_image: string | null
-          docker_service_name: string | null
-          env_schema: Json
-          health_endpoint: string | null
-          host_url: string | null
-          is_critical: boolean
-          name: string
-          port: number | null
-          service_id: string
-          slug: string
-          status: Database["public"]["Enums"]["service_status"]
-          tags: string[]
-          type: Database["public"]["Enums"]["service_type"]
-          updated_at: string
-          vault_secrets: string[]
-          vercel_project_id: string | null
-          version: string | null
-        }
-        Insert: {
-          config?: Json
-          created_at?: string
-          description?: string | null
-          docker_image?: string | null
-          docker_service_name?: string | null
-          env_schema?: Json
-          health_endpoint?: string | null
-          host_url?: string | null
-          is_critical?: boolean
-          name: string
-          port?: number | null
-          service_id?: string
-          slug: string
-          status?: Database["public"]["Enums"]["service_status"]
-          tags?: string[]
-          type: Database["public"]["Enums"]["service_type"]
-          updated_at?: string
-          vault_secrets?: string[]
-          vercel_project_id?: string | null
-          version?: string | null
-        }
-        Update: {
-          config?: Json
-          created_at?: string
-          description?: string | null
-          docker_image?: string | null
-          docker_service_name?: string | null
-          env_schema?: Json
-          health_endpoint?: string | null
-          host_url?: string | null
-          is_critical?: boolean
-          name?: string
-          port?: number | null
-          service_id?: string
-          slug?: string
-          status?: Database["public"]["Enums"]["service_status"]
-          tags?: string[]
-          type?: Database["public"]["Enums"]["service_type"]
-          updated_at?: string
-          vault_secrets?: string[]
-          vercel_project_id?: string | null
-          version?: string | null
-        }
-        Relationships: []
-      }
-      service_config_log: {
-        Row: {
-          applied: boolean
-          applied_at: string | null
-          change_type: Database["public"]["Enums"]["config_change_type"]
-          changed_by: string
-          created_at: string
-          field_name: string
-          log_id: string
-          new_value: string | null
-          old_value: string | null
-          service_id: string
-        }
-        Insert: {
-          applied?: boolean
-          applied_at?: string | null
-          change_type: Database["public"]["Enums"]["config_change_type"]
-          changed_by: string
-          created_at?: string
-          field_name: string
-          log_id?: string
-          new_value?: string | null
-          old_value?: string | null
-          service_id: string
-        }
-        Update: {
-          applied?: boolean
-          applied_at?: string | null
-          change_type?: Database["public"]["Enums"]["config_change_type"]
-          changed_by?: string
-          created_at?: string
-          field_name?: string
-          log_id?: string
-          new_value?: string | null
-          old_value?: string | null
-          service_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "service_config_log_service_id_fkey"
-            columns: ["service_id"]
-            isOneToOne: false
-            referencedRelation: "service_config"
-            referencedColumns: ["service_id"]
-          },
-        ]
-      }
       settlement_image: {
         Row: {
           image_id: string
@@ -7373,10 +7197,6 @@ export type Database = {
         Returns: string
       }
       anonymize_user: { Args: { target_user_id: string }; Returns: undefined }
-      archive_onboarding_workspaces: {
-        Args: { p_workspace_ids: string[] }
-        Returns: undefined
-      }
       cleanup_expired_api_keys: { Args: never; Returns: number }
       compute_platform_metrics: { Args: never; Returns: undefined }
       count_dangling_company_members: { Args: never; Returns: number }
@@ -7491,7 +7311,6 @@ export type Database = {
         | "opened"
         | "clicked"
       company_member_role: "owner" | "admin" | "member"
-      config_change_type: "runtime" | "restart"
       contract_status:
         | "draft"
         | "sent"
@@ -7657,8 +7476,6 @@ export type Database = {
       routine_assigned_to_type: "team" | "role" | "profile"
       season_status: "draft" | "active" | "archived"
       season_type: "default" | "calendar" | "focus" | "cycle" | "custom"
-      service_status: "active" | "stopped" | "error" | "unconfigured"
-      service_type: "docker" | "vercel" | "edge-function" | "external"
       settlement_source_type:
         | "pos"
         | "terminal"
@@ -7838,7 +7655,6 @@ export const Constants = {
         "clicked",
       ],
       company_member_role: ["owner", "admin", "member"],
-      config_change_type: ["runtime", "restart"],
       contract_status: [
         "draft",
         "sent",
@@ -8020,8 +7836,6 @@ export const Constants = {
       routine_assigned_to_type: ["team", "role", "profile"],
       season_status: ["draft", "active", "archived"],
       season_type: ["default", "calendar", "focus", "cycle", "custom"],
-      service_status: ["active", "stopped", "error", "unconfigured"],
-      service_type: ["docker", "vercel", "edge-function", "external"],
       settlement_source_type: [
         "pos",
         "terminal",

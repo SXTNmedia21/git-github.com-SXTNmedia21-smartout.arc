@@ -1,9 +1,28 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { Database } from "@smartout/supabase";
-
-export type ServiceConfigRow = Database["public"]["Tables"]["service_config"]["Row"];
+// TODO: Remove manual type once service_config migration is applied and types regenerated
+export type ServiceConfigRow = {
+  service_id: string;
+  slug: string;
+  name: string;
+  type: string;
+  description: string | null;
+  host_url: string | null;
+  health_endpoint: string | null;
+  docker_service_name: string | null;
+  docker_image: string | null;
+  vercel_project_id: string | null;
+  config: Record<string, unknown>;
+  env_schema: Array<{ key: string; required: boolean; change_type: string; description: string }>;
+  vault_secrets: string[];
+  port: number | null;
+  tags: string[];
+  is_critical: boolean;
+  status: string;
+  created_at: string;
+  updated_at: string;
+};
 
 const QUERY_KEY = ["platform-admin", "services", "config"];
 

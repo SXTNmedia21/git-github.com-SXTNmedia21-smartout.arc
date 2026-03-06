@@ -41,6 +41,24 @@ program
     });
   });
 
+// --- Workspace ingest command ---
+program
+  .command("ingest-workspace")
+  .description(
+    "Ingest workspace content (handbook, policies, protocols, procedures) into workspace_doc_chunk",
+  )
+  .requiredOption("--workspace-id <id>", "Workspace ID to ingest content for")
+  .option("--force", "Re-process all content regardless of hash changes", false)
+  .option("--dry-run", "Log what would happen without making changes", false)
+  .action(async (opts) => {
+    const { runWorkspaceIngest } = await import("./commands/ingest-workspace");
+    await runWorkspaceIngest({
+      workspaceId: opts.workspaceId,
+      force: opts.force,
+      dryRun: opts.dryRun,
+    });
+  });
+
 // --- Watch command ---
 program
   .command("watch")

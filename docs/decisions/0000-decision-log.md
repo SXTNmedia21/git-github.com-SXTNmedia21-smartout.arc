@@ -21,6 +21,20 @@ tags: [decisions]
 
 ---
 
+# Decision Log — unified-context-search
+
+| #   | Date       | Decision                                                                                        | Status   |
+| --- | ---------- | ----------------------------------------------------------------------------------------------- | -------- |
+| 1   | 2026-03-06 | 3-layer architecture: System (deterministic) → Intelligence (role scaffolding) → AI (assistant) | Accepted |
+| 2   | 2026-03-06 | Separate workspace_doc_chunk from platform_doc_chunk (workspace RLS vs global)                  | Accepted |
+| 3   | 2026-03-06 | cmdk prefix modes: ? knowledge, @ people, > commands                                            | Accepted |
+| 4   | 2026-03-06 | Search orchestrator runs 3 modes in parallel with hard cap per group (5)                        | Accepted |
+| 5   | 2026-03-06 | Semantic search ships as empty stub (instance + dependency work immediately)                    | Accepted |
+| 6   | 2026-03-06 | Bootstrap endpoint cached 30s with stale-while-revalidate 120s                                  | Accepted |
+| 7   | 2026-03-06 | svcTable() helper pattern for unapplied-migration type casts (easy grep + remove)               | Accepted |
+
+---
+
 # Decision Log — season-creation-wizard
 
 | #   | Date | Decision | Status |

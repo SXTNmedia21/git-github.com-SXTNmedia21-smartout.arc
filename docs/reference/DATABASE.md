@@ -222,6 +222,16 @@ Single source of truth for all database tables, enums, RLS patterns, naming conv
 
 **RLS:** Both tables use dual-auth (JWT + API key) workspace isolation pattern.
 
+### Context & Search (workspace_id scoped)
+
+| Table                 | PK         | Purpose                                                                                                       |
+| --------------------- | ---------- | ------------------------------------------------------------------------------------------------------------- |
+| `workspace_doc_chunk` | `chunk_id` | Workspace-scoped semantic chunks for handbook/policy/protocol/procedure. pgvector embeddings. RLS: dual-auth. |
+
+**workspace_doc_chunk key columns:** `workspace_id`, `source_type` (handbook_chapter, policy, protocol, procedure, routine, runbook, other), `source_id`, `source_path`, `source_hash`, `content_hash`, `chunk_index`, `title`, `content`, `token_count`, `metadata` (JSONB), `embedding` (vector(1536)). UNIQUE(workspace_id, source_path, chunk_index).
+
+**RPCs:** `search_instance(p_workspace_id, p_query, p_limit)` — fast ilike search across profiles. `match_workspace_docs(p_workspace_id, query_embedding, match_count, match_threshold)` — vector similarity search. `search_dependency_graph(p_workspace_id, p_query, p_limit)` — policy→protocol→procedure graph traversal.
+
 ### Communication (workspace_id scoped)
 
 | Table                     | PK                           | Purpose                            |

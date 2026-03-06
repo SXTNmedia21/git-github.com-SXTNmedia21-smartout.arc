@@ -4,6 +4,12 @@ import { invalidateServiceConfig } from "@smartout/supabase/service-config";
 
 type RouteContext = { params: Promise<{ slug: string }> };
 
+// TODO: Remove once service_config migration is applied and types regenerated
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const svcTable = (client: any) => client.from("service_config") as any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const svcLogTable = (client: any) => client.from("service_config_log") as any;
+
 /** POST /api/platform-admin/services/config/[slug]/restart — Restart a Docker service */
 export async function POST(_request: NextRequest, { params }: RouteContext) {
   const auth = await requireGodmode();
@@ -11,8 +17,7 @@ export async function POST(_request: NextRequest, { params }: RouteContext) {
 
   const { slug } = await params;
 
-  const { data: service } = await auth.admin
-    .from("service_config")
+  const { data: service } = await svcTable(auth.admin)
     .select("service_id, type, docker_service_name")
     .eq("slug", slug)
     .single();
@@ -55,7 +60,7 @@ export async function POST(_request: NextRequest, { params }: RouteContext) {
     }
 
     // Log the restart
-    await auth.admin.from("service_config_log").insert({
+    await svcLogTable(auth.admin).insert({
       service_id: service.service_id,
       changed_by: auth.adminId,
       change_type: "restart" as const,

@@ -48,6 +48,10 @@ export type { SeasonToolContext } from "./tools/season";
 export { DOC_TOOLS, searchPlatformDocs, getDocByPath } from "./tools/docs";
 export type { DocToolContext } from "./tools/docs";
 
+// Workspace doc retrieval tools (RAG)
+export { WORKSPACE_DOC_TOOLS, searchWorkspaceDocs } from "./tools/workspace-docs";
+export type { WorkspaceDocToolContext } from "./tools/workspace-docs";
+
 // Embedding
 export { getQueryEmbedding } from "./embedding";
 
