@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,6 +10,9 @@ interface SerperOrganicResult {
   link: string;
   snippet: string;
   position: number;
+  rating?: number;
+  ratingCount?: number;
+  priceRange?: string;
 }
 
 interface SerperNewsResult {
@@ -28,9 +31,18 @@ interface SerperKnowledgeGraph {
   description?: string;
 }
 
+interface ExternalRating {
+  source: string;
+  rating: number;
+  reviewCount: number | null;
+  priceRange: string | null;
+  url: string;
+}
+
 interface WebSearchResult {
   rating: number | null;
   reviewCount: number | null;
+  externalRatings: ExternalRating[];
   newsArticles: { title: string; url: string; snippet: string }[];
   seasonalPatterns: string[];
   mentions: string[];
@@ -80,6 +92,38 @@ function extractSeasonalPatterns(texts: string[]): string[] {
   return [...found];
 }
 
+const RATING_SOURCES: Record<string, string> = {
+  "tripadvisor.com": "TripAdvisor",
+  "tripadvisor.no": "TripAdvisor",
+  "yelp.com": "Yelp",
+  "yelp.no": "Yelp",
+  "google.com/maps": "Google",
+  "thefork.com": "TheFork",
+  "thefork.no": "TheFork",
+};
+
+function extractExternalRatings(results: SerperOrganicResult[]): ExternalRating[] {
+  const ratings: ExternalRating[] = [];
+  const seen = new Set<string>();
+
+  for (const r of results) {
+    if (!r.rating) continue;
+    for (const [domain, source] of Object.entries(RATING_SOURCES)) {
+      if (r.link.includes(domain) && !seen.has(source)) {
+        seen.add(source);
+        ratings.push({
+          source,
+          rating: r.rating,
+          reviewCount: r.ratingCount || null,
+          priceRange: r.priceRange || null,
+          url: r.link,
+        });
+      }
+    }
+  }
+  return ratings;
+}
+
 function extractJobListings(results: SerperOrganicResult[]): string[] {
   const jobs: string[] = [];
   for (const r of results) {
@@ -94,7 +138,7 @@ function extractJobListings(results: SerperOrganicResult[]): string[] {
   return jobs.slice(0, 5);
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -115,6 +159,7 @@ serve(async (req) => {
       const empty: WebSearchResult = {
         rating: null,
         reviewCount: null,
+        externalRatings: [],
         newsArticles: [],
         seasonalPatterns: [],
         mentions: [],
@@ -156,9 +201,12 @@ serve(async (req) => {
 
     const allSnippets = [...organic.map((r) => r.snippet), ...news.map((r) => r.snippet)];
 
+    const externalRatings = extractExternalRatings(organic);
+
     const result: WebSearchResult = {
       rating: kg?.rating || null,
       reviewCount: kg?.ratingCount || null,
+      externalRatings,
       newsArticles: news.map((n) => ({
         title: n.title,
         url: n.link,
@@ -180,6 +228,7 @@ serve(async (req) => {
       JSON.stringify({
         rating: null,
         reviewCount: null,
+        externalRatings: [],
         newsArticles: [],
         seasonalPatterns: [],
         mentions: [],

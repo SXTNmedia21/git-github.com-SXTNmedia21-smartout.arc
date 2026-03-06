@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
 const FIELD_MASK = [
@@ -31,17 +31,17 @@ interface PlacesResult {
   primaryType: string | null;
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const apiKey = Deno.env.get("GOOGLE_PLACES_API_KEY");
+    const apiKey = Deno.env.get("GOOGLE_API_KEY");
 
     // Graceful degradation: if no API key, return empty result
     if (!apiKey) {
-      console.log("[places] No GOOGLE_PLACES_API_KEY configured, returning empty");
+      console.log("[places] No GOOGLE_API_KEY configured, returning empty");
       return new Response(JSON.stringify({ success: true, data: null, reason: "no_api_key" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
