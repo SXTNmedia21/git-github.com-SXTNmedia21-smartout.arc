@@ -3,6 +3,10 @@ import { z } from "zod";
 import type { Json } from "@smartout/supabase/database.types";
 import { requireGodmode, logPlatformAction } from "@/lib/platform-admin";
 
+// TODO: Remove once service_config migration is applied and types regenerated
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const svcTable = (client: any) => client.from("service_config") as any;
+
 const CreateServiceSchema = z.object({
   name: z.string().min(1).max(100),
   slug: z
@@ -39,7 +43,7 @@ export async function GET() {
   const auth = await requireGodmode();
   if (auth.error) return auth.error;
 
-  const { data, error } = await auth.admin.from("service_config").select("*").order("name");
+  const { data, error } = await svcTable(auth.admin).select("*").order("name");
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ data });
@@ -57,8 +61,7 @@ export async function POST(request: NextRequest) {
 
   const d = body.data;
 
-  const { data, error } = await auth.admin
-    .from("service_config")
+  const { data, error } = await svcTable(auth.admin)
     .insert({
       name: d.name,
       slug: d.slug,

@@ -33,7 +33,8 @@ type SearchContext = {
 
 async function runInstanceSearch(ctx: SearchContext): Promise<SearchGroup> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("search_instance", {
+  // TODO: Remove cast once search RPCs are in generated types
+  const { data, error } = await (supabase.rpc as Function)("search_instance", {
     p_workspace_id: ctx.workspaceId,
     p_query: ctx.query,
     p_limit: ctx.limitPerGroup ?? 5,
@@ -69,7 +70,8 @@ async function runSemanticSearch(_ctx: SearchContext): Promise<SearchGroup> {
 
 async function runDependencySearch(ctx: SearchContext): Promise<SearchGroup> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("search_dependency_graph", {
+  // TODO: Remove cast once search RPCs are in generated types
+  const { data, error } = await (supabase.rpc as Function)("search_dependency_graph", {
     p_workspace_id: ctx.workspaceId,
     p_query: ctx.query,
     p_limit: ctx.limitPerGroup ?? 5,
