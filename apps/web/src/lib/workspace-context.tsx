@@ -4,7 +4,7 @@ import { createContext, useContext, type ReactNode } from "react";
 
 export type WorkspaceData = {
   workspace_id: string;
-  company_id: string;
+  company_id: string | null;
   name: string;
   slug: string;
   logo_url: string | null;

@@ -54,8 +54,21 @@ export default function LoginPage() {
       });
 
       if (authError) {
-        if (authError.message.includes("Failed to fetch")) {
-          setError("Kunne ikke koble til serveren. Prøv igjen om litt.");
+        if (
+          authError.message.includes("Failed to fetch") ||
+          authError.message.includes("fetch failed") ||
+          authError.message.includes("NetworkError") ||
+          authError.message.includes("network")
+        ) {
+          setError("Kunne ikke koble til databasen. Sjekk at Supabase kjører lokalt.");
+          setLoading(false);
+          return;
+        }
+        if (
+          authError.message.includes("Invalid login credentials") ||
+          authError.message.includes("invalid_credentials")
+        ) {
+          setError("Feil e-post eller passord.");
           setLoading(false);
           return;
         }
@@ -141,12 +154,17 @@ export default function LoginPage() {
               />
             </div>
             <div className="animate-auth-in" style={{ animationDelay: "260ms" }}>
-              <label
-                htmlFor="password"
-                className="text-foreground mb-1.5 block text-[0.8125rem] font-medium"
-              >
-                Passord
-              </label>
+              <div className="mb-1.5 flex items-center justify-between">
+                <label htmlFor="password" className="text-foreground text-[0.8125rem] font-medium">
+                  Passord
+                </label>
+                <Link
+                  href="/reset-password"
+                  className="text-muted-foreground hover:text-brand-orange text-[0.8125rem] transition-colors duration-150"
+                >
+                  Glemt passord?
+                </Link>
+              </div>
               <input
                 id="password"
                 name="password"

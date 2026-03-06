@@ -4,6 +4,14 @@ import { NextResponse, type NextRequest } from "next/server";
 import { detectSuspiciousRequest } from "@/lib/security";
 import { extractSubdomain } from "@/lib/subdomain";
 
+type GodmodeCacheEntry = {
+  isGodmode: boolean;
+  expiresAt: number;
+};
+
+const GODMODE_CACHE_TTL_MS = 30_000;
+const godmodeCache = new Map<string, GodmodeCacheEntry>();
+
 /**
  * Copy auth cookies from the session response onto a redirect response.
  * Required because redirect responses are new objects that don't carry
@@ -19,6 +27,31 @@ function copySessionCookies(
   source.cookies.getAll().forEach((cookie) => {
     target.cookies.set(cookie.name, cookie.value);
   });
+}
+
+/**
+ * Returns cached godmode state for a user, refreshing from database on miss/expiry.
+ * This removes repeated is_godmode lookups during quick route-to-route navigation.
+ */
+async function getCachedGodmodeStatus(
+  adminClient: ReturnType<typeof createClient>,
+  userId: string,
+): Promise<boolean> {
+  const now = Date.now();
+  const cached = godmodeCache.get(userId);
+  if (cached && cached.expiresAt > now) {
+    return cached.isGodmode;
+  }
+
+  const { data } = await adminClient
+    .from("user_identity")
+    .select("is_godmode")
+    .eq("user_id", userId)
+    .single();
+
+  const isGodmode = Boolean(data?.is_godmode);
+  godmodeCache.set(userId, { isGodmode, expiresAt: now + GODMODE_CACHE_TTL_MS });
+  return isGodmode;
 }
 
 export async function middleware(request: NextRequest): Promise<Response> {
@@ -99,13 +132,8 @@ export async function middleware(request: NextRequest): Promise<Response> {
       }
 
       const adminClient = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceRoleKey);
-      const { data: identity } = await adminClient
-        .from("user_identity")
-        .select("is_godmode")
-        .eq("user_id", sessionUser.id)
-        .single();
-
-      if (!identity?.is_godmode) {
+      const isGodmode = await getCachedGodmodeStatus(adminClient, sessionUser.id);
+      if (!isGodmode) {
         const redir = NextResponse.redirect(new URL("/select-workspace", request.url));
         copySessionCookies(response, redir);
         return redir;
@@ -128,49 +156,6 @@ export async function middleware(request: NextRequest): Promise<Response> {
       copySessionCookies(response, redir);
       redir.headers.set("x-workspace-slug", slug);
       return redir;
-    }
-
-    // Contract status gating for dashboard routes
-    // Query workspace directly by slug — no profile join needed.
-    // Slug is already validated as a workspace subdomain by extractSubdomain().
-    if (request.nextUrl.pathname.startsWith("/dashboard")) {
-      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-      if (serviceRoleKey) {
-        const adminClient = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceRoleKey);
-
-        const { data: ws } = await adminClient
-          .from("workspace")
-          .select("contract_status, trial_ends_at")
-          .eq("slug", slug)
-          .single();
-
-        if (ws?.contract_status) {
-          const status = ws.contract_status as string;
-
-          if (status === "setup" || status === "onboarding") {
-            const redir = NextResponse.redirect(new URL("/onboarding", request.url));
-            copySessionCookies(response, redir);
-            return redir;
-          }
-
-          if (status === "deactivated") {
-            const redir = NextResponse.redirect(new URL("/blocked", request.url));
-            copySessionCookies(response, redir);
-            return redir;
-          }
-
-          if (status === "pending_contract" || status === "trial") {
-            response.headers.set("x-contract-status", status);
-            if (ws.trial_ends_at) {
-              response.headers.set("x-trial-ends-at", ws.trial_ends_at as string);
-            }
-          }
-
-          if (status === "suspended") {
-            response.headers.set("x-contract-status", "suspended");
-          }
-        }
-      }
     }
 
     return response;
@@ -196,6 +181,12 @@ async function handleLegacyRouting(request: NextRequest): Promise<Response> {
   const needsDashboardGate = pathname.startsWith("/dashboard");
   const needsAdminGate = pathname.startsWith("/platform-admin");
 
+  // Pass ?ws= query param as header for local dev workspace selection
+  const wsParam = request.nextUrl.searchParams.get("ws");
+  if (wsParam && needsDashboardGate) {
+    response.headers.set("x-workspace-id-param", wsParam);
+  }
+
   // Early exit for routes that need no extra queries
   if (!needsDashboardGate && !needsAdminGate) return response;
   if (!sessionUser) {
@@ -217,69 +208,12 @@ async function handleLegacyRouting(request: NextRequest): Promise<Response> {
     return response;
   }
 
-  // Single admin client, parallel queries
+  // Single admin client
   const adminClient = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceRoleKey);
-
-  // Fetch profile workspace_id (lightweight — no FK join) and identity in parallel
-  const [profileResult, identityResult] = await Promise.all([
-    needsDashboardGate
-      ? adminClient
-          .from("profile")
-          .select("workspace_id")
-          .eq("user_id", sessionUser.id)
-          .limit(1)
-          .single()
-      : Promise.resolve({ data: null }),
-    needsAdminGate
-      ? adminClient
-          .from("user_identity")
-          .select("is_godmode")
-          .eq("user_id", sessionUser.id)
-          .single()
-      : Promise.resolve({ data: null }),
-  ]);
-
-  // Dashboard contract_status gating — second query only if profile found
-  if (needsDashboardGate && profileResult.data) {
-    const workspaceId = (profileResult.data as { workspace_id: string }).workspace_id;
-
-    const { data: ws } = await adminClient
-      .from("workspace")
-      .select("contract_status, trial_ends_at")
-      .eq("workspace_id", workspaceId)
-      .single();
-
-    if (ws?.contract_status) {
-      const status = ws.contract_status as string;
-
-      if (status === "setup" || status === "onboarding") {
-        const redir = NextResponse.redirect(new URL("/onboarding", request.url));
-        copySessionCookies(response, redir);
-        return redir;
-      }
-
-      if (status === "deactivated") {
-        const redir = NextResponse.redirect(new URL("/blocked", request.url));
-        copySessionCookies(response, redir);
-        return redir;
-      }
-
-      if (status === "pending_contract" || status === "trial") {
-        response.headers.set("x-contract-status", status);
-        if (ws.trial_ends_at) {
-          response.headers.set("x-trial-ends-at", ws.trial_ends_at as string);
-        }
-      }
-
-      if (status === "suspended") {
-        response.headers.set("x-contract-status", "suspended");
-      }
-    }
-  }
-
   // Platform-admin protection
   if (needsAdminGate) {
-    if (!identityResult.data?.is_godmode) {
+    const isGodmode = await getCachedGodmodeStatus(adminClient, sessionUser.id);
+    if (!isGodmode) {
       const redir = NextResponse.redirect(new URL("/dashboard", request.url));
       copySessionCookies(response, redir);
       return redir;
