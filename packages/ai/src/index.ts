@@ -40,6 +40,10 @@ export {
 } from "./tools/schedule";
 export type { ScheduleClientToolDefinition } from "./tools/schedule";
 
+// Season tools
+export { SEASON_TOOLS } from "./tools/season";
+export type { SeasonToolContext } from "./tools/season";
+
 // Doc retrieval tools (RAG)
 export { DOC_TOOLS, searchPlatformDocs, getDocByPath } from "./tools/docs";
 export type { DocToolContext } from "./tools/docs";
