@@ -152,5 +152,5 @@ export async function handleGetGuardianLog(
 
   const rows = await executeWithWorkspaceContext<GuardianLogRow>(auth.workspaceId, query, params);
 
-  return jsonOk({ events: rows, limit, offset });
+  return jsonOk({ guardian_log: rows, limit, offset });
 }

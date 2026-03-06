@@ -58,6 +58,9 @@ export async function handleGetSuppliers(
     });
   }
 
+  const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "50"), 200);
+  const offset = parseInt(url.searchParams.get("offset") ?? "0");
+
   let query = `
     SELECT supplier_id, name, org_number, contact_name, contact_email,
            contact_phone, address, city, postal_code, country,
@@ -75,11 +78,12 @@ export async function handleGetSuppliers(
     paramIdx++;
   }
 
-  query += ` ORDER BY name ASC`;
+  query += ` ORDER BY name ASC LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`;
+  params.push(limit, offset);
 
   const rows = await executeWithWorkspaceContext<SupplierRow>(auth.workspaceId, query, params);
 
-  return jsonOk({ suppliers: rows });
+  return jsonOk({ suppliers: rows, limit, offset });
 }
 
 export async function handleGetSupplierOrders(

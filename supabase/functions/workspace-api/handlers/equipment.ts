@@ -48,7 +48,7 @@ interface AssetDowntimeRow {
 
 export async function handleGetAssets(
   auth: { workspaceId: string; scopes: string[] },
-  _url: URL,
+  url: URL,
 ): Promise<Response> {
   if (
     !requireScope(
@@ -70,6 +70,9 @@ export async function handleGetAssets(
     });
   }
 
+  const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "50"), 200);
+  const offset = parseInt(url.searchParams.get("offset") ?? "0");
+
   const query = `
     SELECT asset_id, location_id, department_id, name, description, asset_type,
            serial_number, manufacturer, model, purchase_date, purchase_cost,
@@ -77,13 +80,16 @@ export async function handleGetAssets(
     FROM asset
     WHERE workspace_id = $1
     ORDER BY name ASC
+    LIMIT $2 OFFSET $3
   `;
 
   const rows = await executeWithWorkspaceContext<AssetRow>(auth.workspaceId, query, [
     auth.workspaceId,
+    limit,
+    offset,
   ]);
 
-  return jsonOk({ assets: rows });
+  return jsonOk({ assets: rows, limit, offset });
 }
 
 export async function handleGetAssetMaintenance(
