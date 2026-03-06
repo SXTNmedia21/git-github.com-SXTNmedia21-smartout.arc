@@ -140,6 +140,34 @@ Not every journey step becomes a mission stage. Apply these rules:
 
 **Guideline:** Fewer stages = better. Merge where the agent's goal doesn't change. A 12-step journey might become a 5-stage mission.
 
+### Agent-Added Stages
+
+Some mission stages have NO corresponding journey step. The agent needs them but the journey doesn't show them:
+
+| Pattern | When to add | Example |
+|---------|------------|---------|
+| **Greeting/rapport** | Agent missions that start with conversation | "Hei! Hva heter du?" before any functional work |
+| **Wrapup/summary** | Agent summarizes what was accomplished | "Da er vi i gang! Her er hva vi satte opp..." |
+| **Context loading** | Agent needs to read state before acting | Call `getOnboardingState` or `fetch` before stage 1 |
+
+Always consider adding a greeting stage for voice missions — it sets tone and collects the user's name.
+
+### Tool Name Mapping Trap
+
+Journey documents often use **conceptual function names** that differ from actual registered tool names. Always grep the codebase for the real `modelToolName`:
+
+| Journey says | Actual tool | Why |
+|-------------|-------------|-----|
+| `suggestSeason` | `updateSeason` | Journey describes intent, code uses mutation name |
+| `getDepartmentsForIndustry` | `addDepartments` | Journey describes source, code uses action |
+| `navigate_to` | `advanceToNextSection` | Legacy name vs current |
+
+**Rule:** Never trust tool names from the Journey. Grep `apps/web/src/` for `modelToolName` to get the real names.
+
+### Agent Persona Check
+
+If the Journey names an agent (e.g., "Botsson") but existing seed SQL uses a different name (e.g., "Lise"), flag the conflict. Ask: "The Journey says {X}, existing mission uses {Y} — which agent should this mission use?"
+
 ### Tool Wiring
 
 For each stage, identify tools from two categories:
@@ -231,6 +259,72 @@ triggerability:
   mission_training_link: "Use /mission-training to iterate on stages"
 ```
 
+## System Prompt
+
+The `system_prompt` on `engine_missions` is the base personality that applies to ALL stages. It is the agent's identity — tone, rules, language, available tools overview.
+
+### Structure
+
+```
+1. Identity line ("Du er [agent name], Smartouts [role].")
+2. Personality traits (2-3 sentences: tone, style, boundaries)
+3. Available tools overview (list tools the agent can use across the mission)
+4. Global rules (numbered, what to always/never do)
+5. Language rule ("Norsk er standard — bytt kun hvis brukeren gjør det")
+```
+
+### Example (shift-assistant)
+
+```
+Du er Smartouts vaktplanleggingsassistent.
+Du har DIREKTE TILGANG til vaktplanen gjennom verktøy. Bruk dem aktivt!
+
+TILGJENGELIGE VERKTØY:
+- getScheduleState — se hele uken
+- createShift — opprett ny vakt
+...
+
+REGLER:
+1. Svar med konkrete forslag
+2. Bekreft med lederen FØR du utfører mutasjoner
+3. Norsk er standard
+4. Hold svarene korte og presise
+```
+
+### Creative Freedom Quick Reference
+
+| Stage type | Value | Rationale |
+|-----------|:-----:|-----------|
+| Greeting/rapport | 0.7–0.8 | Warm, natural, room to improvise |
+| Data collection | 0.5–0.7 | Structured but conversational |
+| Validation/confirmation | 0.3–0.5 | More scripted, accuracy matters |
+| Finalization | 0.2–0.4 | Strict, no room for error |
+| Wrapup/summary | 0.7–0.8 | Warm, celebratory, personal |
+
+### Per-Stage Timing Estimation
+
+When the Journey only gives total session time, use this heuristic:
+
+1. Divide total time by number of stages for a baseline
+2. Weight by complexity:
+   - Greeting/wrapup: 0.5x baseline (fast)
+   - Simple data collection: 1.0x baseline
+   - Complex multi-tool stages: 1.5–2.0x baseline
+   - Finalization: 0.5x baseline (mostly system)
+3. Round to nearest 10 seconds for min, 30 seconds for max
+4. Add 50% buffer to max (users are slower than expected)
+
+### Language Rules for Fields
+
+| Field | Language | Example |
+|-------|----------|---------|
+| `instructions` | Norwegian | "Spør: 'Hva heter stedet?'" |
+| `goal` | English | "Collect business name and city" |
+| `success_criteria` | English | "Business name confirmed by user" |
+| `personality_override` | Norwegian | "Varm, nysgjerrig, stille glad" |
+| `tuning_notes` | English | "efficiency" |
+| `system_prompt` | Norwegian | "Du er Smartouts onboarding-guide" |
+
 ## Output: Mission.md
 
 Save to `docs/Roadmaps/{slug}/Mission.md`. Use this format:
@@ -264,6 +358,12 @@ Related package docs:
 ## Mission Goal
 
 {1-2 sentences: what the agent accomplishes for the user}
+
+## System Prompt
+
+```
+{Full system prompt — see System Prompt section in skill for structure}
+```
 
 ## Configuration
 
@@ -386,7 +486,8 @@ ON CONFLICT (id) DO UPDATE SET
 
 INSERT INTO engine_stages (
   mission_id, stage_id, stage_order, goal, instructions, success_criteria,
-  personality_override, creative_freedom, tuning_notes, next_stage
+  personality_override, creative_freedom, tuning_notes, next_stage,
+  is_required, journey_step_id, escalation_instructions
 ) VALUES
 ('{mission-id}', '{stage-1-id}', 1,
  '{goal}',
@@ -395,7 +496,10 @@ INSERT INTO engine_stages (
  '{personality_override or NULL}',
  {creative_freedom},
  '{tuning_notes or NULL}',
- '{next-stage-id}'),
+ '{next-stage-id}',
+ true,   -- is_required: false only for optional/skippable stages
+ NULL,   -- journey_step_id: FK to journey_steps if Guardian timing is wired
+ NULL),  -- escalation_instructions: what to do if stage fails
 
 -- ... more stages ...
 
@@ -406,7 +510,8 @@ INSERT INTO engine_stages (
  '{personality_override or NULL}',
  {creative_freedom},
  '{tuning_notes or NULL}',
- NULL)  -- terminal
+ NULL,   -- terminal: no next stage
+ true, NULL, NULL)
 ON CONFLICT (mission_id, stage_id) DO UPDATE SET
   stage_order = EXCLUDED.stage_order,
   goal = EXCLUDED.goal,
@@ -415,7 +520,10 @@ ON CONFLICT (mission_id, stage_id) DO UPDATE SET
   personality_override = EXCLUDED.personality_override,
   creative_freedom = EXCLUDED.creative_freedom,
   tuning_notes = EXCLUDED.tuning_notes,
-  next_stage = EXCLUDED.next_stage;
+  next_stage = EXCLUDED.next_stage,
+  is_required = EXCLUDED.is_required,
+  journey_step_id = EXCLUDED.journey_step_id,
+  escalation_instructions = EXCLUDED.escalation_instructions;
 ```
 
 ## Verification Checklist
@@ -451,4 +559,7 @@ After generating, verify:
 - **Forgetting the advance pattern** — `advanceToNextSection` (UI) + `advance` (engine) are separate. Both needed.
 - **Not checking tool existence** — Grep the codebase. If the tool doesn't exist, flag it.
 - **Skipping guardrails** — Every mission needs explicit "never do X" rules.
-- **English instructions for user-facing text** — Norwegian default. Always.
+- **English instructions for user-facing text** — Norwegian for `instructions`, `personality_override`, `system_prompt`. English for `goal`, `success_criteria`, `tuning_notes`.
+- **Missing system_prompt** — The base personality prompt is the foundation. Don't skip it.
+- **Trusting tool names from Journey** — Journey docs use conceptual names. Always grep for real `modelToolName` in the codebase.
+- **No greeting stage** — Voice missions almost always need a rapport-building opener. Check if one is needed.
