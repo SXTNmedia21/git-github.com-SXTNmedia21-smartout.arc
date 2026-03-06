@@ -2,11 +2,12 @@
 title: Artificial Intelligence Engine
 id: ENGINE_ARTIFICIAL_INTELLIGENCE
 version: "0.1"
-status: draft
+status: reference
 layer: architecture
 created: 2026-03-06
 updated: 2026-03-06
 owner: platform
+superseded_by: AI_RUNTIME_SYSTEM_DEFINITION_V1
 tags:
   - engine
   - ai
@@ -16,20 +17,20 @@ tags:
 
 # Artificial Intelligence Engine
 
-This package defines the AI runtime layer for Smartout: tools, interaction patterns, harness behavior, guard rails, and context contracts.
+This package is now a reference pointer for historical AI engine split docs.
+
+Canonical runtime architecture is defined in:
+
+- `docs/architecture/AI_RUNTIME_SYSTEM_DEFINITION_V1.md`
+
+Archived historical split docs are stored in:
+
+- `docs/archive/artificial-inteligence/`
 
 ## Core Files
 
-- `00-tools-catalog.md`  
-  Canonical tool definitions, capability mapping, and tool lifecycle.
-- `01-interaction-patterns.md`  
-  Supported interaction modes and orchestration patterns.
-- `02-ai-harness.md`  
-  Harness architecture for routing, retries, evaluation, and fallback.
-- `03-guard-rails.md`  
-  Safety policies, authority boundaries, and escalation logic.
-- `04-context-contract.md`  
-  Context model for memory, retrieval, session state, and prompt packing.
+- `README.md`
+  Pointer to canonical AI runtime spec and archive location.
 
 ## Three-Engine Composition
 

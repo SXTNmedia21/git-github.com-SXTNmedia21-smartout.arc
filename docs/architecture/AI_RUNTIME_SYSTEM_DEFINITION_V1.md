@@ -353,12 +353,12 @@ This document is the canonical AI runtime specification.
 
 ### 10.2 Reference annexes (non-canonical)
 
-- `docs/engines/artificial-inteligence/00-tools-catalog.md`
-- `docs/engines/artificial-inteligence/01-interaction-patterns.md`
-- `docs/engines/artificial-inteligence/02-ai-harness.md`
-- `docs/engines/artificial-inteligence/03-guard-rails.md`
-- `docs/engines/artificial-inteligence/04-context-contract.md`
-- `docs/engines/artificial-inteligence/05-runtime-contracts.md`
+- `docs/archive/artificial-inteligence/00-tools-catalog.md`
+- `docs/archive/artificial-inteligence/01-interaction-patterns.md`
+- `docs/archive/artificial-inteligence/02-ai-harness.md`
+- `docs/archive/artificial-inteligence/03-guard-rails.md`
+- `docs/archive/artificial-inteligence/04-context-contract.md`
+- `docs/archive/artificial-inteligence/05-runtime-contracts.md`
 - `docs/architecture/agent-framework.md` (implementation map)
 
 ### 10.3 Adjacent but separate domain
