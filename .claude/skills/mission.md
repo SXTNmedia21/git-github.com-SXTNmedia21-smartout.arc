@@ -27,6 +27,46 @@ Before anything else:
 2. Check that `docs/Roadmaps/{slug}/Roadmap.md` exists. If not: "Run `/roadmap` first."
 3. Read both to get: Package Identity, Actor, Platform, Steps, Tools, Events, Success Criteria.
 
+## Triage: Does This Journey Need a Mission?
+
+**Not every journey needs a mission.** A mission only exists when an AI agent is actively involved — asking questions, making decisions, calling tools, guiding the user through conversation.
+
+Scan the journey steps and ask:
+
+```dot
+digraph triage {
+  "Read journey steps" -> "Any step where agent asks, decides, or calls tools?";
+  "Any step where agent asks, decides, or calls tools?" -> "YES: proceed to mission" [label="yes"];
+  "Any step where agent asks, decides, or calls tools?" -> "NO: stop here" [label="no"];
+  "NO: stop here" -> "Write no-mission note";
+}
+```
+
+| Journey pattern | Needs mission? | Why |
+|----------------|:-:|-----|
+| User taps buttons, system processes | No | Pure UI + backend logic, no agent |
+| User fills forms, system validates | No | Form validation, no conversation |
+| Agent asks questions, collects data | Yes | Agent-guided data collection |
+| Agent recommends actions, user confirms | Yes | Agent decision-making |
+| Agent monitors and nudges | Yes | Agent observes and intervenes |
+| Mixed: some steps UI, some agent-guided | Yes | Mission covers agent steps only |
+
+**If NO agent involvement:** Tell the user: "Journey J-{NNN} is a system journey — no AI agent involvement. Mission not needed. Set Mission ID to `N/A` in the package." Save a stub Mission.md:
+
+```markdown
+---
+title: "Mission: {Title}"
+status: not-applicable
+---
+# Mission: M-{NNN} — {Title}
+## Status: Not Applicable
+This journey is a system journey with no AI agent involvement.
+All steps are user-driven UI actions + backend processing.
+No Stage Engine mission is needed.
+```
+
+**If YES:** Continue to Input Sources below.
+
 ## Input Sources
 
 Read ALL of these before generating:
@@ -403,6 +443,7 @@ After generating, verify:
 
 ## Common Mistakes
 
+- **Building a mission for a system journey** — Not every journey needs an agent. If all steps are user taps + system processing, there's no mission. Run the triage gate first.
 - **Generating without Journey** — Always check prerequisite. The Journey defines WHAT happens; the Mission defines HOW the agent does it.
 - **1:1 step-to-stage mapping** — Not every journey step needs an agent stage. Merge UI-only steps.
 - **Vague instructions** — "Help the user" is not an instruction. Name specific tools with specific params.
