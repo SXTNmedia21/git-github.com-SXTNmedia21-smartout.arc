@@ -12,10 +12,11 @@ Master navigation map for all documentation. An agent reads this to find any doc
 1. **Code + database schema** -- implementation always wins
 2. **CLAUDE.md** -- conventions, rules, verified facts
 3. **docs/reference/** -- detailed lookup during coding
-4. **docs/modules/** -- business logic per module
-5. **docs/architecture/** -- system design decisions
-6. **docs/cross-cutting/** -- concerns spanning modules
-7. **docs/archive/** -- historical, never loaded actively
+4. **docs/engines/** -- industry engine packaging and event-layer specialization
+5. **docs/modules/** -- business logic per module
+6. **docs/architecture/** -- system design decisions
+7. **docs/cross-cutting/** -- concerns spanning modules
+8. **docs/archive/** -- historical, never loaded actively
 
 ## All Documents
 
@@ -284,13 +285,74 @@ Active plans in `docs/plans/`. Completed plans in `docs/plans/completed/`.
 | RESEARCH_PRICING    | research/Pricing card prompt.md                                                     | draft     |
 | RESEARCH_DOCUSEAL   | research/DocuSeal API complete integration reference.md                             | canonical |
 
+### Engines
+
+Central package split:
+
+- `engines/system-inteligence/` for global platform machinery (state engine, agent runtime, contracts, verification).
+- `engines/industri-inteligence/` for domain specialization (industry, niche, role capability, environment, testing, handbook).
+- `engines/artificial-inteligence/` for AI runtime design (tools, interaction patterns, harness, guard rails, context contracts).
+
+| id                                    | File                                                                                                        | Status |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ------ |
+| ENGINE_SYSTEM_INTEL                   | engines/system-inteligence/README.md                                                                        | draft  |
+| ENGINE_SYSTEM_STATE_CORE              | engines/system-inteligence/00-core-state-engine.md                                                          | draft  |
+| ENGINE_SYSTEM_CONTRACTS               | engines/system-inteligence/01-system-architecture-contracts.md                                              | draft  |
+| ENGINE_SYSTEM_AGENT_RUNTIME           | engines/system-inteligence/02-agent-framework-runtime.md                                                    | draft  |
+| ENGINE_SYSTEM_NOTIFICATIONS           | engines/system-inteligence/03-notification-intelligence.md                                                  | draft  |
+| ENGINE_SYSTEM_GOVERNANCE              | engines/system-inteligence/04-state-machine-governance.md                                                   | draft  |
+| ENGINE_SYSTEM_VERIFICATION            | engines/system-inteligence/05-verification-safety-and-learning.md                                           | draft  |
+| ENGINE_SYSTEM_SENSORY                 | engines/system-inteligence/06-autonomous-sensory-runtime.md                                                 | draft  |
+| ENGINE_SYSTEM_JOURNEY_COMPILER        | engines/system-inteligence/07-journey-package-compiler.md                                                   | draft  |
+| ENGINE_SYSTEM_EVENT_ENVELOPE          | engines/system-inteligence/08-event-envelope-spec.md                                                        | draft  |
+| ENGINE_SYSTEM_GOLD_PACKAGE_ONBOARDING | engines/system-inteligence/09-gold-package-admin-onboarding.md                                              | draft  |
+| ENGINE_SYSTEM_IMPL_GAP_PLAN           | engines/system-inteligence/10-implementation-and-gap-plan.md                                                | draft  |
+| ENGINE_AI_INTEL                       | engines/artificial-inteligence/README.md                                                                    | draft  |
+| ENGINE_AI_TOOLS                       | engines/artificial-inteligence/00-tools-catalog.md                                                          | draft  |
+| ENGINE_AI_INTERACTIONS                | engines/artificial-inteligence/01-interaction-patterns.md                                                   | draft  |
+| ENGINE_AI_HARNESS                     | engines/artificial-inteligence/02-ai-harness.md                                                             | draft  |
+| ENGINE_AI_GUARD_RAILS                 | engines/artificial-inteligence/03-guard-rails.md                                                            | draft  |
+| ENGINE_AI_CONTEXT                     | engines/artificial-inteligence/04-context-contract.md                                                       | draft  |
+| ENGINE_INDUSTRY_INTEL                 | engines/industri-inteligence/hospitalety/README.md                                                          | draft  |
+| ENGINE_INDUSTRY_CORE                  | engines/industri-inteligence/hospitalety/00-engine-core.md                                                  | draft  |
+| ENGINE_AI_COUNCIL_STANDARD            | engines/industri-inteligence/hospitalety/01-ai-council/README.md                                            | draft  |
+| ENGINE_AI_COUNCIL_RESTO               | engines/industri-inteligence/hospitalety/01-ai-council/restaurant-council.md                                | draft  |
+| ENGINE_DEFAULT_POLICIES               | engines/industri-inteligence/hospitalety/02-default-policies/README.md                                      | draft  |
+| ENGINE_POLICY_CATALOG                 | engines/industri-inteligence/hospitalety/02-default-policies/restaurant-policy-catalog.md                   | draft  |
+| ENGINE_TEMPLATE_TAXONOMY              | engines/industri-inteligence/hospitalety/03-templates/README.md                                             | draft  |
+| ENGINE_TEMPLATE_STRUCTURE             | engines/industri-inteligence/hospitalety/03-templates/business-structure-template.md                        | draft  |
+| ENGINE_TEMPLATE_PIPELINE              | engines/industri-inteligence/hospitalety/03-templates/task-pipeline-template.md                             | draft  |
+| ENGINE_TEMPLATE_JOURNEY               | engines/industri-inteligence/hospitalety/03-templates/journey-template.md                                   | draft  |
+| ENGINE_TEMPLATE_RESTO_STRUCTURE       | engines/industri-inteligence/hospitalety/03-templates/restaurant-business-structure-template.md             | draft  |
+| ENGINE_TEMPLATE_RESTO_PIPELINES       | engines/industri-inteligence/hospitalety/03-templates/restaurant-task-pipelines-template.md                 | draft  |
+| ENGINE_TEMPLATE_RESTO_JOURNEYS        | engines/industri-inteligence/hospitalety/03-templates/restaurant-journey-template-catalog.md                | draft  |
+| ENGINE_RESEARCH_PACK                  | engines/industri-inteligence/hospitalety/04-research/README.md                                              | draft  |
+| ENGINE_RESEARCH_RESTO                 | engines/industri-inteligence/hospitalety/04-research/restaurant-research-pack.md                            | draft  |
+| ENGINE_TESTING_RESTO                  | engines/industri-inteligence/hospitalety/05-testing/README.md                                               | draft  |
+| ENGINE_TESTING_RESTO_PROFILES         | engines/industri-inteligence/hospitalety/05-testing/restaurant-testing-profiles.md                          | draft  |
+| ENGINE_RELEVANCE_RESTO                | engines/industri-inteligence/hospitalety/06-relevance-map/restaurant-relevance-map.md                       | draft  |
+| ENGINE_HANDBOOK_STRUCTURE             | engines/industri-inteligence/hospitalety/07-company-handbook/README.md                                      | draft  |
+| ENGINE_HANDBOOK_RESTO                 | engines/industri-inteligence/hospitalety/07-company-handbook/restaurant-company-handbook-template.md        | draft  |
+| ENGINE_ROLE_CAPABILITY_STRUCTURE      | engines/industri-inteligence/hospitalety/08-role-capability-profiles/README.md                              | draft  |
+| ENGINE_ROLE_CAPABILITY_RESTO          | engines/industri-inteligence/hospitalety/08-role-capability-profiles/restaurant-role-capability-baseline.md | draft  |
+| ENGINE_ENVIRONMENT_STRUCTURE          | engines/industri-inteligence/hospitalety/09-environment-profile/README.md                                   | draft  |
+| ENGINE_ENVIRONMENT_RESTO              | engines/industri-inteligence/hospitalety/09-environment-profile/restaurant-environment-baseline.md          | draft  |
+| ENGINE_NICHE_LAYER                    | engines/industri-inteligence/hospitalety/10-niche-profiles/README.md                                        | draft  |
+| ENGINE_NICHE_SKELETON                 | engines/industri-inteligence/hospitalety/10-niche-profiles/niche-layer-skeleton.md                          | draft  |
+| ENGINE_NICHE_TAXONOMY_RESTO           | engines/industri-inteligence/hospitalety/10-niche-profiles/restaurant-niche-taxonomy.md                     | draft  |
+| ENGINE_NICHE_TEMPLATE_RESTO           | engines/industri-inteligence/hospitalety/10-niche-profiles/restaurant-niche-profile-template.md             | draft  |
+| ENGINE_NICHE_EXAMPLE_RESTO            | engines/industri-inteligence/hospitalety/10-niche-profiles/restaurant-niche-italian-premium-service.md      | draft  |
+
 ### Roadmaps
 
-| id              | File                                   | Status    |
-| --------------- | -------------------------------------- | --------- |
-| ROADMAP_API_KPI | roadmaps/API_KPI_AND_REVIEW_CADENCE.md | canonical |
-| ROADMAP_API     | roadmaps/API_ROADMAP.md                | canonical |
-| PROJECT_ROADMAP | roadmaps/project-roadmap.md            | canonical |
+| id                               | File                                   | Status    |
+| -------------------------------- | -------------------------------------- | --------- |
+| ROADMAP_API_KPI                  | roadmaps/API_KPI_AND_REVIEW_CADENCE.md | canonical |
+| ROADMAP_API                      | roadmaps/API_ROADMAP.md                | canonical |
+| PROJECT_ROADMAP                  | roadmaps/project-roadmap.md            | canonical |
+| ROADMAP_ADMIN_ONBOARDING_JOURNEY | Roadmaps/Admin onboarding/Journey.md   | draft     |
+| ROADMAP_ADMIN_ONBOARDING_MISSION | Roadmaps/Admin onboarding/Mission.md   | draft     |
+| ROADMAP_ADMIN_ONBOARDING_LICENSE | Roadmaps/Admin onboarding/Lisence.md   | draft     |
 
 ### Additional Reference
 

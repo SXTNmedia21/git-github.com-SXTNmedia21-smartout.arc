@@ -84,17 +84,23 @@ The same workflow renders differently depending on who's looking:
 | **The experience** | Journey  | "I'm doing this." The live instance. Guided by Botsson. Tracked by the system.    |
 | **The oversight**  | Protocol | "How's it going?" Insight, observation, control. Same data, leader's view.        |
 
-### Five Deliverables Per Roadmap
+### Journey Package Deliverables Per Roadmap
 
-Every Roadmap produces exactly five outputs:
+Every Roadmap compiles into one complete package:
 
-| #   | Deliverable           | What it is                                             |
-| --- | --------------------- | ------------------------------------------------------ |
-| 1   | **Onboarding Manual** | Step-by-step guide the employee reads and follows      |
-| 2   | **Playwright Script** | Automated E2E test for agent-driven verification       |
-| 3   | **Agent Mission**     | Botsson guides, challenges, and certifies the employee |
-| 4   | **Certification**     | Proof that the employee completed the Roadmap          |
-| 5   | **API Documentation** | All endpoints, data models, and moving parts involved  |
+| #   | Deliverable                     | What it is                                                         |
+| --- | ------------------------------- | ------------------------------------------------------------------ |
+| 1   | **Roadmap**                     | User-facing blueprint with steps, hooks, and expected data         |
+| 2   | **Journey**                     | Live execution experience tracked by the Event Motor               |
+| 3   | **Agent Mission**               | Agent execution contract with behavior, guardrails, and escalation |
+| 4   | **License (Protocol Contract)** | Tasks, policies, and authority rules that must be satisfied        |
+| 5   | **User Test**                   | Human-experience validation of the journey                         |
+| 6   | **Knowledge Test**              | Understanding and retention validation                             |
+| 7   | **Function Test**               | System behavior/integration validation                             |
+| 8   | **E2E Script**                  | Automated verification (Playwright or equivalent)                  |
+| 9   | **API Documentation**           | Endpoints, schemas, and side effects involved                      |
+
+This package is formalized in `docs/engines/system-inteligence/07-journey-package-compiler.md`.
 
 ### Event Types
 
@@ -108,6 +114,9 @@ Every Roadmap produces exactly five outputs:
 | `whisper_sent`         | Guardian nudges user  | message, reason                    |
 | `deviation_flagged`    | Threshold exceeded    | metric, expected, actual           |
 | `certification_issued` | All requirements met  | cert_id, score                     |
+
+All event producers must emit the canonical event envelope defined in:
+`docs/engines/system-inteligence/08-event-envelope-spec.md`
 
 ### The Fingerprint Precision
 

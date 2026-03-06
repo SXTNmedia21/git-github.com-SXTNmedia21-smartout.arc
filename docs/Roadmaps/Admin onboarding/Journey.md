@@ -9,6 +9,20 @@ tags: [journey, admin, onboarding, botsson, scraping]
 
 # Admin Onboarding Journey
 
+## Package Identity
+
+- Package ID: `JP-R001-ADMIN-ONBOARDING`
+- Roadmap ID: `R-001`
+- Journey ID: `J-001`
+- Mission ID: `M-001`
+- License ID: `L-001`
+
+Related package docs:
+
+- `docs/Roadmaps/Admin onboarding/Mission.md`
+- `docs/Roadmaps/Admin onboarding/Lisence.md`
+- `docs/engines/system-inteligence/09-gold-package-admin-onboarding.md`
+
 ## Oversikt
 
 En ny admin registrerer seg, oppretter workspace og setter opp bedriften sin — guidet av Botsson (AI-assistent) som samtaler, scraper og fyller ut data automatisk.
