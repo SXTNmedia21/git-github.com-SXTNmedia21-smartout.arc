@@ -126,6 +126,14 @@ function inferDayCategory(startTime: string): DayCategory {
 }
 
 /**
+ * Returns true when the selected day category should be treated as a special shift.
+ * Special shifts are rendered with stronger contrast and visual emphasis.
+ */
+function isSpecialShiftCategory(dayCategory: DayCategory): boolean {
+  return dayCategory === "night" || dayCategory === "weekend";
+}
+
+/**
  * Calculates work hours between two time strings, subtracting break minutes.
  * Handles overnight shifts where end time is before start time.
  *
@@ -650,6 +658,18 @@ export function ShiftModal() {
                   </Select>
                 </div>
               </div>
+
+              {isSpecialShiftCategory(form.dayCategory) && (
+                <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2">
+                  <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">
+                    Spesialvakt aktiv: {form.dayCategory === "night" ? "Natt" : "Helg"}.
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-amber-800/80 dark:text-amber-200/90">
+                    Ekstra kontrast og tydelig markering brukes for å gjøre skiftet lett synlig i
+                    dark mode.
+                  </p>
+                </div>
+              )}
 
               {/* Date display (read-only) */}
               {dateId && (

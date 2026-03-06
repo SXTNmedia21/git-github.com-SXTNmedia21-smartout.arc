@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useContext, useEffect, useRef, useState } from "react";
+import React, { useContext, useRef, useState } from "react";
 import { AlertCircle, Ban } from "lucide-react";
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
@@ -63,50 +63,12 @@ export function ShiftCard({
   const defaultId = React.useId();
   const draggableId = id || defaultId;
 
-  // Track Shift key for resize mode
-  const [isShiftHeld, setIsShiftHeld] = useState(false);
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Shift") setIsShiftHeld(true);
-    };
-    const onKeyUp = (e: KeyboardEvent) => {
-      if (e.key === "Shift") setIsShiftHeld(false);
-    };
-    window.addEventListener("keydown", onKeyDown);
-    window.addEventListener("keyup", onKeyUp);
-    return () => {
-      window.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("keyup", onKeyUp);
-    };
-  }, []);
-
-  // Disable dnd-kit drag when Shift is held (resize mode)
+  // Keep per-card logic lightweight: no global key listeners here.
+  // Resize handles stop propagation, so dragging still works normally.
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: draggableId,
     data: { role, time, status, indicator, type: "shift", shiftId: id },
-    disabled: isShiftHeld,
   });
-
-  // Track Ctrl/Meta to keep original card visible during copy-drag
-  const [isCtrlHeld, setIsCtrlHeld] = useState(false);
-  useEffect(() => {
-    if (!isDragging) {
-      setIsCtrlHeld(false);
-      return;
-    }
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Control" || e.key === "Meta") setIsCtrlHeld(true);
-    };
-    const onKeyUp = (e: KeyboardEvent) => {
-      if (e.key === "Control" || e.key === "Meta") setIsCtrlHeld(false);
-    };
-    window.addEventListener("keydown", onKeyDown);
-    window.addEventListener("keyup", onKeyUp);
-    return () => {
-      window.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("keyup", onKeyUp);
-    };
-  }, [isDragging]);
 
   // ── Resize drag state ──────────────────────────────────────
   const [resizeSide, setResizeSide] = useState<"start" | "end" | null>(null);
@@ -162,16 +124,13 @@ export function ShiftCard({
     window.addEventListener("pointerup", onUp);
   };
 
-  // During copy-drag (Ctrl held) keep the original in place — don't apply transform
-  const isCopyDrag = isDragging && isCtrlHeld;
-  const style =
-    transform && !isCopyDrag
-      ? {
-          transform: CSS.Translate.toString(transform),
-          zIndex: 50,
-          position: "relative" as const,
-        }
-      : undefined;
+  const style = transform
+    ? {
+        transform: CSS.Translate.toString(transform),
+        zIndex: 50,
+        position: "relative" as const,
+      }
+    : undefined;
 
   /**
    * Handles click on the shift card.
@@ -184,22 +143,22 @@ export function ShiftCard({
     }
   };
 
-  const showHandles = isShiftHeld && !isDragging && !!startTime && !!endTime && !!onTimeChange;
+  const showHandles = !isDragging && !!startTime && !!endTime && !!onTimeChange;
   const displayTime = resizePreview ? `${resizePreview.start} - ${resizePreview.end}` : time;
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      {...(isShiftHeld ? {} : listeners)}
+      {...listeners}
       {...attributes}
       onClick={handleClick}
-      className={`cursor-pointer ${showHandles ? "relative" : ""}`}
+      className={`group cursor-pointer ${showHandles ? "relative" : ""}`}
     >
       {/* Left resize handle (start time) */}
       {showHandles && (
         <div
-          className={`absolute top-1 bottom-1 left-0 z-20 flex w-3 cursor-col-resize items-center justify-center rounded-l-md transition-colors ${resizeSide === "start" ? "bg-orange-500/30" : "bg-orange-500/10 hover:bg-orange-500/20"}`}
+          className={`absolute top-1 bottom-1 left-0 z-20 flex w-3 cursor-col-resize items-center justify-center rounded-l-md opacity-0 transition-colors group-hover:opacity-100 ${resizeSide === "start" ? "bg-orange-500/30 opacity-100" : "bg-orange-500/10 hover:bg-orange-500/20"}`}
           onPointerDown={(e) => handleResizeStart("start", e)}
         >
           <div className="h-4 w-0.5 rounded-full bg-orange-400/60" />
@@ -209,7 +168,7 @@ export function ShiftCard({
       {/* Right resize handle (end time) */}
       {showHandles && (
         <div
-          className={`absolute top-1 right-0 bottom-1 z-20 flex w-3 cursor-col-resize items-center justify-center rounded-r-md transition-colors ${resizeSide === "end" ? "bg-orange-500/30" : "bg-orange-500/10 hover:bg-orange-500/20"}`}
+          className={`absolute top-1 right-0 bottom-1 z-20 flex w-3 cursor-col-resize items-center justify-center rounded-r-md opacity-0 transition-colors group-hover:opacity-100 ${resizeSide === "end" ? "bg-orange-500/30 opacity-100" : "bg-orange-500/10 hover:bg-orange-500/20"}`}
           onPointerDown={(e) => handleResizeStart("end", e)}
         >
           <div className="h-4 w-0.5 rounded-full bg-orange-400/60" />
@@ -225,7 +184,7 @@ export function ShiftCard({
 
       <ShiftCardView
         isDark={isDark}
-        isDragging={isDragging && !isCopyDrag}
+        isDragging={isDragging}
         role={role}
         time={displayTime}
         status={status}

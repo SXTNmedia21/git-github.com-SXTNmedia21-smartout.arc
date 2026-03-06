@@ -25,14 +25,12 @@ import { Switch } from "@/components/ui/switch";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 
 import type { Shift } from "./schedule-types";
-import { useShifts } from "../_hooks/use-shifts";
 import { useSaveTemplate } from "../_hooks/use-templates";
-import { useWeekRange } from "../_hooks/use-week-range";
 
 // ── Props ───────────────────────────────────────────────────
 
 type SaveTemplateDialogProps = {
-  dateId: string;
+  dayShifts: Shift[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
@@ -47,9 +45,7 @@ type SaveTemplateDialogProps = {
  * @param onOpenChange - Callback when open state changes
  * @returns shadcn Dialog component
  */
-export function SaveTemplateDialog({ dateId, open, onOpenChange }: SaveTemplateDialogProps) {
-  const { weekStart, weekEnd } = useWeekRange();
-  const { data: shifts = [] as Shift[] } = useShifts(weekStart, weekEnd);
+export function SaveTemplateDialog({ dayShifts, open, onOpenChange }: SaveTemplateDialogProps) {
   const saveTemplateMutation = useSaveTemplate();
   const { profileId } = useContext(DashboardContext);
 
@@ -57,7 +53,6 @@ export function SaveTemplateDialog({ dateId, open, onOpenChange }: SaveTemplateD
   const [department, setDepartment] = useState("");
   const [includeAssignments, setIncludeAssignments] = useState(false);
 
-  const dayShifts = shifts.filter((s: Shift) => s.dateId === dateId);
   const shiftCount = dayShifts.length;
 
   /** Resets form fields to defaults. */

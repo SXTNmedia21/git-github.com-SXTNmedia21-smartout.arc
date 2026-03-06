@@ -39,8 +39,7 @@ import {
 
 import type { Shift } from "./schedule-types";
 import { useScheduleUI } from "./schedule-ui-context";
-import { useShifts, usePublishShifts, useUnpublishShifts, usePasteDay } from "../_hooks/use-shifts";
-import { useWeekRange } from "../_hooks/use-week-range";
+import { usePublishShifts, useUnpublishShifts, usePasteDay } from "../_hooks/use-shifts";
 import { SaveTemplateDialog } from "./save-template-dialog";
 import { LoadTemplateSheet } from "./load-template-sheet";
 import { DayMessageDialog } from "./day-message-dialog";
@@ -53,6 +52,8 @@ type DayContextMenuProps = {
   dateId: string;
   dateLabel: string;
   isDark: boolean;
+  dayShifts: Shift[];
+  weekStart: string;
 };
 
 /**
@@ -65,7 +66,13 @@ type DayContextMenuProps = {
  * @param isDark - Whether the header uses dark styling
  * @returns DropdownMenu with all day operations
  */
-export function DayContextMenu({ dateId, dateLabel, isDark }: DayContextMenuProps) {
+export function DayContextMenu({
+  dateId,
+  dateLabel,
+  isDark: _isDark,
+  dayShifts,
+  weekStart,
+}: DayContextMenuProps) {
   const {
     clipboard,
     selectedDays,
@@ -75,8 +82,6 @@ export function DayContextMenu({ dateId, dateLabel, isDark }: DayContextMenuProp
     setClipboard,
     copyDay,
   } = useScheduleUI();
-  const { weekStart, weekEnd } = useWeekRange();
-  const { data: shifts = [] as Shift[] } = useShifts(weekStart, weekEnd);
   const publishShifts = usePublishShifts(weekStart);
   const unpublishShifts = useUnpublishShifts(weekStart);
   const pasteDay = usePasteDay(weekStart);
@@ -89,7 +94,6 @@ export function DayContextMenu({ dateId, dateLabel, isDark }: DayContextMenuProp
   const [broadcastOpen, setBroadcastOpen] = useState(false);
 
   // Derived conditions for enabling/disabling menu items
-  const dayShifts = shifts.filter((s: Shift) => s.dateId === dateId);
   const hasShifts = dayShifts.length > 0;
   const hasUnpublished = dayShifts.some(
     (s: Shift) => s.status === "created" || s.status === "assigned",
@@ -97,6 +101,8 @@ export function DayContextMenu({ dateId, dateLabel, isDark }: DayContextMenuProp
   const hasPublished = dayShifts.some((s: Shift) => s.status === "published");
   const hasClipboard = clipboard !== null;
   const isSelected = selectedDays.has(dateId);
+
+  const staffCount = new Set(dayShifts.map((shift) => shift.employeeId).filter(Boolean)).size;
 
   return (
     <>
@@ -237,23 +243,38 @@ export function DayContextMenu({ dateId, dateLabel, isDark }: DayContextMenuProp
       </DropdownMenu>
 
       {/* Dialogs and sheets controlled by local state */}
-      <SaveTemplateDialog
-        dateId={dateId}
-        open={saveTemplateOpen}
-        onOpenChange={setSaveTemplateOpen}
-      />
+      {saveTemplateOpen ? (
+        <SaveTemplateDialog
+          dayShifts={dayShifts}
+          open={saveTemplateOpen}
+          onOpenChange={setSaveTemplateOpen}
+        />
+      ) : null}
 
-      <LoadTemplateSheet
-        dateId={dateId}
-        open={loadTemplateOpen}
-        onOpenChange={setLoadTemplateOpen}
-      />
+      {loadTemplateOpen ? (
+        <LoadTemplateSheet
+          dateId={dateId}
+          existingShiftCount={dayShifts.length}
+          open={loadTemplateOpen}
+          onOpenChange={setLoadTemplateOpen}
+        />
+      ) : null}
 
-      <DayMessageDialog dateId={dateId} open={dayMessageOpen} onOpenChange={setDayMessageOpen} />
+      {dayMessageOpen ? (
+        <DayMessageDialog dateId={dateId} open={dayMessageOpen} onOpenChange={setDayMessageOpen} />
+      ) : null}
 
-      <DayInfoDialog dateId={dateId} open={dayInfoOpen} onOpenChange={setDayInfoOpen} />
+      {dayInfoOpen ? (
+        <DayInfoDialog dateId={dateId} open={dayInfoOpen} onOpenChange={setDayInfoOpen} />
+      ) : null}
 
-      <BroadcastDialog dateId={dateId} open={broadcastOpen} onOpenChange={setBroadcastOpen} />
+      {broadcastOpen ? (
+        <BroadcastDialog
+          staffCount={staffCount}
+          open={broadcastOpen}
+          onOpenChange={setBroadcastOpen}
+        />
+      ) : null}
     </>
   );
 }

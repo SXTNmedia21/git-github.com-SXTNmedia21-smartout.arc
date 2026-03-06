@@ -20,6 +20,25 @@ export function useScheduleRealtime(weekStart: string, options?: ScheduleRealtim
 
   useEffect(() => {
     const supabase = createClient();
+    const pendingQueryKeys = new Set<string>();
+    let flushTimer: ReturnType<typeof setTimeout> | null = null;
+
+    /**
+     * Debounces cache invalidations to avoid repaint storms when many realtime
+     * events arrive in short bursts.
+     */
+    const scheduleInvalidate = (queryKey: readonly unknown[]) => {
+      pendingQueryKeys.add(JSON.stringify(queryKey));
+
+      if (flushTimer !== null) return;
+      flushTimer = setTimeout(() => {
+        for (const key of pendingQueryKeys) {
+          queryClient.invalidateQueries({ queryKey: JSON.parse(key) as readonly unknown[] });
+        }
+        pendingQueryKeys.clear();
+        flushTimer = null;
+      }, 350);
+    };
 
     const channel = supabase
       .channel(`schedule:${workspaceId}:${weekStart}`)
@@ -32,9 +51,7 @@ export function useScheduleRealtime(weekStart: string, options?: ScheduleRealtim
           filter: `workspace_id=eq.${workspaceId}`,
         },
         () => {
-          queryClient.invalidateQueries({
-            queryKey: scheduleKeys.shifts(workspaceId, weekStart),
-          });
+          scheduleInvalidate(scheduleKeys.shifts(workspaceId, weekStart));
         },
       )
       .on(
@@ -46,9 +63,7 @@ export function useScheduleRealtime(weekStart: string, options?: ScheduleRealtim
           filter: `workspace_id=eq.${workspaceId}`,
         },
         () => {
-          queryClient.invalidateQueries({
-            queryKey: scheduleKeys.absences(workspaceId, weekStart),
-          });
+          scheduleInvalidate(scheduleKeys.absences(workspaceId, weekStart));
         },
       );
 
@@ -63,9 +78,7 @@ export function useScheduleRealtime(weekStart: string, options?: ScheduleRealtim
             filter: `workspace_id=eq.${workspaceId}`,
           },
           () => {
-            queryClient.invalidateQueries({
-              queryKey: scheduleKeys.dayMessages(workspaceId, weekStart),
-            });
+            scheduleInvalidate(scheduleKeys.dayMessages(workspaceId, weekStart));
           },
         )
         .on(
@@ -77,9 +90,7 @@ export function useScheduleRealtime(weekStart: string, options?: ScheduleRealtim
             filter: `workspace_id=eq.${workspaceId}`,
           },
           () => {
-            queryClient.invalidateQueries({
-              queryKey: scheduleKeys.dayTasks(workspaceId, weekStart),
-            });
+            scheduleInvalidate(scheduleKeys.dayTasks(workspaceId, weekStart));
           },
         )
         .on(
@@ -91,9 +102,7 @@ export function useScheduleRealtime(weekStart: string, options?: ScheduleRealtim
             filter: `workspace_id=eq.${workspaceId}`,
           },
           () => {
-            queryClient.invalidateQueries({
-              queryKey: scheduleKeys.dayBookings(workspaceId, weekStart),
-            });
+            scheduleInvalidate(scheduleKeys.dayBookings(workspaceId, weekStart));
           },
         );
     }
@@ -108,9 +117,7 @@ export function useScheduleRealtime(weekStart: string, options?: ScheduleRealtim
           filter: `workspace_id=eq.${workspaceId}`,
         },
         () => {
-          queryClient.invalidateQueries({
-            queryKey: scheduleKeys.openShifts(workspaceId),
-          });
+          scheduleInvalidate(scheduleKeys.openShifts(workspaceId));
         },
       );
     }
@@ -118,6 +125,9 @@ export function useScheduleRealtime(weekStart: string, options?: ScheduleRealtim
     channel.subscribe();
 
     return () => {
+      if (flushTimer !== null) {
+        clearTimeout(flushTimer);
+      }
       supabase.removeChannel(channel);
     };
   }, [workspaceId, weekStart, queryClient, includeDayContent, includeOpenShifts]);

@@ -176,6 +176,8 @@ export default function SchedulePage() {
 // SchedulePageContent — query hooks + rendering
 // ---------------------------------------------------------------------------
 function SchedulePageContent() {
+  const schedulePerfStartRef = useRef<number | null>(null);
+  const firstInteractionCapturedRef = useRef(false);
   const {
     isDark,
     scheduleLayout,
@@ -239,6 +241,12 @@ function SchedulePageContent() {
         clearTimeout(highlightTimerRef.current);
       }
     };
+  }, []);
+
+  // Temporary frontend regression instrumentation for schedule boot.
+  useEffect(() => {
+    schedulePerfStartRef.current = performance.now();
+    performance.mark("schedule:route-enter");
   }, []);
 
   // Let the primary schedule grid render first, then load secondary datasets when idle.
@@ -395,6 +403,25 @@ function SchedulePageContent() {
   const updateDayTaskStatus = useUpdateDayTaskStatus(weekStart);
   const deleteDayTask = useDeleteDayTask(weekStart);
   const createDayBooking = useCreateDayBooking(weekStart);
+
+  /** Handles Shift+drag resize updates from grid cards without extra hook subscriptions in grid rows. */
+  const handleGridShiftTimeChange = useCallback(
+    (shiftId: string, newStart: string, newEnd: string) => {
+      const startMins =
+        parseInt(newStart.split(":")[0] ?? "0", 10) * 60 +
+        parseInt(newStart.split(":")[1] ?? "0", 10);
+      let endMins =
+        parseInt(newEnd.split(":")[0] ?? "0", 10) * 60 + parseInt(newEnd.split(":")[1] ?? "0", 10);
+      if (endMins <= startMins) endMins += 24 * 60;
+      const workHours = Math.max(0, (endMins - startMins) / 60);
+
+      updateShift.mutate({
+        id: shiftId,
+        patch: { startTime: newStart, endTime: newEnd, workHours },
+      });
+    },
+    [updateShift],
+  );
 
   // ── UI-only context ─────────────────────────────────────────
   const scheduleUI = useScheduleUI();
@@ -742,6 +769,40 @@ function SchedulePageContent() {
 
   const isLoading = shiftsQuery.isLoading;
 
+  useEffect(() => {
+    if (isLoading) return;
+    const start = schedulePerfStartRef.current;
+    if (start === null) return;
+
+    requestAnimationFrame(() => {
+      const renderMs = Math.round(performance.now() - start);
+      performance.mark("schedule:first-render");
+      performance.measure(
+        "schedule:first-render-duration",
+        "schedule:route-enter",
+        "schedule:first-render",
+      );
+      console.info("[schedule-perf] first-render-ms", renderMs);
+    });
+  }, [isLoading]);
+
+  useEffect(() => {
+    if (firstInteractionCapturedRef.current) return;
+
+    const handlePointerDown = () => {
+      if (firstInteractionCapturedRef.current) return;
+      firstInteractionCapturedRef.current = true;
+      const start = schedulePerfStartRef.current;
+      if (start === null) return;
+      console.info("[schedule-perf] first-interaction-ms", Math.round(performance.now() - start));
+    };
+
+    window.addEventListener("pointerdown", handlePointerDown, { passive: true });
+    return () => {
+      window.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, []);
+
   return (
     <AgentProposalsProvider
       createShift={(input) =>
@@ -768,9 +829,7 @@ function SchedulePageContent() {
         className={`flex flex-1 flex-col ${isDark ? "bg-[#050505]" : "bg-zinc-50"} relative isolate h-full overflow-hidden rounded-2xl border border-white/[0.04] font-sans text-zinc-100 shadow-2xl print:block print:h-auto print:overflow-visible print:border-none print:bg-white print:shadow-none`}
       >
         {isLoading ? (
-          <div className="flex h-full flex-1 items-center justify-center">
-            <p className="text-sm text-zinc-500">Laster vaktplan...</p>
-          </div>
+          <ScheduleLoadingSkeleton isDark={isDark} />
         ) : (
           <>
             {/* AMBIENT BACKGROUND */}
@@ -822,7 +881,11 @@ function SchedulePageContent() {
                             activeStatusFilter={activeStatusFilter}
                             visibleDays={situationFilteredDays}
                             employees={locationFilteredEmployees}
+                            shifts={shifts}
+                            absences={absencesQuery.data ?? []}
                             highlightedDayId={highlightedDayId}
+                            weekStart={weekStart}
+                            onTimeChange={handleGridShiftTimeChange}
                           />
                         )}
                         {scheduleLayout === "weekly" && (
@@ -915,6 +978,81 @@ function SchedulePageContent() {
         )}
       </div>
     </AgentProposalsProvider>
+  );
+}
+
+/**
+ * Shows a structure-matching skeleton while the schedule data bootstraps.
+ * Why: gives instant visual feedback and avoids a blank waiting screen.
+ */
+function ScheduleLoadingSkeleton({ isDark }: { isDark: boolean }) {
+  return (
+    <div className="flex h-full flex-1 overflow-hidden">
+      <aside
+        className={`hidden w-64 shrink-0 border-r p-4 lg:flex lg:flex-col ${
+          isDark ? "border-white/[0.06] bg-[#0a0a0c]/40" : "border-zinc-200 bg-white/70"
+        }`}
+      >
+        <div
+          className={`mb-4 h-8 animate-pulse rounded-lg ${isDark ? "bg-zinc-800" : "bg-zinc-200"}`}
+        />
+        <div
+          className={`mb-2 h-16 animate-pulse rounded-xl ${isDark ? "bg-zinc-900" : "bg-zinc-200"}`}
+        />
+        <div
+          className={`mb-2 h-16 animate-pulse rounded-xl ${isDark ? "bg-zinc-900" : "bg-zinc-200"}`}
+        />
+        <div
+          className={`h-16 animate-pulse rounded-xl ${isDark ? "bg-zinc-900" : "bg-zinc-200"}`}
+        />
+      </aside>
+
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <div className={`h-16 border-b p-3 ${isDark ? "border-white/[0.06]" : "border-zinc-200"}`}>
+          <div
+            className={`h-10 animate-pulse rounded-xl ${isDark ? "bg-zinc-900" : "bg-zinc-200"}`}
+          />
+        </div>
+
+        <div className="flex flex-1 overflow-hidden">
+          <div className="flex min-w-0 flex-1 flex-col">
+            <div
+              className={`h-16 border-b p-2 ${isDark ? "border-white/[0.06]" : "border-zinc-200"}`}
+            >
+              <div className="grid h-full grid-cols-7 gap-2">
+                {Array.from({ length: 7 }).map((_, index) => (
+                  <div
+                    key={`schedule-header-skeleton-${index + 1}`}
+                    className={`h-full animate-pulse rounded-lg ${isDark ? "bg-zinc-900" : "bg-zinc-200"}`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-hidden p-2">
+              <div className="space-y-2">
+                {Array.from({ length: 7 }).map((_, rowIndex) => (
+                  <div
+                    key={`schedule-row-skeleton-${rowIndex + 1}`}
+                    className="grid grid-cols-[260px_repeat(7,minmax(0,1fr))] gap-2"
+                  >
+                    <div
+                      className={`h-14 animate-pulse rounded-lg ${isDark ? "bg-zinc-900" : "bg-zinc-200"}`}
+                    />
+                    {Array.from({ length: 7 }).map((__, colIndex) => (
+                      <div
+                        key={`schedule-cell-skeleton-${rowIndex + 1}-${colIndex + 1}`}
+                        className={`h-14 animate-pulse rounded-lg ${isDark ? "bg-zinc-950" : "bg-zinc-100"}`}
+                      />
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
