@@ -1,22 +1,16 @@
 import { createAdminClient } from "./admin";
 import type { Database } from "./database.types";
 
-export type ServiceConfig =
-  Database["public"]["Tables"]["service_config"]["Row"];
+export type ServiceConfig = Database["public"]["Tables"]["service_config"]["Row"];
 
-export type ServiceConfigInsert =
-  Database["public"]["Tables"]["service_config"]["Insert"];
+export type ServiceConfigInsert = Database["public"]["Tables"]["service_config"]["Insert"];
 
-export type ServiceConfigUpdate =
-  Database["public"]["Tables"]["service_config"]["Update"];
+export type ServiceConfigUpdate = Database["public"]["Tables"]["service_config"]["Update"];
 
 const CACHE_TTL_MS = 60_000; // 60 seconds
 
 // In-memory cache (works for long-lived processes: Docker services, dev server)
-const memoryCache = new Map<
-  string,
-  { data: ServiceConfig | null; expires: number }
->();
+const memoryCache = new Map<string, { data: ServiceConfig | null; expires: number }>();
 
 // Redis cache (for serverless — Vercel)
 let redis: {
@@ -32,7 +26,7 @@ async function getRedis() {
 
   try {
     const { Redis } = await import("@upstash/redis");
-    redis = new Redis({ url, token }) as typeof redis;
+    redis = new Redis({ url, token }) as unknown as typeof redis;
     return redis;
   } catch {
     return null;
@@ -40,9 +34,7 @@ async function getRedis() {
 }
 
 /** Get config for a single service by slug. Cached for 60s. */
-export async function getServiceConfig(
-  slug: string,
-): Promise<ServiceConfig | null> {
+export async function getServiceConfig(slug: string): Promise<ServiceConfig | null> {
   const cacheKey = `svc:${slug}`;
   const now = Date.now();
 
@@ -72,11 +64,7 @@ export async function getServiceConfig(
 
   // 3. Fetch from DB
   const admin = createAdminClient();
-  const { data, error } = await admin
-    .from("service_config")
-    .select("*")
-    .eq("slug", slug)
-    .single();
+  const { data, error } = await admin.from("service_config").select("*").eq("slug", slug).single();
 
   const config = error || !data ? null : data;
 
@@ -96,10 +84,7 @@ export async function getServiceConfig(
 /** Get ALL services (for admin UI listing) — not cached aggressively */
 export async function getAllServiceConfigs(): Promise<ServiceConfig[]> {
   const admin = createAdminClient();
-  const { data, error } = await admin
-    .from("service_config")
-    .select("*")
-    .order("name");
+  const { data, error } = await admin.from("service_config").select("*").order("name");
 
   if (error || !data) return [];
   return data;
@@ -121,10 +106,7 @@ export async function invalidateServiceConfig(slug: string): Promise<void> {
 }
 
 /** Get a specific config value from the JSONB config field */
-export async function getServiceConfigValue(
-  slug: string,
-  key: string,
-): Promise<string | null> {
+export async function getServiceConfigValue(slug: string, key: string): Promise<string | null> {
   const config = await getServiceConfig(slug);
   if (!config) return null;
 

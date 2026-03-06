@@ -1,10 +1,15 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
+import type { Json } from "@smartout/supabase/database.types";
 import { requireGodmode, logPlatformAction } from "@/lib/platform-admin";
 
 const CreateServiceSchema = z.object({
   name: z.string().min(1).max(100),
-  slug: z.string().min(1).max(50).regex(/^[a-z0-9-]+$/),
+  slug: z
+    .string()
+    .min(1)
+    .max(50)
+    .regex(/^[a-z0-9-]+$/),
   type: z.enum(["docker", "vercel", "edge-function", "external"]),
   description: z.string().max(500).optional(),
   host_url: z.string().url().optional(),
@@ -34,13 +39,9 @@ export async function GET() {
   const auth = await requireGodmode();
   if (auth.error) return auth.error;
 
-  const { data, error } = await auth.admin
-    .from("service_config")
-    .select("*")
-    .order("name");
+  const { data, error } = await auth.admin.from("service_config").select("*").order("name");
 
-  if (error)
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ data });
 }
 
@@ -51,10 +52,7 @@ export async function POST(request: NextRequest) {
 
   const body = CreateServiceSchema.safeParse(await request.json());
   if (!body.success) {
-    return NextResponse.json(
-      { error: body.error.flatten().fieldErrors },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: body.error.flatten().fieldErrors }, { status: 400 });
   }
 
   const d = body.data;
@@ -71,8 +69,8 @@ export async function POST(request: NextRequest) {
       docker_service_name: d.docker_service_name ?? null,
       docker_image: d.docker_image ?? null,
       vercel_project_id: d.vercel_project_id ?? null,
-      config: d.config,
-      env_schema: d.env_schema,
+      config: d.config as Json,
+      env_schema: d.env_schema as Json,
       vault_secrets: d.vault_secrets,
       port: d.port ?? null,
       tags: d.tags,
@@ -81,8 +79,7 @@ export async function POST(request: NextRequest) {
     .select()
     .single();
 
-  if (error)
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   await logPlatformAction(auth.adminId, "create_service", "service_config", data.service_id, {
     slug: d.slug,

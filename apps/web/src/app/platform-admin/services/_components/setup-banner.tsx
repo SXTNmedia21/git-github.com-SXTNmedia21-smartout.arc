@@ -12,18 +12,12 @@ type Props = {
 
 export function SetupBanner({ services }: Props) {
   const unconfiguredCritical = useMemo(
-    () =>
-      services.filter(
-        (s) => s.status === "unconfigured" && s.is_critical,
-      ),
+    () => services.filter((s) => s.status === "unconfigured" && s.is_critical),
     [services],
   );
 
   const unconfiguredOther = useMemo(
-    () =>
-      services.filter(
-        (s) => s.status === "unconfigured" && !s.is_critical,
-      ),
+    () => services.filter((s) => s.status === "unconfigured" && !s.is_critical),
     [services],
   );
 
@@ -41,14 +35,11 @@ export function SetupBanner({ services }: Props) {
         <p className="text-muted-foreground mt-0.5 text-xs">
           {unconfiguredCritical.length > 0 && (
             <>
-              <span className="text-red-400">
-                {unconfiguredCritical.length} critical
-              </span>
+              <span className="text-red-400">{unconfiguredCritical.length} critical</span>
               {unconfiguredOther.length > 0 && " + "}
             </>
           )}
-          {unconfiguredOther.length > 0 &&
-            `${unconfiguredOther.length} optional`}
+          {unconfiguredOther.length > 0 && `${unconfiguredOther.length} optional`}
           {" — "}
           {[
             ...unconfiguredCritical.map((s) => s.name),
@@ -57,7 +48,7 @@ export function SetupBanner({ services }: Props) {
         </p>
       </div>
       {unconfiguredCritical.length > 0 && (
-        <Link href={`/platform-admin/services/${unconfiguredCritical[0].slug}`}>
+        <Link href={`/platform-admin/services/${unconfiguredCritical[0]!.slug}`}>
           <Button variant="outline" size="sm">
             <Settings className="mr-1.5 h-3.5 w-3.5" />
             Configure

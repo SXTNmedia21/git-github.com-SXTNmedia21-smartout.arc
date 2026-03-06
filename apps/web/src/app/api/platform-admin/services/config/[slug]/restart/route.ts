@@ -17,14 +17,10 @@ export async function POST(_request: NextRequest, { params }: RouteContext) {
     .eq("slug", slug)
     .single();
 
-  if (!service)
-    return NextResponse.json({ error: "Service not found" }, { status: 404 });
+  if (!service) return NextResponse.json({ error: "Service not found" }, { status: 404 });
 
   if (service.type !== "docker" || !service.docker_service_name) {
-    return NextResponse.json(
-      { error: "Only Docker services can be restarted" },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "Only Docker services can be restarted" }, { status: 400 });
   }
 
   const dockerHost = process.env.DOCKER_HOST ?? "http://localhost:2375";
@@ -38,34 +34,24 @@ export async function POST(_request: NextRequest, { params }: RouteContext) {
     );
 
     if (!listRes.ok) {
-      return NextResponse.json(
-        { error: "Docker API unreachable" },
-        { status: 502 },
-      );
+      return NextResponse.json({ error: "Docker API unreachable" }, { status: 502 });
     }
 
     const containers = (await listRes.json()) as Array<{ Id: string }>;
 
     if (!containers.length) {
-      return NextResponse.json(
-        { error: "Container not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Container not found" }, { status: 404 });
     }
 
-    const containerId = containers[0].Id;
+    const containerId = containers[0]!.Id;
 
     // Restart container
-    const restartRes = await fetch(
-      `${dockerHost}/containers/${containerId}/restart`,
-      { method: "POST" },
-    );
+    const restartRes = await fetch(`${dockerHost}/containers/${containerId}/restart`, {
+      method: "POST",
+    });
 
     if (!restartRes.ok) {
-      return NextResponse.json(
-        { error: "Failed to restart container" },
-        { status: 502 },
-      );
+      return NextResponse.json({ error: "Failed to restart container" }, { status: 502 });
     }
 
     // Log the restart
@@ -79,22 +65,16 @@ export async function POST(_request: NextRequest, { params }: RouteContext) {
       applied_at: new Date().toISOString(),
     });
 
-    await logPlatformAction(
-      auth.adminId,
-      "restart_service",
-      "service_config",
-      service.service_id,
-      { slug, containerId },
-    );
+    await logPlatformAction(auth.adminId, "restart_service", "service_config", service.service_id, {
+      slug,
+      containerId,
+    });
 
     await invalidateServiceConfig(slug);
 
     return NextResponse.json({ success: true, containerId });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json(
-      { error: `Docker API error: ${msg}` },
-      { status: 502 },
-    );
+    return NextResponse.json({ error: `Docker API error: ${msg}` }, { status: 502 });
   }
 }
