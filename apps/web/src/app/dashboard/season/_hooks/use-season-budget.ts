@@ -5,6 +5,7 @@ import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
 import { dashboardKeys } from "../../_hooks/dashboard-keys";
 import { toast } from "sonner";
+import type { SeasonBudgetStatus } from "../_definitions/season-planning";
 
 export type SeasonBudget = {
   season_budget_id: string;
@@ -14,7 +15,7 @@ export type SeasonBudget = {
   season_price_factor: number;
   target_labor_percentage: number;
   avg_hourly_wage: number | null;
-  status: "draft" | "active" | "locked";
+  status: SeasonBudgetStatus;
 };
 
 type UpsertSeasonBudgetInput = {
@@ -24,6 +25,7 @@ type UpsertSeasonBudgetInput = {
   season_price_factor?: number;
   target_labor_percentage?: number;
   avg_hourly_wage?: number | null;
+  status?: SeasonBudgetStatus;
 };
 
 export function useSeasonBudget(seasonId: string | null) {
@@ -64,6 +66,7 @@ export function useSeasonBudget(seasonId: string | null) {
             season_price_factor: input.season_price_factor ?? 1.0,
             target_labor_percentage: input.target_labor_percentage ?? 0.3,
             avg_hourly_wage: input.avg_hourly_wage ?? null,
+            status: input.status ?? existing.status,
             updated_at: new Date().toISOString(),
           })
           .eq("season_budget_id", existing.season_budget_id);
@@ -78,6 +81,7 @@ export function useSeasonBudget(seasonId: string | null) {
           season_price_factor: input.season_price_factor ?? 1.0,
           target_labor_percentage: input.target_labor_percentage ?? 0.3,
           avg_hourly_wage: input.avg_hourly_wage ?? null,
+          status: input.status ?? "draft",
         });
 
         if (error) throw new Error(error.message);

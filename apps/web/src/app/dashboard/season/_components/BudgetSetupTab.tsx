@@ -2,6 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { useSeasonBudget } from "../_hooks";
+import {
+  BUDGET_SETUP_LIMITS,
+  SEASON_BUDGET_STATUS_OPTIONS,
+  type SeasonBudgetStatus,
+} from "../_definitions/season-planning";
+import { toast } from "sonner";
 
 type Props = {
   seasonId: string;
@@ -15,6 +21,8 @@ export function BudgetSetupTab({ seasonId, isDark }: Props) {
   const [laborPct, setLaborPct] = useState("30");
   const [hourlyWage, setHourlyWage] = useState("");
   const [basePrice, setBasePrice] = useState("");
+  const [seasonPriceFactor, setSeasonPriceFactor] = useState("1.0");
+  const [status, setStatus] = useState<SeasonBudgetStatus>("draft");
 
   // Sync form with loaded data
   useEffect(() => {
@@ -23,19 +31,68 @@ export function BudgetSetupTab({ seasonId, isDark }: Props) {
       setLaborPct(String(Math.round(budget.target_labor_percentage * 100)));
       setHourlyWage(budget.avg_hourly_wage != null ? String(budget.avg_hourly_wage) : "");
       setBasePrice(budget.base_price_per_guest != null ? String(budget.base_price_per_guest) : "");
+      setSeasonPriceFactor(String(budget.season_price_factor ?? 1.0));
+      setStatus(budget.status);
     }
   }, [budget]);
 
+  const isLocked = status === "locked";
+
+  /**
+   * Validates a numeric input against defined bounds.
+   */
+  const validateNumberInRange = (
+    label: string,
+    value: number | null,
+    limits: { min: number; max: number },
+  ): boolean => {
+    if (value == null) return true;
+    if (value < limits.min || value > limits.max) {
+      toast.error(`${label} må være mellom ${limits.min} og ${limits.max}`);
+      return false;
+    }
+    return true;
+  };
+
   const handleSave = () => {
+    if (isLocked) {
+      toast.error("Budsjettet er låst. Sett status til Draft eller Active for å redigere.");
+      return;
+    }
+
     const target = parseFloat(totalTarget);
-    if (isNaN(target) || target <= 0) return;
+    const labor = parseFloat(laborPct);
+    const wage = hourlyWage ? parseFloat(hourlyWage) : null;
+    const price = basePrice ? parseFloat(basePrice) : null;
+    const priceFactor = parseFloat(seasonPriceFactor);
+
+    if (isNaN(target) || target <= 0) {
+      toast.error("Total omsetningsmål må være et positivt tall");
+      return;
+    }
+
+    const validations = [
+      validateNumberInRange("Total omsetningsmål", target, BUDGET_SETUP_LIMITS.totalTargetRevenue),
+      validateNumberInRange("Mål lønnsandel", labor, BUDGET_SETUP_LIMITS.targetLaborPercentage),
+      validateNumberInRange("Gj.snitt timeslønn", wage, BUDGET_SETUP_LIMITS.avgHourlyWage),
+      validateNumberInRange("Snittpris per gjest", price, BUDGET_SETUP_LIMITS.basePricePerGuest),
+      validateNumberInRange(
+        "Sesong prisfaktor",
+        priceFactor,
+        BUDGET_SETUP_LIMITS.seasonPriceFactor,
+      ),
+    ];
+
+    if (validations.some((isValid) => !isValid)) return;
 
     upsertBudget.mutate({
       season_id: seasonId,
       total_target_revenue: target,
-      target_labor_percentage: (parseFloat(laborPct) || 30) / 100,
-      avg_hourly_wage: hourlyWage ? parseFloat(hourlyWage) : null,
-      base_price_per_guest: basePrice ? parseFloat(basePrice) : null,
+      target_labor_percentage: (labor || 30) / 100,
+      avg_hourly_wage: wage,
+      base_price_per_guest: price,
+      season_price_factor: priceFactor || 1,
+      status,
     });
   };
 
@@ -59,6 +116,17 @@ export function BudgetSetupTab({ seasonId, isDark }: Props) {
         Budsjettoppsett
       </h3>
 
+      <div
+        className={`mb-6 rounded-xl border px-4 py-3 text-sm ${
+          isDark
+            ? "border-zinc-800 bg-zinc-900/40 text-zinc-400"
+            : "border-zinc-200 bg-zinc-50 text-zinc-600"
+        }`}
+      >
+        Status styrer redigering: <strong>Draft/Active</strong> kan endres, <strong>Locked</strong>{" "}
+        er skrivebeskyttet.
+      </div>
+
       <div className="grid gap-6 md:grid-cols-2">
         <div>
           <label className={labelClass}>Total omsetningsmål (NOK)</label>
@@ -67,6 +135,9 @@ export function BudgetSetupTab({ seasonId, isDark }: Props) {
             value={totalTarget}
             onChange={(e) => setTotalTarget(e.target.value)}
             placeholder="f.eks. 5000000"
+            min={BUDGET_SETUP_LIMITS.totalTargetRevenue.min}
+            max={BUDGET_SETUP_LIMITS.totalTargetRevenue.max}
+            disabled={isLocked}
             className={inputClass}
           />
           <p className={`mt-1 text-xs ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
@@ -81,8 +152,9 @@ export function BudgetSetupTab({ seasonId, isDark }: Props) {
             value={laborPct}
             onChange={(e) => setLaborPct(e.target.value)}
             placeholder="30"
-            min="0"
-            max="100"
+            min={BUDGET_SETUP_LIMITS.targetLaborPercentage.min}
+            max={BUDGET_SETUP_LIMITS.targetLaborPercentage.max}
+            disabled={isLocked}
             className={inputClass}
           />
           <p className={`mt-1 text-xs ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
@@ -97,6 +169,9 @@ export function BudgetSetupTab({ seasonId, isDark }: Props) {
             value={hourlyWage}
             onChange={(e) => setHourlyWage(e.target.value)}
             placeholder="f.eks. 220"
+            min={BUDGET_SETUP_LIMITS.avgHourlyWage.min}
+            max={BUDGET_SETUP_LIMITS.avgHourlyWage.max}
+            disabled={isLocked}
             className={inputClass}
           />
           <p className={`mt-1 text-xs ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
@@ -111,10 +186,49 @@ export function BudgetSetupTab({ seasonId, isDark }: Props) {
             value={basePrice}
             onChange={(e) => setBasePrice(e.target.value)}
             placeholder="f.eks. 450"
+            min={BUDGET_SETUP_LIMITS.basePricePerGuest.min}
+            max={BUDGET_SETUP_LIMITS.basePricePerGuest.max}
+            disabled={isLocked}
             className={inputClass}
           />
           <p className={`mt-1 text-xs ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
             Gjennomsnittlig kuvert uten drikke
+          </p>
+        </div>
+
+        <div>
+          <label className={labelClass}>Sesong prisfaktor</label>
+          <input
+            type="number"
+            value={seasonPriceFactor}
+            onChange={(e) => setSeasonPriceFactor(e.target.value)}
+            placeholder="1.0"
+            step="0.1"
+            min={BUDGET_SETUP_LIMITS.seasonPriceFactor.min}
+            max={BUDGET_SETUP_LIMITS.seasonPriceFactor.max}
+            disabled={isLocked}
+            className={inputClass}
+          />
+          <p className={`mt-1 text-xs ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
+            Multipliserer snittpris per gjest i sesongen
+          </p>
+        </div>
+
+        <div>
+          <label className={labelClass}>Budsjettstatus</label>
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value as SeasonBudgetStatus)}
+            className={inputClass}
+          >
+            {SEASON_BUDGET_STATUS_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label} - {option.description}
+              </option>
+            ))}
+          </select>
+          <p className={`mt-1 text-xs ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
+            Sett til Locked når oppsettet er ferdig
           </p>
         </div>
       </div>

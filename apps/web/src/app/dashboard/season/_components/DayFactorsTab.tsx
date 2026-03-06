@@ -2,13 +2,20 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useDayFactors, DEFAULT_DAY_FACTORS, WEEKDAY_LABELS } from "../_hooks";
+import {
+  BUDGET_SETUP_LIMITS,
+  getDayFactorTemplate,
+  type DayFactorTemplateId,
+} from "../_definitions/season-planning";
+import { toast } from "sonner";
 
 type Props = {
   seasonBudgetId: string;
   isDark: boolean;
+  isReadOnly?: boolean;
 };
 
-export function DayFactorsTab({ seasonBudgetId, isDark }: Props) {
+export function DayFactorsTab({ seasonBudgetId, isDark, isReadOnly = false }: Props) {
   const { dayFactors, isLoading, saveDayFactors } = useDayFactors(seasonBudgetId);
 
   const [factors, setFactors] =
@@ -26,28 +33,24 @@ export function DayFactorsTab({ seasonBudgetId, isDark }: Props) {
   const updateFactor = (weekday: number, value: string) => {
     const num = parseFloat(value);
     if (isNaN(num) || num <= 0) return;
+    if (num < BUDGET_SETUP_LIMITS.dayFactor.min || num > BUDGET_SETUP_LIMITS.dayFactor.max) return;
     setFactors((prev) => prev.map((f) => (f.weekday === weekday ? { ...f, factor: num } : f)));
   };
 
   const handleSave = () => {
+    if (isReadOnly) {
+      toast.error("Budsjettet er låst. Sett status til Draft eller Active for å redigere.");
+      return;
+    }
     saveDayFactors.mutate(factors);
   };
 
-  const applyTemplate = (template: "restaurant" | "hotel" | "flat") => {
-    const templates: Record<string, { weekday: number; factor: number }[]> = {
-      restaurant: DEFAULT_DAY_FACTORS,
-      hotel: [
-        { weekday: 0, factor: 1.0 },
-        { weekday: 1, factor: 1.0 },
-        { weekday: 2, factor: 1.1 },
-        { weekday: 3, factor: 1.1 },
-        { weekday: 4, factor: 1.3 },
-        { weekday: 5, factor: 1.4 },
-        { weekday: 6, factor: 1.1 },
-      ],
-      flat: Array.from({ length: 7 }, (_, i) => ({ weekday: i, factor: 1.0 })),
-    };
-    setFactors(templates[template]!);
+  const applyTemplate = (template: DayFactorTemplateId) => {
+    if (isReadOnly) {
+      toast.error("Budsjettet er låst. Sett status til Draft eller Active for å redigere.");
+      return;
+    }
+    setFactors(getDayFactorTemplate(template));
   };
 
   const cardClass = isDark
@@ -65,17 +68,24 @@ export function DayFactorsTab({ seasonBudgetId, isDark }: Props) {
           Dagfaktorer
         </h3>
         <div className="flex gap-2">
-          {(["restaurant", "hotel", "flat"] as const).map((t) => (
+          {(["restaurant", "hotel", "event", "flat"] as const).map((t) => (
             <button
               key={t}
               onClick={() => applyTemplate(t)}
+              disabled={isReadOnly}
               className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
                 isDark
                   ? "border border-zinc-700 text-zinc-400 hover:bg-zinc-800 hover:text-white"
                   : "border border-zinc-300 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
               }`}
             >
-              {t === "restaurant" ? "Restaurant" : t === "hotel" ? "Hotell" : "Flat"}
+              {t === "restaurant"
+                ? "Restaurant"
+                : t === "hotel"
+                  ? "Hotell"
+                  : t === "event"
+                    ? "Event"
+                    : "Flat"}
             </button>
           ))}
         </div>
@@ -111,7 +121,9 @@ export function DayFactorsTab({ seasonBudgetId, isDark }: Props) {
                 value={f.factor}
                 onChange={(e) => updateFactor(f.weekday, e.target.value)}
                 step="0.1"
-                min="0.1"
+                min={BUDGET_SETUP_LIMITS.dayFactor.min}
+                max={BUDGET_SETUP_LIMITS.dayFactor.max}
+                disabled={isReadOnly}
                 className={`w-20 rounded-lg border px-3 py-1.5 text-center text-sm font-medium outline-none ${
                   isDark
                     ? "border-zinc-700 bg-zinc-900 text-white focus:border-blue-500"
@@ -126,7 +138,7 @@ export function DayFactorsTab({ seasonBudgetId, isDark }: Props) {
       <div className="mt-8 flex justify-end">
         <button
           onClick={handleSave}
-          disabled={saveDayFactors.isPending}
+          disabled={saveDayFactors.isPending || isReadOnly}
           className="rounded-xl bg-blue-600 px-6 py-3 text-sm font-bold text-white transition-colors hover:bg-blue-500 disabled:opacity-50"
         >
           {saveDayFactors.isPending ? "Lagrer..." : "Lagre dagfaktorer"}

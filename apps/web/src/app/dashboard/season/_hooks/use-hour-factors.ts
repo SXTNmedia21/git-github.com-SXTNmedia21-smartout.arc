@@ -5,6 +5,7 @@ import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
 import { dashboardKeys } from "../../_hooks/dashboard-keys";
 import { toast } from "sonner";
+import { getHourFactorTemplate } from "../_definitions/season-planning";
 
 export type HourFactor = {
   hour_factor_id: string;
@@ -13,20 +14,7 @@ export type HourFactor = {
 };
 
 /** Default restaurant profile: lunch + dinner peaks */
-const DEFAULT_HOUR_FACTORS: { hour: number; factor: number }[] = [
-  { hour: 10, factor: 0.4 },
-  { hour: 11, factor: 0.7 },
-  { hour: 12, factor: 1.3 },
-  { hour: 13, factor: 1.0 },
-  { hour: 14, factor: 0.8 },
-  { hour: 15, factor: 0.6 },
-  { hour: 16, factor: 0.9 },
-  { hour: 17, factor: 1.5 },
-  { hour: 18, factor: 2.0 },
-  { hour: 19, factor: 2.4 },
-  { hour: 20, factor: 2.2 },
-  { hour: 21, factor: 1.1 },
-];
+const DEFAULT_HOUR_FACTORS = getHourFactorTemplate("restaurant", 10, 22);
 
 export { DEFAULT_HOUR_FACTORS };
 
