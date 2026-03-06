@@ -1,41 +1,15 @@
 ---
 title: Decision Log
 status: in_progress
-updated: 2026-03-04
+updated: 2026-04-08
 created: 2026-03-04
-module: operations
+module: meta
 tags: [decisions]
 ---
 
-# Decision Log — season-creation-wizard
+# Decision Log
 
-| #   | Date | Decision | Status |
-| --- | ---- | -------- | ------ |
-
-module: governance
-tags: [decisions]
-
----
-
-# Decision Log — governance-admin-ui
-
-updated: 2026-03-06
-created: 2026-03-06
-module: platform-admin
-tags: [decisions]
-
----
-
-# Decision Log — service-layer
-
-updated: 2026-03-06
-created: 2026-03-06
-module: onboarding
-tags: [decisions]
-
----
-
-# Decision Log — onboarding-showcase-system-room
-
-| #   | Date | Decision | Status |
-| --- | ---- | -------- | ------ |
+| #   | Date       | Decision                                                                                                | Status | Module     |
+| --- | ---------- | ------------------------------------------------------------------------------------------------------- | ------ | ---------- |
+| 1   | 2026-04-08 | Bypass finalize-workspace Edge Function — call `finalize_onboarding_workspace` RPC directly from client | active | onboarding |
+| 2   | 2026-04-08 | RPC creates company on-the-fly if workspace was provisioned without one (NULL company_id)               | active | onboarding |

@@ -652,17 +652,25 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
       let slug: string | null = null;
 
       if (onboardingWorkspaceId) {
-        // Finalize existing onboarding workspace
-        const { data, error } = await supabase.functions.invoke("finalize-workspace", {
-          body: {
-            workspaceId: onboardingWorkspaceId,
-            workspaceData: workspacePayload,
+        // Finalize existing onboarding workspace — call RPC directly
+        // (SECURITY DEFINER bypasses RLS, no service role needed)
+        const { data: rpcResult, error: rpcError } = await supabase.rpc(
+          "finalize_onboarding_workspace",
+          {
+            p_workspace_id: onboardingWorkspaceId,
+            p_data: workspacePayload,
           },
-        });
+        );
 
-        if (error) throw new Error("Failed to finalize workspace");
-        workspaceId = data?.workspaceId;
-        slug = data?.slug ?? null;
+        if (rpcError) throw new Error(`Failed to finalize workspace: ${rpcError.message}`);
+        workspaceId = rpcResult ?? onboardingWorkspaceId;
+
+        const { data: ws } = await supabase
+          .from("workspace")
+          .select("slug")
+          .eq("workspace_id", workspaceId)
+          .single();
+        slug = ws?.slug ?? null;
       } else {
         // Legacy: activate-workspace for old flow
         const { data, error } = await supabase.functions.invoke("activate-workspace", {
