@@ -236,6 +236,7 @@ import {
   Shield,
   ShieldCheck,
   Mic,
+  BookOpen,
 } from "lucide-react";
 
 import { ContractPendingBanner } from "./ContractPendingBanner";
@@ -245,6 +246,8 @@ import { WorkspaceSwitcher } from "@/components/dashboard/WorkspaceSwitcher";
 import { VoiceToolsProvider, useVoiceTools } from "@/components/voice-tools-context";
 // Popover imports removed — location selector moved to PlannerCommandBar
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { DocumentModeShell } from "@/app/dashboard/_components/document-mode/document-mode-shell";
+import { DocumentModeSidebar } from "@/app/dashboard/_components/document-mode/document-mode-sidebar";
 
 /** Demo location options for the schedule page location selector */
 // LOCATIONS moved to schedule PlannerCommandBar
@@ -396,6 +399,7 @@ export function DashboardShell({
   const [scheduleDraftCountDisplay, setScheduleDraftCountDisplay] = useState(0);
   const [scheduleCompactMode, setScheduleCompactMode] = useState(false);
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+  const [isDocumentMode, setIsDocumentMode] = useState(false);
   const pathname = usePathname();
   const workspaceCtx = useWorkspaceOptional();
   const workspaceData = useMemo(
@@ -565,6 +569,20 @@ export function DashboardShell({
             </button>
 
             <button
+              onClick={() => setIsDocumentMode(!isDocumentMode)}
+              className={`rounded-md p-1.5 transition-colors ${
+                isDocumentMode
+                  ? "bg-orange-500/20 text-orange-400"
+                  : isDark
+                    ? "text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                    : "text-[oklch(0.48_0.02_50)] hover:bg-[oklch(0.93_0.005_55)] hover:text-[oklch(0.25_0.01_50)]"
+              }`}
+              title={isDocumentMode ? "Tilbake til drift" : "Dokumentmodus"}
+            >
+              <BookOpen className="h-4 w-4" />
+            </button>
+
+            <button
               onClick={() => setIsDark(!isDark)}
               className={`rounded-md p-1.5 transition-colors ${
                 isDark
@@ -646,7 +664,9 @@ export function DashboardShell({
               <nav
                 className={`scroll-overlay hide-scrollbar relative flex-1 space-y-1 py-4 ${isSidebarCollapsed ? "px-2" : "px-4"}`}
               >
-                {isAdminMode ? (
+                {isDocumentMode ? (
+                  <DocumentModeSidebar isDark={isDark} />
+                ) : isAdminMode ? (
                   isDemoMode ? (
                     <>
                       {!isSidebarCollapsed && (
@@ -989,7 +1009,7 @@ export function DashboardShell({
                     isDark ? "hover:text-zinc-200" : "hover:text-[oklch(0.25_0.015_45)]"
                   }`}
                 >
-                  {isAdminMode ? "Drift" : "Arbeidsrom"}
+                  {isDocumentMode ? "Handbok" : isAdminMode ? "Drift" : "Arbeidsrom"}
                 </span>
                 <ChevronRight className="h-3.5 w-3.5" />
                 <span
@@ -999,32 +1019,34 @@ export function DashboardShell({
                       : "border-[oklch(0.88_0.015_50)] bg-[oklch(0.95_0.004_55)] text-[oklch(0.22_0.02_45)]"
                   }`}
                 >
-                  {(
-                    {
-                      schedule: "Vaktplan",
-                      people: "Ansatte",
-                      reports: "Rapporter",
-                      operations: "Drift",
-                      governance: "HMS",
-                      season: "Sesong",
-                      organization: "Organisasjon",
-                      settings: "Innstillinger",
-                      help: "Hjelp",
-                      chat: "Chat",
-                      ai: "Mr. Botsson",
-                      "onboarding-assistant": "Onboarding-assistent",
-                      "my-schedule": "Min vaktplan",
-                      "my-training": "Min opplæring",
-                      "my-cv": "Min profil",
-                      "my-salary": "Min lønn",
-                    } as Record<string, string>
-                  )[pathname.split("/").pop() ?? ""] ?? "Oversikt"}
+                  {isDocumentMode
+                    ? "Dokumentmodus"
+                    : ((
+                        {
+                          schedule: "Vaktplan",
+                          people: "Ansatte",
+                          reports: "Rapporter",
+                          operations: "Drift",
+                          governance: "HMS",
+                          season: "Sesong",
+                          organization: "Organisasjon",
+                          settings: "Innstillinger",
+                          help: "Hjelp",
+                          chat: "Chat",
+                          ai: "Mr. Botsson",
+                          "onboarding-assistant": "Onboarding-assistent",
+                          "my-schedule": "Min vaktplan",
+                          "my-training": "Min opplæring",
+                          "my-cv": "Min profil",
+                          "my-salary": "Min lønn",
+                        } as Record<string, string>
+                      )[pathname.split("/").pop() ?? ""] ?? "Oversikt")}
                 </span>
               </div>
 
               <div className="flex items-center gap-5">
                 {/* Schedule page specific controls */}
-                {pathname === "/dashboard/schedule" && isAdminMode && (
+                {!isDocumentMode && pathname === "/dashboard/schedule" && isAdminMode && (
                   <>
                     {/* LAYOUT TOGGLE */}
                     <div
@@ -1151,7 +1173,7 @@ export function DashboardShell({
                 )}
 
                 {/* Tactical/Strategic Switcher (Only on Dashboard) */}
-                {isDashboardPage && isAdminMode && (
+                {!isDocumentMode && isDashboardPage && isAdminMode && (
                   <div
                     className={`hidden rounded-xl border p-1 shadow-sm md:flex ${isDark ? "border-zinc-800 bg-[#0a0a0c]" : "border-zinc-200 bg-zinc-100"} mr-2`}
                   >
@@ -1229,8 +1251,8 @@ export function DashboardShell({
                   </div>
                 )}
 
-                {/* Standard Search Bar, hidden on schedule page where we want more room */}
-                {pathname !== "/dashboard/schedule" && (
+                {/* Standard Search Bar, hidden on schedule page and document mode */}
+                {!isDocumentMode && pathname !== "/dashboard/schedule" && (
                   <div className="group relative">
                     <Search
                       className={`absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transition-colors ${
@@ -1254,16 +1276,20 @@ export function DashboardShell({
             </div>
 
             <DashboardContext.Provider value={dashboardContextValue}>
-              <div className="scroll-overlay flex min-h-0 flex-1 flex-col p-6 md:p-8 print:block print:h-auto print:overflow-visible print:p-0">
-                {isAdminMode && isDashboardPage && (
-                  <>
-                    <div className="mb-4 flex-shrink-0">
-                      <ActionStrip isDark={isDark} />
-                    </div>
-                  </>
-                )}
-                {children}
-              </div>
+              {isDocumentMode ? (
+                <DocumentModeShell isDark={isDark} />
+              ) : (
+                <div className="scroll-overlay flex min-h-0 flex-1 flex-col p-6 md:p-8 print:block print:h-auto print:overflow-visible print:p-0">
+                  {isAdminMode && isDashboardPage && (
+                    <>
+                      <div className="mb-4 flex-shrink-0">
+                        <ActionStrip isDark={isDark} />
+                      </div>
+                    </>
+                  )}
+                  {children}
+                </div>
+              )}
             </DashboardContext.Provider>
           </main>
         </div>
