@@ -319,3 +319,99 @@
   opacity: 0;
   animation: sk-enter 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
+
+/* ─── Document Mode ─────────────────────────────── */
+[data-document-mode] {
+  --doc-bg: oklch(0.98 0.003 55);
+  --doc-fg: oklch(0.2 0.01 50);
+  --doc-heading: oklch(0.25 0.02 45);
+  --doc-accent: var(--brand-orange);
+  --doc-sidebar-bg: oklch(0.96 0.004 55);
+  --doc-panel-bg: oklch(0.97 0.003 55);
+  --doc-border: oklch(0.9 0.006 55);
+  --doc-font-size: 16px;
+}
+
+.dark [data-document-mode] {
+  --doc-bg: oklch(0.12 0.005 55);
+  --doc-fg: oklch(0.88 0.01 50);
+  --doc-heading: oklch(0.92 0.005 50);
+  --doc-sidebar-bg: oklch(0.08 0.003 55);
+  --doc-panel-bg: oklch(0.1 0.003 55);
+  --doc-border: oklch(0.22 0.006 55);
+}
+
+.document-mode-editor {
+  max-width: 65ch;
+  margin: 0 auto;
+  font-size: var(--doc-font-size, 16px);
+  line-height: 1.75;
+  color: var(--doc-fg);
+}
+
+.document-mode-editor h1 {
+  font-family: var(--font-heading, Georgia, serif);
+  font-size: 2em;
+  font-weight: 700;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  color: var(--doc-heading);
+  line-height: 1.25;
+}
+
+.document-mode-editor h2 {
+  font-family: var(--font-heading, Georgia, serif);
+  font-size: 1.5em;
+  font-weight: 600;
+  margin-top: 1.25em;
+  margin-bottom: 0.4em;
+  color: var(--doc-heading);
+  line-height: 1.3;
+}
+
+.document-mode-editor h3 {
+  font-family: var(--font-heading, Georgia, serif);
+  font-size: 1.25em;
+  font-weight: 600;
+  margin-top: 1em;
+  margin-bottom: 0.3em;
+  color: var(--doc-heading);
+  line-height: 1.35;
+}
+
+.document-mode-editor p {
+  margin-bottom: 0.75em;
+}
+
+.document-mode-editor ul,
+.document-mode-editor ol {
+  padding-left: 1.5em;
+  margin-bottom: 0.75em;
+}
+
+.document-mode-editor li {
+  margin-bottom: 0.25em;
+}
+
+.document-mode-editor blockquote {
+  border-left: 3px solid var(--doc-accent, oklch(0.7 0.15 55));
+  padding-left: 1em;
+  margin-left: 0;
+  margin-bottom: 0.75em;
+  font-style: italic;
+  opacity: 0.85;
+}
+
+.document-mode-editor mark {
+  background-color: oklch(0.88 0.12 85 / 0.4);
+  border-radius: 2px;
+  padding: 0.1em 0.2em;
+}
+
+.document-mode-editor .is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  opacity: 0.4;
+}

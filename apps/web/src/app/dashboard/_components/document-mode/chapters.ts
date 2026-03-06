@@ -5,79 +5,102 @@ import {
   ShieldCheck,
   MessageSquare,
   GraduationCap,
-  CalendarDays,
+  Calendar,
   Star,
   AlertTriangle,
   TrendingUp,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-export type HandbookChapter = {
-  key: string;
+export type ChapterKey =
+  | "identity-mission"
+  | "organization-model"
+  | "daily-operations"
+  | "safety-compliance"
+  | "communication"
+  | "onboarding-training"
+  | "scheduling"
+  | "quality-service"
+  | "incident-response"
+  | "kpi-review";
+
+export type Chapter = {
+  key: ChapterKey;
+  number: number;
   title: string;
   icon: LucideIcon;
   description: string;
 };
 
-export const HANDBOOK_CHAPTERS: HandbookChapter[] = [
+export const CHAPTERS: Chapter[] = [
   {
     key: "identity-mission",
-    title: "Identitet og misjon",
+    number: 1,
+    title: "Identitet og Misjon",
     icon: Building2,
-    description: "Misjon, servicelofte, readiness-definisjon og merkevaretone",
+    description: "Misjon, serviceløfte, merkevare og tone",
   },
   {
     key: "organization-model",
+    number: 2,
     title: "Organisasjonsmodell",
     icon: Users,
-    description: "Avdelinger, team, rollestige og beslutningsmyndighet",
+    description: "Avdelinger, team, roller og ansvar",
   },
   {
     key: "daily-operations",
-    title: "Daglig drift",
+    number: 3,
+    title: "Daglig Drift",
     icon: Clock,
-    description: "Apning, midt-service, stenging og eventdags-varianter",
+    description: "Åpning, midt-skift, lukking og overlevering",
   },
   {
     key: "safety-compliance",
-    title: "Sikkerhet og etterlevelse",
+    number: 4,
+    title: "Sikkerhet og Etterlevelse",
     icon: ShieldCheck,
-    description: "Mattrygghet, hygiene, allergen, alkohol, brann og evakuering",
+    description: "Mattrygghet, hygiene, allergener, brannvern",
   },
   {
     key: "communication",
-    title: "Kommunikasjon og eskalering",
+    number: 5,
+    title: "Kommunikasjon",
     icon: MessageSquare,
-    description: "Vaktkanaler, hendelsesrapportering, eskaleringsmatrise",
+    description: "Kanaler, eskalering og rapportering",
   },
   {
     key: "onboarding-training",
-    title: "Onboarding og opplaering",
+    number: 6,
+    title: "Onboarding og Opplæring",
     icon: GraduationCap,
-    description: "Pre-boarding, dag 1-7, mentor og kunnskapstester",
+    description: "Pre-boarding, mentor, kunnskapstester",
   },
   {
     key: "scheduling",
-    title: "Vaktplan og bemanning",
-    icon: CalendarDays,
-    description: "Planlegging, apne vakter, bytteregler og overtid",
+    number: 7,
+    title: "Vaktplan og Bemanning",
+    icon: Calendar,
+    description: "Planlegging, bytter, overtid og regler",
   },
   {
     key: "quality-service",
-    title: "Kvalitet og service",
+    number: 8,
+    title: "Kvalitet og Service",
     icon: Star,
-    description: "Gjesteinteraksjon, stasjonsklar, service recovery",
+    description: "Gjestestandard, stasjoner, service recovery",
   },
   {
     key: "incident-response",
-    title: "Hendelseshandtering",
+    number: 9,
+    title: "Avvik og Hendelser",
     icon: AlertTriangle,
-    description: "Avvikskategorier, umiddelbare tiltak, korrigering og forebygging",
+    description: "Kategorier, tiltak, eierskap og forebygging",
   },
   {
     key: "kpi-review",
-    title: "KPI og gjennomgang",
+    number: 10,
+    title: "KPI og Evaluering",
     icon: TrendingUp,
-    description: "Daglig, ukentlig og manedlig review med eierskap",
+    description: "Daglig, ukentlig, månedlig oppfølging",
   },
 ];

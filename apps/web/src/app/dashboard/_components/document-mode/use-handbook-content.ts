@@ -1,140 +1,89 @@
 "use client";
 
-import { useRef, useCallback, useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
-import type { JSONContent } from "@tiptap/react";
-import type { Editor } from "@tiptap/react";
+import { useContext } from "react";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
+import type { ChapterKey } from "./chapters";
+import type { JSONContent } from "@tiptap/core";
 
 const handbookKeys = {
-  chapter: (workspaceId: string, chapterKey: string) =>
-    ["handbook-chapter", workspaceId, chapterKey] as const,
+  all: (wsId: string) => ["handbook", wsId] as const,
+  chapter: (wsId: string, key: ChapterKey) => ["handbook", wsId, key] as const,
 };
 
-type HandbookChapterRow = {
+type HandbookRow = {
   handbook_chapter_id: string;
   workspace_id: string;
   chapter_key: string;
   title: string;
-  content: JSONContent;
+  content: unknown;
   updated_by: string | null;
   created_at: string;
   updated_at: string;
 };
 
-export function useHandbookChapter(chapterKey: string) {
-  const ctx = useWorkspaceOptional();
-  const wsId = ctx?.workspace.workspace_id;
-  const supabase = createClient();
+/**
+ * handbook_chapter is not yet in database.types.ts (migration pending).
+ * We use raw rpc-style queries via `.from()` with a type assertion until
+ * types are regenerated after migration.
+ */
+export function useHandbookContent(chapterKey: ChapterKey) {
+  const { workspaceData } = useContext(DashboardContext);
+  const workspaceId = workspaceData?.workspace_id ?? "";
 
-  const query = useQuery({
-    queryKey: handbookKeys.chapter(wsId ?? "none", chapterKey),
-    queryFn: async (): Promise<HandbookChapterRow | null> => {
-      // TODO: Remove cast once migration is applied and types regenerated
-      const { data, error } = await (
-        supabase as unknown as { from: (t: string) => ReturnType<typeof supabase.from> }
-      )
+  return useQuery({
+    queryKey: handbookKeys.chapter(workspaceId, chapterKey),
+    queryFn: async (): Promise<HandbookRow | null> => {
+      const supabase = createClient();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- table not yet in generated types
+      const { data, error } = (await (supabase as any)
         .from("handbook_chapter")
         .select("*")
-        .eq("workspace_id", wsId!)
+        .eq("workspace_id", workspaceId)
         .eq("chapter_key", chapterKey)
-        .maybeSingle();
+        .maybeSingle()) as { data: HandbookRow | null; error: Error | null };
 
       if (error) throw error;
-      return data as HandbookChapterRow | null;
+      return data;
     },
-    enabled: !!wsId && !!chapterKey,
-    staleTime: 5 * 60 * 1000,
+    enabled: !!workspaceId,
+    staleTime: 30_000,
   });
-
-  return {
-    content: (query.data?.content as JSONContent) ?? null,
-    isLoading: query.isLoading,
-    updatedAt: query.data?.updated_at ?? null,
-  };
 }
 
-export function useSaveHandbookChapter() {
-  const ctx = useWorkspaceOptional();
-  const wsId = ctx?.workspace.workspace_id;
-  const supabase = createClient();
+export function useHandbookSave() {
+  const { workspaceData } = useContext(DashboardContext);
+  const workspaceId = workspaceData?.workspace_id ?? "";
   const queryClient = useQueryClient();
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
-  const mutation = useMutation({
+  return useMutation({
     mutationFn: async ({
       chapterKey,
-      title,
       content,
+      title,
     }: {
-      chapterKey: string;
-      title: string;
+      chapterKey: ChapterKey;
       content: JSONContent;
+      title: string;
     }) => {
-      // TODO: Remove cast once migration is applied and types regenerated
-      const { error } = await (
-        supabase as unknown as { from: (t: string) => ReturnType<typeof supabase.from> }
-      )
-        .from("handbook_chapter")
-        .upsert(
-          {
-            workspace_id: wsId!,
-            chapter_key: chapterKey,
-            title,
-            content,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "workspace_id,chapter_key" },
-        );
-
+      const supabase = createClient();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- table not yet in generated types
+      const { error } = await (supabase as any).from("handbook_chapter").upsert(
+        {
+          workspace_id: workspaceId,
+          chapter_key: chapterKey,
+          title,
+          content: content as Record<string, unknown>,
+        },
+        { onConflict: "workspace_id,chapter_key" },
+      );
       if (error) throw error;
     },
-    onSuccess: (_data, variables) => {
-      setLastSaved(new Date());
-      queryClient.invalidateQueries({
-        queryKey: handbookKeys.chapter(wsId!, variables.chapterKey),
+    onSuccess: (_data, vars) => {
+      void queryClient.invalidateQueries({
+        queryKey: handbookKeys.chapter(workspaceId, vars.chapterKey),
       });
     },
   });
-
-  return {
-    save: mutation.mutate,
-    isSaving: mutation.isPending,
-    lastSaved,
-  };
-}
-
-const AUTO_SAVE_DELAY = 2000;
-
-export function useAutoSave(editor: Editor | null, chapterKey: string, title: string) {
-  const { save, isSaving, lastSaved } = useSaveHandbookChapter();
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const saveRef = useRef(save);
-  saveRef.current = save;
-
-  const scheduleSave = useCallback(() => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-    }
-    timerRef.current = setTimeout(() => {
-      if (!editor) return;
-      const content = editor.getJSON();
-      saveRef.current({ chapterKey, title, content });
-    }, AUTO_SAVE_DELAY);
-  }, [editor, chapterKey, title]);
-
-  useEffect(() => {
-    if (!editor) return;
-
-    editor.on("update", scheduleSave);
-    return () => {
-      editor.off("update", scheduleSave);
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
-    };
-  }, [editor, scheduleSave]);
-
-  return { isSaving, lastSaved };
 }

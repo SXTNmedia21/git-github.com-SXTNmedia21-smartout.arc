@@ -57,3 +57,15 @@ tags: [learnings]
 | 3   | 2026-04-09 | `as unknown as` cast needed for SEASON_TOOLS array — SmartoutTool generic doesn't align with Vercel AI SDK   | ai         |
 | 4   | 2026-04-09 | useWorkspaceOptional prevents crash when SeasonCard renders outside workspace context (e.g. loading states)  | dashboard  |
 | 5   | 2026-04-09 | Phase-specific colors in dashboard cards are data-visualization, not theming — exempt from CSS variable rule | dashboard  |
+
+updated: 2026-03-06
+created: 2026-03-06
+module: document
+tags: [learnings]
+
+---
+
+# Learning Log — document-mode
+
+| #   | Date | Learning | Impact |
+| --- | ---- | -------- | ------ |

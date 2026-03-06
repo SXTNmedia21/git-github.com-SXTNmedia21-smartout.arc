@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: in_progress
-updated: 2026-04-10
+updated: 2026-03-06
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -13,11 +13,12 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #    | Branch                        | Module     | Status      | Progress     | Blockers | Health |
-| ---- | ----------------------------- | ---------- | ----------- | ------------ | -------- | ------ |
-| wt-1 | `feat/season-engine-complete` | operations | in_progress | just started | —        | clean  |
-| wt-2 | `feat/document-mode`          | document   | in_progress | just started | —        | clean  |
-| wt-3 | `feat/journey-package-skills` | meta       | in_progress | unknown      | —        | —      |
+| #    | Branch                        | Module     | Status      | Progress                          | Blockers | Health |
+| ---- | ----------------------------- | ---------- | ----------- | --------------------------------- | -------- | ------ |
+| wt-1 | `feat/season-engine-complete` | operations | in_progress | just started                      | —        | clean  |
+| wt-2 | `feat/document-mode`          | document   | in_progress | just started                      | —        | clean  |
+| wt-3 | `feat/journey-package-skills` | meta       | done        | merged                            | —        | —      |
+| wt-8 | `feat/showroom`               | showroom   | in_progress | phase 2 done, 4 files uncommitted | —        | dirty  |
 
 ## Free Slots
 
@@ -28,6 +29,7 @@ tags: [dashboard, worktrees, tracking]
 | wt-3  | no (feat/journey-package-skills) |
 | wt-4  | yes                              |
 | wt-5  | yes                              |
+| wt-8  | no (feat/showroom)               |
 | wt-20 | yes                              |
 
 ## Pending Journeys
@@ -36,6 +38,7 @@ tags: [dashboard, worktrees, tracking]
 | ---- | ---------------------- | ------------------------------------------------- | ------- |
 | wt-1 | season-engine-complete | `docs/journeys/JOURNEY-season-engine-complete.md` | missing |
 | wt-2 | document-mode          | `docs/journeys/JOURNEY-document-mode.md`          | missing |
+| wt-4 | infra-hardening        | `docs/journeys/JOURNEY-infra-hardening.md`        | missing |
 
 ## Recent Closures
 
@@ -77,6 +80,7 @@ tags: [dashboard, worktrees, tracking]
 | 2026-04-08 | governance-admin-ui       | `feat/governance-admin-ui`                                         | development |
 | 2026-04-08 | service-layer             | `feat/service-layer`                                               | development |
 | 2026-04-08 | onboarding-showcase       | `feat/onboarding-showcase-system-room`                             | development |
+| 2026-04-11 | infra-hardening           | `feat/infra-hardening`                                             | development |
 
 ## Session History
 
@@ -189,3 +193,8 @@ tags: [dashboard, worktrees, tracking]
 | 2026-04-09 | (git cleanup)                    | done              | Merged feat/b2b-contract-onboarding (12 commits, 6 conflicts). Deleted progressive-intelligence. Pushed development.                                                                                                                                                                                                      |
 | 2026-04-09 | season-engine-complete           | started           | wt-1, module: operations — Complete season-engine tools, merge old branch, wire SeasonCard                                                                                                                                                                                                                                |
 | 2026-04-09 | document-mode                    | started           | wt-2, module: document — Document Mode toggle, handbook editor, 10-chapter nav, Tiptap canvas                                                                                                                                                                                                                             |
+| 2026-04-10 | infra-hardening                  | started           | wt-4, module: infra — Docker/Caddy production hardening, security headers, .dockerignore, CI Docker builds                                                                                                                                                                                                                |
+| 2026-04-11 | infra-hardening                  | closed            | 3 commits, 13 tasks (8 plan + 5 gaps). All gates pass. wt-4 freed.                                                                                                                                                                                                                                                        |
+| 2026-04-12 | (main session)                   | session ended     | Boot sequence, dev startup, infra production readiness audit, wrote hardening plan (8 tasks). infra-hardening already closed in prior session. DashboardShell.tsx has merge conflict (document-mode).                                                                                                                     |
+| 2026-04-13 | document-mode                    | session ended     | Resolved all merge conflicts (DashboardShell, chapters, context, use-handbook-content). Fixed Tiptap SSR error, lifted DocumentModeProvider. Applied handbook_chapter migration locally. Uncommitted.                                                                                                                     |
+| 2026-03-06 | showroom                         | session ended     | Phase 2 complete: mission runtime (personas, stages, skills, events), 3 missions, direct streaming page rewrite, 102 tests (76 unit + 20 integration + 6 E2E). 4 files uncommitted. Next: event tracking, show-off mission, voice, beautiful UI.                                                                          |
