@@ -2,7 +2,6 @@
 title: Development Dashboard
 status: in_progress
 updated: 2026-04-08
-
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -14,29 +13,24 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #    | Branch                                 | Module         | Status        | Progress     | Blockers | Health |
-| ---- | -------------------------------------- | -------------- | ------------- | ------------ | -------- | ------ |
-| wt-1 | `feat/season-creation-wizard`          | operations     | in_progress   | started      | —        | clean  |
-| wt-2 | `feat/governance-admin-ui`             | governance     | in_progress   | 6 commits    | —        | active |
-| wt-4 | `feat/service-layer`                   | platform-admin | PR open (#34) | 8 commits    | —        | clean  |
-| wt-5 | `feat/onboarding-showcase-system-room` | onboarding     | in_progress   | just started | —        | clean  |
+| #    | Branch                        | Module | Status      | Progress | Blockers | Health |
+| ---- | ----------------------------- | ------ | ----------- | -------- | -------- | ------ |
+| wt-3 | `feat/journey-package-skills` | meta   | in_progress | unknown  | —        | —      |
 
 ## Free Slots
 
-| #     | Available                                 |
-| ----- | ----------------------------------------- |
-| wt-1  | no (feat/season-creation-wizard)          |
-| wt-2  | no (feat/governance-admin-ui)             |
-| wt-3  | yes                                       |
-| wt-4  | no (feat/service-layer)                   |
-| wt-5  | no (feat/onboarding-showcase-system-room) |
-| wt-20 | yes                                       |
+| #     | Available                        |
+| ----- | -------------------------------- |
+| wt-1  | yes                              |
+| wt-2  | yes                              |
+| wt-3  | no (feat/journey-package-skills) |
+| wt-4  | yes                              |
+| wt-5  | yes                              |
+| wt-20 | yes                              |
 
 ## Pending Journeys
 
-| wt-2 | infra-port-consolidation | `docs/journeys/JOURNEY-infra-port-consolidation.md` | missing |
-| wt-4 | service-layer | `docs/journeys/JOURNEY-service-layer.md` | missing |
-| wt-5 | onboarding-showcase-system-room | `docs/journeys/JOURNEY-onboarding-showcase-system-room.md` | missing |
+_None_
 
 ## Recent Closures
 
@@ -74,6 +68,10 @@ tags: [dashboard, worktrees, tracking]
 | 2026-03-19 | journey-portal-fixes      | `feat/journey-portal-fixes`                                        | development |
 | 2026-03-29 | infra-port-consolidation  | `feat/infra-port-consolidation`                                    | development |
 | 2026-03-04 | progressive-intelligence  | `feat/progressive-intelligence`                                    | development |
+| 2026-04-08 | season-creation-wizard    | `feat/season-creation-wizard`                                      | development |
+| 2026-04-08 | governance-admin-ui       | `feat/governance-admin-ui`                                         | development |
+| 2026-04-08 | service-layer             | `feat/service-layer`                                               | development |
+| 2026-04-08 | onboarding-showcase       | `feat/onboarding-showcase-system-room`                             | development |
 
 ## Session History
 
@@ -178,3 +176,8 @@ tags: [dashboard, worktrees, tracking]
 | 2026-03-06 | onboarding-showcase-system-room  | started           | wt-5, module: onboarding — Interactive system room with journey telemetry, policy guards, scrape normalization                                                                                                                                                                                                            |
 | 2026-04-08 | service-layer                    | session ended     | All 12 tasks complete. 8 commits, typecheck 19/19, PR #34 open. wt-4 preserved.                                                                                                                                                                                                                                           |
 | 2026-04-08 | doner-bros + governance-ui       | session ended     | Cherry-picked governance UI from wt-2 (3 hooks, 4 components). Fixed all governance type errors. Created Doner Bros seed (50 employees, 5 locations, 9mo shifts, 1177 assignments). Staged but uncommitted.                                                                                                               |
+| 2026-04-08 | season-creation-wizard           | merged+closed     | 1 orphan commit cherry-picked to development. wt-1 removed, branch deleted.                                                                                                                                                                                                                                               |
+| 2026-04-08 | governance-admin-ui              | merged+closed     | 7 commits merged (6 feature + 1 docs). Conflicts resolved (dashboard-keys, dashboard-types). wt-2 removed, branch deleted.                                                                                                                                                                                                |
+| 2026-04-08 | service-layer                    | merged+closed     | 9 commits merged (8 feature + 1 seed). pnpm-lock conflict resolved. wt-4 removed, branch deleted. PR #34 superseded.                                                                                                                                                                                                      |
+| 2026-04-08 | onboarding-showcase-system-room  | merged+closed     | 1 commit merged (40 files). Showcase page conflict resolved. wt-5 removed, branch deleted.                                                                                                                                                                                                                                |
+| 2026-04-08 | (cleanup + finalize fix)         | session ended     | Closed 4 worktrees, 8 dev commits, 3 merges, pushed. Fixed finalize-workspace: bypass edge fn timeout → direct RPC, create company on-the-fly for NULL company_id. 12 uncommitted files remain.                                                                                                                           |
