@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     query = query.or(`industry_codes.eq.{},industry_codes.cs.{${industryCode}}`);
   } else {
     // Only universal clauses
-    query = query.eq("industry_codes", "{}");
+    query = query.eq("industry_codes", [] as string[]);
   }
 
   const { data, error } = await query;

@@ -13,6 +13,7 @@ import { emitGuardianEvent } from "./guardian-bus.js";
 import type { Mission, Stage, Session, JourneyStep } from "../types/session.js";
 import type { CreateSessionRequest, CreateSessionResponse } from "../types/api.js";
 import type { AuthContext } from "../types/auth.js";
+import { SEASON_LIFECYCLE_MISSION_ID } from "@smartout/ai";
 
 /**
  * Load completed onboarding data for a profile.
@@ -249,10 +250,8 @@ export async function createSession(
   }
 
   // Long-lived missions (e.g. season-lifecycle) never expire
-  const isLongLived = mission.id === "season-lifecycle";
-  const expiresAt = isLongLived
-    ? null
-    : new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  const isLongLived = mission.id === SEASON_LIFECYCLE_MISSION_ID;
+  const expiresAt = isLongLived ? null : new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
   // Create session row
   const { data: session, error } = await supabaseAdmin

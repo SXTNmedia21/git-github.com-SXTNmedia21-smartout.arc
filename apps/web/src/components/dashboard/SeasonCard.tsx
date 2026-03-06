@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  Calendar,
-  Sun,
-  Snowflake,
-  TreePine,
-  Leaf,
-  PartyPopper,
-  CircleDashed,
-} from "lucide-react";
+import { Calendar, Sun, Snowflake, TreePine, Leaf, PartyPopper, CircleDashed } from "lucide-react";
 
 const STAGES = [
   "seed",
@@ -23,6 +15,9 @@ const STAGES = [
 
 type Stage = (typeof STAGES)[number];
 
+// Phase colors are intentional data-visualization semantics (discovery=blue, preparation=amber,
+// running=green, reflection=purple). These are NOT general UI colors and are exempt from the
+// CSS variable convention per code review 2026-04-09.
 const PHASE_MAP: Record<Stage, { label: string; color: string }> = {
   seed: { label: "OPPDAGELSE", color: "text-blue-400" },
   revenue: { label: "FORBEREDELSE", color: "text-amber-400" },
@@ -145,7 +140,7 @@ export function SeasonCard({ season }: SeasonCardProps) {
             {getSeasonIcon(season.type)}
           </div>
           <div>
-            <h3 className="text-foreground text-sm font-semibold leading-tight">{season.name}</h3>
+            <h3 className="text-foreground text-sm leading-tight font-semibold">{season.name}</h3>
             <span className="text-muted-foreground text-xs capitalize">{season.type}</span>
           </div>
         </div>
@@ -166,7 +161,11 @@ export function SeasonCard({ season }: SeasonCardProps) {
           const ringClass = PHASE_RING[stagePhase.label] ?? "ring-muted";
 
           return (
-            <div key={stage} className="flex items-center justify-center" title={STAGE_LABELS[stage]}>
+            <div
+              key={stage}
+              className="flex items-center justify-center"
+              title={STAGE_LABELS[stage]}
+            >
               {isCurrent ? (
                 <div
                   className={`h-2.5 w-2.5 rounded-full ${dotFill} ring-2 ${ringClass} animate-pulse`}

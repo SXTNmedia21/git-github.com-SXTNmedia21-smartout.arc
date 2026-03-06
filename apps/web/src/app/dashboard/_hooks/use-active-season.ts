@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
 import { dashboardKeys } from "./dashboard-keys";
+import { SEASON_LIFECYCLE_MISSION_ID } from "@smartout/ai";
 
 /**
  * Shape of the season data returned by useActiveSeason.
@@ -66,7 +67,7 @@ export function useActiveSeason() {
         .from("engine_sessions")
         .select("current_stage_id, collected_data")
         .eq("workspace_id", wsId)
-        .eq("mission_id", "season-lifecycle")
+        .eq("mission_id", SEASON_LIFECYCLE_MISSION_ID)
         .eq("status", "active")
         .order("created_at", { ascending: false })
         .limit(1)

@@ -24,13 +24,27 @@ export const getReadiness = defineTool({
 
     const total = totalProfiles ?? 0;
 
-    // Query protocol_assignment completion stats
+    // Query protocol_assignment completion stats using count queries (no row transfer)
     // protocol_assignment doesn't have workspace_id directly — join through profile
-    const { data: assignments, error: assignError } = await ctx.supabase
-      .from("protocol_assignment")
-      .select("status, profile!inner(workspace_id)")
-      .eq("profile.workspace_id", ctx.workspaceId);
+    const [pendingResult, completedResult, expiredResult] = await Promise.all([
+      ctx.supabase
+        .from("protocol_assignment")
+        .select("*, profile!inner(workspace_id)", { count: "exact", head: true })
+        .eq("profile.workspace_id", ctx.workspaceId)
+        .eq("status", "pending"),
+      ctx.supabase
+        .from("protocol_assignment")
+        .select("*, profile!inner(workspace_id)", { count: "exact", head: true })
+        .eq("profile.workspace_id", ctx.workspaceId)
+        .eq("status", "completed"),
+      ctx.supabase
+        .from("protocol_assignment")
+        .select("*, profile!inner(workspace_id)", { count: "exact", head: true })
+        .eq("profile.workspace_id", ctx.workspaceId)
+        .eq("status", "expired"),
+    ]);
 
+    const assignError = pendingResult.error ?? completedResult.error ?? expiredResult.error;
     if (assignError) {
       return [
         `Readiness Report for ${total} active employees:`,
@@ -40,11 +54,10 @@ export const getReadiness = defineTool({
       ].join("\n");
     }
 
-    const totalAssignments = assignments?.length ?? 0;
-    // Enum: pending | completed | expired
-    const completed = assignments?.filter((a) => a.status === "completed").length ?? 0;
-    const pending = assignments?.filter((a) => a.status === "pending").length ?? 0;
-    const expired = assignments?.filter((a) => a.status === "expired").length ?? 0;
+    const pending = pendingResult.count ?? 0;
+    const completed = completedResult.count ?? 0;
+    const expired = expiredResult.count ?? 0;
+    const totalAssignments = pending + completed + expired;
     const readinessPercent =
       totalAssignments > 0 ? Math.round((completed / totalAssignments) * 100) : 0;
 

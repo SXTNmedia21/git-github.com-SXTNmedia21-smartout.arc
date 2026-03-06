@@ -18,6 +18,11 @@ export const createSeason = defineTool({
   execute: async ({ type, name, startDate, endDate }, ctx: SeasonToolContext) => {
     const start = new Date(startDate);
     const end = new Date(endDate);
+
+    if (end <= start) {
+      return "Sluttdato må være etter startdato.";
+    }
+
     const diffMs = end.getTime() - start.getTime();
     const weeks = Math.ceil(diffMs / (1000 * 60 * 60 * 24 * 7));
 

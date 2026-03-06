@@ -70,5 +70,6 @@ export {
   getMissionIds,
   startMissionCall,
   MissionIdSchema,
+  SEASON_LIFECYCLE_MISSION_ID,
 } from "./missions";
 export type { MissionId, AgentMission, StartCallOptions, CallResult } from "./missions";

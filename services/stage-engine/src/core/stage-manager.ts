@@ -13,6 +13,7 @@ import { sendWebhook, type WebhookPayload } from "./webhook-sender.js";
 import { emitGuardianEvent } from "./guardian-bus.js";
 import type { Session, Stage, Mission } from "../types/session.js";
 import type { AdvanceRequest, AdvanceResponse, StageInfo } from "../types/api.js";
+import { SEASON_LIFECYCLE_MISSION_ID } from "@smartout/ai";
 
 /**
  * Advances a session to the next stage.
@@ -94,7 +95,7 @@ export async function advanceStage(
         try {
           await createSession(
             {
-              mission_id: "season-lifecycle",
+              mission_id: SEASON_LIFECYCLE_MISSION_ID,
               workspace_id: session.workspace_id,
               user_id: session.user_id ?? undefined,
               profile_id: session.profile_id ?? undefined,

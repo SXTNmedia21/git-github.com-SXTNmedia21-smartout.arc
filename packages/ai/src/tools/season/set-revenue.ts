@@ -10,7 +10,10 @@ export const setRevenue = defineTool({
   description:
     "Set the total revenue target and labor cost percentage for the season. Calculates daily averages and weekday distribution hints.",
   schema: z.object({
-    totalRevenue: z.number().describe("Total revenue target for the season in NOK"),
+    totalRevenue: z
+      .number()
+      .positive("Revenue must be positive")
+      .describe("Total revenue target for the season in NOK"),
     laborPercentage: z
       .number()
       .optional()

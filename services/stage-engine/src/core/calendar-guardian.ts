@@ -12,6 +12,7 @@ import { supabaseAdmin } from "../lib/supabase.js";
 import { advanceStage } from "./stage-manager.js";
 import { emitGuardianEvent } from "./guardian-bus.js";
 import type { Session } from "../types/session.js";
+import { SEASON_LIFECYCLE_MISSION_ID } from "@smartout/ai";
 
 type SeasonDates = {
   season_start: string;
@@ -70,7 +71,7 @@ export async function evaluateCalendarTriggers(): Promise<void> {
   const { data: sessions, error } = await supabaseAdmin
     .from("engine_sessions")
     .select("*")
-    .eq("mission_id", "season-lifecycle")
+    .eq("mission_id", SEASON_LIFECYCLE_MISSION_ID)
     .eq("status", "active");
 
   if (error) {
@@ -83,17 +84,24 @@ export async function evaluateCalendarTriggers(): Promise<void> {
   for (const row of sessions) {
     try {
       const session = row as unknown as Session;
-      const collected = (session.collected_data ?? {}) as Record<string, unknown>;
-      const seedData = (collected.seed ?? collected.season ?? {}) as Record<string, string>;
 
-      const seasonStart = seedData.startDate ?? seedData.start_date;
-      const seasonEnd = seedData.endDate ?? seedData.end_date;
+      // Query the season table directly for authoritative dates (not collected_data which is fragile)
+      if (!session.workspace_id) continue;
 
-      if (!seasonStart || !seasonEnd) continue;
+      const { data: season } = await supabaseAdmin
+        .from("season")
+        .select("start_date, end_date")
+        .eq("workspace_id", session.workspace_id)
+        .in("status", ["draft", "active"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (!season?.start_date || !season?.end_date) continue;
 
       const seasonDates: SeasonDates = {
-        season_start: seasonStart,
-        season_end: seasonEnd,
+        season_start: season.start_date,
+        season_end: season.end_date,
       };
 
       for (const rule of CALENDAR_RULES) {
@@ -107,8 +115,8 @@ export async function evaluateCalendarTriggers(): Promise<void> {
             data: {
               from_stage: rule.from_stage,
               to_stage: rule.to_stage,
-              season_start: seasonStart,
-              season_end: seasonEnd,
+              season_start: seasonDates.season_start,
+              season_end: seasonDates.season_end,
               trigger: "calendar",
             },
           });
