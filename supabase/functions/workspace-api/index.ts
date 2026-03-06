@@ -20,6 +20,7 @@ import {
   handleGetKpiTargets,
   handleGetBudgets,
 } from "./handlers/reports.ts";
+import { handleGetSignals, handleGetGuardianLog } from "./handlers/guardian.ts";
 
 // ── Route handlers ──
 
@@ -45,6 +46,8 @@ routes["GET /v1/reconciliations"] = handleGetReconciliations;
 routes["GET /v1/shift-approvals"] = handleGetShiftApprovals;
 routes["GET /v1/kpi-targets"] = handleGetKpiTargets;
 routes["GET /v1/budgets"] = handleGetBudgets;
+routes["GET /v1/signals"] = handleGetSignals;
+routes["GET /v1/guardian-log"] = handleGetGuardianLog;
 
 // ── Main router ──
 
