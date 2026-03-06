@@ -1,9 +1,10 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
 import { dashboardKeys } from "../../_hooks/dashboard-keys";
+import { toast } from "sonner";
 
 export type Season = {
   season_id: string;
@@ -19,10 +20,28 @@ export type Season = {
   description: string | null;
 };
 
+type CreateSeasonInput = {
+  name: string;
+  startDate?: string | null;
+  endDate?: string | null;
+};
+
+/**
+ * Converts free text into a stable slug format for season names.
+ */
+function toSlug(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 export function useSeasons() {
   const ctx = useWorkspaceOptional();
   const wsId = ctx?.workspace.workspace_id;
   const supabase = createClient();
+  const queryClient = useQueryClient();
 
   const query = useQuery({
     queryKey: dashboardKeys.seasons(wsId ?? "none"),
@@ -42,9 +61,53 @@ export function useSeasons() {
     staleTime: 10 * 60 * 1000, // 10 minutes — stable season definitions
   });
 
+  const createSeason = useMutation({
+    mutationFn: async (input: CreateSeasonInput): Promise<Season> => {
+      const trimmedName = input.name.trim();
+      const existingSlugs = new Set((query.data ?? []).map((season) => season.slug));
+      const baseSlug = toSlug(trimmedName) || "season";
+
+      let slug = baseSlug;
+      let slugSuffix = 2;
+      while (existingSlugs.has(slug)) {
+        slug = `${baseSlug}-${slugSuffix}`;
+        slugSuffix += 1;
+      }
+
+      const { data, error } = await supabase
+        .from("season")
+        .insert({
+          workspace_id: wsId!,
+          name: trimmedName,
+          slug,
+          season_type: "default",
+          start_date: input.startDate ?? null,
+          end_date: input.endDate ?? null,
+          status: "draft",
+        })
+        .select(
+          "season_id, name, slug, season_type, start_date, end_date, status, is_default, color, icon, description",
+        )
+        .single();
+
+      if (error) throw new Error(error.message);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: dashboardKeys.seasons(wsId ?? "none"),
+      });
+      toast.success("Sesong opprettet");
+    },
+    onError: (error: Error) => {
+      toast.error(`Kunne ikke opprette sesong: ${error.message}`);
+    },
+  });
+
   return {
     seasons: query.data ?? [],
     isLoading: query.isLoading,
     error: query.error,
+    createSeason,
   };
 }

@@ -7,6 +7,7 @@ import { BudgetSetupTab } from "./_components/BudgetSetupTab";
 import { DayFactorsTab } from "./_components/DayFactorsTab";
 import { HourFactorsTab } from "./_components/HourFactorsTab";
 import { SeasonOverviewTab } from "./_components/SeasonOverviewTab";
+import { SeasonManagementCard } from "./_components/SeasonManagementCard";
 import { useDayFactors, useHourFactors, useSeasonBudget, useSeasons } from "./_hooks";
 import { Target, BarChart3, Clock, LayoutDashboard } from "lucide-react";
 import { isSeasonSetupReady } from "./_definitions/season-planning";
@@ -63,6 +64,16 @@ export default function SeasonPage() {
           selectedSeasonId={selectedSeasonId}
           onSelect={setSelectedSeasonId}
           isDark={isDark}
+        />
+      </div>
+
+      <div className="mb-6">
+        <SeasonManagementCard
+          isDark={isDark}
+          onSeasonCreated={(seasonId) => {
+            setSelectedSeasonId(seasonId);
+            setActiveTab("budget");
+          }}
         />
       </div>
 
