@@ -4,67 +4,136 @@ import Link from "next/link";
 import { useState } from "react";
 import { Building2, Search, Menu, X } from "lucide-react";
 
-type NavItem = { id: string; label: string };
+type Tier = "public" | "internal" | "admin";
+type NavItem = { id: string; label: string; tier?: Tier };
 type NavSection = { title: string; items: NavItem[] };
 
 const navigation: NavSection[] = [
   {
-    title: "API-oversikt",
+    title: "Introduction",
     items: [
-      { id: "oversikt", label: "Oversikt" },
-      { id: "autentisering", label: "Autentisering" },
-      { id: "rate-limits", label: "Rate limits" },
-      { id: "feilformat", label: "Feilformat" },
+      { id: "overview", label: "Overview" },
+      { id: "authentication", label: "Authentication" },
+      { id: "rate-limits", label: "Rate Limits" },
+      { id: "errors", label: "Errors" },
+      { id: "pagination", label: "Pagination" },
     ],
   },
   {
-    title: "Route Handlers",
+    title: "Organization",
     items: [
-      { id: "get-health", label: "Health" },
-      { id: "get-auth-callback", label: "Auth Callback" },
-      { id: "get-content-slug", label: "Content" },
-      { id: "post-docs-agent", label: "Docs Agent" },
-      { id: "post-wizard-start", label: "Voice Mission" },
-      { id: "post-onboarding-agent", label: "Onboarding Agent" },
-      { id: "post-telemetry", label: "Telemetry" },
-      { id: "post-webhooks-docuseal", label: "DocuSeal Webhook" },
+      { id: "get-profiles", label: "List Profiles", tier: "public" },
+      { id: "get-departments", label: "List Departments", tier: "public" },
+      { id: "get-teams", label: "List Teams", tier: "public" },
+      { id: "get-locations", label: "List Locations", tier: "public" },
     ],
   },
   {
-    title: "Edge Functions",
+    title: "Contracts",
+    items: [{ id: "get-contracts", label: "List Contracts", tier: "public" }],
+  },
+  {
+    title: "Training",
     items: [
-      { id: "fn-gather", label: "Gather Intelligence" },
-      { id: "fn-analyze", label: "Analyze Workspace" },
-      { id: "fn-finalize", label: "Finalize Workspace" },
-      { id: "fn-activate", label: "Activate Workspace" },
-      { id: "fn-invite", label: "Create Invitation" },
-      { id: "fn-extract", label: "Extract Data" },
-      { id: "fn-scrape-raw", label: "Scrape Raw" },
-      { id: "fn-websearch", label: "Web Search" },
-      { id: "fn-monitoring", label: "Monitoring" },
+      { id: "get-protocols", label: "List Protocols", tier: "public" },
+      { id: "get-assignments", label: "List Assignments", tier: "public" },
     ],
   },
   {
-    title: "Admin API",
+    title: "Schedules",
     items: [
-      { id: "platform-admin", label: "Platform Admin" },
-      { id: "interne-tjenester", label: "Internal Services" },
+      { id: "get-shifts", label: "List Shifts", tier: "public" },
+      { id: "get-absences", label: "List Absences", tier: "public" },
     ],
+  },
+  {
+    title: "Operations",
+    items: [
+      { id: "get-sessions", label: "List Sessions", tier: "public" },
+      { id: "get-deviations", label: "List Deviations", tier: "public" },
+    ],
+  },
+  {
+    title: "Reports",
+    items: [
+      { id: "get-reconciliations", label: "List Reconciliations", tier: "public" },
+      { id: "get-shift-approvals", label: "List Shift Approvals", tier: "public" },
+      { id: "get-kpi-targets", label: "List KPI Targets", tier: "public" },
+      { id: "get-budgets", label: "List Budgets", tier: "public" },
+    ],
+  },
+  {
+    title: "Guardian",
+    items: [
+      { id: "get-signals", label: "List Signals", tier: "public" },
+      { id: "get-guardian-log", label: "Guardian Log", tier: "public" },
+    ],
+  },
+  {
+    title: "Events",
+    items: [{ id: "get-events", label: "List Events", tier: "public" }],
+  },
+  {
+    title: "Suppliers",
+    items: [
+      { id: "get-suppliers", label: "List Suppliers", tier: "public" },
+      { id: "get-supplier-orders", label: "List Orders", tier: "public" },
+    ],
+  },
+  {
+    title: "Waste",
+    items: [{ id: "get-waste-logs", label: "List Waste Logs", tier: "public" }],
+  },
+  {
+    title: "Equipment",
+    items: [
+      { id: "get-assets", label: "List Assets", tier: "public" },
+      { id: "get-asset-maintenance", label: "Maintenance Log", tier: "public" },
+      { id: "get-asset-downtime", label: "Downtime Log", tier: "public" },
+    ],
+  },
+  {
+    title: "Internal",
+    items: [{ id: "internal-routes", label: "Dashboard & Landing", tier: "internal" }],
+  },
+  {
+    title: "Admin",
+    items: [{ id: "admin-endpoints", label: "Platform Admin", tier: "admin" }],
+  },
+  {
+    title: "Reference",
+    items: [{ id: "scopes", label: "Scopes" }],
   },
 ];
 
-export function ApiSidebar({ activeId }: { activeId?: string }) {
+export function ApiSidebar({
+  activeId,
+  activeTiers,
+}: {
+  activeId?: string;
+  activeTiers?: Set<Tier>;
+}) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [query, setQuery] = useState("");
 
-  const filtered = query
-    ? navigation
-        .map((s) => ({
-          ...s,
-          items: s.items.filter((i) => i.label.toLowerCase().includes(query.toLowerCase())),
-        }))
-        .filter((s) => s.items.length > 0)
-    : navigation;
+  const tiers = activeTiers ?? new Set<Tier>(["public", "internal", "admin"]);
+
+  const filtered = navigation
+    .map((s) => ({
+      ...s,
+      items: s.items.filter((i) => {
+        if (i.tier && !tiers.has(i.tier)) return false;
+        if (query && !i.label.toLowerCase().includes(query.toLowerCase())) return false;
+        return true;
+      }),
+    }))
+    .filter((s) => s.items.length > 0);
+
+  const tierDot: Record<Tier, string> = {
+    public: "bg-emerald-400",
+    internal: "bg-amber-400",
+    admin: "bg-rose-400",
+  };
 
   const sidebar = (
     <div className="flex h-full flex-col">
@@ -85,7 +154,7 @@ export function ApiSidebar({ activeId }: { activeId?: string }) {
           <Search className="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-zinc-600" />
           <input
             type="text"
-            placeholder="Søk endepunkter..."
+            placeholder="Search endpoints..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="w-full rounded-lg border border-white/5 bg-white/3 py-2 pr-3 pl-8 text-sm text-white placeholder:text-zinc-600 focus:border-fuchsia-500/30 focus:outline-none"
@@ -107,12 +176,15 @@ export function ApiSidebar({ activeId }: { activeId?: string }) {
                   key={item.id}
                   href={`#${item.id}`}
                   onClick={() => setMobileOpen(false)}
-                  className={`block rounded-md px-2 py-1.5 text-sm transition-colors ${
+                  className={`flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm transition-colors ${
                     isActive
                       ? "font-semibold text-orange-400"
                       : "text-zinc-400 hover:bg-white/3 hover:text-white"
                   }`}
                 >
+                  {item.tier && (
+                    <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${tierDot[item.tier]}`} />
+                  )}
                   {item.label}
                 </a>
               );
@@ -121,13 +193,24 @@ export function ApiSidebar({ activeId }: { activeId?: string }) {
         ))}
       </nav>
 
-      {/* Footer */}
+      {/* Tier legend */}
       <div className="border-t border-white/5 px-4 py-3">
+        <div className="mb-2 flex flex-wrap gap-x-3 gap-y-1">
+          {(["public", "internal", "admin"] as Tier[]).map((t) => (
+            <div
+              key={t}
+              className={`flex items-center gap-1 text-[10px] ${tiers.has(t) ? "text-zinc-400" : "text-zinc-700"}`}
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${tierDot[t]}`} />
+              {t}
+            </div>
+          ))}
+        </div>
         <Link
           href="/docs"
           className="block rounded-md px-2 py-1.5 text-xs font-semibold text-zinc-500 transition-colors hover:text-white"
         >
-          ← Tilbake til dokumentasjon
+          &larr; Back to docs
         </Link>
       </div>
     </div>
