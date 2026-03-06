@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown, LogOut, Settings, Shield, User } from "lucide-react";
+import { ChevronDown, LogOut, Play, Settings, Shield, User } from "lucide-react";
 
 type UserData = {
   displayName: string;
@@ -128,6 +128,15 @@ export function UserMenu({ isDark }: { isDark: boolean }) {
             <User className="h-4 w-4" />
             Min profil
           </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          className="flex items-center gap-2"
+          onClick={() => {
+            window.location.href = "/dashboard?autoplay=1&showcase=1";
+          }}
+        >
+          <Play className="h-4 w-4" />
+          Start walkthrough
         </DropdownMenuItem>
         {user?.isSuperAdmin && (
           <>

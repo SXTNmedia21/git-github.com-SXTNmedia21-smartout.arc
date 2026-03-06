@@ -13,6 +13,7 @@ import { ServiceStatusCard } from "./service-status-card";
 import { ExternalServicesCard } from "./external-services-card";
 import { IntegrityChecksCard } from "./integrity-checks-card";
 import { ApiRegistryTable } from "./api-registry-table";
+import { SystemSpeedTestCard } from "./system-speed-test-card";
 
 type MetricsSnapshot = {
   total_users: number;
@@ -98,6 +99,10 @@ export function HealthPageClient({ initialMetrics }: HealthPageClientProps) {
           <TabsTrigger value="api-registry">
             <BookOpen className="mr-1.5 h-3.5 w-3.5" />
             API Registry
+          </TabsTrigger>
+          <TabsTrigger value="speed-test">
+            <Activity className="mr-1.5 h-3.5 w-3.5" />
+            System Speed Test
           </TabsTrigger>
         </TabsList>
 
@@ -200,6 +205,11 @@ export function HealthPageClient({ initialMetrics }: HealthPageClientProps) {
         {/* ── API Registry Tab ── */}
         <TabsContent value="api-registry">
           <ApiRegistryTable />
+        </TabsContent>
+
+        {/* ── Speed Test Tab ── */}
+        <TabsContent value="speed-test">
+          <SystemSpeedTestCard />
         </TabsContent>
       </Tabs>
     </div>

@@ -48,6 +48,15 @@ type VoiceSessionContext = {
   availableInputs: string[];
 };
 
+type WalkthroughNoticeTone = "info" | "success" | "warning";
+
+type WalkthroughNotice = {
+  id: number;
+  title: string;
+  message: string;
+  tone: WalkthroughNoticeTone;
+};
+
 function buildVoiceSessionContext(pathname: string, adminView: AdminViewType): VoiceSessionContext {
   if (pathname === "/dashboard") {
     if (adminView === "guardian") {
@@ -211,7 +220,7 @@ export const DashboardContext = createContext({
   profileId: null as string | null,
 });
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   Users,
   Calendar,
@@ -236,6 +245,10 @@ import {
   Shield,
   ShieldCheck,
   Mic,
+  Bell,
+  CheckCircle2,
+  LoaderCircle,
+  Sparkles,
 } from "lucide-react";
 
 import { ContractPendingBanner } from "./ContractPendingBanner";
@@ -396,7 +409,27 @@ export function DashboardShell({
   const [scheduleDraftCountDisplay, setScheduleDraftCountDisplay] = useState(0);
   const [scheduleCompactMode, setScheduleCompactMode] = useState(false);
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+  const [autoplayUiState, setAutoplayUiState] = useState<{
+    isRunning: boolean;
+    currentStepLabel: string;
+    completedCount: number;
+    totalCount: number;
+    isSettling: boolean;
+    notices: WalkthroughNotice[];
+  }>({
+    isRunning: false,
+    currentStepLabel: "",
+    completedCount: 0,
+    totalCount: 0,
+    isSettling: false,
+    notices: [],
+  });
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const isAutoplayMode =
+    searchParams?.get("autoplay") === "1" || searchParams?.get("showcase") === "1";
+  const autoplayStartedRef = useRef(false);
+  const noticeIdRef = useRef(0);
   const workspaceCtx = useWorkspaceOptional();
   const workspaceData = useMemo(
     () =>
@@ -477,6 +510,373 @@ export function DashboardShell({
 
   const isSchedulePage = pathname?.startsWith("/dashboard/schedule");
 
+  /**
+   * Pushes a short-lived walkthrough notification card.
+   * Why: gives visual checkpoints while autoplay is running.
+   */
+  const pushWalkthroughNotice = useCallback(
+    (title: string, message: string, tone: WalkthroughNoticeTone = "info") => {
+      const nextId = noticeIdRef.current + 1;
+      noticeIdRef.current = nextId;
+
+      setAutoplayUiState((previous) => ({
+        ...previous,
+        notices: [...previous.notices, { id: nextId, title, message, tone }].slice(-3),
+      }));
+
+      window.setTimeout(() => {
+        setAutoplayUiState((previous) => ({
+          ...previous,
+          notices: previous.notices.filter((notice) => notice.id !== nextId),
+        }));
+      }, 3200);
+    },
+    [],
+  );
+
+  /**
+   * Runs a deterministic 20-step walkthrough for demos and manual speed smoke-tests.
+   * Why: enables one-click showcase automation from admin health.
+   */
+  const runAutoplayWalkthrough = useCallback(async () => {
+    if (autoplayStartedRef.current) return;
+    autoplayStartedRef.current = true;
+
+    const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+    const emitWalkthroughEvent = (eventName: string, payload: Record<string, unknown>) => {
+      window.dispatchEvent(
+        new CustomEvent(`smartout:walkthrough:${eventName}`, { detail: payload }),
+      );
+      console.info(`[dashboard-autoplay] ${eventName}`, payload);
+    };
+
+    /**
+     * Waits until UI has had a quiet period (no DOM mutations and no running animations).
+     * Why: makes autoplay deterministic and avoids clicking while transitions are still active.
+     */
+    const waitForUiSettled = async (timeoutMs = 5000, quietWindowMs = 320) => {
+      const started = Date.now();
+      let lastMutationAt = Date.now();
+      let rafTime = Date.now();
+      const observer = new MutationObserver(() => {
+        lastMutationAt = Date.now();
+      });
+      observer.observe(document.body, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+        characterData: true,
+      });
+
+      try {
+        while (Date.now() - started < timeoutMs) {
+          await sleep(80);
+          // Two RAFs to allow layout/paint work to flush.
+          await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+          await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+          rafTime = Date.now();
+
+          const isQuietEnough = rafTime - lastMutationAt >= quietWindowMs;
+          const hasRunningAnimation = document
+            .getAnimations()
+            .some((animation) => animation.playState === "running");
+
+          if (isQuietEnough && !hasRunningAnimation) {
+            return;
+          }
+        }
+      } finally {
+        observer.disconnect();
+      }
+    };
+
+    const waitForPathname = async (expectedPathname: string, timeoutMs = 5000) => {
+      const started = Date.now();
+      while (window.location.pathname !== expectedPathname && Date.now() - started < timeoutMs) {
+        await sleep(120);
+      }
+    };
+
+    const runStep = async (step: {
+      id: string;
+      label: string;
+      selector: string;
+      waitMs?: number;
+      expectedPathname?: string;
+    }) => {
+      const stepStarted = performance.now();
+      const element = document.querySelector(step.selector) as HTMLElement | null;
+      if (!element) {
+        emitWalkthroughEvent("step-skipped", {
+          id: step.id,
+          selector: step.selector,
+          reason: "selector_not_found",
+        });
+        return;
+      }
+
+      emitWalkthroughEvent("step-start", {
+        id: step.id,
+        selector: step.selector,
+      });
+      setAutoplayUiState((previous) => ({
+        ...previous,
+        currentStepLabel: step.label,
+        isSettling: true,
+      }));
+      element.click();
+
+      if (step.expectedPathname) {
+        await waitForPathname(step.expectedPathname);
+      }
+      await waitForUiSettled();
+      if (step.waitMs !== undefined && step.waitMs > 0) {
+        await sleep(step.waitMs);
+      }
+      setAutoplayUiState((previous) => ({
+        ...previous,
+        completedCount: Math.min(previous.completedCount + 1, previous.totalCount),
+        isSettling: false,
+      }));
+
+      emitWalkthroughEvent("step-complete", {
+        id: step.id,
+        selector: step.selector,
+        elapsed_ms: Math.round(performance.now() - stepStarted),
+        pathname: window.location.pathname,
+      });
+    };
+
+    // Slower walkthrough that visits all major sidebar menu sections.
+    const steps: Array<{
+      id: string;
+      label: string;
+      selector: string;
+      waitMs?: number;
+      expectedPathname?: string;
+    }> = [
+      {
+        id: "showcase-toggle",
+        label: "Activate showcase mode",
+        selector: '[data-autoplay="top-demo-toggle"]',
+        waitMs: 700,
+      },
+      {
+        id: "dashboard-overview",
+        label: "Open dashboard overview",
+        selector: '[data-autoplay="nav-/dashboard"]',
+        expectedPathname: "/dashboard",
+      },
+      {
+        id: "people",
+        label: "Open people",
+        selector: '[data-autoplay="nav-/dashboard/people"]',
+        expectedPathname: "/dashboard/people",
+      },
+      {
+        id: "schedule",
+        label: "Open schedule",
+        selector: '[data-autoplay="nav-/dashboard/schedule"]',
+        expectedPathname: "/dashboard/schedule",
+        waitMs: 900,
+      },
+      {
+        id: "layout-daily",
+        label: "Switch to weekly layout",
+        selector: '[data-autoplay="schedule-layout-daily"]',
+        waitMs: 500,
+      },
+      {
+        id: "layout-weekly",
+        label: "Switch to rolling layout",
+        selector: '[data-autoplay="schedule-layout-weekly"]',
+        waitMs: 500,
+      },
+      {
+        id: "layout-monthly",
+        label: "Switch to monthly layout",
+        selector: '[data-autoplay="schedule-layout-monthly"]',
+        waitMs: 500,
+      },
+      {
+        id: "layout-list",
+        label: "Switch to shift list layout",
+        selector: '[data-autoplay="schedule-layout-list"]',
+        waitMs: 500,
+      },
+      {
+        id: "date-prev",
+        label: "Move period backward",
+        selector: '[data-autoplay="schedule-date-prev"]',
+        waitMs: 500,
+      },
+      {
+        id: "date-next",
+        label: "Move period forward",
+        selector: '[data-autoplay="schedule-date-next"]',
+        waitMs: 500,
+      },
+      {
+        id: "date-today",
+        label: "Return to active period",
+        selector: '[data-autoplay="schedule-date-today"]',
+        waitMs: 500,
+      },
+      {
+        id: "operations",
+        label: "Open operations",
+        selector: '[data-autoplay="nav-/dashboard/operations"]',
+        expectedPathname: "/dashboard/operations",
+      },
+      {
+        id: "reports",
+        label: "Open reports",
+        selector: '[data-autoplay="nav-/dashboard/reports"]',
+        expectedPathname: "/dashboard/reports",
+      },
+      {
+        id: "governance",
+        label: "Open governance",
+        selector: '[data-autoplay="nav-/dashboard/governance"]',
+        expectedPathname: "/dashboard/governance",
+      },
+      {
+        id: "season",
+        label: "Open season planning",
+        selector: '[data-autoplay="nav-/dashboard/season"]',
+        expectedPathname: "/dashboard/season",
+      },
+      {
+        id: "organization",
+        label: "Open organization",
+        selector: '[data-autoplay="nav-/dashboard/organization"]',
+        expectedPathname: "/dashboard/organization",
+      },
+      {
+        id: "chat",
+        label: "Open team chat",
+        selector: '[data-autoplay="nav-/dashboard/chat"]',
+        expectedPathname: "/dashboard/chat",
+      },
+      {
+        id: "ai",
+        label: "Open Mr. Botsson",
+        selector: '[data-autoplay="nav-/dashboard/ai"]',
+        expectedPathname: "/dashboard/ai",
+      },
+      {
+        id: "onboarding-assistant",
+        label: "Open onboarding assistant",
+        selector: '[data-autoplay="nav-/dashboard/onboarding-assistant"]',
+        expectedPathname: "/dashboard/onboarding-assistant",
+      },
+      {
+        id: "settings",
+        label: "Open settings",
+        selector: '[data-autoplay="nav-/dashboard/settings"]',
+        expectedPathname: "/dashboard/settings",
+      },
+      {
+        id: "help",
+        label: "Open help center",
+        selector: '[data-autoplay="nav-/dashboard/help"]',
+        expectedPathname: "/dashboard/help",
+      },
+      {
+        id: "switch-employee",
+        label: "Switch to employee mode",
+        selector: '[data-autoplay="admin-mode-toggle"]',
+        waitMs: 700,
+      },
+      {
+        id: "my-schedule",
+        label: "Open my schedule",
+        selector: '[data-autoplay="nav-/dashboard/my-schedule"]',
+        expectedPathname: "/dashboard/my-schedule",
+      },
+      {
+        id: "my-training",
+        label: "Open my training",
+        selector: '[data-autoplay="nav-/dashboard/my-training"]',
+        expectedPathname: "/dashboard/my-training",
+      },
+      {
+        id: "my-cv",
+        label: "Open my profile",
+        selector: '[data-autoplay="nav-/dashboard/my-cv"]',
+        expectedPathname: "/dashboard/my-cv",
+      },
+      {
+        id: "my-salary",
+        label: "Open my salary",
+        selector: '[data-autoplay="nav-/dashboard/my-salary"]',
+        expectedPathname: "/dashboard/my-salary",
+      },
+      {
+        id: "switch-admin",
+        label: "Switch back to admin mode",
+        selector: '[data-autoplay="admin-mode-toggle"]',
+        waitMs: 700,
+      },
+      {
+        id: "finish-dashboard",
+        label: "Return to dashboard",
+        selector: '[data-autoplay="nav-/dashboard"]',
+        expectedPathname: "/dashboard",
+      },
+    ];
+
+    const walkthroughStarted = performance.now();
+    setAutoplayUiState((previous) => ({
+      ...previous,
+      isRunning: true,
+      currentStepLabel: "Preparing walkthrough",
+      completedCount: 0,
+      totalCount: steps.length,
+      isSettling: false,
+    }));
+    pushWalkthroughNotice(
+      "Walkthrough started",
+      "Running controlled step flow with settle checks.",
+    );
+    emitWalkthroughEvent("run-start", {
+      step_count: steps.length,
+      pathname: window.location.pathname,
+    });
+
+    for (const step of steps) {
+      if (step.id === "schedule") {
+        pushWalkthroughNotice(
+          "Schedule loaded",
+          "Checking layout transitions and date controls before continuing.",
+        );
+      }
+      if (step.id === "switch-employee") {
+        pushWalkthroughNotice("Mode switch", "Entering employee mode cards and routes.");
+      }
+      await runStep(step);
+    }
+
+    setAutoplayUiState((previous) => ({
+      ...previous,
+      isRunning: false,
+      isSettling: false,
+      currentStepLabel: "Walkthrough complete",
+      completedCount: steps.length,
+      totalCount: steps.length,
+    }));
+    pushWalkthroughNotice(
+      "Walkthrough complete",
+      "All menu and mode transitions finished.",
+      "success",
+    );
+    emitWalkthroughEvent("run-complete", {
+      step_count: steps.length,
+      elapsed_ms: Math.round(performance.now() - walkthroughStarted),
+      pathname: window.location.pathname,
+    });
+  }, [pushWalkthroughNotice]);
+
   // Auto-collapse sidebar when entering schedule, restore when leaving
   const prevIsSchedule = useRef(isSchedulePage);
   const sidebarStateBeforeAutoCollapse = useRef<boolean | null>(null);
@@ -494,6 +894,32 @@ export function DashboardShell({
     prevIsSchedule.current = isSchedulePage;
     // eslint-disable-next-line -- suppress exhaustive-deps: isSidebarCollapsed excluded; this effect sets it, adding it would cause infinite loop
   }, [isSchedulePage]);
+
+  useEffect(() => {
+    if (!isAutoplayMode) return;
+    void runAutoplayWalkthrough();
+  }, [isAutoplayMode, runAutoplayWalkthrough]);
+
+  /**
+   * Locks document-level scrolling during autoplay showcase mode.
+   * Why: keeps container pages viewport-fitted without browser scrollbars.
+   */
+  useEffect(() => {
+    if (!isAutoplayMode) return;
+
+    const html = document.documentElement;
+    const body = document.body;
+    const previousHtmlOverflow = html.style.overflow;
+    const previousBodyOverflow = body.style.overflow;
+
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+
+    return () => {
+      html.style.overflow = previousHtmlOverflow;
+      body.style.overflow = previousBodyOverflow;
+    };
+  }, [isAutoplayMode]);
 
   // Helper to determine if a link is active
   const isActive = (path: string) => {
@@ -551,6 +977,7 @@ export function DashboardShell({
           <div className="flex items-center gap-4">
             <button
               onClick={() => setIsDemoMode((prev) => !prev)}
+              data-autoplay="top-demo-toggle"
               className={`rounded-md border px-2.5 py-1 text-[11px] font-bold tracking-wide transition-colors ${
                 isDemoMode
                   ? isDark
@@ -566,6 +993,7 @@ export function DashboardShell({
 
             <button
               onClick={() => setIsDark(!isDark)}
+              data-autoplay="top-theme-toggle"
               className={`rounded-md p-1.5 transition-colors ${
                 isDark
                   ? "text-zinc-400 hover:bg-zinc-800 hover:text-white"
@@ -579,6 +1007,7 @@ export function DashboardShell({
             <div className="relative">
               <button
                 onClick={() => setIsAssistantOpen(!isAssistantOpen)}
+                data-autoplay="top-mic-toggle"
                 className={`rounded-md p-1.5 transition-colors ${
                   isAssistantOpen
                     ? "bg-orange-500/20 text-orange-400"
@@ -604,6 +1033,98 @@ export function DashboardShell({
 
         <ContractPendingBanner />
 
+        {(autoplayUiState.isRunning || autoplayUiState.notices.length > 0) && (
+          <div className="pointer-events-none fixed top-18 right-6 z-[90] flex max-h-[calc(100vh-5rem)] w-[360px] flex-col gap-3 overflow-hidden">
+            <div
+              className={`animate-in slide-in-from-right-2 fade-in rounded-xl border p-3 shadow-xl backdrop-blur-sm ${
+                isDark
+                  ? "border-zinc-700 bg-zinc-900/92 text-zinc-100"
+                  : "border-zinc-200 bg-white/95 text-zinc-900"
+              }`}
+            >
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-orange-500" />
+                  <span className="text-xs font-semibold tracking-wide uppercase">
+                    Showcase Flow
+                  </span>
+                </div>
+                {autoplayUiState.isRunning ? (
+                  <span className="flex items-center gap-1 text-[11px] text-orange-500">
+                    <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+                    Running
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1 text-[11px] text-emerald-500">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Done
+                  </span>
+                )}
+              </div>
+
+              <p
+                className={`mb-2 text-[13px] font-medium ${isDark ? "text-zinc-100" : "text-zinc-900"}`}
+              >
+                {autoplayUiState.currentStepLabel || "Waiting for autoplay"}
+              </p>
+
+              <div
+                className={`mb-2 h-1.5 overflow-hidden rounded-full ${isDark ? "bg-zinc-800" : "bg-zinc-200"}`}
+              >
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-orange-500 to-rose-500 transition-all duration-500"
+                  style={{
+                    width:
+                      autoplayUiState.totalCount > 0
+                        ? `${Math.round((autoplayUiState.completedCount / autoplayUiState.totalCount) * 100)}%`
+                        : "0%",
+                  }}
+                />
+              </div>
+
+              <div
+                className={`flex items-center justify-between text-[11px] ${isDark ? "text-zinc-400" : "text-zinc-600"}`}
+              >
+                <span>
+                  {autoplayUiState.completedCount}/{autoplayUiState.totalCount} steps
+                </span>
+                <span>
+                  {autoplayUiState.isSettling ? "Waiting for UI settle..." : "UI settled"}
+                </span>
+              </div>
+            </div>
+
+            {autoplayUiState.notices.map((notice) => (
+              <div
+                key={notice.id}
+                className={`animate-in slide-in-from-right-3 fade-in rounded-xl border p-3 shadow-lg ${
+                  notice.tone === "success"
+                    ? isDark
+                      ? "border-emerald-700/70 bg-emerald-950/70 text-emerald-100"
+                      : "border-emerald-200 bg-emerald-50 text-emerald-900"
+                    : notice.tone === "warning"
+                      ? isDark
+                        ? "border-amber-700/70 bg-amber-950/70 text-amber-100"
+                        : "border-amber-200 bg-amber-50 text-amber-900"
+                      : isDark
+                        ? "border-zinc-700 bg-zinc-900/95 text-zinc-100"
+                        : "border-zinc-200 bg-white text-zinc-900"
+                }`}
+              >
+                <div className="mb-1 flex items-center gap-2 text-[11px] font-semibold tracking-wide uppercase">
+                  <Bell className="h-3.5 w-3.5" />
+                  {notice.title}
+                </div>
+                <p
+                  className={`text-[12px] leading-relaxed ${isDark ? "text-zinc-300" : "text-zinc-700"}`}
+                >
+                  {notice.message}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="relative flex flex-1 overflow-hidden">
           {/* LEFT SIDEBAR NAVIGATION */}
           {/* UI Events:
@@ -623,7 +1144,7 @@ export function DashboardShell({
             <TooltipProvider delayDuration={0}>
               {/* Sidebar collapse toggle — top */}
               <div
-                className={`flex items-center border-b ${isSidebarCollapsed ? "justify-center px-2" : "justify-end px-4"} py-3 ${
+                className={`flex items-center border-b ${isSidebarCollapsed ? "justify-center px-2" : "justify-end px-3"} py-2 ${
                   isDark ? "border-zinc-800" : "border-[oklch(0.92_0.004_55)]"
                 }`}
               >
@@ -644,14 +1165,14 @@ export function DashboardShell({
               </div>
 
               <nav
-                className={`scroll-overlay hide-scrollbar relative flex-1 space-y-1 py-4 ${isSidebarCollapsed ? "px-2" : "px-4"}`}
+                className={`relative flex-1 space-y-0 overflow-hidden py-1 ${isSidebarCollapsed ? "px-2" : "px-2.5"}`}
               >
                 {isAdminMode ? (
                   isDemoMode ? (
                     <>
                       {!isSidebarCollapsed && (
                         <div
-                          className={`mt-2 mb-3 px-3 text-[10px] font-bold tracking-widest uppercase ${
+                          className={`mt-1 mb-1 px-2 text-[9px] font-bold tracking-widest uppercase ${
                             isDark ? "text-zinc-500" : "text-[oklch(0.60_0.018_45)]"
                           }`}
                         >
@@ -705,7 +1226,7 @@ export function DashboardShell({
                     <>
                       {!isSidebarCollapsed && (
                         <div
-                          className={`mt-2 mb-3 px-3 text-[10px] font-bold tracking-widest uppercase ${
+                          className={`mt-1 mb-1 px-2 text-[9px] font-bold tracking-widest uppercase ${
                             isDark ? "text-zinc-500" : "text-[oklch(0.60_0.018_45)]"
                           }`}
                         >
@@ -740,14 +1261,14 @@ export function DashboardShell({
 
                       {!isSidebarCollapsed && (
                         <div
-                          className={`mt-6 mb-3 px-3 text-[10px] font-bold tracking-widest uppercase ${
+                          className={`mt-3 mb-1 px-2 text-[9px] font-bold tracking-widest uppercase ${
                             isDark ? "text-zinc-500" : "text-[oklch(0.60_0.018_45)]"
                           }`}
                         >
                           Operasjoner
                         </div>
                       )}
-                      {isSidebarCollapsed && <div className="mt-4" />}
+                      {isSidebarCollapsed && <div className="mt-2" />}
                       <NavItem
                         href="/dashboard/operations"
                         icon={Activity}
@@ -767,14 +1288,14 @@ export function DashboardShell({
 
                       {!isSidebarCollapsed && (
                         <div
-                          className={`mt-6 mb-3 px-3 text-[10px] font-bold tracking-widest uppercase ${
+                          className={`mt-3 mb-1 px-2 text-[9px] font-bold tracking-widest uppercase ${
                             isDark ? "text-zinc-500" : "text-[oklch(0.60_0.018_45)]"
                           }`}
                         >
                           Administrasjon
                         </div>
                       )}
-                      {isSidebarCollapsed && <div className="mt-4" />}
+                      {isSidebarCollapsed && <div className="mt-2" />}
                       <NavItem
                         href="/dashboard/governance"
                         icon={ShieldCheck}
@@ -814,7 +1335,7 @@ export function DashboardShell({
                   <>
                     {!isSidebarCollapsed && (
                       <div
-                        className={`mt-2 mb-3 px-3 text-[10px] font-bold tracking-widest uppercase ${
+                        className={`mt-1 mb-1 px-2 text-[9px] font-bold tracking-widest uppercase ${
                           isDark ? "text-zinc-500" : "text-[oklch(0.60_0.018_45)]"
                         }`}
                       >
@@ -869,14 +1390,14 @@ export function DashboardShell({
                   <>
                     {!isSidebarCollapsed && (
                       <div
-                        className={`mt-6 mb-3 px-3 text-[10px] font-bold tracking-widest uppercase ${
+                        className={`mt-3 mb-1 px-2 text-[9px] font-bold tracking-widest uppercase ${
                           isDark ? "text-zinc-500" : "text-zinc-400"
                         }`}
                       >
                         Kommunikasjon
                       </div>
                     )}
-                    {isSidebarCollapsed && <div className="mt-4" />}
+                    {isSidebarCollapsed && <div className="mt-2" />}
                     <NavItem
                       href="/dashboard/chat"
                       icon={MessageSquare}
@@ -905,7 +1426,7 @@ export function DashboardShell({
                       isCollapsed={isSidebarCollapsed}
                     />
 
-                    <div className="mt-8 space-y-1 pt-4">
+                    <div className="mt-3 space-y-0.5 pt-1">
                       <NavItem
                         href="/dashboard/settings"
                         icon={Settings}
@@ -933,12 +1454,13 @@ export function DashboardShell({
                   isDark
                     ? "border-zinc-800 bg-[#0a0a0c]"
                     : "border-[oklch(0.92_0.004_55)] bg-[oklch(0.96_0.004_55)]"
-                } space-y-2`}
+                } ${isSidebarCollapsed ? "p-1.5" : "p-2"} space-y-1`}
               >
                 {/* Admin/Employee toggle */}
                 <button
                   onClick={() => setIsAdminMode(!isAdminMode)}
-                  className={`flex w-full items-center ${isSidebarCollapsed ? "justify-center" : "justify-between"} rounded-lg border ${isSidebarCollapsed ? "px-0 py-2" : "px-3 py-2"} text-sm font-semibold transition-all ${
+                  data-autoplay="admin-mode-toggle"
+                  className={`flex w-full items-center ${isSidebarCollapsed ? "justify-center" : "justify-between"} rounded-lg border ${isSidebarCollapsed ? "px-0 py-1.5" : "px-2.5 py-1.5"} text-xs font-semibold transition-all ${
                     isAdminMode
                       ? isDark
                         ? "border-orange-500/20 bg-orange-500/10 text-orange-500"
@@ -1032,24 +1554,28 @@ export function DashboardShell({
                     >
                       <button
                         onClick={() => setScheduleLayout("daily")}
+                        data-autoplay="schedule-layout-daily"
                         className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "daily" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : isDark ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
                       >
                         Uke
                       </button>
                       <button
                         onClick={() => setScheduleLayout("weekly")}
+                        data-autoplay="schedule-layout-weekly"
                         className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "weekly" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : isDark ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
                       >
                         Rullerende
                       </button>
                       <button
                         onClick={() => setScheduleLayout("monthly")}
+                        data-autoplay="schedule-layout-monthly"
                         className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "monthly" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : isDark ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
                       >
                         Måned
                       </button>
                       <button
                         onClick={() => setScheduleLayout("list")}
+                        data-autoplay="schedule-layout-list"
                         className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "list" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : isDark ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
                       >
                         Vaktliste
@@ -1084,6 +1610,7 @@ export function DashboardShell({
                     >
                       <button
                         onClick={() => setScheduleDateOffset((prev) => prev - 1)}
+                        data-autoplay="schedule-date-prev"
                         className={`rounded-md p-1.5 transition-colors ${isDark ? "text-zinc-400 hover:bg-zinc-800 hover:text-white" : "text-zinc-500 hover:bg-zinc-200 hover:text-zinc-900"}`}
                       >
                         <ChevronLeft className="h-3.5 w-3.5" />
@@ -1123,6 +1650,7 @@ export function DashboardShell({
                       {scheduleDateOffset !== 0 && (
                         <button
                           onClick={() => setScheduleDateOffset(0)}
+                          data-autoplay="schedule-date-today"
                           className="rounded-md px-2 py-0.5 text-[10px] font-bold text-orange-400 transition-colors hover:bg-orange-500/10"
                         >
                           I dag
@@ -1130,6 +1658,7 @@ export function DashboardShell({
                       )}
                       <button
                         onClick={() => setScheduleDateOffset((prev) => prev + 1)}
+                        data-autoplay="schedule-date-next"
                         className={`rounded-md p-1.5 transition-colors ${isDark ? "text-zinc-400 hover:bg-zinc-800 hover:text-white" : "text-zinc-500 hover:bg-zinc-200 hover:text-zinc-900"}`}
                       >
                         <ChevronRight className="h-3.5 w-3.5" />
@@ -1254,7 +1783,7 @@ export function DashboardShell({
             </div>
 
             <DashboardContext.Provider value={dashboardContextValue}>
-              <div className="scroll-overlay flex min-h-0 flex-1 flex-col p-6 md:p-8 print:block print:h-auto print:overflow-visible print:p-0">
+              <div className="scroll-overlay flex min-h-0 flex-1 flex-col overflow-hidden p-6 md:p-8 print:block print:h-auto print:overflow-visible print:p-0">
                 {isAdminMode && isDashboardPage && (
                   <>
                     <div className="mb-4 flex-shrink-0">
@@ -1299,8 +1828,11 @@ function NavItem({
   onClick,
   useButton,
 }: NavItemProps) {
+  const normalizedLabel = label.toLowerCase().replace(/\s+/g, "-");
+  const navAutoplayId = `nav-${href}`;
+  const navButtonAutoplayId = `navbtn-${normalizedLabel}`;
   const baseClassName = `group flex items-center rounded-xl transition-all ${
-    isCollapsed ? "justify-center px-0 py-2.5" : "justify-between px-3 py-2.5"
+    isCollapsed ? "justify-center px-0 py-1.5" : "justify-between px-2.5 py-1.5"
   } ${
     active
       ? isDark
@@ -1313,9 +1845,9 @@ function NavItem({
 
   const inner = (
     <>
-      <div className={`flex items-center ${isCollapsed ? "" : "gap-3"}`}>
+      <div className={`flex items-center ${isCollapsed ? "" : "gap-2.5"}`}>
         <Icon
-          className={`h-[18px] w-[18px] shrink-0 transition-colors ${
+          className={`h-4 w-4 shrink-0 transition-colors ${
             ai
               ? "text-indigo-500 group-hover:text-indigo-400"
               : active
@@ -1328,7 +1860,7 @@ function NavItem({
           }`}
         />
         {!isCollapsed && (
-          <span className={`text-[13px] tracking-wide ${active ? "font-bold" : "font-medium"}`}>
+          <span className={`text-[12px] tracking-wide ${active ? "font-bold" : "font-medium"}`}>
             {label}
           </span>
         )}
@@ -1347,7 +1879,7 @@ function NavItem({
       )}
       {!isCollapsed && badge && (
         <span
-          className={`rounded border px-2 py-0.5 text-[9px] font-bold ${
+          className={`rounded border px-1.5 py-0.5 text-[8px] font-bold ${
             isDark
               ? "border-orange-500/20 bg-orange-500/10 text-orange-400"
               : "border-orange-200 bg-orange-50 text-orange-600"
@@ -1360,11 +1892,22 @@ function NavItem({
   );
 
   const content = useButton ? (
-    <button type="button" onClick={onClick} className={baseClassName}>
+    <button
+      type="button"
+      onClick={onClick}
+      data-autoplay={navButtonAutoplayId}
+      className={baseClassName}
+    >
       {inner}
     </button>
   ) : (
-    <Link href={href} prefetch={false} onClick={onClick} className={baseClassName}>
+    <Link
+      href={href}
+      prefetch={false}
+      onClick={onClick}
+      data-autoplay={navAutoplayId}
+      className={baseClassName}
+    >
       {inner}
     </Link>
   );
