@@ -12,6 +12,7 @@ import {
 } from "./handlers/organization.ts";
 import { handleGetContracts } from "./handlers/contracts.ts";
 import { handleGetProtocols, handleGetAssignments } from "./handlers/training.ts";
+import { handleGetShifts, handleGetAbsences } from "./handlers/schedules.ts";
 
 // ── Route handlers ──
 
@@ -29,6 +30,8 @@ routes["GET /v1/locations"] = handleGetLocations;
 routes["GET /v1/contracts"] = handleGetContracts;
 routes["GET /v1/protocols"] = handleGetProtocols;
 routes["GET /v1/assignments"] = handleGetAssignments;
+routes["GET /v1/shifts"] = handleGetShifts;
+routes["GET /v1/absences"] = handleGetAbsences;
 
 // ── Main router ──
 
