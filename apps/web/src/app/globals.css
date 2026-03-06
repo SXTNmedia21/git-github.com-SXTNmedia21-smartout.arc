@@ -83,6 +83,11 @@
   background-repeat: repeat;
 }
 
+@utility bg-noise {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -108,22 +113,209 @@
   animation: auth-fade-up 0.5s ease-out both;
 }
 
-/* Scrollbar — unlayered for maximum specificity over browser defaults */
+/* Ambient glow drift — slow, calm, "breathing" movement for workspace selection */
+@keyframes ambient-drift-1 {
+  0% {
+    transform: translate(-50%, 0%) scale(1);
+  }
+  25% {
+    transform: translate(-46%, 3%) scale(1.05);
+  }
+  50% {
+    transform: translate(-53%, -2%) scale(1.02);
+  }
+  75% {
+    transform: translate(-48%, 1%) scale(1.06);
+  }
+  100% {
+    transform: translate(-50%, 0%) scale(1);
+  }
+}
+
+@keyframes ambient-drift-2 {
+  0% {
+    transform: translate(0%, 0%) scale(1);
+  }
+  30% {
+    transform: translate(-3%, -4%) scale(1.08);
+  }
+  60% {
+    transform: translate(2%, 3%) scale(0.96);
+  }
+  100% {
+    transform: translate(0%, 0%) scale(1);
+  }
+}
+
+@utility animate-ambient-1 {
+  animation: ambient-drift-1 20s ease-in-out infinite;
+}
+
+@utility animate-ambient-2 {
+  animation: ambient-drift-2 25s ease-in-out infinite;
+}
+
+/* Onboarding orb drift — continuous micro-movement layered on top of framer-motion */
+@keyframes onboarding-drift-1 {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(2vw, -1vh);
+  }
+  50% {
+    transform: translate(-1vw, 2vh);
+  }
+  75% {
+    transform: translate(1.5vw, -0.5vh);
+  }
+}
+
+@keyframes onboarding-drift-2 {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  33% {
+    transform: translate(-1.5vw, 1.5vh);
+  }
+  66% {
+    transform: translate(2vw, 1vh);
+  }
+}
+
+@keyframes onboarding-drift-3 {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  20% {
+    transform: translate(1vw, 2vh);
+  }
+  40% {
+    transform: translate(-2vw, -0.5vh);
+  }
+  60% {
+    transform: translate(0.5vw, -1.5vh);
+  }
+  80% {
+    transform: translate(-1vw, 1vh);
+  }
+}
+
+@utility animate-onboarding-drift-1 {
+  animation: onboarding-drift-1 22s ease-in-out infinite;
+}
+@utility animate-onboarding-drift-2 {
+  animation: onboarding-drift-2 28s ease-in-out infinite;
+}
+@utility animate-onboarding-drift-3 {
+  animation: onboarding-drift-3 25s ease-in-out infinite;
+}
+
+/* Scrollbar — overlay style, never shifts layout */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  scrollbar-color: transparent transparent;
+}
+*:hover {
+  scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 *::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 *::-webkit-scrollbar-track {
-  background: var(--scrollbar-track);
+  background: transparent;
 }
 *::-webkit-scrollbar-thumb {
-  background-color: var(--scrollbar-thumb);
+  background-color: transparent;
   border-radius: 20px;
+  transition: background-color 0.2s ease;
 }
-*::-webkit-scrollbar-thumb:hover {
+*:hover::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+}
+*:hover::-webkit-scrollbar-thumb:hover {
   background-color: var(--scrollbar-thumb-hover);
+}
+
+/* Dashboard entrance — smooth simultaneous fade+rise */
+@keyframes dashboard-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.dashboard-enter {
+  animation: dashboard-enter 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Overlay scroll utility — scrollbar-gutter: stable prevents layout shift */
+.scroll-overlay {
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+}
+.scroll-overlay::-webkit-scrollbar {
+  width: 4px;
+}
+.scroll-overlay::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scroll-overlay::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 2px;
+}
+.scroll-overlay:hover::-webkit-scrollbar-thumb {
+  background-color: oklch(0.5 0 0 / 0.2);
+}
+
+/* ─── Skeleton loading ─────────────────────────────── */
+@keyframes sk-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+@keyframes sk-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sk-bone {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--muted);
+}
+.sk-bone::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    oklch(0.88 0.012 50 / 0.38) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: sk-shimmer 1.8s ease-in-out infinite;
+}
+
+.sk-section {
+  opacity: 0;
+  animation: sk-enter 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
