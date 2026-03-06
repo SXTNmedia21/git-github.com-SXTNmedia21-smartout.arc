@@ -106,7 +106,7 @@ export type Session = {
   summary: string | null;
   callback_url: string | null;
   guardian_whisper_count: number;
-  expires_at: string;
+  expires_at: string | null;
   completed_at: string | null;
   created_at: string;
   updated_at: string;

@@ -1,8 +1,8 @@
 ---
 title: Learning Log
 status: in_progress
-updated: 2026-03-04
-created: 2026-03-04
+updated: 2026-03-06
+created: 2026-03-06
 module: operations
 tags: [learnings]
 ---
@@ -39,3 +39,7 @@ tags: [learnings]
 
 | #   | Date | Learning | Impact |
 | --- | ---- | -------- | ------ |
+# Learning Log — season-engine
+# Learning Log — season-engine-complete
+| # | Date | Learning | Impact |
+|---|------|----------|--------|
