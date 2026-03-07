@@ -281,6 +281,7 @@ const WORKSPACE_BATCH_SIZE = 50;
 export type WorkspaceChunkRow = {
   workspace_id: string;
   source_type: string;
+  source_id?: string | null;
   source_path: string;
   source_hash: string;
   content_hash: string;
@@ -310,16 +311,90 @@ export async function upsertWorkspaceChunks(
 
   for (let i = 0; i < rows.length; i += WORKSPACE_BATCH_SIZE) {
     const batch = rows.slice(i, i + WORKSPACE_BATCH_SIZE);
-
-    // workspace_doc_chunk may not be in database.types.ts yet — cast to any
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase as any).from("workspace_doc_chunk").upsert(batch, {
+    const { error } = await supabase.from("workspace_doc_chunk").upsert(batch, {
       onConflict: "workspace_id,source_path,chunk_index",
     });
 
     if (error) {
       throw new Error(
         `Failed to upsert workspace chunk batch (${i}-${i + batch.length}): ${error.message}`,
+      );
+    }
+  }
+}
+
+/**
+ * Fetches existing source hashes from workspace_doc_chunk for one workspace.
+ *
+ * Why: We compare stored source hashes against the latest source hash to skip
+ * unchanged source rows during ingestion.
+ *
+ * @param supabase - Service-role Supabase client
+ * @param workspaceId - Workspace ID to fetch hashes for
+ * @returns Map of source_path → source_hash for the workspace
+ */
+export async function getExistingWorkspaceHashes(
+  supabase: SupabaseClient,
+  workspaceId: string,
+): Promise<Map<string, string>> {
+  const hashMap = new Map<string, string>();
+  let offset = 0;
+  const pageSize = 1000;
+
+  while (true) {
+    const { data, error } = await supabase
+      .from("workspace_doc_chunk")
+      .select("source_path, source_hash")
+      .eq("workspace_id", workspaceId)
+      .range(offset, offset + pageSize - 1);
+
+    if (error) {
+      throw new Error(`Failed to fetch existing workspace hashes: ${error.message}`);
+    }
+
+    if (!data || data.length === 0) break;
+
+    for (const row of data) {
+      if (!hashMap.has(row.source_path)) {
+        hashMap.set(row.source_path, row.source_hash);
+      }
+    }
+
+    if (data.length < pageSize) break;
+    offset += pageSize;
+  }
+
+  return hashMap;
+}
+
+/**
+ * Deletes workspace chunks for specific source paths in a workspace.
+ *
+ * Why: Upserts alone cannot remove stale trailing chunks when a source gets shorter
+ * or a source is removed. We delete changed source paths first, then upsert fresh chunks.
+ *
+ * @param supabase - Service-role Supabase client
+ * @param workspaceId - Workspace ID scope
+ * @param sourcePaths - Source paths to remove from workspace_doc_chunk
+ */
+export async function deleteWorkspaceChunksForPaths(
+  supabase: SupabaseClient,
+  workspaceId: string,
+  sourcePaths: string[],
+): Promise<void> {
+  if (sourcePaths.length === 0) return;
+
+  for (let i = 0; i < sourcePaths.length; i += WORKSPACE_BATCH_SIZE) {
+    const batch = sourcePaths.slice(i, i + WORKSPACE_BATCH_SIZE);
+    const { error } = await supabase
+      .from("workspace_doc_chunk")
+      .delete()
+      .eq("workspace_id", workspaceId)
+      .in("source_path", batch);
+
+    if (error) {
+      throw new Error(
+        `Failed to delete workspace chunk batch (${i}-${i + batch.length}): ${error.message}`,
       );
     }
   }
