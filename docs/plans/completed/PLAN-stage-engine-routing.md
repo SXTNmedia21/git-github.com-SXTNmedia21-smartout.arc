@@ -1,15 +1,15 @@
 ---
-title: "Plan — season-engine-complete"
-status: draft
-updated: 2026-03-06
-created: 2026-03-06
-module: operations
+title: "Plan — stage-engine-routing"
+status: abandoned
+updated: 2026-03-03
+created: 2026-03-03
+module: ai
 tags: [plan]
 ---
 
-# Plan — season-engine-complete
+# Plan — stage-engine-routing ❌ (empty stub, never filled out)
 
-> Branch: `feat/season-engine-complete` | Module: operations
+> Branch: `feat/stage-engine-routing` | Module: ai
 
 ## Goal
 

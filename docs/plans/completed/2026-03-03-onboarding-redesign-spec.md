@@ -1,13 +1,21 @@
 ---
-title: Onboarding Redesign Specification
-status: draft
-updated: 2026-03-03
+title: ❌ Onboarding Redesign Specification
+status: done
+updated: 2026-03-07
 created: 2026-03-03
 module: onboarding
-tags: [onboarding, wizard, redesign, spec, design]
+tags: [onboarding, wizard, redesign, spec, design, archived]
 ---
 
-# Onboarding Redesign Specification
+# ❌ Onboarding Redesign Specification
+
+> Closed on 2026-03-07 as superseded.
+>
+> Rationale:
+>
+> - The exact 5-step redesign in this draft is not the current product architecture.
+> - Core intent (prefill-first onboarding, removed branding step, no permanent/temporal split) is already reflected in newer onboarding implementations.
+> - Current onboarding evolved into a broader workspace-first flow with additional sections and intelligence pipeline integration, so this draft should not be implemented as-is.
 
 > **Date:** March 3, 2026
 > **Status:** Draft — awaiting Pontus review

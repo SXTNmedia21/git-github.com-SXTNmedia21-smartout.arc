@@ -1,15 +1,15 @@
 ---
-title: "Plan — stage-engine-fix"
-status: draft
+title: "Plan — landing-mobile-fix"
+status: abandoned
 updated: 2026-03-03
 created: 2026-03-03
-module: ai
+module: landing
 tags: [plan]
 ---
 
-# Plan — stage-engine-fix
+# Plan — landing-mobile-fix ❌ (empty stub, never filled out)
 
-> Branch: `feat/stage-engine-fix` | Module: ai
+> Branch: `feat/landing-mobile-fix` | Module: landing
 
 ## Goal
 

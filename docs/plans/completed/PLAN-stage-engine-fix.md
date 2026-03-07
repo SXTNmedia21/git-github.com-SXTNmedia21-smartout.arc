@@ -1,15 +1,15 @@
 ---
-title: "Plan — progressive-intelligence"
-status: draft
-updated: 2026-03-04
-created: 2026-03-04
-module: onboarding
+title: "Plan — stage-engine-fix"
+status: abandoned
+updated: 2026-03-03
+created: 2026-03-03
+module: ai
 tags: [plan]
 ---
 
-# Plan — progressive-intelligence
+# Plan — stage-engine-fix ❌ (empty stub, never filled out)
 
-> Branch: `feat/progressive-intelligence` | Module: onboarding
+> Branch: `feat/stage-engine-fix` | Module: ai
 
 ## Goal
 

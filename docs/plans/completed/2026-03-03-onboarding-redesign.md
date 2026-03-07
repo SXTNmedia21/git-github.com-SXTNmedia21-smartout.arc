@@ -1,13 +1,21 @@
 ---
-title: Onboarding Redesign Implementation Plan
-status: draft
-updated: 2026-03-03
+title: ❌ Onboarding Redesign Implementation Plan
+status: done
+updated: 2026-03-07
 created: 2026-03-03
 module: onboarding
-tags: [onboarding, wizard, redesign, plan]
+tags: [onboarding, wizard, redesign, plan, archived]
 ---
 
-# Onboarding Redesign Implementation Plan
+# ❌ Onboarding Redesign Implementation Plan
+
+> Closed on 2026-03-07 as superseded.
+>
+> Rationale:
+>
+> - The implementation strategy in this plan was replaced by a newer onboarding architecture.
+> - Core goals were delivered through a different structure (section-based, workspace-first pipeline, updated intelligence and activation flow).
+> - This plan should remain historical context only, not an active implementation target.
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 

@@ -1,13 +1,22 @@
 ---
-title: Journey Portal Fixes — Code Review Remediation
-status: in_progress
-updated: 2026-03-03
+title: ❌ Journey Portal Fixes — Code Review Remediation
+status: done
+updated: 2026-03-07
 created: 2026-03-01
 module: meta
-tags: [journey, code-review, security, quality]
+tags: [journey, code-review, security, quality, archived]
 ---
 
-# Journey Portal Fixes — Code Review Remediation
+# ❌ Journey Portal Fixes — Code Review Remediation
+
+> Closed on 2026-03-07 without full implementation.
+>
+> Audit outcome:
+>
+> - Tasks 1 and 5 are already implemented.
+> - Tasks 2 and 3 are functionally covered by the newer `/transition` route flow.
+> - Tasks 4, 6, 7, 8, and 9 remain relevant but were not executed.
+> - Baseline verification in an isolated worktree surfaced pre-existing typecheck and import failures in the surrounding journey portal area, so this plan was archived instead of continued.
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 

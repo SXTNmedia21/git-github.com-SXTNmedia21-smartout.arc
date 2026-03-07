@@ -1,13 +1,21 @@
 ---
-title: "Design — Prompt Tuning System"
-status: draft
-updated: 2026-03-03
+title: "❌ Design — Prompt Tuning System"
+status: done
+updated: 2026-03-07
 created: 2026-03-03
 module: ai
-tags: [design, guardian, stage-engine, prompt-tuning]
+tags: [design, guardian, stage-engine, prompt-tuning, archived]
 ---
 
-# Design — Prompt Tuning System
+# ❌ Design — Prompt Tuning System
+
+> Closed on 2026-03-07 as superseded.
+>
+> Rationale:
+>
+> - The intended outcomes are largely implemented through a different architecture.
+> - Prompt tuning now uses mission/stage fields (`engine_missions.system_prompt`, `engine_stages.tuning_notes`) instead of the planned `prompt_tuning_note` table model.
+> - This design should not be implemented as-is; any remaining tuning UX should be planned against current architecture.
 
 > Iterative prompt improvement for AI agents without code deployments.
 

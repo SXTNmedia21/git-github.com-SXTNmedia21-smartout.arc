@@ -22,11 +22,11 @@ A `/mission` skill that reads a Journey deep spec and produces:
 
 ## Three Pillars
 
-| Pillar | What it means | How it's enforced |
-|--------|--------------|-------------------|
-| Results | Every mission defines measurable success per stage and per session | Success criteria field required |
-| Trackability | Every mission defines timing thresholds, failure signals, Guardian watches | Observability contract section required |
-| Triggerability | Every mission defines how to start and test | Trigger + dev test invocation required |
+| Pillar         | What it means                                                              | How it's enforced                       |
+| -------------- | -------------------------------------------------------------------------- | --------------------------------------- |
+| Results        | Every mission defines measurable success per stage and per session         | Success criteria field required         |
+| Trackability   | Every mission defines timing thresholds, failure signals, Guardian watches | Observability contract section required |
+| Triggerability | Every mission defines how to start and test                                | Trigger + dev test invocation required  |
 
 ## Key Design Decisions
 

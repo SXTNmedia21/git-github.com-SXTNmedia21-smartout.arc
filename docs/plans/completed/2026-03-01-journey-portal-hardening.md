@@ -1,13 +1,22 @@
 ---
 title: "Journey Portal Hardening Implementation Plan"
-status: in_progress
-updated: 2026-03-03
+status: done
+updated: 2026-03-07
 created: 2026-03-01
 module: journey
-tags: [journey, security, hardening, ui]
+tags: [journey, security, hardening, ui, archived]
 ---
 
 # Journey Portal Hardening — Implementation Plan
+
+> Closed on 2026-03-07.
+>
+> Audit outcome:
+>
+> - Track A (Server-Side Status Transitions): Implemented via `/transition` route.
+> - Track B (Code Generation Race Condition + Auth Dedup): Implemented (retry logic added, `requireGodmode` deduplicated).
+> - Track C (UX Hardening): Implemented (confirm dialogs for status/wizard, markdown rendering).
+>   Effectively, this plan is fully represented in the active codebase.
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 

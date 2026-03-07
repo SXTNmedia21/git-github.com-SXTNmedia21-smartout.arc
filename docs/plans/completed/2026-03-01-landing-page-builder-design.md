@@ -1,13 +1,21 @@
 ---
-title: "Design — Landing Page Builder + Performance Optimization"
-status: in_progress
-updated: 2026-03-03
+title: "✅ Design — Landing Page Builder + Performance Optimization"
+status: done
+updated: 2026-03-07
 created: 2026-03-01
 module: landing
-tags: [design, landing, performance, admin, page-builder]
+tags: [design, landing, performance, admin, page-builder, archived]
 ---
 
-# Design — Landing Page Builder + Performance Optimization
+# ✅ Design — Landing Page Builder + Performance Optimization
+
+> Closed on 2026-03-07 as completed-superseded.
+>
+> Outcome:
+>
+> - Core builder architecture is implemented (DB schema, admin builder UI, server rendering, `?v=slug` fallback, preview route, and revalidation).
+> - Delivery differs from the original design in some areas (tracking architecture and route structure), but meets the functional objective.
+> - Remaining minor drift is tracked as follow-up hardening/polish, not a blocker for closing this design plan.
 
 > Branch: `feat/landing-optimization` | Worktree: wt-5 | Approved: 2026-03-01
 

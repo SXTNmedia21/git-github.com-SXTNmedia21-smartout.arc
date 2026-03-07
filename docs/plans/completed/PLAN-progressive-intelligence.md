@@ -1,15 +1,15 @@
 ---
-title: "Plan — landing-mobile-fix"
-status: draft
-updated: 2026-03-03
-created: 2026-03-03
-module: landing
+title: "Plan — progressive-intelligence"
+status: abandoned
+updated: 2026-03-04
+created: 2026-03-04
+module: onboarding
 tags: [plan]
 ---
 
-# Plan — landing-mobile-fix
+# Plan — progressive-intelligence ❌ (empty stub, never filled out)
 
-> Branch: `feat/landing-mobile-fix` | Module: landing
+> Branch: `feat/progressive-intelligence` | Module: onboarding
 
 ## Goal
 

@@ -1,15 +1,15 @@
 ---
-title: "Plan — service-layer"
-status: draft
+title: "Plan — season-engine-complete"
+status: abandoned
 updated: 2026-03-06
 created: 2026-03-06
-module: platform-admin
+module: operations
 tags: [plan]
 ---
 
-# Plan — service-layer
+# Plan — season-engine-complete ❌ (empty stub, never filled out)
 
-> Branch: `feat/service-layer` | Module: platform-admin
+> Branch: `feat/season-engine-complete` | Module: operations
 
 ## Goal
 

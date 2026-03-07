@@ -1,15 +1,15 @@
 ---
-title: "Plan — dashboard-perf"
-status: draft
-updated: 2026-03-03
-created: 2026-03-03
-module: dashboard
+title: "Plan — service-layer"
+status: abandoned
+updated: 2026-03-06
+created: 2026-03-06
+module: platform-admin
 tags: [plan]
 ---
 
-# Plan — dashboard-perf
+# Plan — service-layer ❌ (empty stub, never filled out)
 
-> Branch: `feat/dashboard-perf` | Module: dashboard
+> Branch: `feat/service-layer` | Module: platform-admin
 
 ## Goal
 
