@@ -36,6 +36,17 @@ interface BrregResponse {
   foundingDate?: string | null;
   vatRegistered?: boolean | null;
   parentCompany?: string | null;
+  navn?: string | null;
+  organisasjonsnummer?: string | null;
+  forretningsadresse?: {
+    adresse?: string[];
+    postnummer?: string;
+    poststed?: string;
+  } | null;
+  naeringskode1?: {
+    kode?: string;
+    beskrivelse?: string;
+  } | null;
   [key: string]: unknown;
 }
 
@@ -78,17 +89,27 @@ export function mergeBusinessData(
 
   // Format Places opening hours into a single string
   const placesHours = p.openingHours?.join(", ") || "";
+  const legalName = coalesceString(b.legalName, b.navn);
+  const orgNumber = coalesceString(b.orgNumber, b.organisasjonsnummer);
+  const addressStreet = coalesceString(
+    b.address?.street,
+    b.forretningsadresse?.adresse?.join(", "),
+  );
+  const postalCode = coalesceString(b.address?.postalCode, b.forretningsadresse?.postnummer);
+  const city = capitalize(coalesceString(b.address?.city, b.forretningsadresse?.poststed));
+  const industryCode = coalesceString(b.naceCode, b.naeringskode1?.kode);
+  const industry = coalesceString(b.naceDescription, b.naeringskode1?.beskrivelse);
 
   return {
     ...EMPTY_BUSINESS_DATA,
-    legalName: b.legalName ?? "",
-    name: b.legalName ?? s.companyName ?? p.displayName ?? "",
-    orgNumber: b.orgNumber ?? "",
-    address: b.address?.street ?? "",
-    postalCode: b.address?.postalCode ?? "",
-    city: capitalize(b.address?.city ?? ""),
-    industryCode: b.naceCode ?? "",
-    industry: b.naceDescription ?? "",
+    legalName,
+    name: legalName || s.companyName || p.displayName || "",
+    orgNumber,
+    address: addressStreet,
+    postalCode,
+    city,
+    industryCode,
+    industry,
     employeeCount: b.employeeCount ? String(b.employeeCount) : "",
     email: s.email ?? "",
     phone: s.phone ?? p.phone ?? "",
@@ -111,4 +132,13 @@ export function mergeBusinessData(
 function capitalize(str: string): string {
   if (!str) return "";
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+}
+
+function coalesceString(...values: Array<string | null | undefined>): string {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim().length > 0) {
+      return value;
+    }
+  }
+  return "";
 }
