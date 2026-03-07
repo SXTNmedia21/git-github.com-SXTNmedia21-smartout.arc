@@ -17,7 +17,7 @@ language sql
 stable
 as $$
   -- minimal instance search starter (profiles + policies + protocols)
-  select 'people', p.profile_id::text, coalesce(p.display_name,''), coalesce(p.role,''), '/dashboard/people/' || p.profile_id::text, 0.9
+  select 'people', p.profile_id::text, coalesce(p.display_name,''), coalesce(p.role::text,''), '/dashboard/people/' || p.profile_id::text, 0.9
   from profile p
   where p.workspace_id = p_workspace_id and p.display_name ilike ('%' || p_query || '%')
   limit p_limit

@@ -26,4 +26,4 @@ CREATE POLICY "api_key_read_handbook_chapter" ON public.handbook_chapter
 
 -- Auto-update timestamp
 CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.handbook_chapter
-  FOR EACH ROW EXECUTE FUNCTION moddatetime(updated_at);
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();

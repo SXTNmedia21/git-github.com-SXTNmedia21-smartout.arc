@@ -22,12 +22,15 @@ create table if not exists workspace_doc_chunk (
 
 alter table workspace_doc_chunk enable row level security;
 
+drop policy if exists "jwt_read_workspace_doc_chunk" on workspace_doc_chunk;
 create policy "jwt_read_workspace_doc_chunk" on workspace_doc_chunk
 for select using (workspace_id in (select get_workspace_ids_for_user(auth.uid())));
 
+drop policy if exists "api_key_read_workspace_doc_chunk" on workspace_doc_chunk;
 create policy "api_key_read_workspace_doc_chunk" on workspace_doc_chunk
 for select using (workspace_id = get_api_workspace_id());
 
+drop policy if exists "service_manage_workspace_doc_chunk" on workspace_doc_chunk;
 create policy "service_manage_workspace_doc_chunk" on workspace_doc_chunk
 for all using (auth.role() = 'service_role');
 
