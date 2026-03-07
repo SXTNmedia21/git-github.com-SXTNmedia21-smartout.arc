@@ -3,6 +3,7 @@ import { EVENT_ROUTING } from "./registry";
 import { sendToPostHogClient, sendToPostHogServer } from "./providers/posthog";
 import { logToStdout } from "./providers/logger";
 import { writeActivityTrail } from "./providers/activity-trail";
+import { sendToEngine } from "./providers/engine-event";
 
 // ─── Shared Telemetry Event Router ──────────────────────────────
 export async function emit(event: SmartoutEvent): Promise<void> {
@@ -45,6 +46,11 @@ export async function emit(event: SmartoutEvent): Promise<void> {
   // 3. Activity Trail
   if (routing.destinations.includes("activity_trail") && isServer) {
     promises.push(writeActivityTrail(event, routing));
+  }
+
+  // 4. Engine Event (server-side only — dispatches to engine-dispatch Edge Function)
+  if (routing.destinations.includes("engine_event") && isServer) {
+    promises.push(sendToEngine(event));
   }
 
   // Let errors fly through silently. Analytics pipelines shouldn't crash standard operations.

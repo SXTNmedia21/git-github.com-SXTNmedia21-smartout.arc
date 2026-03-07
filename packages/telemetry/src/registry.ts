@@ -7,7 +7,7 @@ export interface BaseEvent {
 }
 
 // ─── Routing Metadata ───────────────────────────
-export type EventDestination = "posthog" | "logger" | "activity_trail";
+export type EventDestination = "posthog" | "logger" | "activity_trail" | "engine_event";
 
 export interface EventMeta {
   destinations: EventDestination[];
@@ -194,28 +194,28 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "auth signed_out": { destinations: ["posthog"], category: "auth" },
 
   "department created": {
-    destinations: ["posthog", "logger", "activity_trail"],
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "org_structure",
   },
   "department updated": {
-    destinations: ["posthog", "logger", "activity_trail"],
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "org_structure",
   },
   "department archived": {
-    destinations: ["posthog", "logger", "activity_trail"],
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "org_structure",
   },
 
   "shift created": {
-    destinations: ["posthog", "logger", "activity_trail"],
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "scheduling",
   },
   "shift updated": {
-    destinations: ["posthog", "logger", "activity_trail"],
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "scheduling",
   },
   "shift deleted": {
-    destinations: ["posthog", "logger", "activity_trail"],
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "scheduling",
   },
 
