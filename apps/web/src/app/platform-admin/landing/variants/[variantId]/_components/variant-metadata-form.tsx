@@ -33,7 +33,7 @@ export type VariantFormValues = {
   is_default: boolean;
   meta_title: string;
   meta_description: string;
-  theme_accent: string;
+  theme: string;
 };
 
 type VariantMetadataFormProps = {
@@ -132,7 +132,7 @@ export function VariantMetadataForm({ values, onChange }: VariantMetadataFormPro
       {/* Theme accent */}
       <div className="space-y-1.5">
         <Label htmlFor="variant-accent">Aksentfarge</Label>
-        <Select value={values.theme_accent} onValueChange={(val) => update({ theme_accent: val })}>
+        <Select value={values.theme} onValueChange={(val) => update({ theme: val })}>
           <SelectTrigger id="variant-accent">
             <SelectValue />
           </SelectTrigger>

@@ -3,10 +3,11 @@
 // Renders an iframe preview of a landing variant with device
 // size toggles (mobile, tablet, desktop) and utility controls.
 //
-// Uses the landing app's /v?preview=true&id={variantId} route.
+// Uses the landing app preview compatibility route `/v` with
+// `preview=true&id={variantId}` so draft variants can render without publishing.
 //
 // Connected to: ../page.tsx (server wrapper)
-//               apps/landing/src/app/v/page.tsx (iframe target)
+//               apps/landing/src/app/page.tsx (iframe target)
 // ============================================
 
 "use client";
@@ -21,6 +22,9 @@ import { cn } from "@/lib/utils";
 
 type PreviewClientProps = {
   variantId: string;
+  variantSlug: string;
+  previewExpiresAt?: string;
+  previewSignature?: string;
 };
 
 type DeviceSize = "mobile" | "tablet" | "desktop";
@@ -31,13 +35,29 @@ const DEVICE_SIZES: Record<DeviceSize, { label: string; width: string; icon: typ
   desktop: { label: "Desktop", width: "100%", icon: Monitor },
 };
 
-export function PreviewClient({ variantId }: PreviewClientProps) {
+export function PreviewClient({
+  variantId,
+  variantSlug,
+  previewExpiresAt,
+  previewSignature,
+}: PreviewClientProps) {
   const [device, setDevice] = useState<DeviceSize>("desktop");
 
   const landingUrl = useMemo(() => {
-    const base = process.env.NEXT_PUBLIC_LANDING_URL ?? "";
-    return `${base}/v?preview=true&id=${variantId}`;
-  }, [variantId]);
+    const rawBase = process.env.NEXT_PUBLIC_LANDING_URL ?? "";
+    const base = rawBase.endsWith("/") ? rawBase.slice(0, -1) : rawBase;
+    if (previewExpiresAt && previewSignature) {
+      const previewQuery =
+        `preview=true&id=${encodeURIComponent(variantId)}` +
+        `&exp=${encodeURIComponent(previewExpiresAt)}` +
+        `&sig=${encodeURIComponent(previewSignature)}`;
+      return `${base}/v?${previewQuery}`;
+    }
+
+    // Fallback to published slug preview if signed preview token is unavailable.
+    const query = variantSlug ? `?v=${encodeURIComponent(variantSlug)}` : "";
+    return `${base}/${query}`;
+  }, [variantId, variantSlug, previewExpiresAt, previewSignature]);
 
   const iframeWidth = DEVICE_SIZES[device].width;
 
