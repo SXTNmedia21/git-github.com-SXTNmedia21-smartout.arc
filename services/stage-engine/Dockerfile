@@ -55,4 +55,5 @@ COPY --from=builder /app/services/stage-engine/dist ./services/stage-engine/dist
 WORKDIR /app/services/stage-engine
 EXPOSE 5010
 ENV NODE_ENV=production
+USER node
 CMD ["node", "dist/index.js"]

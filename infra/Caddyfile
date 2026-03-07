@@ -6,22 +6,53 @@
 # Connected to: ADR-0040 (Infrastructure stays in monorepo)
 # ============================================
 
-# Stage Engine — AI agent orchestration gateway
+{
+	servers {
+		timeouts {
+			read_body   10s
+			read_header 5s
+			idle        120s
+		}
+	}
+}
+
+(security_headers) {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Frame-Options "SAMEORIGIN"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
+	}
+}
+
+# Stage Engine — AI agent orchestration gateway (supports streaming)
 engine.smartout.ai {
-	reverse_proxy stage-engine:5010
+	import security_headers
+	reverse_proxy stage-engine:5010 {
+		flush_interval -1
+		transport http {
+			read_timeout 300s
+			write_timeout 300s
+		}
+	}
 }
 
 # Shift MCP — Schedule management tools for AI agents
 schedule-mcp.smartout.ai {
+	import security_headers
 	reverse_proxy shift-mcp:5011
 }
 
 # Contract Service — DocuSeal e-signature management
 contract.smartout.ai {
+	import security_headers
 	reverse_proxy contract-service:5012
 }
 
 # n8n — Workflow automation (when deployed)
 n8n.smartout.ai {
+	import security_headers
 	reverse_proxy n8n:5678
 }

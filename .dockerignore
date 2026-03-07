@@ -1,0 +1,45 @@
+# Dependencies (installed inside container)
+node_modules
+**/node_modules
+
+# Build output (built inside container)
+.next
+**/dist
+**/build
+
+# Git
+.git
+.gitignore
+
+# Environment (secrets)
+.env
+.env.local
+.env.*.local
+infra/.env
+
+# IDE / OS
+.vscode
+.idea
+*.swp
+.DS_Store
+
+# Dev artifacts
+.dev-*.log
+.turbo
+coverage
+playwright-report
+test-results
+artifacts
+
+# Docker (prevent recursive context)
+infra/docker-compose*.yml
+infra/Caddyfile*
+infra/scripts
+
+# Documentation (not needed in images)
+docs
+*.md
+!packages/*/README.md
+
+# Worktrees
+.local
