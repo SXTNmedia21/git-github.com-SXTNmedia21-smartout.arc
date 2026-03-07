@@ -31,7 +31,7 @@ type StatusStripProps = {
  * @param onFilterClick - Callback to set or clear the active filter
  */
 export function StatusStrip({
-  isDark,
+  isDark: _isDark,
   statusSummary,
   activeFilter,
   onFilterClick,

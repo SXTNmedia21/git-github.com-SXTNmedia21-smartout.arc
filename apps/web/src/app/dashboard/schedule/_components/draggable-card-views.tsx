@@ -19,7 +19,7 @@ type OpenShiftCardViewProps = {
 };
 
 export const OpenShiftCardView = React.memo(function OpenShiftCardView({
-  isDark,
+  isDark: _isDark,
   isDragging,
   title,
   time,
@@ -91,7 +91,7 @@ function normalizeShiftIndicator(indicator: string): ShiftIndicator {
   return "orange";
 }
 
-function ShiftStatusIcon({ status }: { status: ShiftStatus; isDark: boolean }) {
+function ShiftStatusIcon({ status }: { status: ShiftStatus }) {
   if (status === "draft") return <AlertCircle className="h-3.5 w-3.5 text-orange-400/60" />;
   if (status === "published") return <Circle className="text-muted-foreground h-3.5 w-3.5" />;
   if (status === "active") return <PlayCircle className="h-3.5 w-3.5 text-emerald-400/60" />;
@@ -99,7 +99,7 @@ function ShiftStatusIcon({ status }: { status: ShiftStatus; isDark: boolean }) {
 }
 
 export const ShiftCardView = React.memo(function ShiftCardView({
-  isDark,
+  isDark: _isDark,
   isDragging,
   role,
   time,
@@ -151,7 +151,7 @@ export const ShiftCardView = React.memo(function ShiftCardView({
         </div>
 
         <div className="relative flex h-5 w-5 shrink-0 items-center justify-center">
-          <ShiftStatusIcon status={normalizedStatus} isDark={isDark} />
+          <ShiftStatusIcon status={normalizedStatus} />
         </div>
       </div>
 
@@ -172,7 +172,7 @@ type TemplateCardViewProps = {
 };
 
 export const TemplateCardView = React.memo(function TemplateCardView({
-  isDark,
+  isDark: _isDark,
   isDragging,
   title,
   hours,

@@ -10,7 +10,7 @@ import {
   AlertCircle,
   GripVertical,
 } from "lucide-react";
-import { useDroppable } from "@dnd-kit/core";
+import { useDndContext, useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
@@ -21,6 +21,7 @@ import type { ScheduleEmployee } from "../_hooks/use-employees";
 import { DayContextMenu } from "./day-context-menu";
 import type { Shift as ScheduleShift, Absence } from "./schedule-types";
 import { SCHEDULE_LAYERS } from "./schedule-layers";
+import { useVirtualizer } from "@tanstack/react-virtual";
 
 // ---------------------------------------------------------------------------
 // GridContent — daily schedule grid (the perf-critical DnD subtree)
@@ -52,10 +53,13 @@ export function GridContent({
   weekStart: string;
   onTimeChange?: (shiftId: string, newStart: string, newEnd: string) => void;
 }) {
-  const { isDark, scheduleView } = useContext(DashboardContext);
+  const { isDark, scheduleView, scheduleCompactMode } = useContext(DashboardContext);
+  const { active } = useDndContext();
   const { setCreateShiftContext, setAbsencePopover, setSelectedShift, setSelectedEmployee } =
     useScheduleUI();
-  const [visibleEmployeeCount, setVisibleEmployeeCount] = React.useState(24);
+  const rowListRef = React.useRef<HTMLDivElement | null>(null);
+  const [scrollElement, setScrollElement] = React.useState<HTMLElement | null>(null);
+  const enableDroppable = active !== null;
 
   // ── Filter shifts based on activeStatusFilter ──────────────
   const filteredShifts = React.useMemo(() => {
@@ -172,72 +176,32 @@ export function GridContent({
     return stats;
   }, [filteredShifts]);
 
-  /**
-   * Progressive row rendering for the daily employee grid.
-   * Why: mounting hundreds of droppable cells in one frame causes slow first paint.
-   * We render a first chunk immediately, then expand in idle slices.
-   */
   React.useEffect(() => {
-    const total = filteredEmployees.length;
-    if (scheduleView !== "ansatt" || total <= 24) {
-      setVisibleEmployeeCount(total);
+    if (scheduleView !== "ansatt") {
+      setScrollElement(null);
       return;
     }
-
-    const globalWindow = window as Window & {
-      requestIdleCallback?: (cb: IdleRequestCallback, options?: IdleRequestOptions) => number;
-      cancelIdleCallback?: (id: number) => void;
-    };
-
-    let cancelled = false;
-    let currentCount = 24;
-    setVisibleEmployeeCount(24);
-
-    if (typeof globalWindow.requestIdleCallback === "function") {
-      const idleIds: number[] = [];
-      const scheduleGrow = () => {
-        if (cancelled || currentCount >= total) return;
-        const id = globalWindow.requestIdleCallback!(
-          () => {
-            if (cancelled) return;
-            currentCount = Math.min(total, currentCount + 12);
-            setVisibleEmployeeCount(currentCount);
-            if (currentCount < total) {
-              scheduleGrow();
-            }
-          },
-          { timeout: 250 },
-        );
-        idleIds.push(id);
-      };
-      scheduleGrow();
-      return () => {
-        cancelled = true;
-        for (const id of idleIds) {
-          globalWindow.cancelIdleCallback?.(id);
-        }
-      };
-    }
-
-    const interval = window.setInterval(() => {
-      if (cancelled) return;
-      currentCount = Math.min(total, currentCount + 12);
-      setVisibleEmployeeCount(currentCount);
-      if (currentCount >= total) {
-        window.clearInterval(interval);
+    const findScrollableParent = (node: HTMLElement | null): HTMLElement | null => {
+      let current = node?.parentElement ?? null;
+      while (current) {
+        const style = window.getComputedStyle(current);
+        if (style.overflowY === "auto" || style.overflowY === "scroll") return current;
+        current = current.parentElement;
       }
-    }, 120);
-
-    return () => {
-      cancelled = true;
-      window.clearInterval(interval);
+      return null;
     };
-  }, [filteredEmployees.length, scheduleView]);
+    setScrollElement(findScrollableParent(rowListRef.current));
+  }, [scheduleView, filteredEmployees.length]);
 
-  const visibleEmployees = React.useMemo(
-    () => filteredEmployees.slice(0, visibleEmployeeCount),
-    [filteredEmployees, visibleEmployeeCount],
-  );
+  const rowVirtualizer = useVirtualizer({
+    count: scheduleView === "ansatt" ? filteredEmployees.length : 0,
+    getScrollElement: () => scrollElement,
+    estimateSize: () => (scheduleCompactMode ? 56 : 108),
+    overscan: 4,
+    enabled: scheduleView === "ansatt" && scrollElement !== null,
+  });
+
+  const virtualRows = scheduleView === "ansatt" ? rowVirtualizer.getVirtualItems() : [];
 
   /** Group once for role/team views to avoid repeated O(n²) filter scans. */
   const employeesByRole = React.useMemo(() => {
@@ -275,35 +239,52 @@ export function GridContent({
         highlightedDayId={highlightedDayId ?? null}
         shiftsByDate={shiftsByDate}
         weekStart={weekStart}
+        enableDroppable={enableDroppable}
       />
 
       <div className="w-full flex-1 pb-20">
         {scheduleView === "ansatt" && (
           <SortableContext
-            items={visibleEmployees.map((e) => e.id)}
+            items={virtualRows
+              .map((row) => filteredEmployees[row.index]?.id)
+              .filter((id): id is string => typeof id === "string")}
             strategy={verticalListSortingStrategy}
           >
-            <div className="flex flex-col">
-              {visibleEmployees.map((emp) => (
-                <SortableEmployeeRow
-                  key={emp.id}
-                  employee={emp}
-                  employeeStats={employeeStats.get(emp.id)}
-                  days={visibleDays}
-                  shiftsByEmployeeDay={shiftsByEmployeeDay}
-                  absencesByEmployeeDay={absencesByEmployeeDay}
-                  onCreateShift={setCreateShiftContext}
-                  onAbsencePopover={setAbsencePopover}
-                  onSelectShift={setSelectedShift}
-                  onSelectEmployee={setSelectedEmployee}
-                  onTimeChange={onTimeChange}
-                />
-              ))}
-              {visibleEmployeeCount < filteredEmployees.length && (
+            <div
+              ref={rowListRef}
+              className="relative w-full"
+              style={{ height: `${rowVirtualizer.getTotalSize()}px` }}
+            >
+              {virtualRows.map((virtualRow) => {
+                const employee = filteredEmployees[virtualRow.index];
+                if (!employee) return null;
+                return (
+                  <div
+                    key={employee.id}
+                    className="absolute top-0 left-0 w-full"
+                    style={{ transform: `translateY(${virtualRow.start}px)` }}
+                  >
+                    <SortableEmployeeRow
+                      employee={employee}
+                      employeeStats={employeeStats.get(employee.id)}
+                      days={visibleDays}
+                      shiftsByEmployeeDay={shiftsByEmployeeDay}
+                      absencesByEmployeeDay={absencesByEmployeeDay}
+                      onCreateShift={setCreateShiftContext}
+                      onAbsencePopover={setAbsencePopover}
+                      onSelectShift={setSelectedShift}
+                      onSelectEmployee={setSelectedEmployee}
+                      onTimeChange={onTimeChange}
+                      enableDroppable={enableDroppable}
+                    />
+                  </div>
+                );
+              })}
+              {virtualRows.length === 0 && filteredEmployees.length > 0 && (
                 <div className="space-y-2 border-b border-white/[0.03] p-2">
                   {Array.from({ length: 3 }).map((_, skeletonIndex) => (
                     <div
-                      key={`employee-progressive-skeleton-${skeletonIndex + 1}`}
+                      key={`employee-virtual-skeleton-${skeletonIndex + 1}`}
                       className="grid grid-cols-[260px_repeat(7,minmax(0,1fr))] gap-2"
                     >
                       <div
@@ -311,7 +292,7 @@ export function GridContent({
                       />
                       {Array.from({ length: 7 }).map((__, cellIndex) => (
                         <div
-                          key={`employee-progressive-skeleton-cell-${skeletonIndex + 1}-${cellIndex + 1}`}
+                          key={`employee-virtual-skeleton-cell-${skeletonIndex + 1}-${cellIndex + 1}`}
                           className={`h-[52px] animate-pulse rounded-lg ${isDark ? "bg-zinc-950/80" : "bg-zinc-100"}`}
                         />
                       ))}
@@ -342,6 +323,7 @@ export function GridContent({
                       onSelectShift={setSelectedShift}
                       onSelectEmployee={setSelectedEmployee}
                       onTimeChange={onTimeChange}
+                      enableDroppable={enableDroppable}
                       subtitle={emp.team}
                     />
                   ))}
@@ -370,6 +352,7 @@ export function GridContent({
                       onSelectShift={setSelectedShift}
                       onSelectEmployee={setSelectedEmployee}
                       onTimeChange={onTimeChange}
+                      enableDroppable={enableDroppable}
                       subtitle={emp.jobTitle || emp.role}
                     />
                   ))}
@@ -396,6 +379,7 @@ const DayHeaders = React.memo(function DayHeaders({
   highlightedDayId,
   shiftsByDate,
   weekStart,
+  enableDroppable,
 }: {
   isDark: boolean;
   scheduleView: string;
@@ -406,12 +390,13 @@ const DayHeaders = React.memo(function DayHeaders({
   highlightedDayId: string | null;
   shiftsByDate: Map<string, ScheduleShift[]>;
   weekStart: string;
+  enableDroppable: boolean;
 }) {
   return (
     <div className="sticky top-0 flex w-full" style={{ zIndex: SCHEDULE_LAYERS.stickyHeaders }}>
       {/* Sticky corner cell */}
       <div
-        className={`w-[260px] shrink-0 border-r border-b border-white/[0.04] ${isDark ? "bg-[#0a0a0c]/95" : "bg-white/95"} sticky left-0 flex h-16 flex-col justify-center p-3 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)] backdrop-blur-xl`}
+        className={`w-[260px] shrink-0 border-r border-b border-white/[0.04] ${isDark ? "bg-[#0a0a0c]/95" : "bg-white/95"} sticky left-0 flex h-16 flex-col justify-center p-3 shadow-[2px_0_8px_-6px_rgba(0,0,0,0.35)]`}
         style={{ zIndex: SCHEDULE_LAYERS.stickyCorner }}
       >
         <div className="flex w-full items-center justify-between">
@@ -442,6 +427,7 @@ const DayHeaders = React.memo(function DayHeaders({
           isHighlighted={highlightedDayId === day.id}
           dayShifts={shiftsByDate.get(day.id) ?? []}
           weekStart={weekStart}
+          enableDroppable={enableDroppable}
         />
       ))}
     </div>
@@ -458,6 +444,7 @@ function DroppableDayHeader({
   isHighlighted,
   dayShifts,
   weekStart,
+  enableDroppable,
 }: {
   day: DayColumn;
   isDark: boolean;
@@ -465,14 +452,18 @@ function DroppableDayHeader({
   isHighlighted: boolean;
   dayShifts: ScheduleShift[];
   weekStart: string;
+  enableDroppable: boolean;
 }) {
-  const { isOver, setNodeRef } = useDroppable({ id: `day-header::${day.id}` });
+  const { isOver, setNodeRef } = useDroppable({
+    id: `day-header::${day.id}`,
+    disabled: !enableDroppable,
+  });
 
   return (
     <div
       ref={setNodeRef}
       data-schedule-day-id={day.id}
-      className={`min-w-0 flex-1 border-r border-b border-white/[0.03] ${isDark ? "bg-[#0a0a0c]/90" : "bg-white/95"} group/day relative flex h-16 cursor-pointer flex-col justify-center p-2 backdrop-blur-xl transition-colors hover:bg-white/5 ${day.isToday ? "bg-orange-500/[0.06]" : ""} ${isOver ? "rounded-lg border-dashed border-orange-500/50 bg-orange-500/20" : ""} ${day.situation === "__dimmed__" ? "opacity-30" : ""} ${isHighlighted ? "shadow-[0_0_0_1px_rgba(251,146,60,0.35)] ring-2 ring-orange-400/70 ring-inset" : ""}`}
+      className={`min-w-0 flex-1 border-r border-b border-white/[0.03] ${isDark ? "bg-[#0a0a0c]/90" : "bg-white/95"} group/day relative flex h-16 cursor-pointer flex-col justify-center p-2 transition-colors hover:bg-white/5 ${day.isToday ? "bg-orange-500/[0.06]" : ""} ${isOver ? "rounded-lg border-dashed border-orange-500/50 bg-orange-500/20" : ""} ${day.situation === "__dimmed__" ? "opacity-30" : ""} ${isHighlighted ? "shadow-[0_0_0_1px_rgba(251,146,60,0.35)] ring-2 ring-orange-400/70 ring-inset" : ""}`}
       onClick={() => onDateClick(day.id)}
     >
       {day.coverageAlert ? (
@@ -575,6 +566,7 @@ type SortableEmployeeRowProps = {
   onSelectShift: (id: string | null) => void;
   onSelectEmployee?: (id: string) => void;
   onTimeChange?: (shiftId: string, newStart: string, newEnd: string) => void;
+  enableDroppable: boolean;
 };
 
 function SortableEmployeeRow(props: SortableEmployeeRowProps) {
@@ -614,6 +606,7 @@ export const EmployeeRow = React.memo(function EmployeeRow({
   onSelectEmployee,
   onTimeChange,
   dragHandleListeners,
+  enableDroppable,
 }: {
   employee: ScheduleEmployee;
   employeeStats?: { hours: number; shiftCount: number };
@@ -627,6 +620,7 @@ export const EmployeeRow = React.memo(function EmployeeRow({
   onSelectEmployee?: (id: string) => void;
   onTimeChange?: (shiftId: string, newStart: string, newEnd: string) => void;
   dragHandleListeners?: ReturnType<typeof useSortable>["listeners"];
+  enableDroppable: boolean;
 }) {
   const { isDark, scheduleCompactMode: isCompact } = useContext(DashboardContext);
   const scheduledHours = employeeStats?.hours ?? 0;
@@ -644,7 +638,7 @@ export const EmployeeRow = React.memo(function EmployeeRow({
     <div className="group/row flex w-full">
       {/* Sticky employee info panel — clickable to open drawer */}
       <div
-        className={`w-[260px] shrink-0 border-r border-b border-white/[0.04] ${isDark ? "bg-[#0a0a0c]" : "bg-white"} sticky left-0 flex cursor-pointer items-center shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)] transition-colors group-hover/row:bg-white/[0.02] ${isCompact ? "h-[52px] min-h-0 gap-2 p-2" : "min-h-[100px] gap-3 p-3"}`}
+        className={`w-[260px] shrink-0 border-r border-b border-white/[0.04] ${isDark ? "bg-[#0a0a0c]" : "bg-white"} sticky left-0 flex cursor-pointer items-center shadow-[2px_0_8px_-6px_rgba(0,0,0,0.35)] transition-colors group-hover/row:bg-white/[0.02] ${isCompact ? "h-[52px] min-h-0 gap-2 p-2" : "min-h-[100px] gap-3 p-3"}`}
         style={{ zIndex: SCHEDULE_LAYERS.stickyHeaders }}
         onClick={() => onSelectEmployee?.(employee.id)}
       >
@@ -720,6 +714,7 @@ export const EmployeeRow = React.memo(function EmployeeRow({
             id={`cell::${employee.id}::${day.id}`}
             isCompact={isCompact}
             dimmed={day.situation === "__dimmed__"}
+            enableDroppable={enableDroppable}
             onAddClick={() => onCreateShift({ dateId: day.id, employeeId: employee.id })}
             onContextMenu={(e) => {
               e.preventDefault();
@@ -776,6 +771,7 @@ function MatrixCell({
   id,
   isCompact,
   dimmed,
+  enableDroppable,
   onAddClick,
   onContextMenu,
 }: {
@@ -784,19 +780,101 @@ function MatrixCell({
   id?: string;
   isCompact?: boolean;
   dimmed?: boolean;
+  enableDroppable?: boolean;
+  onAddClick?: () => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
+}) {
+  const defaultId = React.useId();
+  const droppableId = id || defaultId;
+  if (!enableDroppable) {
+    return (
+      <MatrixCellBase
+        isToday={isToday}
+        isCompact={isCompact}
+        dimmed={dimmed}
+        isOver={false}
+        onAddClick={onAddClick}
+        onContextMenu={onContextMenu}
+      >
+        {children}
+      </MatrixCellBase>
+    );
+  }
+
+  return (
+    <MatrixCellDroppable
+      droppableId={droppableId}
+      isToday={isToday}
+      isCompact={isCompact}
+      dimmed={dimmed}
+      onAddClick={onAddClick}
+      onContextMenu={onContextMenu}
+    >
+      {children}
+    </MatrixCellDroppable>
+  );
+}
+
+function MatrixCellDroppable({
+  droppableId,
+  children,
+  isToday,
+  isCompact,
+  dimmed,
+  onAddClick,
+  onContextMenu,
+}: {
+  droppableId: string;
+  children?: React.ReactNode;
+  isToday?: boolean;
+  isCompact?: boolean;
+  dimmed?: boolean;
+  onAddClick?: () => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
+}) {
+  const { isOver, setNodeRef } = useDroppable({ id: droppableId });
+
+  return (
+    <MatrixCellBase
+      isToday={isToday}
+      isCompact={isCompact}
+      dimmed={dimmed}
+      isOver={isOver}
+      containerRef={setNodeRef}
+      onAddClick={onAddClick}
+      onContextMenu={onContextMenu}
+    >
+      {children}
+    </MatrixCellBase>
+  );
+}
+
+function MatrixCellBase({
+  children,
+  isToday,
+  isCompact,
+  dimmed,
+  isOver,
+  containerRef,
+  onAddClick,
+  onContextMenu,
+}: {
+  children?: React.ReactNode;
+  isToday?: boolean;
+  isCompact?: boolean;
+  dimmed?: boolean;
+  isOver: boolean;
+  containerRef?: (node: HTMLDivElement | null) => void;
   onAddClick?: () => void;
   onContextMenu?: (e: React.MouseEvent) => void;
 }) {
   const { isDark } = useContext(DashboardContext);
-  const defaultId = React.useId();
-  const droppableId = id || defaultId;
-  const { isOver, setNodeRef } = useDroppable({ id: droppableId });
 
   return (
     <div
-      ref={setNodeRef}
+      ref={containerRef}
       onContextMenu={onContextMenu}
-      className={`min-w-0 flex-1 border-r border-b border-white/[0.03] ${isDark ? "bg-[#050505]" : "bg-zinc-50"}/40 relative flex flex-col gap-1 overflow-hidden shadow-[inset_0_1px_6px_rgba(0,0,0,0.3)] transition-colors ${isCompact ? "h-[52px] min-h-0 p-1" : "min-h-[100px] p-2"} ${isOver ? "z-10 scale-[1.02] rounded-lg border border-dashed border-orange-500/50 bg-orange-500/20" : "group-hover/row:bg-white/[0.02] hover:bg-white/[0.04]"} ${isToday ? "bg-orange-500/[0.06]" : ""} ${dimmed ? "opacity-30" : ""}`}
+      className={`min-w-0 flex-1 border-r border-b border-white/[0.03] ${isDark ? "bg-[#050505]" : "bg-zinc-50"}/40 relative flex flex-col gap-1 overflow-hidden transition-colors ${isCompact ? "h-[52px] min-h-0 p-1" : "min-h-[100px] p-2"} ${isOver ? "z-10 rounded-lg border border-dashed border-orange-500/50 bg-orange-500/20" : "group-hover/row:bg-white/[0.02] hover:bg-white/[0.04]"} ${isToday ? "bg-orange-500/[0.06]" : ""} ${dimmed ? "opacity-30" : ""}`}
     >
       {children ? (
         <>

@@ -515,7 +515,7 @@ export function ShiftModal() {
       actor: string;
       timestamp: string;
     }[];
-  }, [existingShift]);
+  }, []);
 
   // ── Render ──────────────────────────────────────────────
 

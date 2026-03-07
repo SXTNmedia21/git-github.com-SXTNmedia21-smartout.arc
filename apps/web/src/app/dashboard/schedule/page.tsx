@@ -7,7 +7,6 @@ import {
   Network,
   Plus,
   Clock,
-  AlertCircle,
   PanelLeftClose,
   PanelLeftOpen,
   Printer,
@@ -25,6 +24,7 @@ import {
   rectIntersection,
   useSensor,
   useSensors,
+  useDndContext,
   useDroppable,
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates, arrayMove } from "@dnd-kit/sortable";
@@ -66,35 +66,18 @@ import {
   useMoveShift,
   useDeleteShift,
   usePublishShifts,
-  useUnpublishShifts,
 } from "./_hooks/use-shifts";
-import { useAbsences, useCreateAbsence, useDeleteAbsence } from "./_hooks/use-absences";
-import {
-  useTemplates,
-  useSaveTemplate,
-  useUpdateTemplate,
-  useDeleteTemplate,
-  useLoadTemplate,
-} from "./_hooks/use-templates";
-import {
-  useOpenShifts,
-  useCreateOpenShift,
-  useDeleteOpenShift,
-  useAssignOpenShift,
-} from "./_hooks/use-open-shifts";
+import { useAbsences } from "./_hooks/use-absences";
+import { useTemplates, useLoadTemplate } from "./_hooks/use-templates";
+import { useOpenShifts, useCreateOpenShift, useAssignOpenShift } from "./_hooks/use-open-shifts";
 import {
   useDayMessages,
   useCreateDayMessage,
-  useDeleteDayMessage,
   useDayTasks,
-  useCreateDayTask,
-  useUpdateDayTaskStatus,
-  useDeleteDayTask,
   useDayBookings,
-  useCreateDayBooking,
 } from "./_hooks/use-day-content";
 import { useScheduleRealtime } from "./_hooks/use-schedule-realtime";
-import { useScheduleComputed } from "./_hooks/use-schedule-computed";
+import { useScheduleComputed, type ScheduleComputed } from "./_hooks/use-schedule-computed";
 import { useDayInfo } from "./_hooks/use-day-info";
 
 // ---------------------------------------------------------------------------
@@ -120,6 +103,12 @@ function getWeekRange(weekOffset = 0): { weekStart: string; weekEnd: string } {
 // Generate day columns — supports variable day count (7 or 14)
 // ---------------------------------------------------------------------------
 const DAY_LABELS = ["Man", "Tir", "Ons", "Tor", "Fre", "Lør", "Søn"];
+
+function formatSmsPrefill(dateId: string): string {
+  const date = new Date(`${dateId}T00:00:00`);
+  const weekday = date.toLocaleDateString("en-US", { weekday: "long" });
+  return `Regarding shift on ${weekday}`;
+}
 
 function generateDayColumns(weekStart: string, dayCount = 7): DayColumn[] {
   const start = new Date(weekStart + "T00:00:00");
@@ -200,7 +189,11 @@ function SchedulePageContent() {
     open: boolean;
     dateId: string;
     dateLabel: string;
-  }>({ open: false, dateId: "", dateLabel: "" });
+    initialMessage: string;
+  }>({ open: false, dateId: "", dateLabel: "", initialMessage: "" });
+  const scheduleUI = useScheduleUI();
+  const { selectedDayId, setSelectedDay } = scheduleUI;
+  const activeSelectedDate = selectedDayId ?? selectedDate;
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   /**
    * Scrolls to a schedule day header, briefly highlights it, and optionally
@@ -230,9 +223,10 @@ function SchedulePageContent() {
 
       if (openPlanner) {
         setSelectedDate(dateId);
+        if (selectedDayId) setSelectedDay(null);
       }
     },
-    [scheduleLayout, setScheduleLayout],
+    [scheduleLayout, setScheduleLayout, selectedDayId, setSelectedDay],
   );
 
   useEffect(() => {
@@ -295,11 +289,12 @@ function SchedulePageContent() {
   const { workspace } = useWorkspace();
 
   const shouldLoadSidebarData = loadSecondaryData || isSidebarOpen || sidebarMode === "templates";
-  const shouldLoadDayContent = loadSecondaryData || selectedDate !== null || sendMessageDialog.open;
+  const shouldLoadDayContent =
+    loadSecondaryData || activeSelectedDate !== null || sendMessageDialog.open;
 
   // ── TanStack Query hooks ────────────────────────────────────
   const employeesQuery = useEmployees();
-  const employees = employeesQuery.data ?? [];
+  const employees = useMemo(() => employeesQuery.data ?? [], [employeesQuery.data]);
   const shiftsQuery = useShifts(weekStart, weekEnd);
   const absencesQuery = useAbsences(weekStart, weekEnd);
   const templatesQuery = useTemplates({ enabled: shouldLoadSidebarData });
@@ -310,7 +305,12 @@ function SchedulePageContent() {
   const { dayInfoByDate } = useDayInfo(weekStart, weekEnd, { enabled: shouldLoadDayContent });
 
   // ── Enrich day columns with day info + real shift/staff/message/task counts ─
+  const shouldComputeEnrichedDays =
+    scheduleLayout === "daily" || activeSelectedDate !== null || sendMessageDialog.open;
+
   const enrichedDays = useMemo(() => {
+    if (!shouldComputeEnrichedDays) return days;
+
     const allShifts = shiftsQuery.data ?? [];
     const allMessages = dayMessagesQuery.data ?? [];
     const allTasks = dayTasksQuery.data ?? [];
@@ -362,7 +362,52 @@ function SchedulePageContent() {
         dayInfo: notes.length > 0 ? notes : undefined,
       };
     });
-  }, [days, dayInfoByDate, shiftsQuery.data, dayMessagesQuery.data, dayTasksQuery.data]);
+  }, [
+    shouldComputeEnrichedDays,
+    days,
+    dayInfoByDate,
+    shiftsQuery.data,
+    dayMessagesQuery.data,
+    dayTasksQuery.data,
+  ]);
+
+  useEffect(() => {
+    const handleSmsCompose = (event: Event) => {
+      const customEvent = event as CustomEvent<{
+        dateId?: string;
+        employeeName?: string;
+        shiftTime?: string;
+        customMessage?: string;
+        includeDaginfo?: boolean;
+      }>;
+      const targetDateId = customEvent.detail?.dateId ?? new Date().toISOString().slice(0, 10);
+      const dayLabel = enrichedDays.find((day) => day.id === targetDateId)?.label ?? targetDateId;
+      const employeeName = customEvent.detail?.employeeName;
+      const shiftTime = customEvent.detail?.shiftTime;
+      const contextualLine =
+        employeeName && shiftTime ? `\n\nEmployee: ${employeeName}\nShift: ${shiftTime}` : "";
+      const customMessage = customEvent.detail?.customMessage?.trim();
+      const includeDaginfo = customEvent.detail?.includeDaginfo === true;
+      const initialMessage =
+        customMessage && customMessage.length > 0
+          ? includeDaginfo
+            ? `${customMessage}\n\n${formatSmsPrefill(targetDateId)}${contextualLine}`
+            : `${customMessage}${contextualLine}`
+          : `${formatSmsPrefill(targetDateId)}${contextualLine}`;
+
+      setSendMessageDialog({
+        open: true,
+        dateId: targetDateId,
+        dateLabel: dayLabel,
+        initialMessage,
+      });
+    };
+
+    window.addEventListener("smartout:schedule-sms-compose", handleSmsCompose);
+    return () => {
+      window.removeEventListener("smartout:schedule-sms-compose", handleSmsCompose);
+    };
+  }, [enrichedDays]);
 
   // ── Realtime subscription ───────────────────────────────────
   useScheduleRealtime(weekStart, {
@@ -387,22 +432,10 @@ function SchedulePageContent() {
   const moveShift = useMoveShift(weekStart);
   const deleteShift = useDeleteShift(weekStart);
   const publishShifts = usePublishShifts(weekStart);
-  const unpublishShifts = useUnpublishShifts(weekStart);
-  const createAbsence = useCreateAbsence(weekStart);
-  const deleteAbsence = useDeleteAbsence(weekStart);
-  const saveTemplate = useSaveTemplate();
-  const updateTemplate = useUpdateTemplate();
-  const deleteTemplate = useDeleteTemplate();
   const loadTemplate = useLoadTemplate(weekStart);
   const createOpenShift = useCreateOpenShift();
-  const deleteOpenShift = useDeleteOpenShift();
   const assignOpenShift = useAssignOpenShift(weekStart);
   const createDayMessage = useCreateDayMessage(weekStart);
-  const deleteDayMessage = useDeleteDayMessage(weekStart);
-  const createDayTask = useCreateDayTask(weekStart);
-  const updateDayTaskStatus = useUpdateDayTaskStatus(weekStart);
-  const deleteDayTask = useDeleteDayTask(weekStart);
-  const createDayBooking = useCreateDayBooking(weekStart);
 
   /** Handles Shift+drag resize updates from grid cards without extra hook subscriptions in grid rows. */
   const handleGridShiftTimeChange = useCallback(
@@ -423,16 +456,18 @@ function SchedulePageContent() {
     [updateShift],
   );
 
-  // ── UI-only context ─────────────────────────────────────────
-  const scheduleUI = useScheduleUI();
-
-  // Bridge: "Se dagsliste" sets selectedDayId in UI context → open DayControlSheet
-  useEffect(() => {
-    if (scheduleUI.selectedDayId) {
-      setSelectedDate(scheduleUI.selectedDayId);
-      scheduleUI.setSelectedDay(null);
-    }
-  }, [scheduleUI.selectedDayId, scheduleUI.setSelectedDay]);
+  const handleSetSelectedDate = useCallback(
+    (date: string | null) => {
+      setSelectedDate(date);
+      if (date === null && selectedDayId) {
+        setSelectedDay(null);
+      }
+      if (date !== null && selectedDayId) {
+        setSelectedDay(null);
+      }
+    },
+    [selectedDayId, setSelectedDay],
+  );
 
   // ── Derived values ──────────────────────────────────────────
   const shifts = useMemo(() => shiftsQuery.data ?? [], [shiftsQuery.data]);
@@ -497,7 +532,7 @@ function SchedulePageContent() {
   }, [employees, employeeOrder, scheduleCompactMode, employeesWithShifts]);
 
   // ── Location-based employee filtering ─────────────────────
-  const { activeLocation } = useContext(DashboardContext);
+  const { activeLocation, setActiveLocation } = useContext(DashboardContext);
 
   const locationFilteredEmployees = useMemo(() => {
     if (!activeLocation || activeLocation === "Alle Lokasjoner") return sortedEmployees;
@@ -516,6 +551,65 @@ function SchedulePageContent() {
       );
     });
   }, [sortedEmployees, activeLocation]);
+
+  const locationOptions = useMemo(() => {
+    const values = new Set<string>();
+    for (const employee of employees) {
+      const candidates = [employee.team, employee.jobTitle, employee.role];
+      for (const candidate of candidates) {
+        if (!candidate) continue;
+        const trimmed = candidate.trim();
+        if (trimmed.length === 0) continue;
+        values.add(trimmed);
+      }
+    }
+    return Array.from(values).sort((a, b) => a.localeCompare(b, "nb"));
+  }, [employees]);
+
+  useEffect(() => {
+    if (activeLocation === "Alle Lokasjoner") return;
+    if (locationOptions.includes(activeLocation)) return;
+    const fallback = locationOptions[0] ?? "Alle Lokasjoner";
+    setActiveLocation(fallback);
+  }, [activeLocation, locationOptions, setActiveLocation]);
+
+  const visibleEmployeeIds = useMemo(
+    () => new Set(locationFilteredEmployees.map((employee) => employee.id)),
+    [locationFilteredEmployees],
+  );
+
+  const filteredShifts = useMemo(() => {
+    const baseShifts = shifts.filter((shift) =>
+      shift.employeeId ? visibleEmployeeIds.has(shift.employeeId) : true,
+    );
+    if (!activeStatusFilter) return baseShifts;
+
+    switch (activeStatusFilter) {
+      case "draft":
+        return baseShifts.filter(
+          (shift) => shift.status === "created" || shift.status === "assigned",
+        );
+      case "published":
+        return baseShifts.filter((shift) => shift.status === "published");
+      case "active":
+        return baseShifts.filter((shift) => shift.status === "active");
+      case "completed":
+        return baseShifts.filter((shift) => shift.status === "completed");
+      case "absence":
+        return [];
+      default:
+        return baseShifts;
+    }
+  }, [shifts, visibleEmployeeIds, activeStatusFilter]);
+
+  const filteredAbsences = useMemo(() => {
+    const baseAbsences = (absencesQuery.data ?? []).filter((absence) =>
+      visibleEmployeeIds.has(absence.employeeId),
+    );
+    if (activeStatusFilter === "absence") return baseAbsences;
+    if (!activeStatusFilter) return baseAbsences;
+    return baseAbsences;
+  }, [absencesQuery.data, visibleEmployeeIds, activeStatusFilter]);
 
   // ── Situation-filtered day columns ────────────────────────
   const situationFilteredDays = useMemo(() => {
@@ -782,6 +876,7 @@ function SchedulePageContent() {
         "schedule:route-enter",
         "schedule:first-render",
       );
+      // eslint-disable-next-line no-console -- perf tracing
       console.info("[schedule-perf] first-render-ms", renderMs);
     });
   }, [isLoading]);
@@ -794,6 +889,7 @@ function SchedulePageContent() {
       firstInteractionCapturedRef.current = true;
       const start = schedulePerfStartRef.current;
       if (start === null) return;
+      // eslint-disable-next-line no-console -- perf tracing
       console.info("[schedule-perf] first-interaction-ms", Math.round(performance.now() - start));
     };
 
@@ -819,7 +915,7 @@ function SchedulePageContent() {
         employees={employees}
         computed={computed}
         focusDayInUI={focusDayInUI}
-        setSelectedDate={setSelectedDate}
+        setSelectedDate={handleSetSelectedDate}
         createShift={createShift}
         updateShift={updateShift}
         deleteShift={deleteShift}
@@ -866,23 +962,23 @@ function SchedulePageContent() {
                     weekSpan={weekSpan}
                     setWeekSpan={setWeekSpan}
                     scheduleLayout={scheduleLayout}
+                    locationOptions={locationOptions}
                   />
 
                   <GridSurface
-                    isDark={isDark}
                     centerContent={
                       <>
                         {scheduleLayout === "daily" && (
                           <GridContent
                             isSidebarOpen={isSidebarOpen}
                             setIsSidebarOpen={setIsSidebarOpen}
-                            onDateClick={setSelectedDate}
+                            onDateClick={handleSetSelectedDate}
                             filterSituation={filterSituation}
                             activeStatusFilter={activeStatusFilter}
                             visibleDays={situationFilteredDays}
                             employees={locationFilteredEmployees}
-                            shifts={shifts}
-                            absences={absencesQuery.data ?? []}
+                            shifts={filteredShifts}
+                            absences={filteredAbsences}
                             highlightedDayId={highlightedDayId}
                             weekStart={weekStart}
                             onTimeChange={handleGridShiftTimeChange}
@@ -892,41 +988,39 @@ function SchedulePageContent() {
                           <WeeklyGridContent
                             isSidebarOpen={isSidebarOpen}
                             setIsSidebarOpen={setIsSidebarOpen}
-                            onDateClick={setSelectedDate}
+                            onDateClick={handleSetSelectedDate}
                             filterSituation={filterSituation}
-                            shifts={shifts}
                             computed={computed}
                             scheduleUI={scheduleUI}
-                            employees={employees}
+                            employees={locationFilteredEmployees}
                           />
                         )}
                         {scheduleLayout === "monthly" && (
                           <MonthlyView
-                            onDateClick={setSelectedDate}
-                            shifts={shifts}
+                            onDateClick={handleSetSelectedDate}
+                            shifts={filteredShifts}
                             computed={computed}
-                            employees={employees}
+                            employees={locationFilteredEmployees}
                           />
                         )}
                         {scheduleLayout === "list" && (
                           <ListGridContent
-                            onDateClick={setSelectedDate}
-                            shifts={shifts}
+                            onDateClick={handleSetSelectedDate}
                             computed={computed}
                             days={days}
-                            employees={employees}
+                            employees={locationFilteredEmployees}
                           />
                         )}
                       </>
                     }
                     dayInspector={
                       <DayControlSheet
-                        selectedDate={selectedDate}
-                        onClose={() => setSelectedDate(null)}
+                        selectedDate={activeSelectedDate}
+                        onClose={() => handleSetSelectedDate(null)}
                       >
                         <DayControlPanel
-                          date={selectedDate}
-                          onClose={() => setSelectedDate(null)}
+                          date={activeSelectedDate}
+                          onClose={() => handleSetSelectedDate(null)}
                         />
                       </DayControlSheet>
                     }
@@ -969,10 +1063,27 @@ function SchedulePageContent() {
             <SendMessageDialog
               open={sendMessageDialog.open}
               onOpenChange={(open) => setSendMessageDialog((prev) => ({ ...prev, open }))}
+              workspaceId={workspace.workspace_id}
               dateId={sendMessageDialog.dateId}
               dateLabel={sendMessageDialog.dateLabel}
+              initialMessage={sendMessageDialog.initialMessage}
               shifts={shifts}
               employees={employees}
+              onSent={(content, audience, recipients) => {
+                if (!sendMessageDialog.dateId) return;
+                createDayMessage.mutate({
+                  id: crypto.randomUUID(),
+                  dateId: sendMessageDialog.dateId,
+                  title: `Utsendt melding (${audience})`,
+                  content,
+                  audience,
+                  visibility: "all_day",
+                  author: "Schedule",
+                  isAlert: false,
+                });
+                // eslint-disable-next-line no-console -- operational log
+                console.info("[schedule] message sent", { recipients });
+              }}
             />
           </>
         )}
@@ -1060,7 +1171,12 @@ function ScheduleLoadingSkeleton({ isDark }: { isDark: boolean }) {
 // OpenShiftDropZone — droppable area for converting shifts to open shifts
 // ---------------------------------------------------------------------------
 function OpenShiftDropZone({ isDark, children }: { isDark: boolean; children: React.ReactNode }) {
-  const { setNodeRef, isOver } = useDroppable({ id: "open-shift-zone" });
+  const { active } = useDndContext();
+  const enableDroppable = active !== null;
+  const { setNodeRef, isOver } = useDroppable({
+    id: "open-shift-zone",
+    disabled: !enableDroppable,
+  });
 
   return (
     <div
@@ -1228,7 +1344,6 @@ function WeeklyGridContent({
   setIsSidebarOpen,
   onDateClick,
   filterSituation,
-  shifts,
   computed,
   scheduleUI,
   employees,
@@ -1237,12 +1352,13 @@ function WeeklyGridContent({
   setIsSidebarOpen: (v: boolean) => void;
   onDateClick?: (d: string) => void;
   filterSituation: string;
-  shifts: import("./_components/schedule-types").Shift[];
-  computed: import("./_hooks/use-schedule-computed").ScheduleComputed;
+  computed: ScheduleComputed;
   scheduleUI: ReturnType<typeof useScheduleUI>;
   employees: ScheduleEmployee[];
 }) {
   const { isDark, scheduleView, weeklyPeriodCount } = useContext(DashboardContext);
+  const { active } = useDndContext();
+  const enableDroppable = active !== null;
   const columns = Array.from({ length: weeklyPeriodCount }, (_, i) => i + 1);
 
   /**
@@ -1376,7 +1492,7 @@ function WeeklyGridContent({
               </span>
             </div>
 
-            <WeeklyGridCell>
+            <WeeklyGridCell enableDroppable={enableDroppable}>
               {col % 2 !== 0 ? (
                 <ShiftCard role="Sous Chef" time="5 vakter" status="published" indicator="blue" />
               ) : (
@@ -1385,7 +1501,7 @@ function WeeklyGridContent({
                 />
               )}
             </WeeklyGridCell>
-            <WeeklyGridCell>
+            <WeeklyGridCell enableDroppable={enableDroppable}>
               <ShiftCard
                 role="Manager"
                 time="5 vakter"
@@ -1393,14 +1509,14 @@ function WeeklyGridContent({
                 indicator="purple"
               />
             </WeeklyGridCell>
-            <WeeklyGridCell>
+            <WeeklyGridCell enableDroppable={enableDroppable}>
               {col % 4 === 0 ? (
                 <AbsenceCard type="Avspasering" reason="Rotasjon" />
               ) : (
                 <ShiftCard role="Kokk" time="4 vakter" status="draft" indicator="orange" />
               )}
             </WeeklyGridCell>
-            <WeeklyGridCell>
+            <WeeklyGridCell enableDroppable={enableDroppable}>
               <ShiftCard
                 role="Housekeeping"
                 time="4 vakter"
@@ -1515,15 +1631,53 @@ function EntityRow({
   );
 }
 
-function WeeklyGridCell({ children, id }: { children?: React.ReactNode; id?: string }) {
-  const { isDark } = useContext(DashboardContext);
+function WeeklyGridCell({
+  children,
+  id,
+  enableDroppable,
+}: {
+  children?: React.ReactNode;
+  id?: string;
+  enableDroppable?: boolean;
+}) {
   const defaultId = React.useId();
   const droppableId = id || defaultId;
+  if (!enableDroppable) {
+    return <WeeklyGridCellBase isOver={false}>{children}</WeeklyGridCellBase>;
+  }
+
+  return <WeeklyGridCellDroppable droppableId={droppableId}>{children}</WeeklyGridCellDroppable>;
+}
+
+function WeeklyGridCellDroppable({
+  droppableId,
+  children,
+}: {
+  droppableId: string;
+  children?: React.ReactNode;
+}) {
   const { isOver, setNodeRef } = useDroppable({ id: droppableId });
+  return (
+    <WeeklyGridCellBase containerRef={setNodeRef} isOver={isOver}>
+      {children}
+    </WeeklyGridCellBase>
+  );
+}
+
+function WeeklyGridCellBase({
+  children,
+  isOver,
+  containerRef,
+}: {
+  children?: React.ReactNode;
+  isOver: boolean;
+  containerRef?: (node: HTMLDivElement | null) => void;
+}) {
+  const { isDark } = useContext(DashboardContext);
 
   return (
     <div
-      ref={setNodeRef}
+      ref={containerRef}
       className={`h-24 border-b border-white/5 ${isDark ? "bg-[#050505]" : "bg-zinc-50"}/40 relative flex flex-col gap-1 overflow-hidden p-1 shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] transition-colors ${isOver ? "z-10 scale-[1.02] rounded-lg border border-dashed border-orange-500/50 bg-orange-500/20" : "hover:bg-white/[0.04]"}`}
     >
       {children}
@@ -1548,14 +1702,12 @@ function WeeklyEmptyCell({ onClick }: { onClick?: () => void }) {
 // ═══════════════════════════════════════════════════════════════════════════
 function ListGridContent({
   onDateClick,
-  shifts,
   computed,
   days,
   employees,
 }: {
   onDateClick: (d: string) => void;
-  shifts: import("./_components/schedule-types").Shift[];
-  computed: import("./_hooks/use-schedule-computed").ScheduleComputed;
+  computed: ScheduleComputed;
   days: DayColumn[];
   employees: ScheduleEmployee[];
 }) {

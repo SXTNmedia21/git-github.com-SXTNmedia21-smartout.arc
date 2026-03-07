@@ -75,34 +75,6 @@ export function EditTemplateDialog({ open, onOpenChange, template }: EditTemplat
     setShifts((prev) => prev.map((row, i) => (i === index ? { ...row, [field]: value } : row)));
   };
 
-  /**
-   * Calculates work hours from start and end time strings.
-   * Handles overnight shifts (end < start).
-   */
-  const calculateWorkHours = (startTime: string, endTime: string): number => {
-    const startParts = startTime.split(":").map(Number);
-    const endParts = endTime.split(":").map(Number);
-    const startMinutes = (startParts[0] ?? 0) * 60 + (startParts[1] ?? 0);
-    let endMinutes = (endParts[0] ?? 0) * 60 + (endParts[1] ?? 0);
-    if (endMinutes <= startMinutes) endMinutes += 24 * 60;
-    return Math.max(0, (endMinutes - startMinutes) / 60);
-  };
-
-  /**
-   * Determines day category from start time.
-   */
-  const inferDayCategory = (
-    startTime: string,
-  ): "morning" | "midday" | "afternoon" | "evening" | "night" => {
-    const hour = parseInt(startTime.split(":")[0] ?? "0", 10);
-    if (hour < 6) return "night";
-    if (hour < 11) return "morning";
-    if (hour < 14) return "midday";
-    if (hour < 17) return "afternoon";
-    if (hour < 22) return "evening";
-    return "night";
-  };
-
   /** Validates and submits the updated template. */
   const handleSubmit = () => {
     if (!name.trim() || !department.trim()) return;

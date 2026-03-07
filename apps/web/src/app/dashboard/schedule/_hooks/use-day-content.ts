@@ -19,6 +19,7 @@ import {
   fromDbDayBooking,
   fromDbDayMessage,
   fromDbDayTask,
+  type DayTaskUpdatePatch,
   toDbDayBookingInsert,
   toDbDayMessageInsert,
   toDbDayTaskInsert,
@@ -237,7 +238,7 @@ export function useCreateDayTask(weekStart: string) {
 
 type UpdateDayTaskStatusInput = {
   id: string;
-  patch: Partial<Omit<DayTask, "id">>;
+  patch: DayTaskUpdatePatch;
 };
 
 export function useUpdateDayTaskStatus(weekStart: string) {
@@ -270,7 +271,14 @@ export function useUpdateDayTaskStatus(weekStart: string) {
       queryClient.setQueryData<DayTask[]>(queryKey, (old) =>
         (old ?? []).map((task) => {
           if (task.id !== id) return task;
-          return { ...task, ...patch };
+          return {
+            ...task,
+            ...patch,
+            assignedTo:
+              patch.assignedTo === null ? undefined : (patch.assignedTo ?? task.assignedTo),
+            completedAt:
+              patch.completedAt === null ? undefined : (patch.completedAt ?? task.completedAt),
+          };
         }),
       );
 

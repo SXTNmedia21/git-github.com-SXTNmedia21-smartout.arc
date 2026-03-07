@@ -52,7 +52,7 @@ type EmployeeDrawerProps = {
 // ── Component ─────────────────────────────────────────────────
 
 export function EmployeeDrawer({ open, onOpenChange, employee }: EmployeeDrawerProps) {
-  const { isDark } = useContext(DashboardContext);
+  const { isDark: _isDark } = useContext(DashboardContext);
   const { weekStart, weekEnd } = useWeekRange();
 
   // Roster data
@@ -232,7 +232,6 @@ export function EmployeeDrawer({ open, onOpenChange, employee }: EmployeeDrawerP
                     pattern={editPattern}
                     isEditing={isEditing}
                     onPatternChange={handlePatternChange}
-                    isDark={isDark}
                   />
                 </>
               )}
@@ -276,11 +275,7 @@ export function EmployeeDrawer({ open, onOpenChange, employee }: EmployeeDrawerP
                 <Calendar className="h-3.5 w-3.5" />
                 Tilgjengelighet
               </h3>
-              <AvailabilityCalendar
-                absenceDates={absenceDates}
-                pattern={editPattern}
-                isDark={isDark}
-              />
+              <AvailabilityCalendar absenceDates={absenceDates} pattern={editPattern} />
             </section>
 
             <Separator className="bg-border" />
@@ -307,21 +302,12 @@ export function EmployeeDrawer({ open, onOpenChange, employee }: EmployeeDrawerP
                 Statistikk
               </h3>
               <div className="grid grid-cols-3 gap-3">
-                <StatCard
-                  label="Timer denne uken"
-                  value={`${stats.weekHours.toFixed(1)}/37.5`}
-                  isDark={isDark}
-                />
-                <StatCard
-                  label="Vakter denne mnd"
-                  value={String(stats.monthShifts)}
-                  isDark={isDark}
-                />
+                <StatCard label="Timer denne uken" value={`${stats.weekHours.toFixed(1)}/37.5`} />
+                <StatCard label="Vakter denne mnd" value={String(stats.monthShifts)} />
                 <StatCard
                   label="Overtid"
                   value={`${stats.overtime.toFixed(1)}t`}
                   warn={stats.overtime > 0}
-                  isDark={isDark}
                 />
               </div>
             </section>
@@ -408,12 +394,10 @@ function TurnusGrid({
   pattern,
   isEditing,
   onPatternChange,
-  isDark,
 }: {
   pattern: RosterPattern;
   isEditing: boolean;
   onPatternChange: (day: keyof RosterPattern, value: string) => void;
-  isDark: boolean;
 }) {
   return (
     <div className="grid grid-cols-7 gap-1.5">
@@ -489,11 +473,9 @@ function TurnusGrid({
 function AvailabilityCalendar({
   absenceDates,
   pattern,
-  isDark,
 }: {
   absenceDates: Set<string>;
   pattern: RosterPattern;
-  isDark: boolean;
 }) {
   // Show current week + 3 more weeks
   const weeks = useMemo(() => {
@@ -584,17 +566,7 @@ function AvailabilityCalendar({
 
 // ── StatCard ──────────────────────────────────────────────────
 
-function StatCard({
-  label,
-  value,
-  warn,
-  isDark,
-}: {
-  label: string;
-  value: string;
-  warn?: boolean;
-  isDark: boolean;
-}) {
+function StatCard({ label, value, warn }: { label: string; value: string; warn?: boolean }) {
   return (
     <div className="border-border bg-muted/50 rounded-lg border p-3">
       <div className="text-muted-foreground text-[10px] font-medium tracking-wide uppercase">
@@ -614,6 +586,6 @@ function hasAnyShift(pattern: RosterPattern): boolean {
 }
 
 function formatDateNb(dateStr: string): string {
-  const [y, m, d] = dateStr.split("-");
+  const [, m, d] = dateStr.split("-");
   return `${d}.${m}`;
 }

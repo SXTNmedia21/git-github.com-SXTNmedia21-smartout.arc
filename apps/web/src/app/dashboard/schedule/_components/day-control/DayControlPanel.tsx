@@ -23,22 +23,27 @@ import {
 } from "lucide-react";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useScheduleUI } from "../schedule-ui-context";
-import { useWeekRange } from "../../_hooks/use-week-range";
-import { useShifts } from "../../_hooks/use-shifts";
-import { useDayMessages, useDayTasks, useDayBookings } from "../../_hooks/use-day-content";
-import type { Shift, DayMessage, DayTask, DayBooking } from "../schedule-types";
 import { formatDateLabel } from "./shared";
 import { TabButton } from "./shared";
 import { OversiktTab } from "./OversiktTab";
 import { MeldingerTab } from "./MeldingerTab";
 import { BookingsTab } from "./BookingsTab";
-import { OppgaverTab } from "./OppgaverTab";
 import { BudgetTab } from "./BudgetTab";
 import { StaffingTab } from "./StaffingTab";
 import { BroadcastFooter } from "./BroadcastFooter";
+import { DaySessionProvider } from "./DaySessionProvider";
+import { SessionTasksTab } from "./SessionTasksTab";
+import { useDaySession } from "./use-day-session";
 
 type TabId = "oversikt" | "meldinger" | "bookings" | "oppgaver" | "budsjett" | "bemanning";
 
+/**
+ * Hosts the day control panel inside the shared day-session provider.
+ *
+ * Why: the panel shell and its tabs must read from the same integrated state.
+ *
+ * Returns: the wrapped day control panel for the selected day.
+ */
 export function DayControlPanel({
   date,
   onClose,
@@ -48,32 +53,51 @@ export function DayControlPanel({
   onClose: () => void;
   onNavigate?: (direction: "prev" | "next") => void;
 }) {
+  if (!date) return null;
+
+  return (
+    <DaySessionProvider key={date} dateId={date}>
+      <DayControlPanelContent date={date} onClose={onClose} onNavigate={onNavigate} />
+    </DaySessionProvider>
+  );
+}
+
+/**
+ * Renders the visual day control shell after shared state is available.
+ *
+ * Why: this inner component can safely read day-session data without mixing
+ * provider setup with presentational layout.
+ *
+ * Returns: the day control panel UI.
+ */
+function DayControlPanelContent({
+  date,
+  onClose,
+  onNavigate,
+}: {
+  date: string;
+  onClose: () => void;
+  onNavigate?: (direction: "prev" | "next") => void;
+}) {
   const { isDark } = useContext(DashboardContext);
   const { dayControlFullscreen, setDayControlFullscreen } = useScheduleUI();
   const [activeTab, setActiveTab] = useState<TabId>("oversikt");
-
-  // Quick stats for header badges
-  const { weekStart, weekEnd } = useWeekRange();
-  const { data: shifts = [] as Shift[] } = useShifts(weekStart, weekEnd);
-  const { data: messages = [] as DayMessage[] } = useDayMessages(weekStart, weekEnd);
-  const { data: tasks = [] as DayTask[] } = useDayTasks(weekStart, weekEnd);
-  const { data: bookings = [] as DayBooking[] } = useDayBookings(weekStart, weekEnd);
+  const { snapshot, dayBookings, dayMessages } = useDaySession();
 
   const dateLabel = useMemo(() => formatDateLabel(date), [date]);
 
   // Count items per tab for badge display
   const dayStats = useMemo(() => {
-    if (!date)
-      return { staffCount: 0, messageCount: 0, bookingCount: 0, taskCount: 0, taskDone: 0 };
-    const dayShifts = shifts.filter((s: Shift) => s.dateId === date);
-    const staffCount = new Set(dayShifts.map((s) => s.employeeId).filter(Boolean)).size;
-    const messageCount = messages.filter((m: DayMessage) => m.dateId === date).length;
-    const bookingCount = bookings.filter((b: DayBooking) => b.dateId === date).length;
-    const dayTasks = tasks.filter((t: DayTask) => t.dateId === date);
-    const taskCount = dayTasks.length;
-    const taskDone = dayTasks.filter((t) => t.status === "completed").length;
-    return { staffCount, messageCount, bookingCount, taskCount, taskDone };
-  }, [date, shifts, messages, bookings, tasks]);
+    const taskCount = snapshot?.summary.taskCount ?? 0;
+    const taskDone = snapshot?.summary.completedTaskCount ?? 0;
+    return {
+      staffCount: snapshot?.summary.staffCount ?? 0,
+      messageCount: dayMessages.length,
+      bookingCount: dayBookings.length,
+      taskCount,
+      taskDone,
+    };
+  }, [dayBookings.length, dayMessages.length, snapshot]);
 
   const handleClose = useCallback(() => {
     setDayControlFullscreen(false);
@@ -87,13 +111,9 @@ export function DayControlPanel({
         handleClose();
       }
     }
-    if (date) {
-      document.addEventListener("keydown", handleKeyDown);
-      return () => document.removeEventListener("keydown", handleKeyDown);
-    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [date, handleClose]);
-
-  if (!date) return null;
 
   return (
     <div className="relative flex h-full w-full flex-col">
@@ -215,7 +235,7 @@ export function DayControlPanel({
         {activeTab === "oversikt" && <OversiktTab dateId={date} />}
         {activeTab === "meldinger" && <MeldingerTab dateId={date} />}
         {activeTab === "bookings" && <BookingsTab dateId={date} />}
-        {activeTab === "oppgaver" && <OppgaverTab dateId={date} />}
+        {activeTab === "oppgaver" && <SessionTasksTab />}
         {activeTab === "budsjett" && <BudgetTab dateId={date} />}
         {activeTab === "bemanning" && <StaffingTab dateId={date} />}
       </div>

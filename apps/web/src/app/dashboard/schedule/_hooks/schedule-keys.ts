@@ -26,6 +26,9 @@ export const scheduleKeys = {
   dayTasks: (workspaceId: string, weekStart: string) =>
     ["schedule", "tasks", workspaceId, weekStart] as const,
 
+  daySessionReadiness: (workspaceId: string, dateId: string, profileIds: string[]) =>
+    ["schedule", "day-session-readiness", workspaceId, dateId, ...profileIds] as const,
+
   dayBookings: (workspaceId: string, weekStart: string) =>
     ["schedule", "bookings", workspaceId, weekStart] as const,
 

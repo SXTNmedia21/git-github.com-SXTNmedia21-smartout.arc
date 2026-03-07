@@ -7,7 +7,7 @@
 // ============================================
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Send, MessageSquare, Bell, Mail, Users, Shield, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 
@@ -35,10 +35,13 @@ type Audience = "all" | "leaders" | "specific";
 type SendMessageDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  workspaceId: string;
   dateId: string;
   dateLabel: string;
+  initialMessage?: string;
   shifts: Shift[];
   employees: ScheduleEmployee[];
+  onSent?: (message: string, audience: Audience, recipients: number) => void;
 };
 
 /**
@@ -51,15 +54,19 @@ type SendMessageDialogProps = {
 export function SendMessageDialog({
   open,
   onOpenChange,
+  workspaceId,
   dateId,
   dateLabel,
+  initialMessage,
   shifts,
   employees,
+  onSent,
 }: SendMessageDialogProps) {
   const [channels, setChannels] = useState<Set<Channel>>(new Set(["push"]));
   const [audience, setAudience] = useState<Audience>("all");
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<Set<string>>(new Set());
   const [message, setMessage] = useState("");
+  const [isSending, setIsSending] = useState(false);
 
   // Employees working on this day
   const dayEmployeeIds = useMemo(() => {
@@ -113,20 +120,70 @@ export function SendMessageDialog({
     });
   }
 
+  useEffect(() => {
+    if (!open) return;
+    setMessage(initialMessage ?? "");
+    setChannels(new Set(initialMessage ? ["sms"] : ["push"]));
+    setAudience("all");
+    setSelectedEmployeeIds(new Set());
+  }, [open, initialMessage]);
+
   function resetForm() {
     setChannels(new Set(["push"]));
     setAudience("all");
     setSelectedEmployeeIds(new Set());
     setMessage("");
+    setIsSending(false);
   }
 
-  function handleSend() {
-    const channelLabels = Array.from(channels)
-      .map((ch) => (ch === "sms" ? "SMS" : ch === "push" ? "Push" : "E-post"))
-      .join(", ");
-    toast.success(`Melding sendt via ${channelLabels} til ${recipientCount} mottakere`);
-    resetForm();
-    onOpenChange(false);
+  async function handleSend() {
+    if (!canSend || isSending) return;
+
+    setIsSending(true);
+    try {
+      const response = await fetch("/api/schedule/send-message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workspaceId,
+          dateId,
+          message,
+          channels: Array.from(channels),
+          audience,
+          selectedEmployeeIds:
+            audience === "specific" ? Array.from(selectedEmployeeIds) : undefined,
+        }),
+      });
+
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        sms?: { sent: number; failed: number; skippedNoPhone: number };
+      };
+
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Kunne ikke sende melding");
+      }
+
+      const channelLabels = Array.from(channels)
+        .map((ch) => (ch === "sms" ? "SMS" : ch === "push" ? "Push" : "E-post"))
+        .join(", ");
+      const smsResult = payload.sms;
+      if (smsResult && channels.has("sms")) {
+        toast.success(
+          `Melding sendt via ${channelLabels}. SMS: ${smsResult.sent} sendt, ${smsResult.failed} feilet, ${smsResult.skippedNoPhone} uten nummer.`,
+        );
+      } else {
+        toast.success(`Melding sendt via ${channelLabels} til ${recipientCount} mottakere`);
+      }
+
+      onSent?.(message, audience, recipientCount);
+      resetForm();
+      onOpenChange(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Kunne ikke sende melding");
+    } finally {
+      setIsSending(false);
+    }
   }
 
   const canSend = channels.size > 0 && message.trim().length > 0 && recipientCount > 0;
@@ -267,11 +324,11 @@ export function SendMessageDialog({
           <Button
             size="sm"
             onClick={handleSend}
-            disabled={!canSend}
+            disabled={!canSend || isSending}
             className="bg-blue-600 text-white hover:bg-blue-700"
           >
             <Send className="mr-1.5 h-3.5 w-3.5" />
-            Send til {recipientCount}
+            {isSending ? "Sender..." : `Send til ${recipientCount}`}
           </Button>
         </DialogFooter>
       </DialogContent>

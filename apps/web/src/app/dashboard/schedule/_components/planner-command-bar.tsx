@@ -12,7 +12,7 @@ import {
   Check,
   Rows3,
 } from "lucide-react";
-import { DashboardContext, type ScheduleViewMode } from "@/components/dashboard/DashboardShell";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { SCHEDULE_LAYERS } from "./schedule-layers";
 
 type PlannerCommandBarProps = {
@@ -22,6 +22,7 @@ type PlannerCommandBarProps = {
   weekSpan?: 1 | 2;
   setWeekSpan?: (v: 1 | 2) => void;
   scheduleLayout?: string;
+  locationOptions?: string[];
 };
 
 export function PlannerCommandBar({
@@ -31,6 +32,7 @@ export function PlannerCommandBar({
   weekSpan,
   setWeekSpan,
   scheduleLayout,
+  locationOptions,
 }: PlannerCommandBarProps) {
   const {
     scheduleView,
@@ -54,7 +56,12 @@ export function PlannerCommandBar({
         <div className="bg-border hidden h-3 w-px sm:block" />
 
         {/* Location selector */}
-        <LocationPopover isDark={isDark} value={activeLocation} onChange={setActiveLocation} />
+        <LocationPopover
+          isDark={isDark}
+          value={activeLocation}
+          onChange={setActiveLocation}
+          options={locationOptions}
+        />
 
         <div className="bg-border hidden h-3 w-px sm:block" />
 
@@ -151,7 +158,7 @@ export function PlannerCommandBar({
 // ViewFilterButton — compact icon+label toggle for Ansatt/Jobb/Team
 // ---------------------------------------------------------------------------
 function ViewFilterButton({
-  isDark,
+  isDark: _isDark,
   icon,
   label,
   isActive,
@@ -181,19 +188,26 @@ function ViewFilterButton({
 // ---------------------------------------------------------------------------
 // LocationPopover — dropdown selector for active location
 // ---------------------------------------------------------------------------
-const LOCATIONS = ["Alle Lokasjoner", "Hovedrestaurant", "Bar & Lounge", "Uteservering", "Kjøkken"];
-
 function LocationPopover({
-  isDark,
+  isDark: _isDark,
   value,
   onChange,
+  options,
 }: {
   isDark: boolean;
   value: string;
   onChange: (v: string) => void;
+  options?: string[];
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const locations = React.useMemo(
+    () =>
+      options && options.length > 0
+        ? ["Alle Lokasjoner", ...options.filter((option) => option !== "Alle Lokasjoner")]
+        : ["Alle Lokasjoner"],
+    [options],
+  );
 
   // Close on outside click
   React.useEffect(() => {
@@ -218,7 +232,7 @@ function LocationPopover({
 
       {open && (
         <div className="animate-in fade-in slide-in-from-top-1 border-border bg-popover absolute top-full left-0 z-[9999] mt-1 w-52 rounded-xl border p-1 shadow-xl backdrop-blur-xl">
-          {LOCATIONS.map((loc) => (
+          {locations.map((loc) => (
             <button
               key={loc}
               onClick={() => {
