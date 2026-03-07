@@ -36,6 +36,9 @@ export const dashboardKeys = {
 
   kpiTargets: (workspaceId: string) => ["dashboard", "kpi-targets", workspaceId] as const,
 
+  kpiCopy: (workspaceId: string, locale: string) =>
+    ["dashboard", "kpi-copy", workspaceId, locale] as const,
+
   budgets: (workspaceId: string, periodType: string, startDate: string, endDate: string) =>
     ["dashboard", "budgets", workspaceId, periodType, startDate, endDate] as const,
 

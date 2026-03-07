@@ -32,6 +32,7 @@ import {
   useTrainingReadiness,
   useKpiTargets,
   useActiveSeason,
+  useKpiCopy,
 } from "@/app/dashboard/_hooks";
 import type { KpiMetric } from "@/app/dashboard/_hooks";
 import { BudgetSettingsPanel } from "./BudgetSettingsPanel";
@@ -126,11 +127,13 @@ interface StrategicViewProps {
 }
 
 export function StrategicView({ isDark }: StrategicViewProps) {
+  const hideKpiExplanations = true;
   const [selectedLocId, setSelectedLocId] = useState("all");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showBudget, setShowBudget] = useState(false);
 
   const { targets, updateTarget } = useKpiTargets();
+  const { copy: kpiCopy } = useKpiCopy("nb");
   const { data: activeSeason } = useActiveSeason();
 
   const data = defaultMetrics[selectedLocId as keyof typeof defaultMetrics];
@@ -227,6 +230,7 @@ export function StrategicView({ isDark }: StrategicViewProps) {
                 isDark={isDark}
                 title="Varekostnad %"
                 metric="cost_of_sales"
+                hideExplanation={hideKpiExplanations}
                 value={`${data.payroll}%`}
                 targetValue={targets.cost_of_sales}
                 targetDisplay={`< ${targets.cost_of_sales}%`}
@@ -234,7 +238,7 @@ export function StrategicView({ isDark }: StrategicViewProps) {
                 icon={<Percent className="h-5 w-5" />}
                 color="emerald"
                 unit="%"
-                explanation="Beregnes ved å dele totale lønnskostnader på total omsetning i valgt periode (rullerende 30 dager). Juster målet for å utløse tidligere varsler."
+                explanation={kpiCopy.cost_of_sales}
                 onTargetSave={handleTargetSave}
               />
 
@@ -242,6 +246,7 @@ export function StrategicView({ isDark }: StrategicViewProps) {
                 isDark={isDark}
                 title="90-dagers personalomsetning"
                 metric="turnover_90d"
+                hideExplanation={hideKpiExplanations}
                 value={`${data.turn}%`}
                 targetValue={targets.turnover_90d}
                 targetDisplay={`< ${targets.turnover_90d}%`}
@@ -249,7 +254,7 @@ export function StrategicView({ isDark }: StrategicViewProps) {
                 icon={<Users className="h-5 w-5" />}
                 color="blue"
                 unit="%"
-                explanation="Beregnes ved å dele antall ansatte som har sluttet på gjennomsnittlig antall ansatte over 90 dager. Måles mot ditt satte mål."
+                explanation={kpiCopy.turnover_90d}
                 onTargetSave={handleTargetSave}
               />
 
@@ -257,6 +262,7 @@ export function StrategicView({ isDark }: StrategicViewProps) {
                 isDark={isDark}
                 title="Fraværsrate"
                 metric="absence_rate"
+                hideExplanation={hideKpiExplanations}
                 value={`${data.abs}%`}
                 targetValue={targets.absence_rate}
                 targetDisplay={`< ${targets.absence_rate}%`}
@@ -264,7 +270,7 @@ export function StrategicView({ isDark }: StrategicViewProps) {
                 icon={<Activity className="h-5 w-5" />}
                 color="orange"
                 unit="%"
-                explanation="Totale registrerte fraværstimer delt på totale forventede arbeidstimer hittil denne måneden. Brukes til å oppdage tidlige tegn på teamutmattelse."
+                explanation={kpiCopy.absence_rate}
                 onTargetSave={handleTargetSave}
               />
 
@@ -272,6 +278,7 @@ export function StrategicView({ isDark }: StrategicViewProps) {
                 isDark={isDark}
                 title="Tid til jobbklar"
                 metric="time_to_job_ready"
+                hideExplanation={hideKpiExplanations}
                 value={`${data.onboarding}d`}
                 targetValue={targets.time_to_job_ready}
                 targetDisplay={`< ${targets.time_to_job_ready}d`}
@@ -279,7 +286,7 @@ export function StrategicView({ isDark }: StrategicViewProps) {
                 icon={<Target className="h-5 w-5" />}
                 color="purple"
                 unit="dager"
-                explanation="Gjennomsnittlig antall dager mellom en ansatts første vakt og fullføring av alle påkrevde onboarding-løp inkludert samsvarskontroller."
+                explanation={kpiCopy.time_to_job_ready}
                 onTargetSave={handleTargetSave}
               />
 
@@ -287,6 +294,7 @@ export function StrategicView({ isDark }: StrategicViewProps) {
                 isDark={isDark}
                 title="Oppgavefullføring"
                 metric="task_completion"
+                hideExplanation={hideKpiExplanations}
                 value={`${data.task}%`}
                 targetValue={targets.task_completion}
                 targetDisplay={`> ${targets.task_completion}%`}
@@ -294,7 +302,7 @@ export function StrategicView({ isDark }: StrategicViewProps) {
                 icon={<CheckCircle2 className="h-5 w-5" />}
                 color="indigo"
                 unit="%"
-                explanation="Andel tildelte arbeidsoppgaver (åpning, stenging, vedlikehold) fullført på tvers av alle vakter som matcher lokasjonsfilter."
+                explanation={kpiCopy.task_completion}
                 onTargetSave={handleTargetSave}
               />
 
@@ -302,6 +310,7 @@ export function StrategicView({ isDark }: StrategicViewProps) {
                 isDark={isDark}
                 title="Opplæringsberedskap"
                 metric="training_readiness"
+                hideExplanation={hideKpiExplanations}
                 value={
                   selectedLocId === "all" && training
                     ? `${training.readinessPercent}%`
@@ -319,7 +328,7 @@ export function StrategicView({ isDark }: StrategicViewProps) {
                 icon={<ShieldCheck className="h-5 w-5" />}
                 color="stone"
                 unit="%"
-                explanation="Andel protokolltildelinger fullført av aktive ansatte. Måler den totale bemanningsberedskapen."
+                explanation={kpiCopy.training_readiness}
                 onTargetSave={handleTargetSave}
               />
             </motion.div>
@@ -520,6 +529,7 @@ interface KPICardProps {
   isDark: boolean;
   title: string;
   metric: KpiMetric;
+  hideExplanation?: boolean;
   value: string;
   explanation?: string;
   targetValue: number;
@@ -535,6 +545,7 @@ function KPICard({
   isDark,
   title,
   metric,
+  hideExplanation,
   value,
   explanation,
   targetValue,
@@ -573,7 +584,9 @@ function KPICard({
             icon={icon}
             status={status}
             explanation={
-              explanation ?? "Beregningsstandard fastsatt av AI Council-dokumentasjonen."
+              hideExplanation
+                ? undefined
+                : (explanation ?? "Beregningsstandard fastsatt av AI Council-dokumentasjonen.")
             }
             target={`mål ${targetDisplay}`}
             isDark={isDark}

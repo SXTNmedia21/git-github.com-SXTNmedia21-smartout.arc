@@ -8,6 +8,9 @@ interface ActionStripProps {
   isDark: boolean;
 }
 
+// Temporary UI toggle: keep action-strip logic intact but hide visual output.
+const ACTION_STRIP_VISIBLE = false;
+
 const CHIP_CONFIG = [
   {
     key: "shiftGaps" as const,
@@ -63,6 +66,10 @@ const CHIP_CONFIG = [
 
 export function ActionStrip({ isDark }: ActionStripProps) {
   const { data: counts, isLoading } = useActionItems();
+
+  if (!ACTION_STRIP_VISIBLE) {
+    return null;
+  }
 
   if (isLoading) {
     return (

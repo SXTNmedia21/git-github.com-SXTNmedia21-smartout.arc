@@ -1,5 +1,11 @@
 "use client";
 
+// ============================================
+// GlobalSearchPalette.tsx
+// Minimal global Cmd/Ctrl+K search palette for dashboard navigation and scoped search prefixes.
+// Exists to provide one non-breaking command surface while backend search APIs are still evolving.
+// ============================================
+
 // UI Events:
 // - action: openPalette() (Cmd+K / Ctrl+K keyboard shortcut)
 // - action: closePalette() (Escape key, backdrop click)
@@ -249,9 +255,7 @@ export function GlobalSearchPalette() {
   const groups = getGroupedResults(parsed.mode, parsed.query);
   const ModeIcon = MODE_ICONS[parsed.mode];
 
-  // -----------------------------------------------------------------------
-  // Keyboard shortcut: Cmd+K / Ctrl+K
-  // -----------------------------------------------------------------------
+  // Keyboard shortcut: Cmd+K / Ctrl+K.
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -263,10 +267,37 @@ export function GlobalSearchPalette() {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  // Programmatic open hook from dashboard shell controls.
+  useEffect(() => {
+    function handleOpenEvent() {
+      setOpen(true);
+    }
+
+    window.addEventListener("smartout:open-global-search", handleOpenEvent);
+    return () => window.removeEventListener("smartout:open-global-search", handleOpenEvent);
+  }, []);
+
+  // Escape closes palette when open.
+  useEffect(() => {
+    if (!open) return;
+
+    function handleEscape(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [open]);
+
   // Reset input when opening
   useEffect(() => {
     if (open) {
       setRawValue("");
+      // Let Dialog content paint before focusing the command input.
+      requestAnimationFrame(() => inputRef.current?.focus());
     }
   }, [open]);
 
@@ -280,8 +311,8 @@ export function GlobalSearchPalette() {
 
   if (!open) return null;
 
-  const showEmpty = rawValue.length > 0 && groups.every((g) => g.results.length === 0);
-  const showRecentAndSuggested = rawValue.length === 0;
+  const showEmpty = parsed.query.length > 0 && groups.every((g) => g.results.length === 0);
+  const showRecentAndSuggested = parsed.query.length === 0;
 
   return (
     <>

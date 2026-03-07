@@ -300,104 +300,6 @@ function VoiceAssistantWithTools({
   );
 }
 
-function ShowcaseStrip({
-  isDark,
-  onSelectView,
-}: {
-  isDark: boolean;
-  onSelectView: (view: AdminViewType) => void;
-}) {
-  return (
-    <div
-      className={`flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-4 py-3 ${
-        isDark ? "border-orange-500/25 bg-orange-500/10" : "border-orange-200 bg-orange-50"
-      }`}
-    >
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <div className="flex items-center gap-2">
-          <span
-            className={`rounded-md border px-2 py-1 text-[10px] font-bold tracking-widest uppercase ${
-              isDark
-                ? "border-orange-500/30 bg-orange-500/20 text-orange-300"
-                : "border-orange-300 bg-orange-100 text-orange-700"
-            }`}
-          >
-            Showcase
-          </span>
-          <span className={`text-sm font-semibold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}>
-            Dunner Bros demo path
-          </span>
-        </div>
-        <p className={`truncate text-xs ${isDark ? "text-zinc-300" : "text-zinc-600"}`}>
-          Event captured - system interprets - Smartout recommends action.
-        </p>
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          onClick={() => onSelectView("strategic")}
-          className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors ${
-            isDark
-              ? "border-zinc-700 bg-zinc-900 text-zinc-100 hover:bg-zinc-800"
-              : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100"
-          }`}
-        >
-          1. Dashboard Insights
-        </button>
-        <button
-          onClick={() => onSelectView("guardian")}
-          className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors ${
-            isDark
-              ? "border-zinc-700 bg-zinc-900 text-zinc-100 hover:bg-zinc-800"
-              : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100"
-          }`}
-        >
-          2. Event Handlers
-        </button>
-        <Link
-          href="/dashboard/schedule"
-          className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors ${
-            isDark
-              ? "border-zinc-700 bg-zinc-900 text-zinc-100 hover:bg-zinc-800"
-              : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100"
-          }`}
-        >
-          3. Templates
-        </Link>
-        <Link
-          href="/dashboard/reports"
-          className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors ${
-            isDark
-              ? "border-zinc-700 bg-zinc-900 text-zinc-100 hover:bg-zinc-800"
-              : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100"
-          }`}
-        >
-          4. Analytics
-        </Link>
-        <Link
-          href="/onboarding"
-          className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors ${
-            isDark
-              ? "border-zinc-700 bg-zinc-900 text-zinc-100 hover:bg-zinc-800"
-              : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100"
-          }`}
-        >
-          5. System Intelligence
-        </Link>
-        <Link
-          href="/dashboard/reports"
-          className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors ${
-            isDark
-              ? "border-amber-400/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20"
-              : "border-amber-300 bg-amber-100 text-amber-800 hover:bg-amber-200"
-          }`}
-        >
-          Backup Start
-        </Link>
-      </div>
-    </div>
-  );
-}
-
 export function DashboardShell({
   children,
   profileId = null,
@@ -406,7 +308,7 @@ export function DashboardShell({
   profileId?: string | null;
 }) {
   const [isDark, setIsDark] = useState(true);
-  const [isDemoMode, setIsDemoMode] = useState(true);
+  const [isDemoMode, setIsDemoMode] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(true);
   const [adminView, setAdminView] = useState<AdminViewType>("strategic");
   const [scheduleLayout, setScheduleLayout] = useState<ScheduleLayoutMode>("daily");
@@ -421,6 +323,9 @@ export function DashboardShell({
   const [scheduleDraftCountDisplay, setScheduleDraftCountDisplay] = useState(0);
   const [scheduleCompactMode, setScheduleCompactMode] = useState(false);
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+  const [voiceSessionOverride, setVoiceSessionOverride] = useState<VoiceSessionContext | null>(
+    null,
+  );
   const [autoplayUiState, setAutoplayUiState] = useState<{
     isRunning: boolean;
     currentStepLabel: string;
@@ -441,6 +346,7 @@ export function DashboardShell({
   const searchParams = useSearchParams();
   const isAutoplayMode =
     searchParams?.get("autoplay") === "1" || searchParams?.get("showcase") === "1";
+  const hasShowcaseQuery = searchParams?.get("showcase") === "1";
   const autoplayStartedRef = useRef(false);
   const noticeIdRef = useRef(0);
   const workspaceCtx = useWorkspaceOptional();
@@ -913,6 +819,31 @@ export function DashboardShell({
     void runAutoplayWalkthrough();
   }, [isAutoplayMode, runAutoplayWalkthrough]);
 
+  useEffect(() => {
+    const handleScheduleCall = (event: Event) => {
+      const customEvent = event as CustomEvent<{ employeeName?: string; note?: string }>;
+      const employeeName = customEvent.detail?.employeeName ?? "ansatt";
+      const note = customEvent.detail?.note ?? "Kontakt ansatt om vaktendring.";
+      setVoiceSessionOverride({
+        page: "dashboard.schedule.call",
+        story: `Du skal gjennomfore en operativ samtale med ${employeeName}. ${note}`,
+        workingElements: ["Skiftkort", "Dagskontrollpanel", "Kontaktflyt"],
+        availableInputs: ["Ansattnavn", "Skiftkontekst", "Dato", "Ansvarlig leder"],
+      });
+      setIsAssistantOpen(true);
+    };
+
+    window.addEventListener("smartout:schedule-call", handleScheduleCall);
+    return () => {
+      window.removeEventListener("smartout:schedule-call", handleScheduleCall);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!hasShowcaseQuery) return;
+    setIsDemoMode(true);
+  }, [hasShowcaseQuery]);
+
   /**
    * Locks document-level scrolling during autoplay showcase mode.
    * Why: keeps container pages viewport-fitted without browser scrollbars.
@@ -1034,7 +965,10 @@ export function DashboardShell({
               {/* Header Voice Assistant (lazy-loaded to avoid shell bundle bloat) */}
               <div className="relative">
                 <button
-                  onClick={() => setIsAssistantOpen(!isAssistantOpen)}
+                  onClick={() => {
+                    setVoiceSessionOverride(null);
+                    setIsAssistantOpen(!isAssistantOpen);
+                  }}
                   data-autoplay="top-mic-toggle"
                   className={`rounded-md p-1.5 transition-colors ${
                     isAssistantOpen
@@ -1050,8 +984,13 @@ export function DashboardShell({
                 <VoiceAssistantWithTools
                   isOpen={isAssistantOpen}
                   missionId={resolveMissionForRoute(pathname)}
-                  sessionContext={buildVoiceSessionContext(pathname, adminView)}
-                  onClose={() => setIsAssistantOpen(false)}
+                  sessionContext={
+                    voiceSessionOverride ?? buildVoiceSessionContext(pathname, adminView)
+                  }
+                  onClose={() => {
+                    setIsAssistantOpen(false);
+                    setVoiceSessionOverride(null);
+                  }}
                 />
               </div>
 
@@ -1802,15 +1741,33 @@ export function DashboardShell({
                             : "text-zinc-400 group-focus-within:text-orange-600"
                         }`}
                       />
-                      <input
-                        type="text"
-                        placeholder="Søk i drift..."
-                        className={`w-64 rounded-lg border py-2 pr-4 pl-9 text-sm shadow-sm transition-all focus:ring-1 focus:outline-none ${
+                      <button
+                        type="button"
+                        onClick={() =>
+                          window.dispatchEvent(new Event("smartout:open-global-search"))
+                        }
+                        className={`flex w-64 items-center justify-between rounded-lg border py-2 pr-3 pl-9 text-sm shadow-sm transition-all focus:ring-1 focus:outline-none ${
                           isDark
-                            ? "border-zinc-800 bg-zinc-900 text-zinc-100 placeholder:text-zinc-500 hover:bg-zinc-800/80 focus:border-orange-500/50 focus:ring-orange-500/50"
-                            : "border-zinc-200 bg-white text-zinc-900 placeholder:text-zinc-400 hover:bg-zinc-50 focus:border-orange-500/50 focus:ring-orange-500/50"
+                            ? "border-zinc-800 bg-zinc-900 text-zinc-100 hover:bg-zinc-800/80 focus:border-orange-500/50 focus:ring-orange-500/50"
+                            : "border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-50 focus:border-orange-500/50 focus:ring-orange-500/50"
                         }`}
-                      />
+                        aria-label="Open global search palette"
+                      >
+                        <span className={isDark ? "text-zinc-500" : "text-zinc-400"}>
+                          Søk i drift...
+                        </span>
+                        <kbd
+                          className={`rounded border px-1.5 py-0.5 font-mono text-[10px] font-medium ${
+                            isDark
+                              ? "border-zinc-700 bg-zinc-800 text-zinc-400"
+                              : "border-zinc-200 bg-zinc-100 text-zinc-500"
+                          }`}
+                        >
+                          {typeof navigator !== "undefined" && navigator.platform.includes("Mac")
+                            ? "⌘K"
+                            : "Ctrl+K"}
+                        </kbd>
+                      </button>
                     </div>
                   )}
                 </div>
