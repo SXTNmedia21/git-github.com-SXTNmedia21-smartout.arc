@@ -48,14 +48,19 @@ export type EntityType =
   | "shift_template"
   | "department_session"
   | "session_task"
+  | "session_hook"
   | "policy"
   | "protocol"
+  | "protocol_assignment"
   | "procedure"
+  | "procedure_step"
   | "routine"
   | "runbook"
   | "invitation"
   | "announcement"
-  | "chat_message";
+  | "chat_message"
+  | "reconciliation"
+  | "handbook_chapter";
 
 export type ActionVerb =
   | "created"
@@ -75,9 +80,19 @@ export type ActionVerb =
   | "viewed"
   | "exported"
   | "invited"
+  | "accepted"
   | "swapped"
   | "transferred"
-  | "clicked";
+  | "clicked"
+  | "opened"
+  | "closed"
+  | "pending_signoff"
+  | "submitted"
+  | "admin_action"
+  | "step_completed"
+  | "chapter_saved"
+  | "hook_fired"
+  | "task_completed";
 
 // ─── Auth Module Events ─────────────────────────
 export interface AuthSignedUp extends BaseEvent {
@@ -171,6 +186,143 @@ export interface ShiftDeleted extends BaseEvent {
   };
 }
 
+// ─── Scheduling: Batch Publish ──────────────────
+export interface ShiftPublished extends BaseEvent {
+  event: "shift published";
+  properties: {
+    entity: EntityRef;
+    data: {
+      dates: string[];
+      department_ids: string[];
+      shift_count: number;
+    };
+  };
+}
+
+// ─── Operations: Session Lifecycle ──────────────
+export interface SessionOpened extends BaseEvent {
+  event: "session opened";
+  properties: {
+    data: {
+      department_id: string;
+      date: string;
+    };
+  };
+}
+
+export interface SessionPendingSignoff extends BaseEvent {
+  event: "session pending_signoff";
+  properties: {
+    data: {
+      department_id: string;
+      date: string;
+    };
+  };
+}
+
+export interface SessionClosed extends BaseEvent {
+  event: "session closed";
+  properties: {
+    data: {
+      department_id: string;
+      date: string;
+    };
+  };
+}
+
+// ─── Operations: Session Hooks & Tasks ──────────
+export interface SessionHookFired extends BaseEvent {
+  event: "session hook_fired";
+  properties: {
+    data: {
+      hook_type: string;
+      session_id: string;
+    };
+  };
+}
+
+export interface SessionTaskCompleted extends BaseEvent {
+  event: "session task_completed";
+  properties: {
+    data: {
+      task_id: string;
+      profile_id: string;
+    };
+  };
+}
+
+// ─── Onboarding: Invitation ─────────────────────
+export interface InvitationAccepted extends BaseEvent {
+  event: "invitation accepted";
+  properties: {
+    data: {
+      profile_id: string;
+      workspace_id: string;
+    };
+  };
+}
+
+// ─── Training: Protocol Lifecycle ───────────────
+export interface ProtocolAssigned extends BaseEvent {
+  event: "protocol assigned";
+  properties: {
+    data: {
+      protocol_id: string;
+      profile_id: string;
+    };
+  };
+}
+
+export interface ProtocolStepCompleted extends BaseEvent {
+  event: "protocol step_completed";
+  properties: {
+    data: {
+      procedure_step_id: string;
+      profile_id: string;
+    };
+  };
+}
+
+export interface ProtocolCompleted extends BaseEvent {
+  event: "protocol completed";
+  properties: {
+    data: {
+      protocol_assignment_id: string;
+      profile_id: string;
+    };
+  };
+}
+
+// ─── Reconciliation ─────────────────────────────
+export interface ReconciliationSubmitted extends BaseEvent {
+  event: "reconciliation submitted";
+  properties: {
+    data: {
+      reconciliation_id: string;
+    };
+  };
+}
+
+export interface ReconciliationAdminAction extends BaseEvent {
+  event: "reconciliation admin_action";
+  properties: {
+    data: {
+      reconciliation_id: string;
+      action: "approved" | "rejected";
+    };
+  };
+}
+
+// ─── Handbook ───────────────────────────────────
+export interface HandbookChapterSaved extends BaseEvent {
+  event: "handbook chapter_saved";
+  properties: {
+    data: {
+      chapter_key: string;
+    };
+  };
+}
+
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
 export type SmartoutEvent =
@@ -183,6 +335,19 @@ export type SmartoutEvent =
   | ShiftCreated
   | ShiftUpdated
   | ShiftDeleted
+  | ShiftPublished
+  | SessionOpened
+  | SessionPendingSignoff
+  | SessionClosed
+  | SessionHookFired
+  | SessionTaskCompleted
+  | InvitationAccepted
+  | ProtocolAssigned
+  | ProtocolStepCompleted
+  | ProtocolCompleted
+  | ReconciliationSubmitted
+  | ReconciliationAdminAction
+  | HandbookChapterSaved
   | PageViewed
   | ButtonClicked;
 
@@ -217,6 +382,63 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "shift deleted": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "scheduling",
+  },
+  "shift published": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+
+  "session opened": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "session pending_signoff": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "session closed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "session hook_fired": {
+    destinations: ["logger", "engine_event"],
+    category: "operations",
+  },
+  "session task_completed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+
+  "invitation accepted": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "onboarding",
+  },
+
+  "protocol assigned": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "training",
+  },
+  "protocol step_completed": {
+    destinations: ["posthog", "logger", "engine_event"],
+    category: "training",
+  },
+  "protocol completed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "training",
+  },
+
+  "reconciliation submitted": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "reconciliation admin_action": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+
+  "handbook chapter_saved": {
+    destinations: ["posthog", "logger", "engine_event"],
+    category: "training",
   },
 
   "page viewed": { destinations: ["posthog"], category: "navigation" },
