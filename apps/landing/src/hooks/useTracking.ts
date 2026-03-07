@@ -40,6 +40,11 @@ const SESSION_ID_KEY = "smartout_session_id";
 
 /** Key in localStorage — matches the variant store in landing-variant.ts. */
 const VARIANT_STORAGE_KEY = "landing_variant";
+const GLOBAL_VARIANT_KEY = "__smartoutResolvedVariant";
+
+type TrackingWindow = Window & {
+  [GLOBAL_VARIANT_KEY]?: string;
+};
 
 /**
  * Generates a random session ID using the Web Crypto API.
@@ -90,11 +95,34 @@ export function getOrCreateSessionId(): string {
 
 /** Returns the currently active landing variant, or undefined if not set. */
 export function getCurrentVariant(): string | undefined {
+  const globalVariant = (window as TrackingWindow)[GLOBAL_VARIANT_KEY];
+  if (globalVariant) return globalVariant;
+
+  // Prefer URL param when available (source-of-truth on the current request).
+  const fromUrl = new URLSearchParams(window.location.search).get("v");
+  if (fromUrl) return fromUrl;
+
   try {
     return localStorage.getItem(VARIANT_STORAGE_KEY) ?? undefined;
   } catch {
     return undefined;
   }
+}
+
+/**
+ * Stores the resolved variant slug in window memory for this page lifecycle.
+ * Why: downstream tracking hooks should read the server-resolved slug, not rely
+ * on localStorage state from previous visits.
+ */
+export function useTrackingVariantContext(variant?: string): void {
+  useEffect(() => {
+    const target = window as TrackingWindow;
+    if (!variant) {
+      delete target[GLOBAL_VARIANT_KEY];
+      return;
+    }
+    target[GLOBAL_VARIANT_KEY] = variant;
+  }, [variant]);
 }
 
 /** Payload shape for tracking events. */
