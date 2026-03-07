@@ -30,5 +30,5 @@ export function parseSearchPrefix(raw: string): ParsedQuery {
     return { mode, query: trimmed.slice(1).trim() };
   }
 
-  return { mode: "all", query: trimmed };
+  return { mode: "all", query: trimmed.trim() };
 }

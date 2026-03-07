@@ -1,132 +1,191 @@
+/**
+ * Search orchestrator
+ *
+ * Runs three search modes in parallel and returns a grouped,
+ * hard-capped response envelope used by `/api/search`.
+ */
+
 import { createClient } from "@smartout/supabase/server";
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
+export type SearchMode = "all" | "knowledge" | "people" | "commands";
 
-type SearchGroup = {
-  group: string;
-  results: Array<{
-    id: string;
-    title: string;
-    subtitle: string;
-    deepLink: string;
-    relevance: number;
-  }>;
+export type OrchestratorInput = {
+  workspaceId: string;
+  query: string;
+  mode?: SearchMode;
+  limitPerGroup?: number;
 };
 
-type SearchResult = {
+export type SearchItem = {
+  id: string;
+  title: string;
+  subtitle: string;
+  deepLink: string;
+  relevance: number;
+};
+
+export type SearchGroupName = "people" | "knowledge" | "policies";
+
+export type SearchGroup = {
+  group: SearchGroupName;
+  results: SearchItem[];
+};
+
+export type SearchResult = {
   groups: SearchGroup[];
   timing_ms: number;
 };
 
-type SearchContext = {
-  workspaceId: string;
-  query: string;
-  mode?: "all" | "knowledge" | "people" | "commands";
-  limitPerGroup?: number;
+type InstanceRpcRow = {
+  result_id: string;
+  title: string;
+  subtitle: string;
+  deep_link: string;
+  relevance: number;
 };
 
-// ---------------------------------------------------------------------------
-// Individual search runners
-// ---------------------------------------------------------------------------
+type DependencyRpcRow = {
+  policy_id: string;
+  policy_name: string;
+  protocol_name: string | null;
+};
 
-async function runInstanceSearch(ctx: SearchContext): Promise<SearchGroup> {
+type SearchRpcName = "search_instance" | "search_dependency_graph";
+
+type RpcArgs = {
+  p_workspace_id: string;
+  p_query: string;
+  p_limit: number;
+};
+
+type RpcInvoker = <TRow>(rpcName: SearchRpcName, args: RpcArgs) => Promise<TRow[]>;
+
+type OrchestratorDeps = {
+  now?: () => number;
+  runSemanticSearch?: (ctx: OrchestratorInput) => Promise<SearchGroup>;
+};
+
+/**
+ * Calls an untyped Supabase RPC and narrows its result to a typed array.
+ * Why: generated DB RPC typings may lag migrations in active feature branches.
+ */
+async function callRpc<TRow>(rpcName: SearchRpcName, args: RpcArgs): Promise<TRow[]> {
   const supabase = await createClient();
-  // TODO: Remove cast once search RPCs are in generated types
-  const { data, error } = await (supabase.rpc as Function)("search_instance", {
+  const { data, error } = await supabase.rpc(rpcName, args);
+
+  if (error) {
+    throw new Error(`${rpcName} failed: ${error.message}`);
+  }
+
+  if (!Array.isArray(data)) {
+    throw new Error(`${rpcName} returned non-array payload`);
+  }
+
+  return data as TRow[];
+}
+
+/**
+ * Executes instance-mode search and maps rows into the shared search item shape.
+ */
+async function runInstanceSearch(
+  ctx: OrchestratorInput,
+  invokeRpc: RpcInvoker,
+): Promise<SearchGroup> {
+  const rows = await invokeRpc<InstanceRpcRow>("search_instance", {
     p_workspace_id: ctx.workspaceId,
     p_query: ctx.query,
     p_limit: ctx.limitPerGroup ?? 5,
   });
 
-  if (error || !data) return { group: "people", results: [] };
-
   return {
     group: "people",
-    results: (
-      data as Array<{
-        result_id: string;
-        title: string;
-        subtitle: string;
-        deep_link: string;
-        relevance: number;
-      }>
-    ).map((r) => ({
-      id: r.result_id,
-      title: r.title,
-      subtitle: r.subtitle,
-      deepLink: r.deep_link,
-      relevance: r.relevance,
+    results: rows.map((row) => ({
+      id: row.result_id,
+      title: row.title,
+      subtitle: row.subtitle,
+      deepLink: row.deep_link,
+      relevance: row.relevance,
     })),
   };
 }
 
-async function runSemanticSearch(_ctx: SearchContext): Promise<SearchGroup> {
-  // Semantic search requires embedding the query first
-  // For now, return empty — will be wired in Wave 3 (Task 6)
-  return { group: "knowledge", results: [] };
+/**
+ * Executes semantic-mode search.
+ * Why: semantic retrieval is optional-safe until embedding pipeline is fully wired.
+ */
+async function runSemanticSearch(_ctx: OrchestratorInput): Promise<SearchGroup> {
+  return {
+    group: "knowledge",
+    results: [],
+  };
 }
 
-async function runDependencySearch(ctx: SearchContext): Promise<SearchGroup> {
-  const supabase = await createClient();
-  // TODO: Remove cast once search RPCs are in generated types
-  const { data, error } = await (supabase.rpc as Function)("search_dependency_graph", {
+/**
+ * Executes dependency graph search and maps relation rows to navigation results.
+ */
+async function runDependencySearch(
+  ctx: OrchestratorInput,
+  invokeRpc: RpcInvoker,
+): Promise<SearchGroup> {
+  const rows = await invokeRpc<DependencyRpcRow>("search_dependency_graph", {
     p_workspace_id: ctx.workspaceId,
     p_query: ctx.query,
     p_limit: ctx.limitPerGroup ?? 5,
   });
 
-  if (error || !data) return { group: "policies", results: [] };
-
   return {
     group: "policies",
-    results: (
-      data as Array<{
-        policy_id: string;
-        policy_name: string;
-        protocol_id: string | null;
-        protocol_name: string | null;
-      }>
-    ).map((r) => ({
-      id: r.policy_id,
-      title: r.policy_name,
-      subtitle: r.protocol_name ?? "",
-      deepLink: `/dashboard/governance/policies/${r.policy_id}`,
+    results: rows.map((row) => ({
+      id: row.policy_id,
+      title: row.policy_name,
+      subtitle: row.protocol_name ?? "",
+      deepLink: `/dashboard/governance/policies/${row.policy_id}`,
       relevance: 0.8,
     })),
   };
 }
 
-// ---------------------------------------------------------------------------
-// Merge helper
-// ---------------------------------------------------------------------------
-
-function mergeAndCap(groups: SearchGroup[], limit: number): SearchGroup[] {
+/**
+ * Hard-caps each group while preserving deterministic group order.
+ */
+function mergeAndCap(groups: SearchGroup[], limitPerGroup: number): SearchGroup[] {
   return groups
-    .filter((g) => g.results.length > 0)
-    .map((g) => ({
-      ...g,
-      results: g.results.slice(0, limit),
-    }));
+    .map((group) => ({
+      group: group.group,
+      results: group.results.slice(0, limitPerGroup),
+    }))
+    .filter((group) => group.results.length > 0);
 }
 
-// ---------------------------------------------------------------------------
-// Orchestrator entry point
-// ---------------------------------------------------------------------------
+/**
+ * Runs instance + semantic + dependency modes in parallel and returns grouped output.
+ */
+export async function runSearchOrchestrator(
+  input: OrchestratorInput,
+  deps: OrchestratorDeps = {},
+): Promise<SearchResult> {
+  const startedAt = (deps.now ?? Date.now)();
+  const limitPerGroup = input.limitPerGroup ?? 5;
+  const invokeRpc: RpcInvoker = callRpc;
+  const semanticRunner = deps.runSemanticSearch ?? runSemanticSearch;
 
-export async function runSearchOrchestrator(ctx: SearchContext): Promise<SearchResult> {
-  const start = performance.now();
-  const limit = ctx.limitPerGroup ?? 5;
+  const mode = input.mode ?? "all";
+  const shouldRunInstance = mode === "all" || mode === "people" || mode === "commands";
+  const shouldRunSemantic = mode === "all" || mode === "knowledge";
+  const shouldRunDependency = mode === "all" || mode === "knowledge";
 
   const [instance, semantic, dependency] = await Promise.all([
-    runInstanceSearch(ctx),
-    runSemanticSearch(ctx),
-    runDependencySearch(ctx),
+    shouldRunInstance ? runInstanceSearch(input, invokeRpc) : Promise.resolve(null),
+    shouldRunSemantic ? semanticRunner(input) : Promise.resolve(null),
+    shouldRunDependency ? runDependencySearch(input, invokeRpc) : Promise.resolve(null),
   ]);
 
+  const groups = [instance, semantic, dependency].filter(
+    (group): group is SearchGroup => group !== null,
+  );
+
   return {
-    groups: mergeAndCap([instance, semantic, dependency], limit),
-    timing_ms: Math.round(performance.now() - start),
+    groups: mergeAndCap(groups, limitPerGroup),
+    timing_ms: Math.max(0, (deps.now ?? Date.now)() - startedAt),
   };
 }

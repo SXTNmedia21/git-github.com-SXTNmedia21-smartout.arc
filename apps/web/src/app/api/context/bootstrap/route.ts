@@ -1,20 +1,35 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { buildBootstrapContext } from "@/lib/context/build-bootstrap-context";
 
-export async function GET(req: NextRequest) {
-  const workspaceId = req.nextUrl.searchParams.get("workspaceId");
-  const profileId = req.nextUrl.searchParams.get("profileId");
-  const pageId = req.nextUrl.searchParams.get("pageId") ?? "dashboard";
+const BootstrapQuerySchema = z.object({
+  workspaceId: z.string().min(1),
+  profileId: z.string().min(1),
+  pageId: z.string().min(1).default("dashboard"),
+});
 
-  if (!workspaceId || !profileId) {
-    return NextResponse.json({ error: "Missing workspaceId or profileId" }, { status: 400 });
+export async function GET(req: NextRequest) {
+  const parsed = BootstrapQuerySchema.safeParse({
+    workspaceId: req.nextUrl.searchParams.get("workspaceId"),
+    profileId: req.nextUrl.searchParams.get("profileId"),
+    pageId: req.nextUrl.searchParams.get("pageId") ?? "dashboard",
+  });
+
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Missing or invalid workspaceId/profileId/pageId" },
+      { status: 400 },
+    );
   }
 
-  const context = await buildBootstrapContext({ workspaceId, profileId, pageId });
-
-  return NextResponse.json(context, {
-    headers: {
-      "Cache-Control": "private, max-age=30, stale-while-revalidate=120",
-    },
-  });
+  try {
+    const context = await buildBootstrapContext(parsed.data);
+    return NextResponse.json(context, {
+      headers: {
+        "Cache-Control": "private, max-age=30, stale-while-revalidate=120",
+      },
+    });
+  } catch {
+    return NextResponse.json({ error: "Failed to build bootstrap context" }, { status: 500 });
+  }
 }

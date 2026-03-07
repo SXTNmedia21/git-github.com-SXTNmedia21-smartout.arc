@@ -49,4 +49,16 @@ describe("parseSearchPrefix", () => {
     expect(result.mode).toBe("knowledge");
     expect(result.query).toBe("test");
   });
+
+  it("trims trailing whitespace in default all mode", () => {
+    const result = parseSearchPrefix("vaktplan uke 12   ");
+    expect(result.mode).toBe("all");
+    expect(result.query).toBe("vaktplan uke 12");
+  });
+
+  it("treats whitespace-only input as empty all mode query", () => {
+    const result = parseSearchPrefix("   ");
+    expect(result.mode).toBe("all");
+    expect(result.query).toBe("");
+  });
 });
