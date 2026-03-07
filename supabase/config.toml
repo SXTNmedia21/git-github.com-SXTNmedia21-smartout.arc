@@ -459,3 +459,6 @@ verify_jwt = false
 
 [functions.activate-workspace]
 verify_jwt = false
+
+[functions.fire-delayed-triggers]
+verify_jwt = false
