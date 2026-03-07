@@ -1,11 +1,11 @@
 ---
 title: "Build Order (Detailed Implementation Plan)"
 id: PLAN_BUILD_ORDER
-version: "1.1"
+version: "2.0"
 status: canonical
 layer: plan
 created: 2026-02-24
-updated: 2026-03-01
+updated: 2026-04-11
 author: pontus
 supersedes: []
 superseded_by: null
@@ -21,13 +21,15 @@ changelog:
     change: "Added YAML frontmatter"
   - date: 2026-03-01
     change: "Status audit — marked Wave 1 progress (Org Structure done, Onboarding partial, Settings stub)"
+  - date: 2026-04-11
+    change: "Major audit — marked all built features across Waves 0-6, added cross-cutting systems, updated percentages"
 ---
 
 # Smartout — Build Order (Detailed Implementation Plan)
 
 > Step-by-step implementation tasks for each wave.
 > This is the execution companion to [`project-roadmap.md`](roadmaps/project-roadmap.md).
-> Last updated: 2026-03-01
+> Last updated: 2026-04-11
 
 ---
 
@@ -97,6 +99,12 @@ changelog:
 - [x] 8 sub-pages (audit, billing, content, contracts, dashboard, health, users, workspaces)
 - [x] TanStack Table data tables
 - [x] Enterprise infrastructure (health-check, watchdog-integrity, watchdog-uptime edge functions)
+- [x] Landing page builder — block-based variant system (ADR-0046)
+- [x] API key management — generation, rotation, usage tracking (ADR-0028)
+- [x] Guardian admin dashboard — 13 components, real-time monitoring
+- [x] Journey system — AI-assisted journey creation wizard
+- [x] Services monitoring — health dashboard, config management
+- [x] Communications/templates — SendGrid integration (ADR-0045)
 
 ### 0.9 — AI Onboarding (Module 1 — Partial)
 
@@ -105,22 +113,38 @@ changelog:
 - [x] AI agent with Vercel AI SDK + OpenRouter
 - [x] Onboarding session persistence
 
+### 0.10 — Infrastructure Services
+
+- [x] Contract service (Fastify, port 3100) — DocuSign/DocuSeal integration
+- [x] Stage Engine (Hono, port 3000) — Agent runtime with mission/agent mode
+- [x] Shift MCP (MCP, port 3001) — 5 shift management tools (ADR-0036)
+- [x] Interview MCP — Conversation management anchor
+- [x] Scrapling (Python) — Web content extraction
+- [x] Unified Docker Compose + Caddy reverse proxy (ADR-0039)
+
+### 0.11 — Supabase Edge Functions (29 functions)
+
+- [x] Workspace setup: create-invitation, accept-invitation, activate-workspace, extract-workspace-data, gather-workspace-intelligence, analyze-workspace, finalize-workspace, google-places-intelligence
+- [x] Guardian: guardian-notify, guardian-sweep, guardian-actions
+- [x] Search: search-brreg, web-search-intelligence, scrape-website, scrape-raw-data
+- [x] Integrations: sendgrid-webhook, contract-lifecycle, engine-dispatch
+- [x] Infrastructure: health-check, watchdog-uptime, watchdog-integrity, cleanup-api-keys
+- [x] Operations: process-settlement-image, validate-settlement, leader-pulse, identify-company
+- [x] API gateway: workspace-api (15 endpoints, dual-auth, scope-based access)
+
 </details>
 
 ---
 
 ## Wave 1: Structural Core
 
-**Status:** In progress (~60% done)
+**Status:** ~85% done
 **Goal:** Make org structure manageable, settings configurable, and complete the onboarding entry point.
 **Prereqs:** Wave 0 (done)
 
 ### 1.0 — Reusable Component Library
 
 > **Refs:** [UI Architecture](architecture/SMARTOUT_UI_ARCHITECTURE.md), [ADR-0003](decisions/0003-shadcn-integration.md)
-
-Before building module UIs, build the reusable "dumb" components that every module needs.
-These are presentational, stateless, and testable in isolation.
 
 #### Existing (in `@smartout/ui` or `apps/web/src/components/ui/`)
 
@@ -129,96 +153,86 @@ These are presentational, stateless, and testable in isolation.
 
 #### To Build — Shared Package (`@smartout/ui`)
 
-These components are used across 3+ modules and should live in the shared package:
-
-- [ ] **EmptyState** — Icon + title + description + optional action button. Every list/table needs one when there's no data. Props: `icon`, `title`, `description`, `action?: { label, onClick }`.
-
-- [ ] **PageHeader** — Consistent page header with title, breadcrumb, description, and action area. Props: `title`, `description?`, `breadcrumbs?: Array<{label, href}>`, `actions?: ReactNode`. Used on every dashboard sub-page.
-
-- [ ] **StatCard** — Metric display card with label, value, trend indicator, and optional sparkline. Props: `label`, `value`, `trend?: { direction: 'up'|'down'|'flat', percentage: number }`, `icon?`. Used in dashboard, reports, operations, payroll.
-
-- [ ] **Avatar / AvatarGroup** — Profile picture with initials fallback. AvatarGroup shows stacked circles with "+N" overflow. Props: `name`, `imageUrl?`, `size: 'sm'|'md'|'lg'`. Used everywhere people are displayed.
-
-- [ ] **SearchInput** — Debounced search field with clear button and loading indicator. Props: `value`, `onChange`, `placeholder`, `debounceMs?: number`. Used in every list/table view.
-
-- [x] **ConfirmDialog** — Exists as `ConfirmationDialog` in `platform-admin/confirmation-dialog.tsx`. Needs extraction to `@smartout/ui` for shared use.
-
-- [ ] **InfoTooltip** — Small info icon that shows a tooltip on hover. Props: `content: string | ReactNode`. Used next to form labels and settings to explain concepts.
-
-- [ ] **LoadingSkeleton** — Composable loading state matching common page layouts. Variants: `table`, `card-grid`, `form`, `detail`. Used as Suspense fallbacks.
-
-- [ ] **FormSection** — Grouped form fields with section title, description, and divider. Props: `title`, `description?`, `children`. Used in settings, org structure, onboarding.
-
-- [x] **DataTable** — Exists in `platform-admin/data-table.tsx` with TanStack Table. Needs extraction to `@smartout/ui` and generalization (add search, pagination, empty state).
-
-- [ ] **Timeline** — Chronological event/activity display. Props: `items: Array<{timestamp, title, description?, icon?, variant?}>`. Used in audit logs, onboarding progress, employee history.
-
-- [ ] **FilterBar** — Composable filter controls: search + dropdown filters + date range + clear all. Props: `filters: Array<FilterConfig>`, `onFilterChange`. Used in people, scheduling, reports, operations.
-
-- [ ] **Breadcrumb** — Navigation context component using the route hierarchy. Props: `items: Array<{label, href?}>`. Used on every sub-page.
-
-- [ ] **ProgressBar** — Linear or circular progress indicator with label. Props: `value: number`, `max?: number`, `variant?: 'linear'|'circular'`, `label?`. Used in onboarding, training, readiness scores.
+- [ ] **EmptyState** — Icon + title + description + optional action button
+- [ ] **PageHeader** — Consistent page header with title, breadcrumb, description, and action area
+- [ ] **StatCard** — Metric display card (note: `SignalCard` exists in dashboard as similar pattern)
+- [ ] **Avatar / AvatarGroup** — Profile picture with initials fallback
+- [ ] **SearchInput** — Debounced search field with clear button and loading indicator
+- [x] **ConfirmDialog** — Exists as `ConfirmationDialog` in `platform-admin/confirmation-dialog.tsx`. Needs extraction to `@smartout/ui`.
+- [ ] **InfoTooltip** — Small info icon with tooltip
+- [ ] **LoadingSkeleton** — Composable loading state matching common page layouts
+- [ ] **FormSection** — Grouped form fields with section title, description, and divider
+- [x] **DataTable** — Exists in `platform-admin/data-table.tsx` with TanStack Table. Needs extraction to `@smartout/ui`.
+- [ ] **Timeline** — Chronological event/activity display
+- [ ] **FilterBar** — Composable filter controls
+- [ ] **Breadcrumb** — Navigation context component
+- [ ] **ProgressBar** — Linear or circular progress indicator with label
 
 ---
 
-### 1.1 — Module 2: Org Structure
+### 1.1 — Module 2: Org Structure [~85% DONE]
 
-> **Refs:** [Module 2 Spec](modules/SMARTOUT_MODULE_2_ORG_STRUCTURE.md), [Org Roadmap](architecture/SMARTOUT_ORG_STRUCTURE_ROADMAP.md), [Data Model](architecture/SMARTOUT_FOUNDATION_DATA_MODEL.md)
+> **Refs:** [Module 2 Spec](modules/SMARTOUT_MODULE_2_ORG_STRUCTURE.md), [Org Roadmap](architecture/SMARTOUT_ORG_STRUCTURE_ROADMAP.md)
 > **Route:** `/dashboard/organization`
-> **Tables:** `department`, `location`, `zone`, `asset`, `team`, `position` (all exist)
 
 #### 1.1.1 — Department Management
 
 - [x] Department list page with DataTable
 - [x] Create department form (name, description, color, icon, is_seasonal)
-- [ ] Edit department inline or in sheet/dialog
+- [x] Edit department dialog
 - [x] Deactivate/reactivate department (soft delete)
-- [x] Department detail showing associated positions, policies
+- [x] Department detail page showing associated positions, policies
 
 #### 1.1.2 — Location Management
 
 - [x] Location list with table view
 - [x] Create location form (name, type, address, capacity)
-- [ ] Edit location form
-- [ ] Zone management within a location (CRUD for zones — counts displayed, no create UI)
-- [ ] Asset management within a location (counts displayed, no create UI)
+- [x] Edit location form
+- [x] Location detail page
+- [ ] Zone CRUD within a location (counts displayed, no create UI)
+- [ ] Asset CRUD within a location (counts displayed, no create UI)
 
 #### 1.1.3 — Team Management
 
 - [x] Team list with member/policy counts
 - [x] Create team form (name, type: operational/access/cross_department/seasonal/custom)
-- [ ] Assign/remove team members
-- [ ] Team detail view (members, leader, seasonal toggle)
+- [x] Team detail page
+- [ ] Assign/remove team members UI
+- [ ] Team leader assignment
 
 #### 1.1.4 — Position Management
 
 - [x] Position list within department view (role, min role requirement, status)
 - [ ] Create/edit position form (title, department, required certifications)
-- [ ] Position ↔ Department mapping UI
+- [ ] Position <> Department mapping UI
 
 #### 1.1.5 — People Management
 
 - [x] Profile list in `/dashboard/people` with DataTable + invite status
+- [x] Employee profile card component
+- [x] Row actions (edit, deactivate, etc.)
 - [ ] Profile detail page (personal info, role, status, department, team memberships)
-- [ ] Role management (employee → manager → admin → owner)
-- [ ] Status management (trainee → active → inactive → offboarding)
+- [ ] Role management (employee > manager > admin > owner)
+- [ ] Status management (trainee > active > inactive > offboarding)
 - [ ] Bulk actions (assign department, change status)
 
 #### 1.1.6 — Org Visualization
 
 - [ ] Tree/hierarchy view of workspace structure
-- [ ] Department → Team → Profile drill-down
-- [ ] Location → Zone → Asset drill-down
+- [ ] Department > Team > Profile drill-down
+- [ ] Location > Zone > Asset drill-down
 
 ---
 
-### 1.2 — Module 11: Settings
+### 1.2 — Module 11: Settings [~30% DONE]
 
 > **Refs:** [Module 11 Spec](modules/SMARTOUT_MODULE_11_SETTINGS.md)
 > **Route:** `/dashboard/settings`
 
 #### 1.2.1 — Workspace Settings
 
+- [x] Settings page with tab navigation
+- [x] Opening hours configuration
 - [ ] General settings form (workspace name, industry, timezone, currency, language)
 - [ ] Logo/branding upload (Supabase Storage)
 - [ ] Season defaults
@@ -242,12 +256,25 @@ These components are used across 3+ modules and should live in the shared packag
 
 ---
 
-### 1.3 — Module 1: Onboarding (Completion)
+### 1.3 — Module 1: Onboarding [~90% DONE]
 
-> **Refs:** [Module 1 Spec](modules/SMARTOUT_MODULE_1_ONBOARDING.md), [Onboarding Architecture](architecture/SMARTOUT_WORKSPACE_ONBOARDING_ARCHITECTURE.md), [Agent Rewrite Plan](plans/2026-02-27-onboarding-agent-rewrite.md)
-> **Existing:** AI assistant, scraping, workspace activation, voice assistant
+> **Refs:** [Module 1 Spec](modules/SMARTOUT_MODULE_1_ONBOARDING.md), [ADR-0041](decisions/0041-onboarding-wizard.md)
+> **Existing:** Full 15-step wizard with voice AI, progressive save, 55+ components
 
-#### 1.3.1 — Invitation Management UI
+#### 1.3.1 — Onboarding Wizard (Admin Setup) [DONE]
+
+- [x] 15-step wizard with 4 modal drawers
+- [x] AI-powered intelligence gathering (Brreg, Google Places, web scraping)
+- [x] Voice AI integration (Ultravox — Botsson personality)
+- [x] Progressive save pattern (LEARN-0017)
+- [x] Auth step with signup
+- [x] Invite step for team members
+- [x] Real-time workspace setup
+- [x] Showcase mode for product demos (`/onboarding/showcase`)
+- [x] Key facts panel, business card grid, finale overlay
+- [x] Ambient effects, typewriter text, section reveal animations
+
+#### 1.3.2 — Invitation Management UI
 
 - [x] Invitation list integrated in `/dashboard/people` (pending/expired status)
 - [x] Create invitation dialog (name, email/phone, department, role)
@@ -258,7 +285,7 @@ These components are used across 3+ modules and should live in the shared packag
 - [ ] Invite link generation (shareable link with expiry)
 - [ ] Email dispatch (currently stubbed — TODO in Edge Function)
 
-#### 1.3.2 — Accept-Invite Flow
+#### 1.3.3 — Accept-Invite Flow
 
 - [x] Landing page for invite token (`/invite/[token]` — UI complete)
 - [ ] Connect to real auth signup (currently mocked)
@@ -266,88 +293,145 @@ These components are used across 3+ modules and should live in the shared packag
 - [ ] Handle expired/cancelled invites gracefully
 - [ ] Post-accept onboarding checklist for new employee
 
-#### 1.3.3 — Trainee Mode
+#### 1.3.4 — Trainee Mode
 
 - [x] `trainee` status exists in profile status enum (with GraduationCap icon in People table)
 - [ ] Sandbox mode: real UI, no live data impact
 - [ ] Trainee progress tracker (% of required protocols completed)
 - [ ] 48-hour escalation alert if trainee not progressing
-- [ ] Role progression: trainee → active (manual or automatic on readiness threshold)
+- [ ] Role progression: trainee > active (manual or automatic on readiness threshold)
 
 ---
 
 ## Wave 2: Operational Core
 
-**Status:** After Wave 1
+**Status:** ~75% done
 **Goal:** Shift scheduling and team communication — the daily operational features.
 **Prereqs:** Wave 1 (Org Structure must be manageable)
 
-### 2.1 — Module 3: Scheduling
+### 2.1 — Module 3: Scheduling [~80% DONE]
 
-> **Refs:** [Module 3 Spec](modules/SMARTOUT_MODULE_3_SCHEDULING.md)
+> **Refs:** [Module 3 Spec](modules/SMARTOUT_MODULE_3_SCHEDULING.md), [ADR-0036](decisions/0036-schedule-shift.md)
 > **Route:** `/dashboard/schedule`, `/dashboard/my-schedule`
-> **Partially built:** Basic shift view and "Vaktliste" exist
+> **Database:** 9 tables (schedule_shift, schedule_absence, schedule_template, schedule_template_shift, schedule_open_shift, schedule_day_message, schedule_day_task, schedule_day_booking, schedule_audit_log) + deviation, shift_approval
 
-#### 2.1.1 — Schedule Data Model
+#### 2.1.1 — Schedule Data Model [DONE]
 
-- [ ] Create scheduling tables if not present: `shift`, `shift_template`, `availability`, `shift_swap`
-- [ ] Migration + RLS policies
-- [ ] Regenerate `database.types.ts`
+- [x] `schedule_shift` table with 14 columns, enums: `shift_status`, `day_category`
+- [x] `schedule_absence` with `absence_status` enum
+- [x] `schedule_template` + `schedule_template_shift` — reusable templates
+- [x] `schedule_open_shift` — unassigned shifts
+- [x] `schedule_day_message` with `message_visibility` enum
+- [x] `schedule_day_task` — daily operational tasks
+- [x] `schedule_day_booking` with `booking_status` enum
+- [x] `schedule_audit_log` — row-level audit trail
+- [x] `deviation` (5 domains: safety, customer, procedure, system, material) + `shift_approval`
+- [x] RLS on ALL tables (JWT + API key policies)
+- [x] Supabase Realtime on 6 tables
 
-#### 2.1.2 — Schedule Views
+#### 2.1.2 — Schedule Views [DONE]
 
-- [ ] Week view (grid: days × departments/positions)
-- [ ] Day view (timeline per location)
-- [ ] List view / "Vaktliste" (print-optimized — partially exists)
-- [ ] Employee "My Schedule" view
+- [x] Week view (grid: days x employees, @tanstack/react-virtual for large rosters)
+- [x] Day view (daily-grid with status filters: draft/published/active/completed/absence/overtime/compliance)
+- [x] Monthly view (calendar with KPI overlays)
+- [x] Multi-range views: day, week, two-weeks, month, custom
+- [x] Daily briefing summary cards
+- [x] Print-friendly grid surface
+- [x] Employee "My Schedule" view (`/dashboard/my-schedule`)
 
-#### 2.1.3 — Shift Management
+#### 2.1.3 — Shift Management [DONE]
 
-- [ ] Create shift (date, time, department, position, location, assigned employee)
-- [ ] Edit shift (drag-and-drop on week/day view)
-- [ ] Delete/cancel shift with confirmation
-- [ ] Copy week / apply template
-- [ ] Shift templates (save/load recurring patterns)
+- [x] Create shift (date, time, department, position, location, assigned employee)
+- [x] Shift modal with 6 tabs (Detaljer, Funksjoner, Historie, Lonnsgrunnlag, Oppgaver, Innstillinger)
+- [x] Drag-and-drop shift assignment (@dnd-kit/core)
+- [x] Resize handles on shift cards (15-min granularity)
+- [x] Delete/cancel shift with confirmation
+- [x] Shift presets (Morgenvakt, Dagvakt, Kveldsvakt, Nattvakt, Delt vakt)
+- [x] Copy week / apply template
+- [x] Shift templates — save/load/create/edit recurring patterns
+- [x] Batch action bar for multi-select operations
+- [x] Day context menu (copy, save template, load template, publish)
+- [x] Publish overview dialog (preview before publishing)
 
-#### 2.1.4 — Availability & Conflicts
+#### 2.1.4 — Day Control Panel [DONE]
 
-- [ ] Employee availability submission (preferred/unavailable times)
-- [ ] Conflict detection (double-booked employees, over/under-staffed)
-- [ ] Visual warnings on schedule view
+- [x] Bottom sheet with 6 tabs:
+  - Oversikt (KPI cards, timeline, roster, budget, duty manager)
+  - Meldinger (compose/send day messages with audience/visibility filters)
+  - Bookings (create/edit/cancel reservations, VIP flag, guest count)
+  - Budget (revenue targets, labor %, wage settings)
+  - Staffing (employee roster, availability)
+  - Session Tasks (category filtering, task creation/completion)
+- [x] Day navigation (prev/next)
+- [x] DaySessionProvider integrated state
+- [x] Timeline visualization of shifts
+- [x] Broadcast footer with send controls
 
-#### 2.1.5 — Open Shifts & Swaps
+#### 2.1.5 — Open Shifts & Absence
 
-- [ ] Open shift board (unassigned shifts employees can claim)
+- [x] Open shift dialog (create/browse unassigned shifts)
+- [x] Assign open shift to employee
+- [x] Absence popover (record absence types: sick, vacation, parental, etc.)
+- [x] Absence status workflow (pending > approved/rejected)
 - [ ] Shift swap request/approval workflow
 - [ ] Notifications for open shifts and swap requests
 
+#### 2.1.6 — Schedule Intelligence
+
+- [x] Agent proposals context (ghost cards for AI-suggested shifts)
+- [x] Voice tools integration (create/update/assign/publish via voice)
+- [x] Cost estimation (base rates + supplements: evening 40%, weekend 100%)
+- [x] AML compliance risk detection (max hours per employee)
+- [x] Coverage calculations and staffing stats
+- [ ] AI schedule optimization (full autonomous mode)
+
+#### 2.1.7 — Schedule Data Layer [DONE]
+
+- [x] 17 TanStack Query hooks (shifts, templates, open shifts, day content, employees, absences, computed, realtime, voice, day session, day info, audit, week range, day session model)
+- [x] Query key factory (`schedule-keys.ts`)
+- [x] Data mappers (Supabase to UI types + reversal)
+- [x] Realtime subscriptions via Supabase
+- [x] Unit tests (day-session-model, schedule-mappers)
+
+#### 2.1.8 — Schedule API & MCP
+
+- [x] Send message API route (`/api/schedule/send-message`) — SMS/Email/Push dispatch
+- [x] Shift MCP service with 5 tools (create, update, list, get, delete) — dual-auth, Zod validation
+- [ ] Schedule-specific Edge Functions (using Supabase RLS directly instead)
+- [ ] E2E Playwright tests
+
 ---
 
-### 2.2 — Module 9: Communication
+### 2.2 — Module 9: Communication [~70% DONE]
 
 > **Refs:** [Module 9 Spec](modules/SMARTOUT_MODULE_9_COMMUNICATION.md)
 > **Route:** `/dashboard/chat`
 
 #### 2.2.1 — Communication Data Model
 
-- [ ] Create tables: `channel`, `message`, `channel_member`
-- [ ] Migration + RLS policies (workspace-scoped)
-- [ ] Supabase Realtime subscriptions for live updates
+- [x] Tables exist (channels, messages, channel members)
+- [x] RLS policies (workspace-scoped)
+- [x] Supabase Realtime subscriptions for live updates
 
-#### 2.2.2 — Chat UI
+#### 2.2.2 — Chat UI [DONE]
 
-- [ ] Channel list sidebar
-- [ ] Message thread with real-time updates
-- [ ] Compose message with formatting
-- [ ] File/image attachments (Supabase Storage)
-- [ ] @mentions with profile lookup
+- [x] ChatShell — main container
+- [x] ConversationList — sidebar with conversation list
+- [x] ConversationItem — individual conversation rendering
+- [x] MessageList — message thread with real-time updates
+- [x] MessageBubble — individual message display
+- [x] MessageInput — compose message
+- [x] ChatHeader — header with conversation info
+- [x] ReplyPreview — reply context display
+- [x] MemberPanel — conversation member management
+- [x] CreateConversation — new conversation dialog
 
 #### 2.2.3 — Channels
 
 - [ ] Workspace-wide announcements channel (read-only for non-admins)
 - [ ] Department channels (auto-created from org structure)
 - [ ] Team channels
-- [ ] Direct messages
+- [x] Direct messages
 
 #### 2.2.4 — Notifications
 
@@ -380,6 +464,7 @@ These components are used across 3+ modules and should live in the shared packag
 
 #### 2.3.4 — Platform Integration
 
+- [x] LiveKit adapter exists (`packages/ai/adapters/livekit.ts`)
 - [ ] Implement LiveKit token endpoint (Edge Function)
 - [ ] Configure webhook handler for room lifecycle and duration logging
 - [ ] Add baseline observability (errors, duration, participation metrics)
@@ -388,19 +473,19 @@ These components are used across 3+ modules and should live in the shared packag
 
 ## Wave 3: Live Operations
 
-**Status:** After Wave 2
+**Status:** ~50% done
 **Goal:** Transform schedules into actionable daily workflows.
 **Prereqs:** Wave 2 (Scheduling must be working)
 
-### 3.1 — Module 4: Operations
+### 3.1 — Module 4: Operations [~40% DONE]
 
-> **Refs:** [Module 4 Spec](modules/SMARTOUT_MODULE_4_OPERATIONS.md) (80KB — the biggest spec)
-> **Route:** `/dashboard/operations`
+> **Refs:** [Module 4 Spec](modules/SMARTOUT_MODULE_4_OPERATIONS.md)
+> **Route:** `/dashboard/operations`, `/dashboard/close`
 
 #### 3.1.1 — Department Sessions
 
 - [ ] Auto-generate daily department sessions from schedule
-- [ ] Session lifecycle: `upcoming → active → pending_signoff → closed | missed`
+- [ ] Session lifecycle: `upcoming > active > pending_signoff > closed | missed`
 - [ ] Session overview page (all departments for today)
 - [ ] Session detail page (tasks, staff, notes, handoffs)
 
@@ -412,11 +497,12 @@ These components are used across 3+ modules and should live in the shared packag
 
 #### 3.1.3 — Task Execution
 
-- [ ] Task list per session (generated from hooks + ad-hoc)
-- [ ] Task status tracking: `pending → available → in_progress → completed | skipped | overdue | escalated`
-- [ ] Task assignment to specific profiles
-- [ ] Ad-hoc task creation by managers
-- [ ] Task completion with notes/evidence
+- [x] Task list per session (schedule_day_task + SessionTasksTab in Day Control Panel)
+- [x] Task status tracking (category filtering, completion)
+- [x] Task assignment
+- [x] Ad-hoc task creation by managers
+- [x] Task completion with notes
+- [ ] Full status lifecycle: `pending > available > in_progress > completed | skipped | overdue | escalated`
 
 #### 3.1.4 — Live Dashboard
 
@@ -424,6 +510,25 @@ These components are used across 3+ modules and should live in the shared packag
 - [ ] Capacity/stress indicator
 - [ ] Clock-in/clock-out tracking
 - [ ] Handoff notes between sessions
+
+#### 3.1.5 — Daily Close / Settlement [DONE]
+
+- [x] CloseOutFlow — main close workflow orchestration (`/dashboard/close`)
+- [x] ChecklistSection — checklist validation UI
+- [x] GatekeeperStatus — gatekeeper sign-off status
+- [x] ImageUpload — image/evidence capture for close
+- [x] Settlement validation Edge Function
+- [x] Image processing Edge Function (OCR)
+
+#### 3.1.6 — Reconciliation [DONE]
+
+- [x] ReconciliationDashboard — main view (`/dashboard/reconciliation`)
+- [x] DayList — daily entries list
+- [x] DayApproval — day sign-off workflow
+- [x] ShiftApprovalSection — shift approval details
+- [x] RevenueSection — revenue reconciliation
+- [x] DeviationSection — deviation tracking
+- [x] Database: `daily_reconciliation`, `shift_approval`, `deviation` tables
 
 ---
 
@@ -440,6 +545,7 @@ These components are used across 3+ modules and should live in the shared packag
 
 #### 3.2.2 — Daily HACCP Execution
 
+- [x] HACCP Inspector mission (Ultravox voice agent — "HACCP-inspektoren")
 - [ ] Temperature logging tasks (integrated as session hooks)
 - [ ] CCP verification checklists
 - [ ] Deviation alerts + corrective action workflow
@@ -449,21 +555,25 @@ These components are used across 3+ modules and should live in the shared packag
 
 ## Wave 4: Governance & Training
 
-**Status:** After Wave 3
+**Status:** ~30% done
 **Goal:** Policy enforcement and employee readiness tracking.
 **Prereqs:** Wave 1 (Org Structure) + Wave 3 (Operations for hook-based training)
 
-### 4.1 — Module 6: Training
+### 4.1 — Module 6: Training [~30% DONE]
 
 > **Refs:** [Module 6 Spec](modules/SMARTOUT_MODULE_6_TRAINING.md)
 > **Route:** `/dashboard/governance`, `/dashboard/my-training`
 
 #### 4.1.1 — Policy & Protocol Management
 
+- [x] GovernanceOverview — policy dashboard
+- [x] ProtocolEmployeeList — protocol assignment list
+- [x] OverdueAlerts — overdue training alerts
+- [x] EmployeeJourneyMap — training journey visualization
 - [ ] Policy list with type filter (operational, haccp, hr, safety, access, payroll, custom)
 - [ ] Create/edit policy (title, type, scope, content)
 - [ ] Protocol creation linked to policy (1:1)
-- [ ] Protocol status lifecycle: `draft → active → deprecated`
+- [ ] Protocol status lifecycle: `draft > active > deprecated`
 
 #### 4.1.2 — Training Content
 
@@ -480,7 +590,7 @@ These components are used across 3+ modules and should live in the shared packag
 
 #### 4.1.4 — Employee Training View
 
-- [ ] "My Training" page with assigned protocols
+- [x] "My Training" page route exists (`/dashboard/my-training`)
 - [ ] Step-through procedure viewer
 - [ ] Knowledge test taking experience
 - [ ] Confirmation signing (DocuSign integration)
@@ -489,19 +599,20 @@ These components are used across 3+ modules and should live in the shared packag
 
 ## Wave 5: Time & Money
 
-**Status:** After Wave 2+3
+**Status:** ~10% done
 **Goal:** Absence management and payroll processing.
 **Prereqs:** Wave 2 (Scheduling)
 
-### 5.1 — Module 7: Absence
+### 5.1 — Module 7: Absence [~40% DONE]
 
 > **Refs:** [Module 7 Spec](modules/SMARTOUT_MODULE_7_ABSENCE.md)
 
 #### 5.1.1 — Absence Types & Requests
 
-- [ ] Absence type configuration (vacation, sick, personal, parental, etc.)
-- [ ] Absence request form (type, dates, notes)
-- [ ] Approval workflow (manager → admin)
+- [x] Absence type configuration (vacation, sick, personal, parental) — `schedule_absence` table + `absence_status` enum
+- [x] Absence recording via popover in schedule UI
+- [x] Absence cards rendered in schedule grid
+- [ ] Approval workflow (manager > admin)
 - [ ] Calendar view of team absences
 
 #### 5.1.2 — Schedule Impact
@@ -519,7 +630,8 @@ These components are used across 3+ modules and should live in the shared packag
 
 #### 5.2.1 — Time Tracking
 
-- [ ] Worked hours aggregation from shifts + clock-in/out
+- [x] Shift approval with punch in/out (`shift_approval` table)
+- [x] Worked hours displayed in shift modal (Lonnsgrunnlag tab)
 - [ ] Overtime calculation (Norwegian labor law rules)
 - [ ] Break tracking
 
@@ -532,6 +644,7 @@ These components are used across 3+ modules and should live in the shared packag
 
 #### 5.2.3 — Employee Salary View
 
+- [x] Route exists (`/dashboard/my-salary`)
 - [ ] Payslip display
 - [ ] Hours worked summary
 - [ ] Tax and deductions breakdown
@@ -540,29 +653,42 @@ These components are used across 3+ modules and should live in the shared packag
 
 ## Wave 6: Intelligence & Advanced
 
-**Status:** After Waves 3–5
+**Status:** ~60% done (significant AI work completed ahead of schedule)
 **Goal:** Reporting, advanced features, and AI enhancement.
 **Prereqs:** Data from all previous modules
 
-### 6.1 — Module 10: Reports
+### 6.1 — Module 10: Reports [~70% DONE]
 
-> **Refs:** [Module 10 Spec](modules/SMARTOUT_MODULE_10_REPORTS.md), [PRD-03 Avstemming](architecture/PRD-03_Avstemmingssystem.md), [Telemetry Architecture](architecture/SMARTOUT_TELEMETRY_ARCHITECTURE.md)
+> **Refs:** [Module 10 Spec](modules/SMARTOUT_MODULE_10_REPORTS.md)
 > **Route:** `/dashboard/reports`
 
-#### 6.1.1 — KPI Dashboard
+#### 6.1.1 — KPI Dashboard [DONE]
 
-- [ ] Configurable KPI cards (partially built)
-- [ ] Turnover rate, absence rate, onboarding SLA, payroll %, readiness score
-- [ ] Trend charts (Recharts — already in deps via ADR-0018)
-- [ ] Date range selection and comparison
+- [x] ReportsPageShell — main container
+- [x] OverviewSection — overview metrics
+- [x] StaffingSection — staffing analytics
+- [x] TrainingSection — training progress
+- [x] PeopleSection — people analytics
+- [x] OverviewDeepInsights — deep dive insights
+- [x] ReportCard — individual report display
+- [x] SavedReportsGrid — saved reports
+- [x] ReportViewer — report rendering
 
-#### 6.1.2 — Reconciliation System
+#### 6.1.2 — AI Reporting [DONE]
 
-- [ ] Daily/weekly data snapshots via edge functions
-- [ ] Planned vs. actual comparison (hours, staff, costs)
-- [ ] Discrepancy detection and alerts
+- [x] ReportsChatPanel — AI-powered reporting chat interface
+- [x] AiReportDrawer — AI-generated report drawer
+- [x] ReportInsightDrawer — insight detail drawer
+- [x] AI report tools: listDataSources, previewReport, saveReport, deleteReport, listSavedReports
 
-#### 6.1.3 — Export & Sharing
+#### 6.1.3 — Reconciliation System [DONE]
+
+- [x] Daily settlement tracking (`daily_reconciliation` table)
+- [x] Planned vs. actual comparison (hours, staff, costs)
+- [x] Deviation detection and tracking
+- [x] Full reconciliation UI (see Wave 3.1.6)
+
+#### 6.1.4 — Export & Sharing
 
 - [ ] PDF report generation
 - [ ] Scheduled email reports
@@ -572,13 +698,13 @@ These components are used across 3+ modules and should live in the shared packag
 
 ### 6.2 — Module 14: Production
 
-> **Refs:** [Module 14 Spec](modules/SMARTOUT_MODULE_14_PRODUCTION.md), [Production Architecture](architecture/SMARTOUT_PRODUCTION_ARCHITECTURE.md)
+> **Refs:** [Module 14 Spec](modules/SMARTOUT_MODULE_14_PRODUCTION.md)
 
 #### 6.2.1 — Menu & Recipes
 
 - [ ] Menu item CRUD
 - [ ] Recipe builder (ingredients, steps, portions)
-- [ ] Recipe costing (ingredient cost × quantity)
+- [ ] Recipe costing (ingredient cost x quantity)
 
 #### 6.2.2 — Inventory
 
@@ -588,41 +714,190 @@ These components are used across 3+ modules and should live in the shared packag
 
 ---
 
-### 6.3 — Module 15: Season Planning
+### 6.3 — Module 15: Season Planning [DONE]
 
 > **Refs:** [Module 15 Spec](modules/SMARTOUT_MODULE_15_SEASON_PLANNING.md)
 > **Route:** `/dashboard/season`
 
-#### 6.3.1 — Season Lifecycle
+#### 6.3.1 — Season Lifecycle [DONE]
 
-- [ ] Create/configure season (name, dates, type, budget)
-- [ ] Season activation and archival
-- [ ] Season comparison (this year vs. last year)
+- [x] SeasonSelector — season selection dropdown
+- [x] SeasonManagementCard — create/edit seasons
+- [x] SeasonOverviewTab — budget overview, season selection
+- [x] Season activation and archival
 
-#### 6.3.2 — Budget & Gamification
+#### 6.3.2 — Budget Engine [DONE]
 
-- [ ] Budget engine (labor cost targets per department)
+- [x] BudgetSetupTab — total target, labor %, avg wage, base price configuration
+- [x] DayFactorsTab — weekday weight distribution (Monday-Sunday)
+- [x] HourFactorsTab — hourly weight distribution
+- [x] Pure calculation engine (`apps/web/src/lib/season-calculations.ts`)
+- [x] Database: `season_budget` (1:1 with season), `day_factor`, `hour_factor` tables
+- [x] `budget_status` enum (draft/active/locked)
+
+#### 6.3.3 — Gamification
+
 - [ ] Point system configuration
 - [ ] Leaderboard per season
+- [ ] Season comparison (this year vs. last year)
 
 ---
 
-### 6.4 — Module 12: AI (Progressive Enhancement)
+### 6.4 — Module 12: AI (Progressive Enhancement) [~80% DONE]
 
-> **Refs:** [Module 12 Spec](modules/SMARTOUT_MODULE_12_AI.md), [ADR-0010](decisions/0010-ai-sdk-openrouter.md), [AI Council Research](research/Seven%20AI%20Council%20personas%20for%20Smartout's%20Norwegian%20hospitality%20platform.md)
+> **Refs:** [Module 12 Spec](modules/SMARTOUT_MODULE_12_AI.md), [ADR-0042](decisions/0042-agent-architecture.md)
 > **Route:** `/dashboard/ai`
 
-AI is built incrementally. Each wave unlocks new AI capabilities:
+AI has been built progressively and is far ahead of the original wave plan:
 
-| Wave   | AI Capability                                      |
-| ------ | -------------------------------------------------- |
-| Wave 0 | Onboarding assistant (workspace setup)             |
-| Wave 1 | Org structure suggestions based on industry        |
-| Wave 2 | Schedule optimization, shift coverage suggestions  |
-| Wave 3 | Operations anomaly detection, task prioritization  |
-| Wave 4 | Training content generation, readiness predictions |
-| Wave 5 | Payroll anomaly detection                          |
-| Wave 6 | Full "Mr. Botsson" workspace assistant             |
+| Wave   | AI Capability                                      | Status      |
+| ------ | -------------------------------------------------- | ----------- |
+| Wave 0 | Onboarding assistant (workspace setup)             | DONE        |
+| Wave 1 | Org structure suggestions based on industry        | DONE        |
+| Wave 2 | Schedule optimization, shift coverage suggestions  | DONE        |
+| Wave 3 | Operations anomaly detection, task prioritization  | PARTIAL     |
+| Wave 4 | Training content generation, readiness predictions | NOT STARTED |
+| Wave 5 | Payroll anomaly detection                          | NOT STARTED |
+| Wave 6 | Full "Mr. Botsson" workspace assistant             | DONE        |
+
+#### 6.4.1 — Agent Architecture [DONE]
+
+- [x] Stage Engine service (Hono, port 3000) — universal agent gateway
+- [x] Agent Router: intent classification > authority loading > context collection > tool selection > prompt building > LLM invocation
+- [x] Intent Classifier (OpenRouter/Claude) — 10 capabilities
+- [x] Tool Selector — authority-aware filtering
+- [x] Context Collector — parallel profile/relationship/memory/shift loading
+- [x] Prompt Builder — context-aware with posture adaptation
+- [x] WebSocket gateway for real-time agent sessions
+- [x] Session management with auto-expiry
+
+#### 6.4.2 — Capability System [DONE]
+
+- [x] Profile capability (getProfile, getTeam, getContractStatus)
+- [x] Guardian capability (getSignals, acknowledgeSignal, getWorkspaceHealth)
+- [x] UI capability (screen navigation, form filling, panel display)
+- [x] Onboarding tools (10 tools: getState, triggerScrape, updateBusiness, addDepartments, etc.)
+- [x] Contract tools (15 tools: read/edit/replace/insert/remove sections, placeholders, signatures)
+- [x] Report tools (5 tools: listDataSources, previewReport, saveReport, etc.)
+- [x] Intelligence tools (5 tools: searchCompany, identifyCompany, brregLookup, getIndustryDefaults, mergeData)
+- [x] Journey tools (3 tools: lookupJourneys, saveDraft, checkDuplicates)
+- [x] Season tools (5 tools: createSeason, setRevenue, learnFactors, getReadiness, savePlaybook)
+- [x] Schedule tools (10 Ultravox tools: read/write/navigate)
+- [x] Workspace docs RAG (pgvector semantic search)
+- [x] Platform docs RAG
+
+#### 6.4.3 — Voice Missions (Ultravox) [DONE]
+
+- [x] Botsson — onboarding interview (Norwegian, Mark voice, 30min)
+- [x] Lise — landing page ambassador (Norwegian, custom voice, 10min)
+- [x] Mr. Botsson — dashboard assistant (Norwegian, Mark voice, 30min)
+- [x] HACCP Inspector — food safety auditor (Norwegian, Sarah voice, 15min)
+- [x] Shift Assistant — schedule planner (Norwegian, Tina voice, 15min)
+- [x] Mission registry with template context, voice config, client tools
+
+#### 6.4.4 — Guardian System [DONE]
+
+- [x] Guardian Bus — WebSocket pub/sub for workspace-wide events
+- [x] Guardian Evaluator — real-time session monitoring (30s interval)
+- [x] Calendar Guardian — time-based triggers (60s interval)
+- [x] Guardian actions: none, advance, nudge, timeout, off_topic, silence
+- [x] Edge Functions: guardian-notify, guardian-sweep, guardian-actions
+- [x] Admin dashboard (13 components)
+
+#### 6.4.5 — Memory & Relationships [DONE]
+
+- [x] Persistent memory with pgvector embeddings (`engine_memory` table)
+- [x] Memory types: preference, fact, summary
+- [x] TTL support (expires_at)
+- [x] Relationship tracking: familiarity, trust, sentiment scores
+- [x] Auto-create on first interaction
+- [x] Memory injection during context collection
+
+#### 6.4.6 — Authority System [DONE]
+
+- [x] Per-workspace capability authority levels (`engine_authority_config` table)
+- [x] 5 levels: autonomous, confirm, suggest, read_only, disabled
+- [x] Authority-aware tool selection in router
+- [x] Posture system adapts personality to role/situation/authority
+
+#### 6.4.7 — Event Engine [DONE]
+
+- [x] `engine_event` — generic event stream
+- [x] `engine_trigger` — rules matching events to processes
+- [x] `engine_state` — execution state for triggered processes
+- [x] `engine_step` — steps within a process
+- [x] `engine-dispatch` Edge Function — event matching and trigger execution
+
+---
+
+## Cross-Cutting Systems (Built Outside Wave Structure)
+
+These features were built across multiple waves and don't fit neatly into a single wave.
+
+### C.1 — Document Mode [DONE]
+
+- [x] Document mode shell, panel, toolbar, canvas, sidebar
+- [x] Context provider for state management
+- [x] Template picker and chapter structure
+- [x] Handbook content hook
+- [x] Integrated into DashboardShell
+
+### C.2 — Unified Search [DONE]
+
+- [x] Search orchestrator — multi-source coordinator (`apps/web/src/lib/search/orchestrator.ts`)
+- [x] Query prefix parsing and normalization
+- [x] Search metrics/performance tracking
+- [x] GlobalSearchPalette — command-palette style search
+- [x] Workspace docs semantic search (pgvector RAG)
+- [x] Search API route (`/api/search`)
+
+### C.3 — Dashboard Views [DONE]
+
+- [x] TacticalView — operational day view
+- [x] StrategicView — strategic KPI overview
+- [x] ReconciliationView — settlement tracking
+- [x] ActivityView — activity feed
+- [x] EmployeeDashboard — employee-specific view
+- [x] ActionStrip — quick action toolbar
+- [x] DashboardShell — server layout + client shell (ADR-0021)
+- [x] Workspace switcher, user menu, contract pending banner
+
+### C.4 — Docs Pipeline [DONE]
+
+- [x] CLI tool for knowledge base management (`packages/docs-pipeline/`)
+- [x] Commands: ingest, ingest-workspace, watch, validate
+- [x] Git diff mode, filesystem hash tracking, workspace metadata
+- [x] Deduplication via cosine similarity (threshold 0.96)
+- [x] Dry-run mode, workspace filtering, idempotency
+
+### C.5 — Landing Page System [DONE]
+
+- [x] Dynamic block-based rendering (apps/landing/)
+- [x] 13+ block types: hero, features, case studies, testimonials, pricing, FAQs, stats, CTAs, voice widget, workspace analyzer
+- [x] Multi-variant A/B testing support
+- [x] Admin editor (`/platform-admin/landing/variants`)
+- [x] Live preview
+- [x] Variant metadata (SEO, analytics)
+- [x] PostHog EU event tracking
+
+### C.6 — Employee Self-Service Routes
+
+- [x] `/dashboard/my-schedule` — personal schedule view
+- [x] `/dashboard/my-training` — training progress (route exists, content partial)
+- [x] `/dashboard/my-salary` — payroll/hours view (route exists, content partial)
+- [x] `/dashboard/my-cv` — employee profile/CV
+
+### C.7 — Marketing Pages
+
+- [x] `/pricing` — Pricing page
+- [x] `/features` — Features page with tabs
+- [x] `/concepts` — Concept explanations
+- [x] `/blog` — Blog section
+- [x] `/om-oss` — About us (Norwegian)
+- [x] `/demo` — Demo section
+- [x] `/personvern` — Privacy policy
+- [x] `/vilkar` — Terms and conditions
+- [x] `/login`, `/signup`, `/waitlist` — Auth flows
 
 ---
 
@@ -661,42 +936,354 @@ pnpm --filter e2e test:e2e -- --grep "org-structure"
 
 ## Current Priority: What to Build Next
 
-**Wave 1 progress:** ~60% complete. Org Structure core is live. Settings untouched. Onboarding invite flow partially done.
+**Overall progress:** Wave 0 done, Wave 1 ~85%, Wave 2 ~75%, Wave 3 ~50%, Wave 4 ~30%, Wave 5 ~10%, Wave 6 ~60%.
+
+The project has built significantly out of wave order — especially AI (Wave 6.4) and Scheduling (Wave 2.1) which are both ~80% complete. The largest gaps are in Operations (Wave 3 department sessions/hooks), Training (Wave 4), and Payroll (Wave 5).
 
 **Immediate next steps (recommended order):**
 
-1. **Finish Org Structure gaps (Step 1.1)** — Edit forms for departments/locations/teams, position CRUD, zone/asset CRUD, org visualization
-2. **Extract shared components (Step 1.0)** — Move DataTable + ConfirmDialog from platform-admin to `@smartout/ui`, build remaining shared components as needed
-3. **Build Module 11: Settings (Step 1.2)** — Workspace settings table + form, notification prefs, user prefs
-4. **Complete Onboarding flow (Step 1.3)** — Real auth signup on invite accept, email dispatch, trainee sandbox, CSV bulk invite
+1. **Finish Wave 1 gaps** — Settings module, position CRUD, zone/asset CRUD, people profile detail page
+2. **Complete Schedule gaps** — Shift swap workflow, E2E tests
+3. **Build Operations core (Wave 3.1)** — Department sessions, session hooks, clock-in/out — these are the biggest missing business features
+4. **Extract shared components (Step 1.0)** — DataTable + ConfirmDialog from platform-admin to `@smartout/ui`
+5. **Complete invite-accept flow (1.3.3)** — Real auth signup, email dispatch — employee entry point
 
 **Why this order:**
 
-- Org Structure edit flows are the highest-value gap — users can create but not update
-- Shared components should be extracted when they're needed, not all at once
-- Settings is blocking workspace configuration (timezone, currency, language)
-- Onboarding invite-accept is the employee entry point — must work end-to-end before Wave 2
+- Settings and invite-accept are blocking onboarding completion
+- Operations (department sessions + hooks) is the core daily workflow and blocks HACCP
+- Schedule is functional but needs swap workflow for production use
+- Shared components should be extracted when needed, not all at once
 
 ---
 
-## Quick Reference: Module → Route → Spec
+## Quick Reference: Module > Route > Status
 
-| Module              | Dashboard Route                                   | Spec Document                           | Wave          |
-| ------------------- | ------------------------------------------------- | --------------------------------------- | ------------- |
-| 2: Org Structure    | `/dashboard/organization`                         | `SMARTOUT_MODULE_2_ORG_STRUCTURE.md`    | 1             |
-| 11: Settings        | `/dashboard/settings`                             | `SMARTOUT_MODULE_11_SETTINGS.md`        | 1             |
-| 1: Onboarding       | `/invite/[token]`, `/onboarding`                  | `SMARTOUT_MODULE_1_ONBOARDING.md`       | 1             |
-| 3: Scheduling       | `/dashboard/schedule`, `/dashboard/my-schedule`   | `SMARTOUT_MODULE_3_SCHEDULING.md`       | 2             |
-| 9: Communication    | `/dashboard/chat`                                 | `SMARTOUT_MODULE_9_COMMUNICATION.md`    | 2             |
-| 4: Operations       | `/dashboard/operations`                           | `SMARTOUT_MODULE_4_OPERATIONS.md`       | 3             |
-| 5: HACCP            | (within operations)                               | `SMARTOUT_MODULE_5_HACCP.md`            | 3             |
-| 6: Training         | `/dashboard/governance`, `/dashboard/my-training` | `SMARTOUT_MODULE_6_TRAINING.md`         | 4             |
-| 7: Absence          | (within scheduling)                               | `SMARTOUT_MODULE_7_ABSENCE.md`          | 5             |
-| 8: Payroll          | `/dashboard/my-salary`                            | `SMARTOUT_MODULE_8_PAYROLL.md`          | 5             |
-| 10: Reports         | `/dashboard/reports`                              | `SMARTOUT_MODULE_10_REPORTS.md`         | 6             |
-| 14: Production      | (new route)                                       | `SMARTOUT_MODULE_14_PRODUCTION.md`      | 6             |
-| 15: Season Planning | `/dashboard/season`                               | `SMARTOUT_MODULE_15_SEASON_PLANNING.md` | 6             |
-| 18: WebRTC          | `/dashboard/chat` (extends communication)         | `SMARTOUT_MODULE_18_WEBRTC.md`          | 2 (extends 9) |
-| 12: AI              | `/dashboard/ai`                                   | `SMARTOUT_MODULE_12_AI.md`              | Progressive   |
-| 17: Platform Admin  | `/platform-admin/*`                               | `SMARTOUT_MODULE_17_PLATFORM_ADMIN.md`  | 0.5 (Done)    |
-| 13: Multi-tenant    | Cross-cutting                                     | `SMARTOUT_MODULE_13_MULTITENANT.md`     | Cross-cutting |
+| Module              | Dashboard Route                                   | Status      | Wave | Completion |
+| ------------------- | ------------------------------------------------- | ----------- | ---- | ---------- |
+| 1: Onboarding       | `/onboarding`, `/invite/[token]`                  | In progress | 1    | ~90%       |
+| 2: Org Structure    | `/dashboard/organization`                         | In progress | 1    | ~85%       |
+| 3: Scheduling       | `/dashboard/schedule`                             | In progress | 2    | ~80%       |
+| 4: Operations       | `/dashboard/operations`, `/dashboard/close`       | In progress | 3    | ~40%       |
+| 5: HACCP            | (within operations)                               | Minimal     | 3    | ~5%        |
+| 6: Training         | `/dashboard/governance`, `/dashboard/my-training` | Partial     | 4    | ~30%       |
+| 7: Absence          | (within scheduling)                               | Partial     | 5    | ~40%       |
+| 8: Payroll          | `/dashboard/my-salary`                            | Minimal     | 5    | ~10%       |
+| 9: Communication    | `/dashboard/chat`                                 | Built       | 2    | ~70%       |
+| 10: Reports         | `/dashboard/reports`                              | Built       | 6    | ~70%       |
+| 11: Settings        | `/dashboard/settings`                             | Partial     | 1    | ~30%       |
+| 12: AI              | `/dashboard/ai` + Stage Engine                    | Built       | 6    | ~80%       |
+| 13: Multi-tenant    | Cross-cutting                                     | Built       | 0    | ~90%       |
+| 14: Production      | (new route)                                       | Not started | 6    | 0%         |
+| 15: Season Planning | `/dashboard/season`                               | Done        | 6    | ~95%       |
+| 17: Platform Admin  | `/platform-admin/*`                               | Done        | 0    | ~95%       |
+| 18: WebRTC          | `/dashboard/chat` (extends)                       | Minimal     | 2    | ~10%       |
+
+---
+
+## Appendix A: Intelligence Architecture — Conceptual Summary
+
+> How Smartout's AI agents work, end to end.
+
+### The Big Picture
+
+Smartout has a **multi-agent intelligence layer** that runs alongside the human-facing dashboard. Every AI interaction — voice onboarding, schedule planning, HACCP audits, free-form chat — flows through a single runtime: the **Stage Engine**. Agents don't just answer questions; they have persistent memory, adapt their personality to each employee, and operate within workspace-defined authority boundaries.
+
+### Stage Engine (Runtime Gateway)
+
+The Stage Engine (`services/stage-engine/`, Hono, port 3000) is the universal entry point for all agent interactions. It supports two modes:
+
+| Mode        | Purpose                                                  | Session Shape                                                      |
+| ----------- | -------------------------------------------------------- | ------------------------------------------------------------------ |
+| **Mission** | Structured multi-stage flows (onboarding, HACCP audit)   | Has `mission_id`, stages with goals/criteria, Guardian supervision |
+| **Agent**   | Free-form conversation (Mr. Botsson dashboard assistant) | NULL `mission_id`, open-ended, still authority-bounded             |
+
+Both modes use WebSocket connections for real-time streaming. Sessions persist in `engine_sessions` with auto-expiry.
+
+### Agent Router Pipeline (6 Steps)
+
+Every user message goes through a deterministic pipeline in `agent-router.ts`:
+
+```
+1. Load Authority Config    → What CAN this agent do in this workspace?
+2. Classify Intent          → What DOES the user want? (OpenRouter/Claude Sonnet 4)
+3. Collect Context          → Profile, relationships, memories, shift data (parallel)
+4. Select Tools             → Filter available tools by authority level
+5. Build Prompt             → Three-layer prompt with posture adaptation
+6. Invoke LLM              → OpenRouter/Claude with selected tools + context
+```
+
+The intent classifier returns a capability domain (one of 9), confidence score, and reasoning. Low-confidence intents get routed to general conversation rather than tool use.
+
+### Capability System (9 Domains)
+
+Each workspace configures which capabilities their agents may use, and at what authority level:
+
+| Capability        | What it covers                    | Example tools                          |
+| ----------------- | --------------------------------- | -------------------------------------- |
+| **knowledge**     | Company knowledge, handbook, docs | searchDocs, getHandbook                |
+| **schedule**      | Shifts, availability, coverage    | createShift, listShifts, publishWeek   |
+| **training**      | Protocols, procedures, readiness  | getAssignments, checkReadiness         |
+| **operations**    | Sessions, tasks, deviations       | getSessionStatus, logDeviation         |
+| **profile**       | Employee data, teams, contracts   | getProfile, getTeam, getContractStatus |
+| **communication** | Messages, notifications           | sendMessage, notifyTeam                |
+| **memory**        | Agent recall, preferences         | storeMemory, recallMemory              |
+| **payroll**       | Hours, salary, supplements        | getWorkedHours, calculatePay           |
+| **ui**            | Screen navigation, form filling   | navigateTo, openPanel, fillForm        |
+
+Authority levels per capability: **autonomous** (act freely) → **confirm** (ask before acting) → **suggest** (recommend only) → **read_only** (observe) → **disabled** (hidden). Stored in `engine_authority_config` (per-workspace, per-capability).
+
+### Three-Layer Prompt Architecture
+
+Every agent prompt is composed from three layers:
+
+```
+┌─────────────────────────────────────┐
+│  MISSION LAYER                      │  Who am I? (identity, voice, rules)
+│  - Agent persona (Botsson, Lise...) │
+│  - System prompt from mission       │
+│  - Temperature, max duration        │
+├─────────────────────────────────────┤
+│  CONTEXT LAYER                      │  What do I know? (dynamic per-request)
+│  - Profile data (role, department)  │
+│  - Relationship history             │
+│  - Retrieved memories (pgvector)    │
+│  - Current shift/schedule context   │
+│  - Workspace authority config       │
+├─────────────────────────────────────┤
+│  STAGE LAYER                        │  What am I doing now? (mission mode only)
+│  - Current stage goal               │
+│  - Completion criteria              │
+│  - Allowed tools for this stage     │
+│  - Stage-specific instructions      │
+└─────────────────────────────────────┘
+```
+
+### Posture System (Personality Adaptation)
+
+Agents don't have fixed personalities — they adapt along 5 dimensions:
+
+| Dimension     | Range | What it controls               |
+| ------------- | ----- | ------------------------------ |
+| Formality     | 0–1   | Casual ↔ Professional tone     |
+| Assertiveness | 0–1   | Passive ↔ Direct behavior      |
+| Warmth        | 0–1   | Neutral ↔ Encouraging language |
+| Humor         | 0–1   | Serious ↔ Playful responses    |
+| Verbosity     | 0–1   | Terse ↔ Detailed explanations  |
+
+Posture is resolved through 4 adjustment layers: **role** (trainees get more warmth, less formality) → **situation** (HACCP gets more assertiveness, less humor) → **authority** (read_only gets more formality, less assertiveness) → **relationship** (high familiarity reduces formality, increases humor).
+
+### Voice Missions (Ultravox)
+
+Five pre-configured voice agents, each with distinct identity and purpose:
+
+| Agent               | Role                    | Voice       | Duration | Key Tools                                        |
+| ------------------- | ----------------------- | ----------- | -------- | ------------------------------------------------ |
+| **Botsson**         | Onboarding interviewer  | Mark (NO)   | 30 min   | Workspace intelligence, scraping, business setup |
+| **Lise**            | Landing page ambassador | Custom (NO) | 10 min   | Demo navigation, feature explanation             |
+| **Mr. Botsson**     | Dashboard assistant     | Mark (NO)   | 30 min   | All 9 capability domains                         |
+| **HACCP Inspector** | Food safety auditor     | Sarah (NO)  | 15 min   | Temperature logging, CCP verification            |
+| **Shift Assistant** | Schedule planner        | Tina (NO)   | 15 min   | Shift CRUD, coverage analysis, publishing        |
+
+### Guardian System (Supervision Layer)
+
+The Guardian monitors active agent sessions and intervenes when needed:
+
+- **Guardian Evaluator**: Checks sessions against completion criteria every 30 seconds
+- **Calendar Guardian**: Fires time-based triggers (shift start reminders, session opens) every 60 seconds
+- **Guardian Bus**: WebSocket pub/sub for workspace-wide event distribution
+
+Guardian actions: `none` (on track) → `nudge` (gentle redirect) → `advance` (auto-progress to next stage) → `off_topic` (redirect back) → `silence` (re-engage after inactivity) → `timeout` (end session).
+
+Three Edge Functions support the Guardian: `guardian-sweep` (batch evaluation), `guardian-notify` (dispatch alerts), `guardian-actions` (execute interventions).
+
+### Memory System (Persistent Recall)
+
+Agents remember across sessions via `engine_memory` table with pgvector embeddings:
+
+- **Memory types**: preference ("likes morning shifts"), fact ("allergic to nuts"), summary (conversation recap)
+- **TTL support**: memories can expire (`expires_at`)
+- **Retrieval**: Semantic search during context collection — relevant memories injected into prompt
+- **Workspace isolation**: RLS ensures agents only recall memories from their workspace
+
+### Relationship Tracking
+
+Each agent-profile pair builds a relationship over time (`agent_relationship` table):
+
+- **Familiarity score**: How well the agent "knows" this person (conversation count weighted)
+- **Trust score**: Quality of past interactions
+- **Sentiment score**: Overall emotional tone of interactions
+- **Relationship score**: Composite metric influencing posture adaptation
+
+Auto-created on first interaction. Higher familiarity = more casual tone, more personalized responses.
+
+### Event Engine (Automation)
+
+The event-driven automation layer processes domain events and triggers processes:
+
+```
+engine_event (something happened)
+    ↓ matched by
+engine_trigger (rule: if event X, start process Y)
+    ↓ creates
+engine_state (execution context for the triggered process)
+    ↓ steps through
+engine_step (individual actions within the process)
+```
+
+The `engine-dispatch` Edge Function handles event matching and trigger execution. Currently used for DailyClose process (10 steps) — designed to support any workflow automation.
+
+### What's Built vs. What's Missing
+
+| Layer                          | Status    | Gap                                                                    |
+| ------------------------------ | --------- | ---------------------------------------------------------------------- |
+| Agent runtime (Stage Engine)   | DONE      | —                                                                      |
+| Agent router (6-step pipeline) | DONE      | —                                                                      |
+| Capability system (9 domains)  | DONE      | Tool implementations vary (some capabilities have stubs)               |
+| Posture system                 | DONE      | —                                                                      |
+| Voice missions (5 agents)      | DONE      | —                                                                      |
+| Guardian supervision           | DONE      | Calendar triggers not yet connected to department sessions             |
+| Memory system                  | DONE      | Memory creation during conversations not yet automatic                 |
+| Relationship tracking          | DONE      | —                                                                      |
+| Authority config               | DONE      | No admin UI to configure per-workspace authority                       |
+| Event engine                   | DONE      | Only DailyClose process seeded; no events actually emitted yet         |
+| Employee-facing agent access   | NOT BUILT | Employees can't interact with agents from /my-schedule or /my-training |
+
+---
+
+## Appendix B: Dashboard View Modes — Conceptual Summary
+
+> The four ways users experience the Smartout dashboard.
+
+The dashboard (`DashboardShell.tsx`) has **two independent mode switches** that combine into four distinct experiences:
+
+```
+                    ┌──────────────────┐
+                    │  Document Mode   │  (toggle button in sidebar)
+                    │  "Handbok"       │
+                    └──────────────────┘
+                            │
+                    ┌───────┴────────┐
+                    │  isDocumentMode │
+                    │  true / false   │
+                    └───────┬────────┘
+                            │ false
+                    ┌───────┴────────┐
+                    │  isAdminMode   │
+                    │  true / false   │
+                    └───────┬────────┘
+                   ┌────────┴────────┐
+              true │                 │ false
+        ┌──────────┴──┐     ┌───────┴────────┐
+        │ Operation   │     │ My View        │
+        │ View (Drift)│     │ (Arbeidsrom)   │
+        └─────────────┘     └────────────────┘
+              │
+     ┌────────┴────────┐
+     │ adminView tabs: │
+     │ Taktisk         │  → TacticalView
+     │ Strategisk      │  → StrategicView
+     │ Avstemming      │  → ReconciliationView
+     │ Aktivitet       │  → ActivityView
+     │ Vakt            │  → GuardianView
+     └────────────────-┘
+```
+
+### 1. Operation View (Drift) — Admin Mode ON, Document Mode OFF
+
+**Breadcrumb:** `Drift > [current page]`
+**Who:** Managers, admins, owners
+**Purpose:** Run the business — scheduling, staffing, reports, governance, operations.
+
+The sidebar shows the full admin navigation organized in three groups:
+
+| Group              | Routes                                                                                  |
+| ------------------ | --------------------------------------------------------------------------------------- |
+| **Planlegging**    | Oversikt (dashboard home), Vaktplan (/schedule), Ansatte (/people), Chat (/chat)        |
+| **Operasjoner**    | Drift (/operations), Rapporter (/reports)                                               |
+| **Administrasjon** | HMS (/governance), Sesong (/season), Organisasjon (/organization), Vakt (Guardian view) |
+
+On the **dashboard home page** (`/dashboard`), admins see a tab switcher in the action bar with 5 sub-views:
+
+| Tab            | Component            | What it shows                                                                                                                                                                      |
+| -------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Taktisk**    | `TacticalView`       | Today's operational reality — weekly calendar strip, shift coverage, staffing stats, leader pulse, deviation alerts, guardian signals. Clickable dates open the Day Control Panel. |
+| **Strategisk** | `StrategicView`      | KPI dashboard — revenue targets vs actuals, labor cost %, budget tracking, location comparison, settings for KPI targets.                                                          |
+| **Avstemming** | `ReconciliationView` | Settlement tracking — daily planned vs actual reconciliation, shift approvals, deviation log, revenue matching.                                                                    |
+| **Aktivitet**  | `ActivityView`       | Activity feed — chronological log of all workspace events (shifts created, protocols assigned, invitations sent, etc.).                                                            |
+| **Vakt**       | `GuardianView`       | Guardian monitoring — real-time agent session status, signal dashboard, active warnings, 13 guardian components.                                                                   |
+
+The admin also gets the `ActionStrip` toolbar (quick actions: create shift, invite employee, start session, etc.) rendered above the view content.
+
+### 2. My View (Arbeidsrom) — Admin Mode OFF
+
+**Breadcrumb:** `Arbeidsrom > [current page]`
+**Who:** Employees (and admins previewing the employee experience)
+**Purpose:** Personal workspace — my shifts, my training, my profile, my pay.
+
+The sidebar collapses to the "Mitt arbeidsrom" (My Workspace) navigation:
+
+| Route                    | Icon            | Label         | Status                                                                                                      |
+| ------------------------ | --------------- | ------------- | ----------------------------------------------------------------------------------------------------------- |
+| `/dashboard`             | LayoutDashboard | Oversikt      | **Built** — `EmployeeDashboard` shows today's shift, upcoming shifts, readiness score, open shifts to claim |
+| `/dashboard/my-schedule` | Calendar        | Min vaktplan  | **Route exists** — content is a placeholder shell                                                           |
+| `/dashboard/my-training` | GraduationCap   | Min opplæring | **Route exists** — content is a placeholder shell                                                           |
+| `/dashboard/my-cv`       | FileText        | Min profil    | **Route exists** — personal profile/CV view                                                                 |
+| `/dashboard/my-salary`   | Banknote        | Min lønn      | **Route exists** — content is a placeholder shell                                                           |
+
+The `EmployeeDashboard` component is real — it queries `useMyShifts(profileId)` and `useMyReadiness(profileId)` for actual data, and shows open shifts from `schedule_shift` where `employee_id IS NULL`. No ActionStrip, no admin sub-views.
+
+**Key gap:** The employee view routes exist but most are placeholder shells. The EmployeeDashboard landing page is functional but the individual pages (my-schedule, my-training, my-salary) show "under construction" messages.
+
+### 3. Document View (Handbok) — Document Mode ON
+
+**Breadcrumb:** `Handbok > Dokumentmodus`
+**Who:** Admins authoring the company handbook
+**Purpose:** Write and maintain the 10-chapter company handbook using a rich text editor.
+
+When Document Mode is toggled ON (via the sidebar button), the entire main content area is replaced by `DocumentModeShell`:
+
+| Component              | Role                                                                                |
+| ---------------------- | ----------------------------------------------------------------------------------- |
+| `DocumentModeSidebar`  | Left panel — 10 fixed chapter navigation (replaces the normal sidebar content area) |
+| `DocumentModeCanvas`   | Center — Tiptap rich text editor with StarterKit + Highlight extensions             |
+| `DocumentModeToolbar`  | Top — Formatting toolbar (bold, italic, headings, lists, etc.)                      |
+| `DocumentModePanel`    | Right — 3 tabs: Tools (template picker), Actions (save), Settings (font size)       |
+| `DocumentModeProvider` | Context — activeChapterKey, panelTab, isDirty, editorRef state management           |
+
+The 10 handbook chapters are fixed keys defined in `chapters.ts`:
+
+```
+velkommen, om-oss, verdier, organisering, rutiner,
+sikkerhet, personal, opplaering, kvalitet, diverse
+```
+
+Content is stored as Tiptap JSONContent in `handbook_chapter` table (one row per workspace × chapter_key). The `useHandbookContent` hook loads and `useHandbookSave` mutation persists changes.
+
+**Key gap:** Document Mode is admin-only (authoring). There is no employee-facing handbook reader — employees cannot browse the chapters their admin has written. The handbook content is also not connected to the workspace RAG pipeline (`workspace_doc_chunk`), so agents can't search handbook content either.
+
+### 4. Focus View (Specialized Pages)
+
+**Not a toggle** — Focus View refers to full-page routes that take over the content area when navigated to, regardless of admin/employee mode. These pages have their own internal navigation and don't use the dashboard sub-view tabs.
+
+Key focus pages:
+
+| Route                   | Page             | What it does                                                                                                                                                                                                               |
+| ----------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/dashboard/schedule`   | Schedule Planner | Full scheduling interface with week/day/month views, drag-and-drop shifts, Day Control Panel, publish workflow. Has its own layout toggle (Uke/Rullerende/Måned/Liste) and view mode (Ansatt/Jobb/Team) in the action bar. |
+| `/dashboard/close`      | Daily Close      | CloseOutFlow — structured close workflow with checklist, gatekeeper sign-off, image upload, settlement validation.                                                                                                         |
+| `/dashboard/reports`    | Reports          | ReportsPageShell with AI chat panel, saved reports, deep insights.                                                                                                                                                         |
+| `/dashboard/chat`       | Communication    | ChatShell with conversation list, message thread, real-time updates.                                                                                                                                                       |
+| `/dashboard/ai`         | Mr. Botsson      | Full-screen AI assistant interface.                                                                                                                                                                                        |
+| `/dashboard/governance` | HMS/Governance   | Protocol overview, employee assignment tracking, journey maps.                                                                                                                                                             |
+
+These pages render as `{children}` inside DashboardShell — the sidebar navigation still shows, but the action bar view tabs (Taktisk/Strategisk/etc.) are hidden since they only appear on the dashboard home page.
+
+### Summary: How the Modes Relate
+
+| Mode                       | Trigger                          | Sidebar                   | Content Area                   | Action Bar              |
+| -------------------------- | -------------------------------- | ------------------------- | ------------------------------ | ----------------------- |
+| **Operation View**         | Admin toggle ON + dashboard home | Full admin nav (3 groups) | 5 sub-views via tab switcher   | ActionStrip + view tabs |
+| **Operation View (focus)** | Admin toggle ON + any sub-page   | Full admin nav            | Page-specific content          | Page-specific controls  |
+| **My View**                | Admin toggle OFF                 | Employee nav (5 items)    | EmployeeDashboard or sub-pages | None                    |
+| **Document View**          | Document mode toggle ON          | Chapter navigation        | Tiptap editor + panel          | Hidden                  |

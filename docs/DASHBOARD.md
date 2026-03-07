@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: in_progress
-updated: 2026-03-06
+updated: 2026-03-08
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -13,18 +13,18 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #    | Branch                        | Module     | Status      | Progress                          | Blockers | Health |
-| ---- | ----------------------------- | ---------- | ----------- | --------------------------------- | -------- | ------ |
-| wt-1 | `feat/season-engine-complete` | operations | in_progress | just started                      | —        | clean  |
-| wt-2 | `feat/document-mode`          | document   | in_progress | just started                      | —        | clean  |
-| wt-3 | `feat/journey-package-skills` | meta       | done        | merged                            | —        | —      |
-| wt-8 | `feat/showroom`               | showroom   | in_progress | phase 2 done, 4 files uncommitted | —        | dirty  |
+| #    | Branch                        | Module        | Status      | Progress                          | Blockers | Health |
+| ---- | ----------------------------- | ------------- | ----------- | --------------------------------- | -------- | ------ |
+| wt-1 | `feat/zero-to-production`     | cross-cutting | in_progress | just started                      | —        | clean  |
+| wt-2 | `feat/document-mode`          | document      | in_progress | just started                      | —        | clean  |
+| wt-3 | `feat/journey-package-skills` | meta          | done        | merged                            | —        | —      |
+| wt-8 | `feat/showroom`               | showroom      | in_progress | phase 2 done, 4 files uncommitted | —        | dirty  |
 
 ## Free Slots
 
 | #     | Available                        |
 | ----- | -------------------------------- |
-| wt-1  | no (feat/season-engine-complete) |
+| wt-1  | no (feat/zero-to-production)     |
 | wt-2  | no (feat/document-mode)          |
 | wt-3  | no (feat/journey-package-skills) |
 | wt-4  | yes                              |
@@ -34,11 +34,11 @@ tags: [dashboard, worktrees, tracking]
 
 ## Pending Journeys
 
-| WT   | Feature                | Journey File                                      | Status  |
-| ---- | ---------------------- | ------------------------------------------------- | ------- |
-| wt-1 | season-engine-complete | `docs/journeys/JOURNEY-season-engine-complete.md` | missing |
-| wt-2 | document-mode          | `docs/journeys/JOURNEY-document-mode.md`          | missing |
-| wt-4 | infra-hardening        | `docs/journeys/JOURNEY-infra-hardening.md`        | missing |
+| WT   | Feature            | Journey File                                  | Status  |
+| ---- | ------------------ | --------------------------------------------- | ------- |
+| wt-1 | zero-to-production | `docs/journeys/JOURNEY-zero-to-production.md` | missing |
+| wt-2 | document-mode      | `docs/journeys/JOURNEY-document-mode.md`      | missing |
+| wt-4 | infra-hardening    | `docs/journeys/JOURNEY-infra-hardening.md`    | missing |
 
 ## Recent Closures
 
@@ -198,3 +198,4 @@ tags: [dashboard, worktrees, tracking]
 | 2026-04-12 | (main session)                   | session ended     | Boot sequence, dev startup, infra production readiness audit, wrote hardening plan (8 tasks). infra-hardening already closed in prior session. DashboardShell.tsx has merge conflict (document-mode).                                                                                                                     |
 | 2026-04-13 | document-mode                    | session ended     | Resolved all merge conflicts (DashboardShell, chapters, context, use-handbook-content). Fixed Tiptap SSR error, lifted DocumentModeProvider. Applied handbook_chapter migration locally. Uncommitted.                                                                                                                     |
 | 2026-03-06 | showroom                         | session ended     | Phase 2 complete: mission runtime (personas, stages, skills, events), 3 missions, direct streaming page rewrite, 102 tests (76 unit + 20 integration + 6 E2E). 4 files uncommitted. Next: event tracking, show-off mission, voice, beautiful UI.                                                                          |
+| 2026-03-08 | zero-to-production               | started           | wt-1, module: cross-cutting — Module Zero: close 10 gaps, event engine, employee UI, journey runner                                                                                                                                                                                                                       |

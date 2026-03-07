@@ -30,23 +30,24 @@ Botsson is Smartout's conversational AI system — a voice-first agent that talk
 
 ### Noekkelfiler
 
-| Fil                | Sti                                                     | Formaal                                                             |
-| ------------------ | ------------------------------------------------------- | ------------------------------------------------------------------- |
-| Mission Registry   | `packages/ai/src/missions/registry.ts`                  | All 5 mission configs with system prompts                           |
-| Mission Types      | `packages/ai/src/missions/types.ts`                     | `AgentMission`, `MissionId`, voice types                            |
-| Mr. Botsson Prompt | `packages/ai/src/prompts/mr-botsson.ts`                 | Prompt builders for in-dashboard mode                               |
-| Posture System     | `packages/ai/src/prompts/posture.ts`                    | 5D personality adaptation engine                                    |
-| Context Collector  | `packages/ai/src/context/collector.ts`                  | Loads profile, shift, memories, relationship                        |
-| Context Types      | `packages/ai/src/context/types.ts`                      | `AgentContext`, `RelationshipData`, `AgentProfileData`              |
-| Capability Types   | `packages/ai/src/capabilities/types.ts`                 | `Personality`, `Situation`, `AuthorityLevel`, `ProfileRole`         |
-| Server Tools       | `packages/ai/src/tools/onboarding.ts`                   | `saveTranscription`, `saveIntelligenceReport`, `updateIntelligence` |
-| Client Hook        | `apps/web/src/app/onboarding/hooks/useBotsson.ts`       | Client-side Ultravox session + 14 tool implementations              |
-| Ultravox Adapter   | `services/stage-engine/src/routes/adapters/ultravox.ts` | Stage Engine endpoints for Ultravox calls                           |
-| Prompt Builder     | `services/stage-engine/src/core/prompt-builder.ts`      | Assembles stage prompt from mission + context + data                |
-| Ultravox Client    | `services/stage-engine/src/lib/ultravox.ts`             | API client + HTTP tool builder                                      |
-| Ultravox Types     | `services/stage-engine/src/types/ultravox.ts`           | All Ultravox type definitions                                       |
-| Journey Generator  | `packages/ai/src/generators/journey-botsson.ts`         | Converts journeys to Botsson voice scripts                          |
-| ADR-0042           | `docs/decisions/0042-agent-architecture.md`             | Agent architecture decision                                         |
+| Fil                | Sti                                                     | Formaal                                                               |
+| ------------------ | ------------------------------------------------------- | --------------------------------------------------------------------- |
+| Mission Registry   | `packages/ai/src/missions/registry.ts`                  | All 5 mission configs with system prompts                             |
+| Mission Types      | `packages/ai/src/missions/types.ts`                     | `AgentMission`, `MissionId`, voice types                              |
+| Mr. Botsson Prompt | `packages/ai/src/prompts/mr-botsson.ts`                 | Prompt builders for in-dashboard mode                                 |
+| Posture System     | `packages/ai/src/prompts/posture.ts`                    | 5D personality adaptation engine                                      |
+| Context Collector  | `packages/ai/src/context/collector.ts`                  | Loads profile, shift, memories, relationship                          |
+| Context Types      | `packages/ai/src/context/types.ts`                      | `AgentContext`, `RelationshipData`, `AgentProfileData`                |
+| Capability Types   | `packages/ai/src/capabilities/types.ts`                 | `Personality`, `Situation`, `AuthorityLevel`, `ProfileRole`           |
+| Server Tools       | `packages/ai/src/tools/onboarding.ts`                   | `saveTranscription`, `saveIntelligenceReport`, `updateIntelligence`   |
+| Workspace Doc Tool | `packages/ai/src/tools/workspace-docs.ts`               | `search_workspace_docs` semantic retrieval via `match_workspace_docs` |
+| Client Hook        | `apps/web/src/app/onboarding/hooks/useBotsson.ts`       | Client-side Ultravox session + 14 tool implementations                |
+| Ultravox Adapter   | `services/stage-engine/src/routes/adapters/ultravox.ts` | Stage Engine endpoints for Ultravox calls                             |
+| Prompt Builder     | `services/stage-engine/src/core/prompt-builder.ts`      | Assembles stage prompt from mission + context + data                  |
+| Ultravox Client    | `services/stage-engine/src/lib/ultravox.ts`             | API client + HTTP tool builder                                        |
+| Ultravox Types     | `services/stage-engine/src/types/ultravox.ts`           | All Ultravox type definitions                                         |
+| Journey Generator  | `packages/ai/src/generators/journey-botsson.ts`         | Converts journeys to Botsson voice scripts                            |
+| ADR-0042           | `docs/decisions/0042-agent-architecture.md`             | Agent architecture decision                                           |
 
 ---
 

@@ -16,6 +16,7 @@ Rebuild from Bubble.io. Live Stripe billing + DocuSign contracts. Modern stack, 
 
 1. **Code + database schema** → always wins
 2. **This file** → conventions, rules, critical traps
+   2.5. **docs/STATE.md** → current system state, gaps, weekly plan (updated weekly)
 3. **docs/reference/** → DATABASE, ROUTES, PACKAGES, ENV_VARS
 4. **docs/engines/** → Event Motor domain packaging (industry, niche, role capability, environment, handbook)
 5. **docs/modules/** → business logic (17 modules)
@@ -73,9 +74,11 @@ smartout_v3/
 - Vault wrappers: `get_secret()`, `upsert_secret()`, `delete_vault_secret()` — SECURITY DEFINER, service_role only.
 - Schedule table: `schedule_shift` (not `shift`). Enums: `shift_status`, `day_category`. See ADR-0036.
 - Season planning tables: `season_budget` (1:1 with season), `day_factor` (weekday weights), `hour_factor` (hour weights). Enum: `budget_status` (draft/active/locked). DIFFERENT from `workspace_budget` (operational per-date targets).
+- Workspace semantic table: `workspace_doc_chunk` (workspace-scoped pgvector). RPC `match_workspace_docs()` must always run with workspace context.
 - `engine_memory` — Persistent agent memories with pgvector embeddings. RLS: workspace isolation.
 - `engine_authority_config` — Per-workspace, per-capability authority levels. UNIQUE(workspace_id, capability).
 - `engine_sessions.mode` — 'mission' (structured stages) or 'agent' (free-form conversation). Agent sessions have NULL mission_id.
+- Timestamp triggers should use `set_updated_at()` (not `moddatetime`) for migration compatibility.
 
 > Full schema, tables, enums, RLS patterns: `docs/reference/DATABASE.md`
 
@@ -108,6 +111,8 @@ smartout_v3/
 
 **React/Next.js:** App Router only | Server Components default, `"use client"` as deep as possible | shadcn/ui for all UI | CSS variables for theming | `sonner` for toasts | Fonts: Geist + Geist Mono
 
+**Telemetry:** Every mutation emits. `emit()` from `@smartout/telemetry` drives four destinations: PostHog (analytics), Logger (stdout), activity_trail (audit), engine_event (workflow automation). No mutation without emit. No second event system.
+
 **Performance:** `Promise.all()` for independent async ops | Direct imports (no barrel re-exports in app code) | `next/dynamic` for heavy components | Suspense boundaries for streaming | `React.cache()` for request dedup
 
 > Full performance governance: `docs/cross-cutting/performance-governance.md`
@@ -139,6 +144,8 @@ smartout_v3/
 - **Trainee Mode** — Sandbox. Real UI, no live impact. 48h escalation.
 - **Season** — Time period wrapping operations. Own leaderboard and point rules.
 - **Season Budget** — Strategic revenue target per season. 1:1 with season. Contains total target, labor %, avg hourly wage, base price per guest. Day/hour factors distribute targets across weekdays and hours. Calculation engine: `apps/web/src/lib/season-calculations.ts` (pure functions, no DB deps). UI: `/dashboard/season` with 4 tabs (overview, budget, day-factors, hour-factors).
+- **Event Engine** — Universal workflow runtime. `engine_process` (blueprint) → `engine_state` (live instance) → `engine_state_step` (per-step tracking). ALL workflows run through this: onboarding, training, HACCP, daily close, session hooks. New workflow = new engine_process + action_type handlers. Never create separate journey/progress tables.
+- **Veikart → Reise → Protokoll** — Same data, three views. Veikart = engine_process (the blueprint). Reise = engine_state (the employee's live experience). Protokoll = engine_state (the leader's oversight view).
 
 ---
 
@@ -298,6 +305,7 @@ ALL microservices (contract-service, scrapling, future services):
 - Never commit `.env.local` or raw secrets
 - Never create workspace-scoped tables without BOTH JWT and API key RLS policies
 - Never create public API endpoints without scope guards
+- Never create a TanStack Query mutation without an `emit()` call in `onSuccess`
 - Never create Edge Functions outside the workspace-api gateway (for data endpoints)
 
 ---
@@ -306,8 +314,9 @@ ALL microservices (contract-service, scrapling, future services):
 
 1. Check this file first → reference files → module docs → architecture docs
 2. This file wins for structural facts; module docs win for business logic
-3. Never load `docs/archive/` — superseded
-4. If code changes contradict this file → update this file immediately
+3. For implementation planning: read STATE.md FIRST — it has verified gaps and week-by-week tasks
+4. Never load `docs/archive/` — superseded
+5. If code changes contradict this file → update this file immediately
 
 ---
 
