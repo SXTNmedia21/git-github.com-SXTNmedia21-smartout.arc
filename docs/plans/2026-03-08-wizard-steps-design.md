@@ -1,8 +1,8 @@
 ---
 title: "Design — WorkspaceSetupWizard 7 Steps"
 status: approved
-updated: 2026-04-13
-created: 2026-04-13
+updated: 2026-03-08
+created: 2026-03-08
 module: cross-cutting
 tags: [wizard, onboarding, governance, handbook, payroll, employment, team, schedule, season]
 ---

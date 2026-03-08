@@ -1,8 +1,8 @@
 ---
 title: "Workspace Setup Wizard — Full Implementation Plan"
 status: in_progress
-updated: 2026-04-14
-created: 2026-04-14
+updated: 2026-03-08
+created: 2026-03-08
 module: cross-cutting
 tags: [wizard, setup, industry-package, document-drop, botsson]
 ---

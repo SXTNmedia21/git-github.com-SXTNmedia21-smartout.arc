@@ -45,7 +45,7 @@ updated: 2026-03-06
 created: 2026-03-06
 module: meta
 status: done
-updated: 2026-04-10
+updated: 2026-03-08
 created: 2026-03-06
 module: infra
 tags: [learnings]
@@ -56,11 +56,11 @@ tags: [learnings]
 
 | #   | Date       | Learning                                                                                                     | Impact     |
 | --- | ---------- | ------------------------------------------------------------------------------------------------------------ | ---------- |
-| 1   | 2026-04-09 | Long-lived missions (weeks/months) need nullable session expiry — default 1h expiry kills season sessions    | operations |
-| 2   | 2026-04-09 | Calendar Guardian must query authoritative DB tables, not session collected_data (user-editable, incomplete) | operations |
-| 3   | 2026-04-09 | `as unknown as` cast needed for SEASON_TOOLS array — SmartoutTool generic doesn't align with Vercel AI SDK   | ai         |
-| 4   | 2026-04-09 | useWorkspaceOptional prevents crash when SeasonCard renders outside workspace context (e.g. loading states)  | dashboard  |
-| 5   | 2026-04-09 | Phase-specific colors in dashboard cards are data-visualization, not theming — exempt from CSS variable rule | dashboard  |
+| 1   | 2026-03-08 | Long-lived missions (weeks/months) need nullable session expiry — default 1h expiry kills season sessions    | operations |
+| 2   | 2026-03-08 | Calendar Guardian must query authoritative DB tables, not session collected_data (user-editable, incomplete) | operations |
+| 3   | 2026-03-08 | `as unknown as` cast needed for SEASON_TOOLS array — SmartoutTool generic doesn't align with Vercel AI SDK   | ai         |
+| 4   | 2026-03-08 | useWorkspaceOptional prevents crash when SeasonCard renders outside workspace context (e.g. loading states)  | dashboard  |
+| 5   | 2026-03-08 | Phase-specific colors in dashboard cards are data-visualization, not theming — exempt from CSS variable rule | dashboard  |
 
 updated: 2026-03-06
 created: 2026-03-06
@@ -78,11 +78,11 @@ tags: [learnings]
 
 | #   | Date       | Learning                                                                                                                                                                          | Impact   |
 | --- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| 1   | 2026-04-10 | Caddy global server write timeout caps ALL downstream responses, even if reverse_proxy transport has higher timeouts. Never set global write timeout when streaming routes exist. | Critical |
-| 2   | 2026-04-10 | HSTS preload is a one-way commitment to the browser preload list. Cannot be undone. Only safe when ALL subdomains are HTTPS forever.                                              | High     |
-| 3   | 2026-04-10 | Removing port exposure from base compose breaks health-check scripts on the host. Fix: bind to 127.0.0.1 in prod overlay.                                                         | High     |
-| 4   | 2026-04-10 | Docker Compose `${VAR:?msg}` refuses to start if var unset. Split fail-fast (base) and fallback (override) across files.                                                          | Medium   |
-| 5   | 2026-04-10 | Scrapling is consumed by Edge Functions on the host, not Docker services. Needs host-accessible ports, not just Docker network DNS.                                               | Medium   |
+| 1   | 2026-03-07 | Caddy global server write timeout caps ALL downstream responses, even if reverse_proxy transport has higher timeouts. Never set global write timeout when streaming routes exist. | Critical |
+| 2   | 2026-03-07 | HSTS preload is a one-way commitment to the browser preload list. Cannot be undone. Only safe when ALL subdomains are HTTPS forever.                                              | High     |
+| 3   | 2026-03-07 | Removing port exposure from base compose breaks health-check scripts on the host. Fix: bind to 127.0.0.1 in prod overlay.                                                         | High     |
+| 4   | 2026-03-07 | Docker Compose `${VAR:?msg}` refuses to start if var unset. Split fail-fast (base) and fallback (override) across files.                                                          | Medium   |
+| 5   | 2026-03-07 | Scrapling is consumed by Edge Functions on the host, not Docker services. Needs host-accessible ports, not just Docker network DNS.                                               | Medium   |
 
 # Learning Log — zero-to-production
 

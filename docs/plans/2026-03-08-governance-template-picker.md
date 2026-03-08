@@ -1,8 +1,8 @@
 ---
 title: "Governance Template Picker — Implementation Plan"
 status: in_progress
-updated: 2026-04-13
-created: 2026-04-13
+updated: 2026-03-08
+created: 2026-03-08
 module: governance
 tags: [wizard, templates, governance, implementation]
 ---

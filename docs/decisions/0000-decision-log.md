@@ -61,19 +61,19 @@ tags: [decisions]
 
 | #   | Date       | Decision                                                                                                | Status | Module     |
 | --- | ---------- | ------------------------------------------------------------------------------------------------------- | ------ | ---------- |
-| 1   | 2026-04-08 | Bypass finalize-workspace Edge Function — call `finalize_onboarding_workspace` RPC directly from client | active | onboarding |
-| 2   | 2026-04-08 | RPC creates company on-the-fly if workspace was provisioned without one (NULL company_id)               | active | onboarding |
-| 3   | 2026-04-09 | Season stage transitions use calendar-based Guardian (not manual user triggers)                         | active | operations |
-| 4   | 2026-04-09 | Calendar Guardian queries season table directly for dates (not session collected_data)                  | active | operations |
-| 5   | 2026-04-09 | SeasonCard uses hardcoded phase colors for data-visualization semantics                                 | active | operations |
-| 6   | 2026-04-09 | useActiveSeason infers "running" stage when no engine session exists for active season                  | active | operations |
-| 7   | 2026-04-09 | Season tools use SeasonToolContext with workspace_id + supabase client                                  | active | operations |
+| 1   | 2026-03-08 | Bypass finalize-workspace Edge Function — call `finalize_onboarding_workspace` RPC directly from client | active | onboarding |
+| 2   | 2026-03-08 | RPC creates company on-the-fly if workspace was provisioned without one (NULL company_id)               | active | onboarding |
+| 3   | 2026-03-08 | Season stage transitions use calendar-based Guardian (not manual user triggers)                         | active | operations |
+| 4   | 2026-03-08 | Calendar Guardian queries season table directly for dates (not session collected_data)                  | active | operations |
+| 5   | 2026-03-08 | SeasonCard uses hardcoded phase colors for data-visualization semantics                                 | active | operations |
+| 6   | 2026-03-08 | useActiveSeason infers "running" stage when no engine session exists for active season                  | active | operations |
+| 7   | 2026-03-08 | Season tools use SeasonToolContext with workspace_id + supabase client                                  | active | operations |
 | 8   | 2026-03-06 | Adopt AI runtime canonical spec (`AI_RUNTIME_SYSTEM_DEFINITION_V1`) as single source of truth           | active | ai         |
 | #   | Date       | Decision                                                                                                | Status |
 | --- | ----       | --------                                                                                                | ------ |
 
 status: done
-updated: 2026-04-10
+updated: 2026-03-08
 created: 2026-03-06
 module: infra
 tags: [decisions]
@@ -84,12 +84,12 @@ tags: [decisions]
 
 | #   | Date       | Decision                                                                                        | Status |
 | --- | ---------- | ----------------------------------------------------------------------------------------------- | ------ |
-| 1   | 2026-04-10 | Use SAMEORIGIN not DENY for X-Frame-Options — may need iframe embedding                         | active |
-| 2   | 2026-04-10 | HSTS without preload — irreversible commitment, not safe for all subdomains yet                 | active |
-| 3   | 2026-04-10 | No global Caddy write timeout — would kill SSE/streaming responses at 30s                       | active |
-| 4   | 2026-04-10 | Prod service ports bound to 127.0.0.1 — health-check.sh needs host access, no internet exposure | active |
-| 5   | 2026-04-10 | Pin n8n to 2.10.4 — prevent :latest breaking changes on deploy                                  | active |
-| 6   | 2026-04-10 | Stage Engine gets 300s transport timeouts + flush_interval -1 for AI streaming                  | active |
+| 1   | 2026-03-07 | Use SAMEORIGIN not DENY for X-Frame-Options — may need iframe embedding                         | active |
+| 2   | 2026-03-07 | HSTS without preload — irreversible commitment, not safe for all subdomains yet                 | active |
+| 3   | 2026-03-07 | No global Caddy write timeout — would kill SSE/streaming responses at 30s                       | active |
+| 4   | 2026-03-07 | Prod service ports bound to 127.0.0.1 — health-check.sh needs host access, no internet exposure | active |
+| 5   | 2026-03-07 | Pin n8n to 2.10.4 — prevent :latest breaking changes on deploy                                  | active |
+| 6   | 2026-03-07 | Stage Engine gets 300s transport timeouts + flush_interval -1 for AI streaming                  | active |
 
 # Decision Log — zero-to-production
 
