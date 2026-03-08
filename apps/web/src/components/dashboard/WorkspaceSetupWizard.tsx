@@ -1,62 +1,123 @@
 "use client";
 
-import { useState, useCallback, useLayoutEffect } from "react";
+import { useState, useCallback, useLayoutEffect, useMemo } from "react";
 import { ChevronLeft, ChevronRight, Rocket, SkipForward } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { dashboardKeys } from "@/app/dashboard/_hooks/dashboard-keys";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { useWorkspaceSetup } from "@/app/dashboard/_hooks/use-workspace-setup";
+import { useIndustryPackage } from "@/lib/industry/use-industry-package";
+import { WelcomeStep } from "@/components/dashboard/wizard-steps/WelcomeStep";
+import { DocumentDropStep } from "@/components/dashboard/wizard-steps/DocumentDropStep";
+import { GovernanceSetupStep } from "@/components/dashboard/wizard-steps/GovernanceSetupStep";
+import { PayrollSetupStep } from "@/components/dashboard/wizard-steps/PayrollSetupStep";
+import { EmploymentSetupStep } from "@/components/dashboard/wizard-steps/EmploymentSetupStep";
+import { TeamSetupStep } from "@/components/dashboard/wizard-steps/TeamSetupStep";
+import { ShiftTemplateSetupStep } from "@/components/dashboard/wizard-steps/ShiftTemplateSetupStep";
+import { SeasonSetupStep } from "@/components/dashboard/wizard-steps/SeasonSetupStep";
+import { HandbookSetupStep } from "@/components/dashboard/wizard-steps/HandbookSetupStep";
+import { BotsTip } from "@/components/dashboard/wizard-steps/BotsTip";
+import { HelpTip } from "@/components/dashboard/wizard-steps/HelpTip";
+import type {
+  SetupWizardState,
+  DocumentExtractionResult,
+  ScrapedIntelligence,
+} from "@/components/dashboard/wizard-steps/wizard-state";
+import { EMPTY_EXTRACTION } from "@/components/dashboard/wizard-steps/wizard-state";
 
 // ─── Step definitions ────────────────────────────────────
-// Each step: title, explanation (why this matters in their daily life),
-// and a placeholder for the embedded form component.
 
 type SetupStep = {
   id: string;
   title: string;
   subtitle: string;
   explanation: string;
+  helpTip: string;
 };
 
 const STEPS: SetupStep[] = [
+  {
+    id: "welcome",
+    title: "Velkommen til Smartout",
+    subtitle: "Det vi vet om deg",
+    explanation:
+      "Vi har hentet informasjon om bedriften din fra Br\u00f8nn\u00f8ysund, Google og nettsiden din. Se over at det stemmer, og juster det som trengs.",
+    helpTip: "Dataene er hentet automatisk. Alt kan endres.",
+  },
+  {
+    id: "document-drop",
+    title: "Last opp dokumenter",
+    subtitle: "Valgfritt \u2014 vi analyserer",
+    explanation:
+      "Last opp det dere har \u2014 rutineperm, vaktlister, kontrakter, HMS-plan, personalh\u00e5ndbok, meny, tariffavtale. Vi analyserer og fyller ut resten for dere.",
+    helpTip: "Dokumentene analyseres med AI. Du kan hoppe over dette steget.",
+  },
   {
     id: "governance",
     title: "Dine retningslinjer",
     subtitle: "Regler og prosedyrer",
     explanation:
       "Retningslinjer er reglene som styrer restauranten din. Mattrygghet, hygiene, brannsikkerhet \u2014 alt som ansatte m\u00e5 kunne. N\u00e5r du legger inn reglene her, vil systemet automatisk s\u00f8rge for at alle ansatte l\u00e6rer dem og blir testet p\u00e5 at de kan dem.",
+    helpTip:
+      "Retningslinjer er reglene som styrer virksomheten. De blir automatisk til oppl\u00e6ring for ansatte.",
   },
   {
-    id: "handbook",
-    title: "Din personalh\u00e5ndbok",
-    subtitle: "Det ansatte leser f\u00f8rste dag",
+    id: "payroll",
+    title: "L\u00f8nn og tillegg",
+    subtitle: "Tariff og satser",
     explanation:
-      "Personalh\u00e5ndboken er den f\u00f8rste teksten nye ansatte m\u00f8ter. Den forklarer hvordan dere jobber, hva som forventes, og hva de kan forvente tilbake. Skriv noen f\u00e5 kapitler n\u00e5 \u2014 du kan alltid utvide senere.",
+      "Sett opp l\u00f8nnssatser og tillegg for virksomheten din. Velg tariffavtale, juster kvelds-, helge- og overtidstillegg, og sett timel\u00f8nn per stilling.",
+    helpTip:
+      "L\u00f8nnsoppsettet bestemmer satser og tillegg. Det brukes automatisk n\u00e5r du inviterer ansatte og lager vaktplaner.",
+  },
+  {
+    id: "employment",
+    title: "Ansettelsesvilk\u00e5r",
+    subtitle: "Avtaleformer og betingelser",
+    explanation:
+      "Definer hvilke ansettelsesformer dere bruker og standardvilk\u00e5rene for hver. Pr\u00f8vetid, ferie, pensjon og arbeidsgiveravgift \u2014 alt samles her.",
+    helpTip:
+      "Ansettelsesvilk\u00e5r definerer kontraktsmalene. Valget her bestemmer hva som st\u00e5r i arbeidsavtalene.",
   },
   {
     id: "team",
     title: "Ditt team",
     subtitle: "De f\u00f8rste ansatte",
     explanation:
-      "Legg til de f\u00f8rste i teamet ditt. De f\u00e5r en invitasjon og starter med \u00e5 lese h\u00e5ndboken og retningslinjene du nettopp la inn. Jo f\u00f8r de er inne, jo raskere ser du systemet i aksjon.",
+      "Legg til de f\u00f8rste i teamet ditt. De f\u00e5r en invitasjon og starter med \u00e5 lese h\u00e5ndboken og retningslinjene du nettopp la inn.",
+    helpTip:
+      "Inviter ansatte manuelt eller last opp en CSV-fil. De f\u00e5r tilgang til oppl\u00e6ring og h\u00e5ndbok automatisk.",
   },
   {
     id: "shift-template",
-    title: "Din f\u00f8rste vaktmal",
+    title: "Dine vaktmaler",
     subtitle: "Grunnlaget for vaktplanen",
     explanation:
-      "En vaktmal er en oppskrift for en vakt \u2014 navn, start- og sluttid, og hvilken avdeling den tilh\u00f8rer. Du bygger den ekte vaktplanen etterpå, men dette gir systemet skjelettet det trenger for \u00e5 forst\u00e5 driften din.",
+      "En vaktmal er en oppskrift for en vakt \u2014 navn, start- og sluttid, og hvilken avdeling den tilh\u00f8rer. Du bygger den ekte vaktplanen etterp\u00e5.",
+    helpTip:
+      "Vaktmaler er gjenbrukbare oppskrifter for vakter. De gj\u00f8r det raskt \u00e5 bygge ukeplaner.",
   },
   {
     id: "season",
     title: "Din sesong",
     subtitle: "Budsjett og m\u00e5l",
     explanation:
-      "Sesongen setter rammene for alt: budsjett, bemanningsm\u00e5l, og KPI-er. N\u00e5r sesongen er aktiv, begynner dashboardet \u00e5 vise ekte tall. Sett en enkel budsjettmal n\u00e5 \u2014 du kan finjustere tallene n\u00e5r som helst.",
+      "Sesongen setter rammene for alt: budsjett, bemanningsm\u00e5l, og KPI-er. N\u00e5r sesongen er aktiv, begynner dashboardet \u00e5 vise ekte tall.",
+    helpTip:
+      "Sesongen er tidsrammen for budsjett og m\u00e5l. Dashboard viser f\u00f8rst ekte data n\u00e5r en sesong er aktiv.",
+  },
+  {
+    id: "handbook",
+    title: "Din personalh\u00e5ndbok",
+    subtitle: "Generert fra oppsettet ditt",
+    explanation:
+      "Personalh\u00e5ndboken er auto-generert fra det du har lagt inn i steg 1\u20137. G\u00e5 gjennom kapitlene, juster teksten der det trengs, og publiser.",
+    helpTip:
+      "H\u00e5ndboken genereres automatisk fra data du allerede har lagt inn. Du reviewer og redigerer \u2014 ikke skriver.",
   },
 ];
 
-// ─── Component ───────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────
 
 const SKIP_KEY = "smartout_setup_skipped";
 const SKIP_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -66,17 +127,30 @@ function wasRecentlySkipped(): boolean {
   const raw = localStorage.getItem(SKIP_KEY);
   if (!raw) return false;
   const skippedAt = Number(raw);
-  return Date.now() - skippedAt < SKIP_TTL_MS;
+  const skipped = Date.now() - skippedAt < SKIP_TTL_MS;
+  if (skipped) {
+    console.log(
+      "[SETUP] Skipped via localStorage, expires:",
+      new Date(skippedAt + SKIP_TTL_MS).toISOString(),
+    );
+  }
+  return skipped;
 }
 
-// Map wizard step IDs to setup module IDs
+// Map wizard step IDs to setup module IDs for initial step calculation
 const STEP_TO_MODULE: Record<string, string> = {
+  welcome: "governance",
+  "document-drop": "governance",
   governance: "governance",
-  handbook: "governance", // handbook is part of governance module
+  payroll: "governance",
+  employment: "governance",
   team: "people",
   "shift-template": "schedule",
   season: "season",
+  handbook: "governance",
 };
+
+// ─── Component ───────────────────────────────────────────
 
 export function WorkspaceSetupWizard({
   isDark,
@@ -89,8 +163,42 @@ export function WorkspaceSetupWizard({
   const ctx = useWorkspaceOptional();
   const workspaceId = ctx?.workspace.workspace_id ?? "";
   const { data: setupStatus } = useWorkspaceSetup();
+  const industryPackage = useIndustryPackage();
 
-  // Calculate initial step: first incomplete wizard step
+  // ── Parse scraped data from workspace intelligence ──
+  const scrapedData = useMemo<ScrapedIntelligence>(() => {
+    // intelligence_data is not on the context type — it's queried by useIndustryPackage
+    // For the welcome step, we query it separately there.
+    // Here we just provide workspace-level basics.
+    return {
+      companyName: ctx?.workspace.name,
+    };
+  }, [ctx]);
+
+  // ── Shared wizard state ──
+  const [wizardState, setWizardState] = useState<SetupWizardState>(() => ({
+    scrapedData,
+    extractedData: EMPTY_EXTRACTION,
+    industryPackage,
+    createdPolicyIds: [],
+    payrollSaved: false,
+    employmentSaved: false,
+    invitedCount: 0,
+    shiftTemplateCount: 0,
+    seasonCreated: false,
+  }));
+
+  // Keep industry package in sync
+  const currentState = useMemo<SetupWizardState>(
+    () => ({ ...wizardState, industryPackage, scrapedData }),
+    [wizardState, industryPackage, scrapedData],
+  );
+
+  const handleExtractionComplete = useCallback((result: DocumentExtractionResult) => {
+    setWizardState((prev) => ({ ...prev, extractedData: result }));
+  }, []);
+
+  // ── Step navigation ──
   const [currentStep, setCurrentStep] = useState(() => {
     if (!setupStatus?.modules) return 0;
     const modules = setupStatus.modules;
@@ -102,7 +210,6 @@ export function WorkspaceSetupWizard({
     return 0;
   });
 
-  // If recently skipped, go straight to dashboard
   useLayoutEffect(() => {
     if (wasRecentlySkipped()) {
       onComplete();
@@ -115,18 +222,21 @@ export function WorkspaceSetupWizard({
 
   const handleNext = useCallback(() => {
     if (isLast) {
-      // Invalidate setup query so AdminDashboard re-evaluates
       void queryClient.invalidateQueries({
         queryKey: dashboardKeys.workspaceSetupStatus(workspaceId),
       });
       onComplete();
     } else {
       setCurrentStep((s) => s + 1);
+      document.querySelector("[data-wizard-scroll]")?.scrollTo({ top: 0, behavior: "smooth" });
     }
   }, [isLast, queryClient, workspaceId, onComplete]);
 
   const handleBack = useCallback(() => {
-    if (!isFirst) setCurrentStep((s) => s - 1);
+    if (!isFirst) {
+      setCurrentStep((s) => s - 1);
+      document.querySelector("[data-wizard-scroll]")?.scrollTo({ top: 0, behavior: "smooth" });
+    }
   }, [isFirst]);
 
   const handleSkip = useCallback(() => {
@@ -186,12 +296,12 @@ export function WorkspaceSetupWizard({
       </div>
 
       {/* ── Step indicator dots ── */}
-      <div className="flex justify-center gap-2 px-8 pt-6">
+      <div className="flex justify-center gap-1.5 overflow-x-auto px-4 pt-6 sm:gap-2 sm:px-8">
         {STEPS.map((s, i) => (
           <button
             key={s.id}
             onClick={() => setCurrentStep(i)}
-            className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
+            className={`flex shrink-0 items-center gap-2 rounded-full px-2 py-1.5 text-xs font-medium transition-all sm:px-3 ${
               i === currentStep
                 ? isDark
                   ? "bg-orange-500/15 text-orange-400"
@@ -218,15 +328,18 @@ export function WorkspaceSetupWizard({
                       : "bg-zinc-200 text-zinc-400"
               }`}
             >
-              {i < currentStep ? "\u2713" : i + 1}
+              {i < currentStep ? "\u2713" : i}
             </span>
-            {i === currentStep && <span>{s.title}</span>}
+            {i === currentStep && <span className="hidden sm:inline">{s.title}</span>}
           </button>
         ))}
       </div>
 
       {/* ── Main content area ── */}
-      <div className="flex flex-1 flex-col items-center justify-center overflow-y-auto px-8 py-12">
+      <div
+        data-wizard-scroll
+        className="flex flex-1 flex-col items-center overflow-y-auto px-8 py-12"
+      >
         <div className="w-full max-w-2xl space-y-8">
           {/* Step header */}
           <div className="space-y-3">
@@ -235,15 +348,18 @@ export function WorkspaceSetupWizard({
                 isDark ? "text-orange-400/70" : "text-orange-500/70"
               }`}
             >
-              Steg {currentStep + 1} av {STEPS.length} &middot; {step.subtitle}
+              Steg {currentStep} av {STEPS.length - 1} &middot; {step.subtitle}
             </p>
-            <h1
-              className={`text-3xl font-black tracking-tight ${
-                isDark ? "text-white" : "text-zinc-900"
-              }`}
-            >
-              {step.title}
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1
+                className={`text-3xl font-black tracking-tight ${
+                  isDark ? "text-white" : "text-zinc-900"
+                }`}
+              >
+                {step.title}
+              </h1>
+              <HelpTip text={step.helpTip} />
+            </div>
             <p
               className={`max-w-xl text-base leading-relaxed ${
                 isDark ? "text-zinc-400" : "text-zinc-600"
@@ -253,20 +369,61 @@ export function WorkspaceSetupWizard({
             </p>
           </div>
 
-          {/* Form placeholder — each step will embed its form here */}
-          <div
-            className={`min-h-[280px] rounded-2xl border-2 border-dashed p-8 ${
-              isDark ? "border-zinc-800 bg-zinc-900/30" : "border-zinc-200 bg-zinc-50/50"
-            }`}
-          >
-            <p className={`text-center text-sm ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
-              {step.id === "governance" && "Retningslinje-skjema kobles inn her"}
-              {step.id === "handbook" && "Personalh\u00e5ndbok-editor kobles inn her"}
-              {step.id === "team" && "Invitasjonsskjema kobles inn her"}
-              {step.id === "shift-template" && "Vaktmal-skjema kobles inn her"}
-              {step.id === "season" && "Sesongoppsett kobles inn her"}
-            </p>
-          </div>
+          {/* Step form */}
+          {step.id === "welcome" && (
+            <WelcomeStep scrapedData={currentState.scrapedData} isDark={isDark} />
+          )}
+          {step.id === "document-drop" && (
+            <DocumentDropStep isDark={isDark} onExtractionComplete={handleExtractionComplete} />
+          )}
+          {step.id === "governance" && (
+            <GovernanceSetupStep
+              isDark={isDark}
+              industryPackage={currentState.industryPackage}
+              extractedPolicies={currentState.extractedData.policies}
+            />
+          )}
+          {step.id === "payroll" && (
+            <PayrollSetupStep
+              isDark={isDark}
+              industryTariffs={currentState.industryPackage.tariffs}
+              defaultTariffKey={currentState.industryPackage.defaultTariffKey}
+              extractedPayroll={currentState.extractedData.payroll}
+            />
+          )}
+          {step.id === "employment" && (
+            <EmploymentSetupStep
+              isDark={isDark}
+              industryDefaults={currentState.industryPackage.employmentDefaults}
+              extractedTerms={currentState.extractedData.employmentTerms}
+            />
+          )}
+          {step.id === "team" && (
+            <TeamSetupStep
+              isDark={isDark}
+              extractedEmployees={currentState.extractedData.employees}
+            />
+          )}
+          {step.id === "shift-template" && (
+            <ShiftTemplateSetupStep
+              isDark={isDark}
+              suggestedTemplates={currentState.industryPackage.shiftTemplates}
+              extractedShiftPatterns={currentState.extractedData.shiftPatterns}
+              openingHours={currentState.scrapedData.openingHours}
+            />
+          )}
+          {step.id === "season" && (
+            <SeasonSetupStep
+              isDark={isDark}
+              suggestedSeasons={currentState.industryPackage.seasonTemplates}
+            />
+          )}
+          {step.id === "handbook" && (
+            <HandbookSetupStep isDark={isDark} wizardState={currentState} />
+          )}
+
+          {/* Botsson tip */}
+          <BotsTip tip={currentState.industryPackage.botsson[step.id] ?? ""} isDark={isDark} />
         </div>
       </div>
 

@@ -1,11 +1,10 @@
 "use client";
 
-import { useCallback, useContext, useEffect, useLayoutEffect, useState } from "react";
+import { useCallback, useContext, useState } from "react";
 import dynamic from "next/dynamic";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { ScheduleUIProvider } from "@/app/dashboard/schedule/_components/schedule-ui-context";
 import { DayControlSheet, DayControlPanel } from "@/app/dashboard/schedule/_components/day-control";
-import { useWorkspaceSetup } from "@/app/dashboard/_hooks/use-workspace-setup";
 
 const TacticalView = dynamic(() =>
   import("./TacticalView").then((m) => ({ default: m.TacticalView })),
@@ -31,21 +30,8 @@ interface AdminDashboardProps {
 }
 
 export default function AdminDashboard({ isDark }: AdminDashboardProps) {
-  const { adminView, setIsSetupMode } = useContext(DashboardContext);
+  const { adminView, isSetupMode, isSetupLoading, dismissSetup } = useContext(DashboardContext);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const { data: setupStatus, isLoading: isSetupLoading } = useWorkspaceSetup();
-
-  const needsSetup = setupStatus?.needsSetup ?? false;
-
-  // Tell DashboardShell to hide chrome when in setup mode — useLayoutEffect prevents flash
-  useLayoutEffect(() => {
-    setIsSetupMode(needsSetup && !isSetupLoading);
-    return () => setIsSetupMode(false);
-  }, [needsSetup, isSetupLoading, setIsSetupMode]);
-
-  const handleSetupComplete = useCallback(() => {
-    setIsSetupMode(false);
-  }, [setIsSetupMode]);
 
   const handleCloseSheet = useCallback(() => {
     setSelectedDate(null);
@@ -55,8 +41,8 @@ export default function AdminDashboard({ isDark }: AdminDashboardProps) {
     return <DashboardSkeleton isDark={isDark} />;
   }
 
-  if (needsSetup) {
-    return <WorkspaceSetupWizard isDark={isDark} onComplete={handleSetupComplete} />;
+  if (isSetupMode) {
+    return <WorkspaceSetupWizard isDark={isDark} onComplete={dismissSetup} />;
   }
 
   return (

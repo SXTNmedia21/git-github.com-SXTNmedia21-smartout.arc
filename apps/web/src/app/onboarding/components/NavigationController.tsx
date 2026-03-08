@@ -3,7 +3,7 @@
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import Link from "next/link";
 import { useOnboarding } from "../WizardContext";
-import { ONBOARDING_SECTIONS, type OnboardingSection } from "../types";
+import { ONBOARDING_SECTIONS, VISIBLE_SECTIONS, type OnboardingSection } from "../types";
 
 const SECTION_LABELS: Record<OnboardingSection, string> = {
   hero: "Start",
@@ -20,15 +20,15 @@ export function NavigationController() {
   const { activeSection, sectionIndex, scrollToSection } = useOnboarding();
 
   const isFirst = sectionIndex === 0;
-  const isLast = sectionIndex === ONBOARDING_SECTIONS.length - 1;
+  const isLast = sectionIndex === VISIBLE_SECTIONS.length - 1;
 
   const goPrev = () => {
-    const prev = ONBOARDING_SECTIONS[sectionIndex - 1];
+    const prev = VISIBLE_SECTIONS[sectionIndex - 1];
     if (prev) scrollToSection(prev);
   };
 
   const goNext = () => {
-    const next = ONBOARDING_SECTIONS[sectionIndex + 1];
+    const next = VISIBLE_SECTIONS[sectionIndex + 1];
     if (next) scrollToSection(next);
   };
 
@@ -48,7 +48,7 @@ export function NavigationController() {
       <span className="min-w-[80px] text-center font-mono text-xs tracking-wide text-white/60 select-none">
         {SECTION_LABELS[activeSection]}{" "}
         <span className="text-white/30">
-          {sectionIndex + 1}/{ONBOARDING_SECTIONS.length}
+          {sectionIndex + 1}/{VISIBLE_SECTIONS.length}
         </span>
       </span>
 

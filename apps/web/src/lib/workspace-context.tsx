@@ -13,6 +13,7 @@ export type WorkspaceData = {
   country: string;
   timezone: string;
   contract_status: string | null;
+  onboarding_completed: boolean;
 };
 
 type WorkspaceContextValue = {

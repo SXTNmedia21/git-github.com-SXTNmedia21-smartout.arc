@@ -135,11 +135,11 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
     hasResumed.current = true;
 
     async function resume() {
-      // Try to resume from onboarding workspace first
+      // Try to resume from a workspace that hasn't completed onboarding
       const { data: wsData } = await supabase
         .from("profile")
         .select(
-          "workspace_id, workspace:workspace_id(workspace_id, contract_status, intelligence_data, name)",
+          "workspace_id, workspace:workspace_id(workspace_id, onboarding_completed, intelligence_data, name)",
         )
         .eq("user_id", userId!)
         .limit(10);
@@ -147,9 +147,9 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
       if (wsData) {
         const onboardingProfile = wsData.find((p) => {
           const ws = p.workspace as unknown as {
-            contract_status: string | null;
+            onboarding_completed: boolean;
           } | null;
-          return ws?.contract_status === "onboarding";
+          return ws?.onboarding_completed === false;
         });
 
         if (onboardingProfile) {
@@ -577,11 +577,11 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
       // Verify it's still in onboarding state before deleting
       const { data: ws } = await supabase
         .from("workspace")
-        .select("contract_status")
+        .select("onboarding_completed")
         .eq("workspace_id", onboardingWorkspaceId)
         .single();
 
-      if (ws?.contract_status === "onboarding") {
+      if (ws && !ws.onboarding_completed) {
         // Delete profile, company_member, workspace, company in order
         // The cascade should handle most of this, but be explicit
         await supabase.from("profile").delete().eq("workspace_id", onboardingWorkspaceId);
@@ -661,7 +661,7 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
         seasonType: "default",
         seasonStartDate: season.startDate,
         seasonEndDate: season.endDate,
-        contractId: contract.contractId,
+        contractId: contract?.contractId ?? null,
       };
 
       let workspaceId: string;

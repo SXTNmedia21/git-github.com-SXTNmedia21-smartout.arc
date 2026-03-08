@@ -1,7 +1,7 @@
 ---
 title: "Worklog — zero-to-production"
-status: done
-updated: 2026-04-13
+status: in_progress
+updated: 2026-03-08
 created: 2026-03-08
 module: cross-cutting
 tags: [module-zero, event-engine, employee-ui]
@@ -11,7 +11,7 @@ tags: [module-zero, event-engine, employee-ui]
 
 > Branch: `feat/zero-to-production` | Worktree: wt-1 | Started: 2026-03-08
 
-## Status: 🟢 Done
+## Status: 🟡 In Progress
 
 ## Done
 
@@ -52,6 +52,13 @@ tags: [module-zero, event-engine, employee-ui]
 - [x] Full branch audit (9 fixes committed)
 - [x] STATE.md + SESSION.md updated
 - [x] Merged to development
+- [x] Wizard 9-step redesign: industry packages, shared state, all steps wired
+- [x] 8 Playwright E2E tests for setup wizard (all passing)
+- [x] Bug fix: wizard skip not working (setupDismissed state in AdminDashboard)
+- [x] Decision log + learning log updated
+- [x] STATE.md updated
+- [ ] DocumentDropStep full implementation (upload, Edge Function, AI analysis)
+- [ ] HandbookSetupStep auto-generation from wizardState
 
 ## Decisions
 
@@ -61,11 +68,11 @@ tags: [module-zero, event-engine, employee-ui]
 | 2026-03-08 | session hook_fired → logger+engine_event only                      | High-frequency internal event                                                               |
 | 2026-03-08 | Parallel agent execution for independent weeks                     | No file overlap, 2x speed                                                                   |
 | 2026-03-08 | Week 5 built before Week 3-4                                       | Zero dependencies                                                                           |
-| 2026-04-12 | send_notification logs to console (no notification_queue table)    | Table doesn't exist yet; handler is a stub until notification system is built               |
-| 2026-04-12 | Column names verified against database.types.ts, not plan snippets | Plan had wrong columns (compliance_required vs is_compliance_required, id vs assignment_id) |
-| 2026-04-12 | Governance threshold: ≥3 policies (not >0)                         | Single policy too low for "governance complete" — minimum viable is 3                       |
-| 2026-04-12 | No fake data in StrategicView — empty states only                  | "Fake data i produktion är en bugg" — user directive                                        |
-| 2026-04-12 | Loading skeleton before setup check resolves                       | Prevents flash of fake/empty dashboard while useWorkspaceSetup loads                        |
+| 2026-03-08 | send_notification logs to console (no notification_queue table)    | Table doesn't exist yet; handler is a stub until notification system is built               |
+| 2026-03-08 | Column names verified against database.types.ts, not plan snippets | Plan had wrong columns (compliance_required vs is_compliance_required, id vs assignment_id) |
+| 2026-03-08 | Governance threshold: ≥3 policies (not >0)                         | Single policy too low for "governance complete" — minimum viable is 3                       |
+| 2026-03-08 | No fake data in StrategicView — empty states only                  | "Fake data i produktion är en bugg" — user directive                                        |
+| 2026-03-08 | Loading skeleton before setup check resolves                       | Prevents flash of fake/empty dashboard while useWorkspaceSetup loads                        |
 
 ## Log
 
@@ -80,16 +87,23 @@ tags: [module-zero, event-engine, employee-ui]
 | 2026-03-08 | 00:40 | Wrote E2E helpers, delayed-triggers, journey runner                      |
 | 2026-03-08 | 00:45 | All Week 1+2+5 committed — 8 commits                                     |
 | 2026-03-08 | 00:46 | Dispatched Week 3 (engine) + Week 4 (frontend) agents                    |
-| 2026-04-12 | —     | Week 3 Task 1: 13 action handlers + getStepsForState + advanceToNextStep |
-| 2026-04-12 | —     | Week 3 Task 2: 4 seed migrations (session, onboarding, training, hooks)  |
-| 2026-04-12 | —     | Week 3 Task 3: Readiness fix — real queries against completion tables    |
+| 2026-03-08 | —     | Week 3 Task 1: 13 action handlers + getStepsForState + advanceToNextStep |
+| 2026-03-08 | —     | Week 3 Task 2: 4 seed migrations (session, onboarding, training, hooks)  |
+| 2026-03-08 | —     | Week 3 Task 3: Readiness fix — real queries against completion tables    |
 | 2026-03-08 | 01:10 | Week 3+4 agents returned — all committed                                 |
 | 2026-03-08 | 01:12 | Integration gate: db reset, regen types, 2 type errors found             |
 | 2026-03-08 | 01:15 | Type fixes: Json casts, enum literals in governance                      |
 | 2026-03-08 | 01:16 | Typecheck 19/19 GREEN — all Week 3+4 committed (5 commits)               |
-| 2026-04-12 | —     | Engine event client relay: /api/engine-dispatch route                    |
-| 2026-04-12 | —     | StrategicView rewrite: removed ~400 lines of hardcoded demo data         |
-| 2026-04-12 | —     | AdminDashboard: loading skeleton + setup guide gate                      |
-| 2026-04-12 | —     | WorkspaceSetupGuide: 4-module checklist with progress bar                |
-| 2026-04-12 | —     | useWorkspaceSetup: 4 parallel count queries, threshold governance ≥3     |
-| 2026-04-12 | —     | Typecheck 19/19 GREEN after all post-onboarding changes                  |
+| 2026-03-08 | —     | Engine event client relay: /api/engine-dispatch route                    |
+| 2026-03-08 | —     | StrategicView rewrite: removed ~400 lines of hardcoded demo data         |
+| 2026-03-08 | —     | AdminDashboard: loading skeleton + setup guide gate                      |
+| 2026-03-08 | —     | WorkspaceSetupGuide: 4-module checklist with progress bar                |
+| 2026-03-08 | —     | useWorkspaceSetup: 4 parallel count queries, threshold governance ≥3     |
+| 2026-03-08 | —     | Typecheck 19/19 GREEN after all post-onboarding changes                  |
+| 2026-03-08 | —     | Wizard 9-step redesign: industry packages, BotsTip, all steps wired      |
+| 2026-03-08 | —     | Session ended: remaining — DocumentDropStep, HandbookSetupStep, commit   |
+| 2026-03-08 | —     | 8 E2E tests written + passing for setup wizard                           |
+| 2026-03-08 | —     | Bug fix: setupDismissed state prevents wizard re-mount after skip        |
+| 2026-03-08 | —     | Decision log (6 entries) + learning log (6 entries) updated              |
+| 2026-03-08 | —     | STATE.md updated — wizard gap closed                                     |
+| 2026-03-08 | —     | Docs committed, pushed, merged to development                            |

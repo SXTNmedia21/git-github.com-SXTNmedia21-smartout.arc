@@ -19,10 +19,10 @@ import { SeasonSection } from "./sections/SeasonSection";
 import { DepartmentsSection } from "./sections/DepartmentsSection";
 import { LocationsSection } from "./sections/LocationsSection";
 import { ProceduresSection } from "./sections/ProceduresSection";
-import { ContractSection } from "./sections/ContractSection";
 import { WelcomeSection } from "./sections/WelcomeSection";
+import { CustomerDocumentView } from "./sections/CustomerDocumentView";
 import type { OnboardingSection } from "./types";
-import { ONBOARDING_SECTIONS } from "./types";
+import { ONBOARDING_SECTIONS, VISIBLE_SECTIONS } from "./types";
 
 const SECTION_COMPONENTS: Record<OnboardingSection, React.ComponentType> = {
   hero: HeroSection,
@@ -31,7 +31,7 @@ const SECTION_COMPONENTS: Record<OnboardingSection, React.ComponentType> = {
   locations: LocationsSection,
   procedures: ProceduresSection,
   season: SeasonSection,
-  contract: ContractSection,
+  contract: CustomerDocumentView,
   welcome: WelcomeSection,
 };
 
@@ -69,7 +69,7 @@ function ScrollContainer() {
         className="h-dvh overflow-hidden"
         style={{ scrollBehavior: "smooth", touchAction: "none" }}
       >
-        {ONBOARDING_SECTIONS.map((section) => {
+        {VISIBLE_SECTIONS.map((section) => {
           const SectionComponent = SECTION_COMPONENTS[section];
           return (
             <section key={section} data-section={section} className="relative min-h-dvh">
