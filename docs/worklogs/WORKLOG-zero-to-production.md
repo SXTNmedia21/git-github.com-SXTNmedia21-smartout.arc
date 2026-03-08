@@ -1,6 +1,6 @@
 ---
 title: "Worklog — zero-to-production"
-status: in_progress
+status: done
 updated: 2026-03-08
 created: 2026-03-08
 module: cross-cutting
@@ -11,7 +11,7 @@ tags: [module-zero, event-engine, employee-ui]
 
 > Branch: `feat/zero-to-production` | Worktree: wt-1 | Started: 2026-03-08
 
-## Status: 🟡 In Progress
+## Status: ✅ Done
 
 ## Done
 
@@ -107,3 +107,7 @@ tags: [module-zero, event-engine, employee-ui]
 | 2026-03-08 | —     | Decision log (6 entries) + learning log (6 entries) updated              |
 | 2026-03-08 | —     | STATE.md updated — wizard gap closed                                     |
 | 2026-03-08 | —     | Docs committed, pushed, merged to development                            |
+| 2026-03-08 | —     | Fix: workspace-scoped setup skip key (localStorage bug)                  |
+| 2026-03-08 | —     | Fix: contract step hidden from onboarding via VISIBLE_SECTIONS           |
+| 2026-03-08 | —     | E2E tests updated for workspace-scoped skip key                          |
+| 2026-03-08 | —     | Feature closure: journeys, worklog finalized                             |
