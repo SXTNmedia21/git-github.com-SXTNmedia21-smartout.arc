@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useContext, useEffect, useLayoutEffect, useState } from "react";
+import { useCallback, useContext, useLayoutEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { ScheduleUIProvider } from "@/app/dashboard/schedule/_components/schedule-ui-context";
@@ -39,13 +39,12 @@ export default function AdminDashboard({ isDark }: AdminDashboardProps) {
   const needsSetup = setupStatus?.needsSetup ?? false;
   const showWizard = needsSetup && !setupDismissed;
 
-  // Tell DashboardShell to hide chrome when in setup mode — useLayoutEffect prevents flash
+  // Tell DashboardShell to hide chrome when in setup mode — useLayoutEffect prevents flash.
+  // NO unmount cleanup — DashboardShell renders different tree branches for setup vs normal,
+  // so AdminDashboard unmounts/remounts on every isSetupMode toggle. Cleanup would cause infinite loop.
   useLayoutEffect(() => {
     setIsSetupMode(showWizard && !isSetupLoading);
   }, [showWizard, isSetupLoading, setIsSetupMode]);
-
-  // Reset on unmount only — NOT on every effect re-run (that causes infinite loop)
-  useEffect(() => () => setIsSetupMode(false), [setIsSetupMode]);
 
   const handleSetupComplete = useCallback(() => {
     setSetupDismissed(true);
