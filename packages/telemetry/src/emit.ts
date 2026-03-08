@@ -1,11 +1,14 @@
 import type { SmartoutEvent } from "./registry";
 import { EVENT_ROUTING } from "./registry";
-import { sendToPostHogClient, sendToPostHogServer } from "./providers/posthog";
-import { logToStdout } from "./providers/logger";
-import { writeActivityTrail } from "./providers/activity-trail";
-import { sendToEngine } from "./providers/engine-event";
+import { sendToPostHogClient } from "./providers/posthog-client";
 
 // ─── Shared Telemetry Event Router ──────────────────────────────
+//
+// Server-only providers (posthog-node, activity-trail, engine-event)
+// are loaded via dynamic import so they are never bundled into the
+// client chunk.  Turbopack / Next.js 16 Edge Runtime rejects any
+// static import that transitively touches `node:fs` or service-role
+// credentials.
 export async function emit(event: SmartoutEvent): Promise<void> {
   const routing = EVENT_ROUTING[event.event];
 
@@ -24,10 +27,9 @@ export async function emit(event: SmartoutEvent): Promise<void> {
   // 1. Analytics
   if (routing.destinations.includes("posthog")) {
     if (isServer) {
+      const { sendToPostHogServer } = await import("./providers/posthog");
       promises.push(sendToPostHogServer(event));
     } else {
-      // Technically, Posthog-js is a synchronous firing function internally.
-      // But we push it purely to align the array typing.
       sendToPostHogClient(event);
     }
   }
@@ -35,21 +37,23 @@ export async function emit(event: SmartoutEvent): Promise<void> {
   // 2. Logging
   if (routing.destinations.includes("logger")) {
     if (isServer) {
+      const { logToStdout } = await import("./providers/logger");
       logToStdout(event, routing);
     } else {
-      // Option to relay frontend logger constraints via Bacon later.
       // eslint-disable-next-line no-console
       console.info(`[local.logger] Client side invocation of Log event:`, event);
     }
   }
 
-  // 3. Activity Trail
+  // 3. Activity Trail (server-side only)
   if (routing.destinations.includes("activity_trail") && isServer) {
+    const { writeActivityTrail } = await import("./providers/activity-trail");
     promises.push(writeActivityTrail(event, routing));
   }
 
-  // 4. Engine Event (server-side only — dispatches to engine-dispatch Edge Function)
-  if (routing.destinations.includes("engine_event") && isServer) {
+  // 4. Engine Event
+  if (routing.destinations.includes("engine_event")) {
+    const { sendToEngine } = await import("./providers/engine-event");
     promises.push(sendToEngine(event));
   }
 
