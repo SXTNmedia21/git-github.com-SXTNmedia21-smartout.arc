@@ -208,11 +208,9 @@ export function GovernanceSetupStep({ isDark }: { isDark: boolean }) {
         </h3>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {FILTER_QUESTIONS.map((q) => (
-            <button
+            <label
               key={q.key}
-              type="button"
-              onClick={() => handleFilterToggle(q.key)}
-              className={`flex items-center justify-between rounded-xl border px-4 py-3 text-left transition-colors ${
+              className={`flex cursor-pointer items-center justify-between rounded-xl border px-4 py-3 transition-colors ${
                 filters[q.key]
                   ? isDark
                     ? "border-orange-500/40 bg-orange-500/5"
@@ -225,12 +223,8 @@ export function GovernanceSetupStep({ isDark }: { isDark: boolean }) {
               <span className={`text-sm font-medium ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
                 {q.label}
               </span>
-              <Switch
-                checked={filters[q.key]}
-                onCheckedChange={() => handleFilterToggle(q.key)}
-                className="pointer-events-none"
-              />
-            </button>
+              <Switch checked={filters[q.key]} onCheckedChange={() => handleFilterToggle(q.key)} />
+            </label>
           ))}
         </div>
       </div>
