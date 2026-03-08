@@ -42,6 +42,9 @@ interface ExternalRating {
 interface WebSearchResult {
   rating: number | null;
   reviewCount: number | null;
+  website: string | null;
+  email: string | null;
+  phone: string | null;
   externalRatings: ExternalRating[];
   newsArticles: { title: string; url: string; snippet: string }[];
   seasonalPatterns: string[];
@@ -124,6 +127,77 @@ function extractExternalRatings(results: SerperOrganicResult[]): ExternalRating[
   return ratings;
 }
 
+/** Find the company's own website from search results (skip aggregators). */
+function extractWebsite(results: SerperOrganicResult[], companyName: string): string | null {
+  const skipDomains = [
+    "facebook.com",
+    "instagram.com",
+    "linkedin.com",
+    "tiktok.com",
+    "tripadvisor",
+    "yelp.com",
+    "google.com",
+    "proff.no",
+    "1881.no",
+    "gulesider.no",
+    "purehelp.no",
+    "brreg.no",
+    "finn.no",
+    "youtube.com",
+    "twitter.com",
+    "x.com",
+  ];
+  const normalName = companyName.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+  for (const r of results) {
+    try {
+      const url = new URL(r.link);
+      const domain = url.hostname.replace(/^www\./, "");
+      if (skipDomains.some((s) => domain.includes(s))) continue;
+
+      // Check if domain or title looks like the company
+      const normalDomain = domain.replace(/[^a-z0-9]/g, "");
+      const normalTitle = r.title.toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (normalDomain.includes(normalName) || normalTitle.includes(normalName)) {
+        return `${url.protocol}//${url.hostname}`;
+      }
+    } catch {
+      // skip malformed URLs
+    }
+  }
+  return null;
+}
+
+/** Extract email addresses from search snippets. */
+function extractEmail(texts: string[]): string | null {
+  const joined = texts.join(" ");
+  const match = joined.match(/[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+/);
+  if (!match) return null;
+  // Strip trailing punctuation (period, comma, etc.)
+  return match[0].replace(/[.,;:!?)]+$/, "");
+}
+
+/** Extract phone numbers (Norwegian format) from search snippets. */
+function extractPhone(texts: string[]): string | null {
+  const joined = texts.join(" ");
+  // Match Norwegian phone: optional +47, then 8 digits with optional spaces
+  const patterns = [
+    /\+\s?47\s?\d[\d\s]{7,10}\d/, // +47 prefixed
+    /(?<!\d)\d{3}\s\d{2}\s\d{3}(?!\d)/, // 941 68 561
+    /(?<!\d)\d{2}\s\d{2}\s\d{2}\s\d{2}(?!\d)/, // 94 16 85 61
+    /(?<!\d)\d{8}(?!\d)/, // 94168561
+  ];
+  for (const pattern of patterns) {
+    const match = joined.match(pattern);
+    if (match) {
+      const digits = match[0].replace(/[\s+]/g, "");
+      const clean = digits.replace(/^47/, "");
+      if (clean.length === 8) return match[0].trim();
+    }
+  }
+  return null;
+}
+
 function extractJobListings(results: SerperOrganicResult[]): string[] {
   const jobs: string[] = [];
   for (const r of results) {
@@ -159,6 +233,9 @@ Deno.serve(async (req) => {
       const empty: WebSearchResult = {
         rating: null,
         reviewCount: null,
+        website: null,
+        email: null,
+        phone: null,
         externalRatings: [],
         newsArticles: [],
         seasonalPatterns: [],
@@ -177,15 +254,28 @@ Deno.serve(async (req) => {
       "Content-Type": "application/json",
     };
 
-    // Run search + news in parallel
-    const [searchRes, newsRes] = await Promise.all([
+    console.log(`[web-search] Querying Serper for: "${searchQuery}"`);
+
+    const contactQuery = `"${companyName}" email kontakt telefon`;
+
+    // Run search + news + contact search in parallel
+    const [searchRes, newsRes, contactRes] = await Promise.all([
       fetch("https://google.serper.dev/search", {
         method: "POST",
         headers,
         body: JSON.stringify({ q: searchQuery, gl: "no", hl: "no", num: 10 }),
       })
-        .then((r) => (r.ok ? r.json() : null))
-        .catch(() => null),
+        .then((r) => {
+          if (!r.ok) {
+            console.warn(`[web-search] Serper search returned ${r.status}`);
+            return null;
+          }
+          return r.json();
+        })
+        .catch((e) => {
+          console.warn("[web-search] Serper search error:", e);
+          return null;
+        }),
       fetch("https://google.serper.dev/news", {
         method: "POST",
         headers,
@@ -193,19 +283,46 @@ Deno.serve(async (req) => {
       })
         .then((r) => (r.ok ? r.json() : null))
         .catch(() => null),
+      fetch("https://google.serper.dev/search", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ q: contactQuery, gl: "no", hl: "no", num: 5 }),
+      })
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null),
     ]);
 
     const organic: SerperOrganicResult[] = searchRes?.organic || [];
+    const contactOrganic: SerperOrganicResult[] = contactRes?.organic || [];
     const kg: SerperKnowledgeGraph | null = searchRes?.knowledgeGraph || null;
     const news: SerperNewsResult[] = newsRes?.news || [];
 
-    const allSnippets = [...organic.map((r) => r.snippet), ...news.map((r) => r.snippet)];
+    console.log(
+      `[web-search] Got ${organic.length} organic, ${contactOrganic.length} contact, ${news.length} news`,
+    );
+    if (organic.length > 0) {
+      console.log(`[web-search] Top result: ${organic[0].title} → ${organic[0].link}`);
+    }
+
+    const allSnippets = [
+      ...organic.map((r) => r.snippet),
+      ...contactOrganic.map((r) => r.snippet),
+      ...news.map((r) => r.snippet),
+    ];
 
     const externalRatings = extractExternalRatings(organic);
+
+    const website = extractWebsite(organic, companyName);
+    const email = extractEmail(allSnippets);
+    const phone = extractPhone(allSnippets);
+    console.log(`[web-search] Extracted website: ${website}, email: ${email}, phone: ${phone}`);
 
     const result: WebSearchResult = {
       rating: kg?.rating || null,
       reviewCount: kg?.ratingCount || null,
+      website,
+      email,
+      phone,
       externalRatings,
       newsArticles: news.map((n) => ({
         title: n.title,
@@ -228,6 +345,9 @@ Deno.serve(async (req) => {
       JSON.stringify({
         rating: null,
         reviewCount: null,
+        website: null,
+        email: null,
+        phone: null,
         externalRatings: [],
         newsArticles: [],
         seasonalPatterns: [],
