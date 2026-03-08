@@ -20,6 +20,7 @@ import { DepartmentsSection } from "./sections/DepartmentsSection";
 import { LocationsSection } from "./sections/LocationsSection";
 import { ProceduresSection } from "./sections/ProceduresSection";
 import { WelcomeSection } from "./sections/WelcomeSection";
+import { CustomerDocumentView } from "./sections/CustomerDocumentView";
 import type { OnboardingSection } from "./types";
 import { ONBOARDING_SECTIONS } from "./types";
 
@@ -30,6 +31,7 @@ const SECTION_COMPONENTS: Record<OnboardingSection, React.ComponentType> = {
   locations: LocationsSection,
   procedures: ProceduresSection,
   season: SeasonSection,
+  contract: CustomerDocumentView,
   welcome: WelcomeSection,
 };
 
