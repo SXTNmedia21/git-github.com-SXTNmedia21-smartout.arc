@@ -1,8 +1,18 @@
 "use client";
 
 import { useState, useCallback, useEffect, useMemo } from "react";
-import { Plus, Shield, ShieldCheck, CheckCircle2, Loader2, FileText } from "lucide-react";
+import {
+  Plus,
+  Shield,
+  ShieldCheck,
+  CheckCircle2,
+  Loader2,
+  FileText,
+  ChevronDown,
+} from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { cn } from "@/lib/utils";
 import {
   FILTER_QUESTIONS,
   getVisibleTemplates,
@@ -37,77 +47,119 @@ function TemplateCard({
   onToggle?: () => void;
   onCreate: () => void;
 }) {
+  const [open, setOpen] = useState(false);
   const procedureCount = template.procedures.length;
+  const stepCount = template.procedures.reduce((sum, p) => sum + p.steps.length, 0);
   const hasQuestions = template.knowledgeTest.questions.length > 0;
 
   return (
-    <div
-      className={`flex items-center justify-between rounded-xl border px-4 py-3 transition-colors ${
-        isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-white"
-      }`}
-    >
-      <div className="flex min-w-0 flex-1 items-center gap-3">
-        {/* Toggle for recommended only */}
-        {!isMandatory && onToggle && (
-          <Switch checked={isChecked} onCheckedChange={onToggle} className="shrink-0" />
-        )}
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <div
+        className={`overflow-hidden rounded-xl border transition-colors ${
+          isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-white"
+        }`}
+      >
+        <CollapsibleTrigger asChild>
+          <div className="flex cursor-pointer items-center justify-between px-4 py-3">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              {/* Toggle for recommended only */}
+              {!isMandatory && onToggle && (
+                <Switch
+                  checked={isChecked}
+                  onCheckedChange={onToggle}
+                  onClick={(e) => e.stopPropagation()}
+                  className="shrink-0"
+                />
+              )}
 
-        <div className="min-w-0 flex-1">
-          <p
-            className={`truncate text-sm font-semibold ${
-              isDark ? "text-zinc-200" : "text-zinc-800"
-            }`}
+              <div className="min-w-0 flex-1">
+                <p
+                  className={`truncate text-sm font-semibold ${
+                    isDark ? "text-zinc-200" : "text-zinc-800"
+                  }`}
+                >
+                  {template.name}
+                </p>
+                {template.description && (
+                  <p className={`truncate text-xs ${isDark ? "text-zinc-500" : "text-zinc-500"}`}>
+                    {template.description}
+                  </p>
+                )}
+                <div className="mt-1 flex items-center gap-2">
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                      isDark ? "bg-zinc-800 text-zinc-400" : "bg-zinc-100 text-zinc-500"
+                    }`}
+                  >
+                    <FileText className="h-3 w-3" />
+                    {procedureCount} prosedyre{procedureCount !== 1 ? "r" : ""}
+                  </span>
+                  {hasQuestions && (
+                    <span
+                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                        isDark ? "bg-zinc-800 text-zinc-400" : "bg-zinc-100 text-zinc-500"
+                      }`}
+                    >
+                      1 test
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="ml-3 flex shrink-0 items-center gap-2">
+              {/* Action */}
+              {isCreated ? (
+                <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+              ) : isCreating ? (
+                <Loader2 className="h-5 w-5 animate-spin text-orange-500" />
+              ) : (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onCreate();
+                  }}
+                  disabled={!isMandatory && !isChecked}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    !isMandatory && !isChecked
+                      ? "cursor-not-allowed opacity-40"
+                      : "bg-orange-500 text-white hover:bg-orange-600"
+                  }`}
+                >
+                  Opprett
+                </button>
+              )}
+              <ChevronDown className={cn("h-4 w-4 transition-transform", open && "rotate-180")} />
+            </div>
+          </div>
+        </CollapsibleTrigger>
+
+        <CollapsibleContent>
+          <div
+            className={`space-y-2 border-t px-4 py-3 ${isDark ? "border-zinc-800" : "border-zinc-200"}`}
           >
-            {template.name}
-          </p>
-          {template.description && (
-            <p className={`truncate text-xs ${isDark ? "text-zinc-500" : "text-zinc-500"}`}>
-              {template.description}
+            <p className={`text-xs leading-relaxed ${isDark ? "text-zinc-400" : "text-zinc-600"}`}>
+              {template.longDescription}
             </p>
-          )}
-          <div className="mt-1 flex items-center gap-2">
-            <span
-              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                isDark ? "bg-zinc-800 text-zinc-400" : "bg-zinc-100 text-zinc-500"
-              }`}
-            >
-              <FileText className="h-3 w-3" />
-              {procedureCount} prosedyre{procedureCount !== 1 ? "r" : ""}
-            </span>
-            {hasQuestions && (
-              <span
-                className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                  isDark ? "bg-zinc-800 text-zinc-400" : "bg-zinc-100 text-zinc-500"
-                }`}
+            <p className={`text-[10px] font-medium ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+              Inkluderer: {procedureCount} prosedyre{procedureCount !== 1 ? "r" : ""}, {stepCount}{" "}
+              steg, {hasQuestions ? "1 kunnskapstest, " : ""}1 bekreftelse
+            </p>
+            <p className={`text-[10px] ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+              Alle ansatte i berorte avdelinger far dette som opplaering. De ma lese prosedyrene,
+              besta en kunnskapstest, og signere en bekreftelse.
+            </p>
+            {template.legalBasis && (
+              <p
+                className={`text-[10px] font-medium ${isDark ? "text-amber-400/70" : "text-amber-600/70"}`}
               >
-                1 test
-              </span>
+                {"\u2696"} {template.legalBasis}
+              </p>
             )}
           </div>
-        </div>
+        </CollapsibleContent>
       </div>
-
-      {/* Action */}
-      <div className="ml-3 shrink-0">
-        {isCreated ? (
-          <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-        ) : isCreating ? (
-          <Loader2 className="h-5 w-5 animate-spin text-orange-500" />
-        ) : (
-          <button
-            onClick={onCreate}
-            disabled={!isMandatory && !isChecked}
-            className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-              !isMandatory && !isChecked
-                ? "cursor-not-allowed opacity-40"
-                : "bg-orange-500 text-white hover:bg-orange-600"
-            }`}
-          >
-            Opprett
-          </button>
-        )}
-      </div>
-    </div>
+    </Collapsible>
   );
 }
 

@@ -68,6 +68,8 @@ export type GovernanceTemplate = {
     confirmation_text: string;
     requires_signature: boolean;
   };
+  longDescription: string;
+  legalBasis: string | null;
 };
 
 // ══════════════════════════════════════════════════════════════
@@ -174,6 +176,9 @@ export const GOVERNANCE_TEMPLATES: GovernanceTemplate[] = [
         "Jeg bekrefter at jeg har lest og forstar retningslinjene for helse, miljo og sikkerhet pa arbeidsplassen.",
       requires_signature: true,
     },
+    longDescription:
+      "Denne retningslinjen dekker alle aspekter av helse, miljo og sikkerhet pa arbeidsplassen. Den inkluderer vernerunder, forstehjelpsutstyr, nodutganger og rapportering av avvik. Alle ansatte skal kjenne til HMS-rutinene og vite hvor sikkerhetsutstyr befinner seg.",
+    legalBasis: "Arbeidsmiljoloven \u00A73-1: Krav til systematisk HMS-arbeid",
   },
 
   // 2. Brannsikkerhet (mandatory)
@@ -253,6 +258,9 @@ export const GOVERNANCE_TEMPLATES: GovernanceTemplate[] = [
         "Jeg bekrefter at jeg har lest og forstar brannsikkerhetsrutinene, inkludert romningsveier og monstringsplass.",
       requires_signature: true,
     },
+    longDescription:
+      "Brannforebygging og evakuering er lovpalagt for alle virksomheter. Denne retningslinjen dekker evakueringsplaner, brannslukningsutstyr, moteplasser og varslingsrutiner. Alle ansatte ma kjenne evakueringsplanen og naermeste nodutgang.",
+    legalBasis: "Brann- og eksplosjonsvernloven \u00A76: Forebyggende plikter",
   },
 
   // 3. Mathandtering og hygiene (food)
@@ -354,6 +362,9 @@ export const GOVERNANCE_TEMPLATES: GovernanceTemplate[] = [
         "Jeg bekrefter at jeg har lest og forstar retningslinjene for mathandtering og hygiene.",
       requires_signature: true,
     },
+    longDescription:
+      "Korrekt handtering av mat fra mottak til servering. Dekker temperaturkontroll, handhygiene, kryssforurensning og oppbevaring. Alle som handterer mat ma forsta HACCP-prinsippene og folge temperaturloggene daglig.",
+    legalBasis: "Matloven \u00A75 og Mattilsynets forskrift om naeringsmiddelhygiene",
   },
 
   // 4. Allergenhandtering (food)
@@ -435,6 +446,9 @@ export const GOVERNANCE_TEMPLATES: GovernanceTemplate[] = [
         "Jeg bekrefter at jeg har lest og forstar retningslinjene for allergenhandtering og -merking.",
       requires_signature: true,
     },
+    longDescription:
+      "EU-forordningen krever merking av 14 hovedallergener. Denne retningslinjen sikrer at alle ansatte kan identifisere allergener, informere gjester korrekt, og handtere allergi-hendelser trygt.",
+    legalBasis: "EU-forordning 1169/2011 om allergenmerking",
   },
 
   // 5. Alkoholservering (alcohol)
@@ -513,6 +527,9 @@ export const GOVERNANCE_TEMPLATES: GovernanceTemplate[] = [
         "Jeg bekrefter at jeg har lest og forstar retningslinjene for ansvarlig alkoholservering.",
       requires_signature: true,
     },
+    longDescription:
+      "Ansvarlig alkoholservering i trad med alkoholloven. Dekker alderskontroll, serveringsregler, skjenketider og konsekvenser ved brudd. Alle som serverer alkohol ma kjenne aldersgrensene og legitimasjonskravene.",
+    legalBasis: "Alkoholloven \u00A71-5: Aldersgrenser for salg og skjenking",
   },
 
   // 6. Skjenkekontroll (alcohol)
@@ -580,6 +597,9 @@ export const GOVERNANCE_TEMPLATES: GovernanceTemplate[] = [
         "Jeg bekrefter at jeg har lest og forstar retningslinjene for skjenkekontroll og handtering av berusede gjester.",
       requires_signature: true,
     },
+    longDescription:
+      "Internkontroll for a ivareta skjenkebevillingen. Dekker vurdering av beruselsesgrad, nektelse av servering, og dokumentasjon. Brudd kan fore til prikker og inndragning av bevillingen.",
+    legalBasis: "Alkoholloven \u00A74-7: Kontroll med salgs- og skjenkebevillinger",
   },
 
   // 7. Gjestesikkerhet (overnight)
@@ -649,6 +669,9 @@ export const GOVERNANCE_TEMPLATES: GovernanceTemplate[] = [
         "Jeg bekrefter at jeg har lest og forstar retningslinjene for gjestesikkerhet og nokkelkort-handtering.",
       requires_signature: true,
     },
+    longDescription:
+      "Sikkerhet for overnattingsgjester inkluderer nokkelkort-handtering, identitetskontroll, nodprosedyrer og romtilgang. Gjestenes trygghet er virksomhetens ansvar gjennom hele oppholdet.",
+    legalBasis: null,
   },
 
   // 8. Romrenhold (overnight)
@@ -723,6 +746,9 @@ export const GOVERNANCE_TEMPLATES: GovernanceTemplate[] = [
         "Jeg bekrefter at jeg har lest og forstar retningslinjene for romrenhold og kvalitetskontroll.",
       requires_signature: true,
     },
+    longDescription:
+      "Standard for renhold av gjesterom sikrer konsistent kvalitet og hygiene. Dekker sengetoy, bad, stovsuting og pafyll av amenities. Riktig rekkefolge forhindrer kryssforurensning.",
+    legalBasis: null,
   },
 
   // 9. Leveringssikkerhet (delivery)
@@ -790,6 +816,9 @@ export const GOVERNANCE_TEMPLATES: GovernanceTemplate[] = [
         "Jeg bekrefter at jeg har lest og forstar retningslinjene for trygg pakking og levering.",
       requires_signature: true,
     },
+    longDescription:
+      "Trygg handtering av mat for take-away og levering. Dekker temperaturkontroll under transport, korrekt emballering, allergenmerking pa emballasje, og kontroll av bestillinger for utlevering.",
+    legalBasis: "Matloven \u00A75: Krav til naeringsmiddelsikkerhet ved omsetning",
   },
 
   // 10. Emballasjehygiene (delivery)
@@ -849,6 +878,9 @@ export const GOVERNANCE_TEMPLATES: GovernanceTemplate[] = [
         "Jeg bekrefter at jeg har lest og forstar retningslinjene for emballasjehygiene.",
       requires_signature: true,
     },
+    longDescription:
+      "Hygienisk handtering og oppbevaring av emballasje brukt til take-away. Dekker inspeksjon av emballasje, lagringsforhold og sporbarhet. Kontaminert emballasje er en mattrygghetsrisiko.",
+    legalBasis: "Forskrift om materialer og gjenstander i kontakt med naeringsmidler",
   },
 ];
 
