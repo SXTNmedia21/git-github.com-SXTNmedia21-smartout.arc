@@ -119,22 +119,19 @@ const STEPS: SetupStep[] = [
 
 // ─── Helpers ─────────────────────────────────────────────
 
-const SKIP_KEY = "smartout_setup_skipped";
+const SKIP_KEY_PREFIX = "smartout_setup_skipped_";
 const SKIP_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
-function wasRecentlySkipped(): boolean {
-  if (typeof window === "undefined") return false;
-  const raw = localStorage.getItem(SKIP_KEY);
+function getSkipKey(workspaceId: string): string {
+  return `${SKIP_KEY_PREFIX}${workspaceId}`;
+}
+
+function wasRecentlySkipped(workspaceId: string): boolean {
+  if (typeof window === "undefined" || !workspaceId) return false;
+  const raw = localStorage.getItem(getSkipKey(workspaceId));
   if (!raw) return false;
   const skippedAt = Number(raw);
-  const skipped = Date.now() - skippedAt < SKIP_TTL_MS;
-  if (skipped) {
-    console.log(
-      "[SETUP] Skipped via localStorage, expires:",
-      new Date(skippedAt + SKIP_TTL_MS).toISOString(),
-    );
-  }
-  return skipped;
+  return Date.now() - skippedAt < SKIP_TTL_MS;
 }
 
 // Map wizard step IDs to setup module IDs for initial step calculation
@@ -211,10 +208,10 @@ export function WorkspaceSetupWizard({
   });
 
   useLayoutEffect(() => {
-    if (wasRecentlySkipped()) {
+    if (workspaceId && wasRecentlySkipped(workspaceId)) {
       onComplete();
     }
-  }, [onComplete]);
+  }, [workspaceId, onComplete]);
 
   const step = STEPS[currentStep]!;
   const isFirst = currentStep === 0;
@@ -240,7 +237,9 @@ export function WorkspaceSetupWizard({
   }, [isFirst]);
 
   const handleSkip = useCallback(() => {
-    localStorage.setItem(SKIP_KEY, String(Date.now()));
+    if (workspaceId) {
+      localStorage.setItem(getSkipKey(workspaceId), String(Date.now()));
+    }
     void queryClient.invalidateQueries({
       queryKey: dashboardKeys.workspaceSetupStatus(workspaceId),
     });

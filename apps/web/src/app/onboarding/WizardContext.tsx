@@ -14,7 +14,7 @@ import { useOnboardingState, type OnboardingActions } from "./hooks/useOnboardin
 import { useScrollProgress } from "./hooks/useScrollProgress";
 import { useBotsson, type BotssonActions } from "./hooks/useBotsson";
 import type { OnboardingState, OnboardingSection } from "./types";
-import { ONBOARDING_SECTIONS, VISIBLE_SECTIONS } from "./types";
+import { VISIBLE_SECTIONS } from "./types";
 
 interface OnboardingContextValue extends OnboardingState, OnboardingActions {
   activeSection: OnboardingSection;

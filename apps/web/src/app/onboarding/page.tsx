@@ -22,7 +22,7 @@ import { ProceduresSection } from "./sections/ProceduresSection";
 import { WelcomeSection } from "./sections/WelcomeSection";
 import { CustomerDocumentView } from "./sections/CustomerDocumentView";
 import type { OnboardingSection } from "./types";
-import { ONBOARDING_SECTIONS, VISIBLE_SECTIONS } from "./types";
+import { VISIBLE_SECTIONS } from "./types";
 
 const SECTION_COMPONENTS: Record<OnboardingSection, React.ComponentType> = {
   hero: HeroSection,
