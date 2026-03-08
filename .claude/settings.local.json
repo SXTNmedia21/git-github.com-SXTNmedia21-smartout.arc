@@ -2,13 +2,19 @@
   "permissions": {
     "allow": [
       "Bash(ss:*)",
-      "Bash(PGPASSWORD=postgres psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -c \"SELECT email, email_confirmed_at FROM auth.users WHERE email = ''admin@smartout.local'';\")"
+      "Bash(PGPASSWORD=postgres psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -c \"SELECT email, email_confirmed_at FROM auth.users WHERE email = ''admin@smartout.local'';\")",
+      "Bash(for f:*)",
+      "Bash(do echo:*)",
+      "Read(//home/sxtnl/dev/smartout.ai/**)",
+      "Bash(done)"
     ]
   },
   "mcpServers": {
     "playwright": {
       "command": "npx",
-      "args": ["@playwright/mcp@latest"]
+      "args": [
+        "@playwright/mcp@latest"
+      ]
     }
   }
 }
