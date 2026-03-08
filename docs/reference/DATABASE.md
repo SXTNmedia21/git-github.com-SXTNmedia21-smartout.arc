@@ -5,7 +5,7 @@ version: "1.0"
 status: canonical
 layer: reference
 created: 2026-02-28
-updated: 2026-03-06
+updated: 2026-04-13
 author: claude
 supersedes: []
 superseded_by: null
@@ -98,7 +98,7 @@ Single source of truth for all database tables, enums, RLS patterns, naming conv
 
 ---
 
-## All Tables (52 entities)
+## All Tables (66 entities)
 
 ### Identity Layer (Global -- no workspace_id)
 
@@ -143,6 +143,18 @@ Single source of truth for all database tables, enums, RLS patterns, naming conv
 | `knowledge_test`      | `knowledge_test_id`      | Prove: quiz within a protocol.                                            |
 | `confirmation`        | `confirmation_id`        | Acknowledge: sign-off within a protocol.                                  |
 
+### Completion Tracking (workspace_id scoped, Module Zero)
+
+| Table                       | PK                             | Purpose                                                      |
+| --------------------------- | ------------------------------ | ------------------------------------------------------------ |
+| `knowledge_test_attempt`    | `knowledge_test_attempt_id`    | Quiz score, answers (JSONB), pass/fail per employee per test |
+| `confirmation_signature`    | `confirmation_signature_id`    | Sign-off record with signature_data (JSONB), timestamp, IP   |
+| `procedure_step_completion` | `procedure_step_completion_id` | Per-step progress per employee per protocol_assignment       |
+
+**RLS:** All three use workspace_id scoping with JWT policies. Service role has full access.
+
+**Key FKs:** All three reference `profile_id` and `protocol_assignment_id`. `knowledge_test_attempt` → `knowledge_test_id`. `confirmation_signature` → `confirmation_id`. `procedure_step_completion` → `procedure_step_id`.
+
 ### Time Layer (workspace_id scoped)
 
 | Table    | PK          | Purpose                                          |
@@ -186,6 +198,20 @@ Single source of truth for all database tables, enums, RLS patterns, naming conv
 | `invitation`          | `invitation_id`          | Workspace invitations. Status: pending, accepted, expired, cancelled. |
 | `employment_contract` | `employment_contract_id` | Employment contracts (uses `contract_status` enum).                   |
 
+### Session Infrastructure (workspace_id scoped, Module Zero)
+
+| Table                  | PK                        | Purpose                                                                                      |
+| ---------------------- | ------------------------- | -------------------------------------------------------------------------------------------- |
+| `department_session`   | `department_session_id`   | Daily container per dept. Status: upcoming/active/pending_signoff/closed/missed              |
+| `session_hook`         | `session_hook_id`         | Hook definitions: hook_type (enum), trigger_time, linked procedure/routine                   |
+| `session_task`         | `session_task_id`         | Hook-triggered operational tasks. Status enum lifecycle. Compliance tracking                 |
+| `session_note`         | `session_note_id`         | Handoff/closing notes per session. note_type: handoff/closing/general                        |
+| `daily_reconciliation` | `daily_reconciliation_id` | End-of-day settlement. Status: open/submitted/awaiting_approval/approved/locked/unreconciled |
+| `deviation`            | `deviation_id`            | Incident reports. Domain: safety/customer/procedure/system/material                          |
+| `shift_approval`       | `shift_approval_id`       | Post-shift hour verification. Status: pending/approved/edited/disputed                       |
+
+**New SQL enums:** `session_hook_type` (pre_open/open/scheduled/pre_close/close), `session_task_status` (pending/available/in_progress/completed/skipped/overdue/escalated), `session_note_type` (handoff/closing/general).
+
 ### Schedule (workspace_id scoped, ADR-0036)
 
 | Table            | PK                  | Purpose                                                                                  |
@@ -221,6 +247,22 @@ Single source of truth for all database tables, enums, RLS patterns, naming conv
 **engine_authority_config key columns:** `workspace_id`, `capability` (TEXT — e.g. profile, schedule, training), `authority_level` (ai_authority_level enum: autonomous, notify_suggest, notify, escalate, never), `config` (JSONB for capability-specific settings).
 
 **RLS:** Both tables use dual-auth (JWT + API key) workspace isolation pattern.
+
+### Engine Process Tables (workspace_id scoped, Module Zero)
+
+| Table                    | PK          | Purpose                                                                   |
+| ------------------------ | ----------- | ------------------------------------------------------------------------- |
+| `engine_process`         | `id` (TEXT) | Workflow templates (e.g. daily_close). TEXT PK                            |
+| `engine_step`            | `id`        | Steps within a process. action_type + action_payload + assignee_rule      |
+| `engine_trigger`         | `id`        | Event-to-process matching rules with optional delay                       |
+| `engine_event`           | `id`        | Immutable event log. Idempotency support                                  |
+| `engine_state`           | `id`        | Running process instances. entity_type/entity_id, current_step, status    |
+| `engine_state_step`      | `id`        | Per-step completion tracking on instances. Cascading RLS via engine_state |
+| `engine_delayed_trigger` | `id`        | Timer queue for delayed triggers. Polled by fire-delayed-triggers EF      |
+
+**engine_state_step key columns:** `state_id` (FK CASCADE), `step_order`, `status` (pending/active/completed/skipped/failed), `action_type`, `action_payload` (JSONB), `completed_by` (FK profile), `completed_at`, `result` (JSONB). UNIQUE(state_id, step_order).
+
+**engine_state_step RLS:** Uses cascading subquery — `state_id IN (SELECT id FROM engine_state)` — PostgreSQL applies engine_state's workspace RLS to the subquery.
 
 ### Context & Search (workspace_id scoped)
 
@@ -346,7 +388,7 @@ Tables WITHOUT workspace_id (user_identity, company, platform-admin) are exempt 
 
 ---
 
-## All Enums (31 in database.types.ts)
+## All Enums (34+ in database.types.ts)
 
 Enums from `packages/supabase/src/database.types.ts` (auto-generated, never edit manually):
 
@@ -395,12 +437,15 @@ Enums from `packages/supabase/src/database.types.ts` (auto-generated, never edit
 
 ### Operations & Time
 
-| Enum            | Values                                  |
-| --------------- | --------------------------------------- |
-| `season_type`   | default, calendar, focus, cycle, custom |
-| `season_status` | draft, active, archived                 |
-| `budget_status` | draft, active, locked                   |
-| `invite_status` | pending, accepted, expired, cancelled   |
+| Enum                  | Values                                                                  |
+| --------------------- | ----------------------------------------------------------------------- |
+| `season_type`         | default, calendar, focus, cycle, custom                                 |
+| `season_status`       | draft, active, archived                                                 |
+| `budget_status`       | draft, active, locked                                                   |
+| `invite_status`       | pending, accepted, expired, cancelled                                   |
+| `session_hook_type`   | pre_open, open, scheduled, pre_close, close                             |
+| `session_task_status` | pending, available, in_progress, completed, skipped, overdue, escalated |
+| `session_note_type`   | handoff, closing, general                                               |
 
 ### Contract System
 

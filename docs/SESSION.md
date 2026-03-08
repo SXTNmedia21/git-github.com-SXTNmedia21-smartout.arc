@@ -1,7 +1,7 @@
 ---
 title: Session Log
-status: in_progress
-updated: 2026-03-08
+status: done
+updated: 2026-04-13
 created: 2026-03-02
 module: cross-cutting
 tags: [session, continuity]
@@ -11,21 +11,21 @@ tags: [session, continuity]
 
 | Field    | Value                     |
 | -------- | ------------------------- |
-| Date     | 2026-03-08                |
+| Date     | 2026-04-13                |
 | Branch   | `feat/zero-to-production` |
 | Feature  | zero-to-production        |
 | Worktree | wt-1                      |
-| Status   | in_progress               |
+| Status   | merged to development     |
 
 ### What was done
 
-**All 5 weeks COMPLETE. 16 commits on feat/zero-to-production.**
+**Module Zero to Production — COMPLETE. 22 commits, 70 files, +8255/-777 lines.**
 
 **Week 1: Event Backbone (3 commits)**
 
 - engine_event as 4th telemetry destination
-- 13 new domain events in registry
-- emit() wired into 11 TanStack Query mutations
+- 13 new domain events in registry (expanded to 26 total)
+- emit() wired into all TanStack Query mutations
 
 **Week 2: DB Migrations (1 commit)**
 
@@ -51,21 +51,39 @@ tags: [session, continuity]
 - fire-delayed-triggers Edge Function
 - Journey runner CLI skeleton
 
-**Integration + fixes (1 commit)**
+**Post-onboarding setup (3 commits)**
 
-- pnpm-lock update
+- WorkspaceSetupWizard — fullscreen 5-step guided setup
+- StrategicView rewrite — removed all hardcoded demo data
+- AdminDashboard setup gate with loading skeleton
 
-### Where we stopped
+**Telemetry fixes (2 commits)**
 
-All implementation weeks are done. Remaining:
+- Split posthog providers (client/server) to fix Turbopack bundling
+- Client engine-event relay via /api/engine-dispatch
 
-1. Update DASHBOARD.md
-2. Feature closure deliverables (decision log, learning log, user journeys)
-3. Merge to development
+**Intelligence fix (1 commit)**
+
+- Pipeline finds website, email, phone from name-only search
+
+**Audit fixes (1 commit)**
+
+- Season query bug (.eq("status", "active"))
+- Missing emit() on useSubmitTest + useSignConfirmation
+- 2 new telemetry events (test_submitted, confirmation_signed)
+- Wizard initialStep from modules, localStorage skip with 24h TTL
+- useLayoutEffect flash fix, dead file cleanup, RLS comment
 
 ### Commit log (this feature)
 
 ```
+7251ec4 fix(zero-to-production): audit fixes — season query, missing emit, wizard UX, cleanup
+82f72f2 fix(intelligence): pipeline finds website, email, phone from name-only search
+e04ece2 fix(telemetry): split posthog providers to avoid bundling node:fs in client
+f106d33 feat(dashboard): guided post-onboarding setup + remove fake metrics
+db8198e fix(telemetry): relay engine events from client via API route
+9d01efb fix(governance): remove impure Date.now() from render memo
+9d39be7 docs: update worklog and session — all 5 weeks complete
 93bf12c chore: update lockfile
 8534dbb feat(web): add employee handbook reader
 566c9fe feat(web): add governance CRUD forms
@@ -93,18 +111,19 @@ fb1dec0 feat(telemetry): add engine_event as fourth destination
 | Week 3 | Process Wiring + Auto-Generation     | DONE   |
 | Week 4 | Employee UI + Handbook Reader        | DONE   |
 | Week 5 | Journey Runner + E2E Helpers         | DONE   |
+| Audit  | Full branch audit + 9 fixes          | DONE   |
 
-### Known issues
+### Known remaining gaps
 
-- E2E cleanup.ts: protocol_assignment lacks workspace_id — uses profile join
-- schedule_shift uses employee_id not profile_id
-- Governance mutations use generic "button clicked" events — should use specific domain events
-- send_notification handler is a stub (logs to console, no notification_queue table yet)
+See `docs/STATE.md` Section 3 — "Known Remaining Gaps (post-audit)" for full list.
 
-### Pending for closure
+Key items for next feature work:
 
-- [ ] Update DASHBOARD.md
-- [ ] Verify decision log complete
-- [ ] Verify learning log complete
-- [ ] Write user journeys (JOURNEY-zero-to-production.md)
-- [ ] Final typecheck before merge
+1. **Invite → Onboarding** — accept-invitation EF needs to emit invitation_accepted
+2. **Shift Publish → Session** — end-to-end flow untested
+3. **Handbook → RAG** — saved chapters not chunked into workspace_doc_chunk
+4. **Wizard forms** — 5 step forms are placeholders, need real form components
+
+### Where we stopped
+
+Feature merged to `development`. Worktree wt-1 ready for next feature.
