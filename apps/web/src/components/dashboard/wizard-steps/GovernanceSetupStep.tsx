@@ -16,7 +16,6 @@ import { cn } from "@/lib/utils";
 import {
   FILTER_QUESTIONS,
   getVisibleTemplates,
-  useIndustryFilters,
   useCreatedPolicies,
   useCreateFromTemplate,
 } from "@/app/dashboard/governance/_hooks/use-governance-templates";
@@ -24,7 +23,9 @@ import type {
   FilterKey,
   GovernanceTemplate,
 } from "@/app/dashboard/governance/_hooks/use-governance-templates";
+import type { IndustryPackage } from "@/lib/industry/types";
 import { PolicyForm } from "@/app/dashboard/governance/_components/PolicyForm";
+import { HelpTip } from "@/components/dashboard/wizard-steps/HelpTip";
 
 // ─── TemplateCard ──────────────────────────────────────────
 
@@ -165,8 +166,19 @@ function TemplateCard({
 
 // ─── GovernanceSetupStep ───────────────────────────────────
 
-export function GovernanceSetupStep({ isDark }: { isDark: boolean }) {
-  const industryDefaults = useIndustryFilters();
+export function GovernanceSetupStep({
+  isDark,
+  industryPackage,
+  extractedPolicies,
+}: {
+  isDark: boolean;
+  industryPackage?: IndustryPackage;
+  extractedPolicies?: Array<{ name: string; content: string; source: string }>;
+}) {
+  const industryDefaults = useMemo<Record<FilterKey, boolean>>(() => {
+    if (!industryPackage) return { food: false, alcohol: false, overnight: false, delivery: false };
+    return industryPackage.filterDefaults as Record<FilterKey, boolean>;
+  }, [industryPackage]);
   const { data: createdPolicies } = useCreatedPolicies();
   const createFromTemplate = useCreateFromTemplate();
 
@@ -180,6 +192,13 @@ export function GovernanceSetupStep({ isDark }: { isDark: boolean }) {
   useEffect(() => {
     if (!hasUserEdited) setFilters(industryDefaults);
   }, [industryDefaults, hasUserEdited]);
+
+  // Auto-check templates that match extracted policies
+  useEffect(() => {
+    if (!extractedPolicies || extractedPolicies.length === 0) return;
+    // Already handled by filter defaults — extraction just confirms
+    // Future: could auto-create policies from extraction data
+  }, [extractedPolicies]);
 
   // ── Derived data ──
   const { mandatory, recommended } = useMemo(() => getVisibleTemplates(filters), [filters]);
@@ -255,9 +274,12 @@ export function GovernanceSetupStep({ isDark }: { isDark: boolean }) {
     <div className="space-y-8">
       {/* ── Section 1: Filter questions ── */}
       <div className="space-y-3">
-        <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-          Hva gjelder for dere?
-        </h3>
+        <div className="flex items-center gap-2">
+          <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
+            Hva gjelder for dere?
+          </h3>
+          <HelpTip text="Svar p\u00e5 disse sp\u00f8rsm\u00e5lene s\u00e5 vi kan forsl\u00e5 riktige retningslinjer for din type virksomhet." />
+        </div>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {FILTER_QUESTIONS.map((q) => (
             <label
@@ -284,9 +306,12 @@ export function GovernanceSetupStep({ isDark }: { isDark: boolean }) {
       {/* ── Section 2: Suggested templates ── */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-            Foreslåtte retningslinjer
-          </h3>
+          <div className="flex items-center gap-2">
+            <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
+              Foreslåtte retningslinjer
+            </h3>
+            <HelpTip text="Basert p\u00e5 svarene dine forsl\u00e5r vi retningslinjer. Lovp\u00e5lagte m\u00e5 opprettes, anbefalte kan sl\u00e5s av." />
+          </div>
           {uncreatedCount > 0 && (
             <button
               onClick={handleCreateAll}

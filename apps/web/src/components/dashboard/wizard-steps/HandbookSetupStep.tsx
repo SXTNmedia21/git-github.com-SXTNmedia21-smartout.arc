@@ -21,7 +21,9 @@ import { emit } from "@smartout/telemetry";
 import { useWorkspace } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { CHAPTERS } from "@/app/dashboard/_components/document-mode/chapters";
+import { HelpTip } from "@/components/dashboard/wizard-steps/HelpTip";
 import type { ChapterKey } from "@/app/dashboard/_components/document-mode/chapters";
+import type { SetupWizardState } from "./wizard-state";
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -32,13 +34,196 @@ type SavedChapter = {
   content: Json;
 };
 
+// ─── TipTap JSON Helpers ─────────────────────────────────
+
+type TipTapNode = {
+  type: string;
+  attrs?: Record<string, unknown>;
+  content?: TipTapNode[];
+  text?: string;
+  marks?: Array<{ type: string }>;
+};
+
+function heading(level: number, text: string): TipTapNode {
+  return { type: "heading", attrs: { level }, content: [{ type: "text", text }] };
+}
+
+function para(text: string): TipTapNode {
+  return { type: "paragraph", content: [{ type: "text", text }] };
+}
+
+function bulletList(items: string[]): TipTapNode {
+  return {
+    type: "bulletList",
+    content: items.map((t) => ({
+      type: "listItem",
+      content: [{ type: "paragraph", content: [{ type: "text", text: t }] }],
+    })),
+  };
+}
+
+function doc(...nodes: TipTapNode[]): TipTapNode {
+  return { type: "doc", content: nodes };
+}
+
+// ─── Auto-generate chapter content from wizard state ─────
+
+function generateChapterContent(
+  chapterKey: ChapterKey,
+  state: SetupWizardState | undefined,
+): TipTapNode | null {
+  if (!state) return null;
+  const { scrapedData, extractedData } = state;
+  const companyName = scrapedData.companyName ?? "Virksomheten";
+
+  switch (chapterKey) {
+    case "identity-mission": {
+      const nodes: TipTapNode[] = [
+        heading(2, `Om ${companyName}`),
+        para(
+          scrapedData.industryType
+            ? `${companyName} er en ${scrapedData.industryType}-virksomhet.`
+            : `${companyName} — vår identitet og misjon.`,
+        ),
+      ];
+      if (scrapedData.address) nodes.push(para(`Adresse: ${scrapedData.address}`));
+      if (scrapedData.website) nodes.push(para(`Nettside: ${scrapedData.website}`));
+      nodes.push(
+        heading(3, "Serviceløfte"),
+        para("Beskriv virksomhetens serviceløfte og merkevare her."),
+      );
+      return doc(...nodes);
+    }
+
+    case "organization-model": {
+      const nodes: TipTapNode[] = [heading(2, "Organisasjonsmodell")];
+      const depts = scrapedData.departments ?? [];
+      if (depts.length > 0) {
+        nodes.push(para("Virksomheten har følgende avdelinger:"), bulletList(depts));
+      } else {
+        nodes.push(para("Legg til avdelingene og deres ansvarsområder her."));
+      }
+      nodes.push(heading(3, "Roller og ansvar"), para("Beskriv rollene i organisasjonen."));
+      return doc(...nodes);
+    }
+
+    case "daily-operations": {
+      const nodes: TipTapNode[] = [heading(2, "Daglig Drift")];
+      if (scrapedData.openingHours) {
+        nodes.push(para(`Åpningstider: ${scrapedData.openingHours}`));
+      }
+      const shifts = extractedData.shiftPatterns ?? [];
+      if (shifts.length > 0) {
+        nodes.push(
+          heading(3, "Vakter"),
+          bulletList(shifts.map((s) => `${s.name}: ${s.startTime}–${s.endTime}`)),
+        );
+      }
+      nodes.push(
+        heading(3, "Åpningsrutiner"),
+        para("Beskriv hva som skal gjøres ved åpning."),
+        heading(3, "Lukkerutiner"),
+        para("Beskriv hva som skal gjøres ved lukking."),
+      );
+      return doc(...nodes);
+    }
+
+    case "safety-compliance": {
+      const nodes: TipTapNode[] = [heading(2, "Sikkerhet og Etterlevelse")];
+      const policies = extractedData.policies ?? [];
+      const safetyPolicies = policies.filter(
+        (p) =>
+          p.name.toLowerCase().includes("sikkerhet") ||
+          p.name.toLowerCase().includes("hygiene") ||
+          p.name.toLowerCase().includes("haccp"),
+      );
+      if (safetyPolicies.length > 0) {
+        nodes.push(
+          para("Følgende retningslinjer gjelder:"),
+          bulletList(safetyPolicies.map((p) => p.name)),
+        );
+      }
+      nodes.push(
+        heading(3, "Mattrygghet"),
+        para("Beskriv rutiner for mattrygghet og allergenbehandling."),
+        heading(3, "Brannvern"),
+        para("Beskriv brannvernsrutiner og evakueringsplan."),
+      );
+      return doc(...nodes);
+    }
+
+    case "communication":
+      return doc(
+        heading(2, "Kommunikasjon"),
+        para("Beskriv kommunikasjonskanalene i virksomheten."),
+        heading(3, "Eskalering"),
+        para("Beskriv eskaleringsprosedyren ved problemer eller klager."),
+      );
+
+    case "onboarding-training":
+      return doc(
+        heading(2, "Onboarding og Opplæring"),
+        para(`Nye ansatte i ${companyName} gjennomgår følgende onboarding-prosess:`),
+        bulletList([
+          "Pre-boarding: dokumenter og kontrakt sendes digitalt",
+          "Første dag: omvisning, introduksjon, systemtilganger",
+          "Opplæringsperiode: veiledning og kunnskapstester",
+          "Fullført: selvstendig i rollen",
+        ]),
+      );
+
+    case "scheduling": {
+      const nodes: TipTapNode[] = [heading(2, "Vaktplan og Bemanning")];
+      if (state.seasonCreated) {
+        nodes.push(para("Sesong er opprettet og styrer bemanningsplanlegging."));
+      }
+      nodes.push(
+        heading(3, "Vaktbytter"),
+        para("Beskriv reglene for vaktbytte og varslingsfrist."),
+        heading(3, "Overtid"),
+        para("Beskriv reglene for overtid."),
+      );
+      return doc(...nodes);
+    }
+
+    case "quality-service":
+      return doc(
+        heading(2, "Kvalitet og Service"),
+        para("Beskriv servicenivået og standardene gjestene skal oppleve."),
+        heading(3, "Service Recovery"),
+        para("Beskriv hvordan klager og misnøye håndteres."),
+      );
+
+    case "incident-response":
+      return doc(
+        heading(2, "Avvik og Hendelser"),
+        heading(3, "Kategorier"),
+        bulletList(["Driftsforstyrrelser", "Sikkerhetsavvik", "Kvalitetsavvik", "HMS-hendelser"]),
+        heading(3, "Rapportering"),
+        para("Beskriv prosedyren for å rapportere avvik."),
+      );
+
+    case "kpi-review":
+      return doc(
+        heading(2, "KPI og Evaluering"),
+        heading(3, "Daglig oppfølging"),
+        para("Beskriv hvilke tall som følges opp daglig."),
+        heading(3, "Ukentlig evaluering"),
+        para("Beskriv ukentlig gjennomgang og teamsamlinger."),
+      );
+
+    default:
+      return null;
+  }
+}
+
 // ─── Toolbar ─────────────────────────────────────────────
 
 function EditorToolbar({
   editor,
   isDark,
 }: {
-  editor: ReturnType<typeof useEditor>;
+  editor: ReturnType<typeof useEditor> | null;
   isDark: boolean;
 }) {
   if (!editor) return null;
@@ -127,6 +312,7 @@ function ChapterEditor({
   const supabase = createClient();
 
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [StarterKit],
     content: (existingContent as Record<string, unknown>) ?? "",
     editorProps: {
@@ -238,7 +424,13 @@ function ChapterEditor({
 
 // ─── HandbookSetupStep ───────────────────────────────────
 
-export function HandbookSetupStep({ isDark }: { isDark: boolean }) {
+export function HandbookSetupStep({
+  isDark,
+  wizardState,
+}: {
+  isDark: boolean;
+  wizardState?: SetupWizardState;
+}) {
   const { workspace } = useWorkspace();
   const supabase = createClient();
 
@@ -277,15 +469,28 @@ export function HandbookSetupStep({ isDark }: { isDark: boolean }) {
     setEditingKey(null);
   }, []);
 
+  // ── Generate content from wizard state ──
+  const generatedMap = useMemo(() => {
+    const map = new Map<ChapterKey, TipTapNode>();
+    for (const chapter of CHAPTERS) {
+      const content = generateChapterContent(chapter.key, wizardState);
+      if (content) map.set(chapter.key, content);
+    }
+    return map;
+  }, [wizardState]);
+
   const completedCount = savedMap.size;
 
   return (
     <div className="space-y-6">
       {/* Header summary */}
       <div className="flex items-center justify-between">
-        <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-          Håndbok-kapitler
-        </h3>
+        <div className="flex items-center gap-2">
+          <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
+            H\u00e5ndbok-kapitler
+          </h3>
+          <HelpTip text="Kapitlene er forh\u00e5ndsutfylt basert p\u00e5 det du la inn i steg 1\u20136. G\u00e5 gjennom og rediger der det trengs." />
+        </div>
         <span className={`text-xs font-medium ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
           {completedCount} av {CHAPTERS.length} fullført
         </span>
@@ -298,6 +503,8 @@ export function HandbookSetupStep({ isDark }: { isDark: boolean }) {
           const isSaved = savedMap.has(chapter.key);
           const isEditing = editingKey === chapter.key;
           const savedData = savedMap.get(chapter.key);
+          const generatedContent = generatedMap.get(chapter.key);
+          const hasGenerated = !isSaved && !!generatedContent;
 
           return (
             <div key={chapter.key}>
@@ -323,9 +530,24 @@ export function HandbookSetupStep({ isDark }: { isDark: boolean }) {
                     >
                       {chapter.number}. {chapter.title}
                     </p>
-                    <p className={`truncate text-xs ${isDark ? "text-zinc-500" : "text-zinc-500"}`}>
-                      {chapter.description}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p
+                        className={`truncate text-xs ${isDark ? "text-zinc-500" : "text-zinc-500"}`}
+                      >
+                        {chapter.description}
+                      </p>
+                      {hasGenerated && (
+                        <span
+                          className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                            isDark
+                              ? "bg-orange-900/30 text-orange-400"
+                              : "bg-orange-100 text-orange-600"
+                          }`}
+                        >
+                          Forhåndsutfylt
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -378,7 +600,9 @@ export function HandbookSetupStep({ isDark }: { isDark: boolean }) {
                 <ChapterEditor
                   chapterKey={chapter.key}
                   chapterTitle={chapter.title}
-                  existingContent={savedData?.content ?? null}
+                  existingContent={
+                    savedData?.content ?? (generatedContent as unknown as Json) ?? null
+                  }
                   isDark={isDark}
                   onSaved={handleSaved}
                   onCancel={handleCancel}

@@ -1,15 +1,16 @@
 "use client";
 
-import { useState, useCallback, useContext, useMemo } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState, useCallback, useContext, useMemo, useRef, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { emit } from "@smartout/telemetry";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Plus, Loader2, CheckCircle2, Clock, Trash2 } from "lucide-react";
+import { HelpTip } from "@/components/dashboard/wizard-steps/HelpTip";
+import type { IndustryShiftTemplate } from "@/lib/industry/types";
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -19,12 +20,15 @@ type TemplateEntry = {
   name: string;
   startTime: string;
   endTime: string;
+  _suggested?: boolean;
 };
 
 // ─── Helpers ─────────────────────────────────────────────
 
-function getDayCategory(startTime: string): string {
-  const hour = parseInt(startTime.split(":")[0], 10);
+type DayCategory = "morning" | "midday" | "afternoon" | "evening" | "night" | "weekend";
+
+function getDayCategory(startTime: string): DayCategory {
+  const hour = parseInt(startTime.split(":")[0] ?? "0", 10);
   if (hour < 12) return "morning";
   if (hour < 17) return "afternoon";
   return "evening";
@@ -32,34 +36,51 @@ function getDayCategory(startTime: string): string {
 
 // ─── ShiftTemplateSetupStep ──────────────────────────────
 
-export function ShiftTemplateSetupStep({ isDark }: { isDark: boolean }) {
+export function ShiftTemplateSetupStep({
+  isDark,
+  suggestedTemplates,
+  extractedShiftPatterns,
+  openingHours: _openingHours,
+}: {
+  isDark: boolean;
+  suggestedTemplates?: IndustryShiftTemplate[];
+  extractedShiftPatterns?: Array<{
+    name: string;
+    startTime: string;
+    endTime: string;
+    department?: string;
+    source: string;
+  }>;
+  openingHours?: string;
+}) {
   const workspace = useWorkspace();
   const { profileId } = useContext(DashboardContext);
   const queryClient = useQueryClient();
+  const hasPreFilledRef = useRef(false);
 
   // ── Queries ──
 
   const { data: departments } = useQuery({
-    queryKey: ["departments", workspace.workspace_id],
+    queryKey: ["departments", workspace.workspace.workspace_id],
     queryFn: async () => {
       const supabase = createClient();
       const { data } = await supabase
         .from("department")
         .select("department_id, name")
-        .eq("workspace_id", workspace.workspace_id)
+        .eq("workspace_id", workspace.workspace.workspace_id)
         .order("name");
       return data ?? [];
     },
   });
 
   const { data: existingTemplates } = useQuery({
-    queryKey: ["schedule-templates", workspace.workspace_id],
+    queryKey: ["schedule-templates", workspace.workspace.workspace_id],
     queryFn: async () => {
       const supabase = createClient();
       const { data } = await supabase
         .from("schedule_template")
         .select("schedule_template_id, name, department")
-        .eq("workspace_id", workspace.workspace_id);
+        .eq("workspace_id", workspace.workspace.workspace_id);
       return data ?? [];
     },
   });
@@ -68,6 +89,33 @@ export function ShiftTemplateSetupStep({ isDark }: { isDark: boolean }) {
 
   const [entries, setEntries] = useState<TemplateEntry[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+
+  // ── Pre-fill from suggested templates or extracted patterns ──
+
+  useEffect(() => {
+    if (hasPreFilledRef.current) return;
+    if (entries.length > 0) return;
+
+    // Prefer extracted shift patterns, fall back to suggested templates
+    const source = extractedShiftPatterns ?? suggestedTemplates;
+    if (!source || source.length === 0) return;
+
+    hasPreFilledRef.current = true;
+
+    const deptNames = (departments ?? []).map((d) => d.name);
+    const defaultDept = deptNames[0] ?? "";
+
+    const mapped: TemplateEntry[] = source.map((s) => ({
+      id: crypto.randomUUID(),
+      departmentName: "department" in s && s.department ? s.department : defaultDept,
+      name: "name" in s ? s.name : "",
+      startTime: "startTime" in s ? s.startTime : "",
+      endTime: "endTime" in s ? s.endTime : "",
+      _suggested: true,
+    })) as (TemplateEntry & { _suggested?: boolean })[];
+
+    setEntries(mapped);
+  }, [extractedShiftPatterns, suggestedTemplates, entries.length, departments]);
 
   // ── Derived ──
 
@@ -129,8 +177,8 @@ export function ShiftTemplateSetupStep({ isDark }: { isDark: boolean }) {
           .insert({
             name: entry.name.trim(),
             department: entry.departmentName,
-            workspace_id: workspace.workspace_id,
-            created_by: profileId,
+            workspace_id: workspace.workspace.workspace_id,
+            created_by: profileId ?? "",
           })
           .select()
           .single();
@@ -142,15 +190,17 @@ export function ShiftTemplateSetupStep({ isDark }: { isDark: boolean }) {
           start_time: entry.startTime,
           end_time: entry.endTime,
           day_category: getDayCategory(entry.startTime),
+          role: "general",
         });
 
         if (shiftError) throw shiftError;
       }
 
-      emit({
-        trackingId: "shift-template-created",
-        action: "shift_template_created",
-        metadata: { count: validEntries.length },
+      void emit({
+        event: "button clicked",
+        workspace_id: workspace.workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: { trackingId: "shift-template-created" },
       });
 
       toast.success(
@@ -158,14 +208,14 @@ export function ShiftTemplateSetupStep({ isDark }: { isDark: boolean }) {
       );
       setEntries([]);
       await queryClient.invalidateQueries({
-        queryKey: ["schedule-templates", workspace.workspace_id],
+        queryKey: ["schedule-templates", workspace.workspace.workspace_id],
       });
-    } catch (err) {
+    } catch {
       toast.error("Kunne ikke opprette vaktmaler");
     } finally {
       setIsSaving(false);
     }
-  }, [entries, workspace.workspace_id, profileId, queryClient]);
+  }, [entries, workspace.workspace.workspace_id, profileId, queryClient]);
 
   // ── Render ──
 
@@ -179,9 +229,14 @@ export function ShiftTemplateSetupStep({ isDark }: { isDark: boolean }) {
         return (
           <div key={dept.department_id} className="space-y-2">
             <div className="flex items-center justify-between">
-              <h4 className={`text-sm font-semibold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-                {dept.name}
-              </h4>
+              <div className="flex items-center gap-2">
+                <h4
+                  className={`text-sm font-semibold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}
+                >
+                  {dept.name}
+                </h4>
+                <HelpTip text="Legg til vaktmaler for denne avdelingen. Hver mal definerer en vakttype med start- og sluttid." />
+              </div>
               <button
                 onClick={() => handleAddEntry(dept.name)}
                 className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
@@ -222,13 +277,24 @@ export function ShiftTemplateSetupStep({ isDark }: { isDark: boolean }) {
                   isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-white"
                 }`}
               >
-                <div className="flex-1">
+                <div className="flex flex-1 items-center gap-2">
                   <Input
                     placeholder="Morgenvakt"
                     value={entry.name}
                     onChange={(e) => handleUpdateEntry(entry.id, "name", e.target.value)}
                     className="h-8 text-sm"
                   />
+                  {entry._suggested && (
+                    <span
+                      className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                        isDark
+                          ? "bg-orange-900/30 text-orange-400"
+                          : "bg-orange-100 text-orange-600"
+                      }`}
+                    >
+                      Foreslått
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Clock className={`h-3.5 w-3.5 ${isDark ? "text-zinc-500" : "text-zinc-400"}`} />

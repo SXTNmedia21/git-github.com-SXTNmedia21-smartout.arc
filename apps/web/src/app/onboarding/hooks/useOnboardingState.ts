@@ -661,7 +661,7 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
         seasonType: "default",
         seasonStartDate: season.startDate,
         seasonEndDate: season.endDate,
-        contractId: contract.contractId,
+        contractId: contract?.contractId ?? null,
       };
 
       let workspaceId: string;

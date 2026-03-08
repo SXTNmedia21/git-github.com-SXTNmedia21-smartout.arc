@@ -12,7 +12,6 @@ const SECTION_LABELS: Record<OnboardingSection, string> = {
   departments: "Avdelinger",
   locations: "Lokasjoner",
   procedures: "Prosedyrer",
-  contract: "Kontrakt",
   welcome: "Velkommen",
 };
 

@@ -1,7 +1,7 @@
 ---
 title: "Worklog — zero-to-production"
-status: done
-updated: 2026-04-13
+status: in_progress
+updated: 2026-04-14
 created: 2026-03-08
 module: cross-cutting
 tags: [module-zero, event-engine, employee-ui]
@@ -11,7 +11,7 @@ tags: [module-zero, event-engine, employee-ui]
 
 > Branch: `feat/zero-to-production` | Worktree: wt-1 | Started: 2026-03-08
 
-## Status: 🟢 Done
+## Status: 🟡 In Progress
 
 ## Done
 
@@ -52,6 +52,10 @@ tags: [module-zero, event-engine, employee-ui]
 - [x] Full branch audit (9 fixes committed)
 - [x] STATE.md + SESSION.md updated
 - [x] Merged to development
+- [x] Wizard 9-step redesign: industry packages, shared state, all steps wired
+- [ ] DocumentDropStep full implementation (upload, Edge Function, AI analysis)
+- [ ] HandbookSetupStep auto-generation from wizardState
+- [ ] Final polish + typecheck + commit all wizard changes
 
 ## Decisions
 
@@ -93,3 +97,5 @@ tags: [module-zero, event-engine, employee-ui]
 | 2026-04-12 | —     | WorkspaceSetupGuide: 4-module checklist with progress bar                |
 | 2026-04-12 | —     | useWorkspaceSetup: 4 parallel count queries, threshold governance ≥3     |
 | 2026-04-12 | —     | Typecheck 19/19 GREEN after all post-onboarding changes                  |
+| 2026-04-14 | —     | Wizard 9-step redesign: industry packages, BotsTip, all steps wired      |
+| 2026-04-14 | —     | Session ended: remaining — DocumentDropStep, HandbookSetupStep, commit   |

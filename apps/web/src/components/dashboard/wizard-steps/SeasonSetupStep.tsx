@@ -10,10 +10,18 @@ import { emit } from "@smartout/telemetry";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, CheckCircle2 } from "lucide-react";
+import { HelpTip } from "@/components/dashboard/wizard-steps/HelpTip";
+import type { IndustrySeasonTemplate } from "@/lib/industry/types";
 
 // ─── SeasonSetupStep ─────────────────────────────────────
 
-export function SeasonSetupStep({ isDark }: { isDark: boolean }) {
+export function SeasonSetupStep({
+  isDark,
+  suggestedSeasons,
+}: {
+  isDark: boolean;
+  suggestedSeasons?: IndustrySeasonTemplate[];
+}) {
   const workspace = useWorkspace();
   const { profileId } = useContext(DashboardContext);
   const queryClient = useQueryClient();
@@ -21,13 +29,13 @@ export function SeasonSetupStep({ isDark }: { isDark: boolean }) {
   // ── Query ──
 
   const { data: existingSeason } = useQuery({
-    queryKey: ["seasons", workspace.workspace_id],
+    queryKey: ["seasons", workspace.workspace.workspace_id],
     queryFn: async () => {
       const supabase = createClient();
       const { data } = await supabase
         .from("season")
         .select("season_id, name, start_date, end_date, status")
-        .eq("workspace_id", workspace.workspace_id)
+        .eq("workspace_id", workspace.workspace.workspace_id)
         .limit(1)
         .maybeSingle();
       return data;
@@ -40,6 +48,28 @@ export function SeasonSetupStep({ isDark }: { isDark: boolean }) {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedSuggestionIdx, setSelectedSuggestionIdx] = useState<number | null>(null);
+
+  // ── Pre-fill from suggested season on selection ──
+
+  const handleSelectSuggestion = useCallback(
+    (idx: number) => {
+      if (!suggestedSeasons || !suggestedSeasons[idx]) return;
+      const season = suggestedSeasons[idx]!;
+      setSelectedSuggestionIdx(idx);
+
+      const year = new Date().getFullYear();
+      const startMonth = String(season.startMonth).padStart(2, "0");
+      const endMonth = String(season.endMonth).padStart(2, "0");
+      // Use last day of end month
+      const endMonthDays = new Date(year, season.endMonth, 0).getDate();
+
+      setName(season.name);
+      setStartDate(`${year}-${startMonth}-01`);
+      setEndDate(`${year}-${endMonth}-${String(endMonthDays).padStart(2, "0")}`);
+    },
+    [suggestedSeasons],
+  );
 
   // ── Save ──
 
@@ -61,31 +91,40 @@ export function SeasonSetupStep({ isDark }: { isDark: boolean }) {
     const supabase = createClient();
 
     try {
+      const slug = name
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, "-")
+        .replace(/[^a-z0-9-]/g, "");
       const { error } = await supabase.from("season").insert({
         name: name.trim(),
+        slug,
         start_date: startDate,
         end_date: endDate,
-        status: "draft",
-        workspace_id: workspace.workspace_id,
+        status: "draft" as const,
+        workspace_id: workspace.workspace.workspace_id,
         created_by: profileId,
       });
 
       if (error) throw error;
 
-      emit({
-        trackingId: "season-created",
-        action: "season_created",
-        metadata: { name: name.trim() },
+      void emit({
+        event: "button clicked",
+        workspace_id: workspace.workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: { trackingId: "season-created" },
       });
 
       toast.success("Sesong opprettet");
-      await queryClient.invalidateQueries({ queryKey: ["seasons", workspace.workspace_id] });
-    } catch (err) {
+      await queryClient.invalidateQueries({
+        queryKey: ["seasons", workspace.workspace.workspace_id],
+      });
+    } catch {
       toast.error("Kunne ikke opprette sesong");
     } finally {
       setIsSaving(false);
     }
-  }, [name, startDate, endDate, workspace.workspace_id, profileId, queryClient]);
+  }, [name, startDate, endDate, workspace.workspace.workspace_id, profileId, queryClient]);
 
   // ── Render: existing season ──
 
@@ -122,14 +161,61 @@ export function SeasonSetupStep({ isDark }: { isDark: boolean }) {
 
   return (
     <div className="space-y-5">
+      {/* Suggested seasons */}
+      {suggestedSeasons && suggestedSeasons.length > 0 && (
+        <div className="space-y-2">
+          <p className={`text-xs font-semibold ${isDark ? "text-zinc-400" : "text-zinc-600"}`}>
+            Foreslåtte sesonger
+          </p>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {suggestedSeasons.map((season, idx) => {
+              const isSelected = selectedSuggestionIdx === idx;
+              return (
+                <button
+                  key={season.name}
+                  type="button"
+                  onClick={() => handleSelectSuggestion(idx)}
+                  className={`rounded-xl border px-4 py-3 text-left transition-colors ${
+                    isSelected
+                      ? isDark
+                        ? "border-orange-700 bg-orange-950/30"
+                        : "border-orange-300 bg-orange-50"
+                      : isDark
+                        ? "border-zinc-800 bg-zinc-900/50 hover:border-zinc-700"
+                        : "border-zinc-200 bg-white hover:border-zinc-300"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={`text-sm font-semibold ${
+                        isDark ? "text-zinc-200" : "text-zinc-800"
+                      }`}
+                    >
+                      {season.name}
+                    </span>
+                    {isSelected && <CheckCircle2 className="h-4 w-4 text-orange-500" />}
+                  </div>
+                  <p className={`mt-0.5 text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+                    {season.description}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="space-y-3">
         <div className="space-y-1.5">
-          <Label
-            htmlFor="season-name"
-            className={`text-sm font-medium ${isDark ? "text-zinc-300" : "text-zinc-700"}`}
-          >
-            Sesongnavn
-          </Label>
+          <div className="flex items-center gap-2">
+            <Label
+              htmlFor="season-name"
+              className={`text-sm font-medium ${isDark ? "text-zinc-300" : "text-zinc-700"}`}
+            >
+              Sesongnavn
+            </Label>
+            <HelpTip text="Gi sesongen et beskrivende navn, f.eks. \u00abSommer 2026\u00bb eller \u00abJulesesong 2026\u00bb." />
+          </div>
           <Input
             id="season-name"
             value={name}

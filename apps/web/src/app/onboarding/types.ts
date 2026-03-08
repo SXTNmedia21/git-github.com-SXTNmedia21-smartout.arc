@@ -11,7 +11,6 @@ export const ONBOARDING_SECTIONS = [
   "locations",
   "procedures",
   "season",
-  "contract",
   "welcome",
 ] as const;
 

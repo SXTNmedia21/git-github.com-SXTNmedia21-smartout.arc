@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useCallback, useMemo, useContext } from "react";
+import { useState, useCallback, useMemo, useContext, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import Papa from "papaparse";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
@@ -15,7 +16,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Loader2, CheckCircle2, Trash2, Send } from "lucide-react";
+import { Plus, Loader2, CheckCircle2, Trash2, Send, Upload, AlertCircle } from "lucide-react";
+import { HelpTip } from "@/components/dashboard/wizard-steps/HelpTip";
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -24,11 +26,13 @@ type InviteRow = {
   firstName: string;
   lastName: string;
   email: string;
+  phone: string;
   departmentId: string;
   employmentForm: string;
   positionId: string;
   hourlyRate: number;
   status: "pending" | "sending" | "sent" | "error";
+  validationErrors: string[];
 };
 
 function createEmptyRow(): InviteRow {
@@ -37,12 +41,27 @@ function createEmptyRow(): InviteRow {
     firstName: "",
     lastName: "",
     email: "",
+    phone: "",
     departmentId: "",
     employmentForm: "",
     positionId: "",
     hourlyRate: 0,
     status: "pending",
+    validationErrors: [],
   };
+}
+
+function validateEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function validateRow(row: InviteRow): string[] {
+  const errors: string[] = [];
+  if (!row.firstName.trim()) errors.push("Fornavn mangler");
+  if (!row.lastName.trim()) errors.push("Etternavn mangler");
+  if (!row.email.trim()) errors.push("E-post mangler");
+  else if (!validateEmail(row.email.trim())) errors.push("Ugyldig e-post");
+  return errors;
 }
 
 // ─── InviteRowCard ──────────────────────────────────────────
@@ -68,6 +87,7 @@ function InviteRowCard({
   const isSending = row.status === "sending";
   const isError = row.status === "error";
   const isDisabled = isSent || isSending;
+  const hasValidationErrors = row.validationErrors.length > 0;
 
   return (
     <div
@@ -76,7 +96,7 @@ function InviteRowCard({
           ? isDark
             ? "border-emerald-800/40 bg-emerald-950/20"
             : "border-emerald-200 bg-emerald-50/30"
-          : isError
+          : isError || hasValidationErrors
             ? isDark
               ? "border-red-800/40 bg-red-950/20"
               : "border-red-200 bg-red-50/30"
@@ -85,27 +105,35 @@ function InviteRowCard({
               : "border-zinc-200 bg-white"
       }`}
     >
-      {/* Row 1: Name + Email */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      {/* Row 1: Name + Email + Phone */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
         <Input
           placeholder="Fornavn"
           value={row.firstName}
           onChange={(e) => onUpdate(row.id, { firstName: e.target.value })}
           disabled={isDisabled}
-          className={`h-9 text-sm ${isDark ? "border-zinc-700 bg-zinc-800/50" : ""}`}
+          className={`h-9 text-sm ${!row.firstName.trim() && hasValidationErrors ? "border-red-500" : ""} ${isDark ? "border-zinc-700 bg-zinc-800/50" : ""}`}
         />
         <Input
           placeholder="Etternavn"
           value={row.lastName}
           onChange={(e) => onUpdate(row.id, { lastName: e.target.value })}
           disabled={isDisabled}
-          className={`h-9 text-sm ${isDark ? "border-zinc-700 bg-zinc-800/50" : ""}`}
+          className={`h-9 text-sm ${!row.lastName.trim() && hasValidationErrors ? "border-red-500" : ""} ${isDark ? "border-zinc-700 bg-zinc-800/50" : ""}`}
         />
         <Input
           placeholder="E-post"
           type="email"
           value={row.email}
           onChange={(e) => onUpdate(row.id, { email: e.target.value })}
+          disabled={isDisabled}
+          className={`h-9 text-sm ${row.validationErrors.some((e) => e.includes("post")) ? "border-red-500" : ""} ${isDark ? "border-zinc-700 bg-zinc-800/50" : ""}`}
+        />
+        <Input
+          placeholder="Telefon"
+          type="tel"
+          value={row.phone}
+          onChange={(e) => onUpdate(row.id, { phone: e.target.value })}
           disabled={isDisabled}
           className={`h-9 text-sm ${isDark ? "border-zinc-700 bg-zinc-800/50" : ""}`}
         />
@@ -189,23 +217,33 @@ function InviteRowCard({
         </div>
       </div>
 
-      {/* Row 3: Status + Remove */}
-      <div className="mt-2 flex items-center justify-end gap-2">
-        {isSending && <Loader2 className="h-4 w-4 animate-spin text-orange-500" />}
-        {isSent && <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
-        {isError && <span className="text-xs font-medium text-red-500">Feilet</span>}
-        {!isSent && !isSending && (
-          <button
-            onClick={() => onRemove(row.id)}
-            className={`rounded-lg p-1.5 transition-colors ${
-              isDark
-                ? "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
-                : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
-            }`}
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        )}
+      {/* Row 3: Validation errors + Status + Remove */}
+      <div className="mt-2 flex items-center justify-between">
+        <div>
+          {hasValidationErrors && (
+            <div className="flex items-center gap-1.5 text-xs text-red-500">
+              <AlertCircle className="h-3.5 w-3.5" />
+              {row.validationErrors.join(", ")}
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {isSending && <Loader2 className="h-4 w-4 animate-spin text-orange-500" />}
+          {isSent && <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
+          {isError && <span className="text-xs font-medium text-red-500">Feilet</span>}
+          {!isSent && !isSending && (
+            <button
+              onClick={() => onRemove(row.id)}
+              className={`rounded-lg p-1.5 transition-colors ${
+                isDark
+                  ? "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
+                  : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
+              }`}
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -213,9 +251,25 @@ function InviteRowCard({
 
 // ─── TeamSetupStep ──────────────────────────────────────────
 
-export function TeamSetupStep({ isDark }: { isDark: boolean }) {
+export function TeamSetupStep({
+  isDark,
+  extractedEmployees,
+}: {
+  isDark: boolean;
+  extractedEmployees?: Array<{
+    firstName: string;
+    lastName: string;
+    email?: string;
+    phone?: string;
+    department?: string;
+    position?: string;
+    source: string;
+  }>;
+}) {
   const { workspace } = useWorkspace();
   const { profileId } = useContext(DashboardContext);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const hasPreFilledRef = useRef(false);
 
   const [rows, setRows] = useState<InviteRow[]>([createEmptyRow()]);
   const [isSending, setIsSending] = useState(false);
@@ -260,7 +314,7 @@ export function TeamSetupStep({ isDark }: { isDark: boolean }) {
         .select("rules_json")
         .eq("workspace_id", workspace.workspace_id)
         .eq("policy_type", "hr")
-        .eq("name", "Ansettelsesvilkår")
+        .eq("name", "Ansettelsesvilk\u00e5r")
         .eq("is_active", true)
         .maybeSingle();
       return data;
@@ -282,7 +336,7 @@ export function TeamSetupStep({ isDark }: { isDark: boolean }) {
         .select("rules_json")
         .eq("workspace_id", workspace.workspace_id)
         .eq("policy_type", "payroll")
-        .eq("name", "Stillingslønn")
+        .eq("name", "Stillingsl\u00f8nn")
         .eq("is_active", true)
         .maybeSingle();
       return data;
@@ -304,6 +358,68 @@ export function TeamSetupStep({ isDark }: { isDark: boolean }) {
     return map;
   }, [wagePolicy]);
 
+  // ── Department name lookup ──
+
+  const deptNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const d of departments) {
+      map.set(d.name.toLowerCase(), d.department_id);
+    }
+    return map;
+  }, [departments]);
+
+  // ── Position name lookup ──
+
+  const posNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const p of positions) {
+      map.set(p.name.toLowerCase(), p.position_id);
+    }
+    return map;
+  }, [positions]);
+
+  // ── Pre-fill from extracted employees ──
+
+  useEffect(() => {
+    if (hasPreFilledRef.current) return;
+    if (!extractedEmployees || extractedEmployees.length === 0) return;
+    // Only pre-fill if rows has just the initial empty row
+    const isInitial =
+      rows.length === 1 &&
+      !rows[0]!.firstName.trim() &&
+      !rows[0]!.lastName.trim() &&
+      !rows[0]!.email.trim();
+    if (!isInitial) return;
+
+    hasPreFilledRef.current = true;
+
+    const mapped: InviteRow[] = extractedEmployees.map((emp) => {
+      const departmentId = emp.department
+        ? (deptNameMap.get(emp.department.toLowerCase()) ?? "")
+        : "";
+      const positionId = emp.position ? (posNameMap.get(emp.position.toLowerCase()) ?? "") : "";
+      const hourlyRate = positionId ? (positionWageMap.get(positionId) ?? 0) : 0;
+
+      const row: InviteRow = {
+        id: crypto.randomUUID(),
+        firstName: emp.firstName,
+        lastName: emp.lastName,
+        email: emp.email ?? "",
+        phone: emp.phone ?? "",
+        departmentId,
+        employmentForm: "",
+        positionId,
+        hourlyRate,
+        status: "pending",
+        validationErrors: [],
+      };
+      row.validationErrors = validateRow(row);
+      return row;
+    });
+
+    setRows(mapped);
+  }, [extractedEmployees, rows, deptNameMap, posNameMap, positionWageMap]);
+
   // ── Row handlers ──
 
   const handleUpdate = useCallback(
@@ -311,7 +427,7 @@ export function TeamSetupStep({ isDark }: { isDark: boolean }) {
       setRows((prev) =>
         prev.map((r) => {
           if (r.id !== id) return r;
-          const updated = { ...r, ...patch };
+          const updated = { ...r, ...patch, validationErrors: [] };
           // Auto-fill hourly rate when position changes
           if (patch.positionId && patch.positionId !== r.positionId) {
             const wage = positionWageMap.get(patch.positionId);
@@ -337,12 +453,120 @@ export function TeamSetupStep({ isDark }: { isDark: boolean }) {
     setRows((prev) => [...prev, createEmptyRow()]);
   }, []);
 
+  // ── CSV upload ──
+
+  const handleCsvUpload = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      Papa.parse<Record<string, string>>(file, {
+        header: true,
+        skipEmptyLines: true,
+        transformHeader: (header) => header.trim().toLowerCase(),
+        complete: (results) => {
+          const csvRows: InviteRow[] = results.data
+            .filter((row) => {
+              // At least one of firstName/email must have data
+              const fn = row["fornavn"] ?? row["first_name"] ?? row["firstname"] ?? "";
+              const em = row["e-post"] ?? row["epost"] ?? row["email"] ?? "";
+              return fn.trim() !== "" || em.trim() !== "";
+            })
+            .map((row) => {
+              const firstName = (
+                row["fornavn"] ??
+                row["first_name"] ??
+                row["firstname"] ??
+                ""
+              ).trim();
+              const lastName = (
+                row["etternavn"] ??
+                row["last_name"] ??
+                row["lastname"] ??
+                ""
+              ).trim();
+              const email = (row["e-post"] ?? row["epost"] ?? row["email"] ?? "").trim();
+              const phone = (row["telefon"] ?? row["phone"] ?? row["tlf"] ?? "").trim();
+              const deptName = (row["avdeling"] ?? row["department"] ?? "").trim();
+              const posName = (row["stilling"] ?? row["position"] ?? "").trim();
+
+              const departmentId = deptNameMap.get(deptName.toLowerCase()) ?? "";
+              const positionId = posNameMap.get(posName.toLowerCase()) ?? "";
+              const hourlyRate = positionId ? (positionWageMap.get(positionId) ?? 0) : 0;
+
+              const newRow: InviteRow = {
+                id: crypto.randomUUID(),
+                firstName,
+                lastName,
+                email,
+                phone,
+                departmentId,
+                employmentForm: "",
+                positionId,
+                hourlyRate,
+                status: "pending",
+                validationErrors: [],
+              };
+
+              newRow.validationErrors = validateRow(newRow);
+              return newRow;
+            });
+
+          if (csvRows.length === 0) {
+            toast.error("Ingen gyldige rader funnet i CSV-filen");
+            return;
+          }
+
+          // Replace empty placeholder row or append
+          setRows((prev) => {
+            const nonEmpty = prev.filter(
+              (r) => r.firstName.trim() || r.lastName.trim() || r.email.trim(),
+            );
+            return [...nonEmpty, ...csvRows];
+          });
+
+          const errorCount = csvRows.filter((r) => r.validationErrors.length > 0).length;
+          if (errorCount > 0) {
+            toast.warning(`${csvRows.length} rader importert, ${errorCount} med valideringsfeil`);
+          } else {
+            toast.success(`${csvRows.length} rader importert fra CSV`);
+          }
+        },
+        error: () => {
+          toast.error("Kunne ikke lese CSV-filen");
+        },
+      });
+
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    },
+    [deptNameMap, posNameMap, positionWageMap],
+  );
+
   // ── Send logic ──
 
   const handleSend = useCallback(async () => {
+    // Validate all pending rows first
+    let hasErrors = false;
+    setRows((prev) =>
+      prev.map((r) => {
+        if (r.status !== "pending" || !r.email.trim()) return r;
+        const errors = validateRow(r);
+        if (errors.length > 0) hasErrors = true;
+        return { ...r, validationErrors: errors };
+      }),
+    );
+
+    if (hasErrors) {
+      toast.error("Rett valideringsfeil f\u00f8r sending");
+      return;
+    }
+
     const toSend = rows.filter((r) => r.status === "pending" && r.email.trim() !== "");
     if (toSend.length === 0) {
-      toast.error("Ingen invitasjoner å sende");
+      toast.error("Ingen invitasjoner \u00e5 sende");
       return;
     }
 
@@ -406,6 +630,7 @@ export function TeamSetupStep({ isDark }: { isDark: boolean }) {
 
   const pendingCount = rows.filter((r) => r.status === "pending" && r.email.trim() !== "").length;
   const sentCount = rows.filter((r) => r.status === "sent").length;
+  const errorCount = rows.filter((r) => r.validationErrors.length > 0).length;
 
   // ── Render ──
 
@@ -413,9 +638,12 @@ export function TeamSetupStep({ isDark }: { isDark: boolean }) {
     <div className="space-y-6">
       {/* Header */}
       <div className="space-y-1">
-        <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-          Inviter teamet ditt
-        </h3>
+        <div className="flex items-center gap-2">
+          <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
+            Inviter teamet ditt
+          </h3>
+          <HelpTip text="Legg til ansatte manuelt eller last opp en CSV-fil. De f\u00e5r en invitasjon p\u00e5 e-post." />
+        </div>
         <p className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
           Legg til ansatte som skal f&aring; tilgang. Du kan ogs&aring; gj&oslash;re dette senere.
         </p>
@@ -450,7 +678,7 @@ export function TeamSetupStep({ isDark }: { isDark: boolean }) {
       </div>
 
       {/* Action buttons */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <button
           onClick={handleAddRow}
           className={`flex items-center gap-1.5 rounded-xl border-2 border-dashed px-4 py-2.5 text-sm font-medium transition-colors ${
@@ -460,15 +688,34 @@ export function TeamSetupStep({ isDark }: { isDark: boolean }) {
           }`}
         >
           <Plus className="h-4 w-4" />
-          Legg til
+          Legg til manuelt
+        </button>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".csv"
+          onChange={handleCsvUpload}
+          className="hidden"
+        />
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className={`flex items-center gap-1.5 rounded-xl border-2 border-dashed px-4 py-2.5 text-sm font-medium transition-colors ${
+            isDark
+              ? "border-zinc-700 text-zinc-400 hover:border-zinc-600 hover:text-zinc-300"
+              : "border-zinc-300 text-zinc-500 hover:border-zinc-400 hover:text-zinc-600"
+          }`}
+        >
+          <Upload className="h-4 w-4" />
+          Last opp CSV
         </button>
 
         {pendingCount > 0 && (
           <button
             onClick={handleSend}
-            disabled={isSending}
+            disabled={isSending || errorCount > 0}
             className={`flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-sm font-semibold transition-colors ${
-              isSending
+              isSending || errorCount > 0
                 ? "cursor-not-allowed opacity-50"
                 : "bg-orange-500 text-white hover:bg-orange-600"
             }`}
@@ -482,6 +729,12 @@ export function TeamSetupStep({ isDark }: { isDark: boolean }) {
           </button>
         )}
       </div>
+
+      {/* CSV format hint */}
+      <p className={`text-[11px] leading-relaxed ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
+        CSV-format: fornavn, etternavn, e-post, telefon, avdeling, stilling. F\u00f8rste rad m\u00e5
+        v\u00e6re kolonnenavn.
+      </p>
     </div>
   );
 }

@@ -3,7 +3,7 @@
 import { useState, useCallback, useContext, useMemo, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { CheckCircle2, Loader2, Plus, X } from "lucide-react";
 import { createClient } from "@smartout/supabase/client";
 import type { Json } from "@smartout/supabase";
 import { useWorkspace } from "@/lib/workspace-context";
@@ -12,10 +12,10 @@ import { emit } from "@smartout/telemetry";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { HelpTip } from "@/components/dashboard/wizard-steps/HelpTip";
+import type { IndustryTariff } from "@/lib/industry/types";
 
 // ─── Types ───────────────────────────────────────────────
-
-type TariffKey = "riksavtalen" | "hotelloverenskomsten" | "ingen" | "annen";
 
 type SupplementState = {
   kveldstillegg: { rate: number; unit: string; from_hour: string; to_hour: string };
@@ -25,50 +25,28 @@ type SupplementState = {
   overtid_100: { threshold_hours: number; unit: string };
 };
 
+type CustomSupplement = {
+  id: string;
+  name: string;
+  rate: number;
+  unit: string;
+  description: string;
+};
+
 type PositionWage = {
   position_id: string;
   name: string;
   hourly_rate: number;
 };
 
-// ─── Tariff Presets ──────────────────────────────────────
+// ─── Constants ───────────────────────────────────────────
 
-const TARIFF_OPTIONS: { value: TariffKey; label: string }[] = [
-  { value: "riksavtalen", label: "Riksavtalen (NHO Reiseliv)" },
-  { value: "hotelloverenskomsten", label: "Hotelloverenskomsten" },
-  { value: "ingen", label: "Ingen tariffavtale" },
-  { value: "annen", label: "Annen" },
-];
-
-const TARIFF_PRESETS: Record<TariffKey, SupplementState> = {
-  riksavtalen: {
-    kveldstillegg: { rate: 56, unit: "kr/t", from_hour: "21:00", to_hour: "06:00" },
-    helgetillegg: { rate: 56, unit: "kr/t", days: ["lordag", "sondag"] },
-    helligdagstillegg: { rate: 133, unit: "%" },
-    overtid_50: { threshold_hours: 9, unit: "t/dag" },
-    overtid_100: { threshold_hours: 13, unit: "t/dag" },
-  },
-  hotelloverenskomsten: {
-    kveldstillegg: { rate: 56, unit: "kr/t", from_hour: "21:00", to_hour: "06:00" },
-    helgetillegg: { rate: 56, unit: "kr/t", days: ["lordag", "sondag"] },
-    helligdagstillegg: { rate: 133, unit: "%" },
-    overtid_50: { threshold_hours: 9, unit: "t/dag" },
-    overtid_100: { threshold_hours: 13, unit: "t/dag" },
-  },
-  ingen: {
-    kveldstillegg: { rate: 0, unit: "kr/t", from_hour: "21:00", to_hour: "06:00" },
-    helgetillegg: { rate: 0, unit: "kr/t", days: ["lordag", "sondag"] },
-    helligdagstillegg: { rate: 0, unit: "%" },
-    overtid_50: { threshold_hours: 9, unit: "t/dag" },
-    overtid_100: { threshold_hours: 13, unit: "t/dag" },
-  },
-  annen: {
-    kveldstillegg: { rate: 0, unit: "kr/t", from_hour: "21:00", to_hour: "06:00" },
-    helgetillegg: { rate: 0, unit: "kr/t", days: ["lordag", "sondag"] },
-    helligdagstillegg: { rate: 0, unit: "%" },
-    overtid_50: { threshold_hours: 9, unit: "t/dag" },
-    overtid_100: { threshold_hours: 13, unit: "t/dag" },
-  },
+const EMPTY_SUPPLEMENT_STATE: SupplementState = {
+  kveldstillegg: { rate: 0, unit: "kr/t", from_hour: "21:00", to_hour: "06:00" },
+  helgetillegg: { rate: 0, unit: "kr/t", days: ["lordag", "sondag"] },
+  helligdagstillegg: { rate: 0, unit: "%" },
+  overtid_50: { threshold_hours: 9, unit: "t/dag" },
+  overtid_100: { threshold_hours: 13, unit: "t/dag" },
 };
 
 const SUPPLEMENT_LABELS: Record<keyof SupplementState, string> = {
@@ -79,32 +57,79 @@ const SUPPLEMENT_LABELS: Record<keyof SupplementState, string> = {
   overtid_100: "Overtid 100%",
 };
 
-function getDefaultHourlyRate(tariff: TariffKey): number {
-  return tariff === "riksavtalen" || tariff === "hotelloverenskomsten" ? 198.5 : 0;
-}
-
 // ─── PayrollSetupStep ────────────────────────────────────
 
-export function PayrollSetupStep({ isDark }: { isDark: boolean }) {
+export function PayrollSetupStep({
+  isDark,
+  industryTariffs,
+  defaultTariffKey,
+  extractedPayroll,
+}: {
+  isDark: boolean;
+  industryTariffs?: IndustryTariff[];
+  defaultTariffKey?: string;
+  extractedPayroll?: {
+    tariff?: string;
+    supplements?: Record<string, unknown>;
+    source: string;
+  };
+}) {
   const workspace = useWorkspace();
   const { profileId } = useContext(DashboardContext);
   const queryClient = useQueryClient();
 
+  // ── Derived from industry package ──
+  const tariffOptions = useMemo(() => {
+    const options: { value: string; label: string }[] = [];
+    if (industryTariffs) {
+      for (const t of industryTariffs) {
+        options.push({ value: t.key, label: t.label });
+      }
+    }
+    options.push({ value: "ingen", label: "Ingen tariffavtale" });
+    options.push({ value: "annen", label: "Annen" });
+    return options;
+  }, [industryTariffs]);
+
+  const tariffPresets = useMemo(() => {
+    const presets: Record<string, SupplementState> = {};
+    if (industryTariffs) {
+      for (const t of industryTariffs) {
+        presets[t.key] = t.supplements;
+      }
+    }
+    presets.ingen = EMPTY_SUPPLEMENT_STATE;
+    presets.annen = EMPTY_SUPPLEMENT_STATE;
+    return presets;
+  }, [industryTariffs]);
+
+  const getHourlyRate = useCallback(
+    (tariffKey: string) => {
+      const tariff = industryTariffs?.find((t) => t.key === tariffKey);
+      return tariff?.minWagePerHour ?? 0;
+    },
+    [industryTariffs],
+  );
+
   // ── State ──
-  const [selectedTariff, setSelectedTariff] = useState<TariffKey>("riksavtalen");
-  const [supplements, setSupplements] = useState<SupplementState>(TARIFF_PRESETS.riksavtalen);
+  const initialTariff = defaultTariffKey ?? "ingen";
+  const [selectedTariff, setSelectedTariff] = useState(initialTariff);
+  const [supplements, setSupplements] = useState<SupplementState>(
+    () => tariffPresets[initialTariff] ?? EMPTY_SUPPLEMENT_STATE,
+  );
   const [positionWages, setPositionWages] = useState<PositionWage[]>([]);
+  const [customSupplements, setCustomSupplements] = useState<CustomSupplement[]>([]);
   const [wagesInitialized, setWagesInitialized] = useState(false);
 
   // ── Queries ──
   const { data: existingPolicies } = useQuery({
-    queryKey: ["payroll-policies", workspace.workspace_id],
+    queryKey: ["payroll-policies", workspace.workspace.workspace_id],
     queryFn: async () => {
       const supabase = createClient();
       const { data } = await supabase
         .from("policy")
         .select("policy_id, name, rules_json")
-        .eq("workspace_id", workspace.workspace_id)
+        .eq("workspace_id", workspace.workspace.workspace_id)
         .eq("policy_type", "payroll")
         .eq("is_active", true);
       return data ?? [];
@@ -112,13 +137,13 @@ export function PayrollSetupStep({ isDark }: { isDark: boolean }) {
   });
 
   const { data: positions } = useQuery({
-    queryKey: ["positions", workspace.workspace_id],
+    queryKey: ["positions", workspace.workspace.workspace_id],
     queryFn: async () => {
       const supabase = createClient();
       const { data, error } = await supabase
         .from("position")
         .select("position_id, name")
-        .eq("workspace_id", workspace.workspace_id)
+        .eq("workspace_id", workspace.workspace.workspace_id)
         .eq("is_active", true)
         .order("name");
       if (error) throw error;
@@ -131,7 +156,7 @@ export function PayrollSetupStep({ isDark }: { isDark: boolean }) {
   // Initialize position wages when positions load
   useEffect(() => {
     if (stablePositions.length > 0 && !wagesInitialized) {
-      const defaultRate = getDefaultHourlyRate(selectedTariff);
+      const defaultRate = getHourlyRate(selectedTariff);
       setPositionWages(
         stablePositions.map((p) => ({
           position_id: p.position_id,
@@ -141,18 +166,29 @@ export function PayrollSetupStep({ isDark }: { isDark: boolean }) {
       );
       setWagesInitialized(true);
     }
-  }, [stablePositions, wagesInitialized, selectedTariff]);
+  }, [stablePositions, wagesInitialized, selectedTariff, getHourlyRate]);
+
+  // Wire extracted payroll — pre-fill from extraction data
+  useEffect(() => {
+    if (!extractedPayroll?.tariff) return;
+    const match = tariffOptions.find((o) =>
+      o.label.toLowerCase().includes(extractedPayroll.tariff!.toLowerCase()),
+    );
+    if (match) {
+      handleTariffChange(match.value);
+    }
+  }, [extractedPayroll]); // Pre-fill runs once when extraction data arrives
 
   // ── Handlers ──
-  const handleTariffChange = useCallback((value: string) => {
-    const tariff = value as TariffKey;
-    setSelectedTariff(tariff);
-    setSupplements(TARIFF_PRESETS[tariff]);
-
-    // Update position wages default rate
-    const defaultRate = getDefaultHourlyRate(tariff);
-    setPositionWages((prev) => prev.map((pw) => ({ ...pw, hourly_rate: defaultRate })));
-  }, []);
+  const handleTariffChange = useCallback(
+    (value: string) => {
+      setSelectedTariff(value);
+      setSupplements(tariffPresets[value] ?? EMPTY_SUPPLEMENT_STATE);
+      const rate = getHourlyRate(value);
+      setPositionWages((prev) => prev.map((pw) => ({ ...pw, hourly_rate: rate })));
+    },
+    [tariffPresets, getHourlyRate],
+  );
 
   const handleSupplementChange = useCallback(
     (key: keyof SupplementState, field: string, value: string) => {
@@ -175,6 +211,34 @@ export function PayrollSetupStep({ isDark }: { isDark: boolean }) {
     );
   }, []);
 
+  const handleAddCustomSupplement = useCallback(() => {
+    setCustomSupplements((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        name: "",
+        rate: 0,
+        unit: "kr/t",
+        description: "",
+      },
+    ]);
+  }, []);
+
+  const handleRemoveCustomSupplement = useCallback((id: string) => {
+    setCustomSupplements((prev) => prev.filter((s) => s.id !== id));
+  }, []);
+
+  const handleCustomSupplementChange = useCallback(
+    (id: string, field: keyof Omit<CustomSupplement, "id" | "unit">, value: string) => {
+      setCustomSupplements((prev) =>
+        prev.map((s) =>
+          s.id === id ? { ...s, [field]: field === "rate" ? Number(value) || 0 : value } : s,
+        ),
+      );
+    },
+    [],
+  );
+
   // ── Save mutation ──
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -184,7 +248,7 @@ export function PayrollSetupStep({ isDark }: { isDark: boolean }) {
       await supabase
         .from("policy")
         .delete()
-        .eq("workspace_id", workspace.workspace_id)
+        .eq("workspace_id", workspace.workspace.workspace_id)
         .eq("policy_type", "payroll");
 
       // Insert tariff + supplements policy
@@ -193,11 +257,12 @@ export function PayrollSetupStep({ isDark }: { isDark: boolean }) {
         statement: "Lønnstillegg og overtidsregler",
         policy_type: "payroll" as const,
         policy_scope: "workspace" as const,
-        workspace_id: workspace.workspace_id,
+        workspace_id: workspace.workspace.workspace_id,
         created_by: profileId ?? "",
         rules_json: {
           tariff: selectedTariff,
           supplements,
+          custom_supplements: customSupplements.filter((s) => s.name.trim() !== ""),
         } as unknown as Json,
       });
       if (tariffError) throw tariffError;
@@ -209,7 +274,7 @@ export function PayrollSetupStep({ isDark }: { isDark: boolean }) {
           statement: "Grunnlønn per stilling",
           policy_type: "payroll" as const,
           policy_scope: "workspace" as const,
-          workspace_id: workspace.workspace_id,
+          workspace_id: workspace.workspace.workspace_id,
           created_by: profileId ?? "",
           rules_json: {
             positions: positionWages,
@@ -221,13 +286,13 @@ export function PayrollSetupStep({ isDark }: { isDark: boolean }) {
     onSuccess: () => {
       void emit({
         event: "button clicked",
-        workspace_id: workspace.workspace_id,
+        workspace_id: workspace.workspace.workspace_id,
         actor_id: profileId ?? "",
         properties: { trackingId: "payroll-setup-saved" },
       });
       toast.success("Lønnsoppsett lagret");
       void queryClient.invalidateQueries({
-        queryKey: ["payroll-policies", workspace.workspace_id],
+        queryKey: ["payroll-policies", workspace.workspace.workspace_id],
       });
     },
     onError: () => {
@@ -262,15 +327,18 @@ export function PayrollSetupStep({ isDark }: { isDark: boolean }) {
 
       {/* ── Del 1: Tariffavtale ── */}
       <div className="space-y-3">
-        <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-          Tariffavtale
-        </h3>
+        <div className="flex items-center gap-2">
+          <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
+            Tariffavtale
+          </h3>
+          <HelpTip text="Tariffavtalen bestemmer minstel\u00f8nn og tillegg. Velg den avtalen din virksomhet f\u00f8lger." />
+        </div>
         <RadioGroup
           value={selectedTariff}
           onValueChange={handleTariffChange}
           className="grid grid-cols-1 gap-2 sm:grid-cols-2"
         >
-          {TARIFF_OPTIONS.map((option) => (
+          {tariffOptions.map((option) => (
             <label
               key={option.value}
               className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition-colors ${
@@ -294,9 +362,12 @@ export function PayrollSetupStep({ isDark }: { isDark: boolean }) {
 
       {/* ── Del 2: Tillegg ── */}
       <div className="space-y-3">
-        <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-          Tillegg
-        </h3>
+        <div className="flex items-center gap-2">
+          <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
+            Tillegg
+          </h3>
+          <HelpTip text="Tillegg er ekstra betaling for kvelds-, helge- og overtidsarbeid. Satsene er forh\u00e5ndsutfylt fra valgt tariff." />
+        </div>
         <div
           className={`overflow-hidden rounded-xl border ${
             isDark ? "border-zinc-800" : "border-zinc-200"
@@ -444,14 +515,79 @@ export function PayrollSetupStep({ isDark }: { isDark: boolean }) {
               Etter {supplements.overtid_100.threshold_hours} timer
             </span>
           </div>
+
+          {/* Custom supplements */}
+          {customSupplements.map((cs) => (
+            <div
+              key={cs.id}
+              className={`grid grid-cols-[1fr_100px_60px_1fr] items-center gap-3 border-t px-4 py-3 ${
+                isDark ? "border-zinc-800" : "border-zinc-200"
+              }`}
+            >
+              <Input
+                type="text"
+                value={cs.name}
+                onChange={(e) => handleCustomSupplementChange(cs.id, "name", e.target.value)}
+                placeholder="Navn p\u00e5 tillegg"
+                className="h-8 text-sm"
+              />
+              <Input
+                type="number"
+                value={cs.rate || ""}
+                onChange={(e) => handleCustomSupplementChange(cs.id, "rate", e.target.value)}
+                placeholder="0"
+                className="h-8 text-sm"
+              />
+              <span className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>kr/t</span>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="text"
+                  value={cs.description}
+                  onChange={(e) =>
+                    handleCustomSupplementChange(cs.id, "description", e.target.value)
+                  }
+                  placeholder="Beskrivelse"
+                  className="h-8 flex-1 text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleRemoveCustomSupplement(cs.id)}
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors ${
+                    isDark
+                      ? "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
+                      : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
+                  }`}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
+
+        {/* Add custom supplement button */}
+        <button
+          type="button"
+          onClick={handleAddCustomSupplement}
+          className={`mt-2 flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${
+            isDark
+              ? "border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-300"
+              : "border-zinc-200 text-zinc-500 hover:border-zinc-300 hover:text-zinc-700"
+          }`}
+        >
+          <Plus className="h-4 w-4" />
+          Legg til tillegg
+        </button>
       </div>
 
       {/* ── Del 3: Stillingslønn ── */}
       <div className="space-y-3">
-        <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-          Stillingslønn
-        </h3>
+        <div className="flex items-center gap-2">
+          <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
+            Stillingsl\u00f8nn
+          </h3>
+          <HelpTip text="Sett grunnl\u00f8nn per stilling. Denne brukes som default n\u00e5r du inviterer ansatte." />
+        </div>
 
         {stablePositions.length === 0 ? (
           <p className={`text-sm ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>

@@ -241,181 +241,188 @@ export function CustomerDocumentView() {
   // ----- Document form -----
 
   return (
-    <SectionReveal>
-      {/* Header + progress bar */}
-      <RevealItem>
-        <div className="flex items-center justify-between">
-          <h2 className="font-heading text-3xl leading-tight tracking-tight text-white sm:text-4xl">
-            Kundedokument
-          </h2>
-          <div className="flex items-center gap-3">
-            <div className="h-2 w-24 overflow-hidden rounded-full bg-white/10">
-              <div
-                className="h-full rounded-full bg-white/60 transition-all duration-500 ease-out"
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
-            <span className="text-sm font-medium text-white/40">{progressPercent}% klart</span>
-          </div>
-        </div>
-      </RevealItem>
-
-      {/* Tier 1: MA HA (required) */}
-      <RevealItem>
-        <div className="mt-8">
-          <TierHeader tier="required" label="Ma ha" complete={mustHaveComplete} />
-          <div className="mt-3 rounded-2xl border border-white/[0.06] bg-white/[0.07] p-6 shadow-lg shadow-black/20">
-            <div className="space-y-4">
-              <DocumentField
-                label="Bedriftsnavn"
-                value={business.name || business.legalName}
-                onChange={(v) => updateBusiness({ name: v })}
-                placeholder="Bedriftens navn"
-              />
-              <DocumentField
-                label="Org.nummer"
-                value={business.orgNumber}
-                onChange={(v) => updateBusiness({ orgNumber: v })}
-                placeholder="000 000 000"
-                mono
-              />
-              <DocumentField
-                label="Kontaktperson"
-                value={contactPerson}
-                onChange={setContactPerson}
-                placeholder="Fullt navn"
-              />
-              <DocumentField
-                label="E-post"
-                value={contactEmail}
-                readOnly
-                placeholder="kontakt@bedrift.no"
-              />
-            </div>
-          </div>
-        </div>
-      </RevealItem>
-
-      {/* Tier 2: SKA HA (recommended) */}
-      <RevealItem>
-        <div className="mt-6">
-          <TierHeader tier="recommended" label="Ska ha" complete={shouldHaveComplete} />
-          <div className="mt-3 rounded-2xl border border-white/[0.06] bg-white/[0.07] p-6 shadow-lg shadow-black/20">
-            <div className="space-y-4">
-              <DocumentField
-                label="Adresse"
-                value={business.address}
-                onChange={(v) => updateBusiness({ address: v })}
-                placeholder="Gateadresse"
-              />
-              <DocumentFieldRow>
-                <DocumentField
-                  label="Postnummer"
-                  value={business.postalCode}
-                  onChange={(v) => updateBusiness({ postalCode: v })}
-                  placeholder="0000"
-                  mono
-                />
-                <DocumentField
-                  label="Sted"
-                  value={business.city}
-                  onChange={(v) => updateBusiness({ city: v })}
-                  placeholder="By"
-                />
-              </DocumentFieldRow>
-              <DocumentField
-                label="Telefon"
-                value={business.phone}
-                onChange={(v) => updateBusiness({ phone: v })}
-                placeholder="+47 000 00 000"
-              />
-              <DocumentField
-                label="Bransje"
-                value={business.industry}
-                readOnly
-                placeholder="Fra skanning"
-              />
-              <DocumentField
-                label="Avdelinger"
-                value={selectedDepartments.length > 0 ? selectedDepartments.join(", ") : ""}
-                readOnly
-                placeholder="Ingen valgt enna"
-              />
-            </div>
-          </div>
-        </div>
-      </RevealItem>
-
-      {/* Tier 3: VILL HA (optional) */}
-      <RevealItem>
-        <div className="mt-6">
-          <TierHeader tier="optional" label="Vill ha" complete={false} />
-          <div className="mt-3 rounded-2xl border border-white/[0.06] bg-white/[0.07] p-6 shadow-lg shadow-black/20">
-            <div className="space-y-4">
-              <DocumentField
-                label="Nettside"
-                value={business.website}
-                onChange={(v) => updateBusiness({ website: v })}
-                placeholder="https://bedrift.no"
-              />
-              <DocumentField
-                label="Antall ansatte"
-                value={business.employeeCount}
-                onChange={(v) => updateBusiness({ employeeCount: v })}
-                placeholder="Ca. antall"
-              />
-              <DocumentField label="Sesong" value={season.name} readOnly placeholder="Ikke valgt" />
-            </div>
-          </div>
-        </div>
-      </RevealItem>
-
-      {/* Error message */}
-      {contractStatus === "error" && contractError && (
+    <div className="flex h-dvh flex-col overflow-y-auto px-6 py-12 sm:px-12 lg:px-24">
+      <SectionReveal>
+        {/* Header + progress bar */}
         <RevealItem>
-          <div className="mt-6 flex items-start gap-3 rounded-xl border border-red-500/20 bg-red-500/10 p-4">
-            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-400" />
-            <div>
-              <p className="text-sm font-medium text-red-300">{contractError}</p>
-              <p className="mt-1 text-xs text-red-400/60">Du kan prove igjen nedenfor.</p>
+          <div className="flex items-center justify-between">
+            <h2 className="font-heading text-3xl leading-tight tracking-tight text-white sm:text-4xl">
+              Kundedokument
+            </h2>
+            <div className="flex items-center gap-3">
+              <div className="h-2 w-24 overflow-hidden rounded-full bg-white/10">
+                <div
+                  className="h-full rounded-full bg-white/60 transition-all duration-500 ease-out"
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+              <span className="text-sm font-medium text-white/40">{progressPercent}% klart</span>
             </div>
           </div>
         </RevealItem>
-      )}
 
-      {/* Confirm button */}
-      <RevealItem>
-        <div className="mt-8">
-          <button
-            type="button"
-            onClick={handleSendContract}
-            disabled={!mustHaveComplete || contractStatus === "sending"}
-            className={`flex w-full items-center justify-center gap-3 rounded-2xl py-4 text-lg font-semibold transition-colors ${
-              mustHaveComplete && contractStatus !== "sending"
-                ? "bg-white text-black hover:bg-white/90"
-                : "cursor-not-allowed bg-white/10 text-white/30"
-            }`}
-          >
-            {contractStatus === "sending" ? (
-              <>
-                <Loader2 className="h-5 w-5 animate-spin" />
-                Sender kontrakt...
-              </>
-            ) : (
-              <>
-                Bekreft og send kontrakt
-                <ArrowRight className="h-4 w-4" />
-              </>
+        {/* Tier 1: MA HA (required) */}
+        <RevealItem>
+          <div className="mt-8">
+            <TierHeader tier="required" label="Ma ha" complete={mustHaveComplete} />
+            <div className="mt-3 rounded-2xl border border-white/[0.06] bg-white/[0.07] p-6 shadow-lg shadow-black/20">
+              <div className="space-y-4">
+                <DocumentField
+                  label="Bedriftsnavn"
+                  value={business.name || business.legalName}
+                  onChange={(v) => updateBusiness({ name: v })}
+                  placeholder="Bedriftens navn"
+                />
+                <DocumentField
+                  label="Org.nummer"
+                  value={business.orgNumber}
+                  onChange={(v) => updateBusiness({ orgNumber: v })}
+                  placeholder="000 000 000"
+                  mono
+                />
+                <DocumentField
+                  label="Kontaktperson"
+                  value={contactPerson}
+                  onChange={setContactPerson}
+                  placeholder="Fullt navn"
+                />
+                <DocumentField
+                  label="E-post"
+                  value={contactEmail}
+                  readOnly
+                  placeholder="kontakt@bedrift.no"
+                />
+              </div>
+            </div>
+          </div>
+        </RevealItem>
+
+        {/* Tier 2: SKA HA (recommended) */}
+        <RevealItem>
+          <div className="mt-6">
+            <TierHeader tier="recommended" label="Ska ha" complete={shouldHaveComplete} />
+            <div className="mt-3 rounded-2xl border border-white/[0.06] bg-white/[0.07] p-6 shadow-lg shadow-black/20">
+              <div className="space-y-4">
+                <DocumentField
+                  label="Adresse"
+                  value={business.address}
+                  onChange={(v) => updateBusiness({ address: v })}
+                  placeholder="Gateadresse"
+                />
+                <DocumentFieldRow>
+                  <DocumentField
+                    label="Postnummer"
+                    value={business.postalCode}
+                    onChange={(v) => updateBusiness({ postalCode: v })}
+                    placeholder="0000"
+                    mono
+                  />
+                  <DocumentField
+                    label="Sted"
+                    value={business.city}
+                    onChange={(v) => updateBusiness({ city: v })}
+                    placeholder="By"
+                  />
+                </DocumentFieldRow>
+                <DocumentField
+                  label="Telefon"
+                  value={business.phone}
+                  onChange={(v) => updateBusiness({ phone: v })}
+                  placeholder="+47 000 00 000"
+                />
+                <DocumentField
+                  label="Bransje"
+                  value={business.industry}
+                  readOnly
+                  placeholder="Fra skanning"
+                />
+                <DocumentField
+                  label="Avdelinger"
+                  value={selectedDepartments.length > 0 ? selectedDepartments.join(", ") : ""}
+                  readOnly
+                  placeholder="Ingen valgt enna"
+                />
+              </div>
+            </div>
+          </div>
+        </RevealItem>
+
+        {/* Tier 3: VILL HA (optional) */}
+        <RevealItem>
+          <div className="mt-6">
+            <TierHeader tier="optional" label="Vill ha" complete={false} />
+            <div className="mt-3 rounded-2xl border border-white/[0.06] bg-white/[0.07] p-6 shadow-lg shadow-black/20">
+              <div className="space-y-4">
+                <DocumentField
+                  label="Nettside"
+                  value={business.website}
+                  onChange={(v) => updateBusiness({ website: v })}
+                  placeholder="https://bedrift.no"
+                />
+                <DocumentField
+                  label="Antall ansatte"
+                  value={business.employeeCount}
+                  onChange={(v) => updateBusiness({ employeeCount: v })}
+                  placeholder="Ca. antall"
+                />
+                <DocumentField
+                  label="Sesong"
+                  value={season.name}
+                  readOnly
+                  placeholder="Ikke valgt"
+                />
+              </div>
+            </div>
+          </div>
+        </RevealItem>
+
+        {/* Error message */}
+        {contractStatus === "error" && contractError && (
+          <RevealItem>
+            <div className="mt-6 flex items-start gap-3 rounded-xl border border-red-500/20 bg-red-500/10 p-4">
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-400" />
+              <div>
+                <p className="text-sm font-medium text-red-300">{contractError}</p>
+                <p className="mt-1 text-xs text-red-400/60">Du kan prove igjen nedenfor.</p>
+              </div>
+            </div>
+          </RevealItem>
+        )}
+
+        {/* Confirm button */}
+        <RevealItem>
+          <div className="mt-8">
+            <button
+              type="button"
+              onClick={handleSendContract}
+              disabled={!mustHaveComplete || contractStatus === "sending"}
+              className={`flex w-full items-center justify-center gap-3 rounded-2xl py-4 text-lg font-semibold transition-colors ${
+                mustHaveComplete && contractStatus !== "sending"
+                  ? "bg-white text-black hover:bg-white/90"
+                  : "cursor-not-allowed bg-white/10 text-white/30"
+              }`}
+            >
+              {contractStatus === "sending" ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Sender kontrakt...
+                </>
+              ) : (
+                <>
+                  Bekreft og send kontrakt
+                  <ArrowRight className="h-4 w-4" />
+                </>
+              )}
+            </button>
+
+            {!mustHaveComplete && (
+              <p className="mt-3 text-center text-sm text-white/30">
+                Fyll ut alle obligatoriske felt for å sende kontraktet.
+              </p>
             )}
-          </button>
-
-          {!mustHaveComplete && (
-            <p className="mt-3 text-center text-sm text-white/30">
-              Fyll ut alle obligatoriske felt for å sende kontraktet.
-            </p>
-          )}
-        </div>
-      </RevealItem>
-    </SectionReveal>
+          </div>
+        </RevealItem>
+      </SectionReveal>
+    </div>
   );
 }

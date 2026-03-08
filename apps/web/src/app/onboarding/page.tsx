@@ -19,7 +19,6 @@ import { SeasonSection } from "./sections/SeasonSection";
 import { DepartmentsSection } from "./sections/DepartmentsSection";
 import { LocationsSection } from "./sections/LocationsSection";
 import { ProceduresSection } from "./sections/ProceduresSection";
-import { ContractSection } from "./sections/ContractSection";
 import { WelcomeSection } from "./sections/WelcomeSection";
 import type { OnboardingSection } from "./types";
 import { ONBOARDING_SECTIONS } from "./types";
@@ -31,7 +30,6 @@ const SECTION_COMPONENTS: Record<OnboardingSection, React.ComponentType> = {
   locations: LocationsSection,
   procedures: ProceduresSection,
   season: SeasonSection,
-  contract: ContractSection,
   welcome: WelcomeSection,
 };
 

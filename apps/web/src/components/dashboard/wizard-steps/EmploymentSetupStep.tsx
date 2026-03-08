@@ -1,17 +1,19 @@
 "use client";
 
 import { useState, useCallback, useContext, useMemo, useEffect } from "react";
-import { CheckCircle2, Loader2, Briefcase, ChevronDown } from "lucide-react";
+import { CheckCircle2, Loader2, Briefcase, Plus, X } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { createClient } from "@smartout/supabase/client";
 import type { Json } from "@smartout/supabase";
 import { emit } from "@smartout/telemetry";
+import type { IndustryEmploymentDefaults } from "@/lib/industry/types";
 import { useWorkspace } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { HelpTip } from "@/components/dashboard/wizard-steps/HelpTip";
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -80,15 +82,6 @@ const INITIAL_FORMS: EmploymentForm[] = [
   },
 ];
 
-const INITIAL_COMMON_TERMS: CommonTerms = {
-  probationMonths: 6,
-  vacationDays: 25,
-  extraVacationDays: false,
-  vacationPayPct: 10.2,
-  otpPct: 2,
-  employerTaxPct: 14.1,
-};
-
 // ─── EmploymentFormCard ──────────────────────────────────
 
 function EmploymentFormCard({
@@ -96,11 +89,15 @@ function EmploymentFormCard({
   isDark,
   onToggle,
   onUpdate,
+  isCustom,
+  onRemove,
 }: {
   form: EmploymentForm;
   isDark: boolean;
   onToggle: () => void;
   onUpdate: (updates: Partial<EmploymentForm>) => void;
+  isCustom?: boolean;
+  onRemove?: () => void;
 }) {
   const noticeUnitLabel = form.noticeUnit === "months" ? "mnd" : "dager";
 
@@ -123,11 +120,45 @@ function EmploymentFormCard({
               form.enabled ? "text-orange-500" : isDark ? "text-zinc-600" : "text-zinc-400"
             }`}
           />
-          <span className={`text-sm font-semibold ${isDark ? "text-zinc-200" : "text-zinc-800"}`}>
-            {form.label}
-          </span>
+          {isCustom ? (
+            <Input
+              type="text"
+              placeholder="Navn på ansettelsesform"
+              value={form.label}
+              onClick={(e) => e.stopPropagation()}
+              onChange={(e) => onUpdate({ label: e.target.value })}
+              className={`h-7 w-48 text-sm font-semibold ${
+                isDark
+                  ? "border-zinc-700 bg-zinc-800 text-zinc-200 placeholder:text-zinc-500"
+                  : "border-zinc-300 bg-white text-zinc-800 placeholder:text-zinc-400"
+              }`}
+            />
+          ) : (
+            <span className={`text-sm font-semibold ${isDark ? "text-zinc-200" : "text-zinc-800"}`}>
+              {form.label}
+            </span>
+          )}
         </div>
-        <Switch checked={form.enabled} onCheckedChange={onToggle} />
+        <div className="flex items-center gap-2">
+          {isCustom && onRemove && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onRemove();
+              }}
+              className={`rounded-md p-1 transition-colors ${
+                isDark
+                  ? "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
+                  : "text-zinc-400 hover:bg-zinc-200 hover:text-zinc-600"
+              }`}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+          <Switch checked={form.enabled} onCheckedChange={onToggle} />
+        </div>
       </label>
 
       {form.enabled && (
@@ -191,24 +222,48 @@ function EmploymentFormCard({
 
 // ─── EmploymentSetupStep ─────────────────────────────────
 
-export function EmploymentSetupStep({ isDark }: { isDark: boolean }) {
+export function EmploymentSetupStep({
+  isDark,
+  industryDefaults,
+  extractedTerms,
+}: {
+  isDark: boolean;
+  industryDefaults?: IndustryEmploymentDefaults;
+  extractedTerms?: {
+    noticePeriod?: string;
+    probation?: string;
+    source: string;
+  };
+}) {
   const workspace = useWorkspace();
   const { profileId } = useContext(DashboardContext);
   const queryClient = useQueryClient();
 
   // ── State ──
+  const initialCommonTerms = useMemo<CommonTerms>(
+    () => ({
+      probationMonths: industryDefaults?.probationMonths ?? 6,
+      vacationDays: industryDefaults?.vacationDays ?? 25,
+      extraVacationDays: industryDefaults?.extraVacationDays ?? false,
+      vacationPayPct: 10.2,
+      otpPct: industryDefaults?.otpPct ?? 2,
+      employerTaxPct: industryDefaults?.employerTaxPct ?? 14.1,
+    }),
+    [industryDefaults],
+  );
+
   const [forms, setForms] = useState<EmploymentForm[]>(INITIAL_FORMS);
-  const [commonTerms, setCommonTerms] = useState<CommonTerms>(INITIAL_COMMON_TERMS);
+  const [commonTerms, setCommonTerms] = useState<CommonTerms>(initialCommonTerms);
 
   // ── Existing policy query ──
   const { data: existingPolicy } = useQuery({
-    queryKey: ["employment-policy", workspace.workspace_id],
+    queryKey: ["employment-policy", workspace.workspace.workspace_id],
     queryFn: async () => {
       const supabase = createClient();
       const { data } = await supabase
         .from("policy")
         .select("policy_id, rules_json")
-        .eq("workspace_id", workspace.workspace_id)
+        .eq("workspace_id", workspace.workspace.workspace_id)
         .eq("policy_type", "hr")
         .eq("name", "Ansettelsesvilkår")
         .eq("is_active", true)
@@ -241,21 +296,37 @@ export function EmploymentSetupStep({ isDark }: { isDark: boolean }) {
 
     if (rules.employment_forms) {
       const enabledTypes = new Set(rules.employment_forms.map((f) => f.type));
-      setForms((prev) =>
-        prev.map((form) => {
-          const saved = rules.employment_forms?.find((f) => f.type === form.type);
-          if (saved) {
-            return {
-              ...form,
-              enabled: true,
-              hoursPerWeek: saved.hours_per_week,
-              noticeValue: saved.notice_value,
-              noticeUnit: saved.notice_unit,
-            };
-          }
-          return { ...form, enabled: enabledTypes.has(form.type) };
-        }),
-      );
+      const customForms: EmploymentForm[] = rules.employment_forms
+        .filter((f) => f.type.startsWith("custom_"))
+        .map((f) => ({
+          type: f.type,
+          label: f.label,
+          defaultHoursPerWeek: f.hours_per_week,
+          defaultNotice: { value: f.notice_value, unit: f.notice_unit },
+          enabled: true,
+          hoursPerWeek: f.hours_per_week,
+          noticeValue: f.notice_value,
+          noticeUnit: f.notice_unit,
+        }));
+
+      setForms((prev) => {
+        const presetForms = prev
+          .filter((form) => !form.type.startsWith("custom_"))
+          .map((form) => {
+            const saved = rules.employment_forms?.find((f) => f.type === form.type);
+            if (saved) {
+              return {
+                ...form,
+                enabled: true,
+                hoursPerWeek: saved.hours_per_week,
+                noticeValue: saved.notice_value,
+                noticeUnit: saved.notice_unit,
+              };
+            }
+            return { ...form, enabled: enabledTypes.has(form.type) };
+          });
+        return [...presetForms, ...customForms];
+      });
     }
 
     if (rules.common_terms) {
@@ -271,6 +342,19 @@ export function EmploymentSetupStep({ isDark }: { isDark: boolean }) {
     }
   }, [existingPolicy]);
 
+  // ── Pre-fill from extracted terms ──
+  useEffect(() => {
+    if (!extractedTerms) return;
+    setCommonTerms((prev) => {
+      const next = { ...prev };
+      if (extractedTerms.probation) {
+        const months = parseInt(extractedTerms.probation, 10);
+        if (!isNaN(months)) next.probationMonths = months;
+      }
+      return next;
+    });
+  }, [extractedTerms]);
+
   // ── Handlers ──
   const handleFormToggle = useCallback((index: number) => {
     setForms((prev) => prev.map((f, i) => (i === index ? { ...f, enabled: !f.enabled } : f)));
@@ -278,6 +362,26 @@ export function EmploymentSetupStep({ isDark }: { isDark: boolean }) {
 
   const handleFormUpdate = useCallback((index: number, updates: Partial<EmploymentForm>) => {
     setForms((prev) => prev.map((f, i) => (i === index ? { ...f, ...updates } : f)));
+  }, []);
+
+  const handleAddCustomForm = useCallback(() => {
+    setForms((prev) => [
+      ...prev,
+      {
+        type: `custom_${Date.now()}`,
+        label: "",
+        defaultHoursPerWeek: 37.5,
+        defaultNotice: { value: 1, unit: "months" },
+        enabled: true,
+        hoursPerWeek: 37.5,
+        noticeValue: 1,
+        noticeUnit: "months",
+      },
+    ]);
+  }, []);
+
+  const handleRemoveForm = useCallback((index: number) => {
+    setForms((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
   const handleCommonTermChange = useCallback(
@@ -324,7 +428,7 @@ export function EmploymentSetupStep({ isDark }: { isDark: boolean }) {
           statement: "Standard ansettelsesvilkår for virksomheten",
           policy_type: "hr" as const,
           policy_scope: "workspace" as const,
-          workspace_id: workspace.workspace_id,
+          workspace_id: workspace.workspace.workspace_id,
           created_by: profileId ?? "",
           rules_json: rulesJson,
         });
@@ -333,12 +437,12 @@ export function EmploymentSetupStep({ isDark }: { isDark: boolean }) {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({
-        queryKey: ["employment-policy", workspace.workspace_id],
+        queryKey: ["employment-policy", workspace.workspace.workspace_id],
       });
       toast.success("Ansettelsesvilkår lagret");
       void emit({
         event: "button clicked",
-        workspace_id: workspace.workspace_id,
+        workspace_id: workspace.workspace.workspace_id,
         actor_id: profileId ?? "",
         properties: { trackingId: "employment-terms-saved" },
       });
@@ -379,9 +483,12 @@ export function EmploymentSetupStep({ isDark }: { isDark: boolean }) {
     <div className="space-y-8">
       {/* ── Del 1: Ansettelsesformer ── */}
       <div className="space-y-3">
-        <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-          Ansettelsesformer
-        </h3>
+        <div className="flex items-center gap-2">
+          <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
+            Ansettelsesformer
+          </h3>
+          <HelpTip text="Velg hvilke ansettelsestyper dere bruker. Dette bestemmer kontraktsmalene." />
+        </div>
         <p className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
           Velg hvilke ansettelsesformer som brukes i virksomheten.
         </p>
@@ -393,16 +500,33 @@ export function EmploymentSetupStep({ isDark }: { isDark: boolean }) {
               isDark={isDark}
               onToggle={() => handleFormToggle(index)}
               onUpdate={(updates) => handleFormUpdate(index, updates)}
+              isCustom={form.type.startsWith("custom_")}
+              onRemove={form.type.startsWith("custom_") ? () => handleRemoveForm(index) : undefined}
             />
           ))}
         </div>
+        <button
+          type="button"
+          onClick={handleAddCustomForm}
+          className={`flex w-full items-center justify-center gap-2 rounded-xl border border-dashed px-4 py-2.5 text-sm font-medium transition-colors ${
+            isDark
+              ? "border-zinc-700 text-zinc-400 hover:border-zinc-600 hover:text-zinc-300"
+              : "border-zinc-300 text-zinc-500 hover:border-zinc-400 hover:text-zinc-600"
+          }`}
+        >
+          <Plus className="h-4 w-4" />
+          Legg til ansettelsesform
+        </button>
       </div>
 
-      {/* ── Del 2: Fellesvilkår ── */}
+      {/* ── Del 2: Fellesvilk\u00e5r ── */}
       <div className="space-y-3">
-        <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-          Fellesvilkår
-        </h3>
+        <div className="flex items-center gap-2">
+          <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
+            Fellesvilk\u00e5r
+          </h3>
+          <HelpTip text="Standardbetingelser som gjelder alle ansatte: pr\u00f8vetid, ferie, pensjon og avgifter." />
+        </div>
         <div
           className={`grid grid-cols-1 gap-4 rounded-xl border p-4 sm:grid-cols-2 ${
             isDark ? "border-zinc-800 bg-zinc-900/30" : "border-zinc-200 bg-zinc-50/50"
