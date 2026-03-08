@@ -1,7 +1,7 @@
 ---
 title: "Worklog — zero-to-production"
 status: in_progress
-updated: 2026-04-12
+updated: 2026-04-13
 created: 2026-03-08
 module: cross-cutting
 tags: [module-zero, event-engine, employee-ui]
@@ -37,6 +37,15 @@ tags: [module-zero, event-engine, employee-ui]
 - [x] Week 4: Governance CRUD forms (policy, protocol, procedure, test, confirmation)
 - [x] Integration gate: db reset, regen types, typecheck 19/19 GREEN
 - [x] Type fixes: Json casts, enum literal types in governance + PolicyForm
+- [x] Guided post-onboarding: WorkspaceSetupGuide (4-module checklist)
+- [x] AdminDashboard loading guard + DashboardSkeleton
+- [x] StrategicView rewrite: removed all hardcoded demo data, real queries only
+- [x] useWorkspaceSetup: 4 parallel queries (governance ≥3, people >1, schedule >0, season active)
+- [x] Engine event client relay: /api/engine-dispatch route
+
+## Known Issues
+
+- **PolicyForm scope picker**: When admin selects "department" scope, a department picker should appear but doesn't. Non-blocking — policies still save with default scope.
 
 ## Remaining
 
@@ -53,6 +62,9 @@ tags: [module-zero, event-engine, employee-ui]
 | 2026-03-08 | Week 5 built before Week 3-4                                       | Zero dependencies                                                                           |
 | 2026-04-12 | send_notification logs to console (no notification_queue table)    | Table doesn't exist yet; handler is a stub until notification system is built               |
 | 2026-04-12 | Column names verified against database.types.ts, not plan snippets | Plan had wrong columns (compliance_required vs is_compliance_required, id vs assignment_id) |
+| 2026-04-12 | Governance threshold: ≥3 policies (not >0)                         | Single policy too low for "governance complete" — minimum viable is 3                       |
+| 2026-04-12 | No fake data in StrategicView — empty states only                  | "Fake data i produktion är en bugg" — user directive                                        |
+| 2026-04-12 | Loading skeleton before setup check resolves                       | Prevents flash of fake/empty dashboard while useWorkspaceSetup loads                        |
 
 ## Log
 
@@ -74,3 +86,9 @@ tags: [module-zero, event-engine, employee-ui]
 | 2026-03-08 | 01:12 | Integration gate: db reset, regen types, 2 type errors found             |
 | 2026-03-08 | 01:15 | Type fixes: Json casts, enum literals in governance                      |
 | 2026-03-08 | 01:16 | Typecheck 19/19 GREEN — all Week 3+4 committed (5 commits)               |
+| 2026-04-12 | —     | Engine event client relay: /api/engine-dispatch route                    |
+| 2026-04-12 | —     | StrategicView rewrite: removed ~400 lines of hardcoded demo data         |
+| 2026-04-12 | —     | AdminDashboard: loading skeleton + setup guide gate                      |
+| 2026-04-12 | —     | WorkspaceSetupGuide: 4-module checklist with progress bar                |
+| 2026-04-12 | —     | useWorkspaceSetup: 4 parallel count queries, threshold governance ≥3     |
+| 2026-04-12 | —     | Typecheck 19/19 GREEN after all post-onboarding changes                  |
