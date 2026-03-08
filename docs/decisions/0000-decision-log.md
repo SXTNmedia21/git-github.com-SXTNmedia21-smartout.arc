@@ -93,5 +93,11 @@ tags: [decisions]
 
 # Decision Log — zero-to-production
 
-| #   | Date | Decision | Status |
-| --- | ---- | -------- | ------ |
+| #   | Date       | Decision                                                                                                          | Status |
+| --- | ---------- | ----------------------------------------------------------------------------------------------------------------- | ------ |
+| 1   | 2026-03-08 | "Confirm, don't create" wizard UX — pre-fill from scraped/intelligence data, user confirms rather than creates    | active |
+| 2   | 2026-03-08 | Industry package system — NACE code detection drives template suggestions (hospitality first, default fallback)   | active |
+| 3   | 2026-03-08 | Shared wizardState object passed to all steps (vs. per-step local state) for cross-step data visibility           | active |
+| 4   | 2026-03-08 | setupDismissed local state pattern — prevents useLayoutEffect from re-mounting dismissed wizard                   | active |
+| 5   | 2026-03-08 | E2E test isolation via docker exec psql — move workspace data to temp UUID instead of REST API cascade deletes    | active |
+| 6   | 2026-03-08 | STEP_TO_MODULE auto-advance — wizard skips to first step whose module is incomplete, prevents re-doing done steps | active |

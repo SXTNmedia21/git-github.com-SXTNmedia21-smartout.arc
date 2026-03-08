@@ -1,7 +1,7 @@
 ---
 title: "Worklog — zero-to-production"
 status: in_progress
-updated: 2026-04-14
+updated: 2026-03-08
 created: 2026-03-08
 module: cross-cutting
 tags: [module-zero, event-engine, employee-ui]
@@ -53,9 +53,12 @@ tags: [module-zero, event-engine, employee-ui]
 - [x] STATE.md + SESSION.md updated
 - [x] Merged to development
 - [x] Wizard 9-step redesign: industry packages, shared state, all steps wired
+- [x] 8 Playwright E2E tests for setup wizard (all passing)
+- [x] Bug fix: wizard skip not working (setupDismissed state in AdminDashboard)
+- [x] Decision log + learning log updated
+- [x] STATE.md updated
 - [ ] DocumentDropStep full implementation (upload, Edge Function, AI analysis)
 - [ ] HandbookSetupStep auto-generation from wizardState
-- [ ] Final polish + typecheck + commit all wizard changes
 
 ## Decisions
 
@@ -99,3 +102,8 @@ tags: [module-zero, event-engine, employee-ui]
 | 2026-04-12 | —     | Typecheck 19/19 GREEN after all post-onboarding changes                  |
 | 2026-04-14 | —     | Wizard 9-step redesign: industry packages, BotsTip, all steps wired      |
 | 2026-04-14 | —     | Session ended: remaining — DocumentDropStep, HandbookSetupStep, commit   |
+| 2026-03-08 | —     | 8 E2E tests written + passing for setup wizard                           |
+| 2026-03-08 | —     | Bug fix: setupDismissed state prevents wizard re-mount after skip        |
+| 2026-03-08 | —     | Decision log (6 entries) + learning log (6 entries) updated              |
+| 2026-03-08 | —     | STATE.md updated — wizard gap closed                                     |
+| 2026-03-08 | —     | Docs committed, pushed, merged to development                            |

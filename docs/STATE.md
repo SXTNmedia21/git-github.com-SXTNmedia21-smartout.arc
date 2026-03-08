@@ -1,7 +1,7 @@
 ---
 title: "STATE — System State of Truth"
 status: canonical
-updated: 2026-04-13
+updated: 2026-03-08
 created: 2026-04-11
 module: all
 tags: [state, audit, gaps, architecture, module-zero]
@@ -195,8 +195,8 @@ tags: [state, audit, gaps, architecture, module-zero]
 
 ## 3. The 10 Gaps — Status After Module Zero
 
-> All 10 gaps identified 2026-04-11 have been addressed by `feat/zero-to-production` (22 commits).
-> Full audit performed 2026-04-13. Typecheck 19/19 GREEN.
+> All 10 gaps identified 2026-04-11 have been addressed by `feat/zero-to-production` (30+ commits).
+> Full audit performed 2026-04-13. Typecheck 19/19 GREEN. Wizard redesign + 8 E2E tests added 2026-03-08.
 
 | Gap | Description                          | Status      | Resolution                                                                                        |
 | --- | ------------------------------------ | ----------- | ------------------------------------------------------------------------------------------------- |
@@ -220,7 +220,7 @@ tags: [state, audit, gaps, architecture, module-zero]
 | Invite → Onboarding        | accept-invitation EF doesn't emit invitation_accepted event yet                | High     |
 | Shift Publish → Session    | End-to-end flow untested (emit → trigger → upsert_session → hooks)             | High     |
 | PolicyForm scope picker    | Department picker doesn't appear when "department" scope selected              | Low      |
-| Wizard forms               | Setup wizard steps are placeholders (dashed border, no real forms)             | Medium   |
+| Wizard forms               | **CLOSED** — 9-step industry-driven wizard with real forms, 8 E2E tests        | Done     |
 | Wizard mobile              | No responsive layout on workspace setup wizard                                 | Low      |
 | my-schedule realtime       | No Realtime subscription on employee shift view                                | Low      |
 | Invite dialog departments  | Hardcoded department list in invite dialog (pre-existing)                      | Low      |
@@ -467,6 +467,8 @@ Auth (3), org_structure (3), scheduling (4), operations (5), training (5), recon
 | Governance page               | `apps/web/src/app/dashboard/governance/`                          |
 | Readiness hook (real queries) | `apps/web/src/app/dashboard/_hooks/use-protocol-journey.ts`       |
 | Workspace setup wizard        | `apps/web/src/components/dashboard/WorkspaceSetupWizard.tsx`      |
+| Industry packages             | `apps/web/src/lib/industry/`                                      |
+| E2E setup wizard tests        | `apps/e2e/tests/setup-wizard.spec.ts`                             |
 | Engine event client relay     | `apps/web/src/app/api/engine-dispatch/route.ts`                   |
 | Fire delayed triggers         | `supabase/functions/fire-delayed-triggers/index.ts`               |
 | Agent router                  | `services/stage-engine/src/core/agent-router.ts`                  |

@@ -86,5 +86,11 @@ tags: [learnings]
 
 # Learning Log — zero-to-production
 
-| #   | Date | Learning | Impact |
-| --- | ---- | -------- | ------ |
+| #   | Date       | Learning                                                                                                       | Impact   |
+| --- | ---------- | -------------------------------------------------------------------------------------------------------------- | -------- |
+| 1   | 2026-03-08 | useWorkspaceSetup counts ALL policies (no is_active filter) — can't hide policies by deactivating them         | Testing  |
+| 2   | 2026-03-08 | detectIndustryType expects `brregData.naceCode` structure, NOT `nace_codes` array — undocumented format        | Critical |
+| 3   | 2026-03-08 | Supabase REST API silently fails on FK cascade deletes — use docker exec psql for reliable E2E cleanup         | Testing  |
+| 4   | 2026-03-08 | useLayoutEffect re-setting state on every render defeats dismiss/skip patterns — need separate dismissed state | Bug fix  |
+| 5   | 2026-03-08 | Playwright route mocks must be set up BEFORE form interaction, not after filling the form                      | Testing  |
+| 6   | 2026-03-08 | Wizard auto-advance (STEP_TO_MODULE) means tests that create data can cause subsequent tests to skip steps     | Testing  |
