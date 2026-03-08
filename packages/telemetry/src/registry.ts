@@ -455,7 +455,6 @@ export interface ContractExpired extends BaseEvent {
   };
 }
 
-
 // ─── Journey: Signup + Onboarding ──────────────────
 export interface SignupCompleted extends BaseEvent {
   event: "signup completed";
