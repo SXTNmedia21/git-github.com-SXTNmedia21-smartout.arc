@@ -42,8 +42,10 @@ export default function AdminDashboard({ isDark }: AdminDashboardProps) {
   // Tell DashboardShell to hide chrome when in setup mode — useLayoutEffect prevents flash
   useLayoutEffect(() => {
     setIsSetupMode(showWizard && !isSetupLoading);
-    return () => setIsSetupMode(false);
   }, [showWizard, isSetupLoading, setIsSetupMode]);
+
+  // Reset on unmount only — NOT on every effect re-run (that causes infinite loop)
+  useEffect(() => () => setIsSetupMode(false), [setIsSetupMode]);
 
   const handleSetupComplete = useCallback(() => {
     setSetupDismissed(true);
