@@ -22,22 +22,20 @@ const SHOWCASE_WORKSPACE: WorkspaceData = {
   country: "NO",
   timezone: "Europe/Oslo",
   contract_status: "active",
+  onboarding_completed: true,
 };
 
 /**
- * Enforces workspace contract status redirects for dashboard routes.
- * Why: keep middleware lightweight and run this check where workspace data
- * is already loaded for the request.
+ * Enforces workspace access redirects for dashboard routes.
+ * - Workspaces that haven't completed onboarding → /onboarding
+ * - Deactivated workspaces → /blocked
  */
-function enforceWorkspaceContractStatus(workspace: WorkspaceData): void {
-  const status = workspace.contract_status;
-  if (!status) return;
-
-  if (status === "setup" || status === "onboarding") {
+function enforceWorkspaceAccess(workspace: WorkspaceData): void {
+  if (!workspace.onboarding_completed) {
     redirect("/onboarding");
   }
 
-  if (status === "deactivated") {
+  if (workspace.contract_status === "deactivated") {
     redirect("/blocked");
   }
 }
@@ -118,7 +116,7 @@ export default async function DashboardLayout({
 
   if (workspace) {
     if (!isShowcaseMode) {
-      enforceWorkspaceContractStatus(workspace);
+      enforceWorkspaceAccess(workspace);
     }
 
     return (

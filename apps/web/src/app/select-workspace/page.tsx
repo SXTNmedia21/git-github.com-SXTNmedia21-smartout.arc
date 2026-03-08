@@ -31,7 +31,7 @@ export default async function SelectWorkspacePage() {
     name: string;
     slug: string;
     logo_url: string | null;
-    contract_status: string | null;
+    onboarding_completed: boolean;
   };
 
   const { data: profiles } = (await supabase
@@ -45,7 +45,7 @@ export default async function SelectWorkspacePage() {
     workspaceIds.length > 0
       ? ((await supabase
           .from("workspace")
-          .select("workspace_id, name, slug, logo_url, contract_status")
+          .select("workspace_id, name, slug, logo_url, onboarding_completed")
           .in("workspace_id", workspaceIds)) as { data: WorkspaceRow[] | null })
       : { data: [] as WorkspaceRow[] };
 
@@ -56,13 +56,9 @@ export default async function SelectWorkspacePage() {
     })
     .filter(Boolean) as (WorkspaceRow & { role: string; displayName: string | null })[];
 
-  // Split into active vs stale onboarding
-  const workspaces = allWorkspaces.filter(
-    (ws) => ws.contract_status !== "onboarding" && ws.contract_status !== "setup",
-  );
-  const staleWorkspaces = allWorkspaces.filter(
-    (ws) => ws.contract_status === "onboarding" || ws.contract_status === "setup",
-  );
+  // Split into onboarded vs still-in-onboarding
+  const workspaces = allWorkspaces.filter((ws) => ws.onboarding_completed);
+  const staleWorkspaces = allWorkspaces.filter((ws) => !ws.onboarding_completed);
 
   // Single active workspace: redirect directly
   if (workspaces.length === 1 && staleWorkspaces.length === 0) {
@@ -169,9 +165,7 @@ export default async function SelectWorkspacePage() {
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-foreground/60 truncate text-sm">{ws.name}</p>
-                          <p className="text-muted-foreground truncate text-xs">
-                            {ws.contract_status}
-                          </p>
+                          <p className="text-muted-foreground truncate text-xs">Ikke fullført</p>
                         </div>
                       </div>
                     ))}

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback, createContext, useMemo } from
 import dynamic from "next/dynamic";
 import type { MissionId } from "@smartout/ai/missions";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
+import { useWorkspaceSetup } from "@/app/dashboard/_hooks/use-workspace-setup";
 
 const VoiceAssistant = dynamic(() => import("@/components/voice-assistant"), {
   ssr: false,
@@ -227,9 +228,9 @@ export const DashboardContext = createContext({
   workspaceData: null as { workspace_id: string; company_id: string | null; name: string } | null,
   profileId: null as string | null,
   isSetupMode: false,
-  setIsSetupMode: (_val: boolean) => {
-    void _val;
-  },
+  isSetupLoading: false,
+  setupModules: [] as import("@/app/dashboard/_hooks/use-workspace-setup").SetupModule[],
+  dismissSetup: () => {},
 });
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -345,7 +346,10 @@ export function DashboardShell({
     isSettling: false,
     notices: [],
   });
-  const [isSetupMode, setIsSetupMode] = useState(false);
+  const [setupDismissed, setSetupDismissed] = useState(false);
+  const { data: setupStatus, isLoading: isSetupLoading } = useWorkspaceSetup();
+  const isSetupMode = !isSetupLoading && !setupDismissed && (setupStatus?.needsSetup ?? false);
+  const dismissSetup = useCallback(() => setSetupDismissed(true), []);
   const [isDocumentMode, setIsDocumentMode] = useState(false);
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -410,7 +414,9 @@ export function DashboardShell({
       workspaceData,
       profileId,
       isSetupMode,
-      setIsSetupMode,
+      isSetupLoading,
+      setupModules: setupStatus?.modules ?? [],
+      dismissSetup,
     }),
     [
       isAdminMode,
@@ -430,6 +436,9 @@ export function DashboardShell({
       workspaceData,
       profileId,
       isSetupMode,
+      isSetupLoading,
+      setupStatus?.modules,
+      dismissSetup,
     ],
   );
 
@@ -882,8 +891,8 @@ export function DashboardShell({
     return pathname.startsWith(path);
   };
 
-  // ── Setup mode: fullscreen, no chrome ──
-  if (isSetupMode) {
+  // ── Setup mode: fullscreen, no chrome (only on dashboard root) ──
+  if (isSetupMode && isDashboardPage) {
     return (
       <DashboardContext.Provider value={dashboardContextValue}>
         <div

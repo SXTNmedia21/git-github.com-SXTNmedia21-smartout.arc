@@ -17,6 +17,11 @@ export const ONBOARDING_SECTIONS = [
 
 export type OnboardingSection = (typeof ONBOARDING_SECTIONS)[number];
 
+/** Sections currently visible in the onboarding flow (contract skipped for now) */
+export const VISIBLE_SECTIONS = ONBOARDING_SECTIONS.filter(
+  (s): s is OnboardingSection => s !== "contract",
+);
+
 /** Section-level progress tracking */
 export interface SectionProgress {
   section: OnboardingSection;

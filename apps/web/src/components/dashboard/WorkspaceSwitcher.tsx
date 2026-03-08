@@ -10,7 +10,7 @@ type WorkspaceOption = {
   workspace_id: string;
   name: string;
   slug: string;
-  contract_status: string | null;
+  onboarding_completed: boolean;
 };
 
 export function WorkspaceSwitcher({ isDark }: { isDark: boolean }) {
@@ -52,10 +52,9 @@ export function WorkspaceSwitcher({ isDark }: { isDark: boolean }) {
       const ids = profiles.map((p) => p.workspace_id);
       const { data: ws } = await supabase
         .from("workspace")
-        .select("workspace_id, name, slug, contract_status")
+        .select("workspace_id, name, slug, onboarding_completed")
         .in("workspace_id", ids)
-        .neq("contract_status", "onboarding")
-        .neq("contract_status", "setup")
+        .eq("onboarding_completed", true)
         .order("name");
 
       if (ws) setWorkspaces(ws as WorkspaceOption[]);

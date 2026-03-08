@@ -127,7 +127,14 @@ function wasRecentlySkipped(): boolean {
   const raw = localStorage.getItem(SKIP_KEY);
   if (!raw) return false;
   const skippedAt = Number(raw);
-  return Date.now() - skippedAt < SKIP_TTL_MS;
+  const skipped = Date.now() - skippedAt < SKIP_TTL_MS;
+  if (skipped) {
+    console.log(
+      "[SETUP] Skipped via localStorage, expires:",
+      new Date(skippedAt + SKIP_TTL_MS).toISOString(),
+    );
+  }
+  return skipped;
 }
 
 // Map wizard step IDs to setup module IDs for initial step calculation

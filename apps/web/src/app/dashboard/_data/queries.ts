@@ -7,7 +7,7 @@ import type { WorkspaceData } from "@/lib/workspace-context";
  * Shared constant to avoid divergence between queries.
  */
 const WORKSPACE_SELECT =
-  "workspace_id, company_id, name, slug, logo_url, currency, language, country, timezone, contract_status" as const;
+  "workspace_id, company_id, name, slug, logo_url, currency, language, country, timezone, contract_status, onboarding_completed" as const;
 
 /**
  * Get the authenticated user for the current request.
@@ -78,7 +78,7 @@ export const getFirstProfile = cache(async (userId: string) => {
   const supabase = await createClient();
   const { data } = await supabase
     .from("profile")
-    .select("workspace_id, profile_id, workspace:workspace!inner(contract_status)")
+    .select("workspace_id, profile_id, workspace:workspace!inner(onboarding_completed)")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(10);
@@ -88,17 +88,12 @@ export const getFirstProfile = cache(async (userId: string) => {
   const profiles = data as Array<{
     workspace_id: string;
     profile_id: string;
-    workspace: { contract_status: string | null };
+    workspace: { onboarding_completed: boolean };
   }>;
 
-  // Prefer active workspace over onboarding/setup ones
-  const active = profiles.find(
-    (p) =>
-      p.workspace.contract_status &&
-      p.workspace.contract_status !== "onboarding" &&
-      p.workspace.contract_status !== "setup",
-  );
+  // Prefer onboarded workspace over ones still in onboarding
+  const onboarded = profiles.find((p) => p.workspace.onboarding_completed);
 
-  const best = active ?? profiles[0]!;
+  const best = onboarded ?? profiles[0]!;
   return { workspace_id: best.workspace_id, profile_id: best.profile_id };
 });

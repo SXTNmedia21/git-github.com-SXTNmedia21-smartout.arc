@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import type { OnboardingSection } from "../types";
-import { ONBOARDING_SECTIONS } from "../types";
+import { ONBOARDING_SECTIONS, VISIBLE_SECTIONS } from "../types";
 
 interface ScrollProgress {
   activeSection: OnboardingSection;
@@ -17,8 +17,8 @@ export function useScrollProgress(
 ): ScrollProgress {
   const [activeSection, setActiveSection] = useState<OnboardingSection>("hero");
 
-  const sectionIndex = ONBOARDING_SECTIONS.indexOf(activeSection);
-  const totalProgress = Math.min(1, (sectionIndex + 1) / ONBOARDING_SECTIONS.length);
+  const sectionIndex = VISIBLE_SECTIONS.indexOf(activeSection);
+  const totalProgress = Math.min(1, (sectionIndex + 1) / VISIBLE_SECTIONS.length);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -29,7 +29,7 @@ export function useScrollProgress(
         for (const entry of entries) {
           if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
             const sectionId = entry.target.getAttribute("data-section") as OnboardingSection;
-            if (sectionId && ONBOARDING_SECTIONS.includes(sectionId)) {
+            if (sectionId && (VISIBLE_SECTIONS as readonly string[]).includes(sectionId)) {
               setActiveSection(sectionId);
             }
           }

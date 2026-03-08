@@ -827,7 +827,7 @@ export type Database = {
           nace_description: string | null
           name: string
           onboarding_status: string | null
-          org_number: string
+          org_number: string | null
           phone: string | null
           postal_code: string | null
           raw_scraped_data: Json | null
@@ -859,7 +859,7 @@ export type Database = {
           nace_description?: string | null
           name: string
           onboarding_status?: string | null
-          org_number: string
+          org_number?: string | null
           phone?: string | null
           postal_code?: string | null
           raw_scraped_data?: Json | null
@@ -891,7 +891,7 @@ export type Database = {
           nace_description?: string | null
           name?: string
           onboarding_status?: string | null
-          org_number?: string
+          org_number?: string | null
           phone?: string | null
           postal_code?: string | null
           raw_scraped_data?: Json | null
@@ -7921,6 +7921,7 @@ export type Database = {
           longitude: number | null
           max_profiles: number | null
           name: string
+          onboarding_completed: boolean
           override_access: boolean | null
           override_expires: string | null
           override_note: string | null
@@ -7968,6 +7969,7 @@ export type Database = {
           longitude?: number | null
           max_profiles?: number | null
           name: string
+          onboarding_completed?: boolean
           override_access?: boolean | null
           override_expires?: string | null
           override_note?: string | null
@@ -8015,6 +8017,7 @@ export type Database = {
           longitude?: number | null
           max_profiles?: number | null
           name?: string
+          onboarding_completed?: boolean
           override_access?: boolean | null
           override_expires?: string | null
           override_note?: string | null
