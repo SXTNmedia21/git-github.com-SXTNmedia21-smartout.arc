@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useContext, useState } from "react";
+import { useCallback, useContext, useEffect, useLayoutEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { ScheduleUIProvider } from "@/app/dashboard/schedule/_components/schedule-ui-context";
@@ -22,8 +22,8 @@ const ActivityView = dynamic(() =>
 const GuardianView = dynamic(() =>
   import("./GuardianView").then((m) => ({ default: m.GuardianView })),
 );
-const WorkspaceSetupGuide = dynamic(() =>
-  import("./WorkspaceSetupGuide").then((m) => ({ default: m.WorkspaceSetupGuide })),
+const WorkspaceSetupWizard = dynamic(() =>
+  import("./WorkspaceSetupWizard").then((m) => ({ default: m.WorkspaceSetupWizard })),
 );
 
 interface AdminDashboardProps {
@@ -31,9 +31,21 @@ interface AdminDashboardProps {
 }
 
 export default function AdminDashboard({ isDark }: AdminDashboardProps) {
-  const { adminView } = useContext(DashboardContext);
+  const { adminView, setIsSetupMode } = useContext(DashboardContext);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const { data: setupStatus, isLoading: isSetupLoading } = useWorkspaceSetup();
+
+  const needsSetup = setupStatus?.needsSetup ?? false;
+
+  // Tell DashboardShell to hide chrome when in setup mode — useLayoutEffect prevents flash
+  useLayoutEffect(() => {
+    setIsSetupMode(needsSetup && !isSetupLoading);
+    return () => setIsSetupMode(false);
+  }, [needsSetup, isSetupLoading, setIsSetupMode]);
+
+  const handleSetupComplete = useCallback(() => {
+    setIsSetupMode(false);
+  }, [setIsSetupMode]);
 
   const handleCloseSheet = useCallback(() => {
     setSelectedDate(null);
@@ -43,8 +55,8 @@ export default function AdminDashboard({ isDark }: AdminDashboardProps) {
     return <DashboardSkeleton isDark={isDark} />;
   }
 
-  if (setupStatus?.needsSetup) {
-    return <WorkspaceSetupGuide isDark={isDark} />;
+  if (needsSetup) {
+    return <WorkspaceSetupWizard isDark={isDark} onComplete={handleSetupComplete} />;
   }
 
   return (

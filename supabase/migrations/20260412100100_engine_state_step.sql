@@ -28,7 +28,12 @@ CREATE TABLE IF NOT EXISTS public.engine_state_step (
 
 ALTER TABLE engine_state_step ENABLE ROW LEVEL SECURITY;
 
--- SELECT: cascades through engine_state RLS (user can see steps if they can see the state)
+-- SELECT: cascading RLS via subquery.
+-- The subquery `SELECT id FROM engine_state` is filtered by engine_state's OWN RLS policies,
+-- which enforce workspace_id scoping. This means a user can only see steps for states they
+-- can already access. This avoids duplicating workspace_id on this table while maintaining
+-- full row-level isolation. The pattern is safe because PostgreSQL applies RLS to the
+-- subquery target (engine_state) before returning results.
 DROP POLICY IF EXISTS "read_engine_state_step" ON engine_state_step;
 CREATE POLICY "read_engine_state_step" ON engine_state_step
 FOR SELECT USING (

@@ -283,6 +283,27 @@ export interface ProtocolStepCompleted extends BaseEvent {
   };
 }
 
+export interface ProtocolTestSubmitted extends BaseEvent {
+  event: "protocol test_submitted";
+  properties: {
+    data: {
+      knowledge_test_id: string;
+      profile_id: string;
+      passed: boolean;
+    };
+  };
+}
+
+export interface ProtocolConfirmationSigned extends BaseEvent {
+  event: "protocol confirmation_signed";
+  properties: {
+    data: {
+      confirmation_id: string;
+      profile_id: string;
+    };
+  };
+}
+
 export interface ProtocolCompleted extends BaseEvent {
   event: "protocol completed";
   properties: {
@@ -344,6 +365,8 @@ export type SmartoutEvent =
   | InvitationAccepted
   | ProtocolAssigned
   | ProtocolStepCompleted
+  | ProtocolTestSubmitted
+  | ProtocolConfirmationSigned
   | ProtocolCompleted
   | ReconciliationSubmitted
   | ReconciliationAdminAction
@@ -420,6 +443,14 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "protocol step_completed": {
     destinations: ["posthog", "logger", "engine_event"],
+    category: "training",
+  },
+  "protocol test_submitted": {
+    destinations: ["posthog", "logger", "engine_event"],
+    category: "training",
+  },
+  "protocol confirmation_signed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "training",
   },
   "protocol completed": {

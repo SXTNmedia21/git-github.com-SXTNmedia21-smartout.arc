@@ -121,7 +121,19 @@ export function useSubmitTest() {
       return data;
     },
 
-    onSuccess: (_data, { passed }) => {
+    onSuccess: (_data, { knowledgeTestId, passed }) => {
+      void emit({
+        event: "protocol test_submitted",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: {
+          data: {
+            knowledge_test_id: knowledgeTestId,
+            profile_id: profileId ?? "",
+            passed,
+          },
+        },
+      });
       if (passed) {
         toast.success("Bestatt! Godt jobbet.");
       } else {
@@ -177,7 +189,18 @@ export function useSignConfirmation() {
       return data;
     },
 
-    onSuccess: () => {
+    onSuccess: (_data, { confirmationId }) => {
+      void emit({
+        event: "protocol confirmation_signed",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: {
+          data: {
+            confirmation_id: confirmationId,
+            profile_id: profileId ?? "",
+          },
+        },
+      });
       toast.success("Signatur registrert!");
       void queryClient.invalidateQueries({
         queryKey: myTrainingKeys.assignedProtocols(profileId ?? ""),

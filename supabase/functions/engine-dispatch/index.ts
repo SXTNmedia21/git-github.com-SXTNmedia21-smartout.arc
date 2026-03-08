@@ -465,8 +465,9 @@ async function executeStep(
     }
 
     case "send_notification": {
-      // Log notification intent — no notification_queue table yet.
-      // Future: insert into notification system when built.
+      // TODO(notifications): notification_queue table does not exist yet.
+      // When Module 12 (Notifications) is built, replace this console.log
+      // with INSERT into notification_queue (template, recipient, workspace_id, payload).
       console.log(
         `[engine-dispatch] send_notification: template=${(step.action_payload as Record<string, unknown>).template}, ` +
           `assignee=${state.assignee_id}, state=${state.id}`,
@@ -576,8 +577,13 @@ async function executeStep(
 
     case "upsert_session": {
       const ctx = state.context as Record<string, unknown>;
-      const dates = (ctx.dates as string[]) ?? [new Date().toISOString().split("T")[0]];
-      const deptIds = (ctx.department_ids as string[]) ?? [];
+      // Context comes from telemetry payload where dates/department_ids
+      // are nested under ctx.data (from event.properties.data)
+      const ctxData = (ctx.data as Record<string, unknown>) ?? {};
+      const dates = (ctxData.dates as string[]) ??
+        (ctx.dates as string[]) ?? [new Date().toISOString().split("T")[0]];
+      const deptIds =
+        (ctxData.department_ids as string[]) ?? (ctx.department_ids as string[]) ?? [];
 
       for (const date of dates) {
         for (const deptId of deptIds) {

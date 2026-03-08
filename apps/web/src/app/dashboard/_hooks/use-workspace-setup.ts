@@ -48,7 +48,7 @@ export function useWorkspaceSetup() {
           .from("season")
           .select("*", { count: "exact", head: true })
           .eq("workspace_id", wsId)
-          .eq("is_active", true),
+          .eq("status", "active"),
       ]);
 
       const policyCount = policies.count ?? 0;
