@@ -152,8 +152,8 @@ function InviteRowCard({
             <SelectValue placeholder="Avdeling" />
           </SelectTrigger>
           <SelectContent>
-            {departments.map((d) => (
-              <SelectItem key={d.department_id} value={d.department_id}>
+            {departments.map((d, i) => (
+              <SelectItem key={d.department_id || `dept-${i}`} value={d.department_id}>
                 {d.name}
               </SelectItem>
             ))}

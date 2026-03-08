@@ -222,12 +222,12 @@ export function ShiftTemplateSetupStep({
   return (
     <div className="space-y-6">
       {/* Departments with entries */}
-      {(departments ?? []).map((dept) => {
+      {(departments ?? []).map((dept, i) => {
         const deptEntries = entries.filter((e) => e.departmentName === dept.name);
         const existing = templatesByDept.get(dept.name) ?? [];
 
         return (
-          <div key={dept.department_id} className="space-y-2">
+          <div key={dept.department_id || `dept-${i}`} className="space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <h4
