@@ -126,4 +126,6 @@ export type JourneyStep = {
 export type ProtocolJourneyData = {
   phases: JourneyPhase[];
   steps: JourneyStep[];
+  readinessScore: number;
+  isCompleted: boolean;
 };

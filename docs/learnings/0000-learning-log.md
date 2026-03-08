@@ -1,9 +1,9 @@
 ---
 title: Learning Log
 status: in_progress
-updated: 2026-04-10
-created: 2026-03-04
-module: operations
+updated: 2026-03-08
+created: 2026-03-08
+module: cross-cutting
 tags: [learnings]
 ---
 
@@ -49,6 +49,7 @@ updated: 2026-04-10
 created: 2026-03-06
 module: infra
 tags: [learnings]
+
 ---
 
 # Learning Log
@@ -72,6 +73,7 @@ tags: [learnings]
 
 | #   | Date | Learning | Impact |
 | --- | ---- | -------- | ------ |
+
 # Learning Log — infra-hardening
 
 | #   | Date       | Learning                                                                                                                                                                          | Impact   |
@@ -81,3 +83,8 @@ tags: [learnings]
 | 3   | 2026-04-10 | Removing port exposure from base compose breaks health-check scripts on the host. Fix: bind to 127.0.0.1 in prod overlay.                                                         | High     |
 | 4   | 2026-04-10 | Docker Compose `${VAR:?msg}` refuses to start if var unset. Split fail-fast (base) and fallback (override) across files.                                                          | Medium   |
 | 5   | 2026-04-10 | Scrapling is consumed by Edge Functions on the host, not Docker services. Needs host-accessible ports, not just Docker network DNS.                                               | Medium   |
+
+# Learning Log — zero-to-production
+
+| #   | Date | Learning | Impact |
+| --- | ---- | -------- | ------ |

@@ -996,6 +996,71 @@ export type Database = {
           },
         ]
       }
+      confirmation_signature: {
+        Row: {
+          confirmation_id: string
+          created_at: string
+          id: string
+          ip_address: unknown
+          profile_id: string
+          protocol_assignment_id: string | null
+          signature_data: Json
+          signed_at: string
+          workspace_id: string
+        }
+        Insert: {
+          confirmation_id: string
+          created_at?: string
+          id?: string
+          ip_address?: unknown
+          profile_id: string
+          protocol_assignment_id?: string | null
+          signature_data?: Json
+          signed_at?: string
+          workspace_id: string
+        }
+        Update: {
+          confirmation_id?: string
+          created_at?: string
+          id?: string
+          ip_address?: unknown
+          profile_id?: string
+          protocol_assignment_id?: string | null
+          signature_data?: Json
+          signed_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "confirmation_signature_confirmation_id_fkey"
+            columns: ["confirmation_id"]
+            isOneToOne: false
+            referencedRelation: "confirmation"
+            referencedColumns: ["confirmation_id"]
+          },
+          {
+            foreignKeyName: "confirmation_signature_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "confirmation_signature_protocol_assignment_id_fkey"
+            columns: ["protocol_assignment_id"]
+            isOneToOne: false
+            referencedRelation: "protocol_assignment"
+            referencedColumns: ["assignment_id"]
+          },
+          {
+            foreignKeyName: "confirmation_signature_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       contract: {
         Row: {
           audit_log_url: string | null
@@ -2682,6 +2747,69 @@ export type Database = {
           },
         ]
       }
+      engine_state_step: {
+        Row: {
+          action_payload: Json
+          action_type: string
+          assignee_rule: string | null
+          completed_at: string | null
+          completed_by: string | null
+          condition: Json | null
+          created_at: string
+          id: string
+          result: Json | null
+          state_id: string
+          status: string
+          step_order: number
+          updated_at: string
+        }
+        Insert: {
+          action_payload?: Json
+          action_type: string
+          assignee_rule?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          condition?: Json | null
+          created_at?: string
+          id?: string
+          result?: Json | null
+          state_id: string
+          status?: string
+          step_order: number
+          updated_at?: string
+        }
+        Update: {
+          action_payload?: Json
+          action_type?: string
+          assignee_rule?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          condition?: Json | null
+          created_at?: string
+          id?: string
+          result?: Json | null
+          state_id?: string
+          status?: string
+          step_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_state_step_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "engine_state_step_state_id_fkey"
+            columns: ["state_id"]
+            isOneToOne: false
+            referencedRelation: "engine_state"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       engine_step: {
         Row: {
           action_payload: Json
@@ -3439,6 +3567,74 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "protocol"
             referencedColumns: ["protocol_id"]
+          },
+        ]
+      }
+      knowledge_test_attempt: {
+        Row: {
+          answers: Json
+          attempted_at: string
+          created_at: string
+          id: string
+          knowledge_test_id: string
+          passed: boolean
+          profile_id: string
+          protocol_assignment_id: string | null
+          score: number | null
+          workspace_id: string
+        }
+        Insert: {
+          answers?: Json
+          attempted_at?: string
+          created_at?: string
+          id?: string
+          knowledge_test_id: string
+          passed?: boolean
+          profile_id: string
+          protocol_assignment_id?: string | null
+          score?: number | null
+          workspace_id: string
+        }
+        Update: {
+          answers?: Json
+          attempted_at?: string
+          created_at?: string
+          id?: string
+          knowledge_test_id?: string
+          passed?: boolean
+          profile_id?: string
+          protocol_assignment_id?: string | null
+          score?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_test_attempt_knowledge_test_id_fkey"
+            columns: ["knowledge_test_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_test"
+            referencedColumns: ["knowledge_test_id"]
+          },
+          {
+            foreignKeyName: "knowledge_test_attempt_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "knowledge_test_attempt_protocol_assignment_id_fkey"
+            columns: ["protocol_assignment_id"]
+            isOneToOne: false
+            referencedRelation: "protocol_assignment"
+            referencedColumns: ["assignment_id"]
+          },
+          {
+            foreignKeyName: "knowledge_test_attempt_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
           },
         ]
       }
@@ -5423,6 +5619,68 @@ export type Database = {
           },
         ]
       }
+      procedure_step_completion: {
+        Row: {
+          completed_at: string
+          created_at: string
+          evidence: Json | null
+          id: string
+          procedure_step_id: string
+          profile_id: string
+          protocol_assignment_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          completed_at?: string
+          created_at?: string
+          evidence?: Json | null
+          id?: string
+          procedure_step_id: string
+          profile_id: string
+          protocol_assignment_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          completed_at?: string
+          created_at?: string
+          evidence?: Json | null
+          id?: string
+          procedure_step_id?: string
+          profile_id?: string
+          protocol_assignment_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "procedure_step_completion_procedure_step_id_fkey"
+            columns: ["procedure_step_id"]
+            isOneToOne: false
+            referencedRelation: "procedure_step"
+            referencedColumns: ["step_id"]
+          },
+          {
+            foreignKeyName: "procedure_step_completion_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "procedure_step_completion_protocol_assignment_id_fkey"
+            columns: ["protocol_assignment_id"]
+            isOneToOne: false
+            referencedRelation: "protocol_assignment"
+            referencedColumns: ["assignment_id"]
+          },
+          {
+            foreignKeyName: "procedure_step_completion_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       profile: {
         Row: {
           address_line_1: string | null
@@ -6727,6 +6985,216 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "service_config"
             referencedColumns: ["service_id"]
+          },
+        ]
+      }
+      session_hook: {
+        Row: {
+          created_at: string
+          department_id: string
+          hook_type: Database["public"]["Enums"]["session_hook_type"]
+          id: string
+          is_active: boolean
+          linked_procedure_id: string | null
+          linked_routine_id: string | null
+          repeat_interval_min: number | null
+          trigger_offset_min: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          department_id: string
+          hook_type: Database["public"]["Enums"]["session_hook_type"]
+          id?: string
+          is_active?: boolean
+          linked_procedure_id?: string | null
+          linked_routine_id?: string | null
+          repeat_interval_min?: number | null
+          trigger_offset_min?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          department_id?: string
+          hook_type?: Database["public"]["Enums"]["session_hook_type"]
+          id?: string
+          is_active?: boolean
+          linked_procedure_id?: string | null
+          linked_routine_id?: string | null
+          repeat_interval_min?: number | null
+          trigger_offset_min?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_hook_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "department"
+            referencedColumns: ["department_id"]
+          },
+          {
+            foreignKeyName: "session_hook_linked_procedure_id_fkey"
+            columns: ["linked_procedure_id"]
+            isOneToOne: false
+            referencedRelation: "procedure"
+            referencedColumns: ["procedure_id"]
+          },
+          {
+            foreignKeyName: "session_hook_linked_routine_id_fkey"
+            columns: ["linked_routine_id"]
+            isOneToOne: false
+            referencedRelation: "routine"
+            referencedColumns: ["routine_id"]
+          },
+          {
+            foreignKeyName: "session_hook_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      session_note: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string
+          department_session_id: string
+          id: string
+          note_type: Database["public"]["Enums"]["session_note_type"]
+          workspace_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by: string
+          department_session_id: string
+          id?: string
+          note_type?: Database["public"]["Enums"]["session_note_type"]
+          workspace_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string
+          department_session_id?: string
+          id?: string
+          note_type?: Database["public"]["Enums"]["session_note_type"]
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_note_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "session_note_department_session_id_fkey"
+            columns: ["department_session_id"]
+            isOneToOne: false
+            referencedRelation: "department_session"
+            referencedColumns: ["department_session_id"]
+          },
+          {
+            foreignKeyName: "session_note_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      session_task: {
+        Row: {
+          assigned_to: string | null
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          department_session_id: string
+          description: string | null
+          evidence: Json | null
+          id: string
+          is_compliance_required: boolean
+          session_hook_id: string | null
+          status: Database["public"]["Enums"]["session_task_status"]
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          department_session_id: string
+          description?: string | null
+          evidence?: Json | null
+          id?: string
+          is_compliance_required?: boolean
+          session_hook_id?: string | null
+          status?: Database["public"]["Enums"]["session_task_status"]
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          department_session_id?: string
+          description?: string | null
+          evidence?: Json | null
+          id?: string
+          is_compliance_required?: boolean
+          session_hook_id?: string | null
+          status?: Database["public"]["Enums"]["session_task_status"]
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_task_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "session_task_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "session_task_department_session_id_fkey"
+            columns: ["department_session_id"]
+            isOneToOne: false
+            referencedRelation: "department_session"
+            referencedColumns: ["department_session_id"]
+          },
+          {
+            foreignKeyName: "session_task_session_hook_id_fkey"
+            columns: ["session_hook_id"]
+            isOneToOne: false
+            referencedRelation: "session_hook"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_task_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
           },
         ]
       }
@@ -8218,6 +8686,21 @@ export type Database = {
       season_type: "default" | "calendar" | "focus" | "cycle" | "custom"
       service_status: "active" | "stopped" | "error" | "unconfigured"
       service_type: "docker" | "vercel" | "edge-function" | "external"
+      session_hook_type:
+        | "pre_open"
+        | "open"
+        | "scheduled"
+        | "pre_close"
+        | "close"
+      session_note_type: "handoff" | "closing" | "general"
+      session_task_status:
+        | "pending"
+        | "available"
+        | "in_progress"
+        | "completed"
+        | "skipped"
+        | "overdue"
+        | "escalated"
       settlement_source_type:
         | "pos"
         | "terminal"
@@ -8589,6 +9072,23 @@ export const Constants = {
       season_type: ["default", "calendar", "focus", "cycle", "custom"],
       service_status: ["active", "stopped", "error", "unconfigured"],
       service_type: ["docker", "vercel", "edge-function", "external"],
+      session_hook_type: [
+        "pre_open",
+        "open",
+        "scheduled",
+        "pre_close",
+        "close",
+      ],
+      session_note_type: ["handoff", "closing", "general"],
+      session_task_status: [
+        "pending",
+        "available",
+        "in_progress",
+        "completed",
+        "skipped",
+        "overdue",
+        "escalated",
+      ],
       settlement_source_type: [
         "pos",
         "terminal",

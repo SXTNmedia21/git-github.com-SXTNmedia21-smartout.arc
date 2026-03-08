@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
+import { emit } from "@smartout/telemetry";
 import type { Database } from "@smartout/supabase";
 
 type ReconciliationStatus = Database["public"]["Enums"]["reconciliation_status"];
@@ -80,6 +81,7 @@ export function useReconciliationDetail(reconciliationId: string | null) {
 // ── Approve reconciliation ───────────────────────────────────
 
 export function useApproveReconciliation() {
+  const { workspace } = useWorkspace();
   const supabase = createClient();
   const queryClient = useQueryClient();
 
@@ -142,7 +144,15 @@ export function useApproveReconciliation() {
 
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_data, { reconciliationId, profileId }) => {
+      void emit({
+        event: "reconciliation admin_action",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId,
+        properties: {
+          data: { reconciliation_id: reconciliationId, action: "approved" },
+        },
+      });
       queryClient.invalidateQueries({ queryKey: ["reconciliation-list"] });
       queryClient.invalidateQueries({ queryKey: ["reconciliation-detail"] });
     },
@@ -152,6 +162,7 @@ export function useApproveReconciliation() {
 // ── Reject reconciliation ────────────────────────────────────
 
 export function useRejectReconciliation() {
+  const { workspace } = useWorkspace();
   const supabase = createClient();
   const queryClient = useQueryClient();
 
@@ -191,7 +202,15 @@ export function useRejectReconciliation() {
 
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_data, { reconciliationId }) => {
+      void emit({
+        event: "reconciliation admin_action",
+        workspace_id: workspace.workspace_id,
+        actor_id: "",
+        properties: {
+          data: { reconciliation_id: reconciliationId, action: "rejected" },
+        },
+      });
       queryClient.invalidateQueries({ queryKey: ["reconciliation-list"] });
       queryClient.invalidateQueries({ queryKey: ["reconciliation-detail"] });
     },

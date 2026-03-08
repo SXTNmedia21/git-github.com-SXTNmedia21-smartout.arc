@@ -7,6 +7,9 @@
     "test:e2e:ui": "bash ./scripts/playwright-with-libs.sh playwright test --ui",
     "test:e2e:report": "bash ./scripts/playwright-with-libs.sh playwright show-report"
   },
+  "dependencies": {
+    "@supabase/supabase-js": "2.49.4"
+  },
   "devDependencies": {
     "@playwright/test": "^1.42.0",
     "@types/node": "^20.0.0",

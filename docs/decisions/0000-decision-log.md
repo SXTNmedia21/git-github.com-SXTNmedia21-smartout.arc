@@ -1,9 +1,9 @@
 ---
 title: Decision Log
 status: in_progress
-updated: 2026-04-10
-created: 2026-03-04
-module: operations
+updated: 2026-03-08
+created: 2026-03-08
+module: cross-cutting
 tags: [decisions]
 ---
 
@@ -71,11 +71,13 @@ tags: [decisions]
 | 8   | 2026-03-06 | Adopt AI runtime canonical spec (`AI_RUNTIME_SYSTEM_DEFINITION_V1`) as single source of truth           | active | ai         |
 | #   | Date       | Decision                                                                                                | Status |
 | --- | ----       | --------                                                                                                | ------ |
+
 status: done
 updated: 2026-04-10
 created: 2026-03-06
 module: infra
 tags: [decisions]
+
 ---
 
 # Decision Log — infra-hardening
@@ -88,3 +90,8 @@ tags: [decisions]
 | 4   | 2026-04-10 | Prod service ports bound to 127.0.0.1 — health-check.sh needs host access, no internet exposure | active |
 | 5   | 2026-04-10 | Pin n8n to 2.10.4 — prevent :latest breaking changes on deploy                                  | active |
 | 6   | 2026-04-10 | Stage Engine gets 300s transport timeouts + flush_interval -1 for AI streaming                  | active |
+
+# Decision Log — zero-to-production
+
+| #   | Date | Decision | Status |
+| --- | ---- | -------- | ------ |

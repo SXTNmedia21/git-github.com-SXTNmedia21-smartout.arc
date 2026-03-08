@@ -1,13 +1,20 @@
 "use client";
 
 import { Loader2, ShieldCheck } from "lucide-react";
-import { useMemo } from "react";
+import { useContext, useMemo } from "react";
 import { useGovernanceOverview } from "@/app/dashboard/_hooks";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { Badge } from "@/components/ui/badge";
 import { GovernanceOverview } from "./_components/GovernanceOverview";
 import { OverdueAlerts } from "./_components/OverdueAlerts";
+import { PolicyForm } from "./_components/PolicyForm";
+import { ProtocolForm } from "./_components/ProtocolForm";
+import { ProcedureBuilder } from "./_components/ProcedureBuilder";
+import { KnowledgeTestBuilder } from "./_components/KnowledgeTestBuilder";
+import { ConfirmationForm } from "./_components/ConfirmationForm";
 
 export default function GovernancePage() {
+  const { isAdminMode } = useContext(DashboardContext);
   const { data: protocols, isLoading, error } = useGovernanceOverview();
 
   const stableProtocols = useMemo(() => protocols ?? [], [protocols]);
@@ -18,7 +25,7 @@ export default function GovernancePage() {
       .map((p) => ({
         protocolName: p.protocolName,
         displayName: `${p.expiredCount} ansatte`,
-        assignedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // Approximate — real dates not available at overview level
+        assignedAt: "", // Placeholder — real dates not available at overview level
       }));
   }, [stableProtocols]);
 
@@ -56,6 +63,17 @@ export default function GovernancePage() {
         </div>
         <p className="text-muted-foreground text-sm">Protokollstatus og ansattes fremdrift</p>
       </div>
+
+      {/* Admin CRUD actions */}
+      {isAdminMode && (
+        <div className="flex flex-wrap gap-2">
+          <PolicyForm />
+          <ProtocolForm />
+          <ProcedureBuilder />
+          <KnowledgeTestBuilder />
+          <ConfirmationForm />
+        </div>
+      )}
 
       {/* Overdue alerts */}
       <OverdueAlerts expiredAssignees={expiredAlerts} />

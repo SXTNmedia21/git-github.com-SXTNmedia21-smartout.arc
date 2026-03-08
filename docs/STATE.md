@@ -1,7 +1,7 @@
 ---
 title: "STATE — System State of Truth"
 status: canonical
-updated: 2026-04-11
+updated: 2026-04-13
 created: 2026-04-11
 module: all
 tags: [state, audit, gaps, architecture, module-zero]
@@ -10,7 +10,7 @@ tags: [state, audit, gaps, architecture, module-zero]
 # STATE — System State of Truth
 
 > Single source of truth for what exists, what's missing, and what to build next.
-> Updated weekly. Last audit: 2026-04-11.
+> Updated weekly. Last audit: 2026-04-13.
 
 ---
 
@@ -34,26 +34,26 @@ tags: [state, audit, gaps, architecture, module-zero]
 | `season`         | 00002     | status: draft/active/archived                                                   |
 | `invitation`     | 00011     | Dual-mode (batch/single), 3 delivery types (email/sms/link)                     |
 
-### 1.2 Governance & Training (Wave 0) — TABLES EXIST, TRACKING MISSING
+### 1.2 Governance & Training (Wave 0) — ALL EXIST
 
-| Table                       | Migration | Status                                                                                              |
-| --------------------------- | --------- | --------------------------------------------------------------------------------------------------- |
-| `policy`                    | 00003     | EXISTS — type: operational/haccp/hr/safety/access/payroll/custom                                    |
-| `protocol`                  | 00003     | EXISTS — status: draft/active/deprecated                                                            |
-| `procedure`                 | 00003     | EXISTS — type: standard/onboarding/safety/maintenance/custom                                        |
-| `procedure_step`            | 00003     | EXISTS — step_order, title, description, is_required, estimated_minutes. NO training_content column |
-| `control_list`              | 00003     | EXISTS                                                                                              |
-| `routine`                   | 00003     | EXISTS                                                                                              |
-| `runbook`                   | 00003     | EXISTS                                                                                              |
-| `runbook_step`              | 00003     | EXISTS                                                                                              |
-| `knowledge_test`            | 00003     | EXISTS — questions/answers definition                                                               |
-| `confirmation`              | 00003     | EXISTS — sign-off template definition                                                               |
-| `protocol_assignment`       | 00003     | EXISTS — simple: protocol_id + profile_id + status (pending/completed/expired). NO progress columns |
-| `knowledge_test_attempt`    | —         | MISSING — no way to record quiz scores                                                              |
-| `confirmation_signature`    | —         | MISSING — no way to record sign-offs                                                                |
-| `procedure_step_completion` | —         | MISSING — no way to track which steps an employee has finished                                      |
+| Table                       | Migration      | Status                                                                                              |
+| --------------------------- | -------------- | --------------------------------------------------------------------------------------------------- |
+| `policy`                    | 00003          | EXISTS — type: operational/haccp/hr/safety/access/payroll/custom                                    |
+| `protocol`                  | 00003          | EXISTS — status: draft/active/deprecated                                                            |
+| `procedure`                 | 00003          | EXISTS — type: standard/onboarding/safety/maintenance/custom                                        |
+| `procedure_step`            | 00003          | EXISTS — step_order, title, description, is_required, estimated_minutes. NO training_content column |
+| `control_list`              | 00003          | EXISTS                                                                                              |
+| `routine`                   | 00003          | EXISTS                                                                                              |
+| `runbook`                   | 00003          | EXISTS                                                                                              |
+| `runbook_step`              | 00003          | EXISTS                                                                                              |
+| `knowledge_test`            | 00003          | EXISTS — questions/answers definition                                                               |
+| `confirmation`              | 00003          | EXISTS — sign-off template definition                                                               |
+| `protocol_assignment`       | 00003          | EXISTS — simple: protocol_id + profile_id + status (pending/completed/expired). NO progress columns |
+| `knowledge_test_attempt`    | 20260412100200 | EXISTS — quiz score, answers, pass/fail per attempt                                                 |
+| `confirmation_signature`    | 20260412100200 | EXISTS — sign-off record with signature_data JSONB                                                  |
+| `procedure_step_completion` | 20260412100200 | EXISTS — per-step progress per employee per protocol_assignment                                     |
 
-**Impact:** Readiness score hardcoded to `false` in `use-protocol-journey.ts:80`. Training module cannot function.
+**Readiness score:** Computed from real DB queries in `use-protocol-journey.ts`. Training module functional.
 
 ### 1.3 Scheduling (Wave 2) — ALL EXIST
 
@@ -69,19 +69,19 @@ tags: [state, audit, gaps, architecture, module-zero]
 | `schedule_day_booking`    | 20260301600003 | status: confirmed/pending/cancelled                                         |
 | `schedule_audit_log`      | 20260301600003 | Row-level audit trail                                                       |
 
-### 1.4 Operations (Wave 3) — PARTIAL
+### 1.4 Operations (Wave 3) — ALL EXIST
 
 | Table                  | Migration      | Status                                                                                        |
 | ---------------------- | -------------- | --------------------------------------------------------------------------------------------- |
 | `department_session`   | 20260304200000 | EXISTS — status: upcoming/active/pending_signoff/closed/missed. UNIQUE(workspace, dept, date) |
-| `session_hook`         | —              | MISSING — no hook definitions (pre_open, open, scheduled, pre_close, close)                   |
-| `session_task`         | —              | MISSING — operational tasks tied to session hooks (different from schedule_day_task)          |
-| `session_note`         | —              | MISSING — handoff/closing notes per session                                                   |
+| `session_hook`         | 20260412100300 | EXISTS — hook_type enum: pre_open/open/scheduled/pre_close/close                              |
+| `session_task`         | 20260412100300 | EXISTS — status enum lifecycle, linked to department_session + session_hook                   |
+| `session_note`         | 20260412100300 | EXISTS — note_type: handoff/closing/general                                                   |
 | `daily_reconciliation` | 20260304200100 | EXISTS — status: open/submitted/awaiting_approval/approved/locked/unreconciled                |
 | `deviation`            | 20260304200200 | EXISTS — domain: safety/customer/procedure/system/material                                    |
 | `shift_approval`       | 20260304200200 | EXISTS — status: pending/approved/edited/disputed                                             |
 
-**Impact:** Nothing creates department sessions. Schedule publish has no side effects. The entire operations layer is inert.
+**Status:** Engine-dispatch has `upsert_session` handler that creates department_sessions from shift events. Session hooks seeded via engine_process templates. Operations layer wired but not yet triggered end-to-end (requires shift publish → emit flow).
 
 ### 1.5 Season Planning (Wave 6) — ALL EXIST
 
@@ -107,7 +107,7 @@ tags: [state, audit, gaps, architecture, module-zero]
 | `engine_event`            | 20260304100000 | Immutable event log. Idempotency support                               |
 | `engine_state`            | 20260304100000 | Running process instances. entity_type/entity_id, current_step, status |
 | `engine_delayed_trigger`  | 20260304100000 | Timer queue for delayed triggers                                       |
-| `engine_state_step`       | —              | MISSING — per-step completion tracking on instances                    |
+| `engine_state_step`       | 20260412100100 | EXISTS — per-step completion tracking. Cascading RLS via engine_state  |
 
 ### 1.7 Document Mode — EXISTS
 
@@ -154,191 +154,77 @@ tags: [state, audit, gaps, architecture, module-zero]
 
 ### 2.2 Focus Pages (Admin)
 
-| Page             | Route                       | Status      | Notes                                                                                                                                        |
-| ---------------- | --------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| Schedule Planner | `/dashboard/schedule`       | WORKING     | Full week/day/month views, DnD shifts, Day Control Panel, publish workflow, Realtime on 6 tables                                             |
-| People           | `/dashboard/people`         | WORKING     | DataTable, invite status, employee cards, row actions                                                                                        |
-| Reports          | `/dashboard/reports`        | WORKING     | ReportsPageShell, AI chat panel, saved reports, deep insights                                                                                |
-| Chat             | `/dashboard/chat`           | WORKING     | ChatShell, real-time messages, DMs, conversation management                                                                                  |
-| Governance       | `/dashboard/governance`     | PARTIAL     | GovernanceOverview, ProtocolEmployeeList, OverdueAlerts work. EmployeeJourneyMap hardcodes isCompleted=false. No CRUD for policies/protocols |
-| Operations       | `/dashboard/operations`     | PLACEHOLDER | Route exists, no operational dashboard                                                                                                       |
-| Daily Close      | `/dashboard/close`          | WORKING     | CloseOutFlow, checklist, gatekeeper, image upload, settlement validation                                                                     |
-| Reconciliation   | `/dashboard/reconciliation` | WORKING     | DayList, DayApproval, ShiftApproval, Revenue, Deviation sections                                                                             |
-| Season           | `/dashboard/season`         | WORKING     | 4 tabs: overview, budget, day-factors, hour-factors                                                                                          |
-| Organization     | `/dashboard/organization`   | WORKING     | Department/location/team/position list, CRUD dialogs                                                                                         |
-| Settings         | `/dashboard/settings`       | PARTIAL     | Tab navigation, opening hours. No general settings, branding, notifications                                                                  |
-| AI               | `/dashboard/ai`             | WORKING     | Full Mr. Botsson interface                                                                                                                   |
+| Page             | Route                       | Status      | Notes                                                                                                                                     |
+| ---------------- | --------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Schedule Planner | `/dashboard/schedule`       | WORKING     | Full week/day/month views, DnD shifts, Day Control Panel, publish workflow, Realtime on 6 tables                                          |
+| People           | `/dashboard/people`         | WORKING     | DataTable, invite status, employee cards, row actions                                                                                     |
+| Reports          | `/dashboard/reports`        | WORKING     | ReportsPageShell, AI chat panel, saved reports, deep insights                                                                             |
+| Chat             | `/dashboard/chat`           | WORKING     | ChatShell, real-time messages, DMs, conversation management                                                                               |
+| Governance       | `/dashboard/governance`     | WORKING     | GovernanceOverview + full CRUD: PolicyForm, ProtocolForm, ProcedureBuilder, KnowledgeTestBuilder, ConfirmationForm. Real readiness scores |
+| Operations       | `/dashboard/operations`     | PLACEHOLDER | Route exists, no operational dashboard                                                                                                    |
+| Daily Close      | `/dashboard/close`          | WORKING     | CloseOutFlow, checklist, gatekeeper, image upload, settlement validation                                                                  |
+| Reconciliation   | `/dashboard/reconciliation` | WORKING     | DayList, DayApproval, ShiftApproval, Revenue, Deviation sections                                                                          |
+| Season           | `/dashboard/season`         | WORKING     | 4 tabs: overview, budget, day-factors, hour-factors                                                                                       |
+| Organization     | `/dashboard/organization`   | WORKING     | Department/location/team/position list, CRUD dialogs                                                                                      |
+| Settings         | `/dashboard/settings`       | PARTIAL     | Tab navigation, opening hours. No general settings, branding, notifications                                                               |
+| AI               | `/dashboard/ai`             | WORKING     | Full Mr. Botsson interface                                                                                                                |
 
 ### 2.3 Document View (Handbok)
 
-| Component                | Status  | Notes                                               |
-| ------------------------ | ------- | --------------------------------------------------- |
-| DocumentModeShell        | WORKING | Full layout with canvas + panel                     |
-| DocumentModeCanvas       | WORKING | Tiptap editor, loads/saves from handbook_chapter    |
-| DocumentModeSidebar      | WORKING | 10 fixed chapter navigation                         |
-| DocumentModeToolbar      | WORKING | Formatting toolbar                                  |
-| DocumentModePanel        | WORKING | 3 tabs: tools, actions, settings                    |
-| Employee handbook reader | MISSING | Employees cannot read chapters their admin wrote    |
-| Handbook-to-RAG pipeline | MISSING | Saved chapters not chunked into workspace_doc_chunk |
+| Component                | Status  | Notes                                                                           |
+| ------------------------ | ------- | ------------------------------------------------------------------------------- |
+| DocumentModeShell        | WORKING | Full layout with canvas + panel                                                 |
+| DocumentModeCanvas       | WORKING | Tiptap editor, loads/saves from handbook_chapter                                |
+| DocumentModeSidebar      | WORKING | 10 fixed chapter navigation                                                     |
+| DocumentModeToolbar      | WORKING | Formatting toolbar                                                              |
+| DocumentModePanel        | WORKING | 3 tabs: tools, actions, settings                                                |
+| Employee handbook reader | WORKING | ChapterReader at /dashboard/handbook — read-only Tiptap render with chapter nav |
+| Handbook-to-RAG pipeline | MISSING | Saved chapters not chunked into workspace_doc_chunk                             |
 
 ### 2.4 Employee Views (My View / Arbeidsrom)
 
 | Page           | Route                        | Status      | Notes                                                                                    |
 | -------------- | ---------------------------- | ----------- | ---------------------------------------------------------------------------------------- |
 | Oversikt       | `/dashboard` (employee mode) | WORKING     | EmployeeDashboard: today's shift, upcoming shifts, readiness score, open shifts to claim |
-| Min vaktplan   | `/dashboard/my-schedule`     | PLACEHOLDER | "Under construction" shell                                                               |
-| Min opplaering | `/dashboard/my-training`     | PLACEHOLDER | "Under construction" shell                                                               |
+| Min vaktplan   | `/dashboard/my-schedule`     | WORKING     | MyWeekView — published shifts for current profile, week navigation                       |
+| Min opplaering | `/dashboard/my-training`     | WORKING     | ProtocolList, ProcedureStepper, KnowledgeTestView, ConfirmationSign — real progress data |
 | Min profil     | `/dashboard/my-cv`           | PARTIAL     | Route exists, personal profile view                                                      |
 | Min lonn       | `/dashboard/my-salary`       | PLACEHOLDER | "Under construction" shell                                                               |
 
 ---
 
-## 3. The 10 Gaps
+## 3. The 10 Gaps — Status After Module Zero
 
-### Gap 1: No Event Emission (FOUNDATIONAL)
+> All 10 gaps identified 2026-04-11 have been addressed by `feat/zero-to-production` (22 commits).
+> Full audit performed 2026-04-13. Typecheck 19/19 GREEN.
 
-**What:** The Event Engine (`engine_event` -> `engine_trigger` -> `engine_state`) is fully built. The `engine-dispatch` Edge Function processes events, matches triggers, creates state, and executes steps. But **nothing in the application emits events**.
+| Gap | Description                          | Status      | Resolution                                                                                        |
+| --- | ------------------------------------ | ----------- | ------------------------------------------------------------------------------------------------- |
+| 1   | No Event Emission                    | **CLOSED**  | emit() wired into all TanStack Query mutations. engine_event as 4th telemetry destination         |
+| 2   | Two Disconnected Event Systems       | **CLOSED**  | engine-event provider calls engine-dispatch. 26 typed events in registry. Client relay via API    |
+| 3   | No Completion Tracking               | **CLOSED**  | 3 tables created (knowledge_test_attempt, confirmation_signature, procedure_step_completion)      |
+| 4   | No Per-Step Instance Tracking        | **CLOSED**  | engine_state_step table with cascading RLS. 13 action handlers in engine-dispatch                 |
+| 5   | Schedule -> Operations Disconnect    | **PARTIAL** | upsert_session handler exists. Emit on shift publish wired. End-to-end flow not yet tested        |
+| 6   | Invite -> Trainee Dead End           | **PARTIAL** | invitation_accepted event registered. Engine trigger seeded. accept-invitation EF not yet updated |
+| 7   | Employee Pages Are Shells            | **CLOSED**  | my-schedule (MyWeekView), my-training (4 components), handbook (ChapterReader) all built          |
+| 8   | Document Mode Has No Reader          | **PARTIAL** | Employee handbook reader built. RAG chunking pipeline NOT built (handbook save → doc_chunk)       |
+| 9   | Governance Has No CRUD               | **CLOSED**  | 5 forms: PolicyForm, ProtocolForm, ProcedureBuilder, KnowledgeTestBuilder, ConfirmationForm       |
+| 10  | No Session Hooks / Operational Tasks | **CLOSED**  | 3 tables + 3 enums created. Hook dispatcher process seeded. Engine action handlers ready          |
 
-**Why it matters:** Without events, every module is an island. Schedules don't create sessions. Invites don't assign protocols. Closes don't trigger reconciliation.
+### Known Remaining Gaps (post-audit)
 
-**Fix:** Connect telemetry `emit()` to `engine_event` as a fourth destination (see Gap 2).
-
-### Gap 2: Two Disconnected Event Systems (FOUNDATIONAL)
-
-**What:** Two event systems exist independently:
-
-| System    | Package                            | Writes to                         | Purpose             |
-| --------- | ---------------------------------- | --------------------------------- | ------------------- |
-| Telemetry | `@smartout/telemetry`              | PostHog + activity_trail + logger | Analytics, audit    |
-| Engine    | `engine_event` + `engine-dispatch` | engine_trigger -> engine_state    | Workflow automation |
-
-Telemetry has 11 typed events, routing, categories, entity refs. Engine has dispatch, trigger matching, step execution. Neither talks to the other.
-
-Additionally, telemetry `emit()` is never called from UI code. The `useTrack` hook exists but 0 components import it.
-
-**Fix:**
-
-1. Add `"engine_event"` as fourth destination in `registry.ts`
-2. Write `providers/engine-event.ts` that calls `engine-dispatch` Edge Function
-3. Wire `emit()` into every TanStack Query mutation `onSuccess`
-4. Map telemetry event names to engine event_types
-
-### Gap 3: No Completion Tracking Infrastructure (FOUNDATIONAL)
-
-**What:** Three tables are missing:
-
-| Missing Table               | Purpose                                        | Blocks                              |
-| --------------------------- | ---------------------------------------------- | ----------------------------------- |
-| `knowledge_test_attempt`    | Record quiz scores per employee per test       | Training module, readiness score    |
-| `confirmation_signature`    | Record sign-offs per employee per confirmation | Training module, compliance         |
-| `procedure_step_completion` | Track which steps an employee has finished     | Training module, procedure progress |
-
-`protocol_assignment` is too simple — only `status` (pending/completed/expired) with no intermediate tracking.
-
-**Evidence:** `use-protocol-journey.ts:80` — `isCompleted: false, // MVP: not tracked in DB yet`
-
-**Fix:** Create these three tables + add progress columns to `protocol_assignment` (or compute from joins).
-
-### Gap 4: No Per-Step Instance Tracking on Engine State
-
-**What:** `engine_state` tracks `current_step` (single integer) and `result` (JSONB blob). Works for sequential system-driven processes (DailyClose). Breaks for employee-facing workflows where:
-
-- Steps can be done out of order
-- Each step needs who-completed-it + when + evidence
-- Multiple steps can be in-progress simultaneously
-
-**Fix:** Create `engine_state_step` table:
-
-```
-state_id, step_order, status (pending/active/completed/skipped/failed),
-completed_by (FK profile), completed_at, result (JSONB — quiz score, signature ref)
-```
-
-### Gap 5: Schedule -> Operations Disconnect
-
-**What:** Publishing shifts (`usePublishShifts`) updates `schedule_shift.status` to "published" and `is_published` to true. No side effects — no department_session creation, no event emission, no guardian notification.
-
-The `department_session` table exists with the right schema. The DailyClose process is seeded with 10 steps and 2 triggers (`department_session.pending_signoff`, `shift.last_checkout`). But nothing creates sessions or emits these events.
-
-**Fix:** When shifts are published for a date, emit `"shift published"` event. Engine trigger creates department_session. Session lifecycle emits further events (pending_signoff -> DailyClose).
-
-### Gap 6: Invite -> Trainee Dead End
-
-**What:** `accept-invitation` Edge Function creates:
-
-- Auth user via `auth.admin.createUser()`
-- Updates `user_identity` with name
-- Creates `profile` with `status: 'trainee'`
-- Inserts `team_member` rows
-- Redirects to `/dashboard`
-
-Does NOT create: journey data, protocol assignments, trainee progress records, or any first-day experience. Employee lands on EmployeeDashboard with nothing trainee-specific.
-
-**Fix:** Emit `"invitation.accepted"` event. Engine trigger starts onboarding process that assigns protocols and creates trainee journey state.
-
-### Gap 7: Employee-Facing Pages Are Shells
-
-**What:** Four employee routes are placeholder shells:
-
-| Route                    | Current state                |
-| ------------------------ | ---------------------------- |
-| `/dashboard/my-schedule` | "Under construction" message |
-| `/dashboard/my-training` | "Under construction" message |
-| `/dashboard/my-salary`   | "Under construction" message |
-| `/dashboard/my-cv`       | Partial — basic profile view |
-
-The EmployeeDashboard landing page (`/dashboard` in employee mode) works — shows today's shift, upcoming shifts, readiness score, open shifts.
-
-**Fix:** Build after Gaps 1-6 are resolved. My-schedule needs published shifts query. My-training needs completion tracking tables. My-salary needs payroll tables.
-
-### Gap 8: Document Mode Has No Reader
-
-**What:** Admins can write 10 handbook chapters via Tiptap editor. Content stored as JSONB in `handbook_chapter`. But:
-
-- Employees cannot read the handbook (no reader view)
-- Content is not chunked into `workspace_doc_chunk` (agents can't search it)
-- No connection between handbook chapters and governance protocols
-
-**Fix:**
-
-1. Build employee handbook reader (render Tiptap JSON as read-only)
-2. On chapter save, chunk content into `workspace_doc_chunk` for RAG
-3. Optionally link chapters to protocols
-
-### Gap 9: Governance Has No CRUD
-
-**What:** The governance page (`/dashboard/governance`) shows a read-only overview:
-
-- GovernanceOverview — protocol cards with completion % (fake — always shows based on assignment count, not actual completion)
-- ProtocolEmployeeList — employee list per protocol
-- OverdueAlerts — overdue training alerts
-
-But there is no UI for:
-
-- Creating/editing policies
-- Creating/editing protocols
-- Building procedures (step-by-step)
-- Creating knowledge tests
-- Creating confirmation templates
-- Assigning protocols to employees
-
-The DB tables for all of these exist (00003_governance_tables.sql). Only the admin UI is missing.
-
-**Fix:** Build governance CRUD. This is a standard admin UI task, not architecturally complex.
-
-### Gap 10: No Session Hooks or Operational Tasks
-
-**What:** The Module 4 spec describes session hooks (pre_open, open, scheduled, pre_close, close) that trigger procedures and routines as `session_task` records. None of this exists:
-
-- `session_hook` table — MISSING
-- `session_task` table — MISSING (different from `schedule_day_task` which is ad-hoc todos)
-- `session_note` table — MISSING
-- Auto-triggering via time-based hooks — NOT BUILT
-- Connection between governance procedures and operational tasks — NOT BUILT
-
-`schedule_day_task` is a simple todo list (label, category, status as free text). `session_task` would be a hook-triggered, compliance-tracked operational task tied to a department session with a proper status lifecycle.
-
-**Fix:** Create session_hook, session_task, session_note tables. Wire hooks to engine_trigger. These are new action_types in the Event Engine, not a separate system.
+| Area                       | Gap                                                                            | Priority |
+| -------------------------- | ------------------------------------------------------------------------------ | -------- |
+| Notifications              | `send_notification` handler is a console.log stub (no notification_queue flow) | Medium   |
+| Handbook → RAG             | Saved chapters not chunked into workspace_doc_chunk                            | Medium   |
+| Invite → Onboarding        | accept-invitation EF doesn't emit invitation_accepted event yet                | High     |
+| Shift Publish → Session    | End-to-end flow untested (emit → trigger → upsert_session → hooks)             | High     |
+| PolicyForm scope picker    | Department picker doesn't appear when "department" scope selected              | Low      |
+| Wizard forms               | Setup wizard steps are placeholders (dashed border, no real forms)             | Medium   |
+| Wizard mobile              | No responsive layout on workspace setup wizard                                 | Low      |
+| my-schedule realtime       | No Realtime subscription on employee shift view                                | Low      |
+| Invite dialog departments  | Hardcoded department list in invite dialog (pre-existing)                      | Low      |
+| Trainee first-day redirect | No redirect to my-training after invite accept                                 | Medium   |
 
 ---
 
@@ -413,7 +299,7 @@ emit("shift published") ->
 ## 5. Module Zero — Week-by-Week Plan
 
 > Module Zero = the foundational work that unblocks all other modules.
-> Duration: 4 weeks. Sequence matters — each week builds on the previous.
+> Duration: 5 weeks. **ALL COMPLETE as of 2026-04-13.** Branch: `feat/zero-to-production`, 22 commits.
 
 ### Week 1: Event Backbone
 
@@ -506,16 +392,17 @@ emit("shift published") ->
 
 ### Latest Timestamped
 
-`20260411120000_workspace_kpi_copy.sql`
+`20260413100000_fix_company_org_number_nullable.sql`
 
 ### Enum Count
 
 **61 custom enums.** Full list in BUILD_ORDER.md Appendix or via: `grep -r "CREATE TYPE" supabase/migrations/`
 
-Key enums that DO NOT exist yet and must be created:
+Enums added by Module Zero:
 
-- `session_task_status` (pending/available/in_progress/completed/skipped/overdue/escalated)
-- `session_hook_type` (pre_open/open/scheduled/pre_close/close)
+- `session_hook_type` (pre_open/open/scheduled/pre_close/close) — 20260412100000
+- `session_task_status` (pending/available/in_progress/completed/skipped/overdue/escalated) — 20260412100000
+- `session_note_type` (handoff/closing/general) — 20260412100000
 
 ---
 
@@ -523,35 +410,34 @@ Key enums that DO NOT exist yet and must be created:
 
 ### Package: `@smartout/telemetry`
 
-| File                          | Purpose                                                                    |
-| ----------------------------- | -------------------------------------------------------------------------- |
-| `registry.ts`                 | 11 typed events, BaseEvent shape, EntityRef, ActionVerb, EVENT_ROUTING map |
-| `emit.ts`                     | Router: checks routing config, dispatches to providers                     |
-| `providers/posthog.ts`        | PostHog EU (client + server)                                               |
-| `providers/logger.ts`         | Structured stdout logging                                                  |
-| `providers/activity-trail.ts` | Writes to `activity_trail` table via service role                          |
-| `hooks/use-track.ts`          | React hook for client-side tracking                                        |
-| `react.ts`                    | React bindings                                                             |
+| File                          | Purpose                                                                  |
+| ----------------------------- | ------------------------------------------------------------------------ |
+| `registry.ts`                 | 26 typed events, BaseEvent shape, EVENT_ROUTING map                      |
+| `emit.ts`                     | Router: checks routing config, dispatches to 4 providers                 |
+| `providers/posthog-client.ts` | PostHog browser-safe adapter (split from posthog.ts)                     |
+| `providers/posthog.ts`        | PostHog server-only adapter (loaded via dynamic import)                  |
+| `providers/logger.ts`         | Structured stdout logging (server-only, dynamic import)                  |
+| `providers/activity-trail.ts` | Writes to `activity_trail` table (server-only, dynamic import)           |
+| `providers/engine-event.ts`   | Calls engine-dispatch Edge Function (dual: server direct / client relay) |
+| `hooks/use-track.ts`          | React hook for client-side tracking                                      |
+| `react.ts`                    | React bindings                                                           |
 
-### Registered Events (11)
+### Destinations (4)
 
-| Event               | Category      | Destinations                    |
-| ------------------- | ------------- | ------------------------------- |
-| auth signed_up      | auth          | posthog, logger                 |
-| auth signed_in      | auth          | posthog, logger                 |
-| auth signed_out     | auth          | posthog                         |
-| department created  | org_structure | posthog, logger, activity_trail |
-| department updated  | org_structure | posthog, logger, activity_trail |
-| department archived | org_structure | posthog, logger, activity_trail |
-| shift created       | scheduling    | posthog, logger, activity_trail |
-| shift updated       | scheduling    | posthog, logger, activity_trail |
-| shift deleted       | scheduling    | posthog, logger, activity_trail |
-| page viewed         | navigation    | posthog                         |
-| button clicked      | navigation    | posthog                         |
+| Destination      | Transport                                  | Purpose             |
+| ---------------- | ------------------------------------------ | ------------------- |
+| `posthog`        | PostHog EU (browser SDK or posthog-node)   | Analytics           |
+| `logger`         | Structured stdout (server-only)            | Debugging           |
+| `activity_trail` | INSERT to activity_trail table             | Audit               |
+| `engine_event`   | POST to engine-dispatch EF (or /api relay) | Workflow automation |
 
-### Usage: 0 call sites
+### Registered Events (26)
 
-`emit()` is never called from app code. `useTrack` hook is never imported. The `/api/telemetry` route exists but no client sends to it.
+Auth (3), org_structure (3), scheduling (4), operations (5), training (5), reconciliation (2), handbook (1), navigation (2), intelligence (1).
+
+### Usage
+
+`emit()` wired into all TanStack Query mutations via `onSuccess`. Client events relay through `/api/engine-dispatch` API route to avoid CORS issues with Edge Functions.
 
 ---
 
@@ -568,23 +454,26 @@ Key enums that DO NOT exist yet and must be created:
 
 ### Key File Locations
 
-| What                             | Path                                                              |
-| -------------------------------- | ----------------------------------------------------------------- |
-| DashboardShell                   | `apps/web/src/components/dashboard/DashboardShell.tsx`            |
-| AdminDashboard                   | `apps/web/src/components/dashboard/AdminDashboard.tsx`            |
-| EmployeeDashboard                | `apps/web/src/components/dashboard/EmployeeDashboard.tsx`         |
-| Telemetry package                | `packages/telemetry/src/`                                         |
-| Engine dispatch                  | `supabase/functions/engine-dispatch/index.ts`                     |
-| Schedule hooks                   | `apps/web/src/app/dashboard/schedule/_hooks/`                     |
-| Dashboard hooks                  | `apps/web/src/app/dashboard/_hooks/`                              |
-| Document Mode                    | `apps/web/src/app/dashboard/_components/document-mode/`           |
-| Governance page                  | `apps/web/src/app/dashboard/governance/`                          |
-| Readiness hook (hardcoded false) | `apps/web/src/app/dashboard/_hooks/use-protocol-journey.ts:80`    |
-| Agent router                     | `services/stage-engine/src/core/agent-router.ts`                  |
-| DailyClose seed                  | `supabase/migrations/20260304300000_seed_daily_close_process.sql` |
-| Process tables                   | `supabase/migrations/20260304100000_engine_process_tables.sql`    |
+| What                          | Path                                                              |
+| ----------------------------- | ----------------------------------------------------------------- |
+| DashboardShell                | `apps/web/src/components/dashboard/DashboardShell.tsx`            |
+| AdminDashboard                | `apps/web/src/components/dashboard/AdminDashboard.tsx`            |
+| EmployeeDashboard             | `apps/web/src/components/dashboard/EmployeeDashboard.tsx`         |
+| Telemetry package             | `packages/telemetry/src/`                                         |
+| Engine dispatch               | `supabase/functions/engine-dispatch/index.ts`                     |
+| Schedule hooks                | `apps/web/src/app/dashboard/schedule/_hooks/`                     |
+| Dashboard hooks               | `apps/web/src/app/dashboard/_hooks/`                              |
+| Document Mode                 | `apps/web/src/app/dashboard/_components/document-mode/`           |
+| Governance page               | `apps/web/src/app/dashboard/governance/`                          |
+| Readiness hook (real queries) | `apps/web/src/app/dashboard/_hooks/use-protocol-journey.ts`       |
+| Workspace setup wizard        | `apps/web/src/components/dashboard/WorkspaceSetupWizard.tsx`      |
+| Engine event client relay     | `apps/web/src/app/api/engine-dispatch/route.ts`                   |
+| Fire delayed triggers         | `supabase/functions/fire-delayed-triggers/index.ts`               |
+| Agent router                  | `services/stage-engine/src/core/agent-router.ts`                  |
+| DailyClose seed               | `supabase/migrations/20260304300000_seed_daily_close_process.sql` |
+| Process tables                | `supabase/migrations/20260304100000_engine_process_tables.sql`    |
 
 ---
 
-_Next update: Week of 2026-04-18_
+_Next update: Week of 2026-04-20_
 _Owner: Pontus Lindroth_

@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
+import { emit } from "@smartout/telemetry";
 
 // ── Fetch active session for current department ──────────────
 
@@ -114,6 +115,7 @@ export function useUploadSettlementImage() {
 // ── Submit reconciliation ────────────────────────────────────
 
 export function useSubmitReconciliation() {
+  const { workspace } = useWorkspace();
   const supabase = createClient();
   const queryClient = useQueryClient();
 
@@ -146,7 +148,15 @@ export function useSubmitReconciliation() {
       if (error) throw error;
       return { reconciliation: data, validation };
     },
-    onSuccess: () => {
+    onSuccess: (_data, { reconciliationId, profileId }) => {
+      void emit({
+        event: "reconciliation submitted",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId,
+        properties: {
+          data: { reconciliation_id: reconciliationId },
+        },
+      });
       queryClient.invalidateQueries({ queryKey: ["reconciliation"] });
     },
   });

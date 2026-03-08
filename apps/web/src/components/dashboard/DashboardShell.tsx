@@ -226,6 +226,10 @@ export const DashboardContext = createContext({
   },
   workspaceData: null as { workspace_id: string; company_id: string | null; name: string } | null,
   profileId: null as string | null,
+  isSetupMode: false,
+  setIsSetupMode: (_val: boolean) => {
+    void _val;
+  },
 });
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -341,6 +345,7 @@ export function DashboardShell({
     isSettling: false,
     notices: [],
   });
+  const [isSetupMode, setIsSetupMode] = useState(false);
   const [isDocumentMode, setIsDocumentMode] = useState(false);
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -404,6 +409,8 @@ export function DashboardShell({
       setScheduleCompactMode,
       workspaceData,
       profileId,
+      isSetupMode,
+      setIsSetupMode,
     }),
     [
       isAdminMode,
@@ -422,6 +429,7 @@ export function DashboardShell({
       scheduleCompactMode,
       workspaceData,
       profileId,
+      isSetupMode,
     ],
   );
 
@@ -873,6 +881,21 @@ export function DashboardShell({
     }
     return pathname.startsWith(path);
   };
+
+  // ── Setup mode: fullscreen, no chrome ──
+  if (isSetupMode) {
+    return (
+      <DashboardContext.Provider value={dashboardContextValue}>
+        <div
+          className={`flex h-screen flex-col overflow-hidden font-sans transition-colors duration-300 selection:bg-orange-500/30 ${
+            isDark ? "dark" : ""
+          } bg-background text-foreground`}
+        >
+          {children}
+        </div>
+      </DashboardContext.Provider>
+    );
+  }
 
   return (
     <DocumentModeProvider>

@@ -8,8 +8,8 @@ import type { JourneyPhase, JourneyStep, ProtocolJourneyData } from "./dashboard
 
 /**
  * Fetches journey data for a specific protocol assignment: phases and steps.
- * Builds three phases: Lær (procedures), Test (knowledge_test), Signér (confirmation).
- * NOTE: Step completion is NOT tracked in DB yet — isCompleted is always false for MVP.
+ * Builds three phases: Laer (procedures), Test (knowledge_test), Signer (confirmation).
+ * Queries real completion tables: procedure_step_completion, knowledge_test_attempt, confirmation_signature.
  * Connected to: EmployeeJourneyMap component
  */
 export function useProtocolJourney(protocolId: string | null, assignmentId: string | null) {
@@ -53,7 +53,53 @@ export function useProtocolJourney(protocolId: string | null, assignmentId: stri
 
       if (confirmError) throw confirmError;
 
-      // Build steps from all procedures
+      // ── Completion queries ──────────────────────────────────
+      // Query procedure_step_completion for completed steps
+      const allStepIds: string[] = [];
+      for (const proc of procedures ?? []) {
+        const procSteps = (proc.procedure_step ?? []) as Array<{ step_id: string }>;
+        for (const ps of procSteps) {
+          allStepIds.push(ps.step_id);
+        }
+      }
+
+      let completedStepIds: Set<string> = new Set();
+      if (allStepIds.length > 0 && assignmentId) {
+        const { data: completions } = await supabase
+          .from("procedure_step_completion")
+          .select("procedure_step_id")
+          .eq("protocol_assignment_id", assignmentId!)
+          .in("procedure_step_id", allStepIds);
+
+        completedStepIds = new Set(
+          (completions ?? []).map((c: { procedure_step_id: string }) => c.procedure_step_id),
+        );
+      }
+
+      // Query knowledge_test_attempt for passed tests
+      let passedTestCount = 0;
+      if ((testCount ?? 0) > 0 && assignmentId) {
+        const { count: passedCount } = await supabase
+          .from("knowledge_test_attempt")
+          .select("id", { count: "exact", head: true })
+          .eq("protocol_assignment_id", assignmentId!)
+          .eq("passed", true);
+
+        passedTestCount = passedCount ?? 0;
+      }
+
+      // Query confirmation_signature for signed confirmations
+      let signedConfirmCount = 0;
+      if ((confirmCount ?? 0) > 0 && assignmentId) {
+        const { count: signedCount } = await supabase
+          .from("confirmation_signature")
+          .select("id", { count: "exact", head: true })
+          .eq("protocol_assignment_id", assignmentId!);
+
+        signedConfirmCount = signedCount ?? 0;
+      }
+
+      // ── Build steps ─────────────────────────────────────────
       const steps: JourneyStep[] = [];
       let totalProcedureSteps = 0;
 
@@ -77,7 +123,7 @@ export function useProtocolJourney(protocolId: string | null, assignmentId: stri
             stepOrder: step.step_order,
             isRequired: step.is_required,
             estimatedMinutes: step.estimated_minutes,
-            isCompleted: false, // MVP: not tracked in DB yet
+            isCompleted: completedStepIds.has(step.step_id),
           });
         }
       }
@@ -85,32 +131,68 @@ export function useProtocolJourney(protocolId: string | null, assignmentId: stri
       // Sort steps by step_order
       steps.sort((a, b) => a.stepOrder - b.stepOrder);
 
-      // Build phases
+      // ── Compute readiness ───────────────────────────────────
+      const completedSteps = completedStepIds.size;
+      const totalTests = testCount ?? 0;
+      const totalConfirmations = confirmCount ?? 0;
+      const totalItems = totalProcedureSteps + totalTests + totalConfirmations;
+
+      const readinessScore =
+        totalItems > 0 ? (completedSteps + passedTestCount + signedConfirmCount) / totalItems : 0;
+
+      // ── Build phases ────────────────────────────────────────
+      const procedureStatus: JourneyPhase["status"] =
+        totalProcedureSteps === 0
+          ? "completed"
+          : completedSteps === totalProcedureSteps
+            ? "completed"
+            : completedSteps > 0
+              ? "in_progress"
+              : "not_started";
+
+      const testStatus: JourneyPhase["status"] =
+        totalTests === 0
+          ? "completed"
+          : passedTestCount === totalTests
+            ? "completed"
+            : passedTestCount > 0
+              ? "in_progress"
+              : "not_started";
+
+      const confirmStatus: JourneyPhase["status"] =
+        totalConfirmations === 0
+          ? "completed"
+          : signedConfirmCount === totalConfirmations
+            ? "completed"
+            : signedConfirmCount > 0
+              ? "in_progress"
+              : "not_started";
+
       const phases: JourneyPhase[] = [
         {
-          name: "Lær",
+          name: "Laer",
           type: "procedures",
           total: totalProcedureSteps,
-          completed: 0, // MVP: not tracked
-          status: totalProcedureSteps > 0 ? "not_started" : "completed",
+          completed: completedSteps,
+          status: procedureStatus,
         },
         {
           name: "Test",
           type: "test",
-          total: testCount ?? 0,
-          completed: 0, // MVP: not tracked
-          status: (testCount ?? 0) > 0 ? "not_started" : "completed",
+          total: totalTests,
+          completed: passedTestCount,
+          status: testStatus,
         },
         {
-          name: "Signér",
+          name: "Signer",
           type: "confirmation",
-          total: confirmCount ?? 0,
-          completed: 0, // MVP: not tracked
-          status: (confirmCount ?? 0) > 0 ? "not_started" : "completed",
+          total: totalConfirmations,
+          completed: signedConfirmCount,
+          status: confirmStatus,
         },
       ];
 
-      return { phases, steps };
+      return { phases, steps, readinessScore, isCompleted: readinessScore === 1 };
     },
   });
 }

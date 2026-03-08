@@ -57,6 +57,7 @@ class ScrapeConfig(BaseModel):
     include_locations: bool = True
     include_departments: bool = True
     include_dictionary: bool = False
+    nace_code: Optional[str] = None  # e.g. "56.101" for restaurants, "62.100" for software
 
 class ExtractRequest(BaseModel):
     url: str
@@ -230,33 +231,64 @@ def extract_workspace_data(req: ExtractRequest):
                     logo_url = urllib.parse.urljoin(target_url, src)
                     break
 
+        # --- INDUSTRY DETECTION via NACE code ---
+        nace = config.nace_code or ""
+        is_hospitality = nace.startswith("56.") or nace.startswith("55.")  # Food/accommodation
+        is_retail = nace.startswith("47.")
+        is_tech = nace.startswith("62.") or nace.startswith("63.")  # Software/IT
+        is_health = nace.startswith("86.") or nace.startswith("87.")
+
+        # If no NACE code, try keyword detection for hospitality
+        if not nace:
+            hospitality_keywords = ["restaurant", "bar", "café", "kafé", "hotel", "hotell", "mat", "meny", "servering", "kitchen", "chef"]
+            if any(k in lower_text for k in hospitality_keywords):
+                is_hospitality = True
+
         detected_locations = []
         if config.include_locations:
             loc_id = 1
-            if "bar" in lower_text or "drinks" in lower_text or "vin" in lower_text:
-                detected_locations.append(LocationModel(id=str(loc_id), name="Bar", type="Indoor", function="", isComplete=False))
-                loc_id += 1
-                
-            if "terrace" in lower_text or "uteservering" in lower_text or "outdoor" in lower_text:
-                detected_locations.append(LocationModel(id=str(loc_id), name="Uteservering / Terrace", type="Outdoor", function="", isComplete=False))
-                loc_id += 1
-                
-            if len(detected_locations) == 0:
-                detected_locations.append(LocationModel(id=str(loc_id), name="Main Dining", type="Indoor", function="", isComplete=False))
+            if is_hospitality:
+                if "bar" in lower_text or "drinks" in lower_text or "vin" in lower_text:
+                    detected_locations.append(LocationModel(id=str(loc_id), name="Bar", type="Indoor", function="", isComplete=False))
+                    loc_id += 1
+                if "terrace" in lower_text or "uteservering" in lower_text or "outdoor" in lower_text:
+                    detected_locations.append(LocationModel(id=str(loc_id), name="Uteservering / Terrace", type="Outdoor", function="", isComplete=False))
+                    loc_id += 1
+                if len(detected_locations) == 0:
+                    detected_locations.append(LocationModel(id=str(loc_id), name="Main Dining", type="Indoor", function="", isComplete=False))
+            else:
+                detected_locations.append(LocationModel(id=str(loc_id), name="Hovedkontor", type="Indoor", function="", isComplete=False))
 
         detected_departments = []
         if config.include_departments:
             dept_id = 1
-            if "kitchen" in lower_text or "chef" in lower_text or "meny" in lower_text or "mat" in lower_text:
-                detected_departments.append(DepartmentModel(id=str(dept_id), name="Kjøkken", roles=["Head Chef", "Line Cook", "Oppvask"], description="", isComplete=False))
+            if is_hospitality:
+                if "kitchen" in lower_text or "chef" in lower_text or "meny" in lower_text or "mat" in lower_text:
+                    detected_departments.append(DepartmentModel(id=str(dept_id), name="Kjøkken", roles=["Head Chef", "Line Cook", "Oppvask"], description="", isComplete=False))
+                    dept_id += 1
+                if "service" in lower_text or "waiter" in lower_text or "bord" in lower_text or "servitør" in lower_text:
+                    detected_departments.append(DepartmentModel(id=str(dept_id), name="Service / Floor", roles=["Hovmester", "Servitør", "Bartender"], description="", isComplete=False))
+                    dept_id += 1
+                if len(detected_departments) == 0:
+                    detected_departments.append(DepartmentModel(id=str(dept_id), name="Kjøkken", roles=["Head Chef", "Line Cook"], description="", isComplete=False))
+                    dept_id += 1
+                    detected_departments.append(DepartmentModel(id=str(dept_id), name="Service / Floor", roles=["Hovmester", "Servitør"], description="", isComplete=False))
+            elif is_tech:
+                detected_departments.append(DepartmentModel(id=str(dept_id), name="Utvikling", roles=["Utvikler", "Tech Lead"], description="", isComplete=False))
                 dept_id += 1
-                
-            if "service" in lower_text or "waiter" in lower_text or "bord" in lower_text or "servitør" in lower_text:
-                detected_departments.append(DepartmentModel(id=str(dept_id), name="Service / Floor", roles=["Hovmester", "Servitør", "Bartender"], description="", isComplete=False))
+                detected_departments.append(DepartmentModel(id=str(dept_id), name="Salg", roles=["Selger", "Salgsleder"], description="", isComplete=False))
                 dept_id += 1
-
-            if len(detected_departments) == 0:
-                 detected_departments.append(DepartmentModel(id=str(dept_id), name="General Staff", roles=["Employee"], description="", isComplete=False))
+                detected_departments.append(DepartmentModel(id=str(dept_id), name="Support", roles=["Kundeservice", "Support"], description="", isComplete=False))
+            elif is_retail:
+                detected_departments.append(DepartmentModel(id=str(dept_id), name="Butikk", roles=["Butikkmedarbeider", "Butikksjef"], description="", isComplete=False))
+                dept_id += 1
+                detected_departments.append(DepartmentModel(id=str(dept_id), name="Lager", roles=["Lagermedarbeider"], description="", isComplete=False))
+            elif is_health:
+                detected_departments.append(DepartmentModel(id=str(dept_id), name="Klinisk", roles=["Sykepleier", "Lege"], description="", isComplete=False))
+                dept_id += 1
+                detected_departments.append(DepartmentModel(id=str(dept_id), name="Administrasjon", roles=["Administrator"], description="", isComplete=False))
+            else:
+                detected_departments.append(DepartmentModel(id=str(dept_id), name="Drift", roles=["Medarbeider"], description="", isComplete=False))
 
         # --- IMAGES ---
         image_nodes = page.css("img")

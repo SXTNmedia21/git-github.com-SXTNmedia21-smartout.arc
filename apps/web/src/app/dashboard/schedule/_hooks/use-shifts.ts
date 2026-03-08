@@ -6,11 +6,14 @@
  * Connected to: schedule-types.ts (Shift type)
  */
 
+import { useContext } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspace } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
+import { emit } from "@smartout/telemetry";
 
 import type { Shift } from "../_components/schedule-types";
 import { scheduleKeys } from "./schedule-keys";
@@ -51,6 +54,7 @@ export function useShifts(weekStart: string, weekEnd: string) {
 export function useCreateShift(weekStart: string) {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
   const queryKey = scheduleKeys.shifts(workspace.workspace_id, weekStart);
 
   return useMutation({
@@ -83,6 +87,18 @@ export function useCreateShift(weekStart: string) {
       return { previous };
     },
 
+    onSuccess: (data) => {
+      void emit({
+        event: "shift created",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: { entity_type: "shift", entity_id: data.id, entity_label: `${data.dateId} ${data.startTime}-${data.endTime}` },
+          data: { assigned_to: data.employeeId ?? "", date: data.dateId, start_time: data.startTime, end_time: data.endTime },
+        },
+      });
+    },
+
     onError: (_err, _newShift, context) => {
       if (context?.previous) {
         queryClient.setQueryData(queryKey, context.previous);
@@ -108,6 +124,7 @@ type UpdateShiftInput = {
 export function useUpdateShift(weekStart: string) {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
   const queryKey = scheduleKeys.shifts(workspace.workspace_id, weekStart);
 
   return useMutation({
@@ -147,6 +164,20 @@ export function useUpdateShift(weekStart: string) {
       return { previous };
     },
 
+    onSuccess: (data, { id, patch }) => {
+      void emit({
+        event: "shift updated",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: { entity_type: "shift", entity_id: id },
+          changes: Object.fromEntries(
+            Object.entries(patch).map(([k, v]) => [k, { before: undefined, after: v }]),
+          ),
+        },
+      });
+    },
+
     onError: (_err, _vars, context) => {
       if (context?.previous) {
         queryClient.setQueryData(queryKey, context.previous);
@@ -167,6 +198,7 @@ export function useUpdateShift(weekStart: string) {
 export function useDeleteShift(weekStart: string) {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
   const queryKey = scheduleKeys.shifts(workspace.workspace_id, weekStart);
 
   return useMutation({
@@ -191,6 +223,24 @@ export function useDeleteShift(weekStart: string) {
       );
 
       return { previous };
+    },
+
+    onSuccess: (_data, shiftId, context) => {
+      const deleted = context?.previous?.find((s) => s.id === shiftId);
+      void emit({
+        event: "shift deleted",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: { entity_type: "shift", entity_id: shiftId },
+          data: {
+            assigned_to: deleted?.employeeId ?? "",
+            date: deleted?.dateId ?? "",
+            start_time: deleted?.startTime ?? "",
+            end_time: deleted?.endTime ?? "",
+          },
+        },
+      });
     },
 
     onError: (_err, _shiftId, context) => {
@@ -219,6 +269,7 @@ type MoveShiftInput = {
 export function useMoveShift(weekStart: string) {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
   const queryKey = scheduleKeys.shifts(workspace.workspace_id, weekStart);
 
   return useMutation({
@@ -257,6 +308,21 @@ export function useMoveShift(weekStart: string) {
       return { previous };
     },
 
+    onSuccess: (data, { id, employeeId, dateId }) => {
+      void emit({
+        event: "shift updated",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: { entity_type: "shift", entity_id: id },
+          changes: {
+            employeeId: { before: undefined, after: employeeId },
+            dateId: { before: undefined, after: dateId },
+          },
+        },
+      });
+    },
+
     onError: (_err, _vars, context) => {
       if (context?.previous) {
         queryClient.setQueryData(queryKey, context.previous);
@@ -277,6 +343,7 @@ export function useMoveShift(weekStart: string) {
 export function usePublishShifts(weekStart: string) {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
   const queryKey = scheduleKeys.shifts(workspace.workspace_id, weekStart);
 
   return useMutation({
@@ -313,6 +380,21 @@ export function usePublishShifts(weekStart: string) {
       return { previous };
     },
 
+    onSuccess: (_data, shiftIds, context) => {
+      const publishedShifts = context?.previous?.filter((s) => shiftIds.includes(s.id)) ?? [];
+      const dates = [...new Set(publishedShifts.map((s) => s.dateId))];
+
+      void emit({
+        event: "shift published",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: { entity_type: "shift", entity_id: shiftIds[0] ?? "", entity_label: `${shiftIds.length} shifts` },
+          data: { dates, department_ids: [], shift_count: shiftIds.length },
+        },
+      });
+    },
+
     onError: (_err, _ids, context) => {
       if (context?.previous) {
         queryClient.setQueryData(queryKey, context.previous);
@@ -338,6 +420,7 @@ type PasteDayInput = {
 export function usePasteDay(weekStart: string) {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
   const workspaceId = workspace.workspace_id;
   const queryKey = scheduleKeys.shifts(workspaceId, weekStart);
 
@@ -382,6 +465,20 @@ export function usePasteDay(weekStart: string) {
       return { previous };
     },
 
+    onSuccess: (data, { targetDateId }) => {
+      for (const shift of data) {
+        void emit({
+          event: "shift created",
+          workspace_id: workspaceId,
+          actor_id: profileId ?? "",
+          properties: {
+            entity: { entity_type: "shift", entity_id: shift.id, entity_label: `${targetDateId} ${shift.startTime}-${shift.endTime}` },
+            data: { assigned_to: shift.employeeId ?? "", date: targetDateId, start_time: shift.startTime, end_time: shift.endTime },
+          },
+        });
+      }
+    },
+
     onError: (_err, _vars, context) => {
       if (context?.previous) {
         queryClient.setQueryData(queryKey, context.previous);
@@ -402,6 +499,7 @@ export function usePasteDay(weekStart: string) {
 export function useUnpublishShifts(weekStart: string) {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
   const queryKey = scheduleKeys.shifts(workspace.workspace_id, weekStart);
 
   return useMutation({
@@ -436,6 +534,20 @@ export function useUnpublishShifts(weekStart: string) {
       );
 
       return { previous };
+    },
+
+    onSuccess: (_data, shiftIds) => {
+      for (const shiftId of shiftIds) {
+        void emit({
+          event: "shift updated",
+          workspace_id: workspace.workspace_id,
+          actor_id: profileId ?? "",
+          properties: {
+            entity: { entity_type: "shift", entity_id: shiftId },
+            changes: { status: { before: "published", after: "unpublished" }, is_published: { before: true, after: false } },
+          },
+        });
+      }
     },
 
     onError: (_err, _ids, context) => {

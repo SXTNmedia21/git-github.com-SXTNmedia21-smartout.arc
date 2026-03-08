@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
+import { emit } from "@smartout/telemetry";
 import { useContext } from "react";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import type { ChapterKey } from "./chapters";
@@ -81,6 +82,14 @@ export function useHandbookSave() {
       if (error) throw error;
     },
     onSuccess: (_data, vars) => {
+      void emit({
+        event: "handbook chapter_saved",
+        workspace_id: workspaceId,
+        actor_id: "",
+        properties: {
+          data: { chapter_key: vars.chapterKey },
+        },
+      });
       void queryClient.invalidateQueries({
         queryKey: handbookKeys.chapter(workspaceId, vars.chapterKey),
       });

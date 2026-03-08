@@ -379,8 +379,8 @@ inspector_port = 8083
 # The Deno major version to use.
 deno_version = 2
 
-# [edge_runtime.secrets]
-# secret_key = "env(SECRET_VALUE)"
+[edge_runtime.secrets]
+SERPER_API_KEY = "env(SERPER_API_KEY)"
 
 [analytics]
 enabled = true
@@ -458,4 +458,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.activate-workspace]
+verify_jwt = false
+
+[functions.fire-delayed-triggers]
 verify_jwt = false

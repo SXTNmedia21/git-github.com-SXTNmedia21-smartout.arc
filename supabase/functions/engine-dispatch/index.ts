@@ -66,6 +66,86 @@ function evaluateCondition(condition: unknown, context: Record<string, unknown>)
   return false;
 }
 
+/**
+ * Resolve steps for a running engine_state.
+ * Checks engine_state_step (dynamic/generated steps) first,
+ * falls back to steps_snapshot (frozen copy from process definition).
+ */
+async function getStepsForState(
+  supabase: ReturnType<typeof createClient>,
+  state: EngineState,
+): Promise<EngineStep[]> {
+  const { data: dynamicSteps } = await supabase
+    .from("engine_state_step")
+    .select("step_order, action_type, action_payload, condition, assignee_rule")
+    .eq("state_id", state.id)
+    .order("step_order");
+
+  if (dynamicSteps && dynamicSteps.length > 0) {
+    return dynamicSteps.map((s: Record<string, unknown>) => ({
+      id: state.id,
+      process_id: state.process_id,
+      step_order: s.step_order as number,
+      step_group: null,
+      action_type: s.action_type as string,
+      action_payload: (s.action_payload ?? {}) as Record<string, unknown>,
+      condition: s.condition as unknown,
+      assignee_rule: s.assignee_rule as string | null,
+    }));
+  }
+
+  return (state.steps_snapshot ?? []) as EngineStep[];
+}
+
+/**
+ * Advance to the next step after completing the current one.
+ * Records step result, moves current_step forward, and recurses into the next step.
+ * If no next step exists, marks the process as complete.
+ */
+async function advanceToNextStep(
+  supabase: ReturnType<typeof createClient>,
+  state: EngineState,
+  step: EngineStep,
+): Promise<void> {
+  const stepResult = {
+    ...((state.result ?? {}) as Record<string, unknown>),
+    [step.step_order]: {
+      status: "complete",
+      action_type: step.action_type,
+      completed_at: new Date().toISOString(),
+    },
+  };
+  const nextOrder = step.step_order + 1;
+  const allSteps = await getStepsForState(supabase, state);
+  const nextStep = allSteps.find((s) => s.step_order === nextOrder);
+
+  if (nextStep) {
+    await supabase
+      .from("engine_state")
+      .update({
+        current_step: nextOrder,
+        result: stepResult,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", state.id);
+    await executeStep(
+      supabase,
+      { ...state, current_step: nextOrder, result: stepResult },
+      nextStep,
+    );
+  } else {
+    await supabase
+      .from("engine_state")
+      .update({
+        status: "complete",
+        result: stepResult,
+        completed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", state.id);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -249,7 +329,7 @@ Deno.serve(async (req) => {
     let resumed = 0;
     if (waitingStates) {
       for (const state of waitingStates as EngineState[]) {
-        const steps = state.steps_snapshot ?? [];
+        const steps = await getStepsForState(supabase, state);
         const currentStep = steps.find((s) => s.step_order === state.current_step);
 
         if (
@@ -308,6 +388,16 @@ Deno.serve(async (req) => {
 });
 
 /**
+ * Entity PK column mapping — each table has its own primary key column name.
+ */
+const ENTITY_PK: Record<string, string> = {
+  daily_reconciliation: "id",
+  department_session: "department_session_id",
+  profile: "profile_id",
+  protocol_assignment: "assignment_id",
+};
+
+/**
  * Execute a single engine step. Updates state based on action_type.
  */
 async function executeStep(
@@ -318,8 +408,9 @@ async function executeStep(
   // Check condition
   if (step.condition && !evaluateCondition(step.condition, state.context)) {
     // Condition not met — skip to next step
+    const allSteps = await getStepsForState(supabase, state);
     const nextOrder = step.step_order + 1;
-    const nextStep = (state.steps_snapshot ?? []).find((s) => s.step_order === nextOrder);
+    const nextStep = allSteps.find((s) => s.step_order === nextOrder);
 
     if (nextStep) {
       await supabase
@@ -329,6 +420,7 @@ async function executeStep(
           updated_at: new Date().toISOString(),
         })
         .eq("id", state.id);
+      await executeStep(supabase, { ...state, current_step: nextOrder }, nextStep);
     } else {
       await supabase
         .from("engine_state")
@@ -354,57 +446,343 @@ async function executeStep(
         .eq("id", state.id);
       break;
 
-    case "assign_task":
-    case "send_notification":
-    case "update_entity":
-    case "create_deviation":
-    case "validate_settlement":
-    case "lock_checkout":
-    case "schedule_control":
-    case "start_process":
-      // For now, log the step execution and advance
-      // Future: each action_type will have its own handler
-      {
-        const stepResult = {
-          ...((state.result ?? {}) as Record<string, unknown>),
-          [step.step_order]: {
-            status: "complete",
-            action_type: step.action_type,
-            completed_at: new Date().toISOString(),
-          },
-        };
+    case "assign_task": {
+      const ap = step.action_payload as Record<string, unknown>;
+      // Create session_task if department_session context exists
+      if (state.entity_type === "department_session" && state.entity_id) {
+        await supabase.from("session_task").insert({
+          workspace_id: state.workspace_id,
+          department_session_id: state.entity_id,
+          title: (ap.task as string) ?? "Task",
+          description: (ap.description as string) ?? null,
+          status: "available",
+          assigned_to: state.assignee_id ?? null,
+          is_compliance_required: false,
+        });
+      }
+      await advanceToNextStep(supabase, state, step);
+      break;
+    }
 
-        const nextOrder = step.step_order + 1;
-        const nextStep = (state.steps_snapshot ?? []).find((s) => s.step_order === nextOrder);
+    case "send_notification": {
+      // TODO(notifications): notification_queue table does not exist yet.
+      // When Module 12 (Notifications) is built, replace this console.log
+      // with INSERT into notification_queue (template, recipient, workspace_id, payload).
+      console.log(
+        `[engine-dispatch] send_notification: template=${(step.action_payload as Record<string, unknown>).template}, ` +
+          `assignee=${state.assignee_id}, state=${state.id}`,
+      );
+      await advanceToNextStep(supabase, state, step);
+      break;
+    }
 
-        if (nextStep) {
+    case "update_entity": {
+      const ap = step.action_payload as Record<string, unknown>;
+      const entity = ap.entity as string;
+      const setValues = ap.set as Record<string, unknown>;
+      // Allowlist of tables that can be updated
+      const allowed = [
+        "daily_reconciliation",
+        "department_session",
+        "profile",
+        "protocol_assignment",
+      ];
+      if (allowed.includes(entity) && state.entity_id) {
+        const pkColumn = ENTITY_PK[entity] ?? "id";
+        await supabase
+          .from(entity)
+          .update({
+            ...setValues,
+            updated_at: new Date().toISOString(),
+          })
+          .eq(pkColumn, state.entity_id);
+      }
+      await advanceToNextStep(supabase, state, step);
+      break;
+    }
+
+    case "create_deviation": {
+      const ap = step.action_payload as Record<string, unknown>;
+      const condition = ap.condition as string | undefined;
+      const ctx = state.context as Record<string, unknown>;
+      // Only create if condition met (or no condition)
+      if (!condition || ctx[condition]) {
+        await supabase.from("deviation").insert({
+          workspace_id: state.workspace_id,
+          title: (ap.description as string) ?? "Auto-detected deviation",
+          domain: (ap.domain as string) ?? "system",
+          severity: (ap.severity as string) ?? "medium",
+          subcategory: (ap.subcategory as string) ?? null,
+          session_id: state.entity_id ?? null,
+          status: "open",
+        });
+      }
+      await advanceToNextStep(supabase, state, step);
+      break;
+    }
+
+    case "validate_settlement": {
+      // Call validate-settlement Edge Function
+      if (state.entity_id) {
+        try {
+          await supabase.functions.invoke("validate-settlement", {
+            body: { reconciliation_id: state.entity_id, workspace_id: state.workspace_id },
+          });
+        } catch (err) {
+          console.error(`[engine-dispatch] validate_settlement failed: ${String(err)}`);
+        }
+      }
+      await advanceToNextStep(supabase, state, step);
+      break;
+    }
+
+    case "lock_checkout": {
+      // UI-driven gatekeeper — engine records the gate is active, UI checks engine_state
+      await advanceToNextStep(supabase, state, step);
+      break;
+    }
+
+    case "schedule_control": {
+      // Reserved for future schedule automation
+      await advanceToNextStep(supabase, state, step);
+      break;
+    }
+
+    case "start_process": {
+      const ap = step.action_payload as Record<string, unknown>;
+      const subProcessId = ap.process_id as string;
+      if (subProcessId) {
+        const { data: subSteps } = await supabase
+          .from("engine_step")
+          .select("*")
+          .eq("process_id", subProcessId)
+          .order("step_order");
+
+        await supabase.from("engine_state").insert({
+          process_id: subProcessId,
+          workspace_id: state.workspace_id,
+          status: "active",
+          current_step: 1,
+          entity_type: state.entity_type,
+          entity_id: state.entity_id,
+          context: state.context,
+          steps_snapshot: subSteps ?? [],
+          depth: state.depth + 1,
+          parent_state_id: state.id,
+        });
+      }
+      await advanceToNextStep(supabase, state, step);
+      break;
+    }
+
+    case "upsert_session": {
+      const ctx = state.context as Record<string, unknown>;
+      // Context comes from telemetry payload where dates/department_ids
+      // are nested under ctx.data (from event.properties.data)
+      const ctxData = (ctx.data as Record<string, unknown>) ?? {};
+      const dates = (ctxData.dates as string[]) ??
+        (ctx.dates as string[]) ?? [new Date().toISOString().split("T")[0]];
+      const deptIds =
+        (ctxData.department_ids as string[]) ?? (ctx.department_ids as string[]) ?? [];
+
+      for (const date of dates) {
+        for (const deptId of deptIds) {
+          await supabase.from("department_session").upsert(
+            {
+              workspace_id: state.workspace_id,
+              department_id: deptId,
+              session_date: date,
+              status: "upcoming",
+            },
+            { onConflict: "workspace_id,department_id,session_date" },
+          );
+        }
+      }
+      await advanceToNextStep(supabase, state, step);
+      break;
+    }
+
+    case "create_session_task": {
+      const ap = step.action_payload as Record<string, unknown>;
+      const sessionId = (state.context as Record<string, unknown>).department_session_id as
+        | string
+        | undefined;
+      const hookId = (state.context as Record<string, unknown>).session_hook_id as
+        | string
+        | undefined;
+
+      if (sessionId) {
+        await supabase.from("session_task").insert({
+          workspace_id: state.workspace_id,
+          department_session_id: sessionId,
+          session_hook_id: hookId ?? null,
+          title: (ap.title as string) ?? "Task",
+          description: (ap.description as string) ?? null,
+          status: "available",
+          assigned_to: state.assignee_id ?? null,
+          is_compliance_required: (ap.compliance_required as boolean) ?? false,
+        });
+      }
+      await advanceToNextStep(supabase, state, step);
+      break;
+    }
+
+    case "generate_steps": {
+      // Dynamic step generation for training protocols
+      const source = (step.action_payload as Record<string, unknown>).source as string;
+      if (source === "protocol_assignment") {
+        const assignmentId = (state.context as Record<string, unknown>)
+          .protocol_assignment_id as string;
+
+        const { data: assignment } = await supabase
+          .from("protocol_assignment")
+          .select(
+            `
+            protocol:protocol_id (
+              procedure(procedure_id, name, procedure_step(step_id, step_order)),
+              knowledge_test(knowledge_test_id, title),
+              confirmation(confirmation_id, title)
+            )
+          `,
+          )
+          .eq("assignment_id", assignmentId)
+          .single();
+
+        const protocol = (assignment as Record<string, unknown>)?.protocol as Record<
+          string,
+          unknown
+        >;
+        const generated: Array<{
+          state_id: string;
+          step_order: number;
+          status: string;
+          action_type: string;
+          action_payload: Record<string, unknown>;
+        }> = [];
+        let order = 1;
+
+        // Create present_content steps for each procedure step
+        const procedures = (protocol?.procedure ?? []) as Array<Record<string, unknown>>;
+        for (const proc of procedures) {
+          const procSteps = (proc.procedure_step ?? []) as Array<Record<string, unknown>>;
+          for (const ps of procSteps) {
+            generated.push({
+              state_id: state.id,
+              step_order: order++,
+              status: "pending",
+              action_type: "present_content",
+              action_payload: {
+                procedure_id: proc.procedure_id as string,
+                procedure_step_id: ps.step_id as string,
+              },
+            });
+          }
+        }
+
+        // Create administer_test steps for each knowledge test
+        const tests = (protocol?.knowledge_test ?? []) as Array<Record<string, unknown>>;
+        for (const test of tests) {
+          generated.push({
+            state_id: state.id,
+            step_order: order++,
+            status: "pending",
+            action_type: "administer_test",
+            action_payload: { knowledge_test_id: test.knowledge_test_id as string },
+          });
+        }
+
+        // Create collect_signature steps for each confirmation
+        const confirmations = (protocol?.confirmation ?? []) as Array<Record<string, unknown>>;
+        for (const conf of confirmations) {
+          generated.push({
+            state_id: state.id,
+            step_order: order++,
+            status: "pending",
+            action_type: "collect_signature",
+            action_payload: { confirmation_id: conf.confirmation_id as string },
+          });
+        }
+
+        // Final step: check readiness
+        generated.push({
+          state_id: state.id,
+          step_order: order++,
+          status: "pending",
+          action_type: "check_readiness",
+          action_payload: {},
+        });
+
+        if (generated.length > 0) {
+          await supabase.from("engine_state_step").insert(generated);
           await supabase
             .from("engine_state")
             .update({
-              current_step: nextOrder,
-              result: stepResult,
+              current_step: 1,
               updated_at: new Date().toISOString(),
             })
             .eq("id", state.id);
-          // Recurse into next step (non-waiting steps execute synchronously)
+          // Execute first generated step
+          const first = generated[0];
           await executeStep(
             supabase,
-            { ...state, current_step: nextOrder, result: stepResult },
-            nextStep,
+            { ...state, current_step: 1 },
+            {
+              id: state.id,
+              process_id: state.process_id,
+              step_order: 1,
+              step_group: null,
+              action_type: first.action_type,
+              action_payload: first.action_payload,
+              condition: null,
+              assignee_rule: null,
+            },
           );
-        } else {
-          await supabase
-            .from("engine_state")
-            .update({
-              status: "complete",
-              result: stepResult,
-              completed_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", state.id);
         }
       }
       break;
+    }
+
+    case "present_content":
+    case "administer_test":
+    case "collect_signature": {
+      // Employee-driven steps — set step to active, state to waiting.
+      // Employee UI drives completion by updating engine_state_step status.
+      await supabase
+        .from("engine_state_step")
+        .update({
+          status: "active",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("state_id", state.id)
+        .eq("step_order", step.step_order);
+
+      await supabase
+        .from("engine_state")
+        .update({
+          status: "waiting",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", state.id);
+      break;
+    }
+
+    case "check_readiness": {
+      // Mark protocol assignment as completed
+      const assignmentId = (state.context as Record<string, unknown>)
+        .protocol_assignment_id as string;
+      if (assignmentId) {
+        await supabase
+          .from("protocol_assignment")
+          .update({
+            status: "completed",
+            completed_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("assignment_id", assignmentId);
+      }
+      await advanceToNextStep(supabase, state, step);
+      break;
+    }
 
     default:
       // Unknown action type — fail
