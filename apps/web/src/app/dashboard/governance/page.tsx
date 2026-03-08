@@ -25,7 +25,7 @@ export default function GovernancePage() {
       .map((p) => ({
         protocolName: p.protocolName,
         displayName: `${p.expiredCount} ansatte`,
-        assignedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // Approximate — real dates not available at overview level
+        assignedAt: "", // Placeholder — real dates not available at overview level
       }));
   }, [stableProtocols]);
 
