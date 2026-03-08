@@ -5,7 +5,6 @@ import { Plus, Shield, ShieldCheck, CheckCircle2, Loader2, FileText } from "luci
 import { Switch } from "@/components/ui/switch";
 import {
   FILTER_QUESTIONS,
-  GOVERNANCE_TEMPLATES,
   getVisibleTemplates,
   useIndustryFilters,
   useCreatedPolicies,
@@ -38,8 +37,8 @@ function TemplateCard({
   onToggle?: () => void;
   onCreate: () => void;
 }) {
-  const procedureCount = template.protocols?.length ?? 0;
-  const hasQuestions = template.protocols?.some((p) => p.questions && p.questions.length > 0);
+  const procedureCount = template.procedures.length;
+  const hasQuestions = template.knowledgeTest.questions.length > 0;
 
   return (
     <div
@@ -120,7 +119,7 @@ export function GovernanceSetupStep({ isDark }: { isDark: boolean }) {
   const createFromTemplate = useCreateFromTemplate();
 
   // ── State ──
-  const [filters, setFilters] = useState<Record<FilterKey, boolean>>(industryDefaults);
+  const [filters, setFilters] = useState<Record<FilterKey, boolean>>(() => industryDefaults);
   const [unchecked, setUnchecked] = useState<Set<string>>(new Set());
   const [creatingId, setCreatingId] = useState<string | null>(null);
   const [hasUserEdited, setHasUserEdited] = useState(false);
@@ -131,9 +130,7 @@ export function GovernanceSetupStep({ isDark }: { isDark: boolean }) {
   }, [industryDefaults, hasUserEdited]);
 
   // ── Derived data ──
-  const mandatory = useMemo(() => GOVERNANCE_TEMPLATES.filter((t) => t.mandatory), []);
-
-  const recommended = useMemo(() => getVisibleTemplates(filters), [filters]);
+  const { mandatory, recommended } = useMemo(() => getVisibleTemplates(filters), [filters]);
 
   const selectedRecommended = useMemo(
     () => recommended.filter((t) => !unchecked.has(t.id)),
@@ -331,27 +328,29 @@ export function GovernanceSetupStep({ isDark }: { isDark: boolean }) {
 
         {(createdPolicies ?? []).length > 0 && (
           <div className="space-y-1.5">
-            {(createdPolicies ?? []).map((p) => (
-              <div
-                key={p.id}
-                className={`flex items-center gap-3 rounded-lg px-4 py-2.5 ${
-                  isDark ? "bg-zinc-900/40" : "bg-zinc-50"
-                }`}
-              >
-                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
-                <span
-                  className={`flex-1 truncate text-sm font-medium ${
-                    isDark ? "text-zinc-300" : "text-zinc-700"
+            {(createdPolicies ?? []).map((p) => {
+              const procCount = p.protocol?.procedure?.length ?? 0;
+              return (
+                <div
+                  key={p.policy_id}
+                  className={`flex items-center gap-3 rounded-lg px-4 py-2.5 ${
+                    isDark ? "bg-zinc-900/40" : "bg-zinc-50"
                   }`}
                 >
-                  {p.name}
-                </span>
-                <span className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
-                  {p.protocol?.length ?? 0} protokoll
-                  {(p.protocol?.length ?? 0) !== 1 ? "er" : ""}
-                </span>
-              </div>
-            ))}
+                  <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+                  <span
+                    className={`flex-1 truncate text-sm font-medium ${
+                      isDark ? "text-zinc-300" : "text-zinc-700"
+                    }`}
+                  >
+                    {p.name}
+                  </span>
+                  <span className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+                    {procCount} prosedyre{procCount !== 1 ? "r" : ""}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

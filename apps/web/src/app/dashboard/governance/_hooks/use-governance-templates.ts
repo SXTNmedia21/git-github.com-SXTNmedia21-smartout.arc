@@ -868,17 +868,19 @@ export function getVisibleTemplates(filters: Record<FilterKey, boolean>) {
 // Hooks
 // ══════════════════════════════════════════════════════════════
 
-export function useIndustryFilters() {
+export function useIndustryFilters(): Record<FilterKey, boolean> {
   const { workspace } = useWorkspace();
+  const companyId = workspace.company_id;
 
-  return useQuery({
-    queryKey: ["industry-filters", workspace.company_id],
+  const { data } = useQuery({
+    queryKey: ["industry-filters", companyId],
     queryFn: async () => {
+      if (!companyId) return INDUSTRY_DEFAULTS.other;
       const supabase = createClient();
       const { data, error } = await supabase
         .from("company")
         .select("industry")
-        .eq("company_id", workspace.company_id)
+        .eq("company_id", companyId)
         .single();
 
       if (error) throw error;
@@ -886,7 +888,10 @@ export function useIndustryFilters() {
       const industry = (data.industry ?? "other") as Industry;
       return INDUSTRY_DEFAULTS[industry] ?? INDUSTRY_DEFAULTS.other;
     },
+    enabled: !!companyId,
   });
+
+  return data ?? INDUSTRY_DEFAULTS.other;
 }
 
 export function useCreatedPolicies() {

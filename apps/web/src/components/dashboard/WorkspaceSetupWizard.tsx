@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { dashboardKeys } from "@/app/dashboard/_hooks/dashboard-keys";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { useWorkspaceSetup } from "@/app/dashboard/_hooks/use-workspace-setup";
+import { GovernanceSetupStep } from "@/components/dashboard/wizard-steps/GovernanceSetupStep";
 
 // ─── Step definitions ────────────────────────────────────
 // Each step: title, explanation (why this matters in their daily life),
@@ -253,20 +254,23 @@ export function WorkspaceSetupWizard({
             </p>
           </div>
 
-          {/* Form placeholder — each step will embed its form here */}
-          <div
-            className={`min-h-[280px] rounded-2xl border-2 border-dashed p-8 ${
-              isDark ? "border-zinc-800 bg-zinc-900/30" : "border-zinc-200 bg-zinc-50/50"
-            }`}
-          >
-            <p className={`text-center text-sm ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
-              {step.id === "governance" && "Retningslinje-skjema kobles inn her"}
-              {step.id === "handbook" && "Personalh\u00e5ndbok-editor kobles inn her"}
-              {step.id === "team" && "Invitasjonsskjema kobles inn her"}
-              {step.id === "shift-template" && "Vaktmal-skjema kobles inn her"}
-              {step.id === "season" && "Sesongoppsett kobles inn her"}
-            </p>
-          </div>
+          {/* Step form — governance gets real component, rest keep placeholders */}
+          {step.id === "governance" ? (
+            <GovernanceSetupStep isDark={isDark} />
+          ) : (
+            <div
+              className={`min-h-[280px] rounded-2xl border-2 border-dashed p-8 ${
+                isDark ? "border-zinc-800 bg-zinc-900/30" : "border-zinc-200 bg-zinc-50/50"
+              }`}
+            >
+              <p className={`text-center text-sm ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
+                {step.id === "handbook" && "Personalh\u00e5ndbok-editor kobles inn her"}
+                {step.id === "team" && "Invitasjonsskjema kobles inn her"}
+                {step.id === "shift-template" && "Vaktmal-skjema kobles inn her"}
+                {step.id === "season" && "Sesongoppsett kobles inn her"}
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
