@@ -33,17 +33,20 @@ interface AdminDashboardProps {
 export default function AdminDashboard({ isDark }: AdminDashboardProps) {
   const { adminView, setIsSetupMode } = useContext(DashboardContext);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [setupDismissed, setSetupDismissed] = useState(false);
   const { data: setupStatus, isLoading: isSetupLoading } = useWorkspaceSetup();
 
   const needsSetup = setupStatus?.needsSetup ?? false;
+  const showWizard = needsSetup && !setupDismissed;
 
   // Tell DashboardShell to hide chrome when in setup mode — useLayoutEffect prevents flash
   useLayoutEffect(() => {
-    setIsSetupMode(needsSetup && !isSetupLoading);
+    setIsSetupMode(showWizard && !isSetupLoading);
     return () => setIsSetupMode(false);
-  }, [needsSetup, isSetupLoading, setIsSetupMode]);
+  }, [showWizard, isSetupLoading, setIsSetupMode]);
 
   const handleSetupComplete = useCallback(() => {
+    setSetupDismissed(true);
     setIsSetupMode(false);
   }, [setIsSetupMode]);
 
@@ -55,7 +58,7 @@ export default function AdminDashboard({ isDark }: AdminDashboardProps) {
     return <DashboardSkeleton isDark={isDark} />;
   }
 
-  if (needsSetup) {
+  if (showWizard) {
     return <WorkspaceSetupWizard isDark={isDark} onComplete={handleSetupComplete} />;
   }
 
