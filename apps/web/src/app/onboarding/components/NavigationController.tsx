@@ -3,7 +3,7 @@
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import Link from "next/link";
 import { useOnboarding } from "../WizardContext";
-import { ONBOARDING_SECTIONS, VISIBLE_SECTIONS, type OnboardingSection } from "../types";
+import { VISIBLE_SECTIONS, type OnboardingSection } from "../types";
 
 const SECTION_LABELS: Record<OnboardingSection, string> = {
   hero: "Start",

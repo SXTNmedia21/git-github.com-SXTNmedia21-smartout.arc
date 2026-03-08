@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import type { OnboardingSection } from "../types";
-import { ONBOARDING_SECTIONS, VISIBLE_SECTIONS } from "../types";
+import { VISIBLE_SECTIONS } from "../types";
 
 interface ScrollProgress {
   activeSection: OnboardingSection;

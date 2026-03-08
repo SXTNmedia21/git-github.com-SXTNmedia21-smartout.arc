@@ -92,7 +92,7 @@ function restoreWorkspaceData() {
 
 async function clearSkipFlag(page: Page) {
   await page.goto("http://localhost:3060");
-  await page.evaluate(() => localStorage.removeItem("smartout_setup_skipped"));
+  await page.evaluate((wsId) => localStorage.removeItem(`smartout_setup_skipped_${wsId}`), WS_ID);
 }
 
 // ─── Test Suite ───────────────────────────────────────────
@@ -461,7 +461,10 @@ test.describe("setup-wizard", () => {
     await expect(wizardHeader).not.toBeVisible({ timeout: 5_000 });
 
     // Verify localStorage
-    const skipValue = await page.evaluate(() => localStorage.getItem("smartout_setup_skipped"));
+    const skipValue = await page.evaluate(
+      (wsId) => localStorage.getItem(`smartout_setup_skipped_${wsId}`),
+      WS_ID,
+    );
     expect(skipValue).toBeTruthy();
     expect(Number(skipValue)).toBeGreaterThan(0);
 
@@ -469,5 +472,106 @@ test.describe("setup-wizard", () => {
     await page.reload();
     await page.waitForURL("**/dashboard**", { timeout: 15_000 });
     await expect(wizardHeader).not.toBeVisible({ timeout: 10_000 });
+  });
+
+  // ─── Test 9: Skip → clear localStorage → wizard returns ─
+
+  test("clearing localStorage skip flag makes wizard reappear", async ({ page }) => {
+    test.setTimeout(45_000);
+
+    // First, ensure data is hidden (wizard should show)
+    hideWorkspaceData();
+
+    // Skip the wizard
+    await clearSkipFlag(page);
+    await loginAsAdmin(page);
+
+    const skipBtn = page.locator('button:has-text("Hopp over")');
+    await expect(skipBtn).toBeVisible({ timeout: 15_000 });
+    await skipBtn.click();
+
+    // Wizard gone
+    await page.waitForTimeout(1_000);
+    await expect(page.locator('text="Oppsett av arbeidsrom"')).not.toBeVisible({ timeout: 5_000 });
+
+    // Clear localStorage
+    await page.evaluate((wsId) => localStorage.removeItem(`smartout_setup_skipped_${wsId}`), WS_ID);
+
+    // Reload — wizard should return
+    await page.reload();
+    await page.waitForURL("**/dashboard**", { timeout: 15_000 });
+    await expect(page.locator('text="Oppsett av arbeidsrom"')).toBeVisible({ timeout: 15_000 });
+  });
+
+  // ─── Test 10: Full 9-step wizard navigation ─────────────
+
+  test("can navigate all 9 steps: welcome → handbook → complete", async ({ page }) => {
+    test.setTimeout(90_000);
+
+    hideWorkspaceData();
+    await clearSkipFlag(page);
+    await loginAsAdmin(page);
+
+    const stepTitles = [
+      "Velkommen til Smartout",
+      "Last opp dokumenter",
+      "Dine retningslinjer",
+      "Lønn og tillegg",
+      "Ansettelsesvilkår",
+      "Ditt team",
+      "Dine vaktmaler",
+      "Din sesong",
+      "Din personalhåndbok",
+    ];
+
+    // Verify step 0 shows
+    await expect(page.locator(`h1:has-text("${stepTitles[0]}")`)).toBeVisible({ timeout: 15_000 });
+
+    // Navigate through all 9 steps
+    for (let i = 1; i < stepTitles.length; i++) {
+      await page.locator('button:has-text("Neste")').click();
+
+      const title = stepTitles[i]!;
+      await expect(page.locator(`h1:has-text("${title}")`)).toBeVisible({ timeout: 5_000 });
+
+      // Verify step counter
+      const stepIndicator = page.locator(`text=/Steg ${i} av ${stepTitles.length - 1}/`);
+      await expect(stepIndicator).toBeVisible();
+    }
+
+    // Last step should show "Fullfør" button
+    const completeBtn = page.locator('button:has-text("Fullfør og åpne dashboard")');
+    await expect(completeBtn).toBeVisible();
+
+    // Click complete — wizard should dismiss
+    await completeBtn.click();
+    await page.waitForTimeout(2_000);
+
+    // Wizard should be gone
+    await expect(page.locator('text="Oppsett av arbeidsrom"')).not.toBeVisible({ timeout: 10_000 });
+  });
+
+  // ─── Test 11: After wizard complete → StrategicView shows ─
+
+  test("after wizard complete, StrategicView shows", async ({ page }) => {
+    test.setTimeout(45_000);
+
+    // Restore data so workspace is fully set up (all modules complete)
+    restoreWorkspaceData();
+
+    await clearSkipFlag(page);
+    await loginAsAdmin(page);
+    await page.waitForURL("**/dashboard**", { timeout: 15_000 });
+
+    // Wizard should NOT show
+    await expect(page.locator('text="Oppsett av arbeidsrom"')).not.toBeVisible({ timeout: 10_000 });
+
+    // Normal dashboard has a header with navigation — not present in setup mode
+    const header = page.locator("header").first();
+    await expect(header).toBeVisible({ timeout: 10_000 });
+
+    // Should see navigation links (normal dashboard chrome, not wizard)
+    const navLink = page.locator("nav a, header a").first();
+    await expect(navLink).toBeVisible({ timeout: 5_000 });
   });
 });
