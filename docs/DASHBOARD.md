@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: in_progress
-updated: 2026-03-08
+updated: 2026-04-14
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -15,7 +15,7 @@ tags: [dashboard, worktrees, tracking]
 
 | #    | Branch                        | Module        | Status      | Progress                          | Blockers | Health |
 | ---- | ----------------------------- | ------------- | ----------- | --------------------------------- | -------- | ------ |
-| wt-1 | `feat/zero-to-production`     | cross-cutting | in_progress | just started                      | —        | clean  |
+| wt-1 | `feat/zero-to-production`     | cross-cutting | done        | merged to development             | —        | clean  |
 | wt-2 | `feat/document-mode`          | document      | in_progress | just started                      | —        | clean  |
 | wt-3 | `feat/journey-package-skills` | meta          | done        | merged                            | —        | —      |
 | wt-8 | `feat/showroom`               | showroom      | in_progress | phase 2 done, 4 files uncommitted | —        | dirty  |
@@ -24,7 +24,7 @@ tags: [dashboard, worktrees, tracking]
 
 | #     | Available                        |
 | ----- | -------------------------------- |
-| wt-1  | no (feat/zero-to-production)     |
+| wt-1  | yes                              |
 | wt-2  | no (feat/document-mode)          |
 | wt-3  | no (feat/journey-package-skills) |
 | wt-4  | yes                              |
@@ -36,7 +36,7 @@ tags: [dashboard, worktrees, tracking]
 
 | WT   | Feature            | Journey File                                  | Status  |
 | ---- | ------------------ | --------------------------------------------- | ------- |
-| wt-1 | zero-to-production | `docs/journeys/JOURNEY-zero-to-production.md` | missing |
+| wt-1 | zero-to-production | `docs/journeys/JOURNEY-zero-to-production.md` | done    |
 | wt-2 | document-mode      | `docs/journeys/JOURNEY-document-mode.md`      | missing |
 | wt-4 | infra-hardening    | `docs/journeys/JOURNEY-infra-hardening.md`    | missing |
 
@@ -81,6 +81,7 @@ tags: [dashboard, worktrees, tracking]
 | 2026-04-08 | service-layer             | `feat/service-layer`                                               | development |
 | 2026-04-08 | onboarding-showcase       | `feat/onboarding-showcase-system-room`                             | development |
 | 2026-04-11 | infra-hardening           | `feat/infra-hardening`                                             | development |
+| 2026-03-08 | zero-to-production        | `feat/zero-to-production`                                          | development |
 
 ## Session History
 
@@ -112,6 +113,7 @@ tags: [dashboard, worktrees, tracking]
 | 2026-03-03 | complete-remaining-features      | started           | wt-1, module: multi — 4 features: landing, portal, comms, entity-detail                                                                                                                                                                                                                                                   |
 | 2026-03-04 | admin-wizard-completion          | session ended     | Verified all 17 plan tasks already implemented, typecheck passes clean                                                                                                                                                                                                                                                    |
 | 2026-03-04 | dashboard-polish                 | closed            | 8 commits on development: heatmap overhaul, strategic fix, day-control tabs, wt-1 freed                                                                                                                                                                                                                                   |
+| 2026-04-14 | zero-to-production               | session ended     | Wizard 9-step redesign: industry packages, all steps wired, ~20 files uncommitted. Remaining: DocumentDropStep, HandbookSetupStep auto-gen, final commit                                                                                                                                                                  |
 | 2026-03-04 | communications-finish            | started           | wt-2, module: comms — template persistence, engagement reports, webhook fix                                                                                                                                                                                                                                               |
 | 2026-03-04 | entity-detail-pages              | started           | wt-1, module: org-structure — 4 entity detail pages with shared tabs layout                                                                                                                                                                                                                                               |
 | 2026-03-05 | entity-detail-pages              | session ended     | All 6 tasks complete: EntityDetailLayout + 4 detail pages + navigation wiring. Uncommitted, needs commit + closure gates                                                                                                                                                                                                  |
@@ -199,3 +201,4 @@ tags: [dashboard, worktrees, tracking]
 | 2026-04-13 | document-mode                    | session ended     | Resolved all merge conflicts (DashboardShell, chapters, context, use-handbook-content). Fixed Tiptap SSR error, lifted DocumentModeProvider. Applied handbook_chapter migration locally. Uncommitted.                                                                                                                     |
 | 2026-03-06 | showroom                         | session ended     | Phase 2 complete: mission runtime (personas, stages, skills, events), 3 missions, direct streaming page rewrite, 102 tests (76 unit + 20 integration + 6 E2E). 4 files uncommitted. Next: event tracking, show-off mission, voice, beautiful UI.                                                                          |
 | 2026-03-08 | zero-to-production               | started           | wt-1, module: cross-cutting — Module Zero: close 10 gaps, event engine, employee UI, journey runner                                                                                                                                                                                                                       |
+| 2026-03-08 | zero-to-production               | closed            | Merged to development, wt-1 freed. Contract step hidden, setup-skip scoped to workspace, 14 E2E tests (signup + setup wizard)                                                                                                                                                                                             |
