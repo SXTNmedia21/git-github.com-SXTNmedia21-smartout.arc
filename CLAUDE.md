@@ -206,12 +206,15 @@ Three laws. No exceptions.
 ### Environment Variables
 
 - Validated with `@t3-oss/env-nextjs` + Zod in `apps/web/src/env.ts`
-- All secrets in `.env.local` (gitignored). Never `.env` or hardcoded.
-- 1Password: `op run --env-file=.env.template`. Use `op://` references, never raw values.
+- All secrets managed via 1Password CLI. Never `.env.local`, never hardcoded.
+- Run with: `op run --env-file=.env.template -- pnpm run dev`
+- `.env.template` is the single source of truth for all variables.
+- Use `op://` references for secrets, plain values for non-secrets.
 - Service role key: server-side and Edge Functions only, never in client code.
 
+> Env lifecycle protocol: `docs/protocols/ENV_PROTOCOL.md`
 > Full variable list: `docs/reference/ENV_VARS.md`
-> Full security protocol (427 lines): `docs/protocols/SECURITY.md`
+> Full security protocol: `docs/protocols/SECURITY.md`
 
 ### API Gateway — Mandatory Checklists
 
@@ -290,6 +293,7 @@ ALL microservices (contract-service, scrapling, future services):
 | Security      | `docs/protocols/SECURITY.md`      | Secrets, auth, RLS, API keys, Edge Functions |
 | Documentation | `docs/protocols/DOCUMENTATION.md` | Source of truth, doc standards, frontmatter  |
 | Knowledge     | `docs/protocols/KNOWLEDGE.md`     | ADRs, learnings, templates                   |
+| Environment   | `docs/protocols/ENV_PROTOCOL.md`  | New env vars, secrets, .env.template, op://  |
 
 ---
 
@@ -301,12 +305,12 @@ ALL microservices (contract-service, scrapling, future services):
 - Never create tables without `workspace_id` (if workspace-scoped), `created_at`, `updated_at`
 - Never hardcode Norwegian text — use i18n keys
 - Never store secrets in code — use env vars or `op://`
+- Never create `.env.local` — use `op run --env-file=.env.template`. Never commit raw secrets.
 - Never reference `public.user` — it's `public.user_identity`
 - Never create enums without checking `database.types.ts`
 - Never edit `database.types.ts` manually — regenerate
 - Never use hardcoded colors (zinc-800) — use CSS variables (bg-background)
 - Never use `any` — use `unknown` + type guards
-- Never commit `.env.local` or raw secrets
 - Never create workspace-scoped tables without BOTH JWT and API key RLS policies
 - Never create public API endpoints without scope guards
 - Never create a TanStack Query mutation without an `emit()` call in `onSuccess`
@@ -393,6 +397,7 @@ When spawning a worker, always include in the task description:
 
 | Date       | Version | Change                                                                                                                                                                           | Author |
 | ---------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| 2026-03-09 | 9.1.0   | ENV protocol: op run as standard, .env.template as single source of truth, removed .env.local references, added ENV_PROTOCOL.md to protocols table                               | Pontus |
 | 2026-04-13 | 9.0.0   | Module Zero: 7 new tables, 3 enums, 26 telemetry events, 13 engine handlers, employee UI (my-schedule, my-training, handbook), governance CRUD, setup wizard, season status trap | Claude |
 | 2026-03-06 | 8.1.0   | Season planning (Module 15 MVP): season_budget, day_factor, hour_factor tables, budget_status enum, calculation engine, 4 hooks, 5 UI components, /dashboard/season page         | Claude |
 | 2026-03-02 | 8.0.0   | Agent architecture: engine_memory, engine_authority_config tables, agent mode in engine_sessions, ADR-0042                                                                       | Claude |
