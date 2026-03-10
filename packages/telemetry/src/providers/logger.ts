@@ -6,7 +6,7 @@ export interface LogEntry {
   action: string;
   category: string;
   actor_id: string;
-  workspace_id: string;
+  workspace_id: string | null;
   correlation_id?: string;
   properties: Record<string, unknown>;
   status: "ok" | "error";
