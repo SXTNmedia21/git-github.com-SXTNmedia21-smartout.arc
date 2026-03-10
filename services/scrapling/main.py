@@ -14,6 +14,11 @@ import re
 from extractors import extract_file, SUPPORTED_EXTENSIONS
 from extractors.pdf import ExtractionError
 
+import logging
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+logger = logging.getLogger("scrapling")
+
 app = FastAPI(title="SmartOut Scrapling Microservice")
 
 DASHBOARD_HTML = (Path(__file__).parent / "dashboard.html").read_text()
@@ -462,24 +467,31 @@ async def extract_document(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="No file provided")
 
     file_bytes = await file.read()
+    logger.info(f"[extract/document] file={file.filename} content_type={file.content_type} size={len(file_bytes)} bytes")
+
     if not file_bytes:
+        logger.warning(f"[extract/document] Empty file: {file.filename}")
         raise HTTPException(status_code=400, detail="Empty file")
 
     try:
         result = await extract_file(file_bytes, file.filename, file.content_type)
+        logger.info(f"[extract/document] OK file={file.filename} chars={result.get('characters', 0)} images={len(result.get('images', []))} method={result.get('method')}")
         return result
     except ValueError as e:
         supported = sorted(SUPPORTED_EXTENSIONS.keys())
+        logger.warning(f"[extract/document] ValueError file={file.filename}: {e}")
         raise HTTPException(status_code=400, detail={
             "error": str(e),
             "supported": supported,
         })
     except ExtractionError as e:
+        logger.error(f"[extract/document] ExtractionError file={file.filename}: {e}")
         raise HTTPException(status_code=422, detail={
             "error": "Could not extract text from file",
             "detail": str(e),
         })
     except Exception as e:
+        logger.error(f"[extract/document] Unexpected error file={file.filename}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Extraction failed: {str(e)}")
 
 

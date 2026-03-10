@@ -1,26 +1,36 @@
 import { createAdminClient } from "@smartout/supabase/admin";
 import { getSuperAdminId } from "@/lib/platform-admin";
 import { redirect } from "next/navigation";
+import { unstable_cache } from "next/cache";
 import { CommunicationsClient } from "./_components/communications-client";
 
+const getCommunicationsData = unstable_cache(
+  async () => {
+    const admin = createAdminClient();
+
+    const [{ data: communications }, { count: suppressionCount }] = await Promise.all([
+      admin
+        .from("platform_communication_log")
+        .select(
+          "communication_id, subject, template, classification, audience_filter, recipient_count, sent_count, failed_count, opened_count, clicked_count, status, created_at",
+        )
+        .order("created_at", { ascending: false })
+        .limit(50),
+      admin.from("platform_email_suppression").select("*", { count: "exact", head: true }),
+    ]);
+
+    return { communications, suppressionCount };
+  },
+  ["platform-admin-communications-v1"],
+  { revalidate: 60 },
+);
+
 export default async function CommunicationsPage() {
-  const adminId = await getSuperAdminId();
-  if (!adminId) redirect("/dashboard");
-
-  const admin = createAdminClient();
-
-  // Fetch communication history and suppression count in parallel
-  // Cast needed: opened_count + clicked_count added by communications_v2 migration
-  const [{ data: communications }, { count: suppressionCount }] = await Promise.all([
-    admin
-      .from("platform_communication_log" as never)
-      .select(
-        "communication_id, subject, template, classification, audience_filter, recipient_count, sent_count, failed_count, opened_count, clicked_count, status, created_at",
-      )
-      .order("created_at", { ascending: false })
-      .limit(100),
-    admin.from("platform_email_suppression").select("*", { count: "exact", head: true }),
+  const [adminId, { communications, suppressionCount }] = await Promise.all([
+    getSuperAdminId(),
+    getCommunicationsData(),
   ]);
+  if (!adminId) redirect("/dashboard");
 
   type CommRow = {
     communication_id: string;

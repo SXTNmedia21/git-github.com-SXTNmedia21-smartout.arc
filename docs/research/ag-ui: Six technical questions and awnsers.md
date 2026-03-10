@@ -1,3 +1,12 @@
+---
+title: "AG-UI: Six Technical Questions — Definitive Answers"
+status: done
+updated: 2026-03-10
+created: 2026-03-10
+module: research
+tags: [ag-ui, research]
+---
+
 # AG-UI: Six Technical Questions — Definitive Answers
 
 > Research depth: protocol docs, npm package inspection, GitHub issues, DeepWiki source maps, and official AG2/CopilotKit blog posts. Each answer is rated by confidence level.

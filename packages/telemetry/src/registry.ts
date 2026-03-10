@@ -19,6 +19,7 @@ export type EventCategory =
   | "onboarding"
   | "org_structure"
   | "scheduling"
+  | "contracts"
   | "operations"
   | "haccp"
   | "training"
@@ -56,11 +57,14 @@ export type EntityType =
   | "procedure_step"
   | "routine"
   | "runbook"
+  | "contract"
+  | "contract_template"
   | "invitation"
   | "announcement"
   | "chat_message"
   | "reconciliation"
-  | "handbook_chapter";
+  | "handbook_chapter"
+  | "contract";
 
 export type ActionVerb =
   | "created"
@@ -89,6 +93,11 @@ export type ActionVerb =
   | "pending_signoff"
   | "submitted"
   | "admin_action"
+  | "sent"
+  | "cancelled"
+  | "declined"
+  | "expired"
+  | "reminded"
   | "step_completed"
   | "chapter_saved"
   | "hook_fired"
@@ -344,34 +353,105 @@ export interface HandbookChapterSaved extends BaseEvent {
   };
 }
 
-// ─── Journey: Signup + Onboarding ──────────────────
-export interface SignupCompleted extends BaseEvent {
-  event: "signup completed";
+// ─── Communication ──────────────────────────────
+export interface CommunicationSent extends BaseEvent {
+  event: "communication sent";
   properties: {
     data: {
-      user_identity_id: string;
+      communication_id: string;
+      template: string;
+      classification: string;
+      recipient_count: number;
+      sent_count: number;
+      failed_count: number;
     };
   };
 }
 
-export interface OnboardingStepCompleted extends BaseEvent {
-  event: "onboarding step_completed";
+export interface CommunicationCancelled extends BaseEvent {
+  event: "communication cancelled";
   properties: {
     data: {
-      step_id: string;
-      step_index: number;
-      user_identity_id: string;
+      communication_id: string;
     };
   };
 }
 
-export interface WorkspaceCreated extends BaseEvent {
-  event: "workspace created";
+export interface CommunicationFailed extends BaseEvent {
+  event: "communication failed";
   properties: {
     data: {
-      workspace_id: string;
-      user_identity_id: string;
+      communication_id: string;
+      template: string;
+      error: string;
     };
+  };
+}
+
+// ─── Contract Events ──────────────────────────
+export interface ContractCreated extends BaseEvent {
+  event: "contract created";
+  properties: {
+    entity: EntityRef;
+    data: {
+      template_id: string;
+      recipient_email: string;
+      contract_type: string;
+    };
+  };
+}
+
+export interface ContractSent extends BaseEvent {
+  event: "contract sent";
+  properties: {
+    entity: EntityRef;
+    data: {
+      recipient_email: string;
+      expires_at: string;
+    };
+  };
+}
+
+export interface ContractViewed extends BaseEvent {
+  event: "contract viewed";
+  properties: {
+    entity: EntityRef;
+    data: { recipient_email: string };
+  };
+}
+
+export interface ContractSigned extends BaseEvent {
+  event: "contract signed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      recipient_email: string;
+      signed_pdf_url?: string;
+    };
+  };
+}
+
+export interface ContractCancelled extends BaseEvent {
+  event: "contract cancelled";
+  properties: {
+    entity: EntityRef;
+    data: { reason?: string };
+  };
+}
+
+export interface ContractDeclined extends BaseEvent {
+  event: "contract declined";
+  properties: {
+    entity: EntityRef;
+    data: { reason?: string };
+  };
+}
+
+export interface ContractExpired extends BaseEvent {
+  event: "contract expired";
+  properties: {
+    entity: EntityRef;
+    data: { expired_at: string };
   };
 }
 
@@ -421,7 +501,17 @@ export type SmartoutEvent =
   | ProtocolCompleted
   | ReconciliationSubmitted
   | ReconciliationAdminAction
+  | ContractCreated
+  | ContractSent
+  | ContractViewed
+  | ContractSigned
+  | ContractCancelled
+  | ContractDeclined
+  | ContractExpired
   | HandbookChapterSaved
+  | CommunicationSent
+  | CommunicationCancelled
+  | CommunicationFailed
   | WizardStepCompleted
   | WizardCompleted
   | PageViewed
@@ -518,6 +608,48 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "reconciliation admin_action": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "operations",
+  },
+
+  "communication sent": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "communication",
+  },
+  "communication cancelled": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "communication",
+  },
+  "communication failed": {
+    destinations: ["posthog", "logger"],
+    category: "communication",
+  },
+
+  "contract created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contract sent": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract viewed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contract signed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract cancelled": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contract declined": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract expired": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
   },
 
   "handbook chapter_saved": {

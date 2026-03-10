@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { RefreshCw, Activity, Server, BookOpen } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -12,8 +13,21 @@ import { OverallStatusBanner } from "./overall-status-banner";
 import { ServiceStatusCard } from "./service-status-card";
 import { ExternalServicesCard } from "./external-services-card";
 import { IntegrityChecksCard } from "./integrity-checks-card";
-import { ApiRegistryTable } from "./api-registry-table";
-import { SystemSpeedTestCard } from "./system-speed-test-card";
+
+const ApiRegistryTable = dynamic(
+  () => import("./api-registry-table").then((m) => m.ApiRegistryTable),
+  {
+    ssr: false,
+    loading: () => <div className="h-64 animate-pulse rounded-lg border bg-zinc-800/30" />,
+  },
+);
+const SystemSpeedTestCard = dynamic(
+  () => import("./system-speed-test-card").then((m) => m.SystemSpeedTestCard),
+  {
+    ssr: false,
+    loading: () => <div className="h-48 animate-pulse rounded-lg border bg-zinc-800/30" />,
+  },
+);
 
 type MetricsSnapshot = {
   total_users: number;

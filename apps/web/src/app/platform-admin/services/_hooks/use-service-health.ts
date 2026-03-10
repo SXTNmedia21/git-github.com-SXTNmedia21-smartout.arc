@@ -12,6 +12,8 @@ export function useServiceHealth(enabled: boolean) {
       return res.json() as Promise<ServicesHealthResponse>;
     },
     refetchInterval: enabled ? 30_000 : false,
+    refetchOnWindowFocus: false,
+    refetchIntervalInBackground: false,
     staleTime: 10_000,
   });
 }

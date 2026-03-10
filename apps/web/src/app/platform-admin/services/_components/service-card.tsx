@@ -6,6 +6,7 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge";
 import { ChevronRight, Clock } from "lucide-react";
 import type { ServiceConfigRow } from "../_hooks/use-service-configs";
+import { platformAdminRoutes } from "@/lib/platform-admin-routes";
 
 // --- Type badge colors ---
 const typeColors: Record<string, string> = {
@@ -55,7 +56,7 @@ export function DbServiceCard({
   const hConfig = healthStatus ? healthStatusConfig[healthStatus] : null;
 
   return (
-    <Link href={`/platform-admin/services/${config.slug}`}>
+    <Link href={platformAdminRoutes.serviceDetail(config.slug)}>
       <Card
         className={cn(
           "hover:border-primary/40 cursor-pointer transition-colors",
@@ -144,7 +145,7 @@ type PlannedServiceCardProps = {
 
 export function PlannedServiceCard({ name, description, serviceKey }: PlannedServiceCardProps) {
   return (
-    <Link href={`/platform-admin/services/${serviceKey}`}>
+    <Link href={platformAdminRoutes.serviceDetail(serviceKey)}>
       <Card className="cursor-pointer border-dashed opacity-60 transition-opacity hover:opacity-80">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <div className="flex items-center gap-3">
@@ -192,7 +193,7 @@ export function ServiceCard({
   const config = healthStatusConfig[status as keyof typeof healthStatusConfig];
 
   return (
-    <Link href={`/platform-admin/services/${name}`}>
+    <Link href={platformAdminRoutes.serviceDetail(name)}>
       <Card
         className={cn(
           "cursor-pointer transition-colors",

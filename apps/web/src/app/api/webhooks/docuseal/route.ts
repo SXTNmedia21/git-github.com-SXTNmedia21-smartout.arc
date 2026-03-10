@@ -4,6 +4,7 @@ import { z } from "zod";
 import { createAdminClient } from "@smartout/supabase/admin";
 import type { Json } from "@smartout/supabase";
 import { env } from "@/env";
+import { emit } from "@smartout/telemetry";
 
 const DocuSealEventSchema = z.object({
   event_type: z.string(),
@@ -180,6 +181,21 @@ export async function POST(request: NextRequest) {
       .eq("status", "scheduled");
   }
 
+  // On signing: fetch audit log + documents from DocuSeal via contract-service
+  if (newStatus === "signed") {
+    try {
+      const { callContractService, isContractServiceConfigured } =
+        await import("@/lib/contract-service");
+      if (isContractServiceConfigured()) {
+        void callContractService(`/contracts/${contract.contract_id}/fetch-documents`, {
+          method: "POST",
+        });
+      }
+    } catch {
+      // Non-critical — documents can be fetched manually later
+    }
+  }
+
   // On signing: cancel pending reminders + update workspace contract status
   if (newStatus === "signed" && contract.workspace_id) {
     await Promise.all([
@@ -197,6 +213,42 @@ export async function POST(request: NextRequest) {
         })
         .eq("workspace_id", contract.workspace_id),
     ]);
+  }
+
+  // Emit telemetry
+  const emitBase = {
+    workspace_id: contract.workspace_id ?? "",
+    actor_id: "system",
+  } as const;
+  const entity = { entity_type: "contract" as const, entity_id: contract.contract_id };
+
+  if (newStatus === "viewed") {
+    void emit({
+      ...emitBase,
+      event: "contract viewed",
+      properties: { entity, data: { recipient_email: "" } },
+    });
+  } else if (newStatus === "signed") {
+    void emit({
+      ...emitBase,
+      event: "contract signed",
+      properties: {
+        entity,
+        data: { recipient_email: "", signed_pdf_url: updates.signed_pdf_url ?? undefined },
+      },
+    });
+  } else if (newStatus === "declined") {
+    void emit({
+      ...emitBase,
+      event: "contract declined",
+      properties: { entity, data: { reason: data.decline_reason ?? undefined } },
+    });
+  } else if (newStatus === "expired") {
+    void emit({
+      ...emitBase,
+      event: "contract expired",
+      properties: { entity, data: { expired_at: new Date().toISOString() } },
+    });
   }
 
   return NextResponse.json({ received: true, status: newStatus });

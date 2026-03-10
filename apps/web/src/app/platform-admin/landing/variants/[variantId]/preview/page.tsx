@@ -42,8 +42,7 @@ export default async function PreviewPage({ params }: Props) {
   const adminId = await getSuperAdminId();
   if (!adminId) redirect("/dashboard");
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const admin = createAdminClient() as any;
+  const admin = createAdminClient();
   const { data: variant } = await admin
     .from("landing_variant")
     .select("id, slug")
@@ -57,7 +56,7 @@ export default async function PreviewPage({ params }: Props) {
   return (
     <PreviewClient
       variantId={variantId}
-      variantSlug={(variant as { slug: string }).slug}
+      variantSlug={variant.slug}
       previewExpiresAt={previewToken?.expiresAt}
       previewSignature={previewToken?.signature}
     />

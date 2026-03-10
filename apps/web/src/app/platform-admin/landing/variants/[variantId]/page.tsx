@@ -19,8 +19,6 @@ type Props = {
   params: Promise<{ variantId: string }>;
 };
 
-// TODO: Replace untyped queries once landing_variant/landing_block are in database.types.ts
-
 /** Shape of a variant row from the database. */
 export type VariantData = {
   id: string;
@@ -60,9 +58,7 @@ export default async function VariantEditorPage({ params }: Props) {
     return <BlockEditorClient variant={null} blocks={[]} isNew />;
   }
 
-  // TODO: Replace untyped admin client once landing tables are in database.types.ts
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const admin = createAdminClient() as any;
+  const admin = createAdminClient();
 
   // Fetch variant and blocks in parallel
   const [variantResult, blocksResult] = await Promise.all([
@@ -86,8 +82,8 @@ export default async function VariantEditorPage({ params }: Props) {
 
   return (
     <BlockEditorClient
-      variant={variantResult.data as VariantData}
-      blocks={(blocksResult.data as BlockData[]) ?? []}
+      variant={variantResult.data as unknown as VariantData}
+      blocks={(blocksResult.data as unknown as BlockData[]) ?? []}
     />
   );
 }

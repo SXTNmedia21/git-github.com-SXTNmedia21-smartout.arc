@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
 import {
   type ColumnDef,
   flexRender,
@@ -42,6 +43,7 @@ export function ApiRegistryTable() {
   const [globalFilter, setGlobalFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<FilterKey>("all");
   const [serviceFilter, setServiceFilter] = useState<ServiceFilterKey>("all");
+  const debouncedFilter = useDebounce(globalFilter, 300);
 
   const filteredData = useMemo(() => {
     let data = apiRegistry;
@@ -123,7 +125,7 @@ export function ApiRegistryTable() {
         ep.method.toLowerCase().includes(search)
       );
     },
-    state: { sorting, globalFilter },
+    state: { sorting, globalFilter: debouncedFilter },
     onGlobalFilterChange: setGlobalFilter,
   });
 

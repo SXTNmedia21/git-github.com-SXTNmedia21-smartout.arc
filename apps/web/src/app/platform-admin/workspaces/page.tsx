@@ -1,22 +1,31 @@
 import { createAdminClient } from "@smartout/supabase/admin";
 import { getSuperAdminId } from "@/lib/platform-admin";
 import { redirect } from "next/navigation";
+import { unstable_cache } from "next/cache";
 import { WorkspaceListEnhanced } from "./_components/workspace-list-enhanced";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 
-export default async function WorkspacesPage() {
-  const adminId = await getSuperAdminId();
-  if (!adminId) redirect("/dashboard");
+const getWorkspacesData = unstable_cache(
+  async () => {
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from("workspace")
+      .select(
+        `workspace_id, name, slug, is_active, created_at,
+         company:company_id (company_id, name, org_number, subscription_plan, subscription_status)`,
+      )
+      .order("created_at", { ascending: false })
+      .limit(200);
+    return data ?? [];
+  },
+  ["platform-admin-workspaces-v1"],
+  { revalidate: 30 },
+);
 
-  const admin = createAdminClient();
-  const { data: workspaces } = await admin
-    .from("workspace")
-    .select(
-      `workspace_id, name, slug, is_active, created_at,
-       company:company_id (company_id, name, org_number, subscription_plan, subscription_status)`,
-    )
-    .order("created_at", { ascending: false });
+export default async function WorkspacesPage() {
+  const [adminId, workspaces] = await Promise.all([getSuperAdminId(), getWorkspacesData()]);
+  if (!adminId) redirect("/dashboard");
 
   return (
     <div>
@@ -34,7 +43,11 @@ export default async function WorkspacesPage() {
         </Link>
       </div>
       <div className="mt-6">
-        <WorkspaceListEnhanced data={(workspaces ?? []) as never} />
+        <WorkspaceListEnhanced
+          data={
+            workspaces as unknown as import("./_components/workspace-list-enhanced").WorkspaceRow[]
+          }
+        />
       </div>
     </div>
   );

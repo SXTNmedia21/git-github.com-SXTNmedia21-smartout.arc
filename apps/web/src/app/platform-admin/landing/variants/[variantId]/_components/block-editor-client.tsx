@@ -26,7 +26,10 @@ import {
   type DragEndEvent,
 } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
+import type { Database, Json } from "@smartout/supabase";
 import { createClient } from "@smartout/supabase/client";
+
+type LandingBlockType = Database["public"]["Enums"]["landing_block_type"];
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -97,7 +100,7 @@ function getAccentFromTheme(theme: Record<string, unknown> | null | undefined): 
 function mergeThemeAccent(
   existingTheme: Record<string, unknown> | null | undefined,
   accent: string,
-): Record<string, unknown> {
+): Json {
   const normalizedAccent = ACCENT_OPTIONS.has(accent) ? accent : "orange";
   const accentColor = THEME_ACCENT_MAP[normalizedAccent] ?? THEME_ACCENT_MAP.orange;
   return {
@@ -120,8 +123,6 @@ function SaveStatusIndicator({ status }: { status: SaveStatus }) {
 }
 
 const AUTOSAVE_DELAY_MS = 1000;
-
-// TODO: Replace (supabase as any) once landing tables are in database.types.ts
 
 export function BlockEditorClient({
   variant: initialVariant,
@@ -196,8 +197,7 @@ export function BlockEditorClient({
       theme: mergeThemeAccent(currentVariant.theme, currentForm.theme),
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from("landing_variant")
       .update(payload)
       .eq("id", currentVariant.id)
@@ -210,7 +210,7 @@ export function BlockEditorClient({
       return;
     }
 
-    setVariant(data as VariantData);
+    setVariant(data as unknown as VariantData);
     setSaveStatus("saved");
   }, [supabase]);
 
@@ -268,8 +268,7 @@ export function BlockEditorClient({
       }));
 
       for (const update of updates) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error } = await (supabase as any)
+        const { error } = await supabase
           .from("landing_block")
           .update({ sort_order: update.sort_order })
           .eq("id", update.id);
@@ -298,13 +297,12 @@ export function BlockEditorClient({
       const newSortOrder = blocks.length;
       const defaultContent = { heading: "", subheading: "" };
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("landing_block")
         .insert({
           variant_id: variant.id,
-          block_type: blockType,
-          content: defaultContent,
+          block_type: blockType as LandingBlockType,
+          content: defaultContent as unknown as Json,
           sort_order: newSortOrder,
           is_visible: true,
         })
@@ -316,7 +314,7 @@ export function BlockEditorClient({
         return;
       }
 
-      setBlocks((prev) => [...prev, data as BlockData]);
+      setBlocks((prev) => [...prev, data as unknown as BlockData]);
       setAddDialogOpen(false);
       toast.success(`Added ${blockType.replace(/_/g, " ")} block`);
     },
@@ -325,8 +323,7 @@ export function BlockEditorClient({
 
   const handleDeleteBlock = useCallback(
     async (blockId: string) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase as any).from("landing_block").delete().eq("id", blockId);
+      const { error } = await supabase.from("landing_block").delete().eq("id", blockId);
 
       if (error) {
         toast.error("Failed to delete block", { description: error.message });
@@ -341,8 +338,7 @@ export function BlockEditorClient({
 
   const handleToggleVisibility = useCallback(
     async (blockId: string, isVisible: boolean) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("landing_block")
         .update({ is_visible: isVisible })
         .eq("id", blockId);
@@ -371,10 +367,9 @@ export function BlockEditorClient({
       setBlocks((prev) => prev.map((b) => (b.id === blockId ? { ...b, content } : b)));
 
       // Persist to database
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("landing_block")
-        .update({ content })
+        .update({ content: content as unknown as Json })
         .eq("id", blockId);
 
       if (error) {
@@ -419,8 +414,7 @@ export function BlockEditorClient({
 
     if (isNew || !variant) {
       // Create new variant
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("landing_variant")
         .insert({ ...payload, sort_order: 0 })
         .select()
@@ -438,11 +432,10 @@ export function BlockEditorClient({
       toast.success("Variant created");
       setSaveStatus("saved");
       // Navigate to the edit page for the new variant
-      router.push(`/platform-admin/landing/variants/${(data as VariantData).id}`);
+      router.push(`/platform-admin/landing/variants/${(data as unknown as VariantData).id}`);
     } else {
       // Update existing variant
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("landing_variant")
         .update(payload)
         .eq("id", variant.id)
@@ -456,7 +449,7 @@ export function BlockEditorClient({
         return;
       }
 
-      setVariant(data as VariantData);
+      setVariant(data as unknown as VariantData);
       setSaveStatus("saved");
       toast.success("Variant saved");
     }
@@ -513,8 +506,7 @@ export function BlockEditorClient({
       theme: mergeThemeAccent(variant.theme, variantForm.theme),
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from("landing_variant")
       .update(payload)
       .eq("id", variant.id)
@@ -528,7 +520,7 @@ export function BlockEditorClient({
       return;
     }
 
-    setVariant(data as VariantData);
+    setVariant(data as unknown as VariantData);
     setVariantForm((prev) => ({ ...prev, status: "published" }));
     setSaveStatus("saved");
 
@@ -545,8 +537,7 @@ export function BlockEditorClient({
     setSaving(true);
     setSaveStatus("saving");
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from("landing_variant")
       .update({ status: "draft" })
       .eq("id", variant.id)
@@ -560,7 +551,7 @@ export function BlockEditorClient({
       return;
     }
 
-    setVariant(data as VariantData);
+    setVariant(data as unknown as VariantData);
     setVariantForm((prev) => ({ ...prev, status: "draft" }));
     setSaveStatus("saved");
 
