@@ -1,6 +1,6 @@
 ---
 title: "Worklog — csv-mapping"
-status: in_progress
+status: done
 updated: 2026-03-10
 created: 2026-03-10
 module: wizard
@@ -11,7 +11,7 @@ tags: [csv, mapping, onboarding]
 
 > Branch: `feat/csv-mapping` | Worktree: wt-9 | Started: 2026-03-10
 
-## Status: 🟡 In Progress
+## Status: ✅ Done
 
 ## Done
 
@@ -50,3 +50,4 @@ tags: [csv, mapping, onboarding]
 | 2026-03-10 | 03:52 | Feature started                                |
 | 2026-03-10 | 04:15 | All 6 implementation tasks completed           |
 | 2026-03-10 | 04:20 | Typecheck verified — 0 errors in changed files |
+| 2026-03-10 | 04:08 | Feature closed and merged to development       |
