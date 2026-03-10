@@ -131,8 +131,8 @@ export async function POST(request: Request) {
       .from("company_scraped_data")
       .update({
         scrape_status: "success",
-        parsed_data: result as Record<string, unknown>,
-        raw_data: result as Record<string, unknown>,
+        parsed_data: result as never,
+        raw_data: result as never,
         scraped_at: new Date().toISOString(),
       })
       .eq("id", rowId);
@@ -187,7 +187,12 @@ export async function GET() {
   }
 
   if (!data) {
-    return NextResponse.json({ id: null, scrape_status: null, parsed_data: null, scraped_at: null });
+    return NextResponse.json({
+      id: null,
+      scrape_status: null,
+      parsed_data: null,
+      scraped_at: null,
+    });
   }
 
   return NextResponse.json({
