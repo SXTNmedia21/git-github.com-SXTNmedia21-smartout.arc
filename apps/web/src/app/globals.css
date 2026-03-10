@@ -415,3 +415,35 @@
   pointer-events: none;
   opacity: 0.4;
 }
+
+/* ─── Signup Wizard ─────────────────────────────── */
+@keyframes autofill-shimmer {
+  0% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+  }
+  30% {
+    box-shadow: 0 0 8px 2px rgba(245, 158, 11, 0.3);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+  }
+}
+
+@utility animate-autofill-shimmer {
+  animation: autofill-shimmer 1.2s ease-out;
+}
+
+@keyframes wizard-step-in {
+  from {
+    opacity: 0;
+    transform: translateX(var(--step-direction, 30px));
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@utility animate-wizard-step {
+  animation: wizard-step-in 0.3s ease both;
+}
