@@ -27,5 +27,4 @@ _No learnings logged._
 
 ## scrapling-extract
 
-| #   | Date | Learning | Impact |
-| --- | ---- | -------- | ------ |
+_No learnings logged._
