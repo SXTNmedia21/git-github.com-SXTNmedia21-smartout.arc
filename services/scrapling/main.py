@@ -1,7 +1,7 @@
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
@@ -9,6 +9,9 @@ from scrapling import Fetcher
 import urllib.parse
 from typing import Optional
 import re
+
+from extractors import extract_file, SUPPORTED_EXTENSIONS
+from extractors.pdf import ExtractionError
 
 app = FastAPI(title="SmartOut Scrapling Microservice")
 
@@ -440,12 +443,84 @@ def scrape_tripadvisor(req: TripAdvisorRequest):
     )
 
 
+# TODO: Add bearer token auth before production deployment.
+# Currently relies on Docker network isolation (no public Caddy route).
+# See docs/protocols/SECURITY.md §15.5 for service auth requirements.
+@app.post("/extract/document")
+async def extract_document(file: UploadFile = File(...)):
+    """Extract text and images from a single uploaded document."""
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No file provided")
+
+    file_bytes = await file.read()
+    if not file_bytes:
+        raise HTTPException(status_code=400, detail="Empty file")
+
+    try:
+        result = await extract_file(file_bytes, file.filename, file.content_type)
+        return result
+    except ValueError as e:
+        supported = sorted(SUPPORTED_EXTENSIONS.keys())
+        raise HTTPException(status_code=400, detail={
+            "error": str(e),
+            "supported": supported,
+        })
+    except ExtractionError as e:
+        raise HTTPException(status_code=422, detail={
+            "error": "Could not extract text from file",
+            "detail": str(e),
+        })
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Extraction failed: {str(e)}")
+
+
+@app.post("/extract/document/batch")
+async def extract_document_batch(files: list[UploadFile] = File(...)):
+    """Extract text and images from multiple uploaded documents."""
+    if not files:
+        raise HTTPException(status_code=400, detail="No files provided")
+
+    results = []
+    total_characters = 0
+    total_images = 0
+
+    for file in files:
+        if not file.filename:
+            continue
+        file_bytes = await file.read()
+        if not file_bytes:
+            continue
+        try:
+            result = await extract_file(file_bytes, file.filename, file.content_type)
+            results.append(result)
+            total_characters += result.get("characters", 0)
+            total_images += len(result.get("images", []))
+        except (ValueError, ExtractionError) as e:
+            results.append({
+                "filename": file.filename,
+                "error": str(e),
+                "text": None,
+                "images": [],
+                "pages": None,
+                "characters": 0,
+                "method": None,
+            })
+
+    return {
+        "results": results,
+        "total_characters": total_characters,
+        "total_images": total_images,
+    }
+
+
 @app.get("/health")
 async def health():
     return {
         "status": "healthy",
         "timestamp": datetime.utcnow().isoformat(),
         "service": "scrapling",
+        "version": "0.2.0",
+        "extractors": sorted(SUPPORTED_EXTENSIONS.keys()),
     }
 
 if __name__ == "__main__":

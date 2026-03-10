@@ -519,13 +519,13 @@ export function EmploymentSetupStep({
         </button>
       </div>
 
-      {/* ── Del 2: Fellesvilk\u00e5r ── */}
+      {/* ── Del 2: Fellesvilkår ── */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-            Fellesvilk\u00e5r
+            Fellesvilkår
           </h3>
-          <HelpTip text="Standardbetingelser som gjelder alle ansatte: pr\u00f8vetid, ferie, pensjon og avgifter." />
+          <HelpTip text="Standardbetingelser som gjelder alle ansatte: prøvetid, ferie, pensjon og avgifter." />
         </div>
         <div
           className={`grid grid-cols-1 gap-4 rounded-xl border p-4 sm:grid-cols-2 ${

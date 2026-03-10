@@ -27,14 +27,10 @@ const SHOWCASE_WORKSPACE: WorkspaceData = {
 
 /**
  * Enforces workspace access redirects for dashboard routes.
- * - Workspaces that haven't completed onboarding → /onboarding
+ * - Workspaces that haven't completed onboarding → /dashboard/setup
  * - Deactivated workspaces → /blocked
  */
 function enforceWorkspaceAccess(workspace: WorkspaceData): void {
-  if (!workspace.onboarding_completed) {
-    redirect("/onboarding");
-  }
-
   if (workspace.contract_status === "deactivated") {
     redirect("/blocked");
   }

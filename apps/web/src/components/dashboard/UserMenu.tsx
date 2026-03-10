@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@smartout/supabase/client";
 import {
@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown, LogOut, Play, Settings, Shield, User } from "lucide-react";
+import { ChevronDown, LogOut, Play, Settings, Shield, User, Wand2 } from "lucide-react";
 
 type UserData = {
   displayName: string;
@@ -145,6 +145,12 @@ export function UserMenu({ isDark }: { isDark: boolean }) {
               <Link href="/platform-admin" className="flex items-center gap-2 text-orange-400">
                 <Shield className="h-4 w-4" />
                 Platform Admin
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/setup" className="flex items-center gap-2 text-orange-400">
+                <Wand2 className="h-4 w-4" />
+                Setup Wizard
               </Link>
             </DropdownMenuItem>
           </>

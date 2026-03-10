@@ -80,4 +80,6 @@ export const dashboardKeys = {
 
   workspaceSetupStatus: (workspaceId: string) =>
     ["dashboard", "workspace-setup-status", workspaceId] as const,
+
+  onboardingGuide: (workspaceId: string) => ["dashboard", "onboarding-guide", workspaceId] as const,
 };

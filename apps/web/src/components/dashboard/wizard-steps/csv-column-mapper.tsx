@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { ArrowRight, FileSpreadsheet, AlertCircle } from "lucide-react";
 import {
   Dialog,
@@ -24,6 +24,7 @@ type CsvMappingDialogProps = {
   isDark: boolean;
   csvHeaders: string[];
   csvPreviewRows: Record<string, string>[];
+  totalRowCount: number;
   onConfirm: (mapping: Record<string, string>) => void;
 };
 
@@ -33,11 +34,17 @@ export function CsvMappingDialog({
   isDark,
   csvHeaders,
   csvPreviewRows,
+  totalRowCount,
   onConfirm,
 }: CsvMappingDialogProps) {
   const [mapping, setMapping] = useState<Record<string, string>>(() =>
     autoMatchColumns(csvHeaders),
   );
+
+  // Re-run auto-match when headers change (new CSV uploaded)
+  useEffect(() => {
+    setMapping(autoMatchColumns(csvHeaders));
+  }, [csvHeaders]);
 
   const handleFieldChange = useCallback((csvHeader: string, fieldKey: string) => {
     setMapping((prev) => {
@@ -90,7 +97,9 @@ export function CsvMappingDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`max-w-2xl ${isDark ? "border-zinc-800 bg-zinc-950" : ""}`}>
+      <DialogContent
+        className={`max-h-[85vh] max-w-4xl overflow-y-auto ${isDark ? "border-zinc-800 bg-zinc-950" : ""}`}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5 text-orange-500" />
@@ -258,7 +267,7 @@ export function CsvMappingDialog({
                 : "cursor-not-allowed bg-orange-500 text-white opacity-50"
             }`}
           >
-            Importer {csvPreviewRows.length > 3 ? `alle rader` : `${csvPreviewRows.length} rader`}
+            Importer {totalRowCount} {totalRowCount === 1 ? "rad" : "rader"}
           </button>
         </DialogFooter>
       </DialogContent>

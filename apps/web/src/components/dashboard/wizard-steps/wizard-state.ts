@@ -53,6 +53,26 @@ export type DocumentExtractionResult = {
   }>;
 };
 
+// ─── Team member (collected in step 5, created on "Fullfør") ───
+
+export type TeamMember = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  departmentId: string;
+  employmentForm: string;
+  positionId: string;
+  hourlyRate: number;
+  startDate: string;
+  positionPct: number;
+  birthDate: string;
+  address: string;
+  role: "employee" | "manager" | "admin";
+  extraData: Record<string, string>;
+};
+
 // ─── Wizard-Level State ───
 
 export type SetupWizardState = {
@@ -65,6 +85,7 @@ export type SetupWizardState = {
   invitedCount: number;
   shiftTemplateCount: number;
   seasonCreated: boolean;
+  teamMembers: TeamMember[];
 };
 
 export const EMPTY_EXTRACTION: DocumentExtractionResult = {};

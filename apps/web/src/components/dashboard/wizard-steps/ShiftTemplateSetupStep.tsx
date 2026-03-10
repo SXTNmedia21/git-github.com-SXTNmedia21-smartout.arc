@@ -299,17 +299,57 @@ export function ShiftTemplateSetupStep({
                 <div className="flex items-center gap-1.5">
                   <Clock className={`h-3.5 w-3.5 ${isDark ? "text-zinc-500" : "text-zinc-400"}`} />
                   <Input
-                    type="time"
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="07:00"
                     value={entry.startTime}
-                    onChange={(e) => handleUpdateEntry(entry.id, "startTime", e.target.value)}
-                    className="h-8 w-28 text-sm"
+                    onChange={(e) => {
+                      let v = e.target.value.replace(/[^\d:]/g, "");
+                      if (v.length === 2 && !v.includes(":") && !entry.startTime.includes(":")) {
+                        v += ":";
+                      }
+                      if (v.length <= 5) handleUpdateEntry(entry.id, "startTime", v);
+                    }}
+                    onBlur={(e) => {
+                      const m = e.target.value.match(/^(\d{1,2}):?(\d{2})$/);
+                      if (m) {
+                        const h = Math.min(23, parseInt(m[1]!, 10));
+                        const min = Math.min(59, parseInt(m[2]!, 10));
+                        handleUpdateEntry(
+                          entry.id,
+                          "startTime",
+                          `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`,
+                        );
+                      }
+                    }}
+                    className="h-8 w-20 text-center text-sm tabular-nums"
                   />
                   <span className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>–</span>
                   <Input
-                    type="time"
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="15:00"
                     value={entry.endTime}
-                    onChange={(e) => handleUpdateEntry(entry.id, "endTime", e.target.value)}
-                    className="h-8 w-28 text-sm"
+                    onChange={(e) => {
+                      let v = e.target.value.replace(/[^\d:]/g, "");
+                      if (v.length === 2 && !v.includes(":") && !entry.endTime.includes(":")) {
+                        v += ":";
+                      }
+                      if (v.length <= 5) handleUpdateEntry(entry.id, "endTime", v);
+                    }}
+                    onBlur={(e) => {
+                      const m = e.target.value.match(/^(\d{1,2}):?(\d{2})$/);
+                      if (m) {
+                        const h = Math.min(23, parseInt(m[1]!, 10));
+                        const min = Math.min(59, parseInt(m[2]!, 10));
+                        handleUpdateEntry(
+                          entry.id,
+                          "endTime",
+                          `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`,
+                        );
+                      }
+                    }}
+                    className="h-8 w-20 text-center text-sm tabular-nums"
                   />
                 </div>
                 <button

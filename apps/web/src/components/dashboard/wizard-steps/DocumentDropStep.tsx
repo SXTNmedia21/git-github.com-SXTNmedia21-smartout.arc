@@ -1,7 +1,25 @@
 "use client";
 
-import { useState, useCallback, useRef, useContext } from "react";
-import { Upload, FileText, X, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { useState, useCallback, useRef, useContext, useEffect } from "react";
+import {
+  Upload,
+  FileText,
+  X,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
+  Sparkles,
+  Eye,
+  Users,
+  Clock,
+  BookOpen,
+  DollarSign,
+  Briefcase,
+  ShieldCheck,
+  ChevronDown,
+  ChevronUp,
+  FileSearch,
+} from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@smartout/supabase/client";
 import { emit } from "@smartout/telemetry";
@@ -40,7 +58,7 @@ type UploadedFile = {
   name: string;
   size: number;
   storagePath: string;
-  status: "uploading" | "uploaded" | "error";
+  status: "uploading" | "uploaded" | "analyzed" | "error";
 };
 
 // ─── Helpers ──────────────────────────────────────────────
@@ -55,6 +73,401 @@ function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+// ─── Extraction Summary Dialog ────────────────────────────
+
+function ExtractionSummary({
+  result,
+  isDark,
+  onClose,
+  onUpdate,
+}: {
+  result: DocumentExtractionResult;
+  isDark: boolean;
+  onClose: () => void;
+  onUpdate: (updated: DocumentExtractionResult) => void;
+}) {
+  type SectionItem = { label: string; detail: string; source: string; key: string; index: number };
+  type Section = {
+    key: keyof DocumentExtractionResult;
+    icon: React.ReactNode;
+    title: string;
+    items: SectionItem[];
+  };
+
+  const [expandedItem, setExpandedItem] = useState<string | null>(null);
+
+  const toggleExpand = (itemId: string) => {
+    setExpandedItem((prev) => (prev === itemId ? null : itemId));
+  };
+
+  const sections: Section[] = [];
+
+  if (result.policies?.length) {
+    sections.push({
+      key: "policies",
+      icon: <ShieldCheck className="h-4 w-4" />,
+      title: "Retningslinjer",
+      items: result.policies.map((p, i) => ({
+        label: p.name,
+        detail: p.content,
+        source: p.source,
+        key: "policies",
+        index: i,
+      })),
+    });
+  }
+
+  if (result.employees?.length) {
+    sections.push({
+      key: "employees",
+      icon: <Users className="h-4 w-4" />,
+      title: "Ansatte",
+      items: result.employees.map((e, i) => ({
+        label: `${e.firstName} ${e.lastName}${e.position ? ` — ${e.position}` : ""}`,
+        detail: [
+          e.email ? `E-post: ${e.email}` : "",
+          e.phone ? `Telefon: ${e.phone}` : "",
+          e.department ? `Avdeling: ${e.department}` : "",
+          e.position ? `Stilling: ${e.position}` : "",
+        ]
+          .filter(Boolean)
+          .join("\n"),
+        source: e.source,
+        key: "employees",
+        index: i,
+      })),
+    });
+  }
+
+  if (result.shiftPatterns?.length) {
+    sections.push({
+      key: "shiftPatterns",
+      icon: <Clock className="h-4 w-4" />,
+      title: "Vaktmønstre",
+      items: result.shiftPatterns.map((s, i) => ({
+        label: `${s.name} (${s.startTime}–${s.endTime})`,
+        detail: [
+          `Start: ${s.startTime}`,
+          `Slutt: ${s.endTime}`,
+          s.department ? `Avdeling: ${s.department}` : "",
+        ]
+          .filter(Boolean)
+          .join("\n"),
+        source: s.source,
+        key: "shiftPatterns",
+        index: i,
+      })),
+    });
+  }
+
+  if (result.payroll) {
+    const supplements = result.payroll.supplements
+      ? Object.entries(result.payroll.supplements)
+          .map(([k, v]) => `${k}: ${v}`)
+          .join("\n")
+      : "";
+    sections.push({
+      key: "payroll",
+      icon: <DollarSign className="h-4 w-4" />,
+      title: "Lønn og tariff",
+      items: [
+        {
+          label: result.payroll.tariff ? `Tariff: ${result.payroll.tariff}` : "Tariffinfo funnet",
+          detail: [
+            result.payroll.tariff ? `Tariff: ${result.payroll.tariff}` : "",
+            supplements ? `Tillegg:\n${supplements}` : "",
+          ]
+            .filter(Boolean)
+            .join("\n"),
+          source: result.payroll.source,
+          key: "payroll",
+          index: 0,
+        },
+      ],
+    });
+  }
+
+  if (result.employmentTerms) {
+    sections.push({
+      key: "employmentTerms",
+      icon: <Briefcase className="h-4 w-4" />,
+      title: "Ansettelsesvilkår",
+      items: [
+        {
+          label: [
+            result.employmentTerms.noticePeriod
+              ? `Oppsigelse: ${result.employmentTerms.noticePeriod}`
+              : "",
+            result.employmentTerms.probation ? `Prøvetid: ${result.employmentTerms.probation}` : "",
+          ]
+            .filter(Boolean)
+            .join(" · "),
+          detail: [
+            result.employmentTerms.noticePeriod
+              ? `Oppsigelsestid: ${result.employmentTerms.noticePeriod}`
+              : "",
+            result.employmentTerms.probation ? `Prøvetid: ${result.employmentTerms.probation}` : "",
+          ]
+            .filter(Boolean)
+            .join("\n"),
+          source: result.employmentTerms.source,
+          key: "employmentTerms",
+          index: 0,
+        },
+      ],
+    });
+  }
+
+  if (result.handbookSections?.length) {
+    sections.push({
+      key: "handbookSections",
+      icon: <BookOpen className="h-4 w-4" />,
+      title: "Handbokseksjoner",
+      items: result.handbookSections.map((h, i) => ({
+        label: h.chapterKey.replace(/-/g, " "),
+        detail: h.content,
+        source: h.source,
+        key: "handbookSections",
+        index: i,
+      })),
+    });
+  }
+
+  const totalItems = sections.reduce((sum, s) => sum + s.items.length, 0);
+
+  function handleRemoveItem(sectionKey: string, index: number) {
+    const updated = { ...result };
+
+    if (sectionKey === "policies" && updated.policies) {
+      updated.policies = updated.policies.filter((_, i) => i !== index);
+      if (updated.policies.length === 0) delete updated.policies;
+    } else if (sectionKey === "employees" && updated.employees) {
+      updated.employees = updated.employees.filter((_, i) => i !== index);
+      if (updated.employees.length === 0) delete updated.employees;
+    } else if (sectionKey === "shiftPatterns" && updated.shiftPatterns) {
+      updated.shiftPatterns = updated.shiftPatterns.filter((_, i) => i !== index);
+      if (updated.shiftPatterns.length === 0) delete updated.shiftPatterns;
+    } else if (sectionKey === "handbookSections" && updated.handbookSections) {
+      updated.handbookSections = updated.handbookSections.filter((_, i) => i !== index);
+      if (updated.handbookSections.length === 0) delete updated.handbookSections;
+    } else if (sectionKey === "payroll") {
+      delete updated.payroll;
+    } else if (sectionKey === "employmentTerms") {
+      delete updated.employmentTerms;
+    }
+
+    onUpdate(updated);
+  }
+
+  function handleRemoveSection(sectionKey: string) {
+    const updated = { ...result };
+    delete updated[sectionKey as keyof DocumentExtractionResult];
+    onUpdate(updated);
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div
+        className={`mx-4 w-full max-w-lg rounded-2xl border shadow-2xl ${
+          isDark ? "border-zinc-700 bg-zinc-900" : "border-zinc-200 bg-white"
+        }`}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-inherit px-6 py-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-500/10">
+              <Sparkles className="h-5 w-5 text-orange-500" />
+            </div>
+            <div>
+              <h3 className={`text-base font-bold ${isDark ? "text-white" : "text-zinc-900"}`}>
+                Analysert data
+              </h3>
+              <p className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+                {totalItems} elementer funnet i {sections.length} kategorier
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className={`rounded-lg p-2 transition-colors ${
+              isDark ? "text-zinc-400 hover:bg-zinc-800" : "text-zinc-500 hover:bg-zinc-100"
+            }`}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="max-h-[60vh] overflow-y-auto px-6 py-4">
+          {sections.length === 0 ? (
+            <div className="space-y-3 py-2">
+              <div
+                className={`flex items-center gap-3 rounded-xl border px-4 py-3 ${
+                  isDark ? "border-amber-900/50 bg-amber-950/20" : "border-amber-200 bg-amber-50"
+                }`}
+              >
+                <AlertCircle
+                  className={`h-5 w-5 shrink-0 ${isDark ? "text-amber-500" : "text-amber-600"}`}
+                />
+                <p
+                  className={`text-sm font-medium ${isDark ? "text-amber-400" : "text-amber-700"}`}
+                >
+                  Ingen relevant driftsdata funnet
+                </p>
+              </div>
+              <p
+                className={`text-sm leading-relaxed ${isDark ? "text-zinc-400" : "text-zinc-600"}`}
+              >
+                Dokumentene ser ikke ut til å inneholde informasjon vi kan bruke til å sette opp
+                arbeidsplassen din. Vi leter etter:
+              </p>
+              <ul
+                className={`space-y-1.5 pl-1 text-sm ${isDark ? "text-zinc-500" : "text-zinc-500"}`}
+              >
+                <li className="flex items-center gap-2">
+                  <ShieldCheck className="h-3.5 w-3.5 text-orange-500" /> Retningslinjer og rutiner
+                  (HMS, hygiene, etc.)
+                </li>
+                <li className="flex items-center gap-2">
+                  <Users className="h-3.5 w-3.5 text-orange-500" /> Ansattlister med navn, roller,
+                  kontaktinfo
+                </li>
+                <li className="flex items-center gap-2">
+                  <Clock className="h-3.5 w-3.5 text-orange-500" /> Vaktmønstre og arbeidstider
+                </li>
+                <li className="flex items-center gap-2">
+                  <DollarSign className="h-3.5 w-3.5 text-orange-500" /> Tariffavtaler og
+                  lønnstillegg
+                </li>
+                <li className="flex items-center gap-2">
+                  <Briefcase className="h-3.5 w-3.5 text-orange-500" /> Ansettelsesvilkår
+                  (oppsigelse, prøvetid)
+                </li>
+                <li className="flex items-center gap-2">
+                  <BookOpen className="h-3.5 w-3.5 text-orange-500" /> Personalhandbok
+                </li>
+              </ul>
+              <p className={`text-xs ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
+                Prøv å laste opp personalhandbok, tariffavtale, arbeidsavtale-mal, eller
+                ansattlister.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {sections.map((section) => (
+                <div key={section.key}>
+                  <div className="mb-1.5 flex items-center gap-2">
+                    <span className="text-orange-500">{section.icon}</span>
+                    <span
+                      className={`text-sm font-semibold ${
+                        isDark ? "text-zinc-200" : "text-zinc-800"
+                      }`}
+                    >
+                      {section.title}
+                    </span>
+                    <span
+                      className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                        isDark ? "bg-zinc-800 text-zinc-400" : "bg-zinc-100 text-zinc-500"
+                      }`}
+                    >
+                      {section.items.length}
+                    </span>
+                    {section.items.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveSection(section.key)}
+                        className={`ml-auto rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors ${
+                          isDark
+                            ? "text-red-400/70 hover:bg-red-950/30 hover:text-red-400"
+                            : "text-red-400 hover:bg-red-50 hover:text-red-600"
+                        }`}
+                      >
+                        Fjern alle
+                      </button>
+                    )}
+                  </div>
+                  <ul className="space-y-1 pl-6">
+                    {section.items.map((item) => {
+                      const itemId = `${item.key}-${item.index}`;
+                      const isExpanded = expandedItem === itemId;
+                      return (
+                        <li key={itemId} className="space-y-0">
+                          <div
+                            className={`group flex cursor-pointer items-center gap-2 rounded px-1.5 py-1 text-xs transition-colors ${
+                              isDark
+                                ? "text-zinc-400 hover:bg-zinc-800/50"
+                                : "text-zinc-600 hover:bg-zinc-50"
+                            }`}
+                            onClick={() => toggleExpand(itemId)}
+                          >
+                            {isExpanded ? (
+                              <ChevronUp className="h-3 w-3 shrink-0 text-orange-500" />
+                            ) : (
+                              <ChevronDown className="h-3 w-3 shrink-0 text-zinc-500" />
+                            )}
+                            <span className="min-w-0 flex-1 font-medium">{item.label}</span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemoveItem(item.key, item.index);
+                              }}
+                              className={`shrink-0 rounded p-0.5 opacity-0 transition-opacity group-hover:opacity-100 ${
+                                isDark
+                                  ? "text-red-400/70 hover:bg-red-950/40 hover:text-red-400"
+                                  : "text-red-400 hover:bg-red-50 hover:text-red-600"
+                              }`}
+                              title="Fjern dette elementet"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                          {isExpanded && (
+                            <div
+                              className={`mt-1 ml-5 rounded-lg border px-3 py-2 text-xs ${
+                                isDark
+                                  ? "border-zinc-800 bg-zinc-950/50 text-zinc-400"
+                                  : "border-zinc-200 bg-zinc-50 text-zinc-600"
+                              }`}
+                            >
+                              <p className="leading-relaxed whitespace-pre-wrap">
+                                {item.detail || "Ingen detaljer tilgjengelig."}
+                              </p>
+                              {item.source && (
+                                <p
+                                  className={`mt-2 flex items-center gap-1 text-[10px] ${
+                                    isDark ? "text-zinc-600" : "text-zinc-400"
+                                  }`}
+                                >
+                                  <FileSearch className="h-3 w-3" />
+                                  Kilde: {item.source}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="border-t border-inherit px-6 py-4">
+          <p className={`text-xs ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
+            Fjern elementer som er utdaterte eller feil. Gjenværende data forhåndsutfylles i de
+            neste stegene.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ─── DocumentDropStep ─────────────────────────────────────
@@ -75,14 +488,41 @@ export function DocumentDropStep({
   const [isDragging, setIsDragging] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisComplete, setAnalysisComplete] = useState(false);
+  const [extractionResult, setExtractionResult] = useState<DocumentExtractionResult | null>(null);
+  const [showSummary, setShowSummary] = useState(false);
+
+  // ── Load existing files from bucket on mount ──
+  useEffect(() => {
+    async function loadExisting() {
+      const prefix = `${workspace.workspace_id}/setup-docs`;
+      const { data } = await supabase.storage.from("setup-documents").list(prefix);
+      if (!data?.length) return;
+
+      const existing: UploadedFile[] = data.map((f) => ({
+        id: f.id ?? f.name,
+        name: f.name,
+        size: f.metadata?.size ?? 0,
+        storagePath: `${prefix}/${f.name}`,
+        status: "uploaded" as const,
+      }));
+
+      setFiles((prev) => {
+        const existingPaths = new Set(prev.map((f) => f.storagePath));
+        const newFiles = existing.filter((f) => !existingPaths.has(f.storagePath));
+        return newFiles.length > 0 ? [...prev, ...newFiles] : prev;
+      });
+    }
+
+    loadExisting();
+  }, [workspace.workspace_id, supabase.storage]);
 
   // ── Upload a single file to Storage ──
 
   const uploadFile = useCallback(
     async (file: File): Promise<UploadedFile> => {
       const id = crypto.randomUUID();
-      const ext = file.name.split(".").pop() ?? "bin";
-      const storagePath = `${workspace.workspace_id}/setup-docs/${id}.${ext}`;
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const storagePath = `${workspace.workspace_id}/setup-docs/${safeName}`;
 
       const entry: UploadedFile = {
         id,
@@ -96,7 +536,7 @@ export function DocumentDropStep({
 
       const { error } = await supabase.storage
         .from("setup-documents")
-        .upload(storagePath, file, { upsert: false });
+        .upload(storagePath, file, { upsert: true });
 
       if (error) {
         setFiles((prev) => prev.map((f) => (f.id === id ? { ...f, status: "error" as const } : f)));
@@ -136,6 +576,10 @@ export function DocumentDropStep({
         return;
       }
 
+      // Reset analysis state when new files are added
+      setAnalysisComplete(false);
+      setExtractionResult(null);
+
       await Promise.all(valid.map(uploadFile));
     },
     [files.length, uploadFile],
@@ -146,9 +590,12 @@ export function DocumentDropStep({
   const handleRemove = useCallback(
     async (file: UploadedFile) => {
       setFiles((prev) => prev.filter((f) => f.id !== file.id));
-      if (file.status === "uploaded") {
+      if (file.status === "uploaded" || file.status === "analyzed") {
         await supabase.storage.from("setup-documents").remove([file.storagePath]);
       }
+      // Reset analysis if removing a file
+      setAnalysisComplete(false);
+      setExtractionResult(null);
     },
     [supabase.storage],
   );
@@ -179,7 +626,9 @@ export function DocumentDropStep({
   // ── Analyze documents ──
 
   const handleAnalyze = useCallback(async () => {
-    const uploadedPaths = files.filter((f) => f.status === "uploaded").map((f) => f.storagePath);
+    const uploadedPaths = files
+      .filter((f) => f.status === "uploaded" || f.status === "analyzed")
+      .map((f) => f.storagePath);
 
     if (uploadedPaths.length === 0) {
       toast.error("Ingen filer å analysere");
@@ -198,9 +647,36 @@ export function DocumentDropStep({
 
       if (error) throw error;
 
-      const result = data as DocumentExtractionResult;
+      // Edge function returns { result, files } with per-file status
+      const response = data as {
+        result: DocumentExtractionResult;
+        files: Array<{
+          storagePath: string;
+          fileName: string;
+          status: "analyzed" | "failed";
+          error?: string;
+          characters?: number;
+        }>;
+      };
+
+      const result = response.result ?? {};
+      const fileStatuses = response.files ?? [];
+
       onExtractionComplete(result);
+      setExtractionResult(result);
       setAnalysisComplete(true);
+
+      // Mark files based on per-file extraction status from edge function
+      setFiles((prev) =>
+        prev.map((f) => {
+          if (f.status !== "uploaded") return f;
+          const match = fileStatuses.find((fs) => fs.storagePath === f.storagePath);
+          if (match?.status === "analyzed") return { ...f, status: "analyzed" as const };
+          if (match?.status === "failed") return { ...f, status: "error" as const };
+          // No match = not sent or unknown — keep as uploaded
+          return f;
+        }),
+      );
 
       void emit({
         event: "button clicked",
@@ -212,7 +688,29 @@ export function DocumentDropStep({
         },
       });
 
-      toast.success("Dokumentene er analysert");
+      const hasData = !!(
+        result.policies?.length ||
+        result.employees?.length ||
+        result.shiftPatterns?.length ||
+        result.payroll ||
+        result.employmentTerms ||
+        result.handbookSections?.length
+      );
+
+      const failedFiles = fileStatuses.filter((fs) => fs.status === "failed");
+      if (failedFiles.length > 0) {
+        toast.warning(
+          `${failedFiles.length} fil(er) kunne ikke analyseres: ${failedFiles.map((f) => f.fileName).join(", ")}`,
+        );
+      }
+
+      if (hasData) {
+        const analyzedCount = fileStatuses.filter((fs) => fs.status === "analyzed").length;
+        toast.success(`${analyzedCount} dokument(er) analysert — data funnet!`);
+      } else {
+        toast.warning("Analysert, men ingen relevant driftsdata funnet.");
+      }
+      setShowSummary(true);
     } catch {
       toast.error("Kunne ikke analysere dokumentene. Prøv igjen.");
     } finally {
@@ -222,10 +720,25 @@ export function DocumentDropStep({
 
   // ── Render ──
 
-  const uploadedCount = files.filter((f) => f.status === "uploaded").length;
+  const readyCount = files.filter((f) => f.status === "uploaded").length;
+  const analyzedCount = files.filter((f) => f.status === "analyzed").length;
+  const hasUnanalyzed = readyCount > 0;
 
   return (
     <div className="space-y-4">
+      {/* Extraction summary dialog */}
+      {showSummary && extractionResult && (
+        <ExtractionSummary
+          result={extractionResult}
+          isDark={isDark}
+          onClose={() => setShowSummary(false)}
+          onUpdate={(updated) => {
+            setExtractionResult(updated);
+            onExtractionComplete(updated);
+          }}
+        />
+      )}
+
       {/* Drop zone */}
       <div
         onDragOver={handleDragOver}
@@ -283,6 +796,9 @@ export function DocumentDropStep({
               {file.status === "uploaded" && (
                 <FileText className="h-4 w-4 shrink-0 text-emerald-500" />
               )}
+              {file.status === "analyzed" && (
+                <Sparkles className="h-4 w-4 shrink-0 text-orange-500" />
+              )}
               {file.status === "error" && <AlertCircle className="h-4 w-4 shrink-0 text-red-500" />}
 
               <span
@@ -292,6 +808,17 @@ export function DocumentDropStep({
               >
                 {file.name}
               </span>
+
+              {file.status === "analyzed" && (
+                <span
+                  className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase ${
+                    isDark ? "bg-orange-500/10 text-orange-400" : "bg-orange-50 text-orange-600"
+                  }`}
+                >
+                  Analysert
+                </span>
+              )}
+
               <span className={`shrink-0 text-xs ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
                 {formatSize(file.size)}
               </span>
@@ -315,41 +842,98 @@ export function DocumentDropStep({
       )}
 
       {/* Analyze button */}
-      {uploadedCount > 0 && !analysisComplete && (
+      {readyCount + analyzedCount > 0 && !isAnalyzing && (
         <button
           type="button"
           onClick={handleAnalyze}
-          disabled={isAnalyzing}
           className={`flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
-            isAnalyzing
-              ? "cursor-not-allowed opacity-50"
-              : "bg-orange-500 text-white hover:bg-orange-600"
+            hasUnanalyzed
+              ? "bg-orange-500 text-white hover:bg-orange-600"
+              : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
           }`}
         >
-          {isAnalyzing ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Analyserer {uploadedCount} {uploadedCount === 1 ? "fil" : "filer"}...
-            </>
-          ) : (
-            `Analyser ${uploadedCount} ${uploadedCount === 1 ? "fil" : "filer"}`
-          )}
+          {hasUnanalyzed
+            ? `Analyser ${readyCount + analyzedCount} ${readyCount + analyzedCount === 1 ? "fil" : "filer"}`
+            : `Analyser på nytt (${analyzedCount} ${analyzedCount === 1 ? "fil" : "filer"})`}
         </button>
       )}
 
-      {/* Analysis complete */}
-      {analysisComplete && (
-        <div
-          className={`flex items-center gap-3 rounded-xl border px-4 py-3 ${
-            isDark ? "border-emerald-900 bg-emerald-950/30" : "border-emerald-200 bg-emerald-50"
-          }`}
-        >
-          <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500" />
-          <p className={`text-sm font-medium ${isDark ? "text-emerald-400" : "text-emerald-700"}`}>
-            Dokumentene er analysert. Dataene er fylt inn i de neste stegene.
-          </p>
+      {/* Analyzing spinner */}
+      {isAnalyzing && (
+        <div className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-3 text-sm font-semibold text-white opacity-70">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Analyserer...
         </div>
       )}
+
+      {/* Analysis complete banner */}
+      {analysisComplete &&
+        !isAnalyzing &&
+        extractionResult &&
+        (() => {
+          const hasData = !!(
+            extractionResult.policies?.length ||
+            extractionResult.employees?.length ||
+            extractionResult.shiftPatterns?.length ||
+            extractionResult.payroll ||
+            extractionResult.employmentTerms ||
+            extractionResult.handbookSections?.length
+          );
+          return (
+            <div
+              className={`flex items-center justify-between rounded-xl border px-4 py-3 ${
+                hasData
+                  ? isDark
+                    ? "border-emerald-900 bg-emerald-950/30"
+                    : "border-emerald-200 bg-emerald-50"
+                  : isDark
+                    ? "border-amber-900/50 bg-amber-950/20"
+                    : "border-amber-200 bg-amber-50"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                {hasData ? (
+                  <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500" />
+                ) : (
+                  <AlertCircle
+                    className={`h-5 w-5 shrink-0 ${isDark ? "text-amber-500" : "text-amber-600"}`}
+                  />
+                )}
+                <p
+                  className={`text-sm font-medium ${
+                    hasData
+                      ? isDark
+                        ? "text-emerald-400"
+                        : "text-emerald-700"
+                      : isDark
+                        ? "text-amber-400"
+                        : "text-amber-700"
+                  }`}
+                >
+                  {hasData
+                    ? "Dokumentene er analysert. Dataene er fylt inn i de neste stegene."
+                    : "Analysert, men ingen relevant driftsdata funnet. Prøv andre dokumenter."}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSummary(true)}
+                className={`flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  hasData
+                    ? isDark
+                      ? "bg-emerald-900/50 text-emerald-400 hover:bg-emerald-900"
+                      : "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                    : isDark
+                      ? "bg-amber-900/50 text-amber-400 hover:bg-amber-900"
+                      : "bg-amber-100 text-amber-700 hover:bg-amber-200"
+                }`}
+              >
+                <Eye className="h-3.5 w-3.5" />
+                Se resultater
+              </button>
+            </div>
+          );
+        })()}
 
       {/* Skip hint */}
       <p className={`text-center text-xs ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>

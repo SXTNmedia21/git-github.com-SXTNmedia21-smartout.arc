@@ -23,18 +23,41 @@ export const MAPPABLE_FIELDS: MappableField[] = [
 ];
 
 const SYNONYMS: Record<string, string[]> = {
-  firstName: ["fornavn", "first_name", "firstname", "förnamn", "namn", "name"],
-  lastName: ["etternavn", "last_name", "lastname", "efternamn", "surname"],
-  email: ["e-post", "epost", "email", "mail", "e-mail"],
-  phone: ["telefon", "phone", "tlf", "mobil", "mobilnummer", "mob"],
-  departmentId: ["avdeling", "department", "dept", "avd"],
-  positionId: ["stilling", "position", "rolle", "role", "title", "tittel"],
-  employmentForm: ["ansettelsesform", "employment", "anställningsform", "type"],
-  hourlyRate: ["timelønn", "lønn", "hourly_rate", "timlön", "lön", "lonn"],
-  startDate: ["startdato", "start_date", "startdatum", "tiltredelse"],
-  positionPct: ["stillingsprosent", "stillingsandel", "prosent", "pct"],
-  birthDate: ["fødselsdato", "birth_date", "født", "dob", "födelsedatum"],
-  address: ["adresse", "address", "bosted"],
+  firstName: ["fornavn", "first_name", "firstname", "förnamn", "namn", "name", "navn", "fornamn"],
+  lastName: [
+    "etternavn",
+    "last_name",
+    "lastname",
+    "efternamn",
+    "surname",
+    "familienavn",
+    "slektsnavn",
+  ],
+  email: ["epost", "email", "mail", "email", "epostadresse", "emailaddress"],
+  phone: ["telefon", "phone", "tlf", "mobil", "mobilnummer", "mob", "telefonnummer", "mobilnr"],
+  departmentId: ["avdeling", "department", "dept", "avd", "avdelning"],
+  positionId: ["stilling", "position", "rolle", "role", "title", "tittel", "befattning"],
+  employmentForm: [
+    "ansettelsesform",
+    "employment",
+    "anställningsform",
+    "type",
+    "ansettelse",
+    "anställning",
+  ],
+  hourlyRate: ["timelønn", "lønn", "hourly_rate", "timlön", "lön", "lonn", "timelonn", "timlon"],
+  startDate: ["startdato", "start_date", "startdatum", "tiltredelse", "ansatt_fra", "start"],
+  positionPct: ["stillingsprosent", "stillingsandel", "prosent", "pct", "stillingspct"],
+  birthDate: [
+    "fødselsdato",
+    "birth_date",
+    "født",
+    "dob",
+    "födelsedatum",
+    "fodselsdato",
+    "birthday",
+  ],
+  address: ["adresse", "address", "bosted", "postadresse"],
 };
 
 /**

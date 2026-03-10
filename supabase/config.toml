@@ -118,6 +118,10 @@ public = false
 file_size_limit = "10MiB"
 allowed_mime_types = ["application/pdf"]
 
+[storage.buckets.setup-documents]
+public = false
+file_size_limit = "10MiB"
+
 [storage.buckets.settlements]
 public = false
 file_size_limit = "10MiB"
@@ -461,4 +465,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.fire-delayed-triggers]
+verify_jwt = false
+
+[functions.analyze-setup-documents]
 verify_jwt = false

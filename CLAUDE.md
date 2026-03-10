@@ -86,6 +86,17 @@ smartout_v3/
 
 > Full schema, tables, enums, RLS patterns: `docs/reference/DATABASE.md`
 
+## Database Migrations
+
+ALDRI kjør ALTER TABLE direkte. ALLTID lag migrasjonsfil i `supabase/migrations/` først.
+
+Workflow:
+
+1. Lag SQL-fil: `supabase/migrations/YYYYMMDDHHMMSS_beskrivelse.sql`
+2. Kjør via docker exec: `docker exec -i $(docker ps -q -f name=supabase_db) psql -U postgres < supabase/migrations/<fil>.sql`
+
+Ingen unntak.
+
 ---
 
 ## UI & Styling

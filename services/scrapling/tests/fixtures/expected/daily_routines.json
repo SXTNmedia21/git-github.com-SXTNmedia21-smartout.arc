@@ -1,0 +1,6 @@
+{
+  "expect_categories": ["routines"],
+  "reject_categories": ["policies", "menus"],
+  "routines_min_count": 2,
+  "routines_must_contain": ["åpning", "steng"]
+}

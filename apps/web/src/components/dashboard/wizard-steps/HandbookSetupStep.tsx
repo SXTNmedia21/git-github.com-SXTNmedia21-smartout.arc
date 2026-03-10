@@ -487,9 +487,9 @@ export function HandbookSetupStep({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-            H\u00e5ndbok-kapitler
+            Håndbok-kapitler
           </h3>
-          <HelpTip text="Kapitlene er forh\u00e5ndsutfylt basert p\u00e5 det du la inn i steg 1\u20136. G\u00e5 gjennom og rediger der det trengs." />
+          <HelpTip text="Kapitlene er forhåndsutfylt basert på det du la inn i steg 1–6. Gå gjennom og rediger der det trengs." />
         </div>
         <span className={`text-xs font-medium ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
           {completedCount} av {CHAPTERS.length} fullført

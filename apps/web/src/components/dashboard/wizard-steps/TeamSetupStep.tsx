@@ -1,13 +1,11 @@
 "use client";
 
-import { useState, useCallback, useMemo, useContext, useRef, useEffect } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import Papa from "papaparse";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
-import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { emit } from "@smartout/telemetry";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -16,31 +14,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Loader2, CheckCircle2, Trash2, Send, Upload, AlertCircle } from "lucide-react";
+import { Plus, Trash2, Upload, AlertCircle, Shield } from "lucide-react";
 import { HelpTip } from "@/components/dashboard/wizard-steps/HelpTip";
 import { CsvMappingDialog } from "@/components/dashboard/wizard-steps/csv-column-mapper";
 import { MAPPABLE_FIELDS } from "@/components/dashboard/wizard-steps/csv-synonyms";
+import type { TeamMember } from "./wizard-state";
 
 // ─── Types ──────────────────────────────────────────────────
 
-type InviteRow = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  departmentId: string;
-  employmentForm: string;
-  positionId: string;
-  hourlyRate: number;
-  startDate: string;
-  positionPct: number;
-  birthDate: string;
-  address: string;
-  extraData: Record<string, string>;
-  status: "pending" | "sending" | "sent" | "error";
+type InviteRow = TeamMember & {
   validationErrors: string[];
 };
+
+const ROLE_OPTIONS: { value: TeamMember["role"]; label: string; description: string }[] = [
+  { value: "employee", label: "Ansatt", description: "Tilgang til opplæring og håndbok" },
+  { value: "manager", label: "Leder", description: "Kan administrere team og vakter" },
+  { value: "admin", label: "Administrator", description: "Full tilgang til arbeidsrommet" },
+];
 
 function createEmptyRow(): InviteRow {
   return {
@@ -57,8 +47,8 @@ function createEmptyRow(): InviteRow {
     positionPct: 0,
     birthDate: "",
     address: "",
+    role: "employee",
     extraData: {},
-    status: "pending",
     validationErrors: [],
   };
 }
@@ -95,26 +85,18 @@ function InviteRowCard({
   onUpdate: (id: string, patch: Partial<InviteRow>) => void;
   onRemove: (id: string) => void;
 }) {
-  const isSent = row.status === "sent";
-  const isSending = row.status === "sending";
-  const isError = row.status === "error";
-  const isDisabled = isSent || isSending;
   const hasValidationErrors = row.validationErrors.length > 0;
 
   return (
     <div
       className={`rounded-xl border p-4 transition-colors ${
-        isSent
+        hasValidationErrors
           ? isDark
-            ? "border-emerald-800/40 bg-emerald-950/20"
-            : "border-emerald-200 bg-emerald-50/30"
-          : isError || hasValidationErrors
-            ? isDark
-              ? "border-red-800/40 bg-red-950/20"
-              : "border-red-200 bg-red-50/30"
-            : isDark
-              ? "border-zinc-800 bg-zinc-900/50"
-              : "border-zinc-200 bg-white"
+            ? "border-red-800/40 bg-red-950/20"
+            : "border-red-200 bg-red-50/30"
+          : isDark
+            ? "border-zinc-800 bg-zinc-900/50"
+            : "border-zinc-200 bg-white"
       }`}
     >
       {/* Row 1: Name + Email + Phone */}
@@ -123,14 +105,12 @@ function InviteRowCard({
           placeholder="Fornavn"
           value={row.firstName}
           onChange={(e) => onUpdate(row.id, { firstName: e.target.value })}
-          disabled={isDisabled}
           className={`h-9 text-sm ${!row.firstName.trim() && hasValidationErrors ? "border-red-500" : ""} ${isDark ? "border-zinc-700 bg-zinc-800/50" : ""}`}
         />
         <Input
           placeholder="Etternavn"
           value={row.lastName}
           onChange={(e) => onUpdate(row.id, { lastName: e.target.value })}
-          disabled={isDisabled}
           className={`h-9 text-sm ${!row.lastName.trim() && hasValidationErrors ? "border-red-500" : ""} ${isDark ? "border-zinc-700 bg-zinc-800/50" : ""}`}
         />
         <Input
@@ -138,7 +118,6 @@ function InviteRowCard({
           type="email"
           value={row.email}
           onChange={(e) => onUpdate(row.id, { email: e.target.value })}
-          disabled={isDisabled}
           className={`h-9 text-sm ${row.validationErrors.some((e) => e.includes("post")) ? "border-red-500" : ""} ${isDark ? "border-zinc-700 bg-zinc-800/50" : ""}`}
         />
         <Input
@@ -146,17 +125,47 @@ function InviteRowCard({
           type="tel"
           value={row.phone}
           onChange={(e) => onUpdate(row.id, { phone: e.target.value })}
-          disabled={isDisabled}
           className={`h-9 text-sm ${isDark ? "border-zinc-700 bg-zinc-800/50" : ""}`}
         />
       </div>
 
-      {/* Row 2: Department + Employment form + Position + Rate */}
-      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {/* Row 2: Role + Department + Employment form + Position + Rate */}
+      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-5">
         <Select
-          value={row.departmentId}
+          value={row.role}
+          onValueChange={(v) => onUpdate(row.id, { role: v as TeamMember["role"] })}
+        >
+          <SelectTrigger
+            className={`h-9 text-sm ${
+              row.role !== "employee"
+                ? isDark
+                  ? "border-orange-500/40 text-orange-300"
+                  : "border-orange-300 text-orange-700"
+                : isDark
+                  ? "border-zinc-700 bg-zinc-800/50"
+                  : ""
+            }`}
+          >
+            <div className="flex items-center gap-1.5 truncate">
+              {row.role !== "employee" && <Shield className="h-3 w-3 shrink-0" />}
+              <span className="truncate">
+                {ROLE_OPTIONS.find((o) => o.value === row.role)?.label ?? "Ansatt"}
+              </span>
+            </div>
+          </SelectTrigger>
+          <SelectContent>
+            {ROLE_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                <span className="font-medium">{opt.label}</span>
+                <span className="ml-1.5 text-xs text-zinc-400">— {opt.description}</span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={row.departmentId || undefined}
           onValueChange={(v) => onUpdate(row.id, { departmentId: v })}
-          disabled={isDisabled}
         >
           <SelectTrigger
             className={`h-9 text-sm ${isDark ? "border-zinc-700 bg-zinc-800/50" : ""}`}
@@ -173,9 +182,8 @@ function InviteRowCard({
         </Select>
 
         <Select
-          value={row.employmentForm}
+          value={row.employmentForm || undefined}
           onValueChange={(v) => onUpdate(row.id, { employmentForm: v })}
-          disabled={isDisabled}
         >
           <SelectTrigger
             className={`h-9 text-sm ${isDark ? "border-zinc-700 bg-zinc-800/50" : ""}`}
@@ -192,9 +200,8 @@ function InviteRowCard({
         </Select>
 
         <Select
-          value={row.positionId}
+          value={row.positionId || undefined}
           onValueChange={(v) => onUpdate(row.id, { positionId: v })}
-          disabled={isDisabled}
         >
           <SelectTrigger
             className={`h-9 text-sm ${isDark ? "border-zinc-700 bg-zinc-800/50" : ""}`}
@@ -216,7 +223,6 @@ function InviteRowCard({
             placeholder="0"
             value={row.hourlyRate || ""}
             onChange={(e) => onUpdate(row.id, { hourlyRate: parseFloat(e.target.value) || 0 })}
-            disabled={isDisabled}
             className={`h-9 pr-10 text-sm ${isDark ? "border-zinc-700 bg-zinc-800/50" : ""}`}
           />
           <span
@@ -229,7 +235,7 @@ function InviteRowCard({
         </div>
       </div>
 
-      {/* Row 3: Validation errors + Status + Remove */}
+      {/* Row 3: Validation errors + Remove */}
       <div className="mt-2 flex items-center justify-between">
         <div>
           {hasValidationErrors && (
@@ -239,23 +245,16 @@ function InviteRowCard({
             </div>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          {isSending && <Loader2 className="h-4 w-4 animate-spin text-orange-500" />}
-          {isSent && <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
-          {isError && <span className="text-xs font-medium text-red-500">Feilet</span>}
-          {!isSent && !isSending && (
-            <button
-              onClick={() => onRemove(row.id)}
-              className={`rounded-lg p-1.5 transition-colors ${
-                isDark
-                  ? "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
-                  : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
-              }`}
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          )}
-        </div>
+        <button
+          onClick={() => onRemove(row.id)}
+          className={`rounded-lg p-1.5 transition-colors ${
+            isDark
+              ? "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
+              : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
+          }`}
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
       </div>
     </div>
   );
@@ -266,6 +265,8 @@ function InviteRowCard({
 export function TeamSetupStep({
   isDark,
   extractedEmployees,
+  teamMembers,
+  onTeamChange,
 }: {
   isDark: boolean;
   extractedEmployees?: Array<{
@@ -277,17 +278,31 @@ export function TeamSetupStep({
     position?: string;
     source: string;
   }>;
+  teamMembers: TeamMember[];
+  onTeamChange: (members: TeamMember[]) => void;
 }) {
   const { workspace } = useWorkspace();
-  const { profileId } = useContext(DashboardContext);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hasPreFilledRef = useRef(false);
 
-  const [rows, setRows] = useState<InviteRow[]>([createEmptyRow()]);
-  const [isSending, setIsSending] = useState(false);
+  const [rows, setRows] = useState<InviteRow[]>(() => {
+    if (teamMembers.length > 0) {
+      return teamMembers.map((m) => ({ ...m, validationErrors: [] }));
+    }
+    return [createEmptyRow()];
+  });
   const [csvMappingOpen, setCsvMappingOpen] = useState(false);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [csvRawRows, setCsvRawRows] = useState<Record<string, string>[]>([]);
+
+  // ── Sync rows → parent wizard state ──
+
+  useEffect(() => {
+    const members: TeamMember[] = rows
+      .filter((r) => r.firstName.trim() || r.lastName.trim() || r.email.trim())
+      .map(({ validationErrors: _ve, ...member }) => member);
+    onTeamChange(members);
+  }, [rows, onTeamChange]);
 
   // ── Queries ──
 
@@ -329,7 +344,7 @@ export function TeamSetupStep({
         .select("rules_json")
         .eq("workspace_id", workspace.workspace_id)
         .eq("policy_type", "hr")
-        .eq("name", "Ansettelsesvilk\u00e5r")
+        .eq("name", "Ansettelsesvilkår")
         .eq("is_active", true)
         .maybeSingle();
       return data;
@@ -351,7 +366,7 @@ export function TeamSetupStep({
         .select("rules_json")
         .eq("workspace_id", workspace.workspace_id)
         .eq("policy_type", "payroll")
-        .eq("name", "Stillingsl\u00f8nn")
+        .eq("name", "Stillingslønn")
         .eq("is_active", true)
         .maybeSingle();
       return data;
@@ -373,7 +388,7 @@ export function TeamSetupStep({
     return map;
   }, [wagePolicy]);
 
-  // ── Department name lookup ──
+  // ── Name lookup maps ──
 
   const deptNameMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -382,8 +397,6 @@ export function TeamSetupStep({
     }
     return map;
   }, [departments]);
-
-  // ── Position name lookup ──
 
   const posNameMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -398,7 +411,6 @@ export function TeamSetupStep({
   useEffect(() => {
     if (hasPreFilledRef.current) return;
     if (!extractedEmployees || extractedEmployees.length === 0) return;
-    // Only pre-fill if rows has just the initial empty row
     const isInitial =
       rows.length === 1 &&
       !rows[0]!.firstName.trim() &&
@@ -440,7 +452,6 @@ export function TeamSetupStep({
         prev.map((r) => {
           if (r.id !== id) return r;
           const updated = { ...r, ...patch, validationErrors: [] };
-          // Auto-fill hourly rate when position changes
           if (patch.positionId && patch.positionId !== r.positionId) {
             const wage = positionWageMap.get(patch.positionId);
             if (wage !== undefined) {
@@ -503,7 +514,6 @@ export function TeamSetupStep({
     (mapping: Record<string, string>) => {
       const csvRows: InviteRow[] = csvRawRows
         .filter((row) => {
-          // At least one mapped required field must have data
           const hasData = Object.entries(mapping).some(([header, fieldKey]) => {
             const field = MAPPABLE_FIELDS.find((f) => f.key === fieldKey);
             return field?.required && row[header]?.trim();
@@ -600,93 +610,14 @@ export function TeamSetupStep({
     [csvRawRows, deptNameMap, posNameMap, positionWageMap],
   );
 
-  // ── Send logic ──
-
-  const handleSend = useCallback(async () => {
-    // Validate all pending rows first
-    let hasErrors = false;
-    setRows((prev) =>
-      prev.map((r) => {
-        if (r.status !== "pending" || !r.email.trim()) return r;
-        const errors = validateRow(r);
-        if (errors.length > 0) hasErrors = true;
-        return { ...r, validationErrors: errors };
-      }),
-    );
-
-    if (hasErrors) {
-      toast.error("Rett valideringsfeil f\u00f8r sending");
-      return;
-    }
-
-    const toSend = rows.filter((r) => r.status === "pending" && r.email.trim() !== "");
-    if (toSend.length === 0) {
-      toast.error("Ingen invitasjoner \u00e5 sende");
-      return;
-    }
-
-    setIsSending(true);
-    let sentCount = 0;
-
-    for (const row of toSend) {
-      setRows((prev) =>
-        prev.map((r) => (r.id === row.id ? { ...r, status: "sending" as const } : r)),
-      );
-
-      try {
-        const supabase = createClient();
-        const { error } = await supabase.functions.invoke("create-invitation", {
-          body: {
-            workspace_id: workspace.workspace_id,
-            company_id: workspace.company_id,
-            invites: [
-              {
-                email: row.email.trim(),
-                first_name: row.firstName.trim(),
-                last_name: row.lastName.trim(),
-                role: "employee",
-                department_ids: row.departmentId ? [row.departmentId] : undefined,
-                metadata: Object.keys(row.extraData).length > 0 ? row.extraData : undefined,
-              },
-            ],
-          },
-        });
-
-        if (error) throw error;
-
-        setRows((prev) =>
-          prev.map((r) => (r.id === row.id ? { ...r, status: "sent" as const } : r)),
-        );
-        sentCount++;
-
-        void emit({
-          event: "button clicked",
-          workspace_id: workspace.workspace_id,
-          actor_id: profileId ?? "",
-          properties: {
-            trackingId: "team-invitation-sent",
-            context: row.email,
-          },
-        });
-      } catch {
-        setRows((prev) =>
-          prev.map((r) => (r.id === row.id ? { ...r, status: "error" as const } : r)),
-        );
-      }
-    }
-
-    setIsSending(false);
-
-    if (sentCount > 0) {
-      toast.success(`${sentCount} invitasjon${sentCount !== 1 ? "er" : ""} sendt`);
-    }
-  }, [rows, workspace, profileId]);
-
   // ── Derived ──
 
-  const pendingCount = rows.filter((r) => r.status === "pending" && r.email.trim() !== "").length;
-  const sentCount = rows.filter((r) => r.status === "sent").length;
-  const errorCount = rows.filter((r) => r.validationErrors.length > 0).length;
+  const filledCount = rows.filter(
+    (r) => r.firstName.trim() || r.lastName.trim() || r.email.trim(),
+  ).length;
+  const leaderCount = rows.filter(
+    (r) => (r.role === "manager" || r.role === "admin") && r.firstName.trim(),
+  ).length;
 
   // ── Render ──
 
@@ -696,24 +627,32 @@ export function TeamSetupStep({
       <div className="space-y-1">
         <div className="flex items-center gap-2">
           <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-            Inviter teamet ditt
+            Legg til teamet ditt
           </h3>
-          <HelpTip text="Legg til ansatte manuelt eller last opp en CSV-fil. De f\u00e5r en invitasjon p\u00e5 e-post." />
+          <HelpTip text="Legg til ansatte manuelt eller last opp en CSV-fil. Alle invitasjoner sendes når du fullfører oppsettet." />
         </div>
         <p className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
-          Legg til ansatte som skal f&aring; tilgang. Du kan ogs&aring; gj&oslash;re dette senere.
+          Sett tilgangsniv&aring; per person. Invitasjoner sendes n&aring;r du trykker
+          &laquo;Fullf&oslash;r&raquo; i siste steg.
         </p>
       </div>
 
-      {/* Summary bar */}
-      {sentCount > 0 && (
+      {/* Summary */}
+      {filledCount > 0 && (
         <div
-          className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium ${
-            isDark ? "bg-emerald-950/30 text-emerald-400" : "bg-emerald-50 text-emerald-700"
+          className={`flex items-center gap-4 rounded-lg px-4 py-2.5 text-xs font-medium ${
+            isDark ? "bg-zinc-900/50 text-zinc-400" : "bg-zinc-50 text-zinc-500"
           }`}
         >
-          <CheckCircle2 className="h-3.5 w-3.5" />
-          {sentCount} invitasjon{sentCount !== 1 ? "er" : ""} sendt
+          <span>
+            {filledCount} {filledCount === 1 ? "person" : "personer"} lagt til
+          </span>
+          {leaderCount > 0 && (
+            <span className="flex items-center gap-1">
+              <Shield className="h-3 w-3 text-orange-500" />
+              {leaderCount} {leaderCount === 1 ? "leder" : "ledere"}
+            </span>
+          )}
         </div>
       )}
 
@@ -765,30 +704,11 @@ export function TeamSetupStep({
           <Upload className="h-4 w-4" />
           Last opp CSV
         </button>
-
-        {pendingCount > 0 && (
-          <button
-            onClick={handleSend}
-            disabled={isSending || errorCount > 0}
-            className={`flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-sm font-semibold transition-colors ${
-              isSending || errorCount > 0
-                ? "cursor-not-allowed opacity-50"
-                : "bg-orange-500 text-white hover:bg-orange-600"
-            }`}
-          >
-            {isSending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-            Send invitasjoner ({pendingCount})
-          </button>
-        )}
       </div>
 
       {/* CSV format hint */}
       <p className={`text-[11px] leading-relaxed ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
-        Last opp en CSV-fil med kolonnenavn i f\u00f8rste rad. Du kobler kolonnene til riktige felt
+        Last opp en CSV-fil med kolonnenavn i første rad. Du kobler kolonnene til riktige felt
         i neste steg.
       </p>
 
@@ -798,6 +718,7 @@ export function TeamSetupStep({
         isDark={isDark}
         csvHeaders={csvHeaders}
         csvPreviewRows={csvRawRows.slice(0, 3)}
+        totalRowCount={csvRawRows.length}
         onConfirm={handleMappingConfirm}
       />
     </div>

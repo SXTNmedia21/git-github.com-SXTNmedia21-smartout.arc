@@ -10,9 +10,9 @@ VALUES
 
 -- 2. Create a Workspace
 -- ------------------------------------------------------------------------------
-INSERT INTO public.workspace (workspace_id, company_id, name, slug, description, currency, language, country)
+INSERT INTO public.workspace (workspace_id, company_id, name, slug, description, currency, language, country, onboarding_completed)
 VALUES
-  ('b0000000-0000-0000-0000-000000000000', 'a0000000-0000-0000-0000-000000000000', 'HQ Workspace', 'hq-workspace', 'Headquarters Workspace', 'NOK', 'no', 'NO');
+  ('b0000000-0000-0000-0000-000000000000', 'a0000000-0000-0000-0000-000000000000', 'HQ Workspace', 'hq-workspace', 'Headquarters Workspace', 'NOK', 'no', 'NO', true);
 
 -- 3. Create a Location
 -- ------------------------------------------------------------------------------

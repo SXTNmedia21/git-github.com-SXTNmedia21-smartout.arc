@@ -2672,7 +2672,7 @@ export type Database = {
           steps_snapshot: Json | null
           trigger_id: string | null
           updated_at: string
-          workspace_id: string
+          workspace_id: string | null
         }
         Insert: {
           assignee_id?: string | null
@@ -2693,7 +2693,7 @@ export type Database = {
           steps_snapshot?: Json | null
           trigger_id?: string | null
           updated_at?: string
-          workspace_id: string
+          workspace_id?: string | null
         }
         Update: {
           assignee_id?: string | null
@@ -2714,7 +2714,7 @@ export type Database = {
           steps_snapshot?: Json | null
           trigger_id?: string | null
           updated_at?: string
-          workspace_id?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -7922,6 +7922,7 @@ export type Database = {
           max_profiles: number | null
           name: string
           onboarding_completed: boolean
+          onboarding_guide_progress: Json | null
           override_access: boolean | null
           override_expires: string | null
           override_note: string | null
@@ -7970,6 +7971,7 @@ export type Database = {
           max_profiles?: number | null
           name: string
           onboarding_completed?: boolean
+          onboarding_guide_progress?: Json | null
           override_access?: boolean | null
           override_expires?: string | null
           override_note?: string | null
@@ -8018,6 +8020,7 @@ export type Database = {
           max_profiles?: number | null
           name?: string
           onboarding_completed?: boolean
+          onboarding_guide_progress?: Json | null
           override_access?: boolean | null
           override_expires?: string | null
           override_note?: string | null

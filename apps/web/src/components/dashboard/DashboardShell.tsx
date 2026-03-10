@@ -891,8 +891,17 @@ export function DashboardShell({
     return pathname.startsWith(path);
   };
 
-  // ── Setup mode: fullscreen, no chrome (only on dashboard root) ──
-  if (isSetupMode && isDashboardPage) {
+  const isSetupPage = pathname === "/dashboard/setup";
+
+  // ── Redirect to setup if onboarding not completed ──
+  useEffect(() => {
+    if (workspaceCtx?.workspace.onboarding_completed === false && !isSetupPage) {
+      window.location.href = "/dashboard/setup";
+    }
+  }, [workspaceCtx?.workspace.onboarding_completed, isSetupPage]);
+
+  // ── Setup mode: fullscreen, no chrome ──
+  if ((isSetupMode && isDashboardPage) || isSetupPage) {
     return (
       <DashboardContext.Provider value={dashboardContextValue}>
         <div

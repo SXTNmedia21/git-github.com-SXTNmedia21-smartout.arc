@@ -278,7 +278,7 @@ export function GovernanceSetupStep({
           <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
             Hva gjelder for dere?
           </h3>
-          <HelpTip text="Svar p\u00e5 disse sp\u00f8rsm\u00e5lene s\u00e5 vi kan forsl\u00e5 riktige retningslinjer for din type virksomhet." />
+          <HelpTip text="Svar på disse spørsmålene så vi kan forslå riktige retningslinjer for din type virksomhet." />
         </div>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {FILTER_QUESTIONS.map((q) => (
@@ -310,7 +310,7 @@ export function GovernanceSetupStep({
             <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
               Foreslåtte retningslinjer
             </h3>
-            <HelpTip text="Basert p\u00e5 svarene dine forsl\u00e5r vi retningslinjer. Lovp\u00e5lagte m\u00e5 opprettes, anbefalte kan sl\u00e5s av." />
+            <HelpTip text="Basert på svarene dine forslår vi retningslinjer. Lovpålagte må opprettes, anbefalte kan slås av." />
           </div>
           {uncreatedCount > 0 && (
             <button

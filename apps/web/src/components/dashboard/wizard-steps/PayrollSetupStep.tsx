@@ -331,7 +331,7 @@ export function PayrollSetupStep({
           <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
             Tariffavtale
           </h3>
-          <HelpTip text="Tariffavtalen bestemmer minstel\u00f8nn og tillegg. Velg den avtalen din virksomhet f\u00f8lger." />
+          <HelpTip text="Tariffavtalen bestemmer minstelønn og tillegg. Velg den avtalen din virksomhet følger." />
         </div>
         <RadioGroup
           value={selectedTariff}
@@ -366,7 +366,7 @@ export function PayrollSetupStep({
           <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
             Tillegg
           </h3>
-          <HelpTip text="Tillegg er ekstra betaling for kvelds-, helge- og overtidsarbeid. Satsene er forh\u00e5ndsutfylt fra valgt tariff." />
+          <HelpTip text="Tillegg er ekstra betaling for kvelds-, helge- og overtidsarbeid. Satsene er forhåndsutfylt fra valgt tariff." />
         </div>
         <div
           className={`overflow-hidden rounded-xl border ${
@@ -528,7 +528,7 @@ export function PayrollSetupStep({
                 type="text"
                 value={cs.name}
                 onChange={(e) => handleCustomSupplementChange(cs.id, "name", e.target.value)}
-                placeholder="Navn p\u00e5 tillegg"
+                placeholder="Navn på tillegg"
                 className="h-8 text-sm"
               />
               <Input
@@ -584,9 +584,9 @@ export function PayrollSetupStep({
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-            Stillingsl\u00f8nn
+            Stillingslønn
           </h3>
-          <HelpTip text="Sett grunnl\u00f8nn per stilling. Denne brukes som default n\u00e5r du inviterer ansatte." />
+          <HelpTip text="Sett grunnlønn per stilling. Denne brukes som default når du inviterer ansatte." />
         </div>
 
         {stablePositions.length === 0 ? (

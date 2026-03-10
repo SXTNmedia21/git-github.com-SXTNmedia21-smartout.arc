@@ -1,8 +1,11 @@
 "use client";
 
-import { useState, useCallback, useLayoutEffect, useMemo } from "react";
-import { ChevronLeft, ChevronRight, Rocket, SkipForward } from "lucide-react";
+import { useState, useCallback, useContext, useLayoutEffect, useMemo } from "react";
+import { ChevronLeft, ChevronRight, Loader2, Rocket, SkipForward } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { createClient } from "@smartout/supabase/client";
+import { emit } from "@smartout/telemetry";
 import { dashboardKeys } from "@/app/dashboard/_hooks/dashboard-keys";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { useWorkspaceSetup } from "@/app/dashboard/_hooks/use-workspace-setup";
@@ -22,6 +25,7 @@ import type {
   SetupWizardState,
   DocumentExtractionResult,
   ScrapedIntelligence,
+  TeamMember,
 } from "@/components/dashboard/wizard-steps/wizard-state";
 import { EMPTY_EXTRACTION } from "@/components/dashboard/wizard-steps/wizard-state";
 
@@ -41,15 +45,15 @@ const STEPS: SetupStep[] = [
     title: "Velkommen til Smartout",
     subtitle: "Det vi vet om deg",
     explanation:
-      "Vi har hentet informasjon om bedriften din fra Br\u00f8nn\u00f8ysund, Google og nettsiden din. Se over at det stemmer, og juster det som trengs.",
+      "Vi har hentet informasjon om bedriften din fra Brønnøysund, Google og nettsiden din. Se over at det stemmer, og juster det som trengs.",
     helpTip: "Dataene er hentet automatisk. Alt kan endres.",
   },
   {
     id: "document-drop",
     title: "Last opp dokumenter",
-    subtitle: "Valgfritt \u2014 vi analyserer",
+    subtitle: "Valgfritt — vi analyserer",
     explanation:
-      "Last opp det dere har \u2014 rutineperm, vaktlister, kontrakter, HMS-plan, personalh\u00e5ndbok, meny, tariffavtale. Vi analyserer og fyller ut resten for dere.",
+      "Last opp det dere har — rutineperm, vaktlister, kontrakter, HMS-plan, personalhåndbok, meny, tariffavtale. Vi analyserer og fyller ut resten for dere.",
     helpTip: "Dokumentene analyseres med AI. Du kan hoppe over dette steget.",
   },
   {
@@ -57,63 +61,63 @@ const STEPS: SetupStep[] = [
     title: "Dine retningslinjer",
     subtitle: "Regler og prosedyrer",
     explanation:
-      "Retningslinjer er reglene som styrer restauranten din. Mattrygghet, hygiene, brannsikkerhet \u2014 alt som ansatte m\u00e5 kunne. N\u00e5r du legger inn reglene her, vil systemet automatisk s\u00f8rge for at alle ansatte l\u00e6rer dem og blir testet p\u00e5 at de kan dem.",
+      "Retningslinjer er reglene som styrer restauranten din. Mattrygghet, hygiene, brannsikkerhet — alt som ansatte må kunne. Når du legger inn reglene her, vil systemet automatisk sørge for at alle ansatte lærer dem og blir testet på at de kan dem.",
     helpTip:
-      "Retningslinjer er reglene som styrer virksomheten. De blir automatisk til oppl\u00e6ring for ansatte.",
+      "Retningslinjer er reglene som styrer virksomheten. De blir automatisk til opplæring for ansatte.",
   },
   {
     id: "payroll",
-    title: "L\u00f8nn og tillegg",
+    title: "Lønn og tillegg",
     subtitle: "Tariff og satser",
     explanation:
-      "Sett opp l\u00f8nnssatser og tillegg for virksomheten din. Velg tariffavtale, juster kvelds-, helge- og overtidstillegg, og sett timel\u00f8nn per stilling.",
+      "Sett opp lønnssatser og tillegg for virksomheten din. Velg tariffavtale, juster kvelds-, helge- og overtidstillegg, og sett timelønn per stilling.",
     helpTip:
-      "L\u00f8nnsoppsettet bestemmer satser og tillegg. Det brukes automatisk n\u00e5r du inviterer ansatte og lager vaktplaner.",
+      "Lønnsoppsettet bestemmer satser og tillegg. Det brukes automatisk når du inviterer ansatte og lager vaktplaner.",
   },
   {
     id: "employment",
-    title: "Ansettelsesvilk\u00e5r",
+    title: "Ansettelsesvilkår",
     subtitle: "Avtaleformer og betingelser",
     explanation:
-      "Definer hvilke ansettelsesformer dere bruker og standardvilk\u00e5rene for hver. Pr\u00f8vetid, ferie, pensjon og arbeidsgiveravgift \u2014 alt samles her.",
+      "Definer hvilke ansettelsesformer dere bruker og standardvilkårene for hver. Prøvetid, ferie, pensjon og arbeidsgiveravgift — alt samles her.",
     helpTip:
-      "Ansettelsesvilk\u00e5r definerer kontraktsmalene. Valget her bestemmer hva som st\u00e5r i arbeidsavtalene.",
+      "Ansettelsesvilkår definerer kontraktsmalene. Valget her bestemmer hva som står i arbeidsavtalene.",
   },
   {
     id: "team",
     title: "Ditt team",
-    subtitle: "De f\u00f8rste ansatte",
+    subtitle: "De første ansatte",
     explanation:
-      "Legg til de f\u00f8rste i teamet ditt. De f\u00e5r en invitasjon og starter med \u00e5 lese h\u00e5ndboken og retningslinjene du nettopp la inn.",
+      "Legg til de første i teamet ditt. De får en invitasjon og starter med å lese håndboken og retningslinjene du nettopp la inn.",
     helpTip:
-      "Inviter ansatte manuelt eller last opp en CSV-fil. De f\u00e5r tilgang til oppl\u00e6ring og h\u00e5ndbok automatisk.",
+      "Inviter ansatte manuelt eller last opp en CSV-fil. De får tilgang til opplæring og håndbok automatisk.",
   },
   {
     id: "shift-template",
     title: "Dine vaktmaler",
     subtitle: "Grunnlaget for vaktplanen",
     explanation:
-      "En vaktmal er en oppskrift for en vakt \u2014 navn, start- og sluttid, og hvilken avdeling den tilh\u00f8rer. Du bygger den ekte vaktplanen etterp\u00e5.",
+      "En vaktmal er en oppskrift for en vakt — navn, start- og sluttid, og hvilken avdeling den tilhører. Du bygger den ekte vaktplanen etterpå.",
     helpTip:
-      "Vaktmaler er gjenbrukbare oppskrifter for vakter. De gj\u00f8r det raskt \u00e5 bygge ukeplaner.",
+      "Vaktmaler er gjenbrukbare oppskrifter for vakter. De gjør det raskt å bygge ukeplaner.",
   },
   {
     id: "season",
     title: "Din sesong",
-    subtitle: "Budsjett og m\u00e5l",
+    subtitle: "Budsjett og mål",
     explanation:
-      "Sesongen setter rammene for alt: budsjett, bemanningsm\u00e5l, og KPI-er. N\u00e5r sesongen er aktiv, begynner dashboardet \u00e5 vise ekte tall.",
+      "Sesongen setter rammene for alt: budsjett, bemanningsmål, og KPI-er. Når sesongen er aktiv, begynner dashboardet å vise ekte tall.",
     helpTip:
-      "Sesongen er tidsrammen for budsjett og m\u00e5l. Dashboard viser f\u00f8rst ekte data n\u00e5r en sesong er aktiv.",
+      "Sesongen er tidsrammen for budsjett og mål. Dashboard viser først ekte data når en sesong er aktiv.",
   },
   {
     id: "handbook",
-    title: "Din personalh\u00e5ndbok",
+    title: "Din personalhåndbok",
     subtitle: "Generert fra oppsettet ditt",
     explanation:
-      "Personalh\u00e5ndboken er auto-generert fra det du har lagt inn i steg 1\u20137. G\u00e5 gjennom kapitlene, juster teksten der det trengs, og publiser.",
+      "Personalhåndboken er auto-generert fra det du har lagt inn i steg 1–7. Gå gjennom kapitlene, juster teksten der det trengs, og publiser.",
     helpTip:
-      "H\u00e5ndboken genereres automatisk fra data du allerede har lagt inn. Du reviewer og redigerer \u2014 ikke skriver.",
+      "Håndboken genereres automatisk fra data du allerede har lagt inn. Du reviewer og redigerer — ikke skriver.",
   },
 ];
 
@@ -152,15 +156,17 @@ const STEP_TO_MODULE: Record<string, string> = {
 export function WorkspaceSetupWizard({
   isDark,
   onComplete,
+  force = false,
 }: {
   isDark: boolean;
   onComplete: () => void;
+  force?: boolean;
 }) {
   const queryClient = useQueryClient();
   const ctx = useWorkspaceOptional();
   const workspaceId = ctx?.workspace.workspace_id ?? "";
   const { data: setupStatus } = useWorkspaceSetup();
-  const industryPackage = useIndustryPackage();
+  const { package: industryPackage, detectedType, setIndustryType } = useIndustryPackage();
 
   // ── Parse scraped data from workspace intelligence ──
   const scrapedData = useMemo<ScrapedIntelligence>(() => {
@@ -183,6 +189,7 @@ export function WorkspaceSetupWizard({
     invitedCount: 0,
     shiftTemplateCount: 0,
     seasonCreated: false,
+    teamMembers: [],
   }));
 
   // Keep industry package in sync
@@ -193,6 +200,10 @@ export function WorkspaceSetupWizard({
 
   const handleExtractionComplete = useCallback((result: DocumentExtractionResult) => {
     setWizardState((prev) => ({ ...prev, extractedData: result }));
+  }, []);
+
+  const handleTeamChange = useCallback((members: TeamMember[]) => {
+    setWizardState((prev) => ({ ...prev, teamMembers: members }));
   }, []);
 
   // ── Step navigation ──
@@ -208,26 +219,138 @@ export function WorkspaceSetupWizard({
   });
 
   useLayoutEffect(() => {
-    if (workspaceId && wasRecentlySkipped(workspaceId)) {
+    if (!force && workspaceId && wasRecentlySkipped(workspaceId)) {
       onComplete();
     }
-  }, [workspaceId, onComplete]);
+  }, [force, workspaceId, onComplete]);
 
   const step = STEPS[currentStep]!;
   const isFirst = currentStep === 0;
   const isLast = currentStep === STEPS.length - 1;
+  const [isFinishing, setIsFinishing] = useState(false);
 
-  const handleNext = useCallback(() => {
+  const sendTeamInvitations = useCallback(async () => {
+    const members = currentState.teamMembers;
+    if (members.length === 0) return;
+
+    const supabase = createClient();
+
+    // Resolve inviter profile
+    const { data: inviterProfile } = await supabase
+      .from("profile")
+      .select("profile_id")
+      .eq("workspace_id", workspaceId)
+      .eq("user_id", profileId ?? "")
+      .single();
+
+    if (!inviterProfile) {
+      console.error("[wizard] Could not resolve inviter profile");
+      return;
+    }
+
+    const { data: ws } = await supabase
+      .from("workspace")
+      .select("company_id")
+      .eq("workspace_id", workspaceId)
+      .single();
+
+    const companyId = ws?.company_id;
+    if (!companyId) {
+      console.error("[wizard] Could not resolve company_id");
+      return;
+    }
+
+    const inviteRecords = members.map((m) => ({
+      workspace_id: workspaceId,
+      company_id: companyId,
+      email: m.email.trim() || null,
+      first_name: m.firstName.trim(),
+      last_name: m.lastName.trim(),
+      role: m.role,
+      department_ids: m.departmentId ? [m.departmentId] : [],
+      status: "pending" as const,
+      invite_type: "email" as const,
+      invited_by: inviterProfile.profile_id,
+      metadata: {
+        ...(m.phone ? { phone: m.phone } : {}),
+        ...(m.positionId ? { positionId: m.positionId } : {}),
+        ...(m.employmentForm ? { employmentForm: m.employmentForm } : {}),
+        ...(m.hourlyRate ? { hourlyRate: m.hourlyRate } : {}),
+        ...(m.startDate ? { startDate: m.startDate } : {}),
+        ...(m.positionPct ? { positionPct: m.positionPct } : {}),
+        ...(m.birthDate ? { birthDate: m.birthDate } : {}),
+        ...(m.address ? { address: m.address } : {}),
+        ...(Object.keys(m.extraData).length > 0 ? { extraData: m.extraData } : {}),
+      },
+    }));
+
+    const { error } = await supabase.from("invitation").insert(inviteRecords);
+
+    if (error) {
+      console.error("[wizard] Failed to create invitations:", error);
+      toast.error("Kunne ikke opprette invitasjoner");
+      throw error;
+    }
+
+    toast.success(`${members.length} invitasjon${members.length !== 1 ? "er" : ""} opprettet`);
+  }, [currentState.teamMembers, workspaceId, profileId]);
+
+  const handleNext = useCallback(async () => {
+    // Emit step completion for the current step
+    emit({
+      event: "wizard step_completed",
+      workspace_id: workspaceId,
+      actor_id: profileId ?? "",
+      properties: {
+        data: {
+          step_id: step.id,
+          step_index: currentStep,
+        },
+      },
+    }).catch((e: unknown) => console.error("[wizard] emit failed:", e));
+
     if (isLast) {
-      void queryClient.invalidateQueries({
-        queryKey: dashboardKeys.workspaceSetupStatus(workspaceId),
-      });
-      onComplete();
+      setIsFinishing(true);
+
+      try {
+        // Create all team invitations
+        await sendTeamInvitations();
+
+        // Emit wizard completed
+        emit({
+          event: "wizard completed",
+          workspace_id: workspaceId,
+          actor_id: profileId ?? "",
+          properties: {
+            data: {
+              workspace_id: workspaceId,
+            },
+          },
+        }).catch((e: unknown) => console.error("[wizard] emit failed:", e));
+
+        void queryClient.invalidateQueries({
+          queryKey: dashboardKeys.workspaceSetupStatus(workspaceId),
+        });
+        onComplete();
+      } catch {
+        // Error already toasted in sendTeamInvitations
+      } finally {
+        setIsFinishing(false);
+      }
     } else {
       setCurrentStep((s) => s + 1);
       document.querySelector("[data-wizard-scroll]")?.scrollTo({ top: 0, behavior: "smooth" });
     }
-  }, [isLast, queryClient, workspaceId, onComplete]);
+  }, [
+    isLast,
+    queryClient,
+    workspaceId,
+    onComplete,
+    profileId,
+    step.id,
+    currentStep,
+    sendTeamInvitations,
+  ]);
 
   const handleBack = useCallback(() => {
     if (!isFirst) {
@@ -282,7 +405,7 @@ export function WorkspaceSetupWizard({
           }`}
         >
           <SkipForward className="h-3.5 w-3.5" />
-          Hopp over og g\u00e5 til dashboard
+          Hopp over og gå til dashboard
         </button>
       </div>
 
@@ -370,7 +493,12 @@ export function WorkspaceSetupWizard({
 
           {/* Step form */}
           {step.id === "welcome" && (
-            <WelcomeStep scrapedData={currentState.scrapedData} isDark={isDark} />
+            <WelcomeStep
+              scrapedData={currentState.scrapedData}
+              isDark={isDark}
+              detectedIndustry={detectedType}
+              onIndustryChange={setIndustryType}
+            />
           )}
           {step.id === "document-drop" && (
             <DocumentDropStep isDark={isDark} onExtractionComplete={handleExtractionComplete} />
@@ -401,6 +529,8 @@ export function WorkspaceSetupWizard({
             <TeamSetupStep
               isDark={isDark}
               extractedEmployees={currentState.extractedData.employees}
+              teamMembers={currentState.teamMembers}
+              onTeamChange={handleTeamChange}
             />
           )}
           {step.id === "shift-template" && (
@@ -450,14 +580,28 @@ export function WorkspaceSetupWizard({
         <div className="flex items-center gap-3">
           <button
             onClick={handleNext}
+            disabled={isFinishing}
             className={`flex items-center gap-1.5 rounded-lg px-5 py-2 text-sm font-bold transition-colors ${
-              isLast
-                ? "bg-emerald-500 text-white hover:bg-emerald-600"
-                : "bg-orange-500 text-white hover:bg-orange-600"
+              isFinishing
+                ? "cursor-not-allowed opacity-50"
+                : isLast
+                  ? "bg-emerald-500 text-white hover:bg-emerald-600"
+                  : "bg-orange-500 text-white hover:bg-orange-600"
             }`}
           >
-            {isLast ? "Fullf\u00f8r og \u00e5pne dashboard" : "Neste"}
-            {!isLast && <ChevronRight className="h-4 w-4" />}
+            {isFinishing ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Oppretter...
+              </>
+            ) : isLast ? (
+              "Fullfør og åpne dashboard"
+            ) : (
+              <>
+                Neste
+                <ChevronRight className="h-4 w-4" />
+              </>
+            )}
           </button>
         </div>
       </div>

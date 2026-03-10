@@ -1,0 +1,6 @@
+{
+  "expect_categories": ["policies"],
+  "reject_categories": ["menus", "payroll"],
+  "policies_min_count": 3,
+  "policies_must_contain": ["mattrygghet", "brann", "arbeidsmiljø"]
+}
