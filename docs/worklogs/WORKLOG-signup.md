@@ -1,6 +1,6 @@
 ---
 title: "Worklog — signup"
-status: in_progress
+status: done
 updated: 2026-03-10
 created: 2026-03-10
 module: onboarding
@@ -47,13 +47,14 @@ tags: [signup, wizard, scraping, ai]
 
 ## Log
 
-| Date       | Time  | Event                                  |
-| ---------- | ----- | -------------------------------------- |
-| 2026-03-10 | 12:50 | Feature started                        |
-| 2026-03-10 | 13:30 | Plan written and reviewed              |
-| 2026-03-10 | 13:45 | DB migration done                      |
-| 2026-03-10 | 14:15 | Validation + hooks done                |
-| 2026-03-10 | 14:30 | API routes + auth rewrite done         |
-| 2026-03-10 | 14:45 | Wizard UI done, persistence bug fixed  |
-| 2026-03-10 | 15:15 | Setup logic + middleware done          |
-| 2026-03-10 | 15:20 | Typecheck passed, all 9 tasks complete |
+| Date       | Time  | Event                                    |
+| ---------- | ----- | ---------------------------------------- |
+| 2026-03-10 | 12:50 | Feature started                          |
+| 2026-03-10 | 13:30 | Plan written and reviewed                |
+| 2026-03-10 | 13:45 | DB migration done                        |
+| 2026-03-10 | 14:15 | Validation + hooks done                  |
+| 2026-03-10 | 14:30 | API routes + auth rewrite done           |
+| 2026-03-10 | 14:45 | Wizard UI done, persistence bug fixed    |
+| 2026-03-10 | 15:15 | Setup logic + middleware done            |
+| 2026-03-10 | 15:20 | Typecheck passed, all 9 tasks complete   |
+| 2026-03-10 | 15:57 | Feature closed and merged to development |
