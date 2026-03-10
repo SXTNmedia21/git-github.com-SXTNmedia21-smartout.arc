@@ -101,7 +101,7 @@ export function Step4Hours({ scrapedData }: Step4HoursProps) {
       setFacebook(scrapedData.facebook);
       setFacebookAutoFilled(true);
     }
-  }, [scrapedData]); // eslint-disable-line
+  }, [scrapedData]);
 
   const updateDay = (index: number, updates: Partial<DayHours>) => {
     setHours((prev) => prev.map((day, i) => (i === index ? { ...day, ...updates } : day)));

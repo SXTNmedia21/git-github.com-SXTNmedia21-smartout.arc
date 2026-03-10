@@ -39,6 +39,8 @@ export function useScrapedData() {
     return () => cleanup();
   }, [cleanup]);
 
+  const pollStatusRef = useRef<() => void>(() => {});
+
   const pollStatus = useCallback(() => {
     attemptRef.current += 1;
 
@@ -73,7 +75,7 @@ export function useScrapedData() {
           cleanup();
         } else {
           // Still scraping — poll again
-          pollStatus();
+          pollStatusRef.current();
         }
       } catch {
         setScrapeStatus("failed");
@@ -81,6 +83,10 @@ export function useScrapedData() {
       }
     }, POLL_INTERVAL_MS);
   }, [cleanup]);
+
+  useEffect(() => {
+    pollStatusRef.current = pollStatus;
+  }, [pollStatus]);
 
   const triggerScrape = useCallback(
     async (url: string) => {

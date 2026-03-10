@@ -51,6 +51,12 @@ contract.smartout.ai {
 	reverse_proxy contract-service:5012
 }
 
+# Scrapling — Web scraping microservice (auth via bearer token)
+scrape.smartout.ai {
+	import security_headers
+	reverse_proxy scrapling:8000
+}
+
 # n8n — Workflow automation (when deployed)
 n8n.smartout.ai {
 	import security_headers

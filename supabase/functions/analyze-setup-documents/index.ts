@@ -98,8 +98,13 @@ async function extractViaScrapling(fileData: Blob, fileName: string): Promise<Sc
   const formData = new FormData();
   formData.append("file", fileData, fileName);
 
+  const scraplingToken = Deno.env.get("SCRAPLING_AUTH_TOKEN");
+  const fetchHeaders: Record<string, string> = {};
+  if (scraplingToken) fetchHeaders["Authorization"] = `Bearer ${scraplingToken}`;
+
   const res = await fetch(`${scraplingUrl}/extract/document`, {
     method: "POST",
+    headers: fetchHeaders,
     body: formData,
   });
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { WizardProvider, useSignupWizard, type WizardState } from "../_hooks/useSignupWizard";
 import { WizardProgress } from "./WizardProgress";
 import { Step1Account } from "./Step1Account";
@@ -27,10 +27,13 @@ export function SignupWizard({ userEmail, initialState }: SignupWizardProps) {
 function WizardContent({ userEmail }: { userEmail: string }) {
   const { state, scrapedData, scrapeStatus } = useSignupWizard();
   const prevStepRef = useRef(state.currentStep);
+  const [direction, setDirection] = useState<"forward" | "backward">("forward");
 
   // Determine slide direction
-  const direction = state.currentStep >= prevStepRef.current ? "forward" : "backward";
-  prevStepRef.current = state.currentStep;
+  useEffect(() => {
+    setDirection(state.currentStep >= prevStepRef.current ? "forward" : "backward");
+    prevStepRef.current = state.currentStep;
+  }, [state.currentStep]);
 
   const isSetupPhase = state.currentStep >= 7;
 

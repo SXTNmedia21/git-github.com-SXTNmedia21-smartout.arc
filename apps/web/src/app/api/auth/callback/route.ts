@@ -1,5 +1,4 @@
 import { createClient } from "@smartout/supabase/server";
-import { emit } from "@smartout/telemetry";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
@@ -28,21 +27,6 @@ export async function GET(request: Request) {
 
         if (profiles && profiles.length > 0) {
           // Existing user with workspace — go to dashboard
-          try {
-            await emit({
-              event: "auth callback completed",
-              workspace_id: null,
-              actor_id: user.id,
-              properties: {
-                data: {
-                  user_identity_id: user.id,
-                  is_existing_user: true,
-                },
-              },
-            });
-          } catch (e) {
-            console.error("[auth/callback] Failed to emit:", e);
-          }
           return NextResponse.redirect(new URL(next || "/dashboard", origin));
         }
 
@@ -58,21 +42,6 @@ export async function GET(request: Request) {
         }
 
         // New user — wizard (resume at saved step if any)
-        try {
-          await emit({
-            event: "signup callback routed",
-            workspace_id: null,
-            actor_id: user.id,
-            properties: {
-              data: {
-                user_identity_id: user.id,
-                resume_step: progress?.current_step || 1,
-              },
-            },
-          });
-        } catch (e) {
-          console.error("[auth/callback] Failed to emit:", e);
-        }
         const step = progress?.current_step || 1;
         return NextResponse.redirect(new URL(`/join?step=${step}`, origin));
       }
