@@ -237,7 +237,8 @@ function SmartoutLandingPageContent() {
               <div className="absolute -inset-[1px] rounded-full bg-gradient-to-r from-orange-500 to-rose-500 opacity-0 blur-sm transition-opacity duration-500 group-hover:opacity-30" />
               <Zap className="relative z-10 h-4 w-4 text-orange-400 drop-shadow-[0_0_8px_rgba(251,146,60,0.8)]" />
               <span className="relative z-10">
-                Den komplette plattformen for serveringsbransjen
+                {/* CHANGED: Shorter, punchier — less brochure, more confident */}
+                Bygget for servering. Drevet av AI.
               </span>
             </m.div>
 
@@ -272,8 +273,9 @@ function SmartoutLandingPageContent() {
               variants={itemVariants}
               className="mb-10 max-w-md px-2 text-[15px] leading-relaxed font-medium text-zinc-500 sm:mb-12 sm:max-w-3xl sm:px-0 sm:text-xl sm:text-zinc-400 md:text-2xl"
             >
-              Samle vaktplaner, HR, kommunikasjon, stemplingsur og internkontroll i ett og samme
-              lynraske system. Reduser kaos og øk fortjenesten.
+              {/* CHANGED: Tighter rhythm, benefit-first, dropped generic "HR" */}
+              Vaktplan, timeføring, opplæring, kommunikasjon og internkontroll — samlet i ett
+              lynraskt system. Mindre kaos. Bedre bunnlinje.
             </m.p>
 
             {/* CTAs — subtle on mobile, bold on desktop */}
@@ -283,12 +285,13 @@ function SmartoutLandingPageContent() {
             >
               <Link
                 href={WEB_APP_LINKS.login}
-                onClick={() => trackCta("Opprett din SmartOut")}
+                onClick={() => trackCta("Start gratis")}
                 className="group relative flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-orange-600 to-rose-600 px-6 py-3 text-sm font-bold text-white shadow-[0_0_30px_rgba(249,115,22,0.2)] transition-all duration-300 hover:shadow-[0_0_60px_rgba(249,115,22,0.4)] sm:px-10 sm:py-5 sm:text-lg sm:font-black"
               >
                 <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-orange-500 to-rose-500 opacity-30 blur transition duration-500 group-hover:opacity-50" />
                 <span className="relative flex items-center gap-2">
-                  Opprett din SmartOut
+                  {/* CHANGED: Lower barrier, clearer action */}
+                  Start gratis
                   <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1 sm:h-5 sm:w-5" />
                 </span>
               </Link>
@@ -297,7 +300,8 @@ function SmartoutLandingPageContent() {
                 href="#lise"
                 className="group flex items-center justify-center gap-2 rounded-full border border-white/10 px-6 py-3 text-sm font-medium text-zinc-400 transition-all duration-300 hover:border-white/20 hover:text-white sm:bg-white/5 sm:px-10 sm:py-5 sm:text-lg sm:font-bold sm:text-white sm:backdrop-blur-md"
               >
-                Møt AI-assistenten Lise
+                {/* CHANGED: More intimate, less formal */}
+                Snakk med Lise
               </a>
             </m.div>
           </m.div>
@@ -498,7 +502,8 @@ function SmartoutLandingPageContent() {
               <span className="relative flex h-2 w-2">
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-orange-500"></span>
               </span>
-              Møt fremtidens workforce management
+              {/* CHANGED: Human language, no jargon */}
+              Møt din nye kollega
             </m.div>
 
             <m.h1
@@ -517,28 +522,30 @@ function SmartoutLandingPageContent() {
               variants={itemVariants}
               className="mb-6 max-w-xl text-base leading-relaxed text-zinc-400 sm:mb-10 sm:text-lg md:text-xl"
             >
-              SmartOut er bygget for den norske serveringsbransjen. Reduser administrativt arbeid
-              fra timer til minutter, integrer ansatte på tvers av språkbarrierer, og få full
-              kontroll over lønnskostnader og compliance (Mattilsynet/Arbeidstilsynet) i sanntid.
+              {/* CHANGED: Cut the opener (already established), removed parenthetical jargon, tighter rhythm */}
+              Kutt administrasjon fra timer til minutter. Integrer ansatte på tvers av språk. Hold
+              full kontroll over lønnskostnader og compliance — i sanntid.
             </m.p>
 
             <m.div variants={itemVariants} className="flex flex-wrap items-center gap-4">
               <a
                 href="#smartout-ai"
-                onClick={() => trackCta("Start Lise Botsson")}
+                onClick={() => trackCta("Prøv Lise nå")}
                 className="group relative flex items-center gap-3 rounded-full bg-white px-8 py-4 text-lg font-bold text-zinc-950 shadow-[0_0_40px_rgba(255,255,255,0.1)] transition-all duration-300 hover:shadow-[0_0_60px_rgba(249,115,22,0.25)]"
               >
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-500 text-white transition-transform group-hover:scale-110">
                   <Mic className="h-4 w-4" />
                 </div>
-                Start Lise Botsson
+                {/* CHANGED: Action-oriented, less formal */}
+                Prøv Lise nå
               </a>
 
               <a
                 href="#workspace"
                 className="flex items-center gap-2 px-6 py-4 font-semibold text-zinc-400 transition-colors hover:text-white"
               >
-                Utforsk konsepter <ArrowRight className="h-4 w-4" />
+                {/* CHANGED: Benefit over abstraction */}
+                Se hvordan det fungerer <ArrowRight className="h-4 w-4" />
               </a>
             </m.div>
 
@@ -546,10 +553,11 @@ function SmartoutLandingPageContent() {
               variants={itemVariants}
               className="mt-10 hidden sm:mt-12 sm:flex sm:items-center sm:gap-6"
             >
+              {/* CHANGED: Softened claims — no proof yet (startup phase) */}
               {[
-                { icon: Clock, label: "3 timer spart/dag" },
-                { icon: ShieldCheck, label: "100% compliance" },
-                { icon: Users, label: "42% lavere turnover" },
+                { icon: Clock, label: "Spar timer daglig" },
+                { icon: ShieldCheck, label: "Alltid audit-klar" },
+                { icon: Users, label: "Lavere turnover" },
               ].map((stat, i) => (
                 <m.div
                   key={stat.label}
@@ -589,10 +597,12 @@ function SmartoutLandingPageContent() {
             className="mb-8 text-center sm:mb-16"
           >
             <h2 className="mb-3 text-2xl font-black tracking-tight text-white sm:mb-6 sm:text-4xl">
-              Ditt fremtidige workspace
+              {/* CHANGED: Benefit-first, less abstract */}
+              Bygget rundt din virkelighet
             </h2>
             <p className="mx-auto hidden max-w-2xl text-lg text-zinc-400 sm:block">
-              Bygget for å speile din virkelighet — lokasjoner, prosedyrer og sesonger.
+              {/* CHANGED: Flipped structure — specifics first, then the payoff */}
+              Lokasjoner, prosedyrer og sesonger — alt gjenspeiler hvordan du faktisk jobber.
             </p>
           </m.div>
 
@@ -638,11 +648,13 @@ function SmartoutLandingPageContent() {
                 >
                   <div className="mx-auto mb-6 max-w-2xl text-center sm:mb-10">
                     <h3 className="mb-2 text-lg font-black text-white sm:text-2xl">
-                      Din arbeidsplass, delt opp og organisert
+                      {/* CHANGED: Clearer, less mechanical */}
+                      Én oversikt over alle lokasjoner
                     </h3>
                     <p className="hidden text-base leading-relaxed text-zinc-400 sm:block">
-                      Del opp virksomheten i lokasjoner, soner og utstyr — knytt rutiner og
-                      opplæring direkte til stedet.
+                      {/* CHANGED: Benefit at the end, reality-first */}
+                      Knytt rutiner, opplæring og utstyr direkte til hvert sted. Strukturen speiler
+                      virkeligheten.
                     </p>
                   </div>
                   <div className="grid grid-cols-1 gap-6 sm:gap-8 md:grid-cols-3">
@@ -690,10 +702,13 @@ function SmartoutLandingPageContent() {
                 >
                   <div className="mx-auto mb-6 max-w-2xl text-center sm:mb-10">
                     <h3 className="mb-2 text-lg font-black text-white sm:text-2xl">
-                      Sjekklister og verifiseringsplaner
+                      {/* CHANGED: Benefit as headline, not feature name */}
+                      Riktig utført, hver eneste gang
                     </h3>
                     <p className="hidden text-base leading-relaxed text-zinc-400 sm:block">
-                      Alt blir gjort riktig, hver gang. Sporbar signering og automatisk oppfølging.
+                      {/* CHANGED: Added emotional payoff */}
+                      Sporbar signering og automatisk oppfølging. Du slipper å lure på om noe er
+                      glemt.
                     </p>
                   </div>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-4">
@@ -739,10 +754,12 @@ function SmartoutLandingPageContent() {
                 >
                   <div className="mx-auto mb-6 max-w-2xl text-center sm:mb-10">
                     <h3 className="mb-2 text-lg font-black text-white sm:text-2xl">
-                      Modulbasert drift, sesong for sesong
+                      {/* CHANGED: Simpler, more tangible */}
+                      Én sesong, ett oppsett
                     </h3>
                     <p className="hidden text-base leading-relaxed text-zinc-400 sm:block">
-                      Lagre innstillinger, menyer og rutiner per sesong — aktiver med ett klikk.
+                      {/* CHANGED: More specific, clearer action */}
+                      Rutiner, menyer og bemanning tilpasset sesongen. Bytt med ett klikk.
                     </p>
                   </div>
                   <div className="grid grid-cols-1 gap-6 sm:gap-8 md:grid-cols-3">
@@ -822,8 +839,9 @@ function SmartoutLandingPageContent() {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="mx-auto mb-8 max-w-2xl text-sm text-zinc-400 sm:mb-16 sm:text-lg"
             >
-              Når Mattilsynet eller Arbeidstilsynet banker på døren, er alt klart. Vi sikrer at du
-              automatisk følger regelverket for arbeidstid, pauser, og IK-mat.
+              {/* CHANGED: More direct, removed "vi sikrer", added emotional payoff */}
+              Når tilsynet banker på døren, er du klar. Arbeidstid, pauser og IK-mat dokumenteres
+              automatisk — uten at du løfter en finger.
             </m.p>
 
             <div className="relative mx-auto grid max-w-5xl grid-cols-1 gap-2 text-left sm:gap-8 md:grid-cols-2">
@@ -853,8 +871,9 @@ function SmartoutLandingPageContent() {
                     <ArrowRight className="ml-auto h-5 w-5 -translate-x-4 transform text-emerald-400 opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100" />
                   </h3>
                   <p className="text-lg leading-relaxed text-zinc-400 transition-colors group-hover:text-zinc-300">
-                    Automatisk temperaturlogging, komplett renholdsprogram, og avviksrapportering
-                    bygget rett inn i rutinemodulen.
+                    {/* CHANGED: Punchier rhythm, removed "bygget rett inn" filler */}
+                    Temperaturlogging, renholdsplan og avviksrapportering — automatisk, sporbart,
+                    alltid oppdatert.
                   </p>
                 </div>
               </m.div>
@@ -881,8 +900,9 @@ function SmartoutLandingPageContent() {
                     <ArrowRight className="ml-auto h-5 w-5 -translate-x-4 transform text-emerald-400 opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100" />
                   </h3>
                   <p className="text-lg leading-relaxed text-zinc-400 transition-colors group-hover:text-zinc-300">
-                    Automatisk hviletidsvarsling, signerte arbeidskontrakter digitalt, og timeføring
-                    som sperrer for ulovlig overtid.
+                    {/* CHANGED: Forward-looking, proactive framing */}
+                    Hviletidsvarsling, digitale arbeidskontrakter og timeføring som stopper ulovlig
+                    overtid — før den skjer.
                   </p>
                 </div>
               </m.div>
@@ -908,7 +928,8 @@ function SmartoutLandingPageContent() {
               En ny måte å jobbe på.
             </h2>
             <p className="hidden text-lg text-zinc-400 sm:block">
-              Lynraskt, AI-drevet grensesnitt. Tidsbesparende for ledere, motiverende for teamet.
+              {/* CHANGED: Tighter, parallel structure */}
+              Raskere for lederne. Enklere for teamet. Drevet av AI.
             </p>
           </m.div>
 
@@ -917,7 +938,7 @@ function SmartoutLandingPageContent() {
               href="/features/punchclock-timetracking"
               icon={Clock}
               title="Timeføring & Stemplingsur"
-              description="Enkel timeføring for alle – uansett arbeidstidsordning. Stemplingsur for nøyaktig tidsregistrering og full kontroll over arbeidstid."
+              description="Nøyaktig tidsregistrering uansett arbeidstidsordning. Fullt stemplingsur, full oversikt — ingen overraskelser ved lønnskjøring." // CHANGED: Benefit-end (no payroll surprises)
               delay={0.1}
               color="from-blue-500 to-indigo-500"
             />
@@ -925,7 +946,7 @@ function SmartoutLandingPageContent() {
               href="/features/shiftplanner"
               icon={CalendarClock}
               title="Vaktliste & Lønnskjøring"
-              description="Med vår skiftplanlegger får du lett kontroll, og integrert lønssystem gir deg sanntidsoversikt over bemanningskostnadene."
+              description="Planlegg vakter med drag-and-drop. Se bemanningskostnadene i sanntid — og kjør lønn uten ekstra systemer." // CHANGED: Concrete action, fixed typo (lønssystem→lønn), removed filler
               delay={0.2}
               color="from-emerald-500 to-teal-400"
             />
@@ -933,7 +954,7 @@ function SmartoutLandingPageContent() {
               href="/features/staff-training"
               icon={GraduationCap}
               title="HR & Opplæring"
-              description="Bruk integrert AI for å lage skreddersydde opplæringsrutiner og automatisk onboarding for nye og eksisterende ansatte."
+              description="Skreddersydd opplæring generert av AI. Nye ansatte onboardes automatisk — eksisterende holder seg oppdatert." // CHANGED: AI as means not feature, clearer split new/existing
               delay={0.3}
               color="from-fuchsia-500 to-pink-500"
             />
@@ -941,7 +962,7 @@ function SmartoutLandingPageContent() {
               href="/features/communications"
               icon={MessageSquare}
               title="Sømløs Kommunikasjon"
-              description="Hold alle dine ansatte oppdatert. Kommuniser enkelt på tvers av team, avdelinger og ansatte på over 50 språk."
+              description="Nå alle, uansett avdeling eller morsmål. Meldinger oversettes automatisk til over 50 språk." // CHANGED: Lead with reach, not instruction
               delay={0.4}
               color="from-cyan-400 to-sky-400"
             />
@@ -949,7 +970,7 @@ function SmartoutLandingPageContent() {
               href="/features/task-rutines"
               icon={ListTodo}
               title="Oppgaver & Rutiner"
-              description="Få oversikt over alt som skal gjøres. Individuelle oppgavelister og oppfølging av sesongbaserte rutiner for stjerneteamet ditt."
+              description="Tydelige oppgavelister for hver ansatt. Sesongbaserte rutiner følges opp automatisk — ingenting faller mellom stolene." // CHANGED: Concrete promise, removed "stjerneteam" fluff
               delay={0.5}
               color="from-amber-400 to-yellow-500"
             />
@@ -957,7 +978,7 @@ function SmartoutLandingPageContent() {
               href="/features/haccp-complience"
               icon={ShieldCheck}
               title="IK-mat & Mattilsynet"
-              description="Internkontroll i samme system. Effektiv avviksrapportering, temperaturmålinger og vernerunder med mal i appen."
+              description="Internkontroll integrert i hverdagen. Temperaturmålinger, avviksrapporter og vernerunder — alt dokumentert, alt sporbart." // CHANGED: "integrert i hverdagen" > "i samme system", stronger ending
               delay={0.6}
               color="from-orange-500 to-rose-500"
             />
@@ -984,9 +1005,9 @@ function SmartoutLandingPageContent() {
                   ikke måneder.
                 </h2>
                 <p className="mb-8 text-lg leading-relaxed text-zinc-400">
-                  Glem eviglange implementeringsprosjekter. Du oppgir URL-en til restauranten din,
-                  og vår AI skraper menyer, åpningstider, lokasjoner og bygger systemet for deg helt
-                  automatisk.
+                  {/* CHANGED: Tighter, removed "skraper" (technical), more confident */}
+                  Ingen implementeringsprosjekt. Oppgi nettadressen til restauranten — AI-en henter
+                  menyer, åpningstider og lokasjoner, og bygger hele systemet automatisk.
                 </p>
                 <m.ul
                   initial="hidden"
@@ -1005,7 +1026,8 @@ function SmartoutLandingPageContent() {
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-500/20 text-blue-400">
                       <CheckCircle2 className="h-6 w-6" />
                     </div>
-                    Skriv inn din nåværende nettside
+                    {/* CHANGED: Simpler verb */}
+                    Lim inn nettadressen din
                   </m.li>
                   <m.li
                     variants={{ hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0 } }}
@@ -1014,7 +1036,8 @@ function SmartoutLandingPageContent() {
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-purple-500/20 text-purple-400">
                       <Sparkles className="h-6 w-6" />
                     </div>
-                    AI analyserer og bygger arbeidsplassen
+                    {/* CHANGED: Clearer result */}
+                    AI bygger arbeidsplassen din automatisk
                   </m.li>
                   <m.li
                     variants={{ hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0 } }}
@@ -1023,7 +1046,8 @@ function SmartoutLandingPageContent() {
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
                       <Users className="h-6 w-6" />
                     </div>
-                    Inviter ansatte og start opp med en gang
+                    {/* CHANGED: "teamet" > "ansatte" — warmer */}
+                    Inviter teamet og start med en gang
                   </m.li>
                 </m.ul>
               </m.div>
@@ -1067,8 +1091,8 @@ function SmartoutLandingPageContent() {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="mx-auto mb-12 max-w-2xl text-lg text-zinc-400"
             >
-              Vi gir deg alt du trenger for å drive restauranten din mer lønnsomt — til en pris som
-              gir mening.
+              {/* CHANGED: Cut "Vi gir deg" — less preachy */}
+              Alt du trenger for å drive mer lønnsomt — til en pris som gir mening.
             </m.p>
 
             <m.div
@@ -1081,7 +1105,8 @@ function SmartoutLandingPageContent() {
                 href="/pricing"
                 className="group inline-flex items-center gap-3 rounded-full border border-white/10 bg-[#0a0a0c]/80 px-8 py-4 text-lg font-bold text-white shadow-2xl backdrop-blur-xl transition-all duration-300 hover:border-white/20 hover:bg-white/5"
               >
-                Se våre priser og pakker
+                {/* CHANGED: Shorter CTA */}
+                Se priser
                 <ArrowRight className="h-5 w-5 text-purple-400 transition-transform group-hover:translate-x-1" />
               </Link>
             </m.div>
@@ -1155,7 +1180,8 @@ function SmartoutLandingPageContent() {
               transition={{ duration: 0.6 }}
               className="mb-6 text-4xl font-black tracking-tight text-white sm:mb-8 sm:text-5xl"
             >
-              Klar for fremtiden?
+              {/* CHANGED: More actionable, less abstract */}
+              Klar til å ta kontroll?
             </m.h2>
             <m.div
               initial={{ opacity: 0, y: 20 }}

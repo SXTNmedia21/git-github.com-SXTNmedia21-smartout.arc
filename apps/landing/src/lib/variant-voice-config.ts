@@ -268,20 +268,21 @@ export const VARIANT_VOICE_CONFIG: Record<LandingVariant, VariantVoiceConfig> = 
 /** Per-variant SmartOut AI section configuration. */
 export const VARIANT_AI_SECTION: Record<LandingVariant, VariantAiSectionConfig> = {
   B: {
-    heading: "M\u00f8t SmartOut AI",
-    subheading: "Kunstig intelligens som faktisk forst\u00e5r servicebransjen.",
+    heading: "Din AI-kollega", // CHANGED: More personal, less product-name-y
+    subheading: "Bygget for servering. Ikke generisk tech.", // CHANGED: Sharper positioning
     capabilities: [
       {
-        title: "Stemmecoaching",
-        description: "Lise veileder ansatte gjennom rutiner og prosedyrer med stemmen.",
+        title: "Stemmeveiledning", // CHANGED: Clearer noun
+        description: "Lise guider ansatte gjennom rutiner \u2014 med stemmen, steg for steg.", // CHANGED: Warmer, more specific
       },
       {
-        title: "Proaktive varsler",
-        description: "AI-drevne p\u00e5minnelser om sertifiseringer, vakter og compliance.",
+        title: "Smarte p\u00e5minnelser", // CHANGED: Less jargon than "proaktive varsler"
+        description: "Aldri glem en sertifisering, vaktendring eller compliance-frist igjen.", // CHANGED: Benefit-first, emotional
       },
       {
-        title: "Smart planlegging",
-        description: "Automatisk vaktplanlegging basert p\u00e5 kompetanse og tilgjengelighet.",
+        title: "AI-vaktplan", // CHANGED: More concrete
+        description:
+          "Vakter som planlegger seg selv \u2014 basert p\u00e5 kompetanse, tilgjengelighet og budsjett.", // CHANGED: Added budget dimension, stronger framing
       },
     ],
   },
@@ -359,7 +360,7 @@ export const VARIANT_AI_SECTION: Record<LandingVariant, VariantAiSectionConfig> 
     ],
   },
   F: {
-    heading: "AI hjelper deg",
+    heading: "Du har en hjelper", // CHANGED: "AI hjelper deg" → "Du har en hjelper" — warmer, less tech-scary for Fatima persona
     subheading: null,
     capabilities: [
       { title: "Snakk med AI", description: "" },
