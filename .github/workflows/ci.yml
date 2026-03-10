@@ -106,11 +106,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build ${{ matrix.service.name }}
-        run: |
-          docker build \
-            -f ${{ matrix.service.dockerfile }} \
-            -t smartout/${{ matrix.service.name }}:ci \
-            ${{ matrix.service.context || '.' }}
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_on: error
+          command: |
+            docker build \
+              -f ${{ matrix.service.dockerfile }} \
+              -t smartout/${{ matrix.service.name }}:ci \
+              ${{ matrix.service.context || '.' }}
 
   # ── Build (parallel with checks, no longer waits for typecheck) ─
   build:
