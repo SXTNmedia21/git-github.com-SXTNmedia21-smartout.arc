@@ -131,8 +131,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Build all apps
         env:
-          NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-key
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
         run: pnpm turbo run build
       - name: Upload web build artifact
         uses: actions/upload-artifact@v4
@@ -173,8 +173,8 @@ jobs:
     needs: [build]
     env:
       PERF_ENFORCEMENT: ${{ github.event_name == 'pull_request' && 'warn' || 'fail' }}
-      NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-key
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
     strategy:
       fail-fast: false
       matrix:
@@ -204,9 +204,9 @@ jobs:
       - name: Wait for app readiness
         run: |
           if [ "${{ matrix.app }}" = "web" ]; then
-            npx wait-on http://127.0.0.1:3050
+            npx wait-on http://127.0.0.1:3050 --timeout 60000
           else
-            npx wait-on http://127.0.0.1:3055
+            npx wait-on http://127.0.0.1:3055 --timeout 60000
           fi
       - name: Run perf budget audit
         continue-on-error: ${{ env.PERF_ENFORCEMENT != 'fail' }}
