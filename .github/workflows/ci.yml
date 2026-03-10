@@ -204,7 +204,7 @@ jobs:
       - name: Wait for app readiness
         run: |
           if [ "${{ matrix.app }}" = "web" ]; then
-            npx wait-on http://127.0.0.1:3050 --timeout 60000
+            npx wait-on http://127.0.0.1:3060 --timeout 60000
           else
             npx wait-on http://127.0.0.1:3055 --timeout 60000
           fi
