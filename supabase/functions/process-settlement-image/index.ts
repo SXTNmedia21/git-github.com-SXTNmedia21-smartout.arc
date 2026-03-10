@@ -112,7 +112,7 @@ Deno.serve(async (req) => {
     const imageBytes = await fileData.arrayBuffer();
     const base64Image = btoa(String.fromCharCode(...new Uint8Array(imageBytes)));
 
-    const visionApiKey = Deno.env.get("GOOGLE_VISION_API_KEY");
+    const visionApiKey = Deno.env.get("GOOGLE_API_KEY");
     if (!visionApiKey) {
       return new Response(JSON.stringify({ error: "OCR not configured" }), {
         status: 503,

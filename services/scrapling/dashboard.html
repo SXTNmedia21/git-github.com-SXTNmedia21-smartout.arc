@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scrapling Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #e5e5e5; min-height: 100vh; }
+
+    .header { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid #1a1a1a; }
+    .header h1 { font-size: 16px; font-weight: 600; letter-spacing: 0.02em; }
+    .health-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+    .health-ok { background: #22c55e; box-shadow: 0 0 6px #22c55e80; }
+    .health-err { background: #ef4444; box-shadow: 0 0 6px #ef444480; }
+    .health-label { font-size: 13px; color: #888; display: flex; align-items: center; gap: 4px; }
+
+    .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: #1a1a1a; min-height: calc(100vh - 53px); }
+    .panel { background: #0a0a0a; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+
+    .panel-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.15em; color: #555; }
+
+    input[type="text"], input[type="url"] {
+      width: 100%; padding: 10px 14px; background: #111; border: 1px solid #222; border-radius: 8px;
+      color: #e5e5e5; font-size: 14px; outline: none; transition: border-color 0.2s;
+    }
+    input:focus { border-color: #444; }
+
+    .row { display: flex; gap: 8px; align-items: center; }
+    .row input { flex: 1; }
+
+    label.toggle { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #999; cursor: pointer; user-select: none; }
+    label.toggle input[type="checkbox"] { accent-color: #f97316; width: 14px; height: 14px; }
+
+    .config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+    button {
+      padding: 10px 20px; border: none; border-radius: 8px; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .btn-primary { background: #f97316; color: #000; }
+    .btn-primary:hover { background: #fb923c; }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-secondary { background: #1a1a1a; color: #999; border: 1px solid #222; }
+    .btn-secondary:hover { background: #222; color: #ccc; }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+    .btn-row { display: flex; gap: 8px; }
+
+    .result-area {
+      flex: 1; background: #080808; border: 1px solid #1a1a1a; border-radius: 8px;
+      padding: 16px; overflow: auto; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px;
+      line-height: 1.6; color: #888; white-space: pre-wrap; word-break: break-word; min-height: 200px;
+    }
+    .result-area .key { color: #93c5fd; }
+    .result-area .str { color: #86efac; }
+    .result-area .num { color: #fbbf24; }
+    .result-area .null { color: #555; }
+    .result-area .bool { color: #c084fc; }
+
+    .log-area {
+      flex: 1; overflow: auto; display: flex; flex-direction: column; gap: 2px; min-height: 200px;
+    }
+    .log-entry {
+      display: grid; grid-template-columns: 70px 50px 50px 1fr; gap: 8px; padding: 6px 10px;
+      font-size: 12px; font-family: monospace; border-radius: 4px; background: #0d0d0d;
+      border: 1px solid #151515; align-items: center;
+    }
+    .log-time { color: #555; }
+    .log-status { font-weight: 600; }
+    .log-status.ok { color: #22c55e; }
+    .log-status.err { color: #ef4444; }
+    .log-ms { color: #666; }
+    .log-url { color: #888; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .log-empty { color: #333; font-size: 13px; text-align: center; padding: 40px; }
+
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #333; border-top-color: #f97316; border-radius: 50%; animation: spin 0.6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .tabs { display: flex; gap: 2px; }
+    .tab { padding: 6px 14px; font-size: 12px; font-weight: 500; color: #555; background: transparent;
+      border: 1px solid transparent; border-radius: 6px 6px 0 0; cursor: pointer; }
+    .tab.active { color: #e5e5e5; background: #111; border-color: #222 #222 transparent; }
+
+    .stats { display: flex; gap: 16px; font-size: 12px; color: #555; }
+    .stat-val { color: #e5e5e5; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Scrapling</h1>
+    <div class="health-label">
+      <span class="health-dot" id="healthDot"></span>
+      <span id="healthText">Checking...</span>
+    </div>
+  </div>
+
+  <div class="layout">
+    <!-- Left: Test panel -->
+    <div class="panel">
+      <div class="panel-title">Test</div>
+
+      <input type="url" id="urlInput" placeholder="https://example.com" autofocus />
+
+      <div class="config-grid">
+        <label class="toggle"><input type="checkbox" id="cfgCompany" checked> Company info</label>
+        <label class="toggle"><input type="checkbox" id="cfgLocations" checked> Locations</label>
+        <label class="toggle"><input type="checkbox" id="cfgDepts" checked> Departments</label>
+        <label class="toggle"><input type="checkbox" id="cfgDict"> Dictionary</label>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-primary" id="btnExtract" onclick="runExtract()">Extract</button>
+        <button class="btn-secondary" id="btnRaw" onclick="runRaw()">Raw Scrape</button>
+        <button class="btn-secondary btn-sm" id="btnClear" onclick="clearResult()">Clear</button>
+      </div>
+
+      <div class="tabs">
+        <div class="tab active" id="tabResult" onclick="showTab('result')">Result</div>
+        <div class="tab" id="tabLog" onclick="showTab('log')">Log <span id="logCount"></span></div>
+      </div>
+
+      <div id="resultPanel" class="result-area">Paste a URL and click Extract or Raw Scrape.</div>
+      <div id="logPanel" class="log-area" style="display:none">
+        <div class="log-empty" id="logEmpty">No requests yet.</div>
+      </div>
+    </div>
+
+    <!-- Right: Details / stats -->
+    <div class="panel">
+      <div class="panel-title">Details</div>
+      <div class="stats">
+        <div>Requests: <span class="stat-val" id="statTotal">0</span></div>
+        <div>OK: <span class="stat-val" id="statOk">0</span></div>
+        <div>Errors: <span class="stat-val" id="statErr">0</span></div>
+        <div>Avg: <span class="stat-val" id="statAvg">-</span></div>
+      </div>
+      <div id="detailPanel" class="result-area">Click a field in the result to inspect it.</div>
+    </div>
+  </div>
+
+  <script>
+    const logs = [];
+    let stats = { total: 0, ok: 0, err: 0, totalMs: 0 };
+
+    // Health check
+    async function checkHealth() {
+      try {
+        const res = await fetch('/health');
+        const data = await res.json();
+        document.getElementById('healthDot').className = 'health-dot health-ok';
+        document.getElementById('healthText').textContent = `Healthy (${data.timestamp.split('T')[1].slice(0,8)})`;
+      } catch {
+        document.getElementById('healthDot').className = 'health-dot health-err';
+        document.getElementById('healthText').textContent = 'Unreachable';
+      }
+    }
+    checkHealth();
+    setInterval(checkHealth, 15000);
+
+    function getConfig() {
+      return {
+        include_company_info: document.getElementById('cfgCompany').checked,
+        include_locations: document.getElementById('cfgLocations').checked,
+        include_departments: document.getElementById('cfgDepts').checked,
+        include_dictionary: document.getElementById('cfgDict').checked,
+      };
+    }
+
+    function setLoading(btn, loading) {
+      if (loading) {
+        btn.disabled = true;
+        btn.dataset.origText = btn.textContent;
+        btn.innerHTML = '<span class="spinner"></span>';
+      } else {
+        btn.disabled = false;
+        btn.textContent = btn.dataset.origText;
+      }
+    }
+
+    async function runExtract() {
+      const url = document.getElementById('urlInput').value.trim();
+      if (!url) return;
+      const btn = document.getElementById('btnExtract');
+      setLoading(btn, true);
+
+      const start = performance.now();
+      try {
+        const res = await fetch('/extract', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url, config: getConfig() }),
+        });
+        const data = await res.json();
+        const ms = Math.round(performance.now() - start);
+        showResult(data);
+        addLog('extract', url, res.status, ms, data);
+      } catch (e) {
+        const ms = Math.round(performance.now() - start);
+        showResult({ error: e.message });
+        addLog('extract', url, 0, ms, { error: e.message });
+      }
+      setLoading(btn, false);
+    }
+
+    async function runRaw() {
+      const url = document.getElementById('urlInput').value.trim();
+      if (!url) return;
+      const btn = document.getElementById('btnRaw');
+      setLoading(btn, true);
+
+      const start = performance.now();
+      try {
+        const res = await fetch('/scrape-raw', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url }),
+        });
+        const data = await res.json();
+        const ms = Math.round(performance.now() - start);
+        showResult(data);
+        addLog('raw', url, res.status, ms, data);
+      } catch (e) {
+        const ms = Math.round(performance.now() - start);
+        showResult({ error: e.message });
+        addLog('raw', url, 0, ms, { error: e.message });
+      }
+      setLoading(btn, false);
+    }
+
+    function syntaxHighlight(json) {
+      const str = JSON.stringify(json, null, 2);
+      return str.replace(
+        /("(\\u[\da-fA-F]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+        (match) => {
+          let cls = 'num';
+          if (/^"/.test(match)) {
+            cls = /:$/.test(match) ? 'key' : 'str';
+          } else if (/true|false/.test(match)) {
+            cls = 'bool';
+          } else if (/null/.test(match)) {
+            cls = 'null';
+          }
+          return `<span class="${cls}">${match}</span>`;
+        }
+      );
+    }
+
+    function showResult(data) {
+      const panel = document.getElementById('resultPanel');
+      panel.innerHTML = syntaxHighlight(data);
+      showTab('result');
+    }
+
+    function showDetail(data) {
+      document.getElementById('detailPanel').innerHTML = syntaxHighlight(data);
+    }
+
+    function clearResult() {
+      document.getElementById('resultPanel').textContent = 'Cleared.';
+      document.getElementById('detailPanel').textContent = '';
+    }
+
+    function addLog(type, url, status, ms, data) {
+      const isOk = status >= 200 && status < 300;
+      stats.total++;
+      if (isOk) stats.ok++; else stats.err++;
+      stats.totalMs += ms;
+
+      logs.unshift({ type, url, status, ms, data, time: new Date() });
+      updateLogPanel();
+      updateStats();
+    }
+
+    function updateStats() {
+      document.getElementById('statTotal').textContent = stats.total;
+      document.getElementById('statOk').textContent = stats.ok;
+      document.getElementById('statErr').textContent = stats.err;
+      document.getElementById('statAvg').textContent = stats.total > 0
+        ? Math.round(stats.totalMs / stats.total) + 'ms' : '-';
+    }
+
+    function updateLogPanel() {
+      const panel = document.getElementById('logPanel');
+      document.getElementById('logEmpty')?.remove();
+      document.getElementById('logCount').textContent = `(${logs.length})`;
+
+      // Rebuild — simple for now
+      panel.innerHTML = logs.map((l, i) => {
+        const t = l.time.toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const statusCls = l.status >= 200 && l.status < 300 ? 'ok' : 'err';
+        const shortUrl = l.url.replace(/^https?:\/\//, '').slice(0, 40);
+        return `<div class="log-entry" onclick="showDetail(logs[${i}].data)" style="cursor:pointer">
+          <span class="log-time">${t}</span>
+          <span class="log-status ${statusCls}">${l.status || 'ERR'}</span>
+          <span class="log-ms">${l.ms}ms</span>
+          <span class="log-url" title="${l.url}">[${l.type}] ${shortUrl}</span>
+        </div>`;
+      }).join('');
+    }
+
+    function showTab(name) {
+      document.getElementById('resultPanel').style.display = name === 'result' ? '' : 'none';
+      document.getElementById('logPanel').style.display = name === 'log' ? '' : 'none';
+      document.getElementById('tabResult').className = 'tab' + (name === 'result' ? ' active' : '');
+      document.getElementById('tabLog').className = 'tab' + (name === 'log' ? ' active' : '');
+    }
+
+    // Enter key triggers extract
+    document.getElementById('urlInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') runExtract();
+    });
+  </script>
+</body>
+</html>

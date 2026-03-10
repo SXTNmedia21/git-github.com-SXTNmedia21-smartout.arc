@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useContext } from "react";
+import React, { useContext } from "react";
 import {
   Users,
   Briefcase,
@@ -10,18 +10,18 @@ import {
   AlertCircle,
   GripVertical,
 } from "lucide-react";
-import { useDroppable } from "@dnd-kit/core";
+import { useDndContext, useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { ShiftCard, AbsenceCard } from "./grid-cards";
 import type { DayColumn } from "./schedule-data";
 import { useScheduleUI } from "./schedule-ui-context";
-import { useShifts, useUpdateShift } from "../_hooks/use-shifts";
-import { useAbsences } from "../_hooks/use-absences";
 import type { ScheduleEmployee } from "../_hooks/use-employees";
 import { DayContextMenu } from "./day-context-menu";
 import type { Shift as ScheduleShift, Absence } from "./schedule-types";
+import { SCHEDULE_LAYERS } from "./schedule-layers";
+import { useVirtualizer } from "@tanstack/react-virtual";
 
 // ---------------------------------------------------------------------------
 // GridContent — daily schedule grid (the perf-critical DnD subtree)
@@ -30,10 +30,15 @@ export function GridContent({
   isSidebarOpen,
   setIsSidebarOpen,
   onDateClick,
-  filterSituation = "Alle",
+  filterSituation: _filterSituation = "Alle",
   activeStatusFilter = null,
   visibleDays,
   employees,
+  shifts,
+  absences,
+  highlightedDayId,
+  weekStart,
+  onTimeChange,
 }: {
   isSidebarOpen: boolean;
   setIsSidebarOpen: (v: boolean) => void;
@@ -42,48 +47,50 @@ export function GridContent({
   activeStatusFilter?: string | null;
   visibleDays: DayColumn[];
   employees: ScheduleEmployee[];
+  shifts: ScheduleShift[];
+  absences: Absence[];
+  highlightedDayId?: string | null;
+  weekStart: string;
+  onTimeChange?: (shiftId: string, newStart: string, newEnd: string) => void;
 }) {
-  const { isDark, scheduleView } = useContext(DashboardContext);
-  // Derive week range from the actual visible day columns (respects navigation offset + week span)
-  const weekStart = visibleDays[0]?.id ?? "";
-  const weekEnd = visibleDays[visibleDays.length - 1]?.id ?? "";
-  const { data: shiftsData = [] } = useShifts(weekStart, weekEnd);
-  const { data: absencesData = [] } = useAbsences(weekStart, weekEnd);
+  const { isDark, scheduleView, scheduleCompactMode } = useContext(DashboardContext);
+  const { active } = useDndContext();
   const { setCreateShiftContext, setAbsencePopover, setSelectedShift, setSelectedEmployee } =
     useScheduleUI();
-
-  const updateShift = useUpdateShift(weekStart);
+  const rowListRef = React.useRef<HTMLDivElement | null>(null);
+  const [scrollElement, setScrollElement] = React.useState<HTMLElement | null>(null);
+  const enableDroppable = active !== null;
 
   // ── Filter shifts based on activeStatusFilter ──────────────
   const filteredShifts = React.useMemo(() => {
-    if (!activeStatusFilter) return shiftsData;
+    if (!activeStatusFilter) return shifts;
     switch (activeStatusFilter) {
       case "draft":
-        return shiftsData.filter((s) => s.status === "created" || s.status === "assigned");
+        return shifts.filter((s) => s.status === "created" || s.status === "assigned");
       case "published":
-        return shiftsData.filter((s) => s.status === "published");
+        return shifts.filter((s) => s.status === "published");
       case "active":
-        return shiftsData.filter((s) => s.status === "active");
+        return shifts.filter((s) => s.status === "active");
       case "completed":
-        return shiftsData.filter((s) => s.status === "completed");
+        return shifts.filter((s) => s.status === "completed");
       default:
-        return shiftsData;
+        return shifts;
     }
-  }, [shiftsData, activeStatusFilter]);
+  }, [shifts, activeStatusFilter]);
 
   // ── Filter employees to only show those with matching data ──
   const filteredEmployees = React.useMemo(() => {
     if (!activeStatusFilter) return employees;
     // Absence filter: show only employees with absences
     if (activeStatusFilter === "absence") {
-      const employeesWithAbsences = new Set(absencesData.map((a) => a.employeeId));
+      const employeesWithAbsences = new Set(absences.map((a) => a.employeeId));
       return employees.filter((emp) => employeesWithAbsences.has(emp.id));
     }
     // Overtime risk: employees exceeding contracted hours
     if (activeStatusFilter === "overtime_risk") {
       const CONTRACTED = 37.5;
       const hoursByEmp = new Map<string, number>();
-      for (const s of shiftsData) {
+      for (const s of shifts) {
         if (s.employeeId) {
           hoursByEmp.set(s.employeeId, (hoursByEmp.get(s.employeeId) ?? 0) + s.workHours);
         }
@@ -94,7 +101,7 @@ export function GridContent({
     if (activeStatusFilter === "compliance_risk") {
       const AML_MAX = 40;
       const hoursByEmp = new Map<string, number>();
-      for (const s of shiftsData) {
+      for (const s of shifts) {
         if (s.employeeId) {
           hoursByEmp.set(s.employeeId, (hoursByEmp.get(s.employeeId) ?? 0) + s.workHours);
         }
@@ -109,27 +116,7 @@ export function GridContent({
       return employees.filter((emp) => employeeIdsWithShifts.has(emp.id));
     }
     return employees;
-  }, [employees, activeStatusFilter, filteredShifts, absencesData, shiftsData]);
-
-  /** Handle time change from Shift+drag resize handles */
-  const handleTimeChange = useCallback(
-    (shiftId: string, newStart: string, newEnd: string) => {
-      // Recalculate work hours from the new times
-      const startMins =
-        parseInt(newStart.split(":")[0] ?? "0", 10) * 60 +
-        parseInt(newStart.split(":")[1] ?? "0", 10);
-      let endMins =
-        parseInt(newEnd.split(":")[0] ?? "0", 10) * 60 + parseInt(newEnd.split(":")[1] ?? "0", 10);
-      if (endMins <= startMins) endMins += 24 * 60;
-      const workHours = Math.max(0, (endMins - startMins) / 60);
-
-      updateShift.mutate({
-        id: shiftId,
-        patch: { startTime: newStart, endTime: newEnd, workHours },
-      });
-    },
-    [updateShift],
-  );
+  }, [employees, activeStatusFilter, filteredShifts, absences, shifts]);
 
   /** Index shifts by employee::day key for O(1) lookup in grid cells */
   const shiftsByEmployeeDay = React.useMemo(() => {
@@ -150,7 +137,7 @@ export function GridContent({
   /** Index absences by employee::day key */
   const absencesByEmployeeDay = React.useMemo(() => {
     const index = new Map<string, Absence[]>();
-    for (const absence of absencesData) {
+    for (const absence of absences) {
       const key = `${absence.employeeId}::${absence.dateId}`;
       const existing = index.get(key);
       if (existing) {
@@ -160,7 +147,21 @@ export function GridContent({
       }
     }
     return index;
-  }, [absencesData]);
+  }, [absences]);
+
+  /** Index unfiltered shifts by day for day-level menu actions */
+  const shiftsByDate = React.useMemo(() => {
+    const index = new Map<string, ScheduleShift[]>();
+    for (const shift of shifts) {
+      const existing = index.get(shift.dateId);
+      if (existing) {
+        existing.push(shift);
+      } else {
+        index.set(shift.dateId, [shift]);
+      }
+    }
+    return index;
+  }, [shifts]);
 
   /** Compute hours and shift count per employee from real shift data */
   const employeeStats = React.useMemo(() => {
@@ -175,6 +176,57 @@ export function GridContent({
     return stats;
   }, [filteredShifts]);
 
+  React.useEffect(() => {
+    if (scheduleView !== "ansatt") {
+      setScrollElement(null);
+      return;
+    }
+    const findScrollableParent = (node: HTMLElement | null): HTMLElement | null => {
+      let current = node?.parentElement ?? null;
+      while (current) {
+        const style = window.getComputedStyle(current);
+        if (style.overflowY === "auto" || style.overflowY === "scroll") return current;
+        current = current.parentElement;
+      }
+      return null;
+    };
+    setScrollElement(findScrollableParent(rowListRef.current));
+  }, [scheduleView, filteredEmployees.length]);
+
+  const rowVirtualizer = useVirtualizer({
+    count: scheduleView === "ansatt" ? filteredEmployees.length : 0,
+    getScrollElement: () => scrollElement,
+    estimateSize: () => (scheduleCompactMode ? 56 : 108),
+    overscan: 4,
+    enabled: scheduleView === "ansatt" && scrollElement !== null,
+  });
+
+  const virtualRows = scheduleView === "ansatt" ? rowVirtualizer.getVirtualItems() : [];
+
+  /** Group once for role/team views to avoid repeated O(n²) filter scans. */
+  const employeesByRole = React.useMemo(() => {
+    const map = new Map<string, ScheduleEmployee[]>();
+    for (const employee of filteredEmployees) {
+      const roleKey = employee.jobTitle || employee.role || "Ukjent";
+      const list = map.get(roleKey) ?? [];
+      list.push(employee);
+      map.set(roleKey, list);
+    }
+    return Array.from(map.entries());
+  }, [filteredEmployees]);
+
+  /** Group once for team view to avoid repeated O(n²) filter scans. */
+  const employeesByTeam = React.useMemo(() => {
+    const map = new Map<string, ScheduleEmployee[]>();
+    for (const employee of filteredEmployees) {
+      const teamKey = employee.team || "Uten team";
+      const list = map.get(teamKey) ?? [];
+      list.push(employee);
+      map.set(teamKey, list);
+    }
+    return Array.from(map.entries());
+  }, [filteredEmployees]);
+
   return (
     <div className="flex w-full flex-col">
       <DayHeaders
@@ -184,101 +236,129 @@ export function GridContent({
         isSidebarOpen={isSidebarOpen}
         setIsSidebarOpen={setIsSidebarOpen}
         onDateClick={onDateClick}
+        highlightedDayId={highlightedDayId ?? null}
+        shiftsByDate={shiftsByDate}
+        weekStart={weekStart}
+        enableDroppable={enableDroppable}
       />
 
       <div className="w-full flex-1 pb-20">
         {scheduleView === "ansatt" && (
           <SortableContext
-            items={filteredEmployees.map((e) => e.id)}
+            items={virtualRows
+              .map((row) => filteredEmployees[row.index]?.id)
+              .filter((id): id is string => typeof id === "string")}
             strategy={verticalListSortingStrategy}
           >
-            <div className="flex flex-col">
-              {filteredEmployees.map((emp) => (
-                <SortableEmployeeRow
-                  key={emp.id}
-                  employee={emp}
-                  employeeStats={employeeStats.get(emp.id)}
-                  days={visibleDays}
-                  shiftsByEmployeeDay={shiftsByEmployeeDay}
-                  absencesByEmployeeDay={absencesByEmployeeDay}
-                  onCreateShift={setCreateShiftContext}
-                  onAbsencePopover={setAbsencePopover}
-                  onSelectShift={setSelectedShift}
-                  onSelectEmployee={setSelectedEmployee}
-                  onTimeChange={handleTimeChange}
-                />
-              ))}
+            <div
+              ref={rowListRef}
+              className="relative w-full"
+              style={{ height: `${rowVirtualizer.getTotalSize()}px` }}
+            >
+              {virtualRows.map((virtualRow) => {
+                const employee = filteredEmployees[virtualRow.index];
+                if (!employee) return null;
+                return (
+                  <div
+                    key={employee.id}
+                    className="absolute top-0 left-0 w-full"
+                    style={{ transform: `translateY(${virtualRow.start}px)` }}
+                  >
+                    <SortableEmployeeRow
+                      employee={employee}
+                      employeeStats={employeeStats.get(employee.id)}
+                      days={visibleDays}
+                      shiftsByEmployeeDay={shiftsByEmployeeDay}
+                      absencesByEmployeeDay={absencesByEmployeeDay}
+                      onCreateShift={setCreateShiftContext}
+                      onAbsencePopover={setAbsencePopover}
+                      onSelectShift={setSelectedShift}
+                      onSelectEmployee={setSelectedEmployee}
+                      onTimeChange={onTimeChange}
+                      enableDroppable={enableDroppable}
+                    />
+                  </div>
+                );
+              })}
+              {virtualRows.length === 0 && filteredEmployees.length > 0 && (
+                <div className="space-y-2 border-b border-white/[0.03] p-2">
+                  {Array.from({ length: 3 }).map((_, skeletonIndex) => (
+                    <div
+                      key={`employee-virtual-skeleton-${skeletonIndex + 1}`}
+                      className="grid grid-cols-[260px_repeat(7,minmax(0,1fr))] gap-2"
+                    >
+                      <div
+                        className={`h-[52px] animate-pulse rounded-lg ${isDark ? "bg-zinc-900/80" : "bg-zinc-200"}`}
+                      />
+                      {Array.from({ length: 7 }).map((__, cellIndex) => (
+                        <div
+                          key={`employee-virtual-skeleton-cell-${skeletonIndex + 1}-${cellIndex + 1}`}
+                          className={`h-[52px] animate-pulse rounded-lg ${isDark ? "bg-zinc-950/80" : "bg-zinc-100"}`}
+                        />
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </SortableContext>
         )}
 
         {scheduleView === "jobb" && (
           <div className="flex flex-col">
-            {Array.from(new Set(filteredEmployees.map((e) => e.jobTitle || e.role))).map(
-              (jobTitle) => {
-                const employeesInRole = filteredEmployees.filter(
-                  (e) => (e.jobTitle || e.role) === jobTitle,
-                );
-                return (
-                  <React.Fragment key={jobTitle}>
-                    <GroupHeader
-                      title={jobTitle}
-                      count={employeesInRole.length}
+            {employeesByRole.map(([jobTitle, employeesInRole]) => {
+              return (
+                <React.Fragment key={jobTitle}>
+                  <GroupHeader title={jobTitle} count={employeesInRole.length} days={visibleDays} />
+                  {employeesInRole.map((emp) => (
+                    <EmployeeRow
+                      key={emp.id}
+                      employee={emp}
+                      employeeStats={employeeStats.get(emp.id)}
                       days={visibleDays}
+                      shiftsByEmployeeDay={shiftsByEmployeeDay}
+                      absencesByEmployeeDay={absencesByEmployeeDay}
+                      onCreateShift={setCreateShiftContext}
+                      onAbsencePopover={setAbsencePopover}
+                      onSelectShift={setSelectedShift}
+                      onSelectEmployee={setSelectedEmployee}
+                      onTimeChange={onTimeChange}
+                      enableDroppable={enableDroppable}
+                      subtitle={emp.team}
                     />
-                    {employeesInRole.map((emp) => (
-                      <EmployeeRow
-                        key={emp.id}
-                        employee={emp}
-                        employeeStats={employeeStats.get(emp.id)}
-                        days={visibleDays}
-                        shiftsByEmployeeDay={shiftsByEmployeeDay}
-                        absencesByEmployeeDay={absencesByEmployeeDay}
-                        onCreateShift={setCreateShiftContext}
-                        onAbsencePopover={setAbsencePopover}
-                        onSelectShift={setSelectedShift}
-                        onSelectEmployee={setSelectedEmployee}
-                        onTimeChange={handleTimeChange}
-                        subtitle={emp.team}
-                      />
-                    ))}
-                  </React.Fragment>
-                );
-              },
-            )}
+                  ))}
+                </React.Fragment>
+              );
+            })}
           </div>
         )}
 
         {scheduleView === "team" && (
           <div className="flex flex-col">
-            {Array.from(new Set(filteredEmployees.map((e) => e.team || "Uten team"))).map(
-              (team) => {
-                const employeesInTeam = filteredEmployees.filter(
-                  (e) => (e.team || "Uten team") === team,
-                );
-                return (
-                  <React.Fragment key={team}>
-                    <GroupHeader title={team} count={employeesInTeam.length} days={visibleDays} />
-                    {employeesInTeam.map((emp) => (
-                      <EmployeeRow
-                        key={emp.id}
-                        employee={emp}
-                        employeeStats={employeeStats.get(emp.id)}
-                        days={visibleDays}
-                        shiftsByEmployeeDay={shiftsByEmployeeDay}
-                        absencesByEmployeeDay={absencesByEmployeeDay}
-                        onCreateShift={setCreateShiftContext}
-                        onAbsencePopover={setAbsencePopover}
-                        onSelectShift={setSelectedShift}
-                        onSelectEmployee={setSelectedEmployee}
-                        onTimeChange={handleTimeChange}
-                        subtitle={emp.jobTitle || emp.role}
-                      />
-                    ))}
-                  </React.Fragment>
-                );
-              },
-            )}
+            {employeesByTeam.map(([team, employeesInTeam]) => {
+              return (
+                <React.Fragment key={team}>
+                  <GroupHeader title={team} count={employeesInTeam.length} days={visibleDays} />
+                  {employeesInTeam.map((emp) => (
+                    <EmployeeRow
+                      key={emp.id}
+                      employee={emp}
+                      employeeStats={employeeStats.get(emp.id)}
+                      days={visibleDays}
+                      shiftsByEmployeeDay={shiftsByEmployeeDay}
+                      absencesByEmployeeDay={absencesByEmployeeDay}
+                      onCreateShift={setCreateShiftContext}
+                      onAbsencePopover={setAbsencePopover}
+                      onSelectShift={setSelectedShift}
+                      onSelectEmployee={setSelectedEmployee}
+                      onTimeChange={onTimeChange}
+                      enableDroppable={enableDroppable}
+                      subtitle={emp.jobTitle || emp.role}
+                    />
+                  ))}
+                </React.Fragment>
+              );
+            })}
           </div>
         )}
       </div>
@@ -296,6 +376,10 @@ const DayHeaders = React.memo(function DayHeaders({
   isSidebarOpen,
   setIsSidebarOpen,
   onDateClick,
+  highlightedDayId,
+  shiftsByDate,
+  weekStart,
+  enableDroppable,
 }: {
   isDark: boolean;
   scheduleView: string;
@@ -303,12 +387,17 @@ const DayHeaders = React.memo(function DayHeaders({
   isSidebarOpen: boolean;
   setIsSidebarOpen: (v: boolean) => void;
   onDateClick: (d: string) => void;
+  highlightedDayId: string | null;
+  shiftsByDate: Map<string, ScheduleShift[]>;
+  weekStart: string;
+  enableDroppable: boolean;
 }) {
   return (
-    <div className="sticky top-0 z-40 flex w-full">
+    <div className="sticky top-0 flex w-full" style={{ zIndex: SCHEDULE_LAYERS.stickyHeaders }}>
       {/* Sticky corner cell */}
       <div
-        className={`w-[260px] shrink-0 border-r border-b border-white/[0.04] ${isDark ? "bg-[#0a0a0c]/95" : "bg-white/95"} sticky left-0 z-50 flex h-16 flex-col justify-center p-3 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)] backdrop-blur-xl`}
+        className={`w-[260px] shrink-0 border-r border-b border-white/[0.04] ${isDark ? "bg-[#0a0a0c]/95" : "bg-white/95"} sticky left-0 flex h-16 flex-col justify-center p-3 shadow-[2px_0_8px_-6px_rgba(0,0,0,0.35)]`}
+        style={{ zIndex: SCHEDULE_LAYERS.stickyCorner }}
       >
         <div className="flex w-full items-center justify-between">
           <div className="flex items-center gap-2 text-xs font-bold tracking-widest text-zinc-500 uppercase">
@@ -330,7 +419,16 @@ const DayHeaders = React.memo(function DayHeaders({
 
       {/* Day column headers — fixed width */}
       {visibleDays.map((day) => (
-        <DroppableDayHeader key={day.id} day={day} isDark={isDark} onDateClick={onDateClick} />
+        <DroppableDayHeader
+          key={day.id}
+          day={day}
+          isDark={isDark}
+          onDateClick={onDateClick}
+          isHighlighted={highlightedDayId === day.id}
+          dayShifts={shiftsByDate.get(day.id) ?? []}
+          weekStart={weekStart}
+          enableDroppable={enableDroppable}
+        />
       ))}
     </div>
   );
@@ -343,17 +441,29 @@ function DroppableDayHeader({
   day,
   isDark,
   onDateClick,
+  isHighlighted,
+  dayShifts,
+  weekStart,
+  enableDroppable,
 }: {
   day: DayColumn;
   isDark: boolean;
   onDateClick: (d: string) => void;
+  isHighlighted: boolean;
+  dayShifts: ScheduleShift[];
+  weekStart: string;
+  enableDroppable: boolean;
 }) {
-  const { isOver, setNodeRef } = useDroppable({ id: `day-header::${day.id}` });
+  const { isOver, setNodeRef } = useDroppable({
+    id: `day-header::${day.id}`,
+    disabled: !enableDroppable,
+  });
 
   return (
     <div
       ref={setNodeRef}
-      className={`min-w-0 flex-1 border-r border-b border-white/[0.03] ${isDark ? "bg-[#0a0a0c]/90" : "bg-white/95"} group/day relative flex h-16 cursor-pointer flex-col justify-center p-2 backdrop-blur-xl transition-colors hover:bg-white/5 ${day.isToday ? "bg-orange-500/[0.06]" : ""} ${isOver ? "rounded-lg border-dashed border-orange-500/50 bg-orange-500/20" : ""} ${day.situation === "__dimmed__" ? "opacity-30" : ""}`}
+      data-schedule-day-id={day.id}
+      className={`min-w-0 flex-1 border-r border-b border-white/[0.03] ${isDark ? "bg-[#0a0a0c]/90" : "bg-white/95"} group/day relative flex h-16 cursor-pointer flex-col justify-center p-2 transition-colors hover:bg-white/5 ${day.isToday ? "bg-orange-500/[0.06]" : ""} ${isOver ? "rounded-lg border-dashed border-orange-500/50 bg-orange-500/20" : ""} ${day.situation === "__dimmed__" ? "opacity-30" : ""} ${isHighlighted ? "shadow-[0_0_0_1px_rgba(251,146,60,0.35)] ring-2 ring-orange-400/70 ring-inset" : ""}`}
       onClick={() => onDateClick(day.id)}
     >
       {day.coverageAlert ? (
@@ -373,7 +483,13 @@ function DroppableDayHeader({
           ) : null}
         </h2>
         <div onClick={(e) => e.stopPropagation()}>
-          <DayContextMenu dateId={day.id} dateLabel={day.label} isDark={isDark} />
+          <DayContextMenu
+            dateId={day.id}
+            dateLabel={day.label}
+            isDark={isDark}
+            dayShifts={dayShifts}
+            weekStart={weekStart}
+          />
         </div>
       </div>
 
@@ -411,7 +527,8 @@ export const GroupHeader = React.memo(function GroupHeader({
   return (
     <div className="group/header flex w-full">
       <div
-        className={`w-[260px] shrink-0 border-r border-b border-white/[0.04] ${isDark ? "bg-white/[0.03]" : "bg-zinc-100"} relative sticky left-0 z-30 flex h-9 items-center justify-between px-4 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)]`}
+        className={`w-[260px] shrink-0 border-r border-b border-white/[0.04] ${isDark ? "bg-white/[0.03]" : "bg-zinc-100"} relative sticky left-0 flex h-9 items-center justify-between px-4 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)]`}
+        style={{ zIndex: SCHEDULE_LAYERS.stickyHeaders }}
       >
         <span
           className={`text-[11px] font-bold ${isDark ? "text-white" : "text-zinc-900"} tracking-wider uppercase`}
@@ -449,6 +566,7 @@ type SortableEmployeeRowProps = {
   onSelectShift: (id: string | null) => void;
   onSelectEmployee?: (id: string) => void;
   onTimeChange?: (shiftId: string, newStart: string, newEnd: string) => void;
+  enableDroppable: boolean;
 };
 
 function SortableEmployeeRow(props: SortableEmployeeRowProps) {
@@ -461,7 +579,7 @@ function SortableEmployeeRow(props: SortableEmployeeRowProps) {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
-    zIndex: isDragging ? 50 : undefined,
+    zIndex: isDragging ? SCHEDULE_LAYERS.stickyCorner : undefined,
     position: "relative" as const,
   };
 
@@ -488,6 +606,7 @@ export const EmployeeRow = React.memo(function EmployeeRow({
   onSelectEmployee,
   onTimeChange,
   dragHandleListeners,
+  enableDroppable,
 }: {
   employee: ScheduleEmployee;
   employeeStats?: { hours: number; shiftCount: number };
@@ -501,6 +620,7 @@ export const EmployeeRow = React.memo(function EmployeeRow({
   onSelectEmployee?: (id: string) => void;
   onTimeChange?: (shiftId: string, newStart: string, newEnd: string) => void;
   dragHandleListeners?: ReturnType<typeof useSortable>["listeners"];
+  enableDroppable: boolean;
 }) {
   const { isDark, scheduleCompactMode: isCompact } = useContext(DashboardContext);
   const scheduledHours = employeeStats?.hours ?? 0;
@@ -518,7 +638,8 @@ export const EmployeeRow = React.memo(function EmployeeRow({
     <div className="group/row flex w-full">
       {/* Sticky employee info panel — clickable to open drawer */}
       <div
-        className={`w-[260px] shrink-0 border-r border-b border-white/[0.04] ${isDark ? "bg-[#0a0a0c]" : "bg-white"} sticky left-0 z-30 flex cursor-pointer items-center shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)] transition-colors group-hover/row:bg-white/[0.02] ${isCompact ? "h-[52px] min-h-0 gap-2 p-2" : "min-h-[100px] gap-3 p-3"}`}
+        className={`w-[260px] shrink-0 border-r border-b border-white/[0.04] ${isDark ? "bg-[#0a0a0c]" : "bg-white"} sticky left-0 flex cursor-pointer items-center shadow-[2px_0_8px_-6px_rgba(0,0,0,0.35)] transition-colors group-hover/row:bg-white/[0.02] ${isCompact ? "h-[52px] min-h-0 gap-2 p-2" : "min-h-[100px] gap-3 p-3"}`}
+        style={{ zIndex: SCHEDULE_LAYERS.stickyHeaders }}
         onClick={() => onSelectEmployee?.(employee.id)}
       >
         {/* Drag handle + avatar */}
@@ -593,6 +714,7 @@ export const EmployeeRow = React.memo(function EmployeeRow({
             id={`cell::${employee.id}::${day.id}`}
             isCompact={isCompact}
             dimmed={day.situation === "__dimmed__"}
+            enableDroppable={enableDroppable}
             onAddClick={() => onCreateShift({ dateId: day.id, employeeId: employee.id })}
             onContextMenu={(e) => {
               e.preventDefault();
@@ -649,6 +771,7 @@ function MatrixCell({
   id,
   isCompact,
   dimmed,
+  enableDroppable,
   onAddClick,
   onContextMenu,
 }: {
@@ -657,19 +780,101 @@ function MatrixCell({
   id?: string;
   isCompact?: boolean;
   dimmed?: boolean;
+  enableDroppable?: boolean;
+  onAddClick?: () => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
+}) {
+  const defaultId = React.useId();
+  const droppableId = id || defaultId;
+  if (!enableDroppable) {
+    return (
+      <MatrixCellBase
+        isToday={isToday}
+        isCompact={isCompact}
+        dimmed={dimmed}
+        isOver={false}
+        onAddClick={onAddClick}
+        onContextMenu={onContextMenu}
+      >
+        {children}
+      </MatrixCellBase>
+    );
+  }
+
+  return (
+    <MatrixCellDroppable
+      droppableId={droppableId}
+      isToday={isToday}
+      isCompact={isCompact}
+      dimmed={dimmed}
+      onAddClick={onAddClick}
+      onContextMenu={onContextMenu}
+    >
+      {children}
+    </MatrixCellDroppable>
+  );
+}
+
+function MatrixCellDroppable({
+  droppableId,
+  children,
+  isToday,
+  isCompact,
+  dimmed,
+  onAddClick,
+  onContextMenu,
+}: {
+  droppableId: string;
+  children?: React.ReactNode;
+  isToday?: boolean;
+  isCompact?: boolean;
+  dimmed?: boolean;
+  onAddClick?: () => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
+}) {
+  const { isOver, setNodeRef } = useDroppable({ id: droppableId });
+
+  return (
+    <MatrixCellBase
+      isToday={isToday}
+      isCompact={isCompact}
+      dimmed={dimmed}
+      isOver={isOver}
+      containerRef={setNodeRef}
+      onAddClick={onAddClick}
+      onContextMenu={onContextMenu}
+    >
+      {children}
+    </MatrixCellBase>
+  );
+}
+
+function MatrixCellBase({
+  children,
+  isToday,
+  isCompact,
+  dimmed,
+  isOver,
+  containerRef,
+  onAddClick,
+  onContextMenu,
+}: {
+  children?: React.ReactNode;
+  isToday?: boolean;
+  isCompact?: boolean;
+  dimmed?: boolean;
+  isOver: boolean;
+  containerRef?: (node: HTMLDivElement | null) => void;
   onAddClick?: () => void;
   onContextMenu?: (e: React.MouseEvent) => void;
 }) {
   const { isDark } = useContext(DashboardContext);
-  const defaultId = React.useId();
-  const droppableId = id || defaultId;
-  const { isOver, setNodeRef } = useDroppable({ id: droppableId });
 
   return (
     <div
-      ref={setNodeRef}
+      ref={containerRef}
       onContextMenu={onContextMenu}
-      className={`min-w-0 flex-1 border-r border-b border-white/[0.03] ${isDark ? "bg-[#050505]" : "bg-zinc-50"}/40 relative flex flex-col gap-1 overflow-hidden shadow-[inset_0_1px_6px_rgba(0,0,0,0.3)] transition-colors ${isCompact ? "h-[52px] min-h-0 p-1" : "min-h-[100px] p-2"} ${isOver ? "z-10 scale-[1.02] rounded-lg border border-dashed border-orange-500/50 bg-orange-500/20" : "group-hover/row:bg-white/[0.02] hover:bg-white/[0.04]"} ${isToday ? "bg-orange-500/[0.06]" : ""} ${dimmed ? "opacity-30" : ""}`}
+      className={`min-w-0 flex-1 border-r border-b border-white/[0.03] ${isDark ? "bg-[#050505]" : "bg-zinc-50"}/40 relative flex flex-col gap-1 overflow-hidden transition-colors ${isCompact ? "h-[52px] min-h-0 p-1" : "min-h-[100px] p-2"} ${isOver ? "z-10 rounded-lg border border-dashed border-orange-500/50 bg-orange-500/20" : "group-hover/row:bg-white/[0.02] hover:bg-white/[0.04]"} ${isToday ? "bg-orange-500/[0.06]" : ""} ${dimmed ? "opacity-30" : ""}`}
     >
       {children ? (
         <>

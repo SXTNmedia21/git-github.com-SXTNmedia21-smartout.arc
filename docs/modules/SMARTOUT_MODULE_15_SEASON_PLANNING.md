@@ -1,4 +1,13 @@
 ---
+title: "SMARTOUT_MODULE_15_SEASON_PLANNING"
+status: draft
+updated: 2026-04-10
+created: 2026-03-01
+module: operations
+tags: []
+---
+
+\*\*---
 title: "Module 15: Season Planning & Budget Engine"
 id: MODULE_15
 version: "1.0"
@@ -10,22 +19,24 @@ author: pontus
 supersedes: []
 superseded_by: null
 depends_on:
-  - CORE_ARCH_V2
-tags:
-  - season-planning
-  - budget
-  - revenue-forecasting
-  - staffing-capacity
-  - factor-hierarchy
-tables:
-  - season_budget
-  - day_factor
-  - hour_factor
-  - date_override
-  - factor_learning
-changelog:
-  - date: 2026-02-28
-    change: "Added YAML frontmatter"
+
+- CORE_ARCH_V2
+  tags:
+- season-planning
+- budget
+- revenue-forecasting
+- staffing-capacity
+- factor-hierarchy
+  tables:
+- season_budget
+- day_factor
+- hour_factor
+- date_override
+- factor_learning
+  changelog:
+- date: 2026-02-28
+  change: "Added YAML frontmatter"
+
 ---
 
 # Module 15: Season Planning & Budget Engine
@@ -488,3 +499,4 @@ This feeds into Module 10's Season Reconciliation.
 ---
 
 _This module turns Season setup from "pick teams and rules" into a full strategic planning exercise. By adding revenue targets, factor hierarchies, and staffing calculations, Smartout becomes a predictive capacity engine — not just an operations tool. First season is manual. After that, the system learns and suggests. Together with Module 14 (Production) for menu costs and Module 10 (Reports & Reconciliation) for actuals, this creates a complete plan → execute → measure → learn loop._
+\*\*

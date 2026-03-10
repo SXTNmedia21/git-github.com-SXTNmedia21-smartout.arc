@@ -10,6 +10,7 @@
     "ingest": "tsx src/index.ts ingest",
     "ingest:force": "tsx src/index.ts ingest --force",
     "ingest:dry-run": "tsx src/index.ts ingest --dry-run",
+    "ingest:workspace": "tsx src/index.ts ingest-workspace",
     "validate": "tsx src/index.ts validate",
     "validate:strict": "tsx src/index.ts validate --strict",
     "watch": "tsx src/index.ts watch",

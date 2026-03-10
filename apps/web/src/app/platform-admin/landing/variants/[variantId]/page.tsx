@@ -30,7 +30,7 @@ export type VariantData = {
   is_default: boolean;
   meta_title: string | null;
   meta_description: string | null;
-  theme_accent: string | null;
+  theme: Record<string, unknown> | null;
   sort_order: number;
   created_at: string;
   updated_at: string;
@@ -69,7 +69,7 @@ export default async function VariantEditorPage({ params }: Props) {
     admin
       .from("landing_variant")
       .select(
-        "id, name, slug, status, is_default, meta_title, meta_description, theme_accent, sort_order, created_at, updated_at",
+        "id, name, slug, status, is_default, meta_title, meta_description, theme, sort_order, created_at, updated_at",
       )
       .eq("id", variantId)
       .single(),

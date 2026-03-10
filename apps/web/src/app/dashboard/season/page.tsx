@@ -7,8 +7,10 @@ import { BudgetSetupTab } from "./_components/BudgetSetupTab";
 import { DayFactorsTab } from "./_components/DayFactorsTab";
 import { HourFactorsTab } from "./_components/HourFactorsTab";
 import { SeasonOverviewTab } from "./_components/SeasonOverviewTab";
-import { useSeasonBudget, useSeasons } from "./_hooks";
+import { SeasonManagementCard } from "./_components/SeasonManagementCard";
+import { useDayFactors, useHourFactors, useSeasonBudget, useSeasons } from "./_hooks";
 import { Target, BarChart3, Clock, LayoutDashboard } from "lucide-react";
+import { isSeasonSetupReady } from "./_definitions/season-planning";
 
 type SeasonTab = "overview" | "budget" | "day-factors" | "hour-factors";
 
@@ -26,7 +28,17 @@ export default function SeasonPage() {
 
   const { seasons } = useSeasons();
   const { budget } = useSeasonBudget(selectedSeasonId);
+  const { dayFactors } = useDayFactors(budget?.season_budget_id ?? null);
+  const { hourFactors } = useHourFactors(budget?.season_budget_id ?? null);
   const selectedSeason = seasons.find((s) => s.season_id === selectedSeasonId);
+  const isBudgetLocked = budget?.status === "locked";
+
+  const setupStatus = {
+    hasBudget: Boolean(budget),
+    hasDayFactors: dayFactors.length > 0,
+    hasHourFactors: hourFactors.length > 0,
+  };
+  const isReady = isSeasonSetupReady(setupStatus);
 
   return (
     <div className="z-10 flex-1 overflow-y-auto px-10 pt-8 pb-20">
@@ -52,6 +64,16 @@ export default function SeasonPage() {
           selectedSeasonId={selectedSeasonId}
           onSelect={setSelectedSeasonId}
           isDark={isDark}
+        />
+      </div>
+
+      <div className="mb-6">
+        <SeasonManagementCard
+          isDark={isDark}
+          onSeasonCreated={(seasonId) => {
+            setSelectedSeasonId(seasonId);
+            setActiveTab("budget");
+          }}
         />
       </div>
 
@@ -109,6 +131,22 @@ export default function SeasonPage() {
             })}
           </div>
 
+          {budget && (
+            <div
+              className={`mb-6 rounded-xl border px-4 py-3 text-sm ${
+                isDark
+                  ? "border-zinc-800 bg-zinc-900/40 text-zinc-400"
+                  : "border-zinc-200 bg-zinc-50 text-zinc-600"
+              }`}
+            >
+              Oppsettstatus: Budsjett {setupStatus.hasBudget ? "OK" : "Mangler"} - Dagfaktorer{" "}
+              {setupStatus.hasDayFactors ? "OK" : "Mangler"} - Timefaktorer{" "}
+              {setupStatus.hasHourFactors ? "OK" : "Mangler"} -{" "}
+              <strong>{isReady ? "Klar for drift" : "Ferdigstill oppsett"}</strong>
+              {isBudgetLocked ? " - Budsjett er låst" : ""}
+            </div>
+          )}
+
           {/* Tab content */}
           {activeTab === "overview" && budget && (
             <SeasonOverviewTab
@@ -121,10 +159,18 @@ export default function SeasonPage() {
           )}
           {activeTab === "budget" && <BudgetSetupTab seasonId={selectedSeasonId} isDark={isDark} />}
           {activeTab === "day-factors" && budget && (
-            <DayFactorsTab seasonBudgetId={budget.season_budget_id} isDark={isDark} />
+            <DayFactorsTab
+              seasonBudgetId={budget.season_budget_id}
+              isDark={isDark}
+              isReadOnly={isBudgetLocked}
+            />
           )}
           {activeTab === "hour-factors" && budget && (
-            <HourFactorsTab seasonBudgetId={budget.season_budget_id} isDark={isDark} />
+            <HourFactorsTab
+              seasonBudgetId={budget.season_budget_id}
+              isDark={isDark}
+              isReadOnly={isBudgetLocked}
+            />
           )}
         </>
       )}

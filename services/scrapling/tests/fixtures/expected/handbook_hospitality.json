@@ -1,0 +1,17 @@
+{
+  "expect_categories": [
+    "policies",
+    "routines",
+    "departments",
+    "openingHours",
+    "menus",
+    "payroll",
+    "holidays",
+    "employmentTerms"
+  ],
+  "policies_min_count": 2,
+  "routines_min_count": 2,
+  "departments_min_count": 3,
+  "menus_min_count": 2,
+  "payroll_must_have_supplements": true
+}

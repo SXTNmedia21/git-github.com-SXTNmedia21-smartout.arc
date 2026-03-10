@@ -3,6 +3,12 @@
 import { useState, useEffect, useMemo } from "react";
 import { useHourFactors, DEFAULT_HOUR_FACTORS } from "../_hooks";
 import { useOperatingHours } from "../../settings/_hooks/use-operating-hours";
+import {
+  BUDGET_SETUP_LIMITS,
+  getHourFactorTemplate,
+  type HourFactorTemplateId,
+} from "../_definitions/season-planning";
+import { toast } from "sonner";
 
 function parseTimeToHour(time: string): number {
   return parseInt(time.split(":")[0] ?? "0", 10);
@@ -11,9 +17,10 @@ function parseTimeToHour(time: string): number {
 type Props = {
   seasonBudgetId: string;
   isDark: boolean;
+  isReadOnly?: boolean;
 };
 
-export function HourFactorsTab({ seasonBudgetId, isDark }: Props) {
+export function HourFactorsTab({ seasonBudgetId, isDark, isReadOnly = false }: Props) {
   const {
     hourFactors,
     isLoading: loadingFactors,
@@ -68,11 +75,28 @@ export function HourFactorsTab({ seasonBudgetId, isDark }: Props) {
   const updateFactor = (hour: number, value: string) => {
     const num = parseFloat(value);
     if (isNaN(num) || num <= 0) return;
+    if (num < BUDGET_SETUP_LIMITS.hourFactor.min || num > BUDGET_SETUP_LIMITS.hourFactor.max)
+      return;
     setFactors((prev) => prev.map((f) => (f.hour === hour ? { ...f, factor: num } : f)));
   };
 
   const handleSave = () => {
+    if (isReadOnly) {
+      toast.error("Budsjettet er låst. Sett status til Draft eller Active for å redigere.");
+      return;
+    }
     saveHourFactors.mutate(factors);
+  };
+
+  /**
+   * Applies a predefined hourly distribution template.
+   */
+  const applyTemplate = (template: HourFactorTemplateId) => {
+    if (isReadOnly) {
+      toast.error("Budsjettet er låst. Sett status til Draft eller Active for å redigere.");
+      return;
+    }
+    setFactors(getHourFactorTemplate(template, openHour, closeHour));
   };
 
   const cardClass = isDark
@@ -94,6 +118,27 @@ export function HourFactorsTab({ seasonBudgetId, isDark }: Props) {
         Fordeling av daglig omsetning per time ({openHour}:00&ndash;{closeHour}:00). Høyere faktor =
         mer omsetning forventet den timen.
       </p>
+
+      <div className="mb-6 flex gap-2">
+        {(["restaurant", "dinner_peak", "flat"] as const).map((template) => (
+          <button
+            key={template}
+            onClick={() => applyTemplate(template)}
+            disabled={isReadOnly}
+            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+              isDark
+                ? "border border-zinc-700 text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                : "border border-zinc-300 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
+            }`}
+          >
+            {template === "restaurant"
+              ? "Restaurant"
+              : template === "dinner_peak"
+                ? "Middagstopp"
+                : "Flat"}
+          </button>
+        ))}
+      </div>
 
       <div className="space-y-2">
         {factors.map((f) => {
@@ -124,7 +169,9 @@ export function HourFactorsTab({ seasonBudgetId, isDark }: Props) {
                 value={f.factor}
                 onChange={(e) => updateFactor(f.hour, e.target.value)}
                 step="0.1"
-                min="0.1"
+                min={BUDGET_SETUP_LIMITS.hourFactor.min}
+                max={BUDGET_SETUP_LIMITS.hourFactor.max}
+                disabled={isReadOnly}
                 className={`w-20 rounded-lg border px-3 py-1.5 text-center text-sm font-medium outline-none ${
                   isDark
                     ? "border-zinc-700 bg-zinc-900 text-white focus:border-blue-500"
@@ -139,7 +186,7 @@ export function HourFactorsTab({ seasonBudgetId, isDark }: Props) {
       <div className="mt-8 flex justify-end">
         <button
           onClick={handleSave}
-          disabled={saveHourFactors.isPending}
+          disabled={saveHourFactors.isPending || isReadOnly}
           className="rounded-xl bg-blue-600 px-6 py-3 text-sm font-bold text-white transition-colors hover:bg-blue-500 disabled:opacity-50"
         >
           {saveHourFactors.isPending ? "Lagrer..." : "Lagre timefaktorer"}

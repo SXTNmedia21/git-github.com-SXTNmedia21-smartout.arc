@@ -11,13 +11,56 @@ import {
   getFirstProfile,
 } from "./_data/queries";
 
-export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+const SHOWCASE_WORKSPACE: WorkspaceData = {
+  workspace_id: "00000000-0000-0000-0000-000000000000",
+  company_id: null,
+  name: "Dunner Bros Demo Workspace",
+  slug: "showcase",
+  logo_url: null,
+  currency: "NOK",
+  language: "nb",
+  country: "NO",
+  timezone: "Europe/Oslo",
+  contract_status: "active",
+  onboarding_completed: true,
+};
+
+/**
+ * Enforces workspace access redirects for dashboard routes.
+ * - Workspaces that haven't completed onboarding → /dashboard/setup
+ * - Deactivated workspaces → /blocked
+ */
+function enforceWorkspaceAccess(workspace: WorkspaceData): void {
+  if (workspace.contract_status === "deactivated") {
+    redirect("/blocked");
+  }
+}
+
+export default async function DashboardLayout({
+  children,
+  params: _params,
+}: {
+  children: React.ReactNode;
+  params?: Promise<Record<string, string>>;
+}) {
   const headersList = await headers();
   const slug = headersList.get("x-workspace-slug");
+  const isShowcaseMode = headersList.get("x-showcase-mode") === "1";
+  // Local dev: support ?ws=<workspace_id> to select a specific workspace
+  const wsParam = headersList.get("x-workspace-id-param");
 
   const user = await getUser();
 
   if (!user) {
+    if (isShowcaseMode) {
+      return (
+        <QueryProvider>
+          <WorkspaceProvider workspace={SHOWCASE_WORKSPACE}>
+            <DashboardShell profileId={null}>{children}</DashboardShell>
+          </WorkspaceProvider>
+        </QueryProvider>
+      );
+    }
     redirect("/login");
   }
 
@@ -41,8 +84,20 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
     profileId = profile.profile_id;
     workspace = wsData;
-  } else {
-    // No subdomain (local dev or legacy) — use first workspace
+  } else if (wsParam) {
+    // Local dev: specific workspace selected via ?ws= query param
+    const profile = await getProfileInWorkspace(user.id, wsParam);
+    if (profile) {
+      profileId = profile.profile_id;
+      const wsData = await getWorkspaceById(wsParam);
+      if (wsData) {
+        workspace = wsData;
+      }
+    }
+  }
+
+  if (!workspace) {
+    // Fallback: use best workspace
     const profileData = await getFirstProfile(user.id);
 
     if (profileData?.workspace_id) {
@@ -56,6 +111,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   if (workspace) {
+    if (!isShowcaseMode) {
+      enforceWorkspaceAccess(workspace);
+    }
+
     return (
       <QueryProvider>
         <WorkspaceProvider workspace={workspace}>
@@ -66,5 +125,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   // No workspace found — redirect instead of rendering without WorkspaceProvider
+  if (isShowcaseMode) {
+    return (
+      <QueryProvider>
+        <WorkspaceProvider workspace={SHOWCASE_WORKSPACE}>
+          <DashboardShell profileId={profileId}>{children}</DashboardShell>
+        </WorkspaceProvider>
+      </QueryProvider>
+    );
+  }
+
   redirect("/onboarding");
 }

@@ -1,0 +1,6 @@
+{
+  "expect_categories": ["payroll", "employmentTerms", "holidays"],
+  "reject_categories": ["menus", "routines"],
+  "payroll_must_have_supplements": true,
+  "employment_must_have": ["noticePeriod", "probation"]
+}

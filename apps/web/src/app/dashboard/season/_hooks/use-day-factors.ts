@@ -5,6 +5,7 @@ import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
 import { dashboardKeys } from "../../_hooks/dashboard-keys";
 import { toast } from "sonner";
+import { getDayFactorTemplate, WEEKDAY_LABELS } from "../_definitions/season-planning";
 
 export type DayFactor = {
   day_factor_id: string;
@@ -12,18 +13,8 @@ export type DayFactor = {
   factor: number;
 };
 
-const WEEKDAY_LABELS = ["Man", "Tir", "Ons", "Tor", "Fre", "Lør", "Søn"] as const;
-
 /** Default restaurant profile: weekend-heavy */
-const DEFAULT_DAY_FACTORS: { weekday: number; factor: number }[] = [
-  { weekday: 0, factor: 1.0 },
-  { weekday: 1, factor: 1.1 },
-  { weekday: 2, factor: 1.2 },
-  { weekday: 3, factor: 1.4 },
-  { weekday: 4, factor: 2.2 },
-  { weekday: 5, factor: 2.5 },
-  { weekday: 6, factor: 1.3 },
-];
+const DEFAULT_DAY_FACTORS = getDayFactorTemplate("restaurant");
 
 export { WEEKDAY_LABELS, DEFAULT_DAY_FACTORS };
 

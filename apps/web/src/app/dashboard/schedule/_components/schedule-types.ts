@@ -161,3 +161,30 @@ export type ShiftHistoryEntry = {
 
 // ── Day selection for batch operations (MODULE_03 §5) ───────
 export type SelectedDays = Set<string>;
+
+// ── Agent shift proposals (ghost cards) ─────────────────────
+// Agent-initiated create/update produce proposals that require human approval.
+export type ShiftProposalCreate = {
+  id: string;
+  type: "create";
+  employeeId: string;
+  dateId: string;
+  role: string;
+  startTime: string;
+  endTime: string;
+  workHours: number;
+  dayCategory: string;
+  indicator: string;
+  breaks: number;
+};
+
+export type ShiftProposalUpdate = {
+  id: string;
+  type: "update";
+  shiftId: string;
+  employeeId: string;
+  dateId: string;
+  patch: Record<string, unknown>;
+};
+
+export type ShiftProposal = ShiftProposalCreate | ShiftProposalUpdate;

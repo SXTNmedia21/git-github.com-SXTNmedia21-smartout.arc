@@ -52,7 +52,7 @@ type EmployeeDrawerProps = {
 // ── Component ─────────────────────────────────────────────────
 
 export function EmployeeDrawer({ open, onOpenChange, employee }: EmployeeDrawerProps) {
-  const { isDark } = useContext(DashboardContext);
+  const { isDark: _isDark } = useContext(DashboardContext);
   const { weekStart, weekEnd } = useWeekRange();
 
   // Roster data
@@ -211,12 +211,29 @@ export function EmployeeDrawer({ open, onOpenChange, employee }: EmployeeDrawerP
                   Laster turnus...
                 </div>
               ) : (
-                <TurnusGrid
-                  pattern={editPattern}
-                  isEditing={isEditing}
-                  onPatternChange={handlePatternChange}
-                  isDark={isDark}
-                />
+                <>
+                  <p className="text-muted-foreground mb-2 text-[10px]">
+                    Sett faste arbeidstider per ukedag. Klikk Rediger for a endre, deretter
+                    Auto-fyll for a generere vakter.
+                  </p>
+                  {isEditing && (
+                    <TurnusPresets
+                      onApply={(pattern) => {
+                        for (const [day, value] of Object.entries(pattern) as [
+                          keyof RosterPattern,
+                          string | null,
+                        ][]) {
+                          if (value !== null) handlePatternChange(day, value);
+                        }
+                      }}
+                    />
+                  )}
+                  <TurnusGrid
+                    pattern={editPattern}
+                    isEditing={isEditing}
+                    onPatternChange={handlePatternChange}
+                  />
+                </>
               )}
 
               {/* Period selector */}
@@ -258,11 +275,7 @@ export function EmployeeDrawer({ open, onOpenChange, employee }: EmployeeDrawerP
                 <Calendar className="h-3.5 w-3.5" />
                 Tilgjengelighet
               </h3>
-              <AvailabilityCalendar
-                absenceDates={absenceDates}
-                pattern={editPattern}
-                isDark={isDark}
-              />
+              <AvailabilityCalendar absenceDates={absenceDates} pattern={editPattern} />
             </section>
 
             <Separator className="bg-border" />
@@ -289,21 +302,12 @@ export function EmployeeDrawer({ open, onOpenChange, employee }: EmployeeDrawerP
                 Statistikk
               </h3>
               <div className="grid grid-cols-3 gap-3">
-                <StatCard
-                  label="Timer denne uken"
-                  value={`${stats.weekHours.toFixed(1)}/37.5`}
-                  isDark={isDark}
-                />
-                <StatCard
-                  label="Vakter denne mnd"
-                  value={String(stats.monthShifts)}
-                  isDark={isDark}
-                />
+                <StatCard label="Timer denne uken" value={`${stats.weekHours.toFixed(1)}/37.5`} />
+                <StatCard label="Vakter denne mnd" value={String(stats.monthShifts)} />
                 <StatCard
                   label="Overtid"
                   value={`${stats.overtime.toFixed(1)}t`}
                   warn={stats.overtime > 0}
-                  isDark={isDark}
                 />
               </div>
             </section>
@@ -314,18 +318,86 @@ export function EmployeeDrawer({ open, onOpenChange, employee }: EmployeeDrawerP
   );
 }
 
+// ── TurnusPresets — quick-fill patterns ────────────────────────
+
+const TURNUS_PRESETS = [
+  {
+    label: "Dagvakt (08-16)",
+    pattern: {
+      mon: "08:00-16:00",
+      tue: "08:00-16:00",
+      wed: "08:00-16:00",
+      thu: "08:00-16:00",
+      fri: "08:00-16:00",
+      sat: null,
+      sun: null,
+    },
+  },
+  {
+    label: "Kveldsvakt (15-23)",
+    pattern: {
+      mon: "15:00-23:00",
+      tue: "15:00-23:00",
+      wed: "15:00-23:00",
+      thu: "15:00-23:00",
+      fri: "15:00-23:00",
+      sat: null,
+      sun: null,
+    },
+  },
+  {
+    label: "Helgevakt",
+    pattern: {
+      mon: null,
+      tue: null,
+      wed: null,
+      thu: null,
+      fri: "16:00-23:00",
+      sat: "10:00-18:00",
+      sun: "10:00-18:00",
+    },
+  },
+  {
+    label: "Full uke (10-18)",
+    pattern: {
+      mon: "10:00-18:00",
+      tue: "10:00-18:00",
+      wed: "10:00-18:00",
+      thu: "10:00-18:00",
+      fri: "10:00-18:00",
+      sat: "10:00-18:00",
+      sun: null,
+    },
+  },
+] satisfies Array<{ label: string; pattern: RosterPattern }>;
+
+function TurnusPresets({ onApply }: { onApply: (pattern: RosterPattern) => void }) {
+  return (
+    <div className="mb-2 flex flex-wrap gap-1.5">
+      {TURNUS_PRESETS.map((preset) => (
+        <button
+          key={preset.label}
+          type="button"
+          onClick={() => onApply(preset.pattern)}
+          className="border-border bg-muted hover:bg-accent rounded-md border px-2.5 py-1 text-[10px] font-semibold transition-colors"
+        >
+          {preset.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // ── TurnusGrid — weekday × time editor ────────────────────────
 
 function TurnusGrid({
   pattern,
   isEditing,
   onPatternChange,
-  isDark,
 }: {
   pattern: RosterPattern;
   isEditing: boolean;
   onPatternChange: (day: keyof RosterPattern, value: string) => void;
-  isDark: boolean;
 }) {
   return (
     <div className="grid grid-cols-7 gap-1.5">
@@ -401,11 +473,9 @@ function TurnusGrid({
 function AvailabilityCalendar({
   absenceDates,
   pattern,
-  isDark,
 }: {
   absenceDates: Set<string>;
   pattern: RosterPattern;
-  isDark: boolean;
 }) {
   // Show current week + 3 more weeks
   const weeks = useMemo(() => {
@@ -496,17 +566,7 @@ function AvailabilityCalendar({
 
 // ── StatCard ──────────────────────────────────────────────────
 
-function StatCard({
-  label,
-  value,
-  warn,
-  isDark,
-}: {
-  label: string;
-  value: string;
-  warn?: boolean;
-  isDark: boolean;
-}) {
+function StatCard({ label, value, warn }: { label: string; value: string; warn?: boolean }) {
   return (
     <div className="border-border bg-muted/50 rounded-lg border p-3">
       <div className="text-muted-foreground text-[10px] font-medium tracking-wide uppercase">
@@ -526,6 +586,6 @@ function hasAnyShift(pattern: RosterPattern): boolean {
 }
 
 function formatDateNb(dateStr: string): string {
-  const [y, m, d] = dateStr.split("-");
+  const [, m, d] = dateStr.split("-");
   return `${d}.${m}`;
 }

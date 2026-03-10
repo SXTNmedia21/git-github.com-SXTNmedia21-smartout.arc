@@ -5,7 +5,7 @@ version: "1.0"
 status: canonical
 layer: reference
 created: 2026-02-28
-updated: 2026-02-28
+updated: 2026-04-13
 author: claude
 supersedes: []
 superseded_by: null
@@ -78,12 +78,13 @@ All routes for the web dashboard (`apps/web`), landing page (`apps/landing`), an
 
 ### Dashboard -- Employee Routes
 
-| Route                    | Purpose                | Module        |
-| ------------------------ | ---------------------- | ------------- |
-| `/dashboard/my-schedule` | Employee: my shifts    | Scheduling    |
-| `/dashboard/my-training` | Employee: my training  | Training      |
-| `/dashboard/my-cv`       | Employee: profile & CV | Org Structure |
-| `/dashboard/my-salary`   | Employee: salary info  | Payroll       |
+| Route                    | Purpose                                               | Module        |
+| ------------------------ | ----------------------------------------------------- | ------------- |
+| `/dashboard/my-schedule` | Employee: my shifts (MyWeekView)                      | Scheduling    |
+| `/dashboard/my-training` | Employee: protocol progress, tests, signatures        | Training      |
+| `/dashboard/handbook`    | Employee: read-only handbook chapters (ChapterReader) | Handbook      |
+| `/dashboard/my-cv`       | Employee: profile & CV                                | Org Structure |
+| `/dashboard/my-salary`   | Employee: salary info                                 | Payroll       |
 
 ### Platform Admin (super-admin only)
 
@@ -111,12 +112,13 @@ All routes for the web dashboard (`apps/web`), landing page (`apps/landing`), an
 
 ### Public API
 
-| Route                    | Method | Purpose                   |
-| ------------------------ | ------ | ------------------------- |
-| `/api/health`            | GET    | Service health check      |
-| `/api/telemetry`         | POST   | Telemetry beacon          |
-| `/api/auth/callback`     | GET    | Auth callback             |
-| `/api/webhooks/docuseal` | POST   | DocuSeal contract webhook |
+| Route                    | Method | Purpose                               |
+| ------------------------ | ------ | ------------------------------------- |
+| `/api/health`            | GET    | Service health check                  |
+| `/api/telemetry`         | POST   | Telemetry beacon                      |
+| `/api/engine-dispatch`   | POST   | Client relay for engine events (→ EF) |
+| `/api/auth/callback`     | GET    | Auth callback                         |
+| `/api/webhooks/docuseal` | POST   | DocuSeal contract webhook             |
 
 ### AI Agents
 
@@ -124,6 +126,13 @@ All routes for the web dashboard (`apps/web`), landing page (`apps/landing`), an
 | ----------------------- | ------ | --------------------- |
 | `/api/onboarding-agent` | POST   | Onboarding AI agent   |
 | `/api/contract-agent`   | POST   | AI contract assistant |
+
+### Context & Search
+
+| Route                    | Method | Purpose                                                       |
+| ------------------------ | ------ | ------------------------------------------------------------- |
+| `/api/context/bootstrap` | GET    | Deterministic bootstrap context (role, perms)                 |
+| `/api/search`            | GET    | Orchestrated multi-mode search (instance+semantic+dependency) |
 
 ### Wizard
 
@@ -232,22 +241,26 @@ All routes for the web dashboard (`apps/web`), landing page (`apps/landing`), an
 
 ---
 
-## Supabase Edge Functions (12)
+## Supabase Edge Functions (16)
 
-| Function                        | Purpose                               |
-| ------------------------------- | ------------------------------------- |
-| `activate-workspace`            | Workspace activation flow             |
-| `analyze-workspace`             | Workspace analysis                    |
-| `contract-lifecycle`            | Contract state machine                |
-| `create-invitation`             | Create workspace invitations          |
-| `extract-workspace-data`        | Extract workspace data                |
-| `finalize-workspace`            | Finalize workspace setup              |
-| `gather-workspace-intelligence` | Workspace intelligence gathering      |
-| `health-check`                  | Edge function health check            |
-| `scrape-raw-data`               | Web scraping                          |
-| `watchdog-integrity`            | Data integrity monitoring             |
-| `watchdog-uptime`               | Uptime monitoring                     |
-| `web-search-intelligence`       | Web search for intelligence gathering |
+| Function                        | Purpose                                           |
+| ------------------------------- | ------------------------------------------------- |
+| `accept-invitation`             | Process invitation acceptance, create profile     |
+| `activate-workspace`            | Workspace activation flow                         |
+| `analyze-workspace`             | Workspace analysis                                |
+| `contract-lifecycle`            | Contract state machine                            |
+| `create-invitation`             | Create workspace invitations                      |
+| `engine-dispatch`               | Event Engine: match triggers, execute steps       |
+| `extract-workspace-data`        | Extract workspace data                            |
+| `finalize-workspace`            | Finalize workspace setup                          |
+| `fire-delayed-triggers`         | Cron: poll engine_delayed_trigger, fire due items |
+| `gather-workspace-intelligence` | Workspace intelligence gathering                  |
+| `health-check`                  | Edge function health check                        |
+| `scrape-raw-data`               | Web scraping                                      |
+| `validate-api-key`              | API key validation for workspace-api gateway      |
+| `watchdog-integrity`            | Data integrity monitoring                         |
+| `watchdog-uptime`               | Uptime monitoring                                 |
+| `web-search-intelligence`       | Web search for intelligence gathering             |
 
 ---
 

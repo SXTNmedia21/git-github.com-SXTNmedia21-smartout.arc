@@ -12,6 +12,23 @@ import {
 } from "./handlers/organization.ts";
 import { handleGetContracts } from "./handlers/contracts.ts";
 import { handleGetProtocols, handleGetAssignments } from "./handlers/training.ts";
+import { handleGetShifts, handleGetAbsences } from "./handlers/schedules.ts";
+import { handleGetSessions, handleGetDeviations } from "./handlers/operations.ts";
+import {
+  handleGetReconciliations,
+  handleGetShiftApprovals,
+  handleGetKpiTargets,
+  handleGetBudgets,
+} from "./handlers/reports.ts";
+import { handleGetSignals, handleGetGuardianLog } from "./handlers/guardian.ts";
+import { handleGetEvents } from "./handlers/events.ts";
+import { handleGetSuppliers, handleGetSupplierOrders } from "./handlers/suppliers.ts";
+import { handleGetWasteLogs } from "./handlers/waste.ts";
+import {
+  handleGetAssets,
+  handleGetAssetMaintenance,
+  handleGetAssetDowntime,
+} from "./handlers/equipment.ts";
 
 // ── Route handlers ──
 
@@ -29,6 +46,23 @@ routes["GET /v1/locations"] = handleGetLocations;
 routes["GET /v1/contracts"] = handleGetContracts;
 routes["GET /v1/protocols"] = handleGetProtocols;
 routes["GET /v1/assignments"] = handleGetAssignments;
+routes["GET /v1/shifts"] = handleGetShifts;
+routes["GET /v1/absences"] = handleGetAbsences;
+routes["GET /v1/sessions"] = handleGetSessions;
+routes["GET /v1/deviations"] = handleGetDeviations;
+routes["GET /v1/reconciliations"] = handleGetReconciliations;
+routes["GET /v1/shift-approvals"] = handleGetShiftApprovals;
+routes["GET /v1/kpi-targets"] = handleGetKpiTargets;
+routes["GET /v1/budgets"] = handleGetBudgets;
+routes["GET /v1/signals"] = handleGetSignals;
+routes["GET /v1/guardian-log"] = handleGetGuardianLog;
+routes["GET /v1/events"] = handleGetEvents;
+routes["GET /v1/suppliers"] = handleGetSuppliers;
+routes["GET /v1/supplier-orders"] = handleGetSupplierOrders;
+routes["GET /v1/waste-logs"] = handleGetWasteLogs;
+routes["GET /v1/assets"] = handleGetAssets;
+routes["GET /v1/asset-maintenance"] = handleGetAssetMaintenance;
+routes["GET /v1/asset-downtime"] = handleGetAssetDowntime;
 
 // ── Main router ──
 

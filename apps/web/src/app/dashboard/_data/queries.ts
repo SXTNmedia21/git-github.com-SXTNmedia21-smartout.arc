@@ -7,7 +7,7 @@ import type { WorkspaceData } from "@/lib/workspace-context";
  * Shared constant to avoid divergence between queries.
  */
 const WORKSPACE_SELECT =
-  "workspace_id, company_id, name, slug, logo_url, currency, language, country, timezone, contract_status" as const;
+  "workspace_id, company_id, name, slug, logo_url, currency, language, country, timezone, contract_status, onboarding_completed" as const;
 
 /**
  * Get the authenticated user for the current request.
@@ -69,18 +69,31 @@ export const getProfileInWorkspace = cache(async (userId: string, workspaceId: s
 });
 
 /**
- * Get the user's first profile (for local dev / legacy routing without slug).
+ * Get the user's best profile (for local dev / legacy routing without slug).
+ * Prefers non-onboarding workspaces, then most recently created.
  * Returns workspace_id + profile_id, or null.
  * Cached: deduplicated within the request.
  */
 export const getFirstProfile = cache(async (userId: string) => {
   const supabase = await createClient();
-  const { data } = (await supabase
+  const { data } = await supabase
     .from("profile")
-    .select("workspace_id, profile_id")
+    .select("workspace_id, profile_id, workspace:workspace!inner(onboarding_completed)")
     .eq("user_id", userId)
-    .limit(1)
-    .single()) as { data: { workspace_id: string; profile_id: string } | null };
+    .order("created_at", { ascending: false })
+    .limit(10);
 
-  return data;
+  if (!data || data.length === 0) return null;
+
+  const profiles = data as Array<{
+    workspace_id: string;
+    profile_id: string;
+    workspace: { onboarding_completed: boolean };
+  }>;
+
+  // Prefer onboarded workspace over ones still in onboarding
+  const onboarded = profiles.find((p) => p.workspace.onboarding_completed);
+
+  const best = onboarded ?? profiles[0]!;
+  return { workspace_id: best.workspace_id, profile_id: best.profile_id };
 });

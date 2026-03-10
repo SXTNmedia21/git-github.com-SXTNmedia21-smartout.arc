@@ -8,6 +8,9 @@ interface ActionStripProps {
   isDark: boolean;
 }
 
+// Temporary UI toggle: keep action-strip logic intact but hide visual output.
+const ACTION_STRIP_VISIBLE = false;
+
 const CHIP_CONFIG = [
   {
     key: "shiftGaps" as const,
@@ -43,7 +46,7 @@ const CHIP_CONFIG = [
     key: "pendingProtocols" as const,
     icon: BookOpen,
     label: "Protocols",
-    href: "/dashboard/governance",
+    href: "/dashboard/reports",
     priorityColor: {
       dark: "bg-blue-500/15 text-blue-400 border-blue-500/20",
       light: "bg-blue-50 text-blue-600 border-blue-200",
@@ -63,6 +66,10 @@ const CHIP_CONFIG = [
 
 export function ActionStrip({ isDark }: ActionStripProps) {
   const { data: counts, isLoading } = useActionItems();
+
+  if (!ACTION_STRIP_VISIBLE) {
+    return null;
+  }
 
   if (isLoading) {
     return (

@@ -421,7 +421,12 @@ export function toDbDayTaskInsert(task: DayTask, workspaceId: string): DayTaskIn
   };
 }
 
-export function toDbDayTaskUpdate(patch: Partial<Omit<DayTask, "id">>): DayTaskUpdate {
+export type DayTaskUpdatePatch = Partial<Omit<DayTask, "id" | "assignedTo" | "completedAt">> & {
+  assignedTo?: string | null;
+  completedAt?: string | null;
+};
+
+export function toDbDayTaskUpdate(patch: DayTaskUpdatePatch): DayTaskUpdate {
   const update: DayTaskUpdate = {};
 
   if (patch.dateId !== undefined) update.shift_date = patch.dateId;

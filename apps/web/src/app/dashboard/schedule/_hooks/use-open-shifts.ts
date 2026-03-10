@@ -27,11 +27,12 @@ import {
 // Query: Fetch open shifts for workspace
 // ══════════════════════════════════════════════════════════════
 
-export function useOpenShifts() {
+export function useOpenShifts(options?: { enabled?: boolean }) {
   const { workspace } = useWorkspace();
 
   return useQuery({
     queryKey: scheduleKeys.openShifts(workspace.workspace_id),
+    enabled: options?.enabled ?? true,
     queryFn: async () => {
       const supabase = createClient();
 

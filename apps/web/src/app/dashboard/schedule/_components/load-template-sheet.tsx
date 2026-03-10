@@ -29,8 +29,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-import type { Shift, ShiftTemplate } from "./schedule-types";
-import { useShifts } from "../_hooks/use-shifts";
+import type { ShiftTemplate } from "./schedule-types";
 import { useTemplates, useLoadTemplate } from "../_hooks/use-templates";
 import { useWeekRange } from "../_hooks/use-week-range";
 
@@ -38,6 +37,7 @@ import { useWeekRange } from "../_hooks/use-week-range";
 
 type LoadTemplateSheetProps = {
   dateId: string;
+  existingShiftCount: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
@@ -52,17 +52,20 @@ type LoadTemplateSheetProps = {
  * @param onOpenChange - Callback when open state changes
  * @returns shadcn Sheet sliding from the right
  */
-export function LoadTemplateSheet({ dateId, open, onOpenChange }: LoadTemplateSheetProps) {
-  const { weekStart, weekEnd } = useWeekRange();
-  const { data: shifts = [] as Shift[] } = useShifts(weekStart, weekEnd);
+export function LoadTemplateSheet({
+  dateId,
+  existingShiftCount,
+  open,
+  onOpenChange,
+}: LoadTemplateSheetProps) {
+  const { weekStart } = useWeekRange();
   const { data: templates = [] as ShiftTemplate[] } = useTemplates();
   const loadTemplateMutation = useLoadTemplate(weekStart);
 
   // Confirmation dialog state for conflict warning
   const [confirmTemplateId, setConfirmTemplateId] = useState<string | null>(null);
 
-  const existingShifts = shifts.filter((s: Shift) => s.dateId === dateId);
-  const hasExistingShifts = existingShifts.length > 0;
+  const hasExistingShifts = existingShiftCount > 0;
 
   // Group templates by department
   const grouped = templates.reduce<Record<string, typeof templates>>((acc, template) => {
@@ -205,8 +208,8 @@ export function LoadTemplateSheet({ dateId, open, onOpenChange }: LoadTemplateSh
           <DialogHeader>
             <DialogTitle>Erstatt eksisterende vakter?</DialogTitle>
             <DialogDescription>
-              Denne dagen har allerede {existingShifts.length}{" "}
-              {existingShifts.length === 1 ? "vakt" : "vakter"}. Malen vil legge til nye vakter i
+              Denne dagen har allerede {existingShiftCount}{" "}
+              {existingShiftCount === 1 ? "vakt" : "vakter"}. Malen vil legge til nye vakter i
               tillegg til de eksisterende.
             </DialogDescription>
           </DialogHeader>

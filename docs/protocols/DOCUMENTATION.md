@@ -18,10 +18,11 @@ updated: 2026-03-01
 1. **Code + database schema** — implementation always wins
 2. **CLAUDE.md** — conventions, rules, verified facts
 3. **docs/reference/** — detailed lookup during coding
-4. **docs/modules/** — business logic per module
-5. **docs/architecture/** — system design decisions
-6. **docs/cross-cutting/** — concerns spanning modules
-7. **docs/archive/** — historical, never loaded actively
+4. **docs/engines/** — industry engine packaging (event specialization, council, policies, templates, testing, handbook)
+5. **docs/modules/** — business logic per module
+6. **docs/architecture/** — system design decisions
+7. **docs/cross-cutting/** — concerns spanning modules
+8. **docs/archive/** — historical, never loaded actively
 
 If code contradicts docs → **code wins**. Update the doc immediately.
 
@@ -31,7 +32,8 @@ If code contradicts docs → **code wins**. Update the doc immediately.
 
 1. Read `docs/decisions/0000-decision-log.md` — check for relevant ADRs
 2. Read `docs/learnings/0000-learning-log.md` — check for relevant learnings
-3. Reference applicable records in your approach
+3. Read relevant industry package in `docs/engines/` when work touches event/journey/testing/readiness behavior
+4. Reference applicable records in your approach
 
 ---
 
@@ -78,3 +80,4 @@ updated: YYYY-MM-DD
 - Never create docs without YAML frontmatter
 - Never skip INDEX.md registration
 - Never edit `database.types.ts` manually — regenerate it
+- Never implement event-layer behavior without checking the relevant industry engine package in `docs/engines/`

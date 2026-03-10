@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@smartout/supabase/client";
 import {
@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown, LogOut, Settings, Shield, User } from "lucide-react";
+import { ChevronDown, LogOut, Play, Settings, Shield, User, Wand2 } from "lucide-react";
 
 type UserData = {
   displayName: string;
@@ -27,6 +27,11 @@ type IdentityRow = {
 
 export function UserMenu({ isDark }: { isDark: boolean }) {
   const [user, setUser] = useState<UserData | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     async function fetchUser() {
@@ -69,6 +74,24 @@ export function UserMenu({ isDark }: { isDark: boolean }) {
   const displayName = user?.displayName ?? "...";
   const initials = user?.initials ?? "..";
 
+  if (!isMounted) {
+    return (
+      <button
+        type="button"
+        className="group flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1 transition-colors hover:bg-zinc-800/50 focus:outline-none"
+      >
+        <div className="text-right">
+          <p className="text-sm leading-tight font-semibold text-white">{displayName}</p>
+          <p className="text-[10px] font-bold tracking-wider text-zinc-400 uppercase">Admin</p>
+        </div>
+        <div className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-700 bg-zinc-800">
+          <span className="text-xs font-bold text-zinc-300">{initials}</span>
+        </div>
+        <ChevronDown className="h-4 w-4 text-zinc-500 transition-colors group-hover:text-white" />
+      </button>
+    );
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -106,6 +129,15 @@ export function UserMenu({ isDark }: { isDark: boolean }) {
             Min profil
           </Link>
         </DropdownMenuItem>
+        <DropdownMenuItem
+          className="flex items-center gap-2"
+          onClick={() => {
+            window.location.href = "/dashboard?autoplay=1&showcase=1";
+          }}
+        >
+          <Play className="h-4 w-4" />
+          Start walkthrough
+        </DropdownMenuItem>
         {user?.isSuperAdmin && (
           <>
             <DropdownMenuSeparator />
@@ -113,6 +145,12 @@ export function UserMenu({ isDark }: { isDark: boolean }) {
               <Link href="/platform-admin" className="flex items-center gap-2 text-orange-400">
                 <Shield className="h-4 w-4" />
                 Platform Admin
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/setup" className="flex items-center gap-2 text-orange-400">
+                <Wand2 className="h-4 w-4" />
+                Setup Wizard
               </Link>
             </DropdownMenuItem>
           </>

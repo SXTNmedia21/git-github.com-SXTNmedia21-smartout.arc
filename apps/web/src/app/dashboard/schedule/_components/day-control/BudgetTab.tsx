@@ -10,7 +10,7 @@ import { TrendingUp, TrendingDown } from "lucide-react";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { SectionHeader, KpiCard, formatNok } from "./shared";
 
-export function BudgetTab({ dateId }: { dateId: string | null }) {
+export function BudgetTab({ dateId: _dateId }: { dateId: string | null }) {
   const { isDark } = useContext(DashboardContext);
 
   // Mock budget data — will be replaced with useBudget hook

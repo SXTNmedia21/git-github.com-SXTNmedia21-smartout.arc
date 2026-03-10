@@ -1,5 +1,5 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
 import { sendSms } from "../_shared/twilio.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
@@ -15,7 +15,7 @@ import { corsHeaders } from "../_shared/cors.ts";
  *    Used by the onboarding InviteStep for email/SMS/link invites.
  *    Dispatches email via SendGrid or SMS via Twilio.
  */
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -85,6 +85,7 @@ async function handleBatchInvites(
     status: "pending",
     invite_type: "email",
     invited_by: inviterProfile.profile_id,
+    metadata: inv.metadata ?? null,
   }));
 
   const { data: insertedInvites, error: insertError } = await supabaseClient

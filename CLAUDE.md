@@ -16,10 +16,12 @@ Rebuild from Bubble.io. Live Stripe billing + DocuSign contracts. Modern stack, 
 
 1. **Code + database schema** → always wins
 2. **This file** → conventions, rules, critical traps
+   2.5. **docs/STATE.md** → current system state, gaps, weekly plan (updated weekly)
 3. **docs/reference/** → DATABASE, ROUTES, PACKAGES, ENV_VARS
-4. **docs/modules/** → business logic (17 modules)
-5. **docs/architecture/** → system design decisions
-6. **docs/cross-cutting/** → GDPR, billing, security, i18n
+4. **docs/engines/** → Event Motor domain packaging (industry, niche, role capability, environment, handbook)
+5. **docs/modules/** → business logic (17 modules)
+6. **docs/architecture/** → system design decisions
+7. **docs/cross-cutting/** → GDPR, billing, security, i18n
 
 > Master map: `docs/INDEX.md` | All docs have YAML frontmatter.
 
@@ -48,7 +50,7 @@ smartout_v3/
 ├── services/          → contract-service (Fastify, 3100), interview-mcp (anchor), scrapling (Python),
 │                        shift-mcp (MCP, 3001), stage-engine (Hono, 3000)
 ├── infra/             → Unified Docker Compose + Caddy reverse proxy (ADR-0039)
-├── supabase/          → migrations, 16 Edge Functions, seed.sql
+├── supabase/          → migrations, 29 Edge Functions, seed.sql
 └── docs/              → INDEX.md + reference/ modules/ architecture/ decisions/ learnings/
 ```
 
@@ -61,7 +63,7 @@ smartout_v3/
 - Table is `user_identity`, NOT `user`. No `public.user` table exists.
 - Subscription data on `company` table. No `stripe_subscription` table.
 - `contract_status` enum already taken by `employment_contract`. Don't reuse.
-- 30+ enums — check `database.types.ts` before creating new ones.
+- 60+ enums — check `database.types.ts` before creating new ones.
 - `database.types.ts` is auto-generated. Never edit manually.
 - After migration: `npx supabase gen types typescript --local > packages/supabase/src/database.types.ts`
 - RLS on EVERY workspace-scoped table. Platform-admin tables use service role only.
@@ -72,11 +74,28 @@ smartout_v3/
 - Vault wrappers: `get_secret()`, `upsert_secret()`, `delete_vault_secret()` — SECURITY DEFINER, service_role only.
 - Schedule table: `schedule_shift` (not `shift`). Enums: `shift_status`, `day_category`. See ADR-0036.
 - Season planning tables: `season_budget` (1:1 with season), `day_factor` (weekday weights), `hour_factor` (hour weights). Enum: `budget_status` (draft/active/locked). DIFFERENT from `workspace_budget` (operational per-date targets).
+- Workspace semantic table: `workspace_doc_chunk` (workspace-scoped pgvector). RPC `match_workspace_docs()` must always run with workspace context.
 - `engine_memory` — Persistent agent memories with pgvector embeddings. RLS: workspace isolation.
 - `engine_authority_config` — Per-workspace, per-capability authority levels. UNIQUE(workspace_id, capability).
 - `engine_sessions.mode` — 'mission' (structured stages) or 'agent' (free-form conversation). Agent sessions have NULL mission_id.
+- Completion tracking: `knowledge_test_attempt`, `confirmation_signature`, `procedure_step_completion` — all FK to `protocol_assignment_id` + `profile_id`.
+- Session infrastructure: `session_hook` (hook_type enum), `session_task` (task_status enum), `session_note` (note_type enum). All FK to `department_session`.
+- `engine_state_step` — per-step tracking on engine_state instances. RLS cascades via subquery on engine_state.
+- Season table has `status` enum (draft/active/archived) — NOT `is_active` boolean.
+- Timestamp triggers should use `set_updated_at()` (not `moddatetime`) for migration compatibility.
 
 > Full schema, tables, enums, RLS patterns: `docs/reference/DATABASE.md`
+
+## Database Migrations
+
+ALDRI kjør ALTER TABLE direkte. ALLTID lag migrasjonsfil i `supabase/migrations/` først.
+
+Workflow:
+
+1. Lag SQL-fil: `supabase/migrations/YYYYMMDDHHMMSS_beskrivelse.sql`
+2. Kjør via docker exec: `docker exec -i $(docker ps -q -f name=supabase_db) psql -U postgres < supabase/migrations/<fil>.sql`
+
+Ingen unntak.
 
 ---
 
@@ -106,6 +125,8 @@ smartout_v3/
 **Supabase:** RLS everywhere (except platform-admin) | `auth.uid()` in policies | Helpers: `get_workspace_ids_for_user()`, `is_admin_in_workspace()` | Edge Functions: Zod validation | User ops: anon key, admin ops: service role
 
 **React/Next.js:** App Router only | Server Components default, `"use client"` as deep as possible | shadcn/ui for all UI | CSS variables for theming | `sonner` for toasts | Fonts: Geist + Geist Mono
+
+**Telemetry:** Every mutation emits. `emit()` from `@smartout/telemetry` drives four destinations: PostHog (analytics), Logger (stdout), activity_trail (audit), engine_event (workflow automation). No mutation without emit. No second event system.
 
 **Performance:** `Promise.all()` for independent async ops | Direct imports (no barrel re-exports in app code) | `next/dynamic` for heavy components | Suspense boundaries for streaming | `React.cache()` for request dedup
 
@@ -138,6 +159,26 @@ smartout_v3/
 - **Trainee Mode** — Sandbox. Real UI, no live impact. 48h escalation.
 - **Season** — Time period wrapping operations. Own leaderboard and point rules.
 - **Season Budget** — Strategic revenue target per season. 1:1 with season. Contains total target, labor %, avg hourly wage, base price per guest. Day/hour factors distribute targets across weekdays and hours. Calculation engine: `apps/web/src/lib/season-calculations.ts` (pure functions, no DB deps). UI: `/dashboard/season` with 4 tabs (overview, budget, day-factors, hour-factors).
+- **Event Engine** — Universal workflow runtime. `engine_process` (blueprint) → `engine_state` (live instance) → `engine_state_step` (per-step tracking). ALL workflows run through this: onboarding, training, HACCP, daily close, session hooks. New workflow = new engine_process + action_type handlers. Never create separate journey/progress tables.
+- **Veikart → Reise → Protokoll** — Same data, three views. Veikart = engine_process (the blueprint). Reise = engine_state (the employee's live experience). Protokoll = engine_state (the leader's oversight view).
+
+---
+
+## Industry Engine Layer (Mandatory)
+
+- Canonical path for the first industry package: `docs/engines/industri-inteligence/hospitalety/`
+- This engine package is the central documentation for:
+  - Event-layer specialization by industry
+  - AI council and personas
+  - Default policy baselines
+  - Template families (structure/pipeline/journey)
+  - Testing profiles
+  - Relevance mapping
+  - Company handbook template
+  - Role capability profiles
+  - Environment baseline
+  - Niche specialization
+- When implementing or modifying event-layer, onboarding, readiness, or journey/testing behavior, consult this engine package before making changes.
 
 ---
 
@@ -176,12 +217,15 @@ Three laws. No exceptions.
 ### Environment Variables
 
 - Validated with `@t3-oss/env-nextjs` + Zod in `apps/web/src/env.ts`
-- All secrets in `.env.local` (gitignored). Never `.env` or hardcoded.
-- 1Password: `op run --env-file=.env.template`. Use `op://` references, never raw values.
+- All secrets managed via 1Password CLI. Never `.env.local`, never hardcoded.
+- Run with: `op run --env-file=.env.template -- pnpm run dev`
+- `.env.template` is the single source of truth for all variables.
+- Use `op://` references for secrets, plain values for non-secrets.
 - Service role key: server-side and Edge Functions only, never in client code.
 
+> Env lifecycle protocol: `docs/protocols/ENV_PROTOCOL.md`
 > Full variable list: `docs/reference/ENV_VARS.md`
-> Full security protocol (427 lines): `docs/protocols/SECURITY.md`
+> Full security protocol: `docs/protocols/SECURITY.md`
 
 ### API Gateway — Mandatory Checklists
 
@@ -215,18 +259,23 @@ Skip steps 3-5 only if the table is internal-only (platform-admin, audit logs).
 
 #### Canonical Scope List (source of truth)
 
-| Scope              | Tables                                        | Status  |
-| ------------------ | --------------------------------------------- | ------- |
-| `profiles:read`    | profile, department, location, team, position | Active  |
-| `schedules:read`   | schedule_shift                                | Active  |
-| `schedules:write`  | schedule_shift                                | Active  |
-| `operations:read`  | department_session (future)                   | Planned |
-| `operations:write` | department_session (future)                   | Planned |
-| `haccp:read`       | haccp_log (future)                            | Planned |
-| `haccp:write`      | haccp_log (future)                            | Planned |
-| `training:read`    | protocol, protocol_assignment                 | Active  |
-| `reports:read`     | aggregated views (future)                     | Planned |
-| `contracts:read`   | employment_contract                           | Active  |
+| Scope              | Tables                                                                       | Status  |
+| ------------------ | ---------------------------------------------------------------------------- | ------- |
+| `profiles:read`    | profile, department, location, team, position                                | Active  |
+| `schedules:read`   | schedule_shift, schedule_absence                                             | Active  |
+| `schedules:write`  | schedule_shift                                                               | Active  |
+| `operations:read`  | department_session, deviation                                                | Active  |
+| `operations:write` | department_session (future)                                                  | Planned |
+| `reports:read`     | daily_reconciliation, shift_approval, workspace_kpi_target, workspace_budget | Active  |
+| `guardian:read`    | guardian_signal, guardian_log                                                | Active  |
+| `events:read`      | engine_event                                                                 | Active  |
+| `suppliers:read`   | supplier, supplier_order                                                     | Active  |
+| `waste:read`       | waste_log                                                                    | Active  |
+| `equipment:read`   | asset, asset_maintenance, asset_downtime                                     | Active  |
+| `training:read`    | protocol, protocol_assignment                                                | Active  |
+| `contracts:read`   | employment_contract                                                          | Active  |
+| `haccp:read`       | haccp_log (future)                                                           | Planned |
+| `haccp:write`      | haccp_log (future)                                                           | Planned |
 
 To add a new scope: (1) add to this table, (2) add handler in `workspace-api/handlers/`, (3) register route in `workspace-api/index.ts`, (4) add to API registry, (5) update preset bundles in `SMARTOUT_SECRET_API_INFRASTRUCTURE.md` §2.4.
 
@@ -255,6 +304,7 @@ ALL microservices (contract-service, scrapling, future services):
 | Security      | `docs/protocols/SECURITY.md`      | Secrets, auth, RLS, API keys, Edge Functions |
 | Documentation | `docs/protocols/DOCUMENTATION.md` | Source of truth, doc standards, frontmatter  |
 | Knowledge     | `docs/protocols/KNOWLEDGE.md`     | ADRs, learnings, templates                   |
+| Environment   | `docs/protocols/ENV_PROTOCOL.md`  | New env vars, secrets, .env.template, op://  |
 
 ---
 
@@ -266,14 +316,15 @@ ALL microservices (contract-service, scrapling, future services):
 - Never create tables without `workspace_id` (if workspace-scoped), `created_at`, `updated_at`
 - Never hardcode Norwegian text — use i18n keys
 - Never store secrets in code — use env vars or `op://`
+- Never create `.env.local` — use `op run --env-file=.env.template`. Never commit raw secrets.
 - Never reference `public.user` — it's `public.user_identity`
 - Never create enums without checking `database.types.ts`
 - Never edit `database.types.ts` manually — regenerate
 - Never use hardcoded colors (zinc-800) — use CSS variables (bg-background)
 - Never use `any` — use `unknown` + type guards
-- Never commit `.env.local` or raw secrets
 - Never create workspace-scoped tables without BOTH JWT and API key RLS policies
 - Never create public API endpoints without scope guards
+- Never create a TanStack Query mutation without an `emit()` call in `onSuccess`
 - Never create Edge Functions outside the workspace-api gateway (for data endpoints)
 
 ---
@@ -282,8 +333,9 @@ ALL microservices (contract-service, scrapling, future services):
 
 1. Check this file first → reference files → module docs → architecture docs
 2. This file wins for structural facts; module docs win for business logic
-3. Never load `docs/archive/` — superseded
-4. If code changes contradict this file → update this file immediately
+3. For implementation planning: read STATE.md FIRST — it has verified gaps and week-by-week tasks
+4. Never load `docs/archive/` — superseded
+5. If code changes contradict this file → update this file immediately
 
 ---
 
@@ -354,22 +406,24 @@ When spawning a worker, always include in the task description:
 
 ## Changelog
 
-| Date       | Version | Change                                                                                                                                                                   | Author |
-| ---------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------ |
-| 2026-03-06 | 8.1.0   | Season planning (Module 15 MVP): season_budget, day_factor, hour_factor tables, budget_status enum, calculation engine, 4 hooks, 5 UI components, /dashboard/season page | Claude |
-| 2026-03-02 | 8.0.0   | Agent architecture: engine_memory, engine_authority_config tables, agent mode in engine_sessions, ADR-0042                                                               | Claude |
-| 2026-03-01 | 7.9.0   | Onboarding wizard refactored: 15 step components, 4 drawers, progressive save, auth step, invite step                                                                    | Claude |
-| 2026-03-01 | 7.8.0   | Doc audit: add infra/, stage-engine, interview-mcp, i18n, tailwind-config; fix counts                                                                                    | Claude |
-| 2026-03-01 | 7.7.0   | shift-mcp service, schedule_shift table, ADR-0036, schedules scope active                                                                                                | Claude |
-| 2026-03-01 | 7.6.0   | workspace-api gateway: 7 endpoints, usage tracking, env enforcement, 15 Edge Functions                                                                                   | Claude |
-| 2026-03-01 | 7.5.0   | API Gateway enforcement: mandatory checklists, scope table, service auth, env enforcement                                                                                | Claude |
-| 2026-03-01 | 7.4.0   | Inline security summary: Three Laws, API key tiers, env vars always in context                                                                                           | Claude |
-| 2026-03-01 | 7.3.0   | Protocols folder, templates folder, security protocol populated                                                                                                          | Claude |
-| 2026-02-28 | 7.2.0   | API key management: 3 tables, 2 Edge Functions, 8 API routes, UI, ADR-0028                                                                                               | Claude |
-| 2026-02-28 | 7.1.0   | Added Security section referencing SMARTOUT_SECURITY_PROTOCOL                                                                                                            | Pontus |
-| 2026-02-28 | 7.0.0   | Major trim: moved details to reference files, <280 lines                                                                                                                 | Claude |
-| 2026-02-28 | 6.1.0   | Pricing terms, workspace creation, ADR-0027                                                                                                                              | Claude |
-| 2026-02-28 | 6.0.0   | Docs restructuring, INDEX.md, reference files, YAML, ADR-0025                                                                                                            | Claude |
-| 2026-02-28 | 5.0.0   | Contract system, microservice, notifications, ADR-0021-0024                                                                                                              | Claude |
-| 2026-02-27 | 2.0.0   | Complete rewrite verified against codebase                                                                                                                               | Claude |
-| 2026-01-01 | 1.0.0   | Initial version                                                                                                                                                          | Pontus |
+| Date       | Version | Change                                                                                                                                                                           | Author |
+| ---------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| 2026-03-09 | 9.1.0   | ENV protocol: op run as standard, .env.template as single source of truth, removed .env.local references, added ENV_PROTOCOL.md to protocols table                               | Pontus |
+| 2026-04-13 | 9.0.0   | Module Zero: 7 new tables, 3 enums, 26 telemetry events, 13 engine handlers, employee UI (my-schedule, my-training, handbook), governance CRUD, setup wizard, season status trap | Claude |
+| 2026-03-06 | 8.1.0   | Season planning (Module 15 MVP): season_budget, day_factor, hour_factor tables, budget_status enum, calculation engine, 4 hooks, 5 UI components, /dashboard/season page         | Claude |
+| 2026-03-02 | 8.0.0   | Agent architecture: engine_memory, engine_authority_config tables, agent mode in engine_sessions, ADR-0042                                                                       | Claude |
+| 2026-03-01 | 7.9.0   | Onboarding wizard refactored: 15 step components, 4 drawers, progressive save, auth step, invite step                                                                            | Claude |
+| 2026-03-01 | 7.8.0   | Doc audit: add infra/, stage-engine, interview-mcp, i18n, tailwind-config; fix counts                                                                                            | Claude |
+| 2026-03-01 | 7.7.0   | shift-mcp service, schedule_shift table, ADR-0036, schedules scope active                                                                                                        | Claude |
+| 2026-03-01 | 7.6.0   | workspace-api gateway: 7 endpoints, usage tracking, env enforcement, 15 Edge Functions                                                                                           | Claude |
+| 2026-03-01 | 7.5.0   | API Gateway enforcement: mandatory checklists, scope table, service auth, env enforcement                                                                                        | Claude |
+| 2026-03-01 | 7.4.0   | Inline security summary: Three Laws, API key tiers, env vars always in context                                                                                                   | Claude |
+| 2026-03-01 | 7.3.0   | Protocols folder, templates folder, security protocol populated                                                                                                                  | Claude |
+| 2026-02-28 | 7.2.0   | API key management: 3 tables, 2 Edge Functions, 8 API routes, UI, ADR-0028                                                                                                       | Claude |
+| 2026-02-28 | 7.1.0   | Added Security section referencing SMARTOUT_SECURITY_PROTOCOL                                                                                                                    | Pontus |
+| 2026-02-28 | 7.0.0   | Major trim: moved details to reference files, <280 lines                                                                                                                         | Claude |
+| 2026-02-28 | 6.1.0   | Pricing terms, workspace creation, ADR-0027                                                                                                                                      | Claude |
+| 2026-02-28 | 6.0.0   | Docs restructuring, INDEX.md, reference files, YAML, ADR-0025                                                                                                                    | Claude |
+| 2026-02-28 | 5.0.0   | Contract system, microservice, notifications, ADR-0021-0024                                                                                                                      | Claude |
+| 2026-02-27 | 2.0.0   | Complete rewrite verified against codebase                                                                                                                                       | Claude |
+| 2026-01-01 | 1.0.0   | Initial version                                                                                                                                                                  | Pontus |

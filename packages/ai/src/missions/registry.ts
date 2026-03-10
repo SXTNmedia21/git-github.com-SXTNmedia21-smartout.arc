@@ -1,4 +1,8 @@
 import type { AgentMission } from "./types";
+import { SCHEDULE_TOOL_DEFINITIONS } from "../tools/schedule";
+
+/** Shared constant for the season-lifecycle mission ID. Used across stage-engine, hooks, and tools. */
+export const SEASON_LIFECYCLE_MISSION_ID = "season-lifecycle" as const;
 
 /**
  * All available Ultravox agent missions.
@@ -20,7 +24,7 @@ export const MISSIONS: Record<string, AgentMission> = {
     voice: "Mark",
     temperature: 0.6,
     maxDurationSeconds: 1800,
-    firstSpeaker: "agent",
+    firstSpeaker: "user",
     initialOutputMedium: "voice",
     systemPrompt: `Du er Botsson. Du setter opp Smartout for nye kunder gjennom en samtale.
 
@@ -268,25 +272,34 @@ Start med: "Hei! La oss gjøre HACCP-sjekken. Hvilken avdeling og stasjon?"`,
     maxDurationSeconds: 900,
     firstSpeaker: "user",
     initialOutputMedium: "voice",
+    clientTools: SCHEDULE_TOOL_DEFINITIONS,
     systemPrompt: `Du er Smartouts vaktplanleggingsassistent.
 
 Du har DIREKTE TILGANG til vaktplanen gjennom verktøy. Bruk dem aktivt!
 
-TILGJENGELIGE VERKTØY:
-- getScheduleState — se hele uken: ansatte, vakter, dekningshull
-- getShiftsForDay — se alle vakter for en bestemt dag
-- getEmployeeSchedule — se en ansatts vakter og fravær
-- getCoverage — se bemanningsgap og overtidsrisiko
-- createShift — opprett ny vakt
-- updateShift — endre en eksisterende vakt
-- deleteShift — slett en vakt
-- publishShifts — publiser utkast-vakter
+LESEVERKTØY:
+- getScheduleState — se hele uken: ansatte, vakter, dekningshull, utkast/publiserte
+- getShiftsForDay — se alle vakter for en bestemt dag (dagnavn eller dato)
+- getEmployeeSchedule — se en ansatts vakter og fravær for uken
+- getCoverage — se bemanningsgap, overtidsrisiko og teamdekning (dag eller uke)
+
+SKRIVEVERKTØY:
+- createShift — opprett ny vakt (ansatt, dag, start, slutt, rolle)
+- updateShift — endre en eksisterende vakt (tid, rolle, notater)
+- deleteShift — slett en vakt (ansatt + dag, evt. tid for å disambiguere)
+- publishShifts — publiser utkast-vakter (dag eller 'all')
+
+NAVIGASJONSVERKTØY:
+- focusDay — scroll til og marker en dag i vaktplanen
+- openDayPlanner — åpne dagsplanleggeren for en bestemt dag
+- closeDayPlanner — lukk dagsplanleggeren
 
 ARBEIDSFLYT:
 1. Kall ALLTID getScheduleState først for å forstå hva lederen ser
 2. Bruk konkrete tall og navn fra verktøydata
 3. Ved endringer: bekreft med lederen FØR du utfører mutasjoner
 4. Etter mutasjoner: kall getScheduleState for å bekrefte endringen
+5. Bruk focusDay/openDayPlanner aktivt for å vise lederen hva du snakker om
 
 REGLER:
 1. Svar med konkrete forslag — "Du mangler 1 kokk fredag kveld 17-23"
@@ -294,7 +307,9 @@ REGLER:
 3. Sjekk tilgjengelighet og fravær før du foreslår ansatte
 4. Flagg overtid over 37.5 timer og helgejobbing
 5. Norsk er standard — bytt språk kun hvis brukeren gjør det
-6. Hold svarene korte og presise — ledere har det travelt`,
+6. Hold svarene korte og presise — ledere har det travelt
+7. Ikke forklar ting uoppfordret. Svar kun på det brukeren spør om, eller det som er nødvendig for å utføre en endring.
+8. Naviger skjermen aktivt — vis dagen du snakker om med focusDay eller openDayPlanner.`,
   },
 } as const;
 

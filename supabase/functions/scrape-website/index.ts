@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
 async function fetchScraplingWithRetry(scraplingBase: string, url: string, retries = 3) {
@@ -31,7 +31,7 @@ async function fetchScraplingWithRetry(scraplingBase: string, url: string, retri
   throw new Error(`Scrapling service unavailable after ${retries} attempts.`);
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }

@@ -1,74 +1,108 @@
 import { createAdminClient } from "@smartout/supabase/admin";
 import { getSuperAdminId } from "@/lib/platform-admin";
 import { redirect } from "next/navigation";
+import { unstable_cache } from "next/cache";
 import { KpiCard } from "@/components/platform-admin/kpi-card";
 import { DashboardClient } from "./_components/dashboard-client";
+
+type MetricsRow = {
+  date: string;
+  total_workspaces: number;
+  total_users: number;
+  subscriptions_active: number;
+  subscriptions_trial: number;
+  subscriptions_past_due: number;
+};
+
+type ActivityRow = {
+  id: string;
+  action: string;
+  entity_type: string;
+  details: unknown;
+  created_at: string;
+};
+
+/**
+ * Loads the platform-admin dashboard dataset with a short cache TTL.
+ * This reduces repeated expensive count queries during admin navigation.
+ */
+const getPlatformAdminDashboardData = unstable_cache(
+  async () => {
+    const admin = createAdminClient();
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 14);
+    const fourteenDaysAgo = cutoff.toISOString().split("T")[0];
+
+    const [
+      { count: cancelledCount },
+      { count: pausedCount },
+      { data: metrics },
+      { data: recentActivity },
+    ] = await Promise.all([
+      admin
+        .from("company")
+        .select("*", { count: "exact", head: true })
+        .eq("subscription_status", "cancelled"),
+      admin
+        .from("company")
+        .select("*", { count: "exact", head: true })
+        .eq("subscription_status", "paused"),
+      admin
+        .from("platform_metrics_daily")
+        .select(
+          "date, total_workspaces, total_users, subscriptions_active, subscriptions_trial, subscriptions_past_due",
+        )
+        .gte("date", fourteenDaysAgo)
+        .order("date", { ascending: true }),
+      admin
+        .from("platform_audit_log")
+        .select("id, action, entity_type, details, created_at")
+        .order("created_at", { ascending: false })
+        .limit(15),
+    ]);
+
+    const metricsRows = (metrics ?? []) as MetricsRow[];
+    const latestMetrics = metricsRows[metricsRows.length - 1];
+    const activityRows = (recentActivity ?? []) as ActivityRow[];
+
+    return {
+      totalWorkspaces: latestMetrics?.total_workspaces ?? 0,
+      totalUsers: latestMetrics?.total_users ?? 0,
+      trialCount: latestMetrics?.subscriptions_trial ?? 0,
+      activeCount: latestMetrics?.subscriptions_active ?? 0,
+      pastDueCount: latestMetrics?.subscriptions_past_due ?? 0,
+      cancelledCount: cancelledCount ?? 0,
+      pausedCount: pausedCount ?? 0,
+      metricsRows,
+      activityRows,
+    };
+  },
+  ["platform-admin-dashboard-v1"],
+  { revalidate: 60 },
+);
 
 export default async function DashboardPage() {
   const adminId = await getSuperAdminId();
   if (!adminId) redirect("/dashboard");
 
-  const admin = createAdminClient();
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - 14);
-  const fourteenDaysAgo = cutoff.toISOString().split("T")[0];
-
-  // Fetch all KPI data + activity in parallel
-  const [
-    { count: totalWorkspaces },
-    { count: totalUsers },
-    { count: trialCount },
-    { count: activeCount },
-    { count: pastDueCount },
-    { count: cancelledCount },
-    { count: pausedCount },
-    { data: metrics },
-    { data: recentActivity },
-  ] = await Promise.all([
-    admin.from("workspace").select("*", { count: "exact", head: true }),
-    admin.from("user_identity").select("*", { count: "exact", head: true }),
-    admin
-      .from("company")
-      .select("*", { count: "exact", head: true })
-      .eq("subscription_status", "trial"),
-    admin
-      .from("company")
-      .select("*", { count: "exact", head: true })
-      .eq("subscription_status", "active"),
-    admin
-      .from("company")
-      .select("*", { count: "exact", head: true })
-      .eq("subscription_status", "past_due"),
-    admin
-      .from("company")
-      .select("*", { count: "exact", head: true })
-      .eq("subscription_status", "cancelled"),
-    admin
-      .from("company")
-      .select("*", { count: "exact", head: true })
-      .eq("subscription_status", "paused"),
-    // Try to get metrics for sparklines — table may be empty
-    admin
-      .from("platform_metrics_daily")
-      .select(
-        "date, total_workspaces, total_users, subscriptions_active, subscriptions_trial, subscriptions_past_due",
-      )
-      .gte("date", fourteenDaysAgo)
-      .order("date", { ascending: true }),
-    // Activity feed from audit log
-    admin
-      .from("platform_audit_log")
-      .select("id, action, entity_type, details, created_at")
-      .order("created_at", { ascending: false })
-      .limit(15),
-  ]);
+  const {
+    totalWorkspaces,
+    totalUsers,
+    trialCount,
+    activeCount,
+    pastDueCount,
+    cancelledCount,
+    pausedCount,
+    metricsRows,
+    activityRows,
+  } = await getPlatformAdminDashboardData();
 
   // Build sparkline arrays from metrics (may be empty)
-  const workspaceSparkline = metrics?.map((m) => m.total_workspaces) ?? undefined;
-  const userSparkline = metrics?.map((m) => m.total_users) ?? undefined;
-  const activeSparkline = metrics?.map((m) => m.subscriptions_active) ?? undefined;
-  const trialSparkline = metrics?.map((m) => m.subscriptions_trial) ?? undefined;
-  const pastDueSparkline = metrics?.map((m) => m.subscriptions_past_due) ?? undefined;
+  const workspaceSparkline = metricsRows.map((m) => m.total_workspaces);
+  const userSparkline = metricsRows.map((m) => m.total_users);
+  const activeSparkline = metricsRows.map((m) => m.subscriptions_active);
+  const trialSparkline = metricsRows.map((m) => m.subscriptions_trial);
+  const pastDueSparkline = metricsRows.map((m) => m.subscriptions_past_due);
 
   // Subscription distribution for pie chart
   const subscriptionData = [
@@ -80,7 +114,7 @@ export default async function DashboardPage() {
   ];
 
   // Format activity entries for the client
-  const activityEntries = (recentActivity ?? []).map((entry) => ({
+  const activityEntries = activityRows.map((entry) => ({
     id: entry.id,
     action: entry.action,
     entity_type: entry.entity_type,

@@ -1,3 +1,12 @@
+---
+title: "Auth Hardening"
+status: done
+updated: 2026-04-10
+created: 2026-03-01
+module: meta
+tags: []
+---
+
 # Auth Hardening: Reserved Slugs, Invitation Accept, Signup
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.

@@ -52,12 +52,25 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 
 ## Scripts
 
-| Script                    | Purpose                                     |
-| ------------------------- | ------------------------------------------- |
-| `scripts/setup.sh`        | First-time setup: check Docker, create .env |
-| `scripts/deploy.sh`       | Pull code, rebuild, restart, health check   |
-| `scripts/health-check.sh` | Ping all service health endpoints           |
-| `scripts/backup.sh`       | Backup n8n data and Caddy certificates      |
+| Script                    | Purpose                                      |
+| ------------------------- | -------------------------------------------- |
+| `scripts/setup.sh`        | First-time setup: check Docker, create .env  |
+| `scripts/deploy.sh`       | Pull code, rebuild, restart, health check    |
+| `scripts/health-check.sh` | Ping all service health endpoints            |
+| `scripts/backup.sh`       | Backup n8n data and Caddy certificates       |
+| `scripts/backup-cron.sh`  | Cron wrapper: logs output, keeps last 7 days |
+
+## Automated Backups
+
+Install the daily backup cron job (runs at 3:00 AM):
+
+```bash
+crontab -e
+# Add this line:
+0 3 * * * /path/to/smartout.ai/infra/scripts/backup-cron.sh
+```
+
+Backups are saved to `~/backups/smartout/YYYY-MM-DD_HHMM/`. The cron wrapper keeps the last 7 days and logs to `~/backups/smartout/logs/`.
 
 ## Adding a New Service
 

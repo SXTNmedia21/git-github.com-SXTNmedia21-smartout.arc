@@ -81,3 +81,51 @@ export type DepartmentShiftDetail = {
   workHours: number;
   status: string;
 };
+
+export type ProtocolOverviewItem = {
+  protocolId: string;
+  protocolName: string;
+  protocolDescription: string | null;
+  policyType: string;
+  totalAssigned: number;
+  completedCount: number;
+  pendingCount: number;
+  expiredCount: number;
+  completionPercent: number;
+};
+
+export type ProtocolAssignee = {
+  assignmentId: string;
+  profileId: string;
+  displayName: string;
+  avatarUrl: string | null;
+  role: string;
+  status: "pending" | "completed" | "expired";
+  assignedAt: string;
+  completedAt: string | null;
+};
+
+export type JourneyPhase = {
+  name: string;
+  type: "procedures" | "test" | "confirmation";
+  total: number;
+  completed: number;
+  status: "not_started" | "in_progress" | "completed";
+};
+
+export type JourneyStep = {
+  stepId: string;
+  title: string;
+  description: string | null;
+  stepOrder: number;
+  isRequired: boolean;
+  estimatedMinutes: number | null;
+  isCompleted: boolean;
+};
+
+export type ProtocolJourneyData = {
+  phases: JourneyPhase[];
+  steps: JourneyStep[];
+  readinessScore: number;
+  isCompleted: boolean;
+};

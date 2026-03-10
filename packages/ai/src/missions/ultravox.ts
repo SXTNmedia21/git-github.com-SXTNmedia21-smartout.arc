@@ -43,11 +43,16 @@ export async function startMissionCall(options: StartCallOptions): Promise<CallR
     );
   }
 
+  const isAgentCall = Boolean(options.agentId);
+  const url = isAgentCall
+    ? `${ULTRAVOX_BASE}/agents/${options.agentId}/calls`
+    : `${ULTRAVOX_BASE}/calls`;
+
+  // Agent calls (/agents/{id}/calls) get their systemPrompt from the agent
+  // config and only accept templateContext for mustache substitution.
+  // Direct calls (/calls) require an inline systemPrompt.
   const callBody: Record<string, unknown> = {
     medium: { webRtc: {} },
-    systemPrompt: mission.systemPrompt,
-    temperature: mission.temperature ?? 0.4,
-    // Ultravox expects enum constants, not lowercase shorthand.
     initialOutputMedium: toInitialOutputMediumEnum(mission.initialOutputMedium),
     metadata: {
       mission_id: mission.id,
@@ -63,32 +68,43 @@ export async function startMissionCall(options: StartCallOptions): Promise<CallR
     callBody.maxDuration = `${mission.maxDurationSeconds}s`;
   }
 
-  if (mission.firstSpeaker) {
-    callBody.firstSpeaker =
-      mission.firstSpeaker === "agent" ? "FIRST_SPEAKER_AGENT" : "FIRST_SPEAKER_USER";
-  }
-
-  // Ultravox API does not support templateContext — resolve placeholders
-  // in the systemPrompt before sending.
   const mergedContext = {
     ...mission.templateContext,
     ...options.templateContext,
   };
-  if (Object.keys(mergedContext).length > 0) {
-    let prompt = callBody.systemPrompt as string;
-    for (const [key, value] of Object.entries(mergedContext)) {
-      prompt = prompt.replaceAll(`{{${key}}}`, value);
+
+  if (isAgentCall) {
+    // Agent endpoint only accepts: templateContext, initialMessages, metadata,
+    // medium, joinTimeout, maxDuration, recordingEnabled, initialOutputMedium,
+    // firstSpeakerSettings, dataConnection, experimentalSettings, callbacks,
+    // voice, voiceOverrides. No systemPrompt, temperature, firstSpeaker, or
+    // selectedTools.
+    if (Object.keys(mergedContext).length > 0) {
+      callBody.templateContext = mergedContext;
     }
-    callBody.systemPrompt = prompt;
+    if (mission.firstSpeaker) {
+      callBody.firstSpeakerSettings =
+        mission.firstSpeaker === "agent" ? { agent: {} } : { user: {} };
+    }
+  } else {
+    // Direct call: inline systemPrompt with placeholders resolved manually.
+    callBody.systemPrompt = mission.systemPrompt;
+    callBody.temperature = mission.temperature ?? 0.4;
+    if (Object.keys(mergedContext).length > 0) {
+      let prompt = callBody.systemPrompt as string;
+      for (const [key, value] of Object.entries(mergedContext)) {
+        prompt = prompt.replaceAll(`{{${key}}}`, value);
+      }
+      callBody.systemPrompt = prompt;
+    }
+    if (mission.firstSpeaker) {
+      callBody.firstSpeaker =
+        mission.firstSpeaker === "agent" ? "FIRST_SPEAKER_AGENT" : "FIRST_SPEAKER_USER";
+    }
+    if (options.selectedTools && options.selectedTools.length > 0) {
+      callBody.selectedTools = options.selectedTools;
+    }
   }
-
-  if (options.selectedTools && options.selectedTools.length > 0) {
-    callBody.selectedTools = options.selectedTools;
-  }
-
-  const url = options.agentId
-    ? `${ULTRAVOX_BASE}/agents/${options.agentId}/calls`
-    : `${ULTRAVOX_BASE}/calls`;
 
   const makeRequest = async (body: Record<string, unknown>) =>
     fetch(url, {

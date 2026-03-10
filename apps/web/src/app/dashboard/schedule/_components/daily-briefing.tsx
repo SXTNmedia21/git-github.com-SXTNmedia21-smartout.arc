@@ -17,8 +17,6 @@ import {
   MessageSquare,
   CalendarCheck,
   ListTodo,
-  Briefcase,
-  ChevronDown,
   Clock,
   Users,
   MapPin,
@@ -331,9 +329,20 @@ function BroadcastMessageDialog({
   const [includeDaginfo, setIncludeDaginfo] = useState(false);
 
   function handleSend() {
-    const method = type === "push" ? "Push-varsler" : "SMS";
-    const extra = includeDaginfo ? " (med daginfo)" : "";
-    toast.success(`${method} sendt til ${staffCount} ansatte${extra}`);
+    if (type === "sms") {
+      window.dispatchEvent(
+        new CustomEvent("smartout:schedule-sms-compose", {
+          detail: {
+            dateId,
+            customMessage: message.trim(),
+            includeDaginfo,
+          },
+        }),
+      );
+      toast.success(`SMS-utkast åpnet for ${staffCount} ansatte`);
+    } else {
+      toast.warning("Push utsending er ikke aktiv i denne versjonen. Bruk SMS eller dagsinfo.");
+    }
     setMessage("");
     setIncludeDaginfo(false);
     onOpenChange(false);
@@ -416,10 +425,16 @@ function OversiktTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
   );
 
   const stats = dateId ? computed.getDayStats(dateId) : null;
-  const dayShifts = dateId ? computed.getShiftsForDay(dateId) : [];
+  const dayShifts = useMemo(
+    () => (dateId ? computed.getShiftsForDay(dateId) : []),
+    [dateId, computed],
+  );
 
   const employeesQuery = useEmployees();
-  const employees: ScheduleEmployee[] = employeesQuery.data ?? [];
+  const employees: ScheduleEmployee[] = useMemo(
+    () => employeesQuery.data ?? [],
+    [employeesQuery.data],
+  );
 
   const totalWorkHours = dayShifts.reduce((sum, s) => sum + s.workHours, 0);
 
@@ -428,7 +443,7 @@ function OversiktTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
   const [budget, setBudget] = useState(15000);
   const [openingHours, setOpeningHours] = useState("11:00 - 23:00");
   const [dutyManagers, setDutyManagers] = useState("");
-  const [lastYearData, setLastYearData] = useState({ staff: 8, cost: 18400, hours: 52 });
+  const [lastYearData] = useState({ staff: 8, cost: 18400, hours: 52 });
 
   // Find duty managers from shifts (role includes "manager")
   const managerShifts = dayShifts.filter(
@@ -598,6 +613,7 @@ function OversiktTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
                 status={entry.status}
                 zone={entry.zone}
                 team={entry.team}
+                dateId={dateId ?? ""}
                 onShiftClick={() => setSelectedShift(entry.shiftId)}
               />
             ))
@@ -943,6 +959,7 @@ function EmployeeRow({
   status,
   zone,
   team,
+  dateId,
   onShiftClick,
 }: {
   isDark: boolean;
@@ -954,6 +971,7 @@ function EmployeeRow({
   status: string;
   zone?: string;
   team?: string;
+  dateId: string;
   onShiftClick: () => void;
 }) {
   const isActive = status === "published" || status === "active";
@@ -1005,13 +1023,32 @@ function EmployeeRow({
       {/* Contact */}
       <div className="flex shrink-0 items-center gap-1.5">
         <button
-          onClick={() => toast.info(`Ringer ${name}...`)}
+          onClick={() => {
+            window.dispatchEvent(
+              new CustomEvent("smartout:schedule-call", {
+                detail: {
+                  employeeName: name,
+                  note: `Ring vedrørende vakt ${time}.`,
+                },
+              }),
+            );
+          }}
           className={`rounded-lg p-1.5 ${isDark ? "hover:bg-white/10" : "hover:bg-zinc-100"} text-zinc-500 transition-colors hover:text-blue-400`}
         >
           <Phone className="h-3.5 w-3.5" />
         </button>
         <button
-          onClick={() => toast.info(`SMS til ${name}...`)}
+          onClick={() => {
+            window.dispatchEvent(
+              new CustomEvent("smartout:schedule-sms-compose", {
+                detail: {
+                  dateId,
+                  employeeName: name,
+                  shiftTime: time,
+                },
+              }),
+            );
+          }}
           className={`rounded-lg p-1.5 ${isDark ? "hover:bg-white/10" : "hover:bg-zinc-100"} text-zinc-500 transition-colors hover:text-orange-400`}
         >
           <Mail className="h-3.5 w-3.5" />

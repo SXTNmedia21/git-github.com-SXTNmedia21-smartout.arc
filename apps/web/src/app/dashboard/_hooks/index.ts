@@ -7,7 +7,12 @@ export type {
   DayCoverage,
   DepartmentShiftDetail,
   DepartmentShiftGroup,
+  JourneyPhase,
+  JourneyStep,
   PipelineData,
+  ProtocolAssignee,
+  ProtocolJourneyData,
+  ProtocolOverviewItem,
   SignalCardData,
   SignalStatus,
   TrainingReadinessData,
@@ -16,6 +21,8 @@ export type { MyShift } from "./use-my-dashboard";
 export { useActionItems } from "./use-action-items";
 export { useKpiTargets } from "./use-kpi-targets";
 export type { KpiMetric, KpiTargets } from "./use-kpi-targets";
+export { useKpiCopy } from "./use-kpi-copy";
+export type { KpiCopyMap } from "./use-kpi-copy";
 export { useDepartmentShifts } from "./use-department-shifts";
 export { useMyReadiness, useMyShifts } from "./use-my-dashboard";
 export { getCurrentWeekStart, useStaffingCoverage } from "./use-staffing-coverage";
@@ -36,3 +43,10 @@ export type {
 export { useGuardianActions } from "./useGuardianActions";
 export { useLeaderPulse } from "./useLeaderPulse";
 export type { LeaderPulse, LeaderPulseStatus } from "./useLeaderPulse";
+export { useGovernanceOverview } from "./use-governance-overview";
+export { useProtocolAssignees } from "./use-protocol-assignees";
+export { useProtocolJourney } from "./use-protocol-journey";
+export { useActiveSeason } from "./use-active-season";
+export type { ActiveSeasonData } from "./use-active-season";
+export { useWorkspaceSetup } from "./use-workspace-setup";
+export type { WorkspaceSetupStatus, SetupModule } from "./use-workspace-setup";

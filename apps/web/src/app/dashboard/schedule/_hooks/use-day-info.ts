@@ -113,7 +113,7 @@ function fromDbDayInfo(row: DayInfoRow): DayInfo {
 
 // ── Query hook ───────────────────────────────────────────────
 
-export function useDayInfo(weekStart: string, weekEnd: string) {
+export function useDayInfo(weekStart: string, weekEnd: string, options?: { enabled?: boolean }) {
   const { workspace } = useWorkspace();
   const workspaceId = workspace.workspace_id;
 
@@ -133,7 +133,7 @@ export function useDayInfo(weekStart: string, weekEnd: string) {
       if (error) throw new Error(error.message);
       return (data ?? []).map(fromDbDayInfo);
     },
-    enabled: !!workspaceId,
+    enabled: !!workspaceId && (options?.enabled ?? true),
     staleTime: 2 * 60 * 1000, // 2 minutes — volatile daily info
   });
 

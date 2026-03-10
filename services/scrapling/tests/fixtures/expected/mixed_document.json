@@ -1,0 +1,5 @@
+{
+  "expect_categories": ["departments", "openingHours", "routines", "policies"],
+  "reject_categories": ["payroll"],
+  "departments_min_count": 2
+}

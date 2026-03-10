@@ -4,3 +4,4 @@ export * as ServerClient from "./server";
 export * as Middleware from "./middleware";
 export * as AdminClient from "./admin";
 export * as Vault from "./vault";
+export * as ServiceConfig from "./service-config";

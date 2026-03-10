@@ -1,7 +1,7 @@
 ---
 title: Scrapling API Reference
 status: done
-updated: 2026-03-04
+updated: 2026-03-10
 created: 2026-03-03
 module: onboarding
 tags: [api, scraping, microservice, python, droplet]
@@ -9,7 +9,7 @@ tags: [api, scraping, microservice, python, droplet]
 
 # Scrapling API Reference
 
-> Python (FastAPI) microservice that scrapes business websites and returns structured data for onboarding.
+> Python (FastAPI) microservice for web scraping and document text extraction. Scrapes business websites for onboarding data and extracts text/images from uploaded documents (PDF, DOCX, XLSX, CSV, TXT, images).
 
 ## Hosting
 
@@ -30,11 +30,12 @@ tags: [api, scraping, microservice, python, droplet]
 
 None. The service is internal-only — never exposed directly to the public internet. All external access goes through:
 
-| Caller            | Path                                                                 |
-| ----------------- | -------------------------------------------------------------------- |
-| Onboarding wizard | Edge Function `gather-workspace-intelligence` → scrapling `/extract` |
-| Scraper test page | Next.js API route `/api/scrape/raw` → scrapling `/scrape-raw`        |
-| Edge Function     | `scrape-raw-data` → scrapling `/scrape-raw`                          |
+| Caller            | Path                                                                    |
+| ----------------- | ----------------------------------------------------------------------- |
+| Onboarding wizard | Edge Function `gather-workspace-intelligence` → scrapling `/extract`    |
+| Document analysis | Edge Function `analyze-setup-documents` → scrapling `/extract/document` |
+| Scraper test page | Next.js API route `/api/scrape/raw` → scrapling `/scrape-raw`           |
+| Edge Function     | `scrape-raw-data` → scrapling `/scrape-raw`                             |
 
 ---
 
@@ -193,6 +194,125 @@ Raw extraction. Returns unprocessed text, images, and file links without any key
 
 ---
 
+### `POST /extract/document`
+
+Document extraction. Accepts a single uploaded file and returns extracted text (as markdown for structured documents) plus embedded images.
+
+**Used by:** `analyze-setup-documents` Edge Function (onboarding wizard document analysis)
+
+**Supported file types:** PDF, DOCX, XLSX, CSV, TXT, JPG, JPEG, PNG, WEBP
+
+#### Request
+
+```
+Content-Type: multipart/form-data
+Body: file=@document.pdf
+```
+
+#### Response `200 OK` — document with text
+
+```json
+{
+  "filename": "personalhandbok.pdf",
+  "content_type": "application/pdf",
+  "text": "# Personalhandbok\n\n## Kapittel 1: HMS\n\nAlle ansatte skal...",
+  "images": [
+    {
+      "page": 3,
+      "index": 0,
+      "base64": "iVBORw0KGgo...",
+      "type": "png",
+      "width": 800,
+      "height": 600
+    }
+  ],
+  "pages": 24,
+  "characters": 45231,
+  "method": "pymupdf4llm"
+}
+```
+
+#### Response `200 OK` — image file
+
+```json
+{
+  "filename": "rutine-foto.jpg",
+  "content_type": "image/jpeg",
+  "text": null,
+  "images": [
+    {
+      "page": null,
+      "index": 0,
+      "base64": "iVBORw0KGgo...",
+      "type": "jpeg",
+      "width": 1200,
+      "height": 900
+    }
+  ],
+  "pages": null,
+  "characters": 0,
+  "method": "passthrough"
+}
+```
+
+| Field          | Type           | Description                                                    |
+| -------------- | -------------- | -------------------------------------------------------------- |
+| `filename`     | string         | Original filename                                              |
+| `content_type` | string         | MIME type                                                      |
+| `text`         | string \| null | Extracted text (markdown for PDF/DOCX/XLSX, plain for CSV/TXT) |
+| `images`       | Image[]        | Extracted images as base64 (from PDF) or original (for images) |
+| `pages`        | number \| null | Page count (PDF only)                                          |
+| `characters`   | number         | Character count of extracted text                              |
+| `method`       | string         | Extraction method used (pymupdf4llm, python-docx, etc.)        |
+
+**Extraction methods by file type:**
+
+| Extension | Method       | Details                                                        |
+| --------- | ------------ | -------------------------------------------------------------- |
+| PDF       | pymupdf4llm  | Structured markdown. Fallback: pdfplumber for table-heavy PDFs |
+| DOCX      | python-docx  | Paragraphs + tables as markdown                                |
+| XLSX      | openpyxl     | All sheets as markdown tables                                  |
+| CSV       | csv (stdlib) | Auto-detect delimiter, encoding detection                      |
+| TXT       | passthrough  | UTF-8/Latin-1 encoding detection                               |
+| Images    | passthrough  | Pillow validation + base64 encode. WEBP converted to PNG       |
+
+#### Error Responses
+
+| Status | When                                          | Response                                             |
+| ------ | --------------------------------------------- | ---------------------------------------------------- |
+| `400`  | Unsupported file type                         | `{"error": "Unsupported...", "supported": [...]}`    |
+| `422`  | File cannot be parsed (e.g. scanned-only PDF) | `{"error": "Could not extract...", "detail": "..."}` |
+
+---
+
+### `POST /extract/document/batch`
+
+Batch document extraction. Accepts multiple files and returns results for each.
+
+#### Request
+
+```
+Content-Type: multipart/form-data
+Body: files[]=@dok1.pdf&files[]=@dok2.docx&files[]=@bilde.jpg
+```
+
+#### Response `200 OK`
+
+```json
+{
+  "results": [
+    { "filename": "dok1.pdf", "text": "# ...", "images": [...], "pages": 12, "characters": 25000, "method": "pymupdf4llm" },
+    { "filename": "dok2.docx", "text": "...", "images": [], "pages": null, "characters": 8500, "method": "python-docx" }
+  ],
+  "total_characters": 33500,
+  "total_images": 4
+}
+```
+
+Failed files are included with an `error` field instead of raising a 400/422.
+
+---
+
 ### `GET /health`
 
 Health check.
@@ -203,7 +323,9 @@ Health check.
 {
   "status": "healthy",
   "timestamp": "2026-03-03T12:00:00.000000",
-  "service": "scrapling"
+  "service": "scrapling",
+  "version": "0.2.0",
+  "extractors": ["csv", "docx", "jpeg", "jpg", "pdf", "png", "txt", "webp", "xlsx"]
 }
 ```
 
@@ -213,10 +335,11 @@ Health check.
 
 All errors return JSON with an HTTP status code.
 
-| Status | When                                                           |
-| ------ | -------------------------------------------------------------- |
-| `400`  | Missing `url` parameter                                        |
-| `500`  | Scraping failed (target site unreachable, parsing error, etc.) |
+| Status | When                                                                |
+| ------ | ------------------------------------------------------------------- |
+| `400`  | Missing `url` parameter, unsupported file type, no file provided    |
+| `422`  | File could not be parsed (e.g. scanned-only PDF with no text layer) |
+| `500`  | Scraping/extraction failed (target unreachable, parsing error)      |
 
 ```json
 {
@@ -228,6 +351,8 @@ All errors return JSON with an HTTP status code.
 
 ## Data Flow
 
+### URL scraping (onboarding wizard)
+
 ```
 Browser → Onboarding wizard (InitStep)
   → Supabase Edge Function: gather-workspace-intelligence
@@ -237,6 +362,22 @@ Browser → Onboarding wizard (InitStep)
     → Fires background: web-search-intelligence
   ← Returns { scrapedData, brregData, sessionId }
 ```
+
+### Document analysis (onboarding wizard)
+
+```
+Browser → DocumentDropStep (file upload to Supabase Storage)
+  → Supabase Edge Function: analyze-setup-documents
+    → Downloads files from Storage
+    → For each file: POST to Scrapling /extract/document
+    ← Scrapling returns { text (markdown), images (base64), pages, method }
+    → Assembles text + images
+    → Sends to Anthropic Claude API (multimodal: text + images)
+    ← Claude returns structured JSON (policies, employees, shifts, etc.)
+  ← Returns extractedData → wizard pre-fills steps 3-8
+```
+
+### Raw scraping (diagnostics)
 
 ```
 Browser → /scrape test page
@@ -256,7 +397,7 @@ python main.py
 # → http://localhost:8000
 ```
 
-Dependencies: `fastapi`, `uvicorn`, `scrapling[all]`, `pydantic`, `lxml`, `aiohttp`, `curl_cffi`, `playwright`
+Dependencies: `fastapi`, `uvicorn`, `scrapling[all]`, `pydantic`, `lxml`, `aiohttp`, `curl_cffi`, `playwright`, `python-multipart`, `pymupdf4llm`, `pymupdf`, `pdfplumber`, `python-docx`, `openpyxl`, `Pillow`
 
 ---
 
@@ -295,6 +436,22 @@ curl -X POST $SCRAPLING/extract \
 curl -X POST $SCRAPLING/scrape-raw \
   -H "Content-Type: application/json" \
   -d '{"url": "https://example-restaurant.no"}'
+```
+
+### Extract document (single file)
+
+```bash
+curl -X POST $SCRAPLING/extract/document \
+  -F "file=@personalhandbok.pdf"
+```
+
+### Extract documents (batch)
+
+```bash
+curl -X POST $SCRAPLING/extract/document/batch \
+  -F "files=@dok1.pdf" \
+  -F "files=@dok2.docx" \
+  -F "files=@bilde.jpg"
 ```
 
 ### Health check

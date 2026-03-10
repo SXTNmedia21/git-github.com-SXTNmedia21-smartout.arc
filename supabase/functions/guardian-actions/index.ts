@@ -5,7 +5,7 @@
  * Actions: acknowledge, resolve, dismiss.
  */
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "jsr:@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 
 // Inline Zod-like validation (Edge Functions don't always have Zod available)

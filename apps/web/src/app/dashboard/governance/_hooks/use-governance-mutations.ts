@@ -1,0 +1,400 @@
+"use client";
+
+/**
+ * TanStack Query mutations for governance CRUD operations.
+ * Handles create/update for policies, protocols, procedures, knowledge tests, and confirmations.
+ * Every mutation calls emit() from @smartout/telemetry on success.
+ * Connected to: PolicyForm, ProtocolForm, ProcedureBuilder, KnowledgeTestBuilder, ConfirmationForm
+ */
+
+import { useContext } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { createClient } from "@smartout/supabase/client";
+import type { Json } from "@smartout/supabase";
+import { useWorkspace } from "@/lib/workspace-context";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
+import { emit } from "@smartout/telemetry";
+import { dashboardKeys } from "@/app/dashboard/_hooks";
+
+// ══════════════════════════════════════════════════════════════
+// Types
+// ══════════════════════════════════════════════════════════════
+
+type PolicyInput = {
+  name: string;
+  statement: string;
+  description?: string;
+  policy_type: "operational" | "haccp" | "hr" | "safety" | "access" | "payroll" | "custom";
+  policy_scope: "workspace" | "department" | "team" | "location";
+  enforcement_status?: "aspirational" | "enforced";
+};
+
+type ProtocolInput = {
+  name: string;
+  description?: string;
+  policy_id: string;
+  owner_profile_id: string;
+  version?: string;
+};
+
+type ProcedureInput = {
+  name: string;
+  description?: string;
+  protocol_id: string;
+  procedure_type?: "safety" | "custom" | "onboarding" | "standard" | "maintenance";
+  sort_order?: number;
+  steps: Array<{
+    title: string;
+    description: string;
+    step_order: number;
+    is_required?: boolean;
+    estimated_minutes?: number;
+  }>;
+};
+
+type KnowledgeTestInput = {
+  name: string;
+  description?: string;
+  protocol_id: string;
+  pass_threshold: number;
+  max_attempts?: number;
+  questions: Array<{
+    id: string;
+    text: string;
+    options: Array<{ id: string; text: string }>;
+    correctOptionId: string;
+  }>;
+};
+
+type ConfirmationInput = {
+  name: string;
+  confirmation_text: string;
+  protocol_id: string;
+  requires_signature?: boolean;
+};
+
+// ══════════════════════════════════════════════════════════════
+// Policy CRUD
+// ══════════════════════════════════════════════════════════════
+
+export function useCreatePolicy() {
+  const queryClient = useQueryClient();
+  const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
+
+  return useMutation({
+    mutationFn: async (input: PolicyInput) => {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("policy")
+        .insert({
+          ...input,
+          workspace_id: workspace.workspace_id,
+          created_by: profileId!,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+
+    onSuccess: (data) => {
+      void emit({
+        event: "button clicked",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: {
+          trackingId: "governance-policy-created",
+          context: data.policy_id,
+        },
+      });
+      toast.success("Policy opprettet");
+      void queryClient.invalidateQueries({
+        queryKey: dashboardKeys.governanceOverview(workspace.workspace_id),
+      });
+    },
+
+    onError: () => {
+      toast.error("Kunne ikke opprette policy");
+    },
+  });
+}
+
+export function useUpdatePolicy() {
+  const queryClient = useQueryClient();
+  const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
+
+  return useMutation({
+    mutationFn: async ({ id, ...input }: PolicyInput & { id: string }) => {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("policy")
+        .update(input)
+        .eq("policy_id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+
+    onSuccess: (data) => {
+      void emit({
+        event: "button clicked",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: {
+          trackingId: "governance-policy-updated",
+          context: data.policy_id,
+        },
+      });
+      toast.success("Policy oppdatert");
+      void queryClient.invalidateQueries({
+        queryKey: dashboardKeys.governanceOverview(workspace.workspace_id),
+      });
+    },
+
+    onError: () => {
+      toast.error("Kunne ikke oppdatere policy");
+    },
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// Protocol CRUD
+// ══════════════════════════════════════════════════════════════
+
+export function useCreateProtocol() {
+  const queryClient = useQueryClient();
+  const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
+
+  return useMutation({
+    mutationFn: async (input: ProtocolInput) => {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("protocol")
+        .insert({
+          ...input,
+          workspace_id: workspace.workspace_id,
+          created_by: profileId!,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+
+    onSuccess: (data) => {
+      void emit({
+        event: "button clicked",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: {
+          trackingId: "governance-protocol-created",
+          context: data.protocol_id,
+        },
+      });
+      toast.success("Protokoll opprettet");
+      void queryClient.invalidateQueries({
+        queryKey: dashboardKeys.governanceOverview(workspace.workspace_id),
+      });
+    },
+
+    onError: () => {
+      toast.error("Kunne ikke opprette protokoll");
+    },
+  });
+}
+
+export function useUpdateProtocol() {
+  const queryClient = useQueryClient();
+  const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
+
+  return useMutation({
+    mutationFn: async ({ id, ...input }: ProtocolInput & { id: string }) => {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("protocol")
+        .update(input)
+        .eq("protocol_id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+
+    onSuccess: (data) => {
+      void emit({
+        event: "button clicked",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: {
+          trackingId: "governance-protocol-updated",
+          context: data.protocol_id,
+        },
+      });
+      toast.success("Protokoll oppdatert");
+      void queryClient.invalidateQueries({
+        queryKey: dashboardKeys.governanceOverview(workspace.workspace_id),
+      });
+    },
+
+    onError: () => {
+      toast.error("Kunne ikke oppdatere protokoll");
+    },
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// Procedure CRUD (with steps)
+// ══════════════════════════════════════════════════════════════
+
+export function useCreateProcedure() {
+  const queryClient = useQueryClient();
+  const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
+
+  return useMutation({
+    mutationFn: async (input: ProcedureInput) => {
+      const supabase = createClient();
+      const { steps, ...procedureData } = input;
+
+      // Create procedure
+      const { data: proc, error: procError } = await supabase
+        .from("procedure")
+        .insert(procedureData)
+        .select()
+        .single();
+
+      if (procError) throw procError;
+
+      // Create steps
+      if (steps.length > 0) {
+        const { error: stepsError } = await supabase.from("procedure_step").insert(
+          steps.map((s) => ({
+            ...s,
+            procedure_id: proc.procedure_id,
+          })),
+        );
+
+        if (stepsError) throw stepsError;
+      }
+
+      return proc;
+    },
+
+    onSuccess: (data) => {
+      void emit({
+        event: "button clicked",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: {
+          trackingId: "governance-procedure-created",
+          context: data.procedure_id,
+        },
+      });
+      toast.success("Prosedyre opprettet");
+      void queryClient.invalidateQueries({
+        queryKey: dashboardKeys.governanceOverview(workspace.workspace_id),
+      });
+    },
+
+    onError: () => {
+      toast.error("Kunne ikke opprette prosedyre");
+    },
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// Knowledge Test CRUD
+// ══════════════════════════════════════════════════════════════
+
+export function useCreateKnowledgeTest() {
+  const queryClient = useQueryClient();
+  const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
+
+  return useMutation({
+    mutationFn: async (input: KnowledgeTestInput) => {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("knowledge_test")
+        .insert({
+          ...input,
+          questions: input.questions as unknown as Json,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+
+    onSuccess: (data) => {
+      void emit({
+        event: "button clicked",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: {
+          trackingId: "governance-knowledge-test-created",
+          context: data.knowledge_test_id,
+        },
+      });
+      toast.success("Kunnskapstest opprettet");
+      void queryClient.invalidateQueries({
+        queryKey: dashboardKeys.governanceOverview(workspace.workspace_id),
+      });
+    },
+
+    onError: () => {
+      toast.error("Kunne ikke opprette kunnskapstest");
+    },
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// Confirmation CRUD
+// ══════════════════════════════════════════════════════════════
+
+export function useCreateConfirmation() {
+  const queryClient = useQueryClient();
+  const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
+
+  return useMutation({
+    mutationFn: async (input: ConfirmationInput) => {
+      const supabase = createClient();
+      const { data, error } = await supabase.from("confirmation").insert(input).select().single();
+
+      if (error) throw error;
+      return data;
+    },
+
+    onSuccess: (data) => {
+      void emit({
+        event: "button clicked",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: {
+          trackingId: "governance-confirmation-created",
+          context: data.confirmation_id,
+        },
+      });
+      toast.success("Bekreftelse opprettet");
+      void queryClient.invalidateQueries({
+        queryKey: dashboardKeys.governanceOverview(workspace.workspace_id),
+      });
+    },
+
+    onError: () => {
+      toast.error("Kunne ikke opprette bekreftelse");
+    },
+  });
+}

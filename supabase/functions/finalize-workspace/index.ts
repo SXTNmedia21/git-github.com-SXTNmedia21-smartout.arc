@@ -1,8 +1,8 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -46,6 +46,26 @@ serve(async (req) => {
     });
 
     if (rpcError) throw rpcError;
+
+    // Link the onboarding contract to this workspace
+    if (workspaceData.contractId) {
+      await adminClient
+        .from("contract")
+        .update({
+          workspace_id: data,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("contract_id", workspaceData.contractId);
+
+      // Set workspace contract_status to pending_contract
+      await adminClient
+        .from("workspace")
+        .update({
+          contract_status: "pending_contract",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("workspace_id", data);
+    }
 
     // Fetch the workspace slug for redirect
     const { data: ws } = await adminClient

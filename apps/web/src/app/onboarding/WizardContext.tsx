@@ -14,7 +14,7 @@ import { useOnboardingState, type OnboardingActions } from "./hooks/useOnboardin
 import { useScrollProgress } from "./hooks/useScrollProgress";
 import { useBotsson, type BotssonActions } from "./hooks/useBotsson";
 import type { OnboardingState, OnboardingSection } from "./types";
-import { ONBOARDING_SECTIONS } from "./types";
+import { VISIBLE_SECTIONS } from "./types";
 
 interface OnboardingContextValue extends OnboardingState, OnboardingActions {
   activeSection: OnboardingSection;
@@ -82,8 +82,8 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
 
   // Advance to next section (called by agent tool)
   const advanceToNextSection = useCallback(() => {
-    const currentIdx = ONBOARDING_SECTIONS.indexOf(scroll.activeSection);
-    const next = ONBOARDING_SECTIONS[currentIdx + 1];
+    const currentIdx = VISIBLE_SECTIONS.indexOf(scroll.activeSection);
+    const next = VISIBLE_SECTIONS[currentIdx + 1];
     if (next) {
       state.completeSection(scroll.activeSection);
       scroll.scrollToSection(next);
@@ -121,12 +121,17 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     error?: string;
   }> => {
     try {
-      await state.finalize();
+      const { slug } = await state.finalize();
       // Give Botsson time to say "Velkommen!" before redirect
       setTimeout(() => {
-        router.push("/dashboard");
+        const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN;
+        if (rootDomain && rootDomain !== "localhost" && slug) {
+          window.location.href = `https://${slug}.${rootDomain}/dashboard`;
+        } else {
+          router.push("/dashboard");
+        }
       }, 2000);
-      return { success: true };
+      return { success: true, slug: slug ?? undefined };
     } catch (err) {
       return {
         success: false,
@@ -337,8 +342,8 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   const completeSectionWithScroll = useCallback(
     (section: OnboardingSection) => {
       state.completeSection(section);
-      const nextIdx = ONBOARDING_SECTIONS.indexOf(section) + 1;
-      const next = ONBOARDING_SECTIONS[nextIdx];
+      const nextIdx = VISIBLE_SECTIONS.indexOf(section) + 1;
+      const next = VISIBLE_SECTIONS[nextIdx];
       if (next) {
         scroll.scrollToSection(next);
       }

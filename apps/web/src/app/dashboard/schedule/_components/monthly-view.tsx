@@ -187,7 +187,6 @@ export function MonthlyView({ shifts, computed, employees, onDateClick }: Monthl
           return (
             <DayCell
               key={day.dateId}
-              dateId={day.dateId}
               dayNum={dayNum}
               isCurrentMonth={day.isCurrentMonth}
               isToday={isToday}
@@ -220,7 +219,6 @@ export function MonthlyView({ shifts, computed, employees, onDateClick }: Monthl
 // ── DayCell ─────────────────────────────────────────────────
 
 function DayCell({
-  dateId,
   dayNum,
   isCurrentMonth,
   isToday,
@@ -236,7 +234,6 @@ function DayCell({
   onClick,
   onCreateShift,
 }: {
-  dateId: string;
   dayNum: number;
   isCurrentMonth: boolean;
   isToday: boolean;

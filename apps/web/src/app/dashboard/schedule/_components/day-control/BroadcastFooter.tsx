@@ -17,24 +17,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import type { Shift } from "../schedule-types";
-import { useShifts } from "../../_hooks/use-shifts";
-import { useWeekRange } from "../../_hooks/use-week-range";
+import { useDaySession } from "./use-day-session";
 
 export function BroadcastFooter({ dateId }: { dateId: string | null }) {
   const { isDark } = useContext(DashboardContext);
-  const { weekStart, weekEnd } = useWeekRange();
-  const { data: shifts = [] as Shift[] } = useShifts(weekStart, weekEnd);
+  const { snapshot } = useDaySession();
   const [broadcastType, setBroadcastType] = useState<"push" | "sms" | null>(null);
 
-  const staffCount = dateId
-    ? new Set(
-        shifts
-          .filter((s: Shift) => s.dateId === dateId)
-          .map((s: Shift) => s.employeeId)
-          .filter(Boolean),
-      ).size
-    : 0;
+  const staffCount = dateId ? (snapshot?.summary.staffCount ?? 0) : 0;
 
   return (
     <>
@@ -65,6 +55,7 @@ export function BroadcastFooter({ dateId }: { dateId: string | null }) {
       {broadcastType && dateId && (
         <BroadcastMessageDialog
           type={broadcastType}
+          dateId={dateId}
           staffCount={staffCount}
           open={!!broadcastType}
           onOpenChange={(open) => {
@@ -80,11 +71,13 @@ export function BroadcastFooter({ dateId }: { dateId: string | null }) {
 
 function BroadcastMessageDialog({
   type,
+  dateId,
   staffCount,
   open,
   onOpenChange,
 }: {
   type: "push" | "sms";
+  dateId: string;
   staffCount: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -93,9 +86,20 @@ function BroadcastMessageDialog({
   const [includeDaginfo, setIncludeDaginfo] = useState(false);
 
   function handleSend() {
-    const method = type === "push" ? "Push-varsler" : "SMS";
-    const extra = includeDaginfo ? " (med daginfo)" : "";
-    toast.success(`${method} sendt til ${staffCount} ansatte${extra}`);
+    if (type === "sms") {
+      window.dispatchEvent(
+        new CustomEvent("smartout:schedule-sms-compose", {
+          detail: {
+            dateId,
+            customMessage: message.trim(),
+            includeDaginfo,
+          },
+        }),
+      );
+      toast.success(`SMS-utkast åpnet for ${staffCount} ansatte`);
+    } else {
+      toast.warning("Push utsending er ikke aktiv i denne versjonen. Bruk SMS eller dagsinfo.");
+    }
     setMessage("");
     setIncludeDaginfo(false);
     onOpenChange(false);

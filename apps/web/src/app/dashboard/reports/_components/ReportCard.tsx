@@ -67,7 +67,7 @@ export function ReportCard({ report, onSelect, onDelete }: ReportCardProps) {
 
   return (
     <Card
-      className="group hover:border-primary/50 cursor-pointer transition-colors"
+      className="group hover:border-primary/50 cursor-pointer border transition-colors dark:border-zinc-700 dark:bg-zinc-950/90 dark:hover:bg-zinc-950"
       onClick={() => onSelect(report)}
     >
       <CardHeader className="flex flex-row items-start justify-between pb-2">
@@ -85,7 +85,7 @@ export function ReportCard({ report, onSelect, onDelete }: ReportCardProps) {
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
+          className="h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100 dark:text-zinc-200 dark:hover:bg-zinc-800"
           onClick={(e) => {
             e.stopPropagation();
             onDelete(report.report_id);

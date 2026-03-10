@@ -30,9 +30,27 @@ export type { IntelligenceToolContext } from "./tools/intelligence";
 export { JOURNEY_TOOLS } from "./tools/journey";
 export type { JourneyToolContext } from "./tools/journey";
 
+// Schedule tools (Ultravox client tool definitions)
+export {
+  SCHEDULE_TOOL_DEFINITIONS,
+  SCHEDULE_READ_TOOLS,
+  SCHEDULE_WRITE_TOOLS,
+  SCHEDULE_NAV_TOOLS,
+  SCHEDULE_TOOL_NAMES,
+} from "./tools/schedule";
+export type { ScheduleClientToolDefinition } from "./tools/schedule";
+
+// Season tools
+export { SEASON_TOOLS } from "./tools/season";
+export type { SeasonToolContext } from "./tools/season";
+
 // Doc retrieval tools (RAG)
 export { DOC_TOOLS, searchPlatformDocs, getDocByPath } from "./tools/docs";
 export type { DocToolContext } from "./tools/docs";
+
+// Workspace doc retrieval tools (RAG)
+export { WORKSPACE_DOC_TOOLS, searchWorkspaceDocs } from "./tools/workspace-docs";
+export type { WorkspaceDocToolContext } from "./tools/workspace-docs";
 
 // Embedding
 export { getQueryEmbedding } from "./embedding";
@@ -56,5 +74,6 @@ export {
   getMissionIds,
   startMissionCall,
   MissionIdSchema,
+  SEASON_LIFECYCLE_MISSION_ID,
 } from "./missions";
 export type { MissionId, AgentMission, StartCallOptions, CallResult } from "./missions";

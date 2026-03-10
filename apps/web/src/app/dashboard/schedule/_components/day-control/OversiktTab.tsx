@@ -4,61 +4,42 @@
 // ============================================
 "use client";
 
-import { useContext, useMemo, useState } from "react";
-import { Clock, Pencil, Phone, Mail, CheckCircle2 } from "lucide-react";
+import { useContext, useMemo, useState, useCallback } from "react";
+import {
+  Clock,
+  Pencil,
+  Phone,
+  Mail,
+  CheckCircle2,
+  ArrowUp,
+  ArrowDown,
+  ChevronsUp,
+  ChevronsDown,
+  Minus,
+  Plus,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { toast } from "sonner";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import type {
-  Shift,
-  Absence,
-  DayMessage,
-  DayTask,
-  DayBooking,
-  OpenShift,
-  ShiftTemplate,
-} from "../schedule-types";
 import { useScheduleUI } from "../schedule-ui-context";
-import { useShifts } from "../../_hooks/use-shifts";
-import { useAbsences } from "../../_hooks/use-absences";
-import { useOpenShifts } from "../../_hooks/use-open-shifts";
-import { useTemplates } from "../../_hooks/use-templates";
-import { useDayMessages, useDayTasks, useDayBookings } from "../../_hooks/use-day-content";
-import { useScheduleComputed } from "../../_hooks/use-schedule-computed";
+import { useMoveShift, useUpdateShift } from "../../_hooks/use-shifts";
 import { useWeekRange } from "../../_hooks/use-week-range";
-import { useEmployees, type ScheduleEmployee } from "../../_hooks/use-employees";
 import { SectionHeader, KpiCard, formatNok, formatHours, timeToHour } from "./shared";
 import { TimelineView, type TimelineEntry } from "./TimelineView";
+import { useDaySession } from "./use-day-session";
 
 export function OversiktTab({ dateId }: { dateId: string | null }) {
   const { isDark } = useContext(DashboardContext);
-  const { weekStart, weekEnd } = useWeekRange();
-  const { data: shifts = [] as Shift[] } = useShifts(weekStart, weekEnd);
-  const { data: absences = [] as Absence[] } = useAbsences(weekStart, weekEnd);
-  const { data: openShiftsData = [] as OpenShift[] } = useOpenShifts();
-  const { data: templates = [] as ShiftTemplate[] } = useTemplates();
-  const { data: dayMessages = [] as DayMessage[] } = useDayMessages(weekStart, weekEnd);
-  const { data: dayTasks = [] as DayTask[] } = useDayTasks(weekStart, weekEnd);
-  const { data: dayBookings = [] as DayBooking[] } = useDayBookings(weekStart, weekEnd);
+  const { weekStart } = useWeekRange();
+  const moveShiftMutation = useMoveShift(weekStart);
+  const updateShiftMutation = useUpdateShift(weekStart);
   const { setSelectedShift } = useScheduleUI();
-
-  const computed = useScheduleComputed(
-    shifts,
-    absences,
-    openShiftsData.length,
-    templates,
-    dayMessages,
-    dayTasks,
-    dayBookings,
-  );
-
-  const stats = dateId ? computed.getDayStats(dateId) : null;
-  const dayShifts = useMemo(
-    () => (dateId ? computed.getShiftsForDay(dateId) : []),
-    [dateId, computed],
-  );
-  const employeesQuery = useEmployees();
-  const employees: ScheduleEmployee[] = employeesQuery.data ?? [];
+  const { dayStats, dayShifts, dayEmployees } = useDaySession();
+  const stats = dateId ? dayStats : null;
+  const employees = dayEmployees;
   const totalWorkHours = dayShifts.reduce((sum, s) => sum + s.workHours, 0);
+  const [shiftOrder, setShiftOrder] = useState<string[]>([]);
 
   // Budget edit state
   const [isEditingBudget, setIsEditingBudget] = useState(false);
@@ -96,6 +77,92 @@ export function OversiktTab({ dateId }: { dateId: string | null }) {
         };
       });
   }, [dayShifts, employees]);
+
+  const orderedTimelineData = useMemo(() => {
+    if (shiftOrder.length === 0) return timelineData;
+    const index = new Map(shiftOrder.map((id, i) => [id, i]));
+    return [...timelineData].sort(
+      (a, b) => (index.get(a.shiftId) ?? 9999) - (index.get(b.shiftId) ?? 9999),
+    );
+  }, [timelineData, shiftOrder]);
+
+  const reorderShift = useCallback(
+    (shiftId: string, mode: "up" | "down" | "front" | "back") => {
+      setShiftOrder((previous) => {
+        const current = previous.length > 0 ? [...previous] : dayShifts.map((shift) => shift.id);
+        const fromIndex = current.indexOf(shiftId);
+        if (fromIndex === -1) return current;
+
+        if (mode === "front") {
+          current.splice(fromIndex, 1);
+          current.unshift(shiftId);
+          return current;
+        }
+        if (mode === "back") {
+          current.splice(fromIndex, 1);
+          current.push(shiftId);
+          return current;
+        }
+        const toIndex =
+          mode === "up" ? Math.max(0, fromIndex - 1) : Math.min(current.length - 1, fromIndex + 1);
+        if (toIndex === fromIndex) return current;
+        const [item] = current.splice(fromIndex, 1);
+        if (typeof item !== "string") return current;
+        current.splice(toIndex, 0, item);
+        return current;
+      });
+    },
+    [dayShifts],
+  );
+
+  const shiftDateByDays = useCallback(
+    (sourceShiftId: string, offsetDays: number) => {
+      const shift = dayShifts.find((item) => item.id === sourceShiftId);
+      if (!shift || !shift.employeeId) return;
+      const date = new Date(`${shift.dateId}T00:00:00`);
+      date.setDate(date.getDate() + offsetDays);
+      const nextDateId = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
+        date.getDate(),
+      ).padStart(2, "0")}`;
+      moveShiftMutation.mutate({ id: shift.id, employeeId: shift.employeeId, dateId: nextDateId });
+    },
+    [dayShifts, moveShiftMutation],
+  );
+
+  const adjustShiftTime = useCallback(
+    (sourceShiftId: string, edge: "start" | "end", deltaMinutes: number) => {
+      const shift = dayShifts.find((item) => item.id === sourceShiftId);
+      if (!shift) return;
+      const toMinutes = (value: string) => {
+        const [hours, minutes] = value.split(":").map(Number);
+        return (hours ?? 0) * 60 + (minutes ?? 0);
+      };
+      const fromMinutes = (value: number) => {
+        const wrapped = ((value % 1440) + 1440) % 1440;
+        const hours = Math.floor(wrapped / 60);
+        const minutes = wrapped % 60;
+        return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+      };
+
+      const startMinutes = toMinutes(shift.startTime);
+      let endMinutes = toMinutes(shift.endTime);
+      if (endMinutes <= startMinutes) endMinutes += 24 * 60;
+
+      const nextStart = edge === "start" ? startMinutes + deltaMinutes : startMinutes;
+      const nextEnd = edge === "end" ? endMinutes + deltaMinutes : endMinutes;
+      if (nextEnd - nextStart < 30) return;
+
+      const normalizedStart = fromMinutes(nextStart);
+      const normalizedEnd = fromMinutes(nextEnd);
+      const workHours = Math.max(0.5, (nextEnd - nextStart) / 60);
+
+      updateShiftMutation.mutate({
+        id: shift.id,
+        patch: { startTime: normalizedStart, endTime: normalizedEnd, workHours },
+      });
+    },
+    [dayShifts, updateShiftMutation],
+  );
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-2 space-y-6 duration-200">
@@ -168,19 +235,19 @@ export function OversiktTab({ dateId }: { dateId: string | null }) {
       {/* Timeline */}
       <section>
         <SectionHeader label="Tidslinje" />
-        <TimelineView entries={timelineData} onShiftClick={setSelectedShift} />
+        <TimelineView entries={orderedTimelineData} onShiftClick={setSelectedShift} />
       </section>
 
       {/* Employee list */}
       <section>
-        <SectionHeader label={`Ansatte pa vakt (${timelineData.length})`} />
+        <SectionHeader label={`Ansatte pa vakt (${orderedTimelineData.length})`} />
         <div className="space-y-2">
-          {timelineData.length === 0 ? (
+          {orderedTimelineData.length === 0 ? (
             <p className="text-muted-foreground py-4 text-center text-xs">
               Ingen ansatte pa vakt denne dagen
             </p>
           ) : (
-            timelineData.map((entry) => (
+            orderedTimelineData.map((entry) => (
               <EmployeeListRow
                 key={entry.shiftId}
                 name={entry.name}
@@ -189,7 +256,18 @@ export function OversiktTab({ dateId }: { dateId: string | null }) {
                 role={entry.role}
                 time={entry.time}
                 status={entry.status}
+                dateId={dateId ?? ""}
                 onShiftClick={() => setSelectedShift(entry.shiftId)}
+                onMoveLeft={() => shiftDateByDays(entry.shiftId, -1)}
+                onMoveRight={() => shiftDateByDays(entry.shiftId, 1)}
+                onStartEarlier={() => adjustShiftTime(entry.shiftId, "start", -15)}
+                onStartLater={() => adjustShiftTime(entry.shiftId, "start", 15)}
+                onEndEarlier={() => adjustShiftTime(entry.shiftId, "end", -15)}
+                onEndLater={() => adjustShiftTime(entry.shiftId, "end", 15)}
+                onBringForward={() => reorderShift(entry.shiftId, "up")}
+                onSendBackward={() => reorderShift(entry.shiftId, "down")}
+                onToFront={() => reorderShift(entry.shiftId, "front")}
+                onToBack={() => reorderShift(entry.shiftId, "back")}
               />
             ))
           )}
@@ -208,7 +286,18 @@ function EmployeeListRow({
   role,
   time,
   status,
+  dateId,
   onShiftClick,
+  onMoveLeft,
+  onMoveRight,
+  onStartEarlier,
+  onStartLater,
+  onEndEarlier,
+  onEndLater,
+  onBringForward,
+  onSendBackward,
+  onToFront,
+  onToBack,
 }: {
   name: string;
   initials: string;
@@ -216,49 +305,133 @@ function EmployeeListRow({
   role: string;
   time: string;
   status: string;
+  dateId: string;
   onShiftClick: () => void;
+  onMoveLeft: () => void;
+  onMoveRight: () => void;
+  onStartEarlier: () => void;
+  onStartLater: () => void;
+  onEndEarlier: () => void;
+  onEndLater: () => void;
+  onBringForward: () => void;
+  onSendBackward: () => void;
+  onToFront: () => void;
+  onToBack: () => void;
 }) {
   const { isDark } = useContext(DashboardContext);
   const isActive = status === "published" || status === "active";
 
   return (
     <div
-      className={`flex items-center gap-3 rounded-xl border p-3 transition-colors ${isDark ? "border-border bg-muted/20 hover:border-border/80" : "border-border bg-card hover:border-border/80"}`}
+      className={`rounded-xl border p-3 transition-colors ${isDark ? "border-border bg-muted/20 hover:border-border/80" : "border-border bg-card hover:border-border/80"}`}
     >
-      <div className="shrink-0">
-        {isActive ? (
-          <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-        ) : (
-          <Clock className="text-muted-foreground h-4 w-4" />
-        )}
-      </div>
-
-      <div
-        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-[10px] font-black ${avatarColor}`}
-      >
-        {initials}
-      </div>
-
-      <button onClick={onShiftClick} className="min-w-0 flex-1 text-left">
-        <div className="text-foreground truncate text-xs font-bold">{name}</div>
-        <div className="text-muted-foreground text-[10px]">
-          {time} &middot; {role}
+      <div className="flex items-start gap-3">
+        <div className="shrink-0 pt-0.5">
+          {isActive ? (
+            <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+          ) : (
+            <Clock className="text-muted-foreground h-4 w-4" />
+          )}
         </div>
-      </button>
+        <div
+          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-[10px] font-black ${avatarColor}`}
+        >
+          {initials}
+        </div>
 
-      <div className="flex shrink-0 items-center gap-1">
-        <button
-          onClick={() => toast.info(`Ringer ${name}...`)}
-          className="text-muted-foreground hover:bg-muted rounded-lg p-1.5 transition-colors hover:text-blue-400"
-        >
-          <Phone className="h-3.5 w-3.5" />
+        <button onClick={onShiftClick} className="min-w-0 flex-1 text-left">
+          <div className="text-foreground truncate text-xs font-bold">{name}</div>
+          <div className="text-muted-foreground text-[10px]">
+            {time} &middot; {role}
+          </div>
         </button>
-        <button
-          onClick={() => toast.info(`SMS til ${name}...`)}
-          className="text-muted-foreground hover:bg-muted rounded-lg p-1.5 transition-colors hover:text-orange-400"
-        >
-          <Mail className="h-3.5 w-3.5" />
-        </button>
+
+        <div className="flex shrink-0 items-center gap-1">
+          <button
+            onClick={() => {
+              window.dispatchEvent(
+                new CustomEvent("smartout:schedule-call", {
+                  detail: {
+                    employeeName: name,
+                    note: `Ring vedrørende vakt ${time}.`,
+                  },
+                }),
+              );
+              toast.success(`Starter Ultravox-samtale for ${name}`);
+            }}
+            className="text-muted-foreground hover:bg-muted rounded-lg p-1.5 transition-colors hover:text-blue-400"
+          >
+            <Phone className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={() => {
+              window.dispatchEvent(
+                new CustomEvent("smartout:schedule-sms-compose", {
+                  detail: {
+                    dateId,
+                    employeeName: name,
+                    shiftTime: time,
+                  },
+                }),
+              );
+            }}
+            className="text-muted-foreground hover:bg-muted rounded-lg p-1.5 transition-colors hover:text-orange-400"
+          >
+            <Mail className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-2 text-[10px] sm:grid-cols-4">
+        <div className="border-border/70 bg-background/40 rounded-lg border p-1.5">
+          <p className="text-muted-foreground mb-1 font-semibold">Flytt dag</p>
+          <div className="flex items-center gap-1">
+            <button onClick={onMoveLeft} className="hover:bg-muted rounded p-1">
+              <ChevronLeft className="h-3 w-3" />
+            </button>
+            <button onClick={onMoveRight} className="hover:bg-muted rounded p-1">
+              <ChevronRight className="h-3 w-3" />
+            </button>
+          </div>
+        </div>
+        <div className="border-border/70 bg-background/40 rounded-lg border p-1.5">
+          <p className="text-muted-foreground mb-1 font-semibold">Starttid</p>
+          <div className="flex items-center gap-1">
+            <button onClick={onStartEarlier} className="hover:bg-muted rounded p-1">
+              <Minus className="h-3 w-3" />
+            </button>
+            <button onClick={onStartLater} className="hover:bg-muted rounded p-1">
+              <Plus className="h-3 w-3" />
+            </button>
+          </div>
+        </div>
+        <div className="border-border/70 bg-background/40 rounded-lg border p-1.5">
+          <p className="text-muted-foreground mb-1 font-semibold">Sluttid</p>
+          <div className="flex items-center gap-1">
+            <button onClick={onEndEarlier} className="hover:bg-muted rounded p-1">
+              <Minus className="h-3 w-3" />
+            </button>
+            <button onClick={onEndLater} className="hover:bg-muted rounded p-1">
+              <Plus className="h-3 w-3" />
+            </button>
+          </div>
+        </div>
+        <div className="border-border/70 bg-background/40 rounded-lg border p-1.5">
+          <p className="text-muted-foreground mb-1 font-semibold">Lag</p>
+          <div className="flex items-center gap-1">
+            <button onClick={onBringForward} className="hover:bg-muted rounded p-1" title="Frem">
+              <ArrowUp className="h-3 w-3" />
+            </button>
+            <button onClick={onSendBackward} className="hover:bg-muted rounded p-1" title="Bak">
+              <ArrowDown className="h-3 w-3" />
+            </button>
+            <button onClick={onToFront} className="hover:bg-muted rounded p-1" title="Foran alle">
+              <ChevronsUp className="h-3 w-3" />
+            </button>
+            <button onClick={onToBack} className="hover:bg-muted rounded p-1" title="Bak alle">
+              <ChevronsDown className="h-3 w-3" />
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

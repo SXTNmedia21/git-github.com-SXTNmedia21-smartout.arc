@@ -1,8 +1,9 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import Link from "next/link";
 import { useOnboarding } from "../WizardContext";
-import { ONBOARDING_SECTIONS, type OnboardingSection } from "../types";
+import { VISIBLE_SECTIONS, type OnboardingSection } from "../types";
 
 const SECTION_LABELS: Record<OnboardingSection, string> = {
   hero: "Start",
@@ -19,15 +20,15 @@ export function NavigationController() {
   const { activeSection, sectionIndex, scrollToSection } = useOnboarding();
 
   const isFirst = sectionIndex === 0;
-  const isLast = sectionIndex === ONBOARDING_SECTIONS.length - 1;
+  const isLast = sectionIndex === VISIBLE_SECTIONS.length - 1;
 
   const goPrev = () => {
-    const prev = ONBOARDING_SECTIONS[sectionIndex - 1];
+    const prev = VISIBLE_SECTIONS[sectionIndex - 1];
     if (prev) scrollToSection(prev);
   };
 
   const goNext = () => {
-    const next = ONBOARDING_SECTIONS[sectionIndex + 1];
+    const next = VISIBLE_SECTIONS[sectionIndex + 1];
     if (next) scrollToSection(next);
   };
 
@@ -47,7 +48,7 @@ export function NavigationController() {
       <span className="min-w-[80px] text-center font-mono text-xs tracking-wide text-white/60 select-none">
         {SECTION_LABELS[activeSection]}{" "}
         <span className="text-white/30">
-          {sectionIndex + 1}/{ONBOARDING_SECTIONS.length}
+          {sectionIndex + 1}/{VISIBLE_SECTIONS.length}
         </span>
       </span>
 
@@ -60,6 +61,18 @@ export function NavigationController() {
       >
         <ChevronRight className="h-4 w-4" />
       </button>
+
+      {/* Divider */}
+      <div className="mx-1 h-4 w-px bg-white/[0.08]" />
+
+      {/* Exit — always visible */}
+      <Link
+        href="/dashboard"
+        className="flex h-7 w-7 items-center justify-center rounded-full text-white/30 transition-colors hover:bg-white/10 hover:text-white/70"
+        title="Gå til dashboard"
+      >
+        <X className="h-3.5 w-3.5" />
+      </Link>
     </div>
   );
 }

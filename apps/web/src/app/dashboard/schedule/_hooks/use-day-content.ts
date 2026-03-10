@@ -19,6 +19,7 @@ import {
   fromDbDayBooking,
   fromDbDayMessage,
   fromDbDayTask,
+  type DayTaskUpdatePatch,
   toDbDayBookingInsert,
   toDbDayMessageInsert,
   toDbDayTaskInsert,
@@ -31,11 +32,16 @@ import {
 
 // ── Query: Fetch messages for a week ─────────────────────────
 
-export function useDayMessages(weekStart: string, weekEnd: string) {
+export function useDayMessages(
+  weekStart: string,
+  weekEnd: string,
+  options?: { enabled?: boolean },
+) {
   const { workspace } = useWorkspace();
 
   return useQuery({
     queryKey: scheduleKeys.dayMessages(workspace.workspace_id, weekStart),
+    enabled: options?.enabled ?? true,
     staleTime: 2 * 60 * 1000, // 2 minutes — volatile daily content
     queryFn: async () => {
       const supabase = createClient();
@@ -157,11 +163,12 @@ export function useDeleteDayMessage(weekStart: string) {
 
 // ── Query: Fetch tasks for a week ────────────────────────────
 
-export function useDayTasks(weekStart: string, weekEnd: string) {
+export function useDayTasks(weekStart: string, weekEnd: string, options?: { enabled?: boolean }) {
   const { workspace } = useWorkspace();
 
   return useQuery({
     queryKey: scheduleKeys.dayTasks(workspace.workspace_id, weekStart),
+    enabled: options?.enabled ?? true,
     staleTime: 2 * 60 * 1000, // 2 minutes — volatile daily content
     queryFn: async () => {
       const supabase = createClient();
@@ -231,7 +238,7 @@ export function useCreateDayTask(weekStart: string) {
 
 type UpdateDayTaskStatusInput = {
   id: string;
-  patch: Partial<Omit<DayTask, "id">>;
+  patch: DayTaskUpdatePatch;
 };
 
 export function useUpdateDayTaskStatus(weekStart: string) {
@@ -264,7 +271,14 @@ export function useUpdateDayTaskStatus(weekStart: string) {
       queryClient.setQueryData<DayTask[]>(queryKey, (old) =>
         (old ?? []).map((task) => {
           if (task.id !== id) return task;
-          return { ...task, ...patch };
+          return {
+            ...task,
+            ...patch,
+            assignedTo:
+              patch.assignedTo === null ? undefined : (patch.assignedTo ?? task.assignedTo),
+            completedAt:
+              patch.completedAt === null ? undefined : (patch.completedAt ?? task.completedAt),
+          };
         }),
       );
 
@@ -334,11 +348,16 @@ export function useDeleteDayTask(weekStart: string) {
 
 // ── Query: Fetch bookings for a week ─────────────────────────
 
-export function useDayBookings(weekStart: string, weekEnd: string) {
+export function useDayBookings(
+  weekStart: string,
+  weekEnd: string,
+  options?: { enabled?: boolean },
+) {
   const { workspace } = useWorkspace();
 
   return useQuery({
     queryKey: scheduleKeys.dayBookings(workspace.workspace_id, weekStart),
+    enabled: options?.enabled ?? true,
     staleTime: 2 * 60 * 1000, // 2 minutes — volatile daily content
     queryFn: async () => {
       const supabase = createClient();

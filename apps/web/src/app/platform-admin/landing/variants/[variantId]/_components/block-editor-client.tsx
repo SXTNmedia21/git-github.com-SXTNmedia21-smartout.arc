@@ -58,6 +58,56 @@ type BlockEditorClientProps = {
 
 type SaveStatus = "saved" | "saving" | "unsaved";
 
+const ACCENT_OPTIONS = new Set(["orange", "amber", "emerald", "slate", "rose", "yellow"]);
+const THEME_ACCENT_MAP: Record<string, string> = {
+  orange: "24 95% 53%",
+  amber: "38 92% 50%",
+  emerald: "160 84% 39%",
+  slate: "215 16% 47%",
+  rose: "346 77% 49%",
+  yellow: "48 96% 53%",
+};
+
+/**
+ * Extracts the accent value from the variant's theme JSON payload.
+ *
+ * Why: DB stores a full `theme` JSON object, while the metadata form edits
+ * only the accent selector.
+ *
+ * @param theme - Variant theme payload from the database.
+ * @returns A safe accent token for the form state.
+ */
+function getAccentFromTheme(theme: Record<string, unknown> | null | undefined): string {
+  const accent = theme?.accent;
+  if (typeof accent === "string" && ACCENT_OPTIONS.has(accent)) {
+    return accent;
+  }
+  return "orange";
+}
+
+/**
+ * Merges an accent selection into the existing theme JSON payload.
+ *
+ * Why: preserve any additional theme keys while aligning persistence with DB schema.
+ *
+ * @param existingTheme - Existing variant theme object.
+ * @param accent - New accent token selected in the form.
+ * @returns Theme JSON object ready for DB update.
+ */
+function mergeThemeAccent(
+  existingTheme: Record<string, unknown> | null | undefined,
+  accent: string,
+): Record<string, unknown> {
+  const normalizedAccent = ACCENT_OPTIONS.has(accent) ? accent : "orange";
+  const accentColor = THEME_ACCENT_MAP[normalizedAccent] ?? THEME_ACCENT_MAP.orange;
+  return {
+    ...(existingTheme ?? {}),
+    accent: normalizedAccent,
+    accentColor,
+    accentForeground: "0 0% 100%",
+  };
+}
+
 function SaveStatusIndicator({ status }: { status: SaveStatus }) {
   switch (status) {
     case "saved":
@@ -98,7 +148,7 @@ export function BlockEditorClient({
     is_default: initialVariant?.is_default ?? false,
     meta_title: initialVariant?.meta_title ?? "",
     meta_description: initialVariant?.meta_description ?? "",
-    theme_accent: initialVariant?.theme_accent ?? "orange",
+    theme: getAccentFromTheme(initialVariant?.theme),
   });
 
   // Refs for autosave debounce
@@ -143,7 +193,7 @@ export function BlockEditorClient({
       is_default: currentForm.is_default,
       meta_title: currentForm.meta_title.trim() || null,
       meta_description: currentForm.meta_description.trim() || null,
-      theme_accent: currentForm.theme_accent,
+      theme: mergeThemeAccent(currentVariant.theme, currentForm.theme),
     };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -217,7 +267,6 @@ export function BlockEditorClient({
         sort_order: index,
       }));
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       for (const update of updates) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error } = await (supabase as any)
@@ -365,7 +414,7 @@ export function BlockEditorClient({
       is_default: variantForm.is_default,
       meta_title: variantForm.meta_title.trim() || null,
       meta_description: variantForm.meta_description.trim() || null,
-      theme_accent: variantForm.theme_accent,
+      theme: mergeThemeAccent(variant?.theme, variantForm.theme),
     };
 
     if (isNew || !variant) {
@@ -461,7 +510,7 @@ export function BlockEditorClient({
       is_default: variantForm.is_default,
       meta_title: variantForm.meta_title.trim() || null,
       meta_description: variantForm.meta_description.trim() || null,
-      theme_accent: variantForm.theme_accent,
+      theme: mergeThemeAccent(variant.theme, variantForm.theme),
     };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

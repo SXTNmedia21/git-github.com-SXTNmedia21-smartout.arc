@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import type { SmartoutEvent } from "../registry";
 import { EVENT_ROUTING } from "../registry";
-import { sendToPostHogClient } from "../providers/posthog";
+import { sendToPostHogClient } from "../providers/posthog-client";
 
 const MOCK_WORKSPACE_ID = "00000000-0000-0000-0000-000000000000";
 const MOCK_PROFILE_ID = "00000000-0000-0000-0000-000000000000";

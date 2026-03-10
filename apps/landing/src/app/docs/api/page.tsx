@@ -1,6 +1,45 @@
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+"use client";
+
+import { useState } from "react";
 import { ApiSidebar } from "../_components/api-sidebar";
+
+/* ─── Types ─── */
+
+type Tier = "public" | "internal" | "admin";
+
+const TIERS: {
+  id: Tier;
+  label: string;
+  color: string;
+  bg: string;
+  border: string;
+  desc: string;
+}[] = [
+  {
+    id: "public",
+    label: "Public API",
+    color: "text-emerald-400",
+    bg: "bg-emerald-500/10",
+    border: "border-emerald-500/30",
+    desc: "Third-party integrations via API key",
+  },
+  {
+    id: "internal",
+    label: "Internal",
+    color: "text-amber-400",
+    bg: "bg-amber-500/10",
+    border: "border-amber-500/30",
+    desc: "SmartOut dashboard & services",
+  },
+  {
+    id: "admin",
+    label: "Admin",
+    color: "text-rose-400",
+    bg: "bg-rose-500/10",
+    border: "border-rose-500/30",
+    desc: "Platform administration (godmode)",
+  },
+];
 
 /* ─── Helpers ─── */
 
@@ -16,6 +55,17 @@ function M({ method }: { method: string }) {
       className={`inline-block rounded px-1.5 py-0.5 font-mono text-xs font-bold ${c[method] ?? "bg-zinc-500/15 text-zinc-400"}`}
     >
       {method}
+    </span>
+  );
+}
+
+function TierBadge({ tier }: { tier: Tier }) {
+  const t = TIERS.find((x) => x.id === tier)!;
+  return (
+    <span
+      className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-bold tracking-wider uppercase ${t.bg} ${t.color}`}
+    >
+      {t.label}
     </span>
   );
 }
@@ -37,18 +87,27 @@ function Code({ children, label }: { children: string; label?: string }) {
 
 function SectionRow({
   id,
+  tier,
   children,
   code,
   noBorder,
 }: {
   id: string;
+  tier?: Tier;
   children: React.ReactNode;
   code?: React.ReactNode;
   noBorder?: boolean;
 }) {
   return (
     <div id={id} className={`flex scroll-mt-0 ${noBorder ? "" : "border-b border-white/5"}`}>
-      <div className="min-w-0 flex-1 px-8 py-8 lg:px-10 lg:py-10">{children}</div>
+      <div className="min-w-0 flex-1 px-8 py-8 lg:px-10 lg:py-10">
+        {tier && (
+          <div className="mb-3">
+            <TierBadge tier={tier} />
+          </div>
+        )}
+        {children}
+      </div>
       <div className="hidden w-105 shrink-0 border-l border-white/5 bg-[#09090d] px-6 py-8 lg:py-10 xl:block">
         {code}
       </div>
@@ -58,10 +117,6 @@ function SectionRow({
 
 function H2({ children }: { children: React.ReactNode }) {
   return <h2 className="mb-3 text-2xl font-bold tracking-tight text-white">{children}</h2>;
-}
-
-function H3({ children }: { children: React.ReactNode }) {
-  return <h3 className="mb-2 text-base font-bold text-zinc-200">{children}</h3>;
 }
 
 function P({ children }: { children: React.ReactNode }) {
@@ -108,7 +163,7 @@ function Params({
 function Errors({ items }: { items: { code: string; desc: string }[] }) {
   return (
     <div className="mt-3">
-      <p className="mb-1.5 text-xs font-bold tracking-wider text-zinc-500 uppercase">Feilkoder</p>
+      <p className="mb-1.5 text-xs font-bold tracking-wider text-zinc-500 uppercase">Error codes</p>
       <div className="flex flex-wrap gap-1.5">
         {items.map((e) => (
           <span
@@ -123,11 +178,26 @@ function Errors({ items }: { items: { code: string; desc: string }[] }) {
   );
 }
 
-function Endpoint({ method, path, auth }: { method: string; path: string; auth: string }) {
+function Endpoint({
+  method,
+  path,
+  auth,
+  scope,
+}: {
+  method: string;
+  path: string;
+  auth: string;
+  scope?: string;
+}) {
   return (
     <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-white/5 bg-white/2 px-3 py-2.5">
       <M method={method} />
       <code className="text-sm font-semibold text-white">{path}</code>
+      {scope && (
+        <span className="rounded bg-fuchsia-500/10 px-1.5 py-0.5 text-[10px] font-bold text-fuchsia-400">
+          {scope}
+        </span>
+      )}
       <span className="ml-auto text-[11px] font-semibold tracking-wider text-zinc-600 uppercase">
         {auth}
       </span>
@@ -135,116 +205,180 @@ function Endpoint({ method, path, auth }: { method: string; path: string; auth: 
   );
 }
 
+/* ─── Tier Selector ─── */
+
+function TierSelector({
+  active,
+  onChange,
+}: {
+  active: Set<Tier>;
+  onChange: (t: Set<Tier>) => void;
+}) {
+  function toggle(tier: Tier) {
+    const next = new Set(active);
+    if (next.has(tier)) {
+      if (next.size > 1) next.delete(tier);
+    } else {
+      next.add(tier);
+    }
+    onChange(next);
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {TIERS.map((t) => {
+        const on = active.has(t.id);
+        return (
+          <button
+            key={t.id}
+            onClick={() => toggle(t.id)}
+            className={`rounded-lg border px-3 py-2 text-left transition-all ${
+              on
+                ? `${t.border} ${t.bg} ${t.color}`
+                : "border-white/5 bg-white/2 text-zinc-600 hover:border-white/10 hover:text-zinc-400"
+            }`}
+          >
+            <div className="text-xs font-bold">{t.label}</div>
+            <div className={`mt-0.5 text-[11px] ${on ? "opacity-70" : "opacity-50"}`}>{t.desc}</div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ─── Visibility helper ─── */
+
+function Section({
+  tier,
+  active,
+  children,
+}: {
+  tier: Tier;
+  active: Set<Tier>;
+  children: React.ReactNode;
+}) {
+  if (!active.has(tier)) return null;
+  return <>{children}</>;
+}
+
 /* ─── Page ─── */
 
 export default function ApiDocsPage() {
+  const [activeTiers, setActiveTiers] = useState<Set<Tier>>(new Set(["public"]));
+
   return (
     <div className="fixed inset-0 z-50 flex bg-[#050505] text-white">
-      <ApiSidebar />
+      <ApiSidebar activeTiers={activeTiers} />
 
       <div className="flex flex-1 flex-col overflow-y-auto">
         {/* ════════ OVERVIEW ════════ */}
         <SectionRow
-          id="oversikt"
+          id="overview"
           code={
             <div className="space-y-4">
-              <Code label="Base URLs">{`# Web dashboard
-https://app.smartout.ai/api/*
-
-# Landing
-https://smartout.ai/api/*
-
-# Edge Functions
-https://<ref>.supabase.co/functions/v1/*`}</Code>
+              <Code label="Base URL">{`https://api.smartout.ai/v1/`}</Code>
               <div className="rounded-lg border border-fuchsia-500/20 bg-fuchsia-500/5 px-3 py-2.5 text-[13px] text-fuchsia-300">
-                Under lokal utvikling:
-                <div className="mt-1 font-mono text-xs text-zinc-400">
-                  localhost:3050 (web)
-                  <br />
-                  localhost:3055 (landing)
-                  <br />
-                  127.0.0.1:54321 (edge fn)
-                </div>
+                All endpoints return JSON and require{" "}
+                <span className="font-mono text-white">Content-Type: application/json</span>
               </div>
             </div>
           }
         >
-          <h1 className="mb-2 text-3xl font-black tracking-tight text-white">
-            SmartOut API Reference
-          </h1>
+          <h1 className="mb-2 text-3xl font-black tracking-tight text-white">SmartOut API</h1>
           <div className="mb-4 inline-block rounded-full bg-fuchsia-500/10 px-2.5 py-0.5 text-[11px] font-bold tracking-wider text-fuchsia-400 uppercase">
-            REST API v1
+            REST v1
           </div>
           <P>
-            Komplett referansedokumentasjon for SmartOut sitt API. Denne guiden dekker
-            autentisering, endepunkter, feilhåndtering og kodeeksempler.
+            The SmartOut API lets you read employee, organization, contract and training data from
+            your workspace. All endpoints are scoped to a single workspace via your API key.
           </P>
-          <P>
-            SmartOut-APIet er tilgjengelig via tre base-URLer avhengig av kontekst —
-            dashboard-appen, landingssiden, og Supabase Edge Functions.
-          </P>
-          <div className="mt-6 rounded-lg border border-blue-500/20 bg-blue-500/5 px-4 py-3">
-            <p className="text-xs font-bold tracking-wider text-blue-400 uppercase">Tilgang</p>
+
+          <div className="mt-6 mb-2">
+            <p className="mb-2 text-xs font-bold tracking-wider text-zinc-500 uppercase">
+              API Layers
+            </p>
+            <TierSelector active={activeTiers} onChange={setActiveTiers} />
+          </div>
+
+          <div className="mt-5 rounded-lg border border-blue-500/20 bg-blue-500/5 px-4 py-3">
+            <p className="text-xs font-bold tracking-wider text-blue-400 uppercase">Access</p>
             <p className="mt-1 text-[13px] text-zinc-400">
-              Alle endepunkter krever en aktiv SmartOut-konto og gyldig sesjon eller bearer-token,
-              med unntak av helsesjekk og publisert innhold.
+              Public API endpoints require a workspace API key (<IC>smo_sk_live_*</IC>). Internal
+              and admin endpoints use session auth or service keys.
             </p>
           </div>
         </SectionRow>
 
         {/* ════════ AUTHENTICATION ════════ */}
         <SectionRow
-          id="autentisering"
+          id="authentication"
           code={
             <div className="space-y-4">
-              <Code label="Bearer Token">{`curl -X POST \\
-  https://<ref>.supabase.co/functions/v1/create-invitation \\
-  -H "Authorization: Bearer <access-token>" \\
-  -H "Content-Type: application/json" \\
-  -d '{"workspace_id":"...","invites":[...]}'`}</Code>
-              <Code label="Session (browser)">{`// Supabase handles cookies automatically
+              <Code label="API Key">{`curl https://api.smartout.ai/v1/profiles \\
+  -H "Authorization: Bearer smo_sk_live_abc123..."`}</Code>
+              <Section tier="internal" active={activeTiers}>
+                <Code label="Session (browser)">{`// Supabase handles cookies
 const { data } = await supabase
   .from('profile')
-  .select('*')
-  .eq('workspace_id', id);`}</Code>
+  .select('*')`}</Code>
+              </Section>
+              <Section tier="admin" active={activeTiers}>
+                <Code label="Service key">{`curl https://api.smartout.ai/v1/... \\
+  -H "Authorization: Bearer smo_svc_live_..."`}</Code>
+              </Section>
             </div>
           }
         >
-          <H2>Autentisering</H2>
+          <H2>Authentication</H2>
           <P>
-            SmartOut bruker flere autentiseringsmønstre avhengig av endepunkttype. De fleste
-            brukerrettede ruter autentiseres via Supabase session-cookies.
+            Every request must include a valid credential. The auth method depends on the API layer
+            you are using.
           </P>
           <div className="space-y-3">
-            {[
-              {
-                name: "Session Auth",
-                desc: "Cookie-basert, automatisk via Supabase i nettleser. Alle dashboard-ruter.",
-              },
-              {
-                name: "Bearer Token",
-                desc: "For Edge Functions og maskin-til-maskin kall. Send i Authorization-header.",
-              },
-              {
-                name: "Webhook Secret",
-                desc: "Statisk signaturvalidering for innkommende webhooks (DocuSeal).",
-              },
-              {
-                name: "Offentlig",
-                desc: "Helsesjekk og publisert innhold krever ingen autentisering.",
-              },
-            ].map((m) => (
-              <div key={m.name} className="rounded-lg border border-white/5 bg-white/2 px-3 py-2.5">
-                <p className="text-sm font-semibold text-white">{m.name}</p>
-                <p className="mt-0.5 text-[13px] text-zinc-400">{m.desc}</p>
+            <Section tier="public" active={activeTiers}>
+              <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2.5">
+                <div className="flex items-center gap-2">
+                  <TierBadge tier="public" />
+                  <p className="text-sm font-semibold text-white">API Key</p>
+                </div>
+                <p className="mt-1 text-[13px] text-zinc-400">
+                  Send your workspace API key as a Bearer token. Keys are created in Settings &rarr;
+                  API Keys. Prefix: <IC>smo_sk_live_*</IC> (production) or <IC>smo_sk_test_*</IC>{" "}
+                  (sandbox).
+                </p>
               </div>
-            ))}
+            </Section>
+            <Section tier="internal" active={activeTiers}>
+              <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2.5">
+                <div className="flex items-center gap-2">
+                  <TierBadge tier="internal" />
+                  <p className="text-sm font-semibold text-white">Session Auth</p>
+                </div>
+                <p className="mt-1 text-[13px] text-zinc-400">
+                  Cookie-based via Supabase Auth. Used by the SmartOut dashboard and landing page.
+                  Automatic session management in browser.
+                </p>
+              </div>
+            </Section>
+            <Section tier="admin" active={activeTiers}>
+              <div className="rounded-lg border border-rose-500/20 bg-rose-500/5 px-3 py-2.5">
+                <div className="flex items-center gap-2">
+                  <TierBadge tier="admin" />
+                  <p className="text-sm font-semibold text-white">Service Key</p>
+                </div>
+                <p className="mt-1 text-[13px] text-zinc-400">
+                  Machine-to-machine keys for platform services. Prefix: <IC>smo_svc_live_*</IC>.
+                  Requires <IC>is_godmode</IC> for admin operations.
+                </p>
+              </div>
+            </Section>
           </div>
           <div className="mt-5 rounded-lg border border-amber-500/20 bg-amber-500/5 px-4 py-3">
-            <p className="text-xs font-bold tracking-wider text-amber-400 uppercase">Viktig</p>
+            <p className="text-xs font-bold tracking-wider text-amber-400 uppercase">Important</p>
             <p className="mt-1 text-[13px] text-zinc-400">
-              Eksponer aldri <IC>SUPABASE_SERVICE_ROLE_KEY</IC> i klientkode. Den omgår all Row
-              Level Security og skal kun brukes server-side.
+              Never expose your API key in client-side code. All API calls should be made from your
+              server.
             </p>
           </div>
         </SectionRow>
@@ -253,34 +387,42 @@ const { data } = await supabase
         <SectionRow
           id="rate-limits"
           code={
-            <Code label="429 Response">{`{
-  "error": "Too many requests",
-  "details": "Rate limit exceeded. Retry after 60s."
-}`}</Code>
+            <div className="space-y-4">
+              <Code label="429 Response">{`{
+  "error": "Rate limit exceeded"
+}
+
+// Check headers:
+X-RateLimit-Remaining: 0
+Retry-After: 42`}</Code>
+            </div>
           }
         >
-          <H2>Rate limits</H2>
+          <H2>Rate Limits</H2>
           <P>
-            For mange forespørsler utløser <IC>429 Too Many Requests</IC>. Implementer eksponensiell
-            backoff ved retry.
+            All endpoints are rate-limited per API key. When exceeded, you receive a <IC>429</IC>{" "}
+            response with <IC>Retry-After</IC> header.
           </P>
           <div className="overflow-x-auto rounded-lg border border-white/5">
             <table className="w-full text-[13px]">
               <thead>
                 <tr className="border-b border-white/5 bg-white/2">
-                  <th className="px-3 py-2 text-left font-semibold text-zinc-300">Endepunkt</th>
-                  <th className="px-3 py-2 text-left font-semibold text-zinc-300">Grense</th>
-                  <th className="px-3 py-2 text-left font-semibold text-zinc-300">Vindu</th>
+                  <th className="px-3 py-2 text-left font-semibold text-zinc-300">Layer</th>
+                  <th className="px-3 py-2 text-left font-semibold text-zinc-300">Limit</th>
+                  <th className="px-3 py-2 text-left font-semibold text-zinc-300">Window</th>
                 </tr>
               </thead>
               <tbody className="text-zinc-400">
                 {[
-                  ["POST /api/telemetry", "100 req", "per min"],
-                  ["POST /api/onboarding-agent", "30 req", "per min"],
-                  ["Edge Functions", "60 req", "per min"],
-                  ["GET /api/health", "Ubegrenset", "—"],
-                ].map(([ep, limit, window]) => (
-                  <tr key={ep} className="border-b border-white/3 last:border-b-0">
+                  ["Public API (/v1/*)", "60 req", "per minute", "public"],
+                  ["Internal routes", "100 req", "per minute", "internal"],
+                  ["Edge Functions", "60 req", "per minute", "internal"],
+                  ["Admin endpoints", "30 req", "per minute", "admin"],
+                ].map(([ep, limit, window, tier]) => (
+                  <tr
+                    key={ep}
+                    className={`border-b border-white/3 last:border-b-0 ${!activeTiers.has(tier as Tier) ? "opacity-30" : ""}`}
+                  >
                     <td className="px-3 py-2 font-medium text-white">{ep}</td>
                     <td className="px-3 py-2">{limit}</td>
                     <td className="px-3 py-2">{window}</td>
@@ -289,49 +431,48 @@ const { data } = await supabase
               </tbody>
             </table>
           </div>
+          <P>
+            Implement exponential backoff when retrying. Usage is tracked per key in hourly buckets.
+          </P>
         </SectionRow>
 
-        {/* ════════ ERROR FORMAT ════════ */}
+        {/* ════════ ERRORS ════════ */}
         <SectionRow
-          id="feilformat"
+          id="errors"
           code={
             <div className="space-y-4">
-              <Code label="Error Response">{`{
-  "error": "Human-readable error message",
-  "details": "Optional technical context"
+              <Code label="Error response">{`{
+  "error": "Missing scope: profiles:read"
 }`}</Code>
-              <Code label="Validation Error">{`{
+              <Code label="Validation error">{`{
   "error": "Validation failed",
   "details": "workspace_id: Expected uuid"
 }`}</Code>
             </div>
           }
         >
-          <H2>Feilformat</H2>
+          <H2>Errors</H2>
           <P>
-            Alle endepunkter returnerer en konsistent JSON-feilstruktur. Status&shy;koden indikerer
-            feilkategorien.
+            All errors return a consistent JSON structure with an <IC>error</IC> field and optional{" "}
+            <IC>details</IC>.
           </P>
           <div className="overflow-x-auto rounded-lg border border-white/5">
             <table className="w-full text-[13px]">
               <thead>
                 <tr className="border-b border-white/5 bg-white/2">
-                  <th className="px-3 py-2 text-left font-semibold text-zinc-300">Kode</th>
-                  <th className="px-3 py-2 text-left font-semibold text-zinc-300">Betydning</th>
+                  <th className="px-3 py-2 text-left font-semibold text-zinc-300">Code</th>
+                  <th className="px-3 py-2 text-left font-semibold text-zinc-300">Meaning</th>
                 </tr>
               </thead>
               <tbody className="text-zinc-400">
                 {[
-                  ["200", "Vellykket forespørsel", "text-emerald-400"],
-                  ["202", "Akseptert (asynkron)", "text-emerald-400"],
-                  ["400", "Ugyldig forespørsel", "text-amber-400"],
-                  ["401", "Ikke autentisert", "text-amber-400"],
-                  ["403", "Ikke autorisert", "text-amber-400"],
-                  ["404", "Ressurs ikke funnet", "text-amber-400"],
-                  ["409", "Konflikt", "text-orange-400"],
-                  ["429", "Rate limit", "text-orange-400"],
-                  ["500", "Serverfeil", "text-rose-400"],
-                  ["503", "Utilgjengelig", "text-rose-400"],
+                  ["200", "Success", "text-emerald-400"],
+                  ["400", "Bad request / validation", "text-amber-400"],
+                  ["401", "Invalid or missing API key", "text-amber-400"],
+                  ["403", "Missing required scope", "text-amber-400"],
+                  ["404", "Unknown endpoint or resource", "text-amber-400"],
+                  ["429", "Rate limit exceeded", "text-orange-400"],
+                  ["500", "Internal server error", "text-rose-400"],
                 ].map(([code, desc, color]) => (
                   <tr key={code} className="border-b border-white/3 last:border-b-0">
                     <td className={`px-3 py-2 font-mono font-bold ${color}`}>{code}</td>
@@ -343,819 +484,1723 @@ const { data } = await supabase
           </div>
         </SectionRow>
 
-        {/* ════════════════════════════════════════════
-            ROUTE HANDLERS
-            ════════════════════════════════════════════ */}
-
-        {/* ── Health ── */}
+        {/* ════════ PAGINATION ════════ */}
         <SectionRow
-          id="get-health"
+          id="pagination"
           code={
-            <div className="space-y-4">
-              <Code label="curl">{`curl -X GET https://app.smartout.ai/api/health \\
-  -H "Authorization: Bearer YOUR_SECRET"`}</Code>
-              <p className="text-xs font-semibold text-zinc-500">Response:</p>
-              <Code>{`{
-  "status": "healthy",
-  "timestamp": "2026-02-28T14:30:00.000Z",
-  "version": "1.0.0",
-  "checks": {
-    "database": {
-      "status": "ok",
-      "latency_ms": 12
-    },
-    "memory": {
-      "status": "ok",
-      "heap_used_mb": 45.2
-    }
-  }
-}`}</Code>
-            </div>
-          }
-        >
-          <H2>Health</H2>
-          <Endpoint method="GET" path="/api/health" auth="Offentlig / Bearer" />
-          <P>
-            Helsesjekk for web-appen med database- og minnekontroll. Returnerer overall status og
-            individuelle sjekker.
-          </P>
-          <Params
-            title="Respons"
-            items={[
-              { name: "status", type: "string", desc: "'healthy' | 'degraded' | 'unhealthy'" },
-              { name: "timestamp", type: "string", desc: "ISO 8601 tidsstempel" },
-              { name: "version", type: "string", desc: "Appversjon" },
-              { name: "checks", type: "object", desc: "Database- og minnesjekk-resultater" },
-            ]}
-          />
-          <Errors
-            items={[
-              { code: "401", desc: "Ugyldig bearer (når konfigurert)" },
-              { code: "503", desc: "Systemet er unhealthy" },
-            ]}
-          />
-        </SectionRow>
+            <Code label="Example">{`GET /v1/profiles?limit=25&offset=50
 
-        {/* ── Auth Callback ── */}
-        <SectionRow
-          id="get-auth-callback"
-          code={
-            <div className="space-y-4">
-              <Code label="Redirect-flyt">{`# Vellykket innlogging
-GET /api/auth/callback?code=abc123&next=/dashboard
-→ 302 Redirect → /dashboard
-
-# Feil / ugyldig kode
-GET /api/auth/callback?code=invalid
-→ 302 Redirect → /login?error=Invalid_link`}</Code>
-            </div>
-          }
-        >
-          <H2>Auth Callback</H2>
-          <Endpoint method="GET" path="/api/auth/callback" auth="Auth-kode" />
-          <P>
-            Utveksler Supabase auth-kode mot sesjon og redirecter brukeren. Brukes som callback
-            etter innlogging/registrering.
-          </P>
-          <Params
-            title="Query-parametre"
-            items={[
-              {
-                name: "code",
-                type: "string",
-                req: true,
-                desc: "Supabase auth-kode fra OAuth-flyten",
-              },
-              { name: "next", type: "string", desc: "Redirect-mål. Standard: /dashboard" },
-            ]}
-          />
-        </SectionRow>
-
-        {/* ── Content ── */}
-        <SectionRow
-          id="get-content-slug"
-          code={
-            <div className="space-y-4">
-              <Code label="curl">{`curl -X GET https://smartout.ai/api/content/hero-section`}</Code>
-              <p className="text-xs font-semibold text-zinc-500">Response:</p>
-              <Code>{`{
-  "slug": "hero-section",
-  "name": "Hero Section Config",
-  "locale": "no",
-  "content": { "headline": "...", "cta": "..." },
-  "version": 3,
-  "published_at": "2026-02-28T10:00:00Z"
-}`}</Code>
-            </div>
-          }
-        >
-          <H2>Content</H2>
-          <Endpoint method="GET" path="/api/content/[slug]" auth="Offentlig" />
-          <P>
-            Henter publisert innholdsconfig for frontend. Brukes til dynamisk innhold på
-            landingssiden.
-          </P>
-          <Params
-            title="Respons"
-            items={[
-              { name: "slug", type: "string", desc: "Innholds-identifikator" },
-              { name: "content", type: "object", desc: "Publisert JSON-payload" },
-              { name: "version", type: "number", desc: "Versjonsnummer" },
-              { name: "published_at", type: "datetime", desc: "Publiseringstidspunkt" },
-            ]}
-          />
-          <Errors items={[{ code: "404", desc: "Innhold ikke funnet" }]} />
-        </SectionRow>
-
-        {/* ── Docs Agent ── */}
-        <SectionRow
-          id="post-docs-agent"
-          code={
-            <div className="space-y-4">
-              <Code label="curl">{`curl -X POST https://smartout.ai/api/docs-agent \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "message": "Hvordan setter jeg opp HACCP?",
-    "history": []
-  }'`}</Code>
-              <p className="text-xs font-semibold text-zinc-500">Response:</p>
-              <Code>{`{
-  "answer": "For å sette opp HACCP i SmartOut...",
-  "sources": [
-    {
-      "title": "HACCP og Mattilsynet",
-      "href": "/docs/haccp"
-    }
-  ]
-}`}</Code>
-            </div>
-          }
-        >
-          <H2>Docs Agent</H2>
-          <Endpoint method="POST" path="/api/docs-agent" auth="Ingen" />
-          <P>
-            AI-drevet dokumentasjonsagent som besvarer spørsmål basert på brukerhåndboken. Søker i
-            dokumentasjonen og returnerer kontekstuelt svar.
-          </P>
-          <Params
-            title="Forespørsel"
-            items={[
-              {
-                name: "message",
-                type: "string",
-                req: true,
-                desc: "Brukerens spørsmål (1–4000 tegn)",
-              },
-              { name: "history", type: "array", desc: "Samtalehistorikk: [{role, content}]" },
-            ]}
-          />
-          <Params
-            title="Respons"
-            items={[
-              { name: "answer", type: "string", desc: "AI-generert svar" },
-              { name: "sources", type: "array", desc: "Kilder med title og href" },
-            ]}
-          />
-          <Errors
-            items={[
-              { code: "400", desc: "Ugyldig forespørsel" },
-              { code: "500", desc: "Prosesseringsfeil" },
-            ]}
-          />
-        </SectionRow>
-
-        {/* ── Wizard ── */}
-        <SectionRow
-          id="post-wizard-start"
-          code={
-            <div className="space-y-4">
-              <Code label="curl">{`curl -X POST https://app.smartout.ai/api/wizard/start \\
-  -H "Content-Type: application/json" \\
-  -d '{"mission_id": "mr-botsson"}'`}</Code>
-              <p className="text-xs font-semibold text-zinc-500">Response:</p>
-              <Code>{`{
-  "joinUrl": "wss://voice.ultravox.ai/...",
-  "callId": "call_abc123",
-  "mission": "mr-botsson"
-}`}</Code>
-            </div>
-          }
-        >
-          <H2>Voice Mission</H2>
-          <Endpoint method="POST" path="/api/wizard/start" auth="Server-nøkkel" />
-          <P>
-            Starter en Ultravox stemmemisjon. Returnerer join-URL for sanntids stemmesamtale med
-            AI-assistenten.
-          </P>
-          <Params
-            title="Forespørsel"
-            items={[
-              { name: "mission_id", type: "string", desc: "Misjons-ID. Standard: 'mr-botsson'" },
-              { name: "metadata", type: "object", desc: "Tilleggsmetadata" },
-            ]}
-          />
-          <Params
-            title="Respons"
-            items={[
-              { name: "joinUrl", type: "string", desc: "WebSocket-URL for stemmeøkt" },
-              { name: "callId", type: "string", desc: "Unik samtale-ID" },
-              { name: "mission", type: "string", desc: "Misjonsnavn" },
-            ]}
-          />
-          <Errors
-            items={[
-              { code: "503", desc: "Voice-nøkkel mangler" },
-              { code: "502", desc: "Oppstrøms feil" },
-            ]}
-          />
-        </SectionRow>
-
-        {/* ── Onboarding Agent ── */}
-        <SectionRow
-          id="post-onboarding-agent"
-          code={
-            <div className="space-y-4">
-              <Code label="curl">{`curl -X POST https://app.smartout.ai/api/onboarding-agent \\
-  -H "Content-Type: application/json" \\
-  -H "Cookie: sb-access-token=<token>" \\
-  -d '{
-    "sessionId": "b0000000-...",
-    "userMessage": "Vi er en restaurant med 15 ansatte",
-    "conversationHistory": [],
-    "extractIntelligence": false
-  }'`}</Code>
-              <p className="text-xs font-semibold text-zinc-500">Response:</p>
-              <Code>{`{
-  "text": "Flott! La meg sette opp forslag...",
-  "toolCalls": [
-    {
-      "name": "suggest_departments",
-      "args": {
-        "departments": ["Kjøkken", "Sal", "Bar"]
-      }
-    }
-  ],
-  "toolResults": [...]
-}`}</Code>
-            </div>
-          }
-        >
-          <H2>Onboarding Agent</H2>
-          <Endpoint method="POST" path="/api/onboarding-agent" auth="Supabase-sesjon" />
-          <P>
-            Kjører onboarding-samtaleagenten. Kan enten føre en samtale eller hente ut strukturert
-            intelligens fra samtaledata.
-          </P>
-          <Params
-            title="Forespørsel"
-            items={[
-              { name: "sessionId", type: "uuid", req: true, desc: "Onboarding-sesjons-ID" },
-              {
-                name: "userMessage",
-                type: "string",
-                req: true,
-                desc: "Brukerens melding (1–5000 tegn)",
-              },
-              {
-                name: "conversationHistory",
-                type: "array",
-                req: true,
-                desc: "Historikk: [{role, content}]",
-              },
-              {
-                name: "extractIntelligence",
-                type: "boolean",
-                desc: "Hent intelligens istedenfor samtale",
-              },
-            ]}
-          />
-          <Params
-            title="Respons (samtale)"
-            items={[
-              { name: "text", type: "string", desc: "Agentens svar" },
-              { name: "toolCalls", type: "array", desc: "Verktøykall fra agenten" },
-              { name: "toolResults", type: "array", desc: "Resultater fra verktøykall" },
-            ]}
-          />
-          <Errors
-            items={[
-              { code: "401", desc: "Ikke autentisert" },
-              { code: "403", desc: "Feil sesjonseier" },
-              { code: "404", desc: "Sesjon ikke funnet" },
-              { code: "500", desc: "Agentfeil" },
-            ]}
-          />
-        </SectionRow>
-
-        {/* ── Telemetry ── */}
-        <SectionRow
-          id="post-telemetry"
-          code={
-            <div className="space-y-4">
-              <Code label="JavaScript">{`await fetch('/api/telemetry', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    event: 'page_view',
-    workspace_id: 'b0000000-...',
-    actor_id: 'e0000000-...',
-    properties: { page: '/dashboard' }
-  })
-});`}</Code>
-              <p className="text-xs font-semibold text-zinc-500">Response:</p>
-              <Code>{`{ "ok": true }  // 202 Accepted`}</Code>
-            </div>
-          }
-        >
-          <H2>Telemetry</H2>
-          <Endpoint method="POST" path="/api/telemetry" auth="Supabase-sesjon" />
-          <P>
-            Mottar og videresender telemetri-hendelser. Validerer at <IC>actor_id</IC> matcher
-            autentisert bruker. Rate-limited til 100 req/min.
-          </P>
-          <Params
-            title="Forespørsel"
-            items={[
-              { name: "event", type: "string", req: true, desc: "Hendelsesnavn" },
-              { name: "workspace_id", type: "uuid", req: true, desc: "Arbeidsplassens ID" },
-              { name: "actor_id", type: "uuid", req: true, desc: "Bruker-ID (må matche sesjon)" },
-              { name: "properties", type: "object", desc: "Hendelses-egenskaper" },
-              { name: "timestamp", type: "datetime", desc: "Tidsstempel" },
-            ]}
-          />
-          <Errors
-            items={[
-              { code: "429", desc: "Rate limit" },
-              { code: "401", desc: "Ikke autentisert" },
-              { code: "403", desc: "Actor mismatch" },
-              { code: "400", desc: "Ugyldig payload" },
-            ]}
-          />
-        </SectionRow>
-
-        {/* ── Webhooks ── */}
-        <SectionRow
-          id="post-webhooks-docuseal"
-          code={
-            <div className="space-y-4">
-              <Code label="Webhook payload">{`{
-  "event_type": "form.completed",
-  "timestamp": "2026-02-28T12:00:00Z",
+{
   "data": {
-    "id": 12345,
-    "submission_id": 67890,
-    "status": "completed",
-    "submitters": [
-      {
-        "email": "ansatt@bedrift.no",
-        "completed_at": "2026-02-28T11:58:00Z"
-      }
-    ]
+    "profiles": [...],
+    "limit": 25,
+    "offset": 50
   }
 }`}</Code>
-              <p className="text-xs font-semibold text-zinc-500">Response:</p>
-              <Code>{`{
-  "received": true,
-  "status": "signed"
-}`}</Code>
-            </div>
           }
         >
-          <H2>DocuSeal Webhook</H2>
-          <Endpoint method="POST" path="/api/webhooks/docuseal" auth="Webhook-signatur" />
+          <H2>Pagination</H2>
           <P>
-            Mottar DocuSeal-hendelser og oppdaterer kontraktstatus i SmartOut. Signaturvalidering
-            via <IC>x-docuseal-signature</IC> header.
+            List endpoints support <IC>limit</IC> and <IC>offset</IC> query parameters. Maximum
+            limit is <IC>200</IC>, default is <IC>50</IC>.
           </P>
           <Params
-            title="Forespørsel"
+            title="Query parameters"
             items={[
-              { name: "event_type", type: "string", req: true, desc: "Hendelsesnavn" },
-              { name: "timestamp", type: "datetime", req: true, desc: "Hendelsestidspunkt" },
-              { name: "data.id", type: "number", req: true, desc: "Entitets-ID" },
-              { name: "data.submission_id", type: "number", desc: "DocuSeal innleverings-ID" },
-              { name: "data.status", type: "string", desc: "Oppstrøms status" },
-              { name: "data.submitters", type: "array", desc: "Undertegner-data" },
-            ]}
-          />
-          <Errors
-            items={[
-              { code: "401", desc: "Ugyldig signatur" },
-              { code: "400", desc: "Ugyldig payload" },
-              { code: "404", desc: "Kontrakt ikke funnet" },
-              { code: "500", desc: "Skrivefeil" },
+              { name: "limit", type: "number", desc: "Items per page (1-200, default 50)" },
+              { name: "offset", type: "number", desc: "Number of items to skip (default 0)" },
             ]}
           />
         </SectionRow>
 
         {/* ════════════════════════════════════════════
-            EDGE FUNCTIONS
+            PUBLIC API — Workspace API v1
             ════════════════════════════════════════════ */}
 
-        {/* ── Gather ── */}
-        <SectionRow
-          id="fn-gather"
-          code={
-            <div className="space-y-4">
-              <Code label="curl">{`curl -X POST \\
-  https://<ref>.supabase.co/functions/v1/gather-workspace-intelligence \\
-  -H "Authorization: Bearer <token>" \\
-  -H "Content-Type: application/json" \\
-  -d '{"url":"https://restaurant.no","orgNumber":"999888777"}'`}</Code>
-              <p className="text-xs font-semibold text-zinc-500">Response:</p>
-              <Code>{`{
-  "success": true,
-  "sessionId": "sess_abc123",
-  "scrapedData": {
-    "companyName": "Restaurant AS",
-    "locations": ["Hovedsal", "Terrasse"],
-    "departments": ["Kjøkken", "Servering"]
-  },
-  "brregData": {
-    "name": "Restaurant AS",
-    "orgNumber": "999888777",
-    "address": "Storgata 1, Oslo"
+        <Section tier="public" active={activeTiers}>
+          {/* ── Profiles ── */}
+          <SectionRow
+            id="get-profiles"
+            tier="public"
+            code={
+              <div className="space-y-4">
+                <Code label="curl">{`curl https://api.smartout.ai/v1/profiles \\
+  -H "Authorization: Bearer smo_sk_live_..."`}</Code>
+                <Code label="Response">{`{
+  "data": {
+    "profiles": [
+      {
+        "profile_id": "uuid",
+        "profile_code": "EMP-001",
+        "display_name": "Ola Nordmann",
+        "role": "employee",
+        "status": "active",
+        "is_active": true,
+        "job_title": "Servitor",
+        "employee_number": "1001",
+        "department_id": "uuid",
+        "location_id": "uuid",
+        "joined_at": "2026-01-15T09:00:00Z"
+      }
+    ],
+    "limit": 50,
+    "offset": 0
   }
 }`}</Code>
-            </div>
-          }
-        >
-          <H2>Gather Intelligence</H2>
-          <Endpoint
-            method="POST"
-            path="/functions/v1/gather-workspace-intelligence"
-            auth="Valgfri Bearer"
-          />
-          <P>
-            Samler bedriftsinformasjon fra nettside-skraping og Brønnøysund&shy;registrene.
-            Oppretter en innsamlings-sesjon for videre analyse.
-          </P>
-          <Params
-            title="Forespørsel"
-            items={[
-              { name: "url", type: "string", req: true, desc: "Bedriftens nettside-URL" },
-              { name: "orgNumber", type: "string", desc: "Org.nr. for Brønnøysund-oppslag" },
-            ]}
-          />
-          <Params
-            title="Respons"
-            items={[
-              { name: "sessionId", type: "string", desc: "Innsamlings-sesjons-ID" },
-              { name: "scrapedData", type: "object", desc: "Data fra nettside" },
-              { name: "brregData", type: "object", desc: "Data fra Brønnøysundregistrene" },
-            ]}
-          />
-        </SectionRow>
+              </div>
+            }
+          >
+            <H2>List Profiles</H2>
+            <Endpoint method="GET" path="/v1/profiles" auth="API Key" scope="profiles:read" />
+            <P>
+              Returns all employee profiles in your workspace. Supports filtering by status and
+              active state.
+            </P>
+            <Params
+              title="Query parameters"
+              items={[
+                {
+                  name: "status",
+                  type: "string",
+                  desc: "Filter by status: trainee, active, inactive, offboarding",
+                },
+                { name: "is_active", type: "boolean", desc: "Filter by active state" },
+                { name: "limit", type: "number", desc: "Items per page (max 200)" },
+                { name: "offset", type: "number", desc: "Pagination offset" },
+              ]}
+            />
+            <Params
+              title="Response fields"
+              items={[
+                { name: "profile_id", type: "uuid", desc: "Unique profile identifier" },
+                {
+                  name: "profile_code",
+                  type: "string",
+                  desc: "Human-readable code (e.g. EMP-001)",
+                },
+                { name: "display_name", type: "string", desc: "Full name" },
+                { name: "role", type: "string", desc: "employee | manager | admin | owner" },
+                {
+                  name: "status",
+                  type: "string",
+                  desc: "trainee | active | inactive | offboarding",
+                },
+                { name: "is_active", type: "boolean", desc: "Whether profile is active" },
+                { name: "job_title", type: "string?", desc: "Job title" },
+                { name: "employee_number", type: "string?", desc: "Internal employee number" },
+                { name: "department_id", type: "uuid?", desc: "Department assignment" },
+                { name: "location_id", type: "uuid?", desc: "Location assignment" },
+                { name: "joined_at", type: "datetime", desc: "When the employee joined" },
+              ]}
+            />
+            <Errors
+              items={[
+                { code: "401", desc: "Invalid API key" },
+                { code: "403", desc: "Missing profiles:read scope" },
+              ]}
+            />
+          </SectionRow>
 
-        {/* ── Analyze ── */}
-        <SectionRow
-          id="fn-analyze"
-          code={
-            <Code label="curl">{`curl -X POST \\
-  https://<ref>.supabase.co/functions/v1/analyze-workspace \\
-  -H "Authorization: Bearer <token>" \\
-  -H "Content-Type: application/json" \\
-  -d '{"sessionId":"sess_abc123","companyName":"Restaurant AS"}'`}</Code>
-          }
-        >
-          <H2>Analyze Workspace</H2>
-          <Endpoint method="POST" path="/functions/v1/analyze-workspace" auth="Bearer" />
-          <P>
-            Analyserer innsamlet data med AI og foreslår organisasjonsstruktur — avdelinger,
-            stillinger, team og rutiner.
-          </P>
-          <Params
-            title="Forespørsel"
-            items={[
-              { name: "sessionId", type: "string", req: true, desc: "Sesjons-ID fra gather" },
-              { name: "companyName", type: "string", desc: "Bedriftsnavn" },
-              { name: "scrapedData", type: "object", desc: "Skrapede data" },
-            ]}
-          />
-        </SectionRow>
-
-        {/* ── Finalize ── */}
-        <SectionRow
-          id="fn-finalize"
-          code={
-            <Code label="curl">{`curl -X POST \\
-  https://<ref>.supabase.co/functions/v1/finalize-workspace \\
-  -H "Authorization: Bearer <token>" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "companyName": "Restaurant AS",
-    "locations": [{"name":"Hovedsal"}],
-    "departments": [{"name":"Kjøkken"},{"name":"Sal"}]
-  }'`}</Code>
-          }
-        >
-          <H2>Finalize Workspace</H2>
-          <Endpoint method="POST" path="/functions/v1/finalize-workspace" auth="Bearer" />
-          <P>
-            Oppretter workspace med company, lokasjoner, avdelinger og policies i én transaksjon.
-          </P>
-          <Params
-            title="Forespørsel"
-            items={[
-              { name: "companyName", type: "string", req: true, desc: "Bedriftsnavn" },
-              { name: "locations", type: "array", desc: "Lokasjoner" },
-              { name: "departments", type: "array", desc: "Avdelinger" },
-              { name: "policies", type: "array", desc: "Policies" },
-            ]}
-          />
-        </SectionRow>
-
-        {/* ── Activate ── */}
-        <SectionRow
-          id="fn-activate"
-          code={
-            <Code label="curl">{`curl -X POST \\
-  https://<ref>.supabase.co/functions/v1/activate-workspace \\
-  -H "Authorization: Bearer <token>" \\
-  -H "Content-Type: application/json" \\
-  -d '{"workspaceData":{...}}'`}</Code>
-          }
-        >
-          <H2>Activate Workspace</H2>
-          <Endpoint method="POST" path="/functions/v1/activate-workspace" auth="Bearer" />
-          <P>Aktiverer et opprettet workspace. Markerer det som klart til bruk.</P>
-          <Params
-            title="Forespørsel"
-            items={[
-              {
-                name: "workspaceData",
-                type: "object",
-                req: true,
-                desc: "Payload til activate RPC",
-              },
-            ]}
-          />
-        </SectionRow>
-
-        {/* ── Create Invitation ── */}
-        <SectionRow
-          id="fn-invite"
-          code={
-            <div className="space-y-4">
-              <Code label="curl">{`curl -X POST \\
-  https://<ref>.supabase.co/functions/v1/create-invitation \\
-  -H "Authorization: Bearer <token>" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "workspace_id": "b0000000-...",
-    "company_id": "a0000000-...",
-    "invites": [
+          {/* ── Departments ── */}
+          <SectionRow
+            id="get-departments"
+            tier="public"
+            code={
+              <div className="space-y-4">
+                <Code label="curl">{`curl https://api.smartout.ai/v1/departments \\
+  -H "Authorization: Bearer smo_sk_live_..."`}</Code>
+                <Code label="Response">{`{
+  "data": {
+    "departments": [
       {
-        "email": "ny.ansatt@firma.no",
-        "first_name": "Ola",
-        "last_name": "Nordmann",
-        "role": "employee",
-        "department_ids": ["dept-uuid"]
+        "department_id": "uuid",
+        "name": "Kitchen",
+        "description": "Main kitchen",
+        "is_active": true,
+        "created_at": "2026-01-10T08:00:00Z"
       }
     ]
-  }'`}</Code>
-              <p className="text-xs font-semibold text-zinc-500">Response:</p>
-              <Code>{`{
-  "success": true,
-  "count": 1,
-  "invitations": [
-    {
-      "invitation_id": "inv_abc123",
-      "email": "ny.ansatt@firma.no",
-      "status": "pending",
-      "expires_at": "2026-03-14T..."
-    }
+  }
+}`}</Code>
+              </div>
+            }
+          >
+            <H2>List Departments</H2>
+            <Endpoint method="GET" path="/v1/departments" auth="API Key" scope="profiles:read" />
+            <P>Returns all departments in your workspace, sorted by name.</P>
+            <Params
+              title="Response fields"
+              items={[
+                { name: "department_id", type: "uuid", desc: "Unique identifier" },
+                { name: "name", type: "string", desc: "Department name" },
+                { name: "description", type: "string?", desc: "Description" },
+                { name: "is_active", type: "boolean", desc: "Whether department is active" },
+                { name: "created_at", type: "datetime", desc: "Creation timestamp" },
+              ]}
+            />
+            <Errors
+              items={[
+                { code: "401", desc: "Invalid API key" },
+                { code: "403", desc: "Missing profiles:read scope" },
+              ]}
+            />
+          </SectionRow>
+
+          {/* ── Teams ── */}
+          <SectionRow
+            id="get-teams"
+            tier="public"
+            code={
+              <div className="space-y-4">
+                <Code label="curl">{`curl https://api.smartout.ai/v1/teams \\
+  -H "Authorization: Bearer smo_sk_live_..."`}</Code>
+                <Code label="Response">{`{
+  "data": {
+    "teams": [
+      {
+        "team_id": "uuid",
+        "name": "A-team",
+        "description": "Evening crew",
+        "department_id": "uuid",
+        "leader_profile_id": "uuid",
+        "is_active": true,
+        "created_at": "2026-01-10T08:00:00Z"
+      }
+    ]
+  }
+}`}</Code>
+              </div>
+            }
+          >
+            <H2>List Teams</H2>
+            <Endpoint method="GET" path="/v1/teams" auth="API Key" scope="profiles:read" />
+            <P>Returns all teams in your workspace, sorted by name.</P>
+            <Params
+              title="Response fields"
+              items={[
+                { name: "team_id", type: "uuid", desc: "Unique identifier" },
+                { name: "name", type: "string", desc: "Team name" },
+                { name: "description", type: "string?", desc: "Description" },
+                { name: "department_id", type: "uuid", desc: "Parent department" },
+                { name: "leader_profile_id", type: "uuid?", desc: "Team leader profile" },
+                { name: "is_active", type: "boolean", desc: "Whether team is active" },
+                { name: "created_at", type: "datetime", desc: "Creation timestamp" },
+              ]}
+            />
+            <Errors
+              items={[
+                { code: "401", desc: "Invalid API key" },
+                { code: "403", desc: "Missing profiles:read scope" },
+              ]}
+            />
+          </SectionRow>
+
+          {/* ── Locations ── */}
+          <SectionRow
+            id="get-locations"
+            tier="public"
+            code={
+              <div className="space-y-4">
+                <Code label="curl">{`curl https://api.smartout.ai/v1/locations \\
+  -H "Authorization: Bearer smo_sk_live_..."`}</Code>
+                <Code label="Response">{`{
+  "data": {
+    "locations": [
+      {
+        "location_id": "uuid",
+        "name": "Hovedrestauranten",
+        "address": "Storgata 1",
+        "city": "Oslo",
+        "postal_code": "0001",
+        "country": "NO",
+        "is_active": true,
+        "created_at": "2026-01-10T08:00:00Z"
+      }
+    ]
+  }
+}`}</Code>
+              </div>
+            }
+          >
+            <H2>List Locations</H2>
+            <Endpoint method="GET" path="/v1/locations" auth="API Key" scope="profiles:read" />
+            <P>Returns all physical locations in your workspace, sorted by name.</P>
+            <Params
+              title="Response fields"
+              items={[
+                { name: "location_id", type: "uuid", desc: "Unique identifier" },
+                { name: "name", type: "string", desc: "Location name" },
+                { name: "address", type: "string?", desc: "Street address" },
+                { name: "city", type: "string?", desc: "City" },
+                { name: "postal_code", type: "string?", desc: "Postal code" },
+                { name: "country", type: "string?", desc: "Country code (e.g. NO)" },
+                { name: "is_active", type: "boolean", desc: "Whether location is active" },
+                { name: "created_at", type: "datetime", desc: "Creation timestamp" },
+              ]}
+            />
+            <Errors
+              items={[
+                { code: "401", desc: "Invalid API key" },
+                { code: "403", desc: "Missing profiles:read scope" },
+              ]}
+            />
+          </SectionRow>
+
+          {/* ── Contracts ── */}
+          <SectionRow
+            id="get-contracts"
+            tier="public"
+            code={
+              <div className="space-y-4">
+                <Code label="curl">{`curl https://api.smartout.ai/v1/contracts\\
+?status=signed \\
+  -H "Authorization: Bearer smo_sk_live_..."`}</Code>
+                <Code label="Response">{`{
+  "data": {
+    "contracts": [
+      {
+        "contract_id": "uuid",
+        "profile_id": "uuid",
+        "status": "signed",
+        "position_title": "Servitor",
+        "employment_category": "hourly",
+        "employment_percentage": 80,
+        "start_date": "2026-02-01",
+        "end_date": null,
+        "signed_at": "2026-01-28T14:30:00Z",
+        "created_at": "2026-01-20T10:00:00Z"
+      }
+    ],
+    "limit": 50,
+    "offset": 0
+  }
+}`}</Code>
+              </div>
+            }
+          >
+            <H2>List Contracts</H2>
+            <Endpoint method="GET" path="/v1/contracts" auth="API Key" scope="contracts:read" />
+            <P>
+              Returns employment contracts. Sensitive fields (document URLs, signature IDs) are
+              excluded from the API response.
+            </P>
+            <Params
+              title="Query parameters"
+              items={[
+                { name: "profile_id", type: "uuid", desc: "Filter by employee profile" },
+                { name: "status", type: "string", desc: "Filter by contract status" },
+                { name: "limit", type: "number", desc: "Items per page (max 200)" },
+                { name: "offset", type: "number", desc: "Pagination offset" },
+              ]}
+            />
+            <Params
+              title="Response fields"
+              items={[
+                { name: "contract_id", type: "uuid", desc: "Unique identifier" },
+                { name: "profile_id", type: "uuid", desc: "Employee profile" },
+                { name: "status", type: "string", desc: "Contract status" },
+                { name: "position_title", type: "string", desc: "Job position" },
+                {
+                  name: "employment_category",
+                  type: "string",
+                  desc: "Category (hourly, salaried, etc.)",
+                },
+                {
+                  name: "employment_percentage",
+                  type: "number",
+                  desc: "Employment percentage (0-100)",
+                },
+                { name: "start_date", type: "date", desc: "Contract start date" },
+                { name: "end_date", type: "date?", desc: "Contract end date (null = permanent)" },
+                { name: "signed_at", type: "datetime?", desc: "When the contract was signed" },
+                { name: "created_at", type: "datetime", desc: "Creation timestamp" },
+              ]}
+            />
+            <Errors
+              items={[
+                { code: "401", desc: "Invalid API key" },
+                { code: "403", desc: "Missing contracts:read scope" },
+              ]}
+            />
+          </SectionRow>
+
+          {/* ── Protocols ── */}
+          <SectionRow
+            id="get-protocols"
+            tier="public"
+            code={
+              <div className="space-y-4">
+                <Code label="curl">{`curl https://api.smartout.ai/v1/protocols \\
+  -H "Authorization: Bearer smo_sk_live_..."`}</Code>
+                <Code label="Response">{`{
+  "data": {
+    "protocols": [
+      {
+        "protocol_id": "uuid",
+        "policy_id": "uuid",
+        "name": "Food Safety Basics",
+        "description": "Core hygiene...",
+        "type": "procedure",
+        "is_active": true,
+        "created_at": "2026-01-05T12:00:00Z"
+      }
+    ],
+    "limit": 50,
+    "offset": 0
+  }
+}`}</Code>
+              </div>
+            }
+          >
+            <H2>List Protocols</H2>
+            <Endpoint method="GET" path="/v1/protocols" auth="API Key" scope="training:read" />
+            <P>
+              Returns training protocols (procedures, routines, checklists, etc.) in your workspace.
+            </P>
+            <Params
+              title="Response fields"
+              items={[
+                { name: "protocol_id", type: "uuid", desc: "Unique identifier" },
+                { name: "policy_id", type: "uuid", desc: "Parent policy" },
+                { name: "name", type: "string", desc: "Protocol name" },
+                { name: "description", type: "string?", desc: "Description" },
+                {
+                  name: "type",
+                  type: "string",
+                  desc: "procedure | routine | runbook | control_list | knowledge_test | confirmation",
+                },
+                { name: "is_active", type: "boolean", desc: "Whether protocol is active" },
+                { name: "created_at", type: "datetime", desc: "Creation timestamp" },
+              ]}
+            />
+            <Errors
+              items={[
+                { code: "401", desc: "Invalid API key" },
+                { code: "403", desc: "Missing training:read scope" },
+              ]}
+            />
+          </SectionRow>
+
+          {/* ── Assignments ── */}
+          <SectionRow
+            id="get-assignments"
+            tier="public"
+            code={
+              <div className="space-y-4">
+                <Code label="curl">{`curl https://api.smartout.ai/v1/assignments\\
+?profile_id=uuid \\
+  -H "Authorization: Bearer smo_sk_live_..."`}</Code>
+                <Code label="Response">{`{
+  "data": {
+    "assignments": [
+      {
+        "assignment_id": "uuid",
+        "protocol_id": "uuid",
+        "profile_id": "uuid",
+        "status": "completed",
+        "assigned_at": "2026-01-15T09:00:00Z",
+        "completed_at": "2026-01-20T14:30:00Z",
+        "protocol_name": "Food Safety Basics"
+      }
+    ],
+    "limit": 50,
+    "offset": 0
+  }
+}`}</Code>
+              </div>
+            }
+          >
+            <H2>List Assignments</H2>
+            <Endpoint method="GET" path="/v1/assignments" auth="API Key" scope="training:read" />
+            <P>
+              Returns protocol assignments for employees. Use <IC>profile_id</IC> to check a
+              specific employee&apos;s training progress.
+            </P>
+            <Params
+              title="Query parameters"
+              items={[
+                { name: "profile_id", type: "uuid", desc: "Filter by employee profile" },
+                { name: "limit", type: "number", desc: "Items per page (max 200)" },
+                { name: "offset", type: "number", desc: "Pagination offset" },
+              ]}
+            />
+            <Params
+              title="Response fields"
+              items={[
+                { name: "assignment_id", type: "uuid", desc: "Unique identifier" },
+                { name: "protocol_id", type: "uuid", desc: "Assigned protocol" },
+                { name: "profile_id", type: "uuid", desc: "Assigned employee" },
+                { name: "status", type: "string", desc: "Assignment status" },
+                { name: "assigned_at", type: "datetime", desc: "When assigned" },
+                {
+                  name: "completed_at",
+                  type: "datetime?",
+                  desc: "When completed (null if pending)",
+                },
+                { name: "protocol_name", type: "string", desc: "Protocol name (joined)" },
+              ]}
+            />
+            <Errors
+              items={[
+                { code: "401", desc: "Invalid API key" },
+                { code: "403", desc: "Missing training:read scope" },
+              ]}
+            />
+          </SectionRow>
+        </Section>
+
+        {/* ════════════════════════════════════════════
+            SCHEDULES
+            ════════════════════════════════════════════ */}
+
+        <Section tier="public" active={activeTiers}>
+          {/* ── Shifts ── */}
+          <SectionRow
+            id="get-shifts"
+            tier="public"
+            code={
+              <div className="space-y-4">
+                <Code label="curl">{`curl https://api.smartout.ai/v1/shifts?date_from=2026-03-01 \\
+  -H "Authorization: Bearer smo_sk_live_..."`}</Code>
+                <Code label="Response">{`{
+  "data": {
+    "shifts": [
+      {
+        "schedule_shift_id": "uuid",
+        "employee_id": "uuid",
+        "shift_date": "2026-03-15",
+        "start_time": "09:00",
+        "end_time": "17:00",
+        "status": "published"
+      }
+    ],
+    "limit": 50,
+    "offset": 0
+  }
+}`}</Code>
+              </div>
+            }
+          >
+            <H2>List Shifts</H2>
+            <Endpoint method="GET" path="/v1/shifts" auth="API Key" scope="schedules:read" />
+            <P>
+              Returns scheduled shifts in your workspace. Use date filters to query specific periods
+              and <IC>employee_id</IC> for a single employee&apos;s schedule.
+            </P>
+            <Params
+              title="Query parameters"
+              items={[
+                { name: "date_from", type: "date", desc: "Start date (YYYY-MM-DD)" },
+                { name: "date_to", type: "date", desc: "End date (YYYY-MM-DD)" },
+                { name: "employee_id", type: "uuid", desc: "Filter by employee profile" },
+                { name: "status", type: "string", desc: "Filter by shift status" },
+                { name: "limit", type: "number", desc: "Items per page (max 200)" },
+                { name: "offset", type: "number", desc: "Pagination offset" },
+              ]}
+            />
+            <Errors
+              items={[
+                { code: "401", desc: "Invalid API key" },
+                { code: "403", desc: "Missing schedules:read scope" },
+              ]}
+            />
+          </SectionRow>
+
+          {/* ── Absences ── */}
+          <SectionRow
+            id="get-absences"
+            tier="public"
+            code={
+              <div className="space-y-4">
+                <Code label="curl">{`curl https://api.smartout.ai/v1/absences \\
+  -H "Authorization: Bearer smo_sk_live_..."`}</Code>
+                <Code label="Response">{`{
+  "data": {
+    "absences": [
+      {
+        "absence_id": "uuid",
+        "employee_id": "uuid",
+        "absence_type": "sick",
+        "start_date": "2026-03-10",
+        "end_date": "2026-03-11",
+        "status": "approved"
+      }
+    ],
+    "limit": 50,
+    "offset": 0
+  }
+}`}</Code>
+              </div>
+            }
+          >
+            <H2>List Absences</H2>
+            <Endpoint method="GET" path="/v1/absences" auth="API Key" scope="schedules:read" />
+            <P>
+              Returns absence records for your workspace. Filter by employee or status to find
+              specific absence entries.
+            </P>
+            <Params
+              title="Query parameters"
+              items={[
+                { name: "employee_id", type: "uuid", desc: "Filter by employee profile" },
+                { name: "status", type: "string", desc: "Filter by absence status" },
+                { name: "limit", type: "number", desc: "Items per page (max 200)" },
+                { name: "offset", type: "number", desc: "Pagination offset" },
+              ]}
+            />
+            <Errors
+              items={[
+                { code: "401", desc: "Invalid API key" },
+                { code: "403", desc: "Missing schedules:read scope" },
+              ]}
+            />
+          </SectionRow>
+        </Section>
+
+        {/* ════════════════════════════════════════════
+            OPERATIONS
+            ════════════════════════════════════════════ */}
+
+        <Section tier="public" active={activeTiers}>
+          {/* ── Sessions ── */}
+          <SectionRow
+            id="get-sessions"
+            tier="public"
+            code={
+              <div className="space-y-4">
+                <Code label="curl">{`curl https://api.smartout.ai/v1/sessions?date_from=2026-03-01 \\
+  -H "Authorization: Bearer smo_sk_live_..."`}</Code>
+                <Code label="Response">{`{
+  "data": {
+    "sessions": [
+      {
+        "session_id": "uuid",
+        "department_id": "uuid",
+        "session_date": "2026-03-15",
+        "status": "active",
+        "opened_at": "2026-03-15T09:00:00Z"
+      }
+    ],
+    "limit": 50,
+    "offset": 0
+  }
+}`}</Code>
+              </div>
+            }
+          >
+            <H2>List Sessions</H2>
+            <Endpoint method="GET" path="/v1/sessions" auth="API Key" scope="operations:read" />
+            <P>
+              Returns department sessions. Sessions are daily containers per department that track
+              operational lifecycle from opening to close.
+            </P>
+            <Params
+              title="Query parameters"
+              items={[
+                { name: "department_id", type: "uuid", desc: "Filter by department" },
+                { name: "status", type: "string", desc: "Filter by session status" },
+                { name: "date_from", type: "date", desc: "Start date (YYYY-MM-DD)" },
+                { name: "date_to", type: "date", desc: "End date (YYYY-MM-DD)" },
+                { name: "limit", type: "number", desc: "Items per page (max 200)" },
+                { name: "offset", type: "number", desc: "Pagination offset" },
+              ]}
+            />
+            <Errors
+              items={[
+                { code: "401", desc: "Invalid API key" },
+                { code: "403", desc: "Missing operations:read scope" },
+              ]}
+            />
+          </SectionRow>
+
+          {/* ── Deviations ── */}
+          <SectionRow
+            id="get-deviations"
+            tier="public"
+            code={
+              <div className="space-y-4">
+                <Code label="curl">{`curl https://api.smartout.ai/v1/deviations \\
+  -H "Authorization: Bearer smo_sk_live_..."`}</Code>
+                <Code label="Response">{`{
+  "data": {
+    "deviations": [
+      {
+        "deviation_id": "uuid",
+        "domain": "operations",
+        "severity": "medium",
+        "status": "open",
+        "description": "Temperature out of range",
+        "created_at": "2026-03-15T14:30:00Z"
+      }
+    ],
+    "limit": 50,
+    "offset": 0
+  }
+}`}</Code>
+              </div>
+            }
+          >
+            <H2>List Deviations</H2>
+            <Endpoint method="GET" path="/v1/deviations" auth="API Key" scope="operations:read" />
+            <P>
+              Returns operational deviations. Filter by domain, severity, or status to find specific
+              deviation records.
+            </P>
+            <Params
+              title="Query parameters"
+              items={[
+                {
+                  name: "domain",
+                  type: "string",
+                  desc: "Filter by domain (e.g. operations, food_safety)",
+                },
+                {
+                  name: "severity",
+                  type: "string",
+                  desc: "Filter by severity: low, medium, high, critical",
+                },
+                {
+                  name: "status",
+                  type: "string",
+                  desc: "Filter by status: open, resolved, dismissed",
+                },
+                { name: "limit", type: "number", desc: "Items per page (max 200)" },
+                { name: "offset", type: "number", desc: "Pagination offset" },
+              ]}
+            />
+            <Errors
+              items={[
+                { code: "401", desc: "Invalid API key" },
+                { code: "403", desc: "Missing operations:read scope" },
+              ]}
+            />
+          </SectionRow>
+        </Section>
+
+        {/* ════════════════════════════════════════════
+            REPORTS
+            ════════════════════════════════════════════ */}
+
+        <Section tier="public" active={activeTiers}>
+          {/* ── Reconciliations ── */}
+          <SectionRow
+            id="get-reconciliations"
+            tier="public"
+            code={
+              <div className="space-y-4">
+                <Code label="curl">{`curl https://api.smartout.ai/v1/reconciliations?date_from=2026-03-01 \\
+  -H "Authorization: Bearer smo_sk_live_..."`}</Code>
+                <Code label="Response">{`{
+  "data": {
+    "reconciliations": [
+      {
+        "reconciliation_id": "uuid",
+        "department_id": "uuid",
+        "session_date": "2026-03-15",
+        "status": "completed",
+        "total_revenue": 45000
+      }
+    ],
+    "limit": 50,
+    "offset": 0
+  }
+}`}</Code>
+              </div>
+            }
+          >
+            <H2>List Reconciliations</H2>
+            <Endpoint method="GET" path="/v1/reconciliations" auth="API Key" scope="reports:read" />
+            <P>
+              Returns daily reconciliation records. Reconciliations capture revenue, labor costs,
+              and operational metrics per department session.
+            </P>
+            <Params
+              title="Query parameters"
+              items={[
+                { name: "department_id", type: "uuid", desc: "Filter by department" },
+                { name: "status", type: "string", desc: "Filter by reconciliation status" },
+                { name: "date_from", type: "date", desc: "Start date (YYYY-MM-DD)" },
+                { name: "date_to", type: "date", desc: "End date (YYYY-MM-DD)" },
+                { name: "limit", type: "number", desc: "Items per page (max 200)" },
+                { name: "offset", type: "number", desc: "Pagination offset" },
+              ]}
+            />
+            <Errors
+              items={[
+                { code: "401", desc: "Invalid API key" },
+                { code: "403", desc: "Missing reports:read scope" },
+              ]}
+            />
+          </SectionRow>
+
+          {/* ── Shift Approvals ── */}
+          <SectionRow
+            id="get-shift-approvals"
+            tier="public"
+            code={
+              <div className="space-y-4">
+                <Code label="curl">{`curl https://api.smartout.ai/v1/shift-approvals?status=pending \\
+  -H "Authorization: Bearer smo_sk_live_..."`}</Code>
+                <Code label="Response">{`{
+  "data": {
+    "shift_approvals": [
+      {
+        "approval_id": "uuid",
+        "reconciliation_id": "uuid",
+        "employee_id": "uuid",
+        "status": "pending",
+        "hours_worked": 8.5
+      }
+    ],
+    "limit": 50,
+    "offset": 0
+  }
+}`}</Code>
+              </div>
+            }
+          >
+            <H2>List Shift Approvals</H2>
+            <Endpoint method="GET" path="/v1/shift-approvals" auth="API Key" scope="reports:read" />
+            <P>
+              Returns shift approval records tied to reconciliations. Use <IC>reconciliation_id</IC>{" "}
+              to get approvals for a specific session.
+            </P>
+            <Params
+              title="Query parameters"
+              items={[
+                { name: "reconciliation_id", type: "uuid", desc: "Filter by reconciliation" },
+                { name: "status", type: "string", desc: "Filter by approval status" },
+                { name: "limit", type: "number", desc: "Items per page (max 200)" },
+                { name: "offset", type: "number", desc: "Pagination offset" },
+              ]}
+            />
+            <Errors
+              items={[
+                { code: "401", desc: "Invalid API key" },
+                { code: "403", desc: "Missing reports:read scope" },
+              ]}
+            />
+          </SectionRow>
+
+          {/* ── KPI Targets ── */}
+          <SectionRow
+            id="get-kpi-targets"
+            tier="public"
+            code={
+              <div className="space-y-4">
+                <Code label="curl">{`curl https://api.smartout.ai/v1/kpi-targets \\
+  -H "Authorization: Bearer smo_sk_live_..."`}</Code>
+                <Code label="Response">{`{
+  "data": {
+    "kpi_targets": [
+      {
+        "kpi_target_id": "uuid",
+        "metric": "labor_percentage",
+        "target_value": 28.0,
+        "unit": "percent"
+      }
+    ]
+  }
+}`}</Code>
+              </div>
+            }
+          >
+            <H2>List KPI Targets</H2>
+            <Endpoint method="GET" path="/v1/kpi-targets" auth="API Key" scope="reports:read" />
+            <P>
+              Returns all KPI targets configured for your workspace. These define operational goals
+              such as labor percentage and revenue targets.
+            </P>
+            <Errors
+              items={[
+                { code: "401", desc: "Invalid API key" },
+                { code: "403", desc: "Missing reports:read scope" },
+              ]}
+            />
+          </SectionRow>
+
+          {/* ── Budgets ── */}
+          <SectionRow
+            id="get-budgets"
+            tier="public"
+            code={
+              <div className="space-y-4">
+                <Code label="curl">{`curl https://api.smartout.ai/v1/budgets?date_from=2026-03-01 \\
+  -H "Authorization: Bearer smo_sk_live_..."`}</Code>
+                <Code label="Response">{`{
+  "data": {
+    "budgets": [
+      {
+        "budget_id": "uuid",
+        "budget_date": "2026-03-15",
+        "revenue_target": 50000,
+        "labor_budget": 14000
+      }
+    ]
+  }
+}`}</Code>
+              </div>
+            }
+          >
+            <H2>List Budgets</H2>
+            <Endpoint method="GET" path="/v1/budgets" auth="API Key" scope="reports:read" />
+            <P>
+              Returns operational budget targets. Use date filters to query budget data for specific
+              periods.
+            </P>
+            <Params
+              title="Query parameters"
+              items={[
+                { name: "date_from", type: "date", desc: "Start date (YYYY-MM-DD)" },
+                { name: "date_to", type: "date", desc: "End date (YYYY-MM-DD)" },
+              ]}
+            />
+            <Errors
+              items={[
+                { code: "401", desc: "Invalid API key" },
+                { code: "403", desc: "Missing reports:read scope" },
+              ]}
+            />
+          </SectionRow>
+        </Section>
+
+        {/* ════════════════════════════════════════════
+            GUARDIAN
+            ════════════════════════════════════════════ */}
+
+        <Section tier="public" active={activeTiers}>
+          {/* ── Signals ── */}
+          <SectionRow
+            id="get-signals"
+            tier="public"
+            code={
+              <div className="space-y-4">
+                <Code label="curl">{`curl https://api.smartout.ai/v1/signals?severity=high \\
+  -H "Authorization: Bearer smo_sk_live_..."`}</Code>
+                <Code label="Response">{`{
+  "data": {
+    "signals": [
+      {
+        "signal_id": "uuid",
+        "domain": "food_safety",
+        "severity": "high",
+        "status": "active",
+        "message": "Fridge temperature above threshold",
+        "created_at": "2026-03-15T10:30:00Z"
+      }
+    ],
+    "limit": 50,
+    "offset": 0
+  }
+}`}</Code>
+              </div>
+            }
+          >
+            <H2>List Signals</H2>
+            <Endpoint method="GET" path="/v1/signals" auth="API Key" scope="guardian:read" />
+            <P>
+              Returns guardian signals — automated alerts triggered by operational conditions. By
+              default only active signals are returned; pass <IC>status=all</IC> for everything.
+            </P>
+            <Params
+              title="Query parameters"
+              items={[
+                {
+                  name: "domain",
+                  type: "string",
+                  desc: "Filter by domain (e.g. food_safety, operations)",
+                },
+                {
+                  name: "severity",
+                  type: "string",
+                  desc: "Filter by severity: low, medium, high, critical",
+                },
+                {
+                  name: "status",
+                  type: "string",
+                  desc: "Filter by status (default: active, use 'all' for everything)",
+                },
+                { name: "limit", type: "number", desc: "Items per page (max 200)" },
+                { name: "offset", type: "number", desc: "Pagination offset" },
+              ]}
+            />
+            <Errors
+              items={[
+                { code: "401", desc: "Invalid API key" },
+                { code: "403", desc: "Missing guardian:read scope" },
+              ]}
+            />
+          </SectionRow>
+
+          {/* ── Guardian Log ── */}
+          <SectionRow
+            id="get-guardian-log"
+            tier="public"
+            code={
+              <div className="space-y-4">
+                <Code label="curl">{`curl https://api.smartout.ai/v1/guardian-log?since=2026-03-01T00:00:00Z \\
+  -H "Authorization: Bearer smo_sk_live_..."`}</Code>
+                <Code label="Response">{`{
+  "data": {
+    "entries": [
+      {
+        "entry_id": "uuid",
+        "event_type": "signal_created",
+        "payload": {},
+        "created_at": "2026-03-15T10:30:00Z"
+      }
+    ],
+    "limit": 50,
+    "offset": 0
+  }
+}`}</Code>
+              </div>
+            }
+          >
+            <H2>Guardian Log</H2>
+            <Endpoint method="GET" path="/v1/guardian-log" auth="API Key" scope="guardian:read" />
+            <P>
+              Returns the guardian event log — a chronological record of all guardian actions
+              including signal creation, resolution, and escalation events.
+            </P>
+            <Params
+              title="Query parameters"
+              items={[
+                { name: "event_type", type: "string", desc: "Filter by event type" },
+                {
+                  name: "since",
+                  type: "datetime",
+                  desc: "Only events after this timestamp (ISO 8601)",
+                },
+                { name: "limit", type: "number", desc: "Items per page (max 200)" },
+                { name: "offset", type: "number", desc: "Pagination offset" },
+              ]}
+            />
+            <Errors
+              items={[
+                { code: "401", desc: "Invalid API key" },
+                { code: "403", desc: "Missing guardian:read scope" },
+              ]}
+            />
+          </SectionRow>
+        </Section>
+
+        {/* ════════════════════════════════════════════
+            EVENTS
+            ════════════════════════════════════════════ */}
+
+        <Section tier="public" active={activeTiers}>
+          {/* ── Events ── */}
+          <SectionRow
+            id="get-events"
+            tier="public"
+            code={
+              <div className="space-y-4">
+                <Code label="curl">{`curl https://api.smartout.ai/v1/events?since=2026-03-01T00:00:00Z \\
+  -H "Authorization: Bearer smo_sk_live_..."`}</Code>
+                <Code label="Response">{`{
+  "data": {
+    "events": [
+      {
+        "event_id": "uuid",
+        "event_type": "shift.started",
+        "payload": {},
+        "created_at": "2026-03-15T09:00:00Z"
+      }
+    ],
+    "limit": 50,
+    "offset": 0
+  }
+}`}</Code>
+              </div>
+            }
+          >
+            <H2>List Events</H2>
+            <Endpoint method="GET" path="/v1/events" auth="API Key" scope="events:read" />
+            <P>
+              Returns the engine event stream. Events are emitted by the system when significant
+              actions occur (shifts, sessions, deviations, etc.).
+            </P>
+            <Params
+              title="Query parameters"
+              items={[
+                {
+                  name: "event_type",
+                  type: "string",
+                  desc: "Filter by event type (e.g. shift.started)",
+                },
+                {
+                  name: "since",
+                  type: "datetime",
+                  desc: "Only events after this timestamp (ISO 8601)",
+                },
+                { name: "limit", type: "number", desc: "Items per page (max 200)" },
+                { name: "offset", type: "number", desc: "Pagination offset" },
+              ]}
+            />
+            <Errors
+              items={[
+                { code: "401", desc: "Invalid API key" },
+                { code: "403", desc: "Missing events:read scope" },
+              ]}
+            />
+          </SectionRow>
+        </Section>
+
+        {/* ════════════════════════════════════════════
+            SUPPLIERS
+            ════════════════════════════════════════════ */}
+
+        <Section tier="public" active={activeTiers}>
+          {/* ── Suppliers ── */}
+          <SectionRow
+            id="get-suppliers"
+            tier="public"
+            code={
+              <div className="space-y-4">
+                <Code label="curl">{`curl https://api.smartout.ai/v1/suppliers \\
+  -H "Authorization: Bearer smo_sk_live_..."`}</Code>
+                <Code label="Response">{`{
+  "data": {
+    "suppliers": [
+      {
+        "supplier_id": "uuid",
+        "name": "Nordic Foods AS",
+        "category": "food",
+        "contact_email": "order@nordicfoods.no",
+        "is_active": true
+      }
+    ]
+  }
+}`}</Code>
+              </div>
+            }
+          >
+            <H2>List Suppliers</H2>
+            <Endpoint method="GET" path="/v1/suppliers" auth="API Key" scope="suppliers:read" />
+            <P>
+              Returns all suppliers registered in your workspace. Optionally filter by category to
+              find suppliers of a specific type.
+            </P>
+            <Params
+              title="Query parameters"
+              items={[{ name: "category", type: "string", desc: "Filter by supplier category" }]}
+            />
+            <Errors
+              items={[
+                { code: "401", desc: "Invalid API key" },
+                { code: "403", desc: "Missing suppliers:read scope" },
+              ]}
+            />
+          </SectionRow>
+
+          {/* ── Supplier Orders ── */}
+          <SectionRow
+            id="get-supplier-orders"
+            tier="public"
+            code={
+              <div className="space-y-4">
+                <Code label="curl">{`curl https://api.smartout.ai/v1/supplier-orders?date_from=2026-03-01 \\
+  -H "Authorization: Bearer smo_sk_live_..."`}</Code>
+                <Code label="Response">{`{
+  "data": {
+    "orders": [
+      {
+        "order_id": "uuid",
+        "supplier_id": "uuid",
+        "order_date": "2026-03-15",
+        "total_amount": 12500,
+        "status": "delivered"
+      }
+    ],
+    "limit": 50,
+    "offset": 0
+  }
+}`}</Code>
+              </div>
+            }
+          >
+            <H2>List Orders</H2>
+            <Endpoint
+              method="GET"
+              path="/v1/supplier-orders"
+              auth="API Key"
+              scope="suppliers:read"
+            />
+            <P>
+              Returns supplier orders. Use <IC>supplier_id</IC> to get orders from a specific
+              supplier, or date filters for a time range.
+            </P>
+            <Params
+              title="Query parameters"
+              items={[
+                { name: "supplier_id", type: "uuid", desc: "Filter by supplier" },
+                { name: "date_from", type: "date", desc: "Start date (YYYY-MM-DD)" },
+                { name: "date_to", type: "date", desc: "End date (YYYY-MM-DD)" },
+                { name: "limit", type: "number", desc: "Items per page (max 200)" },
+                { name: "offset", type: "number", desc: "Pagination offset" },
+              ]}
+            />
+            <Errors
+              items={[
+                { code: "401", desc: "Invalid API key" },
+                { code: "403", desc: "Missing suppliers:read scope" },
+              ]}
+            />
+          </SectionRow>
+        </Section>
+
+        {/* ════════════════════════════════════════════
+            WASTE
+            ════════════════════════════════════════════ */}
+
+        <Section tier="public" active={activeTiers}>
+          {/* ── Waste Logs ── */}
+          <SectionRow
+            id="get-waste-logs"
+            tier="public"
+            code={
+              <div className="space-y-4">
+                <Code label="curl">{`curl https://api.smartout.ai/v1/waste-logs?date_from=2026-03-01 \\
+  -H "Authorization: Bearer smo_sk_live_..."`}</Code>
+                <Code label="Response">{`{
+  "data": {
+    "waste_logs": [
+      {
+        "waste_log_id": "uuid",
+        "category": "food",
+        "department_id": "uuid",
+        "quantity_kg": 2.5,
+        "estimated_cost": 450,
+        "logged_at": "2026-03-15T22:00:00Z"
+      }
+    ],
+    "limit": 50,
+    "offset": 0
+  }
+}`}</Code>
+              </div>
+            }
+          >
+            <H2>List Waste Logs</H2>
+            <Endpoint method="GET" path="/v1/waste-logs" auth="API Key" scope="waste:read" />
+            <P>
+              Returns waste log entries. Track food waste, material waste, and other categories by
+              department over time.
+            </P>
+            <Params
+              title="Query parameters"
+              items={[
+                { name: "category", type: "string", desc: "Filter by waste category" },
+                { name: "department_id", type: "uuid", desc: "Filter by department" },
+                { name: "date_from", type: "date", desc: "Start date (YYYY-MM-DD)" },
+                { name: "date_to", type: "date", desc: "End date (YYYY-MM-DD)" },
+                { name: "limit", type: "number", desc: "Items per page (max 200)" },
+                { name: "offset", type: "number", desc: "Pagination offset" },
+              ]}
+            />
+            <Errors
+              items={[
+                { code: "401", desc: "Invalid API key" },
+                { code: "403", desc: "Missing waste:read scope" },
+              ]}
+            />
+          </SectionRow>
+        </Section>
+
+        {/* ════════════════════════════════════════════
+            EQUIPMENT
+            ════════════════════════════════════════════ */}
+
+        <Section tier="public" active={activeTiers}>
+          {/* ── Assets ── */}
+          <SectionRow
+            id="get-assets"
+            tier="public"
+            code={
+              <div className="space-y-4">
+                <Code label="curl">{`curl https://api.smartout.ai/v1/assets \\
+  -H "Authorization: Bearer smo_sk_live_..."`}</Code>
+                <Code label="Response">{`{
+  "data": {
+    "assets": [
+      {
+        "asset_id": "uuid",
+        "name": "Walk-in Fridge #1",
+        "category": "refrigeration",
+        "location_id": "uuid",
+        "status": "operational"
+      }
+    ]
+  }
+}`}</Code>
+              </div>
+            }
+          >
+            <H2>List Assets</H2>
+            <Endpoint method="GET" path="/v1/assets" auth="API Key" scope="equipment:read" />
+            <P>
+              Returns all equipment assets registered in your workspace, including their current
+              operational status and location.
+            </P>
+            <Errors
+              items={[
+                { code: "401", desc: "Invalid API key" },
+                { code: "403", desc: "Missing equipment:read scope" },
+              ]}
+            />
+          </SectionRow>
+
+          {/* ── Asset Maintenance ── */}
+          <SectionRow
+            id="get-asset-maintenance"
+            tier="public"
+            code={
+              <div className="space-y-4">
+                <Code label="curl">{`curl https://api.smartout.ai/v1/asset-maintenance?asset_id=uuid \\
+  -H "Authorization: Bearer smo_sk_live_..."`}</Code>
+                <Code label="Response">{`{
+  "data": {
+    "maintenance_logs": [
+      {
+        "maintenance_id": "uuid",
+        "asset_id": "uuid",
+        "maintenance_type": "preventive",
+        "description": "Filter replacement",
+        "completed_at": "2026-03-10T14:00:00Z"
+      }
+    ],
+    "limit": 50,
+    "offset": 0
+  }
+}`}</Code>
+              </div>
+            }
+          >
+            <H2>Maintenance Log</H2>
+            <Endpoint
+              method="GET"
+              path="/v1/asset-maintenance"
+              auth="API Key"
+              scope="equipment:read"
+            />
+            <P>
+              Returns maintenance records for equipment assets. Use <IC>asset_id</IC> to get the
+              maintenance history for a specific asset.
+            </P>
+            <Params
+              title="Query parameters"
+              items={[
+                { name: "asset_id", type: "uuid", desc: "Filter by asset" },
+                { name: "limit", type: "number", desc: "Items per page (max 200)" },
+                { name: "offset", type: "number", desc: "Pagination offset" },
+              ]}
+            />
+            <Errors
+              items={[
+                { code: "401", desc: "Invalid API key" },
+                { code: "403", desc: "Missing equipment:read scope" },
+              ]}
+            />
+          </SectionRow>
+
+          {/* ── Asset Downtime ── */}
+          <SectionRow
+            id="get-asset-downtime"
+            tier="public"
+            code={
+              <div className="space-y-4">
+                <Code label="curl">{`curl https://api.smartout.ai/v1/asset-downtime?active_only=true \\
+  -H "Authorization: Bearer smo_sk_live_..."`}</Code>
+                <Code label="Response">{`{
+  "data": {
+    "downtime_logs": [
+      {
+        "downtime_id": "uuid",
+        "asset_id": "uuid",
+        "reason": "Compressor failure",
+        "started_at": "2026-03-14T18:00:00Z",
+        "resolved_at": null
+      }
+    ],
+    "limit": 50,
+    "offset": 0
+  }
+}`}</Code>
+              </div>
+            }
+          >
+            <H2>Downtime Log</H2>
+            <Endpoint
+              method="GET"
+              path="/v1/asset-downtime"
+              auth="API Key"
+              scope="equipment:read"
+            />
+            <P>
+              Returns downtime records for equipment assets. Use <IC>active_only</IC> to see only
+              currently unresolved downtime events.
+            </P>
+            <Params
+              title="Query parameters"
+              items={[
+                { name: "asset_id", type: "uuid", desc: "Filter by asset" },
+                {
+                  name: "active_only",
+                  type: "boolean",
+                  desc: "Only show unresolved downtime (default: false)",
+                },
+                { name: "limit", type: "number", desc: "Items per page (max 200)" },
+                { name: "offset", type: "number", desc: "Pagination offset" },
+              ]}
+            />
+            <Errors
+              items={[
+                { code: "401", desc: "Invalid API key" },
+                { code: "403", desc: "Missing equipment:read scope" },
+              ]}
+            />
+          </SectionRow>
+        </Section>
+
+        {/* ════════════════════════════════════════════
+            INTERNAL — Dashboard & Edge Functions
+            ════════════════════════════════════════════ */}
+
+        <Section tier="internal" active={activeTiers}>
+          <SectionRow
+            id="internal-routes"
+            tier="internal"
+            code={
+              <Code label="Edge Function base">{`https://<ref>.supabase.co/functions/v1/*
+
+# Local development:
+# localhost:3050 (dashboard)
+# localhost:3055 (landing)
+# 127.0.0.1:54321 (edge functions)`}</Code>
+            }
+          >
+            <H2>Internal Endpoints</H2>
+            <P>
+              These endpoints are used by the SmartOut dashboard and landing page. They require
+              session authentication and are not intended for third-party use.
+            </P>
+            <h3 className="mb-3 text-lg font-bold text-white">Web Dashboard</h3>
+            <div className="space-y-2">
+              {[
+                {
+                  method: "GET",
+                  path: "/api/health",
+                  desc: "System health check with DB and memory status",
+                },
+                {
+                  method: "GET",
+                  path: "/api/auth/callback",
+                  desc: "OAuth callback handler (code exchange + redirect)",
+                },
+                {
+                  method: "GET",
+                  path: "/api/content/[slug]",
+                  desc: "Dynamic content config for frontend",
+                },
+                {
+                  method: "POST",
+                  path: "/api/onboarding-agent",
+                  desc: "Conversational onboarding agent",
+                },
+                {
+                  method: "POST",
+                  path: "/api/contract-agent",
+                  desc: "Contract generation AI agent",
+                },
+                { method: "POST", path: "/api/journey-agent", desc: "Journey builder AI agent" },
+                { method: "POST", path: "/api/reports-agent", desc: "Reports AI agent" },
+                { method: "POST", path: "/api/agent/memory", desc: "Agent memory persistence" },
+                { method: "POST", path: "/api/wizard/start", desc: "Start Ultravox voice session" },
+                { method: "POST", path: "/api/telemetry", desc: "Event telemetry ingestion" },
+                { method: "POST", path: "/api/scrape/raw", desc: "Raw website scraping proxy" },
+                {
+                  method: "POST",
+                  path: "/api/onboarding/clauses",
+                  desc: "Contract clause generation",
+                },
+                {
+                  method: "POST",
+                  path: "/api/onboarding/send-contract",
+                  desc: "Send contract for signing",
+                },
+                {
+                  method: "POST",
+                  path: "/api/webhooks/docuseal",
+                  desc: "DocuSeal contract webhook",
+                },
+              ].map((ep) => (
+                <div
+                  key={ep.path}
+                  className="flex items-start gap-2 rounded-lg border border-white/5 bg-white/2 px-3 py-2"
+                >
+                  <M method={ep.method} />
+                  <div>
+                    <code className="text-[13px] font-semibold text-white">{ep.path}</code>
+                    <p className="mt-0.5 text-[12px] text-zinc-500">{ep.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <h3 className="mt-8 mb-3 text-lg font-bold text-white">Landing Site</h3>
+            <div className="space-y-2">
+              {[
+                { method: "GET", path: "/api/health", desc: "Landing health check" },
+                { method: "GET", path: "/api/auth/callback", desc: "OAuth callback (landing)" },
+                { method: "POST", path: "/api/docs-agent", desc: "AI documentation assistant" },
+                { method: "POST", path: "/api/track", desc: "Analytics event tracking" },
+                { method: "POST", path: "/api/revalidate", desc: "ISR revalidation trigger" },
+                { method: "POST", path: "/api/wizard/start", desc: "Voice mission launcher" },
+                {
+                  method: "POST",
+                  path: "/api/wizard/engine-start",
+                  desc: "Engine-based voice session",
+                },
+              ].map((ep) => (
+                <div
+                  key={ep.path}
+                  className="flex items-start gap-2 rounded-lg border border-white/5 bg-white/2 px-3 py-2"
+                >
+                  <M method={ep.method} />
+                  <div>
+                    <code className="text-[13px] font-semibold text-white">{ep.path}</code>
+                    <p className="mt-0.5 text-[12px] text-zinc-500">{ep.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <h3 className="mt-8 mb-3 text-lg font-bold text-white">Edge Functions</h3>
+            <div className="space-y-2">
+              {[
+                { name: "workspace-api", desc: "Public API gateway (v1 endpoints)" },
+                {
+                  name: "gather-workspace-intelligence",
+                  desc: "Scrape company website + Bronnøysund",
+                },
+                { name: "analyze-workspace", desc: "AI analysis of gathered data" },
+                { name: "finalize-workspace", desc: "Create workspace from analyzed data" },
+                { name: "activate-workspace", desc: "Activate workspace after onboarding" },
+                { name: "identify-company", desc: "Company identification from URL/org number" },
+                { name: "google-places-intelligence", desc: "Google Places data enrichment" },
+                { name: "create-invitation", desc: "Send employee invitations" },
+                { name: "accept-invitation", desc: "Process invitation acceptance" },
+                { name: "extract-workspace-data", desc: "Export workspace data" },
+                { name: "validate-api-key", desc: "API key validation service" },
+                { name: "cleanup-api-keys", desc: "Scheduled expired key cleanup" },
+                { name: "engine-dispatch", desc: "Stage Engine event dispatcher" },
+                { name: "contract-lifecycle", desc: "Contract state machine" },
+                { name: "scrape-website", desc: "Website scraping service" },
+                { name: "scrape-raw-data", desc: "Raw data extraction" },
+                { name: "web-search-intelligence", desc: "Web search for company intel" },
+                { name: "search-brreg", desc: "Bronnøysund registry lookup" },
+                { name: "process-settlement-image", desc: "Settlement image OCR processing" },
+                { name: "validate-settlement", desc: "Settlement validation logic" },
+                { name: "leader-pulse", desc: "Leader engagement pulse checks" },
+                { name: "guardian-sweep", desc: "Scheduled compliance checks" },
+                { name: "guardian-notify", desc: "Guardian alert notifications" },
+                { name: "guardian-actions", desc: "Automated guardian actions" },
+                { name: "sendgrid-webhook", desc: "SendGrid inbound email webhook" },
+                { name: "watchdog-integrity", desc: "Data integrity monitor" },
+                { name: "watchdog-uptime", desc: "Uptime monitoring" },
+                { name: "health-check", desc: "Edge function health check" },
+              ].map((fn) => (
+                <div
+                  key={fn.name}
+                  className="flex items-start gap-2 rounded border border-white/5 bg-white/2 px-3 py-2"
+                >
+                  <span className="shrink-0 rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-400">
+                    FN
+                  </span>
+                  <div>
+                    <code className="text-[13px] font-semibold text-white">{fn.name}</code>
+                    <p className="mt-0.5 text-[12px] text-zinc-500">{fn.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </SectionRow>
+        </Section>
+
+        {/* ════════════════════════════════════════════
+            ADMIN — Platform Administration
+            ════════════════════════════════════════════ */}
+
+        <Section tier="admin" active={activeTiers}>
+          <SectionRow
+            id="admin-endpoints"
+            tier="admin"
+            code={
+              <Code label="Admin auth">{`// Requires is_godmode = true
+// on user_identity table
+
+// Service key pattern:
+Authorization: Bearer smo_svc_live_...`}</Code>
+            }
+          >
+            <H2>Admin Endpoints</H2>
+            <P>
+              Platform administration endpoints require <IC>is_godmode</IC> access on the
+              user_identity table. These are used for platform management and are never exposed to
+              workspace users or third parties.
+            </P>
+            <div className="space-y-2">
+              {[
+                {
+                  name: "API Keys",
+                  path: "/api/platform-admin/keys/*",
+                  desc: "Create, rotate, revoke, usage tracking",
+                },
+                {
+                  name: "Workspaces",
+                  path: "/api/platform-admin/workspaces/*",
+                  desc: "Lookup, provision, manage workspaces",
+                },
+                {
+                  name: "Contracts",
+                  path: "/api/platform-admin/contracts/*",
+                  desc: "Send, remind, cancel contracts",
+                },
+                {
+                  name: "Communications",
+                  path: "/api/platform-admin/communications/*",
+                  desc: "Send, translate, dry-run, AI correct, history",
+                },
+                {
+                  name: "Journeys",
+                  path: "/api/platform-admin/journeys/*",
+                  desc: "Journey builder wizard, test runs, steps, transitions",
+                },
+                {
+                  name: "Content",
+                  path: "/api/platform-admin/content/*",
+                  desc: "Content configs, publish management",
+                },
+                {
+                  name: "Secrets",
+                  path: "/api/platform-admin/secrets/*",
+                  desc: "Vault secret management, bulk operations",
+                },
+                {
+                  name: "Services",
+                  path: "/api/platform-admin/services/*",
+                  desc: "Service config, health, restart, env sync",
+                },
+                {
+                  name: "Health",
+                  path: "/api/platform-admin/health/*",
+                  desc: "System status, speed tests",
+                },
+                {
+                  name: "Users",
+                  path: "/api/platform-admin/users/*",
+                  desc: "Toggle godmode access",
+                },
+                {
+                  name: "Audit Log",
+                  path: "/api/platform-admin/audit-log",
+                  desc: "Platform-wide audit trail",
+                },
+                {
+                  name: "Visitor Analytics",
+                  path: "/api/admin/visitor-sessions",
+                  desc: "Session events, visitor tagging",
+                },
+              ].map((item) => (
+                <div
+                  key={item.name}
+                  className="rounded-lg border border-rose-500/10 bg-rose-500/5 px-3 py-2.5"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-sm font-semibold text-white">{item.name}</p>
+                    <code className="shrink-0 text-[11px] text-zinc-600">{item.path}</code>
+                  </div>
+                  <p className="mt-0.5 text-[12px] text-zinc-500">{item.desc}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-5 rounded-lg border border-rose-500/20 bg-rose-500/5 px-4 py-3">
+              <p className="text-xs font-bold tracking-wider text-rose-400 uppercase">Restricted</p>
+              <p className="mt-1 text-[13px] text-zinc-400">
+                Admin endpoints are not documented publicly. Contact platform team for access.
+              </p>
+            </div>
+          </SectionRow>
+        </Section>
+
+        {/* ════════ SCOPES REFERENCE ════════ */}
+        <SectionRow
+          id="scopes"
+          noBorder
+          code={
+            <Code label="Key with scopes">{`// When creating an API key,
+// select which scopes to grant:
+
+{
+  "name": "POS Integration",
+  "scopes": [
+    "profiles:read",
+    "schedules:read"
   ]
 }`}</Code>
-            </div>
           }
         >
-          <H2>Create Invitation</H2>
-          <Endpoint
-            method="POST"
-            path="/functions/v1/create-invitation"
-            auth="Bearer (admin/owner)"
-          />
+          <H2>Scopes Reference</H2>
           <P>
-            Oppretter invitasjoner for nye ansatte. Krever admin- eller eier-rolle i workspacet.
-          </P>
-          <Params
-            title="Forespørsel"
-            items={[
-              { name: "workspace_id", type: "uuid", req: true, desc: "Arbeidsplassens ID" },
-              { name: "company_id", type: "uuid", req: true, desc: "Bedriftens ID" },
-              { name: "invites[].email", type: "string", req: true, desc: "E-post" },
-              { name: "invites[].first_name", type: "string", req: true, desc: "Fornavn" },
-              { name: "invites[].last_name", type: "string", req: true, desc: "Etternavn" },
-              { name: "invites[].role", type: "string", desc: "employee | manager | admin" },
-              { name: "invites[].department_ids", type: "uuid[]", desc: "Avdelings-IDer" },
-            ]}
-          />
-          <Params
-            title="Respons"
-            items={[
-              { name: "success", type: "boolean", desc: "Vellykket" },
-              { name: "count", type: "number", desc: "Antall opprettet" },
-              { name: "invitations", type: "array", desc: "Invitasjonsobjekter" },
-            ]}
-          />
-        </SectionRow>
-
-        {/* ── Extract / Scrape / WebSearch ── */}
-        <SectionRow
-          id="fn-extract"
-          code={
-            <Code label="curl">{`curl -X POST \\
-  https://<ref>.supabase.co/functions/v1/extract-workspace-data \\
-  -H "Authorization: Bearer <token>" \\
-  -d '{"url":"https://restaurant.no"}'`}</Code>
-          }
-        >
-          <H2>Extract Data</H2>
-          <Endpoint method="POST" path="/functions/v1/extract-workspace-data" auth="Bearer" />
-          <P>Henter strukturert data fra en nettside via skrapingstjenesten.</P>
-          <Params
-            title="Forespørsel"
-            items={[
-              { name: "url", type: "string", req: true, desc: "URL å skrape" },
-              { name: "config", type: "object", desc: "Skrapingskonfigurasjon" },
-            ]}
-          />
-        </SectionRow>
-
-        <SectionRow
-          id="fn-scrape-raw"
-          code={
-            <Code label="curl">{`curl -X POST \\
-  https://<ref>.supabase.co/functions/v1/scrape-raw-data \\
-  -H "Authorization: Bearer <token>" \\
-  -d '{"url":"https://restaurant.no"}'`}</Code>
-          }
-        >
-          <H2>Scrape Raw</H2>
-          <Endpoint method="POST" path="/functions/v1/scrape-raw-data" auth="Bearer" />
-          <P>Rå skraping uten strukturering. Returnerer tittel, tekst, bilder og filer.</P>
-        </SectionRow>
-
-        <SectionRow
-          id="fn-websearch"
-          code={
-            <Code label="curl">{`curl -X POST \\
-  https://<ref>.supabase.co/functions/v1/web-search-intelligence \\
-  -H "Authorization: Bearer <token>" \\
-  -d '{"sessionId":"...","companyName":"Restaurant AS"}'`}</Code>
-          }
-        >
-          <H2>Web Search</H2>
-          <Endpoint method="POST" path="/functions/v1/web-search-intelligence" auth="Bearer" />
-          <P>Nettsøk etter bedriftsinformasjon — anmeldelser, sesongmønstre, stillingsannonser.</P>
-          <Params
-            title="Forespørsel"
-            items={[
-              { name: "sessionId", type: "string", req: true, desc: "Innsamlings-sesjons-ID" },
-              { name: "companyName", type: "string", req: true, desc: "Bedriftsnavn" },
-              { name: "city", type: "string", desc: "By for lokalisert søk" },
-            ]}
-          />
-        </SectionRow>
-
-        {/* ── Monitoring ── */}
-        <SectionRow
-          id="fn-monitoring"
-          code={
-            <Code label="curl">{`curl -X GET \\
-  https://<ref>.supabase.co/functions/v1/health-check \\
-  -H "Authorization: Bearer <WATCHDOG_SECRET>"`}</Code>
-          }
-        >
-          <H2>Monitoring</H2>
-          <P>
-            Tre overvåkningsfunksjoner for systemhelse, dataintegritet og oppetid. Alle aksepterer
-            valgfri <IC>WATCHDOG_CRON_SECRET</IC>.
+            API keys are granted specific scopes that control which endpoints they can access.
+            Create keys with minimal scopes for your integration needs.
           </P>
           <div className="overflow-x-auto rounded-lg border border-white/5">
             <table className="w-full text-[13px]">
               <thead>
                 <tr className="border-b border-white/5 bg-white/2">
-                  <th className="px-3 py-2 text-left font-semibold text-zinc-300">Funksjon</th>
-                  <th className="px-3 py-2 text-left font-semibold text-zinc-300">Formål</th>
-                </tr>
-              </thead>
-              <tbody className="text-zinc-400">
-                <tr className="border-b border-white/3">
-                  <td className="px-3 py-2 font-mono text-xs text-white">health-check</td>
-                  <td className="px-3 py-2">Database + runtime helse</td>
-                </tr>
-                <tr className="border-b border-white/3">
-                  <td className="px-3 py-2 font-mono text-xs text-white">watchdog-integrity</td>
-                  <td className="px-3 py-2">Data-integritetssjekk</td>
-                </tr>
-                <tr>
-                  <td className="px-3 py-2 font-mono text-xs text-white">watchdog-uptime</td>
-                  <td className="px-3 py-2">Oppetidssjekk mot /api/health</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </SectionRow>
-
-        {/* ════════════════════════════════════════════
-            ADMIN
-            ════════════════════════════════════════════ */}
-
-        <SectionRow
-          id="platform-admin"
-          code={
-            <Code label="curl">{`curl -X GET \\
-  https://app.smartout.ai/api/platform-admin/content/configs \\
-  -H "Cookie: sb-access-token=<super-admin-token>"`}</Code>
-          }
-        >
-          <H2>Platform Admin</H2>
-          <P>
-            Admin-endepunkter for CMS-innhold. Krever super-admin tilgang. Alle ruter under{" "}
-            <IC>/api/platform-admin/</IC>.
-          </P>
-          <div className="overflow-x-auto rounded-lg border border-white/5">
-            <table className="w-full text-[13px]">
-              <thead>
-                <tr className="border-b border-white/5 bg-white/2">
-                  <th className="px-3 py-2 text-left text-zinc-300">Metode</th>
-                  <th className="px-3 py-2 text-left text-zinc-300">Sti</th>
-                  <th className="px-3 py-2 text-left text-zinc-300">Formål</th>
+                  <th className="px-3 py-2 text-left font-semibold text-zinc-300">Scope</th>
+                  <th className="px-3 py-2 text-left font-semibold text-zinc-300">Endpoints</th>
+                  <th className="px-3 py-2 text-left font-semibold text-zinc-300">Status</th>
                 </tr>
               </thead>
               <tbody className="text-zinc-400">
                 {[
-                  ["GET", ".../configs", "List alle"],
-                  ["POST", ".../configs", "Opprett draft"],
-                  ["GET", ".../configs/[slug]", "Hent config"],
-                  ["PATCH", ".../configs/[slug]", "Oppdater"],
-                  ["DELETE", ".../configs/[slug]", "Arkiver"],
-                  ["POST", ".../configs/[slug]/publish", "Publiser"],
-                ].map(([method, path, purpose]) => (
-                  <tr key={`${method}-${path}`} className="border-b border-white/3 last:border-b-0">
+                  ["profiles:read", "/v1/profiles, departments, teams, locations", "Active"],
+                  ["contracts:read", "/v1/contracts", "Active"],
+                  ["training:read", "/v1/protocols, assignments", "Active"],
+                  ["schedules:read", "/v1/shifts, absences", "Active"],
+                  ["operations:read", "/v1/sessions, deviations", "Active"],
+                  [
+                    "reports:read",
+                    "/v1/reconciliations, shift-approvals, kpi-targets, budgets",
+                    "Active",
+                  ],
+                  ["guardian:read", "/v1/signals, guardian-log", "Active"],
+                  ["events:read", "/v1/events", "Active"],
+                  ["suppliers:read", "/v1/suppliers, supplier-orders", "Active"],
+                  ["waste:read", "/v1/waste-logs", "Active"],
+                  ["equipment:read", "/v1/assets, asset-maintenance, asset-downtime", "Active"],
+                ].map(([scope, endpoints, status]) => (
+                  <tr key={scope} className="border-b border-white/3 last:border-b-0">
+                    <td className="px-3 py-2 font-mono font-semibold text-fuchsia-400">{scope}</td>
+                    <td className="px-3 py-2">{endpoints}</td>
                     <td className="px-3 py-2">
-                      <M method={method!} />
+                      <span
+                        className={`rounded px-1.5 py-0.5 text-[11px] font-bold ${
+                          status === "Active"
+                            ? "bg-emerald-500/10 text-emerald-400"
+                            : "bg-zinc-500/10 text-zinc-500"
+                        }`}
+                      >
+                        {status}
+                      </span>
                     </td>
-                    <td className="px-3 py-2 font-mono text-xs text-white">{path}</td>
-                    <td className="px-3 py-2">{purpose}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
-        </SectionRow>
-
-        <SectionRow
-          id="interne-tjenester"
-          noBorder
-          code={
-            <Code label="Internal only">{`# Scrapling service (private network)
-POST /extract   → Structured extraction
-POST /scrape-raw → Raw content
-GET  /health    → Service status`}</Code>
-          }
-        >
-          <H2>Internal Services</H2>
-          <P>
-            Interne mikrotjenester på privat nettverk. Ikke eksponert eksternt — kun tilgjengelig
-            for Edge Functions og backend-prosesser.
-          </P>
-          <div className="mt-4 rounded-lg border border-white/5 bg-white/2 px-4 py-3">
-            <H3>Scrapling</H3>
-            <p className="text-[13px] text-zinc-400">
-              Python FastAPI-tjeneste for nettside-ekstraksjon. Kjører i eget virtmiljø bak intern
-              nettverksgrense.
-            </p>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              <span className="rounded border border-white/5 px-2 py-0.5 font-mono text-xs text-zinc-300">
-                POST /extract
-              </span>
-              <span className="rounded border border-white/5 px-2 py-0.5 font-mono text-xs text-zinc-300">
-                POST /scrape-raw
-              </span>
-              <span className="rounded border border-white/5 px-2 py-0.5 font-mono text-xs text-zinc-300">
-                GET /health
-              </span>
-            </div>
-          </div>
-
-          <div className="mt-8">
-            <div className="rounded-lg border border-fuchsia-500/20 bg-fuchsia-500/5 px-4 py-3">
-              <p className="text-xs font-bold tracking-wider text-fuchsia-400 uppercase">
-                Integrasjon?
-              </p>
-              <p className="mt-1 text-[13px] text-zinc-400">
-                Interessert i API-integrasjon med SmartOut?{" "}
-                <Link
-                  href="/pricing"
-                  className="inline-flex items-center gap-1 font-semibold text-fuchsia-300 hover:text-fuchsia-200"
-                >
-                  Ta kontakt <ArrowRight className="h-3 w-3" />
-                </Link>
-              </p>
-            </div>
           </div>
         </SectionRow>
       </div>

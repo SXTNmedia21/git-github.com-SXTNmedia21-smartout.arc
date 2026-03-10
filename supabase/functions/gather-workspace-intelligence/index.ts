@@ -1,5 +1,5 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import {
   type BrregEntity,
@@ -10,7 +10,12 @@ import {
 
 // --- Scrapling helper ---
 
-async function fetchScraplingWithRetry(scraplingBase: string, url: string, retries = 3) {
+async function fetchScraplingWithRetry(
+  scraplingBase: string,
+  url: string,
+  naceCode?: string | null,
+  retries = 3,
+) {
   for (let i = 0; i < retries; i++) {
     try {
       const res = await fetch(`${scraplingBase}/extract`, {
@@ -22,6 +27,7 @@ async function fetchScraplingWithRetry(scraplingBase: string, url: string, retri
             include_company_info: true,
             include_locations: true,
             include_departments: true,
+            nace_code: naceCode || undefined,
           },
         }),
       });
@@ -100,7 +106,7 @@ async function fetchGooglePlaces(
 
 // --- Main handler ---
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -306,6 +312,76 @@ serve(async (req) => {
       );
     }
 
+    const city = brregEntity?.forretningsadresse?.poststed || inputCity || "";
+
+    // ══════════════════════════════════════════════════════════════
+    // PHASE A2: Web search to find website + email (if no scrape yet)
+    // ══════════════════════════════════════════════════════════════
+
+    let webSearchData: Record<string, unknown> | null = null;
+
+    if (!scrapedData) {
+      console.log(`[intelligence] Phase A2: Web search for "${companyName}" to find website...`);
+      webSearchData = await fetchWebSearch(companyName, city);
+
+      const discoveredWebsite = (webSearchData as Record<string, unknown>)?.website as
+        | string
+        | null;
+
+      if (discoveredWebsite) {
+        console.log(`[intelligence] Web search found website: ${discoveredWebsite}`);
+        const scraplingBase =
+          Deno.env.get("SCRAPLING_SERVICE_URL") || "http://host.docker.internal:8000";
+        try {
+          const nace = brregEntity?.naeringskode1?.kode || null;
+          scrapedData = await fetchScraplingWithRetry(scraplingBase, discoveredWebsite, nace);
+          console.log(`[intelligence] Scraped discovered website successfully`);
+        } catch {
+          console.warn(`[intelligence] Failed to scrape discovered website: ${discoveredWebsite}`);
+        }
+      }
+    }
+
+    // Domain fallback: try common patterns if still no scrape
+    if (!scrapedData && companyName) {
+      const baseName = companyName
+        .toLowerCase()
+        .replace(/\b(as|ans|da|asa|sa|enk)\b/gi, "")
+        .replace(/[^a-z0-9]/g, "")
+        .trim();
+
+      const domainCandidates = [`${baseName}.no`, `${baseName}.ai`, `${baseName}.com`];
+
+      const scraplingBase =
+        Deno.env.get("SCRAPLING_SERVICE_URL") || "http://host.docker.internal:8000";
+      const nace = brregEntity?.naeringskode1?.kode || null;
+
+      for (const domain of domainCandidates) {
+        try {
+          console.log(`[intelligence] Trying domain fallback: ${domain}`);
+          scrapedData = await fetchScraplingWithRetry(scraplingBase, `https://${domain}`, nace);
+          console.log(`[intelligence] Domain fallback succeeded: ${domain}`);
+          break;
+        } catch {
+          // Domain didn't work, try next
+        }
+      }
+    }
+
+    // Enrich email/phone from web search if scraping didn't find them
+    if (scrapedData && webSearchData) {
+      const sd = scrapedData as Record<string, unknown>;
+      const ws = webSearchData as Record<string, unknown>;
+      if (!sd.email && ws.email) {
+        console.log(`[intelligence] Enriching email from web search: ${ws.email}`);
+        sd.email = ws.email;
+      }
+      if (!sd.phone && ws.phone) {
+        console.log(`[intelligence] Enriching phone from web search: ${ws.phone}`);
+        sd.phone = ws.phone;
+      }
+    }
+
     // ══════════════════════════════════════════════════════════════
     // PHASE B: Create workspace via provision RPC (only if authenticated)
     // ══════════════════════════════════════════════════════════════
@@ -340,20 +416,22 @@ serve(async (req) => {
     }
 
     // ══════════════════════════════════════════════════════════════
-    // PHASE C (parallel): Places + Web Search
+    // PHASE C (parallel): Places + Web Search (if not already done)
     // ══════════════════════════════════════════════════════════════
-
-    const city = brregEntity?.forretningsadresse?.poststed || inputCity || "";
 
     console.log(`[intelligence] Phase C: Parallel lookups for "${companyName}" in "${city}"...`);
 
     const [placesResult, webSearchResult] = await Promise.allSettled([
       fetchGooglePlaces(companyName, city),
-      companyName ? fetchWebSearch(companyName, city) : Promise.resolve(null),
+      // Skip web search if already done in Phase A2
+      webSearchData ? Promise.resolve(webSearchData) : fetchWebSearch(companyName, city),
     ]);
 
     const placesData = placesResult.status === "fulfilled" ? placesResult.value : null;
-    const webSearchData = webSearchResult.status === "fulfilled" ? webSearchResult.value : null;
+    // Use existing webSearchData if already fetched, otherwise use Phase C result
+    if (!webSearchData) {
+      webSearchData = webSearchResult.status === "fulfilled" ? webSearchResult.value : null;
+    }
 
     // ══════════════════════════════════════════════════════════════
     // PHASE D: Build response + store in workspace

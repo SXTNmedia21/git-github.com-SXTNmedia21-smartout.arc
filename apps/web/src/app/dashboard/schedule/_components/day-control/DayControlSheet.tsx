@@ -11,6 +11,7 @@ import type { ReactNode } from "react";
 import { useCallback, useContext } from "react";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useScheduleUI } from "../schedule-ui-context";
+import { SCHEDULE_LAYERS } from "../schedule-layers";
 
 type DayControlSheetProps = {
   selectedDate: string | null;
@@ -35,14 +36,15 @@ export function DayControlSheet({ selectedDate, onClose, children }: DayControlS
       {/* Backdrop overlay */}
       <div
         onClick={handleBackdropClick}
-        className={`fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm transition-opacity duration-300 ${
+        className={`fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300 ${
           isOpen ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
+        style={{ zIndex: SCHEDULE_LAYERS.dayPlannerBackdrop }}
       />
 
       {/* Bottom sheet */}
       <aside
-        className={`fixed right-0 bottom-0 ${sidebarOffset} z-[70] flex flex-col border-t ${
+        className={`fixed right-0 bottom-0 ${sidebarOffset} flex flex-col border-t ${
           isDark ? "border-border bg-background/[0.98]" : "border-border bg-card/[0.98]"
         } shadow-[0_-16px_48px_rgba(0,0,0,0.3)] backdrop-blur-2xl transition-all duration-300 ease-out ${
           isOpen
@@ -51,6 +53,7 @@ export function DayControlSheet({ selectedDate, onClose, children }: DayControlS
               : "translate-y-0 rounded-tl-2xl rounded-tr-2xl"
             : "pointer-events-none translate-y-full"
         } ${!dayControlFullscreen && isOpen ? "h-[75vh] max-h-[75vh]" : ""}`}
+        style={{ zIndex: SCHEDULE_LAYERS.dayPlannerSheet }}
       >
         {/* Drag handle */}
         {!dayControlFullscreen && isOpen && (

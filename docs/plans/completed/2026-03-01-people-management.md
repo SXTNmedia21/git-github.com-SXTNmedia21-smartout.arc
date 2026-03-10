@@ -1,3 +1,12 @@
+---
+title: "People Management"
+status: done
+updated: 2026-04-10
+created: 2026-03-01
+module: meta
+tags: []
+---
+
 # People Management + Position-Dept Mapping Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.

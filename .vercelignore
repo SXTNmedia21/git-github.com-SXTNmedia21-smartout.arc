@@ -20,3 +20,8 @@
 
 # Python AI agents — deployed separately
 /agents/
+
+# Build artifacts and caches
+/.turbo/
+/.local/
+/.cursor/

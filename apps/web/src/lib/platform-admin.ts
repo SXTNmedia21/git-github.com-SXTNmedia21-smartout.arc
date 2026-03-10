@@ -2,6 +2,21 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { createClient } from "@smartout/supabase/server";
 import type { Json } from "@smartout/supabase";
+import { unstable_cache } from "next/cache";
+
+const getCachedGodmodeForUser = unstable_cache(
+  async (userId: string) => {
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from("user_identity")
+      .select("is_godmode")
+      .eq("user_id", userId)
+      .single();
+    return Boolean(data?.is_godmode);
+  },
+  ["platform-admin-godmode-check-v1"],
+  { revalidate: 30 },
+);
 
 /**
  * Check if the current user has godmode access.
@@ -15,15 +30,8 @@ export async function getSuperAdminId(): Promise<string | null> {
   } = await supabase.auth.getUser();
 
   if (!user) return null;
-
-  const admin = createAdminClient();
-  const { data } = await admin
-    .from("user_identity")
-    .select("is_godmode")
-    .eq("user_id", user.id)
-    .single();
-
-  return data?.is_godmode ? user.id : null;
+  const isGodmode = await getCachedGodmodeForUser(user.id);
+  return isGodmode ? user.id : null;
 }
 
 /**

@@ -9,6 +9,7 @@
 "use client";
 
 import type { StatusSummary } from "../_hooks/use-schedule-computed";
+import { SCHEDULE_LAYERS } from "./schedule-layers";
 
 type StatusStripProps = {
   isDark: boolean;
@@ -30,7 +31,7 @@ type StatusStripProps = {
  * @param onFilterClick - Callback to set or clear the active filter
  */
 export function StatusStrip({
-  isDark,
+  isDark: _isDark,
   statusSummary,
   activeFilter,
   onFilterClick,
@@ -45,7 +46,10 @@ export function StatusStrip({
   };
 
   return (
-    <div className="border-border bg-background/80 z-20 flex shrink-0 items-center justify-between gap-2 border-b px-4 py-1.5 backdrop-blur-md print:hidden">
+    <div
+      className="border-border bg-background/80 relative flex shrink-0 items-center justify-between gap-2 border-b px-4 py-1.5 backdrop-blur-md print:hidden"
+      style={{ zIndex: SCHEDULE_LAYERS.stickyContent }}
+    >
       {/* Left side: risk and coverage badges */}
       <div className="flex flex-wrap items-center gap-2">
         <button

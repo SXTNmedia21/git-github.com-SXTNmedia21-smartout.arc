@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Shield,
   Activity,
@@ -16,6 +16,14 @@ import {
   CheckCheck,
   X,
   Loader2,
+  Brain,
+  Eye,
+  TrendingUp,
+  ShieldCheck,
+  BookOpen,
+  GraduationCap,
+  Users,
+  BarChart3,
 } from "lucide-react";
 import {
   useGuardianData,
@@ -149,10 +157,16 @@ export function GuardianView({ isDark }: GuardianViewProps) {
 
   return (
     <div className="animate-in fade-in flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto pr-2 pb-4 duration-500">
+      {/* Section 0: Guardian Metrics Overview */}
+      <GuardianMetricsSection isDark={isDark} counts={counts} sessions={sessions} />
+
       {/* Section 1: Season Pulse */}
       <SeasonPulseSection seasonPulse={seasonPulse} isDark={isDark} />
 
-      {/* Section 2: Active Protocols */}
+      {/* Section 2: Protocol Compliance */}
+      <ProtocolComplianceSection isDark={isDark} />
+
+      {/* Section 3: Active Protocols */}
       <ActiveProtocolsSection
         sessions={sessions}
         count={counts.activeMissions}
@@ -160,7 +174,7 @@ export function GuardianView({ isDark }: GuardianViewProps) {
         onSessionClick={setSelectedSessionId}
       />
 
-      {/* Section 3: Signal Feed */}
+      {/* Section 4: Signal Feed */}
       <SignalFeedSection signals={signals} isDark={isDark} actions={actions} />
 
       {/* Mission Control Panel */}
@@ -169,6 +183,267 @@ export function GuardianView({ isDark }: GuardianViewProps) {
         onClose={() => setSelectedSessionId(null)}
         isDark={isDark}
       />
+    </div>
+  );
+}
+
+// ── Section 0: Guardian Metrics ────────────────────────────────────────
+
+function GuardianMetricsSection({
+  isDark,
+  counts,
+  sessions,
+}: {
+  isDark: boolean;
+  counts: {
+    activeSignals: number;
+    criticalSignals: number;
+    activeMissions: number;
+    activeJourneys: number;
+  };
+  sessions: ActiveEngineSession[];
+}) {
+  // Calculate average session time — snapshot taken once per session list change
+  const [avgSessionTime, setAvgSessionTime] = useState(0);
+  useEffect(() => {
+    if (sessions.length === 0) {
+      setAvgSessionTime(0);
+      return;
+    }
+    setAvgSessionTime(
+      Math.round(
+        sessions.reduce((sum, s) => {
+          const diff = Date.now() - new Date(s.created_at).getTime();
+          return sum + diff / 60_000;
+        }, 0) / sessions.length,
+      ),
+    );
+  }, [sessions]);
+
+  const totalWhispers = sessions.reduce((sum, s) => sum + s.guardian_whisper_count, 0);
+
+  const metrics = [
+    {
+      label: "Aktive Agenter",
+      value: counts.activeMissions,
+      icon: Brain,
+      color: isDark ? "text-purple-400" : "text-purple-600",
+      bg: isDark ? "bg-purple-500/10" : "bg-purple-50",
+      borderColor: isDark ? "border-purple-500/20" : "border-purple-200",
+    },
+    {
+      label: "Aktive Signaler",
+      value: counts.activeSignals,
+      icon: AlertTriangle,
+      color:
+        counts.criticalSignals > 0
+          ? isDark
+            ? "text-red-400"
+            : "text-red-600"
+          : isDark
+            ? "text-emerald-400"
+            : "text-emerald-600",
+      bg:
+        counts.criticalSignals > 0
+          ? isDark
+            ? "bg-red-500/10"
+            : "bg-red-50"
+          : isDark
+            ? "bg-emerald-500/10"
+            : "bg-emerald-50",
+      borderColor:
+        counts.criticalSignals > 0
+          ? isDark
+            ? "border-red-500/20"
+            : "border-red-200"
+          : isDark
+            ? "border-emerald-500/20"
+            : "border-emerald-200",
+    },
+    {
+      label: "Snitt Okttid",
+      value: avgSessionTime > 60 ? `${Math.floor(avgSessionTime / 60)}t` : `${avgSessionTime}m`,
+      icon: Clock,
+      color: isDark ? "text-blue-400" : "text-blue-600",
+      bg: isDark ? "bg-blue-500/10" : "bg-blue-50",
+      borderColor: isDark ? "border-blue-500/20" : "border-blue-200",
+    },
+    {
+      label: "Guardian Whispers",
+      value: totalWhispers,
+      icon: Eye,
+      color:
+        totalWhispers > 0
+          ? isDark
+            ? "text-orange-400"
+            : "text-orange-600"
+          : isDark
+            ? "text-zinc-400"
+            : "text-zinc-500",
+      bg:
+        totalWhispers > 0
+          ? isDark
+            ? "bg-orange-500/10"
+            : "bg-orange-50"
+          : isDark
+            ? "bg-zinc-800"
+            : "bg-zinc-50",
+      borderColor:
+        totalWhispers > 0
+          ? isDark
+            ? "border-orange-500/20"
+            : "border-orange-200"
+          : isDark
+            ? "border-zinc-700"
+            : "border-zinc-200",
+    },
+  ];
+
+  return (
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {metrics.map((m) => (
+        <div
+          key={m.label}
+          className={`relative overflow-hidden rounded-2xl border p-4 ${m.borderColor} ${
+            isDark ? "bg-[#0c0c0e]" : "bg-white"
+          }`}
+        >
+          <div
+            className={`pointer-events-none absolute -top-6 -right-6 h-16 w-16 rounded-full blur-2xl ${m.bg}`}
+          />
+          <div className="relative z-10">
+            <div className={`mb-2 inline-flex rounded-lg border p-2 ${m.borderColor} ${m.bg}`}>
+              <m.icon className={`h-4 w-4 ${m.color}`} />
+            </div>
+            <p className={`text-2xl font-black ${isDark ? "text-white" : "text-zinc-900"}`}>
+              {m.value}
+            </p>
+            <p
+              className={`text-[10px] font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+            >
+              {m.label}
+            </p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Protocol Compliance Section ────────────────────────────────────────
+
+const DEMO_COMPLIANCE = [
+  { name: "Matservering", compliance: 67, assigned: 12, completed: 8, critical: false },
+  { name: "Brannvern", compliance: 100, assigned: 18, completed: 18, critical: false },
+  { name: "Kassasystem", compliance: 38, assigned: 8, completed: 3, critical: true },
+  { name: "Allergener", compliance: 93, assigned: 15, completed: 14, critical: false },
+  { name: "Arbeidsmiljo", compliance: 75, assigned: 20, completed: 15, critical: false },
+];
+
+function ProtocolComplianceSection({ isDark }: { isDark: boolean }) {
+  return (
+    <div
+      className={`rounded-2xl border p-5 ${
+        isDark ? "border-zinc-800 bg-[#0c0c0e]" : "border-zinc-200 bg-white"
+      }`}
+    >
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <ShieldCheck className={`h-4 w-4 ${isDark ? "text-zinc-400" : "text-zinc-500"}`} />
+          <h3 className={`text-sm font-extrabold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}>
+            Protokoll Compliance
+          </h3>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <BarChart3 className={`h-3.5 w-3.5 ${isDark ? "text-zinc-500" : "text-zinc-400"}`} />
+          <span className={`text-[10px] font-bold ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+            Organisasjon
+          </span>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        {DEMO_COMPLIANCE.map((protocol) => {
+          const barColor =
+            protocol.compliance >= 90
+              ? "bg-emerald-500"
+              : protocol.compliance >= 70
+                ? "bg-orange-500"
+                : "bg-red-500";
+
+          const textColor =
+            protocol.compliance >= 90
+              ? isDark
+                ? "text-emerald-400"
+                : "text-emerald-600"
+              : protocol.compliance >= 70
+                ? isDark
+                  ? "text-orange-400"
+                  : "text-orange-600"
+                : isDark
+                  ? "text-red-400"
+                  : "text-red-600";
+
+          return (
+            <div key={protocol.name}>
+              <div className="mb-1 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`text-xs font-semibold ${isDark ? "text-zinc-200" : "text-zinc-700"}`}
+                  >
+                    {protocol.name}
+                  </span>
+                  {protocol.critical && (
+                    <span
+                      className={`rounded px-1.5 py-0.5 text-[9px] font-bold ${
+                        isDark ? "bg-red-500/10 text-red-400" : "bg-red-50 text-red-600"
+                      }`}
+                    >
+                      Kritisk
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+                    {protocol.completed}/{protocol.assigned}
+                  </span>
+                  <span className={`text-xs font-bold ${textColor}`}>{protocol.compliance}%</span>
+                </div>
+              </div>
+              <div
+                className={`h-1.5 w-full overflow-hidden rounded-full ${isDark ? "bg-zinc-800" : "bg-zinc-100"}`}
+              >
+                <div
+                  className={`h-full rounded-full transition-all duration-1000 ease-out ${barColor}`}
+                  style={{ width: `${protocol.compliance}%` }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Summary footer */}
+      <div
+        className={`mt-4 flex items-center gap-4 border-t pt-3 ${isDark ? "border-zinc-800" : "border-zinc-100"}`}
+      >
+        <div className="flex items-center gap-1.5">
+          <Users className={`h-3 w-3 ${isDark ? "text-zinc-500" : "text-zinc-400"}`} />
+          <span
+            className={`text-[10px] font-semibold ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+          >
+            73 tilordninger totalt
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <TrendingUp className={`h-3 w-3 ${isDark ? "text-emerald-500" : "text-emerald-600"}`} />
+          <span
+            className={`text-[10px] font-semibold ${isDark ? "text-emerald-400" : "text-emerald-600"}`}
+          >
+            +12% siste 30 dager
+          </span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -309,7 +584,7 @@ function ActiveProtocolsSection({
         <div className="flex items-center gap-2">
           <Radio className={`h-4 w-4 ${isDark ? "text-zinc-400" : "text-zinc-500"}`} />
           <h3 className={`text-sm font-extrabold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}>
-            Aktive protokoller
+            Aktive Sesjoner
           </h3>
           {count > 0 && (
             <span
@@ -331,7 +606,10 @@ function ActiveProtocolsSection({
         >
           <Shield className={`h-8 w-8 ${isDark ? "text-zinc-600" : "text-zinc-300"}`} />
           <p className={`text-sm font-semibold ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
-            Ingen aktive sessions
+            Ingen aktive sesjoner
+          </p>
+          <p className={`text-xs ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
+            Sesjoner vil vises her nar agenter star i samtale med ansatte
           </p>
         </div>
       ) : (

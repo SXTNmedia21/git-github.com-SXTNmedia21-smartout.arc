@@ -14,6 +14,7 @@ import type { Shift } from "./schedule-types";
 import { useScheduleUI } from "./schedule-ui-context";
 import { useShifts, usePublishShifts, useUnpublishShifts } from "../_hooks/use-shifts";
 import { useWeekRange } from "../_hooks/use-week-range";
+import { SCHEDULE_LAYERS } from "./schedule-layers";
 
 /**
  * Floating bar at the bottom of the viewport for batch day operations.
@@ -61,7 +62,10 @@ export function BatchActionBar() {
   }
 
   return (
-    <div className="animate-in slide-in-from-bottom-4 fade-in fixed bottom-6 left-1/2 z-50 -translate-x-1/2 duration-200">
+    <div
+      className="animate-in slide-in-from-bottom-4 fade-in fixed bottom-6 left-1/2 -translate-x-1/2 duration-200"
+      style={{ zIndex: SCHEDULE_LAYERS.floatingActionBar }}
+    >
       <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-zinc-900/95 px-6 py-3 shadow-2xl backdrop-blur-xl">
         <span className="text-foreground text-sm font-medium">
           {count} {count === 1 ? "dag" : "dager"} valgt:

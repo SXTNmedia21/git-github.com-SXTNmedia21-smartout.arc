@@ -7,7 +7,6 @@ import {
   Network,
   Plus,
   Clock,
-  AlertCircle,
   PanelLeftClose,
   PanelLeftOpen,
   Printer,
@@ -25,6 +24,7 @@ import {
   rectIntersection,
   useSensor,
   useSensors,
+  useDndContext,
   useDroppable,
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates, arrayMove } from "@dnd-kit/sortable";
@@ -48,6 +48,7 @@ import { EmployeeDrawer } from "./_components/employee-drawer";
 import { PublishOverviewDialog } from "./_components/publish-overview-dialog";
 import { SendMessageDialog } from "./_components/send-message-dialog";
 import { MonthlyView } from "./_components/monthly-view";
+import { SCHEDULE_LAYERS } from "./_components/schedule-layers";
 
 import type { DayColumn } from "./_components/schedule-data";
 
@@ -56,6 +57,8 @@ import { useEmployees, type ScheduleEmployee } from "./_hooks/use-employees";
 
 // ── New TanStack Query hooks ────────────────────────────────
 import { ScheduleUIProvider, useScheduleUI } from "./_components/schedule-ui-context";
+import { AgentProposalsProvider } from "./_components/agent-proposals-context";
+import { ScheduleVoiceToolsBridge } from "./_components/schedule-voice-tools-bridge";
 import {
   useShifts,
   useCreateShift,
@@ -63,38 +66,19 @@ import {
   useMoveShift,
   useDeleteShift,
   usePublishShifts,
-  useUnpublishShifts,
 } from "./_hooks/use-shifts";
-import { useAbsences, useCreateAbsence, useDeleteAbsence } from "./_hooks/use-absences";
-import {
-  useTemplates,
-  useSaveTemplate,
-  useUpdateTemplate,
-  useDeleteTemplate,
-  useLoadTemplate,
-} from "./_hooks/use-templates";
-import {
-  useOpenShifts,
-  useCreateOpenShift,
-  useDeleteOpenShift,
-  useAssignOpenShift,
-} from "./_hooks/use-open-shifts";
+import { useAbsences } from "./_hooks/use-absences";
+import { useTemplates, useLoadTemplate } from "./_hooks/use-templates";
+import { useOpenShifts, useCreateOpenShift, useAssignOpenShift } from "./_hooks/use-open-shifts";
 import {
   useDayMessages,
   useCreateDayMessage,
-  useDeleteDayMessage,
   useDayTasks,
-  useCreateDayTask,
-  useUpdateDayTaskStatus,
-  useDeleteDayTask,
   useDayBookings,
-  useCreateDayBooking,
 } from "./_hooks/use-day-content";
 import { useScheduleRealtime } from "./_hooks/use-schedule-realtime";
-import { useScheduleComputed } from "./_hooks/use-schedule-computed";
+import { useScheduleComputed, type ScheduleComputed } from "./_hooks/use-schedule-computed";
 import { useDayInfo } from "./_hooks/use-day-info";
-import { useVoiceTools } from "@/components/voice-tools-context";
-import { useScheduleVoiceTools } from "./_hooks/use-schedule-voice-tools";
 
 // ---------------------------------------------------------------------------
 // Week range helper — supports week offset for navigation
@@ -119,6 +103,12 @@ function getWeekRange(weekOffset = 0): { weekStart: string; weekEnd: string } {
 // Generate day columns — supports variable day count (7 or 14)
 // ---------------------------------------------------------------------------
 const DAY_LABELS = ["Man", "Tir", "Ons", "Tor", "Fre", "Lør", "Søn"];
+
+function formatSmsPrefill(dateId: string): string {
+  const date = new Date(`${dateId}T00:00:00`);
+  const weekday = date.toLocaleDateString("en-US", { weekday: "long" });
+  return `Regarding shift on ${weekday}`;
+}
 
 function generateDayColumns(weekStart: string, dayCount = 7): DayColumn[] {
   const start = new Date(weekStart + "T00:00:00");
@@ -175,9 +165,12 @@ export default function SchedulePage() {
 // SchedulePageContent — query hooks + rendering
 // ---------------------------------------------------------------------------
 function SchedulePageContent() {
+  const schedulePerfStartRef = useRef<number | null>(null);
+  const firstInteractionCapturedRef = useRef(false);
   const {
     isDark,
     scheduleLayout,
+    setScheduleLayout,
     scheduleDateOffset,
     setOnPublishAll,
     setScheduleDraftCount,
@@ -190,11 +183,88 @@ function SchedulePageContent() {
   const [activeStatusFilter, setActiveStatusFilter] = useState<string | null>(null);
   const [weekSpan, setWeekSpan] = useState<1 | 2>(1);
   const [publishOverviewOpen, setPublishOverviewOpen] = useState(false);
+  const [highlightedDayId, setHighlightedDayId] = useState<string | null>(null);
+  const [loadSecondaryData, setLoadSecondaryData] = useState(false);
   const [sendMessageDialog, setSendMessageDialog] = useState<{
     open: boolean;
     dateId: string;
     dateLabel: string;
-  }>({ open: false, dateId: "", dateLabel: "" });
+    initialMessage: string;
+  }>({ open: false, dateId: "", dateLabel: "", initialMessage: "" });
+  const scheduleUI = useScheduleUI();
+  const { selectedDayId, setSelectedDay } = scheduleUI;
+  const activeSelectedDate = selectedDayId ?? selectedDate;
+  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /**
+   * Scrolls to a schedule day header, briefly highlights it, and optionally
+   * opens the day planner sheet for that date.
+   */
+  const focusDayInUI = useCallback(
+    (dateId: string, openPlanner: boolean) => {
+      if (!dateId) return;
+
+      if (scheduleLayout !== "daily") {
+        setScheduleLayout("daily");
+      }
+
+      // Wait one frame for layout updates, then center the day header.
+      requestAnimationFrame(() => {
+        const dayHeader = document.querySelector(
+          `[data-schedule-day-id="${dateId}"]`,
+        ) as HTMLElement | null;
+        dayHeader?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+      });
+
+      setHighlightedDayId(dateId);
+      if (highlightTimerRef.current) {
+        clearTimeout(highlightTimerRef.current);
+      }
+      highlightTimerRef.current = setTimeout(() => setHighlightedDayId(null), 3500);
+
+      if (openPlanner) {
+        setSelectedDate(dateId);
+        if (selectedDayId) setSelectedDay(null);
+      }
+    },
+    [scheduleLayout, setScheduleLayout, selectedDayId, setSelectedDay],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (highlightTimerRef.current) {
+        clearTimeout(highlightTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Temporary frontend regression instrumentation for schedule boot.
+  useEffect(() => {
+    schedulePerfStartRef.current = performance.now();
+    performance.mark("schedule:route-enter");
+  }, []);
+
+  // Let the primary schedule grid render first, then load secondary datasets when idle.
+  useEffect(() => {
+    const globalWindow = window as Window & {
+      requestIdleCallback?: (cb: IdleRequestCallback, options?: IdleRequestOptions) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+
+    if (typeof globalWindow.requestIdleCallback === "function") {
+      const idleId = globalWindow.requestIdleCallback(
+        () => {
+          setLoadSecondaryData(true);
+        },
+        { timeout: 1200 },
+      );
+      return () => {
+        globalWindow.cancelIdleCallback?.(idleId);
+      };
+    }
+
+    const timeoutId = window.setTimeout(() => setLoadSecondaryData(true), 300);
+    return () => window.clearTimeout(timeoutId);
+  }, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 1 } }),
@@ -218,23 +288,54 @@ function SchedulePageContent() {
   // ── Workspace context ───────────────────────────────────────
   const { workspace } = useWorkspace();
 
+  const shouldLoadSidebarData = loadSecondaryData || isSidebarOpen || sidebarMode === "templates";
+  const shouldLoadDayContent =
+    loadSecondaryData || activeSelectedDate !== null || sendMessageDialog.open;
+
   // ── TanStack Query hooks ────────────────────────────────────
   const employeesQuery = useEmployees();
-  const employees = employeesQuery.data ?? [];
+  const employees = useMemo(() => employeesQuery.data ?? [], [employeesQuery.data]);
   const shiftsQuery = useShifts(weekStart, weekEnd);
   const absencesQuery = useAbsences(weekStart, weekEnd);
-  const templatesQuery = useTemplates();
-  const openShiftsQuery = useOpenShifts();
-  const dayMessagesQuery = useDayMessages(weekStart, weekEnd);
-  const dayTasksQuery = useDayTasks(weekStart, weekEnd);
-  const dayBookingsQuery = useDayBookings(weekStart, weekEnd);
-  const { dayInfoByDate } = useDayInfo(weekStart, weekEnd);
+  const templatesQuery = useTemplates({ enabled: shouldLoadSidebarData });
+  const openShiftsQuery = useOpenShifts({ enabled: shouldLoadSidebarData });
+  const dayMessagesQuery = useDayMessages(weekStart, weekEnd, { enabled: shouldLoadDayContent });
+  const dayTasksQuery = useDayTasks(weekStart, weekEnd, { enabled: shouldLoadDayContent });
+  const dayBookingsQuery = useDayBookings(weekStart, weekEnd, { enabled: shouldLoadDayContent });
+  const { dayInfoByDate } = useDayInfo(weekStart, weekEnd, { enabled: shouldLoadDayContent });
 
   // ── Enrich day columns with day info + real shift/staff/message/task counts ─
+  const shouldComputeEnrichedDays =
+    scheduleLayout === "daily" || activeSelectedDate !== null || sendMessageDialog.open;
+
   const enrichedDays = useMemo(() => {
+    if (!shouldComputeEnrichedDays) return days;
+
     const allShifts = shiftsQuery.data ?? [];
     const allMessages = dayMessagesQuery.data ?? [];
     const allTasks = dayTasksQuery.data ?? [];
+
+    // Build per-day indexes once to avoid repeated O(days * list) scans during render.
+    const shiftsByDate = new Map<string, Shift[]>();
+    for (const shift of allShifts) {
+      const list = shiftsByDate.get(shift.dateId) ?? [];
+      list.push(shift);
+      shiftsByDate.set(shift.dateId, list);
+    }
+
+    const messageCountByDate = new Map<string, number>();
+    for (const message of allMessages) {
+      messageCountByDate.set(message.dateId, (messageCountByDate.get(message.dateId) ?? 0) + 1);
+    }
+
+    const taskSummaryByDate = new Map<string, { total: number; done: number }>();
+    for (const task of allTasks) {
+      const summary = taskSummaryByDate.get(task.dateId) ?? { total: 0, done: 0 };
+      summary.total += 1;
+      if (task.status === "completed") summary.done += 1;
+      taskSummaryByDate.set(task.dateId, summary);
+    }
+
     return days.map((day) => {
       const infos = dayInfoByDate.get(day.id) ?? [];
       const events = infos
@@ -244,30 +345,75 @@ function SchedulePageContent() {
         .filter((d) => d.category !== "event")
         .map((n) => ({ id: n.id, title: n.title, scope: n.scopeType }));
 
-      // Compute real staff and shift counts from shift data
-      const dayShifts = allShifts.filter((s) => s.dateId === day.id);
+      const dayShifts = shiftsByDate.get(day.id) ?? [];
       const uniqueEmployees = new Set(dayShifts.map((s) => s.employeeId).filter(Boolean));
-
-      // Compute message and task counts
-      const dayMsgCount = allMessages.filter((m) => m.dateId === day.id).length;
-      const dayTaskList = allTasks.filter((t) => t.dateId === day.id);
-      const dayTasksDone = dayTaskList.filter((t) => t.status === "completed").length;
+      const dayMsgCount = messageCountByDate.get(day.id) ?? 0;
+      const dayTaskSummary = taskSummaryByDate.get(day.id);
 
       return {
         ...day,
         staff: uniqueEmployees.size,
         shifts: dayShifts.length,
         messages: dayMsgCount > 0 ? dayMsgCount : undefined,
-        tasks:
-          dayTaskList.length > 0 ? { done: dayTasksDone, total: dayTaskList.length } : undefined,
+        tasks: dayTaskSummary
+          ? { done: dayTaskSummary.done, total: dayTaskSummary.total }
+          : undefined,
         events: events.length > 0 ? events : undefined,
         dayInfo: notes.length > 0 ? notes : undefined,
       };
     });
-  }, [days, dayInfoByDate, shiftsQuery.data, dayMessagesQuery.data, dayTasksQuery.data]);
+  }, [
+    shouldComputeEnrichedDays,
+    days,
+    dayInfoByDate,
+    shiftsQuery.data,
+    dayMessagesQuery.data,
+    dayTasksQuery.data,
+  ]);
+
+  useEffect(() => {
+    const handleSmsCompose = (event: Event) => {
+      const customEvent = event as CustomEvent<{
+        dateId?: string;
+        employeeName?: string;
+        shiftTime?: string;
+        customMessage?: string;
+        includeDaginfo?: boolean;
+      }>;
+      const targetDateId = customEvent.detail?.dateId ?? new Date().toISOString().slice(0, 10);
+      const dayLabel = enrichedDays.find((day) => day.id === targetDateId)?.label ?? targetDateId;
+      const employeeName = customEvent.detail?.employeeName;
+      const shiftTime = customEvent.detail?.shiftTime;
+      const contextualLine =
+        employeeName && shiftTime ? `\n\nEmployee: ${employeeName}\nShift: ${shiftTime}` : "";
+      const customMessage = customEvent.detail?.customMessage?.trim();
+      const includeDaginfo = customEvent.detail?.includeDaginfo === true;
+      const initialMessage =
+        customMessage && customMessage.length > 0
+          ? includeDaginfo
+            ? `${customMessage}\n\n${formatSmsPrefill(targetDateId)}${contextualLine}`
+            : `${customMessage}${contextualLine}`
+          : `${formatSmsPrefill(targetDateId)}${contextualLine}`;
+
+      setSendMessageDialog({
+        open: true,
+        dateId: targetDateId,
+        dateLabel: dayLabel,
+        initialMessage,
+      });
+    };
+
+    window.addEventListener("smartout:schedule-sms-compose", handleSmsCompose);
+    return () => {
+      window.removeEventListener("smartout:schedule-sms-compose", handleSmsCompose);
+    };
+  }, [enrichedDays]);
 
   // ── Realtime subscription ───────────────────────────────────
-  useScheduleRealtime(weekStart);
+  useScheduleRealtime(weekStart, {
+    includeDayContent: shouldLoadDayContent,
+    includeOpenShifts: shouldLoadSidebarData,
+  });
 
   // ── Computed values ─────────────────────────────────────────
   const computed = useScheduleComputed(
@@ -286,60 +432,42 @@ function SchedulePageContent() {
   const moveShift = useMoveShift(weekStart);
   const deleteShift = useDeleteShift(weekStart);
   const publishShifts = usePublishShifts(weekStart);
-  const unpublishShifts = useUnpublishShifts(weekStart);
-  const createAbsence = useCreateAbsence(weekStart);
-  const deleteAbsence = useDeleteAbsence(weekStart);
-  const saveTemplate = useSaveTemplate();
-  const updateTemplate = useUpdateTemplate();
-  const deleteTemplate = useDeleteTemplate();
   const loadTemplate = useLoadTemplate(weekStart);
   const createOpenShift = useCreateOpenShift();
-  const deleteOpenShift = useDeleteOpenShift();
   const assignOpenShift = useAssignOpenShift(weekStart);
   const createDayMessage = useCreateDayMessage(weekStart);
-  const deleteDayMessage = useDeleteDayMessage(weekStart);
-  const createDayTask = useCreateDayTask(weekStart);
-  const updateDayTaskStatus = useUpdateDayTaskStatus(weekStart);
-  const deleteDayTask = useDeleteDayTask(weekStart);
-  const createDayBooking = useCreateDayBooking(weekStart);
 
-  // ── Voice tools ─────────────────────────────────────────────
-  const { setClientTools } = useVoiceTools();
+  /** Handles Shift+drag resize updates from grid cards without extra hook subscriptions in grid rows. */
+  const handleGridShiftTimeChange = useCallback(
+    (shiftId: string, newStart: string, newEnd: string) => {
+      const startMins =
+        parseInt(newStart.split(":")[0] ?? "0", 10) * 60 +
+        parseInt(newStart.split(":")[1] ?? "0", 10);
+      let endMins =
+        parseInt(newEnd.split(":")[0] ?? "0", 10) * 60 + parseInt(newEnd.split(":")[1] ?? "0", 10);
+      if (endMins <= startMins) endMins += 24 * 60;
+      const workHours = Math.max(0, (endMins - startMins) / 60);
 
-  const voiceTools = useScheduleVoiceTools({
-    weekStart,
-    weekEnd,
-    days: enrichedDays,
-    shifts: shiftsQuery.data ?? [],
-    absences: absencesQuery.data ?? [],
-    employees,
-    computed,
-    mutations: {
-      createShift: (input) =>
-        createShift.mutateAsync(input as Parameters<typeof createShift.mutateAsync>[0]),
-      updateShift: (input) =>
-        updateShift.mutateAsync(input as Parameters<typeof updateShift.mutateAsync>[0]),
-      deleteShift: (id) => deleteShift.mutateAsync(id),
-      publishShifts: (ids) => publishShifts.mutateAsync(ids),
+      updateShift.mutate({
+        id: shiftId,
+        patch: { startTime: newStart, endTime: newEnd, workHours },
+      });
     },
-  });
+    [updateShift],
+  );
 
-  // Register/unregister tools when schedule page mounts/unmounts
-  useEffect(() => {
-    setClientTools(voiceTools);
-    return () => setClientTools(null);
-  }, [voiceTools, setClientTools]);
-
-  // ── UI-only context ─────────────────────────────────────────
-  const scheduleUI = useScheduleUI();
-
-  // Bridge: "Se dagsliste" sets selectedDayId in UI context → open DayControlSheet
-  useEffect(() => {
-    if (scheduleUI.selectedDayId) {
-      setSelectedDate(scheduleUI.selectedDayId);
-      scheduleUI.setSelectedDay(null);
-    }
-  }, [scheduleUI.selectedDayId, scheduleUI.setSelectedDay]);
+  const handleSetSelectedDate = useCallback(
+    (date: string | null) => {
+      setSelectedDate(date);
+      if (date === null && selectedDayId) {
+        setSelectedDay(null);
+      }
+      if (date !== null && selectedDayId) {
+        setSelectedDay(null);
+      }
+    },
+    [selectedDayId, setSelectedDay],
+  );
 
   // ── Derived values ──────────────────────────────────────────
   const shifts = useMemo(() => shiftsQuery.data ?? [], [shiftsQuery.data]);
@@ -404,7 +532,7 @@ function SchedulePageContent() {
   }, [employees, employeeOrder, scheduleCompactMode, employeesWithShifts]);
 
   // ── Location-based employee filtering ─────────────────────
-  const { activeLocation } = useContext(DashboardContext);
+  const { activeLocation, setActiveLocation } = useContext(DashboardContext);
 
   const locationFilteredEmployees = useMemo(() => {
     if (!activeLocation || activeLocation === "Alle Lokasjoner") return sortedEmployees;
@@ -423,6 +551,65 @@ function SchedulePageContent() {
       );
     });
   }, [sortedEmployees, activeLocation]);
+
+  const locationOptions = useMemo(() => {
+    const values = new Set<string>();
+    for (const employee of employees) {
+      const candidates = [employee.team, employee.jobTitle, employee.role];
+      for (const candidate of candidates) {
+        if (!candidate) continue;
+        const trimmed = candidate.trim();
+        if (trimmed.length === 0) continue;
+        values.add(trimmed);
+      }
+    }
+    return Array.from(values).sort((a, b) => a.localeCompare(b, "nb"));
+  }, [employees]);
+
+  useEffect(() => {
+    if (activeLocation === "Alle Lokasjoner") return;
+    if (locationOptions.includes(activeLocation)) return;
+    const fallback = locationOptions[0] ?? "Alle Lokasjoner";
+    setActiveLocation(fallback);
+  }, [activeLocation, locationOptions, setActiveLocation]);
+
+  const visibleEmployeeIds = useMemo(
+    () => new Set(locationFilteredEmployees.map((employee) => employee.id)),
+    [locationFilteredEmployees],
+  );
+
+  const filteredShifts = useMemo(() => {
+    const baseShifts = shifts.filter((shift) =>
+      shift.employeeId ? visibleEmployeeIds.has(shift.employeeId) : true,
+    );
+    if (!activeStatusFilter) return baseShifts;
+
+    switch (activeStatusFilter) {
+      case "draft":
+        return baseShifts.filter(
+          (shift) => shift.status === "created" || shift.status === "assigned",
+        );
+      case "published":
+        return baseShifts.filter((shift) => shift.status === "published");
+      case "active":
+        return baseShifts.filter((shift) => shift.status === "active");
+      case "completed":
+        return baseShifts.filter((shift) => shift.status === "completed");
+      case "absence":
+        return [];
+      default:
+        return baseShifts;
+    }
+  }, [shifts, visibleEmployeeIds, activeStatusFilter]);
+
+  const filteredAbsences = useMemo(() => {
+    const baseAbsences = (absencesQuery.data ?? []).filter((absence) =>
+      visibleEmployeeIds.has(absence.employeeId),
+    );
+    if (activeStatusFilter === "absence") return baseAbsences;
+    if (!activeStatusFilter) return baseAbsences;
+    return baseAbsences;
+  }, [absencesQuery.data, visibleEmployeeIds, activeStatusFilter]);
 
   // ── Situation-filtered day columns ────────────────────────
   const situationFilteredDays = useMemo(() => {
@@ -676,152 +863,306 @@ function SchedulePageContent() {
 
   const isLoading = shiftsQuery.isLoading;
 
+  useEffect(() => {
+    if (isLoading) return;
+    const start = schedulePerfStartRef.current;
+    if (start === null) return;
+
+    requestAnimationFrame(() => {
+      const renderMs = Math.round(performance.now() - start);
+      performance.mark("schedule:first-render");
+      performance.measure(
+        "schedule:first-render-duration",
+        "schedule:route-enter",
+        "schedule:first-render",
+      );
+      // eslint-disable-next-line no-console -- perf tracing
+      console.info("[schedule-perf] first-render-ms", renderMs);
+    });
+  }, [isLoading]);
+
+  useEffect(() => {
+    if (firstInteractionCapturedRef.current) return;
+
+    const handlePointerDown = () => {
+      if (firstInteractionCapturedRef.current) return;
+      firstInteractionCapturedRef.current = true;
+      const start = schedulePerfStartRef.current;
+      if (start === null) return;
+      // eslint-disable-next-line no-console -- perf tracing
+      console.info("[schedule-perf] first-interaction-ms", Math.round(performance.now() - start));
+    };
+
+    window.addEventListener("pointerdown", handlePointerDown, { passive: true });
+    return () => {
+      window.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, []);
+
   return (
-    <div
-      className={`flex flex-1 flex-col ${isDark ? "bg-[#050505]" : "bg-zinc-50"} relative h-full overflow-hidden rounded-2xl border border-white/[0.04] font-sans text-zinc-100 shadow-2xl print:block print:h-auto print:overflow-visible print:border-none print:bg-white print:shadow-none`}
+    <AgentProposalsProvider
+      createShift={(input) =>
+        createShift.mutateAsync(input as Parameters<typeof createShift.mutateAsync>[0])
+      }
+      updateShift={(input) => updateShift.mutateAsync(input)}
     >
-      {isLoading ? (
-        <div className="flex h-full flex-1 items-center justify-center">
-          <p className="text-sm text-zinc-500">Laster vaktplan...</p>
+      <ScheduleVoiceToolsBridge
+        weekStart={weekStart}
+        weekEnd={weekEnd}
+        enrichedDays={enrichedDays}
+        shifts={shiftsQuery.data ?? []}
+        absences={absencesQuery.data ?? []}
+        employees={employees}
+        computed={computed}
+        focusDayInUI={focusDayInUI}
+        setSelectedDate={handleSetSelectedDate}
+        createShift={createShift}
+        updateShift={updateShift}
+        deleteShift={deleteShift}
+        publishShifts={publishShifts}
+      />
+      <div
+        className={`flex flex-1 flex-col ${isDark ? "bg-[#050505]" : "bg-zinc-50"} relative isolate h-full overflow-hidden rounded-2xl border border-white/[0.04] font-sans text-zinc-100 shadow-2xl print:block print:h-auto print:overflow-visible print:border-none print:bg-white print:shadow-none`}
+      >
+        {isLoading ? (
+          <ScheduleLoadingSkeleton isDark={isDark} />
+        ) : (
+          <>
+            {/* AMBIENT BACKGROUND */}
+            <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-2xl opacity-10">
+              <div className="absolute top-[-10%] left-[-10%] h-[500px] w-[500px] rounded-full bg-orange-600/20 mix-blend-screen blur-[120px]" />
+            </div>
+
+            {/* MAIN CONTENT AREA — sidebar spans full height alongside command bar, status strip, and grid */}
+            <DndContext
+              sensors={sensors}
+              collisionDetection={scheduleCollisionDetection}
+              autoScroll={false}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              onDragCancel={handleDragCancel}
+            >
+              <div className="flex flex-1 overflow-hidden">
+                {/* Sidebar — full height from top of schedule container to bottom */}
+                <ScheduleSidebar
+                  isDark={isDark}
+                  isSidebarOpen={isSidebarOpen}
+                  sidebarMode={sidebarMode}
+                  setSidebarMode={setSidebarMode}
+                  templates={templates}
+                  openShifts={openShifts}
+                />
+
+                {/* Main content column — command bar, status strip, then grid */}
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <PlannerCommandBar
+                    isDark={isDark}
+                    filterSituation={filterSituation}
+                    setFilterSituation={setFilterSituation}
+                    weekSpan={weekSpan}
+                    setWeekSpan={setWeekSpan}
+                    scheduleLayout={scheduleLayout}
+                    locationOptions={locationOptions}
+                  />
+
+                  <GridSurface
+                    centerContent={
+                      <>
+                        {scheduleLayout === "daily" && (
+                          <GridContent
+                            isSidebarOpen={isSidebarOpen}
+                            setIsSidebarOpen={setIsSidebarOpen}
+                            onDateClick={handleSetSelectedDate}
+                            filterSituation={filterSituation}
+                            activeStatusFilter={activeStatusFilter}
+                            visibleDays={situationFilteredDays}
+                            employees={locationFilteredEmployees}
+                            shifts={filteredShifts}
+                            absences={filteredAbsences}
+                            highlightedDayId={highlightedDayId}
+                            weekStart={weekStart}
+                            onTimeChange={handleGridShiftTimeChange}
+                          />
+                        )}
+                        {scheduleLayout === "weekly" && (
+                          <WeeklyGridContent
+                            isSidebarOpen={isSidebarOpen}
+                            setIsSidebarOpen={setIsSidebarOpen}
+                            onDateClick={handleSetSelectedDate}
+                            filterSituation={filterSituation}
+                            computed={computed}
+                            scheduleUI={scheduleUI}
+                            employees={locationFilteredEmployees}
+                          />
+                        )}
+                        {scheduleLayout === "monthly" && (
+                          <MonthlyView
+                            onDateClick={handleSetSelectedDate}
+                            shifts={filteredShifts}
+                            computed={computed}
+                            employees={locationFilteredEmployees}
+                          />
+                        )}
+                        {scheduleLayout === "list" && (
+                          <ListGridContent
+                            onDateClick={handleSetSelectedDate}
+                            computed={computed}
+                            days={days}
+                            employees={locationFilteredEmployees}
+                          />
+                        )}
+                      </>
+                    }
+                    dayInspector={
+                      <DayControlSheet
+                        selectedDate={activeSelectedDate}
+                        onClose={() => handleSetSelectedDate(null)}
+                      >
+                        <DayControlPanel
+                          date={activeSelectedDate}
+                          onClose={() => handleSetSelectedDate(null)}
+                        />
+                      </DayControlSheet>
+                    }
+                  />
+
+                  <StatusStrip
+                    isDark={isDark}
+                    statusSummary={statusSummary}
+                    activeFilter={activeStatusFilter}
+                    onFilterClick={setActiveStatusFilter}
+                  />
+                </div>
+              </div>
+
+              <ScheduleDragOverlay isDark={isDark} />
+            </DndContext>
+
+            {/* Global modals and overlays rendered at the page level */}
+            <ShiftModal />
+            <BatchActionBar />
+            <AbsencePopover />
+            <EmployeeDrawer
+              open={!!scheduleUI.selectedEmployeeId}
+              onOpenChange={(open) => {
+                if (!open) scheduleUI.setSelectedEmployee(null);
+              }}
+              employee={
+                employees.find((e: ScheduleEmployee) => e.id === scheduleUI.selectedEmployeeId) ??
+                null
+              }
+            />
+            <PublishOverviewDialog
+              open={publishOverviewOpen}
+              onOpenChange={setPublishOverviewOpen}
+              shifts={shifts}
+              employees={employees}
+              onPublish={(ids) => publishShifts.mutate(ids)}
+              isPublishing={publishShifts.isPending}
+            />
+            <SendMessageDialog
+              open={sendMessageDialog.open}
+              onOpenChange={(open) => setSendMessageDialog((prev) => ({ ...prev, open }))}
+              workspaceId={workspace.workspace_id}
+              dateId={sendMessageDialog.dateId}
+              dateLabel={sendMessageDialog.dateLabel}
+              initialMessage={sendMessageDialog.initialMessage}
+              shifts={shifts}
+              employees={employees}
+              onSent={(content, audience, recipients) => {
+                if (!sendMessageDialog.dateId) return;
+                createDayMessage.mutate({
+                  id: crypto.randomUUID(),
+                  dateId: sendMessageDialog.dateId,
+                  title: `Utsendt melding (${audience})`,
+                  content,
+                  audience,
+                  visibility: "all_day",
+                  author: "Schedule",
+                  isAlert: false,
+                });
+                // eslint-disable-next-line no-console -- operational log
+                console.info("[schedule] message sent", { recipients });
+              }}
+            />
+          </>
+        )}
+      </div>
+    </AgentProposalsProvider>
+  );
+}
+
+/**
+ * Shows a structure-matching skeleton while the schedule data bootstraps.
+ * Why: gives instant visual feedback and avoids a blank waiting screen.
+ */
+function ScheduleLoadingSkeleton({ isDark }: { isDark: boolean }) {
+  return (
+    <div className="flex h-full flex-1 overflow-hidden">
+      <aside
+        className={`hidden w-64 shrink-0 border-r p-4 lg:flex lg:flex-col ${
+          isDark ? "border-white/[0.06] bg-[#0a0a0c]/40" : "border-zinc-200 bg-white/70"
+        }`}
+      >
+        <div
+          className={`mb-4 h-8 animate-pulse rounded-lg ${isDark ? "bg-zinc-800" : "bg-zinc-200"}`}
+        />
+        <div
+          className={`mb-2 h-16 animate-pulse rounded-xl ${isDark ? "bg-zinc-900" : "bg-zinc-200"}`}
+        />
+        <div
+          className={`mb-2 h-16 animate-pulse rounded-xl ${isDark ? "bg-zinc-900" : "bg-zinc-200"}`}
+        />
+        <div
+          className={`h-16 animate-pulse rounded-xl ${isDark ? "bg-zinc-900" : "bg-zinc-200"}`}
+        />
+      </aside>
+
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <div className={`h-16 border-b p-3 ${isDark ? "border-white/[0.06]" : "border-zinc-200"}`}>
+          <div
+            className={`h-10 animate-pulse rounded-xl ${isDark ? "bg-zinc-900" : "bg-zinc-200"}`}
+          />
         </div>
-      ) : (
-        <>
-          {/* AMBIENT BACKGROUND */}
-          <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-2xl opacity-10">
-            <div className="absolute top-[-10%] left-[-10%] h-[500px] w-[500px] rounded-full bg-orange-600/20 mix-blend-screen blur-[120px]" />
-          </div>
 
-          {/* MAIN CONTENT AREA — sidebar spans full height alongside command bar, status strip, and grid */}
-          <DndContext
-            sensors={sensors}
-            collisionDetection={scheduleCollisionDetection}
-            autoScroll={false}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-            onDragCancel={handleDragCancel}
-          >
-            <div className="flex flex-1 overflow-hidden">
-              {/* Sidebar — full height from top of schedule container to bottom */}
-              <ScheduleSidebar
-                isDark={isDark}
-                isSidebarOpen={isSidebarOpen}
-                sidebarMode={sidebarMode}
-                setSidebarMode={setSidebarMode}
-                templates={templates}
-                openShifts={openShifts}
-              />
-
-              {/* Main content column — command bar, status strip, then grid */}
-              <div className="flex min-w-0 flex-1 flex-col">
-                <PlannerCommandBar
-                  isDark={isDark}
-                  filterSituation={filterSituation}
-                  setFilterSituation={setFilterSituation}
-                  weekSpan={weekSpan}
-                  setWeekSpan={setWeekSpan}
-                  scheduleLayout={scheduleLayout}
-                />
-
-                <GridSurface
-                  isDark={isDark}
-                  centerContent={
-                    <>
-                      {scheduleLayout === "daily" && (
-                        <GridContent
-                          isSidebarOpen={isSidebarOpen}
-                          setIsSidebarOpen={setIsSidebarOpen}
-                          onDateClick={setSelectedDate}
-                          filterSituation={filterSituation}
-                          activeStatusFilter={activeStatusFilter}
-                          visibleDays={situationFilteredDays}
-                          employees={locationFilteredEmployees}
-                        />
-                      )}
-                      {scheduleLayout === "weekly" && (
-                        <WeeklyGridContent
-                          isSidebarOpen={isSidebarOpen}
-                          setIsSidebarOpen={setIsSidebarOpen}
-                          onDateClick={setSelectedDate}
-                          filterSituation={filterSituation}
-                          shifts={shifts}
-                          computed={computed}
-                          scheduleUI={scheduleUI}
-                          employees={employees}
-                        />
-                      )}
-                      {scheduleLayout === "monthly" && (
-                        <MonthlyView
-                          onDateClick={setSelectedDate}
-                          shifts={shifts}
-                          computed={computed}
-                          employees={employees}
-                        />
-                      )}
-                      {scheduleLayout === "list" && (
-                        <ListGridContent
-                          onDateClick={setSelectedDate}
-                          shifts={shifts}
-                          computed={computed}
-                          days={days}
-                          employees={employees}
-                        />
-                      )}
-                    </>
-                  }
-                  dayInspector={
-                    <DayControlSheet
-                      selectedDate={selectedDate}
-                      onClose={() => setSelectedDate(null)}
-                    >
-                      <DayControlPanel date={selectedDate} onClose={() => setSelectedDate(null)} />
-                    </DayControlSheet>
-                  }
-                />
-
-                <StatusStrip
-                  isDark={isDark}
-                  statusSummary={statusSummary}
-                  activeFilter={activeStatusFilter}
-                  onFilterClick={setActiveStatusFilter}
-                />
+        <div className="flex flex-1 overflow-hidden">
+          <div className="flex min-w-0 flex-1 flex-col">
+            <div
+              className={`h-16 border-b p-2 ${isDark ? "border-white/[0.06]" : "border-zinc-200"}`}
+            >
+              <div className="grid h-full grid-cols-7 gap-2">
+                {Array.from({ length: 7 }).map((_, index) => (
+                  <div
+                    key={`schedule-header-skeleton-${index + 1}`}
+                    className={`h-full animate-pulse rounded-lg ${isDark ? "bg-zinc-900" : "bg-zinc-200"}`}
+                  />
+                ))}
               </div>
             </div>
 
-            <ScheduleDragOverlay isDark={isDark} />
-          </DndContext>
-
-          {/* Global modals and overlays rendered at the page level */}
-          <ShiftModal />
-          <BatchActionBar />
-          <AbsencePopover />
-          <EmployeeDrawer
-            open={!!scheduleUI.selectedEmployeeId}
-            onOpenChange={(open) => {
-              if (!open) scheduleUI.setSelectedEmployee(null);
-            }}
-            employee={
-              employees.find((e: ScheduleEmployee) => e.id === scheduleUI.selectedEmployeeId) ??
-              null
-            }
-          />
-          <PublishOverviewDialog
-            open={publishOverviewOpen}
-            onOpenChange={setPublishOverviewOpen}
-            shifts={shifts}
-            employees={employees}
-            onPublish={(ids) => publishShifts.mutate(ids)}
-            isPublishing={publishShifts.isPending}
-          />
-          <SendMessageDialog
-            open={sendMessageDialog.open}
-            onOpenChange={(open) => setSendMessageDialog((prev) => ({ ...prev, open }))}
-            dateId={sendMessageDialog.dateId}
-            dateLabel={sendMessageDialog.dateLabel}
-            shifts={shifts}
-            employees={employees}
-          />
-        </>
-      )}
+            <div className="flex-1 overflow-hidden p-2">
+              <div className="space-y-2">
+                {Array.from({ length: 7 }).map((_, rowIndex) => (
+                  <div
+                    key={`schedule-row-skeleton-${rowIndex + 1}`}
+                    className="grid grid-cols-[260px_repeat(7,minmax(0,1fr))] gap-2"
+                  >
+                    <div
+                      className={`h-14 animate-pulse rounded-lg ${isDark ? "bg-zinc-900" : "bg-zinc-200"}`}
+                    />
+                    {Array.from({ length: 7 }).map((__, colIndex) => (
+                      <div
+                        key={`schedule-cell-skeleton-${rowIndex + 1}-${colIndex + 1}`}
+                        className={`h-14 animate-pulse rounded-lg ${isDark ? "bg-zinc-950" : "bg-zinc-100"}`}
+                      />
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -830,7 +1171,12 @@ function SchedulePageContent() {
 // OpenShiftDropZone — droppable area for converting shifts to open shifts
 // ---------------------------------------------------------------------------
 function OpenShiftDropZone({ isDark, children }: { isDark: boolean; children: React.ReactNode }) {
-  const { setNodeRef, isOver } = useDroppable({ id: "open-shift-zone" });
+  const { active } = useDndContext();
+  const enableDroppable = active !== null;
+  const { setNodeRef, isOver } = useDroppable({
+    id: "open-shift-zone",
+    disabled: !enableDroppable,
+  });
 
   return (
     <div
@@ -884,7 +1230,8 @@ function ScheduleSidebar({
 
   return (
     <aside
-      className={`border-r border-white/[0.04] ${isDark ? "bg-[#0a0a0c]/40" : "bg-white/60"} z-20 hidden shrink-0 flex-col backdrop-blur-md transition-all duration-300 ease-in-out lg:flex ${isSidebarOpen ? "w-64 opacity-100 xl:w-72" : "w-0 overflow-hidden border-none opacity-0"} print:hidden`}
+      className={`border-r border-white/[0.04] ${isDark ? "bg-[#0a0a0c]/40" : "bg-white/60"} hidden shrink-0 flex-col backdrop-blur-md transition-all duration-300 ease-in-out lg:flex ${isSidebarOpen ? "w-64 opacity-100 xl:w-72" : "w-0 overflow-hidden border-none opacity-0"} print:hidden`}
+      style={{ zIndex: SCHEDULE_LAYERS.stickyHeaders }}
     >
       <div className="flex w-64 flex-1 flex-col overflow-y-auto p-4 xl:w-72 xl:p-5">
         <div
@@ -997,7 +1344,6 @@ function WeeklyGridContent({
   setIsSidebarOpen,
   onDateClick,
   filterSituation,
-  shifts,
   computed,
   scheduleUI,
   employees,
@@ -1006,12 +1352,13 @@ function WeeklyGridContent({
   setIsSidebarOpen: (v: boolean) => void;
   onDateClick?: (d: string) => void;
   filterSituation: string;
-  shifts: import("./_components/schedule-types").Shift[];
-  computed: import("./_hooks/use-schedule-computed").ScheduleComputed;
+  computed: ScheduleComputed;
   scheduleUI: ReturnType<typeof useScheduleUI>;
   employees: ScheduleEmployee[];
 }) {
   const { isDark, scheduleView, weeklyPeriodCount } = useContext(DashboardContext);
+  const { active } = useDndContext();
+  const enableDroppable = active !== null;
   const columns = Array.from({ length: weeklyPeriodCount }, (_, i) => i + 1);
 
   /**
@@ -1048,10 +1395,12 @@ function WeeklyGridContent({
   return (
     <div className="flex h-full w-full overflow-y-auto">
       <div
-        className={`w-[200px] shrink-0 border-r border-white/5 xl:w-[250px] ${isDark ? "bg-[#0a0a0c]/60" : "bg-white/80"} sticky left-0 z-30 flex flex-col shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)] backdrop-blur-md`}
+        className={`w-[200px] shrink-0 border-r border-white/5 xl:w-[250px] ${isDark ? "bg-[#0a0a0c]/60" : "bg-white/80"} sticky left-0 flex flex-col shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)] backdrop-blur-md`}
+        style={{ zIndex: SCHEDULE_LAYERS.stickyHeaders }}
       >
         <div
-          className={`sticky top-0 z-30 h-24 border-b xl:h-28 ${isDark ? "border-white/5 bg-[#0a0a0c]" : "border-zinc-200 bg-white"} relative flex flex-col justify-between p-4`}
+          className={`sticky top-0 h-24 border-b xl:h-28 ${isDark ? "border-white/5 bg-[#0a0a0c]" : "border-zinc-200 bg-white"} relative flex flex-col justify-between p-4`}
+          style={{ zIndex: SCHEDULE_LAYERS.stickyHeaders }}
         >
           <div className="flex w-full items-center justify-between">
             <div className="flex items-center gap-1.5 text-[11px] font-bold tracking-widest text-zinc-500 uppercase xl:text-xs">
@@ -1125,7 +1474,8 @@ function WeeklyGridContent({
           >
             <div
               onClick={() => onDateClick && onDateClick(`Uke ${col}`)}
-              className={`sticky top-0 h-24 border-b border-white/5 p-3 xl:h-28 xl:p-4 ${isDark ? "bg-[#0a0a0c]/80" : "bg-white/90"} relative z-20 flex cursor-pointer flex-col items-center justify-center backdrop-blur-xl hover:bg-white/5`}
+              className={`sticky top-0 h-24 border-b border-white/5 p-3 xl:h-28 xl:p-4 ${isDark ? "bg-[#0a0a0c]/80" : "bg-white/90"} relative flex cursor-pointer flex-col items-center justify-center backdrop-blur-xl hover:bg-white/5`}
+              style={{ zIndex: SCHEDULE_LAYERS.stickyContent }}
             >
               {col === 3 && (
                 <div className="absolute top-2 right-2 rounded border border-orange-500/30 bg-orange-500/20 px-1.5 py-0.5 text-[11px] font-black text-orange-400 uppercase">
@@ -1142,7 +1492,7 @@ function WeeklyGridContent({
               </span>
             </div>
 
-            <WeeklyGridCell>
+            <WeeklyGridCell enableDroppable={enableDroppable}>
               {col % 2 !== 0 ? (
                 <ShiftCard role="Sous Chef" time="5 vakter" status="published" indicator="blue" />
               ) : (
@@ -1151,7 +1501,7 @@ function WeeklyGridContent({
                 />
               )}
             </WeeklyGridCell>
-            <WeeklyGridCell>
+            <WeeklyGridCell enableDroppable={enableDroppable}>
               <ShiftCard
                 role="Manager"
                 time="5 vakter"
@@ -1159,14 +1509,14 @@ function WeeklyGridContent({
                 indicator="purple"
               />
             </WeeklyGridCell>
-            <WeeklyGridCell>
+            <WeeklyGridCell enableDroppable={enableDroppable}>
               {col % 4 === 0 ? (
                 <AbsenceCard type="Avspasering" reason="Rotasjon" />
               ) : (
                 <ShiftCard role="Kokk" time="4 vakter" status="draft" indicator="orange" />
               )}
             </WeeklyGridCell>
-            <WeeklyGridCell>
+            <WeeklyGridCell enableDroppable={enableDroppable}>
               <ShiftCard
                 role="Housekeeping"
                 time="4 vakter"
@@ -1281,15 +1631,53 @@ function EntityRow({
   );
 }
 
-function WeeklyGridCell({ children, id }: { children?: React.ReactNode; id?: string }) {
-  const { isDark } = useContext(DashboardContext);
+function WeeklyGridCell({
+  children,
+  id,
+  enableDroppable,
+}: {
+  children?: React.ReactNode;
+  id?: string;
+  enableDroppable?: boolean;
+}) {
   const defaultId = React.useId();
   const droppableId = id || defaultId;
+  if (!enableDroppable) {
+    return <WeeklyGridCellBase isOver={false}>{children}</WeeklyGridCellBase>;
+  }
+
+  return <WeeklyGridCellDroppable droppableId={droppableId}>{children}</WeeklyGridCellDroppable>;
+}
+
+function WeeklyGridCellDroppable({
+  droppableId,
+  children,
+}: {
+  droppableId: string;
+  children?: React.ReactNode;
+}) {
   const { isOver, setNodeRef } = useDroppable({ id: droppableId });
+  return (
+    <WeeklyGridCellBase containerRef={setNodeRef} isOver={isOver}>
+      {children}
+    </WeeklyGridCellBase>
+  );
+}
+
+function WeeklyGridCellBase({
+  children,
+  isOver,
+  containerRef,
+}: {
+  children?: React.ReactNode;
+  isOver: boolean;
+  containerRef?: (node: HTMLDivElement | null) => void;
+}) {
+  const { isDark } = useContext(DashboardContext);
 
   return (
     <div
-      ref={setNodeRef}
+      ref={containerRef}
       className={`h-24 border-b border-white/5 ${isDark ? "bg-[#050505]" : "bg-zinc-50"}/40 relative flex flex-col gap-1 overflow-hidden p-1 shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] transition-colors ${isOver ? "z-10 scale-[1.02] rounded-lg border border-dashed border-orange-500/50 bg-orange-500/20" : "hover:bg-white/[0.04]"}`}
     >
       {children}
@@ -1314,18 +1702,20 @@ function WeeklyEmptyCell({ onClick }: { onClick?: () => void }) {
 // ═══════════════════════════════════════════════════════════════════════════
 function ListGridContent({
   onDateClick,
-  shifts,
   computed,
   days,
   employees,
 }: {
   onDateClick: (d: string) => void;
-  shifts: import("./_components/schedule-types").Shift[];
-  computed: import("./_hooks/use-schedule-computed").ScheduleComputed;
+  computed: ScheduleComputed;
   days: DayColumn[];
   employees: ScheduleEmployee[];
 }) {
   const { isDark } = useContext(DashboardContext);
+  const employeeById = useMemo(
+    () => new Map(employees.map((employee) => [employee.id, employee])),
+    [employees],
+  );
 
   return (
     <div
@@ -1392,7 +1782,8 @@ function ListGridContent({
 
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 print:grid-cols-2">
                 {dayShifts.map((shift) => {
-                  const emp = employees.find((e) => e.id === shift.employeeId);
+                  if (!shift.employeeId) return null;
+                  const emp = employeeById.get(shift.employeeId);
                   if (!emp) return null;
                   return (
                     <div

@@ -1,8 +1,7 @@
 ---
 title: Development Dashboard
 status: in_progress
-updated: 2026-03-04
-
+updated: 2026-03-10
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -14,25 +13,31 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #    | Branch                          | Module     | Status      | Progress | Blockers | Health |
-| ---- | ------------------------------- | ---------- | ----------- | -------- | -------- | ------ |
-| wt-1 | `feat/progressive-intelligence` | onboarding | done        | merged   | —        | merged |
-| wt-2 | `feat/b2b-contract-onboarding`  | contracts  | in_progress | clean    | —        | active |
+| #       | Branch                                       | Module   | Status | Progress                                                              | Blockers | Health |
+| ------- | -------------------------------------------- | -------- | ------ | --------------------------------------------------------------------- | -------- | ------ |
+| wt-2    | `feat/journey-engine`                        | core     | paused | Phase 1-3 done + route rename + scrapling fix. 100 uncommitted files. | —        | dirty  |
+| wt-8    | `feat/showroom`                              | showroom | stale  | phase 2 done, 8 uncommitted files. Last commit 3d ago.                | —        | dirty  |
+| prod-\* | `docs/production-menu-inventory-integration` | docs     | stale  | 7 modified/new files. Last commit 3d ago.                             | —        | dirty  |
 
 ## Free Slots
 
-| #     | Available                             |
-| ----- | ------------------------------------- |
-| wt-1  | yes (progressive-intelligence merged) |
-| wt-2  | no (feat/b2b-contract-onboarding)     |
-| wt-3  | yes                                   |
-| wt-4  | yes                                   |
-| wt-5  | yes                                   |
-| wt-20 | yes                                   |
+| #     | Available                |
+| ----- | ------------------------ |
+| wt-1  | yes                      |
+| wt-2  | no (feat/journey-engine) |
+| wt-3  | yes                      |
+| wt-4  | yes                      |
+| wt-5  | yes                      |
+| wt-8  | no (feat/showroom)       |
+| wt-20 | yes                      |
 
 ## Pending Journeys
 
-| wt-2 | infra-port-consolidation | `docs/journeys/JOURNEY-infra-port-consolidation.md` | missing |
+| WT   | Feature            | Journey File                                  | Status  |
+| ---- | ------------------ | --------------------------------------------- | ------- |
+| wt-1 | zero-to-production | `docs/journeys/JOURNEY-zero-to-production.md` | done    |
+| wt-2 | journey-engine     | `docs/journeys/JOURNEY-journey-engine.md`     | missing |
+| wt-4 | infra-hardening    | `docs/journeys/JOURNEY-infra-hardening.md`    | missing |
 
 ## Recent Closures
 
@@ -70,8 +75,17 @@ tags: [dashboard, worktrees, tracking]
 | 2026-03-19 | journey-portal-fixes      | `feat/journey-portal-fixes`                                        | development |
 | 2026-03-29 | infra-port-consolidation  | `feat/infra-port-consolidation`                                    | development |
 | 2026-03-04 | progressive-intelligence  | `feat/progressive-intelligence`                                    | development |
+| 2026-04-08 | season-creation-wizard    | `feat/season-creation-wizard`                                      | development |
+| 2026-04-08 | governance-admin-ui       | `feat/governance-admin-ui`                                         | development |
+| 2026-04-08 | service-layer             | `feat/service-layer`                                               | development |
+| 2026-04-08 | onboarding-showcase       | `feat/onboarding-showcase-system-room`                             | development |
+| 2026-04-11 | infra-hardening           | `feat/infra-hardening`                                             | development |
+| 2026-03-08 | zero-to-production        | `feat/zero-to-production`                                          | development |
 
 ## Session History
+
+| 2026-03-10 | journey-engine | session ended | Route rename /onboarding→/setup, env import dialog overflow+new keys, redirect condition changed to workspace-empty check, docs updated. 116 uncommitted files. |
+| 2026-03-08 | journey-engine | started | wt-2, module: core — Journey Engine runtime, compile, 2 journeys |
 
 | Date       | Feature                          | Action            | Notes                                                                                                                                                                                                                                                                                                                     |
 | ---------- | -------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -101,6 +115,7 @@ tags: [dashboard, worktrees, tracking]
 | 2026-03-03 | complete-remaining-features      | started           | wt-1, module: multi — 4 features: landing, portal, comms, entity-detail                                                                                                                                                                                                                                                   |
 | 2026-03-04 | admin-wizard-completion          | session ended     | Verified all 17 plan tasks already implemented, typecheck passes clean                                                                                                                                                                                                                                                    |
 | 2026-03-04 | dashboard-polish                 | closed            | 8 commits on development: heatmap overhaul, strategic fix, day-control tabs, wt-1 freed                                                                                                                                                                                                                                   |
+| 2026-04-14 | zero-to-production               | session ended     | Wizard 9-step redesign: industry packages, all steps wired, ~20 files uncommitted. Remaining: DocumentDropStep, HandbookSetupStep auto-gen, final commit                                                                                                                                                                  |
 | 2026-03-04 | communications-finish            | started           | wt-2, module: comms — template persistence, engagement reports, webhook fix                                                                                                                                                                                                                                               |
 | 2026-03-04 | entity-detail-pages              | started           | wt-1, module: org-structure — 4 entity detail pages with shared tabs layout                                                                                                                                                                                                                                               |
 | 2026-03-05 | entity-detail-pages              | session ended     | All 6 tasks complete: EntityDetailLayout + 4 detail pages + navigation wiring. Uncommitted, needs commit + closure gates                                                                                                                                                                                                  |
@@ -158,3 +173,35 @@ tags: [dashboard, worktrees, tracking]
 | 2026-03-28 | stage-engine assessment          | session ended     | Engine-architect deep dive: full service assessment, profile_id fix, mission seed data, build verified. Then 7 new commits on development: journey seed, session types, journey/guardian enrichment, Guardian evaluator loop + whisper delivery.                                                                          |
 | 2026-03-29 | infra-port-consolidation         | merged+closed     | wt-2: Port standardization (5000-series), env var consolidation, ADR-0050, Docker builds verified. 29 files, 2 commits. wt-2 freed.                                                                                                                                                                                       |
 | 2026-03-04 | progressive-intelligence         | merged+closed     | wt-1: 3 progressive Edge Functions (search-brreg, identify-company, scrape-website), replaced triggerScrape with 3 async tools, intelligence module in @smartout/ai. 11 commits, 24 files, 1895 insertions.                                                                                                               |
+| 2026-03-04 | season-creation-wizard           | started           | wt-1, module: operations — Season creation wizard with voice agent, 8-stage stepper, Play simulation                                                                                                                                                                                                                      |
+| 2026-03-05 | (vercel + docs planning)         | session ended     | Diagnosed Vercel web deployment issue: app.smartout.ai 307→smartout.ai (Vercel edge redirect, not middleware). Landing live. Need dashboard domain fix. Identified User Manual docs task (10 categories, empty content).                                                                                                  |
+| 2026-03-05 | governance-admin-ui              | started           | wt-2, module: governance — Protocol-centric admin UI: 3 hooks, 4 components, page wired. Typecheck passes.                                                                                                                                                                                                                |
+| 2026-03-05 | governance-admin-ui              | session ended     | 6 commits: query keys/types, 3 hooks (overview/assignees/journey), 4 UI components (GovernanceOverview, ProtocolEmployeeList, EmployeeJourneyMap, OverdueAlerts), page.tsx replaced. Needs: visual test, commit shadcn components, closure gates.                                                                         |
+| 2026-04-05 | (short session)                  | session ended     | Loaded frontend agent. No code changes. 30 uncommitted files on development (auth/onboarding/dashboard redesign). wt-1 season-wizard + wt-2 governance-admin-ui still active.                                                                                                                                             |
+| 2026-03-05 | (Q&A session)                    | session ended     | Codebase questions only: landing variant URL switching (?v=E/T/K/A/F/S), API docs page (/docs/api). No code changes. 30 uncommitted files on development still pending.                                                                                                                                                   |
+| 2026-03-05 | (docs session)                   | session ended     | Created SMARTOUT_SYSTEM_OVERVIEW.md + SMARTOUT_PLATTFORMEN.md. System overview refined iteratively: org, säsong, schema, operationer, avstämning, beredskap, HACCP, Botsson. Added Roadmap/Journey/Protocol-sektion (4.1) från Modul 0. Inga kodändringar.                                                                |
+| 2026-03-06 | (platform-admin + service plan)  | session ended     | Fixed platform-admin access (env keys), fixed env-import-dialog textarea sizing, added STAGE_ENGINE env vars, wrote full service layer plan (12 tasks, ~2000 LOC). Plan: `docs/plans/2026-03-06-service-layer-plan.md`.                                                                                                   |
+| 2026-04-05 | onboarding pipeline + routing    | session ended     | Fixed finalize-workspace (verify_jwt), fixed redirect loop (middleware picks best workspace), WorkspaceSwitcher dropdown, select-workspace archive button, ?ws= param routing, Brreg fuzzy search, scrapling improvements (email/logo/phone), workspace-first model, Workspace Keys design plan.                          |
+| 2026-04-06 | restaurant-template              | session ended     | Completed full restaurant industry template: 12 SQL files, 32 policies, 22 protocols, 51 procedures (238 steps), 24 routines, 18 control lists, 11 tests, 50 contracts. Built+tested alcohol-labor.sql, updated \_apply.sql + OVERVIEW.md. All tested on seed workspace.                                                  |
+| 2026-04-07 | service-contracts + detail page  | session ended     | Built service contracts with full API surface (3 research agents). Updated service-detail-client.tsx with EndpointTestCard components. Added contract-service auth injection to test proxy. Stage Engine: 14 endpoints, Contract Service: 15, Scrapling: 5, Shift MCP: 2.                                                 |
+| 2026-04-07 | (git cleanup)                    | session ended     | Committed 81+ accumulated files into 10 logical commits. Fixed 3 type errors. Pushed to origin/development. Repo clean.                                                                                                                                                                                                   |
+| 2026-04-08 | service-layer                    | started           | wt-4, module: platform-admin — Service config CRUD, Redis cache, Vercel/Docker sync                                                                                                                                                                                                                                       |
+| 2026-03-06 | onboarding-showcase-system-room  | started           | wt-5, module: onboarding — Interactive system room with journey telemetry, policy guards, scrape normalization                                                                                                                                                                                                            |
+| 2026-04-08 | service-layer                    | session ended     | All 12 tasks complete. 8 commits, typecheck 19/19, PR #34 open. wt-4 preserved.                                                                                                                                                                                                                                           |
+| 2026-04-08 | doner-bros + governance-ui       | session ended     | Cherry-picked governance UI from wt-2 (3 hooks, 4 components). Fixed all governance type errors. Created Doner Bros seed (50 employees, 5 locations, 9mo shifts, 1177 assignments). Staged but uncommitted.                                                                                                               |
+| 2026-04-08 | season-creation-wizard           | merged+closed     | 1 orphan commit cherry-picked to development. wt-1 removed, branch deleted.                                                                                                                                                                                                                                               |
+| 2026-04-08 | governance-admin-ui              | merged+closed     | 7 commits merged (6 feature + 1 docs). Conflicts resolved (dashboard-keys, dashboard-types). wt-2 removed, branch deleted.                                                                                                                                                                                                |
+| 2026-04-08 | service-layer                    | merged+closed     | 9 commits merged (8 feature + 1 seed). pnpm-lock conflict resolved. wt-4 removed, branch deleted. PR #34 superseded.                                                                                                                                                                                                      |
+| 2026-04-08 | onboarding-showcase-system-room  | merged+closed     | 1 commit merged (40 files). Showcase page conflict resolved. wt-5 removed, branch deleted.                                                                                                                                                                                                                                |
+| 2026-04-08 | (cleanup + finalize fix)         | session ended     | Closed 4 worktrees, 8 dev commits, 3 merges, pushed. Fixed finalize-workspace: bypass edge fn timeout → direct RPC, create company on-the-fly for NULL company_id. 12 uncommitted files remain.                                                                                                                           |
+| 2026-04-09 | (git cleanup)                    | done              | Merged feat/b2b-contract-onboarding (12 commits, 6 conflicts). Deleted progressive-intelligence. Pushed development.                                                                                                                                                                                                      |
+| 2026-04-09 | season-engine-complete           | started           | wt-1, module: operations — Complete season-engine tools, merge old branch, wire SeasonCard                                                                                                                                                                                                                                |
+| 2026-04-09 | document-mode                    | started           | wt-2, module: document — Document Mode toggle, handbook editor, 10-chapter nav, Tiptap canvas                                                                                                                                                                                                                             |
+| 2026-04-10 | infra-hardening                  | started           | wt-4, module: infra — Docker/Caddy production hardening, security headers, .dockerignore, CI Docker builds                                                                                                                                                                                                                |
+| 2026-04-11 | infra-hardening                  | closed            | 3 commits, 13 tasks (8 plan + 5 gaps). All gates pass. wt-4 freed.                                                                                                                                                                                                                                                        |
+| 2026-04-12 | (main session)                   | session ended     | Boot sequence, dev startup, infra production readiness audit, wrote hardening plan (8 tasks). infra-hardening already closed in prior session. DashboardShell.tsx has merge conflict (document-mode).                                                                                                                     |
+| 2026-04-13 | document-mode                    | session ended     | Resolved all merge conflicts (DashboardShell, chapters, context, use-handbook-content). Fixed Tiptap SSR error, lifted DocumentModeProvider. Applied handbook_chapter migration locally. Uncommitted.                                                                                                                     |
+| 2026-03-06 | showroom                         | session ended     | Phase 2 complete: mission runtime (personas, stages, skills, events), 3 missions, direct streaming page rewrite, 102 tests (76 unit + 20 integration + 6 E2E). 4 files uncommitted. Next: event tracking, show-off mission, voice, beautiful UI.                                                                          |
+| 2026-03-08 | zero-to-production               | started           | wt-1, module: cross-cutting — Module Zero: close 10 gaps, event engine, employee UI, journey runner                                                                                                                                                                                                                       |
+| 2026-03-08 | zero-to-production               | closed            | Merged to development, wt-1 freed. Contract step hidden, setup-skip scoped to workspace, 14 E2E tests (signup + setup wizard)                                                                                                                                                                                             |
+| 2026-03-08 | (audit + deploy)                 | session ended     | Deployed engine-dispatch + fire-delayed-triggers EFs. Verified e2e backbone (invitation.accepted → 2 engine_states). Inventoried journey/mission/roadmap system (4 skills, 68 journeys, 5 processes, 6 triggers). Updated STATE.md with verified data.                                                                    |

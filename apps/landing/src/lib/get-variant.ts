@@ -89,6 +89,28 @@ async function fetchVariantWithBlocks(
   // ── Resolve the variant ──
   let variant: VariantRow | null = null;
 
+  /**
+   * Fetches the default published variant.
+   * Why: both the root page and invalid slug requests must resolve predictably.
+   */
+  async function fetchDefaultPublishedVariant(): Promise<VariantRow | null> {
+    const { data, error } = await admin
+      .from("landing_variant")
+      .select(
+        "id, slug, name, status, is_default, theme, meta_title, meta_description, og_image_path, voice_config",
+      )
+      .eq("is_default", true)
+      .eq("status", "published")
+      .single();
+
+    if (error || !data) {
+      console.warn("[get-variant] Default published variant not found:", error?.message);
+      return null;
+    }
+
+    return data as VariantRow;
+  }
+
   if (previewId) {
     // Preview mode: fetch by ID regardless of status
     const { data, error } = await admin
@@ -115,27 +137,18 @@ async function fetchVariantWithBlocks(
       .eq("status", "published")
       .single();
 
-    if (error || !data) {
-      console.warn("[get-variant] Published variant not found for slug:", slug, error?.message);
-      return null;
+    if (!error && data) {
+      variant = data as VariantRow;
+    } else {
+      // Invalid slug should fall back to the default published variant.
+      console.warn("[get-variant] Published variant not found for slug, using default:", slug);
+      variant = await fetchDefaultPublishedVariant();
+      if (!variant) return null;
     }
-    variant = data as VariantRow;
   } else {
     // Default: fetch the published variant with is_default=true
-    const { data, error } = await admin
-      .from("landing_variant")
-      .select(
-        "id, slug, name, status, is_default, theme, meta_title, meta_description, og_image_path, voice_config",
-      )
-      .eq("is_default", true)
-      .eq("status", "published")
-      .single();
-
-    if (error || !data) {
-      console.warn("[get-variant] Default published variant not found:", error?.message);
-      return null;
-    }
-    variant = data as VariantRow;
+    variant = await fetchDefaultPublishedVariant();
+    if (!variant) return null;
   }
 
   // ── Fetch blocks for the variant ──

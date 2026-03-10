@@ -14,6 +14,18 @@ import type {
   UltravoxStaticParameter,
 } from "../types/ultravox.js";
 
+export type CreateUltravoxCallResult =
+  | {
+      ok: true;
+      data: UltravoxCreateCallApiResponse;
+    }
+  | {
+      ok: false;
+      status: number;
+      error: string;
+      details?: string;
+    };
+
 /**
  * Creates an Ultravox voice call via the Ultravox API.
  *
@@ -22,7 +34,7 @@ import type {
  */
 export async function createUltravoxCall(
   payload: UltravoxCreateCallPayload,
-): Promise<UltravoxCreateCallApiResponse | null> {
+): Promise<CreateUltravoxCallResult> {
   try {
     const res = await fetch("https://api.ultravox.ai/api/calls", {
       method: "POST",
@@ -36,15 +48,25 @@ export async function createUltravoxCall(
     if (!res.ok) {
       const text = await res.text();
       console.error(`[ultravox] Create call failed: ${res.status} ${text}`);
-      return null;
+      return {
+        ok: false,
+        status: res.status,
+        error: "ULTRAVOX_CREATE_CALL_FAILED",
+        details: text || "Ultravox create-call returned non-200 status",
+      };
     }
 
     const data = (await res.json()) as UltravoxCreateCallApiResponse;
-    return data;
+    return { ok: true, data };
   } catch (err) {
     const message = err instanceof Error ? err.message : "unknown error";
     console.error(`[ultravox] Create call error: ${message}`);
-    return null;
+    return {
+      ok: false,
+      status: 502,
+      error: "ULTRAVOX_CREATE_CALL_NETWORK_ERROR",
+      details: message,
+    };
   }
 }
 

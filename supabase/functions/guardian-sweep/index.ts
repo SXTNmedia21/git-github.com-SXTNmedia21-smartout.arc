@@ -11,7 +11,7 @@
  * 4. Incomplete onboarding (started > 24h ago, not completed)
  */
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "jsr:@supabase/supabase-js@2";
 import type { SignalInsert } from "../_shared/guardian-types.ts";
 
 const corsHeaders: Record<string, string> = {

@@ -32,6 +32,10 @@ desktop.ini
 .idea/
 .vscode/launch.json
 .vscode/*.code-workspace
+.cursor/
+
+# Local dev artifacts
+.local/
 
 # Vercel
 .vercel
@@ -44,3 +48,7 @@ artifacts/
 !.claude/skills/
 
 .vercel
+.env*.local
+supabase/.env
+supabase/functions/.env
+client_secret_*.json

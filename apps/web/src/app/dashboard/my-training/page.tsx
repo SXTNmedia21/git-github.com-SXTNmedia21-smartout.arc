@@ -1,31 +1,37 @@
-import { Activity } from "lucide-react";
+"use client";
+
+import { useContext } from "react";
+import { GraduationCap } from "lucide-react";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
+import { ProtocolList } from "./_components/ProtocolList";
+
+// UI Events:
+// - nav: /dashboard/my-training (sidebar link)
+// - action: expand protocol card
+// - action: complete step, submit test, sign confirmation
 
 export default function MyTrainingPage() {
-  const formattedName = "my training";
+  const { isDark } = useContext(DashboardContext);
 
   return (
-    <>
-      <div className="mb-6">
-        <h1 className="mb-2 text-3xl font-extrabold tracking-tight text-white capitalize">
-          {formattedName} Overview
-        </h1>
-        <p className="text-sm text-zinc-400">Manage and view your {formattedName} data here.</p>
-      </div>
-
-      <div className="flex flex-1 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-zinc-800 bg-zinc-900/20 p-12 transition-colors">
-        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-zinc-800">
-          <Activity className="h-8 w-8 text-zinc-500" />
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <div className="mb-1 flex items-center gap-3">
+          <h1
+            className={`text-3xl font-extrabold tracking-tight ${isDark ? "text-white" : "text-zinc-900"}`}
+          >
+            Min Opplaering
+          </h1>
+          <GraduationCap className={`h-6 w-6 ${isDark ? "text-orange-500" : "text-orange-500"}`} />
         </div>
-        <h2 className="mb-2 text-xl font-bold text-zinc-200 capitalize">
-          {formattedName} is under construction!
-        </h2>
-        <p className="max-w-sm text-center text-zinc-500">
-          We are currently building this section. To see a working demo of the components, navigate
-          to
-          <strong className="mx-1 text-orange-500">Live Operations</strong>
-          in the sidebar.
+        <p className={`text-sm ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
+          Dine tildelte protokoller, prosedyrer, tester og bekreftelser.
         </p>
       </div>
-    </>
+
+      {/* Protocol list */}
+      <ProtocolList />
+    </div>
   );
 }

@@ -1,7 +1,8 @@
 import { test, expect, type Page } from "@playwright/test";
 
-const TEST_EMAIL = "pontus@smartout.no";
-const TEST_PASSWORD = "smartout123";
+const TEST_EMAIL = process.env.E2E_EMAIL ?? "admin@smartout.local";
+const TEST_PASSWORD = process.env.E2E_PASSWORD ?? "password123";
+const TEST_DISPLAY_NAME = process.env.E2E_DISPLAY_NAME ?? "Local Admin";
 
 async function login(page: Page) {
   await page.goto("/login");
@@ -23,8 +24,7 @@ test.describe("Dashboard", () => {
   });
 
   test("should show user menu with display name", async ({ page }) => {
-    // Look for the user's name somewhere in the UI
-    await expect(page.locator("text=Pontus").first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator(`text=${TEST_DISPLAY_NAME}`).first()).toBeVisible({ timeout: 10000 });
   });
 
   test("should navigate to people page", async ({ page }) => {
@@ -51,7 +51,7 @@ test.describe("Dashboard", () => {
     // For now, verify the link exists since our test user has godmode
     const adminLink = page.locator('a[href="/platform-admin"]');
     // If user has godmode, the link should be in the user menu dropdown
-    const userMenuButton = page.locator("button").filter({ hasText: "Pontus" }).first();
+    const userMenuButton = page.locator("button").filter({ hasText: TEST_DISPLAY_NAME }).first();
     if (await userMenuButton.isVisible({ timeout: 3000 }).catch(() => false)) {
       await userMenuButton.click();
       // Platform Admin link should be visible for godmode user

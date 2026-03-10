@@ -1,0 +1,6 @@
+{
+  "expect_categories": ["menus"],
+  "reject_categories": ["policies", "routines", "payroll"],
+  "menus_min_count": 3,
+  "menus_must_contain": ["forrett", "hovedrett", "drikke"]
+}

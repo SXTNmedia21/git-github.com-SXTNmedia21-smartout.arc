@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
-import { motion } from "framer-motion";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Mic, MicOff, Sparkles, X, Activity, Bot, Loader2 } from "lucide-react";
 import { UltravoxSession, UltravoxSessionStatus, Role } from "ultravox-client";
 import { usePostHog } from "posthog-js/react";
@@ -14,6 +13,12 @@ interface VoiceAssistantProps {
   onClose?: () => void;
   autoStart?: boolean;
   missionId?: MissionId;
+  sessionContext?: {
+    page: string;
+    story: string;
+    workingElements: string[];
+    availableInputs: string[];
+  };
   clientTools?: ClientTools | null;
 }
 
@@ -21,12 +26,19 @@ export default function VoiceAssistant({
   onClose,
   autoStart = false,
   missionId = "mr-botsson",
+  sessionContext,
   clientTools,
 }: VoiceAssistantProps) {
   const [status, setStatus] = useState<UltravoxSessionStatus | "idle">("idle");
   const [messages, setMessages] = useState<{ role: string; text: string }[]>([]);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
+  const [agentSpeaksEnabled, setAgentSpeaksEnabled] = useState(false);
+  const [startErrorMessage, setStartErrorMessage] = useState<string | null>(null);
   const sessionRef = useRef<UltravoxSession | null>(null);
+  const isStartingRef = useRef(false);
+  const pendingOutputMediumRef = useRef<"voice" | "text" | null>(null);
+  const connectedReadyCapturedRef = useRef(false);
+  const connectWatchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const posthog = usePostHog();
 
   const manifest = useMemo(
@@ -34,11 +46,90 @@ export default function VoiceAssistant({
     [missionId],
   );
 
-  const startSession = async () => {
+  type UltravoxSpeakerControls = UltravoxSession & {
+    muteSpeaker?: () => void;
+    unmuteSpeaker?: () => void;
+    setOutputMedium?: (medium: "voice" | "text") => void;
+  };
+
+  const isConnectedStatus = (currentStatus: UltravoxSessionStatus | "idle" | undefined) => {
+    return (
+      currentStatus === UltravoxSessionStatus.LISTENING ||
+      currentStatus === UltravoxSessionStatus.THINKING ||
+      currentStatus === UltravoxSessionStatus.SPEAKING
+    );
+  };
+
+  const trackVoiceEvent = useCallback(
+    (event: string, payload: Record<string, unknown> = {}) => {
+      posthog?.capture(event, {
+        mission_id: missionId,
+        ...payload,
+      });
+    },
+    [posthog, missionId],
+  );
+
+  const clearConnectWatchdog = useCallback(() => {
+    if (connectWatchdogRef.current) {
+      clearTimeout(connectWatchdogRef.current);
+      connectWatchdogRef.current = null;
+    }
+  }, []);
+
+  /**
+   * Applies the desired speaker/output mode when session is connected.
+   * If still connecting, we queue the desired medium and flush once ready.
+   */
+  const applyAgentAudioState = useCallback(
+    (enabled: boolean, source: string) => {
+      const desiredMedium = enabled ? "voice" : "text";
+      pendingOutputMediumRef.current = desiredMedium;
+
+      const session = sessionRef.current as UltravoxSpeakerControls | null;
+      if (!session) return;
+      if (!isConnectedStatus(session.status)) return;
+
+      try {
+        if (enabled) {
+          session.unmuteSpeaker?.();
+        } else {
+          session.muteSpeaker?.();
+        }
+        session.setOutputMedium?.(desiredMedium);
+        pendingOutputMediumRef.current = null;
+        trackVoiceEvent("output_mode_applied", {
+          source,
+          medium: desiredMedium,
+          status: String(session.status ?? "unknown"),
+        });
+      } catch (error) {
+        // Keep pending value for next connected status tick.
+        console.debug("[VoiceAssistant] Deferring speaker state change", error);
+      }
+    },
+    [trackVoiceEvent],
+  );
+
+  const startSession = useCallback(async () => {
+    if (isStartingRef.current) return;
+    if (sessionRef.current && status !== "idle") return;
+
+    isStartingRef.current = true;
+    connectedReadyCapturedRef.current = false;
+    setStartErrorMessage(null);
     setStatus(UltravoxSessionStatus.CONNECTING);
+    trackVoiceEvent("session_start_requested", {
+      context_page: sessionContext?.page ?? "unknown",
+      selected_tool_count: clientTools?.definitions?.length ?? 0,
+    });
+
     try {
       const currentSession = new UltravoxSession();
       sessionRef.current = currentSession;
+      // Chat-first behavior: keep mic muted until user explicitly presses "Snakk".
+      currentSession.muteMic();
+      setIsMuted(true);
 
       // Register client tool implementations BEFORE joinCall
       if (clientTools?.implementations) {
@@ -49,7 +140,35 @@ export default function VoiceAssistant({
 
       currentSession.addEventListener("status", () => {
         if (sessionRef.current === currentSession) {
-          setStatus(currentSession.status || "idle");
+          const nextStatus = currentSession.status || "idle";
+          setStatus(nextStatus);
+
+          if (isConnectedStatus(nextStatus)) {
+            clearConnectWatchdog();
+            setStartErrorMessage(null);
+            if (!connectedReadyCapturedRef.current) {
+              connectedReadyCapturedRef.current = true;
+              trackVoiceEvent("connected_ready", {
+                status: String(nextStatus),
+              });
+            }
+            applyAgentAudioState(agentSpeaksEnabled, "connected_status");
+          }
+
+          if (
+            nextStatus === UltravoxSessionStatus.DISCONNECTED &&
+            !connectedReadyCapturedRef.current
+          ) {
+            clearConnectWatchdog();
+            sessionRef.current = null;
+            setStatus("idle");
+            setStartErrorMessage("Kunne ikke koble til tale. Prøv igjen om noen sekunder.");
+            toast.error("Kunne ikke koble til tale. Prøv igjen om noen sekunder.");
+            trackVoiceEvent("session_connect_failed", {
+              status: String(nextStatus),
+              reason: "disconnected_before_ready",
+            });
+          }
         }
       });
 
@@ -88,12 +207,19 @@ export default function VoiceAssistant({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             mission_id: missionId,
+            // User should always start the conversation.
+            first_speaker: "user",
+            context: sessionContext,
             selected_tools: clientTools?.definitions ?? [],
           }),
         });
         if (res.ok) {
           const data = await res.json();
           joinUrl = data.joinUrl;
+          trackVoiceEvent("join_url_received", {
+            mission_fallback_used: Boolean(data.missionFallbackUsed),
+            voice_fallback_used: Boolean(data.voiceFallbackUsed),
+          });
           if (data.voiceFallbackUsed) {
             posthog?.capture("voice_fallback_used", {
               mission_id: missionId,
@@ -104,50 +230,122 @@ export default function VoiceAssistant({
           const errorData = await res
             .json()
             .catch(() => ({ error: "Failed to start voice session" }));
+          setStartErrorMessage(errorData.error ?? "Kunne ikke starte stemmesesjon");
           toast.error(errorData.error ?? "Kunne ikke starte stemmesesjon");
+          trackVoiceEvent("join_url_failed", {
+            status_code: res.status,
+            error: errorData.error ?? "unknown_error",
+          });
         }
       } catch (err) {
         console.warn("[VoiceAssistant] Could not fetch joinUrl:", err);
+        setStartErrorMessage("Nettverksfeil ved oppstart av stemmesesjon");
         toast.error("Nettverksfeil ved oppstart av stemmesesjon");
+        trackVoiceEvent("join_url_failed", {
+          error: err instanceof Error ? err.message : "unknown_error",
+        });
       }
 
       if (joinUrl && sessionRef.current === currentSession) {
         currentSession.joinCall(joinUrl);
+        // Enforce muted mic after connect as well.
+        currentSession.muteMic();
+        setIsMuted(true);
+        clearConnectWatchdog();
+        connectWatchdogRef.current = setTimeout(() => {
+          if (sessionRef.current !== currentSession || connectedReadyCapturedRef.current) return;
+          try {
+            currentSession.leaveCall();
+          } catch {
+            // no-op cleanup
+          }
+          sessionRef.current = null;
+          setStatus("idle");
+          setStartErrorMessage("Tilkobling tok for lang tid. Prøv igjen.");
+          toast.error("Tilkobling tok for lang tid. Prøv igjen.");
+          trackVoiceEvent("session_connect_timeout", { timeout_ms: 15000 });
+        }, 15000);
+        trackVoiceEvent("join_call_invoked", { has_join_url: true });
         posthog?.capture("voice_session_started", { mission_id: missionId });
       } else if (!joinUrl && sessionRef.current === currentSession) {
+        sessionRef.current = null;
         setStatus("idle");
-        setMessages([{ role: "agent", text: manifest.greeting }]);
+        setMessages([
+          { role: "agent", text: manifest.greeting },
+          {
+            role: "agent",
+            text: "Voice is unavailable right now. You can retry, or continue with guided text actions.",
+          },
+        ]);
+        toast.error("Kunne ikke starte stemme. Sjekk at Stage Engine/Ultravox er tilgjengelig.");
       }
     } catch (error) {
       console.error("[VoiceAssistant] Failed to start session:", error);
+      setStartErrorMessage("Kunne ikke starte stemmesesjon");
       if (sessionRef.current) setStatus("idle");
+      trackVoiceEvent("session_start_failed", {
+        error: error instanceof Error ? error.message : "unknown_error",
+      });
+    } finally {
+      isStartingRef.current = false;
     }
-  };
+  }, [
+    status,
+    missionId,
+    manifest.greeting,
+    sessionContext,
+    clientTools,
+    trackVoiceEvent,
+    applyAgentAudioState,
+    posthog,
+    agentSpeaksEnabled,
+    clearConnectWatchdog,
+  ]);
 
-  const endSession = () => {
-    if (sessionRef.current) {
-      sessionRef.current.leaveCall();
+  const endSession = useCallback(
+    (reason: string) => {
+      isStartingRef.current = false;
+      pendingOutputMediumRef.current = null;
+      connectedReadyCapturedRef.current = false;
+      clearConnectWatchdog();
+
+      const session = sessionRef.current;
       sessionRef.current = null;
-      posthog?.capture("voice_session_ended", { mission_id: missionId });
-    }
-    setStatus("idle");
-  };
+      if (session) {
+        try {
+          session.leaveCall();
+        } catch (error) {
+          console.debug("[VoiceAssistant] leaveCall failed", error);
+        }
+        posthog?.capture("voice_session_ended", { mission_id: missionId });
+      }
+      setStatus("idle");
+      trackVoiceEvent("session_end_reason", { reason });
+    },
+    [posthog, missionId, trackVoiceEvent, clearConnectWatchdog],
+  );
 
   const handleClose = () => {
-    endSession();
+    endSession("close_button");
     if (onClose) onClose();
   };
 
-  const toggleMute = () => {
-    if (sessionRef.current) {
-      if (isMuted) {
-        sessionRef.current.unmuteMic();
-        setIsMuted(false);
-      } else {
-        sessionRef.current.muteMic();
-        setIsMuted(true);
-      }
+  const toggleMicMute = () => {
+    const session = sessionRef.current;
+    if (!session || !isConnectedStatus(session.status)) return;
+    if (isMuted) {
+      session.unmuteMic();
+      setIsMuted(false);
+      return;
     }
+    session.muteMic();
+    setIsMuted(true);
+  };
+
+  const toggleAgentSpeaks = () => {
+    const nextEnabled = !agentSpeaksEnabled;
+    setAgentSpeaksEnabled(nextEnabled);
+    applyAgentAudioState(nextEnabled, "toggle_button");
   };
 
   useEffect(() => {
@@ -157,10 +355,13 @@ export default function VoiceAssistant({
       }, 0);
     }
     return () => {
-      endSession();
+      endSession("component_unmount");
     };
-    // eslint-disable-next-line -- suppress exhaustive-deps: startSession/endSession excluded; only fire on autoStart change
-  }, [autoStart]);
+  }, [autoStart, endSession, startSession]);
+
+  useEffect(() => {
+    applyAgentAudioState(agentSpeaksEnabled, "state_effect");
+  }, [agentSpeaksEnabled, applyAgentAudioState]);
 
   const isConnected = ["listening", "thinking", "speaking"].includes(status);
 
@@ -187,7 +388,7 @@ export default function VoiceAssistant({
             <p className="flex items-center gap-1 text-xs text-zinc-400">
               {isConnected ? (
                 <>
-                  <span className="h-1.5 w-1.5 rounded-full bg-orange-500" /> Samtalen pågår
+                  <span className="h-1.5 w-1.5 rounded-full bg-orange-500" /> Chat aktiv
                 </>
               ) : status === UltravoxSessionStatus.CONNECTING ||
                 status === UltravoxSessionStatus.DISCONNECTING ? (
@@ -227,11 +428,9 @@ export default function VoiceAssistant({
           </div>
         ) : (
           messages.map((msg, idx) => (
-            <motion.div
+            <div
               key={idx}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}
+              className={`animate-in fade-in slide-in-from-bottom-2 flex flex-col duration-200 ${msg.role === "user" ? "items-end" : "items-start"}`}
             >
               <div className="mb-1 flex items-center gap-2">
                 <span className="text-[10px] font-bold tracking-wider text-zinc-500 uppercase">
@@ -246,7 +445,7 @@ export default function VoiceAssistant({
               >
                 {msg.text}
               </div>
-            </motion.div>
+            </div>
           ))
         )}
       </div>
@@ -254,45 +453,48 @@ export default function VoiceAssistant({
       {/* Controls */}
       <div className="flex flex-col items-center gap-3 border-t border-zinc-800 bg-zinc-900/50 p-4">
         {status === "idle" ? (
-          <button
-            onClick={startSession}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 py-3 font-bold text-white shadow-lg shadow-orange-500/20 transition-all hover:bg-orange-400"
-          >
-            <Mic className="h-5 w-5" /> Starta samtale
-          </button>
-        ) : (
-          <div className="flex w-full items-center justify-center gap-4">
+          <div className="flex w-full flex-col gap-2">
             <button
-              onClick={toggleMute}
-              className={`rounded-full p-4 transition-all ${isMuted ? "border border-red-500/20 bg-red-500/20 text-red-500 hover:bg-red-500/30" : "border border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700"}`}
+              onClick={() => void startSession()}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 py-3 font-bold text-white shadow-lg shadow-orange-500/20 transition-all hover:bg-orange-400"
             >
-              {isMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+              <Mic className="h-5 w-5" /> {startErrorMessage ? "Prøv igjen" : "Start chat"}
             </button>
-
-            <div className="flex flex-1 justify-center">
-              <div className="flex h-6 items-center gap-1">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <motion.div
-                    key={i}
-                    animate={
-                      isConnected && !isMuted
-                        ? {
-                            height: ["20%", "80%", "40%", "100%", "20%"],
-                            opacity: [0.5, 1, 0.5],
-                          }
-                        : { height: "20%", opacity: 0.3 }
-                    }
-                    transition={{
-                      repeat: Infinity,
-                      duration: 1.5,
-                      delay: i * 0.1,
-                      ease: "easeInOut",
-                    }}
-                    className="w-1.5 rounded-full bg-orange-500"
-                  />
-                ))}
+            {startErrorMessage ? (
+              <p className="text-center text-xs text-amber-300">{startErrorMessage}</p>
+            ) : null}
+          </div>
+        ) : (
+          <div className="flex w-full flex-col items-stretch gap-2">
+            <button
+              onClick={toggleAgentSpeaks}
+              className={`rounded-full p-4 transition-all ${
+                agentSpeaksEnabled
+                  ? "border border-orange-300 bg-orange-500 text-white shadow-lg shadow-orange-500/30"
+                  : "border border-zinc-700 bg-zinc-800 text-zinc-200 hover:bg-zinc-700"
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold tracking-wide uppercase">Agent speaks</span>
+                <span className="text-xs font-black">{agentSpeaksEnabled ? "ON" : "OFF"}</span>
               </div>
-            </div>
+            </button>
+            <button
+              onClick={toggleMicMute}
+              className={`rounded-full p-4 transition-all ${
+                isMuted
+                  ? "border border-red-500/20 bg-red-500/20 text-red-500 hover:bg-red-500/30"
+                  : "border border-emerald-300 bg-emerald-500 text-white shadow-lg shadow-emerald-500/30"
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold tracking-wide uppercase">Mute mic</span>
+                <span className="flex items-center gap-2 text-xs font-black">
+                  {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                  {isMuted ? "ON" : "OFF"}
+                </span>
+              </div>
+            </button>
 
             <button
               onClick={handleClose}

@@ -7,15 +7,20 @@
 export const ONBOARDING_SECTIONS = [
   "hero",
   "business",
-  "season",
   "departments",
   "locations",
   "procedures",
+  "season",
   "contract",
   "welcome",
 ] as const;
 
 export type OnboardingSection = (typeof ONBOARDING_SECTIONS)[number];
+
+/** Sections currently visible in the onboarding flow (contract skipped for now) */
+export const VISIBLE_SECTIONS = ONBOARDING_SECTIONS.filter(
+  (s): s is OnboardingSection => s !== "contract",
+);
 
 /** Section-level progress tracking */
 export interface SectionProgress {
@@ -73,6 +78,9 @@ export interface DepartmentOption {
 export interface ContractData {
   templateGenerated: boolean;
   previewUrl: string | null;
+  contractId: string | null;
+  contractSent: boolean;
+  signingUrl: string | null;
 }
 
 /** A zone within a location */
@@ -95,6 +103,8 @@ export interface ProcedureData {
   name: string;
   selected: boolean;
   isCustom: boolean;
+  /** Recommended procedures show a warning when deselected */
+  recommended?: boolean;
 }
 
 /** Brreg search candidate — returned by search-brreg Edge Function */

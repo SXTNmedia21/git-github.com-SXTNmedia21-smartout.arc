@@ -36,6 +36,9 @@ export const dashboardKeys = {
 
   kpiTargets: (workspaceId: string) => ["dashboard", "kpi-targets", workspaceId] as const,
 
+  kpiCopy: (workspaceId: string, locale: string) =>
+    ["dashboard", "kpi-copy", workspaceId, locale] as const,
+
   budgets: (workspaceId: string, periodType: string, startDate: string, endDate: string) =>
     ["dashboard", "budgets", workspaceId, periodType, startDate, endDate] as const,
 
@@ -64,4 +67,19 @@ export const dashboardKeys = {
 
   // Leader Pulse
   leaderPulse: (workspaceId: string) => ["dashboard", "leader-pulse", workspaceId] as const,
+
+  // Governance
+  governanceOverview: (workspaceId: string) =>
+    ["dashboard", "governance-overview", workspaceId] as const,
+
+  protocolAssignees: (workspaceId: string, protocolId: string) =>
+    ["dashboard", "protocol-assignees", workspaceId, protocolId] as const,
+
+  protocolJourney: (workspaceId: string, assignmentId: string) =>
+    ["dashboard", "protocol-journey", workspaceId, assignmentId] as const,
+
+  workspaceSetupStatus: (workspaceId: string) =>
+    ["dashboard", "workspace-setup-status", workspaceId] as const,
+
+  onboardingGuide: (workspaceId: string) => ["dashboard", "onboarding-guide", workspaceId] as const,
 };

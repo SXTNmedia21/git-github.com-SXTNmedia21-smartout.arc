@@ -11,6 +11,7 @@ import type {
   DepartmentOption,
   LocationData,
   ProcedureData,
+  ContractData,
   Memory,
   BrregCandidate,
 } from "../types";
@@ -48,6 +49,7 @@ export interface OnboardingActions {
   brregCandidates: BrregCandidate[];
   updateBusiness: (partial: Partial<BusinessData>) => void;
   updateSeason: (partial: Partial<SeasonData>) => void;
+  updateContract: (partial: Partial<ContractData>) => void;
   toggleDepartment: (id: string) => void;
   addCustomDepartment: (name: string) => void;
   addLocation: (name: string, type?: LocationData["type"]) => void;
@@ -60,7 +62,7 @@ export interface OnboardingActions {
   saveMemory: (content: string) => void;
   removeMemory: (id: string) => void;
   resetScrape: () => void;
-  finalize: () => Promise<void>;
+  finalize: () => Promise<{ workspaceId: string; slug: string | null }>;
   reset: () => Promise<void>;
 }
 
@@ -79,9 +81,12 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
   const [departments, setDepartments] = useState<DepartmentOption[]>([]);
   const [locations, setLocations] = useState<LocationData[]>([]);
   const [procedures, setProcedures] = useState<ProcedureData[]>([]);
-  const [contract, setContract] = useState({
+  const [contract, setContract] = useState<ContractData>({
     templateGenerated: false,
-    previewUrl: null as string | null,
+    previewUrl: null,
+    contractId: null,
+    contractSent: false,
+    signingUrl: null,
   });
 
   const [memories, setMemories] = useState<Memory[]>([]);
@@ -130,11 +135,11 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
     hasResumed.current = true;
 
     async function resume() {
-      // Try to resume from onboarding workspace first
+      // Try to resume from a workspace that hasn't completed onboarding
       const { data: wsData } = await supabase
         .from("profile")
         .select(
-          "workspace_id, workspace:workspace_id(workspace_id, contract_status, intelligence_data, name)",
+          "workspace_id, workspace:workspace_id(workspace_id, onboarding_completed, intelligence_data, name)",
         )
         .eq("user_id", userId!)
         .limit(10);
@@ -142,9 +147,9 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
       if (wsData) {
         const onboardingProfile = wsData.find((p) => {
           const ws = p.workspace as unknown as {
-            contract_status: string | null;
+            onboarding_completed: boolean;
           } | null;
-          return ws?.contract_status === "onboarding";
+          return ws?.onboarding_completed === false;
         });
 
         if (onboardingProfile) {
@@ -376,6 +381,10 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
     setSeason((prev) => ({ ...prev, ...partial }));
   }, []);
 
+  const updateContract = useCallback((partial: Partial<ContractData>) => {
+    setContract((prev) => ({ ...prev, ...partial }));
+  }, []);
+
   const toggleDepartment = useCallback((id: string) => {
     setDepartments((prev) => prev.map((d) => (d.id === id ? { ...d, selected: !d.selected } : d)));
   }, []);
@@ -568,11 +577,11 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
       // Verify it's still in onboarding state before deleting
       const { data: ws } = await supabase
         .from("workspace")
-        .select("contract_status")
+        .select("onboarding_completed")
         .eq("workspace_id", onboardingWorkspaceId)
         .single();
 
-      if (ws?.contract_status === "onboarding") {
+      if (ws && !ws.onboarding_completed) {
         // Delete profile, company_member, workspace, company in order
         // The cascade should handle most of this, but be explicit
         await supabase.from("profile").delete().eq("workspace_id", onboardingWorkspaceId);
@@ -597,7 +606,13 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
     setLocations([]);
     setProcedures([]);
     setMemories([]);
-    setContract({ templateGenerated: false, previewUrl: null });
+    setContract({
+      templateGenerated: false,
+      previewUrl: null,
+      contractId: null,
+      contractSent: false,
+      signingUrl: null,
+    });
     setScrapeStatus("idle");
     setScrapeSource(null);
     setBrregCandidates([]);
@@ -611,7 +626,7 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
   }, [sessionId, onboardingWorkspaceId, supabase]);
 
   // Finalize — use finalize-workspace if we have an onboarding workspace, else activate-workspace
-  const finalize = useCallback(async () => {
+  const finalize = useCallback(async (): Promise<{ workspaceId: string; slug: string | null }> => {
     try {
       const selectedDepts = departments
         .filter((d) => d.selected)
@@ -626,12 +641,14 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
       }));
 
       const workspacePayload = {
-        name: business.name,
+        name: business.name || "Min bedrift",
         legalName: business.legalName,
         orgNumber: business.orgNumber,
         email: business.email,
         phone: business.phone,
-        address: `${business.address}, ${business.postalCode} ${business.city}`,
+        address: [business.address, [business.postalCode, business.city].filter(Boolean).join(" ")]
+          .filter(Boolean)
+          .join(", "),
         industry: business.industry,
         industryCode: business.industryCode,
         employeeCount: business.employeeCount,
@@ -640,26 +657,49 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
         departments: selectedDepts,
         locations: locationPayload,
         procedures: selectedProcs,
-        seasonName: season.name,
+        seasonName: season.name || "Sesong 1",
+        seasonType: "default",
         seasonStartDate: season.startDate,
         seasonEndDate: season.endDate,
+        contractId: contract?.contractId ?? null,
       };
 
       let workspaceId: string;
       let slug: string | null = null;
 
       if (onboardingWorkspaceId) {
-        // Finalize existing onboarding workspace
-        const { data, error } = await supabase.functions.invoke("finalize-workspace", {
-          body: {
-            workspaceId: onboardingWorkspaceId,
-            workspaceData: workspacePayload,
+        // Finalize existing onboarding workspace — call RPC directly
+        // (SECURITY DEFINER bypasses RLS, no service role needed)
+        const { data: rpcResult, error: rpcError } = await supabase.rpc(
+          "finalize_onboarding_workspace",
+          {
+            p_workspace_id: onboardingWorkspaceId,
+            p_data: workspacePayload,
           },
-        });
+        );
 
-        if (error) throw new Error("Failed to finalize workspace");
-        workspaceId = data?.workspaceId;
-        slug = data?.slug ?? null;
+        if (rpcError) throw new Error(`Failed to finalize workspace: ${rpcError.message}`);
+        workspaceId = rpcResult ?? onboardingWorkspaceId;
+
+        // Link contract to workspace if one was generated during onboarding
+        if (workspacePayload.contractId) {
+          await supabase
+            .from("contract")
+            .update({ workspace_id: workspaceId, updated_at: new Date().toISOString() })
+            .eq("contract_id", workspacePayload.contractId);
+
+          await supabase
+            .from("workspace")
+            .update({ contract_status: "pending_contract", updated_at: new Date().toISOString() })
+            .eq("workspace_id", workspaceId);
+        }
+
+        const { data: ws } = await supabase
+          .from("workspace")
+          .select("slug")
+          .eq("workspace_id", workspaceId)
+          .single();
+        slug = ws?.slug ?? null;
       } else {
         // Legacy: activate-workspace for old flow
         const { data, error } = await supabase.functions.invoke("activate-workspace", {
@@ -692,6 +732,8 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
           })
           .eq("id", sessionId);
       }
+
+      return { workspaceId, slug };
     } catch (err) {
       console.error("Finalization error:", err);
       throw err;
@@ -702,6 +744,7 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
     departments,
     locations,
     procedures,
+    contract,
     sessionId,
     onboardingWorkspaceId,
     supabase,
@@ -732,6 +775,7 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
     scrapeWebsite,
     updateBusiness,
     updateSeason,
+    updateContract,
     toggleDepartment,
     addCustomDepartment,
     addLocation,

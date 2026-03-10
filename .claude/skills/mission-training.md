@@ -278,7 +278,8 @@ The Guardian system monitors active sessions:
 ```sql
 INSERT INTO engine_stages (
   mission_id, stage_id, stage_order, goal, instructions, success_criteria,
-  personality_override, creative_freedom, tuning_notes, next_stage
+  personality_override, creative_freedom, tuning_notes, next_stage,
+  is_required, journey_step_id, escalation_instructions
 ) VALUES (
   'mission-id', 'stage-id', N,
   'One-line goal',
@@ -287,7 +288,11 @@ INSERT INTO engine_stages (
   'Tone description for this stage.',
   0.4,  -- 0=strict script, 1=full improvise
   'coaching-hint',
-  'next-stage-id'  -- or NULL for terminal
+  'next-stage-id',  -- or NULL for terminal
+  true,   -- is_required: false only for optional/skippable stages
+  NULL,   -- journey_step_id: UUID FK to journey_step. SET THIS for Guardian evaluation.
+          -- NULL only for agent-added stages (greeting, wrapup) with no journey step.
+  NULL    -- escalation_instructions: what to do if stage fails
 ) ON CONFLICT (mission_id, stage_id) DO UPDATE SET
   stage_order = EXCLUDED.stage_order,
   goal = EXCLUDED.goal,
@@ -296,7 +301,10 @@ INSERT INTO engine_stages (
   personality_override = EXCLUDED.personality_override,
   creative_freedom = EXCLUDED.creative_freedom,
   tuning_notes = EXCLUDED.tuning_notes,
-  next_stage = EXCLUDED.next_stage;
+  next_stage = EXCLUDED.next_stage,
+  is_required = EXCLUDED.is_required,
+  journey_step_id = EXCLUDED.journey_step_id,
+  escalation_instructions = EXCLUDED.escalation_instructions;
 ```
 
 Always use `ON CONFLICT ... DO UPDATE` for idempotency.

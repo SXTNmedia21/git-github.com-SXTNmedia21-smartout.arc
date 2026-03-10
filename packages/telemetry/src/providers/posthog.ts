@@ -1,27 +1,14 @@
-// ─── PostHog Client/Server Adapters ──────────────────────
+// ─── PostHog Server-Side Adapter ──────────────────────
+//
+// This file imports posthog-node (which uses node:fs).
+// It MUST only be loaded via dynamic import from emit.ts
+// to avoid bundling into client chunks.
+//
+// Client-side adapter lives in posthog-client.ts.
 
 import type { PostHog as PostHogNode } from "posthog-node";
 import type { SmartoutEvent } from "../registry";
 
-// 1. CLIENT-SIDE
-// Dynamic import avoids bundling posthog-js on the server
-export function sendToPostHogClient(event: SmartoutEvent): void {
-  if (typeof window === "undefined") return;
-
-  void import("posthog-js")
-    .then(({ default: posthog }) => {
-      posthog.capture(event.event, {
-        ...event.properties,
-        workspace_id: event.workspace_id,
-        $set: { last_active_workspace: event.workspace_id },
-      });
-    })
-    .catch(() => {
-      /* PostHog not available (ad blocker, network error) */
-    });
-}
-
-// 2. SERVER-SIDE (singleton — single cached promise eliminates race conditions)
 let _clientPromise: Promise<PostHogNode | null> | null = null;
 
 async function initServerClient(): Promise<PostHogNode | null> {
