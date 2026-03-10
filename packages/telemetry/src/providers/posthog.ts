@@ -55,6 +55,6 @@ export async function sendToPostHogServer(event: SmartoutEvent): Promise<void> {
       workspace_id: event.workspace_id,
       correlation_id: event.correlation_id,
     },
-    groups: { workspace: event.workspace_id },
+    ...(event.workspace_id ? { groups: { workspace: event.workspace_id } } : {}),
   });
 }

@@ -50,6 +50,7 @@ export const JourneySchema = z.object({
   outcomes_success: z.string().nullable(),
   outcomes_empty: z.string().nullable(),
   outcomes_error: z.string().nullable(),
+  engine_process_id: z.string().nullable().optional(),
   related_journeys: z.array(z.string().uuid()),
   blocked_by: z.array(z.string().uuid()),
   assignee_id: z.string().uuid().nullable(),

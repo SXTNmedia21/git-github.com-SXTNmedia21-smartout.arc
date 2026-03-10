@@ -1,6 +1,6 @@
 // ─── Base Event Shape ───────────────────────────
 export interface BaseEvent {
-  workspace_id: string;
+  workspace_id: string | null;
   actor_id: string; // profile_id representing who performed the action
   timestamp?: string; // ISO 8601; auto-populated if omitted
   correlation_id?: string; // Trace IDs
@@ -473,6 +473,9 @@ export type SmartoutEvent =
   | ContractDeclined
   | ContractExpired
   | HandbookChapterSaved
+  | SignupCompleted
+  | OnboardingStepCompleted
+  | WorkspaceCreated
   | WizardStepCompleted
   | WizardCompleted
   | PageViewed
@@ -605,6 +608,18 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "training",
   },
 
+  "signup completed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "onboarding",
+  },
+  "onboarding step_completed": {
+    destinations: ["posthog", "logger", "engine_event"],
+    category: "onboarding",
+  },
+  "workspace created": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "onboarding",
+  },
   "wizard step_completed": {
     destinations: ["posthog", "logger", "engine_event"],
     category: "onboarding",
