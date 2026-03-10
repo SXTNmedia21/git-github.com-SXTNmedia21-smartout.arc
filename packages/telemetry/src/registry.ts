@@ -60,7 +60,8 @@ export type EntityType =
   | "announcement"
   | "chat_message"
   | "reconciliation"
-  | "handbook_chapter";
+  | "handbook_chapter"
+  | "contract";
 
 export type ActionVerb =
   | "created"
@@ -379,6 +380,39 @@ export interface CommunicationFailed extends BaseEvent {
   };
 }
 
+// ─── Contract Events ──────────────────────────
+export interface ContractViewed extends BaseEvent {
+  event: "contract viewed";
+  properties: {
+    entity: EntityRef;
+    data: { recipient_email: string };
+  };
+}
+
+export interface ContractSigned extends BaseEvent {
+  event: "contract signed";
+  properties: {
+    entity: EntityRef;
+    data: { recipient_email: string; signed_pdf_url?: string };
+  };
+}
+
+export interface ContractDeclined extends BaseEvent {
+  event: "contract declined";
+  properties: {
+    entity: EntityRef;
+    data: { reason?: string };
+  };
+}
+
+export interface ContractExpired extends BaseEvent {
+  event: "contract expired";
+  properties: {
+    entity: EntityRef;
+    data: { expired_at: string };
+  };
+}
+
 // ─── Wizard Events ─────────────────────────────
 export interface WizardStepCompleted extends BaseEvent {
   event: "wizard step_completed";
@@ -429,6 +463,10 @@ export type SmartoutEvent =
   | CommunicationSent
   | CommunicationCancelled
   | CommunicationFailed
+  | ContractViewed
+  | ContractSigned
+  | ContractDeclined
+  | ContractExpired
   | WizardStepCompleted
   | WizardCompleted
   | PageViewed
@@ -538,6 +576,23 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "communication failed": {
     destinations: ["posthog", "logger"],
     category: "communication",
+  },
+
+  "contract viewed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "contract signed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "contract declined": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "contract expired": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
   },
 
   "handbook chapter_saved": {
