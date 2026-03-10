@@ -344,6 +344,41 @@ export interface HandbookChapterSaved extends BaseEvent {
   };
 }
 
+// ─── Communication ──────────────────────────────
+export interface CommunicationSent extends BaseEvent {
+  event: "communication sent";
+  properties: {
+    data: {
+      communication_id: string;
+      template: string;
+      classification: string;
+      recipient_count: number;
+      sent_count: number;
+      failed_count: number;
+    };
+  };
+}
+
+export interface CommunicationCancelled extends BaseEvent {
+  event: "communication cancelled";
+  properties: {
+    data: {
+      communication_id: string;
+    };
+  };
+}
+
+export interface CommunicationFailed extends BaseEvent {
+  event: "communication failed";
+  properties: {
+    data: {
+      communication_id: string;
+      template: string;
+      error: string;
+    };
+  };
+}
+
 // ─── Wizard Events ─────────────────────────────
 export interface WizardStepCompleted extends BaseEvent {
   event: "wizard step_completed";
@@ -391,6 +426,9 @@ export type SmartoutEvent =
   | ReconciliationSubmitted
   | ReconciliationAdminAction
   | HandbookChapterSaved
+  | CommunicationSent
+  | CommunicationCancelled
+  | CommunicationFailed
   | WizardStepCompleted
   | WizardCompleted
   | PageViewed
@@ -487,6 +525,19 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "reconciliation admin_action": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "operations",
+  },
+
+  "communication sent": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "communication",
+  },
+  "communication cancelled": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "communication",
+  },
+  "communication failed": {
+    destinations: ["posthog", "logger"],
+    category: "communication",
   },
 
   "handbook chapter_saved": {
