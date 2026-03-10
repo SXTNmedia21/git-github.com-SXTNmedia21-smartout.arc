@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: in_progress
-updated: 2026-04-14
+updated: 2026-03-10
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -13,31 +13,30 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #    | Branch                        | Module        | Status      | Progress                          | Blockers | Health |
-| ---- | ----------------------------- | ------------- | ----------- | --------------------------------- | -------- | ------ |
-| wt-1 | `feat/zero-to-production`     | cross-cutting | done        | merged to development             | —        | clean  |
-| wt-2 | `feat/document-mode`          | document      | in_progress | just started                      | —        | clean  |
-| wt-3 | `feat/journey-package-skills` | meta          | done        | merged                            | —        | —      |
-| wt-8 | `feat/showroom`               | showroom      | in_progress | phase 2 done, 4 files uncommitted | —        | dirty  |
+| #       | Branch                                       | Module   | Status | Progress                                                              | Blockers | Health |
+| ------- | -------------------------------------------- | -------- | ------ | --------------------------------------------------------------------- | -------- | ------ |
+| wt-2    | `feat/journey-engine`                        | core     | paused | Phase 1-3 done + route rename + scrapling fix. 100 uncommitted files. | —        | dirty  |
+| wt-8    | `feat/showroom`                              | showroom | stale  | phase 2 done, 8 uncommitted files. Last commit 3d ago.                | —        | dirty  |
+| prod-\* | `docs/production-menu-inventory-integration` | docs     | stale  | 7 modified/new files. Last commit 3d ago.                             | —        | dirty  |
 
 ## Free Slots
 
-| #     | Available                        |
-| ----- | -------------------------------- |
-| wt-1  | yes                              |
-| wt-2  | no (feat/document-mode)          |
-| wt-3  | no (feat/journey-package-skills) |
-| wt-4  | yes                              |
-| wt-5  | yes                              |
-| wt-8  | no (feat/showroom)               |
-| wt-20 | yes                              |
+| #     | Available                |
+| ----- | ------------------------ |
+| wt-1  | yes                      |
+| wt-2  | no (feat/journey-engine) |
+| wt-3  | yes                      |
+| wt-4  | yes                      |
+| wt-5  | yes                      |
+| wt-8  | no (feat/showroom)       |
+| wt-20 | yes                      |
 
 ## Pending Journeys
 
 | WT   | Feature            | Journey File                                  | Status  |
 | ---- | ------------------ | --------------------------------------------- | ------- |
 | wt-1 | zero-to-production | `docs/journeys/JOURNEY-zero-to-production.md` | done    |
-| wt-2 | document-mode      | `docs/journeys/JOURNEY-document-mode.md`      | missing |
+| wt-2 | journey-engine     | `docs/journeys/JOURNEY-journey-engine.md`     | missing |
 | wt-4 | infra-hardening    | `docs/journeys/JOURNEY-infra-hardening.md`    | missing |
 
 ## Recent Closures
@@ -84,6 +83,9 @@ tags: [dashboard, worktrees, tracking]
 | 2026-03-08 | zero-to-production        | `feat/zero-to-production`                                          | development |
 
 ## Session History
+
+| 2026-03-10 | journey-engine | session ended | Route rename /onboarding→/setup, env import dialog overflow+new keys, redirect condition changed to workspace-empty check, docs updated. 116 uncommitted files. |
+| 2026-03-08 | journey-engine | started | wt-2, module: core — Journey Engine runtime, compile, 2 journeys |
 
 | Date       | Feature                          | Action            | Notes                                                                                                                                                                                                                                                                                                                     |
 | ---------- | -------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -202,3 +204,4 @@ tags: [dashboard, worktrees, tracking]
 | 2026-03-06 | showroom                         | session ended     | Phase 2 complete: mission runtime (personas, stages, skills, events), 3 missions, direct streaming page rewrite, 102 tests (76 unit + 20 integration + 6 E2E). 4 files uncommitted. Next: event tracking, show-off mission, voice, beautiful UI.                                                                          |
 | 2026-03-08 | zero-to-production               | started           | wt-1, module: cross-cutting — Module Zero: close 10 gaps, event engine, employee UI, journey runner                                                                                                                                                                                                                       |
 | 2026-03-08 | zero-to-production               | closed            | Merged to development, wt-1 freed. Contract step hidden, setup-skip scoped to workspace, 14 E2E tests (signup + setup wizard)                                                                                                                                                                                             |
+| 2026-03-08 | (audit + deploy)                 | session ended     | Deployed engine-dispatch + fire-delayed-triggers EFs. Verified e2e backbone (invitation.accepted → 2 engine_states). Inventoried journey/mission/roadmap system (4 skills, 68 journeys, 5 processes, 6 triggers). Updated STATE.md with verified data.                                                                    |

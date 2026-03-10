@@ -1,8 +1,9 @@
 ---
 title: "STATE — System State of Truth"
 status: canonical
-updated: 2026-03-08
+updated: 2026-03-09
 created: 2026-03-08
+last-verified: 2026-03-09
 module: all
 tags: [state, audit, gaps, architecture, module-zero]
 ---
@@ -81,7 +82,7 @@ tags: [state, audit, gaps, architecture, module-zero]
 | `deviation`            | 20260304200200 | EXISTS — domain: safety/customer/procedure/system/material                                    |
 | `shift_approval`       | 20260304200200 | EXISTS — status: pending/approved/edited/disputed                                             |
 
-**Status:** Engine-dispatch has `upsert_session` handler that creates department_sessions from shift events. Session hooks seeded via engine_process templates. Operations layer wired but not yet triggered end-to-end (requires shift publish → emit flow).
+**Status:** Engine-dispatch has `upsert_session` handler that creates department_sessions from shift events. Session hooks seeded via engine_process templates. Operations layer wired but not yet triggered end-to-end (requires shift publish → emit flow). Engine-dispatch Edge Function deployed to production 2026-03-08.
 
 ### 1.5 Season Planning (Wave 6) — ALL EXIST
 
@@ -93,21 +94,30 @@ tags: [state, audit, gaps, architecture, module-zero]
 
 ### 1.6 Engine Tables — ALL EXIST
 
-| Table                     | Migration      | Purpose                                                                |
-| ------------------------- | -------------- | ---------------------------------------------------------------------- |
-| `engine_missions`         | 20260301200000 | AI mission templates (sequential/free/hybrid)                          |
-| `engine_stages`           | 20260301200000 | Steps within AI missions (goal, instructions, success_criteria)        |
-| `engine_sessions`         | 20260301200000 | Active AI sessions. mode: mission/agent. Has profile_id                |
-| `engine_inbox`            | 20260301200000 | Generic data collection per session                                    |
-| `engine_memory`           | 20260302000000 | Persistent pgvector memories per profile (preference/fact/summary)     |
-| `engine_authority_config` | 20260302000100 | Per-workspace capability authority levels (5 levels x 9 capabilities)  |
-| `engine_process`          | 20260304100000 | Workflow templates (e.g. daily_close). TEXT PK                         |
-| `engine_step`             | 20260304100000 | Steps within a process. action_type + action_payload + assignee_rule   |
-| `engine_trigger`          | 20260304100000 | Event-to-process matching rules with optional delay                    |
-| `engine_event`            | 20260304100000 | Immutable event log. Idempotency support                               |
-| `engine_state`            | 20260304100000 | Running process instances. entity_type/entity_id, current_step, status |
-| `engine_delayed_trigger`  | 20260304100000 | Timer queue for delayed triggers                                       |
-| `engine_state_step`       | 20260412100100 | EXISTS — per-step completion tracking. Cascading RLS via engine_state  |
+| Table                     | Migration      | Purpose                                                                                                                     |
+| ------------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `engine_missions`         | 20260301200000 | AI mission templates (sequential/free/hybrid)                                                                               |
+| `engine_stages`           | 20260301200000 | Steps within AI missions (goal, instructions, success_criteria)                                                             |
+| `engine_sessions`         | 20260301200000 | Active AI sessions. mode: mission/agent. Has profile_id                                                                     |
+| `engine_inbox`            | 20260301200000 | Generic data collection per session                                                                                         |
+| `engine_memory`           | 20260302000000 | Persistent pgvector memories per profile (preference/fact/summary)                                                          |
+| `engine_authority_config` | 20260302000100 | Per-workspace capability authority levels (5 levels x 9 capabilities)                                                       |
+| `engine_process`          | 20260304100000 | Workflow templates (e.g. daily_close). TEXT PK                                                                              |
+| `engine_step`             | 20260304100000 | Steps within a process. action_type + action_payload + assignee_rule                                                        |
+| `engine_trigger`          | 20260304100000 | Event-to-process matching rules with optional delay                                                                         |
+| `engine_event`            | 20260304100000 | Immutable event log. Idempotency support                                                                                    |
+| `engine_state`            | 20260304100000 | Running process instances. entity_type/entity_id, current_step, status. **workspace_id nullable** (pre-workspace processes) |
+| `engine_delayed_trigger`  | 20260304100000 | Timer queue for delayed triggers                                                                                            |
+| `engine_state_step`       | 20260412100100 | EXISTS — per-step completion tracking. Cascading RLS via engine_state                                                       |
+
+**Journey Engine (feat/journey-engine, 2026-03-09):** Two seeded processes proven end-to-end:
+
+- `signup_onboarding` (10 steps): signup.completed → 8x wait_for_event (onboarding sections) → match_state (workspace.created) → send_notification → complete
+- `workspace_setup` (9 steps): workspace.created → 9x wait_for_event (wizard steps) → complete
+- engine_event, engine_state, engine_trigger all support nullable workspace_id for pre-workspace events
+- New condition operator: `match_state` for cross-entity event matching (payload field maps to state context field)
+- Journey PM table linked via `engine_process_id` FK. Compile function converts journey+steps → engine_process/step/trigger
+- 6 Playwright E2E tests verify full chain. Journey reporter writes results to `journey_test_run` table
 
 ### 1.7 Document Mode — EXISTS
 
@@ -183,13 +193,15 @@ tags: [state, audit, gaps, architecture, module-zero]
 
 ### 2.4 Employee Views (My View / Arbeidsrom)
 
-| Page           | Route                        | Status      | Notes                                                                                    |
-| -------------- | ---------------------------- | ----------- | ---------------------------------------------------------------------------------------- |
-| Oversikt       | `/dashboard` (employee mode) | WORKING     | EmployeeDashboard: today's shift, upcoming shifts, readiness score, open shifts to claim |
-| Min vaktplan   | `/dashboard/my-schedule`     | WORKING     | MyWeekView — published shifts for current profile, week navigation                       |
-| Min opplaering | `/dashboard/my-training`     | WORKING     | ProtocolList, ProcedureStepper, KnowledgeTestView, ConfirmationSign — real progress data |
-| Min profil     | `/dashboard/my-cv`           | PARTIAL     | Route exists, personal profile view                                                      |
-| Min lonn       | `/dashboard/my-salary`       | PLACEHOLDER | "Under construction" shell                                                               |
+| Page           | Route                             | Status      | Notes                                                                                    |
+| -------------- | --------------------------------- | ----------- | ---------------------------------------------------------------------------------------- |
+| Oversikt       | `/dashboard` (employee mode)      | WORKING     | EmployeeDashboard: today's shift, upcoming shifts, readiness score, open shifts to claim |
+| Min vaktplan   | `/dashboard/my-schedule`          | WORKING     | MyWeekView — published shifts for current profile, week navigation                       |
+| Min opplaering | `/dashboard/my-training`          | WORKING     | ProtocolList, ProcedureStepper, KnowledgeTestView, ConfirmationSign — real progress data |
+| Min profil     | `/dashboard/my-cv`                | PARTIAL     | Route exists, personal profile view                                                      |
+| Min lonn       | `/dashboard/my-salary`            | PLACEHOLDER | "Under construction" shell                                                               |
+| Hjelp          | `/dashboard/help`                 | EXISTS      | Help page                                                                                |
+| Onb. assistant | `/dashboard/onboarding-assistant` | EXISTS      | Onboarding assistant page                                                                |
 
 ---
 
@@ -211,20 +223,20 @@ tags: [state, audit, gaps, architecture, module-zero]
 | 9   | Governance Has No CRUD               | **CLOSED**  | 5 forms: PolicyForm, ProtocolForm, ProcedureBuilder, KnowledgeTestBuilder, ConfirmationForm       |
 | 10  | No Session Hooks / Operational Tasks | **CLOSED**  | 3 tables + 3 enums created. Hook dispatcher process seeded. Engine action handlers ready          |
 
-### Known Remaining Gaps (post-audit)
+### Known Remaining Gaps (audited 2026-03-08)
 
-| Area                       | Gap                                                                            | Priority |
-| -------------------------- | ------------------------------------------------------------------------------ | -------- |
-| Notifications              | `send_notification` handler is a console.log stub (no notification_queue flow) | Medium   |
-| Handbook → RAG             | Saved chapters not chunked into workspace_doc_chunk                            | Medium   |
-| Invite → Onboarding        | accept-invitation EF doesn't emit invitation_accepted event yet                | High     |
-| Shift Publish → Session    | End-to-end flow untested (emit → trigger → upsert_session → hooks)             | High     |
-| PolicyForm scope picker    | Department picker doesn't appear when "department" scope selected              | Low      |
-| Wizard forms               | **CLOSED** — 9-step industry-driven wizard with real forms, 8 E2E tests        | Done     |
-| Wizard mobile              | No responsive layout on workspace setup wizard                                 | Low      |
-| my-schedule realtime       | No Realtime subscription on employee shift view                                | Low      |
-| Invite dialog departments  | Hardcoded department list in invite dialog (pre-existing)                      | Low      |
-| Trainee first-day redirect | No redirect to my-training after invite accept                                 | Medium   |
+| Area                       | Gap                                                                            | Priority | Status     |
+| -------------------------- | ------------------------------------------------------------------------------ | -------- | ---------- |
+| Notifications              | `send_notification` handler is a console.log stub (no notification_queue flow) | Medium   | OPEN       |
+| Handbook → RAG             | Saved chapters not chunked into workspace_doc_chunk                            | Medium   | OPEN       |
+| Invite → Onboarding        | accept-invitation EF doesn't emit invitation_accepted event yet                | High     | OPEN       |
+| Shift Publish → Session    | End-to-end flow untested (emit → trigger → upsert_session → hooks)             | High     | OPEN       |
+| PolicyForm scope picker    | Department picker doesn't appear when "department" scope selected              | Low      | OPEN       |
+| Wizard forms               | 9-step industry-driven wizard with real forms, 14 E2E tests                    | —        | **CLOSED** |
+| Wizard mobile              | No responsive layout on workspace setup wizard                                 | Low      | OPEN       |
+| my-schedule realtime       | No Realtime subscription on employee shift view                                | Low      | OPEN       |
+| Invite dialog departments  | Hardcoded department list in invite dialog (pre-existing)                      | Low      | OPEN       |
+| Trainee first-day redirect | No redirect to my-training after invite accept                                 | Medium   | OPEN       |
 
 ---
 
@@ -234,13 +246,15 @@ tags: [state, audit, gaps, architecture, module-zero]
 
 **Decision:** The Event Engine (`engine_process` + `engine_step` + `engine_state` + `engine_trigger` + `engine_event`) will serve as the universal workflow runtime for ALL process types:
 
-| Process            | entity_type         | Trigger event                      | Steps                                                                |
-| ------------------ | ------------------- | ---------------------------------- | -------------------------------------------------------------------- |
-| Daily Close        | department_session  | session.pending_signoff            | 10 seeded steps (assign_task, validate_settlement, etc.)             |
-| Onboarding Journey | profile             | invitation.accepted                | Present content, administer test, collect signature, check readiness |
-| Training Protocol  | protocol_assignment | protocol.assigned                  | Per-procedure steps, knowledge tests, confirmations                  |
-| HACCP Daily        | department_session  | session_hook.pre_open              | CCP verification, temperature logging, deviation handling            |
-| Session Hooks      | department_session  | session.opened / session.pre_close | Trigger routine tasks at specific times                              |
+| Process            | entity_type         | Trigger event                      | Steps                                                                | Status         |
+| ------------------ | ------------------- | ---------------------------------- | -------------------------------------------------------------------- | -------------- |
+| Signup Onboarding  | user_identity       | signup.completed                   | 8 wait (onboarding sections) + match_state (workspace) + notify      | **E2E PROVEN** |
+| Workspace Setup    | workspace           | workspace.created                  | 9 wait (wizard steps)                                                | **E2E PROVEN** |
+| Daily Close        | department_session  | session.pending_signoff            | 10 seeded steps (assign_task, validate_settlement, etc.)             | Seeded         |
+| Onboarding Journey | profile             | invitation.accepted                | Present content, administer test, collect signature, check readiness | Seeded         |
+| Training Protocol  | protocol_assignment | protocol.assigned                  | Per-procedure steps, knowledge tests, confirmations                  | Seeded         |
+| HACCP Daily        | department_session  | session_hook.pre_open              | CCP verification, temperature logging, deviation handling            | Planned        |
+| Session Hooks      | department_session  | session.opened / session.pre_close | Trigger routine tasks at specific times                              | Seeded         |
 
 **Rationale:** The architecture is already generic — `action_type` + `action_payload` is extensible. New process types only need new action_type handlers in `engine-dispatch`, not schema changes.
 
@@ -396,7 +410,7 @@ emit("shift published") ->
 
 ### Enum Count
 
-**61 custom enums.** Full list in BUILD_ORDER.md Appendix or via: `grep -r "CREATE TYPE" supabase/migrations/`
+**64 custom enums.** Full list in BUILD_ORDER.md Appendix or via: `grep -r "CREATE TYPE" supabase/migrations/`
 
 Enums added by Module Zero:
 
@@ -433,11 +447,25 @@ Enums added by Module Zero:
 
 ### Registered Events (26)
 
-Auth (3), org_structure (3), scheduling (4), operations (5), training (5), reconciliation (2), handbook (1), navigation (2), intelligence (1).
+Auth (3), org_structure (3), scheduling (4), operations (5), training (5), reconciliation (2), handbook (1), navigation (2).
+
+22 of 26 events route to `engine_event`. Only `auth signed_up/in/out`, `page viewed`, and `button clicked` skip engine dispatch.
 
 ### Usage
 
-`emit()` wired into all TanStack Query mutations via `onSuccess`. Client events relay through `/api/engine-dispatch` API route to avoid CORS issues with Edge Functions.
+`emit()` wired into 15 files across wizard-steps and TanStack Query hooks via `onSuccess`. Client events relay through `/api/telemetry` API route (Zod-validated, rate-limited, actor_id enforced). Server-side calls engine-dispatch EF directly via `supabase.functions.invoke()`.
+
+### Engine Event Flow (verified 2026-03-08)
+
+```
+UI mutation → emit() → engine-event provider → engine-dispatch EF
+  → INSERT engine_event (immutable log)
+  → MATCH engine_trigger (6 triggers seeded)
+  → CREATE engine_state (process instance)
+  → EXECUTE engine_step handlers
+```
+
+**End-to-end verified:** `invitation.accepted` → engine-dispatch → matched 1 trigger → created 2 engine_states (`onboarding_journey` status=waiting, `training_protocol` status=active).
 
 ---
 
@@ -474,6 +502,102 @@ Auth (3), org_structure (3), scheduling (4), operations (5), training (5), recon
 | Agent router                  | `services/stage-engine/src/core/agent-router.ts`                  |
 | DailyClose seed               | `supabase/migrations/20260304300000_seed_daily_close_process.sql` |
 | Process tables                | `supabase/migrations/20260304100000_engine_process_tables.sql`    |
+
+### Edge Functions — Deployment Status (verified 2026-03-08)
+
+19 functions deployed. Last deploy: 2026-03-08.
+
+| Function                | Status | Deploy date | Notes                                                                                                                                                                                                                                                                      |
+| ----------------------- | ------ | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `engine-dispatch`       | ACTIVE | 2026-03-08  | 869.8kB. Deployed this session — was missing.                                                                                                                                                                                                                              |
+| `fire-delayed-triggers` | ACTIVE | 2026-03-08  | 860.1kB. Deployed this session — was missing.                                                                                                                                                                                                                              |
+| `workspace-api`         | ACTIVE | 2026-03-03  | API gateway, 7 endpoints                                                                                                                                                                                                                                                   |
+| `validate-api-key`      | ACTIVE | 2026-03-03  | API key validation                                                                                                                                                                                                                                                         |
+| `accept-invitation`     | ACTIVE | 2026-03-03  | Invite acceptance (does NOT emit invitation_accepted yet)                                                                                                                                                                                                                  |
+| `health-check`          | ACTIVE | 2026-03-03  | Uptime monitoring                                                                                                                                                                                                                                                          |
+| Other 13 functions      | ACTIVE | 2026-03-03  | analyze-workspace, create-invitation, extract-workspace-data, web-search-intelligence, activate-workspace, cleanup-api-keys, contract-lifecycle, scrape-raw-data, watchdog-integrity, watchdog-uptime, finalize-workspace, sendgrid-webhook, gather-workspace-intelligence |
+
+### Engine Process Templates (5 seeded)
+
+| process_id                     | name                         | Trigger event                                               | Status                   |
+| ------------------------------ | ---------------------------- | ----------------------------------------------------------- | ------------------------ |
+| `daily_close`                  | Daily Close & Reconciliation | `department_session.pending_signoff`, `shift.last_checkout` | Seeded                   |
+| `department_session_lifecycle` | Department Session Lifecycle | `shift.published`                                           | Seeded                   |
+| `onboarding_journey`           | Onboarding Journey           | `invitation.accepted`                                       | Seeded, **verified e2e** |
+| `training_protocol`            | Training Protocol            | `protocol.assigned`                                         | Seeded, **verified e2e** |
+| `session_hook_dispatcher`      | Session Hook Dispatcher      | `session.hook_fired`                                        | Seeded                   |
+
+### Engine Triggers (6 seeded, all condition=NULL)
+
+| process_id                     | event_type                           | Notes                              |
+| ------------------------------ | ------------------------------------ | ---------------------------------- |
+| `daily_close`                  | `department_session.pending_signoff` |                                    |
+| `daily_close`                  | `shift.last_checkout`                |                                    |
+| `department_session_lifecycle` | `shift.published`                    |                                    |
+| `onboarding_journey`           | `invitation.accepted`                | **Verified:** creates engine_state |
+| `training_protocol`            | `protocol.assigned`                  | **Verified:** creates engine_state |
+| `session_hook_dispatcher`      | `session.hook_fired`                 |                                    |
+
+### Journey/Mission/Roadmap System
+
+#### Skills Pipeline (4 skills)
+
+```
+/roadmap → /journey → /mission → /mission-training
+```
+
+| Skill               | File                                 | Lines | Purpose                                            |
+| ------------------- | ------------------------------------ | ----- | -------------------------------------------------- |
+| `/roadmap`          | `.claude/skills/roadmap.md`          | 176   | Business intent, scope, success criteria           |
+| `/journey`          | `.claude/skills/journey.md`          | 363   | Deep spec (10 dimensions per step, P0/P1/P2 tiers) |
+| `/mission`          | `.claude/skills/mission.md`          | 706   | Agent execution contract + seed SQL                |
+| `/mission-training` | `.claude/skills/mission-training.md` | 348   | Stage tuning, tool wiring, iteration               |
+
+#### Roadmap Packages (3)
+
+| Package           | Path                               | Artifacts                             | Status          |
+| ----------------- | ---------------------------------- | ------------------------------------- | --------------- |
+| Admin onboarding  | `docs/Roadmaps/Admin onboarding/`  | Roadmap + Journey + Mission + License | Complete (gold) |
+| Punch into shift  | `docs/Roadmaps/punch-into-shift/`  | Roadmap + Journey                     | 2/4             |
+| Check my schedule | `docs/Roadmaps/check-my-schedule/` | Roadmap + Journey                     | 2/4             |
+
+#### Journey Portal (Platform Admin)
+
+- Route: `/platform-admin/journeys/` — 13 components (list, detail, edit, steps editor, status changer, wizard)
+- DB: `journey` (68 rows), `journey_step`, `journey_event`, `journey_test_run`
+- 13-status lifecycle: idea → wizard → defined → ready_impl → building → review → ready_test → testing → ready_validation → implemented → active/inactive/broken
+- ADR-0031
+
+#### Feature Closure Journeys
+
+- `docs/journeys/JOURNEY-*.md` — 40 files
+- Required by `close-feature.sh` Gate 4 (blocks merge if missing)
+- Separate from Roadmap packages — these document user flows per completed feature
+
+#### AI Generators (`packages/ai/`)
+
+| Generator            | Output               |
+| -------------------- | -------------------- |
+| `journey-doc.ts`     | Journey.md           |
+| `journey-e2e.ts`     | Playwright E2E       |
+| `journey-botsson.ts` | Mission instructions |
+| `journey-linear.ts`  | Linear issue sync    |
+| `journey.ts` (agent) | Journey design agent |
+
+---
+
+### Unmerged Feature Branches
+
+| Branch                                       | Worktree    | Status      | Notes                                                                   |
+| -------------------------------------------- | ----------- | ----------- | ----------------------------------------------------------------------- |
+| `feat/zero-to-production`                    | wt-1        | in_progress | Module Zero. Engine-dispatch deployed, e2e backbone verified 2026-03-08 |
+| `feat/document-mode`                         | wt-2        | in_progress |                                                                         |
+| `feat/infra-hardening`                       | wt-4        | in_progress |                                                                         |
+| `feat/showroom`                              | wt-8        | in_progress | Phase 2 done, 4 uncommitted files                                       |
+| `test/blender`                               | wt-blender  | in_progress |                                                                         |
+| `docs/production-menu-inventory-integration` | superpowers | in_progress | 7 dirty files (module docs, decisions)                                  |
+| `feat/season-engine`                         | —           | no worktree | Orphan branch, no worktree attached                                     |
+| `feat/journey-package-skills`                | —           | remote only | `remotes/origin/feat/journey-package-skills`                            |
 
 ---
 
