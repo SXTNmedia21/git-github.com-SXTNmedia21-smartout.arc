@@ -88,14 +88,14 @@ export function WizardProvider({ children, initialState }: WizardProviderProps) 
     debounceRef.current = setTimeout(async () => {
       try {
         const supabase = createClient()
-        const email = wizardState.step1.email
-        if (!email) return
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
 
         await supabase.from('signup_progress').upsert(
           {
-            email,
+            auth_id: user.id,
             current_step: wizardState.currentStep,
-            form_data: {
+            step_data: {
               scrapeJobId: wizardState.scrapeJobId,
               step1: wizardState.step1,
               step2: wizardState.step2,
@@ -104,9 +104,8 @@ export function WizardProvider({ children, initialState }: WizardProviderProps) 
               step5: wizardState.step5,
               step6: wizardState.step6,
             },
-            updated_at: new Date().toISOString(),
           },
-          { onConflict: 'email' },
+          { onConflict: 'auth_id' },
         )
       } catch (error) {
         console.error('[WizardProvider] Failed to persist state:', error)
@@ -166,7 +165,7 @@ export function WizardProvider({ children, initialState }: WizardProviderProps) 
 
   const goToStep = useCallback(
     (step: number) => {
-      const clamped = Math.max(1, Math.min(TOTAL_STEPS, step))
+      const clamped = Math.max(1, Math.min(TOTAL_STEPS + 1, step)) // +1 for loading step
       setState((prev) => {
         const next = { ...prev, currentStep: clamped }
         persistState(next)
