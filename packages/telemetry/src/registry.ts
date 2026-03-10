@@ -344,6 +344,26 @@ export interface HandbookChapterSaved extends BaseEvent {
   };
 }
 
+// ─── Wizard Events ─────────────────────────────
+export interface WizardStepCompleted extends BaseEvent {
+  event: "wizard step_completed";
+  properties: {
+    data: {
+      step_id: string;
+      step_index: number;
+    };
+  };
+}
+
+export interface WizardCompleted extends BaseEvent {
+  event: "wizard completed";
+  properties: {
+    data: {
+      workspace_id: string;
+    };
+  };
+}
+
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
 export type SmartoutEvent =
@@ -371,6 +391,8 @@ export type SmartoutEvent =
   | ReconciliationSubmitted
   | ReconciliationAdminAction
   | HandbookChapterSaved
+  | WizardStepCompleted
+  | WizardCompleted
   | PageViewed
   | ButtonClicked;
 
@@ -470,6 +492,15 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "handbook chapter_saved": {
     destinations: ["posthog", "logger", "engine_event"],
     category: "training",
+  },
+
+  "wizard step_completed": {
+    destinations: ["posthog", "logger", "engine_event"],
+    category: "onboarding",
+  },
+  "wizard completed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "onboarding",
   },
 
   "page viewed": { destinations: ["posthog"], category: "navigation" },

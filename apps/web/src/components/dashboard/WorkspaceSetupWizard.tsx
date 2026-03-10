@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { createClient } from "@smartout/supabase/client";
 import { emit } from "@smartout/telemetry";
 import { dashboardKeys } from "@/app/dashboard/_hooks/dashboard-keys";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { useWorkspaceSetup } from "@/app/dashboard/_hooks/use-workspace-setup";
 import { useIndustryPackage } from "@/lib/industry/use-industry-package";
@@ -163,6 +164,7 @@ export function WorkspaceSetupWizard({
   force?: boolean;
 }) {
   const queryClient = useQueryClient();
+  const { profileId } = useContext(DashboardContext);
   const ctx = useWorkspaceOptional();
   const workspaceId = ctx?.workspace.workspace_id ?? "";
   const { data: setupStatus } = useWorkspaceSetup();
