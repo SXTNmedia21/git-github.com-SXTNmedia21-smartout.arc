@@ -3,7 +3,7 @@
 
 CREATE TABLE IF NOT EXISTS document_extraction_log (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id uuid NOT NULL REFERENCES workspace(id) ON DELETE CASCADE,
+  workspace_id uuid NOT NULL REFERENCES workspace(workspace_id) ON DELETE CASCADE,
   storage_paths text[] NOT NULL DEFAULT '{}',
   raw_ai_response jsonb NOT NULL DEFAULT '{}',
   processed_result jsonb NOT NULL DEFAULT '{}',
