@@ -1,11 +1,11 @@
-'use client'
+"use client";
 
-import { useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { Loader2, AlertCircle } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { useSignupWizard } from '../_hooks/useSignupWizard'
-import { completeSignup } from '../_lib/setupActions'
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Loader2, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useSignupWizard } from "../_hooks/useSignupWizard";
+import { completeSignup } from "../_lib/setupActions";
 import type {
   Step1Data,
   Step2Data,
@@ -13,64 +13,61 @@ import type {
   Step4Data,
   Step5Data,
   Step6Data,
-} from '../_lib/validation'
+} from "../_lib/validation";
 
 const LOADING_MESSAGES = [
-  'Oppretter bedriftsprofil...',
-  'Konfigurerer arbeidsområde...',
-  'Lagrer åpningstider...',
-  'Klargjør dashbordet ditt...',
-]
+  "Oppretter bedriftsprofil...",
+  "Konfigurerer arbeidsområde...",
+  "Lagrer åpningstider...",
+  "Klargjør dashbordet ditt...",
+];
 
 export function SetupLoading() {
-  const router = useRouter()
-  const { state } = useSignupWizard()
-  const [messageIndex, setMessageIndex] = useState(0)
-  const [error, setError] = useState<string | null>(null)
-  const hasStarted = useRef(false)
+  const router = useRouter();
+  const { state, goToStep, flushPersist } = useSignupWizard();
+  const [messageIndex, setMessageIndex] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const hasStarted = useRef(false);
 
   // Rotate loading messages
   useEffect(() => {
-    if (error) return
+    if (error) return;
 
     const interval = setInterval(() => {
-      setMessageIndex((prev) =>
-        prev < LOADING_MESSAGES.length - 1 ? prev + 1 : prev,
-      )
-    }, 2000)
+      setMessageIndex((prev) => (prev < LOADING_MESSAGES.length - 1 ? prev + 1 : prev));
+    }, 2000);
 
-    return () => clearInterval(interval)
-  }, [error])
+    return () => clearInterval(interval);
+  }, [error]);
 
   // Run the setup action once on mount
   useEffect(() => {
-    if (hasStarted.current) return
-    hasStarted.current = true
+    if (hasStarted.current) return;
+    hasStarted.current = true;
 
     async function runSetup() {
+      // Flush any pending debounced state before setup
+      flushPersist();
+
       try {
-        const result = await completeSignup({
+        await completeSignup({
           step1: state.step1 as Step1Data,
           step2: state.step2 as Step2Data,
           step3: state.step3 as Step3Data,
           step4: state.step4 as Step4Data,
           step5: state.step5 as Step5Data,
           step6: state.step6 as Step6Data,
-        })
+        });
 
-        router.push(`/dashboard`)
+        router.push(`/dashboard`);
       } catch (err) {
-        console.error('[SetupLoading] Setup failed:', err)
-        setError(
-          err instanceof Error
-            ? err.message
-            : 'Noe gikk galt under oppsettet.',
-        )
+        console.error("[SetupLoading] Setup failed:", err);
+        setError(err instanceof Error ? err.message : "Noe gikk galt under oppsettet.");
       }
     }
 
-    runSetup()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    runSetup();
+  }, []); // eslint-disable-line
 
   if (error) {
     return (
@@ -80,43 +77,20 @@ export function SetupLoading() {
           <AlertCircle className="absolute inset-0 m-auto h-8 w-8 text-red-500" />
         </div>
         <div className="text-center">
-          <h2 className="text-xl font-semibold text-foreground">
-            Noe gikk galt
-          </h2>
-          <p className="mt-2 max-w-md text-sm text-muted-foreground">{error}</p>
+          <h2 className="text-foreground text-xl font-semibold">Noe gikk galt</h2>
+          <p className="text-muted-foreground mt-2 max-w-md text-sm">{error}</p>
         </div>
         <Button
           variant="outline"
           onClick={() => {
-            setError(null)
-            setMessageIndex(0)
-            hasStarted.current = false
-            // Force re-run by toggling error state
-            setTimeout(() => {
-              hasStarted.current = true
-              completeSignup({
-                step1: state.step1 as Step1Data,
-                step2: state.step2 as Step2Data,
-                step3: state.step3 as Step3Data,
-                step4: state.step4 as Step4Data,
-                step5: state.step5 as Step5Data,
-                step6: state.step6 as Step6Data,
-              })
-                .then(() => router.push('/dashboard'))
-                .catch((err) =>
-                  setError(
-                    err instanceof Error
-                      ? err.message
-                      : 'Noe gikk galt under oppsettet.',
-                  ),
-                )
-            }, 0)
+            // Go back to last step so user can retry — avoids duplicate creates
+            goToStep(6);
           }}
         >
-          Prøv igjen
+          Gå tilbake
         </Button>
       </div>
-    )
+    );
   }
 
   return (
@@ -126,13 +100,11 @@ export function SetupLoading() {
         <Loader2 className="absolute inset-0 m-auto h-8 w-8 animate-spin text-orange-500" />
       </div>
       <div className="text-center">
-        <h2 className="text-xl font-semibold text-foreground">
-          Vi setter opp alt for deg
-        </h2>
-        <p className="mt-2 text-sm text-muted-foreground transition-opacity duration-300">
+        <h2 className="text-foreground text-xl font-semibold">Vi setter opp alt for deg</h2>
+        <p className="text-muted-foreground mt-2 text-sm transition-opacity duration-300">
           {LOADING_MESSAGES[messageIndex]}
         </p>
       </div>
     </div>
-  )
+  );
 }

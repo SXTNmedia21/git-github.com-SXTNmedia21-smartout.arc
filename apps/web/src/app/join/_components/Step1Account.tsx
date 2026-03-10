@@ -1,94 +1,85 @@
-'use client'
+"use client";
 
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Button } from '@/components/ui/button'
-import { Loader2, ArrowRight, Globe } from 'lucide-react'
-import { useSignupWizard } from '../_hooks/useSignupWizard'
-import { useScrapedData } from '../_hooks/useScrapedData'
-import { step1Schema } from '../_lib/validation'
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Loader2, ArrowRight, Globe } from "lucide-react";
+import { useSignupWizard } from "../_hooks/useSignupWizard";
+import { step1Schema } from "../_lib/validation";
 
 interface Step1AccountProps {
-  userEmail: string
-  onScrapeStarted?: (jobId: string) => void
+  userEmail: string;
 }
 
-export function Step1Account({ userEmail, onScrapeStarted }: Step1AccountProps) {
-  const { state, updateStep, nextStep } = useSignupWizard()
-  const { scrapeStatus, triggerScrape } = useScrapedData()
+export function Step1Account({ userEmail }: Step1AccountProps) {
+  const { state, updateStep, nextStep, scrapeStatus, triggerScrape } = useSignupWizard();
 
-  const [companyName, setCompanyName] = useState(state.step1.companyName ?? '')
-  const [websiteUrl, setWebsiteUrl] = useState(state.step1.websiteUrl ?? '')
-  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [companyName, setCompanyName] = useState(state.step1.companyName ?? "");
+  const [websiteUrl, setWebsiteUrl] = useState(state.step1.websiteUrl ?? "");
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Debounced scrape trigger on URL change
   const handleUrlChange = useCallback(
     (url: string) => {
-      setWebsiteUrl(url)
-      setErrors((prev) => ({ ...prev, websiteUrl: '' }))
+      setWebsiteUrl(url);
+      setErrors((prev) => ({ ...prev, websiteUrl: "" }));
 
       if (debounceRef.current) {
-        clearTimeout(debounceRef.current)
+        clearTimeout(debounceRef.current);
       }
 
       if (url.length > 4) {
-        debounceRef.current = setTimeout(async () => {
-          const fullUrl = url.startsWith('http') ? url : `https://${url}`
-          const jobId = await triggerScrape(fullUrl)
-          if (jobId) {
-            updateStep('scrapeJobId', jobId)
-            onScrapeStarted?.(jobId)
-          }
-        }, 1000)
+        debounceRef.current = setTimeout(() => {
+          const fullUrl = url.startsWith("http") ? url : `https://${url}`;
+          triggerScrape(fullUrl);
+        }, 1000);
       }
     },
-    [triggerScrape, updateStep, onScrapeStarted],
-  )
+    [triggerScrape],
+  );
 
   // Cleanup debounce on unmount
   useEffect(() => {
     return () => {
       if (debounceRef.current) {
-        clearTimeout(debounceRef.current)
+        clearTimeout(debounceRef.current);
       }
-    }
-  }, [])
+    };
+  }, []);
 
   const handleNext = () => {
     const result = step1Schema.safeParse({
       email: userEmail,
       companyName,
       websiteUrl,
-    })
+    });
 
     if (!result.success) {
-      const fieldErrors: Record<string, string> = {}
+      const fieldErrors: Record<string, string> = {};
       for (const issue of result.error.issues) {
-        const field = issue.path[0] as string
-        fieldErrors[field] = issue.message
+        const field = issue.path[0] as string;
+        fieldErrors[field] = issue.message;
       }
-      setErrors(fieldErrors)
-      return
+      setErrors(fieldErrors);
+      return;
     }
 
-    updateStep('step1', {
+    updateStep("step1", {
       email: userEmail,
       companyName: result.data.companyName,
       websiteUrl: result.data.websiteUrl,
-    })
-    nextStep()
-  }
+    });
+    nextStep();
+  };
 
   return (
     <div className="mx-auto w-full max-w-md space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-foreground">
-          Opprett din konto
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <h2 className="text-foreground text-2xl font-bold">Opprett din konto</h2>
+        <p className="text-muted-foreground mt-1 text-sm">
           Vi starter med det grunnleggende om bedriften din.
         </p>
       </div>
@@ -113,20 +104,18 @@ export function Step1Account({ userEmail, onScrapeStarted }: Step1AccountProps) 
             placeholder="F.eks. Restaurant Solsiden"
             value={companyName}
             onChange={(e) => {
-              setCompanyName(e.target.value)
-              setErrors((prev) => ({ ...prev, companyName: '' }))
+              setCompanyName(e.target.value);
+              setErrors((prev) => ({ ...prev, companyName: "" }));
             }}
             aria-invalid={!!errors.companyName}
           />
-          {errors.companyName && (
-            <p className="text-xs text-destructive">{errors.companyName}</p>
-          )}
+          {errors.companyName && <p className="text-destructive text-xs">{errors.companyName}</p>}
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="websiteUrl">Nettside URL</Label>
           <div className="relative">
-            <Globe className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Globe className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
             <Input
               id="websiteUrl"
               type="text"
@@ -137,11 +126,9 @@ export function Step1Account({ userEmail, onScrapeStarted }: Step1AccountProps) 
               aria-invalid={!!errors.websiteUrl}
             />
           </div>
-          {errors.websiteUrl && (
-            <p className="text-xs text-destructive">{errors.websiteUrl}</p>
-          )}
-          {scrapeStatus === 'scraping' && (
-            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          {errors.websiteUrl && <p className="text-destructive text-xs">{errors.websiteUrl}</p>}
+          {scrapeStatus === "scraping" && (
+            <p className="text-muted-foreground flex items-center gap-1.5 text-xs">
               <Loader2 className="h-3 w-3 animate-spin" />
               Vi leser nettsiden din...
             </p>
@@ -158,5 +145,5 @@ export function Step1Account({ userEmail, onScrapeStarted }: Step1AccountProps) 
         <ArrowRight className="ml-2 h-4 w-4" />
       </Button>
     </div>
-  )
+  );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+
 import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@smartout/supabase/client";
@@ -81,7 +81,6 @@ function GoogleIcon() {
 }
 
 export default function SignupPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -181,6 +180,9 @@ export default function SignupPage() {
       const { error: authError } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          emailRedirectTo: window.location.origin + "/api/auth/callback?next=/join",
+        },
       });
 
       if (authError) {
@@ -196,14 +198,8 @@ export default function SignupPage() {
       }
 
       clearPendingSignup();
-
-      if (process.env.NEXT_PUBLIC_ROOT_DOMAIN === "localhost") {
-        router.push("/join");
-        router.refresh();
-      } else {
-        setSuccess(true);
-        setLoading(false);
-      }
+      setSuccess(true);
+      setLoading(false);
     } catch (err) {
       if (isNetworkError(err)) {
         savePendingSignup(email);

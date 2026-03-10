@@ -64,6 +64,31 @@ export async function POST(request: Request) {
 
   const normalizedUrl = normalizeUrl(body.url);
 
+  // 2b. Validate URL scheme (SSRF protection)
+  try {
+    const parsed = new URL(normalizedUrl);
+    if (!["http:", "https:"].includes(parsed.protocol)) {
+      return NextResponse.json({ error: "Invalid URL scheme" }, { status: 400 });
+    }
+    // Block obvious private/internal URLs
+    const hostname = parsed.hostname.toLowerCase();
+    if (
+      hostname === "localhost" ||
+      hostname === "127.0.0.1" ||
+      hostname === "0.0.0.0" ||
+      hostname.startsWith("10.") ||
+      hostname.startsWith("172.") ||
+      hostname.startsWith("192.168.") ||
+      hostname === "169.254.169.254" ||
+      hostname.endsWith(".internal") ||
+      hostname.endsWith(".local")
+    ) {
+      return NextResponse.json({ error: "Private URLs not allowed" }, { status: 400 });
+    }
+  } catch {
+    return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
+  }
+
   // 3. Upsert row with status 'scraping'
   const { data: upsertData, error: upsertError } = await supabase
     .from("company_scraped_data")

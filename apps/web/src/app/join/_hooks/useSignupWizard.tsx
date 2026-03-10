@@ -1,4 +1,4 @@
-'use client'
+"use client";
 
 import {
   createContext,
@@ -8,9 +8,10 @@ import {
   useRef,
   useState,
   type ReactNode,
-} from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { createClient } from '@smartout/supabase/client'
+} from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { createClient } from "@smartout/supabase/client";
+import { useScrapedData, type ScrapeStatus } from "./useScrapedData";
 import type {
   Step1Data,
   Step2Data,
@@ -18,29 +19,46 @@ import type {
   Step4Data,
   Step5Data,
   Step6Data,
-} from '../_lib/validation'
+} from "../_lib/validation";
 
-const TOTAL_STEPS = 6
-const PERSIST_DEBOUNCE_MS = 2000
+const TOTAL_STEPS = 6;
+const PERSIST_DEBOUNCE_MS = 2000;
 
 export interface WizardState {
-  currentStep: number
-  scrapeJobId: string | null
-  step1: Partial<Step1Data>
-  step2: Partial<Step2Data>
-  step3: Partial<Step3Data>
-  step4: Partial<Step4Data>
-  step5: Partial<Step5Data>
-  step6: Partial<Step6Data>
+  currentStep: number;
+  scrapeJobId: string | null;
+  step1: Partial<Step1Data>;
+  step2: Partial<Step2Data>;
+  step3: Partial<Step3Data>;
+  step4: Partial<Step4Data>;
+  step5: Partial<Step5Data>;
+  step6: Partial<Step6Data>;
+}
+
+interface ScrapedData {
+  companyName?: string;
+  email?: string;
+  phone?: string;
+  description?: string;
+  summary?: string;
+  logoUrl?: string;
+  socialLinks?: Record<string, string>;
+  locations?: Array<{ name: string; type: string }>;
+  departments?: Array<{ name: string; roles: string[] }>;
+  [key: string]: unknown;
 }
 
 export interface WizardContextValue {
-  state: WizardState
-  updateStep: <K extends keyof WizardState>(key: K, data: WizardState[K]) => void
-  nextStep: () => void
-  prevStep: () => void
-  goToStep: (step: number) => void
-  isLoading: boolean
+  state: WizardState;
+  updateStep: <K extends keyof WizardState>(key: K, data: WizardState[K]) => void;
+  nextStep: () => void;
+  prevStep: () => void;
+  goToStep: (step: number) => void;
+  flushPersist: () => void;
+  // Shared scrape state
+  scrapedData: ScrapedData | null;
+  scrapeStatus: ScrapeStatus;
+  triggerScrape: (url: string) => Promise<void>;
 }
 
 const defaultState: WizardState = {
@@ -52,128 +70,147 @@ const defaultState: WizardState = {
   step4: {},
   step5: {},
   step6: {},
-}
+};
 
-const WizardContext = createContext<WizardContextValue | null>(null)
+const WizardContext = createContext<WizardContextValue | null>(null);
 
 interface WizardProviderProps {
-  children: ReactNode
-  initialState?: Partial<WizardState>
+  children: ReactNode;
+  initialState?: Partial<WizardState>;
 }
 
 export function WizardProvider({ children, initialState }: WizardProviderProps) {
-  const router = useRouter()
-  const searchParams = useSearchParams()
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { scrapedData, scrapeStatus, triggerScrape } = useScrapedData();
 
-  const [isLoading, setIsLoading] = useState(false)
   const [state, setState] = useState<WizardState>(() => {
-    const stepParam = searchParams.get('step')
-    const currentStep = stepParam ? Math.max(1, Math.min(TOTAL_STEPS, Number(stepParam))) : 1
+    const stepParam = searchParams.get("step");
+    const currentStep = stepParam ? Math.max(1, Math.min(TOTAL_STEPS, Number(stepParam))) : 1;
 
     return {
       ...defaultState,
       ...initialState,
       currentStep: isNaN(currentStep) ? 1 : currentStep,
-    }
-  })
+    };
+  });
 
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Core persist logic (extracted for reuse by debounce + flush)
+  const doPersist = useCallback(async (wizardState: WizardState) => {
+    try {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      await supabase.from("signup_progress").upsert(
+        {
+          auth_id: user.id,
+          current_step: wizardState.currentStep,
+          step_data: {
+            scrapeJobId: wizardState.scrapeJobId,
+            step1: wizardState.step1,
+            step2: wizardState.step2,
+            step3: wizardState.step3,
+            step4: wizardState.step4,
+            step5: wizardState.step5,
+            step6: wizardState.step6,
+          },
+        },
+        { onConflict: "auth_id" },
+      );
+    } catch (error) {
+      console.error("[WizardProvider] Failed to persist state:", error);
+    }
+  }, []);
 
   // Persist state to signup_progress (debounced)
-  const persistState = useCallback((wizardState: WizardState) => {
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current)
-    }
-
-    debounceRef.current = setTimeout(async () => {
-      try {
-        const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return
-
-        await supabase.from('signup_progress').upsert(
-          {
-            auth_id: user.id,
-            current_step: wizardState.currentStep,
-            step_data: {
-              scrapeJobId: wizardState.scrapeJobId,
-              step1: wizardState.step1,
-              step2: wizardState.step2,
-              step3: wizardState.step3,
-              step4: wizardState.step4,
-              step5: wizardState.step5,
-              step6: wizardState.step6,
-            },
-          },
-          { onConflict: 'auth_id' },
-        )
-      } catch (error) {
-        console.error('[WizardProvider] Failed to persist state:', error)
+  const persistState = useCallback(
+    (wizardState: WizardState) => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
       }
-    }, PERSIST_DEBOUNCE_MS)
-  }, [])
+
+      debounceRef.current = setTimeout(() => {
+        doPersist(wizardState);
+      }, PERSIST_DEBOUNCE_MS);
+    },
+    [doPersist],
+  );
+
+  // Flush pending persist immediately (used before setup)
+  const flushPersist = useCallback(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+    doPersist(state);
+  }, [doPersist, state]);
 
   // Sync URL when step changes
   useEffect(() => {
-    const currentParam = searchParams.get('step')
-    const newStep = String(state.currentStep)
+    const currentParam = searchParams.get("step");
+    const newStep = String(state.currentStep);
 
     if (currentParam !== newStep) {
-      const params = new URLSearchParams(searchParams.toString())
-      params.set('step', newStep)
-      router.push(`?${params.toString()}`, { scroll: false })
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("step", newStep);
+      router.push(`?${params.toString()}`, { scroll: false });
     }
-  }, [state.currentStep, searchParams, router])
+  }, [state.currentStep, searchParams, router]);
 
   // Cleanup debounce timer on unmount
   useEffect(() => {
     return () => {
       if (debounceRef.current) {
-        clearTimeout(debounceRef.current)
+        clearTimeout(debounceRef.current);
       }
-    }
-  }, [])
+    };
+  }, []);
 
   const updateStep = useCallback(
     <K extends keyof WizardState>(key: K, data: WizardState[K]) => {
       setState((prev) => {
-        const next = { ...prev, [key]: data }
-        persistState(next)
-        return next
-      })
+        const next = { ...prev, [key]: data };
+        persistState(next);
+        return next;
+      });
     },
     [persistState],
-  )
+  );
 
   const nextStep = useCallback(() => {
     setState((prev) => {
-      if (prev.currentStep >= TOTAL_STEPS) return prev
-      const next = { ...prev, currentStep: prev.currentStep + 1 }
-      persistState(next)
-      return next
-    })
-  }, [persistState])
+      if (prev.currentStep >= TOTAL_STEPS) return prev;
+      const next = { ...prev, currentStep: prev.currentStep + 1 };
+      persistState(next);
+      return next;
+    });
+  }, [persistState]);
 
   const prevStep = useCallback(() => {
     setState((prev) => {
-      if (prev.currentStep <= 1) return prev
-      const next = { ...prev, currentStep: prev.currentStep - 1 }
-      persistState(next)
-      return next
-    })
-  }, [persistState])
+      if (prev.currentStep <= 1) return prev;
+      const next = { ...prev, currentStep: prev.currentStep - 1 };
+      persistState(next);
+      return next;
+    });
+  }, [persistState]);
 
   const goToStep = useCallback(
     (step: number) => {
-      const clamped = Math.max(1, Math.min(TOTAL_STEPS + 1, step)) // +1 for loading step
+      const clamped = Math.max(1, Math.min(TOTAL_STEPS + 1, step)); // +1 for loading step
       setState((prev) => {
-        const next = { ...prev, currentStep: clamped }
-        persistState(next)
-        return next
-      })
+        const next = { ...prev, currentStep: clamped };
+        persistState(next);
+        return next;
+      });
     },
     [persistState],
-  )
+  );
 
   const value: WizardContextValue = {
     state,
@@ -181,20 +218,19 @@ export function WizardProvider({ children, initialState }: WizardProviderProps) 
     nextStep,
     prevStep,
     goToStep,
-    isLoading,
-  }
+    flushPersist,
+    scrapedData,
+    scrapeStatus,
+    triggerScrape,
+  };
 
-  return (
-    <WizardContext.Provider value={value}>
-      {children}
-    </WizardContext.Provider>
-  )
+  return <WizardContext.Provider value={value}>{children}</WizardContext.Provider>;
 }
 
 export function useSignupWizard(): WizardContextValue {
-  const context = useContext(WizardContext)
+  const context = useContext(WizardContext);
   if (!context) {
-    throw new Error('useSignupWizard must be used within a WizardProvider')
+    throw new Error("useSignupWizard must be used within a WizardProvider");
   }
-  return context
+  return context;
 }

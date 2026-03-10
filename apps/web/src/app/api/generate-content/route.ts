@@ -47,6 +47,11 @@ function extractJson(text: string): string {
   if (codeBlockMatch?.[1]) {
     return codeBlockMatch[1].trim();
   }
+  // Try to find first JSON object in the text
+  const objectMatch = text.match(/\{[\s\S]*\}/);
+  if (objectMatch?.[0]) {
+    return objectMatch[0].trim();
+  }
   // Otherwise return as-is (might be raw JSON)
   return text.trim();
 }
@@ -68,6 +73,28 @@ export async function POST(request: Request) {
   if (authError || !user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // Rate limit: max 5 AI calls per signup session
+  const MAX_AI_CALLS = 5;
+  const { data: progress } = await supabase
+    .from("signup_progress")
+    .select("step_data")
+    .eq("auth_id", user.id)
+    .single();
+
+  const stepData = (progress?.step_data ?? {}) as Record<string, unknown>;
+  const callsUsed = typeof stepData.ai_calls_used === "number" ? stepData.ai_calls_used : 0;
+  if (callsUsed >= MAX_AI_CALLS) {
+    return NextResponse.json({ error: "AI generation limit reached" }, { status: 429 });
+  }
+
+  // Increment counter in step_data (avoids schema change)
+  await supabase
+    .from("signup_progress")
+    .update({
+      step_data: { ...stepData, ai_calls_used: callsUsed + 1 } as never,
+    })
+    .eq("auth_id", user.id);
 
   // Validate request body
   let body: z.infer<typeof RequestSchema>;
