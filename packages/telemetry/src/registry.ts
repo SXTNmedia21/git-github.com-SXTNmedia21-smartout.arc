@@ -422,9 +422,6 @@ export type SmartoutEvent =
   | ReconciliationSubmitted
   | ReconciliationAdminAction
   | HandbookChapterSaved
-  | SignupCompleted
-  | OnboardingStepCompleted
-  | WorkspaceCreated
   | WizardStepCompleted
   | WizardCompleted
   | PageViewed
@@ -528,18 +525,6 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "training",
   },
 
-  "signup completed": {
-    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
-    category: "onboarding",
-  },
-  "onboarding step_completed": {
-    destinations: ["posthog", "logger", "engine_event"],
-    category: "onboarding",
-  },
-  "workspace created": {
-    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
-    category: "onboarding",
-  },
   "wizard step_completed": {
     destinations: ["posthog", "logger", "engine_event"],
     category: "onboarding",
