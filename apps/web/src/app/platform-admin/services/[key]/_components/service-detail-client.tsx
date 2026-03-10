@@ -13,6 +13,7 @@ import {
   Upload,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { platformAdminRoutes } from "@/lib/platform-admin-routes";
 import { toast } from "sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -134,7 +135,7 @@ function DetailContent({ serviceKey }: { serviceKey: string }) {
   const contract = CONTRACT_MAP.get(serviceKey);
 
   function handleSaveConfig() {
-    const updates: Record<string, unknown> = {};
+    const updates: Partial<import("../../_hooks/use-service-configs").ServiceConfigRow> = {};
     if (editHostUrl !== (config?.host_url ?? "")) updates.host_url = editHostUrl || null;
     if (editPort !== (config?.port?.toString() ?? ""))
       updates.port = editPort ? parseInt(editPort, 10) : null;
@@ -145,7 +146,7 @@ function DetailContent({ serviceKey }: { serviceKey: string }) {
 
     if (Object.keys(updates).length === 0) return;
 
-    updateMutation.mutate(updates as never, {
+    updateMutation.mutate(updates, {
       onSuccess: () => {
         toast.success("Configuration saved");
         setConfigDirty(false);
@@ -186,7 +187,7 @@ function DetailContent({ serviceKey }: { serviceKey: string }) {
       {/* Back + Header */}
       <div>
         <Link
-          href="/platform-admin/services"
+          href={platformAdminRoutes.services}
           className="text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-1 text-sm"
         >
           <ArrowLeft className="h-3.5 w-3.5" /> Services
@@ -444,7 +445,7 @@ function DetailContent({ serviceKey }: { serviceKey: string }) {
                         )}
                       </div>
                     </div>
-                    <Link href="/platform-admin/keys">
+                    <Link href={platformAdminRoutes.keys}>
                       <Button
                         variant={s.configured ? "ghost" : "outline"}
                         size="sm"

@@ -12,15 +12,61 @@ import {
   type SortingState,
   type ColumnFiltersState,
 } from "@tanstack/react-table";
-import {
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip as RechartsTooltip,
-  CartesianGrid,
-} from "recharts";
+import dynamic from "next/dynamic";
+
+const RechartsChart = dynamic(
+  () =>
+    import("recharts").then((mod) => {
+      const { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } = mod;
+      function MrrChart({ data }: { data: { date: string; mrr: number }[] }) {
+        return (
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis
+                dataKey="date"
+                tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                stroke="hsl(var(--border))"
+              />
+              <YAxis
+                tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                stroke="hsl(var(--border))"
+                tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "hsl(var(--popover))",
+                  border: "1px solid hsl(var(--border))",
+                  borderRadius: "6px",
+                  color: "hsl(var(--popover-foreground))",
+                  fontSize: 12,
+                }}
+                formatter={(value) => [`${Number(value).toLocaleString("no-NO")} kr`, "MRR"]}
+              />
+              <Line
+                type="monotone"
+                dataKey="mrr"
+                stroke="hsl(var(--primary))"
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 4 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        );
+      }
+      MrrChart.displayName = "MrrChart";
+      return MrrChart;
+    }),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-[200px] items-center justify-center">
+        <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+      </div>
+    ),
+  },
+);
 import {
   ArrowUpDown,
   Building2,
@@ -346,39 +392,7 @@ export function BillingClient({ companies, mrrData }: BillingClientProps) {
           <CardContent>
             {chartData.length > 0 ? (
               <div className="h-[200px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis
-                      dataKey="date"
-                      tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-                      stroke="hsl(var(--border))"
-                    />
-                    <YAxis
-                      tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-                      stroke="hsl(var(--border))"
-                      tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`}
-                    />
-                    <RechartsTooltip
-                      contentStyle={{
-                        backgroundColor: "hsl(var(--popover))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "6px",
-                        color: "hsl(var(--popover-foreground))",
-                        fontSize: 12,
-                      }}
-                      formatter={(value) => [`${Number(value).toLocaleString("no-NO")} kr`, "MRR"]}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="mrr"
-                      stroke="hsl(var(--primary))"
-                      strokeWidth={2}
-                      dot={false}
-                      activeDot={{ r: 4 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+                <RechartsChart data={chartData} />
               </div>
             ) : (
               <div className="text-muted-foreground flex h-[200px] items-center justify-center text-sm">

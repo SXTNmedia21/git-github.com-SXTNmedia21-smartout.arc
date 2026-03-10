@@ -18,7 +18,7 @@ export async function callContractService(path: string, options?: RequestInit): 
     ...options,
     headers: {
       "X-Service-Key": key,
-      "Content-Type": "application/json",
+      ...(options?.body ? { "Content-Type": "application/json" } : {}),
       ...options?.headers,
     },
   });

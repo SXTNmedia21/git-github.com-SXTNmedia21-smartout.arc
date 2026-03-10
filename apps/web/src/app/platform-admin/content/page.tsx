@@ -1,17 +1,25 @@
 import { createAdminClient } from "@smartout/supabase/admin";
 import { getSuperAdminId } from "@/lib/platform-admin";
 import { redirect } from "next/navigation";
+import { unstable_cache } from "next/cache";
 import { Badge } from "@/components/ui/badge";
 
-export default async function ContentPage() {
-  const adminId = await getSuperAdminId();
-  if (!adminId) redirect("/dashboard");
+const getContentData = unstable_cache(
+  async () => {
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from("landing_config")
+      .select("config_id, slug, name, locale, status, version, published_at, updated_at")
+      .order("updated_at", { ascending: false });
+    return data;
+  },
+  ["platform-admin-content-v1"],
+  { revalidate: 120 },
+);
 
-  const admin = createAdminClient();
-  const { data: configs } = await admin
-    .from("landing_config")
-    .select("config_id, slug, name, locale, status, version, published_at, updated_at")
-    .order("updated_at", { ascending: false });
+export default async function ContentPage() {
+  const [adminId, configs] = await Promise.all([getSuperAdminId(), getContentData()]);
+  if (!adminId) redirect("/dashboard");
 
   const statusColor: Record<string, string> = {
     draft: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",

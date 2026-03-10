@@ -1,3 +1,12 @@
+---
+title: "Extraction Eval Suite Implementation Plan"
+status: in_progress
+updated: 2026-03-10
+created: 2026-03-10
+module: ai
+tags: [extraction, eval, testing, plan]
+---
+
 # Extraction Eval Suite Implementation Plan
 
 > **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.

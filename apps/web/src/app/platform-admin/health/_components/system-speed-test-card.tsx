@@ -6,6 +6,7 @@ import { Gauge, Play, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { SystemSpeedTestResponse } from "@/app/api/platform-admin/health/system-speed-test/route";
+import { platformAdminRoutes } from "@/lib/platform-admin-routes";
 
 type SnapshotLabel = "A" | "B";
 
@@ -153,7 +154,7 @@ export function SystemSpeedTestCard() {
           <Button
             variant="secondary"
             size="sm"
-            onClick={() => window.open("/dashboard?autoplay=1&showcase=1", "_blank")}
+            onClick={() => window.open(platformAdminRoutes.walkthrough, "_blank")}
             disabled={loading}
           >
             <Play className="mr-1 h-3.5 w-3.5" />

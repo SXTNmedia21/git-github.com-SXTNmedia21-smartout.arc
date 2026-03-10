@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
 import {
   type ColumnDef,
   flexRender,
@@ -43,10 +44,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import dynamic from "next/dynamic";
 import { StatusBadge } from "@/components/platform-admin/status-badge";
 import { ConfirmationDialog } from "@/components/platform-admin/confirmation-dialog";
-import { ComposeEmailSheet } from "@/components/platform-admin/compose-email-sheet";
 import type { AudienceFilter } from "@/components/platform-admin/audience-selector";
+
+const ComposeEmailSheet = dynamic(
+  () =>
+    import("@/components/platform-admin/compose-email-sheet").then((mod) => mod.ComposeEmailSheet),
+  { ssr: false },
+);
 
 export type UserRow = {
   user_id: string;
@@ -83,6 +90,7 @@ export function UsersClient({ users: initialUsers }: UsersClientProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [globalFilter, setGlobalFilter] = useState("");
+  const debouncedFilter = useDebounce(globalFilter, 300);
 
   // Confirmation dialog state
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -364,8 +372,7 @@ export function UsersClient({ users: initialUsers }: UsersClientProps) {
       const email = user.email.toLowerCase();
       return name.includes(search) || email.includes(search);
     },
-    state: { sorting, rowSelection, globalFilter },
-    onGlobalFilterChange: setGlobalFilter,
+    state: { sorting, rowSelection, globalFilter: debouncedFilter },
     initialState: {
       pagination: { pageSize: 20 },
     },

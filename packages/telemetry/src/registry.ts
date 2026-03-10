@@ -60,7 +60,8 @@ export type EntityType =
   | "announcement"
   | "chat_message"
   | "reconciliation"
-  | "handbook_chapter";
+  | "handbook_chapter"
+  | "contract";
 
 export type ActionVerb =
   | "created"
@@ -344,34 +345,71 @@ export interface HandbookChapterSaved extends BaseEvent {
   };
 }
 
-// ─── Journey: Signup + Onboarding ──────────────────
-export interface SignupCompleted extends BaseEvent {
-  event: "signup completed";
+// ─── Communication ──────────────────────────────
+export interface CommunicationSent extends BaseEvent {
+  event: "communication sent";
   properties: {
     data: {
-      user_identity_id: string;
+      communication_id: string;
+      template: string;
+      classification: string;
+      recipient_count: number;
+      sent_count: number;
+      failed_count: number;
     };
   };
 }
 
-export interface OnboardingStepCompleted extends BaseEvent {
-  event: "onboarding step_completed";
+export interface CommunicationCancelled extends BaseEvent {
+  event: "communication cancelled";
   properties: {
     data: {
-      step_id: string;
-      step_index: number;
-      user_identity_id: string;
+      communication_id: string;
     };
   };
 }
 
-export interface WorkspaceCreated extends BaseEvent {
-  event: "workspace created";
+export interface CommunicationFailed extends BaseEvent {
+  event: "communication failed";
   properties: {
     data: {
-      workspace_id: string;
-      user_identity_id: string;
+      communication_id: string;
+      template: string;
+      error: string;
     };
+  };
+}
+
+// ─── Contract Events ──────────────────────────
+export interface ContractViewed extends BaseEvent {
+  event: "contract viewed";
+  properties: {
+    entity: EntityRef;
+    data: { recipient_email: string };
+  };
+}
+
+export interface ContractSigned extends BaseEvent {
+  event: "contract signed";
+  properties: {
+    entity: EntityRef;
+    data: { recipient_email: string; signed_pdf_url?: string };
+  };
+}
+
+export interface ContractDeclined extends BaseEvent {
+  event: "contract declined";
+  properties: {
+    entity: EntityRef;
+    data: { reason?: string };
+  };
+}
+
+export interface ContractExpired extends BaseEvent {
+  event: "contract expired";
+  properties: {
+    entity: EntityRef;
+    data: { expired_at: string };
   };
 }
 
@@ -422,9 +460,13 @@ export type SmartoutEvent =
   | ReconciliationSubmitted
   | ReconciliationAdminAction
   | HandbookChapterSaved
-  | SignupCompleted
-  | OnboardingStepCompleted
-  | WorkspaceCreated
+  | CommunicationSent
+  | CommunicationCancelled
+  | CommunicationFailed
+  | ContractViewed
+  | ContractSigned
+  | ContractDeclined
+  | ContractExpired
   | WizardStepCompleted
   | WizardCompleted
   | PageViewed
@@ -519,6 +561,36 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "operations",
   },
   "reconciliation admin_action": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+
+  "communication sent": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "communication",
+  },
+  "communication cancelled": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "communication",
+  },
+  "communication failed": {
+    destinations: ["posthog", "logger"],
+    category: "communication",
+  },
+
+  "contract viewed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "contract signed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "contract declined": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "contract expired": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "operations",
   },

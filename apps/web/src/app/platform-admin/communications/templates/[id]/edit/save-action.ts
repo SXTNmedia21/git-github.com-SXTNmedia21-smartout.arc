@@ -64,8 +64,8 @@ export async function saveEmailTemplate(
 
   if (templateId === "new") {
     const { data: inserted, error } = await admin
-      .from("platform_email_template" as never)
-      .insert({ ...payload, created_by: adminId } as never)
+      .from("platform_email_template")
+      .insert({ ...payload, created_by: adminId })
       .select("template_id")
       .single();
 
@@ -78,8 +78,8 @@ export async function saveEmailTemplate(
   }
 
   const { error } = await admin
-    .from("platform_email_template" as never)
-    .update(payload as never)
+    .from("platform_email_template")
+    .update(payload)
     .eq("template_id", templateId);
 
   if (error) throw new Error(`Failed to save template: ${error.message}`);

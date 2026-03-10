@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { getSuperAdminId, logPlatformAction } from "@/lib/platform-admin";
+import { emit } from "@smartout/telemetry";
 import {
   resolveAudience,
   filterSuppressed,
@@ -260,6 +261,22 @@ export async function POST(request: NextRequest) {
       failedCount: result.failedCount,
     });
 
+    void emit({
+      event: "communication sent",
+      workspace_id: audience.type === "workspace" ? audience.workspaceId : "platform",
+      actor_id: adminId,
+      properties: {
+        data: {
+          communication_id: jobId,
+          template,
+          classification,
+          recipient_count: activeRecipients.length,
+          sent_count: result.sentCount,
+          failed_count: result.failedCount,
+        },
+      },
+    });
+
     return NextResponse.json({
       jobId,
       status: finalStatus,
@@ -272,6 +289,20 @@ export async function POST(request: NextRequest) {
       .from("platform_communication_log" as never)
       .update({ status: "failed", updated_at: new Date().toISOString() } as never)
       .eq("communication_id", jobId);
+
+    void emit({
+      event: "communication failed",
+      workspace_id: audience.type === "workspace" ? audience.workspaceId : "platform",
+      actor_id: adminId,
+      properties: {
+        data: {
+          communication_id: jobId,
+          template,
+          error: err instanceof Error ? err.message : "Unknown error",
+        },
+      },
+    });
+
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Send failed" },
       { status: 500 },

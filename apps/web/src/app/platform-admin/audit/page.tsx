@@ -1,22 +1,30 @@
 import { createAdminClient } from "@smartout/supabase/admin";
 import { getSuperAdminId } from "@/lib/platform-admin";
 import { redirect } from "next/navigation";
+import { unstable_cache } from "next/cache";
 import { AuditListClient } from "@/components/platform-admin/audit-list-client";
 import type { AuditRow } from "@/components/platform-admin/audit-columns";
 
-export default async function AuditPage() {
-  const adminId = await getSuperAdminId();
-  if (!adminId) redirect("/dashboard");
+const getAuditData = unstable_cache(
+  async () => {
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from("platform_audit_log")
+      .select(
+        `id, action, entity_type, entity_id, details, created_at,
+         admin:super_admin_id (first_name, last_name)`,
+      )
+      .order("created_at", { ascending: false })
+      .limit(100);
+    return data;
+  },
+  ["platform-admin-audit-v1"],
+  { revalidate: 30 },
+);
 
-  const admin = createAdminClient();
-  const { data: auditLogs } = await admin
-    .from("platform_audit_log")
-    .select(
-      `id, action, entity_type, entity_id, details, created_at,
-       admin:super_admin_id (first_name, last_name)`,
-    )
-    .order("created_at", { ascending: false })
-    .limit(100);
+export default async function AuditPage() {
+  const [adminId, auditLogs] = await Promise.all([getSuperAdminId(), getAuditData()]);
+  if (!adminId) redirect("/dashboard");
 
   return (
     <div>
