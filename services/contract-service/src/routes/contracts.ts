@@ -389,4 +389,60 @@ export async function contractRoutes(app: FastifyInstance) {
     if (error) return reply.status(500).send({ error: error.message });
     return data;
   });
+
+  // Fetch and store DocuSeal audit log + documents for a signed contract
+  app.post("/contracts/:id/fetch-documents", async (request, reply) => {
+    const { id } = request.params as { id: string };
+
+    const { data: contract, error } = await supabase
+      .from("contract")
+      .select("contract_id, docuseal_submission_id, status")
+      .eq("contract_id", id)
+      .single();
+
+    if (error || !contract) {
+      return reply.status(404).send({ error: "Contract not found" });
+    }
+
+    if (!contract.docuseal_submission_id) {
+      return reply.status(400).send({ error: "No DocuSeal submission linked" });
+    }
+
+    try {
+      const submission = await getDocuseal().getSubmission(Number(contract.docuseal_submission_id));
+
+      const updates: Record<string, string | null> = {};
+
+      if (submission.audit_log_url) {
+        updates.audit_log_url = submission.audit_log_url;
+      }
+      if (submission.combined_document_url) {
+        updates.document_url = submission.combined_document_url;
+      }
+
+      // Also grab individual document URLs
+      const docs = await getDocuseal().getSubmissionDocuments(
+        Number(contract.docuseal_submission_id),
+      );
+
+      if (docs.documents?.length) {
+        updates.signed_pdf_url = docs.documents[0]!.url;
+      }
+
+      if (Object.keys(updates).length > 0) {
+        updates.updated_at = new Date().toISOString();
+        await supabase.from("contract").update(updates).eq("contract_id", id);
+      }
+
+      return {
+        contract_id: id,
+        audit_log_url: updates.audit_log_url ?? null,
+        signed_pdf_url: updates.signed_pdf_url ?? null,
+        document_url: updates.document_url ?? null,
+      };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to fetch documents";
+      return reply.status(502).send({ error: message });
+    }
+  });
 }

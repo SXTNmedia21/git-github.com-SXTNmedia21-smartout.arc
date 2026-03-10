@@ -19,6 +19,7 @@ export type EventCategory =
   | "onboarding"
   | "org_structure"
   | "scheduling"
+  | "contracts"
   | "operations"
   | "haccp"
   | "training"
@@ -56,6 +57,8 @@ export type EntityType =
   | "procedure_step"
   | "routine"
   | "runbook"
+  | "contract"
+  | "contract_template"
   | "invitation"
   | "announcement"
   | "chat_message"
@@ -90,6 +93,11 @@ export type ActionVerb =
   | "pending_signoff"
   | "submitted"
   | "admin_action"
+  | "sent"
+  | "cancelled"
+  | "declined"
+  | "expired"
+  | "reminded"
   | "step_completed"
   | "chapter_saved"
   | "hook_fired"
@@ -381,6 +389,29 @@ export interface CommunicationFailed extends BaseEvent {
 }
 
 // ─── Contract Events ──────────────────────────
+export interface ContractCreated extends BaseEvent {
+  event: "contract created";
+  properties: {
+    entity: EntityRef;
+    data: {
+      template_id: string;
+      recipient_email: string;
+      contract_type: string;
+    };
+  };
+}
+
+export interface ContractSent extends BaseEvent {
+  event: "contract sent";
+  properties: {
+    entity: EntityRef;
+    data: {
+      recipient_email: string;
+      expires_at: string;
+    };
+  };
+}
+
 export interface ContractViewed extends BaseEvent {
   event: "contract viewed";
   properties: {
@@ -393,7 +424,18 @@ export interface ContractSigned extends BaseEvent {
   event: "contract signed";
   properties: {
     entity: EntityRef;
-    data: { recipient_email: string; signed_pdf_url?: string };
+    data: {
+      recipient_email: string;
+      signed_pdf_url?: string;
+    };
+  };
+}
+
+export interface ContractCancelled extends BaseEvent {
+  event: "contract cancelled";
+  properties: {
+    entity: EntityRef;
+    data: { reason?: string };
   };
 }
 
@@ -459,14 +501,17 @@ export type SmartoutEvent =
   | ProtocolCompleted
   | ReconciliationSubmitted
   | ReconciliationAdminAction
+  | ContractCreated
+  | ContractSent
+  | ContractViewed
+  | ContractSigned
+  | ContractCancelled
+  | ContractDeclined
+  | ContractExpired
   | HandbookChapterSaved
   | CommunicationSent
   | CommunicationCancelled
   | CommunicationFailed
-  | ContractViewed
-  | ContractSigned
-  | ContractDeclined
-  | ContractExpired
   | WizardStepCompleted
   | WizardCompleted
   | PageViewed
@@ -578,21 +623,33 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "communication",
   },
 
+  "contract created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contract sent": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
   "contract viewed": {
     destinations: ["posthog", "logger", "activity_trail"],
-    category: "operations",
+    category: "contracts",
   },
   "contract signed": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
-    category: "operations",
+    category: "contracts",
+  },
+  "contract cancelled": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
   },
   "contract declined": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
-    category: "operations",
+    category: "contracts",
   },
   "contract expired": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
-    category: "operations",
+    category: "contracts",
   },
 
   "handbook chapter_saved": {
@@ -600,18 +657,6 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "training",
   },
 
-  "signup completed": {
-    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
-    category: "onboarding",
-  },
-  "onboarding step_completed": {
-    destinations: ["posthog", "logger", "engine_event"],
-    category: "onboarding",
-  },
-  "workspace created": {
-    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
-    category: "onboarding",
-  },
   "wizard step_completed": {
     destinations: ["posthog", "logger", "engine_event"],
     category: "onboarding",
