@@ -18,6 +18,8 @@ import {
 } from "@/components/ui/select";
 import { Plus, Loader2, CheckCircle2, Trash2, Send, Upload, AlertCircle } from "lucide-react";
 import { HelpTip } from "@/components/dashboard/wizard-steps/HelpTip";
+import { CsvMappingDialog } from "@/components/dashboard/wizard-steps/csv-column-mapper";
+import { MAPPABLE_FIELDS } from "@/components/dashboard/wizard-steps/csv-synonyms";
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -31,6 +33,11 @@ type InviteRow = {
   employmentForm: string;
   positionId: string;
   hourlyRate: number;
+  startDate: string;
+  positionPct: number;
+  birthDate: string;
+  address: string;
+  extraData: Record<string, string>;
   status: "pending" | "sending" | "sent" | "error";
   validationErrors: string[];
 };
@@ -46,6 +53,11 @@ function createEmptyRow(): InviteRow {
     employmentForm: "",
     positionId: "",
     hourlyRate: 0,
+    startDate: "",
+    positionPct: 0,
+    birthDate: "",
+    address: "",
+    extraData: {},
     status: "pending",
     validationErrors: [],
   };
@@ -273,6 +285,9 @@ export function TeamSetupStep({
 
   const [rows, setRows] = useState<InviteRow[]>([createEmptyRow()]);
   const [isSending, setIsSending] = useState(false);
+  const [csvMappingOpen, setCsvMappingOpen] = useState(false);
+  const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
+  const [csvRawRows, setCsvRawRows] = useState<Record<string, string>[]>([]);
 
   // ── Queries ──
 
@@ -401,17 +416,14 @@ export function TeamSetupStep({
       const hourlyRate = positionId ? (positionWageMap.get(positionId) ?? 0) : 0;
 
       const row: InviteRow = {
-        id: crypto.randomUUID(),
+        ...createEmptyRow(),
         firstName: emp.firstName,
         lastName: emp.lastName,
         email: emp.email ?? "",
         phone: emp.phone ?? "",
         departmentId,
-        employmentForm: "",
         positionId,
         hourlyRate,
-        status: "pending",
-        validationErrors: [],
       };
       row.validationErrors = validateRow(row);
       return row;
@@ -455,94 +467,137 @@ export function TeamSetupStep({
 
   // ── CSV upload ──
 
-  const handleCsvUpload = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
+  const handleCsvUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-      Papa.parse<Record<string, string>>(file, {
-        header: true,
-        skipEmptyLines: true,
-        transformHeader: (header) => header.trim().toLowerCase(),
-        complete: (results) => {
-          const csvRows: InviteRow[] = results.data
-            .filter((row) => {
-              // At least one of firstName/email must have data
-              const fn = row["fornavn"] ?? row["first_name"] ?? row["firstname"] ?? "";
-              const em = row["e-post"] ?? row["epost"] ?? row["email"] ?? "";
-              return fn.trim() !== "" || em.trim() !== "";
-            })
-            .map((row) => {
-              const firstName = (
-                row["fornavn"] ??
-                row["first_name"] ??
-                row["firstname"] ??
-                ""
-              ).trim();
-              const lastName = (
-                row["etternavn"] ??
-                row["last_name"] ??
-                row["lastname"] ??
-                ""
-              ).trim();
-              const email = (row["e-post"] ?? row["epost"] ?? row["email"] ?? "").trim();
-              const phone = (row["telefon"] ?? row["phone"] ?? row["tlf"] ?? "").trim();
-              const deptName = (row["avdeling"] ?? row["department"] ?? "").trim();
-              const posName = (row["stilling"] ?? row["position"] ?? "").trim();
+    Papa.parse<Record<string, string>>(file, {
+      header: true,
+      skipEmptyLines: true,
+      transformHeader: (header) => header.trim(),
+      complete: (results) => {
+        if (results.data.length === 0) {
+          toast.error("Ingen rader funnet i CSV-filen");
+          return;
+        }
+        const headers = results.meta.fields ?? [];
+        if (headers.length === 0) {
+          toast.error("Ingen kolonner funnet i CSV-filen");
+          return;
+        }
+        setCsvHeaders(headers);
+        setCsvRawRows(results.data);
+        setCsvMappingOpen(true);
+      },
+      error: () => {
+        toast.error("Kunne ikke lese CSV-filen");
+      },
+    });
 
-              const departmentId = deptNameMap.get(deptName.toLowerCase()) ?? "";
-              const positionId = posNameMap.get(posName.toLowerCase()) ?? "";
-              const hourlyRate = positionId ? (positionWageMap.get(positionId) ?? 0) : 0;
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }, []);
 
-              const newRow: InviteRow = {
-                id: crypto.randomUUID(),
-                firstName,
-                lastName,
-                email,
-                phone,
-                departmentId,
-                employmentForm: "",
-                positionId,
-                hourlyRate,
-                status: "pending",
-                validationErrors: [],
-              };
-
-              newRow.validationErrors = validateRow(newRow);
-              return newRow;
-            });
-
-          if (csvRows.length === 0) {
-            toast.error("Ingen gyldige rader funnet i CSV-filen");
-            return;
-          }
-
-          // Replace empty placeholder row or append
-          setRows((prev) => {
-            const nonEmpty = prev.filter(
-              (r) => r.firstName.trim() || r.lastName.trim() || r.email.trim(),
-            );
-            return [...nonEmpty, ...csvRows];
+  const handleMappingConfirm = useCallback(
+    (mapping: Record<string, string>) => {
+      const csvRows: InviteRow[] = csvRawRows
+        .filter((row) => {
+          // At least one mapped required field must have data
+          const hasData = Object.entries(mapping).some(([header, fieldKey]) => {
+            const field = MAPPABLE_FIELDS.find((f) => f.key === fieldKey);
+            return field?.required && row[header]?.trim();
           });
+          return hasData;
+        })
+        .map((row) => {
+          const newRow = createEmptyRow();
+          const extraData: Record<string, string> = {};
 
-          const errorCount = csvRows.filter((r) => r.validationErrors.length > 0).length;
-          if (errorCount > 0) {
-            toast.warning(`${csvRows.length} rader importert, ${errorCount} med valideringsfeil`);
-          } else {
-            toast.success(`${csvRows.length} rader importert fra CSV`);
+          for (const [header, fieldKey] of Object.entries(mapping)) {
+            const value = row[header]?.trim() ?? "";
+            if (!value) continue;
+
+            if (fieldKey === "_skip") {
+              extraData[header] = value;
+              continue;
+            }
+
+            switch (fieldKey) {
+              case "firstName":
+                newRow.firstName = value;
+                break;
+              case "lastName":
+                newRow.lastName = value;
+                break;
+              case "email":
+                newRow.email = value;
+                break;
+              case "phone":
+                newRow.phone = value;
+                break;
+              case "departmentId":
+                newRow.departmentId = deptNameMap.get(value.toLowerCase()) ?? "";
+                break;
+              case "positionId": {
+                const posId = posNameMap.get(value.toLowerCase()) ?? "";
+                newRow.positionId = posId;
+                if (posId) {
+                  newRow.hourlyRate = positionWageMap.get(posId) ?? 0;
+                }
+                break;
+              }
+              case "employmentForm":
+                newRow.employmentForm = value;
+                break;
+              case "hourlyRate":
+                newRow.hourlyRate = parseFloat(value) || 0;
+                break;
+              case "startDate":
+                newRow.startDate = value;
+                break;
+              case "positionPct":
+                newRow.positionPct = parseFloat(value) || 0;
+                break;
+              case "birthDate":
+                newRow.birthDate = value;
+                break;
+              case "address":
+                newRow.address = value;
+                break;
+              default:
+                extraData[header] = value;
+            }
           }
-        },
-        error: () => {
-          toast.error("Kunne ikke lese CSV-filen");
-        },
+
+          newRow.extraData = extraData;
+          newRow.validationErrors = validateRow(newRow);
+          return newRow;
+        });
+
+      if (csvRows.length === 0) {
+        toast.error("Ingen gyldige rader funnet i CSV-filen");
+        setCsvMappingOpen(false);
+        return;
+      }
+
+      setRows((prev) => {
+        const nonEmpty = prev.filter(
+          (r) => r.firstName.trim() || r.lastName.trim() || r.email.trim(),
+        );
+        return [...nonEmpty, ...csvRows];
       });
 
-      // Reset file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
+      const errorCount = csvRows.filter((r) => r.validationErrors.length > 0).length;
+      if (errorCount > 0) {
+        toast.warning(`${csvRows.length} rader importert, ${errorCount} med valideringsfeil`);
+      } else {
+        toast.success(`${csvRows.length} rader importert fra CSV`);
       }
+
+      setCsvMappingOpen(false);
     },
-    [deptNameMap, posNameMap, positionWageMap],
+    [csvRawRows, deptNameMap, posNameMap, positionWageMap],
   );
 
   // ── Send logic ──
@@ -591,6 +646,7 @@ export function TeamSetupStep({
                 last_name: row.lastName.trim(),
                 role: "employee",
                 department_ids: row.departmentId ? [row.departmentId] : undefined,
+                metadata: Object.keys(row.extraData).length > 0 ? row.extraData : undefined,
               },
             ],
           },
@@ -732,9 +788,18 @@ export function TeamSetupStep({
 
       {/* CSV format hint */}
       <p className={`text-[11px] leading-relaxed ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
-        CSV-format: fornavn, etternavn, e-post, telefon, avdeling, stilling. F\u00f8rste rad m\u00e5
-        v\u00e6re kolonnenavn.
+        Last opp en CSV-fil med kolonnenavn i f\u00f8rste rad. Du kobler kolonnene til riktige felt
+        i neste steg.
       </p>
+
+      <CsvMappingDialog
+        open={csvMappingOpen}
+        onOpenChange={setCsvMappingOpen}
+        isDark={isDark}
+        csvHeaders={csvHeaders}
+        csvPreviewRows={csvRawRows.slice(0, 3)}
+        onConfirm={handleMappingConfirm}
+      />
     </div>
   );
 }

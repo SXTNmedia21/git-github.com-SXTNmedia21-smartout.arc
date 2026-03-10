@@ -85,6 +85,7 @@ async function handleBatchInvites(
     status: "pending",
     invite_type: "email",
     invited_by: inviterProfile.profile_id,
+    metadata: inv.metadata ?? null,
   }));
 
   const { data: insertedInvites, error: insertError } = await supabaseClient
