@@ -42,14 +42,14 @@ digraph triage {
 }
 ```
 
-| Journey pattern | Needs mission? | Why |
-|----------------|:-:|-----|
-| User taps buttons, system processes | No | Pure UI + backend logic, no agent |
-| User fills forms, system validates | No | Form validation, no conversation |
-| Agent asks questions, collects data | Yes | Agent-guided data collection |
-| Agent recommends actions, user confirms | Yes | Agent decision-making |
-| Agent monitors and nudges | Yes | Agent observes and intervenes |
-| Mixed: some steps UI, some agent-guided | Yes | Mission covers agent steps only |
+| Journey pattern                         | Needs mission? | Why                               |
+| --------------------------------------- | :------------: | --------------------------------- |
+| User taps buttons, system processes     |       No       | Pure UI + backend logic, no agent |
+| User fills forms, system validates      |       No       | Form validation, no conversation  |
+| Agent asks questions, collects data     |      Yes       | Agent-guided data collection      |
+| Agent recommends actions, user confirms |      Yes       | Agent decision-making             |
+| Agent monitors and nudges               |      Yes       | Agent observes and intervenes     |
+| Mixed: some steps UI, some agent-guided |      Yes       | Mission covers agent steps only   |
 
 **If NO agent involvement:** Tell the user: "Journey J-{NNN} is a system journey — no AI agent involvement. Mission not needed. Set Mission ID to `N/A` in the package." Save a stub Mission.md:
 
@@ -58,8 +58,11 @@ digraph triage {
 title: "Mission: {Title}"
 status: not-applicable
 ---
+
 # Mission: M-{NNN} — {Title}
+
 ## Status: Not Applicable
+
 This journey is a system journey with no AI agent involvement.
 All steps are user-driven UI actions + backend processing.
 No Stage Engine mission is needed.
@@ -71,24 +74,24 @@ No Stage Engine mission is needed.
 
 Read ALL of these before generating:
 
-| Source | Path | What you get |
-|--------|------|-------------|
-| Roadmap | `docs/Roadmaps/{slug}/Roadmap.md` | Scope, actor, intent, success criteria |
-| Journey | `docs/Roadmaps/{slug}/Journey.md` | Steps, UI elements, data ops, events, errors |
-| Mission Training Skill | `.claude/skills/mission-training.md` | Stage anatomy, tool categories, chain rules, SQL template |
-| Stage Engine Trainer | `docs/reference/STAGE_ENGINE_TRAINER_GUIDE.md` | Architecture, prompt builder, authority, posture |
-| Existing Missions | `supabase/migrations/*seed*mission*.sql` | Pattern reference for seed SQL |
-| DB Schema | `packages/supabase/src/database.types.ts` | engine_missions, engine_stages columns |
+| Source                 | Path                                           | What you get                                              |
+| ---------------------- | ---------------------------------------------- | --------------------------------------------------------- |
+| Roadmap                | `docs/Roadmaps/{slug}/Roadmap.md`              | Scope, actor, intent, success criteria                    |
+| Journey                | `docs/Roadmaps/{slug}/Journey.md`              | Steps, UI elements, data ops, events, errors              |
+| Mission Training Skill | `.claude/skills/mission-training.md`           | Stage anatomy, tool categories, chain rules, SQL template |
+| Stage Engine Trainer   | `docs/reference/STAGE_ENGINE_TRAINER_GUIDE.md` | Architecture, prompt builder, authority, posture          |
+| Existing Missions      | `supabase/migrations/*seed*mission*.sql`       | Pattern reference for seed SQL                            |
+| DB Schema              | `packages/supabase/src/database.types.ts`      | engine_missions, engine_stages columns                    |
 
 ## Confidence Assessment
 
-| Signal | Score |
-|--------|-------|
-| Journey deep spec exists with full steps | +3 |
-| Similar mission seed SQL exists (e.g., onboarding-interview) | +2 |
-| Tools for this domain already exist in codebase | +1 |
-| Module doc covers this workflow | +1 |
-| Total 5+ = HIGH, 3-4 = MEDIUM, 0-2 = LOW | |
+| Signal                                                       | Score |
+| ------------------------------------------------------------ | ----- |
+| Journey deep spec exists with full steps                     | +3    |
+| Similar mission seed SQL exists (e.g., onboarding-interview) | +2    |
+| Tools for this domain already exist in codebase              | +1    |
+| Module doc covers this workflow                              | +1    |
+| Total 5+ = HIGH, 3-4 = MEDIUM, 0-2 = LOW                     |       |
 
 **HIGH:** Generate complete Mission.md + seed SQL draft for review.
 **MEDIUM:** Generate skeleton with gaps marked `[TBD]`, ask about tool availability.
@@ -100,28 +103,28 @@ ALL must be known before generating. If any is missing, ask.
 
 ### Mission-Level Gates
 
-| # | Gate | Source | Question if missing |
-|---|------|--------|-------------------|
-| 1 | Mission ID | Package Identity | "What M-NNN ID for this mission?" |
-| 2 | Mission mode | Journey flow type | "Sequential, free, or hybrid?" |
-| 3 | Agent personality | Roadmap/Journey actor | "What tone? (warm/direct/formal/casual)" |
-| 4 | Available tools | Codebase grep | "Which client + engine tools exist for this domain?" |
-| 5 | Stage count | Journey steps | "How many stages? (map from journey steps)" |
-| 6 | Session duration target | Business context | "Expected min/max session time?" |
-| 7 | Trigger condition | Roadmap event motor | "What starts this mission?" |
+| #   | Gate                    | Source                | Question if missing                                  |
+| --- | ----------------------- | --------------------- | ---------------------------------------------------- |
+| 1   | Mission ID              | Package Identity      | "What M-NNN ID for this mission?"                    |
+| 2   | Mission mode            | Journey flow type     | "Sequential, free, or hybrid?"                       |
+| 3   | Agent personality       | Roadmap/Journey actor | "What tone? (warm/direct/formal/casual)"             |
+| 4   | Available tools         | Codebase grep         | "Which client + engine tools exist for this domain?" |
+| 5   | Stage count             | Journey steps         | "How many stages? (map from journey steps)"          |
+| 6   | Session duration target | Business context      | "Expected min/max session time?"                     |
+| 7   | Trigger condition       | Roadmap event motor   | "What starts this mission?"                          |
 
 ### Per-Stage Gates
 
-| # | Gate | Key fields | Question if missing |
-|---|------|-----------|-------------------|
-| 1 | **Goal** | One-line objective | "What does the agent accomplish here?" |
-| 2 | **Instructions** | Full prompt text with tool calls | "What does the agent say and do?" |
-| 3 | **Tools** | List of client + engine tools used | "Which tools does this stage call?" |
-| 4 | **Success criteria** | Measurable completion condition | "How do we know this stage is done?" |
-| 5 | **Timing** | min/max seconds | "How long should this stage take?" |
-| 6 | **Data writes** | Fields Guardian watches | "What data must be collected?" |
-| 7 | **Failure signals** | What indicates trouble | "What goes wrong here?" |
-| 8 | **Transition** | next_stage or NULL | "What comes after?" |
+| #   | Gate                 | Key fields                         | Question if missing                    |
+| --- | -------------------- | ---------------------------------- | -------------------------------------- |
+| 1   | **Goal**             | One-line objective                 | "What does the agent accomplish here?" |
+| 2   | **Instructions**     | Full prompt text with tool calls   | "What does the agent say and do?"      |
+| 3   | **Tools**            | List of client + engine tools used | "Which tools does this stage call?"    |
+| 4   | **Success criteria** | Measurable completion condition    | "How do we know this stage is done?"   |
+| 5   | **Timing**           | min/max seconds                    | "How long should this stage take?"     |
+| 6   | **Data writes**      | Fields Guardian watches            | "What data must be collected?"         |
+| 7   | **Failure signals**  | What indicates trouble             | "What goes wrong here?"                |
+| 8   | **Transition**       | next_stage or NULL                 | "What comes after?"                    |
 
 ## Stage Mapping Rules
 
@@ -129,14 +132,14 @@ ALL must be known before generating. If any is missing, ask.
 
 Not every journey step becomes a mission stage. Apply these rules:
 
-| Journey step type | Mission stage? | Why |
-|------------------|:-:|-----|
-| User action (tap, navigate) | No | UI-only, no agent involvement |
-| System auto (background process) | No | No agent decision needed |
-| Agent-guided data collection | Yes | Agent asks, collects, stores |
-| Agent-guided decision | Yes | Agent evaluates and recommends |
-| Confirmation/validation | Merge with prior | Don't create a stage just to confirm |
-| Multi-step form with agent | Yes | Agent guides through form sections |
+| Journey step type                |  Mission stage?  | Why                                  |
+| -------------------------------- | :--------------: | ------------------------------------ |
+| User action (tap, navigate)      |        No        | UI-only, no agent involvement        |
+| System auto (background process) |        No        | No agent decision needed             |
+| Agent-guided data collection     |       Yes        | Agent asks, collects, stores         |
+| Agent-guided decision            |       Yes        | Agent evaluates and recommends       |
+| Confirmation/validation          | Merge with prior | Don't create a stage just to confirm |
+| Multi-step form with agent       |       Yes        | Agent guides through form sections   |
 
 **Guideline:** Fewer stages = better. Merge where the agent's goal doesn't change. A 12-step journey might become a 5-stage mission.
 
@@ -144,11 +147,11 @@ Not every journey step becomes a mission stage. Apply these rules:
 
 Some mission stages have NO corresponding journey step. The agent needs them but the journey doesn't show them:
 
-| Pattern | When to add | Example |
-|---------|------------|---------|
-| **Greeting/rapport** | Agent missions that start with conversation | "Hei! Hva heter du?" before any functional work |
-| **Wrapup/summary** | Agent summarizes what was accomplished | "Da er vi i gang! Her er hva vi satte opp..." |
-| **Context loading** | Agent needs to read state before acting | Call `getOnboardingState` or `fetch` before stage 1 |
+| Pattern              | When to add                                 | Example                                             |
+| -------------------- | ------------------------------------------- | --------------------------------------------------- |
+| **Greeting/rapport** | Agent missions that start with conversation | "Hei! Hva heter du?" before any functional work     |
+| **Wrapup/summary**   | Agent summarizes what was accomplished      | "Da er vi i gang! Her er hva vi satte opp..."       |
+| **Context loading**  | Agent needs to read state before acting     | Call `getOnboardingState` or `fetch` before stage 1 |
 
 Always consider adding a greeting stage for voice missions — it sets tone and collects the user's name.
 
@@ -156,11 +159,11 @@ Always consider adding a greeting stage for voice missions — it sets tone and 
 
 Journey documents often use **conceptual function names** that differ from actual registered tool names. Always grep the codebase for the real `modelToolName`:
 
-| Journey says | Actual tool | Why |
-|-------------|-------------|-----|
-| `suggestSeason` | `updateSeason` | Journey describes intent, code uses mutation name |
-| `getDepartmentsForIndustry` | `addDepartments` | Journey describes source, code uses action |
-| `navigate_to` | `advanceToNextSection` | Legacy name vs current |
+| Journey says                | Actual tool            | Why                                               |
+| --------------------------- | ---------------------- | ------------------------------------------------- |
+| `suggestSeason`             | `updateSeason`         | Journey describes intent, code uses mutation name |
+| `getDepartmentsForIndustry` | `addDepartments`       | Journey describes source, code uses action        |
+| `navigate_to`               | `advanceToNextSection` | Legacy name vs current                            |
 
 **Rule:** Never trust tool names from the Journey. Grep `apps/web/src/` for `modelToolName` to get the real names.
 
@@ -173,12 +176,14 @@ If the Journey names an agent (e.g., "Botsson") but existing seed SQL uses a dif
 For each stage, identify tools from two categories:
 
 **Engine HTTP Tools** (available to ALL missions automatically):
+
 - `store` — Save data to engine_inbox
 - `fetch` — Read context, inbox, history
 - `advance` — Move to next stage + rebuild prompt
 - `getJourneyContext` — Check journey progress
 
 **Client Tools** (registered per-mission in frontend):
+
 - Check `apps/web/src/` for existing tool registrations
 - If a tool doesn't exist yet, mark it `[NEW — needs implementation]`
 - Every client tool must have a `modelToolName` + `registerToolImplementation`
@@ -196,6 +201,7 @@ Verify: no orphans, no gaps, terminal stage has `next_stage = NULL`.
 ### The Two-Tool Advance Pattern
 
 For missions that drive a frontend UI, every non-terminal stage needs BOTH:
+
 1. `advanceToNextSection` — scrolls the UI (client tool)
 2. `advance` — transitions the engine (HTTP tool)
 
@@ -210,8 +216,8 @@ Every mission defines:
 ```yaml
 results:
   session_success: "{measurable definition of mission completion}"
-  stage_success:   "{per-stage: what data/state constitutes 'done'}"
-  quality_score:   "{what makes a GOOD completion vs just completion}"
+  stage_success: "{per-stage: what data/state constitutes 'done'}"
+  quality_score: "{what makes a GOOD completion vs just completion}"
 ```
 
 ### Trackability
@@ -296,11 +302,11 @@ Session end
 
 Guardian evaluates stages by reading the **linked journey step** (via `journey_step_id` on `engine_stages`). The journey step provides:
 
-| Journey step field | Guardian behavior |
-|-------------------|-------------------|
-| `data_writes` | Fields Guardian checks for completeness. When ALL present → stage is "done". |
-| `min_duration_seconds` | Minimum time before auto-advance (prevents rushing). |
-| `max_duration_seconds` | Hard timeout. At 80% → warning whisper. At 100% → timeout whisper. |
+| Journey step field      | Guardian behavior                                                             |
+| ----------------------- | ----------------------------------------------------------------------------- |
+| `data_writes`           | Fields Guardian checks for completeness. When ALL present → stage is "done".  |
+| `min_duration_seconds`  | Minimum time before auto-advance (prevents rushing).                          |
+| `max_duration_seconds`  | Hard timeout. At 80% → warning whisper. At 100% → timeout whisper.            |
 | `required_confirmation` | If true, Guardian nudges agent to ask user for confirmation before advancing. |
 
 Guardian calculates elapsed time from `session.stage_started_at` (set automatically by `createSession()` and `advanceStage()`). No manual wiring needed for timing.
@@ -311,22 +317,22 @@ Guardian calculates elapsed time from `session.stage_started_at` (set automatica
 
 Guardian intervenes by writing to `collected_data._whispers[]` on the session. The agent receives these as invisible system instructions on the next response cycle.
 
-| Intervention | Trigger | What Guardian does |
-|-------------|---------|-------------------|
-| **Auto-advance** | All `data_writes` collected + `min_duration` passed + no `required_confirmation` | Calls `advanceStage()` directly |
-| **Nudge confirm** | All data collected + `required_confirmation` + 30s elapsed | Whispers: "Spør bruker om bekreftelse" |
-| **Missing field nudge** | 60s elapsed + fields still missing | Whispers: "Spør om: {missing fields}" |
-| **Timeout warning** | 80% of `max_duration` elapsed | Whispers: "{N} sekunder igjen, mangler: {fields}" |
-| **Hard timeout** | 100% of `max_duration` elapsed | Whispers: "Timeout — avslutt steget" |
+| Intervention            | Trigger                                                                          | What Guardian does                                |
+| ----------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------- |
+| **Auto-advance**        | All `data_writes` collected + `min_duration` passed + no `required_confirmation` | Calls `advanceStage()` directly                   |
+| **Nudge confirm**       | All data collected + `required_confirmation` + 30s elapsed                       | Whispers: "Spør bruker om bekreftelse"            |
+| **Missing field nudge** | 60s elapsed + fields still missing                                               | Whispers: "Spør om: {missing fields}"             |
+| **Timeout warning**     | 80% of `max_duration` elapsed                                                    | Whispers: "{N} sekunder igjen, mangler: {fields}" |
+| **Hard timeout**        | 100% of `max_duration` elapsed                                                   | Whispers: "Timeout — avslutt steget"              |
 
 ### data_writes Format
 
 Guardian uses dot-notation and array-notation to check `collected_data` on the session:
 
-| Pattern | Example | What Guardian checks |
-|---------|---------|---------------------|
-| Simple key | `"company_name"` | `collected_data.company_name` is not null/empty |
-| Nested path | `"company.name"` | `collected_data.company.name` is not null/empty |
+| Pattern     | Example           | What Guardian checks                              |
+| ----------- | ----------------- | ------------------------------------------------- |
+| Simple key  | `"company_name"`  | `collected_data.company_name` is not null/empty   |
+| Nested path | `"company.name"`  | `collected_data.company.name` is not null/empty   |
 | Array check | `"departments[]"` | `collected_data.departments` is a non-empty array |
 
 **Trap:** If the agent stores data at `collected_data.company.name` but the journey step has `data_writes: ["company_name"]`, Guardian will never find it and keep nudging. Match the path exactly to how the agent stores data via the `store` endpoint.
@@ -343,6 +349,7 @@ Guardian uses dot-notation and array-notation to check `collected_data` on the s
 ### Admin Dashboard (Guardian Monitor)
 
 When a mission session is active, admins can connect to `/guardian/ws` and:
+
 - **Watch** — see all events in real-time (session started, stage changed, data collected, agent responses)
 - **Subscribe** — filter events to a specific session
 - **Whisper** — inject invisible instructions to the agent mid-conversation
@@ -352,22 +359,22 @@ The `/mission` skill doesn't need to configure any of this — it's built into t
 
 ### Event Types Reference
 
-| Event | Actor | When |
-|-------|-------|------|
-| `session.started` | system | Session created |
-| `stage.changed` | system | Stage advanced |
-| `data.collected` | agent | Data stored via `/store` |
-| `user.message` | user | User sends message |
-| `agent.response` | agent | Agent replies |
-| `session.completed` | system | All stages done |
-| `session.abandoned` | system | Session abandoned |
-| `guardian.auto_advance` | guardian | Guardian auto-advanced a stage |
-| `guardian.nudge` | guardian | Guardian nudged for missing data |
-| `guardian.nudge_confirm` | guardian | Guardian asked for user confirmation |
-| `guardian.timeout` | guardian | Stage timed out |
-| `guardian.timeout_warning` | guardian | 80% of max duration reached |
-| `admin.stage_change` | admin | Admin forced stage change |
-| `admin.whisper` | admin | Admin sent whisper to agent |
+| Event                      | Actor    | When                                 |
+| -------------------------- | -------- | ------------------------------------ |
+| `session.started`          | system   | Session created                      |
+| `stage.changed`            | system   | Stage advanced                       |
+| `data.collected`           | agent    | Data stored via `/store`             |
+| `user.message`             | user     | User sends message                   |
+| `agent.response`           | agent    | Agent replies                        |
+| `session.completed`        | system   | All stages done                      |
+| `session.abandoned`        | system   | Session abandoned                    |
+| `guardian.auto_advance`    | guardian | Guardian auto-advanced a stage       |
+| `guardian.nudge`           | guardian | Guardian nudged for missing data     |
+| `guardian.nudge_confirm`   | guardian | Guardian asked for user confirmation |
+| `guardian.timeout`         | guardian | Stage timed out                      |
+| `guardian.timeout_warning` | guardian | 80% of max duration reached          |
+| `admin.stage_change`       | admin    | Admin forced stage change            |
+| `admin.whisper`            | admin    | Admin sent whisper to agent          |
 
 ## System Prompt
 
@@ -403,13 +410,13 @@ REGLER:
 
 ### Creative Freedom Quick Reference
 
-| Stage type | Value | Rationale |
-|-----------|:-----:|-----------|
-| Greeting/rapport | 0.7–0.8 | Warm, natural, room to improvise |
-| Data collection | 0.5–0.7 | Structured but conversational |
-| Validation/confirmation | 0.3–0.5 | More scripted, accuracy matters |
-| Finalization | 0.2–0.4 | Strict, no room for error |
-| Wrapup/summary | 0.7–0.8 | Warm, celebratory, personal |
+| Stage type              |  Value  | Rationale                        |
+| ----------------------- | :-----: | -------------------------------- |
+| Greeting/rapport        | 0.7–0.8 | Warm, natural, room to improvise |
+| Data collection         | 0.5–0.7 | Structured but conversational    |
+| Validation/confirmation | 0.3–0.5 | More scripted, accuracy matters  |
+| Finalization            | 0.2–0.4 | Strict, no room for error        |
+| Wrapup/summary          | 0.7–0.8 | Warm, celebratory, personal      |
 
 ### Per-Stage Timing Estimation
 
@@ -426,14 +433,14 @@ When the Journey only gives total session time, use this heuristic:
 
 ### Language Rules for Fields
 
-| Field | Language | Example |
-|-------|----------|---------|
-| `instructions` | Norwegian | "Spør: 'Hva heter stedet?'" |
-| `goal` | English | "Collect business name and city" |
-| `success_criteria` | English | "Business name confirmed by user" |
-| `personality_override` | Norwegian | "Varm, nysgjerrig, stille glad" |
-| `tuning_notes` | English | "efficiency" |
-| `system_prompt` | Norwegian | "Du er Smartouts onboarding-guide" |
+| Field                  | Language  | Example                            |
+| ---------------------- | --------- | ---------------------------------- |
+| `instructions`         | Norwegian | "Spør: 'Hva heter stedet?'"        |
+| `goal`                 | English   | "Collect business name and city"   |
+| `success_criteria`     | English   | "Business name confirmed by user"  |
+| `personality_override` | Norwegian | "Varm, nysgjerrig, stille glad"    |
+| `tuning_notes`         | English   | "efficiency"                       |
+| `system_prompt`        | Norwegian | "Du er Smartouts onboarding-guide" |
 
 ## Output: Mission.md
 
@@ -443,10 +450,10 @@ Save to `docs/Roadmaps/{slug}/Mission.md`. Use this format:
 ---
 title: "Mission: {Title}"
 status: draft
-updated: {YYYY-MM-DD}
-created: {YYYY-MM-DD}
-module: {module}
-tags: [mission, agent, {module}, {actor}]
+updated: { YYYY-MM-DD }
+created: { YYYY-MM-DD }
+module: { module }
+tags: [mission, agent, { module }, { actor }]
 ---
 
 # Mission: M-{NNN} — {Title}
@@ -477,14 +484,14 @@ Related package docs:
 
 ## Configuration
 
-| Field | Value |
-|-------|-------|
-| Mission ID (DB) | `{kebab-case-id}` |
-| Mode | {sequential/free/hybrid} |
-| Agent | {agent name — e.g., Lise, Mr. Botsson} |
-| Personality | {tone description} |
-| Channel | {voice/chat/both} |
-| Session target | {min}–{max} seconds |
+| Field           | Value                                  |
+| --------------- | -------------------------------------- |
+| Mission ID (DB) | `{kebab-case-id}`                      |
+| Mode            | {sequential/free/hybrid}               |
+| Agent           | {agent name — e.g., Lise, Mr. Botsson} |
+| Personality     | {tone description}                     |
+| Channel         | {voice/chat/both}                      |
+| Session target  | {min}–{max} seconds                    |
 
 ## Stage Chain
 
@@ -496,13 +503,13 @@ Related package docs:
 
 ### Stage 1: {stage_id} — {Goal}
 
-| Field | Value |
-|-------|-------|
-| Order | 1 |
-| Goal | {one-line} |
-| Creative freedom | {0.0–1.0} |
+| Field                | Value                 |
+| -------------------- | --------------------- |
+| Order                | 1                     |
+| Goal                 | {one-line}            |
+| Creative freedom     | {0.0–1.0}             |
 | Personality override | {tone for this stage} |
-| Next stage | {stage_id or NULL} |
+| Next stage           | {stage_id or NULL}    |
 
 **Instructions:**
 
@@ -530,10 +537,10 @@ Related package docs:
 
 ## Guardian Configuration
 
-| Stage | data_writes | min_duration | max_duration | required_confirmation | journey_step_id |
-|-------|------------|-------------|-------------|----------------------|----------------|
-| {greeting} | — | — | — | — | NULL (agent-added) |
-| {stage-id} | {field1, field2} | {N}s | {N}s | {true/false} | {uuid} |
+| Stage      | data_writes      | min_duration | max_duration | required_confirmation | journey_step_id    |
+| ---------- | ---------------- | ------------ | ------------ | --------------------- | ------------------ |
+| {greeting} | —                | —            | —            | —                     | NULL (agent-added) |
+| {stage-id} | {field1, field2} | {N}s         | {N}s         | {true/false}          | {uuid}             |
 
 > Guardian evaluates stages every 30s. Stages with `journey_step_id = NULL` are skipped.
 > `data_writes` paths must match exactly how the agent stores data (dot-notation, array-notation supported).
@@ -545,8 +552,8 @@ Related package docs:
 
 ## Escalation Conditions
 
-| Condition | Agent behavior |
-|-----------|---------------|
+| Condition         | Agent behavior    |
+| ----------------- | ----------------- |
 | {what goes wrong} | {what agent does} |
 
 ## Observability Contract
@@ -558,13 +565,13 @@ Related package docs:
 
 ### Failure Signals
 
-| Signal | Detection | Severity | Action |
-|--------|-----------|:--------:|--------|
-| abandon | Session closed before terminal | warning | Log + notify |
+| Signal    | Detection                            | Severity | Action                |
+| --------- | ------------------------------------ | :------: | --------------------- |
+| abandon   | Session closed before terminal       | warning  | Log + notify          |
 | rage_quit | Closed within 30s or 3+ rapid closes | critical | Log + flag for review |
-| stuck | Same stage > {max}s | warning | Guardian nudge |
-| loop | Stage revisited > 2x | warning | Guardian intervene |
-| timeout | Session > {max}s total | info | Log |
+| stuck     | Same stage > {max}s                  | warning  | Guardian nudge        |
+| loop      | Stage revisited > 2x                 | warning  | Guardian intervene    |
+| timeout   | Session > {max}s total               |   info   | Log                   |
 
 ### Trigger
 

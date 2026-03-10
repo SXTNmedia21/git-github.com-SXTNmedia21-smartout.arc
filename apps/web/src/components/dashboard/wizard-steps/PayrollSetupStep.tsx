@@ -168,17 +168,6 @@ export function PayrollSetupStep({
     }
   }, [stablePositions, wagesInitialized, selectedTariff, getHourlyRate]);
 
-  // Wire extracted payroll — pre-fill from extraction data
-  useEffect(() => {
-    if (!extractedPayroll?.tariff) return;
-    const match = tariffOptions.find((o) =>
-      o.label.toLowerCase().includes(extractedPayroll.tariff!.toLowerCase()),
-    );
-    if (match) {
-      handleTariffChange(match.value);
-    }
-  }, [extractedPayroll]); // Pre-fill runs once when extraction data arrives
-
   // ── Handlers ──
   const handleTariffChange = useCallback(
     (value: string) => {
@@ -189,6 +178,17 @@ export function PayrollSetupStep({
     },
     [tariffPresets, getHourlyRate],
   );
+
+  // Wire extracted payroll — pre-fill from extraction data
+  useEffect(() => {
+    if (!extractedPayroll?.tariff) return;
+    const match = tariffOptions.find((o) =>
+      o.label.toLowerCase().includes(extractedPayroll.tariff!.toLowerCase()),
+    );
+    if (match) {
+      handleTariffChange(match.value);
+    }
+  }, [extractedPayroll, handleTariffChange]);
 
   const handleSupplementChange = useCallback(
     (key: keyof SupplementState, field: string, value: string) => {

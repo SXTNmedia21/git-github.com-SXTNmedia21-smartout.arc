@@ -232,6 +232,12 @@ function CapabilityPanel({
 
 // ─── Event Timeline ───
 function EventTimeline({ events }: { events: TimelineEvent[] }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   const typeIcons: Record<TimelineEvent["type"], typeof Zap> = {
     tool: Zap,
     section: Eye,
@@ -280,7 +286,7 @@ function EventTimeline({ events }: { events: TimelineEvent[] }) {
                   )}
                 </div>
                 <span className="ml-auto shrink-0 text-[10px] text-white/20">
-                  {formatDuration(Date.now() - event.timestamp)}
+                  {formatDuration(now - event.timestamp)}
                 </span>
               </motion.div>
             );
@@ -365,7 +371,7 @@ function SystemRoom() {
   const [interactionCount, setInteractionCount] = useState(0);
   const [scrapeSuccesses, setScrapeSuccesses] = useState(0);
   const [questionsAsked, setQuestionsAsked] = useState(0);
-  const sessionStartRef = useRef(Date.now());
+  const [sessionStart] = useState(() => Date.now());
   const [sessionAge, setSessionAge] = useState(0);
   const prevSectionRef = useRef(activeSection);
   const prevScrapeRef = useRef(scrapeStatus);
@@ -375,7 +381,7 @@ function SystemRoom() {
   // Session age ticker
   useEffect(() => {
     const interval = setInterval(() => {
-      setSessionAge(Date.now() - sessionStartRef.current);
+      setSessionAge(Date.now() - sessionStart);
     }, 1000);
     return () => clearInterval(interval);
   }, []);

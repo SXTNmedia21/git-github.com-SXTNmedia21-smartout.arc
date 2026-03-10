@@ -93,8 +93,17 @@ export function useCreateShift(weekStart: string) {
         workspace_id: workspace.workspace_id,
         actor_id: profileId ?? "",
         properties: {
-          entity: { entity_type: "shift", entity_id: data.id, entity_label: `${data.dateId} ${data.startTime}-${data.endTime}` },
-          data: { assigned_to: data.employeeId ?? "", date: data.dateId, start_time: data.startTime, end_time: data.endTime },
+          entity: {
+            entity_type: "shift",
+            entity_id: data.id,
+            entity_label: `${data.dateId} ${data.startTime}-${data.endTime}`,
+          },
+          data: {
+            assigned_to: data.employeeId ?? "",
+            date: data.dateId,
+            start_time: data.startTime,
+            end_time: data.endTime,
+          },
         },
       });
     },
@@ -389,7 +398,11 @@ export function usePublishShifts(weekStart: string) {
         workspace_id: workspace.workspace_id,
         actor_id: profileId ?? "",
         properties: {
-          entity: { entity_type: "shift", entity_id: shiftIds[0] ?? "", entity_label: `${shiftIds.length} shifts` },
+          entity: {
+            entity_type: "shift",
+            entity_id: shiftIds[0] ?? "",
+            entity_label: `${shiftIds.length} shifts`,
+          },
           data: { dates, department_ids: [], shift_count: shiftIds.length },
         },
       });
@@ -472,8 +485,17 @@ export function usePasteDay(weekStart: string) {
           workspace_id: workspaceId,
           actor_id: profileId ?? "",
           properties: {
-            entity: { entity_type: "shift", entity_id: shift.id, entity_label: `${targetDateId} ${shift.startTime}-${shift.endTime}` },
-            data: { assigned_to: shift.employeeId ?? "", date: targetDateId, start_time: shift.startTime, end_time: shift.endTime },
+            entity: {
+              entity_type: "shift",
+              entity_id: shift.id,
+              entity_label: `${targetDateId} ${shift.startTime}-${shift.endTime}`,
+            },
+            data: {
+              assigned_to: shift.employeeId ?? "",
+              date: targetDateId,
+              start_time: shift.startTime,
+              end_time: shift.endTime,
+            },
           },
         });
       }
@@ -544,7 +566,10 @@ export function useUnpublishShifts(weekStart: string) {
           actor_id: profileId ?? "",
           properties: {
             entity: { entity_type: "shift", entity_id: shiftId },
-            changes: { status: { before: "published", after: "unpublished" }, is_published: { before: true, after: false } },
+            changes: {
+              status: { before: "published", after: "unpublished" },
+              is_published: { before: true, after: false },
+            },
           },
         });
       }

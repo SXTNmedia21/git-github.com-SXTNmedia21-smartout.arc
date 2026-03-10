@@ -67,7 +67,7 @@ export function WorkspaceSwitcher({ isDark }: { isDark: boolean }) {
     setOpen(false);
     const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN;
     if (rootDomain && rootDomain !== "localhost") {
-      window.location.href = `https://${ws.slug}.${rootDomain}/dashboard`;
+      window.location.assign(`https://${ws.slug}.${rootDomain}/dashboard`);
     } else {
       router.push(`/dashboard?ws=${ws.workspace_id}`);
     }

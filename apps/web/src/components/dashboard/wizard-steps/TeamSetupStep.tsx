@@ -708,8 +708,8 @@ export function TeamSetupStep({
 
       {/* CSV format hint */}
       <p className={`text-[11px] leading-relaxed ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
-        Last opp en CSV-fil med kolonnenavn i første rad. Du kobler kolonnene til riktige felt
-        i neste steg.
+        Last opp en CSV-fil med kolonnenavn i første rad. Du kobler kolonnene til riktige felt i
+        neste steg.
       </p>
 
       <CsvMappingDialog

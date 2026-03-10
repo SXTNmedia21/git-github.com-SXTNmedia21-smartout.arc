@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Shield,
   Activity,
@@ -203,16 +203,22 @@ function GuardianMetricsSection({
   };
   sessions: ActiveEngineSession[];
 }) {
-  // Calculate average session time
-  const avgSessionTime =
-    sessions.length > 0
-      ? Math.round(
-          sessions.reduce((sum, s) => {
-            const diff = Date.now() - new Date(s.created_at).getTime();
-            return sum + diff / 60_000;
-          }, 0) / sessions.length,
-        )
-      : 0;
+  // Calculate average session time — snapshot taken once per session list change
+  const [avgSessionTime, setAvgSessionTime] = useState(0);
+  useEffect(() => {
+    if (sessions.length === 0) {
+      setAvgSessionTime(0);
+      return;
+    }
+    setAvgSessionTime(
+      Math.round(
+        sessions.reduce((sum, s) => {
+          const diff = Date.now() - new Date(s.created_at).getTime();
+          return sum + diff / 60_000;
+        }, 0) / sessions.length,
+      ),
+    );
+  }, [sessions]);
 
   const totalWhispers = sessions.reduce((sum, s) => sum + s.guardian_whisper_count, 0);
 

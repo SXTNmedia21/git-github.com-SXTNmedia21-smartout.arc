@@ -34,7 +34,8 @@ const streaks = Array.from({ length: STREAK_COUNT }, (_, i) => {
   // Start far from center, converge to center
   const startX = Math.cos(rad) * 120; // vw-scale offset
   const startY = Math.sin(rad) * 120;
-  return { angle, startX, startY, delay: 0.15 + i * 0.04 };
+  const height = 40 + Math.random() * 20;
+  return { angle, startX, startY, delay: 0.15 + i * 0.04, height };
 });
 
 export function FinaleOverlay({ active, onComplete }: FinaleOverlayProps) {
@@ -131,7 +132,7 @@ export function FinaleOverlay({ active, onComplete }: FinaleOverlayProps) {
                 }}
                 style={{
                   width: 3,
-                  height: 40 + Math.random() * 20,
+                  height: streak.height,
                   marginLeft: -1.5,
                   marginTop: -20,
                   background: "linear-gradient(to bottom, oklch(0.85 0.12 55 / 0.8), transparent)",

@@ -254,6 +254,7 @@ export function AlertOrchestra() {
    * Runs one script step and schedules the next one.
    * Why: Creates deterministic showcase playback with visible sequencing.
    */
+  const runStepRef = useRef<() => void>(null);
   const runStep = useCallback(() => {
     setScriptIndex((prevIndex) => {
       if (prevIndex >= SCRIPT_STEPS.length) {
@@ -269,7 +270,7 @@ export function AlertOrchestra() {
 
       const nextIndex = prevIndex + 1;
       if (nextIndex < SCRIPT_STEPS.length) {
-        timerRef.current = setTimeout(runStep, 1100);
+        timerRef.current = setTimeout(() => runStepRef.current?.(), 1100);
       } else {
         setScriptRunning(false);
         addLog("Script completed.");
@@ -278,6 +279,9 @@ export function AlertOrchestra() {
       return nextIndex;
     });
   }, [addLog, applyStep]);
+  useEffect(() => {
+    runStepRef.current = runStep;
+  });
 
   /**
    * Starts script playback from first step.
@@ -288,8 +292,8 @@ export function AlertOrchestra() {
     setScriptIndex(0);
     setScriptRunning(true);
     addLog("Script started.");
-    timerRef.current = setTimeout(runStep, 300);
-  }, [addLog, runStep, stopScript]);
+    timerRef.current = setTimeout(() => runStepRef.current?.(), 300);
+  }, [addLog, stopScript]);
 
   useEffect(() => {
     return () => {

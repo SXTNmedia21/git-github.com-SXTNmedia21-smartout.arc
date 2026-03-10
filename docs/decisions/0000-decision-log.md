@@ -9,8 +9,8 @@ tags: [decisions]
 
 # Decision Log — csv-mapping
 
-| #   | Date | Decision | Status |
-| --- | ---- | -------- | ------ |
+| #   | Date       | Decision                                                                                                          | Status   |
+| --- | ---------- | ----------------------------------------------------------------------------------------------------------------- | -------- |
 | #   | Date       | Decision                                                                                                          | Status   |
 | --- | ---------- | ----------------------------------------------------------------------------------------------------------------- | -------- |
 | 1   | 2026-03-08 | wait_for_event conditions are resumption-only — executeStep skips condition check for wait_for_event action types | Accepted |
