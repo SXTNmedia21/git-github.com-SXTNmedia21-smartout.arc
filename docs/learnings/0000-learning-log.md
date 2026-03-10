@@ -29,5 +29,4 @@ tags: [learnings, journey-engine]
 
 ## scrapling-extract
 
-| #   | Date | Learning | Impact |
-| --- | ---- | -------- | ------ |
+_No learnings logged._
