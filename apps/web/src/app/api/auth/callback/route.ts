@@ -1,4 +1,5 @@
 import { createClient } from "@smartout/supabase/server";
+import { emit } from "@smartout/telemetry";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
@@ -11,6 +12,28 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
+      // Get user identity for event emission
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user) {
+        try {
+          await emit({
+            event: "signup completed",
+            workspace_id: null,
+            actor_id: user.id,
+            properties: {
+              data: {
+                user_identity_id: user.id,
+              },
+            },
+          });
+        } catch (e) {
+          console.error("[auth/callback] Failed to emit signup.completed:", e);
+        }
+      }
+
       return NextResponse.redirect(`${origin}${next}`);
     }
   }

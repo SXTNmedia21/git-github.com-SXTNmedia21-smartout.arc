@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@smartout/supabase/client";
+import { emit } from "@smartout/telemetry";
 import type { Json } from "@smartout/supabase";
 import type {
   OnboardingState,
@@ -293,6 +294,23 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
         });
       });
 
+      // Emit journey event — drives engine_state advancement
+      const stepIndex = ONBOARDING_SECTIONS.indexOf(section);
+      if (userId) {
+        emit({
+          event: "onboarding step_completed",
+          workspace_id: onboardingWorkspaceId ?? null,
+          actor_id: userId,
+          properties: {
+            data: {
+              step_id: section,
+              step_index: stepIndex,
+              user_identity_id: userId,
+            },
+          },
+        }).catch((e: unknown) => console.error("[onboarding] emit failed:", e));
+      }
+
       const nextIdx = ONBOARDING_SECTIONS.indexOf(section) + 1;
       const next = ONBOARDING_SECTIONS[nextIdx];
       if (next) {
@@ -302,7 +320,7 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
         saveTimerRef.current = setTimeout(() => save(next), SAVE_DEBOUNCE_MS);
       }
     },
-    [save],
+    [save, userId, onboardingWorkspaceId],
   );
 
   // Scraping

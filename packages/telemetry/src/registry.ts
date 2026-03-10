@@ -1,6 +1,6 @@
 // ─── Base Event Shape ───────────────────────────
 export interface BaseEvent {
-  workspace_id: string;
+  workspace_id: string | null;
   actor_id: string; // profile_id representing who performed the action
   timestamp?: string; // ISO 8601; auto-populated if omitted
   correlation_id?: string; // Trace IDs
@@ -344,6 +344,37 @@ export interface HandbookChapterSaved extends BaseEvent {
   };
 }
 
+// ─── Journey: Signup + Onboarding ──────────────────
+export interface SignupCompleted extends BaseEvent {
+  event: "signup completed";
+  properties: {
+    data: {
+      user_identity_id: string;
+    };
+  };
+}
+
+export interface OnboardingStepCompleted extends BaseEvent {
+  event: "onboarding step_completed";
+  properties: {
+    data: {
+      step_id: string;
+      step_index: number;
+      user_identity_id: string;
+    };
+  };
+}
+
+export interface WorkspaceCreated extends BaseEvent {
+  event: "workspace created";
+  properties: {
+    data: {
+      workspace_id: string;
+      user_identity_id: string;
+    };
+  };
+}
+
 // ─── Wizard Events ─────────────────────────────
 export interface WizardStepCompleted extends BaseEvent {
   event: "wizard step_completed";
@@ -391,6 +422,9 @@ export type SmartoutEvent =
   | ReconciliationSubmitted
   | ReconciliationAdminAction
   | HandbookChapterSaved
+  | SignupCompleted
+  | OnboardingStepCompleted
+  | WorkspaceCreated
   | WizardStepCompleted
   | WizardCompleted
   | PageViewed
@@ -494,6 +528,18 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "training",
   },
 
+  "signup completed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "onboarding",
+  },
+  "onboarding step_completed": {
+    destinations: ["posthog", "logger", "engine_event"],
+    category: "onboarding",
+  },
+  "workspace created": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "onboarding",
+  },
   "wizard step_completed": {
     destinations: ["posthog", "logger", "engine_event"],
     category: "onboarding",

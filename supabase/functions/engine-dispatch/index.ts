@@ -37,7 +37,11 @@ interface EngineState {
 /**
  * Minimal condition evaluator — mirrors packages/ai/src/engine/condition-evaluator.ts
  */
-function evaluateCondition(condition: unknown, context: Record<string, unknown>): boolean {
+function evaluateCondition(
+  condition: unknown,
+  context: Record<string, unknown>,
+  stateContext?: Record<string, unknown>,
+): boolean {
   if (condition === null || condition === undefined) return true;
 
   const cond = condition as Record<string, unknown>;
@@ -53,14 +57,22 @@ function evaluateCondition(condition: unknown, context: Record<string, unknown>)
     return results?.[step]?.status === is;
   }
 
+  if ("match_state" in cond) {
+    const matchState = cond.match_state as Record<string, string>;
+    if (!stateContext) return false;
+    return Object.entries(matchState).every(
+      ([payloadKey, stateKey]) => context[payloadKey] === stateContext[stateKey],
+    );
+  }
+
   if ("all" in cond) {
     const conditions = cond.all as unknown[];
-    return conditions.every((c) => evaluateCondition(c, context));
+    return conditions.every((c) => evaluateCondition(c, context, stateContext));
   }
 
   if ("any" in cond) {
     const conditions = cond.any as unknown[];
-    return conditions.some((c) => evaluateCondition(c, context));
+    return conditions.some((c) => evaluateCondition(c, context, stateContext));
   }
 
   return false;
@@ -107,6 +119,16 @@ async function advanceToNextStep(
   state: EngineState,
   step: EngineStep,
 ): Promise<void> {
+  // Mark current step as completed in engine_state_step
+  await supabase
+    .from("engine_state_step")
+    .update({
+      status: "completed",
+      completed_at: new Date().toISOString(),
+    })
+    .eq("state_id", state.id)
+    .eq("step_order", step.step_order);
+
   const stepResult = {
     ...((state.result ?? {}) as Record<string, unknown>),
     [step.step_order]: {
@@ -120,6 +142,13 @@ async function advanceToNextStep(
   const nextStep = allSteps.find((s) => s.step_order === nextOrder);
 
   if (nextStep) {
+    // Mark next step as active
+    await supabase
+      .from("engine_state_step")
+      .update({ status: "active", updated_at: new Date().toISOString() })
+      .eq("state_id", state.id)
+      .eq("step_order", nextStep.step_order);
+
     await supabase
       .from("engine_state")
       .update({
@@ -155,8 +184,8 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { event_type, payload, workspace_id, idempotency_key } = body;
 
-    if (!event_type || !workspace_id) {
-      return new Response(JSON.stringify({ error: "event_type and workspace_id required" }), {
+    if (!event_type) {
+      return new Response(JSON.stringify({ error: "event_type required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -305,6 +334,25 @@ Deno.serve(async (req) => {
           continue;
         }
 
+        // Create engine_state_step rows for static step tracking
+        // Skip if process uses generate_steps (those create steps dynamically)
+        const hasGenerateSteps = (steps ?? []).some(
+          (s: Record<string, unknown>) => s.action_type === "generate_steps",
+        );
+
+        if (state && steps && steps.length > 0 && !hasGenerateSteps) {
+          const stateSteps = steps.map((s: Record<string, unknown>) => ({
+            state_id: state.id,
+            step_order: s.step_order as number,
+            status: (s.step_order as number) === 1 ? "active" : "pending",
+            action_type: s.action_type as string,
+            action_payload: s.action_payload ?? {},
+            condition: s.condition ?? null,
+            assignee_rule: s.assignee_rule ?? null,
+          }));
+          await supabase.from("engine_state_step").insert(stateSteps);
+        }
+
         // Execute first step(s)
         if (state && steps && steps.length > 0) {
           const firstStep = steps[0] as EngineStep;
@@ -320,27 +368,72 @@ Deno.serve(async (req) => {
     }
 
     // 4. Check for waiting states that match this event
-    const { data: waitingStates } = await supabase
-      .from("engine_state")
-      .select("*")
-      .eq("workspace_id", workspace_id)
-      .eq("status", "waiting");
+    let waitingQuery = supabase.from("engine_state").select("*").eq("status", "waiting");
+
+    if (workspace_id) {
+      waitingQuery = waitingQuery.eq("workspace_id", workspace_id);
+    }
+
+    const { data: waitingStates } = await waitingQuery;
 
     let resumed = 0;
     if (waitingStates) {
       for (const state of waitingStates as EngineState[]) {
         const steps = await getStepsForState(supabase, state);
         const currentStep = steps.find((s) => s.step_order === state.current_step);
+        if (!currentStep) continue;
+
+        // Build state context for match_state evaluation
+        const stateCtx: Record<string, unknown> = {
+          entity_id: state.entity_id,
+          entity_type: state.entity_type,
+          ...state.context,
+        };
+
+        const conditionMatch = evaluateCondition(
+          currentStep.condition,
+          (payload ?? {}) as Record<string, unknown>,
+          stateCtx,
+        );
+
+        const incomingEntityId = (payload as Record<string, unknown>)?.entity_id ?? null;
+        const entityMatch =
+          state.entity_id === null ||
+          incomingEntityId === null ||
+          state.entity_id === incomingEntityId;
+
+        const hasMatchState =
+          currentStep.condition != null &&
+          "match_state" in (currentStep.condition as Record<string, unknown>);
 
         if (
           currentStep?.action_type === "wait_for_event" &&
-          (currentStep.action_payload as Record<string, unknown>)?.event === event_type
+          (currentStep.action_payload as Record<string, unknown>)?.event === event_type &&
+          conditionMatch &&
+          (entityMatch || hasMatchState)
         ) {
+          // Mark current wait_for_event step as completed in engine_state_step
+          await supabase
+            .from("engine_state_step")
+            .update({
+              status: "completed",
+              completed_at: new Date().toISOString(),
+            })
+            .eq("state_id", state.id)
+            .eq("step_order", state.current_step);
+
           // Resume: advance to next step
           const nextStepOrder = state.current_step + 1;
           const nextStep = steps.find((s) => s.step_order === nextStepOrder);
 
           if (nextStep) {
+            // Mark next step as active
+            await supabase
+              .from("engine_state_step")
+              .update({ status: "active", updated_at: new Date().toISOString() })
+              .eq("state_id", state.id)
+              .eq("step_order", nextStep.step_order);
+
             await supabase
               .from("engine_state")
               .update({
@@ -405,8 +498,13 @@ async function executeStep(
   state: EngineState,
   step: EngineStep,
 ): Promise<void> {
-  // Check condition
-  if (step.condition && !evaluateCondition(step.condition, state.context)) {
+  // Check condition — but NOT for wait_for_event steps.
+  // wait_for_event conditions are evaluated during resumption (event matching), not initial execution.
+  if (
+    step.action_type !== "wait_for_event" &&
+    step.condition &&
+    !evaluateCondition(step.condition, state.context)
+  ) {
     // Condition not met — skip to next step
     const allSteps = await getStepsForState(supabase, state);
     const nextOrder = step.step_order + 1;
