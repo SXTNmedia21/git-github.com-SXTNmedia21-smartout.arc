@@ -2226,7 +2226,7 @@ export type Database = {
           id: string
           idempotency_key: string | null
           payload: Json
-          workspace_id: string
+          workspace_id: string | null
         }
         Insert: {
           event_type: string
@@ -2234,7 +2234,7 @@ export type Database = {
           id?: string
           idempotency_key?: string | null
           payload?: Json
-          workspace_id: string
+          workspace_id?: string | null
         }
         Update: {
           event_type?: string
@@ -2242,7 +2242,7 @@ export type Database = {
           id?: string
           idempotency_key?: string | null
           payload?: Json
-          workspace_id?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -3217,6 +3217,8 @@ export type Database = {
           created_at: string
           created_by: string | null
           doc_title: string | null
+          engine_process_id: string | null
+          entity_type: string | null
           journey_id: string
           last_test_result:
             | Database["public"]["Enums"]["journey_test_result"]
@@ -3233,10 +3235,12 @@ export type Database = {
           related_journeys: string[]
           slug: string
           status: Database["public"]["Enums"]["journey_status"]
+          step_event_type: string | null
           tags: string[]
           test_assertion: string | null
           title: string
           trigger_description: string | null
+          trigger_event: string | null
           updated_at: string
           version: number
           workspace_id: string
@@ -3249,6 +3253,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           doc_title?: string | null
+          engine_process_id?: string | null
+          entity_type?: string | null
           journey_id?: string
           last_test_result?:
             | Database["public"]["Enums"]["journey_test_result"]
@@ -3265,10 +3271,12 @@ export type Database = {
           related_journeys?: string[]
           slug: string
           status?: Database["public"]["Enums"]["journey_status"]
+          step_event_type?: string | null
           tags?: string[]
           test_assertion?: string | null
           title: string
           trigger_description?: string | null
+          trigger_event?: string | null
           updated_at?: string
           version?: number
           workspace_id: string
@@ -3281,6 +3289,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           doc_title?: string | null
+          engine_process_id?: string | null
+          entity_type?: string | null
           journey_id?: string
           last_test_result?:
             | Database["public"]["Enums"]["journey_test_result"]
@@ -3297,10 +3307,12 @@ export type Database = {
           related_journeys?: string[]
           slug?: string
           status?: Database["public"]["Enums"]["journey_status"]
+          step_event_type?: string | null
           tags?: string[]
           test_assertion?: string | null
           title?: string
           trigger_description?: string | null
+          trigger_event?: string | null
           updated_at?: string
           version?: number
           workspace_id?: string
@@ -3319,6 +3331,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "user_identity"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "journey_engine_process_id_fkey"
+            columns: ["engine_process_id"]
+            isOneToOne: false
+            referencedRelation: "engine_process"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "journey_workspace_id_fkey"
@@ -3390,6 +3409,8 @@ export type Database = {
       journey_step: {
         Row: {
           action: string
+          action_payload_override: Json | null
+          action_type_override: string | null
           component: string | null
           created_at: string
           data_reads: string[]
@@ -3402,6 +3423,7 @@ export type Database = {
           notes: string | null
           required_confirmation: boolean
           screen: string | null
+          slug: string | null
           step_order: number
           title: string
           updated_at: string
@@ -3409,6 +3431,8 @@ export type Database = {
         }
         Insert: {
           action: string
+          action_payload_override?: Json | null
+          action_type_override?: string | null
           component?: string | null
           created_at?: string
           data_reads?: string[]
@@ -3421,6 +3445,7 @@ export type Database = {
           notes?: string | null
           required_confirmation?: boolean
           screen?: string | null
+          slug?: string | null
           step_order: number
           title: string
           updated_at?: string
@@ -3428,6 +3453,8 @@ export type Database = {
         }
         Update: {
           action?: string
+          action_payload_override?: Json | null
+          action_type_override?: string | null
           component?: string | null
           created_at?: string
           data_reads?: string[]
@@ -3440,6 +3467,7 @@ export type Database = {
           notes?: string | null
           required_confirmation?: boolean
           screen?: string | null
+          slug?: string | null
           step_order?: number
           title?: string
           updated_at?: string
@@ -6736,6 +6764,7 @@ export type Database = {
           icon: string | null
           is_default: boolean
           name: string
+          opening_hours: Json | null
           parent_season_id: string | null
           season_id: string
           season_type: Database["public"]["Enums"]["season_type"]
@@ -6754,6 +6783,7 @@ export type Database = {
           icon?: string | null
           is_default?: boolean
           name: string
+          opening_hours?: Json | null
           parent_season_id?: string | null
           season_id?: string
           season_type?: Database["public"]["Enums"]["season_type"]
@@ -6772,6 +6802,7 @@ export type Database = {
           icon?: string | null
           is_default?: boolean
           name?: string
+          opening_hours?: Json | null
           parent_season_id?: string | null
           season_id?: string
           season_type?: Database["public"]["Enums"]["season_type"]
@@ -8281,6 +8312,48 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "workspace_kpi_target_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      workspace_note: {
+        Row: {
+          admin_id: string
+          content: string
+          created_at: string
+          note_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          admin_id: string
+          content: string
+          created_at?: string
+          note_id?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          admin_id?: string
+          content?: string
+          created_at?: string
+          note_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_note_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "user_identity"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "workspace_note_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspace"

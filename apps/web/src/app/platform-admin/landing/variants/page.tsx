@@ -25,9 +25,7 @@ export default async function VariantsPage() {
   const admin = createAdminClient();
 
   // Fetch all landing variants ordered by sort_order
-  // Note: landing_variant is not yet in database.types.ts — using untyped query
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: variants } = await (admin as any)
+  const { data: variants } = await admin
     .from("landing_variant")
     .select("id, name, slug, status, is_default, sort_order, created_at, updated_at")
     .order("sort_order", { ascending: true });
@@ -41,7 +39,7 @@ export default async function VariantsPage() {
         </p>
       </div>
 
-      <VariantList variants={(variants as unknown as VariantRow[]) ?? []} />
+      <VariantList variants={(variants ?? []) as unknown as VariantRow[]} />
     </div>
   );
 }

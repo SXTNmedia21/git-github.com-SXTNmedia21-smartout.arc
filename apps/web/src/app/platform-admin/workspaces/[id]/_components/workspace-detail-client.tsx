@@ -42,6 +42,7 @@ type NoteRow = {
   id: string;
   text: string;
   createdAt: string;
+  updatedAt: string;
 };
 
 type Props = {
@@ -81,6 +82,8 @@ export function WorkspaceDetailClient({
   const [noteText, setNoteText] = useState("");
   const [notes, setNotes] = useState(initialNotes);
   const [isSavingNote, setIsSavingNote] = useState(false);
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
 
@@ -99,19 +102,16 @@ export function WorkspaceDetailClient({
     if (!noteText.trim()) return;
     setIsSavingNote(true);
     try {
-      const res = await fetch("/api/platform-admin/audit-log", {
+      const res = await fetch("/api/platform-admin/workspace-notes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "workspace_note",
-          entityType: "workspace_note",
-          entityId: workspace.workspaceId,
-          details: { note: noteText.trim() },
-        }),
+        body: JSON.stringify({ workspaceId: workspace.workspaceId, content: noteText.trim() }),
       });
       if (!res.ok) throw new Error("Failed to save note");
+      const { note } = await res.json();
+      const now = new Date().toISOString();
       setNotes([
-        { id: crypto.randomUUID(), text: noteText.trim(), createdAt: new Date().toISOString() },
+        { id: note.note_id, text: note.content, createdAt: note.created_at ?? now, updatedAt: now },
         ...notes,
       ]);
       setNoteText("");
@@ -120,6 +120,45 @@ export function WorkspaceDetailClient({
       toast.error("Failed to save note");
     } finally {
       setIsSavingNote(false);
+    }
+  }
+
+  async function updateNote(noteId: string) {
+    if (!editingText.trim()) return;
+    try {
+      const res = await fetch("/api/platform-admin/workspace-notes", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ noteId, content: editingText.trim() }),
+      });
+      if (!res.ok) throw new Error("Failed to update note");
+      setNotes(
+        notes.map((n) =>
+          n.id === noteId
+            ? { ...n, text: editingText.trim(), updatedAt: new Date().toISOString() }
+            : n,
+        ),
+      );
+      setEditingNoteId(null);
+      setEditingText("");
+      toast.success("Note updated");
+    } catch {
+      toast.error("Failed to update note");
+    }
+  }
+
+  async function deleteNote(noteId: string) {
+    try {
+      const res = await fetch("/api/platform-admin/workspace-notes", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ noteId }),
+      });
+      if (!res.ok) throw new Error("Failed to delete note");
+      setNotes(notes.filter((n) => n.id !== noteId));
+      toast.success("Note deleted");
+    } catch {
+      toast.error("Failed to delete note");
     }
   }
 
@@ -464,10 +503,65 @@ export function WorkspaceDetailClient({
               {notes.map((note) => (
                 <Card key={note.id}>
                   <CardContent className="p-3">
-                    <p className="text-sm">{note.text}</p>
-                    <p className="text-muted-foreground mt-1 text-xs">
-                      {new Date(note.createdAt).toLocaleString("no-NO")}
-                    </p>
+                    {editingNoteId === note.id ? (
+                      <div className="space-y-2">
+                        <Textarea
+                          value={editingText}
+                          onChange={(e) => setEditingText(e.target.value)}
+                          className="min-h-[60px] text-sm"
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => updateNote(note.id)}
+                            disabled={!editingText.trim()}
+                          >
+                            Save
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setEditingNoteId(null);
+                              setEditingText("");
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-sm whitespace-pre-wrap">{note.text}</p>
+                        <div className="mt-1 flex items-center justify-between">
+                          <p className="text-muted-foreground text-xs">
+                            {new Date(note.createdAt).toLocaleString("no-NO")}
+                            {note.updatedAt !== note.createdAt && " (edited)"}
+                          </p>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 px-2 text-xs"
+                              onClick={() => {
+                                setEditingNoteId(note.id);
+                                setEditingText(note.text);
+                              }}
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-destructive h-6 px-2 text-xs"
+                              onClick={() => deleteNote(note.id)}
+                            >
+                              Delete
+                            </Button>
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
               ))}

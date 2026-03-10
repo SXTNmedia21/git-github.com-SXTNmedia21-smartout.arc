@@ -10,7 +10,7 @@ export default async function EmailTemplatesPage() {
   const admin = createAdminClient();
 
   const { data: templates } = await admin
-    .from("platform_email_template" as never)
+    .from("platform_email_template")
     .select("template_id, name, category, subject, status, is_active, created_at, updated_at")
     .order("updated_at", { ascending: false });
 

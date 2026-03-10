@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
 import { useRouter } from "next/navigation";
 import {
   type ColumnDef,
@@ -32,8 +33,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import dynamic from "next/dynamic";
 import { StatusBadge } from "@/components/platform-admin/status-badge";
-import { ComposeEmailSheet } from "@/components/platform-admin/compose-email-sheet";
+
+const ComposeEmailSheet = dynamic(
+  () =>
+    import("@/components/platform-admin/compose-email-sheet").then((mod) => mod.ComposeEmailSheet),
+  { ssr: false },
+);
 
 export type WorkspaceRow = {
   workspace_id: string;
@@ -116,10 +123,12 @@ export function WorkspaceListEnhanced({ data }: { data: WorkspaceRow[] }) {
   const [statusFilter, setStatusFilter] = useState("all");
   const [composeOpen, setComposeOpen] = useState(false);
 
+  const debouncedFilter = useDebounce(globalFilter, 300);
+
   const filtered = useMemo(() => {
     let result = data;
-    if (globalFilter) {
-      const q = globalFilter.toLowerCase();
+    if (debouncedFilter) {
+      const q = debouncedFilter.toLowerCase();
       result = result.filter(
         (r) =>
           r.name.toLowerCase().includes(q) || (r.company?.name ?? "").toLowerCase().includes(q),
@@ -130,7 +139,7 @@ export function WorkspaceListEnhanced({ data }: { data: WorkspaceRow[] }) {
     if (statusFilter !== "all")
       result = result.filter((r) => r.company?.subscription_status === statusFilter);
     return result;
-  }, [data, globalFilter, planFilter, statusFilter]);
+  }, [data, debouncedFilter, planFilter, statusFilter]);
 
   const table = useReactTable({
     data: filtered,

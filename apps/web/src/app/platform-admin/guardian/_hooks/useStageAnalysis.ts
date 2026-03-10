@@ -139,5 +139,7 @@ export function useStageAnalysis(missionId?: string) {
       return entries;
     },
     refetchInterval: 120_000,
+    refetchOnWindowFocus: false,
+    refetchIntervalInBackground: false,
   });
 }

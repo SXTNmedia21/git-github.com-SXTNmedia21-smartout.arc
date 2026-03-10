@@ -41,14 +41,13 @@ export default async function WorkspaceDetailPage({ params }: { params: Promise<
       .eq("workspace_id", id)
       .order("created_at", { ascending: false }),
     admin
-      .from("platform_audit_log")
-      .select("id, action, details, created_at")
-      .eq("entity_type", "workspace_note")
-      .eq("entity_id", id)
+      .from("workspace_note")
+      .select("note_id, content, created_at, updated_at")
+      .eq("workspace_id", id)
       .order("created_at", { ascending: false })
       .limit(50),
     admin
-      .from("platform_communication_log" as never)
+      .from("platform_communication_log")
       .select("*")
       .eq("workspace_id", id)
       .order("created_at", { ascending: false })
@@ -103,11 +102,12 @@ export default async function WorkspaceDetailPage({ params }: { params: Promise<
       }}
       profiles={profileRows}
       notes={(notes ?? []).map((n) => ({
-        id: n.id,
-        text: ((n.details as Record<string, unknown>)?.note as string) ?? "",
+        id: n.note_id,
+        text: n.content,
         createdAt: n.created_at,
+        updatedAt: n.updated_at,
       }))}
-      commHistory={(commHistory as Array<Record<string, unknown>>) ?? []}
+      commHistory={commHistory ?? []}
     />
   );
 }

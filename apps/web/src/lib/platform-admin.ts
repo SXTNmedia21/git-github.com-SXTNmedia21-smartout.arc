@@ -3,6 +3,7 @@ import { createAdminClient } from "@smartout/supabase/admin";
 import { createClient } from "@smartout/supabase/server";
 import type { Json } from "@smartout/supabase";
 import { unstable_cache } from "next/cache";
+import { cache } from "react";
 
 const getCachedGodmodeForUser = unstable_cache(
   async (userId: string) => {
@@ -22,8 +23,9 @@ const getCachedGodmodeForUser = unstable_cache(
  * Check if the current user has godmode access.
  * Use in server components and route handlers (NOT middleware).
  * Returns the user_id if godmode, null otherwise.
+ * Wrapped in React.cache to deduplicate within a single request.
  */
-export async function getSuperAdminId(): Promise<string | null> {
+export const getSuperAdminId = cache(async (): Promise<string | null> => {
   const supabase = await createClient();
   const {
     data: { user },
@@ -32,7 +34,7 @@ export async function getSuperAdminId(): Promise<string | null> {
   if (!user) return null;
   const isGodmode = await getCachedGodmodeForUser(user.id);
   return isGodmode ? user.id : null;
-}
+});
 
 /**
  * Validates that the current request comes from a godmode user.

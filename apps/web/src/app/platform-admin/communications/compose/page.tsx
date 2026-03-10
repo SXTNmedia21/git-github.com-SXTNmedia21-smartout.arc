@@ -9,7 +9,7 @@ export default async function ComposePage() {
 
   const admin = createAdminClient();
   const { data: savedTemplates } = await admin
-    .from("platform_email_template" as never)
+    .from("platform_email_template")
     .select("template_id, name, category, subject, sections, placeholders")
     .eq("is_active", true)
     .order("name");

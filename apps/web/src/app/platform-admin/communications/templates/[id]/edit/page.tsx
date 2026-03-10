@@ -51,21 +51,20 @@ export default async function EditEmailTemplatePage({ params }: PageProps) {
     };
   } else {
     const { data, error } = await admin
-      .from("platform_email_template" as never)
+      .from("platform_email_template")
       .select("*")
       .eq("template_id", id)
       .single();
 
     if (error || !data) redirect("/platform-admin/communications/templates");
 
-    const row = data as Record<string, unknown>;
     initialData = {
-      name: row.name as string,
-      category: row.category as string,
-      subject: row.subject as string,
-      sections: (row.sections ?? []) as typeof DEFAULT_SECTIONS,
-      placeholders: (row.placeholders ?? []) as typeof DEFAULT_PLACEHOLDERS,
-      status: row.status as string,
+      name: data.name,
+      category: data.category,
+      subject: data.subject,
+      sections: (data.sections ?? []) as typeof DEFAULT_SECTIONS,
+      placeholders: (data.placeholders ?? []) as typeof DEFAULT_PLACEHOLDERS,
+      status: data.status,
     };
   }
 
