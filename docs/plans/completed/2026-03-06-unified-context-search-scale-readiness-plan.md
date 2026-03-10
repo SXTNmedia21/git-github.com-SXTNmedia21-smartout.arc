@@ -1,3 +1,12 @@
+---
+title: "Unified Context Search Scale Readiness Implementation Plan"
+status: done
+updated: 2026-03-06
+created: 2026-03-06
+module: search
+tags: [context-search, pgvector, plan]
+---
+
 # Unified Context Search Scale Readiness Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.

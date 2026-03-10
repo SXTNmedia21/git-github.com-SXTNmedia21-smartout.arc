@@ -1,3 +1,12 @@
+---
+title: "CSV Column Mapping Implementation Plan"
+status: draft
+updated: 2026-03-10
+created: 2026-03-10
+module: onboarding
+tags: [csv, mapping, plan]
+---
+
 # CSV Column Mapping Implementation Plan
 
 > **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
