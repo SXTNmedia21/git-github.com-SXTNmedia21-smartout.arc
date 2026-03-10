@@ -1,6 +1,10 @@
 type Context = Record<string, unknown>;
 
-export function evaluateCondition(condition: unknown, context: Context): boolean {
+export function evaluateCondition(
+  condition: unknown,
+  context: Context,
+  stateContext?: Context,
+): boolean {
   if (condition === null || condition === undefined) return true;
 
   const cond = condition as Record<string, unknown>;
@@ -16,14 +20,22 @@ export function evaluateCondition(condition: unknown, context: Context): boolean
     return results?.[step]?.status === is;
   }
 
+  if ("match_state" in cond) {
+    const matchState = cond.match_state as Record<string, string>;
+    if (!stateContext) return false;
+    return Object.entries(matchState).every(
+      ([payloadKey, stateKey]) => context[payloadKey] === stateContext[stateKey],
+    );
+  }
+
   if ("all" in cond) {
     const conditions = cond.all as unknown[];
-    return conditions.every((c) => evaluateCondition(c, context));
+    return conditions.every((c) => evaluateCondition(c, context, stateContext));
   }
 
   if ("any" in cond) {
     const conditions = cond.any as unknown[];
-    return conditions.some((c) => evaluateCondition(c, context));
+    return conditions.some((c) => evaluateCondition(c, context, stateContext));
   }
 
   return false;

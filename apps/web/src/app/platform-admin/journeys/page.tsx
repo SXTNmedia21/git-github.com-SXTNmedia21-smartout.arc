@@ -10,25 +10,22 @@
 import { createAdminClient } from "@smartout/supabase/admin";
 import { getSuperAdminId } from "@/lib/platform-admin";
 import { redirect } from "next/navigation";
+import { unstable_cache } from "next/cache";
 import { JourneyListClient } from "./_components/journey-list-client";
 
-/**
- * Platform-admin server page that loads all journeys.
- *
- * Why server component: Fetches data with the admin client
- * (service role) since journey data is platform-scoped.
- * Redirects non-godmode users to the dashboard.
- */
+const getJourneysData = unstable_cache(
+  async () => {
+    const admin = createAdminClient();
+    const { data } = await admin.from("journey").select("*").order("code", { ascending: true });
+    return data ?? [];
+  },
+  ["platform-admin-journeys-v1"],
+  { revalidate: 60 },
+);
+
 export default async function JourneysPage() {
-  const adminId = await getSuperAdminId();
+  const [adminId, journeys] = await Promise.all([getSuperAdminId(), getJourneysData()]);
   if (!adminId) redirect("/dashboard");
 
-  const admin = createAdminClient();
-
-  const { data: journeys } = await admin
-    .from("journey")
-    .select("*")
-    .order("code", { ascending: true });
-
-  return <JourneyListClient initialJourneys={journeys ?? []} />;
+  return <JourneyListClient initialJourneys={journeys} />;
 }

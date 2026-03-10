@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AlertCircle, ArrowRight, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ServiceConfigRow } from "../_hooks/use-service-configs";
+import { platformAdminRoutes } from "@/lib/platform-admin-routes";
 
 type Props = {
   services: ServiceConfigRow[];
@@ -48,7 +49,7 @@ export function SetupBanner({ services }: Props) {
         </p>
       </div>
       {unconfiguredCritical.length > 0 && (
-        <Link href={`/platform-admin/services/${unconfiguredCritical[0]!.slug}`}>
+        <Link href={platformAdminRoutes.serviceDetail(unconfiguredCritical[0]!.slug)}>
           <Button variant="outline" size="sm">
             <Settings className="mr-1.5 h-3.5 w-3.5" />
             Configure

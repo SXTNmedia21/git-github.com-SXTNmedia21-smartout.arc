@@ -82,7 +82,10 @@ const getPlatformAdminDashboardData = unstable_cache(
 );
 
 export default async function DashboardPage() {
-  const adminId = await getSuperAdminId();
+  const [adminId, dashboardData] = await Promise.all([
+    getSuperAdminId(),
+    getPlatformAdminDashboardData(),
+  ]);
   if (!adminId) redirect("/dashboard");
 
   const {
@@ -95,7 +98,7 @@ export default async function DashboardPage() {
     pausedCount,
     metricsRows,
     activityRows,
-  } = await getPlatformAdminDashboardData();
+  } = dashboardData;
 
   // Build sparkline arrays from metrics (may be empty)
   const workspaceSparkline = metricsRows.map((m) => m.total_workspaces);

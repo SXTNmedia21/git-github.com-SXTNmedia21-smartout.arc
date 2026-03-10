@@ -13,23 +13,24 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #       | Branch                                       | Module   | Status | Progress                                                              | Blockers | Health |
-| ------- | -------------------------------------------- | -------- | ------ | --------------------------------------------------------------------- | -------- | ------ |
-| wt-2    | `feat/journey-engine`                        | core     | paused | Phase 1-3 done + route rename + scrapling fix. 100 uncommitted files. | —        | dirty  |
-| wt-8    | `feat/showroom`                              | showroom | stale  | phase 2 done, 8 uncommitted files. Last commit 3d ago.                | —        | dirty  |
-| prod-\* | `docs/production-menu-inventory-integration` | docs     | stale  | 7 modified/new files. Last commit 3d ago.                             | —        | dirty  |
+| #    | Branch                     | Module    | Status            | Progress                                               | Blockers | Health |
+| ---- | -------------------------- | --------- | ----------------- | ------------------------------------------------------ | -------- | ------ |
+| wt-2 | `feat/client/contract`     | contracts | ready_for_closure | All gates pass. Run `cf 2`.                            | —        | dirty  |
+| wt-3 | `feat/fix/adminpage-speed` | admin     | active            | 11 uncommitted files. Last commit ~1h ago.             | —        | dirty  |
+| wt-4 | `feat/signup`              | auth      | active            | Clean. Last commit ~1h ago. Code review fixes applied. | —        | clean  |
+| wt-5 | `feat/journey-engine-core` | core      | stale             | Clean. Last commit 2 days ago.                         | —        | clean  |
 
 ## Free Slots
 
-| #     | Available                |
-| ----- | ------------------------ |
-| wt-1  | yes                      |
-| wt-2  | no (feat/journey-engine) |
-| wt-3  | yes                      |
-| wt-4  | yes                      |
-| wt-5  | yes                      |
-| wt-8  | no (feat/showroom)       |
-| wt-20 | yes                      |
+| #     | Available                     |
+| ----- | ----------------------------- |
+| wt-1  | yes                           |
+| wt-2  | no (feat/client/contract)     |
+| wt-3  | no (feat/fix/adminpage-speed) |
+| wt-4  | no (feat/signup)              |
+| wt-5  | no (feat/journey-engine-core) |
+| wt-8  | yes                           |
+| wt-20 | yes                           |
 
 ## Pending Journeys
 

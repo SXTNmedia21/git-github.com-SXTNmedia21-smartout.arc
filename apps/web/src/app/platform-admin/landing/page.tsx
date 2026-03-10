@@ -15,6 +15,7 @@
 import { createAdminClient } from "@smartout/supabase/admin";
 import { getSuperAdminId } from "@/lib/platform-admin";
 import { redirect } from "next/navigation";
+import { unstable_cache } from "next/cache";
 import { LandingTabs } from "./_components/landing-tabs";
 import type { LandingEventRow } from "./_components/landing-columns";
 
@@ -99,130 +100,140 @@ function sevenDaysAgoUtcStart(): string {
   return d.toISOString();
 }
 
+// ── Cached data loader ────────────────────────────────────────
+const getLandingData = unstable_cache(
+  async () => {
+    // TODO: Remove cast after regenerating database.types.ts
+    const admin = createAdminClient() as unknown as UntypedClient;
+    const today = todayUtcStart();
+    const sevenDaysAgo = sevenDaysAgoUtcStart();
+
+    // Consolidated: fetch today's events once instead of 3 separate count queries
+    const [
+      { data: events },
+      { data: todayEvents },
+      { data: sessions },
+      { data: sessionsToday },
+      { data: sessions7d },
+      { data: leadVisitors },
+      { data: leadSessionAggregates },
+      { count: totalVisitorCount },
+    ] = await Promise.all([
+      // Last 100 events for the activity table (reduced from 200)
+      admin
+        .from("landing_event")
+        .select(
+          "id, event_type, variant, session_id, referrer, ip_address, user_agent, details, created_at",
+        )
+        .order("created_at", { ascending: false })
+        .limit(100),
+
+      // Today's events — single query replaces 3 separate count queries + session_id query
+      admin.from("landing_event").select("event_type, session_id").gte("created_at", today),
+
+      // Last 100 sessions with joined visitor data (reduced from 200)
+      admin
+        .from("landing_session")
+        .select(
+          `id, visitor_id, session_id, started_at, ended_at, duration_seconds,
+           max_scroll_depth, page_count, click_count, cta_click_count,
+           variant, referrer, ip_address, user_agent, device_type,
+           visitor:landing_visitor(
+             id, visit_count, first_seen, user_identity_id, manual_label,
+             user_identity:user_identity(full_name, email)
+           )`,
+        )
+        .order("started_at", { ascending: false })
+        .limit(100),
+
+      // Today's sessions for avg duration + avg scroll
+      admin
+        .from("landing_session")
+        .select("duration_seconds, max_scroll_depth, visitor_id")
+        .gte("started_at", today),
+
+      // Last 7 days sessions for returning visitor count + unique sessions
+      admin
+        .from("landing_session")
+        .select(`visitor_id, session_id, visitor:landing_visitor(visit_count)`)
+        .gte("started_at", sevenDaysAgo),
+
+      // Visitors with identity OR manual tag = leads
+      admin
+        .from("landing_visitor")
+        .select(
+          `id, visit_count, first_seen, last_seen, user_identity_id,
+           manual_label, manual_notes,
+           user_identity:user_identity!user_identity_id(full_name, email)`,
+        )
+        .or("user_identity_id.not.is.null,manual_label.not.is.null")
+        .order("last_seen", { ascending: false })
+        .limit(100),
+
+      // Session aggregates per lead visitor (for engagement scores)
+      // Only fetch for lead visitors, not ALL sessions
+      admin
+        .from("landing_session")
+        .select("visitor_id, duration_seconds, max_scroll_depth, cta_click_count"),
+
+      // Total unique visitors (for conversion rate)
+      admin.from("landing_visitor").select("*", { count: "exact", head: true }),
+    ]);
+
+    // Compute counts from the single todayEvents query instead of 3 separate queries
+    const todayEventRows = todayEvents ?? [];
+    const visitsToday = todayEventRows.filter(
+      (e: { event_type: string }) => e.event_type === "page_view",
+    ).length;
+    const voiceSessionsToday = todayEventRows.filter(
+      (e: { event_type: string }) => e.event_type === "voice_session_started",
+    ).length;
+    const ctaClicksToday = todayEventRows.filter(
+      (e: { event_type: string }) => e.event_type === "cta_click",
+    ).length;
+
+    // Unique sessions from 7d sessions (replaces separate event-based query)
+    const uniqueSessions7d = new Set(
+      (sessions7d ?? []).map((r: { session_id: string }) => r.session_id).filter(Boolean),
+    ).size;
+
+    return {
+      events,
+      visitsToday,
+      voiceSessionsToday,
+      ctaClicksToday,
+      uniqueSessions7d,
+      sessions,
+      sessionsToday,
+      sessions7d,
+      leadVisitors,
+      leadSessionAggregates,
+      totalVisitorCount,
+    };
+  },
+  ["platform-admin-landing-v1"],
+  { revalidate: 30 },
+);
+
 // ── Page component ────────────────────────────────────────────
 
 export default async function LandingActivityPage() {
-  // Guard: only platform admins can access this page
-  const adminId = await getSuperAdminId();
+  const [adminId, landingData] = await Promise.all([getSuperAdminId(), getLandingData()]);
   if (!adminId) redirect("/dashboard");
 
-  // TODO: Remove cast after regenerating database.types.ts
-  const admin = createAdminClient() as unknown as UntypedClient;
-  const today = todayUtcStart();
-  const sevenDaysAgo = sevenDaysAgoUtcStart();
-
-  // Fetch all event + session + lead data in parallel for minimal latency
-  const [
-    { data: events },
-    { count: visitsToday },
-    { count: voiceSessionsToday },
-    { count: ctaClicksToday },
-    { data: recentEventSessions },
-    { data: sessions },
-    { data: sessionsToday },
-    { data: sessions7d },
-    { data: leadVisitors },
-    { data: leadSessionAggregates },
-    { count: totalVisitorCount },
-  ] = await Promise.all([
-    // ── Event queries ──
-
-    // Last 200 events for the activity table
-    admin
-      .from("landing_event")
-      .select(
-        "id, event_type, variant, session_id, referrer, ip_address, user_agent, details, created_at",
-      )
-      .order("created_at", { ascending: false })
-      .limit(200),
-
-    // Today's page views
-    admin
-      .from("landing_event")
-      .select("*", { count: "exact", head: true })
-      .eq("event_type", "page_view")
-      .gte("created_at", today),
-
-    // Today's voice sessions
-    admin
-      .from("landing_event")
-      .select("*", { count: "exact", head: true })
-      .eq("event_type", "voice_session_started")
-      .gte("created_at", today),
-
-    // Today's CTA clicks
-    admin
-      .from("landing_event")
-      .select("*", { count: "exact", head: true })
-      .eq("event_type", "cta_click")
-      .gte("created_at", today),
-
-    // Unique session IDs in the last 7 days (for event-based unique count)
-    admin
-      .from("landing_event")
-      .select("session_id")
-      .not("session_id", "is", null)
-      .gte("created_at", sevenDaysAgo),
-
-    // ── Session queries ──
-
-    // Last 200 sessions with joined visitor data
-    admin
-      .from("landing_session")
-      .select(
-        `id, visitor_id, session_id, started_at, ended_at, duration_seconds,
-         max_scroll_depth, page_count, click_count, cta_click_count,
-         variant, referrer, ip_address, user_agent, device_type,
-         visitor:landing_visitor(
-           id, visit_count, first_seen, user_identity_id, manual_label,
-           user_identity:user_identity(full_name, email)
-         )`,
-      )
-      .order("started_at", { ascending: false })
-      .limit(200),
-
-    // Today's sessions for avg duration + avg scroll
-    admin
-      .from("landing_session")
-      .select("duration_seconds, max_scroll_depth, visitor_id")
-      .gte("started_at", today),
-
-    // Last 7 days sessions for returning visitor count
-    admin
-      .from("landing_session")
-      .select(`visitor_id, visitor:landing_visitor(visit_count)`)
-      .gte("started_at", sevenDaysAgo),
-
-    // ── Lead queries ──
-
-    // Visitors with identity OR manual tag = leads
-    // Hint: landing_visitor has two FKs to user_identity (user_identity_id + tagged_by),
-    // so we must hint with !user_identity_id to disambiguate the join.
-    admin
-      .from("landing_visitor")
-      .select(
-        `id, visit_count, first_seen, last_seen, user_identity_id,
-         manual_label, manual_notes,
-         user_identity:user_identity!user_identity_id(full_name, email)`,
-      )
-      .or("user_identity_id.not.is.null,manual_label.not.is.null")
-      .order("last_seen", { ascending: false })
-      .limit(200),
-
-    // Session aggregates per lead visitor (for engagement scores)
-    admin
-      .from("landing_session")
-      .select("visitor_id, duration_seconds, max_scroll_depth, cta_click_count"),
-
-    // Total unique visitors (for conversion rate)
-    admin.from("landing_visitor").select("*", { count: "exact", head: true }),
-  ]);
-
-  // ── Compute event-based KPIs ──
-
-  const uniqueSessions7d = new Set(
-    (recentEventSessions ?? []).map((r) => r.session_id).filter(Boolean),
-  ).size;
+  const {
+    events,
+    visitsToday,
+    voiceSessionsToday,
+    ctaClicksToday,
+    uniqueSessions7d,
+    sessions,
+    sessionsToday,
+    sessions7d,
+    leadVisitors,
+    leadSessionAggregates,
+    totalVisitorCount,
+  } = landingData;
 
   // ── Compute session-based KPIs ──
 

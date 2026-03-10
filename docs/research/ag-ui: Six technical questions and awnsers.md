@@ -4,7 +4,7 @@ status: done
 updated: 2026-03-10
 created: 2026-03-10
 module: research
-tags: [ag-ui, voice, research]
+tags: [ag-ui, research]
 ---
 
 # AG-UI: Six Technical Questions — Definitive Answers

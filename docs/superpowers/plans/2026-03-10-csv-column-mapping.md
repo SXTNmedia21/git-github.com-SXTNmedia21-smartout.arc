@@ -1,10 +1,10 @@
 ---
 title: "CSV Column Mapping Implementation Plan"
-status: draft
+status: in_progress
 updated: 2026-03-10
 created: 2026-03-10
 module: onboarding
-tags: [csv, mapping, plan]
+tags: [csv, column-mapping, plan]
 ---
 
 # CSV Column Mapping Implementation Plan

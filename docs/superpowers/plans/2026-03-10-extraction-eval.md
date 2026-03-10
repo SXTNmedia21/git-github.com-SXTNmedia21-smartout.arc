@@ -1,10 +1,10 @@
 ---
 title: "Extraction Eval Suite Implementation Plan"
-status: draft
+status: in_progress
 updated: 2026-03-10
 created: 2026-03-10
-module: scrapling
-tags: [extraction, eval, plan]
+module: ai
+tags: [extraction, eval, testing, plan]
 ---
 
 # Extraction Eval Suite Implementation Plan

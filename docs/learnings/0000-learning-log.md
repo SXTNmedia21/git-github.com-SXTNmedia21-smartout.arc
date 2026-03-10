@@ -2,12 +2,30 @@
 title: Learning Log
 status: in_progress
 updated: 2026-03-10
-created: 2026-03-10
-module: wizzard
+created: 2026-03-08
+module: core
 tags: [learnings]
 ---
 
 # Learning Log — csv-mapping
+
+status: done
+updated: 2026-03-08
+created: 2026-03-08
+module: core
+tags: [learnings, journey-engine]
+
+---
+
+status: done
+updated: 2026-03-08
+created: 2026-03-08
+module: core
+tags: [learnings, journey-engine]
+
+---
+
+# Learning Log — journey-engine
 
 | #   | Date       | Learning                                                                                                                                                                       | Impact                                                                         |
 | --- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ |
@@ -19,15 +37,18 @@ tags: [learnings]
 | 6   | 2026-03-08 | WSL2 Chromium missing libnspr4.so — system deps not installed. API-driven E2E tests bypass this entirely                                                                       | Rewrote tests to use fetch instead of browser                                  |
 | 7   | 2026-03-08 | Worktrees don't get .env.local (gitignored) — must symlink from main repo                                                                                                      | Web dev server crashes with "Invalid environment variables"                    |
 
-status: in_progress
-updated: 2026-03-10
-created: 2026-03-10
-module: scrapling
-tags: [learnings]
-
----
-
-# Learning Log — scrapling-extract
+## scrapling-extract
 
 | #   | Date | Learning | Impact |
 | --- | ---- | -------- | ------ |
+
+---
+
+# Learning Log — adminpage-speed
+
+| #   | Date       | Learning                                                                                                                                 | Impact                                                    |
+| --- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| 1   | 2026-03-10 | `unstable_cache` with `revalidate` TTL is the simplest server-side caching for Next.js App Router — no Redis needed for admin pages      | All 12 admin pages cached with zero infrastructure change |
+| 2   | 2026-03-10 | `as never` casts on Supabase query results are caused by stale `database.types.ts` — regenerating types eliminates all of them           | Removed 28 unsafe casts across 14 files                   |
+| 3   | 2026-03-10 | Guardian hooks with `refetchInterval` + `refetchOnWindowFocus: true` (default) cause double-fetching on every tab switch                 | Unnecessary network traffic on admin pages with polling   |
+| 4   | 2026-03-10 | Notes stored in audit log (immutable) can't be edited/deleted — separating mutable notes from immutable audit trail requires a new table | Created workspace_note table to decouple the two concerns |

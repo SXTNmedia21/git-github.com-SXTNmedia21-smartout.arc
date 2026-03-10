@@ -43,6 +43,8 @@ export function useGuardianSignals() {
       return (data as GuardianSignalRow[]) ?? [];
     },
     refetchInterval: 30_000,
+    refetchOnWindowFocus: false,
+    refetchIntervalInBackground: false,
   });
 }
 

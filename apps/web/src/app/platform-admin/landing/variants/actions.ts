@@ -16,8 +16,11 @@
 
 import { revalidatePath } from "next/cache";
 
+import type { Database, Json } from "@smartout/supabase";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { getSuperAdminId } from "@/lib/platform-admin";
+
+type LandingBlockType = Database["public"]["Enums"]["landing_block_type"];
 
 export type VariantListRow = {
   id: string;
@@ -41,20 +44,20 @@ type LandingVariantRecord = {
   status: "draft" | "published" | "archived";
   is_default: boolean;
   sort_order: number;
-  theme: Record<string, unknown> | null;
+  theme: Json | null;
   meta_title: string | null;
   meta_description: string | null;
   og_image_path: string | null;
-  voice_config: Record<string, unknown> | null;
+  voice_config: Json | null;
   created_at: string;
   updated_at: string;
 };
 
 type LandingBlockRecord = {
-  block_type: string;
+  block_type: LandingBlockType;
   sort_order: number;
-  content: Record<string, unknown> | null;
-  settings: Record<string, unknown> | null;
+  content: Json | null;
+  settings: Json | null;
   is_visible: boolean;
 };
 
@@ -102,15 +105,13 @@ function normalizeSlug(value: string): string {
  * @returns A unique slug for the new duplicated variant.
  */
 async function buildUniqueDuplicateSlug(sourceSlug: string): Promise<string> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const admin = createAdminClient() as any;
+  const admin = createAdminClient();
   const baseSlug = normalizeSlug(`${sourceSlug}-copy`) || "variant-copy";
   let candidate = baseSlug;
   let sequence = 2;
 
   for (;;) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (admin as any)
+    const { data, error } = await admin
       .from("landing_variant")
       .select("id")
       .eq("slug", candidate)
@@ -164,8 +165,7 @@ async function triggerLandingRevalidation(): Promise<void> {
 export async function duplicateLandingVariant(variantId: string): Promise<VariantActionResponse> {
   try {
     await requireSuperAdmin();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const admin = createAdminClient() as any;
+    const admin = createAdminClient();
 
     const { data: source, error: sourceError } = await admin
       .from("landing_variant")
@@ -179,7 +179,7 @@ export async function duplicateLandingVariant(variantId: string): Promise<Varian
       return { ok: false, error: sourceError?.message ?? "Variant not found." };
     }
 
-    const sourceVariant = source as LandingVariantRecord;
+    const sourceVariant = source as unknown as LandingVariantRecord;
     const duplicateSlug = await buildUniqueDuplicateSlug(sourceVariant.slug);
 
     const { data: blockRows, error: blockError } = await admin
@@ -200,11 +200,11 @@ export async function duplicateLandingVariant(variantId: string): Promise<Varian
         status: "draft",
         is_default: false,
         sort_order: sourceVariant.sort_order + 1,
-        theme: sourceVariant.theme ?? {},
+        theme: sourceVariant.theme ?? ({} as Json),
         meta_title: sourceVariant.meta_title,
         meta_description: sourceVariant.meta_description,
         og_image_path: sourceVariant.og_image_path,
-        voice_config: sourceVariant.voice_config ?? {},
+        voice_config: sourceVariant.voice_config ?? ({} as Json),
       })
       .select("id, name, slug, status, is_default, sort_order, created_at, updated_at")
       .single();
@@ -213,8 +213,8 @@ export async function duplicateLandingVariant(variantId: string): Promise<Varian
       return { ok: false, error: insertVariantError?.message ?? "Failed to duplicate variant." };
     }
 
-    const duplicatedVariant = insertedVariant as VariantListRow & { id: string };
-    const sourceBlocks = (blockRows as LandingBlockRecord[] | null) ?? [];
+    const duplicatedVariant = insertedVariant as unknown as VariantListRow & { id: string };
+    const sourceBlocks = (blockRows as unknown as LandingBlockRecord[] | null) ?? [];
 
     if (sourceBlocks.length > 0) {
       const { error: insertBlocksError } = await admin.from("landing_block").insert(
@@ -222,8 +222,8 @@ export async function duplicateLandingVariant(variantId: string): Promise<Varian
           variant_id: duplicatedVariant.id,
           block_type: block.block_type,
           sort_order: block.sort_order,
-          content: block.content ?? {},
-          settings: block.settings ?? {},
+          content: block.content ?? ({} as Json),
+          settings: block.settings ?? ({} as Json),
           is_visible: block.is_visible,
         })),
       );
@@ -261,8 +261,7 @@ export async function setLandingVariantAsDefault(
 ): Promise<VariantActionResponse> {
   try {
     await requireSuperAdmin();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const admin = createAdminClient() as any;
+    const admin = createAdminClient();
 
     const { data: target, error: targetError } = await admin
       .from("landing_variant")
@@ -273,7 +272,7 @@ export async function setLandingVariantAsDefault(
     if (targetError || !target) {
       return { ok: false, error: targetError?.message ?? "Variant not found." };
     }
-    const targetStatus = (target as { status: string }).status;
+    const targetStatus = target.status;
     if (targetStatus !== "published") {
       return {
         ok: false,
@@ -290,9 +289,7 @@ export async function setLandingVariantAsDefault(
       return { ok: false, error: previousDefaultError.message };
     }
 
-    const previousDefaultIds = (previousDefaultRows as Array<{ id: string }> | null)?.map(
-      (row) => row.id,
-    );
+    const previousDefaultIds = previousDefaultRows?.map((row) => row.id);
 
     // Clear current defaults first to avoid unique-index conflicts.
     const { error: clearOtherDefaultsError } = await admin
@@ -347,8 +344,7 @@ export async function setLandingVariantAsDefault(
 export async function archiveLandingVariant(variantId: string): Promise<VariantActionResponse> {
   try {
     await requireSuperAdmin();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const admin = createAdminClient() as any;
+    const admin = createAdminClient();
 
     const { data: target, error: targetError } = await admin
       .from("landing_variant")
@@ -360,7 +356,7 @@ export async function archiveLandingVariant(variantId: string): Promise<VariantA
       return { ok: false, error: targetError?.message ?? "Variant not found." };
     }
 
-    const variant = target as { is_default: boolean; status: string };
+    const variant = target;
     if (variant.is_default) {
       return { ok: false, error: "Set another default variant before archiving this one." };
     }

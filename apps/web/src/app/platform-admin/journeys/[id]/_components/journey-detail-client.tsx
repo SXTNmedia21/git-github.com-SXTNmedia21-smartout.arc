@@ -23,6 +23,8 @@ import type {
   JourneyTestResult,
   JourneyTestType,
 } from "@smartout/types";
+import { createClient } from "@smartout/supabase/client";
+import { compileJourneyAction } from "../../actions/compile";
 import { STATUS_META } from "@/lib/journey/status-transitions";
 import { MODULE_META, ACTOR_META, PRIORITY_META, PLATFORM_META } from "@/lib/journey/module-meta";
 import { JourneyStatusChanger } from "../../_components/journey-status-changer";
@@ -535,6 +537,54 @@ export function JourneyDetailClient({
   const [isEditingSteps, setIsEditingSteps] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // ─── Compile to Engine state ────────────────────────────
+  const [compiling, setCompiling] = useState(false);
+  const [compileResult, setCompileResult] = useState<{
+    success: boolean;
+    error?: string;
+    stepsCreated?: number;
+  } | null>(null);
+
+  async function handleCompile() {
+    setCompiling(true);
+    setCompileResult(null);
+    const result = await compileJourneyAction(journey.journey_id);
+    setCompileResult(result);
+    setCompiling(false);
+    if (result.success) {
+      router.refresh();
+    }
+  }
+
+  // ─── Runtime stats state ────────────────────────────────
+  const [runtimeStats, setRuntimeStats] = useState<{
+    activeCount: number;
+    completedCount: number;
+    stuckCount: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!journey.engine_process_id) return;
+
+    async function fetchStats() {
+      const supabase = createClient();
+      const { data: states } = await supabase
+        .from("engine_state")
+        .select("id, status, current_step")
+        .eq("process_id", journey.engine_process_id!);
+
+      if (!states) return;
+
+      const active = states.filter((s) => ["active", "waiting"].includes(s.status)).length;
+      const completed = states.filter((s) => s.status === "complete").length;
+      const stuck = states.filter((s) => s.status === "escalated" || s.status === "failed").length;
+
+      setRuntimeStats({ activeCount: active, completedCount: completed, stuckCount: stuck });
+    }
+
+    fetchStats();
+  }, [journey.engine_process_id]);
+
   const moduleMeta = MODULE_META[journey.module];
   const actorMeta = ACTOR_META[journey.actor];
   const priorityMeta = PRIORITY_META[journey.priority];
@@ -670,8 +720,21 @@ export function JourneyDetailClient({
             </div>
           </div>
 
-          {/* Edit + Delete buttons */}
+          {/* Compile + Edit + Delete buttons */}
           <div className="flex items-center gap-2">
+            <Button
+              onClick={handleCompile}
+              disabled={compiling || journey.status === "active"}
+              variant="outline"
+              size="sm"
+            >
+              {compiling ? (
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Hammer className="mr-1.5 h-3.5 w-3.5" />
+              )}
+              {compiling ? "Kompilerer..." : "Compile til Engine"}
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -715,6 +778,34 @@ export function JourneyDetailClient({
           </div>
         </div>
       </div>
+
+      {/* Compile result feedback */}
+      {compileResult && !compileResult.success && (
+        <p className="text-destructive text-sm">{compileResult.error}</p>
+      )}
+      {compileResult?.success && (
+        <p className="text-muted-foreground text-sm">
+          Kompilert: {compileResult.stepsCreated} steg &rarr; engine_process
+        </p>
+      )}
+
+      {/* Runtime stats — only shown when journey has been compiled to engine_process */}
+      {runtimeStats && (
+        <div className="grid grid-cols-3 gap-4">
+          <div className="rounded-lg border p-4">
+            <p className="text-muted-foreground text-sm">Aktive</p>
+            <p className="text-2xl font-bold">{runtimeStats.activeCount}</p>
+          </div>
+          <div className="rounded-lg border p-4">
+            <p className="text-muted-foreground text-sm">Fullfort</p>
+            <p className="text-2xl font-bold">{runtimeStats.completedCount}</p>
+          </div>
+          <div className="rounded-lg border p-4">
+            <p className="text-muted-foreground text-sm">Blokkert</p>
+            <p className="text-destructive text-2xl font-bold">{runtimeStats.stuckCount}</p>
+          </div>
+        </div>
+      )}
 
       {/* Classification Card — or Edit Form when editing */}
       {isEditing ? (

@@ -121,6 +121,10 @@
     "./context/collector": {
       "types": "./dist/context/collector.d.ts",
       "default": "./dist/context/collector.js"
+    },
+    "./journey/compile": {
+      "types": "./dist/journey/compile.d.ts",
+      "default": "./dist/journey/compile.js"
     }
   },
   "scripts": {

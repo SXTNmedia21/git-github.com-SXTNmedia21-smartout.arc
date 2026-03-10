@@ -1,6 +1,6 @@
 // ─── Base Event Shape ───────────────────────────
 export interface BaseEvent {
-  workspace_id: string;
+  workspace_id: string | null;
   actor_id: string; // profile_id representing who performed the action
   timestamp?: string; // ISO 8601; auto-populated if omitted
   correlation_id?: string; // Trace IDs
@@ -63,7 +63,8 @@ export type EntityType =
   | "announcement"
   | "chat_message"
   | "reconciliation"
-  | "handbook_chapter";
+  | "handbook_chapter"
+  | "contract";
 
 export type ActionVerb =
   | "created"
@@ -352,6 +353,41 @@ export interface HandbookChapterSaved extends BaseEvent {
   };
 }
 
+// ─── Communication ──────────────────────────────
+export interface CommunicationSent extends BaseEvent {
+  event: "communication sent";
+  properties: {
+    data: {
+      communication_id: string;
+      template: string;
+      classification: string;
+      recipient_count: number;
+      sent_count: number;
+      failed_count: number;
+    };
+  };
+}
+
+export interface CommunicationCancelled extends BaseEvent {
+  event: "communication cancelled";
+  properties: {
+    data: {
+      communication_id: string;
+    };
+  };
+}
+
+export interface CommunicationFailed extends BaseEvent {
+  event: "communication failed";
+  properties: {
+    data: {
+      communication_id: string;
+      template: string;
+      error: string;
+    };
+  };
+}
+
 // ─── Contract Events ──────────────────────────
 export interface ContractCreated extends BaseEvent {
   event: "contract created";
@@ -473,6 +509,9 @@ export type SmartoutEvent =
   | ContractDeclined
   | ContractExpired
   | HandbookChapterSaved
+  | CommunicationSent
+  | CommunicationCancelled
+  | CommunicationFailed
   | WizardStepCompleted
   | WizardCompleted
   | PageViewed
@@ -569,6 +608,19 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "reconciliation admin_action": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "operations",
+  },
+
+  "communication sent": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "communication",
+  },
+  "communication cancelled": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "communication",
+  },
+  "communication failed": {
+    destinations: ["posthog", "logger"],
+    category: "communication",
   },
 
   "contract created": {

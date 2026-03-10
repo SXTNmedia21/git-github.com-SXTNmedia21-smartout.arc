@@ -38,13 +38,13 @@ function buildPayload(event: SmartoutEvent) {
   const eventType = toDotNotation(event.event);
   return {
     event_type: eventType,
-    workspace_id: event.workspace_id,
+    workspace_id: event.workspace_id || null, // Convert "" to null, pass null through
     payload: {
       actor_id: event.actor_id,
       correlation_id: event.correlation_id,
       ...event.properties,
     },
-    idempotency_key: `${eventType}-${event.workspace_id}-${event.timestamp ?? new Date().toISOString()}`,
+    idempotency_key: `${eventType}-${event.workspace_id ?? "no-ws"}-${event.timestamp ?? new Date().toISOString()}`,
   };
 }
 
