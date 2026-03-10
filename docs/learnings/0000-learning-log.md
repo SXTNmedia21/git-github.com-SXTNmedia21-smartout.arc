@@ -3,11 +3,13 @@ title: Learning Log
 status: in_progress
 updated: 2026-03-10
 created: 2026-03-10
-module: wizzard
+module: global
 tags: [learnings]
 ---
 
-# Learning Log — csv-mapping
+# Learning Log
+
+## csv-mapping
 
 | #   | Date       | Learning                                                                                                                                                                       | Impact                                                                         |
 | --- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ |
@@ -19,15 +21,7 @@ tags: [learnings]
 | 6   | 2026-03-08 | WSL2 Chromium missing libnspr4.so — system deps not installed. API-driven E2E tests bypass this entirely                                                                       | Rewrote tests to use fetch instead of browser                                  |
 | 7   | 2026-03-08 | Worktrees don't get .env.local (gitignored) — must symlink from main repo                                                                                                      | Web dev server crashes with "Invalid environment variables"                    |
 
-status: in_progress
-updated: 2026-03-10
-created: 2026-03-10
-module: scrapling
-tags: [learnings]
-
----
-
-# Learning Log — scrapling-extract
+## scrapling-extract
 
 | #   | Date | Learning | Impact |
 | --- | ---- | -------- | ------ |
