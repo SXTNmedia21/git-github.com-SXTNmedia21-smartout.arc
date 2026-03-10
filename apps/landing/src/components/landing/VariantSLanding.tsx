@@ -100,17 +100,14 @@ const staggerContainer = {
 
 // -----------------------------------------------
 // Data
-// Norwegian text uses Unicode escapes to preserve special characters
-// through any file-encoding pipeline.
-// \u00e5 = å, \u00f8 = ø, \u00e6 = æ, \u00c5 = Å, \u00d8 = Ø
-// \u2014 = em dash, \u201C/\u201D = smart quotes, \u2019 = right quote
+// Norwegian text uses UTF-8 characters directly (å, ø, æ, etc.)
 // -----------------------------------------------
 
 /** Philosophy principles displayed in the editorial pull-quote section */
 const PHILOSOPHY_PRINCIPLES = [
   "Presisjon i hvert steg",
-  "Respekt for h\u00e5ndverket",
-  "S\u00f8ml\u00f8s teknologi",
+  "Respekt for håndverket",
+  "Sømløs teknologi",
   "Kontinuerlig forbedring",
 ] as const;
 
@@ -118,7 +115,7 @@ const PHILOSOPHY_PRINCIPLES = [
 const TRAINING_FEATURES = [
   {
     icon: Wine,
-    title: "Skreddersydde oppl\u00e6ringsprogrammer",
+    title: "Skreddersydde opplæringsprogrammer",
     description: "Tilpasset din bedrifts unike behov, tradisjoner og kvalitetsstandarder.",
   },
   {
@@ -129,7 +126,7 @@ const TRAINING_FEATURES = [
   {
     icon: Award,
     title: "Praktisk kompetansebygging",
-    description: "Fra teori til mestring \u2014 hands-on l\u00e6ring som sitter.",
+    description: "Fra teori til mestring — hands-on læring som sitter.",
   },
 ] as const;
 
@@ -147,7 +144,7 @@ const DETAIL_CARDS = [
     icon: GlassWater,
     title: "Sensorisk evaluering",
     description:
-      "Strukturert oppl\u00e6ring i smak, aroma og presentasjon \u2014 fra grunnleggende til avansert niv\u00e5.",
+      "Strukturert opplæring i smak, aroma og presentasjon — fra grunnleggende til avansert nivå.",
   },
   {
     icon: Wine,
@@ -158,16 +155,12 @@ const DETAIL_CARDS = [
     icon: Utensils,
     title: "Servicestandarder",
     description:
-      "Definer og vedlikehold serviceniv\u00e5et som gjestene dine fortjener \u2014 hver eneste dag.",
+      "Definer og vedlikehold servicenivået som gjestene dine fortjener — hver eneste dag.",
   },
 ] as const;
 
 /** Professional network badges */
-const NETWORK_BADGES = [
-  "Norsk Vinkelnerforening",
-  "NHO Reiseliv",
-  "Bocuse d\u2019Or Norge",
-] as const;
+const NETWORK_BADGES = ["Norsk Vinkelnerforening", "NHO Reiseliv", "Bocuse d'Or Norge"] as const;
 
 // -----------------------------------------------
 // Component
@@ -231,16 +224,15 @@ export default function VariantSLanding() {
             className="font-[family-name:var(--font-playfair)] text-4xl leading-tight font-light tracking-tight text-white sm:text-5xl md:text-6xl lg:text-7xl"
             variants={fadeUpSlow}
           >
-            {/* "Håndverk møter teknologi." */}H{"\u00e5"}ndverk m{"\u00f8"}ter teknologi.
+            Håndverk møter teknologi.
           </m.h1>
 
           <m.p
             className="mx-auto mt-8 max-w-md text-base leading-relaxed text-zinc-400 sm:text-lg"
             variants={fadeUp}
           >
-            {/* "SmartOut gjør dine ansatte klare fra dag én" */}
-            SmartOut gj{"\u00f8"}r dine ansatte klare fra dag {"\u00e9"}n{" \u2014 "}med presisjon,
-            respekt og teknologi i balanse.
+            SmartOut gjør dine ansatte klare fra dag én — med presisjon, respekt og teknologi i
+            balanse.
           </m.p>
 
           <m.div className="mt-12" variants={fadeUp}>
@@ -271,10 +263,9 @@ export default function VariantSLanding() {
           {/* Left — Editorial pull quote */}
           <m.div variants={fadeUp}>
             <blockquote className="font-[family-name:var(--font-playfair)] text-2xl leading-relaxed font-light text-zinc-300 italic sm:text-3xl lg:text-4xl">
-              {"\u201C"}Ekte kvalitet oppst{"\u00e5"}r n{"\u00e5"}r tradisjon og innovasjon finner
-              balanse. Teknologi skal ikke erstatte h{"\u00e5"}ndverket {"\u2014"} den skal l
-              {"\u00f8"}fte det. Slik skaper vi en ny standard for oppl{"\u00e6"}ring og utvikling i
-              bransjen.{"\u201D"}
+              «Ekte kvalitet oppstår når tradisjon og innovasjon finner balanse. Teknologi skal ikke
+              erstatte håndverket — den skal løfte det. Slik skaper vi en ny standard for opplæring
+              og utvikling i bransjen.»
             </blockquote>
           </m.div>
 
@@ -284,7 +275,7 @@ export default function VariantSLanding() {
               className="mb-8 text-xs font-medium tracking-[0.2em] text-zinc-500 uppercase"
               variants={fadeIn}
             >
-              {/* "Våre prinsipper" */}V{"\u00e5"}re prinsipper
+              Våre prinsipper
             </m.p>
             <ul className="space-y-6">
               {PHILOSOPHY_PRINCIPLES.map((principle) => (
@@ -320,12 +311,10 @@ export default function VariantSLanding() {
           {/* Section heading */}
           <m.div className="mb-20 max-w-2xl" variants={fadeUp}>
             <p className="mb-4 text-xs font-medium tracking-[0.2em] text-rose-400/80 uppercase">
-              {/* "Opplæring" */}
-              Oppl{"\u00e6"}ring
+              Opplæring
             </p>
             <h2 className="font-[family-name:var(--font-playfair)] text-3xl leading-tight font-light tracking-tight text-white sm:text-4xl lg:text-5xl">
-              {/* "Opplæring skreddersydd til ditt håndverk." */}
-              Oppl{"\u00e6"}ring skreddersydd til ditt h{"\u00e5"}ndverk.
+              Opplæring skreddersydd til ditt håndverk.
             </h2>
           </m.div>
 
@@ -455,7 +444,7 @@ export default function VariantSLanding() {
             </p>
             <h2 className="font-[family-name:var(--font-playfair)] text-3xl leading-tight font-light tracking-tight text-white sm:text-4xl lg:text-5xl">
               {/* "Detaljer som gjør forskjellen." */}
-              Detaljer som gj{"\u00f8"}r forskjellen.
+              Detaljer som gjør forskjellen.
             </h2>
           </m.div>
 
@@ -593,8 +582,7 @@ export default function VariantSLanding() {
             className="font-[family-name:var(--font-playfair)] text-3xl leading-tight font-light tracking-tight text-white sm:text-4xl lg:text-5xl"
             variants={fadeUpSlow}
           >
-            {/* "Er du klar til å sette en ny standard?" */}
-            Er du klar til {"\u00e5"} sette en ny standard?
+            Er du klar til å sette en ny standard?
           </m.h2>
 
           <m.div className="mt-12" variants={fadeUp}>

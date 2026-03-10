@@ -139,7 +139,7 @@ export default function VoiceDemoWidget({ config, className = "", height }: Voic
 
             {/* Connect button */}
             <div className="relative z-20 flex items-center gap-2 rounded-full border border-zinc-700/50 bg-zinc-800/80 px-4 py-2 text-xs font-bold text-zinc-400 shadow-xl transition-colors group-hover:bg-zinc-800 group-hover:text-zinc-300">
-              Trykk for \u00e5 koble til <ArrowRight className="h-3 w-3" />
+              Trykk for å koble til <ArrowRight className="h-3 w-3" />
             </div>
           </m.div>
         )}
