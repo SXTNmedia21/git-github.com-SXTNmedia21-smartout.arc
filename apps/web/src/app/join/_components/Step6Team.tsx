@@ -1,0 +1,195 @@
+'use client'
+
+import { useState } from 'react'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { ArrowLeft, Plus, X } from 'lucide-react'
+import { useSignupWizard } from '../_hooks/useSignupWizard'
+
+const EMPLOYEE_COUNTS = [
+  { value: '1-5', label: '1-5' },
+  { value: '6-15', label: '6-15' },
+  { value: '16-30', label: '16-30' },
+  { value: '31-50', label: '31-50' },
+  { value: '50+', label: '50+' },
+]
+
+export function Step6Team() {
+  const { state, updateStep, prevStep, goToStep } = useSignupWizard()
+
+  const [employeeCount, setEmployeeCount] = useState(
+    state.step6.employeeCount ?? '',
+  )
+  const [invites, setInvites] = useState<string[]>(
+    state.step6.teamInvites ?? [''],
+  )
+  const [inviteErrors, setInviteErrors] = useState<Record<number, string>>({})
+
+  const addInvite = () => {
+    setInvites((prev) => [...prev, ''])
+  }
+
+  const removeInvite = (index: number) => {
+    setInvites((prev) => prev.filter((_, i) => i !== index))
+    setInviteErrors((prev) => {
+      const next = { ...prev }
+      delete next[index]
+      return next
+    })
+  }
+
+  const updateInvite = (index: number, value: string) => {
+    setInvites((prev) => prev.map((v, i) => (i === index ? value : v)))
+    setInviteErrors((prev) => ({ ...prev, [index]: '' }))
+  }
+
+  const validateEmail = (email: string): boolean => {
+    if (!email) return true // empty is ok, we filter later
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  }
+
+  const handleFinish = () => {
+    // Validate non-empty emails
+    const errors: Record<number, string> = {}
+    invites.forEach((email, index) => {
+      if (email && !validateEmail(email)) {
+        errors[index] = 'Ugyldig e-postadresse'
+      }
+    })
+
+    if (Object.keys(errors).length > 0) {
+      setInviteErrors(errors)
+      return
+    }
+
+    const validEmails = invites.filter(
+      (email) => email && validateEmail(email),
+    )
+
+    updateStep('step6', {
+      employeeCount: employeeCount || undefined,
+      teamInvites: validEmails.length > 0 ? validEmails : undefined,
+    })
+
+    // Go to step 7 (setup loading)
+    goToStep(7)
+  }
+
+  const handleSkip = () => {
+    updateStep('step6', {})
+    goToStep(7)
+  }
+
+  return (
+    <div className="mx-auto w-full max-w-md space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-foreground">Team</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Inviter teamet ditt til Smartout.
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="employeeCount">Antall ansatte</Label>
+          <Select value={employeeCount} onValueChange={setEmployeeCount}>
+            <SelectTrigger id="employeeCount">
+              <SelectValue placeholder="Velg..." />
+            </SelectTrigger>
+            <SelectContent>
+              {EMPLOYEE_COUNTS.map((count) => (
+                <SelectItem key={count.value} value={count.value}>
+                  {count.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Inviter teammedlemmer</Label>
+          <div className="space-y-2">
+            {invites.map((email, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <Input
+                  type="email"
+                  placeholder="navn@bedrift.no"
+                  value={email}
+                  onChange={(e) => updateInvite(index, e.target.value)}
+                  aria-invalid={!!inviteErrors[index]}
+                />
+                {invites.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeInvite(index)}
+                    className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            ))}
+            {invites.map(
+              (_, index) =>
+                inviteErrors[index] && (
+                  <p key={`error-${index}`} className="text-xs text-destructive">
+                    {inviteErrors[index]}
+                  </p>
+                ),
+            )}
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={addInvite}
+            className="mt-1"
+          >
+            <Plus className="mr-1.5 h-3.5 w-3.5" />
+            Legg til
+          </Button>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <div className="flex gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={prevStep}
+            className="flex-1"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Tilbake
+          </Button>
+          <Button
+            type="button"
+            onClick={handleFinish}
+            className="flex-1 bg-orange-500 text-white hover:bg-orange-600"
+          >
+            Fullfor registrering
+            <ArrowLeft className="ml-2 h-4 w-4 rotate-180" />
+          </Button>
+        </div>
+        <button
+          type="button"
+          onClick={handleSkip}
+          className="text-center text-sm text-muted-foreground underline transition-colors hover:text-foreground"
+        >
+          Hopp over
+        </button>
+      </div>
+    </div>
+  )
+}
