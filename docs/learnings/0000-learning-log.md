@@ -40,3 +40,9 @@ tags: [learnings, journey-engine]
 ## scrapling-extract
 
 _No learnings logged._
+
+---
+
+## signup
+
+_No learnings logged._

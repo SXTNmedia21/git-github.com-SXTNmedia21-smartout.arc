@@ -1,7 +1,8 @@
+import os
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
@@ -17,19 +18,27 @@ app = FastAPI(title="SmartOut Scrapling Microservice")
 
 DASHBOARD_HTML = (Path(__file__).parent / "dashboard.html").read_text()
 
+# Bearer token auth — required when SCRAPLING_AUTH_TOKEN is set.
+# Internal Docker callers without the env var skip auth (backwards compatible).
+SCRAPLING_AUTH_TOKEN = os.environ.get("SCRAPLING_AUTH_TOKEN")
+
+async def verify_auth(request: Request):
+    if not SCRAPLING_AUTH_TOKEN:
+        return  # No token configured — allow (internal Docker network)
+    auth = request.headers.get("Authorization", "")
+    if auth != f"Bearer {SCRAPLING_AUTH_TOKEN}":
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
 @app.get("/", response_class=HTMLResponse)
 def dashboard():
     return DASHBOARD_HTML
 
-# CORS disabled — scrapling runs on internal Docker network only.
-# No external Caddy route exists. If this service is exposed publicly,
-# add explicit allowed origins here.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=False,
     allow_methods=["POST", "GET"],
-    allow_headers=["Content-Type"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 class TripAdvisorRequest(BaseModel):
@@ -137,7 +146,7 @@ def fetch_with_fallback(url: str):
                 pass
         raise
 
-@app.post("/extract", response_model=ExtractResponse)
+@app.post("/extract", response_model=ExtractResponse, dependencies=[Depends(verify_auth)])
 def extract_workspace_data(req: ExtractRequest):
     if not req.url:
         raise HTTPException(status_code=400, detail="Missing url parameter.")
@@ -375,7 +384,7 @@ def extract_workspace_data(req: ExtractRequest):
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/scrape-raw", response_model=RawScrapeResponse)
+@app.post("/scrape-raw", response_model=RawScrapeResponse, dependencies=[Depends(verify_auth)])
 def scrape_raw_data(req: ExtractRequest):
     if not req.url:
         raise HTTPException(status_code=400, detail="Missing url parameter.")
@@ -429,7 +438,7 @@ def scrape_raw_data(req: ExtractRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/tripadvisor", response_model=TripAdvisorResponse)
+@app.post("/tripadvisor", response_model=TripAdvisorResponse, dependencies=[Depends(verify_auth)])
 def scrape_tripadvisor(req: TripAdvisorRequest):
     """Scrape TripAdvisor reviews — returns 10 best and 10 worst.
 
@@ -446,7 +455,7 @@ def scrape_tripadvisor(req: TripAdvisorRequest):
 # TODO: Add bearer token auth before production deployment.
 # Currently relies on Docker network isolation (no public Caddy route).
 # See docs/protocols/SECURITY.md §15.5 for service auth requirements.
-@app.post("/extract/document")
+@app.post("/extract/document", dependencies=[Depends(verify_auth)])
 async def extract_document(file: UploadFile = File(...)):
     """Extract text and images from a single uploaded document."""
     if not file.filename:
@@ -474,7 +483,7 @@ async def extract_document(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=f"Extraction failed: {str(e)}")
 
 
-@app.post("/extract/document/batch")
+@app.post("/extract/document/batch", dependencies=[Depends(verify_auth)])
 async def extract_document_batch(files: list[UploadFile] = File(...)):
     """Extract text and images from multiple uploaded documents."""
     if not files:

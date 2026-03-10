@@ -16,11 +16,15 @@ async function fetchScraplingWithRetry(
   naceCode?: string | null,
   retries = 3,
 ) {
+  const scraplingToken = Deno.env.get("SCRAPLING_AUTH_TOKEN");
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (scraplingToken) headers["Authorization"] = `Bearer ${scraplingToken}`;
+
   for (let i = 0; i < retries; i++) {
     try {
       const res = await fetch(`${scraplingBase}/extract`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           url,
           config: {

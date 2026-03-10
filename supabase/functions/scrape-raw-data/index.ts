@@ -51,11 +51,13 @@ Deno.serve(async (req) => {
 
     console.log(`Calling Scrapling Microservice Raw Scrape at: ${scraplingBase}/scrape-raw`);
 
+    const scraplingHeaders: Record<string, string> = { "Content-Type": "application/json" };
+    const scraplingToken = Deno.env.get("SCRAPLING_AUTH_TOKEN");
+    if (scraplingToken) scraplingHeaders["Authorization"] = `Bearer ${scraplingToken}`;
+
     const extractionResponse = await fetch(`${scraplingBase}/scrape-raw`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: scraplingHeaders,
       body: JSON.stringify({ url }),
     });
 
