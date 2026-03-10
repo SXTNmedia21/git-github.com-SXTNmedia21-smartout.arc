@@ -7,13 +7,15 @@ module: core
 tags: [learnings]
 ---
 
-# Learning Log
+# Learning Log — csv-mapping
+status: done
+updated: 2026-03-08
+created: 2026-03-08
+module: core
+tags: [learnings, journey-engine]
+---
 
-## csv-mapping
-
-_No learnings logged._
-
-## journey-engine
+# Learning Log — journey-engine
 
 | #   | Date       | Learning                                                                                                                                                                       | Impact                                                                         |
 | --- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ |

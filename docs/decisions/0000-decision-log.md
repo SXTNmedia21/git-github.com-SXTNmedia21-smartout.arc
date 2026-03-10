@@ -15,6 +15,17 @@ _No decisions logged._
 
 ## journey-engine
 
+| #   | Date | Decision | Status |
+| --- | ---- | -------- | ------ |
+status: done
+updated: 2026-03-08
+created: 2026-03-08
+module: core
+tags: [decisions, journey-engine]
+---
+
+# Decision Log — journey-engine
+
 | #   | Date       | Decision                                                                                                          | Status   |
 | --- | ---------- | ----------------------------------------------------------------------------------------------------------------- | -------- |
 | 1   | 2026-03-08 | wait_for_event conditions are resumption-only — executeStep skips condition check for wait_for_event action types | Accepted |
