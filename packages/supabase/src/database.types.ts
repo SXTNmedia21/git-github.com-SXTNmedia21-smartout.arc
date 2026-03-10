@@ -904,6 +904,62 @@ export type Database = {
         }
         Relationships: []
       }
+      company_details: {
+        Row: {
+          about_us: string | null
+          ai_generated_fields: string[] | null
+          created_at: string
+          cuisine_types: string[] | null
+          employee_count: string | null
+          id: string
+          menu_description: string | null
+          our_concept: string | null
+          our_history: string | null
+          price_category: string | null
+          restaurant_type: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          about_us?: string | null
+          ai_generated_fields?: string[] | null
+          created_at?: string
+          cuisine_types?: string[] | null
+          employee_count?: string | null
+          id?: string
+          menu_description?: string | null
+          our_concept?: string | null
+          our_history?: string | null
+          price_category?: string | null
+          restaurant_type?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          about_us?: string | null
+          ai_generated_fields?: string[] | null
+          created_at?: string
+          cuisine_types?: string[] | null
+          employee_count?: string | null
+          id?: string
+          menu_description?: string | null
+          our_concept?: string | null
+          our_history?: string | null
+          price_category?: string | null
+          restaurant_type?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_details_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       company_member: {
         Row: {
           company_id: string
@@ -952,6 +1008,129 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "user_identity"
             referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      company_opening_hours: {
+        Row: {
+          close_time: string | null
+          created_at: string
+          day_of_week: number
+          id: string
+          is_closed: boolean
+          open_time: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          close_time?: string | null
+          created_at?: string
+          day_of_week: number
+          id?: string
+          is_closed?: boolean
+          open_time?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          close_time?: string | null
+          created_at?: string
+          day_of_week?: number
+          id?: string
+          is_closed?: boolean
+          open_time?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_opening_hours_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      company_scraped_data: {
+        Row: {
+          auth_id: string
+          created_at: string
+          id: string
+          parsed_data: Json | null
+          raw_data: Json | null
+          scrape_status: string
+          scraped_at: string | null
+          source_url: string
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          auth_id: string
+          created_at?: string
+          id?: string
+          parsed_data?: Json | null
+          raw_data?: Json | null
+          scrape_status?: string
+          scraped_at?: string | null
+          source_url: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          auth_id?: string
+          created_at?: string
+          id?: string
+          parsed_data?: Json | null
+          raw_data?: Json | null
+          scrape_status?: string
+          scraped_at?: string | null
+          source_url?: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_scraped_data_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      company_social_media: {
+        Row: {
+          created_at: string
+          id: string
+          platform: string
+          updated_at: string
+          url: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          platform: string
+          updated_at?: string
+          url: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          platform?: string
+          updated_at?: string
+          url?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_social_media_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
           },
         ]
       }
@@ -6764,6 +6943,7 @@ export type Database = {
           icon: string | null
           is_default: boolean
           name: string
+          opening_hours: Json | null
           parent_season_id: string | null
           season_id: string
           season_type: Database["public"]["Enums"]["season_type"]
@@ -6782,6 +6962,7 @@ export type Database = {
           icon?: string | null
           is_default?: boolean
           name: string
+          opening_hours?: Json | null
           parent_season_id?: string | null
           season_id?: string
           season_type?: Database["public"]["Enums"]["season_type"]
@@ -6800,6 +6981,7 @@ export type Database = {
           icon?: string | null
           is_default?: boolean
           name?: string
+          opening_hours?: Json | null
           parent_season_id?: string | null
           season_id?: string
           season_type?: Database["public"]["Enums"]["season_type"]
@@ -7448,6 +7630,36 @@ export type Database = {
             referencedColumns: ["workspace_id"]
           },
         ]
+      }
+      signup_progress: {
+        Row: {
+          auth_id: string
+          completed: boolean
+          created_at: string
+          current_step: number
+          id: string
+          step_data: Json
+          updated_at: string
+        }
+        Insert: {
+          auth_id: string
+          completed?: boolean
+          created_at?: string
+          current_step?: number
+          id?: string
+          step_data?: Json
+          updated_at?: string
+        }
+        Update: {
+          auth_id?: string
+          completed?: boolean
+          created_at?: string
+          current_step?: number
+          id?: string
+          step_data?: Json
+          updated_at?: string
+        }
+        Relationships: []
       }
       supplier: {
         Row: {
@@ -8309,6 +8521,48 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "workspace_kpi_target_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      workspace_note: {
+        Row: {
+          admin_id: string
+          content: string
+          created_at: string
+          note_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          admin_id: string
+          content: string
+          created_at?: string
+          note_id?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          admin_id?: string
+          content?: string
+          created_at?: string
+          note_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_note_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "user_identity"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "workspace_note_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspace"

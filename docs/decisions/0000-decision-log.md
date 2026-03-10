@@ -45,3 +45,14 @@ tags: [decisions, journey-engine]
 | #   | Date       | Decision                                                                                                          | Status   |
 | --- | ---------- | ----------------------------------------------------------------------------------------------------------------- | -------- |
 | 1   | 2026-03-10 | Use /extract/document (not /extract) for file upload endpoints to avoid conflict with existing URL-based /extract | accepted |
+
+created: 2026-03-10
+module: onboarding
+tags: [decisions]
+
+---
+
+# Decision Log — signup
+
+| #   | Date | Decision | Status |
+| --- | ---- | -------- | ------ |

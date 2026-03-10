@@ -32,3 +32,13 @@ tags: [learnings, journey-engine]
 ## scrapling-extract
 
 _No learnings logged._
+created: 2026-03-10
+module: onboarding
+tags: [learnings]
+
+---
+
+# Learning Log — signup
+
+| #   | Date | Learning | Impact |
+| --- | ---- | -------- | ------ |
