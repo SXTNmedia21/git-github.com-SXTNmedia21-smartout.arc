@@ -8,11 +8,21 @@ tags: [learnings]
 ---
 
 # Learning Log — csv-mapping
+
 status: done
 updated: 2026-03-08
 created: 2026-03-08
 module: core
 tags: [learnings, journey-engine]
+
+---
+
+status: done
+updated: 2026-03-08
+created: 2026-03-08
+module: core
+tags: [learnings, journey-engine]
+
 ---
 
 # Learning Log — journey-engine

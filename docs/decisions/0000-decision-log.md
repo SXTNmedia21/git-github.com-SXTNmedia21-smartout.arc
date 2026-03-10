@@ -17,11 +17,13 @@ _No decisions logged._
 
 | #   | Date | Decision | Status |
 | --- | ---- | -------- | ------ |
+
 status: done
 updated: 2026-03-08
 created: 2026-03-08
 module: core
 tags: [decisions, journey-engine]
+
 ---
 
 # Decision Log — journey-engine
