@@ -32,6 +32,10 @@ desktop.ini
 .idea/
 .vscode/launch.json
 .vscode/*.code-workspace
+.cursor/
+
+# Local dev artifacts
+.local/
 
 # Vercel
 .vercel

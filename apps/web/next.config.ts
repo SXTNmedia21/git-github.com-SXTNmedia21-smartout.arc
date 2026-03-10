@@ -20,6 +20,7 @@ if (existsSync(rootEnvPath)) {
 
 const nextConfig: NextConfig = {
   ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
+  serverExternalPackages: ["posthog-node"],
   transpilePackages: [
     "@smartout/ai",
     "@smartout/supabase",

@@ -27,7 +27,7 @@ export async function emit(event: SmartoutEvent): Promise<void> {
   // 1. Analytics
   if (routing.destinations.includes("posthog")) {
     if (isServer) {
-      const { sendToPostHogServer } = await import("./providers/posthog");
+      const { sendToPostHogServer } = await import(/* webpackIgnore: true */ "./providers/posthog");
       promises.push(sendToPostHogServer(event));
     } else {
       sendToPostHogClient(event);
@@ -37,7 +37,7 @@ export async function emit(event: SmartoutEvent): Promise<void> {
   // 2. Logging
   if (routing.destinations.includes("logger")) {
     if (isServer) {
-      const { logToStdout } = await import("./providers/logger");
+      const { logToStdout } = await import(/* webpackIgnore: true */ "./providers/logger");
       logToStdout(event, routing);
     } else {
       // eslint-disable-next-line no-console
@@ -47,13 +47,15 @@ export async function emit(event: SmartoutEvent): Promise<void> {
 
   // 3. Activity Trail (server-side only)
   if (routing.destinations.includes("activity_trail") && isServer) {
-    const { writeActivityTrail } = await import("./providers/activity-trail");
+    const { writeActivityTrail } = await import(
+      /* webpackIgnore: true */ "./providers/activity-trail"
+    );
     promises.push(writeActivityTrail(event, routing));
   }
 
   // 4. Engine Event
   if (routing.destinations.includes("engine_event")) {
-    const { sendToEngine } = await import("./providers/engine-event");
+    const { sendToEngine } = await import(/* webpackIgnore: true */ "./providers/engine-event");
     promises.push(sendToEngine(event));
   }
 
