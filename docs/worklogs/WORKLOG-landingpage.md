@@ -1,6 +1,6 @@
 ---
 title: "Worklog — landingpage"
-status: in_progress
+status: done
 updated: 2026-03-11
 created: 2026-03-10
 module: landing
@@ -11,7 +11,7 @@ tags: []
 
 > Branch: `feat/landingpage` | Worktree: wt-10 | Started: 2026-03-10
 
-## Status: 🟡 In Progress
+## Status: ✅ Done
 
 ## Done
 
@@ -43,3 +43,4 @@ tags: []
 | 2026-03-10 | —     | Polished all 7 variants, committed                  |
 | 2026-03-11 | —     | Added new variant pages, slug routing, middleware   |
 | 2026-03-11 | —     | Fixed closure gates: WORKLOG date, plan frontmatter |
+| 2026-03-11 | 02:09 | Feature closed and merged to development            |
