@@ -9,3 +9,4 @@ export * from "./components/skeleton";
 export * from "./components/separator";
 export { StatusBadge } from "./components/status-badge";
 export { cn } from "./lib/utils";
+export * from "./flow-player";

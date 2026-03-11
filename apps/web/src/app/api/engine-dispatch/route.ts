@@ -5,7 +5,7 @@ import { z } from "zod";
 
 const DispatchSchema = z.object({
   event_type: z.string().min(1),
-  workspace_id: z.string().uuid(),
+  workspace_id: z.string().uuid().nullable(),
   payload: z.record(z.unknown()),
   idempotency_key: z.string().optional(),
 });

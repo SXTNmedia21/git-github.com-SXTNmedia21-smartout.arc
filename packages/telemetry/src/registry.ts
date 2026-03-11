@@ -506,6 +506,66 @@ export interface WizardCompleted extends BaseEvent {
   };
 }
 
+// ─── Flow Events ───────────────────────────────
+export interface FlowStarted extends BaseEvent {
+  event: "flow started";
+  properties: {
+    data: {
+      flow_id: string;
+      total_slides: number;
+    };
+  };
+}
+
+export interface FlowSlideViewed extends BaseEvent {
+  event: "flow slide_viewed";
+  properties: {
+    data: {
+      flow_id: string;
+      slide_index: number;
+      slide_type: string;
+      duration_ms?: number; // time spent on previous slide
+    };
+  };
+}
+
+export interface FlowAnswerSubmitted extends BaseEvent {
+  event: "flow answer_submitted";
+  properties: {
+    data: {
+      flow_id: string;
+      slide_index: number;
+      answer_key: string;
+      answer_value: string | string[];
+    };
+  };
+}
+
+export interface FlowCompleted extends BaseEvent {
+  event: "flow completed";
+  properties: {
+    data: {
+      flow_id: string;
+      total_slides: number;
+      duration_ms: number; // total time from start to completion
+      action?: string;
+      answers: Record<string, string | string[]>;
+    };
+  };
+}
+
+export interface FlowSkipped extends BaseEvent {
+  event: "flow skipped";
+  properties: {
+    data: {
+      flow_id: string;
+      slide_index: number;
+      slide_type: string;
+      duration_ms: number;
+    };
+  };
+}
+
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
 export type SmartoutEvent =
@@ -549,7 +609,12 @@ export type SmartoutEvent =
   | WizardStepCompleted
   | WizardCompleted
   | PageViewed
-  | ButtonClicked;
+  | ButtonClicked
+  | FlowStarted
+  | FlowSlideViewed
+  | FlowAnswerSubmitted
+  | FlowCompleted
+  | FlowSkipped;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -714,4 +779,25 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
 
   "page viewed": { destinations: ["posthog"], category: "navigation" },
   "button clicked": { destinations: ["posthog"], category: "navigation" },
+
+  "flow started": {
+    destinations: ["posthog", "logger"],
+    category: "training",
+  },
+  "flow slide_viewed": {
+    destinations: ["posthog"],
+    category: "training",
+  },
+  "flow answer_submitted": {
+    destinations: ["posthog", "logger", "engine_event"],
+    category: "training",
+  },
+  "flow completed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "training",
+  },
+  "flow skipped": {
+    destinations: ["posthog", "logger"],
+    category: "training",
+  },
 };

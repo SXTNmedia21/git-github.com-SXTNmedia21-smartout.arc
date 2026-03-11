@@ -60,7 +60,7 @@ export async function emit(event: SmartoutEvent): Promise<void> {
 
   // 4. Engine Event
   if (routing.destinations.includes("engine_event")) {
-    const { sendToEngine } = await import(/* webpackIgnore: true */ "./providers/engine-event");
+    const { sendToEngine } = await import("./providers/engine-event");
     promises.push(sendToEngine(event));
   }
 
