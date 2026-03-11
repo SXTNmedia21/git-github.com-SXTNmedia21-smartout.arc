@@ -9,8 +9,8 @@
 /docs/
 
 # CI scripts and artifacts — not deployed
-/scripts/
 /artifacts/
+# NOTE: /scripts/ is NOT ignored — fix-esm-imports.mjs is needed by @smartout/types build
 
 # Claude Code config
 /.claude/
