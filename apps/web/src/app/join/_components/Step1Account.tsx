@@ -15,6 +15,7 @@ interface Step1AccountProps {
 export function Step1Account({ userEmail }: Step1AccountProps) {
   const { state, updateStep, nextStep, scrapeStatus, triggerScrape } = useSignupWizard();
 
+  const [email, setEmail] = useState(state.step1.email ?? userEmail);
   const [companyName, setCompanyName] = useState(state.step1.companyName ?? "");
   const [websiteUrl, setWebsiteUrl] = useState(state.step1.websiteUrl ?? "");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -52,7 +53,7 @@ export function Step1Account({ userEmail }: Step1AccountProps) {
 
   const handleNext = () => {
     const result = step1Schema.safeParse({
-      email: userEmail,
+      email,
       companyName,
       websiteUrl,
     });
@@ -68,7 +69,7 @@ export function Step1Account({ userEmail }: Step1AccountProps) {
     }
 
     updateStep("step1", {
-      email: userEmail,
+      email: result.data.email,
       companyName: result.data.companyName,
       websiteUrl: result.data.websiteUrl,
     });
@@ -90,10 +91,15 @@ export function Step1Account({ userEmail }: Step1AccountProps) {
           <Input
             id="email"
             type="email"
-            value={userEmail}
-            disabled
-            className="bg-muted text-muted-foreground"
+            placeholder="din@epost.no"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setErrors((prev) => ({ ...prev, email: "" }));
+            }}
+            aria-invalid={!!errors.email}
           />
+          {errors.email && <p className="text-destructive text-xs">{errors.email}</p>}
         </div>
 
         <div className="space-y-2">

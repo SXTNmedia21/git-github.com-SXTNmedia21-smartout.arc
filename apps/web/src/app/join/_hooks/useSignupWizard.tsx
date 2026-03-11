@@ -106,7 +106,8 @@ export function WizardProvider({ children, initialState }: WizardProviderProps) 
       } = await supabase.auth.getUser();
       if (!user) return;
 
-      await supabase.from("signup_progress").upsert(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from("signup_progress").upsert(
         {
           auth_id: user.id,
           current_step: wizardState.currentStep,

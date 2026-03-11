@@ -95,7 +95,7 @@ export function useScrapedData() {
       setScrapedData(null);
 
       try {
-        const res = await fetch("/api/scrape/company", {
+        const res = await fetch("/api/scrape/public", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ url }),
@@ -109,20 +109,10 @@ export function useScrapedData() {
         const data = await res.json();
 
         if (data.status === "success") {
-          // Scraping completed synchronously — fetch the result
-          const pollRes = await fetch("/api/scrape/company");
-          if (pollRes.ok) {
-            const pollData = await pollRes.json();
-            setScrapedData(pollData.parsed_data ?? null);
-            setScrapeStatus("success");
-          } else {
-            setScrapeStatus("failed");
-          }
-        } else if (data.status === "failed") {
-          setScrapeStatus("failed");
+          setScrapedData(data.data ?? null);
+          setScrapeStatus("success");
         } else {
-          // Still processing, start polling
-          pollStatus();
+          setScrapeStatus("failed");
         }
       } catch {
         setScrapeStatus("failed");
