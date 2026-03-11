@@ -27,7 +27,10 @@ export type ContentViewType =
   | "notepad"
   | "calculator"
   | "settings"
-  | "tasks";
+  | "tasks"
+  | "log"
+  | "memory"
+  | "history";
 
 export type ContentStackItem = {
   id: string;

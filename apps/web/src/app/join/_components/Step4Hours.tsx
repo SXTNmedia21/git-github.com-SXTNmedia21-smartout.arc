@@ -3,31 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useSignupWizard } from "../_hooks/useSignupWizard";
 import { step4Schema } from "../_lib/validation";
-import { AutoFillField } from "./AutoFillField";
 
 const DAY_LABELS = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lordag", "Sondag"];
-
-interface ScrapedDataInput {
-  opening_hours?: Array<{
-    dayOfWeek: number;
-    isClosed: boolean;
-    openTime?: string;
-    closeTime?: string;
-  }>;
-  phone?: string;
-  instagram?: string;
-  facebook?: string;
-  [key: string]: unknown;
-}
-
-interface Step4HoursProps {
-  scrapedData: ScrapedDataInput | null;
-}
 
 interface DayHours {
   dayOfWeek: number;
@@ -39,14 +20,14 @@ interface DayHours {
 function getDefaultHours(): DayHours[] {
   return Array.from({ length: 7 }, (_, i) => ({
     dayOfWeek: i,
-    isClosed: false,
+    isClosed: true, // Start closed, animation will open Mon-Sat
     openTime: "10:00",
     closeTime: "22:00",
   }));
 }
 
-export function Step4Hours({ scrapedData }: Step4HoursProps) {
-  const { state, updateStep, nextStep, prevStep } = useSignupWizard();
+export function Step4Hours() {
+  const { state, updateStep, nextStep, prevStep, scrapedData } = useSignupWizard();
 
   const [hours, setHours] = useState<DayHours[]>(() => {
     if (state.step4.openingHours && state.step4.openingHours.length === 7) {
@@ -65,47 +46,56 @@ export function Step4Hours({ scrapedData }: Step4HoursProps) {
   const [facebook, setFacebook] = useState(state.step4.facebook ?? "");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const [phoneAutoFilled, setPhoneAutoFilled] = useState(false);
-  const [instagramAutoFilled, setInstagramAutoFilled] = useState(false);
-  const [facebookAutoFilled, setFacebookAutoFilled] = useState(false);
-  const [_hoursAutoFilled, setHoursAutoFilled] = useState(false);
-
-  const hasAppliedScraped = useRef(false);
-
-  // Apply scraped data
+  // Cascade animation: open Mon-Sat one by one
+  const hasAnimated = useRef(false);
   useEffect(() => {
-    if (hasAppliedScraped.current || !scrapedData) return;
-    hasAppliedScraped.current = true;
+    if (hasAnimated.current) return;
+    // Only animate if all days are currently closed (fresh state)
+    const allClosed = hours.every((h) => h.isClosed);
+    if (!allClosed) {
+      hasAnimated.current = true;
+      return;
+    }
 
-    if (scrapedData.opening_hours && scrapedData.opening_hours.length === 7) {
-      setHours(
-        scrapedData.opening_hours.map((h) => ({
-          dayOfWeek: h.dayOfWeek,
-          isClosed: h.isClosed,
-          openTime: h.openTime ?? "10:00",
-          closeTime: h.closeTime ?? "22:00",
-        })),
+    hasAnimated.current = true;
+    // Open Mon(0) through Sat(5) with staggered delay
+    const DAYS_TO_OPEN = [0, 1, 2, 3, 4, 5]; // Mon-Sat, Sunday(6) stays closed
+    const STAGGER_MS = 120;
+
+    DAYS_TO_OPEN.forEach((dayIndex, i) => {
+      setTimeout(
+        () => {
+          setHours((prev) =>
+            prev.map((day, idx) => (idx === dayIndex ? { ...day, isClosed: false } : day)),
+          );
+        },
+        400 + i * STAGGER_MS,
       );
-      setHoursAutoFilled(true);
-    }
+    });
+  }, []); // intentional: run once on mount only
 
-    if (scrapedData.phone && !phone) {
-      setPhone(scrapedData.phone);
-      setPhoneAutoFilled(true);
+  // Apply scraped contact data — re-check when scrapedData arrives
+  const appliedFieldsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!scrapedData) return;
+
+    if (scrapedData.phone && !phone && !appliedFieldsRef.current.has("phone")) {
+      appliedFieldsRef.current.add("phone");
+      setPhone(scrapedData.phone as string);
     }
-    if (scrapedData.instagram && !instagram) {
-      setInstagram(scrapedData.instagram);
-      setInstagramAutoFilled(true);
+    const social = scrapedData.socialLinks as Record<string, string> | undefined;
+    if (social?.instagram && !instagram && !appliedFieldsRef.current.has("instagram")) {
+      appliedFieldsRef.current.add("instagram");
+      setInstagram(social.instagram);
     }
-    if (scrapedData.facebook && !facebook) {
-      setFacebook(scrapedData.facebook);
-      setFacebookAutoFilled(true);
+    if (social?.facebook && !facebook && !appliedFieldsRef.current.has("facebook")) {
+      appliedFieldsRef.current.add("facebook");
+      setFacebook(social.facebook);
     }
-  }, [scrapedData]);
+  }, [scrapedData]); // intentional: only track scrapedData changes
 
   const updateDay = (index: number, updates: Partial<DayHours>) => {
     setHours((prev) => prev.map((day, i) => (i === index ? { ...day, ...updates } : day)));
-    setHoursAutoFilled(false);
   };
 
   const handleNext = () => {
@@ -149,37 +139,56 @@ export function Step4Hours({ scrapedData }: Step4HoursProps) {
           {hours.map((day, index) => (
             <div
               key={day.dayOfWeek}
-              className="border-border bg-card flex items-center gap-3 rounded-lg border p-3"
+              className="flex items-center gap-3 rounded-lg border p-3 transition-colors duration-300"
+              style={{
+                borderColor: day.isClosed ? "var(--border)" : "oklch(0.75 0.18 145 / 0.4)",
+                backgroundColor: day.isClosed ? "var(--card)" : "oklch(0.75 0.18 145 / 0.05)",
+              }}
             >
               <span className="text-foreground w-20 text-sm font-medium">{DAY_LABELS[index]}</span>
 
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id={`closed-${index}`}
-                  checked={day.isClosed}
-                  onCheckedChange={(checked) => updateDay(index, { isClosed: !!checked })}
+              <button
+                type="button"
+                onClick={() => updateDay(index, { isClosed: !day.isClosed })}
+                className="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all duration-300"
+                style={{
+                  backgroundColor: day.isClosed
+                    ? "oklch(0.55 0.01 0 / 0.1)"
+                    : "oklch(0.75 0.18 145 / 0.15)",
+                  color: day.isClosed ? "oklch(0.55 0.01 0)" : "oklch(0.45 0.18 145)",
+                }}
+              >
+                <span
+                  className="inline-block h-2 w-2 rounded-full transition-colors duration-300"
+                  style={{
+                    backgroundColor: day.isClosed
+                      ? "oklch(0.55 0.01 0 / 0.4)"
+                      : "oklch(0.65 0.2 145)",
+                  }}
                 />
-                <Label htmlFor={`closed-${index}`} className="text-muted-foreground text-xs">
-                  Stengt
-                </Label>
-              </div>
+                {day.isClosed ? "Stengt" : "Åpent"}
+              </button>
 
               {!day.isClosed && (
-                <>
+                <div className="ml-auto flex items-center gap-2">
                   <Input
                     type="time"
                     value={day.openTime}
-                    onChange={(e) => updateDay(index, { openTime: e.target.value })}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      updateDay(index, { openTime: e.target.value })
+                    }
                     className="h-8 w-28 text-sm"
                   />
                   <span className="text-muted-foreground">–</span>
                   <Input
                     type="time"
                     value={day.closeTime}
-                    onChange={(e) => updateDay(index, { closeTime: e.target.value })}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      updateDay(index, { closeTime: e.target.value })
+                    }
                     className="h-8 w-28 text-sm"
                   />
-                </>
+                </div>
               )}
             </div>
           ))}
@@ -192,15 +201,13 @@ export function Step4Hours({ scrapedData }: Step4HoursProps) {
 
         <div className="space-y-2">
           <Label htmlFor="phone">Telefon</Label>
-          <AutoFillField
+          <Input
             id="phone"
             type="tel"
             placeholder="+47 12 34 56 78"
             value={phone}
-            autoFilled={phoneAutoFilled}
-            onChange={(e) => {
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
               setPhone(e.target.value);
-              setPhoneAutoFilled(false);
               setErrors((prev) => ({ ...prev, phone: "" }));
             }}
             aria-invalid={!!errors.phone}
@@ -212,16 +219,12 @@ export function Step4Hours({ scrapedData }: Step4HoursProps) {
           <Label htmlFor="instagram">
             Instagram URL <span className="text-muted-foreground">(valgfritt)</span>
           </Label>
-          <AutoFillField
+          <Input
             id="instagram"
             type="url"
             placeholder="https://instagram.com/dinbedrift"
             value={instagram}
-            autoFilled={instagramAutoFilled}
-            onChange={(e) => {
-              setInstagram(e.target.value);
-              setInstagramAutoFilled(false);
-            }}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInstagram(e.target.value)}
           />
         </div>
 
@@ -229,16 +232,12 @@ export function Step4Hours({ scrapedData }: Step4HoursProps) {
           <Label htmlFor="facebook">
             Facebook URL <span className="text-muted-foreground">(valgfritt)</span>
           </Label>
-          <AutoFillField
+          <Input
             id="facebook"
             type="url"
             placeholder="https://facebook.com/dinbedrift"
             value={facebook}
-            autoFilled={facebookAutoFilled}
-            onChange={(e) => {
-              setFacebook(e.target.value);
-              setFacebookAutoFilled(false);
-            }}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFacebook(e.target.value)}
           />
         </div>
       </div>

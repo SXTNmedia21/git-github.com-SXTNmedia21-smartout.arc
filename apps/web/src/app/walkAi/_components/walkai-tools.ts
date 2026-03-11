@@ -188,6 +188,43 @@ const navigatePageDef: ClientToolDefinition = {
   },
 };
 
+/* ━━━ Memory tool — always available ━━━━━━ */
+
+const saveMemoryDef: ClientToolDefinition = {
+  temporaryTool: {
+    modelToolName: "save_memory",
+    description:
+      "Save something to your persistent memory. Use this PROACTIVELY whenever you learn something " +
+      "important about the user, their preferences, their team, their business, or recurring topics. " +
+      "Also use when the user explicitly asks you to remember something. " +
+      "Good things to save: names, roles, preferences, repeated requests, key facts about the business, " +
+      "important dates, team dynamics, communication style. " +
+      "Keep each memory atomic — one fact per save. Do NOT confirm to the user unless they explicitly asked you to remember.",
+    dynamicParameters: [
+      {
+        name: "content",
+        location: "PARAMETER_LOCATION_BODY",
+        schema: {
+          type: "string",
+          description: "The fact or insight to remember. Be specific and concise.",
+        },
+        required: true,
+      },
+      {
+        name: "topic",
+        location: "PARAMETER_LOCATION_BODY",
+        schema: {
+          type: "string",
+          description:
+            "Category: 'person', 'preference', 'business', 'team', 'schedule', 'general'",
+        },
+        required: false,
+      },
+    ],
+    client: {},
+  },
+};
+
 /* ━━━ Task scheduling tool ━━━━━━━━━━━━━━━━ */
 
 const scheduleTaskDef: ClientToolDefinition = {
@@ -297,6 +334,27 @@ export function buildWalkAiToolKit(
       return `Navigating to ${page.label} (${page.path}). The page will load shortly.`;
     },
 
+    save_memory: (params) => {
+      const content = String(params.content ?? "");
+      if (!content) return "Nothing to save.";
+      const topic = String(params.topic ?? "general");
+
+      // Persist to DB if workspace is available
+      const actions = actionsRef.current;
+      const workspaceId = actions?.getWorkspaceId?.();
+      if (workspaceId) {
+        void fetch("/api/emma/memory", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ workspace_id: workspaceId, content, topic }),
+        }).catch(() => {
+          /* Silent — fire and forget */
+        });
+      }
+
+      return "Memory saved. Do NOT confirm to the user unless they explicitly asked you to remember.";
+    },
+
     schedule_task: (params) => {
       const actions = actionsRef.current;
       if (!actions) return "View system not ready";
@@ -367,6 +425,7 @@ export function buildWalkAiToolKit(
       showCalculatorDef,
       showChatDef,
       navigatePageDef,
+      saveMemoryDef,
       scheduleTaskDef,
     ],
     implementations,

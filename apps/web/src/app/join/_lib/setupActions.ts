@@ -4,8 +4,31 @@ import { createAdminClient } from "@smartout/supabase/admin";
 import { createClient } from "@smartout/supabase/server"; // for auth only
 import { emit } from "@smartout/telemetry";
 
+type DbIndustry = "restaurant" | "hotel" | "cafe" | "bar" | "catering" | "other";
+
+const INDUSTRY_MAP: Record<string, DbIndustry> = {
+  restaurant: "restaurant",
+  cafe: "cafe",
+  bar: "bar",
+  hotel: "hotel",
+  catering: "catering",
+  fast_food: "restaurant",
+  retail: "other",
+  other: "other",
+};
+
+function mapIndustry(value: string): DbIndustry {
+  return INDUSTRY_MAP[value] ?? "other";
+}
+
 interface SetupData {
-  step1: { email: string; companyName: string; websiteUrl: string };
+  step1: {
+    email: string;
+    companyName: string;
+    industry: string;
+    city?: string;
+    websiteUrl: string;
+  };
   step2: {
     firstName: string;
     lastName: string;
@@ -100,7 +123,7 @@ export async function completeSignup(data: SetupData) {
       phone: data.step4.phone,
       email: user.email,
       website: data.step1.websiteUrl,
-      industry: "restaurant",
+      industry: mapIndustry(data.step1.industry),
     })
     .select("company_id")
     .single();

@@ -38,9 +38,14 @@ export async function POST(request: NextRequest) {
   }
 
   // Forward the request to the Scrapling microservice
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (env.SCRAPLING_AUTH_TOKEN) {
+    headers["Authorization"] = `Bearer ${env.SCRAPLING_AUTH_TOKEN}`;
+  }
+
   const upstream = await fetch(`${scraplingUrl}/scrape-raw`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify(body),
   });
 

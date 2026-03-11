@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Sparkles } from "lucide-react";
 import { useSignupWizard } from "../_hooks/useSignupWizard";
+import { useTypewriterSequence } from "../_hooks/useTypewriter";
 import type { ScrapeStatus } from "../_hooks/useScrapedData";
 import { step2Schema } from "../_lib/validation";
 
@@ -14,7 +15,11 @@ interface Step2BusinessProps {
 }
 
 export function Step2Business({ scrapeStatus }: Step2BusinessProps) {
-  const { state, updateStep, nextStep, prevStep } = useSignupWizard();
+  const wizard = useSignupWizard();
+  const { state, updateStep, nextStep, prevStep } = wizard;
+  const brregData = wizard.brregData ?? null;
+  const brregCandidates = wizard.brregCandidates ?? [];
+  const selectBrregCandidate = wizard.selectBrregCandidate ?? (() => {});
 
   const [firstName, setFirstName] = useState(state.step2.firstName ?? "");
   const [lastName, setLastName] = useState(state.step2.lastName ?? "");
@@ -23,6 +28,57 @@ export function Step2Business({ scrapeStatus }: Step2BusinessProps) {
   const [city, setCity] = useState(state.step2.city ?? "");
   const [orgNumber, setOrgNumber] = useState(state.step2.orgNumber ?? "");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [userEdited, setUserEdited] = useState<Record<string, boolean>>({});
+
+  // Build typewriter fields from BRREG data
+  const hasAppliedBrreg = useRef(false);
+  const typewriterFields = useMemo(() => {
+    if (!brregData || hasAppliedBrreg.current) return [];
+    const fields: Array<{ key: string; value: string }> = [];
+    if (brregData.street) fields.push({ key: "street", value: brregData.street });
+    if (brregData.postalCode) fields.push({ key: "postalCode", value: brregData.postalCode });
+    if (brregData.city) fields.push({ key: "city", value: brregData.city });
+    if (brregData.orgNumber) {
+      const formatted = brregData.orgNumber.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3");
+      fields.push({ key: "orgNumber", value: formatted });
+    }
+    return fields;
+  }, [brregData]);
+
+  const shouldType = typewriterFields.length > 0 && !hasAppliedBrreg.current;
+  const {
+    values: typedValues,
+    activeIndex,
+    allDone,
+  } = useTypewriterSequence(typewriterFields, shouldType, {
+    initialDelay: 900,
+    speed: 30,
+    gap: 200,
+  });
+
+  // Sync typewriter output to state
+  useEffect(() => {
+    if (!shouldType) return;
+    if (typedValues.street && !userEdited.street) setStreet(typedValues.street);
+    if (typedValues.postalCode && !userEdited.postalCode) setPostalCode(typedValues.postalCode);
+    if (typedValues.city && !userEdited.city) setCity(typedValues.city);
+    if (typedValues.orgNumber && !userEdited.orgNumber) setOrgNumber(typedValues.orgNumber);
+  }, [typedValues, shouldType, userEdited]);
+
+  // Mark as applied when sequence completes
+  useEffect(() => {
+    if (allDone && shouldType) {
+      hasAppliedBrreg.current = true;
+    }
+  }, [allDone, shouldType]);
+
+  // Handle BRREG candidate selection — reset typewriter
+  const handleSelectCandidate = (candidate: typeof brregData) => {
+    if (!candidate) return;
+    selectBrregCandidate(candidate);
+    hasAppliedBrreg.current = false;
+    setUserEdited({});
+  };
 
   const handleNext = () => {
     const result = step2Schema.safeParse({
@@ -52,6 +108,16 @@ export function Step2Business({ scrapeStatus }: Step2BusinessProps) {
     setErrors((prev) => ({ ...prev, [field]: "" }));
   };
 
+  const markEdited = (field: string) => {
+    setUserEdited((prev) => ({ ...prev, [field]: true }));
+  };
+
+  // Which field is currently being typed?
+  const typingField =
+    activeIndex >= 0 && activeIndex < typewriterFields.length
+      ? typewriterFields[activeIndex]!.key
+      : null;
+
   return (
     <div className="mx-auto w-full max-w-md space-y-6">
       <div>
@@ -63,7 +129,41 @@ export function Step2Business({ scrapeStatus }: Step2BusinessProps) {
             Henter data fra nettsiden din...
           </p>
         )}
+        {allDone && (
+          <p className="mt-2 flex items-center gap-1.5 text-xs text-orange-500">
+            <Sparkles className="h-3 w-3" />
+            Fylt ut fra Brønnøysundregistrene
+          </p>
+        )}
       </div>
+
+      {/* BRREG candidates selector — show if multiple matches */}
+      {brregCandidates.length > 1 && (
+        <div className="space-y-2">
+          <Label className="text-muted-foreground text-xs">
+            Vi fant flere bedrifter — velg riktig:
+          </Label>
+          <div className="space-y-1">
+            {brregCandidates.map((c) => (
+              <button
+                key={c.orgNumber}
+                type="button"
+                onClick={() => handleSelectCandidate(c)}
+                className={`w-full rounded-lg border px-3 py-2 text-left text-xs transition-colors ${
+                  brregData?.orgNumber === c.orgNumber
+                    ? "border-orange-500 bg-orange-500/10"
+                    : "border-border hover:bg-accent"
+                }`}
+              >
+                <span className="text-foreground font-medium">{c.name}</span>
+                <span className="text-muted-foreground ml-2">
+                  {c.orgNumber} · {c.city}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
@@ -98,8 +198,11 @@ export function Step2Business({ scrapeStatus }: Step2BusinessProps) {
           </div>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="street">Gateadresse</Label>
+        <TypewriterField
+          label="Gateadresse"
+          typing={typingField === "street"}
+          autoFilled={allDone && !userEdited.street && !!brregData?.street}
+        >
           <Input
             id="street"
             type="text"
@@ -108,15 +211,19 @@ export function Step2Business({ scrapeStatus }: Step2BusinessProps) {
             onChange={(e) => {
               setStreet(e.target.value);
               clearError("street");
+              markEdited("street");
             }}
             aria-invalid={!!errors.street}
           />
           {errors.street && <p className="text-destructive text-xs">{errors.street}</p>}
-        </div>
+        </TypewriterField>
 
         <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="postalCode">Postnummer</Label>
+          <TypewriterField
+            label="Postnummer"
+            typing={typingField === "postalCode"}
+            autoFilled={allDone && !userEdited.postalCode && !!brregData?.postalCode}
+          >
             <Input
               id="postalCode"
               type="text"
@@ -127,14 +234,18 @@ export function Step2Business({ scrapeStatus }: Step2BusinessProps) {
                 const val = e.target.value.replace(/\D/g, "").slice(0, 4);
                 setPostalCode(val);
                 clearError("postalCode");
+                markEdited("postalCode");
               }}
               aria-invalid={!!errors.postalCode}
             />
             {errors.postalCode && <p className="text-destructive text-xs">{errors.postalCode}</p>}
-          </div>
+          </TypewriterField>
 
-          <div className="space-y-2">
-            <Label htmlFor="city">Poststed</Label>
+          <TypewriterField
+            label="Poststed"
+            typing={typingField === "city"}
+            autoFilled={allDone && !userEdited.city && !!brregData?.city}
+          >
             <Input
               id="city"
               type="text"
@@ -143,15 +254,19 @@ export function Step2Business({ scrapeStatus }: Step2BusinessProps) {
               onChange={(e) => {
                 setCity(e.target.value);
                 clearError("city");
+                markEdited("city");
               }}
               aria-invalid={!!errors.city}
             />
             {errors.city && <p className="text-destructive text-xs">{errors.city}</p>}
-          </div>
+          </TypewriterField>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="orgNumber">Org.nummer</Label>
+        <TypewriterField
+          label="Org.nummer"
+          typing={typingField === "orgNumber"}
+          autoFilled={allDone && !userEdited.orgNumber && !!brregData?.orgNumber}
+        >
           <Input
             id="orgNumber"
             type="text"
@@ -162,11 +277,12 @@ export function Step2Business({ scrapeStatus }: Step2BusinessProps) {
               const val = e.target.value.replace(/[^\d\s]/g, "");
               setOrgNumber(val);
               clearError("orgNumber");
+              markEdited("orgNumber");
             }}
             aria-invalid={!!errors.orgNumber}
           />
           {errors.orgNumber && <p className="text-destructive text-xs">{errors.orgNumber}</p>}
-        </div>
+        </TypewriterField>
       </div>
 
       <div className="flex gap-3">
@@ -183,6 +299,40 @@ export function Step2Business({ scrapeStatus }: Step2BusinessProps) {
           <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </div>
+    </div>
+  );
+}
+
+/* ── Typewriter field wrapper ── */
+
+function TypewriterField({
+  label,
+  typing,
+  autoFilled,
+  children,
+}: {
+  label: string;
+  typing: boolean;
+  autoFilled: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-1.5">
+        <Label>{label}</Label>
+        {typing && (
+          <span className="flex animate-pulse items-center gap-0.5 text-[10px] text-orange-500">
+            <Sparkles className="h-2.5 w-2.5" />
+          </span>
+        )}
+        {autoFilled && !typing && (
+          <span className="flex items-center gap-0.5 text-[10px] text-orange-500/60">
+            <Sparkles className="h-2.5 w-2.5" />
+            BRREG
+          </span>
+        )}
+      </div>
+      {children}
     </div>
   );
 }

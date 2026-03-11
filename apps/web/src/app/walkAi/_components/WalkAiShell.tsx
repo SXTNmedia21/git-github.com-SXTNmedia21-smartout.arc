@@ -179,7 +179,7 @@ export function WalkAiShell() {
     const x = stickySide === "left" ? EDGE_GAP : getVw() - stickyDim.width - EDGE_GAP;
     const y = Math.max(EDGE_GAP, Math.min(position.y, getVh() - stickyDim.height - EDGE_GAP));
     setPosition({ x, y });
-  }, [isSticky, stickySide, setPosition]);
+  }, [isSticky, stickySide, setPosition]); // intentional: position.y excluded to avoid recalc loop
 
   /* ━━━ Magnetic clamp on density change ━━━ */
   useEffect(() => {
@@ -338,7 +338,7 @@ export function WalkAiShell() {
   };
 
   /* ━━━ Resize — corner grip, arena only ━━━ */
-  const handleResizeStart = useCallback(
+  const _handleResizeStart = useCallback(
     (e: React.PointerEvent) => {
       e.preventDefault();
       e.stopPropagation();
@@ -354,7 +354,7 @@ export function WalkAiShell() {
     [arenaSize, setResizing],
   );
 
-  const handleResizeMove = useCallback(
+  const _handleResizeMove = useCallback(
     (e: React.PointerEvent) => {
       if (!isResizing) return;
       const dx = e.clientX - resizeState.current.startX;
@@ -365,7 +365,7 @@ export function WalkAiShell() {
     [isResizing, setArenaSize],
   );
 
-  const handleResizeEnd = useCallback(
+  const _handleResizeEnd = useCallback(
     (e: React.PointerEvent) => {
       if (!isResizing) return;
       (e.target as HTMLElement).releasePointerCapture(e.pointerId);
@@ -584,39 +584,7 @@ export function WalkAiShell() {
         </div>
       )}
 
-      {/* Resize grip — bottom-right corner, arena only */}
-      {isArena && (
-        <div
-          className="group absolute right-0 bottom-0 z-30 cursor-nwse-resize"
-          style={{ width: 20, height: 20 }}
-          onPointerDown={handleResizeStart}
-          onPointerMove={handleResizeMove}
-          onPointerUp={handleResizeEnd}
-        >
-          <svg
-            width="10"
-            height="10"
-            viewBox="0 0 10 10"
-            className="text-muted-foreground/0 group-hover:text-muted-foreground/30 absolute right-1 bottom-1 transition-colors duration-200"
-          >
-            <path
-              d="M9 1L1 9M9 4L4 9M9 7L7 9"
-              stroke="currentColor"
-              strokeWidth="1"
-              strokeLinecap="round"
-            />
-          </svg>
-        </div>
-      )}
-
-      {/* Resize overlay */}
-      {isArena && isResizing && (
-        <div
-          className="fixed inset-0 z-50 cursor-nwse-resize"
-          onPointerMove={handleResizeMove}
-          onPointerUp={handleResizeEnd}
-        />
-      )}
+      {/* Resize is now handled inside WalkAiArena via ResizeHandles component */}
     </div>
   );
 }

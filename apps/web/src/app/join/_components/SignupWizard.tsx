@@ -3,14 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { WizardProvider, useSignupWizard, type WizardState } from "../_hooks/useSignupWizard";
+import { WizardProvider, useSignupWizard } from "../_hooks/useSignupWizard";
 import { WizardProgress } from "./WizardProgress";
 import { Step1Account } from "./Step1Account";
 import { Step2Business } from "./Step2Business";
 import { Step3About } from "./Step3About";
 import { Step4Hours } from "./Step4Hours";
 import { Step5Menu } from "./Step5Menu";
-import { Step6Team } from "./Step6Team";
+import { Step6CreateAccount } from "./Step6CreateAccount";
 import { SetupLoading } from "./SetupLoading";
 
 /* ─────────────────────────────────────────────────────
@@ -21,11 +21,6 @@ import { SetupLoading } from "./SetupLoading";
    - Wizard content on the LEFT
    - Contextual messages per step on the brand panel
    ───────────────────────────────────────────────────── */
-
-interface SignupWizardProps {
-  userEmail: string;
-  initialState?: Partial<WizardState>;
-}
 
 // Step-specific brand messages
 const STEP_MESSAGES: Record<number, { heading: string; sub: string }> = {
@@ -46,13 +41,13 @@ const STEP_MESSAGES: Record<number, { heading: string; sub: string }> = {
     sub: "Åpningstider hjelper oss planlegge drift og bemanning.",
   },
   5: { heading: "Del menyen\ndin.", sub: "Valgfritt — men det gir smartere opplæring." },
-  6: { heading: "Bygg teamet\nditt.", sub: "Legg til ansatte nå eller inviter dem senere." },
+  6: { heading: "Nesten\nferdig.", sub: "Opprett kontoen din for å fullføre." },
 };
 
-export function SignupWizard({ userEmail, initialState }: SignupWizardProps) {
+export function SignupWizard() {
   return (
-    <WizardProvider initialState={initialState}>
-      <WizardContent userEmail={userEmail} />
+    <WizardProvider>
+      <WizardContent />
     </WizardProvider>
   );
 }
@@ -88,8 +83,8 @@ const brandTransition = {
   },
 };
 
-function WizardContent({ userEmail }: { userEmail: string }) {
-  const { state, scrapedData, scrapeStatus } = useSignupWizard();
+function WizardContent() {
+  const { state, scrapeStatus } = useSignupWizard();
   const prevStepRef = useRef(state.currentStep);
   const [direction, setDirection] = useState<"forward" | "backward">("forward");
 
@@ -123,18 +118,12 @@ function WizardContent({ userEmail }: { userEmail: string }) {
               } as React.CSSProperties
             }
           >
-            {state.currentStep === 1 && <Step1Account userEmail={userEmail} />}
+            {state.currentStep === 1 && <Step1Account />}
             {state.currentStep === 2 && <Step2Business scrapeStatus={scrapeStatus} />}
-            {state.currentStep === 3 && (
-              <Step3About
-                scrapedData={scrapedData}
-                scrapeStatus={scrapeStatus}
-                companyName={state.step1.companyName ?? ""}
-              />
-            )}
-            {state.currentStep === 4 && <Step4Hours scrapedData={scrapedData} />}
+            {state.currentStep === 3 && <Step3About />}
+            {state.currentStep === 4 && <Step4Hours />}
             {state.currentStep === 5 && <Step5Menu />}
-            {state.currentStep === 6 && <Step6Team />}
+            {state.currentStep === 6 && <Step6CreateAccount />}
             {isSetupPhase && <SetupLoading />}
           </div>
         </main>
