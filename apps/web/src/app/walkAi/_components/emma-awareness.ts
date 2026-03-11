@@ -45,6 +45,7 @@ function push(entry: TelemetryEntry) {
 
 /* ━━━ Global listener (installed once) ━━━━ */
 
+const SERVER_SNAPSHOT: TelemetryEntry[] = [];
 let installed = false;
 
 function installTap() {
@@ -52,7 +53,11 @@ function installTap() {
   installed = true;
 
   window.addEventListener("smartout:telemetry", ((e: CustomEvent) => {
-    const detail = e.detail as { event?: string; properties?: Record<string, unknown>; workspace_id?: string | null };
+    const detail = e.detail as {
+      event?: string;
+      properties?: Record<string, unknown>;
+      workspace_id?: string | null;
+    };
     if (!detail?.event) return;
 
     // Derive a category from the event name (first word)
@@ -93,7 +98,7 @@ export function useEmmaTelemetry() {
     installTap();
   }, []);
 
-  const events = useSyncExternalStore(subscribe, getSnapshot, () => []);
+  const events = useSyncExternalStore(subscribe, getSnapshot, () => SERVER_SNAPSHOT);
 
   const clearEvents = useCallback(() => {
     entries = [];

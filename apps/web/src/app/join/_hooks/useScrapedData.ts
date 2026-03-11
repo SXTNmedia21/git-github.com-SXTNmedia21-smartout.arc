@@ -25,6 +25,7 @@ export function useScrapedData() {
   const [scrapeStatus, setScrapeStatus] = useState<ScrapeStatus>("idle");
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const attemptRef = useRef(0);
+  const activeRunIdRef = useRef(0);
 
   const cleanup = useCallback(() => {
     if (pollRef.current) {
@@ -39,64 +40,65 @@ export function useScrapedData() {
     return () => cleanup();
   }, [cleanup]);
 
-  const pollStatusRef = useRef<(url: string) => void>(() => {});
+  const pollStatus = useCallback(
+    (url: string, runId: number) => {
+      if (runId !== activeRunIdRef.current) return;
+      attemptRef.current += 1;
 
-  const pollStatus = useCallback((url: string) => {
-    attemptRef.current += 1;
-
-    if (attemptRef.current > MAX_POLL_ATTEMPTS) {
-      setScrapeStatus("failed");
-      cleanup();
-      return;
-    }
-
-    pollRef.current = setTimeout(async () => {
-      try {
-        const res = await fetch("/api/scrape/public", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url }),
-        });
-        if (!res.ok) {
-          setScrapeStatus("failed");
-          cleanup();
-          return;
-        }
-
-        const data = await res.json();
-        const status = data.status;
-
-        if (status === "success") {
-          setScrapedData(data.data ?? null);
-          setScrapeStatus("success");
-          cleanup();
-        } else if (status === "partial") {
-          setScrapedData(data.data ?? null);
-          setScrapeStatus("partial");
-          cleanup();
-        } else if (status === "scraping" || status === "pending" || status === "processing") {
-          // Still scraping — poll same endpoint again with same input URL
-          pollStatusRef.current(url);
-        } else if (status === "failed") {
-          setScrapeStatus("failed");
-          cleanup();
-        } else {
-          setScrapeStatus("failed");
-          cleanup();
-        }
-      } catch {
+      if (attemptRef.current > MAX_POLL_ATTEMPTS) {
         setScrapeStatus("failed");
         cleanup();
+        return;
       }
-    }, POLL_INTERVAL_MS);
-  }, [cleanup]);
 
-  useEffect(() => {
-    pollStatusRef.current = pollStatus;
-  }, [pollStatus]);
+      pollRef.current = setTimeout(async () => {
+        if (runId !== activeRunIdRef.current) return;
+        try {
+          const res = await fetch("/api/scrape/public", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url }),
+          });
+          if (!res.ok) {
+            setScrapeStatus("failed");
+            cleanup();
+            return;
+          }
+
+          const data = await res.json();
+          const status = data.status;
+
+          if (status === "success") {
+            setScrapedData(data.data ?? null);
+            setScrapeStatus("success");
+            cleanup();
+          } else if (status === "partial") {
+            setScrapedData(data.data ?? null);
+            setScrapeStatus("partial");
+            cleanup();
+          } else if (status === "scraping" || status === "pending" || status === "processing") {
+            // Still scraping — continue polling in the same run.
+            pollStatus(url, runId);
+          } else if (status === "failed") {
+            setScrapeStatus("failed");
+            cleanup();
+          } else {
+            setScrapeStatus("failed");
+            cleanup();
+          }
+        } catch {
+          setScrapeStatus("failed");
+          cleanup();
+        }
+      }, POLL_INTERVAL_MS);
+    },
+    [cleanup],
+  );
 
   const triggerScrape = useCallback(
     async (url: string) => {
+      const runId = activeRunIdRef.current + 1;
+      activeRunIdRef.current = runId;
       cleanup();
       setScrapeStatus("scraping");
       setScrapedData(null);
@@ -123,7 +125,7 @@ export function useScrapedData() {
           data.status === "pending" ||
           data.status === "processing"
         ) {
-          pollStatusRef.current(url);
+          pollStatus(url, runId);
         } else {
           setScrapeStatus("failed");
         }
@@ -131,7 +133,7 @@ export function useScrapedData() {
         setScrapeStatus("failed");
       }
     },
-    [cleanup],
+    [cleanup, pollStatus],
   );
 
   return { scrapedData, scrapeStatus, triggerScrape };

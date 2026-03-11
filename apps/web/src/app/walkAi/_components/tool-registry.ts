@@ -26,6 +26,7 @@ type RegisteredToolSet = {
 
 const registry = new Map<string, RegisteredToolSet>();
 let snapshot: RegisteredToolSet[] = [];
+const SERVER_SNAPSHOT: RegisteredToolSet[] = [];
 const listeners = new Set<() => void>();
 
 function notify() {
@@ -67,7 +68,7 @@ export function registerTools(source: string, tools: ClientToolKit): () => void 
  * merged into a single definitions + implementations object.
  */
 export function useRegisteredTools(): ClientToolKit {
-  const sets = useSyncExternalStore(subscribe, getSnapshot, () => []);
+  const sets = useSyncExternalStore(subscribe, getSnapshot, () => SERVER_SNAPSHOT);
 
   if (sets.length === 0) {
     return { definitions: [], implementations: {} };
