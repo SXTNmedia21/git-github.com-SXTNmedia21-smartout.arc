@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import { redirect } from "next/navigation";
 import { createClient } from "@smartout/supabase/server";
 import { SignupWizard } from "./_components/SignupWizard";
 
