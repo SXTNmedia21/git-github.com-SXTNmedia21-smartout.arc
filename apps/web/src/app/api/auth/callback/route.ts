@@ -38,7 +38,6 @@ export async function GET(request: Request) {
           .maybeSingle();
 
         if (progressError) {
-          // On unexpected query errors, fail safe to first signup step.
           return NextResponse.redirect(new URL("/join?step=1", origin));
         }
 
