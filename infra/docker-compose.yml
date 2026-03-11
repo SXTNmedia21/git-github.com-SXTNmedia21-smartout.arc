@@ -39,7 +39,7 @@ services:
   stage-engine:
     build:
       context: ../
-      dockerfile: packages/walkAi/mission-runner/Dockerfile
+      dockerfile: services/stage-engine/Dockerfile
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
@@ -125,6 +125,7 @@ services:
     environment:
       - PORT=8000
       - SCRAPLING_AUTH_TOKEN=${SCRAPLING_AUTH_TOKEN}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
     networks:
       - smartout-internal
     healthcheck:
