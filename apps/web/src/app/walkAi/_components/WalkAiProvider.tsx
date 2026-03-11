@@ -291,17 +291,30 @@ export function WalkAiProvider({
 
   /* ━━━ Client tools — Emma morphs the view ━━━ */
 
-  // buildWalkAiToolKit only captures the ref object (stable), not .current.
-  // Tool implementations read .current lazily when invoked, not during render.
-  const [baseTools] = useState(() => buildWalkAiToolKit(viewActionsRef));
+  // Build toolkit in effect to avoid "cannot access refs during render".
+  // Tool implementations read viewActionsRef.current lazily when invoked.
+  const [baseTools, setBaseTools] = useState<ReturnType<typeof buildWalkAiToolKit> | null>(null);
+  useEffect(() => {
+    setBaseTools(buildWalkAiToolKit(viewActionsRef));
+  }, []); // viewActionsRef is stable, only need to build once
+
   const registeredTools = useRegisteredTools();
 
   // Merge base tools + page-registered tools
   const walkAiTools = useMemo(
-    () => ({
-      definitions: [...baseTools.definitions, ...registeredTools.definitions],
-      implementations: { ...baseTools.implementations, ...registeredTools.implementations },
-    }),
+    () =>
+      baseTools
+        ? {
+            definitions: [...baseTools.definitions, ...registeredTools.definitions],
+            implementations: {
+              ...baseTools.implementations,
+              ...registeredTools.implementations,
+            },
+          }
+        : {
+            definitions: registeredTools.definitions,
+            implementations: registeredTools.implementations,
+          },
     [baseTools, registeredTools],
   );
 
