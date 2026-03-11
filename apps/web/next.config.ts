@@ -29,6 +29,7 @@ const nextConfig: NextConfig = {
     "@smartout/ui",
     "@smartout/design-tokens",
     "@smartout/utils",
+    "@smartout/agent-sdk",
   ],
   webpack: (config, { dir }) => {
     const aiDist = path.join(dir, "../../packages/ai/dist");

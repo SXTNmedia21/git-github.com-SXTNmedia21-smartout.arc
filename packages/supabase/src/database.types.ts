@@ -281,6 +281,30 @@ export type Database = {
           },
         ]
       }
+      agent_task: {
+        Row: {
+          created_at: string
+          due_date: string | null
+          id: string
+          profile: string | null
+          prompt: string | null
+        }
+        Insert: {
+          created_at?: string
+          due_date?: string | null
+          id: string
+          profile?: string | null
+          prompt?: string | null
+        }
+        Update: {
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          profile?: string | null
+          prompt?: string | null
+        }
+        Relationships: []
+      }
       asset: {
         Row: {
           asset_id: string
@@ -2158,6 +2182,66 @@ export type Database = {
           },
           {
             foreignKeyName: "deviation_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      emma_task: {
+        Row: {
+          context: Json | null
+          created_at: string
+          description: string | null
+          due_at: string | null
+          id: string
+          mission: string | null
+          profile_id: string
+          status: string
+          title: string
+          triggered_at: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          context?: Json | null
+          created_at?: string
+          description?: string | null
+          due_at?: string | null
+          id?: string
+          mission?: string | null
+          profile_id: string
+          status?: string
+          title: string
+          triggered_at?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          context?: Json | null
+          created_at?: string
+          description?: string | null
+          due_at?: string | null
+          id?: string
+          mission?: string | null
+          profile_id?: string
+          status?: string
+          title?: string
+          triggered_at?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emma_task_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "emma_task_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspace"
@@ -8781,6 +8865,7 @@ export type Database = {
         Args: { p_workspace_id: string }
         Returns: string
       }
+      trigger_due_emma_tasks: { Args: never; Returns: number }
       upsert_secret: {
         Args: { p_description?: string; p_name: string; p_secret: string }
         Returns: string

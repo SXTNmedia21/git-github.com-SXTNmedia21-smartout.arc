@@ -165,13 +165,13 @@ export function DocumentDrop({
     })),
   );
 
-  function updateFiles(updater: (prev: UploadedFile[]) => UploadedFile[]) {
+  const updateFiles = useCallback((updater: (prev: UploadedFile[]) => UploadedFile[]) => {
     setFiles((prev) => {
       const next = updater(prev);
       onFilesChange?.(next);
       return next;
     });
-  }
+  }, [onFilesChange]);
 
   // ── Upload ─────────────────────────────────────────────────
   const uploadFile = useCallback(
@@ -205,7 +205,7 @@ export function DocumentDrop({
         prev.map((f) => (f.id === id ? { ...f, status: "uploaded" as const } : f)),
       );
     },
-    [pathPrefix, bucket, supabase.storage],
+    [pathPrefix, bucket, supabase.storage, updateFiles],
   );
 
   // ── Handle files ───────────────────────────────────────────
@@ -250,7 +250,7 @@ export function DocumentDrop({
       setExtractionResult(null);
       setShowResults(false);
     },
-    [bucket, supabase.storage],
+    [bucket, supabase.storage, updateFiles],
   );
 
   // ── Analyze ────────────────────────────────────────────────
@@ -328,7 +328,7 @@ export function DocumentDrop({
     } finally {
       setIsAnalyzing(false);
     }
-  }, [files, workspaceId, bucket, onAnalysisComplete]);
+  }, [files, workspaceId, bucket, onAnalysisComplete, updateFiles]);
 
   // ── Drag events ────────────────────────────────────────────
   const onDragOver = useCallback((e: React.DragEvent) => {

@@ -22,8 +22,7 @@ export default async function JoinPage({
 
   if (user) {
     // Load existing progress for resume
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: progress } = await (supabase as any)
+    const { data: progress } = await supabase
       .from("signup_progress")
       .select("current_step, step_data")
       .eq("auth_id", user.id)

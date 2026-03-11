@@ -118,7 +118,7 @@ export function useIndustryPackage(): UseIndustryPackageResult {
       // Persist to DB in background
       persistMutation.mutate(type);
     },
-    [persistMutation.mutate],
+    [persistMutation],
   );
 
   const pkg = useMemo(() => PACKAGES[detectedType], [detectedType]);

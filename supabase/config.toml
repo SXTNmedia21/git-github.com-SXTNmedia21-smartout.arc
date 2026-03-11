@@ -467,5 +467,8 @@ verify_jwt = false
 [functions.fire-delayed-triggers]
 verify_jwt = false
 
+[functions.emma-task-trigger]
+verify_jwt = false
+
 [functions.analyze-setup-documents]
 verify_jwt = false

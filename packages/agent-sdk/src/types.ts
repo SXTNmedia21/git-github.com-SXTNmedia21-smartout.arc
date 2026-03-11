@@ -32,7 +32,10 @@ export type DebugEntryType =
   | "tool_result"
   | "context_push"
   | "inference"
-  | "event";
+  | "event"
+  | "api_request"
+  | "api_response"
+  | "api_error";
 
 export type DebugEntry = {
   timestamp: number;

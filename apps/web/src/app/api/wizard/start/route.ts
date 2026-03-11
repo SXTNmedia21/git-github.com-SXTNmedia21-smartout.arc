@@ -115,6 +115,7 @@ export async function POST(request: NextRequest) {
         status: res.status,
         provider_error: errData.error ?? "unknown_error",
         provider_message: errData.message ?? "Unknown stage engine error",
+        provider_details: errData.details ?? "none",
       });
       const missionNotFound =
         res.status === 404 &&
@@ -176,6 +177,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error: errData.message ?? "Failed to start voice session",
+          details: errData.details ?? errData.error ?? undefined,
+          upstream_status: errData.upstream_status ?? res.status,
           requestId,
         },
         { status: res.status },
