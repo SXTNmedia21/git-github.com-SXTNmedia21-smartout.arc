@@ -19,6 +19,7 @@ export type EventCategory =
   | "onboarding"
   | "org_structure"
   | "scheduling"
+  | "contracts"
   | "operations"
   | "haccp"
   | "training"
@@ -56,6 +57,8 @@ export type EntityType =
   | "procedure_step"
   | "routine"
   | "runbook"
+  | "contract"
+  | "contract_template"
   | "invitation"
   | "announcement"
   | "chat_message"
@@ -90,6 +93,11 @@ export type ActionVerb =
   | "pending_signoff"
   | "submitted"
   | "admin_action"
+  | "sent"
+  | "cancelled"
+  | "declined"
+  | "expired"
+  | "reminded"
   | "step_completed"
   | "chapter_saved"
   | "hook_fired"
@@ -459,6 +467,13 @@ export type SmartoutEvent =
   | ProtocolCompleted
   | ReconciliationSubmitted
   | ReconciliationAdminAction
+  | ContractCreated
+  | ContractSent
+  | ContractViewed
+  | ContractSigned
+  | ContractCancelled
+  | ContractDeclined
+  | ContractExpired
   | HandbookChapterSaved
   | CommunicationSent
   | CommunicationCancelled
@@ -600,18 +615,40 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "training",
   },
 
-  "signup completed": {
-    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
-    category: "onboarding",
+  "contract created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
   },
-  "onboarding step_completed": {
+  "contract sent": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract viewed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contract signed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract cancelled": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contract declined": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract expired": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+
+  "handbook chapter_saved": {
     destinations: ["posthog", "logger", "engine_event"],
-    category: "onboarding",
+    category: "training",
   },
-  "workspace created": {
-    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
-    category: "onboarding",
-  },
+
   "wizard step_completed": {
     destinations: ["posthog", "logger", "engine_event"],
     category: "onboarding",

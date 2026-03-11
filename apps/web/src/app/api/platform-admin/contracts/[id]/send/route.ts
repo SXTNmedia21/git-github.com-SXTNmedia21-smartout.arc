@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSuperAdminId, logPlatformAction } from "@/lib/platform-admin";
 import { callContractService, isContractServiceConfigured } from "@/lib/contract-service";
+import { emit } from "@smartout/telemetry";
 
 export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const adminId = await getSuperAdminId();
@@ -28,6 +29,16 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
 
   await logPlatformAction(adminId, "send_contract", "contract", id, {
     signing_url: body.signing_url,
+  });
+
+  void emit({
+    event: "contract sent",
+    workspace_id: "",
+    actor_id: adminId,
+    properties: {
+      entity: { entity_type: "contract", entity_id: id },
+      data: { recipient_email: "", expires_at: body.expires_at ?? "" },
+    },
   });
 
   return NextResponse.json({ data: body });

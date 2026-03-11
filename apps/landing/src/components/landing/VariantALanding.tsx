@@ -122,18 +122,18 @@ const viewportOnce = { once: true, amount: 0.2 } as const;
 const HOW_IT_WORKS_STEPS = [
   {
     icon: BookOpen,
-    title: "Laer i ditt tempo",
-    description: "Opplaering med bilder, video og ditt sprak.",
+    title: "Lær i ditt tempo", // CHANGED: Fixed ASCII "Laer" → proper "Lær"
+    description: "Opplæring med bilder, video og ditt språk.", // CHANGED: Fixed ASCII "Opplaering" → "Opplæring", "sprak" → "språk"
   },
   {
     icon: CheckCircle,
     title: "Vis at du kan",
-    description: "Fullfoor oppgaver og bli godkjent.",
+    description: "Fullfør oppgaver og bli godkjent.", // CHANGED: Fixed ASCII "Fullfoor" → "Fullfør"
   },
   {
     icon: TrendingUp,
     title: "Voks i jobben",
-    description: "Bygg kompetanse og fa nye muligheter.",
+    description: "Bygg kompetanse og få nye muligheter.", // CHANGED: Fixed ASCII "fa" → "få"
   },
 ] as const;
 
@@ -161,25 +161,25 @@ const CAREER_STAGES = [
   {
     icon: Star,
     title: "Ny ansatt",
-    description: "Du starter her. Alt du trenger er tilgjengelig.",
+    description: "Velkommen. Alt du trenger ligger klart for deg.", // CHANGED: Warmer welcome, more personal than "Du starter her"
   },
   {
     icon: UserCheck,
-    title: "Opplaert og klar",
-    description: "Du har fullfoort opplaeringen. Du er godkjent.",
+    title: "Opplært og klar", // CHANGED: Fixed ASCII "Opplaert" → "Opplært"
+    description: "Du har fullført opplæringen. Klar for selvstendige vakter.", // CHANGED: Fixed ASCII + more concrete outcome than "Du er godkjent"
   },
   {
     icon: Award,
     title: "Erfaren og respektert",
-    description: "Du mestrer jobben. Du veileder andre.",
+    description: "Du mestrer jobben — og løfter de rundt deg.", // CHANGED: More emotionally resonant, shows impact on others
   },
 ] as const;
 
 /** Privacy bullet points for the trust section */
 const PRIVACY_POINTS = [
-  "Ingen overvaaking av deg som person",
-  "Kun opplaeringsfremgang deles med leder",
-  "Du eier din egen kompetanseprofil",
+  "Ingen overvåking av deg som person", // CHANGED: Fixed ASCII "overvaaking" → "overvåking"
+  "Kun opplæringsfremgang deles med leder", // CHANGED: Fixed ASCII "opplaeringsfremgang" → "opplæringsfremgang"
+  "Din kompetanseprofil tilhører deg", // CHANGED: Tighter phrasing, same meaning — "tilhører deg" stronger than "du eier"
 ] as const;
 
 /**
@@ -249,7 +249,8 @@ export default function VariantALanding() {
             variants={heroReveal}
             transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
           >
-            Jobb med{" "}
+            {/* CHANGED: "Jobb med trygghet" → "Du hører til her" — matches variant theme, more inclusive/welcoming for Ahmad persona */}
+            Du h&oslash;rer til{" "}
             <m.span
               className="inline-block bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent"
               animate={{
@@ -258,7 +259,7 @@ export default function VariantALanding() {
               style={{ backgroundSize: "200% 200%" }}
               transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
             >
-              trygghet.
+              her.
             </m.span>
           </m.h1>
 
@@ -267,7 +268,8 @@ export default function VariantALanding() {
             variants={heroSubtitle}
             transition={{ duration: 0.7, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
           >
-            SmartOut gj&oslash;r deg klar for jobben — p&aring; ditt spr&aring;k.
+            {/* CHANGED: Subtitle rewritten to reinforce belonging — "klar fra dag én" more concrete than "klar for jobben" */}
+            Oppl&aelig;ring p&aring; ditt spr&aring;k. Klar fra dag &eacute;n.
           </m.p>
 
           <m.div
@@ -320,7 +322,8 @@ export default function VariantALanding() {
             variants={fadeUp}
             transition={{ duration: 0.5 }}
           >
-            Enkelt. I tre steg.
+            {/* CHANGED: "Enkelt. I tre steg." → warmer, less instructional, invites rather than states */}
+            Slik kommer du i gang.
           </m.h2>
 
           <div className="grid gap-8 md:grid-cols-3">

@@ -107,7 +107,7 @@ const staggerContainer = {
 const PHILOSOPHY_PRINCIPLES = [
   "Presisjon i hvert steg",
   "Respekt for håndverket",
-  "Sømløs teknologi",
+  "Teknologi som ikke forstyrrer", // CHANGED: "sømløs" is SaaS jargon — this version expresses the same idea in Signe's language
   "Kontinuerlig forbedring",
 ] as const;
 
@@ -115,18 +115,18 @@ const PHILOSOPHY_PRINCIPLES = [
 const TRAINING_FEATURES = [
   {
     icon: Wine,
-    title: "Skreddersydde opplæringsprogrammer",
-    description: "Tilpasset din bedrifts unike behov, tradisjoner og kvalitetsstandarder.",
+    title: "Skreddersydd opplæring", // CHANGED: tighter — "programmer" is filler in this context
+    description: "Formet etter din bedrifts tradisjoner, standarder og ambisjonsnivå.", // CHANGED: "formet etter" is more crafted than "tilpasset", "ambisjonsnivå" adds aspiration
   },
   {
     icon: BookOpen,
-    title: "Bransjespesifikt innhold",
-    description: "Faglig innhold utviklet i samarbeid med bransjens fremste eksperter.",
+    title: "Bransjespesifikt innhold", // kept
+    description: "Utviklet med fagfolk som kjenner forskjellen mellom godt og fremragende.", // CHANGED: appeals to Signe's craft mentality — not just "eksperter" but a quality distinction
   },
   {
     icon: Award,
-    title: "Praktisk kompetansebygging",
-    description: "Fra teori til mestring — hands-on læring som sitter.",
+    title: "Praktisk kompetansebygging", // kept
+    description: "Fra teori til mestring. Læring som sitter — fordi den skjer i kontekst.", // CHANGED: replaced "hands-on" (anglicism) with explanation of why it works
   },
 ] as const;
 
@@ -144,18 +144,18 @@ const DETAIL_CARDS = [
     icon: GlassWater,
     title: "Sensorisk evaluering",
     description:
-      "Strukturert opplæring i smak, aroma og presentasjon — fra grunnleggende til avansert nivå.",
+      "Strukturert trening i smak, aroma og presentasjon — bygget for å utvikle et presist fagspråk.", // CHANGED: "presist fagspråk" is a stronger finish than level-listing, resonates with sommelier precision
   },
   {
     icon: Wine,
     title: "Vinprogrammer",
-    description: "Skreddersydde programmer for vinkart, anbefaling og salg tilpasset din meny.",
+    description: "Vinkart, anbefaling og mersalg — skreddersydd til din meny og dine gjester.", // CHANGED: reordered to lead with outcomes, "dine gjester" makes it personal
   },
   {
     icon: Utensils,
     title: "Servicestandarder",
     description:
-      "Definer og vedlikehold servicenivået som gjestene dine fortjener — hver eneste dag.",
+      "Definer nivået gjestene dine fortjener. Vedlikehold det — uansett hvem som jobber.", // CHANGED: split into two beats for rhythm, "uansett hvem som jobber" is the real promise
   },
 ] as const;
 
@@ -231,8 +231,8 @@ export default function VariantSLanding() {
             className="mx-auto mt-8 max-w-md text-base leading-relaxed text-zinc-400 sm:text-lg"
             variants={fadeUp}
           >
-            SmartOut gjør dine ansatte klare fra dag én — med presisjon, respekt og teknologi i
-            balanse.
+            Dine ansatte, klare fra dag én — med presisjon, respekt og teknologi i balanse.{" "}
+            {/* CHANGED: tighter rhythm — removed "SmartOut gjør" to let the benefit lead */}
           </m.p>
 
           <m.div className="mt-12" variants={fadeUp}>
@@ -264,8 +264,8 @@ export default function VariantSLanding() {
           <m.div variants={fadeUp}>
             <blockquote className="font-[family-name:var(--font-playfair)] text-2xl leading-relaxed font-light text-zinc-300 italic sm:text-3xl lg:text-4xl">
               «Ekte kvalitet oppstår når tradisjon og innovasjon finner balanse. Teknologi skal ikke
-              erstatte håndverket — den skal løfte det. Slik skaper vi en ny standard for opplæring
-              og utvikling i bransjen.»
+              erstatte håndverket — den skal løfte det.»{" "}
+              {/* CHANGED: cut the third sentence — the point lands stronger as a two-beat rhythm. "Slik skaper vi..." was redundant corporate wrap-up. */}
             </blockquote>
           </m.div>
 
@@ -314,7 +314,8 @@ export default function VariantSLanding() {
               Opplæring
             </p>
             <h2 className="font-[family-name:var(--font-playfair)] text-3xl leading-tight font-light tracking-tight text-white sm:text-4xl lg:text-5xl">
-              Opplæring skreddersydd til ditt håndverk.
+              Opplæring i ditt håndverks tempo.{" "}
+              {/* CHANGED: "i ditt håndverks tempo" is more evocative than "skreddersydd til" — implies patience and craft rhythm */}
             </h2>
           </m.div>
 
@@ -443,8 +444,8 @@ export default function VariantSLanding() {
               Kvalitet
             </p>
             <h2 className="font-[family-name:var(--font-playfair)] text-3xl leading-tight font-light tracking-tight text-white sm:text-4xl lg:text-5xl">
-              {/* "Detaljer som gjør forskjellen." */}
-              Detaljer som gjør forskjellen.
+              Detaljene som skiller godt fra fremragende.{" "}
+              {/* CHANGED: sharper — echoes the craft distinction in training features, removed stale comment */}
             </h2>
           </m.div>
 

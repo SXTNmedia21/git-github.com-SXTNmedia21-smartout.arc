@@ -1,41 +1,51 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
-  TrendingUp,
+  AlertCircle,
+  AlertTriangle,
+  Calendar,
+  CalendarClock,
   CheckCircle2,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  AlertCircle,
-  ShieldCheck,
-  BookOpen,
-  ClipboardCheck,
-  GraduationCap,
+  Clock,
   FileSignature,
+  GraduationCap,
+  MailWarning,
+  ShieldCheck,
+  UserPlus,
+  UserMinus,
   Users,
-  Calendar,
 } from "lucide-react";
 import { DashboardCard } from "./DashboardCard";
 import { LeaderPulseCard } from "./LeaderPulseCard";
-import { DayInfoDialog } from "@/app/dashboard/schedule/_components/day-info-dialog";
 import {
   useStaffingCoverage,
   getCurrentWeekStart,
   useTrainingReadiness,
+  useActionItems,
+  useGovernanceOverview,
+  useWorkforcePipeline,
+  useActiveSeason,
   type DayCoverage,
+  type ActionCounts,
+  type ProtocolOverviewItem,
+  type PipelineData,
+  type ActiveSeasonData,
 } from "@/app/dashboard/_hooks";
 
 // UI Events:
 // - nav: onDateClick(date) — opens DayControlSheet via parent
-// - action: setWeekOffset(+/-1) — week navigation
-// - action: setWeekOffset(0) — "I dag" button resets to current week
-// - action: setShowEventDialog(true) — opens DayInfoDialog
+// - action: setSignalsOpen(toggle) — expand/collapse signal cards
+// - action: setProtocolsOpen(toggle) — expand/collapse protocol section
 // - color-regime: status-based (good=emerald, warning=orange, critical=red)
 // - visual: ringChart in Staffing card shows fill donut
 // - visual: progressBar in Training card shows completion ratio
+// - visual: action items strip shows urgent counts with color-coded badges
+// - visual: protocol cards show real completion data from useGovernanceOverview
+// - visual: workforce pulse shows pipeline metrics
+// - visual: season card shows active season stage (conditional render)
 // - interaction: SignalCards expand on click to show detail breakdown
-// - conditional: training alert strip only renders when pending > 0
 
 interface TacticalViewProps {
   isDark: boolean;
@@ -46,13 +56,6 @@ function getWeekStart(offset: number): string {
   const base = new Date(getCurrentWeekStart());
   base.setDate(base.getDate() + offset * 7);
   return base.toISOString().split("T")[0]!;
-}
-
-function getWeekNumber(dateStr: string): number {
-  const d = new Date(dateStr);
-  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
 }
 
 function getStatusColor(fillPercent: number): string {
@@ -105,7 +108,7 @@ function StaffingBreakdown({ coverage }: { coverage: DayCoverage[] | undefined }
           return (
             <div key={d.date} className="flex flex-1 flex-col items-center gap-2">
               <div
-                className={`w-full rounded-md transition-all duration-700 ${getStatusColor(d.fillPercent)}`}
+                className={`w-full rounded-md transition-colors duration-500 ${getStatusColor(d.fillPercent)}`}
                 style={{ height: `${h}px` }}
               />
               <span className="text-muted-foreground text-[10px] font-bold">{d.dayLabel}</span>
@@ -132,7 +135,7 @@ function TrainingBreakdown({
 
   const items = [
     {
-      label: "Fullført",
+      label: "Fullfort",
       value: training.completed,
       icon: CheckCircle2,
       color: "text-emerald-500",
@@ -141,12 +144,12 @@ function TrainingBreakdown({
     {
       label: "Ventende",
       value: training.pending,
-      icon: BookOpen,
+      icon: GraduationCap,
       color: "text-orange-500",
       bg: "bg-orange-500/10",
     },
     {
-      label: "Utløpt",
+      label: "Utlopt",
       value: training.expired,
       icon: AlertCircle,
       color: "text-red-500",
@@ -169,73 +172,88 @@ function TrainingBreakdown({
   );
 }
 
-// ── Protocol Cards Section ─────────────────────────────────────────────
+// ── Action Items Strip ─────────────────────────────────────────────────
 
-const DEMO_PROTOCOLS = [
+const ACTION_CONFIG: {
+  key: keyof Omit<ActionCounts, "total">;
+  label: string;
+  icon: typeof AlertTriangle;
+  priority: "critical" | "warning" | "info";
+}[] = [
+  { key: "shiftGaps", label: "Ledige skift", icon: CalendarClock, priority: "critical" },
   {
-    id: "1",
-    name: "Matservering",
-    policyName: "Hygiene & Servering",
-    status: "active" as const,
-    procedures: 4,
-    proceduresCompleted: 3,
-    controlLists: 2,
-    knowledgeTests: 1,
-    testsPassed: 0,
-    confirmations: 1,
-    confirmationsSigned: 1,
-    assignedTo: 12,
-    completedBy: 8,
+    key: "pendingContracts",
+    label: "Ventende kontrakter",
+    icon: FileSignature,
+    priority: "warning",
   },
+  { key: "stuckOnboarding", label: "Fastlast onboarding", icon: Clock, priority: "critical" },
   {
-    id: "2",
-    name: "Brannvern",
-    policyName: "HMS & Sikkerhet",
-    status: "active" as const,
-    procedures: 3,
-    proceduresCompleted: 3,
-    controlLists: 1,
-    knowledgeTests: 1,
-    testsPassed: 1,
-    confirmations: 1,
-    confirmationsSigned: 1,
-    assignedTo: 18,
-    completedBy: 18,
+    key: "pendingProtocols",
+    label: "Ventende protokoller",
+    icon: ShieldCheck,
+    priority: "warning",
   },
-  {
-    id: "3",
-    name: "Kassasystem",
-    policyName: "Daglig Drift",
-    status: "active" as const,
-    procedures: 6,
-    proceduresCompleted: 2,
-    controlLists: 0,
-    knowledgeTests: 2,
-    testsPassed: 1,
-    confirmations: 1,
-    confirmationsSigned: 0,
-    assignedTo: 8,
-    completedBy: 3,
-  },
-  {
-    id: "4",
-    name: "Allergener",
-    policyName: "Mattrygghet (HACCP)",
-    status: "active" as const,
-    procedures: 5,
-    proceduresCompleted: 5,
-    controlLists: 3,
-    knowledgeTests: 1,
-    testsPassed: 1,
-    confirmations: 1,
-    confirmationsSigned: 1,
-    assignedTo: 15,
-    completedBy: 14,
-  },
+  { key: "staleInvitations", label: "Gamle invitasjoner", icon: MailWarning, priority: "info" },
 ];
 
-function ProtocolCardsSection() {
+const PRIORITY_STYLES = {
+  critical: {
+    badge: "border-red-500/20 bg-red-500/10 text-red-500",
+    dot: "bg-red-500",
+  },
+  warning: {
+    badge: "border-orange-500/20 bg-orange-500/10 text-orange-500",
+    dot: "bg-orange-500",
+  },
+  info: {
+    badge: "border-blue-500/20 bg-blue-500/10 text-blue-500",
+    dot: "bg-blue-500",
+  },
+} as const;
+
+function ActionItemsStrip({ counts }: { counts: ActionCounts }) {
+  const activeItems = ACTION_CONFIG.filter((item) => counts[item.key] > 0);
+
+  if (activeItems.length === 0) return null;
+
+  return (
+    <div className="border-border bg-card overflow-hidden rounded-xl border">
+      <div className="border-border/50 flex items-center gap-2 border-b px-4 py-3">
+        <AlertTriangle className="h-4 w-4 text-orange-500" />
+        <h3 className="text-foreground text-sm font-bold">Krever handling</h3>
+        <span className="ml-auto rounded-full bg-orange-500/10 px-2.5 py-0.5 text-[10px] font-bold text-orange-500 tabular-nums">
+          {counts.total}
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-2.5 px-4 py-3.5">
+        {activeItems.map((item) => {
+          const styles = PRIORITY_STYLES[item.priority];
+          const Icon = item.icon;
+          return (
+            <div
+              key={item.key}
+              className={`flex items-center gap-2 rounded-lg border px-3 py-2 ${styles.badge}`}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              <span className="text-xs font-semibold">{item.label}</span>
+              <span className="text-xs font-black tabular-nums">{counts[item.key]}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Protocol Cards Section (real data) ─────────────────────────────────
+
+function ProtocolCardsSection({ protocols }: { protocols: ProtocolOverviewItem[] }) {
   const [isOpen, setIsOpen] = useState(true);
+
+  if (protocols.length === 0) {
+    return null;
+  }
 
   return (
     <div>
@@ -248,7 +266,7 @@ function ProtocolCardsSection() {
           Aktive Protokoller
         </h3>
         <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-[10px] font-bold">
-          {DEMO_PROTOCOLS.length}
+          {protocols.length}
         </span>
         <ChevronDown
           className={`text-muted-foreground h-4 w-4 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}
@@ -264,8 +282,8 @@ function ProtocolCardsSection() {
       >
         <div style={{ overflow: "hidden" }}>
           <div className="grid grid-cols-1 gap-3 pt-1 sm:grid-cols-2">
-            {DEMO_PROTOCOLS.map((protocol) => (
-              <ProtocolCard key={protocol.id} protocol={protocol} />
+            {protocols.map((protocol) => (
+              <ProtocolCard key={protocol.protocolId} protocol={protocol} />
             ))}
           </div>
         </div>
@@ -274,10 +292,8 @@ function ProtocolCardsSection() {
   );
 }
 
-function ProtocolCard({ protocol }: { protocol: (typeof DEMO_PROTOCOLS)[number] }) {
-  const readiness =
-    protocol.assignedTo > 0 ? Math.round((protocol.completedBy / protocol.assignedTo) * 100) : 100;
-
+function ProtocolCard({ protocol }: { protocol: ProtocolOverviewItem }) {
+  const readiness = protocol.completionPercent;
   const isComplete = readiness === 100;
   const statusColor = isComplete
     ? "border-emerald-500/20"
@@ -285,20 +301,14 @@ function ProtocolCard({ protocol }: { protocol: (typeof DEMO_PROTOCOLS)[number] 
       ? "border-orange-500/20"
       : "border-red-500/20";
 
-  const statusBg = isComplete
-    ? "bg-emerald-500/5"
-    : readiness >= 70
-      ? "bg-orange-500/5"
-      : "bg-red-500/5";
-
   return (
     <div
-      className={`group border-border bg-card relative overflow-hidden rounded-xl border p-4 transition-all hover:shadow-md ${statusColor}`}
+      className={`group border-border bg-card relative overflow-hidden rounded-xl border p-5 transition-shadow duration-200 hover:shadow-md ${statusColor}`}
     >
       {/* Readiness indicator bar at top */}
       <div className="bg-muted absolute top-0 right-0 left-0 h-1 overflow-hidden rounded-t-xl">
         <div
-          className={`h-full transition-all duration-1000 ease-out ${
+          className={`h-full transition-[width] duration-700 ease-out ${
             isComplete ? "bg-emerald-500" : readiness >= 70 ? "bg-orange-500" : "bg-red-500"
           }`}
           style={{ width: `${readiness}%` }}
@@ -309,12 +319,18 @@ function ProtocolCard({ protocol }: { protocol: (typeof DEMO_PROTOCOLS)[number] 
       <div className="mt-1 mb-3">
         <div className="flex items-start justify-between">
           <div className="min-w-0 flex-1">
-            <h4 className="text-foreground truncate text-sm font-bold">{protocol.name}</h4>
-            <p className="text-muted-foreground truncate text-[10px]">{protocol.policyName}</p>
+            <h4 className="text-foreground truncate text-sm font-bold">{protocol.protocolName}</h4>
+            <p className="text-muted-foreground truncate text-[10px] capitalize">
+              {protocol.policyType.replace(/_/g, " ")}
+            </p>
           </div>
           <div
-            className={`ml-2 flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-bold ${statusBg} ${
-              isComplete ? "text-emerald-500" : readiness >= 70 ? "text-orange-500" : "text-red-500"
+            className={`ml-2 flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-bold ${
+              isComplete
+                ? "bg-emerald-500/10 text-emerald-500"
+                : readiness >= 70
+                  ? "bg-orange-500/10 text-orange-500"
+                  : "bg-red-500/10 text-red-500"
             }`}
           >
             {readiness}%
@@ -322,75 +338,180 @@ function ProtocolCard({ protocol }: { protocol: (typeof DEMO_PROTOCOLS)[number] 
         </div>
       </div>
 
-      {/* Component counts */}
-      <div className="mb-3 grid grid-cols-4 gap-2">
-        <ComponentBadge
-          icon={BookOpen}
-          count={protocol.procedures}
-          done={protocol.proceduresCompleted}
-          label="Prosedyrer"
-        />
-        <ComponentBadge
-          icon={ClipboardCheck}
-          count={protocol.controlLists}
-          done={protocol.controlLists}
-          label="Kontroller"
-        />
-        <ComponentBadge
-          icon={GraduationCap}
-          count={protocol.knowledgeTests}
-          done={protocol.testsPassed}
-          label="Tester"
-        />
-        <ComponentBadge
-          icon={FileSignature}
-          count={protocol.confirmations}
-          done={protocol.confirmationsSigned}
-          label="Bekreftelser"
-        />
+      {/* Assignment breakdown */}
+      <div className="mb-3 grid grid-cols-3 gap-2">
+        <div className="flex flex-col items-center gap-0.5">
+          <CheckCircle2
+            className={`h-3.5 w-3.5 ${protocol.completedCount > 0 ? "text-emerald-500" : "text-muted-foreground"}`}
+          />
+          <span
+            className={`text-[9px] font-bold tabular-nums ${protocol.completedCount > 0 ? "text-emerald-500" : "text-muted-foreground"}`}
+          >
+            {protocol.completedCount} fullfort
+          </span>
+        </div>
+        <div className="flex flex-col items-center gap-0.5">
+          <Clock
+            className={`h-3.5 w-3.5 ${protocol.pendingCount > 0 ? "text-orange-500" : "text-muted-foreground"}`}
+          />
+          <span
+            className={`text-[9px] font-bold tabular-nums ${protocol.pendingCount > 0 ? "text-orange-500" : "text-muted-foreground"}`}
+          >
+            {protocol.pendingCount} ventende
+          </span>
+        </div>
+        <div className="flex flex-col items-center gap-0.5">
+          <AlertCircle
+            className={`h-3.5 w-3.5 ${protocol.expiredCount > 0 ? "text-red-500" : "text-muted-foreground"}`}
+          />
+          <span
+            className={`text-[9px] font-bold tabular-nums ${protocol.expiredCount > 0 ? "text-red-500" : "text-muted-foreground"}`}
+          >
+            {protocol.expiredCount} utlopt
+          </span>
+        </div>
       </div>
 
       {/* Assignment footer */}
       <div className="border-border flex items-center gap-2 border-t pt-2.5">
         <Users className="text-muted-foreground h-3 w-3" />
         <span className="text-muted-foreground text-[10px] font-semibold">
-          {protocol.completedBy}/{protocol.assignedTo} ansatte fullfort
+          {protocol.completedCount}/{protocol.totalAssigned} ansatte fullfort
         </span>
       </div>
     </div>
   );
 }
 
-function ComponentBadge({
-  icon: Icon,
-  count,
-  done,
-  label,
-}: {
-  icon: typeof BookOpen;
-  count: number;
-  done: number;
-  label: string;
-}) {
-  if (count === 0) {
-    return (
-      <div className="flex flex-col items-center gap-0.5 opacity-30">
-        <Icon className="text-muted-foreground h-3.5 w-3.5" />
-        <span className="text-muted-foreground text-[8px] font-bold">0</span>
-      </div>
-    );
-  }
+// ── Workforce Pulse ────────────────────────────────────────────────────
 
-  const allDone = done >= count;
+function WorkforcePulse({ pipeline }: { pipeline: PipelineData }) {
+  const metrics = [
+    {
+      label: "Aktive ansatte",
+      value: pipeline.activeStaff,
+      icon: Users,
+      color: "text-foreground",
+      bg: "bg-muted/50",
+    },
+    {
+      label: "Nyansatte (30d)",
+      value: pipeline.newHires30d,
+      icon: UserPlus,
+      color: pipeline.newHires30d > 0 ? "text-emerald-500" : "text-foreground",
+      bg: pipeline.newHires30d > 0 ? "bg-emerald-500/5" : "bg-muted/50",
+    },
+    {
+      label: "Under opplaering",
+      value: pipeline.onboarding,
+      icon: GraduationCap,
+      color: pipeline.onboarding > 0 ? "text-blue-500" : "text-foreground",
+      bg: pipeline.onboarding > 0 ? "bg-blue-500/5" : "bg-muted/50",
+    },
+    {
+      label: "Avganger (30d)",
+      value: pipeline.departures30d,
+      icon: UserMinus,
+      color: pipeline.departures30d > 0 ? "text-red-500" : "text-foreground",
+      bg: pipeline.departures30d > 0 ? "bg-red-500/5" : "bg-muted/50",
+    },
+  ];
 
   return (
-    <div className="flex flex-col items-center gap-0.5" title={label}>
-      <Icon className={`h-3.5 w-3.5 ${allDone ? "text-emerald-500" : "text-muted-foreground"}`} />
-      <span
-        className={`text-[8px] font-bold ${allDone ? "text-emerald-500" : "text-muted-foreground"}`}
-      >
-        {done}/{count}
-      </span>
+    <div className="border-border bg-card overflow-hidden rounded-xl border">
+      <div className="border-border/50 flex items-center gap-2 border-b px-4 py-2.5">
+        <Users className="text-muted-foreground h-4 w-4" />
+        <h3 className="text-foreground text-sm font-bold">Bemanning</h3>
+      </div>
+      <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-4">
+        {metrics.map((m) => {
+          const Icon = m.icon;
+          return (
+            <div
+              key={m.label}
+              className={`flex flex-col items-center gap-1.5 rounded-xl p-3 ${m.bg}`}
+            >
+              <Icon className={`h-4 w-4 ${m.color}`} />
+              <span className={`text-xl font-black tabular-nums ${m.color}`}>{m.value}</span>
+              <span className="text-muted-foreground text-center text-[10px] leading-tight font-semibold">
+                {m.label}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Season Card ────────────────────────────────────────────────────────
+
+const STAGE_LABELS: Record<string, string> = {
+  seed: "Planlegging",
+  revenue: "Budsjett",
+  concept: "Konsept",
+  staffing: "Bemanning",
+  prepare: "Forberedelse",
+  ready: "Klar",
+  running: "Aktiv",
+  reflect: "Evaluering",
+};
+
+function SeasonCard({ season }: { season: ActiveSeasonData }) {
+  const stageLabel = STAGE_LABELS[season.currentStage] ?? season.currentStage;
+  const totalStages = 8;
+  const completedCount = season.stagesCompleted.length;
+  const progressPercent = Math.round(((completedCount + 1) / totalStages) * 100);
+
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return "--";
+    const d = new Date(dateStr);
+    return d.toLocaleDateString("nb-NO", { day: "numeric", month: "short" });
+  };
+
+  return (
+    <div className="border-border bg-card overflow-hidden rounded-xl border">
+      <div className="border-border/50 flex items-center gap-2 border-b px-4 py-2.5">
+        <Calendar className="text-muted-foreground h-4 w-4" />
+        <h3 className="text-foreground text-sm font-bold">Sesong</h3>
+        <span className="text-muted-foreground ml-auto text-[10px] font-semibold capitalize">
+          {season.type.replace(/_/g, " ")}
+        </span>
+      </div>
+      <div className="space-y-3 p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h4 className="text-foreground text-sm font-bold">{season.name}</h4>
+            <p className="text-muted-foreground text-[10px] font-medium">
+              {formatDate(season.startDate)} — {formatDate(season.endDate)}
+            </p>
+          </div>
+          <div className="rounded-lg border border-orange-500/20 bg-orange-500/10 px-2.5 py-1 text-[10px] font-bold text-orange-500">
+            {stageLabel}
+          </div>
+        </div>
+        {/* Progress bar */}
+        <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
+          <div
+            className="h-full rounded-full bg-orange-500 transition-[width] duration-700 ease-out"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+        <p className="text-muted-foreground text-[10px] font-medium">
+          Fase {completedCount + 1} av {totalStages}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ── Loading Skeleton ───────────────────────────────────────────────────
+
+function SectionSkeleton() {
+  return (
+    <div className="border-border bg-card animate-pulse rounded-xl border p-4">
+      <div className="bg-muted/50 mb-3 h-4 w-32 rounded-lg" />
+      <div className="bg-muted/50 h-8 w-full rounded-lg" />
     </div>
   );
 }
@@ -398,14 +519,22 @@ function ComponentBadge({
 // ── Main Component ─────────────────────────────────────────────────────
 
 export function TacticalView({ onDateClick }: TacticalViewProps) {
-  const [weekOffset, setWeekOffset] = useState(0);
-  const [showEventDialog, setShowEventDialog] = useState(false);
+  const [weekOffset] = useState(0);
   const [signalsOpen, setSignalsOpen] = useState(false);
   const weekStart = getWeekStart(weekOffset);
-  const weekNum = getWeekNumber(weekStart);
 
-  const { data: coverage, isLoading: coverageLoading } = useStaffingCoverage(weekStart);
+  const { data: coverage } = useStaffingCoverage(weekStart);
   const { data: training } = useTrainingReadiness();
+  const { data: actionCounts, isLoading: actionsLoading } = useActionItems();
+  const { data: protocols, isLoading: protocolsLoading } = useGovernanceOverview();
+  const { data: pipeline, isLoading: pipelineLoading } = useWorkforcePipeline();
+  const { data: season } = useActiveSeason();
+
+  // Stable today string — only changes once per day
+  const todayStr = useMemo(() => new Date().toISOString().split("T")[0]!, []);
+
+  // Stable callback for signal card toggle
+  const toggleSignals = useCallback(() => setSignalsOpen((v) => !v), []);
 
   // Compute overall staffing fill %
   const overallFill =
@@ -416,21 +545,17 @@ export function TacticalView({ onDateClick }: TacticalViewProps) {
         )
       : null;
 
-  // Today's gaps for secondary text
-  const todayStr = new Date().toISOString().split("T")[0];
   const todayGaps = useMemo(() => {
     if (!coverage) return 0;
     const today = coverage.find((d: DayCoverage) => d.date === todayStr);
     return today ? today.totalShifts - today.assignedShifts : 0;
   }, [coverage, todayStr]);
 
-  // Sparkline data: fill percentages for each day of the week
   const sparklineData = useMemo(() => {
     if (!coverage || coverage.length === 0) return undefined;
     return coverage.map((d: DayCoverage) => d.fillPercent);
   }, [coverage]);
 
-  // Totals for ring chart
   const totalShifts = useMemo(() => {
     if (!coverage) return { total: 0, assigned: 0 };
     return {
@@ -456,18 +581,31 @@ export function TacticalView({ onDateClick }: TacticalViewProps) {
         ? "warning"
         : "critical";
 
+  const stableProtocols = useMemo(() => protocols ?? [], [protocols]);
+
+  // Hide workforce pulse if all zeros
+  const hasPipelineData =
+    pipeline &&
+    (pipeline.activeStaff > 0 ||
+      pipeline.newHires30d > 0 ||
+      pipeline.onboarding > 0 ||
+      pipeline.departures30d > 0);
+
+  // Hide action strip if all zeros (no need for "alt i orden" taking space)
+  const hasActionItems = actionCounts && actionCounts.total > 0;
+
   return (
-    <div className="dashboard-enter flex min-w-0 flex-col gap-5 pb-6">
-      {/* Leader Pulse — pending engagement questions, self-hides when empty */}
+    <div className="dashboard-enter flex min-w-0 flex-col gap-6 pb-8">
+      {/* Leader Pulse — self-hides when empty */}
       <LeaderPulseCard />
 
-      {/* Signal Cards — 2 cards, 50/50 width. One click toggles both. */}
+      {/* Signal Cards */}
       <div className="grid flex-shrink-0 grid-cols-1 gap-4 md:grid-cols-2">
         <DashboardCard
           label="Bemanning"
           subtitle="Andel skift med tilordnet personale denne uken"
           value={overallFill !== null ? `${overallFill}%` : "--"}
-          target="mål 100%"
+          target="mal 100%"
           status={staffingStatus}
           icon={<Calendar className="h-4 w-4" />}
           ringChart={
@@ -483,13 +621,13 @@ export function TacticalView({ onDateClick }: TacticalViewProps) {
           }
           expandContent={<StaffingBreakdown coverage={coverage} />}
           isActive={signalsOpen}
-          onCardClick={() => setSignalsOpen((v) => !v)}
+          onCardClick={toggleSignals}
         />
         <DashboardCard
-          label="Opplæring"
-          subtitle="Protokoller fullført av alle tilordnede ansatte"
+          label="Opplaering"
+          subtitle="Protokoller fullfort av alle tilordnede ansatte"
           value={training ? `${training.readinessPercent}%` : "--"}
-          target="mål 100%"
+          target="mal 100%"
           status={trainingStatus}
           icon={<GraduationCap className="h-4 w-4" />}
           trend={
@@ -506,151 +644,33 @@ export function TacticalView({ onDateClick }: TacticalViewProps) {
           secondary={training && training.pending > 0 ? `${training.pending} ventende` : undefined}
           expandContent={<TrainingBreakdown training={training} />}
           isActive={signalsOpen}
-          onCardClick={() => setSignalsOpen((v) => !v)}
+          onCardClick={toggleSignals}
         />
       </div>
 
-      {/* Protocol Cards */}
-      <ProtocolCardsSection />
+      {/* Action Items — only renders when there ARE items to act on */}
+      {actionsLoading ? (
+        <SectionSkeleton />
+      ) : hasActionItems ? (
+        <ActionItemsStrip counts={actionCounts} />
+      ) : null}
 
-      {/* Weekly Staffing — hidden, gives more air to signal cards */}
-      {false && (
-        <div className="border-border bg-card flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border p-4 shadow-sm">
-          {/* Header with week navigation */}
-          <div className="mb-4 flex min-w-0 items-center justify-between">
-            <div className="flex min-w-0 items-center gap-2">
-              <button
-                onClick={() => setWeekOffset((o) => o - 1)}
-                className="border-border text-muted-foreground hover:bg-accent rounded-lg border p-1.5 transition-colors"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <h2 className="text-foreground truncate text-xl font-extrabold">Uke {weekNum}</h2>
-              <button
-                onClick={() => setWeekOffset((o) => o + 1)}
-                className="border-border text-muted-foreground hover:bg-accent rounded-lg border p-1.5 transition-colors"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-              {weekOffset !== 0 && (
-                <button
-                  onClick={() => setWeekOffset(0)}
-                  className="text-muted-foreground hover:text-foreground rounded-lg px-2 py-1 text-xs font-semibold transition-colors"
-                >
-                  I dag
-                </button>
-              )}
-            </div>
-          </div>
+      {/* Protocol Overview — only renders when protocols exist */}
+      {protocolsLoading ? (
+        <SectionSkeleton />
+      ) : stableProtocols.length > 0 ? (
+        <ProtocolCardsSection protocols={stableProtocols} />
+      ) : null}
 
-          {/* 7-column day grid */}
-          <div className="flex min-h-0 flex-1 flex-col">
-            {coverageLoading ? (
-              <div className="grid flex-1 grid-cols-7 gap-2">
-                {Array.from({ length: 7 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="bg-muted/50 flex flex-col items-center gap-2 rounded-xl p-3"
-                  >
-                    <div className="bg-muted h-3 w-8 animate-pulse rounded" />
-                    <div className="bg-muted h-16 w-full animate-pulse rounded-lg" />
-                    <div className="bg-muted h-3 w-6 animate-pulse rounded" />
-                  </div>
-                ))}
-              </div>
-            ) : (coverage?.length ?? 0) > 0 ? (
-              <div className="grid flex-1 grid-cols-7 gap-2">
-                {coverage!.map((d: DayCoverage) => {
-                  const gapCount = d.totalShifts - d.assignedShifts;
-                  const isToday = d.date === todayStr;
-                  const hasShifts = d.totalShifts > 0;
-                  const fillCapped = Math.min(d.fillPercent, 100);
+      {/* Workforce Pulse — only renders when there's data worth showing */}
+      {pipelineLoading ? (
+        <SectionSkeleton />
+      ) : hasPipelineData ? (
+        <WorkforcePulse pipeline={pipeline} />
+      ) : null}
 
-                  return (
-                    <button
-                      key={d.date}
-                      onClick={() => onDateClick?.(d.date)}
-                      className={`group hover:bg-accent flex flex-col items-center gap-1.5 rounded-xl border p-3 transition-colors ${
-                        isToday ? "border-orange-500/30 bg-orange-500/5" : "border-border bg-card"
-                      }`}
-                    >
-                      {/* Day label */}
-                      <span
-                        className={`text-xs font-bold uppercase ${
-                          isToday ? "text-orange-500" : "text-muted-foreground"
-                        }`}
-                      >
-                        {d.dayLabel}
-                      </span>
-
-                      {/* Fill percentage column */}
-                      {hasShifts ? (
-                        <div className="flex w-full flex-1 flex-col items-center justify-end gap-1">
-                          {/* Vertical fill bar */}
-                          <div className="bg-muted relative h-16 w-full overflow-hidden rounded-lg">
-                            <div
-                              className={`absolute bottom-0 left-0 w-full rounded-lg ${getStatusColor(d.fillPercent)} transition-all duration-1000 ease-out`}
-                              style={{ height: `${fillCapped}%` }}
-                            />
-                          </div>
-                          {/* Percentage */}
-                          <span
-                            className={`text-sm font-bold ${getStatusTextColor(d.fillPercent)}`}
-                          >
-                            {d.fillPercent}%
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="flex flex-1 flex-col items-center justify-center">
-                          <span className="text-muted-foreground text-xs">--</span>
-                        </div>
-                      )}
-
-                      {/* Gap count or check */}
-                      <div className="flex h-4 items-center">
-                        {!hasShifts ? null : gapCount > 0 ? (
-                          <span className="text-xs font-semibold text-orange-500">
-                            {gapCount} ledig{gapCount !== 1 ? "e" : ""}
-                          </span>
-                        ) : (
-                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="flex flex-1 items-center justify-center">
-                <p className="text-muted-foreground text-sm">Ingen skift planlagt denne uken</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Training alert strip — only renders when pending > 0 */}
-      {training && training.pending > 0 && (
-        <div className="flex flex-shrink-0 items-center gap-3 rounded-xl border border-orange-500/20 bg-orange-500/5 px-4 py-3">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4 text-orange-500" />
-            <AlertCircle className="h-3.5 w-3.5 text-orange-500" />
-          </div>
-          <p className="text-foreground flex-1 text-sm font-semibold">
-            {training.pending} ventende protokoller
-            <span className="text-muted-foreground mx-1.5">&middot;</span>
-            <span className="text-muted-foreground">{training.readinessPercent}% klarhet</span>
-          </p>
-          <button
-            onClick={() => setShowEventDialog(true)}
-            className="text-xs font-bold text-orange-500 transition-colors hover:text-orange-400"
-          >
-            Vis alle &rarr;
-          </button>
-        </div>
-      )}
-
-      <DayInfoDialog dateId={weekStart} open={showEventDialog} onOpenChange={setShowEventDialog} />
+      {/* Season — only if active season exists */}
+      {season && <SeasonCard season={season} />}
     </div>
   );
 }

@@ -9,7 +9,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { MoreHorizontal, Eye, Bell, XCircle, Download } from "lucide-react";
+
+export type ContractEvent = {
+  contract_id: string;
+  event_type: string;
+  actor_type: string;
+  created_at: string;
+};
 
 export type ContractRow = {
   contract_id: string;
@@ -19,12 +27,14 @@ export type ContractRow = {
   recipient_name: string;
   recipient_email: string;
   sent_at: string | null;
+  viewed_at: string | null;
   signed_at: string | null;
   expires_at: string | null;
   created_at: string;
   signed_pdf_url: string | null;
   company: { name: string } | null;
   template: { name: string; contract_type: string } | null;
+  events: ContractEvent[];
 };
 
 const statusColor: Record<string, string> = {
@@ -107,39 +117,106 @@ export function createContractColumns(
       },
     },
     {
-      accessorKey: "sent_at",
-      header: "Sent",
-      cell: ({ getValue }) => {
-        const val = getValue() as string | null;
+      id: "tracking",
+      header: "Tracking",
+      cell: ({ row }) => {
+        const c = row.original;
+        const steps = [
+          { key: "created", label: "Opprettet", done: true, at: c.created_at },
+          { key: "sent", label: "Sendt", done: !!c.sent_at, at: c.sent_at },
+          { key: "viewed", label: "Sett", done: !!c.viewed_at, at: c.viewed_at },
+          { key: "signed", label: "Signert", done: !!c.signed_at, at: c.signed_at },
+        ];
+        const cancelled =
+          c.status === "cancelled" || c.status === "declined" || c.status === "expired";
         return (
-          <span className="text-muted-foreground">
-            {val ? new Date(val).toLocaleDateString("no-NO") : "\u2014"}
-          </span>
+          <TooltipProvider delayDuration={200}>
+            <div className="flex items-center gap-1">
+              {steps.map((step, i) => (
+                <Tooltip key={step.key}>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center">
+                      <div
+                        className={`h-2.5 w-2.5 rounded-full ${
+                          cancelled && !step.done
+                            ? "bg-red-500/30"
+                            : step.done
+                              ? "bg-green-500"
+                              : "bg-muted-foreground/20"
+                        }`}
+                      />
+                      {i < steps.length - 1 && (
+                        <div
+                          className={`h-0.5 w-3 ${
+                            cancelled && !step.done
+                              ? "bg-red-500/20"
+                              : step.done && steps[i + 1]?.done
+                                ? "bg-green-500/50"
+                                : "bg-muted-foreground/10"
+                          }`}
+                        />
+                      )}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs">
+                    <span className="font-medium">{step.label}</span>
+                    {step.at && (
+                      <span className="text-muted-foreground ml-1">
+                        {new Date(step.at).toLocaleDateString("no-NO")}
+                      </span>
+                    )}
+                  </TooltipContent>
+                </Tooltip>
+              ))}
+            </div>
+          </TooltipProvider>
         );
       },
     },
     {
-      accessorKey: "signed_at",
-      header: "Signed",
-      cell: ({ getValue }) => {
-        const val = getValue() as string | null;
+      id: "last_event",
+      header: "Siste hendelse",
+      cell: ({ row }) => {
+        const events = row.original.events;
+        if (!events.length) {
+          return <span className="text-muted-foreground text-xs">Ingen hendelser</span>;
+        }
+        const last = events[0]!;
+        const eventLabels: Record<string, string> = {
+          created: "Opprettet",
+          sent: "Sendt",
+          form_viewed: "Sett av mottaker",
+          form_completed: "Signert",
+          submission_completed: "Signert",
+          cancelled: "Kansellert",
+          expired: "Utl\u00f8pt",
+          reminder_sent: "P\u00e5minnelse sendt",
+        };
         return (
-          <span className="text-muted-foreground">
-            {val ? new Date(val).toLocaleDateString("no-NO") : "\u2014"}
-          </span>
+          <div className="text-xs">
+            <div className="font-medium">{eventLabels[last.event_type] ?? last.event_type}</div>
+            <div className="text-muted-foreground">
+              {new Date(last.created_at).toLocaleDateString("no-NO", {
+                day: "numeric",
+                month: "short",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </div>
+          </div>
         );
       },
     },
     {
       accessorKey: "expires_at",
-      header: "Expires",
+      header: "Utl\u00f8per",
       cell: ({ getValue }) => {
         const val = getValue() as string | null;
         if (!val) return <span className="text-muted-foreground">{"\u2014"}</span>;
         const date = new Date(val);
         const isExpired = date < new Date();
         return (
-          <span className={isExpired ? "text-red-400" : "text-muted-foreground"}>
+          <span className={`text-xs ${isExpired ? "text-red-400" : "text-muted-foreground"}`}>
             {date.toLocaleDateString("no-NO")}
           </span>
         );

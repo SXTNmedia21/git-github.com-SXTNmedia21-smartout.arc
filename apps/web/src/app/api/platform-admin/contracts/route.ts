@@ -5,6 +5,7 @@ import { createAdminClient } from "@smartout/supabase/admin";
 import type { Json } from "@smartout/supabase";
 import { getSuperAdminId, logPlatformAction } from "@/lib/platform-admin";
 import { callContractService, isContractServiceConfigured } from "@/lib/contract-service";
+import { emit } from "@smartout/telemetry";
 
 const CreateContractSchema = z.object({
   template_id: z.string().uuid(),
@@ -131,6 +132,24 @@ export async function POST(request: NextRequest) {
     recipient_email: body.data.recipient_email,
   });
 
+  void emit({
+    event: "contract created",
+    workspace_id: workspaceId ?? "",
+    actor_id: adminId,
+    properties: {
+      entity: {
+        entity_type: "contract",
+        entity_id: contract.contract_id,
+        entity_label: contractTitle,
+      },
+      data: {
+        template_id: body.data.template_id,
+        recipient_email: body.data.recipient_email,
+        contract_type: template.contract_type,
+      },
+    },
+  });
+
   // Try to send via contract microservice (if configured)
   let sendStatus: "draft" | "sent" = "draft";
   let sendWarning: string | undefined;
@@ -144,6 +163,19 @@ export async function POST(request: NextRequest) {
 
       if (sendRes.ok) {
         sendStatus = "sent";
+        void emit({
+          event: "contract sent",
+          workspace_id: workspaceId ?? "",
+          actor_id: adminId,
+          properties: {
+            entity: {
+              entity_type: "contract",
+              entity_id: contract.contract_id,
+              entity_label: contractTitle,
+            },
+            data: { recipient_email: body.data.recipient_email, expires_at: expiresAt },
+          },
+        });
       } else {
         const sendBody = await sendRes.json();
         sendWarning = sendBody.error ?? "Failed to send via microservice";

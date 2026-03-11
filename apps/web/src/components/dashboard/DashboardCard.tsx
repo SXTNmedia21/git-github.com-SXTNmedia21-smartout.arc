@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, useCallback, type ReactNode } from "react";
 import { AlertCircle, CheckCircle2, ChevronDown } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 
 // UI Events:
 // - color-regime: status-based (good=emerald, warning=orange, bad=red)
@@ -25,6 +24,7 @@ export interface DashboardCardProps {
   subtitle?: string;
   target?: string;
   secondary?: string;
+  /** Shown as native title tooltip on hover (lightweight, no re-renders) */
   explanation?: string;
   sparkline?: SparklineData;
   progressBar?: ProgressBarData;
@@ -33,7 +33,6 @@ export interface DashboardCardProps {
   expandContent?: ReactNode;
   isActive?: boolean;
   onCardClick?: () => void;
-  isDark?: boolean;
 }
 
 const STATUS_STYLES = {
@@ -170,7 +169,7 @@ function ProgressBar({ data, barClass }: { data: ProgressBarData; barClass: stri
   return (
     <div className="bg-muted mt-2 h-1.5 w-full overflow-hidden rounded-full">
       <div
-        className={`h-full rounded-full ${barClass} transition-all duration-1000 ease-out`}
+        className={`h-full rounded-full ${barClass} transition-[width] duration-700 ease-out`}
         style={{ width: `${percent}%` }}
       />
     </div>
@@ -193,10 +192,8 @@ export function DashboardCard({
   expandContent,
   isActive,
   onCardClick,
-  isDark,
 }: DashboardCardProps) {
   const [isExpandedInternal, setIsExpandedInternal] = useState(false);
-  const [showExplanation, setShowExplanation] = useState(false);
 
   const resolved = resolveStatus(status);
   const styles = STATUS_STYLES[resolved];
@@ -208,124 +205,95 @@ export function DashboardCard({
   const badgeLabel = resolved === "good" ? "OK" : resolved === "warning" ? "Varsel" : "Handling";
   const BadgeIcon = resolved === "good" ? CheckCircle2 : AlertCircle;
 
+  const handleClick = useCallback(() => {
+    if (!isClickable) return;
+    if (isControlled) {
+      onCardClick?.();
+    } else {
+      setIsExpandedInternal((v) => !v);
+    }
+  }, [isClickable, isControlled, onCardClick]);
+
   return (
     <div
-      className={`group relative min-h-[100px] overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition-all duration-300 hover:shadow-md dark:border-zinc-800 dark:bg-[#0c0c0e] ${isClickable ? "cursor-pointer" : ""} ${isExpanded ? "shadow-md" : ""}`}
-      onClick={
-        isClickable
-          ? isControlled
-            ? onCardClick
-            : () => setIsExpandedInternal((v) => !v)
-          : undefined
-      }
-      onMouseEnter={() => {
-        if (explanation && !isExpanded) setShowExplanation(true);
-      }}
-      onMouseLeave={() => setShowExplanation(false)}
+      className={`group border-border bg-card relative overflow-hidden rounded-2xl border transition-shadow duration-200 hover:shadow-md ${isClickable ? "cursor-pointer" : ""} ${isExpanded ? "shadow-md" : "shadow-sm"}`}
+      onClick={handleClick}
+      title={explanation}
     >
       {/* Ambient glow */}
       <div
-        className={`pointer-events-none absolute -top-6 -right-6 h-24 w-24 rounded-full blur-2xl transition-all duration-500 group-hover:opacity-100 ${styles.glow} ${isExpanded ? `${styles.glowHover} h-32 w-32` : "opacity-60"}`}
+        className={`pointer-events-none absolute -top-6 -right-6 h-24 w-24 rounded-full blur-2xl transition-opacity duration-300 group-hover:opacity-100 ${styles.glow} ${isExpanded ? "opacity-80" : "opacity-40"}`}
       />
 
-      {/* Card face — flips between front and explanation */}
-      <AnimatePresence mode="wait" initial={false}>
-        {showExplanation && explanation ? (
-          <motion.div
-            key="back"
-            initial={{ opacity: 0, y: 5 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -5 }}
-            transition={{ duration: 0.15 }}
-            className="text-foreground relative z-10 flex h-full min-h-[100px] flex-col justify-center p-4"
-          >
-            <h3 className="mb-2 text-sm font-bold break-words text-emerald-500">
-              Hvordan beregnes dette?
-            </h3>
-            <p className="text-muted-foreground text-xs leading-relaxed">{explanation}</p>
-          </motion.div>
-        ) : (
-          <motion.div
-            key="front"
-            initial={{ opacity: 0, y: 5 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -5 }}
-            transition={{ duration: 0.15 }}
-            className="relative z-10 p-4"
-          >
-            {/* Header row */}
-            <div className="mb-2 flex items-start justify-between">
-              <div className={`rounded-xl border p-2.5 ${styles.icon}`}>{icon}</div>
+      {/* Card content */}
+      <div className="relative z-10 p-5">
+        {/* Header row */}
+        <div className="mb-3 flex items-start justify-between">
+          <div className={`rounded-xl border p-2.5 ${styles.icon}`}>{icon}</div>
 
-              <div className="flex items-center gap-2">
-                {/* Status badge */}
-                <div
-                  className={`flex items-center gap-1 rounded border px-2 py-1 text-[10px] font-bold tracking-widest uppercase shadow-sm ${styles.badge}`}
-                >
-                  <BadgeIcon className="h-3 w-3" />
-                  {badgeLabel}
-                </div>
-
-                {/* Chevron when expandable */}
-                {isClickable && !isControlled && (
-                  <ChevronDown
-                    className={`text-muted-foreground h-4 w-4 transition-transform duration-300 ${isExpanded ? "rotate-180" : ""}`}
-                  />
-                )}
-              </div>
+          <div className="flex items-center gap-2">
+            <div
+              className={`flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-bold tracking-widest uppercase ${styles.badge}`}
+            >
+              <BadgeIcon className="h-3 w-3" />
+              {badgeLabel}
             </div>
 
-            {/* Label + subtitle */}
-            <div className="mb-2">
-              <h3 className="text-muted-foreground text-sm font-bold">{label}</h3>
-              {subtitle && (
-                <p className="text-muted-foreground/70 mt-0.5 text-[10px] leading-tight">
-                  {subtitle}
-                </p>
-              )}
-            </div>
-
-            {/* Value row */}
-            <div className="flex items-end gap-3">
-              {ringChart ? (
-                <RingChart
-                  data={ringChart}
-                  ringClass={styles.ring}
-                  trackClass={styles.ringTrack}
-                  accentClass={styles.trend}
-                />
-              ) : (
-                <span className={`text-foreground text-2xl leading-none font-black`}>{value}</span>
-              )}
-
-              <div className="flex min-w-0 flex-1 flex-col gap-1">
-                {!ringChart && sparkline && (
-                  <Sparkline data={sparkline} className={styles.sparkStroke} />
-                )}
-                {ringChart && (
-                  <span className="text-foreground text-2xl leading-none font-black">{value}</span>
-                )}
-                <div className="flex flex-wrap items-center gap-2">
-                  {target && (
-                    <span className="text-muted-foreground text-xs font-medium">{target}</span>
-                  )}
-                  {trend && (
-                    <span className={`text-xs font-medium ${styles.trend}`}>
-                      {trend.direction === "up" ? "↑" : trend.direction === "down" ? "↓" : "→"}{" "}
-                      {trend.label}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {progressBar && <ProgressBar data={progressBar} barClass={styles.bar} />}
-            {secondary && (
-              <p className="text-muted-foreground mt-2 text-xs font-semibold">{secondary}</p>
+            {isClickable && !isControlled && (
+              <ChevronDown
+                className={`text-muted-foreground h-4 w-4 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
+              />
             )}
-          </motion.div>
+          </div>
+        </div>
+
+        {/* Label + subtitle */}
+        <div className="mb-3">
+          <h3 className="text-foreground text-sm font-bold">{label}</h3>
+          {subtitle && (
+            <p className="text-muted-foreground/70 mt-0.5 text-[10px] leading-tight">{subtitle}</p>
+          )}
+        </div>
+
+        {/* Value row */}
+        <div className="flex items-end gap-3">
+          {ringChart ? (
+            <RingChart
+              data={ringChart}
+              ringClass={styles.ring}
+              trackClass={styles.ringTrack}
+              accentClass={styles.trend}
+            />
+          ) : (
+            <span className="text-foreground text-2xl leading-none font-black">{value}</span>
+          )}
+
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            {!ringChart && sparkline && (
+              <Sparkline data={sparkline} className={styles.sparkStroke} />
+            )}
+            {ringChart && (
+              <span className="text-foreground text-2xl leading-none font-black">{value}</span>
+            )}
+            <div className="flex flex-wrap items-center gap-2">
+              {target && (
+                <span className="text-muted-foreground text-xs font-medium">{target}</span>
+              )}
+              {trend && (
+                <span className={`text-xs font-medium ${styles.trend}`}>
+                  {trend.direction === "up" ? "↑" : trend.direction === "down" ? "↓" : "→"}{" "}
+                  {trend.label}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {progressBar && <ProgressBar data={progressBar} barClass={styles.bar} />}
+        {secondary && (
+          <p className="text-muted-foreground mt-2 text-xs font-semibold">{secondary}</p>
         )}
-      </AnimatePresence>
+      </div>
 
       {/* Expand panel */}
       {expandContent && (
@@ -334,12 +302,12 @@ export function DashboardCard({
           style={{
             display: "grid",
             gridTemplateRows: isExpanded ? "1fr" : "0fr",
-            transition: "grid-template-rows 380ms cubic-bezier(0.4, 0, 0.2, 1), opacity 280ms ease",
+            transition: "grid-template-rows 280ms ease-out, opacity 200ms ease",
             opacity: isExpanded ? 1 : 0,
           }}
         >
           <div style={{ overflow: "hidden" }}>
-            <div className="p-4">{expandContent}</div>
+            <div className="p-5">{expandContent}</div>
           </div>
         </div>
       )}

@@ -7,7 +7,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Plus, FileText } from "lucide-react";
 
-// Contract row shape (table from pending contract-system migration)
+// Contract row shape
 type ContractQueryRow = {
   contract_id: string;
   title: string;
@@ -16,6 +16,7 @@ type ContractQueryRow = {
   recipient_name: string;
   recipient_email: string;
   sent_at: string | null;
+  viewed_at: string | null;
   signed_at: string | null;
   expires_at: string | null;
   created_at: string;

@@ -298,14 +298,13 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
       const stepIndex = ONBOARDING_SECTIONS.indexOf(section);
       if (userId) {
         emit({
-          event: "onboarding step_completed",
+          event: "wizard step_completed",
           workspace_id: onboardingWorkspaceId ?? null,
           actor_id: userId,
           properties: {
             data: {
               step_id: section,
               step_index: stepIndex,
-              user_identity_id: userId,
             },
           },
         }).catch((e: unknown) => console.error("[onboarding] emit failed:", e));
