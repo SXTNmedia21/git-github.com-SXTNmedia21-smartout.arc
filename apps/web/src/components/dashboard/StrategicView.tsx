@@ -351,7 +351,6 @@ function EmptyKPICard({
       icon={icon}
       status="good"
       explanation="Kobles til når data er tilgjengelig"
-      isDark={isDark}
     />
   );
 }
@@ -395,7 +394,6 @@ function KPICard({
       status={status ?? "good"}
       explanation={explanation}
       target={`mål ${targetDisplay}`}
-      isDark={isDark}
     />
   );
 }
