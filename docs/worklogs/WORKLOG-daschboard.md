@@ -35,7 +35,8 @@ _None_
 
 ## Log
 
-| Date       | Time  | Event                       |
-| ---------- | ----- | --------------------------- |
-| 2026-03-10 | 19:17 | Feature started             |
-| 2026-03-11 | —     | Worklog updated for closure |
+| Date       | Time  | Event                                    |
+| ---------- | ----- | ---------------------------------------- |
+| 2026-03-10 | 19:17 | Feature started                          |
+| 2026-03-11 | —     | Worklog updated for closure              |
+| 2026-03-11 | 01:30 | Feature closed and merged to development |
