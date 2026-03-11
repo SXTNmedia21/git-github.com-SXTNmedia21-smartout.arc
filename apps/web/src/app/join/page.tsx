@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import { redirect } from "next/navigation";
 import { createClient } from "@smartout/supabase/server";
 import { SignupWizard } from "./_components/SignupWizard";
 
@@ -22,8 +21,7 @@ export default async function JoinPage({
 
   if (user) {
     // Load existing progress for resume
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: progress } = await (supabase as any)
+    const { data: progress } = await supabase
       .from("signup_progress")
       .select("current_step, step_data")
       .eq("auth_id", user.id)
@@ -36,14 +34,12 @@ export default async function JoinPage({
           step2: {
             ...(progress.step_data as Record<string, Record<string, unknown>>).step2,
             firstName:
-              (progress.step_data as Record<string, Record<string, unknown>>).step2
-                ?.firstName ||
+              (progress.step_data as Record<string, Record<string, unknown>>).step2?.firstName ||
               metadata.given_name ||
               metadata.first_name ||
               "",
             lastName:
-              (progress.step_data as Record<string, Record<string, unknown>>).step2
-                ?.lastName ||
+              (progress.step_data as Record<string, Record<string, unknown>>).step2?.lastName ||
               metadata.family_name ||
               metadata.last_name ||
               "",
@@ -65,10 +61,7 @@ export default async function JoinPage({
         </div>
       }
     >
-      <SignupWizard
-        userEmail={user?.email || ""}
-        initialState={initialState}
-      />
+      <SignupWizard userEmail={user?.email || ""} initialState={initialState} />
     </Suspense>
   );
 }

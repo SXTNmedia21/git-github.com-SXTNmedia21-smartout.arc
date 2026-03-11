@@ -48,14 +48,6 @@ tags: [decisions, journey-engine]
 
 ---
 
-# Decision Log — client-contract
-
-| #   | Date       | Decision                                                                                                         | Status   |
-| --- | ---------- | ---------------------------------------------------------------------------------------------------------------- | -------- |
-| 1   | 2026-03-10 | Webhook uses status weight to prevent regression from out-of-order DocuSeal events                               | accepted |
-| 2   | 2026-03-10 | Contract-service resolves placeholders on send if unresolved — two creation paths (Next.js simple, service full) | accepted |
-| 3   | 2026-03-10 | Signing URL stored as opaque token, not full URL — prevents URL guessing                                         | accepted |
-
 # Decision Log — adminpage-speed
 
 | #   | Date       | Decision                                                                                                                 | Status   |

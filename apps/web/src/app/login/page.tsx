@@ -22,17 +22,37 @@ type Mode = "login" | "signup" | "navigating" | "logging-in";
 function GoogleIcon() {
   return (
     <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24">
-      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
-      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+      <path
+        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
+        fill="#4285F4"
+      />
+      <path
+        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+        fill="#34A853"
+      />
+      <path
+        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+        fill="#FBBC05"
+      />
+      <path
+        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+        fill="#EA4335"
+      />
     </svg>
   );
 }
 
 function ArrowRightIcon() {
   return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M5 12h14M12 5l7 7-7 7" />
     </svg>
   );
@@ -250,7 +270,8 @@ export default function LoginPage() {
   const formPanelX = isSwapped ? "-100%" : "0%";
   const brandPanelFlex = isLoggingIn ? 3 : mode === "signup" ? 0.6 : 1;
   const formMaxWidth = isLoggingIn ? "280px" : mode === "signup" ? "600px" : "520px";
-  const contentMaxWidth = mode === "signup" ? "400px" : mode === "navigating" || isLoggingIn ? "320px" : "360px";
+  const contentMaxWidth =
+    mode === "signup" ? "400px" : mode === "navigating" || isLoggingIn ? "320px" : "360px";
 
   return (
     <div className="relative flex min-h-[100dvh] overflow-hidden">
@@ -284,7 +305,7 @@ export default function LoginPage() {
             transition={{ duration: 1.5 }}
           />
           <motion.div
-            className="animate-ambient-2 absolute -bottom-[10%] right-[10%] h-[40vh] w-[40vh] rounded-full bg-[oklch(0.35_0.14_35)] blur-[110px]"
+            className="animate-ambient-2 absolute right-[10%] -bottom-[10%] h-[40vh] w-[40vh] rounded-full bg-[oklch(0.35_0.14_35)] blur-[110px]"
             animate={{ opacity: isLoggingIn ? 0.12 : 0.25 }}
             transition={{ duration: 1.5 }}
           />
@@ -297,7 +318,7 @@ export default function LoginPage() {
               alt="Smartout"
               width={110}
               height={38}
-              className="brightness-0 invert opacity-80"
+              className="opacity-80 brightness-0 invert"
               priority
             />
           </div>
@@ -314,7 +335,7 @@ export default function LoginPage() {
                   className={!hasInteracted ? "animate-auth-in" : undefined}
                   style={!hasInteracted ? { animationDelay: "200ms" } : undefined}
                 >
-                  <h2 className="text-[2.6rem] font-bold leading-[1.05] tracking-tight text-white">
+                  <h2 className="text-[2.6rem] leading-[1.05] font-bold tracking-tight text-white">
                     Teamet ditt,
                     <br />
                     <span className="text-[oklch(0.75_0.18_40)]">klar</span> fra dag en.
@@ -332,7 +353,7 @@ export default function LoginPage() {
                   animate="visible"
                   exit="exit"
                 >
-                  <h2 className="text-[2.2rem] font-bold leading-[1.1] tracking-tight text-white">
+                  <h2 className="text-[2.2rem] leading-[1.1] font-bold tracking-tight text-white">
                     Bygg noe
                     <br />
                     <span className="text-[oklch(0.75_0.18_40)]">teamet ditt</span>
@@ -351,7 +372,7 @@ export default function LoginPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.7, ease: [0.25, 0.1, 0.25, 1] }}
                 >
-                  <h2 className="text-[2.6rem] font-bold leading-[1.05] tracking-tight text-white">
+                  <h2 className="text-[2.6rem] leading-[1.05] font-bold tracking-tight text-white">
                     La oss sette
                     <br />
                     <span className="text-[oklch(0.75_0.18_40)]">i gang.</span>
@@ -365,7 +386,7 @@ export default function LoginPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.7, delay: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
                 >
-                  <h2 className="text-[2.6rem] font-bold leading-[1.05] tracking-tight text-white">
+                  <h2 className="text-[2.6rem] leading-[1.05] font-bold tracking-tight text-white">
                     Der er du jo.
                   </h2>
                   <p className="mt-5 text-[0.95rem] leading-relaxed text-white/35">
@@ -406,7 +427,14 @@ export default function LoginPage() {
 
         {/* Mobile logo */}
         <div className="mb-10 lg:hidden">
-          <Image src="/smartout-logo.png" alt="Smartout" width={120} height={42} className="inline-block" priority />
+          <Image
+            src="/smartout-logo.png"
+            alt="Smartout"
+            width={120}
+            height={42}
+            className="inline-block"
+            priority
+          />
         </div>
 
         <motion.div
@@ -416,7 +444,6 @@ export default function LoginPage() {
           transition={panelSpring}
         >
           <AnimatePresence mode="wait" onExitComplete={handleExitComplete}>
-
             {/* ── LOGIN FORM ── */}
             {showContent && mode === "login" && (
               <motion.div
@@ -433,7 +460,7 @@ export default function LoginPage() {
                   style={!hasInteracted ? { animationDelay: "0ms" } : undefined}
                 >
                   <div className="mb-8">
-                    <h1 className="text-[2rem] font-bold leading-[1.15] tracking-tight text-[oklch(0.15_0.01_50)]">
+                    <h1 className="text-[2rem] leading-[1.15] font-bold tracking-tight text-[oklch(0.15_0.01_50)]">
                       Velkommen tilbake
                     </h1>
                     <p className="mt-2 text-[0.875rem] text-[oklch(0.5_0.01_52)]">
@@ -483,7 +510,9 @@ export default function LoginPage() {
                       <div className="w-full border-t border-[oklch(0.92_0.005_55)]" />
                     </div>
                     <div className="relative flex justify-center">
-                      <span className="bg-[oklch(0.99_0.004_60)] px-3 text-xs text-[oklch(0.6_0.01_52)]">eller</span>
+                      <span className="bg-[oklch(0.99_0.004_60)] px-3 text-xs text-[oklch(0.6_0.01_52)]">
+                        eller
+                      </span>
                     </div>
                   </div>
                 </motion.div>
@@ -496,7 +525,12 @@ export default function LoginPage() {
                 >
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                      <label htmlFor="email" className="mb-1.5 block text-[0.8125rem] font-medium text-[oklch(0.3_0.01_50)]">E-post</label>
+                      <label
+                        htmlFor="email"
+                        className="mb-1.5 block text-[0.8125rem] font-medium text-[oklch(0.3_0.01_50)]"
+                      >
+                        E-post
+                      </label>
                       <input
                         id="email"
                         name="email"
@@ -511,7 +545,12 @@ export default function LoginPage() {
                     </div>
                     <div>
                       <div className="mb-1.5 flex items-center justify-between">
-                        <label htmlFor="password" className="text-[0.8125rem] font-medium text-[oklch(0.3_0.01_50)]">Passord</label>
+                        <label
+                          htmlFor="password"
+                          className="text-[0.8125rem] font-medium text-[oklch(0.3_0.01_50)]"
+                        >
+                          Passord
+                        </label>
                         <Link
                           href="/reset-password"
                           className="text-[0.8125rem] text-[oklch(0.55_0.01_52)] transition-colors hover:text-[oklch(0.65_0.22_40)]"
@@ -574,7 +613,7 @@ export default function LoginPage() {
               >
                 <motion.div variants={itemVariant}>
                   <div className="mb-10">
-                    <h1 className="text-[2.2rem] font-bold leading-[1.1] tracking-tight text-[oklch(0.15_0.01_50)]">
+                    <h1 className="text-[2.2rem] leading-[1.1] font-bold tracking-tight text-[oklch(0.15_0.01_50)]">
                       Kom i gang
                     </h1>
                     <p className="mt-3 text-[0.9rem] leading-relaxed text-[oklch(0.5_0.01_52)]">
@@ -602,7 +641,9 @@ export default function LoginPage() {
                       <div className="w-full border-t border-[oklch(0.92_0.005_55)]" />
                     </div>
                     <div className="relative flex justify-center">
-                      <span className="bg-[oklch(0.99_0.004_60)] px-3 text-xs text-[oklch(0.6_0.01_52)]">eller</span>
+                      <span className="bg-[oklch(0.99_0.004_60)] px-3 text-xs text-[oklch(0.6_0.01_52)]">
+                        eller
+                      </span>
                     </div>
                   </div>
                 </motion.div>
@@ -704,10 +745,7 @@ export default function LoginPage() {
                 {/* Heading + subtitle — fade out on finale */}
                 <AnimatePresence>
                   {navStep < 3 && (
-                    <motion.div
-                      exit={{ opacity: 0, y: -8 }}
-                      transition={{ duration: 0.3 }}
-                    >
+                    <motion.div exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.3 }}>
                       <h2 className="mb-3 text-[1.4rem] font-semibold tracking-tight text-[oklch(0.2_0.01_50)]">
                         Gjør deg klar...
                       </h2>
@@ -752,9 +790,7 @@ export default function LoginPage() {
                     transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
                   />
                 </div>
-                <p className="text-[0.8125rem] text-[oklch(0.5_0.01_52)]">
-                  Logger inn...
-                </p>
+                <p className="text-[0.8125rem] text-[oklch(0.5_0.01_52)]">Logger inn...</p>
               </motion.div>
             )}
           </AnimatePresence>

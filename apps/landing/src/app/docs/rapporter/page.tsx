@@ -1,12 +1,4 @@
-import {
-  BarChart3,
-  Camera,
-  TrendingUp,
-  Sparkles,
-  CheckCircle2,
-  XCircle,
-  FileText,
-} from "lucide-react";
+import { BarChart3, Camera, TrendingUp, Sparkles, CheckCircle2, XCircle } from "lucide-react";
 import {
   DocsArticle,
   Heading,

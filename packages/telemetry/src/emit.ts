@@ -24,6 +24,11 @@ export async function emit(event: SmartoutEvent): Promise<void> {
 
   const isServer = typeof window === "undefined";
 
+  // 0. Client-side event bus — lets any in-app listener (e.g. WalkAi) tap into telemetry
+  if (!isServer) {
+    window.dispatchEvent(new CustomEvent("smartout:telemetry", { detail: event }));
+  }
+
   // 1. Analytics
   if (routing.destinations.includes("posthog")) {
     if (isServer) {

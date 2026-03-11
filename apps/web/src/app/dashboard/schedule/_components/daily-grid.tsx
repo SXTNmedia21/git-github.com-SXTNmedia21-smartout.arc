@@ -15,11 +15,12 @@ import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-
 import { CSS } from "@dnd-kit/utilities";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { ShiftCard, AbsenceCard } from "./grid-cards";
+import { GhostShiftCard } from "./ghost-shift-card";
 import type { DayColumn } from "./schedule-data";
 import { useScheduleUI } from "./schedule-ui-context";
 import type { ScheduleEmployee } from "../_hooks/use-employees";
 import { DayContextMenu } from "./day-context-menu";
-import type { Shift as ScheduleShift, Absence } from "./schedule-types";
+import type { Shift as ScheduleShift, Absence, ShiftProposal } from "./schedule-types";
 import { SCHEDULE_LAYERS } from "./schedule-layers";
 import { useVirtualizer } from "@tanstack/react-virtual";
 
@@ -39,6 +40,9 @@ export function GridContent({
   highlightedDayId,
   weekStart,
   onTimeChange,
+  proposals = [],
+  onApproveProposal,
+  onRejectProposal,
 }: {
   isSidebarOpen: boolean;
   setIsSidebarOpen: (v: boolean) => void;
@@ -52,6 +56,9 @@ export function GridContent({
   highlightedDayId?: string | null;
   weekStart: string;
   onTimeChange?: (shiftId: string, newStart: string, newEnd: string) => void;
+  proposals?: ShiftProposal[];
+  onApproveProposal?: (id: string) => Promise<void>;
+  onRejectProposal?: (id: string) => void;
 }) {
   const { isDark, scheduleView, scheduleCompactMode } = useContext(DashboardContext);
   const { active } = useDndContext();
@@ -148,6 +155,21 @@ export function GridContent({
     }
     return index;
   }, [absences]);
+
+  /** Index proposals by employee::day key for ghost card rendering */
+  const proposalsByEmployeeDay = React.useMemo(() => {
+    const index = new Map<string, ShiftProposal[]>();
+    for (const proposal of proposals) {
+      const key = `${proposal.employeeId}::${proposal.dateId}`;
+      const existing = index.get(key);
+      if (existing) {
+        existing.push(proposal);
+      } else {
+        index.set(key, [proposal]);
+      }
+    }
+    return index;
+  }, [proposals]);
 
   /** Index unfiltered shifts by day for day-level menu actions */
   const shiftsByDate = React.useMemo(() => {
@@ -270,11 +292,14 @@ export function GridContent({
                       days={visibleDays}
                       shiftsByEmployeeDay={shiftsByEmployeeDay}
                       absencesByEmployeeDay={absencesByEmployeeDay}
+                      proposalsByEmployeeDay={proposalsByEmployeeDay}
                       onCreateShift={setCreateShiftContext}
                       onAbsencePopover={setAbsencePopover}
                       onSelectShift={setSelectedShift}
                       onSelectEmployee={setSelectedEmployee}
                       onTimeChange={onTimeChange}
+                      onApproveProposal={onApproveProposal}
+                      onRejectProposal={onRejectProposal}
                       enableDroppable={enableDroppable}
                     />
                   </div>
@@ -318,11 +343,14 @@ export function GridContent({
                       days={visibleDays}
                       shiftsByEmployeeDay={shiftsByEmployeeDay}
                       absencesByEmployeeDay={absencesByEmployeeDay}
+                      proposalsByEmployeeDay={proposalsByEmployeeDay}
                       onCreateShift={setCreateShiftContext}
                       onAbsencePopover={setAbsencePopover}
                       onSelectShift={setSelectedShift}
                       onSelectEmployee={setSelectedEmployee}
                       onTimeChange={onTimeChange}
+                      onApproveProposal={onApproveProposal}
+                      onRejectProposal={onRejectProposal}
                       enableDroppable={enableDroppable}
                       subtitle={emp.team}
                     />
@@ -347,11 +375,14 @@ export function GridContent({
                       days={visibleDays}
                       shiftsByEmployeeDay={shiftsByEmployeeDay}
                       absencesByEmployeeDay={absencesByEmployeeDay}
+                      proposalsByEmployeeDay={proposalsByEmployeeDay}
                       onCreateShift={setCreateShiftContext}
                       onAbsencePopover={setAbsencePopover}
                       onSelectShift={setSelectedShift}
                       onSelectEmployee={setSelectedEmployee}
                       onTimeChange={onTimeChange}
+                      onApproveProposal={onApproveProposal}
+                      onRejectProposal={onRejectProposal}
                       enableDroppable={enableDroppable}
                       subtitle={emp.jobTitle || emp.role}
                     />
@@ -561,11 +592,14 @@ type SortableEmployeeRowProps = {
   days: DayColumn[];
   shiftsByEmployeeDay: Map<string, ScheduleShift[]>;
   absencesByEmployeeDay: Map<string, Absence[]>;
+  proposalsByEmployeeDay?: Map<string, ShiftProposal[]>;
   onCreateShift: (ctx: { dateId?: string; employeeId?: string } | null) => void;
   onAbsencePopover: (ctx: { employeeId: string; dateId: string } | null) => void;
   onSelectShift: (id: string | null) => void;
   onSelectEmployee?: (id: string) => void;
   onTimeChange?: (shiftId: string, newStart: string, newEnd: string) => void;
+  onApproveProposal?: (id: string) => Promise<void>;
+  onRejectProposal?: (id: string) => void;
   enableDroppable: boolean;
 };
 
@@ -600,11 +634,14 @@ export const EmployeeRow = React.memo(function EmployeeRow({
   days,
   shiftsByEmployeeDay,
   absencesByEmployeeDay,
+  proposalsByEmployeeDay,
   onCreateShift,
   onAbsencePopover,
   onSelectShift,
   onSelectEmployee,
   onTimeChange,
+  onApproveProposal,
+  onRejectProposal,
   dragHandleListeners,
   enableDroppable,
 }: {
@@ -614,11 +651,14 @@ export const EmployeeRow = React.memo(function EmployeeRow({
   days: DayColumn[];
   shiftsByEmployeeDay: Map<string, ScheduleShift[]>;
   absencesByEmployeeDay: Map<string, Absence[]>;
+  proposalsByEmployeeDay?: Map<string, ShiftProposal[]>;
   onCreateShift: (ctx: { dateId?: string; employeeId?: string } | null) => void;
   onAbsencePopover: (ctx: { employeeId: string; dateId: string } | null) => void;
   onSelectShift: (id: string | null) => void;
   onSelectEmployee?: (id: string) => void;
   onTimeChange?: (shiftId: string, newStart: string, newEnd: string) => void;
+  onApproveProposal?: (id: string) => Promise<void>;
+  onRejectProposal?: (id: string) => void;
   dragHandleListeners?: ReturnType<typeof useSortable>["listeners"];
   enableDroppable: boolean;
 }) {
@@ -694,7 +734,9 @@ export const EmployeeRow = React.memo(function EmployeeRow({
       {days.map((day) => {
         const cellShifts = shiftsByEmployeeDay.get(`${employee.id}::${day.id}`) ?? [];
         const cellAbsences = absencesByEmployeeDay.get(`${employee.id}::${day.id}`) ?? [];
-        const hasContent = cellShifts.length > 0 || cellAbsences.length > 0;
+        const cellProposals = proposalsByEmployeeDay?.get(`${employee.id}::${day.id}`) ?? [];
+        const hasContent =
+          cellShifts.length > 0 || cellAbsences.length > 0 || cellProposals.length > 0;
 
         const absenceLabel = (type: string): "Sykdom" | "Ferie" | "Avspasering" => {
           switch (type) {
@@ -751,6 +793,16 @@ export const EmployeeRow = React.memo(function EmployeeRow({
                         ? (newStart, newEnd) => onTimeChange(shift.id, newStart, newEnd)
                         : undefined
                     }
+                  />
+                ))}
+                {cellProposals.map((proposal) => (
+                  <GhostShiftCard
+                    key={proposal.id}
+                    proposal={proposal}
+                    employeeName={employee.name}
+                    isCompact={isCompact}
+                    onApprove={() => void onApproveProposal?.(proposal.id)}
+                    onReject={() => onRejectProposal?.(proposal.id)}
                   />
                 ))}
               </div>

@@ -69,7 +69,7 @@ export function ReportsPageShell({ workspaceId: workspaceIdProp }: ReportsPageSh
   const [refreshKey, setRefreshKey] = useState(0);
   const [insightDrawerOpen, setInsightDrawerOpen] = useState(false);
   const [activeInsight, setActiveInsight] = useState<ReportInsightCard | null>(null);
-  const [insightStateByCard, setInsightStateByCard] = useState<Record<string, ReportInsightCard>>(
+  const [_insightStateByCard, setInsightStateByCard] = useState<Record<string, ReportInsightCard>>(
     {},
   );
   const [insightDefaultsByCard, setInsightDefaultsByCard] = useState<

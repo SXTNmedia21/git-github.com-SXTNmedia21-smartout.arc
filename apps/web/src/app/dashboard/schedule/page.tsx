@@ -57,7 +57,8 @@ import { useEmployees, type ScheduleEmployee } from "./_hooks/use-employees";
 
 // ── New TanStack Query hooks ────────────────────────────────
 import { ScheduleUIProvider, useScheduleUI } from "./_components/schedule-ui-context";
-import { AgentProposalsProvider } from "./_components/agent-proposals-context";
+import { AgentProposalsProvider, useAgentProposals } from "./_components/agent-proposals-context";
+import { ProposalBanner } from "./_components/proposal-banner";
 import { ScheduleVoiceToolsBridge } from "./_components/schedule-voice-tools-bridge";
 import {
   useShifts,
@@ -158,6 +159,27 @@ export default function SchedulePage() {
     <ScheduleUIProvider>
       <SchedulePageContent />
     </ScheduleUIProvider>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// GridContentWithProposals — wraps GridContent with proposal context
+// Must be rendered inside AgentProposalsProvider
+// ---------------------------------------------------------------------------
+function GridContentWithProposals(
+  props: Omit<
+    Parameters<typeof GridContent>[0],
+    "proposals" | "onApproveProposal" | "onRejectProposal"
+  >,
+) {
+  const { proposals, approveProposal, rejectProposal } = useAgentProposals();
+  return (
+    <GridContent
+      {...props}
+      proposals={proposals}
+      onApproveProposal={approveProposal}
+      onRejectProposal={rejectProposal}
+    />
   );
 }
 
@@ -933,6 +955,9 @@ function SchedulePageContent() {
               <div className="absolute top-[-10%] left-[-10%] h-[500px] w-[500px] rounded-full bg-orange-600/20 mix-blend-screen blur-[120px]" />
             </div>
 
+            {/* Agent proposal banner — shows when Emma has pending shift proposals */}
+            <ProposalBanner />
+
             {/* MAIN CONTENT AREA — sidebar spans full height alongside command bar, status strip, and grid */}
             <DndContext
               sensors={sensors}
@@ -969,7 +994,7 @@ function SchedulePageContent() {
                     centerContent={
                       <>
                         {scheduleLayout === "daily" && (
-                          <GridContent
+                          <GridContentWithProposals
                             isSidebarOpen={isSidebarOpen}
                             setIsSidebarOpen={setIsSidebarOpen}
                             onDateClick={handleSetSelectedDate}

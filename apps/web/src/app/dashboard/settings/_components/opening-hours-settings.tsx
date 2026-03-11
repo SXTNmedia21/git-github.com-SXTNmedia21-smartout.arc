@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Clock, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Button } from "@smartout/ui";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@smartout/ui";

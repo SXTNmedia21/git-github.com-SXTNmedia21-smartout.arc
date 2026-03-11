@@ -16,10 +16,13 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY services/contract-service/package.json ./services/contract-service/
 RUN pnpm install --frozen-lockfile --filter @smartout/contract-service... --ignore-scripts
 
+# Copy monorepo scripts (needed by build script)
+COPY scripts/ ./scripts/
+
 WORKDIR /app/services/contract-service
 COPY services/contract-service/tsconfig.json ./
 COPY services/contract-service/src ./src
-RUN pnpm build
+RUN pnpm --filter @smartout/contract-service build
 
 # ── Stage 2: Production ────────────────────────────────────
 FROM node:22-alpine

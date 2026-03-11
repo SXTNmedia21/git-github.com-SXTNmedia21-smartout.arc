@@ -1,6 +1,8 @@
 {
   "extends": "@smartout/typescript-config/react-library.json",
   "compilerOptions": {
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "jsx": "react-jsx",
     "outDir": "dist",
     "rootDir": "src"
   },

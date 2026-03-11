@@ -24,12 +24,6 @@ export const DEFAULT_KPI_TARGETS: KpiTargets = {
   training_readiness: 100,
 };
 
-type KpiRow = {
-  metric: string;
-  target_value: number;
-  benchmark_value: number | null;
-};
-
 /**
  * Fetches and persists KPI targets for the workspace strategic view.
  * Uses workspace_kpi_target table with upsert on (workspace_id, metric).

@@ -7,11 +7,10 @@
 // Connected to: use-schedule-voice-tools.ts and voice-tools-context.tsx.
 // ============================================
 
-import { useEffect } from "react";
-
-import { useVoiceTools } from "@/components/voice-tools-context";
+import { useRegisterTools } from "@/app/walkAi/_components/tool-registry";
 
 import { useScheduleVoiceTools } from "../_hooks/use-schedule-voice-tools";
+import { useAgentProposals } from "./agent-proposals-context";
 import type { ScheduleComputed } from "../_hooks/use-schedule-computed";
 import type { ScheduleEmployee } from "../_hooks/use-employees";
 import type { Absence, Shift } from "./schedule-types";
@@ -57,7 +56,7 @@ export function ScheduleVoiceToolsBridge({
   deleteShift,
   publishShifts,
 }: ScheduleVoiceToolsBridgeProps) {
-  const { setClientTools } = useVoiceTools();
+  const { addProposal } = useAgentProposals();
 
   const voiceTools = useScheduleVoiceTools({
     weekStart,
@@ -79,12 +78,12 @@ export function ScheduleVoiceToolsBridge({
       deleteShift: (id) => deleteShift.mutateAsync(id),
       publishShifts: (ids) => publishShifts.mutateAsync(ids),
     },
+    // Ghost mode — all create/update go through proposals
+    addProposal,
   });
 
-  useEffect(() => {
-    setClientTools(voiceTools);
-    return () => setClientTools(null);
-  }, [voiceTools, setClientTools]);
+  // Register into WalkAi tool registry — Emma gets schedule tools when on this page
+  useRegisterTools("schedule", voiceTools);
 
   return null;
 }

@@ -174,7 +174,6 @@ export function ActivityView({ isDark }: { isDark: boolean }) {
       {!isExpanded && (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
           <DashboardCard
-            isDark={isDark}
             label="Aktive ansatte"
             value={pipeline ? String(pipeline.activeStaff) : "--"}
             icon={<Users className="h-4 w-4" />}
@@ -185,7 +184,6 @@ export function ActivityView({ isDark }: { isDark: boolean }) {
             explanation="Ansatte som er aktive og tilordnet vakter i arbeidsrommet."
           />
           <DashboardCard
-            isDark={isDark}
             label="Opplæringsberedskap"
             value={training ? `${training.readinessPercent}%` : "--"}
             icon={<ShieldCheck className="h-4 w-4" />}
@@ -207,7 +205,6 @@ export function ActivityView({ isDark }: { isDark: boolean }) {
             explanation="Andel protokolltildelinger fullført av aktive ansatte."
           />
           <DashboardCard
-            isDark={isDark}
             label="Høyest intensitet"
             value="Fredager"
             icon={<TrendingUp className="h-4 w-4" />}
@@ -216,7 +213,6 @@ export function ActivityView({ isDark }: { isDark: boolean }) {
             explanation="Ukedagen og teamet med høyest registrert aktivitetsnivå i valgt periode."
           />
           <DashboardCard
-            isDark={isDark}
             label="Lavest intensitet"
             value="Søndag FM"
             icon={<TrendingDown className="h-4 w-4" />}

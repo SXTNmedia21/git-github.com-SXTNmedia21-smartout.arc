@@ -169,8 +169,8 @@ const fadeIn = {
 const heroTableRows = [
   { name: "Matvaretrygghet", status: "Godkjent", color: "emerald" },
   { name: "Brannvern", status: "Godkjent", color: "emerald" },
-  { name: "Allergenprotokoll", status: "Utloper", color: "yellow" },
-  { name: "HMS-opplaering", status: "Mangler", color: "red" },
+  { name: "Allergenprotokoll", status: "Utløper", color: "yellow" }, // CHANGED: "Utloper" → "Utløper"
+  { name: "HMS-opplæring", status: "Mangler", color: "red" }, // CHANGED: "opplaering" → "opplæring"
 ] as const;
 
 /** Rows for the compliance dashboard data table */
@@ -186,7 +186,7 @@ const complianceTableRows = [
     name: "Ingrid Bakke",
     cert: "Brannvern",
     expiry: "2026-04-01",
-    status: "Utloper",
+    status: "Utløper", // CHANGED: "Utloper" → "Utløper"
     color: "yellow",
   },
   {
@@ -216,7 +216,7 @@ const complianceTableRows = [
 const integrations = [
   "Planday",
   "Quinyx",
-  "Visma Lonn",
+  "Visma Lønn", // CHANGED: "Lonn" → "Lønn"
   "Tripletex",
   "HotSoft",
   "Infrasys",
@@ -231,7 +231,7 @@ const properties = ["Oslo", "Bergen", "Stavanger"] as const;
 const propertyStats = [
   { label: "Ansatte", value: "142", icon: Users },
   { label: "Sertifiseringer", value: "847", icon: FileCheck },
-  { label: "Neste utlop", value: "12 dager", icon: CalendarClock },
+  { label: "Neste utløp", value: "12 dager", icon: CalendarClock }, // CHANGED: "utlop" → "utløp"
   { label: "Avvik", value: "2", icon: AlertTriangle },
 ] as const;
 
@@ -247,7 +247,7 @@ const exportFeatures = [
   },
   {
     icon: FileCheck,
-    text: "Revisjonsklar dokumentasjon",
+    text: "Revisjonsklar dokumentasjon — alltid oppdatert", // CHANGED: added emotional payoff for Thomas
   },
 ] as const;
 
@@ -355,8 +355,10 @@ export default function VariantTLanding() {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="mb-8 max-w-xl text-lg leading-relaxed text-zinc-400"
             >
-              Samle sertifiseringer, opplaering og compliance i ett system. Revisionsklar
-              dokumentasjon, sanntidsdata og full integrasjonsstotte.
+              Samle sertifiseringer, opplæring og compliance i ett system. Revisjonsklar{" "}
+              {/* CHANGED: "opplaering" → "opplæring", "Revisionsklar" → "Revisjonsklar" (Norwegian) */}
+              dokumentasjon, sanntidsdata og full integrasjonsstøtte.{" "}
+              {/* CHANGED: "integrasjonsstotte" → "integrasjonsstøtte" */}
             </m.p>
 
             <m.div
@@ -456,7 +458,8 @@ export default function VariantTLanding() {
               Compliance i sanntid
             </h2>
             <p className="mx-auto max-w-2xl text-zinc-400">
-              Alle sertifiseringer, opplaeringsloep og avvik samlet i ett dashboard. Ingen
+              Alle sertifiseringer, opplæringsløp og avvik samlet i ett dashboard. Ingen{" "}
+              {/* CHANGED: "opplaeringsloep" → "opplæringsløp" */}
               overraskelser ved revisjon.
             </p>
           </m.div>
@@ -523,7 +526,8 @@ export default function VariantTLanding() {
                   <tr className="border-b border-zinc-800 text-xs text-zinc-500 uppercase">
                     <th className="px-6 py-3 font-medium">Ansatt</th>
                     <th className="px-6 py-3 font-medium">Sertifikat</th>
-                    <th className="px-6 py-3 font-medium">Utlop</th>
+                    <th className="px-6 py-3 font-medium">Utløp</th>{" "}
+                    {/* CHANGED: "Utlop" → "Utløp" */}
                     <th className="px-6 py-3 font-medium">Status</th>
                   </tr>
                 </thead>
@@ -564,8 +568,9 @@ export default function VariantTLanding() {
               Kobles til systemene du allerede bruker
             </h2>
             <p className="mx-auto max-w-2xl text-zinc-400">
-              Smartout integrerer med vaktplansystemer, lonnssystemer og POS uten manuell
-              dataoverfoering.
+              Smartout integrerer med vaktplansystemer, lønnssystemer og POS — uten manuell{" "}
+              {/* CHANGED: "lonnssystemer" → "lønnssystemer", "dataoverfoering" → "dataoverføring" */}
+              dataoverføring.
             </p>
           </m.div>
 
@@ -610,8 +615,9 @@ export default function VariantTLanding() {
               Alle lokasjoner. Ett overblikk.
             </h2>
             <p className="mx-auto max-w-2xl text-zinc-400">
-              Sammenlign compliance-status, opplaeringsfremdrift og avvik pa tvers av alle
-              avdelinger og eiendommer.
+              Sammenlign compliance-status, opplæringsfremdrift og avvik på tvers av alle{" "}
+              {/* CHANGED: "opplaeringsfremdrift" → "opplæringsfremdrift", "pa" → "på" */}
+              avdelinger og lokasjoner.
             </p>
           </m.div>
 
@@ -712,8 +718,9 @@ export default function VariantTLanding() {
               Dine data. Ditt format.
             </h2>
             <p className="mx-auto mb-12 max-w-xl text-zinc-400">
-              Eksporter, integrer eller bygg videre. Du eier alltid dataene dine — uten vendor
-              lock-in.
+              Eksporter, integrer eller bygg videre. Dine data, ditt format — alltid tilgjengelig,{" "}
+              {/* CHANGED: added emotional payoff — Thomas hates lock-in */}
+              uten vendor lock-in.
             </p>
           </m.div>
 
@@ -835,8 +842,8 @@ export default function VariantTLanding() {
               Klar for en strukturert overgang?
             </h2>
             <p className="mx-auto mb-10 max-w-xl text-lg text-zinc-400">
-              Se hvordan Smartout gir deg full kontroll over compliance, opplaering og revisjonsspor
-              — pa tvers av alle lokasjoner.
+              Se hvordan Smartout gir deg full kontroll over compliance, opplæring og revisjonsspor{" "}
+              {/* CHANGED: "opplaering" → "opplæring", "pa" → "på" */}— på tvers av alle lokasjoner.
             </p>
             <Link
               href={WEB_APP_LINKS.onboarding}
