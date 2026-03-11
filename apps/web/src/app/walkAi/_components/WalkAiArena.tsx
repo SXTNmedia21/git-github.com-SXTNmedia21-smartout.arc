@@ -593,11 +593,7 @@ function TranscriptPane() {
           </div>
         ))
       )}
-      {agent.isSpeaking && agent.currentText && (
-        <div className="bg-accent/30 text-foreground/50 max-w-[80%] rounded-2xl rounded-bl-sm px-3.5 py-2 text-[13px]">
-          {agent.currentText}
-        </div>
-      )}
+      {/* currentText is already included in agent.transcript — no extra bubble needed */}
     </div>
   );
 }
