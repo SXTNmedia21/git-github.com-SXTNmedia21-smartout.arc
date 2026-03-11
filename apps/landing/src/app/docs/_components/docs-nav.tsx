@@ -140,12 +140,12 @@ export function DocsNav() {
 
       {/* Footer */}
       <div className="space-y-1 border-t border-white/5 px-4 py-3">
-        <a
+        <Link
           href="/pricing"
           className="block rounded-md px-2 py-1.5 text-xs font-semibold text-zinc-500 transition-colors hover:text-white"
         >
           Trenger du hjelp? Kontakt oss
-        </a>
+        </Link>
       </div>
     </div>
   );

@@ -222,7 +222,9 @@ export async function completeSignup(data: SetupData) {
     close_time: h.isClosed ? null : h.closeTime || null,
   }));
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error: hoursError } = await (admin as any).from("company_opening_hours").insert(hoursRows);
+  const { error: hoursError } = await (admin as any)
+    .from("company_opening_hours")
+    .insert(hoursRows);
 
   if (hoursError) {
     console.error("[completeSignup] company_opening_hours insert failed:", hoursError);
@@ -250,7 +252,9 @@ export async function completeSignup(data: SetupData) {
   }
   if (socialRows.length > 0) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error: socialError } = await (admin as any).from("company_social_media").insert(socialRows);
+    const { error: socialError } = await (admin as any)
+      .from("company_social_media")
+      .insert(socialRows);
     if (socialError) {
       console.error("[completeSignup] company_social_media insert failed:", socialError);
     }

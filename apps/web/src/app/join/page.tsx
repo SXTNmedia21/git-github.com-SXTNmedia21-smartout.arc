@@ -36,14 +36,12 @@ export default async function JoinPage({
           step2: {
             ...(progress.step_data as Record<string, Record<string, unknown>>).step2,
             firstName:
-              (progress.step_data as Record<string, Record<string, unknown>>).step2
-                ?.firstName ||
+              (progress.step_data as Record<string, Record<string, unknown>>).step2?.firstName ||
               metadata.given_name ||
               metadata.first_name ||
               "",
             lastName:
-              (progress.step_data as Record<string, Record<string, unknown>>).step2
-                ?.lastName ||
+              (progress.step_data as Record<string, Record<string, unknown>>).step2?.lastName ||
               metadata.family_name ||
               metadata.last_name ||
               "",
@@ -65,10 +63,7 @@ export default async function JoinPage({
         </div>
       }
     >
-      <SignupWizard
-        userEmail={user?.email || ""}
-        initialState={initialState}
-      />
+      <SignupWizard userEmail={user?.email || ""} initialState={initialState} />
     </Suspense>
   );
 }

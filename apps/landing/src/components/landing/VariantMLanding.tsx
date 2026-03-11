@@ -29,7 +29,6 @@ import {
   MessagesSquare,
   StickyNote,
   Phone,
-  Hash,
   Check,
   ChevronRight,
   Megaphone,
@@ -59,12 +58,6 @@ const fadeUp = {
 /** Slide-in from right — notification style. */
 const slideInRight = {
   hidden: { opacity: 0, x: 40 },
-  visible: { opacity: 1, x: 0 },
-};
-
-/** Slide-in from left — message thread style. */
-const slideInLeft = {
-  hidden: { opacity: 0, x: -40 },
   visible: { opacity: 1, x: 0 },
 };
 
