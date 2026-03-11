@@ -291,7 +291,9 @@ export function WalkAiProvider({
 
   /* ━━━ Client tools — Emma morphs the view ━━━ */
 
-  const baseTools = useMemo(() => buildWalkAiToolKit(viewActionsRef), []);
+  // buildWalkAiToolKit only captures the ref object (stable), not .current.
+  // Tool implementations read .current lazily when invoked, not during render.
+  const [baseTools] = useState(() => buildWalkAiToolKit(viewActionsRef));
   const registeredTools = useRegisteredTools();
 
   // Merge base tools + page-registered tools
