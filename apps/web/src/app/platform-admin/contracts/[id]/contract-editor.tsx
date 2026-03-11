@@ -242,7 +242,11 @@ export function ContractEditor({
     return groups;
   }, [placeholders]);
 
-  const style = statusStyles[contract.status] ?? statusStyles.draft;
+  const style = statusStyles[contract.status] ?? {
+    bg: "bg-zinc-500/10",
+    text: "text-zinc-400",
+    dot: "bg-zinc-400",
+  };
   const hasDocuments = !!(
     contract.signed_pdf_url ||
     contract.audit_log_url ||
