@@ -1,27 +1,30 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { ChevronUp, Sparkles } from "lucide-react";
+import { m, AnimatePresence } from "framer-motion";
 
-const VARIANTS = [
-  { key: null, code: "B", label: "Standard", tagline: "AI som gjør teamet klar" },
-  { key: "E", code: "E", label: "Action", tagline: "Kutt opplæringstiden i to" },
-  { key: "T", code: "T", label: "Enterprise", tagline: "Data, kontroll og compliance" },
-  { key: "K", code: "K", label: "Konsulent", tagline: "ROI du kan vise kunden" },
-  { key: "A", code: "A", label: "Karriere", tagline: "Fra ny i Norge til nøkkelansatt" },
-  { key: "F", code: "F", label: "Tilgjengelig", tagline: "Null tekst, full forståelse" },
-  { key: "S", code: "S", label: "Bransjekultur", tagline: "Faget fortjener bedre verktøy" },
+const PERSPECTIVES = [
+  { slug: "/", code: "B", tagline: "AI som gjør teamet klar", label: "Plattform" },
+  { slug: "/drift", code: "E", tagline: "Kaos koster mer enn du tror", label: "Drift" },
+  { slug: "/tilsyn", code: "T", tagline: "Alltid klar for tilsyn", label: "Compliance" },
+  { slug: "/vekst", code: "K", tagline: "Voks uten å miste kvalitet", label: "Vekst" },
+  { slug: "/tilhorighet", code: "A", tagline: "Du hører til fra dag én", label: "Tilhørighet" },
+  { slug: "/opplaering", code: "F", tagline: "Ingen starter uforberedt", label: "Opplæring" },
+  { slug: "/handverk", code: "S", tagline: "Håndverket fortjener bedre", label: "Håndverk" },
+  { slug: "/vaktliste", code: "V", tagline: "Riktig person, riktig tid", label: "Vaktliste" },
+  { slug: "/ai", code: "I", tagline: "En kollega som aldri glemmer", label: "AI" },
+  { slug: "/kommunikasjon", code: "M", tagline: "Slutt å gjenta deg selv", label: "Kommunikasjon" },
 ] as const;
 
 export function VariantDropdown() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const searchParams = useSearchParams();
+  const pathname = usePathname();
   const router = useRouter();
-  const current = searchParams.get("v")?.toUpperCase() ?? null;
 
-  const active = VARIANTS.find((v) => v.key === current) ?? VARIANTS[0];
+  const active = PERSPECTIVES.find((p) => p.slug === pathname) ?? PERSPECTIVES[0];
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
@@ -31,15 +34,8 @@ export function VariantDropdown() {
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, []);
 
-  function selectVariant(key: string | null) {
-    const params = new URLSearchParams(searchParams.toString());
-    if (key) {
-      params.set("v", key);
-    } else {
-      params.delete("v");
-    }
-    const qs = params.toString();
-    router.push(qs ? `/?${qs}` : "/", { scroll: false });
+  function navigate(slug: string) {
+    router.push(slug, { scroll: true });
     setOpen(false);
   }
 
@@ -47,51 +43,65 @@ export function VariantDropdown() {
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 text-sm text-zinc-600 transition-colors hover:text-zinc-300"
+        className="flex items-center gap-1.5 text-sm text-zinc-600 transition-colors duration-150 hover:text-zinc-300"
       >
         <Sparkles className="h-3 w-3 text-orange-500" />
-        <span>{active.tagline}</span>
-        <ChevronUp className={`h-3 w-3 transition-transform ${open ? "" : "rotate-180"}`} />
+        <span className="hidden sm:inline">{active.tagline}</span>
+        <span className="sm:hidden">{active.label}</span>
+        <ChevronUp
+          className={`h-3 w-3 transition-transform duration-200 ${open ? "" : "rotate-180"}`}
+        />
       </button>
 
-      {open && (
-        <div className="absolute right-0 bottom-full mb-2 w-72 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/95 shadow-2xl backdrop-blur">
-          <div className="border-b border-zinc-800 px-3 py-2">
-            <p className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase">
-              Utforsk plattformen
-            </p>
-          </div>
-          <div className="py-1">
-            {VARIANTS.map((v) => (
-              <button
-                key={v.code}
-                onClick={() => selectVariant(v.key)}
-                className={`flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-zinc-800/60 ${
-                  v.key === current ? "bg-orange-500/10" : ""
-                }`}
-              >
-                <span
-                  className={`flex h-6 w-6 items-center justify-center rounded-md text-[10px] font-black ${
-                    v.key === current ? "bg-orange-500 text-white" : "bg-zinc-800 text-zinc-400"
+      <AnimatePresence>
+        {open && (
+          <m.div
+            initial={{ opacity: 0, y: 8, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, scale: 0.96 }}
+            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+            className="absolute right-0 bottom-full mb-2 w-80 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/95 shadow-2xl backdrop-blur"
+          >
+            <div className="border-b border-zinc-800 px-3 py-2">
+              <p className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase">
+                10 perspektiver på SmartOut
+              </p>
+            </div>
+            <div className="max-h-[400px] overflow-y-auto py-1">
+              {PERSPECTIVES.map((p, i) => (
+                <m.button
+                  key={p.code}
+                  onClick={() => navigate(p.slug)}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.03, type: "spring", stiffness: 400, damping: 25 }}
+                  className={`flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors duration-100 hover:bg-zinc-800/60 ${
+                    p.slug === pathname ? "bg-orange-500/10" : ""
                   }`}
                 >
-                  {v.code}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p
-                    className={`text-sm font-semibold ${
-                      v.key === current ? "text-orange-400" : "text-zinc-300"
+                  <span
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[10px] font-black ${
+                      p.slug === pathname ? "bg-orange-500 text-white" : "bg-zinc-800 text-zinc-400"
                     }`}
                   >
-                    {v.tagline}
-                  </p>
-                  <p className="text-[11px] text-zinc-500">{v.label}</p>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+                    {p.code}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p
+                      className={`truncate text-sm font-semibold ${
+                        p.slug === pathname ? "text-orange-400" : "text-zinc-300"
+                      }`}
+                    >
+                      {p.tagline}
+                    </p>
+                    <p className="text-[11px] text-zinc-500">{p.label}</p>
+                  </div>
+                </m.button>
+              ))}
+            </div>
+          </m.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

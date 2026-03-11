@@ -8,8 +8,8 @@
 //               voice-assistant.tsx (receives variantContext)
 // ============================================
 
-/** Legacy variant identifiers used by voice config and VoiceDemoWidget. */
-export type LandingVariant = "B" | "E" | "T" | "K" | "A" | "F" | "S";
+/** Variant identifiers used by voice config and VoiceDemoWidget. */
+export type LandingVariant = "B" | "E" | "T" | "K" | "A" | "F" | "S" | "V" | "I" | "M";
 
 /** Keys for the static accent color class map. */
 export type AccentColorKey =
@@ -19,7 +19,9 @@ export type AccentColorKey =
   | "emerald"
   | "amber"
   | "yellow"
-  | "rose";
+  | "rose"
+  | "cyan"
+  | "violet";
 
 /** Configuration for the voice demo widget per variant. */
 export type VariantVoiceConfig = {
@@ -180,6 +182,36 @@ export const ACCENT_COLORS: Record<
     groupHoverBg: "group-hover:bg-rose-950/20",
     groupHoverText: "group-hover:text-rose-300",
   },
+  cyan: {
+    border: "border-cyan-500/30",
+    borderHover: "hover:border-cyan-500/50",
+    bg: "bg-cyan-500/10",
+    text: "text-cyan-400",
+    textMuted: "text-cyan-500/50",
+    badgeBorder: "border-cyan-500/20",
+    badgeBg: "bg-cyan-500/10",
+    badgeText: "text-cyan-400",
+    glow: "bg-cyan-500/5",
+    buttonBg: "bg-cyan-500",
+    buttonHover: "hover:bg-cyan-400",
+    groupHoverBg: "group-hover:bg-cyan-500/10",
+    groupHoverText: "group-hover:text-cyan-400",
+  },
+  violet: {
+    border: "border-violet-500/30",
+    borderHover: "hover:border-violet-500/50",
+    bg: "bg-violet-500/10",
+    text: "text-violet-400",
+    textMuted: "text-violet-500/50",
+    badgeBorder: "border-violet-500/20",
+    badgeBg: "bg-violet-500/10",
+    badgeText: "text-violet-400",
+    glow: "bg-violet-500/5",
+    buttonBg: "bg-violet-500",
+    buttonHover: "hover:bg-violet-400",
+    groupHoverBg: "group-hover:bg-violet-500/10",
+    groupHoverText: "group-hover:text-violet-400",
+  },
 };
 
 /** Per-variant voice widget configuration. */
@@ -262,6 +294,39 @@ export const VARIANT_VOICE_CONFIG: Record<LandingVariant, VariantVoiceConfig> = 
     usePulse: false,
     promptContext:
       "Du snakker med en erfaren sommelier og kvalitetsekspert. V\u00e6r raffinert og presis. Fokuser p\u00e5 h\u00e5ndverk, presisjon, kvalitetsstandarder og balansen mellom tradisjon og teknologi.",
+  },
+  V: {
+    variant: "V",
+    personaName: "Henrik",
+    personaRole: "Driftssjef",
+    accentColor: "cyan",
+    placeholderTitle: "Spør om vaktplanen.",
+    placeholderSubtitle: "Bemanning, tilgjengelighet og kompetansematch.",
+    usePulse: true,
+    promptContext:
+      "Du snakker med en driftssjef som planlegger vakter for 40+ ansatte. Fokuser på intelligent bemanning, kompetansematch, overtidskontroll og automatisk vaktfordeling.",
+  },
+  I: {
+    variant: "I",
+    personaName: "Marte",
+    personaRole: "Restaurantsjef",
+    accentColor: "violet",
+    placeholderTitle: "Møt din AI-kollega.",
+    placeholderSubtitle: "Still et spørsmål — om hva som helst.",
+    usePulse: true,
+    promptContext:
+      "Du snakker med en tech-nysgjerrig restaurantsjef som vil forstå hva AI faktisk kan gjøre for henne i hverdagen. Vis konkrete eksempler på hvordan AI husker, varsler og foreslår — uten å være skremmende teknisk.",
+  },
+  M: {
+    variant: "M",
+    personaName: "Tor",
+    personaRole: "Daglig leder",
+    accentColor: "amber",
+    placeholderTitle: "Spør om kommunikasjon.",
+    placeholderSubtitle: "Beskjeder, oppfølging og team-oppdateringer.",
+    usePulse: true,
+    promptContext:
+      "Du snakker med en sliten daglig leder som gjentar seg selv hele tiden — beskjeder som ikke når frem, ansatte som spør om det samme igjen og igjen. Fokuser på hvordan SmartOut samler kommunikasjon og gjør oppfølging automatisk.",
   },
 };
 
@@ -383,6 +448,63 @@ export const VARIANT_AI_SECTION: Record<LandingVariant, VariantAiSectionConfig> 
       {
         title: "Kontinuerlig forbedring",
         description: "AI som l\u00e6rer av dine standarder og tilpasser seg din bedrift.",
+      },
+    ],
+  },
+  V: {
+    heading: "AI som planlegger",
+    subheading: "Vakter som fyller seg selv — basert på kompetanse og tilgjengelighet.",
+    capabilities: [
+      {
+        title: "Kompetansematch",
+        description:
+          "Riktig person på riktig plass — basert på sertifiseringer, erfaring og tilgjengelighet.",
+      },
+      {
+        title: "Overtidsvarsling",
+        description: "Se overtidskostnader før de oppstår. AI foreslår billigere alternativer.",
+      },
+      {
+        title: "Automatisk fordeling",
+        description: "Fyll åpne vakter med ett klikk. AI rangerer kandidater etter match.",
+      },
+    ],
+  },
+  I: {
+    heading: "En kollega som aldri glemmer",
+    subheading: "AI som husker, varsler og foreslår — slik at du kan fokusere på gjestene.",
+    capabilities: [
+      {
+        title: "Husker alt",
+        description:
+          "Rutiner, sertifiseringer, frister — Lise holder oversikten slik at du slipper.",
+      },
+      {
+        title: "Varsler i tide",
+        description: "Påminnelser før ting går galt. Ikke etter.",
+      },
+      {
+        title: "Foreslår neste steg",
+        description: "Basert på hva som skjer akkurat nå — ikke generiske tips.",
+      },
+    ],
+  },
+  M: {
+    heading: "Si det én gang",
+    subheading: "Beskjeder som faktisk når frem — til riktig person, til riktig tid.",
+    capabilities: [
+      {
+        title: "Én kanal",
+        description: "Slutt på SMS, lapper og messenger-grupper. Alt samlet på ett sted.",
+      },
+      {
+        title: "Lest-kvittering",
+        description: "Se hvem som har lest, hvem som mangler. Automatisk purring.",
+      },
+      {
+        title: "Smartere oppfølging",
+        description:
+          "AI flagger ansatte som trenger ekstra oppmerksomhet — før du merker det selv.",
       },
     ],
   },

@@ -1,3 +1,12 @@
+---
+title: "Landing Page Perspective Alignment — Implementation Plan"
+status: in_progress
+updated: 2026-03-11
+created: 2026-03-10
+module: landing
+tags: [landing, perspectives, copy]
+---
+
 # Landing Page Perspective Alignment — Implementation Plan
 
 > **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
