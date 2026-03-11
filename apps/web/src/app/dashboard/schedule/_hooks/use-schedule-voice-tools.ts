@@ -6,8 +6,8 @@ import type {
   ClientToolImplementation,
   ClientTools,
 } from "@/components/voice-tools-context";
-import { SCHEDULE_TOOL_DEFINITIONS } from "@smartout/ai";
-import type { Shift, Absence } from "../_components/schedule-types";
+import { SCHEDULE_TOOL_DEFINITIONS } from "./schedule-tool-definitions";
+import type { Shift, Absence, ShiftProposal } from "../_components/schedule-types";
 import type { ScheduleEmployee } from "./use-employees";
 import type { ScheduleComputed } from "./use-schedule-computed";
 
@@ -30,6 +30,8 @@ type ScheduleVoiceToolsInput = {
     deleteShift: (id: string) => Promise<unknown>;
     publishShifts: (ids: string[]) => Promise<unknown>;
   };
+  /** When provided, write tools create ghost proposals instead of real shifts */
+  addProposal?: (proposal: ShiftProposal) => void;
 };
 
 // Tool definitions imported from @smartout/ai — single source of truth.
@@ -305,7 +307,6 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
 
     const createShiftTool: ClientToolImplementation = async (params) => {
       const d = dataRef.current;
-      if (!d.mutations?.createShift) return JSON.stringify({ error: "Mutations not available" });
 
       const rawNameQuery = (params.employeeName as string) ?? "";
       const employee = findEmployeeByName(d.employees, rawNameQuery);
@@ -326,6 +327,33 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
       const [eh, em] = endTime.split(":").map(Number);
       const workHours = Math.max(0, eh! * 60 + em! - (sh! * 60 + sm!)) / 60;
       const dayCategory = sh! < 11 ? "morning" : sh! < 17 ? "afternoon" : "evening";
+      const dayLabel = d.days.find((day) => day.id === dateId)?.label ?? dateId;
+
+      // Ghost mode — create proposal instead of real shift
+      if (d.addProposal) {
+        d.addProposal({
+          id: `proposal-${crypto.randomUUID()}`,
+          type: "create",
+          employeeId: employee.id,
+          dateId,
+          role,
+          startTime,
+          endTime,
+          workHours,
+          dayCategory,
+          indicator: "blue",
+          breaks: 0,
+        });
+
+        return JSON.stringify({
+          success: true,
+          ghost: true,
+          message: `Forslag: ${employee.name} på ${dayLabel} ${startTime}–${endTime} som ${role}. Venter på godkjenning.`,
+        });
+      }
+
+      // Direct mode — no proposal context, create real shift
+      if (!d.mutations?.createShift) return JSON.stringify({ error: "Mutations not available" });
 
       try {
         await d.mutations.createShift({
@@ -343,12 +371,11 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
           breaks: 0,
         });
 
-        const dayLabel = d.days.find((day) => day.id === dateId)?.label ?? dateId;
         return JSON.stringify({
           success: true,
           message: `Shift created for ${employee.name} on ${dayLabel} ${startTime}-${endTime} as ${role}`,
         });
-      } catch (err) {
+      } catch (err: unknown) {
         return JSON.stringify({
           error: `Failed to create shift: ${err instanceof Error ? err.message : "unknown"}`,
         });
@@ -357,7 +384,6 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
 
     const updateShiftTool: ClientToolImplementation = async (params) => {
       const d = dataRef.current;
-      if (!d.mutations?.updateShift) return JSON.stringify({ error: "Mutations not available" });
 
       const rawNameQuery = (params.employeeName as string) ?? "";
       const employee = findEmployeeByName(d.employees, rawNameQuery);
@@ -389,10 +415,31 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
       if (patch.startTime || patch.endTime) {
         const st = (patch.startTime as string) ?? shift.startTime;
         const et = (patch.endTime as string) ?? shift.endTime;
-        const [sh, sm] = st.split(":").map(Number);
-        const [eh, em] = et.split(":").map(Number);
-        patch.workHours = Math.max(0, eh! * 60 + em! - (sh! * 60 + sm!)) / 60;
+        const [sHour, sMin] = st.split(":").map(Number);
+        const [eHour, eMin] = et.split(":").map(Number);
+        patch.workHours = Math.max(0, eHour! * 60 + eMin! - (sHour! * 60 + sMin!)) / 60;
       }
+
+      // Ghost mode — create update proposal
+      if (d.addProposal) {
+        d.addProposal({
+          id: `proposal-${crypto.randomUUID()}`,
+          type: "update",
+          shiftId: shift.id,
+          employeeId: employee.id,
+          dateId,
+          patch,
+        });
+
+        return JSON.stringify({
+          success: true,
+          ghost: true,
+          message: `Endringsforslag for ${employee.name}: ${Object.keys(patch).join(", ")}. Venter på godkjenning.`,
+        });
+      }
+
+      // Direct mode
+      if (!d.mutations?.updateShift) return JSON.stringify({ error: "Mutations not available" });
 
       try {
         await d.mutations.updateShift({ id: shift.id, patch });
@@ -400,7 +447,7 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
           success: true,
           message: `Updated shift for ${employee.name}: ${JSON.stringify(patch)}`,
         });
-      } catch (err) {
+      } catch (err: unknown) {
         return JSON.stringify({
           error: `Failed to update: ${err instanceof Error ? err.message : "unknown"}`,
         });

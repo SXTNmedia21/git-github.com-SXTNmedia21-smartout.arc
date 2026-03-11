@@ -39,9 +39,9 @@ export function useScrapedData() {
     return () => cleanup();
   }, [cleanup]);
 
-  const pollStatusRef = useRef<() => void>(() => {});
+  const pollStatusRef = useRef<(url: string) => void>(() => {});
 
-  const pollStatus = useCallback(() => {
+  const pollStatus = useCallback((url: string) => {
     attemptRef.current += 1;
 
     if (attemptRef.current > MAX_POLL_ATTEMPTS) {
@@ -52,7 +52,11 @@ export function useScrapedData() {
 
     pollRef.current = setTimeout(async () => {
       try {
-        const res = await fetch("/api/scrape/company");
+        const res = await fetch("/api/scrape/public", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url }),
+        });
         if (!res.ok) {
           setScrapeStatus("failed");
           cleanup();
@@ -60,22 +64,25 @@ export function useScrapedData() {
         }
 
         const data = await res.json();
-        const status = data.scrape_status;
+        const status = data.status;
 
         if (status === "success") {
-          setScrapedData(data.parsed_data ?? null);
+          setScrapedData(data.data ?? null);
           setScrapeStatus("success");
           cleanup();
         } else if (status === "partial") {
-          setScrapedData(data.parsed_data ?? null);
+          setScrapedData(data.data ?? null);
           setScrapeStatus("partial");
           cleanup();
+        } else if (status === "scraping" || status === "pending" || status === "processing") {
+          // Still scraping — poll same endpoint again with same input URL
+          pollStatusRef.current(url);
         } else if (status === "failed") {
           setScrapeStatus("failed");
           cleanup();
         } else {
-          // Still scraping — poll again
-          pollStatusRef.current();
+          setScrapeStatus("failed");
+          cleanup();
         }
       } catch {
         setScrapeStatus("failed");
@@ -95,7 +102,7 @@ export function useScrapedData() {
       setScrapedData(null);
 
       try {
-        const res = await fetch("/api/scrape/company", {
+        const res = await fetch("/api/scrape/public", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ url }),
@@ -109,26 +116,22 @@ export function useScrapedData() {
         const data = await res.json();
 
         if (data.status === "success") {
-          // Scraping completed synchronously — fetch the result
-          const pollRes = await fetch("/api/scrape/company");
-          if (pollRes.ok) {
-            const pollData = await pollRes.json();
-            setScrapedData(pollData.parsed_data ?? null);
-            setScrapeStatus("success");
-          } else {
-            setScrapeStatus("failed");
-          }
-        } else if (data.status === "failed") {
-          setScrapeStatus("failed");
+          setScrapedData(data.data ?? null);
+          setScrapeStatus("success");
+        } else if (
+          data.status === "scraping" ||
+          data.status === "pending" ||
+          data.status === "processing"
+        ) {
+          pollStatusRef.current(url);
         } else {
-          // Still processing, start polling
-          pollStatus();
+          setScrapeStatus("failed");
         }
       } catch {
         setScrapeStatus("failed");
       }
     },
-    [cleanup, pollStatus],
+    [cleanup],
   );
 
   return { scrapedData, scrapeStatus, triggerScrape };

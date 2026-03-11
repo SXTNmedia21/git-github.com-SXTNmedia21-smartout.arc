@@ -134,12 +134,7 @@ export async function middleware(request: NextRequest): Promise<Response> {
       request.nextUrl.searchParams.get("showcase") === "1" ||
       request.cookies.get(SHOWCASE_COOKIE)?.value === "1";
 
-    // /join requires authentication — redirect to /signup if no session
-    if (pathname.startsWith("/join") && !sessionUser) {
-      const redir = NextResponse.redirect(new URL("/signup", request.url));
-      copySessionCookies(response, redir);
-      return redir;
-    }
+    // /join is always open — anyone can start creating a workspace
 
     // Portal root → workspace selector
     if (pathname === "/") {
@@ -236,12 +231,7 @@ async function handleLegacyRouting(request: NextRequest): Promise<Response> {
     response.headers.set("x-workspace-id-param", wsParam);
   }
 
-  // /join requires authentication — redirect to /signup if no session
-  if (pathname.startsWith("/join") && !sessionUser) {
-    const redir = NextResponse.redirect(new URL("/signup", request.url));
-    copySessionCookies(response, redir);
-    return redir;
-  }
+  // /join is always open — anyone can start creating a workspace
 
   // Early exit for routes that need no extra queries
   if (!needsDashboardGate && !needsAdminGate) return response;

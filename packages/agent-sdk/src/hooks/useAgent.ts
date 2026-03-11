@@ -178,6 +178,8 @@ export function useAgent(config: AgentConfig): AgentSession {
         extraParams: apiParams,
       });
 
+      addDebug("api_request", `POST ${apiEndpoint} ${JSON.stringify(body).slice(0, 500)}`);
+
       const res = await fetch(apiEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -185,11 +187,11 @@ export function useAgent(config: AgentConfig): AgentSession {
       });
 
       if (!res.ok) {
-        const errorData = (await res.json().catch(() => ({ error: "Unknown error" }))) as {
-          error?: string;
-        };
-        const errorMsg = errorData.error ?? "Failed to start agent session";
-        console.error("[useAgent] Failed to start session:", res.status, errorMsg);
+        const errorData = (await res.json().catch(() => ({ error: "Unknown error" }))) as Record<string, unknown>;
+        const errorMsg = String(errorData.error ?? "Failed to start agent session");
+        const details = errorData.details ? ` | ${String(errorData.details)}` : "";
+        addDebug("api_error", `${res.status} ${errorMsg}${details}`);
+        console.error("[useAgent] Failed to start session:", res.status, errorData);
         sessionRef.current = null;
         startingRef.current = false;
         setStatus("idle");
@@ -199,6 +201,7 @@ export function useAgent(config: AgentConfig): AgentSession {
 
       const responseData = (await res.json()) as { joinUrl?: string };
       const joinUrl = responseData.joinUrl;
+      addDebug("api_response", `${res.status} joinUrl=${joinUrl ? "yes" : "none"}`);
 
       if (joinUrl && sessionRef.current === session) {
         session.join(joinUrl);

@@ -1,0 +1,197 @@
+/* WalkAi — Keyframe animations */
+/* Interactions: ~280ms. Ambient: 3–6s. */
+
+@keyframes walkai-breathe {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.25;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 0.5;
+  }
+}
+
+@keyframes walkai-pulse {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.15);
+  }
+}
+
+@keyframes walkai-bar {
+  0%, 100% {
+    transform: scaleY(0.5);
+  }
+  50% {
+    transform: scaleY(1.4);
+  }
+}
+
+@keyframes walkai-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Neon blink — retracted sticky indicator */
+@keyframes walkai-neon-blink {
+  0%, 100% {
+    opacity: 0.25;
+    box-shadow: 0 0 3px currentColor;
+  }
+  50% {
+    opacity: 0.85;
+    box-shadow: 0 0 6px currentColor, 0 0 14px currentColor;
+  }
+}
+
+/* ━━━ NOTIFICATION — The jaw-dropper ━━━ */
+
+/* Slow rotating conic gradient — the halo ring */
+@keyframes walkai-notify-rotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Expanding ripple rings that fade out */
+@keyframes walkai-notify-ripple {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+/* Core orb intensifies — subtle scale throb */
+@keyframes walkai-notify-throb {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow:
+      0 0 12px 2px rgba(var(--brand-orange-rgb, 255 140 50), 0.4),
+      0 0 30px 6px rgba(var(--brand-orange-rgb, 255 140 50), 0.15);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow:
+      0 0 18px 4px rgba(var(--brand-orange-rgb, 255 140 50), 0.5),
+      0 0 40px 10px rgba(var(--brand-orange-rgb, 255 140 50), 0.2);
+  }
+}
+
+/* Particle float — tiny dots drifting upward */
+@keyframes walkai-particle-float {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-28px) scale(0.3);
+    opacity: 0;
+  }
+}
+
+/* Shimmer sweep across the orb surface */
+@keyframes walkai-notify-shimmer {
+  0% {
+    background-position: -100% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Ambient glow — gentle card breathing when Emma is active */
+@keyframes walkai-glow {
+  0%, 100% {
+    box-shadow:
+      0 0 0 0 rgba(var(--brand-orange-rgb, 255 140 50), 0),
+      0 8px 32px -8px rgba(0, 0, 0, 0.15);
+  }
+  50% {
+    box-shadow:
+      0 0 20px 2px rgba(var(--brand-orange-rgb, 255 140 50), 0.06),
+      0 12px 40px -8px rgba(0, 0, 0, 0.2);
+  }
+}
+
+/* ━━━ CHOREOGRAPHY — Staggered arena entrance ━━━ */
+
+/* Slide in from top — header */
+@keyframes walkai-slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Scale up from center — content area */
+@keyframes walkai-scale-up {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Slide in from bottom — footer */
+@keyframes walkai-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Pop in — FAB and small elements */
+@keyframes walkai-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  60% {
+    transform: scale(1.08);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Task complete — satisfying check */
+@keyframes walkai-check {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.3);
+  }
+  100% {
+    transform: scale(1);
+  }
+}

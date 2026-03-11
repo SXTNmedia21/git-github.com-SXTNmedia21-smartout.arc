@@ -18,6 +18,14 @@ const GlobalSearchPalette = dynamic(
   { ssr: false },
 );
 
+const EmmaOverlay = dynamic(
+  () =>
+    import("@/app/walkAi/_components/EmmaOverlay").then((m) => ({
+      default: m.EmmaOverlay,
+    })),
+  { ssr: false },
+);
+
 const ROUTE_MISSION_MAP: Record<string, MissionId> = {
   "/dashboard": "mr-botsson",
   "/dashboard/schedule": "shift-assistant",
@@ -1835,6 +1843,9 @@ export function DashboardShell({
           </div>
 
           {/* Floating Voice Assistant removed and moved to header */}
+
+          {/* Emma — floating voice overlay */}
+          <EmmaOverlay />
         </div>
       </VoiceToolsProvider>
     </DocumentModeProvider>

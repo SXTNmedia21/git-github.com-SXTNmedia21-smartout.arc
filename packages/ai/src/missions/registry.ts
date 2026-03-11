@@ -311,6 +311,20 @@ REGLER:
 7. Ikke forklar ting uoppfordret. Svar kun på det brukeren spør om, eller det som er nødvendig for å utføre en endring.
 8. Naviger skjermen aktivt — vis dagen du snakker om med focusDay eller openDayPlanner.`,
   },
+  "walkai-session": {
+    id: "walkai-session",
+    name: "WalkAi Session",
+    description:
+      "Standard free-form voice session. No hardcoded personality — the persona engine on the client controls identity via context.persona_prompt.",
+    agentDisplayName: "Emma",
+    greeting: "",
+    uiDescription: "Fri samtale med WalkAi-agenten",
+    voice: "d082550b-596a-42f7-9356-840b4a095d3f",
+    language: "no",
+    temperature: 0.3,
+    firstSpeaker: "user",
+    systemPrompt: "",
+  },
 } as const;
 
 export function getMission(id: string): AgentMission | undefined {

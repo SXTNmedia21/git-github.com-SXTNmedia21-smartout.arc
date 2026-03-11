@@ -14,7 +14,7 @@ interface SetupData {
     city: string;
     orgNumber: string;
   };
-  step3: { aboutUs: string; ourHistory?: string; ourConcept: string };
+  step3: { aboutUs?: string; ourHistory?: string; ourConcept?: string };
   step4: {
     openingHours: Array<{
       dayOfWeek: number;
@@ -196,9 +196,9 @@ export async function completeSignup(data: SetupData) {
   // 6. Company details
   const { error: detailsError } = await admin.from("company_details").insert({
     workspace_id: workspace.workspace_id,
-    about_us: data.step3.aboutUs,
+    about_us: data.step3.aboutUs || null,
     our_history: data.step3.ourHistory || null,
-    our_concept: data.step3.ourConcept,
+    our_concept: data.step3.ourConcept || null,
     restaurant_type: data.step5.restaurantType || null,
     cuisine_types: data.step5.cuisineTypes || [],
     price_category: data.step5.priceCategory || null,

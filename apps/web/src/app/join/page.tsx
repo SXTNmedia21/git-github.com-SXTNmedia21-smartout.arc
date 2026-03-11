@@ -3,31 +3,58 @@ import { redirect } from "next/navigation";
 import { createClient } from "@smartout/supabase/server";
 import { SignupWizard } from "./_components/SignupWizard";
 
-export default async function JoinPage() {
+export default async function JoinPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const isPreview = params.preview === "true";
+
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect("/signup");
+  // If logged in, load existing progress and prefill from metadata
+  const metadata = user?.user_metadata || {};
+  let initialState: Record<string, unknown> | undefined;
 
-  // Check if signup already completed (user has profile)
-  const { data: profiles } = await supabase
-    .from("profile")
-    .select("profile_id")
-    .eq("user_id", user.id)
-    .limit(1);
+  if (user) {
+    // Load existing progress for resume
+    const { data: progress } = await supabase
+      .from("signup_progress")
+      .select("current_step, step_data")
+      .eq("auth_id", user.id)
+      .single();
 
-  if (profiles && profiles.length > 0) redirect("/dashboard");
-
-  // Load existing progress for resume
-  const { data: progress } = await supabase
-    .from("signup_progress")
-    .select("current_step, step_data")
-    .eq("auth_id", user.id)
-    .single();
-
-  const metadata = user.user_metadata || {};
+    initialState = progress?.step_data
+      ? {
+          ...(progress.step_data as Record<string, unknown>),
+          currentStep: progress.current_step,
+          step2: {
+            ...(progress.step_data as Record<string, Record<string, unknown>>).step2,
+            firstName:
+              (progress.step_data as Record<string, Record<string, unknown>>).step2
+                ?.firstName ||
+              metadata.given_name ||
+              metadata.first_name ||
+              "",
+            lastName:
+              (progress.step_data as Record<string, Record<string, unknown>>).step2
+                ?.lastName ||
+              metadata.family_name ||
+              metadata.last_name ||
+              "",
+          },
+        }
+      : {
+          step2: {
+            firstName: metadata.given_name || metadata.first_name || "",
+            lastName: metadata.family_name || metadata.last_name || "",
+          },
+        };
+  }
 
   return (
     <Suspense
@@ -38,35 +65,8 @@ export default async function JoinPage() {
       }
     >
       <SignupWizard
-        userEmail={user.email || ""}
-        initialState={
-          progress?.step_data
-            ? {
-                ...(progress.step_data as Record<string, unknown>),
-                currentStep: progress.current_step,
-                step2: {
-                  ...(progress.step_data as Record<string, Record<string, unknown>>).step2,
-                  firstName:
-                    (progress.step_data as Record<string, Record<string, unknown>>).step2
-                      ?.firstName ||
-                    metadata.given_name ||
-                    metadata.first_name ||
-                    "",
-                  lastName:
-                    (progress.step_data as Record<string, Record<string, unknown>>).step2
-                      ?.lastName ||
-                    metadata.family_name ||
-                    metadata.last_name ||
-                    "",
-                },
-              }
-            : {
-                step2: {
-                  firstName: metadata.given_name || metadata.first_name || "",
-                  lastName: metadata.family_name || metadata.last_name || "",
-                },
-              }
-        }
+        userEmail={user?.email || ""}
+        initialState={initialState}
       />
     </Suspense>
   );
