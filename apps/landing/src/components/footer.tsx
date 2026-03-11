@@ -43,7 +43,8 @@ export default function Footer() {
               <span className="text-lg font-black tracking-tighter text-white">SmartOut</span>
             </Link>
             <p className="max-w-xs text-sm leading-relaxed text-zinc-500">
-              AI-drevet workforce management for den norske serveringsbransjen.
+              {/* CHANGED: More evocative, less corporate */}
+              Strukturen bak restauranter som leverer — hver dag.
             </p>
           </div>
 

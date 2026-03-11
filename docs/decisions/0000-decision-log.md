@@ -8,6 +8,11 @@ tags: [decisions]
 ---
 
 # Decision Log — daschboard
+module: landing
+tags: [decisions]
+---
+
+# Decision Log — landingpage
 
 | #   | Date | Decision | Status |
 | --- | ---- | -------- | ------ |

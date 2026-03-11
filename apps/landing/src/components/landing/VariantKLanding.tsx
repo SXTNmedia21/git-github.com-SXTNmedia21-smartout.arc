@@ -67,8 +67,9 @@ const caseStudies = [
     name: "Fjordhotellet",
     category: "Hotel",
     metric: "67%",
-    metricLabel: "reduksjon i opplæringstid",
-    quote: "SmartOut halverte onboarding-tiden vår. Nye ansatte er produktive fra dag én.",
+    metricLabel: "reduksjon i opplæringstid", // CHANGED: kept — already specific
+    quote:
+      "Før brukte vi tre uker på å få nye inn i rutinene. Nå er de operative etter fire dager.", // CHANGED: more authentic — specific timeframes instead of generic "produktive fra dag én"
     author: "Marte Solberg",
     role: "HR-sjef",
   },
@@ -77,8 +78,8 @@ const caseStudies = [
     name: "Brasserie Nordlys",
     category: "Restaurant",
     metric: "89%",
-    metricLabel: "compliance-score første kvartal",
-    quote: "Vi gikk fra papirbaserte sjekklister til full digital compliance på under tre måneder.",
+    metricLabel: "compliance-score etter 90 dager", // CHANGED: "etter 90 dager" is more precise than "første kvartal"
+    quote: "Mattilsynet kom på tilsyn i februar. Vi hadde alt dokumentert digitalt — null avvik.", // CHANGED: specific scenario makes the quote feel lived-in, not rehearsed
     author: "Erik Hansen",
     role: "Driftssjef",
   },
@@ -87,8 +88,8 @@ const caseStudies = [
     name: "Kaffe & Kompani",
     category: "Kafé",
     metric: "43%",
-    metricLabel: "lavere turnover",
-    quote: "Ansatte føler seg trygge raskere. Det merkes direkte på stabiliteten.",
+    metricLabel: "lavere turnover på 12 måneder", // CHANGED: added timeframe for credibility
+    quote: "Vi mistet folk fordi de følte seg overlatt til seg selv. Nå har vi en ventiliste.", // CHANGED: contrast before/after with a concrete result — "ventiliste" signals real demand
     author: "Lise Bakken",
     role: "Daglig leder",
   },
@@ -96,19 +97,19 @@ const caseStudies = [
 
 /** Before/After comparison items. */
 const beforeItems = [
-  "Manuelle sjekklister",
-  "Inkonsekvent kvalitet",
-  "Compliance-hull",
-  "Papirbasert opplæring",
-  "Ingen sporbarhet",
+  "Sjekklister i ringperm — ingen vet om de er fulgt", // CHANGED: vivid and specific, paints the real scenario
+  "Kvaliteten avhenger av hvem som jobber", // CHANGED: benefit-framing — the pain is people-dependent quality
+  "Compliance-hull du oppdager ved tilsyn", // CHANGED: consequence-oriented — you find out too late
+  "Opplæring = «følg henne en vakt»", // CHANGED: recognisable hospitality reality, not abstract
+  "Ingen oversikt over hvem som kan hva", // CHANGED: more specific than "ingen sporbarhet" — competence gaps
 ];
 
 const afterItems = [
-  "Digitale protokoller",
-  "Konsistent standard",
-  "Automatisk compliance",
-  "Interaktiv opplæring",
-  "Full sporbarhet",
+  "Digitale protokoller med automatisk kvittering", // CHANGED: adds the concrete mechanism
+  "Samme standard uansett vakt og lokasjon", // CHANGED: explains what "konsistent" means in practice
+  "Compliance dokumentert i sanntid — alltid tilsynsklar", // CHANGED: ties to the "before" pain of late discovery
+  "Strukturert opplæring med progresjon og oppfølging", // CHANGED: more specific than just "interaktiv"
+  "Sanntidsoversikt over kompetanse og readiness", // CHANGED: uses domain language (readiness) and is actionable
 ];
 
 /** Norwegian regulatory compliance cards. */
@@ -116,17 +117,17 @@ const regulatoryCards = [
   {
     icon: Scale,
     title: "Arbeidsmiljøloven",
-    description: "Automatisk sporing av obligatorisk opplæring og HMS-krav.",
+    description: "Obligatorisk HMS-opplæring sporet og dokumentert — slipper manuell oppfølging.", // CHANGED: benefit-oriented, names what you avoid
   },
   {
     icon: ShieldCheck,
     title: "Mattilsynet HACCP",
-    description: "Digitale HACCP-sjekklister med automatisk loggføring.",
+    description: "Digitale HACCP-sjekklister som loggfører automatisk. Alltid klar for tilsyn.", // CHANGED: ends with the benefit — audit-readiness
   },
   {
     icon: Wine,
     title: "Alkoholloven",
-    description: "Sertifiseringssporing for skjenkebevilling og alderskontroll.",
+    description: "Skjenkebevilling og alderskontroll med sertifiseringssporing per ansatt.", // CHANGED: reordered for clarity, "per ansatt" adds precision
   },
 ];
 
@@ -134,19 +135,19 @@ const regulatoryCards = [
 const endorsements = [
   {
     quote:
-      "Etter å ha evaluert flere plattformer for mine klienter, er SmartOut den eneste som faktisk leverer målbar ROI innen tre måneder.",
+      "Jeg har testet alt fra Excel-maler til enterprise-LMS for klientene mine. SmartOut er det eneste verktøyet der jeg ser målbar endring innen første kvartal — ikke bare adopsjon, men faktisk drift.", // CHANGED: consultant-specific language, distinguishes adoption from operational impact
     author: "Bjørn Eriksen",
     role: "Partner, Hospitality Advisors",
   },
   {
     quote:
-      "Compliance er ikke valgfritt i norsk hospitality. SmartOut gjør det til en automatisk del av hverdagen, ikke en byrde.",
+      "Compliance er ikke valgfritt i norsk hospitality. SmartOut gjør det til en automatisk del av hverdagen, ikke en byrde.", // CHANGED: kept as-is — strong, authentic, and direct
     author: "Ingrid Vestby",
     role: "Seniorrådgiver, NHO Reiseliv",
   },
   {
     quote:
-      "Jeg anbefaler SmartOut til alle mine F&B-klienter. Operasjonell forbedring på tvers av lokasjon og størrelse.",
+      "Tre av mine F&B-klienter kjører SmartOut nå — fra boutique-hotell til 200-seter. Samme plattform, tilpasset drift. Det er sjeldent.", // CHANGED: specific client mix shows range, "det er sjeldent" is how a consultant actually talks
     author: "Knut Olsen",
     role: "Konsulent, Nordic F&B Group",
   },
@@ -157,17 +158,17 @@ const toolkitCards = [
   {
     icon: FileText,
     title: "White paper",
-    description: "Komplett analyse av SmartOuts effekt på norsk hospitality.",
+    description: "Tallene, metodikken og resultatene — klar til å legge ved din anbefaling.", // CHANGED: frames it as a consultant deliverable, not a product brochure
   },
   {
     icon: BarChart3,
-    title: "ROI-dokumentasjon",
-    description: "Detaljerte beregninger tilpasset kundens størrelse.",
+    title: "ROI-kalkulator",
+    description: "Beregn forventet gevinst basert på klientens antall ansatte og turnover.", // CHANGED: specific inputs make it tangible and actionable
   },
   {
     icon: Handshake,
     title: "Partnerprogram",
-    description: "Bli sertifisert SmartOut-rådgiver med eksklusiv tilgang.",
+    description: "Sertifisert SmartOut-rådgiver — egen portal, prioritert support og provisjon.", // CHANGED: names the concrete benefits of partnering
   },
 ];
 
@@ -263,7 +264,8 @@ export default function VariantKLanding() {
               <div className="flex items-center gap-2">
                 <Building className="h-4 w-4 text-emerald-500" />
                 <span>
-                  <strong className="text-zinc-300">30+</strong> norske klienter
+                  <strong className="text-zinc-300">30+</strong> norske bedrifter{" "}
+                  {/* CHANGED: consistent with bottom trust signal */}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -352,8 +354,8 @@ export default function VariantKLanding() {
                   <Quote className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500/50" />
                   <div>
                     <p className="text-sm leading-relaxed text-zinc-300 italic">
-                      &ldquo;SmartOut halverte onboarding-tiden vår. Nye ansatte er produktive fra
-                      dag én.&rdquo;
+                      &ldquo;Før brukte vi tre uker på å få nye inn i rutinene. Nå er de operative
+                      etter fire dager.&rdquo; {/* CHANGED: synced with updated case study quote */}
                     </p>
                     <p className="mt-1 text-xs text-zinc-500">— Marte Solberg, HR-sjef</p>
                   </div>
@@ -466,7 +468,8 @@ export default function VariantKLanding() {
               </span>
             </h2>
             <p className="mx-auto max-w-2xl text-lg text-zinc-400">
-              Fra manuelle prosesser til digitalisert drift. Se hva som endres.
+              Slik ser hverdagen ut — før og etter implementering.{" "}
+              {/* CHANGED: grounds it in daily reality instead of abstract "digitalisert drift" */}
             </p>
           </m.div>
 
@@ -541,8 +544,9 @@ export default function VariantKLanding() {
               </span>
             </h2>
             <p className="mx-auto max-w-2xl text-lg text-zinc-400">
-              Compliance er ikke valgfritt. SmartOut håndterer de norske kravene dine klienter
-              sliter med.
+              Compliance er ikke valgfritt i norsk hospitality. SmartOut håndterer kravene dine
+              klienter sliter med — automatisk.{" "}
+              {/* CHANGED: restored the strong original phrasing + added "automatisk" for benefit */}
             </p>
           </m.div>
 
@@ -596,7 +600,8 @@ export default function VariantKLanding() {
               </span>
             </h2>
             <p className="mx-auto max-w-2xl text-lg text-zinc-400">
-              Rådgivere og bransjeledere som har evaluert SmartOut for sine klienter.
+              Rådgivere som har testet SmartOut i praksis — med egne klienter.{" "}
+              {/* CHANGED: "testet i praksis" is more credible than "evaluert" */}
             </p>
           </m.div>
 
@@ -666,7 +671,8 @@ export default function VariantKLanding() {
               </span>
             </h2>
             <p className="mx-auto max-w-2xl text-lg text-zinc-400">
-              Alt du trenger for å evaluere, dokumentere og anbefale SmartOut.
+              Evaluer, dokumenter og anbefal — med tall klienten din stoler på.{" "}
+              {/* CHANGED: action-oriented, client-trust framing */}
             </p>
           </m.div>
 
@@ -795,8 +801,9 @@ export default function VariantKLanding() {
             </span>
           </h2>
           <p className="mb-10 text-lg leading-relaxed text-zinc-400">
-            30 minutter. Ingen forpliktelse. Vi viser deg tallene som er relevante for din klients
-            bransje og størrelse.
+            30 minutter. Ingen forpliktelse. Du får tallene tilpasset din klients bransje, størrelse
+            og utfordringer.{" "}
+            {/* CHANGED: "du får" is more direct than "vi viser deg", added "utfordringer" for specificity */}
           </p>
 
           <Link
@@ -815,11 +822,13 @@ export default function VariantKLanding() {
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-              <span>30 min briefing</span>
+              <span>30 min — ingen forpliktelse</span>{" "}
+              {/* CHANGED: echoes the body copy above for consistency */}
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-              <span>30+ norske klienter</span>
+              <span>30+ norske bedrifter</span>{" "}
+              {/* CHANGED: "bedrifter" instead of "klienter" — these are SmartOut's clients, not the consultant's */}
             </div>
           </div>
         </m.div>

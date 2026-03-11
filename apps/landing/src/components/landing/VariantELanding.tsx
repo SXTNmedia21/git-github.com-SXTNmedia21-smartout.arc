@@ -50,7 +50,8 @@ export default function VariantELanding() {
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-orange-500"></span>
               </span>
               <span className="text-xs font-bold tracking-wider text-orange-400 uppercase">
-                Genesis Protocol v2 Live
+                Driftsplattformen er live{" "}
+                {/* CHANGED: replaced meaningless jargon "Genesis Protocol v2 Live" with operations-relevant message */}
               </span>
             </div>
 
@@ -62,7 +63,8 @@ export default function VariantELanding() {
             </h1>
 
             <p className="mb-8 max-w-xl text-lg leading-relaxed text-zinc-400">
-              Slutt å drive butikken i skjøre regneark. Smartout orkestrerer hele driften din – fra
+              Slutt å styre driften i skjøre regneark. Smartout samler alt – fra{" "}
+              {/* CHANGED: "drive butikken" (Swedish-ism) → "styre driften" (Norwegian) */}
               kontrakter til live lønnsprognoser – i én intelligent plattform.
             </p>
 
@@ -78,7 +80,8 @@ export default function VariantELanding() {
                 href="#features"
                 className="rounded-xl border border-zinc-800 bg-zinc-900 px-8 py-4 text-center font-bold text-white transition-all hover:border-zinc-700 hover:bg-zinc-800"
               >
-                Se Interaktiv Demo
+                Se hvordan det fungerer{" "}
+                {/* CHANGED: more action-oriented than "Se Interaktiv Demo" */}
               </Link>
             </div>
 
@@ -94,7 +97,8 @@ export default function VariantELanding() {
                 ))}
               </div>
               <p>
-                Stoles på av <strong className="text-zinc-300">10,000+</strong> ansatte i
+                Brukes av <strong className="text-zinc-300">10 000+</strong> ansatte i{" "}
+                {/* CHANGED: "Stoles på" is Swedish → "Brukes av" (Norwegian). Fixed number format. */}
                 frontlinjen
               </p>
             </div>
@@ -129,7 +133,8 @@ export default function VariantELanding() {
                 <div className="mb-6 flex items-center justify-between">
                   <div>
                     <h3 className="text-lg font-bold">Live Operations</h3>
-                    <p className="text-xs text-zinc-400">Restaurang Stockholm</p>
+                    <p className="text-xs text-zinc-400">Restaurant Oslo</p>{" "}
+                    {/* CHANGED: "Restaurang Stockholm" (Swedish) → Norwegian city + spelling */}
                   </div>
                   <div className="animate-pulse rounded border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 text-[10px] font-bold tracking-widest text-emerald-500 uppercase shadow-[0_0_10px_rgba(16,185,129,0.2)]">
                     Live
@@ -163,11 +168,11 @@ export default function VariantELanding() {
 
                 <div className="space-y-3">
                   <div className="mb-1 text-xs font-bold tracking-widest text-zinc-500 uppercase">
-                    Avdelningsstatus
+                    Avdelingsstatus {/* CHANGED: "Avdelningsstatus" (Swedish) → Norwegian */}
                   </div>
                   {[
                     {
-                      name: "Kök",
+                      name: "Kjøkken", // CHANGED: "Kök" (Swedish) → Norwegian
                       status: "Optimal",
                       color: "text-emerald-500",
                       bgColor: "bg-emerald-500",
@@ -175,8 +180,8 @@ export default function VariantELanding() {
                       icon: <Coffee strokeWidth={3} className="h-4 w-4" />,
                     },
                     {
-                      name: "Matsal",
-                      status: "Hög belastning",
+                      name: "Sal", // CHANGED: "Matsal" (Swedish) → Norwegian
+                      status: "Høy belastning", // CHANGED: "Hög" (Swedish) → "Høy" (Norwegian)
                       color: "text-orange-500",
                       bgColor: "bg-orange-500",
                       w: "w-[95%]",
@@ -184,7 +189,7 @@ export default function VariantELanding() {
                     },
                     {
                       name: "Bar",
-                      status: "Lugnt",
+                      status: "Rolig", // CHANGED: "Lugnt" (Swedish) → "Rolig" (Norwegian)
                       color: "text-indigo-500",
                       bgColor: "bg-indigo-500",
                       w: "w-[30%]",
@@ -228,9 +233,10 @@ export default function VariantELanding() {
                 <CheckCircle2 className="h-6 w-6 text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
               </div>
               <div>
-                <div className="text-sm font-black text-white">Schema Klart</div>
+                <div className="text-sm font-black text-white">Vaktplan klar</div>{" "}
+                {/* CHANGED: "Schema Klart" (Swedish) → Norwegian */}
                 <div className="text-[11px] font-medium text-zinc-400">
-                  Automatisk fördelning via AI
+                  Automatisk fordeling via AI {/* CHANGED: "fördelning" (Swedish) → Norwegian */}
                 </div>
               </div>
             </m.div>
@@ -289,19 +295,19 @@ export default function VariantELanding() {
               {
                 title: "Overtidsbrudd",
                 value: "+18%",
-                desc: "Dyrere personalkostnad på grunn av manglende varsling og oversikt over timer.",
+                desc: "Ekstra personalkostnad fordi ingen varsler deg før timene sprekker.", // CHANGED: tighter, more direct — speaks to Lars Erik's frustration
                 icon: <AlertCircle className="h-5 w-5 text-red-500" />,
               },
               {
                 title: "Administrasjon",
                 value: "40 t",
-                desc: "Tapt per måned pr restaurant på å pusla med vaktlister og manuell lønnskjøring.",
+                desc: "Tapt per måned per restaurant på vaktlister, lønnskjøring og manuell oppfølging.", // CHANGED: removed "pusla" (Swedish-ism), tightened
                 icon: <Clock className="h-5 w-5 text-red-500" />,
               },
               {
                 title: "Turnover",
                 value: "3x",
-                desc: "Høyere sjanse for at ansatte slutter når kommunikasjonen og vagtplanene er uforutsigbare.",
+                desc: "Høyere sjanse for at folk slutter når vaktplaner og kommunikasjon er uforutsigbare.", // CHANGED: "vagtplanene" (Danish-ism) → "vaktplaner", tightened
                 icon: <Users className="h-5 w-5 text-red-500" />,
               },
             ].map((stat, idx) => (
@@ -332,10 +338,12 @@ export default function VariantELanding() {
       >
         <div className="mx-auto max-w-7xl px-6">
           <div className="mb-16 text-center">
-            <h2 className="mb-4 text-3xl font-bold md:text-5xl">Alt du trenger for å skalere.</h2>
+            <h2 className="mb-4 text-3xl font-bold md:text-5xl">Én plattform. Hele driften.</h2>{" "}
+            {/* CHANGED: "Alt du trenger for å skalere" was generic → operator-specific */}
             <p className="mx-auto max-w-2xl text-zinc-400">
-              Erstatter 5 forskjellige verktøy med ett sammenhengende operativsystem bygget
-              spesifikt for servicebransjen.
+              Erstatter 5 forskjellige verktøy med ett operativsystem bygget{" "}
+              {/* CHANGED: cut "sammenhengende" — filler */}
+              for servicebransjen.
             </p>
           </div>
 
@@ -343,22 +351,22 @@ export default function VariantELanding() {
             {[
               {
                 title: "Smart Vaktplanlegging",
-                desc: "La AI bygge den optimale planen basert på historisk data og prognoser.",
+                desc: "AI bygger den optimale planen basert på historikk, været og bookinger.", // CHANGED: benefit-oriented — what data it actually uses
                 icon: <Clock className="h-5 w-5 text-zinc-300" />,
               },
               {
                 title: "Live Lønnsprognoser",
-                desc: "Se nøyaktig hva dagen koster før den starter. Ingen overraskelser ved månedsslutt.",
+                desc: "Vit nøyaktig hva dagen koster før den starter. Null overraskelser ved lønnskjøring.", // CHANGED: "Se" → "Vit" (stronger), "månedsslutt" → "lønnskjøring" (more specific pain)
                 icon: <TrendingUp className="h-5 w-5 text-zinc-300" />,
               },
               {
                 title: "Automatisk Compliance",
-                desc: "Få varsler før overtidsbrudd eller brudd på hviletid skjer.",
+                desc: "Automatisk varsling før overtid eller hviletidsbrudd inntreffer.", // CHANGED: tighter, avoids repetitive "brudd" twice
                 icon: <Shield className="h-5 w-5 text-zinc-300" />,
               },
               {
                 title: "Arbeidsgiver Hub",
-                desc: "Sentraliserte kontrakter, dokumenter og kommunikasjon med hele teamet.",
+                desc: "Kontrakter, dokumenter og kommunikasjon samlet på ett sted.", // CHANGED: "Sentraliserte" is corporate filler — simpler is better
                 icon: <Building className="h-5 w-5 text-zinc-300" />,
               },
             ].map((feature, i) => (
@@ -386,7 +394,8 @@ export default function VariantELanding() {
         <div className="pointer-events-none absolute inset-0 bg-orange-500/5 mix-blend-overlay"></div>
         <div className="relative z-10 mx-auto max-w-7xl text-center">
           <h2 className="mb-16 text-2xl font-bold md:text-4xl">
-            Den operative ryggraden for moderne team
+            Tallene som driver servicebransjen fremover{" "}
+            {/* CHANGED: "Den operative ryggraden for moderne team" was generic */}
           </h2>
 
           <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
@@ -447,7 +456,7 @@ export default function VariantELanding() {
               {
                 step: "1",
                 title: "Smartout Lærer",
-                desc: "Vi tygger gjerne i oss dine historiske data, værmeldinger og bookinger.",
+                desc: "Last opp historikk, bookinger og værdata. Smartout forstår mønstrene.", // CHANGED: tighter, less playful — Lars Erik wants efficiency, not humor
                 icon: <BarChart3 className="h-6 w-6" />,
                 color: "text-blue-400",
                 bg: "bg-blue-500/10",
@@ -456,7 +465,7 @@ export default function VariantELanding() {
               {
                 step: "2",
                 title: "AI Magi",
-                desc: "Vår algoritme skreddersyr lekende lett en lovlig, optimal vaktplan på sekunder.",
+                desc: "Algoritmen lager en lovlig, optimal vaktplan på sekunder.", // CHANGED: cut "lekende lett" and "skreddersyr" — filler that undersells seriousness
                 icon: <Zap className="h-6 w-6" />,
                 color: "text-orange-400",
                 bg: "bg-orange-500/10",
@@ -465,7 +474,7 @@ export default function VariantELanding() {
               {
                 step: "3",
                 title: "Sømløs Synk",
-                desc: "Godkjente timer spretter direkte inn i ditt eksisterende lønnssystem.",
+                desc: "Godkjente timer flyter rett inn i lønnssystemet ditt. Ingen manuell eksport.", // CHANGED: "spretter" too playful for Lars Erik, added benefit
                 icon: <ArrowRight className="h-6 w-6" />,
                 color: "text-emerald-400",
                 bg: "bg-emerald-500/10",
@@ -505,16 +514,19 @@ export default function VariantELanding() {
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col items-center gap-12 md:flex-row">
             <div className="flex-1">
-              <h2 className="mb-6 text-3xl font-bold md:text-5xl">Navet i din verksamhet</h2>
+              <h2 className="mb-6 text-3xl font-bold md:text-5xl">Navet i virksomheten din</h2>{" "}
+              {/* CHANGED: "verksamhet" (Swedish) → "virksomheten" (Norwegian), possessive moved */}
               <p className="mb-8 max-w-xl text-lg text-zinc-400">
-                Smartout är byggt för att prata med systemen du redan älskar. POS, lönesystem, eller
-                HR-mjukvara – vi samlar alla trådarna i en kraftfull hub.
+                Smartout snakker med systemene du allerede bruker. POS, lønnssystem eller{" "}
+                {/* CHANGED: full Swedish sentence → Norwegian */}
+                HR-verktøy — vi samler alle trådene i én kraftig hub.
               </p>
               <Link
                 href="#features"
                 className="flex items-center gap-2 font-bold text-orange-500 transition-all hover:gap-3"
               >
-                Se alla 40+ integrationer <ArrowRight className="h-5 w-5" />
+                Se alle 40+ integrasjoner <ArrowRight className="h-5 w-5" />{" "}
+                {/* CHANGED: "alla integrationer" (Swedish) → Norwegian */}
               </Link>
             </div>
             <div className="relative aspect-square w-full flex-1 md:aspect-auto md:h-[400px]">
@@ -574,9 +586,11 @@ export default function VariantELanding() {
           </h2>
 
           <div>
-            <div className="text-lg font-bold">Sofia Lindström</div>
+            <div className="text-lg font-bold">Sofie Larsen</div>{" "}
+            {/* CHANGED: "Sofia Lindström" (Swedish name) → Norwegian name */}
             <div className="mt-1 text-xs font-medium tracking-widest text-zinc-500 uppercase">
-              Driftssjef, Urban Deli
+              Driftssjef, Brasserie Blå{" "}
+              {/* CHANGED: "Urban Deli" (Stockholm venue) → Norwegian venue */}
             </div>
           </div>
 
@@ -668,7 +682,8 @@ export default function VariantELanding() {
                     <span className="rounded-lg bg-black/20 px-3 py-1 text-sm font-medium text-white">
                       Bartender
                     </span>
-                    <span className="text-sm text-white/90">Urban Deli</span>
+                    <span className="text-sm text-white/90">Brasserie Blå</span>{" "}
+                    {/* CHANGED: consistent with testimonial name change */}
                   </div>
                 </div>
 

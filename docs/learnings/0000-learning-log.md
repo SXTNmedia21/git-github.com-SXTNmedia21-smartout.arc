@@ -8,6 +8,11 @@ tags: [learnings]
 ---
 
 # Learning Log — daschboard
+module: landing
+tags: [learnings]
+---
+
+# Learning Log — landingpage
 
 | #   | Date | Learning | Impact |
 | --- | ---- | -------- | ------ |

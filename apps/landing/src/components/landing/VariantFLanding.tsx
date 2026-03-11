@@ -82,7 +82,7 @@ const PHOTO_STRIP = [
     gradient: "from-zinc-800 via-yellow-400/15 to-zinc-900",
   },
   {
-    caption: "Stolt og dyktig",
+    caption: "Stolt og trygg", // CHANGED: "dyktig" → "trygg" — more emotionally resonant for Fatima, matches the safety theme
     ariaLabel: "Bilde av en erfaren arbeider med stolthet",
     gradient: "from-zinc-900 via-zinc-800 to-yellow-400/20",
   },
@@ -93,9 +93,9 @@ const PHOTO_STRIP = [
  * Each item is a short reassuring statement with a checkmark icon.
  */
 const CHECKLIST_ITEMS = [
-  "Ingen lesing nødvendig",
-  "Lær med bilder og video",
-  "Hjelp på ditt språk",
+  "Du trenger ikke lese", // CHANGED: "Ingen lesing nødvendig" → direct "du" address, warmer and less formal
+  "Bilder og video viser vei", // CHANGED: "Lær med bilder og video" → benefit-first, shows what happens rather than instructing
+  "Hjelp p\u00e5 ditt spr\u00e5k", // CHANGED: Kept same meaning, already strong
 ] as const;
 
 /**
@@ -143,7 +143,8 @@ export default function VariantFLanding() {
             <h1 className="mb-6 text-5xl font-black text-white lg:text-7xl">Du klarer dette.</h1>
 
             <p className="mb-12 text-xl text-zinc-300 lg:text-2xl">
-              SmartOut hjelper deg å lære jobben.
+              Vi hjelper deg &aring; l&aelig;re jobben.{" "}
+              {/* CHANGED: "SmartOut hjelper deg" → "Vi hjelper deg" — warmer, less brand-centric for Fatima persona */}
             </p>
 
             <Link
@@ -165,7 +166,8 @@ export default function VariantFLanding() {
         <section className="px-6 py-20 lg:py-32">
           <div className="mx-auto max-w-4xl">
             <h2 className="mb-16 text-center text-3xl font-bold text-white lg:text-4xl">
-              SmartOut hjelper deg:
+              Dette kan du gj&oslash;re:{" "}
+              {/* CHANGED: "SmartOut hjelper deg:" → "Dette kan du gjøre:" — empowers Fatima, focuses on her capability not the product */}
             </h2>
 
             <div className="grid grid-cols-2 gap-6 lg:gap-10">
@@ -277,8 +279,10 @@ export default function VariantFLanding() {
             ================================================ */}
         <section className="px-6 py-20 lg:py-32">
           <div className="flex flex-col items-center text-center">
-            <h2 className="mb-12 text-4xl font-bold text-white lg:text-5xl">Prøv det nå.</h2>
-
+            <h2 className="mb-12 text-4xl font-bold text-white lg:text-5xl">
+              Klar? Pr&oslash;v n&aring;.
+            </h2>{" "}
+            {/* CHANGED: "Prøv det nå." → "Klar? Prøv nå." — gentler invitation, question format less pushy for Fatima */}
             <Link
               href={WEB_APP_LINKS.onboarding}
               onClick={() => trackCta("Start nå")}
