@@ -616,7 +616,12 @@ export function PeopleDataTable({
       />
 
       {/* Invite Modal */}
-      <InviteMemberDialog isOpen={isInviteOpen} onClose={() => setIsInviteOpen(false)} />
+      <InviteMemberDialog
+        isOpen={isInviteOpen}
+        onClose={() => setIsInviteOpen(false)}
+        departments={departments}
+        onRefresh={onRefresh}
+      />
 
       {/* Confirmation Dialog for destructive/sensitive actions */}
       <ConfirmationDialog

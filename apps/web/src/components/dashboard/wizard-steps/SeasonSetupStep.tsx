@@ -149,19 +149,40 @@ export function SeasonSetupStep({
   const queryClient = useQueryClient();
   const hasInitRef = useRef(false);
 
-  // ── Query existing season ──
+  // ── Query existing season (with budget + day factors for pre-population) ──
 
   const { data: existingSeason } = useQuery({
     queryKey: ["seasons", workspace.workspace_id],
     queryFn: async () => {
       const supabase = createClient();
-      const { data } = await supabase
+      const { data: season } = await supabase
         .from("season")
-        .select("season_id, name, start_date, end_date, status")
+        .select("season_id, name, start_date, end_date, status, opening_hours")
         .eq("workspace_id", workspace.workspace_id)
         .limit(1)
         .maybeSingle();
-      return data;
+      if (!season) return null;
+
+      // Fetch budget + day factors for pre-population
+      const { data: budget } = await supabase
+        .from("season_budget")
+        .select(
+          "season_budget_id, total_target_revenue, target_labor_percentage, avg_hourly_wage, base_price_per_guest",
+        )
+        .eq("season_id", season.season_id)
+        .maybeSingle();
+
+      let dayFactorData: { weekday: number; factor: number }[] = [];
+      if (budget) {
+        const { data: df } = await supabase
+          .from("day_factor")
+          .select("weekday, factor")
+          .eq("season_budget_id", budget.season_budget_id)
+          .order("weekday");
+        dayFactorData = df ?? [];
+      }
+
+      return { ...season, budget, dayFactors: dayFactorData };
     },
   });
 
@@ -216,6 +237,40 @@ export function SeasonSetupStep({
   const [dayFactors, setDayFactors] = useState<Record<WeekdayKey, number>>(DEFAULT_DAY_FACTORS);
   const [openingHours, setOpeningHours] = useState<OpeningHoursMap>({});
   const [isSaving, setIsSaving] = useState(false);
+
+  // ── Pre-populate from existing season ──
+
+  const hasPrePopulatedRef = useRef(false);
+
+  useEffect(() => {
+    if (hasPrePopulatedRef.current || !existingSeason) return;
+    hasPrePopulatedRef.current = true;
+
+    setName(existingSeason.name);
+    if (existingSeason.start_date) setStartDate(existingSeason.start_date);
+    if (existingSeason.end_date) setEndDate(existingSeason.end_date);
+
+    if (existingSeason.opening_hours) {
+      setOpeningHours(existingSeason.opening_hours as OpeningHoursMap);
+      hasInitRef.current = true; // skip default opening hours init
+    }
+
+    if (existingSeason.budget) {
+      setTotalRevenue(existingSeason.budget.total_target_revenue ?? 0);
+      setLaborPct(existingSeason.budget.target_labor_percentage ?? 30);
+      setRevenuePerGuest(existingSeason.budget.base_price_per_guest ?? 450);
+    }
+
+    if (existingSeason.dayFactors && existingSeason.dayFactors.length > 0) {
+      const weekdayKeys: WeekdayKey[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+      const factors = { ...DEFAULT_DAY_FACTORS };
+      for (const df of existingSeason.dayFactors) {
+        const key = weekdayKeys[df.weekday - 1]; // weekday 1=Mon
+        if (key) factors[key] = df.factor;
+      }
+      setDayFactors(factors);
+    }
+  }, [existingSeason]);
 
   // ── Initialize opening hours from departments ──
 
@@ -338,61 +393,148 @@ export function SeasonSetupStep({
         .replace(/\s+/g, "-")
         .replace(/[^a-z0-9-æøå]/g, "");
 
-      // 1. Create season
-      const { data: season, error: seasonError } = await supabase
-        .from("season")
-        .insert({
-          name: name.trim(),
-          slug,
-          start_date: startDate,
-          end_date: endDate,
-          status: "draft" as const,
+      let seasonId: string;
+
+      if (existingSeason) {
+        // ── Update existing season ──
+        const { error: updateError } = await supabase
+          .from("season")
+          .update({
+            name: name.trim(),
+            slug,
+            start_date: startDate,
+            end_date: endDate,
+            opening_hours: openingHours,
+          })
+          .eq("season_id", existingSeason.season_id);
+
+        if (updateError) throw updateError;
+        seasonId = existingSeason.season_id;
+
+        // Update budget if it exists, otherwise create
+        if (existingSeason.budget) {
+          const { error: budgetUpdateError } = await supabase
+            .from("season_budget")
+            .update({
+              total_target_revenue: totalRevenue,
+              target_labor_percentage: laborPct,
+              avg_hourly_wage: avgHourlyWage,
+              base_price_per_guest: revenuePerGuest,
+            })
+            .eq("season_budget_id", existingSeason.budget.season_budget_id);
+
+          if (budgetUpdateError) throw budgetUpdateError;
+
+          // Delete old day factors and re-insert
+          await supabase
+            .from("day_factor")
+            .delete()
+            .eq("season_budget_id", existingSeason.budget.season_budget_id);
+
+          const dayFactorRecords = WEEKDAYS.map((wd, idx) => ({
+            season_budget_id: existingSeason.budget!.season_budget_id,
+            workspace_id: workspace.workspace_id,
+            weekday: idx + 1,
+            factor: dayFactors[wd.key],
+          }));
+
+          const { error: dayFactorError } = await supabase
+            .from("day_factor")
+            .insert(dayFactorRecords);
+          if (dayFactorError) throw dayFactorError;
+        } else {
+          // Create budget for existing season that has none
+          const { data: budget, error: budgetError } = await supabase
+            .from("season_budget")
+            .insert({
+              season_id: seasonId,
+              workspace_id: workspace.workspace_id,
+              total_target_revenue: totalRevenue,
+              target_labor_percentage: laborPct,
+              avg_hourly_wage: avgHourlyWage,
+              base_price_per_guest: revenuePerGuest,
+              created_by: profileId,
+            })
+            .select("season_budget_id")
+            .single();
+
+          if (budgetError) throw budgetError;
+
+          const dayFactorRecords = WEEKDAYS.map((wd, idx) => ({
+            season_budget_id: budget.season_budget_id,
+            workspace_id: workspace.workspace_id,
+            weekday: idx + 1,
+            factor: dayFactors[wd.key],
+          }));
+
+          const { error: dayFactorError } = await supabase
+            .from("day_factor")
+            .insert(dayFactorRecords);
+          if (dayFactorError) throw dayFactorError;
+        }
+      } else {
+        // ── Create new season ──
+        const { data: season, error: seasonError } = await supabase
+          .from("season")
+          .insert({
+            name: name.trim(),
+            slug,
+            start_date: startDate,
+            end_date: endDate,
+            status: "draft" as const,
+            workspace_id: workspace.workspace_id,
+            created_by: profileId,
+            opening_hours: openingHours,
+          })
+          .select("season_id")
+          .single();
+
+        if (seasonError) throw seasonError;
+        seasonId = season.season_id;
+
+        // 2. Create season budget
+        const { data: budget, error: budgetError } = await supabase
+          .from("season_budget")
+          .insert({
+            season_id: seasonId,
+            workspace_id: workspace.workspace_id,
+            total_target_revenue: totalRevenue,
+            target_labor_percentage: laborPct,
+            avg_hourly_wage: avgHourlyWage,
+            base_price_per_guest: revenuePerGuest,
+            created_by: profileId,
+          })
+          .select("season_budget_id")
+          .single();
+
+        if (budgetError) throw budgetError;
+
+        // 3. Create day factors
+        const dayFactorRecords = WEEKDAYS.map((wd, idx) => ({
+          season_budget_id: budget.season_budget_id,
           workspace_id: workspace.workspace_id,
-          created_by: profileId,
-          opening_hours: openingHours,
-        })
-        .select("season_id")
-        .single();
+          weekday: idx + 1, // 1=Mon, 7=Sun
+          factor: dayFactors[wd.key],
+        }));
 
-      if (seasonError) throw seasonError;
-
-      // 2. Create season budget
-      const { data: budget, error: budgetError } = await supabase
-        .from("season_budget")
-        .insert({
-          season_id: season.season_id,
-          workspace_id: workspace.workspace_id,
-          total_target_revenue: totalRevenue,
-          target_labor_percentage: laborPct,
-          avg_hourly_wage: avgHourlyWage,
-          base_price_per_guest: revenuePerGuest,
-          created_by: profileId,
-        })
-        .select("season_budget_id")
-        .single();
-
-      if (budgetError) throw budgetError;
-
-      // 3. Create day factors
-      const dayFactorRecords = WEEKDAYS.map((wd, idx) => ({
-        season_budget_id: budget.season_budget_id,
-        workspace_id: workspace.workspace_id,
-        weekday: idx + 1, // 1=Mon, 7=Sun
-        factor: dayFactors[wd.key],
-      }));
-
-      const { error: dayFactorError } = await supabase.from("day_factor").insert(dayFactorRecords);
-
-      if (dayFactorError) throw dayFactorError;
+        const { error: dayFactorError } = await supabase
+          .from("day_factor")
+          .insert(dayFactorRecords);
+        if (dayFactorError) throw dayFactorError;
+      }
 
       void emit({
         event: "button clicked",
         workspace_id: workspace.workspace_id,
         actor_id: profileId ?? "",
-        properties: { trackingId: "season-created-with-budget" },
+        properties: {
+          trackingId: existingSeason ? "season-updated" : "season-created-with-budget",
+        },
       });
 
-      toast.success("Sesong opprettet med budsjett og dagprofil");
+      toast.success(
+        existingSeason ? "Sesong oppdatert" : "Sesong opprettet med budsjett og dagprofil",
+      );
       await queryClient.invalidateQueries({
         queryKey: ["seasons", workspace.workspace_id],
       });
@@ -403,6 +545,7 @@ export function SeasonSetupStep({
       setIsSaving(false);
     }
   }, [
+    existingSeason,
     name,
     startDate,
     endDate,
@@ -417,41 +560,26 @@ export function SeasonSetupStep({
     queryClient,
   ]);
 
-  // ── Render: existing season ──
-
-  if (existingSeason) {
-    return (
-      <div className="space-y-4">
-        <div
-          className={`flex items-center gap-3 rounded-xl border px-4 py-4 ${
-            isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-white"
-          }`}
-        >
-          <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500" />
-          <div className="min-w-0 flex-1">
-            <p className={`text-sm font-semibold ${isDark ? "text-zinc-200" : "text-zinc-800"}`}>
-              {existingSeason.name}
-            </p>
-            <p className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
-              {existingSeason.start_date} – {existingSeason.end_date}
-            </p>
-          </div>
-          <span
-            className={`rounded-full px-2.5 py-0.5 text-[10px] font-medium ${
-              isDark ? "bg-zinc-800 text-zinc-400" : "bg-zinc-100 text-zinc-500"
-            }`}
-          >
-            {existingSeason.status}
-          </span>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Render: create form ──
+  // ── Render ──
 
   return (
     <div className="space-y-8">
+      {/* ── Existing season banner ── */}
+      {existingSeason && (
+        <div
+          className={`flex items-center gap-3 rounded-xl border px-4 py-3 ${
+            isDark
+              ? "border-emerald-500/20 bg-emerald-950/10"
+              : "border-emerald-200 bg-emerald-50/50"
+          }`}
+        >
+          <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+          <p className={`text-xs ${isDark ? "text-emerald-300" : "text-emerald-700"}`}>
+            Sesong opprettet — juster innstillinger nedenfor.
+          </p>
+        </div>
+      )}
+
       {/* ── Section 1: Name + Period ── */}
       <div className="space-y-3">
         <div className="space-y-1.5">
@@ -809,8 +937,10 @@ export function SeasonSetupStep({
         {isSaving ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" />
-            Oppretter...
+            {existingSeason ? "Lagrer..." : "Oppretter..."}
           </>
+        ) : existingSeason ? (
+          "Lagre endringer"
         ) : (
           "Opprett sesong"
         )}

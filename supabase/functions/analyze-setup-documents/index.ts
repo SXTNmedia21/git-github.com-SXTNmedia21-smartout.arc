@@ -65,6 +65,12 @@ type ScraplingResult = {
   method: string;
 };
 
+type ScraplingBatchResult = {
+  results: ScraplingResult[];
+  total_characters: number;
+  total_images: number;
+};
+
 const EXTRACTION_PROMPT = `You are an expert at extracting structured workplace data from Norwegian business documents.
 
 Analyze the provided document text and extract any of the following categories you can find:
@@ -92,28 +98,93 @@ Return ONLY valid JSON matching this schema:
 Only include categories where you found relevant data. Omit empty arrays/objects.
 All text values should be in Norwegian.`;
 
-async function extractViaScrapling(fileData: Blob, fileName: string): Promise<ScraplingResult> {
-  const scraplingUrl = Deno.env.get("SCRAPLING_SERVICE_URL") || "http://host.docker.internal:8000";
+function getScraplingConfig() {
+  const url = Deno.env.get("SCRAPLING_SERVICE_URL");
+  const token = Deno.env.get("SCRAPLING_AUTH_TOKEN");
 
+  if (!url) {
+    console.error("SCRAPLING_SERVICE_URL not set — cannot reach Scrapling service");
+  }
+
+  return { url: url || "http://host.docker.internal:8000", token };
+}
+
+async function extractViaBatch(
+  files: Array<{ data: Blob; fileName: string }>,
+  config: { url: string; token?: string },
+): Promise<{ results: ScraplingResult[]; errors: Array<{ fileName: string; error: string }> }> {
+  const formData = new FormData();
+  for (const f of files) {
+    formData.append("files", f.data, f.fileName);
+  }
+
+  const headers: Record<string, string> = {};
+  if (config.token) headers["Authorization"] = `Bearer ${config.token}`;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 120_000); // 2 min timeout
+
+  try {
+    const res = await fetch(`${config.url}/extract/document/batch`, {
+      method: "POST",
+      headers,
+      body: formData,
+      signal: controller.signal,
+    });
+
+    if (res.status === 401) {
+      throw new Error(
+        "Scrapling auth failed — check SCRAPLING_AUTH_TOKEN secret matches the service",
+      );
+    }
+
+    if (!res.ok) {
+      const errBody = await res.text();
+      throw new Error(`Scrapling batch extraction failed: ${res.status} — ${errBody}`);
+    }
+
+    const batch = (await res.json()) as ScraplingBatchResult;
+    return { results: batch.results, errors: [] };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function extractViaScrapling(
+  fileData: Blob,
+  fileName: string,
+  config: { url: string; token?: string },
+): Promise<ScraplingResult> {
   const formData = new FormData();
   formData.append("file", fileData, fileName);
 
-  const scraplingToken = Deno.env.get("SCRAPLING_AUTH_TOKEN");
-  const fetchHeaders: Record<string, string> = {};
-  if (scraplingToken) fetchHeaders["Authorization"] = `Bearer ${scraplingToken}`;
+  const headers: Record<string, string> = {};
+  if (config.token) headers["Authorization"] = `Bearer ${config.token}`;
 
-  const res = await fetch(`${scraplingUrl}/extract/document`, {
-    method: "POST",
-    headers: fetchHeaders,
-    body: formData,
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 60_000); // 1 min timeout per file
 
-  if (!res.ok) {
-    const errBody = await res.text();
-    throw new Error(`Scrapling extraction failed for ${fileName}: ${res.status} — ${errBody}`);
+  try {
+    const res = await fetch(`${config.url}/extract/document`, {
+      method: "POST",
+      headers,
+      body: formData,
+      signal: controller.signal,
+    });
+
+    if (res.status === 401) {
+      throw new Error("Scrapling auth failed — check SCRAPLING_AUTH_TOKEN secret");
+    }
+
+    if (!res.ok) {
+      const errBody = await res.text();
+      throw new Error(`Scrapling ${res.status}: ${errBody}`);
+    }
+
+    return (await res.json()) as ScraplingResult;
+  } finally {
+    clearTimeout(timeout);
   }
-
-  return (await res.json()) as ScraplingResult;
 }
 
 Deno.serve(async (req: Request) => {
@@ -145,11 +216,13 @@ Deno.serve(async (req: Request) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const openrouterKey = Deno.env.get("OPENROUTER_API_KEY");
+    const scraplingConfig = getScraplingConfig();
 
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Download files from storage and extract via Scrapling — track per-file status
-    const extractionResults: ScraplingResult[] = [];
+    // ── Step 1: Download files from Storage ──
+
+    const downloadedFiles: Array<{ data: Blob; fileName: string; storagePath: string }> = [];
     const fileStatuses: FileStatus[] = [];
 
     for (const storagePath of storage_paths) {
@@ -157,46 +230,114 @@ Deno.serve(async (req: Request) => {
       const { data, error } = await supabase.storage.from("setup-documents").download(storagePath);
 
       if (error || !data) {
-        console.warn(`Could not download ${storagePath}:`, error?.message);
+        console.warn(`Storage download failed for ${storagePath}:`, error?.message);
         fileStatuses.push({
           storagePath,
           fileName,
           status: "failed",
-          error: `Download failed: ${error?.message ?? "no data"}`,
+          error: `Nedlasting feilet: ${error?.message ?? "ingen data"}`,
         });
         continue;
       }
 
-      try {
-        const result = await extractViaScrapling(data, fileName);
-        extractionResults.push(result);
-        fileStatuses.push({
-          storagePath,
-          fileName,
-          status: "analyzed",
-          characters: result.characters,
-        });
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : "Unknown extraction error";
-        console.warn(`Extraction failed for ${fileName}:`, msg);
-        fileStatuses.push({
-          storagePath,
-          fileName,
-          status: "failed",
-          error: msg,
-        });
-      }
+      downloadedFiles.push({ data, fileName, storagePath });
     }
 
-    if (extractionResults.length === 0) {
+    if (downloadedFiles.length === 0) {
       return new Response(
-        JSON.stringify({ error: "No readable files found", files: fileStatuses }),
+        JSON.stringify({
+          result: {},
+          error: "Ingen filer kunne lastes ned fra lagring",
+          errorCode: "STORAGE_DOWNLOAD_FAILED",
+          files: fileStatuses,
+        }),
         {
-          status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         },
       );
     }
+
+    // ── Step 2: Extract text via Scrapling ──
+
+    const extractionResults: ScraplingResult[] = [];
+
+    // Try batch endpoint first (single HTTP call), fall back to per-file
+    try {
+      const batch = await extractViaBatch(downloadedFiles, scraplingConfig);
+
+      // Match results back to files by filename
+      for (const downloaded of downloadedFiles) {
+        const match = batch.results.find((r) => r.filename === downloaded.fileName);
+        if (match && !("error" in match)) {
+          extractionResults.push(match);
+          fileStatuses.push({
+            storagePath: downloaded.storagePath,
+            fileName: downloaded.fileName,
+            status: "analyzed",
+            characters: match.characters,
+          });
+        } else {
+          const errMsg =
+            match && "error" in match
+              ? String((match as Record<string, unknown>).error)
+              : "Ingen resultat fra Scrapling";
+          fileStatuses.push({
+            storagePath: downloaded.storagePath,
+            fileName: downloaded.fileName,
+            status: "failed",
+            error: errMsg,
+          });
+        }
+      }
+    } catch (batchErr) {
+      // Batch failed — fall back to per-file extraction
+      const batchMsg = batchErr instanceof Error ? batchErr.message : "Unknown batch error";
+      console.warn(`Batch extraction failed, falling back to per-file: ${batchMsg}`);
+
+      for (const downloaded of downloadedFiles) {
+        try {
+          const result = await extractViaScrapling(
+            downloaded.data,
+            downloaded.fileName,
+            scraplingConfig,
+          );
+          extractionResults.push(result);
+          fileStatuses.push({
+            storagePath: downloaded.storagePath,
+            fileName: downloaded.fileName,
+            status: "analyzed",
+            characters: result.characters,
+          });
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : "Ukjent feil";
+          console.warn(`Extraction failed for ${downloaded.fileName}:`, msg);
+          fileStatuses.push({
+            storagePath: downloaded.storagePath,
+            fileName: downloaded.fileName,
+            status: "failed",
+            error: msg,
+          });
+        }
+      }
+    }
+
+    if (extractionResults.length === 0) {
+      // Determine if this is an auth issue (all files failed with auth error)
+      const authFailed = fileStatuses.some((f) => f.error?.includes("auth failed"));
+      const errorCode = authFailed ? "SCRAPLING_AUTH_FAILED" : "SCRAPLING_EXTRACTION_FAILED";
+      const errorMsg = authFailed
+        ? "Scrapling-tjenesten avviste forespørselen (autentisering feilet)"
+        : "Ingen filer kunne ekstraheres — Scrapling-tjenesten er utilgjengelig eller filene er uleselige";
+
+      return new Response(
+        JSON.stringify({ result: {}, error: errorMsg, errorCode, files: fileStatuses }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    // ── Step 3: AI analysis via OpenRouter ──
 
     // Build text content from extracted documents
     const textParts = extractionResults
@@ -204,7 +345,6 @@ Deno.serve(async (req: Request) => {
       .map((r) => `--- File: ${r.filename} ---\n${r.text}`)
       .join("\n\n");
 
-    // Call OpenRouter API
     if (!openrouterKey) {
       console.warn("OPENROUTER_API_KEY not set — returning empty extraction");
       return new Response(JSON.stringify({ result: {}, files: fileStatuses }), {
@@ -262,12 +402,12 @@ Deno.serve(async (req: Request) => {
       console.error("OpenRouter API error:", responseText);
       return new Response(
         JSON.stringify({
-          error: "AI analysis failed",
-          debug: responseText.slice(0, 200),
+          result: {},
+          error: "AI-analyse feilet",
+          errorCode: "AI_ANALYSIS_FAILED",
           files: fileStatuses,
         }),
         {
-          status: 502,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         },
       );
@@ -320,7 +460,10 @@ Deno.serve(async (req: Request) => {
   } catch (err: unknown) {
     console.error("analyze-setup-documents error:", err);
     return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }),
+      JSON.stringify({
+        error: err instanceof Error ? err.message : "Ukjent feil",
+        errorCode: "INTERNAL_ERROR",
+      }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }

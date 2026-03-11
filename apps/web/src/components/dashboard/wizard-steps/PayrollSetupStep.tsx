@@ -15,6 +15,18 @@ import { Label } from "@/components/ui/label";
 import { HelpTip } from "@/components/dashboard/wizard-steps/HelpTip";
 import type { IndustryTariff } from "@/lib/industry/types";
 
+// ─── Slug helper (duplicated to avoid org-component import) ──
+
+function toSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[æ]/g, "ae")
+    .replace(/[ø]/g, "oe")
+    .replace(/[å]/g, "aa")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
 // ─── Types ───────────────────────────────────────────────
 
 type SupplementState = {
@@ -121,6 +133,11 @@ export function PayrollSetupStep({
   const [customSupplements, setCustomSupplements] = useState<CustomSupplement[]>([]);
   const [wagesInitialized, setWagesInitialized] = useState(false);
 
+  // ── Inline position creation state ──
+  const [newPositionName, setNewPositionName] = useState("");
+  const [newPositionDeptId, setNewPositionDeptId] = useState("");
+  const [isAddingPosition, setIsAddingPosition] = useState(false);
+
   // ── Queries ──
   const { data: existingPolicies } = useQuery({
     queryKey: ["payroll-policies", workspace.workspace.workspace_id],
@@ -150,6 +167,23 @@ export function PayrollSetupStep({
       return data;
     },
   });
+
+  const { data: departments } = useQuery({
+    queryKey: ["departments-for-positions", workspace.workspace.workspace_id],
+    queryFn: async () => {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("department")
+        .select("department_id, name")
+        .eq("workspace_id", workspace.workspace.workspace_id)
+        .eq("is_active", true)
+        .order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const stableDepartments = useMemo(() => departments ?? [], [departments]);
 
   const stablePositions = useMemo(() => positions ?? [], [positions]);
 
@@ -210,6 +244,60 @@ export function PayrollSetupStep({
       ),
     );
   }, []);
+
+  // ── Create position inline ──
+  const createPositionMutation = useMutation({
+    mutationFn: async ({ name, departmentId }: { name: string; departmentId: string }) => {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("position")
+        .insert({
+          name: name.trim(),
+          slug: toSlug(name),
+          department_id: departmentId,
+          workspace_id: workspace.workspace.workspace_id,
+          is_active: true,
+          sort_order: positions?.length ?? 0,
+        })
+        .select("position_id, name")
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      void emit({
+        event: "button clicked",
+        workspace_id: workspace.workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: { trackingId: "wizard-position-created", context: data.name },
+      });
+      toast.success(`Stilling "${data.name}" opprettet`);
+      setNewPositionName("");
+      setIsAddingPosition(false);
+      // Add to position wages immediately
+      const defaultRate = getHourlyRate(selectedTariff);
+      setPositionWages((prev) => [
+        ...prev,
+        { position_id: data.position_id, name: data.name, hourly_rate: defaultRate },
+      ]);
+      void queryClient.invalidateQueries({
+        queryKey: ["positions", workspace.workspace.workspace_id],
+      });
+    },
+    onError: () => {
+      toast.error("Kunne ikke opprette stilling");
+    },
+  });
+
+  const handleCreatePosition = useCallback(() => {
+    if (!newPositionName.trim()) return;
+    const deptId = newPositionDeptId || stableDepartments[0]?.department_id;
+    if (!deptId) {
+      toast.error("Opprett en avdeling først under Organisasjon");
+      return;
+    }
+    createPositionMutation.mutate({ name: newPositionName, departmentId: deptId });
+  }, [newPositionName, newPositionDeptId, stableDepartments, createPositionMutation.mutate]);
 
   const handleAddCustomSupplement = useCallback(() => {
     setCustomSupplements((prev) => [
@@ -589,10 +677,115 @@ export function PayrollSetupStep({
           <HelpTip text="Sett grunnlønn per stilling. Denne brukes som default når du inviterer ansatte." />
         </div>
 
-        {stablePositions.length === 0 ? (
-          <p className={`text-sm ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
-            Ingen stillinger opprettet enda. Du kan legge til stillinger under Organisasjon.
-          </p>
+        {stablePositions.length === 0 && !isAddingPosition ? (
+          <div className="space-y-3">
+            <p className={`text-sm ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+              Ingen stillinger opprettet enda.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setIsAddingPosition(true);
+                if (stableDepartments.length > 0 && !newPositionDeptId) {
+                  setNewPositionDeptId(stableDepartments[0]!.department_id);
+                }
+              }}
+              className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${
+                isDark
+                  ? "border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-300"
+                  : "border-zinc-200 text-zinc-500 hover:border-zinc-300 hover:text-zinc-700"
+              }`}
+            >
+              <Plus className="h-4 w-4" />
+              Legg til stilling
+            </button>
+          </div>
+        ) : stablePositions.length === 0 && isAddingPosition ? (
+          <div className="space-y-3">
+            {/* Inline add position form */}
+            <div
+              className={`space-y-3 rounded-xl border p-4 ${
+                isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-white"
+              }`}
+            >
+              <div className="space-y-2">
+                <Label className={`text-sm ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
+                  Stillingsnavn
+                </Label>
+                <Input
+                  type="text"
+                  value={newPositionName}
+                  onChange={(e) => setNewPositionName(e.target.value)}
+                  placeholder="F.eks. Servitør, Kokk, Bartender"
+                  className="h-9 text-sm"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleCreatePosition();
+                    }
+                  }}
+                />
+              </div>
+              {stableDepartments.length > 1 && (
+                <div className="space-y-2">
+                  <Label className={`text-sm ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
+                    Avdeling
+                  </Label>
+                  <select
+                    value={newPositionDeptId}
+                    onChange={(e) => setNewPositionDeptId(e.target.value)}
+                    className={`h-9 w-full rounded-lg border px-3 text-sm ${
+                      isDark
+                        ? "border-zinc-800 bg-zinc-950 text-white"
+                        : "border-zinc-200 bg-white text-zinc-900"
+                    }`}
+                  >
+                    {stableDepartments.map((d) => (
+                      <option key={d.department_id} value={d.department_id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {stableDepartments.length === 0 && (
+                <p className={`text-xs ${isDark ? "text-amber-400/80" : "text-amber-600"}`}>
+                  Opprett minst én avdeling under Organisasjon først.
+                </p>
+              )}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleCreatePosition}
+                  disabled={
+                    !newPositionName.trim() ||
+                    stableDepartments.length === 0 ||
+                    createPositionMutation.isPending
+                  }
+                  className="flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-orange-600 disabled:opacity-50"
+                >
+                  {createPositionMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Plus className="h-4 w-4" />
+                  )}
+                  Opprett
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsAddingPosition(false)}
+                  className={`rounded-lg border px-4 py-2 text-sm transition-colors ${
+                    isDark
+                      ? "border-zinc-700 text-zinc-400 hover:text-zinc-300"
+                      : "border-zinc-200 text-zinc-500 hover:text-zinc-700"
+                  }`}
+                >
+                  Avbryt
+                </button>
+              </div>
+            </div>
+          </div>
         ) : (
           <div className="space-y-2">
             {positionWages.map((pw) => (
@@ -622,6 +815,98 @@ export function PayrollSetupStep({
                 </div>
               </div>
             ))}
+
+            {/* Add more positions button */}
+            {!isAddingPosition ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAddingPosition(true);
+                  if (stableDepartments.length > 0 && !newPositionDeptId) {
+                    setNewPositionDeptId(stableDepartments[0]!.department_id);
+                  }
+                }}
+                className={`mt-2 flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${
+                  isDark
+                    ? "border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-300"
+                    : "border-zinc-200 text-zinc-500 hover:border-zinc-300 hover:text-zinc-700"
+                }`}
+              >
+                <Plus className="h-4 w-4" />
+                Legg til stilling
+              </button>
+            ) : (
+              <div
+                className={`mt-2 space-y-3 rounded-xl border p-4 ${
+                  isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-white"
+                }`}
+              >
+                <div className="flex gap-2">
+                  <Input
+                    type="text"
+                    value={newPositionName}
+                    onChange={(e) => setNewPositionName(e.target.value)}
+                    placeholder="Stillingsnavn"
+                    className="h-9 flex-1 text-sm"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleCreatePosition();
+                      }
+                    }}
+                  />
+                  {stableDepartments.length > 1 && (
+                    <select
+                      value={newPositionDeptId}
+                      onChange={(e) => setNewPositionDeptId(e.target.value)}
+                      className={`h-9 rounded-lg border px-3 text-sm ${
+                        isDark
+                          ? "border-zinc-800 bg-zinc-950 text-white"
+                          : "border-zinc-200 bg-white text-zinc-900"
+                      }`}
+                    >
+                      {stableDepartments.map((d) => (
+                        <option key={d.department_id} value={d.department_id}>
+                          {d.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleCreatePosition}
+                    disabled={
+                      !newPositionName.trim() ||
+                      stableDepartments.length === 0 ||
+                      createPositionMutation.isPending
+                    }
+                    className="flex h-9 items-center gap-1.5 rounded-lg bg-orange-500 px-3 text-sm font-semibold text-white transition-colors hover:bg-orange-600 disabled:opacity-50"
+                  >
+                    {createPositionMutation.isPending ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Plus className="h-3.5 w-3.5" />
+                    )}
+                    Opprett
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAddingPosition(false);
+                      setNewPositionName("");
+                    }}
+                    className={`flex h-9 items-center rounded-lg border px-3 text-sm transition-colors ${
+                      isDark
+                        ? "border-zinc-700 text-zinc-400 hover:text-zinc-300"
+                        : "border-zinc-200 text-zinc-500 hover:text-zinc-700"
+                    }`}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

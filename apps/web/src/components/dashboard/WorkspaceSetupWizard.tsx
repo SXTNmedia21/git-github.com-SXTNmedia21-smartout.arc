@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useContext, useLayoutEffect, useMemo } from "react";
+import { useState, useCallback, useContext, useLayoutEffect, useMemo, useRef } from "react";
 import { ChevronLeft, ChevronRight, Loader2, Rocket, SkipForward } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -231,9 +231,12 @@ export function WorkspaceSetupWizard({
   const isLast = currentStep === STEPS.length - 1;
   const [isFinishing, setIsFinishing] = useState(false);
 
+  const invitationsSentRef = useRef(false);
+
   const sendTeamInvitations = useCallback(async () => {
     const members = currentState.teamMembers;
-    if (members.length === 0) return;
+    if (members.length === 0 || invitationsSentRef.current) return;
+    invitationsSentRef.current = true;
 
     const supabase = createClient();
 
@@ -311,13 +314,19 @@ export function WorkspaceSetupWizard({
       },
     }).catch((e: unknown) => console.error("[wizard] emit failed:", e));
 
+    // Persist team invitations when leaving the team step
+    if (step.id === "team" && currentState.teamMembers.length > 0) {
+      try {
+        await sendTeamInvitations();
+      } catch {
+        // Error already toasted — don't block navigation
+      }
+    }
+
     if (isLast) {
       setIsFinishing(true);
 
       try {
-        // Create all team invitations
-        await sendTeamInvitations();
-
         // Emit wizard completed
         emit({
           event: "wizard completed",
@@ -335,7 +344,7 @@ export function WorkspaceSetupWizard({
         });
         onComplete();
       } catch {
-        // Error already toasted in sendTeamInvitations
+        // Error already toasted
       } finally {
         setIsFinishing(false);
       }
@@ -351,6 +360,7 @@ export function WorkspaceSetupWizard({
     profileId,
     step.id,
     currentStep,
+    currentState.teamMembers,
     sendTeamInvitations,
   ]);
 
