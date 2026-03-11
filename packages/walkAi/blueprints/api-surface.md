@@ -21,18 +21,19 @@ The Stage Engine is WalkAi's primary runtime — it manages sessions, stages, da
 
 All endpoints (except `/health` and WebSocket upgrades) require one of:
 
-| Method | Header | Resolution |
-|--------|--------|------------|
-| API Key | `x-api-key: smo_sk_live_...` | SHA-256 hash lookup in `platform_api_key`. Returns `{ method: "api_key", workspaceId, scopes }` |
-| JWT | `Authorization: Bearer <jwt>` | Supabase `getUser()` + profile lookup. Returns `{ method: "jwt", workspaceId, userId }` |
-| Dev Key | `x-api-key: <DEV_API_KEY>` | Bypasses DB lookup. Workspace = `00000000-...`. Scopes = `["*"]` |
+| Method  | Header                        | Resolution                                                                                      |
+| ------- | ----------------------------- | ----------------------------------------------------------------------------------------------- |
+| API Key | `x-api-key: smo_sk_live_...`  | SHA-256 hash lookup in `platform_api_key`. Returns `{ method: "api_key", workspaceId, scopes }` |
+| JWT     | `Authorization: Bearer <jwt>` | Supabase `getUser()` + profile lookup. Returns `{ method: "jwt", workspaceId, userId }`         |
+| Dev Key | `x-api-key: <DEV_API_KEY>`    | Bypasses DB lookup. Workspace = `00000000-...`. Scopes = `["*"]`                                |
 
 **AuthContext type:**
+
 ```typescript
 type AuthContext = {
   method: "api_key" | "jwt";
   workspaceId: string;
-  userId?: string;   // JWT only
+  userId?: string; // JWT only
   scopes?: string[]; // API key only
 };
 ```
@@ -45,11 +46,11 @@ type AuthContext = {
 
 Health check. No auth required.
 
-| Field | Value |
-|-------|-------|
-| Auth | None |
-| Response | `{ status: "ok", service: "stage-engine", version: "0.1.0", timestamp }` |
-| WalkAi consumer | Monitoring / connectivity check |
+| Field           | Value                                                                    |
+| --------------- | ------------------------------------------------------------------------ |
+| Auth            | None                                                                     |
+| Response        | `{ status: "ok", service: "stage-engine", version: "0.1.0", timestamp }` |
+| WalkAi consumer | Monitoring / connectivity check                                          |
 
 ---
 
@@ -57,15 +58,16 @@ Health check. No auth required.
 
 Create a new mission-mode session (structured stages).
 
-| Field | Value |
-|-------|-------|
-| Auth | API key or JWT |
-| Request body | See schema below |
-| Response | `{ session_id, status, current_stage, progress, system_prompt }` |
-| Error 404 | Mission not found or inactive |
-| WalkAi consumer | **SessionManager** — starts a structured journey |
+| Field           | Value                                                            |
+| --------------- | ---------------------------------------------------------------- |
+| Auth            | API key or JWT                                                   |
+| Request body    | See schema below                                                 |
+| Response        | `{ session_id, status, current_stage, progress, system_prompt }` |
+| Error 404       | Mission not found or inactive                                    |
+| WalkAi consumer | **SessionManager** — starts a structured journey                 |
 
 **Request schema:**
+
 ```typescript
 {
   mission_id: string;       // Required. References engine_process
@@ -79,6 +81,7 @@ Create a new mission-mode session (structured stages).
 ```
 
 **Response shape:**
+
 ```typescript
 {
   session_id: string;
@@ -101,15 +104,16 @@ Create a new mission-mode session (structured stages).
 
 Get session status and current state.
 
-| Field | Value |
-|-------|-------|
-| Auth | API key or JWT (workspace-scoped) |
-| Response | Session details |
-| Error 404 | Session not found |
-| Error 403 | Workspace mismatch |
+| Field           | Value                                    |
+| --------------- | ---------------------------------------- |
+| Auth            | API key or JWT (workspace-scoped)        |
+| Response        | Session details                          |
+| Error 404       | Session not found                        |
+| Error 403       | Workspace mismatch                       |
 | WalkAi consumer | **SessionManager** — polls session state |
 
 **Response shape:**
+
 ```typescript
 {
   session_id: string;
@@ -131,11 +135,11 @@ Get session status and current state.
 
 Abandon an active session.
 
-| Field | Value |
-|-------|-------|
-| Auth | API key or JWT |
-| Response | `{ session_id, status: "abandoned" }` |
-| Error 409 | Session already completed/abandoned |
+| Field           | Value                                       |
+| --------------- | ------------------------------------------- |
+| Auth            | API key or JWT                              |
+| Response        | `{ session_id, status: "abandoned" }`       |
+| Error 409       | Session already completed/abandoned         |
 | WalkAi consumer | **SessionManager** — user exits mid-journey |
 
 **Webhook fired:** `session.abandoned` to `callback_url` with `collected_data`.
@@ -148,12 +152,13 @@ Abandon an active session.
 
 Advance session to the next stage.
 
-| Field | Value |
-|-------|-------|
-| Auth | API key or JWT |
+| Field           | Value                                                   |
+| --------------- | ------------------------------------------------------- |
+| Auth            | API key or JWT                                          |
 | WalkAi consumer | **StageController** — progresses through journey stages |
 
 **Request schema:**
+
 ```typescript
 {
   result?: Record<string, unknown>;  // Data from completed stage
@@ -163,6 +168,7 @@ Advance session to the next stage.
 ```
 
 **Response shape:**
+
 ```typescript
 {
   new_stage: {
@@ -185,12 +191,13 @@ Advance session to the next stage.
 
 Agent stores collected data to the engine inbox.
 
-| Field | Value |
-|-------|-------|
-| Auth | API key or JWT |
+| Field           | Value                                                          |
+| --------------- | -------------------------------------------------------------- |
+| Auth            | API key or JWT                                                 |
 | WalkAi consumer | **DataCollector** — persists data gathered during conversation |
 
 **Request schema:**
+
 ```typescript
 {
   entity_type: string;               // e.g. "employee", "department", "policy"
@@ -200,15 +207,17 @@ Agent stores collected data to the engine inbox.
 ```
 
 **Response shape:**
+
 ```typescript
 {
   inbox_id: string;
   confirmed: true;
-  message: string;  // Instruction for agent to continue
+  message: string; // Instruction for agent to continue
 }
 ```
 
 **Side effects:**
+
 - Guardian event `data.collected` emitted
 - Guardian evaluation triggered (fire-and-forget)
 
@@ -218,12 +227,13 @@ Agent stores collected data to the engine inbox.
 
 Agent requests context or previously stored data.
 
-| Field | Value |
-|-------|-------|
-| Auth | API key or JWT |
+| Field           | Value                                                    |
+| --------------- | -------------------------------------------------------- |
+| Auth            | API key or JWT                                           |
 | WalkAi consumer | **ContextProvider** — retrieves data for agent reasoning |
 
 **Request schema:**
+
 ```typescript
 {
   query_type: "context" | "inbox" | "stage" | "history";
@@ -236,12 +246,12 @@ Agent requests context or previously stored data.
 
 **Response by query_type:**
 
-| query_type | Returns |
-|------------|---------|
-| `context` | Session context object (identity + workspace info) |
-| `inbox` | `{ entries: InboxEntry[] }` — stored data, filtered by entity_type/stage_id |
-| `stage` | Current stage details: `{ stage_id, goal, instructions, success_criteria, emotion_hint }` |
-| `history` | All `collected_data` across stages |
+| query_type | Returns                                                                                   |
+| ---------- | ----------------------------------------------------------------------------------------- |
+| `context`  | Session context object (identity + workspace info)                                        |
+| `inbox`    | `{ entries: InboxEntry[] }` — stored data, filtered by entity_type/stage_id               |
+| `stage`    | Current stage details: `{ stage_id, goal, instructions, success_criteria, emotion_hint }` |
+| `history`  | All `collected_data` across stages                                                        |
 
 **Special behavior:** For `context` and `stage` queries, any pending Guardian whispers are delivered in `_guardian_whispers: string[]` and then cleared from the session.
 
@@ -253,12 +263,13 @@ Agent requests context or previously stored data.
 
 Main endpoint for agent-mode conversations (non-mission, free-form).
 
-| Field | Value |
-|-------|-------|
-| Auth | API key or JWT |
+| Field           | Value                                                        |
+| --------------- | ------------------------------------------------------------ |
+| Auth            | API key or JWT                                               |
 | WalkAi consumer | **AgentRouter** — free-form conversation with intent routing |
 
 **Request schema:**
+
 ```typescript
 {
   message: string;           // User's message
@@ -269,6 +280,7 @@ Main endpoint for agent-mode conversations (non-mission, free-form).
 ```
 
 **Response shape:**
+
 ```typescript
 {
   session_id: string;
@@ -281,6 +293,7 @@ Main endpoint for agent-mode conversations (non-mission, free-form).
 ```
 
 **Side effects:**
+
 - Conversation turns appended to session
 - Guardian events emitted: `user.message` and `agent.response`
 
@@ -294,12 +307,13 @@ All Ultravox endpoints wrap core Stage Engine operations for voice call integrat
 
 Creates an Ultravox WebRTC voice call with Stage Engine tools pre-configured.
 
-| Field | Value |
-|-------|-------|
-| Auth | API key or JWT |
+| Field           | Value                                       |
+| --------------- | ------------------------------------------- |
+| Auth            | API key or JWT                              |
 | WalkAi consumer | **VoiceManager** — initiates voice sessions |
 
 **Request schema:**
+
 ```typescript
 {
   mission_id: string;
@@ -315,11 +329,12 @@ Creates an Ultravox WebRTC voice call with Stage Engine tools pre-configured.
 ```
 
 **Response shape:**
+
 ```typescript
 {
   session_id: string;
   call_id: string;
-  join_url: string;   // WebRTC join URL for ultravox-client SDK
+  join_url: string; // WebRTC join URL for ultravox-client SDK
 }
 ```
 
@@ -331,12 +346,12 @@ Creates an Ultravox WebRTC voice call with Stage Engine tools pre-configured.
 
 Ultravox tool wrapper for data storage. Returns plain text (Ultravox tool result format).
 
-| Field | Value |
-|-------|-------|
-| Auth | API key or JWT |
-| Request | `{ entity_type: string, data: Record<string, unknown> }` |
-| Response | Plain text: `"Stored {entity_type} successfully..."` |
-| WalkAi consumer | **VoiceDataCollector** — voice agent stores data |
+| Field           | Value                                                    |
+| --------------- | -------------------------------------------------------- |
+| Auth            | API key or JWT                                           |
+| Request         | `{ entity_type: string, data: Record<string, unknown> }` |
+| Response        | Plain text: `"Stored {entity_type} successfully..."`     |
+| WalkAi consumer | **VoiceDataCollector** — voice agent stores data         |
 
 ---
 
@@ -344,12 +359,12 @@ Ultravox tool wrapper for data storage. Returns plain text (Ultravox tool result
 
 Ultravox tool wrapper for data retrieval. Returns JSON as plain text.
 
-| Field | Value |
-|-------|-------|
-| Auth | API key or JWT |
-| Request | `{ query_type: "context" | "inbox" | "stage" | "history" }` |
-| Response | Plain text (JSON stringified) |
-| WalkAi consumer | **VoiceContextProvider** |
+| Field           | Value                         |
+| --------------- | ----------------------------- | ------- | ------- | ------------ |
+| Auth            | API key or JWT                |
+| Request         | `{ query_type: "context"      | "inbox" | "stage" | "history" }` |
+| Response        | Plain text (JSON stringified) |
+| WalkAi consumer | **VoiceContextProvider**      |
 
 ---
 
@@ -357,13 +372,14 @@ Ultravox tool wrapper for data retrieval. Returns JSON as plain text.
 
 Advances to next stage. Returns Ultravox new-stage response with `X-Ultravox-Response-Type: new-stage` header for seamless voice transitions.
 
-| Field | Value |
-|-------|-------|
-| Auth | API key or JWT |
-| Request | `{ result?: Record<string, unknown>, next_stage_id?: string }` |
-| WalkAi consumer | **VoiceStageController** |
+| Field           | Value                                                          |
+| --------------- | -------------------------------------------------------------- |
+| Auth            | API key or JWT                                                 |
+| Request         | `{ result?: Record<string, unknown>, next_stage_id?: string }` |
+| WalkAi consumer | **VoiceStageController**                                       |
 
 **Response (not complete):**
+
 ```typescript
 // Header: X-Ultravox-Response-Type: new-stage
 {
@@ -386,13 +402,14 @@ Advances to next stage. Returns Ultravox new-stage response with `X-Ultravox-Res
 
 Bidirectional real-time communication between agent and frontend UI.
 
-| Field | Value |
-|-------|-------|
-| URL | `ws://<host>:3000/ws/:sessionId?token=<jwt>` |
-| Auth | JWT as `?token=` query param, validated on connect |
+| Field           | Value                                                          |
+| --------------- | -------------------------------------------------------------- |
+| URL             | `ws://<host>:3000/ws/:sessionId?token=<jwt>`                   |
+| Auth            | JWT as `?token=` query param, validated on connect             |
 | WalkAi consumer | **RealtimeBridge** — live UI commands and user action tracking |
 
 **Connection lifecycle:**
+
 1. Client connects with `?token=<jwt>`
 2. Server validates JWT via `supabase.auth.getUser()`
 3. Server verifies user has access to session's workspace via profile lookup
@@ -410,6 +427,7 @@ Bidirectional real-time communication between agent and frontend UI.
 Three message types, discriminated by `type` field:
 
 **UICommand** — Agent instructs the UI:
+
 ```typescript
 {
   type: "ui_command";
@@ -427,6 +445,7 @@ Three message types, discriminated by `type` field:
 ```
 
 **SystemEvent** — Session state updates:
+
 ```typescript
 {
   type: "session_state" | "agent_typing" | "error" | "journey_progress";
@@ -460,11 +479,11 @@ Three message types, discriminated by `type` field:
 
 Dashboard monitoring and control of active agent sessions.
 
-| Field | Value |
-|-------|-------|
-| URL | `ws://<host>:3000/guardian/ws?token=<jwt>` |
-| Auth | JWT as `?token=` query param. Must be **admin** or **owner** role. |
-| WalkAi consumer | **GuardianDashboard** — real-time session monitoring |
+| Field           | Value                                                              |
+| --------------- | ------------------------------------------------------------------ |
+| URL             | `ws://<host>:3000/guardian/ws?token=<jwt>`                         |
+| Auth            | JWT as `?token=` query param. Must be **admin** or **owner** role. |
+| WalkAi consumer | **GuardianDashboard** — real-time session monitoring               |
 
 **Close codes:**
 | Code | Meaning |
@@ -475,6 +494,7 @@ Dashboard monitoring and control of active agent sessions.
 #### Messages: Server -> Client
 
 **GuardianSessionList** — sent on connect and periodically:
+
 ```typescript
 {
   type: "sessions";
@@ -491,13 +511,14 @@ Dashboard monitoring and control of active agent sessions.
 ```
 
 **GuardianEvent** — real-time session events:
+
 ```typescript
 {
   type: "event";
   session_id: string;
   workspace_id: string;
-  event_type: string;  // e.g. "user.message", "agent.response", "data.collected",
-                       // "admin.stage_change", "admin.whisper"
+  event_type: string; // e.g. "user.message", "agent.response", "data.collected",
+  // "admin.stage_change", "admin.whisper"
   actor: "system" | "agent" | "user" | "guardian" | "admin";
   summary: string;
   data: Record<string, unknown>;
@@ -514,12 +535,12 @@ Dashboard monitoring and control of active agent sessions.
 | { type: "whisper"; session_id: string; message: string }
 ```
 
-| Command | Effect |
-|---------|--------|
-| `subscribe` | Start receiving events for a specific session |
-| `unsubscribe` | Stop receiving events for a session |
-| `change_stage` | Force-advance session to a target stage |
-| `whisper` | Inject a hidden message into `collected_data._whispers[]`, delivered to agent on next fetch |
+| Command        | Effect                                                                                      |
+| -------------- | ------------------------------------------------------------------------------------------- |
+| `subscribe`    | Start receiving events for a specific session                                               |
+| `unsubscribe`  | Stop receiving events for a session                                                         |
+| `change_stage` | Force-advance session to a target stage                                                     |
+| `whisper`      | Inject a hidden message into `collected_data._whispers[]`, delivered to agent on next fetch |
 
 ---
 
@@ -527,8 +548,8 @@ Dashboard monitoring and control of active agent sessions.
 
 Hosted at `https://intervju-mcp.vercel.app`. Optional session tracking service.
 
-| Field | Value |
-|-------|-------|
+| Field           | Value                                                      |
+| --------------- | ---------------------------------------------------------- |
 | WalkAi consumer | **VoiceSessionTracker** — logs voice conversation sessions |
 
 ### 3.1 Endpoints
@@ -537,10 +558,10 @@ Hosted at `https://intervju-mcp.vercel.app`. Optional session tracking service.
 
 Register a new interview session for tracking.
 
-| Field | Value |
-|-------|-------|
-| Auth | `INTERVJU_MCP_WEBHOOK_SECRET` (optional) |
-| Response | `{ session_id: string }` |
+| Field    | Value                                    |
+| -------- | ---------------------------------------- |
+| Auth     | `INTERVJU_MCP_WEBHOOK_SECRET` (optional) |
+| Response | `{ session_id: string }`                 |
 
 ### 3.2 Mission System (`@smartout/ai/missions`)
 
@@ -548,15 +569,16 @@ Missions are defined in-repo at `packages/ai/src/missions/`. The Interview MCP c
 
 **Available missions:**
 
-| Mission ID | Agent | Language | Purpose |
-|------------|-------|----------|---------|
-| `onboarding-interview` | Mr. Botsson | NO | Maps org structure via voice |
-| `landing-demo` | Lise Botsson | NO | Landing page demo |
-| `mr-botsson` | Mr. Botsson | NO | General workspace assistant |
-| `haccp-inspector` | HACCP Inspector | NO | Food safety checks |
-| `shift-assistant` | Shift Assistant | NO | Shift planning help |
+| Mission ID             | Agent           | Language | Purpose                      |
+| ---------------------- | --------------- | -------- | ---------------------------- |
+| `onboarding-interview` | Mr. Botsson     | NO       | Maps org structure via voice |
+| `landing-demo`         | Lise Botsson    | NO       | Landing page demo            |
+| `mr-botsson`           | Mr. Botsson     | NO       | General workspace assistant  |
+| `haccp-inspector`      | HACCP Inspector | NO       | Food safety checks           |
+| `shift-assistant`      | Shift Assistant | NO       | Shift planning help          |
 
 **`startMissionCall()` usage:**
+
 ```typescript
 import { startMissionCall } from "@smartout/ai/missions";
 const result = await startMissionCall({
@@ -576,12 +598,13 @@ All Edge Functions are invoked via `POST https://<supabase-url>/functions/v1/<fu
 
 Universal workflow engine dispatcher. Receives events, matches triggers, creates engine_state instances, and executes steps.
 
-| Field | Value |
-|-------|-------|
-| Auth | Service role key (JWT) |
+| Field           | Value                                               |
+| --------------- | --------------------------------------------------- |
+| Auth            | Service role key (JWT)                              |
 | WalkAi consumer | **WorkflowEngine** — drives all automated workflows |
 
 **Request:**
+
 ```typescript
 {
   event_type: string;                    // e.g. "session.hook.fired", "assignment.started"
@@ -592,6 +615,7 @@ Universal workflow engine dispatcher. Receives events, matches triggers, creates
 ```
 
 **Response:**
+
 ```typescript
 {
   event_id: string;
@@ -615,12 +639,13 @@ Universal workflow engine dispatcher. Receives events, matches triggers, creates
 
 Multi-phase intelligence pipeline: scrapes website, queries Brreg, Google Places, web search, and provisions workspace.
 
-| Field | Value |
-|-------|-------|
-| Auth | JWT (optional — unauthenticated callers get data without workspace provisioning) |
-| WalkAi consumer | **OnboardingIntelligence** — automated company discovery |
+| Field           | Value                                                                            |
+| --------------- | -------------------------------------------------------------------------------- |
+| Auth            | JWT (optional — unauthenticated callers get data without workspace provisioning) |
+| WalkAi consumer | **OnboardingIntelligence** — automated company discovery                         |
 
 **Request:**
+
 ```typescript
 {
   url?: string;              // Company website
@@ -631,6 +656,7 @@ Multi-phase intelligence pipeline: scrapes website, queries Brreg, Google Places
 ```
 
 **Response:**
+
 ```typescript
 {
   success: boolean;
@@ -670,12 +696,13 @@ Multi-phase intelligence pipeline: scrapes website, queries Brreg, Google Places
 
 Downloads uploaded documents, extracts text/images via Scrapling, then analyzes with Claude for structured workplace data.
 
-| Field | Value |
-|-------|-------|
-| Auth | JWT (Authorization header required) |
+| Field           | Value                                                                            |
+| --------------- | -------------------------------------------------------------------------------- |
+| Auth            | JWT (Authorization header required)                                              |
 | WalkAi consumer | **DocumentAnalyzer** — extracts policies, employees, shift patterns from uploads |
 
 **Request:**
+
 ```typescript
 {
   workspace_id: string;
@@ -684,6 +711,7 @@ Downloads uploaded documents, extracts text/images via Scrapling, then analyzes 
 ```
 
 **Response:**
+
 ```typescript
 {
   result: {
@@ -710,12 +738,13 @@ Downloads uploaded documents, extracts text/images via Scrapling, then analyzes 
 
 AI analysis of scraped + web search data to suggest workspace configuration. Currently uses mock data (Claude integration placeholder).
 
-| Field | Value |
-|-------|-------|
-| Auth | JWT (user context) |
+| Field           | Value                                                          |
+| --------------- | -------------------------------------------------------------- |
+| Auth            | JWT (user context)                                             |
 | WalkAi consumer | **WorkspaceConfigurator** — suggests departments, teams, zones |
 
 **Request:**
+
 ```typescript
 {
   sessionId: string;           // onboarding_session ID
@@ -726,15 +755,18 @@ AI analysis of scraped + web search data to suggest workspace configuration. Cur
 ```
 
 **Response:**
+
 ```typescript
 {
   success: boolean;
   ai_analysis: {
-    suggested_departments: Array<{ id, name, roles, description, recommendedReason }>;
-    suggested_teams: Array<{ name, department, isSeasonal, recommendedReason }>;
-    suggested_zones: Array<{ name, location, capacity, isSeasonal, recommendedReason }>;
-    suggested_branding: { slogan, shortDescription, tone };
-  };
+    suggested_departments: Array<{ id; name; roles; description; recommendedReason }>;
+    suggested_teams: Array<{ name; department; isSeasonal; recommendedReason }>;
+    suggested_zones: Array<{ name; location; capacity; isSeasonal; recommendedReason }>;
+    suggested_branding: {
+      (slogan, shortDescription, tone);
+    }
+  }
 }
 ```
 
@@ -744,12 +776,13 @@ AI analysis of scraped + web search data to suggest workspace configuration. Cur
 
 Searches the web for company information using Serper API (Google search + news).
 
-| Field | Value |
-|-------|-------|
-| Auth | Service role key (called internally by `gather-workspace-intelligence`) |
-| WalkAi consumer | **WebSearchProvider** — company reputation and contact data |
+| Field           | Value                                                                   |
+| --------------- | ----------------------------------------------------------------------- |
+| Auth            | Service role key (called internally by `gather-workspace-intelligence`) |
+| WalkAi consumer | **WebSearchProvider** — company reputation and contact data             |
 
 **Request:**
+
 ```typescript
 {
   companyName: string;
@@ -758,6 +791,7 @@ Searches the web for company information using Serper API (Google search + news)
 ```
 
 **Response:**
+
 ```typescript
 {
   rating: number | null;
@@ -779,12 +813,13 @@ Searches the web for company information using Serper API (Google search + news)
 
 Scrapes a URL via Scrapling and provisions a workspace with extracted data.
 
-| Field | Value |
-|-------|-------|
-| Auth | JWT (user must be authenticated) |
+| Field           | Value                                       |
+| --------------- | ------------------------------------------- |
+| Auth            | JWT (user must be authenticated)            |
 | WalkAi consumer | **QuickSetup** — one-URL workspace creation |
 
 **Request:**
+
 ```typescript
 {
   url: string;
@@ -793,11 +828,12 @@ Scrapes a URL via Scrapling and provisions a workspace with extracted data.
 ```
 
 **Response:**
+
 ```typescript
 {
   success: boolean;
   workspaceId: string;
-  data: Record<string, unknown>;  // Raw Scrapling extraction
+  data: Record<string, unknown>; // Raw Scrapling extraction
 }
 ```
 
@@ -807,12 +843,13 @@ Scrapes a URL via Scrapling and provisions a workspace with extracted data.
 
 Cron function (every 3 days). Generates contextual coaching questions for leaders using Claude Haiku.
 
-| Field | Value |
-|-------|-------|
-| Auth | `WATCHDOG_CRON_SECRET` bearer token |
+| Field           | Value                                                      |
+| --------------- | ---------------------------------------------------------- |
+| Auth            | `WATCHDOG_CRON_SECRET` bearer token                        |
 | WalkAi consumer | **ProactiveCoach** — generates leader reflection questions |
 
 **Response:**
+
 ```typescript
 {
   status: "ok" | "partial";
@@ -830,12 +867,13 @@ Cron function (every 3 days). Generates contextual coaching questions for leader
 
 Admin REST API for managing Guardian signals (acknowledge, resolve, dismiss).
 
-| Field | Value |
-|-------|-------|
-| Auth | JWT (must be admin/owner in signal's workspace) |
+| Field           | Value                                             |
+| --------------- | ------------------------------------------------- |
+| Auth            | JWT (must be admin/owner in signal's workspace)   |
 | WalkAi consumer | **GuardianManager** — signal lifecycle management |
 
 **Request:**
+
 ```typescript
 {
   action: "acknowledge" | "resolve" | "dismiss";
@@ -852,11 +890,11 @@ Admin REST API for managing Guardian signals (acknowledge, resolve, dismiss).
 
 These run as intervals inside the Stage Engine process, not as API endpoints.
 
-| Process | Interval | Purpose |
-|---------|----------|---------|
-| Session expiry + memory cleanup | Configurable (`CLEANUP_INTERVAL_MINUTES`) | Expires stale sessions, cleans expired memories |
-| Guardian evaluation loop | 30 seconds | Evaluates all active sessions against guardian rules |
-| Calendar guardian | 60 seconds | Checks season-lifecycle sessions against time-based triggers |
+| Process                         | Interval                                  | Purpose                                                      |
+| ------------------------------- | ----------------------------------------- | ------------------------------------------------------------ |
+| Session expiry + memory cleanup | Configurable (`CLEANUP_INTERVAL_MINUTES`) | Expires stale sessions, cleans expired memories              |
+| Guardian evaluation loop        | 30 seconds                                | Evaluates all active sessions against guardian rules         |
+| Calendar guardian               | 60 seconds                                | Checks season-lifecycle sessions against time-based triggers |
 
 ---
 
@@ -864,8 +902,8 @@ These run as intervals inside the Stage Engine process, not as API endpoints.
 
 ### Key packages
 
-| Package | Exports used |
-|---------|-------------|
+| Package           | Exports used                                                                                              |
+| ----------------- | --------------------------------------------------------------------------------------------------------- |
 | `@smartout/types` | `MissionProtocolMessage`, `UICommand`, `UserAction`, `SystemEvent`, `UserActionSchema`, `UICommandSchema` |
 
 ### Auth flow summary

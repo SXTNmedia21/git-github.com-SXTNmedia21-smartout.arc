@@ -1,4 +1,3 @@
-
 // ============================================
 // fetch.ts
 // POST /sessions/:id/fetch — agent requests context or data.

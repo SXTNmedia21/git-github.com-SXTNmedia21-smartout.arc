@@ -7,7 +7,9 @@ import { createClient } from "@smartout/supabase/server";
  */
 export async function POST(req: Request) {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   // Look up profile_id from user_id
@@ -22,7 +24,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "No profile found" }, { status: 400 });
   }
 
-  const { task_id, status = "done" } = await req.json() as {
+  const { task_id, status = "done" } = (await req.json()) as {
     task_id: string;
     status?: "done" | "dismissed";
   };

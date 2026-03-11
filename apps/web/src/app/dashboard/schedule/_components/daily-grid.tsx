@@ -735,7 +735,8 @@ export const EmployeeRow = React.memo(function EmployeeRow({
         const cellShifts = shiftsByEmployeeDay.get(`${employee.id}::${day.id}`) ?? [];
         const cellAbsences = absencesByEmployeeDay.get(`${employee.id}::${day.id}`) ?? [];
         const cellProposals = proposalsByEmployeeDay?.get(`${employee.id}::${day.id}`) ?? [];
-        const hasContent = cellShifts.length > 0 || cellAbsences.length > 0 || cellProposals.length > 0;
+        const hasContent =
+          cellShifts.length > 0 || cellAbsences.length > 0 || cellProposals.length > 0;
 
         const absenceLabel = (type: string): "Sykdom" | "Ferie" | "Avspasering" => {
           switch (type) {

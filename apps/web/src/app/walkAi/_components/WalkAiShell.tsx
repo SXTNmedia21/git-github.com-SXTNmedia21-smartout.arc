@@ -5,10 +5,7 @@ import { useWalkAi } from "./WalkAiProvider";
 import { WalkAiOrb } from "./WalkAiOrb";
 import { WalkAiSticky } from "./WalkAiSticky";
 import { WalkAiArena } from "./WalkAiArena";
-import {
-  DENSITY_DIMENSIONS, TIMING, EASING,
-  ARENA_MIN, ARENA_MAX, EDGE_GAP,
-} from "./types";
+import { DENSITY_DIMENSIONS, TIMING, EASING, ARENA_MIN, ARENA_MAX, EDGE_GAP } from "./types";
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 /*  WalkAi Shell — One div that morphs        */
@@ -29,8 +26,12 @@ const HOVER_SCALE = 1.05;
 
 type DockedSide = "left" | "right";
 
-function getVw() { return typeof window !== "undefined" ? window.innerWidth : 1920; }
-function getVh() { return typeof window !== "undefined" ? window.innerHeight : 1080; }
+function getVw() {
+  return typeof window !== "undefined" ? window.innerWidth : 1920;
+}
+function getVh() {
+  return typeof window !== "undefined" ? window.innerHeight : 1080;
+}
 
 /**
  * Magnetic edge clamping — attracted to edges but keeps EDGE_GAP.
@@ -61,8 +62,15 @@ function clampSize(w: number, h: number): { w: number; h: number } {
 
 export function WalkAiShell() {
   const {
-    state, expand, collapse, goSticky, agent,
-    setPosition, setDragging, setResizing, setArenaSize,
+    state,
+    expand,
+    collapse,
+    goSticky,
+    agent,
+    setPosition,
+    setDragging,
+    setResizing,
+    setArenaSize,
     unreadCount,
   } = useWalkAi();
   const shellRef = useRef<HTMLDivElement>(null);
@@ -107,7 +115,9 @@ export function WalkAiShell() {
           return;
         }
       }
-    } catch { /* ignore corrupt localStorage */ }
+    } catch {
+      /* ignore corrupt localStorage */
+    }
     const orbSize = DENSITY_DIMENSIONS.orb;
     setPosition({
       x: window.innerWidth - orbSize.width - 24,
@@ -117,7 +127,8 @@ export function WalkAiShell() {
   }, [setPosition]);
 
   /* ━━━ Sticky retract/extend ━━━ */
-  const stickyActive = agent.isConnected &&
+  const stickyActive =
+    agent.isConnected &&
     (agent.isSpeaking || agent.status === "listening" || agent.status === "thinking");
 
   useEffect(() => {
@@ -128,7 +139,9 @@ export function WalkAiShell() {
     } else {
       retractTimer.current = setTimeout(() => setStickyRetracted(true), RETRACT_DELAY);
     }
-    return () => { if (retractTimer.current) clearTimeout(retractTimer.current); };
+    return () => {
+      if (retractTimer.current) clearTimeout(retractTimer.current);
+    };
   }, [isSticky, stickyHovered, stickyActive]);
 
   useEffect(() => {
@@ -136,7 +149,9 @@ export function WalkAiShell() {
       setStickyRetracted(false);
       retractTimer.current = setTimeout(() => setStickyRetracted(true), RETRACT_DELAY);
     }
-    return () => { if (retractTimer.current) clearTimeout(retractTimer.current); };
+    return () => {
+      if (retractTimer.current) clearTimeout(retractTimer.current);
+    };
   }, [isSticky]);
 
   useEffect(() => {
@@ -164,7 +179,7 @@ export function WalkAiShell() {
     const x = stickySide === "left" ? EDGE_GAP : getVw() - stickyDim.width - EDGE_GAP;
     const y = Math.max(EDGE_GAP, Math.min(position.y, getVh() - stickyDim.height - EDGE_GAP));
     setPosition({ x, y });
-  }, [isSticky, stickySide, setPosition]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isSticky, stickySide, setPosition]);
 
   /* ━━━ Magnetic clamp on density change ━━━ */
   useEffect(() => {
@@ -181,7 +196,10 @@ export function WalkAiShell() {
       if (isSticky) {
         const stickyDim = DENSITY_DIMENSIONS.sticky;
         const x = stickySide === "left" ? EDGE_GAP : getVw() - stickyDim.width - EDGE_GAP;
-        setPosition({ x, y: Math.max(EDGE_GAP, Math.min(position.y, getVh() - stickyDim.height - EDGE_GAP)) });
+        setPosition({
+          x,
+          y: Math.max(EDGE_GAP, Math.min(position.y, getVh() - stickyDim.height - EDGE_GAP)),
+        });
       } else {
         const { w, h } = getShellSize();
         const clamped = magneticClamp(position.x, position.y, w, h);
@@ -199,8 +217,10 @@ export function WalkAiShell() {
       e.preventDefault();
       (e.target as HTMLElement).setPointerCapture(e.pointerId);
       dragState.current = {
-        startX: e.clientX, startY: e.clientY,
-        startPosX: position.x, startPosY: position.y,
+        startX: e.clientX,
+        startY: e.clientY,
+        startPosX: position.x,
+        startPosY: position.y,
         moved: false,
       };
       velocityBuffer.current = [{ x: e.clientX, y: e.clientY, t: Date.now() }];
@@ -224,7 +244,8 @@ export function WalkAiShell() {
       const clamped = magneticClamp(
         dragState.current.startPosX + dx,
         dragState.current.startPosY + dy,
-        w, h,
+        w,
+        h,
       );
       setPosition(clamped);
     },
@@ -238,7 +259,11 @@ export function WalkAiShell() {
       setDragging(false);
 
       // Save position to localStorage for memory across sessions
-      try { localStorage.setItem("walkai-position", JSON.stringify(position)); } catch { /* */ }
+      try {
+        localStorage.setItem("walkai-position", JSON.stringify(position));
+      } catch {
+        /* */
+      }
 
       if (!dragState.current.moved && isOrb) {
         expand();
@@ -271,12 +296,14 @@ export function WalkAiShell() {
           const dt = (last.t - first.t) / 1000;
           if (dt > 0) {
             const speed = Math.sqrt(
-              Math.pow((last.x - first.x) / dt, 2) +
-              Math.pow((last.y - first.y) / dt, 2),
+              Math.pow((last.x - first.x) / dt, 2) + Math.pow((last.y - first.y) / dt, 2),
             );
             if (speed > THROW_SPEED) {
-              const atEdge = position.x <= EDGE_GAP + 2 || position.y <= EDGE_GAP + 2 ||
-                position.x >= getVw() - w - EDGE_GAP - 2 || position.y >= getVh() - h - EDGE_GAP - 2;
+              const atEdge =
+                position.x <= EDGE_GAP + 2 ||
+                position.y <= EDGE_GAP + 2 ||
+                position.x >= getVw() - w - EDGE_GAP - 2 ||
+                position.y >= getVh() - h - EDGE_GAP - 2;
               if (atEdge) {
                 collapse();
                 velocityBuffer.current = [];
@@ -289,7 +316,19 @@ export function WalkAiShell() {
 
       velocityBuffer.current = [];
     },
-    [isDragging, isOrb, isSticky, isArena, expand, collapse, setDragging, getShellSize, position.x, position.y, setPosition],
+    [
+      isDragging,
+      isOrb,
+      isSticky,
+      isArena,
+      expand,
+      collapse,
+      setDragging,
+      getShellSize,
+      position.x,
+      position.y,
+      setPosition,
+    ],
   );
 
   const dragHandleProps = {
@@ -305,8 +344,10 @@ export function WalkAiShell() {
       e.stopPropagation();
       (e.target as HTMLElement).setPointerCapture(e.pointerId);
       resizeState.current = {
-        startX: e.clientX, startY: e.clientY,
-        startW: arenaSize.width, startH: arenaSize.height,
+        startX: e.clientX,
+        startY: e.clientY,
+        startW: arenaSize.width,
+        startH: arenaSize.height,
       };
       setResizing(true);
     },
@@ -349,11 +390,12 @@ export function WalkAiShell() {
 
   /* ━━━ Sticky retract transform ━━━ */
   const stickyDim = DENSITY_DIMENSIONS.sticky;
-  const stickyTranslateX = isSticky && stickyRetracted
-    ? stickySide === "left"
-      ? -(stickyDim.width - RETRACTED_WIDTH)
-      : stickyDim.width - RETRACTED_WIDTH
-    : 0;
+  const stickyTranslateX =
+    isSticky && stickyRetracted
+      ? stickySide === "left"
+        ? -(stickyDim.width - RETRACTED_WIDTH)
+        : stickyDim.width - RETRACTED_WIDTH
+      : 0;
 
   /* ━━━ Border radius — always rounded, never flat ━━━ */
   const borderRadius = isOrb
@@ -397,9 +439,14 @@ export function WalkAiShell() {
 
   const shellStyle: React.CSSProperties = isImmersive
     ? {
-        position: "fixed", top: 0, left: 0,
-        width: "100vw", height: "100vh", borderRadius: 0,
-        transition: `all ${TIMING.morph}ms ${EASING}`, zIndex: 65,
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100vw",
+        height: "100vh",
+        borderRadius: 0,
+        transition: `all ${TIMING.morph}ms ${EASING}`,
+        zIndex: 65,
       }
     : {
         position: "fixed",
@@ -411,7 +458,9 @@ export function WalkAiShell() {
         transition: transitionParts.join(", "),
         transform: stickyTransform,
         transformOrigin: isSticky
-          ? stickySide === "left" ? "left center" : "right center"
+          ? stickySide === "left"
+            ? "left center"
+            : "right center"
           : undefined,
         zIndex: 65,
         cursor: isDragging ? "grabbing" : isOrb ? "pointer" : "default",
@@ -429,18 +478,18 @@ export function WalkAiShell() {
         isOrb
           ? isNotification
             ? "bg-gradient-to-br from-zinc-900 via-zinc-950 to-black shadow-[0_0_20px_4px_rgba(var(--brand-orange-rgb,255_140_50),0.25),0_0_40px_8px_rgba(var(--brand-orange-rgb,255_140_50),0.1)] hover:scale-110 active:scale-95"
-            : "bg-gradient-to-br from-brand-orange/90 to-brand-orange/60 shadow-lg shadow-brand-orange/25 hover:shadow-brand-orange/40 hover:scale-110 active:scale-95"
+            : "from-brand-orange/90 to-brand-orange/60 shadow-brand-orange/25 hover:shadow-brand-orange/40 bg-gradient-to-br shadow-lg hover:scale-110 active:scale-95"
           : isSticky
             ? [
-                "backdrop-blur-xl border border-border/20",
-                "bg-gradient-to-br from-card/95 via-card/90 to-card/80",
+                "border-border/20 border backdrop-blur-xl",
+                "from-card/95 via-card/90 to-card/80 bg-gradient-to-br",
                 isActive
                   ? "shadow-[0_4px_24px_-4px_rgba(var(--brand-orange-rgb,255_140_50),0.15),0_8px_32px_-8px_rgba(0,0,0,0.12)]"
                   : "shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1),0_2px_8px_-2px_rgba(0,0,0,0.06)]",
               ].join(" ")
             : [
-                "backdrop-blur-2xl border border-border/30",
-                "bg-gradient-to-b from-card via-card to-card/95",
+                "border-border/30 border backdrop-blur-2xl",
+                "from-card via-card to-card/95 bg-gradient-to-b",
                 "ring-1 ring-white/[0.04]",
                 isActive
                   ? "shadow-[0_8px_40px_-8px_rgba(var(--brand-orange-rgb,255_140_50),0.12),0_20px_50px_-12px_rgba(0,0,0,0.2)]"
@@ -454,7 +503,7 @@ export function WalkAiShell() {
       {/* Top edge shimmer — subtle accent line */}
       {!isOrb && !stickyRetracted && (
         <div
-          className="absolute top-0 left-0 right-0 h-px pointer-events-none z-10"
+          className="pointer-events-none absolute top-0 right-0 left-0 z-10 h-px"
           style={{
             background: isActive
               ? "linear-gradient(90deg, transparent, rgba(var(--brand-orange-rgb, 255 140 50), 0.25), transparent)"
@@ -466,7 +515,7 @@ export function WalkAiShell() {
       {/* Neon edge indicator — retracted sticky */}
       {isSticky && stickyRetracted && (
         <div
-          className="absolute top-0 bottom-0 z-30 pointer-events-none"
+          className="pointer-events-none absolute top-0 bottom-0 z-30"
           style={{ [stickySide === "left" ? "right" : "left"]: 0, width: RETRACTED_WIDTH }}
         >
           <div
@@ -476,15 +525,19 @@ export function WalkAiShell() {
               height: 28,
               left: "50%",
               transform: "translate(-50%, -50%)",
-              backgroundColor: agent.isConnected ? "var(--brand-orange)" : "var(--muted-foreground)",
+              backgroundColor: agent.isConnected
+                ? "var(--brand-orange)"
+                : "var(--muted-foreground)",
               opacity: agent.isConnected ? 1 : 0.15,
-              animation: agent.isConnected ? "walkai-neon-blink 2.5s ease-in-out infinite" : undefined,
+              animation: agent.isConnected
+                ? "walkai-neon-blink 2.5s ease-in-out infinite"
+                : undefined,
               color: agent.isConnected ? "var(--brand-orange)" : "var(--muted-foreground)",
             }}
           />
           {unreadCount > 0 && (
             <div
-              className="absolute top-3 rounded-full bg-brand-orange text-white text-[8px] font-bold flex items-center justify-center"
+              className="bg-brand-orange absolute top-3 flex items-center justify-center rounded-full text-[8px] font-bold text-white"
               style={{ width: 14, height: 14, left: "50%", transform: "translateX(-50%)" }}
             >
               {unreadCount > 9 ? "9+" : unreadCount}
@@ -499,7 +552,7 @@ export function WalkAiShell() {
           <WalkAiOrb />
           {unreadCount > 0 && (
             <div
-              className="absolute -top-1 -right-1 rounded-full bg-brand-orange text-white text-[8px] font-bold flex items-center justify-center shadow-sm"
+              className="bg-brand-orange absolute -top-1 -right-1 flex items-center justify-center rounded-full text-[8px] font-bold text-white shadow-sm"
               style={{ width: 16, height: 16 }}
             >
               {unreadCount > 9 ? "9+" : unreadCount}
@@ -534,18 +587,24 @@ export function WalkAiShell() {
       {/* Resize grip — bottom-right corner, arena only */}
       {isArena && (
         <div
-          className="absolute bottom-0 right-0 z-30 cursor-nwse-resize group"
+          className="group absolute right-0 bottom-0 z-30 cursor-nwse-resize"
           style={{ width: 20, height: 20 }}
           onPointerDown={handleResizeStart}
           onPointerMove={handleResizeMove}
           onPointerUp={handleResizeEnd}
         >
           <svg
-            width="10" height="10"
+            width="10"
+            height="10"
             viewBox="0 0 10 10"
-            className="absolute bottom-1 right-1 text-muted-foreground/0 group-hover:text-muted-foreground/30 transition-colors duration-200"
+            className="text-muted-foreground/0 group-hover:text-muted-foreground/30 absolute right-1 bottom-1 transition-colors duration-200"
           >
-            <path d="M9 1L1 9M9 4L4 9M9 7L7 9" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
+            <path
+              d="M9 1L1 9M9 4L4 9M9 7L7 9"
+              stroke="currentColor"
+              strokeWidth="1"
+              strokeLinecap="round"
+            />
           </svg>
         </div>
       )}

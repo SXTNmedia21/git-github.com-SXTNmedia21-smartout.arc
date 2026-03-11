@@ -65,8 +65,8 @@ async function testAgentChat() {
   // Test 1: Create new session + send message
   console.log("Test 1: New conversation...");
   const res1 = await sendAgentChat({
-      message: "Hei! Hvem er jeg?",
-      profile_id: PROFILE_ID,
+    message: "Hei! Hvem er jeg?",
+    profile_id: PROFILE_ID,
   });
 
   if (res1.status !== 200) {
@@ -88,9 +88,9 @@ async function testAgentChat() {
   // Test 2: Continue same session
   console.log("Test 2: Follow-up in same session...");
   const res2 = await sendAgentChat({
-      message: "Hvilket team er jeg pa?",
-      session_id: data1.session_id,
-      profile_id: PROFILE_ID,
+    message: "Hvilket team er jeg pa?",
+    session_id: data1.session_id,
+    profile_id: PROFILE_ID,
   });
 
   if (res2.status !== 200) {
@@ -112,9 +112,9 @@ async function testAgentChat() {
   // Test 3: Invalid session ID
   console.log("Test 3: Invalid session ID...");
   const res3 = await sendAgentChat({
-      message: "test",
-      session_id: "00000000-0000-0000-0000-000000000000",
-      profile_id: PROFILE_ID,
+    message: "test",
+    session_id: "00000000-0000-0000-0000-000000000000",
+    profile_id: PROFILE_ID,
   });
 
   if (res3.status !== 404) {

@@ -40,60 +40,60 @@ export function useScrapedData() {
     return () => cleanup();
   }, [cleanup]);
 
-  const pollStatus = useCallback(
-    (url: string, runId: number) => {
+  // Use a ref for the poll function so it can call itself without
+  // violating React Compiler's "no self-reference in useCallback" rule.
+  const pollStatusRef = useRef<(url: string, runId: number) => void>(undefined);
+
+  pollStatusRef.current = (url: string, runId: number) => {
+    if (runId !== activeRunIdRef.current) return;
+    attemptRef.current += 1;
+
+    if (attemptRef.current > MAX_POLL_ATTEMPTS) {
+      setScrapeStatus("failed");
+      cleanup();
+      return;
+    }
+
+    pollRef.current = setTimeout(async () => {
       if (runId !== activeRunIdRef.current) return;
-      attemptRef.current += 1;
+      try {
+        const res = await fetch("/api/scrape/public", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url }),
+        });
+        if (!res.ok) {
+          setScrapeStatus("failed");
+          cleanup();
+          return;
+        }
 
-      if (attemptRef.current > MAX_POLL_ATTEMPTS) {
-        setScrapeStatus("failed");
-        cleanup();
-        return;
-      }
+        const data = await res.json();
+        const status = data.status;
 
-      pollRef.current = setTimeout(async () => {
-        if (runId !== activeRunIdRef.current) return;
-        try {
-          const res = await fetch("/api/scrape/public", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ url }),
-          });
-          if (!res.ok) {
-            setScrapeStatus("failed");
-            cleanup();
-            return;
-          }
-
-          const data = await res.json();
-          const status = data.status;
-
-          if (status === "success") {
-            setScrapedData(data.data ?? null);
-            setScrapeStatus("success");
-            cleanup();
-          } else if (status === "partial") {
-            setScrapedData(data.data ?? null);
-            setScrapeStatus("partial");
-            cleanup();
-          } else if (status === "scraping" || status === "pending" || status === "processing") {
-            // Still scraping — continue polling in the same run.
-            pollStatus(url, runId);
-          } else if (status === "failed") {
-            setScrapeStatus("failed");
-            cleanup();
-          } else {
-            setScrapeStatus("failed");
-            cleanup();
-          }
-        } catch {
+        if (status === "success") {
+          setScrapedData(data.data ?? null);
+          setScrapeStatus("success");
+          cleanup();
+        } else if (status === "partial") {
+          setScrapedData(data.data ?? null);
+          setScrapeStatus("partial");
+          cleanup();
+        } else if (status === "scraping" || status === "pending" || status === "processing") {
+          pollStatusRef.current?.(url, runId);
+        } else if (status === "failed") {
+          setScrapeStatus("failed");
+          cleanup();
+        } else {
           setScrapeStatus("failed");
           cleanup();
         }
-      }, POLL_INTERVAL_MS);
-    },
-    [cleanup],
-  );
+      } catch {
+        setScrapeStatus("failed");
+        cleanup();
+      }
+    }, POLL_INTERVAL_MS);
+  };
 
   const triggerScrape = useCallback(
     async (url: string) => {
@@ -125,7 +125,7 @@ export function useScrapedData() {
           data.status === "pending" ||
           data.status === "processing"
         ) {
-          pollStatus(url, runId);
+          pollStatusRef.current?.(url, runId);
         } else {
           setScrapeStatus("failed");
         }
@@ -133,7 +133,7 @@ export function useScrapedData() {
         setScrapeStatus("failed");
       }
     },
-    [cleanup, pollStatus],
+    [cleanup],
   );
 
   return { scrapedData, scrapeStatus, triggerScrape };

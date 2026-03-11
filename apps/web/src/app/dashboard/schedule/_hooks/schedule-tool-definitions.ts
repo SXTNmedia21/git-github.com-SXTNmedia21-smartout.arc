@@ -67,7 +67,8 @@ const getCoverage = {
         location: body,
         schema: {
           type: "string",
-          description: "Optional: day name or date. If omitted, returns full week coverage summary.",
+          description:
+            "Optional: day name or date. If omitted, returns full week coverage summary.",
         },
       },
     ],
@@ -83,11 +84,35 @@ const createShift = {
     description:
       "Create a new shift. Requires employee name, day, start time, and end time. Role is optional.",
     dynamicParameters: [
-      { name: "employeeName", location: body, schema: { type: "string", description: "Employee name (partial match)" }, required: true },
-      { name: "day", location: body, schema: { type: "string", description: "Day name or date (YYYY-MM-DD)" }, required: true },
-      { name: "startTime", location: body, schema: { type: "string", description: "Start time in HH:MM format (e.g. '08:00')" }, required: true },
-      { name: "endTime", location: body, schema: { type: "string", description: "End time in HH:MM format (e.g. '16:00')" }, required: true },
-      { name: "role", location: body, schema: { type: "string", description: "Job role (e.g. 'Kokk', 'Servitor'). Optional." } },
+      {
+        name: "employeeName",
+        location: body,
+        schema: { type: "string", description: "Employee name (partial match)" },
+        required: true,
+      },
+      {
+        name: "day",
+        location: body,
+        schema: { type: "string", description: "Day name or date (YYYY-MM-DD)" },
+        required: true,
+      },
+      {
+        name: "startTime",
+        location: body,
+        schema: { type: "string", description: "Start time in HH:MM format (e.g. '08:00')" },
+        required: true,
+      },
+      {
+        name: "endTime",
+        location: body,
+        schema: { type: "string", description: "End time in HH:MM format (e.g. '16:00')" },
+        required: true,
+      },
+      {
+        name: "role",
+        location: body,
+        schema: { type: "string", description: "Job role (e.g. 'Kokk', 'Servitor'). Optional." },
+      },
     ],
     client: {},
   },
@@ -99,12 +124,38 @@ const updateShift = {
     description:
       "Update an existing shift. Find it by employee name + day, then change time, role, or notes.",
     dynamicParameters: [
-      { name: "employeeName", location: body, schema: { type: "string", description: "Employee whose shift to update" }, required: true },
-      { name: "day", location: body, schema: { type: "string", description: "Day of the shift" }, required: true },
-      { name: "startTime", location: body, schema: { type: "string", description: "New start time (HH:MM). Optional." } },
-      { name: "endTime", location: body, schema: { type: "string", description: "New end time (HH:MM). Optional." } },
-      { name: "role", location: body, schema: { type: "string", description: "New role. Optional." } },
-      { name: "notes", location: body, schema: { type: "string", description: "Shift notes. Optional." } },
+      {
+        name: "employeeName",
+        location: body,
+        schema: { type: "string", description: "Employee whose shift to update" },
+        required: true,
+      },
+      {
+        name: "day",
+        location: body,
+        schema: { type: "string", description: "Day of the shift" },
+        required: true,
+      },
+      {
+        name: "startTime",
+        location: body,
+        schema: { type: "string", description: "New start time (HH:MM). Optional." },
+      },
+      {
+        name: "endTime",
+        location: body,
+        schema: { type: "string", description: "New end time (HH:MM). Optional." },
+      },
+      {
+        name: "role",
+        location: body,
+        schema: { type: "string", description: "New role. Optional." },
+      },
+      {
+        name: "notes",
+        location: body,
+        schema: { type: "string", description: "Shift notes. Optional." },
+      },
     ],
     client: {},
   },
@@ -116,9 +167,26 @@ const deleteShift = {
     description:
       "Delete a shift. Find it by employee name + day. If multiple shifts, specify the time to disambiguate.",
     dynamicParameters: [
-      { name: "employeeName", location: body, schema: { type: "string", description: "Employee whose shift to delete" }, required: true },
-      { name: "day", location: body, schema: { type: "string", description: "Day of the shift" }, required: true },
-      { name: "time", location: body, schema: { type: "string", description: "Start time to disambiguate if multiple shifts (HH:MM). Optional." } },
+      {
+        name: "employeeName",
+        location: body,
+        schema: { type: "string", description: "Employee whose shift to delete" },
+        required: true,
+      },
+      {
+        name: "day",
+        location: body,
+        schema: { type: "string", description: "Day of the shift" },
+        required: true,
+      },
+      {
+        name: "time",
+        location: body,
+        schema: {
+          type: "string",
+          description: "Start time to disambiguate if multiple shifts (HH:MM). Optional.",
+        },
+      },
     ],
     client: {},
   },
@@ -133,7 +201,10 @@ const publishShifts = {
       {
         name: "day",
         location: body,
-        schema: { type: "string", description: "Day name, date, or 'all' to publish all draft shifts in the current week" },
+        schema: {
+          type: "string",
+          description: "Day name, date, or 'all' to publish all draft shifts in the current week",
+        },
         required: true,
       },
     ],
@@ -149,7 +220,15 @@ const focusDay = {
     description:
       "Scroll to a day in the visible schedule and highlight it for showcase guidance. Does not open the day planner.",
     dynamicParameters: [
-      { name: "day", location: body, schema: { type: "string", description: "Day name or date (YYYY-MM-DD) to focus and highlight in the schedule grid" }, required: true },
+      {
+        name: "day",
+        location: body,
+        schema: {
+          type: "string",
+          description: "Day name or date (YYYY-MM-DD) to focus and highlight in the schedule grid",
+        },
+        required: true,
+      },
     ],
     client: {},
   },
@@ -161,7 +240,15 @@ const openDayPlanner = {
     description:
       "Open the day planner for a specific day, scroll to that day in the schedule grid, and highlight it.",
     dynamicParameters: [
-      { name: "day", location: body, schema: { type: "string", description: "Day name or date (YYYY-MM-DD) to open in day planner" }, required: true },
+      {
+        name: "day",
+        location: body,
+        schema: {
+          type: "string",
+          description: "Day name or date (YYYY-MM-DD) to open in day planner",
+        },
+        required: true,
+      },
     ],
     client: {},
   },

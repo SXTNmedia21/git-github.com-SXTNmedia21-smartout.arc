@@ -30,100 +30,108 @@ export function EmmaProfile() {
       <div className="flex items-start gap-4">
         {/* Avatar orb */}
         <div className="relative flex-shrink-0">
-          <div className="h-14 w-14 rounded-full bg-gradient-to-br from-brand-orange/20 to-brand-orange/5 flex items-center justify-center">
-            <div className="h-6 w-6 rounded-full bg-brand-orange/30 flex items-center justify-center">
-              <div className="h-2 w-2 rounded-full bg-brand-orange" />
+          <div className="from-brand-orange/20 to-brand-orange/5 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br">
+            <div className="bg-brand-orange/30 flex h-6 w-6 items-center justify-center rounded-full">
+              <div className="bg-brand-orange h-2 w-2 rounded-full" />
             </div>
           </div>
           {agent.isConnected && (
-            <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-card bg-emerald-500" />
+            <div className="border-card absolute -right-0.5 -bottom-0.5 h-3 w-3 rounded-full border-2 bg-emerald-500" />
           )}
         </div>
 
-        <div className="flex-1 min-w-0">
-          <h2 className="text-lg font-semibold text-foreground">Emma</h2>
-          <p className="text-xs text-muted-foreground">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-foreground text-lg font-semibold">Emma</h2>
+          <p className="text-muted-foreground text-xs">
             {voice?.description ?? "AI-stemme"} · {voice?.name ?? "Ukjent stemme"}
           </p>
-          <p className="text-[10px] text-muted-foreground/60 font-mono mt-0.5">
-            {identityDisplay}
-          </p>
+          <p className="text-muted-foreground/60 mt-0.5 font-mono text-[10px]">{identityDisplay}</p>
         </div>
       </div>
 
       {/* ━━━ Personality blend — visual ━━━ */}
-      <div className="rounded-xl border border-border/40 bg-card/50 p-4 space-y-3">
+      <div className="border-border/40 bg-card/50 space-y-3 rounded-xl border p-4">
         <div className="flex items-center justify-between">
-          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Personlighet</span>
-          <span className="text-[10px] text-muted-foreground/60">{blendLabel}</span>
+          <span className="text-muted-foreground text-[10px] tracking-wider uppercase">
+            Personlighet
+          </span>
+          <span className="text-muted-foreground/60 text-[10px]">{blendLabel}</span>
         </div>
 
         {/* Persona */}
         <div className="flex items-start gap-3">
-          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-brand-orange/10 text-brand-orange">
+          <div className="bg-brand-orange/10 text-brand-orange flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg">
             <span className="text-xs font-bold">{persona.name[0]}</span>
           </div>
           <div>
-            <p className="text-sm font-medium text-foreground">{persona.name}</p>
-            <p className="text-[11px] text-muted-foreground">{persona.traits}</p>
-            <p className="text-[10px] text-muted-foreground/50 mt-0.5">
-              Vinkel: <span className="font-medium text-muted-foreground">{persona.angle}</span> · Stemme: {persona.voice}
+            <p className="text-foreground text-sm font-medium">{persona.name}</p>
+            <p className="text-muted-foreground text-[11px]">{persona.traits}</p>
+            <p className="text-muted-foreground/50 mt-0.5 text-[10px]">
+              Vinkel: <span className="text-muted-foreground font-medium">{persona.angle}</span> ·
+              Stemme: {persona.voice}
             </p>
           </div>
         </div>
 
         {/* Blend bar */}
         <div className="flex items-center gap-2">
-          <span className="text-[9px] text-muted-foreground w-14 text-right">Persona</span>
-          <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+          <span className="text-muted-foreground w-14 text-right text-[9px]">Persona</span>
+          <div className="bg-muted h-1.5 flex-1 overflow-hidden rounded-full">
             <div
-              className="h-full rounded-full bg-brand-orange/60 transition-all duration-300"
+              className="bg-brand-orange/60 h-full rounded-full transition-all duration-300"
               style={{ width: `${((10 - identity.blend) / 10) * 100}%` }}
             />
           </div>
-          <span className="text-[9px] text-muted-foreground w-14">Autoritet</span>
+          <span className="text-muted-foreground w-14 text-[9px]">Autoritet</span>
         </div>
 
         {/* Rank */}
         <div className="flex items-start gap-3">
-          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-accent text-muted-foreground">
+          <div className="bg-accent text-muted-foreground flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg">
             <span className="text-xs font-bold">{rank.name[0]}</span>
           </div>
           <div>
-            <p className="text-sm font-medium text-foreground">{rank.name}</p>
-            <p className="text-[11px] text-muted-foreground">{rank.authority}</p>
-            <p className="text-[10px] text-muted-foreground/50 mt-0.5">
-              Tone: {rank.tone}
-            </p>
+            <p className="text-foreground text-sm font-medium">{rank.name}</p>
+            <p className="text-muted-foreground text-[11px]">{rank.authority}</p>
+            <p className="text-muted-foreground/50 mt-0.5 text-[10px]">Tone: {rank.tone}</p>
           </div>
         </div>
       </div>
 
       {/* ━━━ Voice tuning summary ━━━ */}
-      <div className="rounded-xl border border-border/40 bg-card/50 p-4">
-        <span className="text-[10px] uppercase tracking-wider text-muted-foreground block mb-2">Stemmeinnstillinger</span>
+      <div className="border-border/40 bg-card/50 rounded-xl border p-4">
+        <span className="text-muted-foreground mb-2 block text-[10px] tracking-wider uppercase">
+          Stemmeinnstillinger
+        </span>
         <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px]">
           <Row label="Temperatur" value={voiceTuning.temperature.toFixed(1)} />
-          <Row label="Første taler" value={voiceTuning.firstSpeaker === "agent" ? "Emma" : "Bruker"} />
+          <Row
+            label="Første taler"
+            value={voiceTuning.firstSpeaker === "agent" ? "Emma" : "Bruker"}
+          />
           <Row label="Maks varighet" value={formatDuration(voiceTuning.maxDuration)} />
           <Row label="Inaktivitet" value={voiceTuning.inactivityTimeout} />
           {voiceTuning.firstSpeaker === "agent" && voiceTuning.greeting && (
             <div className="col-span-2 mt-1">
               <span className="text-muted-foreground/60">Hilsen:</span>{" "}
-              <span className="text-foreground/70 italic">&ldquo;{voiceTuning.greeting}&rdquo;</span>
+              <span className="text-foreground/70 italic">
+                &ldquo;{voiceTuning.greeting}&rdquo;
+              </span>
             </div>
           )}
         </div>
       </div>
 
       {/* ━━━ Capabilities ━━━ */}
-      <div className="rounded-xl border border-border/40 bg-card/50 p-4">
-        <span className="text-[10px] uppercase tracking-wider text-muted-foreground block mb-2">Verktøy</span>
+      <div className="border-border/40 bg-card/50 rounded-xl border p-4">
+        <span className="text-muted-foreground mb-2 block text-[10px] tracking-wider uppercase">
+          Verktøy
+        </span>
         <div className="flex flex-wrap gap-1.5">
           {["Notepad", "Kalkulator", "Chat", "Visualizer"].map((tool) => (
             <span
               key={tool}
-              className="rounded-md bg-accent/60 px-2 py-0.5 text-[10px] text-muted-foreground"
+              className="bg-accent/60 text-muted-foreground rounded-md px-2 py-0.5 text-[10px]"
             >
               {tool}
             </span>

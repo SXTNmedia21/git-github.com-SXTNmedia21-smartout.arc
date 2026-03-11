@@ -184,13 +184,14 @@ Comprehensive reference of ALL existing components that WalkAi can reuse or adap
 
 Three variants across the codebase:
 
-| Variant | Bars | Bar width | Gap | Color | Context |
-|---------|------|-----------|-----|-------|---------|
-| Small (BotssonAvatar) | 5 | 3px | 3px | `bg-white/70` | Floating pill avatar |
-| Large (VoiceSessionOverlay) | 7 | 5px | 5px | `bg-white/70` | Full-screen overlay |
-| Landing (VoiceAssistant) | 5 | w-1.5 (6px) | gap-1 (4px) | `bg-orange-500` | Landing voice controls |
+| Variant                     | Bars | Bar width   | Gap         | Color           | Context                |
+| --------------------------- | ---- | ----------- | ----------- | --------------- | ---------------------- |
+| Small (BotssonAvatar)       | 5    | 3px         | 3px         | `bg-white/70`   | Floating pill avatar   |
+| Large (VoiceSessionOverlay) | 7    | 5px         | 5px         | `bg-white/70`   | Full-screen overlay    |
+| Landing (VoiceAssistant)    | 5    | w-1.5 (6px) | gap-1 (4px) | `bg-orange-500` | Landing voice controls |
 
 Shared animation pattern:
+
 - Speaking: oscillating height array with per-bar offset, duration 0.6-0.8s + per-bar delay `i * 0.07-0.1`
 - Connected idle: gentle pulse `[low, mid, low]`, duration 2s
 - Disconnected: static minimum height, low opacity (0.15)
@@ -235,15 +236,15 @@ Shared animation pattern:
 
 ## 6. UI Primitives (shadcn/Radix)
 
-| Component | Behavior | Key for WalkAi |
-|-----------|----------|----------------|
-| **Sheet** | Side panel slide-in (top/bottom/left/right), Portal rendering | Used by AgentCard, ReportsChatPanel |
-| **Dialog** | Centered modal with zoom+fade, Portal | Confirmation dialogs, create flows |
-| **Popover** | Anchored floating content, position-aware | Tooltips, quick menus |
-| **ScrollArea** | Custom scrollbar wrapper | All chat panels use this or raw overflow-y-auto |
-| **Tabs** | Tab navigation with active underline | Used in document mode, contract editor |
-| **Command** | Command palette (cmdk-based) | Global command bar |
-| **Collapsible** | Expandable sections | Settings panels |
+| Component       | Behavior                                                      | Key for WalkAi                                  |
+| --------------- | ------------------------------------------------------------- | ----------------------------------------------- |
+| **Sheet**       | Side panel slide-in (top/bottom/left/right), Portal rendering | Used by AgentCard, ReportsChatPanel             |
+| **Dialog**      | Centered modal with zoom+fade, Portal                         | Confirmation dialogs, create flows              |
+| **Popover**     | Anchored floating content, position-aware                     | Tooltips, quick menus                           |
+| **ScrollArea**  | Custom scrollbar wrapper                                      | All chat panels use this or raw overflow-y-auto |
+| **Tabs**        | Tab navigation with active underline                          | Used in document mode, contract editor          |
+| **Command**     | Command palette (cmdk-based)                                  | Global command bar                              |
+| **Collapsible** | Expandable sections                                           | Settings panels                                 |
 
 All components: `apps/web/src/components/ui/` (new-york style, lucide icons)
 
@@ -251,14 +252,14 @@ All components: `apps/web/src/components/ui/` (new-york style, lucide icons)
 
 ## 7. Drag & Resize Libraries Available
 
-| Library | Version | Package | Usage |
-|---------|---------|---------|-------|
-| framer-motion | ^12.34.3 | `apps/web`, `apps/landing` | Animations, gestures (drag, dragConstraints, AnimatePresence) |
-| @dnd-kit/core | ^6.3.1 | `apps/web` | Drag & drop with DragOverlay |
-| @dnd-kit/sortable | ^10.0.0 | `apps/web` | Sortable lists |
-| @dnd-kit/utilities | ^3.2.2 | `apps/web` | DnD helper utilities |
-| @radix-ui/react-dialog | (via shadcn) | `apps/web` | Floating modals |
-| @radix-ui/react-popover | (via shadcn) | `apps/web` | Floating anchored content |
+| Library                 | Version      | Package                    | Usage                                                         |
+| ----------------------- | ------------ | -------------------------- | ------------------------------------------------------------- |
+| framer-motion           | ^12.34.3     | `apps/web`, `apps/landing` | Animations, gestures (drag, dragConstraints, AnimatePresence) |
+| @dnd-kit/core           | ^6.3.1       | `apps/web`                 | Drag & drop with DragOverlay                                  |
+| @dnd-kit/sortable       | ^10.0.0      | `apps/web`                 | Sortable lists                                                |
+| @dnd-kit/utilities      | ^3.2.2       | `apps/web`                 | DnD helper utilities                                          |
+| @radix-ui/react-dialog  | (via shadcn) | `apps/web`                 | Floating modals                                               |
+| @radix-ui/react-popover | (via shadcn) | `apps/web`                 | Floating anchored content                                     |
 
 **NOT installed:** `@floating-ui/react`, `react-rnd`, `react-grid-layout`, `@ag-ui/*`, `@copilotkit/*`
 
@@ -282,45 +283,45 @@ export const SCHEDULE_LAYERS = {
 
 Current z-index usage across codebase:
 
-| Layer | Z-Index | Component |
-|-------|---------|-----------|
-| Radix modals/sheets/popovers | z-50 | shadcn defaults |
-| BotssonAvatar | z-50 | Floating avatar |
-| AgentControlPanel | z-50 | Control panel |
-| VoiceSessionOverlay | z-50 | Full-screen overlay |
-| MissionControl backdrop | z-[60] | Dimmed overlay |
-| MissionControl sheet | z-[70] | Right panel |
-| Notification area | z-[90] | (reserved) |
-| Command palette | z-[9999] | (reserved) |
+| Layer                        | Z-Index  | Component           |
+| ---------------------------- | -------- | ------------------- |
+| Radix modals/sheets/popovers | z-50     | shadcn defaults     |
+| BotssonAvatar                | z-50     | Floating avatar     |
+| AgentControlPanel            | z-50     | Control panel       |
+| VoiceSessionOverlay          | z-50     | Full-screen overlay |
+| MissionControl backdrop      | z-[60]   | Dimmed overlay      |
+| MissionControl sheet         | z-[70]   | Right panel         |
+| Notification area            | z-[90]   | (reserved)          |
+| Command palette              | z-[9999] | (reserved)          |
 
 **Proposed WalkAi layers:**
 
-| Layer | Z-Index | Purpose |
-|-------|---------|---------|
-| walkaiBackdrop | 55 | Semi-transparent overlay behind WalkAi panels |
-| walkaiPanel | 65 | Main WalkAi panel (above modals, below MCP) |
-| walkaiDragPreview | 80 | Drag preview elements during reposition |
+| Layer             | Z-Index | Purpose                                       |
+| ----------------- | ------- | --------------------------------------------- |
+| walkaiBackdrop    | 55      | Semi-transparent overlay behind WalkAi panels |
+| walkaiPanel       | 65      | Main WalkAi panel (above modals, below MCP)   |
+| walkaiDragPreview | 80      | Drag preview elements during reposition       |
 
 ---
 
 ## 9. Design Patterns Summary
 
-| Pattern | Example | Key Implementation |
-|---------|---------|-------------------|
-| Draggable float | BotssonAvatar | `motion.div drag dragMomentum={false} dragElastic={0.1}` |
-| Slide-in sidebar | MissionControlPanel | `fixed right-0 translate-x-full/translate-x-0 transition duration-300` |
-| Full-screen overlay | VoiceSessionOverlay | `fixed inset-0 bg-black/60 backdrop-blur-xl` |
-| Chat bubbles | All chat panels | `max-w-[85%] rounded-2xl px-4 py-2.5 text-sm`, one corner flat, role-based color |
-| Voice visualizer | 3 variants | N animated bars with staggered delays, 3 states (speaking/idle/disconnected) |
-| Auto-scroll | All feeds | `useRef` + `scrollIntoView({ behavior: "smooth" })` or `scrollTop = scrollHeight` |
-| Tab navigation | AgentCard, MCP | Active `border-b-2`, inactive lower opacity |
-| Glass morphism | Overlay panels | `bg-black/60 border border-white/10 backdrop-blur-xl shadow-2xl` |
-| Quick actions | AiChatPanel, Reports | Array of `{ label, icon, prompt }`, rendered as buttons that auto-send |
-| Quick reply chips | AssistantPanel | `rounded-full border border-orange-500/30 bg-orange-500/10 text-orange-300` |
-| Typing indicator | AssistantPanel | 3 bouncing dots, `y: [0, -4, 0]`, staggered `delay: i * 0.15` |
-| Entry animation | All panels | Framer Motion ease `[0.16, 1, 0.3, 1]` (1.0s) or `[0.25, 0.1, 0.25, 1]` (0.4s) |
-| Error messages | VoiceAssistant | Norwegian text via `sonner` toast + inline retry button |
-| Loading states | Multiple | Skeleton shimmer, Loader2 spinner, bouncing dots |
+| Pattern             | Example              | Key Implementation                                                                |
+| ------------------- | -------------------- | --------------------------------------------------------------------------------- |
+| Draggable float     | BotssonAvatar        | `motion.div drag dragMomentum={false} dragElastic={0.1}`                          |
+| Slide-in sidebar    | MissionControlPanel  | `fixed right-0 translate-x-full/translate-x-0 transition duration-300`            |
+| Full-screen overlay | VoiceSessionOverlay  | `fixed inset-0 bg-black/60 backdrop-blur-xl`                                      |
+| Chat bubbles        | All chat panels      | `max-w-[85%] rounded-2xl px-4 py-2.5 text-sm`, one corner flat, role-based color  |
+| Voice visualizer    | 3 variants           | N animated bars with staggered delays, 3 states (speaking/idle/disconnected)      |
+| Auto-scroll         | All feeds            | `useRef` + `scrollIntoView({ behavior: "smooth" })` or `scrollTop = scrollHeight` |
+| Tab navigation      | AgentCard, MCP       | Active `border-b-2`, inactive lower opacity                                       |
+| Glass morphism      | Overlay panels       | `bg-black/60 border border-white/10 backdrop-blur-xl shadow-2xl`                  |
+| Quick actions       | AiChatPanel, Reports | Array of `{ label, icon, prompt }`, rendered as buttons that auto-send            |
+| Quick reply chips   | AssistantPanel       | `rounded-full border border-orange-500/30 bg-orange-500/10 text-orange-300`       |
+| Typing indicator    | AssistantPanel       | 3 bouncing dots, `y: [0, -4, 0]`, staggered `delay: i * 0.15`                     |
+| Entry animation     | All panels           | Framer Motion ease `[0.16, 1, 0.3, 1]` (1.0s) or `[0.25, 0.1, 0.25, 1]` (0.4s)    |
+| Error messages      | VoiceAssistant       | Norwegian text via `sonner` toast + inline retry button                           |
+| Loading states      | Multiple             | Skeleton shimmer, Loader2 spinner, bouncing dots                                  |
 
 ---
 

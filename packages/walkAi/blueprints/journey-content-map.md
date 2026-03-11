@@ -25,17 +25,17 @@ These skills define the structured workflows for creating, training, and scoring
 - **Triage pattern:** Assess confidence (HIGH/MEDIUM/LOW) based on 5 signals (similar journey exists, module documented, clear actor+intent, related packages exist). HIGH auto-drafts, MEDIUM asks targeted questions, LOW runs a wizard.
 - **9 knowledge gates** (all must pass before generating):
 
-| # | Gate | Question |
-|---|------|----------|
-| 1 | Journey ID | Which J-NNN or new? |
-| 2 | Module | onboarding, scheduling, operations, training, etc. |
-| 3 | Actor | employee, manager, admin, owner, agent |
-| 4 | Platform | web, mobile, both |
-| 5 | Business intent | 1-2 sentences: what + why |
-| 6 | Scope | In scope / out of scope |
-| 7 | Success criteria | Measurable completion |
-| 8 | Related journeys | Requires, leads to, opposite |
-| 9 | Priority | P0/P1/P2/P3 |
+| #   | Gate             | Question                                           |
+| --- | ---------------- | -------------------------------------------------- |
+| 1   | Journey ID       | Which J-NNN or new?                                |
+| 2   | Module           | onboarding, scheduling, operations, training, etc. |
+| 3   | Actor            | employee, manager, admin, owner, agent             |
+| 4   | Platform         | web, mobile, both                                  |
+| 5   | Business intent  | 1-2 sentences: what + why                          |
+| 6   | Scope            | In scope / out of scope                            |
+| 7   | Success criteria | Measurable completion                              |
+| 8   | Related journeys | Requires, leads to, opposite                       |
+| 9   | Priority         | P0/P1/P2/P3                                        |
 
 - **Output:** `docs/Roadmaps/{slug}/Roadmap.md` with YAML frontmatter, Package Identity (R-NNN, J-NNN, M-NNN, L-NNN), Business Intent, Scope, Success Criteria, Related Journeys, Event Motor Pattern (start-hook, events, stop-hook).
 
@@ -44,26 +44,26 @@ These skills define the structured workflows for creating, training, and scoring
 - **Purpose:** Create the Journey artifact — the executable specification. Every button, event, notification, DB write, screen state.
 - **10 per-step dimensions** (P0 Full):
 
-| # | Dimension | Key fields |
-|---|-----------|------------|
-| 1 | Action | description, type (tap/swipe/form_submit/navigate/drag/long_press/scan/voice/system_auto), target |
-| 2 | UI Elements | testId, type, label (Norwegian), variant, visible/disabled conditions |
-| 3 | Screen States | name, condition, display, illustration, CTA |
-| 4 | Data Operations | table, operation, fields, condition, RLS policy, index |
-| 5 | Events | emitted (name, payload, consumers), listened to, side effects |
-| 6 | Notifications | template, channels, recipient, title/body (NO), deep link, priority |
-| 7 | Gamification | base points, season multiplier, conditional bonuses, achievements, streaks |
-| 8 | Compliance | audit entries, legal checks |
-| 9 | Errors | trigger, code, user message (NO), recovery, severity, notify admin |
-| 10 | Expects | description, assertions (type, selector, expected, timeout) |
+| #   | Dimension       | Key fields                                                                                        |
+| --- | --------------- | ------------------------------------------------------------------------------------------------- |
+| 1   | Action          | description, type (tap/swipe/form_submit/navigate/drag/long_press/scan/voice/system_auto), target |
+| 2   | UI Elements     | testId, type, label (Norwegian), variant, visible/disabled conditions                             |
+| 3   | Screen States   | name, condition, display, illustration, CTA                                                       |
+| 4   | Data Operations | table, operation, fields, condition, RLS policy, index                                            |
+| 5   | Events          | emitted (name, payload, consumers), listened to, side effects                                     |
+| 6   | Notifications   | template, channels, recipient, title/body (NO), deep link, priority                               |
+| 7   | Gamification    | base points, season multiplier, conditional bonuses, achievements, streaks                        |
+| 8   | Compliance      | audit entries, legal checks                                                                       |
+| 9   | Errors          | trigger, code, user message (NO), recovery, severity, notify admin                                |
+| 10  | Expects         | description, assertions (type, selector, expected, timeout)                                       |
 
 - **3 priority tiers:**
 
-| Tier | Dimensions required |
-|------|-------------------|
-| P0 Full | All 10 |
-| P1 Medium | 6: action, ui, data, events, errors, expects |
-| P2 Skeleton | 3: action, data, expects |
+| Tier        | Dimensions required                          |
+| ----------- | -------------------------------------------- |
+| P0 Full     | All 10                                       |
+| P1 Medium   | 6: action, ui, data, events, errors, expects |
+| P2 Skeleton | 3: action, data, expects                     |
 
 - **AI Council validation:** Every journey checked against 7 restaurant personas.
 - **Playwright recording integration:** Parses recorded actions into steps with selectors and routes.
@@ -80,11 +80,11 @@ These skills define the structured workflows for creating, training, and scoring
   - Terminal stage: calls `advanceToNextSection` but NOT `advance`.
 - **Three pillars:**
 
-| Pillar | What it defines |
-|--------|----------------|
-| Results | session_success, stage_success, quality_score |
-| Trackability | timing thresholds, failure signals (abandon, rage_quit, stuck, loop, timeout), guardian watches (data_writes, required_confirmation, auto_advance) |
-| Triggerability | trigger condition, test invocation, mission_training_link |
+| Pillar         | What it defines                                                                                                                                    |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Results        | session_success, stage_success, quality_score                                                                                                      |
+| Trackability   | timing thresholds, failure signals (abandon, rage_quit, stuck, loop, timeout), guardian watches (data_writes, required_confirmation, auto_advance) |
+| Triggerability | trigger condition, test invocation, mission_training_link                                                                                          |
 
 - **Guardian integration:** Automatic through event bus. Guardian evaluates stages via `journey_step_id` FK. Checks data completeness, timing, auto-advance. Intervenes via whispers to `collected_data._whispers[]`.
 - **System prompt 3-layer structure:**
@@ -97,22 +97,22 @@ These skills define the structured workflows for creating, training, and scoring
 
 - **5-phase workflow:**
 
-| Phase | Activities |
-|-------|-----------|
-| 1. Design | Mission goal, stage breakdown, chain, tool identification, user manuscript |
-| 2. Implement | Seed SQL, client tool wiring, frontend sections, registry update, cross-layer registries |
-| 3. Verify | Type safety, stale references, cross-layer consistency, chain integrity, two-tool advance, phantom tool check, data flow |
-| 4. Test | Dry run (read aloud), tool audit, chain walk, live test, agent scoring |
-| 5. Iterate | Fix symptoms: stuck agent, skipped data, monologues, wrong tools, UI not scrolling, prompt not updating, repeated questions |
+| Phase        | Activities                                                                                                                  |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| 1. Design    | Mission goal, stage breakdown, chain, tool identification, user manuscript                                                  |
+| 2. Implement | Seed SQL, client tool wiring, frontend sections, registry update, cross-layer registries                                    |
+| 3. Verify    | Type safety, stale references, cross-layer consistency, chain integrity, two-tool advance, phantom tool check, data flow    |
+| 4. Test      | Dry run (read aloud), tool audit, chain walk, live test, agent scoring                                                      |
+| 5. Iterate   | Fix symptoms: stuck agent, skipped data, monologues, wrong tools, UI not scrolling, prompt not updating, repeated questions |
 
 - **Phantom tool detection:** Legacy names that do NOT exist and must never appear in instructions:
 
-| Phantom | Real replacement |
-|---------|-----------------|
-| `navigate_to` | `advanceToNextSection` |
-| `fill_field` | `updateBusiness` / specific tool |
-| `show_panel` | `addKeyFact` |
-| `show_toast` | (sonner toast) |
+| Phantom       | Real replacement                 |
+| ------------- | -------------------------------- |
+| `navigate_to` | `advanceToNextSection`           |
+| `fill_field`  | `updateBusiness` / specific tool |
+| `show_panel`  | `addKeyFact`                     |
+| `show_toast`  | (sonner toast)                   |
 
 - **Prompt builder context:** 13-part assembly in `buildStagePrompt()` — mission personality, personality override, emotion hint, creative freedom, goal+instructions, success criteria, escalation, context, journey enrichment, progress, collected data, after-action, tuning notes.
 
@@ -120,22 +120,22 @@ These skills define the structured workflows for creating, training, and scoring
 
 - **5 posture dimensions** (scale 0-10, scored against target posture per agent):
 
-| Dimension | Measures |
-|-----------|---------|
-| Warmth | Tone, empathy, approachability |
-| Directness | Clarity, conciseness, action-orientation |
-| Formality | Register, professionalism, structure |
-| Patience | Pacing, tolerance, willingness to re-explain |
-| Authority | Confidence, decisiveness, expertise projection |
+| Dimension  | Measures                                       |
+| ---------- | ---------------------------------------------- |
+| Warmth     | Tone, empathy, approachability                 |
+| Directness | Clarity, conciseness, action-orientation       |
+| Formality  | Register, professionalism, structure           |
+| Patience   | Pacing, tolerance, willingness to re-explain   |
+| Authority  | Confidence, decisiveness, expertise projection |
 
 - **4 extension dimensions:**
 
-| Dimension | Measures |
-|-----------|---------|
-| Tool Accuracy | Right tool, correct parameters |
-| Context Usage | Leveraged AgentContext data |
-| Goal Completion | Achieved encounter objective |
-| Error Recovery | Handled failures, confusion, edge cases |
+| Dimension       | Measures                                |
+| --------------- | --------------------------------------- |
+| Tool Accuracy   | Right tool, correct parameters          |
+| Context Usage   | Leveraged AgentContext data             |
+| Goal Completion | Achieved encounter objective            |
+| Error Recovery  | Handled failures, confusion, edge cases |
 
 - **Agent-specific extensions:** Lise adds Data Quality + Stage Flow. HACCP Inspector adds Compliance Accuracy. Shift Assistant adds Schedule Correctness.
 - **Encounter logging:** Required after every session. Includes posture scores, extension scores, tool calls, findings, self-assessment.
@@ -189,13 +189,13 @@ Source: `packages/ai/src/missions/registry.ts`
 
 ### 3.1 Registered Missions
 
-| Mission ID | Agent | Voice | Temp | Max Duration | First Speaker | Channel |
-|------------|-------|-------|:----:|:------------:|:-------------:|---------|
-| `onboarding-interview` | Botsson | Mark | 0.6 | 1800s | user | voice |
-| `landing-demo` | Lise | custom UUID | 0.5 | 600s | agent | voice |
-| `mr-botsson` | Mr. Botsson | mark | 0.3 | 1800s | user | voice |
-| `haccp-inspector` | HACCP-inspektoren | sarah | 0.2 | 900s | agent | voice |
-| `shift-assistant` | Vaktassistenten | tina | 0.3 | 900s | user | voice |
+| Mission ID             | Agent             | Voice       | Temp | Max Duration | First Speaker | Channel |
+| ---------------------- | ----------------- | ----------- | :--: | :----------: | :-----------: | ------- |
+| `onboarding-interview` | Botsson           | Mark        | 0.6  |    1800s     |     user      | voice   |
+| `landing-demo`         | Lise              | custom UUID | 0.5  |     600s     |     agent     | voice   |
+| `mr-botsson`           | Mr. Botsson       | mark        | 0.3  |    1800s     |     user      | voice   |
+| `haccp-inspector`      | HACCP-inspektoren | sarah       | 0.2  |     900s     |     agent     | voice   |
+| `shift-assistant`      | Vaktassistenten   | tina        | 0.3  |     900s     |     user      | voice   |
 
 ### 3.2 Mission Type System
 
@@ -223,15 +223,15 @@ Each mission's `systemPrompt` follows a 3-layer structure:
 
 Source: `docs/engines/system-inteligence/`
 
-| Document | Content |
-|----------|---------|
-| `00-core-state-engine.md` | Canonical state model. 6 state domains: session, journey, task/procedure, notification, agent interaction, readiness. Transition rules, guard conditions, audit contract. |
-| `01-system-architecture-contracts.md` | Runtime contracts for APIs, events, schema versioning, integrations. |
-| `02-agent-framework-runtime.md` | Agent roles (orchestrator, specialist, guardian, QA/test), capability registry, authority model (read/write/escalate per workspace), memory model (session + persistent), conflict model (user override handling). Decision flow: `intent -> policy check -> authority check -> tool execution -> state transition -> verification`. |
-| `04-state-machine-governance.md` | Design rules, guardrails, rollback, migration guidance. |
-| `07-journey-package-compiler.md` | 9-artifact package contract: Roadmap, Journey, Mission, License, User Test, Knowledge Test, Function Test, E2E Test Script, API Contract Extract. Runtime binding: `start-hook -> mission + journey execution -> test gates -> stop-hook -> certification/reporting`. |
-| `08-event-envelope-spec.md` | Canonical envelope for all runtime events. Fields: event_id, event_name, event_version, occurred_at, workspace_id, correlation_id, causation_id, source (domain/service/component), actor (type/id/role), subject (kind/id), state (from/to), severity, payload, tags, provenance (channel/request_id/trace_id). Source domains: journey, process, guardian, notification, agent, integration, test. |
-| `09-gold-package-admin-onboarding.md` | Fully linked example package for R-001 with mission/license/test bindings. |
+| Document                              | Content                                                                                                                                                                                                                                                                                                                                                                                              |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `00-core-state-engine.md`             | Canonical state model. 6 state domains: session, journey, task/procedure, notification, agent interaction, readiness. Transition rules, guard conditions, audit contract.                                                                                                                                                                                                                            |
+| `01-system-architecture-contracts.md` | Runtime contracts for APIs, events, schema versioning, integrations.                                                                                                                                                                                                                                                                                                                                 |
+| `02-agent-framework-runtime.md`       | Agent roles (orchestrator, specialist, guardian, QA/test), capability registry, authority model (read/write/escalate per workspace), memory model (session + persistent), conflict model (user override handling). Decision flow: `intent -> policy check -> authority check -> tool execution -> state transition -> verification`.                                                                 |
+| `04-state-machine-governance.md`      | Design rules, guardrails, rollback, migration guidance.                                                                                                                                                                                                                                                                                                                                              |
+| `07-journey-package-compiler.md`      | 9-artifact package contract: Roadmap, Journey, Mission, License, User Test, Knowledge Test, Function Test, E2E Test Script, API Contract Extract. Runtime binding: `start-hook -> mission + journey execution -> test gates -> stop-hook -> certification/reporting`.                                                                                                                                |
+| `08-event-envelope-spec.md`           | Canonical envelope for all runtime events. Fields: event_id, event_name, event_version, occurred_at, workspace_id, correlation_id, causation_id, source (domain/service/component), actor (type/id/role), subject (kind/id), state (from/to), severity, payload, tags, provenance (channel/request_id/trace_id). Source domains: journey, process, guardian, notification, agent, integration, test. |
+| `09-gold-package-admin-onboarding.md` | Fully linked example package for R-001 with mission/license/test bindings.                                                                                                                                                                                                                                                                                                                           |
 
 ### 4.2 Industry Intelligence
 
@@ -239,33 +239,33 @@ Source: `docs/engines/industri-inteligence/hospitalety/`
 
 Current scope: **Restaurant** (Industry-0).
 
-| Folder | Content |
-|--------|---------|
-| `00-engine-core.md` | Core architecture contract. Boundary between system layer and industry layer. |
-| `01-ai-council/` | 7-persona council for journey validation. |
-| `02-default-policies/` | Policy baselines mapped to template assets. Required before journeys and tests. |
-| `03-templates/` | 3 template families: business structure, task pipeline, journey. Each has a contract doc + restaurant-specific instance. |
-| `04-research/` | Consolidated research pack: workflows, summaries, proven knowledge, tactics, KPIs. |
-| `05-testing/` | Persona-aware test profiles (automated, manual, A/B, security). |
-| `06-relevance-map/` | Map of where each artifact is used in system delivery. |
-| `07-company-handbook/` | Restaurant company handbook template. |
-| `08-role-capability-profiles/` | Role knowledge/skills/training readiness per restaurant role. |
-| `09-environment-profile/` | Operating environment baseline (physical context for templates and testing). |
-| `10-niche-profiles/` | Business-specific specialization. Taxonomy, profile template, skeleton. First concrete niche: Italian Premium Service. |
+| Folder                         | Content                                                                                                                  |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| `00-engine-core.md`            | Core architecture contract. Boundary between system layer and industry layer.                                            |
+| `01-ai-council/`               | 7-persona council for journey validation.                                                                                |
+| `02-default-policies/`         | Policy baselines mapped to template assets. Required before journeys and tests.                                          |
+| `03-templates/`                | 3 template families: business structure, task pipeline, journey. Each has a contract doc + restaurant-specific instance. |
+| `04-research/`                 | Consolidated research pack: workflows, summaries, proven knowledge, tactics, KPIs.                                       |
+| `05-testing/`                  | Persona-aware test profiles (automated, manual, A/B, security).                                                          |
+| `06-relevance-map/`            | Map of where each artifact is used in system delivery.                                                                   |
+| `07-company-handbook/`         | Restaurant company handbook template.                                                                                    |
+| `08-role-capability-profiles/` | Role knowledge/skills/training readiness per restaurant role.                                                            |
+| `09-environment-profile/`      | Operating environment baseline (physical context for templates and testing).                                             |
+| `10-niche-profiles/`           | Business-specific specialization. Taxonomy, profile template, skeleton. First concrete niche: Italian Premium Service.   |
 
 ### 4.3 AI Council — 7 Personas
 
 Source: `docs/engines/industri-inteligence/hospitalety/01-ai-council/restaurant-council.md`
 
-| # | Persona | Focus | High risk if... |
-|---|---------|-------|-----------------|
-| 1 | Multi-site Restaurant Manager | Operational control, speed, compliance | Workflows too slow, hide staffing gaps |
-| 2 | Back-office Admin | Auditability, exports, policy enforcement | Exports, audit traces, policy status weak |
-| 3 | External Hospitality Consultant | Scalability, adoption risk, ROI | Setup can't scale or measure ROI |
-| 4 | Career Hospitality Professional | Practical workflow fit during live service | Flow breaks under service pressure |
-| 5 | Fast-food Entry Worker | Language access, onboarding clarity, confidence | Onboarding language-heavy, confidence drops |
-| 6 | Low-literacy Worker | Dignity-preserving UX, visual-first, minimal text | Dignity-preserving interaction absent |
-| 7 | Sommelier / High-education Specialist | Depth, quality, advanced workflow fidelity | Advanced quality workflows over-simplified |
+| #   | Persona                               | Focus                                             | High risk if...                             |
+| --- | ------------------------------------- | ------------------------------------------------- | ------------------------------------------- |
+| 1   | Multi-site Restaurant Manager         | Operational control, speed, compliance            | Workflows too slow, hide staffing gaps      |
+| 2   | Back-office Admin                     | Auditability, exports, policy enforcement         | Exports, audit traces, policy status weak   |
+| 3   | External Hospitality Consultant       | Scalability, adoption risk, ROI                   | Setup can't scale or measure ROI            |
+| 4   | Career Hospitality Professional       | Practical workflow fit during live service        | Flow breaks under service pressure          |
+| 5   | Fast-food Entry Worker                | Language access, onboarding clarity, confidence   | Onboarding language-heavy, confidence drops |
+| 6   | Low-literacy Worker                   | Dignity-preserving UX, visual-first, minimal text | Dignity-preserving interaction absent       |
+| 7   | Sommelier / High-education Specialist | Depth, quality, advanced workflow fidelity        | Advanced quality workflows over-simplified  |
 
 Composition: `System intelligence (global) + Industry intelligence (specialization) -> User-facing execution`
 
@@ -275,14 +275,14 @@ Composition: `System intelligence (global) + Industry intelligence (specializati
 
 Key ADRs that define WalkAi's operational context.
 
-| ADR | Title | Decision |
-|-----|-------|----------|
-| ADR-0042 | Agent Architecture | Extend Stage Engine with Agent Mode. Composable capability layers replace rigid engine model. Intent classifier with confidence escape hatch. Persistent memory (`engine_memory` + pgvector). Per-workspace authority (`engine_authority_config`). Vercel AI SDK over Anthropic Agent SDK. |
-| ADR-0049 (agent-sdk) | Agent SDK Package | Extract `@smartout/agent-sdk` from duplicated `useBotsson`. Single `useAgent(config)` hook. VoiceProvider interface (Ultravox + LiveKit). ClientTool registry with definition+implementation bundled. `buildToolKit()` converts to provider format. |
-| ADR-0049 (guardian) | Guardian WebSocket Architecture | Direct WebSocket from stage engine at `/guardian/ws`. Zero-latency event delivery. Bidirectional: subscribe, change_stage, whisper. Events both broadcast AND persisted to `guardian_log`. All emission through `emitGuardianEvent()` in `guardian-bus.ts`. |
-| ADR-0051 | Unified AI Runtime System Definition | Single canonical runtime spec: `AI_RUNTIME_SYSTEM_DEFINITION_V1.md`. Mission mode, agent mode, guardian, guard-rails share one coherent model. All runtime contracts (contract envelope, context envelope, event envelope) centralized. |
-| ADR-0041 | Onboarding Wizard Step Architecture | Step components with context hook. 15 step components + 4 drawers. `useOnboardingWizard` centralizes progressive save, auth tracking, finalization. `STEP_COMPONENTS` map in page.tsx. |
-| ADR-0038 | Journey Agent & Output Generators | AI-assisted journey definition wizard. 4 output generators (E2E Test, Doc, Linear, Botsson). 3 agent tools (lookup_journeys, check_duplicates, save_draft). 6 wizard phases: discovery -> classification -> steps -> testing -> documentation -> review. |
+| ADR                  | Title                                | Decision                                                                                                                                                                                                                                                                                   |
+| -------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ADR-0042             | Agent Architecture                   | Extend Stage Engine with Agent Mode. Composable capability layers replace rigid engine model. Intent classifier with confidence escape hatch. Persistent memory (`engine_memory` + pgvector). Per-workspace authority (`engine_authority_config`). Vercel AI SDK over Anthropic Agent SDK. |
+| ADR-0049 (agent-sdk) | Agent SDK Package                    | Extract `@smartout/agent-sdk` from duplicated `useBotsson`. Single `useAgent(config)` hook. VoiceProvider interface (Ultravox + LiveKit). ClientTool registry with definition+implementation bundled. `buildToolKit()` converts to provider format.                                        |
+| ADR-0049 (guardian)  | Guardian WebSocket Architecture      | Direct WebSocket from stage engine at `/guardian/ws`. Zero-latency event delivery. Bidirectional: subscribe, change_stage, whisper. Events both broadcast AND persisted to `guardian_log`. All emission through `emitGuardianEvent()` in `guardian-bus.ts`.                                |
+| ADR-0051             | Unified AI Runtime System Definition | Single canonical runtime spec: `AI_RUNTIME_SYSTEM_DEFINITION_V1.md`. Mission mode, agent mode, guardian, guard-rails share one coherent model. All runtime contracts (contract envelope, context envelope, event envelope) centralized.                                                    |
+| ADR-0041             | Onboarding Wizard Step Architecture  | Step components with context hook. 15 step components + 4 drawers. `useOnboardingWizard` centralizes progressive save, auth tracking, finalization. `STEP_COMPONENTS` map in page.tsx.                                                                                                     |
+| ADR-0038             | Journey Agent & Output Generators    | AI-assisted journey definition wizard. 4 output generators (E2E Test, Doc, Linear, Botsson). 3 agent tools (lookup_journeys, check_duplicates, save_draft). 6 wizard phases: discovery -> classification -> steps -> testing -> documentation -> review.                                   |
 
 ---
 
@@ -292,14 +292,14 @@ Key ADRs that define WalkAi's operational context.
 
 Source: `packages/ai/src/missions/types.ts`
 
-| Type | Purpose |
-|------|---------|
-| `AgentMission` | Full mission config (id, prompt, voice, tools, stages) |
-| `MissionId` | Zod-validated enum of registered missions |
-| `MissionStageOverride` | Per-stage voice, temperature, posture overrides |
-| `UltravoxVoice` | Built-in voices or custom UUID |
-| `MissionManifestEntry` | Lightweight mission info for UI lists |
-| `ClientTool` | Tool definition (name, description, params) + `client: {}` marker |
+| Type                   | Purpose                                                           |
+| ---------------------- | ----------------------------------------------------------------- |
+| `AgentMission`         | Full mission config (id, prompt, voice, tools, stages)            |
+| `MissionId`            | Zod-validated enum of registered missions                         |
+| `MissionStageOverride` | Per-stage voice, temperature, posture overrides                   |
+| `UltravoxVoice`        | Built-in voices or custom UUID                                    |
+| `MissionManifestEntry` | Lightweight mission info for UI lists                             |
+| `ClientTool`           | Tool definition (name, description, params) + `client: {}` marker |
 
 ### 6.2 VoiceProvider Architecture
 
@@ -314,40 +314,40 @@ Source: ADR-0049 (`@smartout/agent-sdk`)
 
 Registered in `useBotsson.ts` as Ultravox `temporaryTool` with `client: {}`:
 
-| Tool | Purpose |
-|------|---------|
-| `getOnboardingState` | Read current wizard form state |
-| `updateBusiness` | Fill/correct business form fields |
-| `addDepartments` | Create department entries |
-| `addLocations` | Add physical locations |
-| `addZones` | Add zones within a location |
-| `addProcedures` | Toggle/add procedure entries |
-| `updateSeason` | Set season name and dates |
-| `triggerScrape` | Start web scraping (Scrapling service) |
-| `addKeyFact` | Show key fact in UI panel |
-| `saveMemory` | Persist to `engine_memory` |
-| `advanceToNextSection` | Scroll UI to next wizard section |
+| Tool                   | Purpose                                |
+| ---------------------- | -------------------------------------- |
+| `getOnboardingState`   | Read current wizard form state         |
+| `updateBusiness`       | Fill/correct business form fields      |
+| `addDepartments`       | Create department entries              |
+| `addLocations`         | Add physical locations                 |
+| `addZones`             | Add zones within a location            |
+| `addProcedures`        | Toggle/add procedure entries           |
+| `updateSeason`         | Set season name and dates              |
+| `triggerScrape`        | Start web scraping (Scrapling service) |
+| `addKeyFact`           | Show key fact in UI panel              |
+| `saveMemory`           | Persist to `engine_memory`             |
+| `advanceToNextSection` | Scroll UI to next wizard section       |
 
 ### 6.4 Engine HTTP Tools (4)
 
 Built by `buildUltravoxTools()` in `services/stage-engine/src/lib/ultravox.ts`. Available to ALL missions:
 
-| Tool | Purpose |
-|------|---------|
-| `store` | Save collected data to `engine_inbox` |
-| `fetch` | Retrieve context, inbox, stage history |
-| `advance` | Move to next stage + rebuild prompt |
-| `getJourneyContext` | Check journey progress and timing |
+| Tool                | Purpose                                |
+| ------------------- | -------------------------------------- |
+| `store`             | Save collected data to `engine_inbox`  |
+| `fetch`             | Retrieve context, inbox, stage history |
+| `advance`           | Move to next stage + rebuild prompt    |
+| `getJourneyContext` | Check journey progress and timing      |
 
 ### 6.5 Schedule Tools (Shift Assistant)
 
 Defined in `packages/ai/src/tools/schedule.ts`, shipped via `clientTools` on the `shift-assistant` mission:
 
-| Category | Tools |
-|----------|-------|
-| Read | `getScheduleState`, `getShiftsForDay`, `getEmployeeSchedule`, `getCoverage` |
-| Write | `createShift`, `updateShift`, `deleteShift`, `publishShifts` |
-| Navigation | `focusDay`, `openDayPlanner`, `closeDayPlanner` |
+| Category   | Tools                                                                       |
+| ---------- | --------------------------------------------------------------------------- |
+| Read       | `getScheduleState`, `getShiftsForDay`, `getEmployeeSchedule`, `getCoverage` |
+| Write      | `createShift`, `updateShift`, `deleteShift`, `publishShifts`                |
+| Navigation | `focusDay`, `openDayPlanner`, `closeDayPlanner`                             |
 
 ---
 
@@ -365,27 +365,27 @@ Source: `docs/modules/journey/SMARTOUT_JOURNEY_REGISTRY.md`
 
 ### 7.2 Module Distribution
 
-| Module | Journey Count |
-|--------|:------------:|
-| Core | 3 |
-| Onboarding | 5 |
-| Org Structure | 2 |
-| Scheduling | 8 |
-| Operations | 7 |
-| HACCP | 4 |
-| Training | 5 |
-| Absence | 3 |
-| Payroll | 3 |
-| Communication | 4 |
-| Reports | 4 |
-| Settings | 3 |
-| AI (Mr. Botsson) | 3 |
-| Season | 3 |
-| Governance | 2 |
-| Contracts | 3 |
-| Certifications | 2 |
-| Journey Portal (meta) | 4 |
-| **Total** | **68** |
+| Module                | Journey Count |
+| --------------------- | :-----------: |
+| Core                  |       3       |
+| Onboarding            |       5       |
+| Org Structure         |       2       |
+| Scheduling            |       8       |
+| Operations            |       7       |
+| HACCP                 |       4       |
+| Training              |       5       |
+| Absence               |       3       |
+| Payroll               |       3       |
+| Communication         |       4       |
+| Reports               |       4       |
+| Settings              |       3       |
+| AI (Mr. Botsson)      |       3       |
+| Season                |       3       |
+| Governance            |       2       |
+| Contracts             |       3       |
+| Certifications        |       2       |
+| Journey Portal (meta) |       4       |
+| **Total**             |    **68**     |
 
 ### 7.3 Mission Registry
 
@@ -397,18 +397,18 @@ Source: `packages/ai/src/missions/registry.ts`
 
 10 composable capabilities replacing the rigid 8-engine model:
 
-| Capability | Domain |
-|------------|--------|
-| Profile | Employee identity, status, readiness |
-| Schedule | Shift viewing, planning, coverage |
-| Training | Protocol assignments, progress, completion |
-| Operations | Department sessions, daily tasks, deviations |
-| HACCP | Temperature logging, control points, deviations |
-| Communication | Announcements, messages, notifications |
-| Governance | Policies, procedures, routines |
-| Season | Season management, budget, leaderboard |
-| Reports | KPIs, reconciliation, analytics |
-| Memory | Long-term recall, semantic search (pgvector) |
+| Capability    | Domain                                          |
+| ------------- | ----------------------------------------------- |
+| Profile       | Employee identity, status, readiness            |
+| Schedule      | Shift viewing, planning, coverage               |
+| Training      | Protocol assignments, progress, completion      |
+| Operations    | Department sessions, daily tasks, deviations    |
+| HACCP         | Temperature logging, control points, deviations |
+| Communication | Announcements, messages, notifications          |
+| Governance    | Policies, procedures, routines                  |
+| Season        | Season management, budget, leaderboard          |
+| Reports       | KPIs, reconciliation, analytics                 |
+| Memory        | Long-term recall, semantic search (pgvector)    |
 
 Each capability is a self-contained module with its own tools, prompts, and authority requirements. Per-workspace authority control via `engine_authority_config`: autonomous, notify_suggest, notify, escalate, or never.
 
@@ -436,36 +436,37 @@ createSession() -> "session.started" event
 - **Checks per stage:** `data_writes` completeness, `min_duration_seconds`, `max_duration_seconds`, `required_confirmation`.
 - **Intervention mechanism:** Writes to `collected_data._whispers[]` — invisible system instructions to agent.
 
-| Intervention | Trigger | Action |
-|-------------|---------|--------|
-| Auto-advance | All data collected + min_duration passed + no required_confirmation | Calls `advanceStage()` directly |
-| Nudge confirm | All data + required_confirmation + 30s elapsed | Whispers: "Spor bruker om bekreftelse" |
-| Missing field | 60s elapsed + fields missing | Whispers: "Spor om: {missing fields}" |
-| Timeout warning | 80% of max_duration | Whispers: "{N} sekunder igjen, mangler: {fields}" |
-| Hard timeout | 100% of max_duration | Whispers: "Timeout — avslutt steget" |
+| Intervention    | Trigger                                                             | Action                                            |
+| --------------- | ------------------------------------------------------------------- | ------------------------------------------------- |
+| Auto-advance    | All data collected + min_duration passed + no required_confirmation | Calls `advanceStage()` directly                   |
+| Nudge confirm   | All data + required_confirmation + 30s elapsed                      | Whispers: "Spor bruker om bekreftelse"            |
+| Missing field   | 60s elapsed + fields missing                                        | Whispers: "Spor om: {missing fields}"             |
+| Timeout warning | 80% of max_duration                                                 | Whispers: "{N} sekunder igjen, mangler: {fields}" |
+| Hard timeout    | 100% of max_duration                                                | Whispers: "Timeout — avslutt steget"              |
 
 ### 8.3 Event Types
 
-| Event | Actor | When |
-|-------|-------|------|
-| `session.started` | system | Session created |
-| `stage.changed` | system | Stage advanced |
-| `data.collected` | agent | Data stored via `/store` |
-| `user.message` | user | User sends message |
-| `agent.response` | agent | Agent replies |
-| `session.completed` | system | All stages done |
-| `session.abandoned` | system | Session abandoned |
-| `guardian.auto_advance` | guardian | Auto-advanced a stage |
-| `guardian.nudge` | guardian | Nudged for missing data |
-| `guardian.nudge_confirm` | guardian | Asked for user confirmation |
-| `guardian.timeout` | guardian | Stage timed out |
+| Event                      | Actor    | When                        |
+| -------------------------- | -------- | --------------------------- |
+| `session.started`          | system   | Session created             |
+| `stage.changed`            | system   | Stage advanced              |
+| `data.collected`           | agent    | Data stored via `/store`    |
+| `user.message`             | user     | User sends message          |
+| `agent.response`           | agent    | Agent replies               |
+| `session.completed`        | system   | All stages done             |
+| `session.abandoned`        | system   | Session abandoned           |
+| `guardian.auto_advance`    | guardian | Auto-advanced a stage       |
+| `guardian.nudge`           | guardian | Nudged for missing data     |
+| `guardian.nudge_confirm`   | guardian | Asked for user confirmation |
+| `guardian.timeout`         | guardian | Stage timed out             |
 | `guardian.timeout_warning` | guardian | 80% of max duration reached |
-| `admin.stage_change` | admin | Admin forced stage change |
-| `admin.whisper` | admin | Admin sent whisper to agent |
+| `admin.stage_change`       | admin    | Admin forced stage change   |
+| `admin.whisper`            | admin    | Admin sent whisper to agent |
 
 ### 8.4 Admin Dashboard (Guardian Monitor)
 
 WebSocket at `/guardian/ws` (ADR-0049). Capabilities:
+
 - **Watch** — all events in real-time
 - **Subscribe** — filter to specific session
 - **Whisper** — inject invisible instructions mid-conversation
@@ -477,37 +478,37 @@ WebSocket at `/guardian/ws` (ADR-0049). Capabilities:
 
 ### 9.1 What WalkAi Ingests
 
-| Source | Path | Content Type |
-|--------|------|-------------|
-| Skills | `.claude/skills/*.md` | Structured methodologies (roadmap, journey, mission, training, scoring) |
-| Roadmaps | `docs/Roadmaps/*/Roadmap.md` | Business intent, scope, success criteria per journey |
-| Journeys | `docs/Roadmaps/*/Journey.md` | Deep specs with 10-dimension step definitions |
-| Missions | `docs/Roadmaps/*/Mission.md` | Agent execution contracts with stage chains |
-| Mission registry | `packages/ai/src/missions/registry.ts` | Runtime mission configs with system prompts |
-| Mission types | `packages/ai/src/missions/types.ts` | TypeScript type definitions for agent configs |
-| System engine docs | `docs/engines/system-inteligence/` | State engine, agent framework, event envelopes, journey compiler |
-| Industry engine docs | `docs/engines/industri-inteligence/` | AI council, policies, templates, role capabilities, niche profiles |
-| Journey registry | `docs/modules/journey/SMARTOUT_JOURNEY_REGISTRY.md` | 68+ journey definitions with lifecycle tracking |
-| ADRs | `docs/decisions/*.md` | Architectural decisions constraining implementation |
-| DB schema | `packages/supabase/src/database.types.ts` | Auto-generated types — tables, enums, RLS |
-| Tool definitions | `packages/ai/src/tools/` | Client-side tool definitions (schedule, etc.) |
-| Stage engine | `services/stage-engine/` | Session management, prompt builder, Guardian, WebSocket |
-| Runtime definition | `docs/architecture/AI_RUNTIME_SYSTEM_DEFINITION_V1.md` | Canonical AI runtime spec (ADR-0051) |
+| Source               | Path                                                   | Content Type                                                            |
+| -------------------- | ------------------------------------------------------ | ----------------------------------------------------------------------- |
+| Skills               | `.claude/skills/*.md`                                  | Structured methodologies (roadmap, journey, mission, training, scoring) |
+| Roadmaps             | `docs/Roadmaps/*/Roadmap.md`                           | Business intent, scope, success criteria per journey                    |
+| Journeys             | `docs/Roadmaps/*/Journey.md`                           | Deep specs with 10-dimension step definitions                           |
+| Missions             | `docs/Roadmaps/*/Mission.md`                           | Agent execution contracts with stage chains                             |
+| Mission registry     | `packages/ai/src/missions/registry.ts`                 | Runtime mission configs with system prompts                             |
+| Mission types        | `packages/ai/src/missions/types.ts`                    | TypeScript type definitions for agent configs                           |
+| System engine docs   | `docs/engines/system-inteligence/`                     | State engine, agent framework, event envelopes, journey compiler        |
+| Industry engine docs | `docs/engines/industri-inteligence/`                   | AI council, policies, templates, role capabilities, niche profiles      |
+| Journey registry     | `docs/modules/journey/SMARTOUT_JOURNEY_REGISTRY.md`    | 68+ journey definitions with lifecycle tracking                         |
+| ADRs                 | `docs/decisions/*.md`                                  | Architectural decisions constraining implementation                     |
+| DB schema            | `packages/supabase/src/database.types.ts`              | Auto-generated types — tables, enums, RLS                               |
+| Tool definitions     | `packages/ai/src/tools/`                               | Client-side tool definitions (schedule, etc.)                           |
+| Stage engine         | `services/stage-engine/`                               | Session management, prompt builder, Guardian, WebSocket                 |
+| Runtime definition   | `docs/architecture/AI_RUNTIME_SYSTEM_DEFINITION_V1.md` | Canonical AI runtime spec (ADR-0051)                                    |
 
 ### 9.2 What WalkAi Enables
 
-| Capability | Description |
-|-----------|-------------|
-| Journey authoring | Create new journey packages (roadmap -> journey -> mission) using skill workflows |
-| Mission training | Design, implement, verify, test, and iterate on agent missions |
-| Agent scoring | Self-evaluate and log agent performance with posture + extension dimensions |
-| Stage chain validation | Verify unbroken chains, no orphans, correct advance patterns |
-| Phantom tool detection | Catch legacy tool references that would cause agent hallucination |
-| Guardian wiring | Ensure journey_step_id, data_writes, timing thresholds are correctly set |
-| AI Council validation | Check every journey against 7 industry personas for risk |
-| Niche specialization | Apply business-specific focus multipliers to journey definitions |
-| Event envelope compliance | Verify all events follow canonical envelope schema |
-| Cross-layer consistency | Validate sections = components = labels = colors = CSS vars |
+| Capability                | Description                                                                       |
+| ------------------------- | --------------------------------------------------------------------------------- |
+| Journey authoring         | Create new journey packages (roadmap -> journey -> mission) using skill workflows |
+| Mission training          | Design, implement, verify, test, and iterate on agent missions                    |
+| Agent scoring             | Self-evaluate and log agent performance with posture + extension dimensions       |
+| Stage chain validation    | Verify unbroken chains, no orphans, correct advance patterns                      |
+| Phantom tool detection    | Catch legacy tool references that would cause agent hallucination                 |
+| Guardian wiring           | Ensure journey_step_id, data_writes, timing thresholds are correctly set          |
+| AI Council validation     | Check every journey against 7 industry personas for risk                          |
+| Niche specialization      | Apply business-specific focus multipliers to journey definitions                  |
+| Event envelope compliance | Verify all events follow canonical envelope schema                                |
+| Cross-layer consistency   | Validate sections = components = labels = colors = CSS vars                       |
 
 ### 9.3 Content Relationships
 
@@ -547,24 +548,24 @@ Industry Engine (restaurant)
 
 ### Creative Freedom Scale
 
-| Stage type | Value | Rationale |
-|-----------|:-----:|-----------|
-| Greeting/rapport | 0.7-0.8 | Warm, natural, room to improvise |
-| Data collection | 0.5-0.7 | Structured but conversational |
-| Validation/confirmation | 0.3-0.5 | More scripted, accuracy matters |
-| Finalization | 0.2-0.4 | Strict, no room for error |
-| Wrapup/summary | 0.7-0.8 | Warm, celebratory, personal |
+| Stage type              |  Value  | Rationale                        |
+| ----------------------- | :-----: | -------------------------------- |
+| Greeting/rapport        | 0.7-0.8 | Warm, natural, room to improvise |
+| Data collection         | 0.5-0.7 | Structured but conversational    |
+| Validation/confirmation | 0.3-0.5 | More scripted, accuracy matters  |
+| Finalization            | 0.2-0.4 | Strict, no room for error        |
+| Wrapup/summary          | 0.7-0.8 | Warm, celebratory, personal      |
 
 ### Key Database Tables (AI Runtime)
 
-| Table | Purpose |
-|-------|---------|
-| `engine_missions` | Mission templates (id, system_prompt, mode, journey_id) |
-| `engine_stages` | Ordered stages per mission (instructions, tools, chain) |
-| `engine_sessions` | Live session instances (mode: mission or agent) |
-| `engine_state` | State instances for engine processes |
-| `engine_state_step` | Per-step tracking on state instances |
-| `engine_memory` | Persistent agent memories with pgvector embeddings |
-| `engine_authority_config` | Per-workspace capability authority levels |
-| `engine_inbox` | Collected data storage |
-| `guardian_log` | Persisted Guardian events |
+| Table                     | Purpose                                                 |
+| ------------------------- | ------------------------------------------------------- |
+| `engine_missions`         | Mission templates (id, system_prompt, mode, journey_id) |
+| `engine_stages`           | Ordered stages per mission (instructions, tools, chain) |
+| `engine_sessions`         | Live session instances (mode: mission or agent)         |
+| `engine_state`            | State instances for engine processes                    |
+| `engine_state_step`       | Per-step tracking on state instances                    |
+| `engine_memory`           | Persistent agent memories with pgvector embeddings      |
+| `engine_authority_config` | Per-workspace capability authority levels               |
+| `engine_inbox`            | Collected data storage                                  |
+| `guardian_log`            | Persisted Guardian events                               |

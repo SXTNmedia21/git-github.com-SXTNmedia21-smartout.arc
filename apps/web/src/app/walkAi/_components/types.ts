@@ -19,7 +19,15 @@ export type AgentIdentity = {
   blend: PersonaRankBlend;
 };
 
-export type ContentViewType = "chat" | "form" | "video" | "visualizer" | "notepad" | "calculator" | "settings" | "tasks";
+export type ContentViewType =
+  | "chat"
+  | "form"
+  | "video"
+  | "visualizer"
+  | "notepad"
+  | "calculator"
+  | "settings"
+  | "tasks";
 
 export type ContentStackItem = {
   id: string;
@@ -84,7 +92,11 @@ export type VoiceOption = {
 
 /** Available voices — all Ultravox INCLUDED billing (no external API key needed) */
 export const VOICE_OPTIONS: VoiceOption[] = [
-  { id: "a0b371b7-4133-4d02-971f-213913d9025a", name: "Lise Botsson", description: "Smartouts stemme (NO)" },
+  {
+    id: "a0b371b7-4133-4d02-971f-213913d9025a",
+    name: "Lise Botsson",
+    description: "Smartouts stemme (NO)",
+  },
   { id: "d082550b-596a-42f7-9356-840b4a095d3f", name: "Emma", description: "Norsk kvinne" },
   { id: "864c6a02-ee99-47a1-b7d8-a723aa754bf4", name: "Johannes", description: "Norsk mann" },
   { id: "cd617a9a-8ce8-4b44-8306-300b6e55c0f3", name: "Sanna", description: "Svensk kvinne" },
@@ -127,7 +139,11 @@ export const LISA_PERSONALITIES: LisaPersonality[] = [
     name: "Trygg start",
     description: "Varm onboarding for nye ansatte",
     identity: { rank: "trainee", persona: "vakt", blend: 1 },
-    tuning: { temperature: 0.5, firstSpeaker: "agent", greeting: "Hei og velkommen! Jeg er her for å hjelpe deg i gang. Bare spør om hva som helst." },
+    tuning: {
+      temperature: 0.5,
+      firstSpeaker: "agent",
+      greeting: "Hei og velkommen! Jeg er her for å hjelpe deg i gang. Bare spør om hva som helst.",
+    },
   },
   {
     name: "Strategisk rådgiver",
@@ -145,10 +161,10 @@ export const LISA_PERSONALITIES: LisaPersonality[] = [
 
 /** Voice session tuning knobs */
 export type VoiceTuning = {
-  temperature: number;       // 0–1, default 0.3
-  maxDuration: string;       // e.g. "1800s"
+  temperature: number; // 0–1, default 0.3
+  maxDuration: string; // e.g. "1800s"
   firstSpeaker: "user" | "agent";
-  greeting: string;          // agent greeting text (when agent speaks first)
+  greeting: string; // agent greeting text (when agent speaks first)
   inactivityTimeout: string; // e.g. "15s"
   inactivityMessage: string; // what to say on timeout
   timeExceededMessage: string;

@@ -139,10 +139,11 @@ ${rank.prompt}
 
 ## Balanse
 Din personlighet (${persona.name}) er ${personaWeight}. Din autoritet (${rank.name}) er ${rankWeight}.
-${b < 0.5
+${
+  b < 0.5
     ? `Led med personlighet. La ${persona.name}-stilen dominere, men vis ${rank.name}-autoritet når det trengs.`
     : `Led med autoritet. Vis ${rank.name}-kompetansen, men la ${persona.name}-personligheten skinne gjennom.`
-  }
+}
 
 ## Stemme
 ${b < 0.5 ? persona.voice : rank.tone}`;

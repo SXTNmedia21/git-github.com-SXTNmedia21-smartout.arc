@@ -187,7 +187,10 @@ export function useAgent(config: AgentConfig): AgentSession {
       });
 
       if (!res.ok) {
-        const errorData = (await res.json().catch(() => ({ error: "Unknown error" }))) as Record<string, unknown>;
+        const errorData = (await res.json().catch(() => ({ error: "Unknown error" }))) as Record<
+          string,
+          unknown
+        >;
         const errorMsg = String(errorData.error ?? "Failed to start agent session");
         const details = errorData.details ? ` | ${String(errorData.details)}` : "";
         addDebug("api_error", `${res.status} ${errorMsg}${details}`);

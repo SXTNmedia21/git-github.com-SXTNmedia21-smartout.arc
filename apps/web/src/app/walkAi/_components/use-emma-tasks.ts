@@ -28,7 +28,7 @@ export function useEmmaTriggeredTasks() {
       try {
         const res = await fetch("/api/emma/tasks");
         if (!res.ok) return;
-        const data = await res.json() as { tasks: EmmaTriggeredTask[] };
+        const data = (await res.json()) as { tasks: EmmaTriggeredTask[] };
         if (!cancelled && data.tasks?.length > 0) {
           setTasks(data.tasks);
         }
@@ -40,7 +40,9 @@ export function useEmmaTriggeredTasks() {
     }
 
     void check();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Dismiss a task after Emma has handled it

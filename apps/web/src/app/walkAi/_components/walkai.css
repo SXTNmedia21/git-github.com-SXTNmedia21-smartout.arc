@@ -2,7 +2,8 @@
 /* Interactions: ~280ms. Ambient: 3–6s. */
 
 @keyframes walkai-breathe {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
     opacity: 0.25;
   }
@@ -13,7 +14,8 @@
 }
 
 @keyframes walkai-pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.3;
     transform: scale(1);
   }
@@ -24,7 +26,8 @@
 }
 
 @keyframes walkai-bar {
-  0%, 100% {
+  0%,
+  100% {
     transform: scaleY(0.5);
   }
   50% {
@@ -45,13 +48,16 @@
 
 /* Neon blink — retracted sticky indicator */
 @keyframes walkai-neon-blink {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.25;
     box-shadow: 0 0 3px currentColor;
   }
   50% {
     opacity: 0.85;
-    box-shadow: 0 0 6px currentColor, 0 0 14px currentColor;
+    box-shadow:
+      0 0 6px currentColor,
+      0 0 14px currentColor;
   }
 }
 
@@ -59,8 +65,12 @@
 
 /* Slow rotating conic gradient — the halo ring */
 @keyframes walkai-notify-rotate {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Expanding ripple rings that fade out */
@@ -77,7 +87,8 @@
 
 /* Core orb intensifies — subtle scale throb */
 @keyframes walkai-notify-throb {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
     box-shadow:
       0 0 12px 2px rgba(var(--brand-orange-rgb, 255 140 50), 0.4),
@@ -118,7 +129,8 @@
 
 /* Ambient glow — gentle card breathing when Emma is active */
 @keyframes walkai-glow {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow:
       0 0 0 0 rgba(var(--brand-orange-rgb, 255 140 50), 0),
       0 8px 32px -8px rgba(0, 0, 0, 0.15);

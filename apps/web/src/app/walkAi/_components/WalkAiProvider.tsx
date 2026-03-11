@@ -200,7 +200,7 @@ export function WalkAiProvider({
   }, []);
 
   const completeTask = useCallback((taskId: string) => {
-    setTasks((prev) => prev.map((t) => t.id === taskId ? { ...t, status: "done" as const } : t));
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: "done" as const } : t)));
   }, []);
 
   const clearUnread = useCallback(() => setUnreadCount(0), []);
@@ -212,10 +212,15 @@ export function WalkAiProvider({
 
   // Legacy compat — maps to active note content
   const notepadContent = activeNote?.content ?? "";
-  const setNotepadContent = useCallback((content: string) => {
-    if (!activeNoteId) return;
-    setNotes((prev) => prev.map((n) => n.id === activeNoteId ? { ...n, content, updatedAt: Date.now() } : n));
-  }, [activeNoteId]);
+  const setNotepadContent = useCallback(
+    (content: string) => {
+      if (!activeNoteId) return;
+      setNotes((prev) =>
+        prev.map((n) => (n.id === activeNoteId ? { ...n, content, updatedAt: Date.now() } : n)),
+      );
+    },
+    [activeNoteId],
+  );
 
   const createNote = useCallback((topic: string, content: string, context = "") => {
     const note: WalkAiNote = {
@@ -235,23 +240,38 @@ export function WalkAiProvider({
   }, []);
 
   const updateNote = useCallback((noteId: string, content: string, topic?: string) => {
-    setNotes((prev) => prev.map((n) =>
-      n.id === noteId
-        ? { ...n, content, ...(topic !== undefined ? { topic } : {}), updatedAt: Date.now(), tags: (content.match(/@\w+/g) ?? []).map((t) => t.slice(1)) }
-        : n,
-    ));
+    setNotes((prev) =>
+      prev.map((n) =>
+        n.id === noteId
+          ? {
+              ...n,
+              content,
+              ...(topic !== undefined ? { topic } : {}),
+              updatedAt: Date.now(),
+              tags: (content.match(/@\w+/g) ?? []).map((t) => t.slice(1)),
+            }
+          : n,
+      ),
+    );
   }, []);
 
   const notepadRef = useRef(notepadContent);
-  useEffect(() => { notepadRef.current = notepadContent; }, [notepadContent]);
+  useEffect(() => {
+    notepadRef.current = notepadContent;
+  }, [notepadContent]);
 
   /* ━━━ Resolve user context (prop or playground default) ━━━ */
-  const resolvedUser = useMemo(() => userContext ?? {
-    name: "Pontus",
-    role: "admin",
-    workspace: "Smartout",
-    lastSession: "Dere jobbet med å sette opp voice-agenten. Pontus justerte personlighetsinnstillinger og testet notepad-verktøyet.",
-  }, [userContext]);
+  const resolvedUser = useMemo(
+    () =>
+      userContext ?? {
+        name: "Pontus",
+        role: "admin",
+        workspace: "Smartout",
+        lastSession:
+          "Dere jobbet med å sette opp voice-agenten. Pontus justerte personlighetsinnstillinger og testet notepad-verktøyet.",
+      },
+    [userContext],
+  );
 
   /* ━━━ Build persona prompt for the agent ━━━ */
   const personaPrompt = useMemo(() => buildPersonaPrompt(identity), [identity]);
@@ -270,15 +290,18 @@ export function WalkAiProvider({
   );
 
   /* ━━━ Client tools — Emma morphs the view ━━━ */
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- viewActionsRef is a stable ref, not read during render
+
   const baseTools = useMemo(() => buildWalkAiToolKit(viewActionsRef), []);
   const registeredTools = useRegisteredTools();
 
   // Merge base tools + page-registered tools
-  const walkAiTools = useMemo(() => ({
-    definitions: [...baseTools.definitions, ...registeredTools.definitions],
-    implementations: { ...baseTools.implementations, ...registeredTools.implementations },
-  }), [baseTools, registeredTools]);
+  const walkAiTools = useMemo(
+    () => ({
+      definitions: [...baseTools.definitions, ...registeredTools.definitions],
+      implementations: { ...baseTools.implementations, ...registeredTools.implementations },
+    }),
+    [baseTools, registeredTools],
+  );
 
   /* ━━━ Voice agent — Emma via Ultravox ━━━ */
   const agent = useAgent({
@@ -300,15 +323,16 @@ export function WalkAiProvider({
         },
         user: resolvedUser,
         recent_activity: telemetrySummary || undefined,
-        pending_missions: triggeredTasks.length > 0
-          ? triggeredTasks.map((t) => ({
-              id: t.id,
-              title: t.title,
-              description: t.description,
-              mission: t.mission,
-              due_at: t.due_at,
-            }))
-          : undefined,
+        pending_missions:
+          triggeredTasks.length > 0
+            ? triggeredTasks.map((t) => ({
+                id: t.id,
+                title: t.title,
+                description: t.description,
+                mission: t.mission,
+                due_at: t.due_at,
+              }))
+            : undefined,
         voice_tuning: {
           temperature: voiceTuning.temperature,
           max_duration: voiceTuning.maxDuration,
@@ -339,40 +363,25 @@ export function WalkAiProvider({
   }, []);
 
   /* ━━━ Actions ━━━ */
-  const expand = useCallback(
-    () => dispatch({ type: "SET_DENSITY", density: "arena" }),
-    [],
-  );
-  const collapse = useCallback(
-    () => dispatch({ type: "SET_DENSITY", density: "orb" }),
-    [],
-  );
-  const goSticky = useCallback(
-    () => dispatch({ type: "SET_DENSITY", density: "sticky" }),
-    [],
-  );
+  const expand = useCallback(() => dispatch({ type: "SET_DENSITY", density: "arena" }), []);
+  const collapse = useCallback(() => dispatch({ type: "SET_DENSITY", density: "orb" }), []);
+  const goSticky = useCallback(() => dispatch({ type: "SET_DENSITY", density: "sticky" }), []);
   const goImmersive = useCallback(
     () => dispatch({ type: "SET_DENSITY", density: "immersive" }),
     [],
   );
-  const switchView = useCallback(
-    (type: ContentViewType, props: Record<string, unknown> = {}) => {
-      dispatch({
-        type: "SWITCH_VIEW",
-        item: { id: `${type}-${Date.now()}`, type, props },
-      });
-    },
-    [],
-  );
-  const pushView = useCallback(
-    (type: ContentViewType, props: Record<string, unknown> = {}) => {
-      dispatch({
-        type: "PUSH_CONTENT",
-        item: { id: `${type}-${Date.now()}`, type, props },
-      });
-    },
-    [],
-  );
+  const switchView = useCallback((type: ContentViewType, props: Record<string, unknown> = {}) => {
+    dispatch({
+      type: "SWITCH_VIEW",
+      item: { id: `${type}-${Date.now()}`, type, props },
+    });
+  }, []);
+  const pushView = useCallback((type: ContentViewType, props: Record<string, unknown> = {}) => {
+    dispatch({
+      type: "PUSH_CONTENT",
+      item: { id: `${type}-${Date.now()}`, type, props },
+    });
+  }, []);
   const popView = useCallback(() => dispatch({ type: "POP_CONTENT" }), []);
 
   /* ━━━ Derive active view from stack ━━━ */
@@ -384,10 +393,18 @@ export function WalkAiProvider({
   const updateNoteRef = useRef(updateNote);
   const activeNoteIdRef = useRef(activeNoteId);
   const scheduleTaskRef = useRef(scheduleTask);
-  useEffect(() => { createNoteRef.current = createNote; }, [createNote]);
-  useEffect(() => { updateNoteRef.current = updateNote; }, [updateNote]);
-  useEffect(() => { activeNoteIdRef.current = activeNoteId; }, [activeNoteId]);
-  useEffect(() => { scheduleTaskRef.current = scheduleTask; }, [scheduleTask]);
+  useEffect(() => {
+    createNoteRef.current = createNote;
+  }, [createNote]);
+  useEffect(() => {
+    updateNoteRef.current = updateNote;
+  }, [updateNote]);
+  useEffect(() => {
+    activeNoteIdRef.current = activeNoteId;
+  }, [activeNoteId]);
+  useEffect(() => {
+    scheduleTaskRef.current = scheduleTask;
+  }, [scheduleTask]);
 
   useEffect(() => {
     viewActionsRef.current = {
@@ -399,7 +416,7 @@ export function WalkAiProvider({
       },
       getNotepadContent: () => notepadRef.current,
       scheduleTask: (task) => scheduleTaskRef.current(task),
-      getCurrentPage: () => typeof window !== "undefined" ? window.location.pathname : "/",
+      getCurrentPage: () => (typeof window !== "undefined" ? window.location.pathname : "/"),
       getWorkspaceId: () => workspaceId ?? null,
     };
   }, [switchView, activeView, workspaceId]);
@@ -464,12 +481,47 @@ export function WalkAiProvider({
       unreadCount,
       clearUnread,
     }),
-    [state, identity, identityDisplay, voiceTuning, agent, selectedVoice, activeView, notes, activeNoteId, activeNote, createNote, updateNote, setNotepadContent, notepadContent, expand, collapse, goSticky, goImmersive, switchView, pushView, popView, setPosition, setDragging, setResizing, setArenaSize, setOrbStatus, setSelectedVoice, setIdentity, setVoiceTuning, telemetryEvents, clearTelemetry, tasks, completeTask, scheduleTask, unreadCount, clearUnread],
+    [
+      state,
+      identity,
+      identityDisplay,
+      voiceTuning,
+      agent,
+      selectedVoice,
+      activeView,
+      notes,
+      activeNoteId,
+      activeNote,
+      createNote,
+      updateNote,
+      setNotepadContent,
+      notepadContent,
+      expand,
+      collapse,
+      goSticky,
+      goImmersive,
+      switchView,
+      pushView,
+      popView,
+      setPosition,
+      setDragging,
+      setResizing,
+      setArenaSize,
+      setOrbStatus,
+      setSelectedVoice,
+      setIdentity,
+      setVoiceTuning,
+      telemetryEvents,
+      clearTelemetry,
+      tasks,
+      completeTask,
+      scheduleTask,
+      unreadCount,
+      clearUnread,
+    ],
   );
 
-  return (
-    <WalkAiContext.Provider value={value}>{children}</WalkAiContext.Provider>
-  );
+  return <WalkAiContext.Provider value={value}>{children}</WalkAiContext.Provider>;
 }
 
 export function useWalkAi() {

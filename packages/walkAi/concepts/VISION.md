@@ -15,11 +15,11 @@ WalkAi is the communication portal between human and AI agent — a self-contain
 
 ## The Split
 
-| Layer | Responsibility | User Visibility |
-|-------|---------------|-----------------|
-| **Agent** | Listen, understand, guide, inspire, react | 100% — this IS the experience |
-| **Stage Engine** | Structure, rules, stages, validation, tools, data | 0% — silent machinery behind the curtain |
-| **WalkAi Shell** | The portal — renders conversation, environment tools, visual guidance | The window into the agent's world |
+| Layer            | Responsibility                                                        | User Visibility                          |
+| ---------------- | --------------------------------------------------------------------- | ---------------------------------------- |
+| **Agent**        | Listen, understand, guide, inspire, react                             | 100% — this IS the experience            |
+| **Stage Engine** | Structure, rules, stages, validation, tools, data                     | 0% — silent machinery behind the curtain |
+| **WalkAi Shell** | The portal — renders conversation, environment tools, visual guidance | The window into the agent's world        |
 
 The agent never says "we're on step 3". The agent **lives in the conversation**. The Stage Engine quietly ensures the right things happen in the right order.
 
@@ -28,6 +28,7 @@ The agent never says "we're on step 3". The agent **lives in the conversation**.
 ### 90% User Focus
 
 The agent's attention is on the human:
+
 - What are they saying?
 - How are they behaving?
 - What do they need right now?
@@ -50,6 +51,7 @@ Creative freedom per stage (0.0–1.0) controls how much room the agent has. But
 ### Awake, Not Passive
 
 The agent observes and responds to signals:
+
 - User hesitates → agent encourages
 - User rushes → agent slows down, confirms understanding
 - User asks unrelated question → agent handles it gracefully, then redirects
@@ -67,13 +69,13 @@ A Journey defines the pre-planned experience the user should go through. WalkAi 
 
 ```typescript
 type JourneyContext = {
-  journeyId: string;           // Which journey
-  roadmap: RoadmapRef;         // Business intent, scope, success criteria
-  steps: JourneyStep[];        // What should happen (deep spec)
-  currentStep: number;         // Where we are
-  completedSteps: string[];    // What's done
-  actor: string;               // Who is the user (role)
-  platform: string;            // web | mobile
+  journeyId: string; // Which journey
+  roadmap: RoadmapRef; // Business intent, scope, success criteria
+  steps: JourneyStep[]; // What should happen (deep spec)
+  currentStep: number; // Where we are
+  completedSteps: string[]; // What's done
+  actor: string; // Who is the user (role)
+  platform: string; // web | mobile
 };
 ```
 
@@ -83,12 +85,12 @@ A Mission is the agent's execution contract — what it should DO at each stage:
 
 ```typescript
 type MissionContext = {
-  missionId: string;           // Which mission
-  systemPrompt: string;        // Agent personality
-  stages: MissionStage[];      // Stage chain with instructions
-  currentStage: string;        // Active stage
+  missionId: string; // Which mission
+  systemPrompt: string; // Agent personality
+  stages: MissionStage[]; // Stage chain with instructions
+  currentStage: string; // Active stage
   collectedData: Record<string, unknown>; // What's been gathered
-  tools: ClientToolKit;        // Available tools
+  tools: ClientToolKit; // Available tools
 };
 ```
 
@@ -107,6 +109,7 @@ type EnvironmentContext = {
 ```
 
 The agent can:
+
 - **See** what's on screen (getUIEnvironment)
 - **Navigate** to sections (scroll, route)
 - **Fill** form fields programmatically
@@ -133,6 +136,7 @@ WalkAi is a complete, portable shell. It imports context but owns the experience
 ### 2. Channel Agnostic
 
 Same shell, different channels:
+
 - **Voice**: Ultravox WebRTC, real-time STT/TTS, voice visualizer
 - **Chat**: Text-based, message bubbles, typing indicators
 - **Hybrid**: Both — user can switch mid-session
@@ -150,6 +154,7 @@ User speaks → Agent processes → Tool calls →
 ### 4. Tools Are the Agent's Hands
 
 The agent doesn't "know about" the UI. It uses tools:
+
 - `getUIEnvironment()` → sees the screen
 - `fillField("companyName", "Oslo Seafood")` → fills a form
 - `highlightElement("submit-btn")` → points user to a button
@@ -159,6 +164,7 @@ The agent doesn't "know about" the UI. It uses tools:
 ### 5. Guardian Watches Silently
 
 The Guardian monitors from behind:
+
 - Is the agent stuck? → whisper a nudge
 - Is data complete? → auto-advance
 - Is the user taking too long? → gentle timeout warning
@@ -192,11 +198,11 @@ The user never sees Guardian. The agent receives whispers as invisible instructi
 
 All research and technical details are in `blueprints/`:
 
-| Blueprint | What it covers |
-|-----------|----------------|
-| [voice-sdk-architecture.md](./blueprints/voice-sdk-architecture.md) | useAgent hook, providers, tools, API contracts, data flow |
-| [ui-components-inventory.md](./blueprints/ui-components-inventory.md) | Chat components, animations, design tokens, reuse guide |
-| [mission-orchestration.md](./blueprints/mission-orchestration.md) | Stage Engine, Guardian, missions, prompt builder, capabilities |
-| [environment-ui-control.md](./blueprints/environment-ui-control.md) | UI control tools, environment map, semantic tagging, gaps |
-| [journey-content-map.md](./blueprints/journey-content-map.md) | Skills, journey packages, engines, ADRs, content ecosystem |
-| [data-contracts.md](./blueprints/data-contracts.md) | Database schemas, TypeScript types, RLS, relationships |
+| Blueprint                                                             | What it covers                                                 |
+| --------------------------------------------------------------------- | -------------------------------------------------------------- |
+| [voice-sdk-architecture.md](./blueprints/voice-sdk-architecture.md)   | useAgent hook, providers, tools, API contracts, data flow      |
+| [ui-components-inventory.md](./blueprints/ui-components-inventory.md) | Chat components, animations, design tokens, reuse guide        |
+| [mission-orchestration.md](./blueprints/mission-orchestration.md)     | Stage Engine, Guardian, missions, prompt builder, capabilities |
+| [environment-ui-control.md](./blueprints/environment-ui-control.md)   | UI control tools, environment map, semantic tagging, gaps      |
+| [journey-content-map.md](./blueprints/journey-content-map.md)         | Skills, journey packages, engines, ADRs, content ecosystem     |
+| [data-contracts.md](./blueprints/data-contracts.md)                   | Database schemas, TypeScript types, RLS, relationships         |

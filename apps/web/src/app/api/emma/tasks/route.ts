@@ -21,7 +21,9 @@ async function getProfileId(supabase: Awaited<ReturnType<typeof createClient>>, 
 
 export async function GET() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ tasks: [] }, { status: 401 });
 
   const profileId = await getProfileId(supabase, user.id);
@@ -44,13 +46,15 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const profileId = await getProfileId(supabase, user.id);
   if (!profileId) return NextResponse.json({ error: "No profile found" }, { status: 400 });
 
-  const body = await req.json() as {
+  const body = (await req.json()) as {
     workspace_id: string;
     title: string;
     description?: string;
@@ -71,7 +75,10 @@ export async function POST(req: Request) {
     .in("status", ["pending", "triggered"]);
 
   if ((count ?? 0) >= 3) {
-    return NextResponse.json({ error: "Max 3 active tasks. Complete or dismiss existing tasks first." }, { status: 409 });
+    return NextResponse.json(
+      { error: "Max 3 active tasks. Complete or dismiss existing tasks first." },
+      { status: 409 },
+    );
   }
 
   const { data, error } = await supabase

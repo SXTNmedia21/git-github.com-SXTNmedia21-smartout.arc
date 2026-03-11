@@ -165,13 +165,16 @@ export function DocumentDrop({
     })),
   );
 
-  const updateFiles = useCallback((updater: (prev: UploadedFile[]) => UploadedFile[]) => {
-    setFiles((prev) => {
-      const next = updater(prev);
-      onFilesChange?.(next);
-      return next;
-    });
-  }, [onFilesChange]);
+  const updateFiles = useCallback(
+    (updater: (prev: UploadedFile[]) => UploadedFile[]) => {
+      setFiles((prev) => {
+        const next = updater(prev);
+        onFilesChange?.(next);
+        return next;
+      });
+    },
+    [onFilesChange],
+  );
 
   // ── Upload ─────────────────────────────────────────────────
   const uploadFile = useCallback(

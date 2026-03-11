@@ -23,14 +23,14 @@ The single hook for all agent interactions (voice and chat). Replaces `useBotsso
 
 ```typescript
 type AgentConfig = {
-  missionId: MissionId;                           // Mission ID from the mission registry
-  tools?: ClientToolKit;                          // Client-side tools the agent can invoke
-  provider?: "ultravox" | "livekit";              // Voice provider (default: "ultravox")
-  channel?: AgentChannel;                         // "voice" | "chat" | "phone" (default: "voice")
-  autoStart?: boolean;                            // Auto-start session on mount (default: false)
-  apiEndpoint?: string;                           // Session creation API (default: "/api/wizard/start")
-  apiParams?: Record<string, unknown>;            // Extra body params for session creation
-  onDebug?: (entry: DebugEntry) => void;          // Debug event callback
+  missionId: MissionId; // Mission ID from the mission registry
+  tools?: ClientToolKit; // Client-side tools the agent can invoke
+  provider?: "ultravox" | "livekit"; // Voice provider (default: "ultravox")
+  channel?: AgentChannel; // "voice" | "chat" | "phone" (default: "voice")
+  autoStart?: boolean; // Auto-start session on mount (default: false)
+  apiEndpoint?: string; // Session creation API (default: "/api/wizard/start")
+  apiParams?: Record<string, unknown>; // Extra body params for session creation
+  onDebug?: (entry: DebugEntry) => void; // Debug event callback
   onStatusChange?: (status: AgentStatus) => void; // Status change callback
   onTranscript?: (transcript: TranscriptEntry[]) => void; // Transcript update callback
 };
@@ -40,16 +40,16 @@ type AgentConfig = {
 
 ```typescript
 type AgentSession = {
-  status: AgentStatus;               // Current agent status
-  isConnected: boolean;              // true when listening, thinking, or speaking
-  isSpeaking: boolean;               // true when status === "speaking"
-  isMuted: boolean;                  // Mic mute state
-  currentText: string;               // Last agent message text
-  transcript: TranscriptEntry[];     // Full conversation transcript
-  debugLog: DebugEntry[];            // Debug log entries
+  status: AgentStatus; // Current agent status
+  isConnected: boolean; // true when listening, thinking, or speaking
+  isSpeaking: boolean; // true when status === "speaking"
+  isMuted: boolean; // Mic mute state
+  currentText: string; // Last agent message text
+  transcript: TranscriptEntry[]; // Full conversation transcript
+  debugLog: DebugEntry[]; // Debug log entries
   startSession: () => Promise<void>; // Start a voice/chat session
-  endSession: () => void;            // End the current session
-  toggleMic: () => void;             // Toggle microphone mute
+  endSession: () => void; // End the current session
+  toggleMic: () => void; // Toggle microphone mute
   sendContext: (text: string) => void; // Push context text to the agent
 };
 ```
@@ -95,9 +95,9 @@ Lightweight text-only alternative to `useAgent`. No voice provider, no mic manag
 
 ```typescript
 type AgentChatConfig = {
-  apiEndpoint?: string;                   // Default: "/api/agent/chat"
-  headers?: Record<string, string>;       // Extra headers per request
-  onResponse?: (text: string) => void;    // Called when agent responds
+  apiEndpoint?: string; // Default: "/api/agent/chat"
+  headers?: Record<string, string>; // Extra headers per request
+  onResponse?: (text: string) => void; // Called when agent responds
 };
 ```
 
@@ -105,11 +105,11 @@ type AgentChatConfig = {
 
 ```typescript
 type AgentChatSession = {
-  status: AgentStatus;                            // "idle" or "thinking"
-  messages: TranscriptEntry[];                    // Conversation history
-  isLoading: boolean;                             // Request in-flight
+  status: AgentStatus; // "idle" or "thinking"
+  messages: TranscriptEntry[]; // Conversation history
+  isLoading: boolean; // Request in-flight
   sendMessage: (text: string) => Promise<string>; // Send text, get response
-  clearMessages: () => void;                      // Reset conversation
+  clearMessages: () => void; // Reset conversation
 };
 ```
 
@@ -162,12 +162,12 @@ type VoiceSessionEvent = "status" | "transcript" | "data" | "mic";
 type VoiceSessionEventHandler = (data: unknown) => void;
 ```
 
-| Event        | Payload                  | Description                                     |
-|------------- |------------------------- |------------------------------------------------ |
-| `status`     | `AgentStatus`            | Provider status mapped to agent status           |
-| `transcript` | `TranscriptEntry[]`      | Full transcript array (user + agent turns)        |
-| `mic`        | `{ muted: boolean }`     | Microphone state change                          |
-| `data`       | `Record<string, unknown>`| Raw data messages (tool calls, events, etc.)     |
+| Event        | Payload                   | Description                                  |
+| ------------ | ------------------------- | -------------------------------------------- |
+| `status`     | `AgentStatus`             | Provider status mapped to agent status       |
+| `transcript` | `TranscriptEntry[]`       | Full transcript array (user + agent turns)   |
+| `mic`        | `{ muted: boolean }`      | Microphone state change                      |
+| `data`       | `Record<string, unknown>` | Raw data messages (tool calls, events, etc.) |
 
 ### Ultravox Implementation
 
@@ -184,15 +184,15 @@ type VoiceSessionEventHandler = (data: unknown) => void;
 
 Status mapping:
 
-| UltravoxSessionStatus | AgentStatus    |
-|---------------------- |--------------- |
-| IDLE                  | idle           |
-| CONNECTING            | connecting     |
-| LISTENING             | listening      |
-| THINKING              | thinking       |
-| SPEAKING              | speaking       |
-| DISCONNECTING         | disconnecting  |
-| DISCONNECTED          | disconnected   |
+| UltravoxSessionStatus | AgentStatus   |
+| --------------------- | ------------- |
+| IDLE                  | idle          |
+| CONNECTING            | connecting    |
+| LISTENING             | listening     |
+| THINKING              | thinking      |
+| SPEAKING              | speaking      |
+| DISCONNECTING         | disconnecting |
+| DISCONNECTED          | disconnected  |
 
 ### LiveKit Stub
 
@@ -210,10 +210,10 @@ All methods log `console.warn` -- placeholder for future LiveKit integration. Sa
 
 ```typescript
 type ClientTool = {
-  name: string;                              // Must match modelToolName
-  description: string;                       // Human-readable for the LLM
-  parameters: ClientToolParameter[];         // Parameter definitions
-  implementation: ClientToolImplementation;  // Runtime function
+  name: string; // Must match modelToolName
+  description: string; // Human-readable for the LLM
+  parameters: ClientToolParameter[]; // Parameter definitions
+  implementation: ClientToolImplementation; // Runtime function
 };
 ```
 
@@ -222,8 +222,8 @@ type ClientTool = {
 ```typescript
 type ClientToolParameter = {
   name: string;
-  location: "PARAMETER_LOCATION_BODY";       // Always body for client tools
-  schema: Record<string, unknown>;           // JSON Schema fragment
+  location: "PARAMETER_LOCATION_BODY"; // Always body for client tools
+  schema: Record<string, unknown>; // JSON Schema fragment
   required?: boolean;
 };
 ```
@@ -232,7 +232,7 @@ type ClientToolParameter = {
 
 ```typescript
 type ClientToolKit = {
-  definitions: ClientToolDefinition[];                     // Sent to Ultravox
+  definitions: ClientToolDefinition[]; // Sent to Ultravox
   implementations: Record<string, ClientToolImplementation>; // Registered locally
 };
 
@@ -241,34 +241,32 @@ type ClientToolDefinition = {
     modelToolName: string;
     description: string;
     dynamicParameters: ClientToolParameter[];
-    client: Record<string, never>;            // Empty object = client-side tool
+    client: Record<string, never>; // Empty object = client-side tool
   };
 };
 
-type ClientToolImplementation = (
-  params: Record<string, unknown>,
-) => string | Promise<string>;
+type ClientToolImplementation = (params: Record<string, unknown>) => string | Promise<string>;
 ```
 
 ### Tool Registry
 
 `createToolRegistry()` returns a mutable registry with:
 
-| Method          | Signature                              | Description                     |
-|---------------- |--------------------------------------- |-------------------------------- |
-| `register`      | `(tool: ClientTool) => void`           | Register one tool               |
-| `registerAll`   | `(tools: ClientTool[]) => void`        | Register multiple tools         |
-| `get`           | `(name: string) => ClientTool \| undefined` | Lookup by name             |
-| `has`           | `(name: string) => boolean`            | Check existence                 |
-| `getAll`        | `() => ClientTool[]`                   | All registered tools            |
-| `toToolKit`     | `() => ClientToolKit`                  | Build kit from all tools        |
-| `remove`        | `(name: string) => boolean`            | Remove a tool                   |
-| `clear`         | `() => void`                           | Clear all                       |
+| Method        | Signature                                   | Description              |
+| ------------- | ------------------------------------------- | ------------------------ |
+| `register`    | `(tool: ClientTool) => void`                | Register one tool        |
+| `registerAll` | `(tools: ClientTool[]) => void`             | Register multiple tools  |
+| `get`         | `(name: string) => ClientTool \| undefined` | Lookup by name           |
+| `has`         | `(name: string) => boolean`                 | Check existence          |
+| `getAll`      | `() => ClientTool[]`                        | All registered tools     |
+| `toToolKit`   | `() => ClientToolKit`                       | Build kit from all tools |
+| `remove`      | `(name: string) => boolean`                 | Remove a tool            |
+| `clear`       | `() => void`                                | Clear all                |
 
 ### buildToolKit
 
 ```typescript
-function buildToolKit(tools: ClientTool[]): ClientToolKit
+function buildToolKit(tools: ClientTool[]): ClientToolKit;
 ```
 
 Converts `ClientTool[]` into `{ definitions, implementations }` shape. Definitions use the Ultravox `temporaryTool` format with `client: {}` marker.
@@ -292,7 +290,12 @@ type OnboardingActions = {
   addLocations: (locs: { name: string; type?: string }[]) => void;
   addZones: (locationName: string, zones: { name: string }[]) => void;
   addProcedures: (names: string[]) => void;
-  triggerScrape: (url: string, orgNumber: string, companyName?: string, city?: string) => Promise<void>;
+  triggerScrape: (
+    url: string,
+    orgNumber: string,
+    companyName?: string,
+    city?: string,
+  ) => Promise<void>;
   advanceToNextSection: () => void;
   addKeyFact: (label: string, value: string) => void;
   saveMemory: (content: string, memoryType: string, expiresAt?: string) => Promise<void>;
@@ -301,19 +304,19 @@ type OnboardingActions = {
 
 ### Tool Catalog
 
-| Tool Name                | Parameters                                        | Description                                                |
-|------------------------- |-------------------------------------------------- |----------------------------------------------------------- |
-| `getOnboardingState`     | none                                              | Returns current state as JSON                              |
-| `updateBusiness`         | `fields` (JSON string)                            | Update business fields (name, orgNumber, website, etc.)    |
-| `updateSeason`           | `fields` (JSON string)                            | Update season fields (name, startDate, endDate)            |
-| `addDepartments`         | `names` (JSON array string)                       | Add departments by name                                    |
-| `addLocations`           | `locations` (JSON array string)                   | Add locations with name + optional type                    |
-| `addZones`               | `locationName`, `zones` (JSON array string)       | Add zones within a location                                |
-| `addProcedures`          | `names` (JSON array string)                       | Add/enable procedures by name                              |
-| `triggerScrape`          | `url?`, `orgNumber?`, `companyName?`, `city?`     | Trigger business website scan (fire-and-forget)            |
-| `advanceToNextSection`   | none                                              | Scroll UI to next section                                  |
-| `addKeyFact`             | `label`, `value`                                  | Add fact to visual panel (builds trust)                    |
-| `saveMemory`             | `content`, `memoryType`, `expiresAt?`             | Save persistent memory (constant/temporal)                 |
+| Tool Name              | Parameters                                    | Description                                             |
+| ---------------------- | --------------------------------------------- | ------------------------------------------------------- |
+| `getOnboardingState`   | none                                          | Returns current state as JSON                           |
+| `updateBusiness`       | `fields` (JSON string)                        | Update business fields (name, orgNumber, website, etc.) |
+| `updateSeason`         | `fields` (JSON string)                        | Update season fields (name, startDate, endDate)         |
+| `addDepartments`       | `names` (JSON array string)                   | Add departments by name                                 |
+| `addLocations`         | `locations` (JSON array string)               | Add locations with name + optional type                 |
+| `addZones`             | `locationName`, `zones` (JSON array string)   | Add zones within a location                             |
+| `addProcedures`        | `names` (JSON array string)                   | Add/enable procedures by name                           |
+| `triggerScrape`        | `url?`, `orgNumber?`, `companyName?`, `city?` | Trigger business website scan (fire-and-forget)         |
+| `advanceToNextSection` | none                                          | Scroll UI to next section                               |
+| `addKeyFact`           | `label`, `value`                              | Add fact to visual panel (builds trust)                 |
+| `saveMemory`           | `content`, `memoryType`, `expiresAt?`         | Save persistent memory (constant/temporal)              |
 
 All tools return JSON string results: `{ success: true, ... }` or `{ success: false, error: "..." }`.
 
@@ -338,10 +341,10 @@ type DashboardActions = {
 
 ### Tool Catalog
 
-| Tool Name              | Parameters        | Description                                      |
-|----------------------- |------------------ |------------------------------------------------- |
-| `navigateToDashboard`  | `path` (string)   | Navigate to dashboard path (e.g. `/dashboard/schedule`) |
-| `showModule`           | `module` (string)  | Show a specific module panel (e.g. `schedule`, `training`) |
+| Tool Name             | Parameters        | Description                                                |
+| --------------------- | ----------------- | ---------------------------------------------------------- |
+| `navigateToDashboard` | `path` (string)   | Navigate to dashboard path (e.g. `/dashboard/schedule`)    |
+| `showModule`          | `module` (string) | Show a specific module panel (e.g. `schedule`, `training`) |
 
 ---
 
@@ -356,7 +359,7 @@ type SessionIdentity = {
   userId?: string;
   profileId?: string;
   workspaceId?: string;
-  channel: AgentChannel;  // "voice" | "chat" | "phone"
+  channel: AgentChannel; // "voice" | "chat" | "phone"
 };
 ```
 
@@ -368,7 +371,7 @@ function buildSessionRequest(params: {
   tools?: { definitions: unknown[] };
   identity?: SessionIdentity;
   extraParams?: Record<string, unknown>;
-}): Record<string, unknown>
+}): Record<string, unknown>;
 ```
 
 Builds the API request body:
@@ -376,7 +379,9 @@ Builds the API request body:
 ```json
 {
   "mission_id": "onboarding-interview",
-  "selected_tools": [ /* ClientToolDefinition[] */ ],
+  "selected_tools": [
+    /* ClientToolDefinition[] */
+  ],
   "user_id": "...",
   "profile_id": "...",
   "workspace_id": "...",
@@ -399,15 +404,16 @@ Builds the API request body:
 
 **File:** `services/stage-engine/src/routes/sessions.ts`
 
-| Endpoint                       | Method | Description                        |
-|------------------------------- |------- |----------------------------------- |
-| `POST /sessions`               | POST   | Create a new engine session        |
-| `GET /sessions/:id`            | GET    | Get session status and data        |
-| `POST /sessions/:id/abandon`   | POST   | Abandon an active session          |
+| Endpoint                     | Method | Description                 |
+| ---------------------------- | ------ | --------------------------- |
+| `POST /sessions`             | POST   | Create a new engine session |
+| `GET /sessions/:id`          | GET    | Get session status and data |
+| `POST /sessions/:id/abandon` | POST   | Abandon an active session   |
 
 #### POST /sessions
 
 Request:
+
 ```typescript
 {
   mission_id: string;          // Required
@@ -421,6 +427,7 @@ Request:
 ```
 
 Response:
+
 ```json
 {
   "session_id": "uuid",
@@ -433,6 +440,7 @@ Response:
 #### GET /sessions/:id
 
 Response:
+
 ```json
 {
   "session_id": "uuid",
@@ -455,6 +463,7 @@ Response:
 #### POST /sessions/:id/store
 
 Request:
+
 ```typescript
 {
   entity_type: string;                  // Category: "person", "problem", "note", etc.
@@ -464,6 +473,7 @@ Request:
 ```
 
 Response:
+
 ```json
 {
   "inbox_id": "uuid",
@@ -481,6 +491,7 @@ Side effects: Guardian event emitted (`data.collected`), fire-and-forget guardia
 #### POST /sessions/:id/fetch
 
 Request:
+
 ```typescript
 {
   query_type: "context" | "inbox" | "stage" | "history";
@@ -493,12 +504,12 @@ Request:
 
 Response varies by `query_type`:
 
-| query_type | Returns                                                |
-|----------- |------------------------------------------------------- |
-| `context`  | Session context (identity, workspace info)             |
-| `inbox`    | `{ entries: [...] }` -- stored inbox items             |
-| `stage`    | Current stage details (goal, instructions, criteria)   |
-| `history`  | All `collected_data` across stages                     |
+| query_type | Returns                                              |
+| ---------- | ---------------------------------------------------- |
+| `context`  | Session context (identity, workspace info)           |
+| `inbox`    | `{ entries: [...] }` -- stored inbox items           |
+| `stage`    | Current stage details (goal, instructions, criteria) |
+| `history`  | All `collected_data` across stages                   |
 
 Guardian whispers are delivered on `context` and `stage` queries, then cleared.
 
@@ -509,6 +520,7 @@ Guardian whispers are delivered on `context` and `stage` queries, then cleared.
 #### POST /sessions/:id/advance
 
 Request:
+
 ```typescript
 {
   result?: Record<string, unknown>;   // Summary data for completed stage
@@ -518,6 +530,7 @@ Request:
 ```
 
 Response:
+
 ```json
 {
   "complete": false,
@@ -528,6 +541,7 @@ Response:
 ```
 
 Or if mission complete:
+
 ```json
 {
   "complete": true,
@@ -541,16 +555,17 @@ Or if mission complete:
 
 These wrap the core endpoints in Ultravox-compatible format (text responses, query param session routing, new-stage headers).
 
-| Endpoint                                | Method | Description                                |
-|---------------------------------------- |------- |------------------------------------------- |
-| `POST /adapters/ultravox/create-call`   | POST   | Create session + Ultravox call, return joinUrl |
-| `POST /adapters/ultravox/store`         | POST   | Store data (session_id via query param)    |
-| `POST /adapters/ultravox/fetch`         | POST   | Fetch data (session_id via query param)    |
-| `POST /adapters/ultravox/advance`       | POST   | Advance stage, return new-stage response   |
+| Endpoint                              | Method | Description                                    |
+| ------------------------------------- | ------ | ---------------------------------------------- |
+| `POST /adapters/ultravox/create-call` | POST   | Create session + Ultravox call, return joinUrl |
+| `POST /adapters/ultravox/store`       | POST   | Store data (session_id via query param)        |
+| `POST /adapters/ultravox/fetch`       | POST   | Fetch data (session_id via query param)        |
+| `POST /adapters/ultravox/advance`     | POST   | Advance stage, return new-stage response       |
 
 #### POST /adapters/ultravox/create-call
 
 Request:
+
 ```typescript
 {
   mission_id: string;
@@ -566,6 +581,7 @@ Request:
 ```
 
 Response:
+
 ```json
 {
   "session_id": "uuid",
@@ -575,6 +591,7 @@ Response:
 ```
 
 Flow:
+
 1. Create engine session via `createSession()`
 2. Build HTTP tools pointing to engine adapter endpoints (skipped in local dev -- no HTTPS)
 3. Merge HTTP tools + client tools from `selected_tools`
@@ -584,11 +601,12 @@ Flow:
 #### POST /adapters/ultravox/advance (new-stage response)
 
 When advancing to a new stage, returns:
+
 ```typescript
 // Header: X-Ultravox-Response-Type: new-stage
 {
-  systemPrompt: string;      // New stage system prompt
-  toolResultText: string;    // "Stage transition: now in ..."
+  systemPrompt: string; // New stage system prompt
+  toolResultText: string; // "Stage transition: now in ..."
 }
 ```
 
@@ -603,6 +621,7 @@ When mission is complete, returns plain text (no new-stage header).
 #### POST /agent/chat
 
 Request:
+
 ```typescript
 {
   message: string;                       // User message (min 1 char)
@@ -613,6 +632,7 @@ Request:
 ```
 
 Response:
+
 ```typescript
 {
   session_id: string;
@@ -625,6 +645,7 @@ Response:
 ```
 
 Flow:
+
 1. Load existing session or create new agent session
 2. Append user turn to conversation history
 3. Emit guardian event (`user.message`)
@@ -645,6 +666,7 @@ Next.js API route that proxies voice call creation to the Stage Engine.
 **Auth:** Optional for onboarding (`onboarding-interview` mission) and showcase voice. Required for all other missions.
 
 **Flow:**
+
 1. Try to get authenticated user from Supabase
 2. Look up profile + workspace for authenticated users
 3. Build `CreateCallPayload`
@@ -653,10 +675,12 @@ Next.js API route that proxies voice call creation to the Stage Engine.
 6. Return `{ sessionId, joinUrl, callId, requestId }`
 
 **Environment:**
+
 - `STAGE_ENGINE_URL` -- required
 - `STAGE_ENGINE_API_KEY` -- required, sent as `x-api-key` header
 
 **Response:**
+
 ```json
 {
   "sessionId": "uuid",
@@ -719,16 +743,17 @@ Next.js API route that proxies voice call creation to the Stage Engine.
 
 ### Tool Definitions
 
-| Tool Name            | Target Endpoint                        | Description                                    |
-|--------------------- |--------------------------------------- |----------------------------------------------- |
-| `store`              | `POST {engineUrl}/adapters/ultravox/store`   | Store collected data to engine inbox      |
-| `fetch`              | `POST {engineUrl}/adapters/ultravox/fetch`   | Retrieve context, inbox, stage, or history|
-| `advance`            | `POST {engineUrl}/adapters/ultravox/advance` | Advance to next stage (new-stage response)|
-| `getJourneyContext`  | `POST {engineUrl}/adapters/ultravox/fetch`   | Get current journey step (pre-set query_type=context) |
+| Tool Name           | Target Endpoint                              | Description                                           |
+| ------------------- | -------------------------------------------- | ----------------------------------------------------- |
+| `store`             | `POST {engineUrl}/adapters/ultravox/store`   | Store collected data to engine inbox                  |
+| `fetch`             | `POST {engineUrl}/adapters/ultravox/fetch`   | Retrieve context, inbox, stage, or history            |
+| `advance`           | `POST {engineUrl}/adapters/ultravox/advance` | Advance to next stage (new-stage response)            |
+| `getJourneyContext` | `POST {engineUrl}/adapters/ultravox/fetch`   | Get current journey step (pre-set query_type=context) |
 
 ### Static Parameters (invisible to AI)
 
 All tools include these static parameters for auth and session routing:
+
 - `session_id` in `PARAMETER_LOCATION_QUERY` -- routes to correct session
 - `x-api-key` in `PARAMETER_LOCATION_HEADER` -- authenticates with Stage Engine
 

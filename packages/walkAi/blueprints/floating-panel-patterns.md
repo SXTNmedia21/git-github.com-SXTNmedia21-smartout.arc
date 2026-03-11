@@ -16,13 +16,13 @@ Reference for building the WalkAi floating multi-purpose panel.
 
 WalkAi must support these visual modes, all in the same component:
 
-| Mode | Size | Position | Use Case |
-|------|------|----------|----------|
-| **Minimized** | 56x56px avatar pill | Fixed corner, draggable | Passive — agent available but not active |
-| **Compact** | 320x400px floating card | Draggable anywhere | Chat, quick notes, task list |
-| **Expanded** | 480x600px panel | Draggable, resizable | Full conversation, video, detailed tasks |
-| **Docked** | 480px x full-height | Snapped to edge (right/left) | Side panel — persistent workspace |
-| **Fullscreen** | 100vw x 100vh | Fixed inset-0 | Voice session, video playback, immersive |
+| Mode           | Size                    | Position                     | Use Case                                 |
+| -------------- | ----------------------- | ---------------------------- | ---------------------------------------- |
+| **Minimized**  | 56x56px avatar pill     | Fixed corner, draggable      | Passive — agent available but not active |
+| **Compact**    | 320x400px floating card | Draggable anywhere           | Chat, quick notes, task list             |
+| **Expanded**   | 480x600px panel         | Draggable, resizable         | Full conversation, video, detailed tasks |
+| **Docked**     | 480px x full-height     | Snapped to edge (right/left) | Side panel — persistent workspace        |
+| **Fullscreen** | 100vw x 100vh           | Fixed inset-0                | Voice session, video playback, immersive |
 
 ---
 
@@ -30,13 +30,13 @@ WalkAi must support these visual modes, all in the same component:
 
 The panel can show different content types via tabs:
 
-| Tab | Content | Components to Reuse |
-|-----|---------|---------------------|
-| **Chat** | Agent conversation with message bubbles | VoiceAssistant, AssistantPanel patterns |
-| **Voice** | Voice visualizer, mic controls, subtitles | VoiceSessionOverlay, BotssonAvatar |
-| **Notes** | Rich text notepad for user | Tiptap from document-mode |
-| **Tasks** | Checklist / todo from mission stages | New component |
-| **Video** | Video playback (Remotion or native) | New component |
+| Tab       | Content                                   | Components to Reuse                     |
+| --------- | ----------------------------------------- | --------------------------------------- |
+| **Chat**  | Agent conversation with message bubbles   | VoiceAssistant, AssistantPanel patterns |
+| **Voice** | Voice visualizer, mic controls, subtitles | VoiceSessionOverlay, BotssonAvatar      |
+| **Notes** | Rich text notepad for user                | Tiptap from document-mode               |
+| **Tasks** | Checklist / todo from mission stages      | New component                           |
+| **Video** | Video playback (Remotion or native)       | New component                           |
 
 ---
 
@@ -108,13 +108,13 @@ const handleResizeStart = (
 
 All transitions use framer-motion AnimatePresence:
 
-| From -> To | Animation | Duration |
-|-----------|-----------|----------|
-| Minimized -> Compact | Scale 0.5->1 + fade | 300ms |
-| Compact -> Expanded | Width/height expand + fade content | 250ms |
-| Expanded -> Docked | Slide to edge + height stretch | 300ms |
-| Any -> Fullscreen | Scale to viewport + backdrop blur | 400ms |
-| Any -> Minimized | Scale 1->0.5 + slide to corner | 300ms |
+| From -> To           | Animation                          | Duration |
+| -------------------- | ---------------------------------- | -------- |
+| Minimized -> Compact | Scale 0.5->1 + fade                | 300ms    |
+| Compact -> Expanded  | Width/height expand + fade content | 250ms    |
+| Expanded -> Docked   | Slide to edge + height stretch     | 300ms    |
+| Any -> Fullscreen    | Scale to viewport + backdrop blur  | 400ms    |
+| Any -> Minimized     | Scale 1->0.5 + slide to corner     | 300ms    |
 
 ```typescript
 const modeVariants = {
@@ -156,22 +156,22 @@ export const WALKAI_LAYERS = {
 
 ## 7. Keyboard Shortcuts
 
-| Shortcut | Action |
-|----------|--------|
-| Escape | Minimize panel |
-| Cmd/Ctrl + . | Toggle panel visibility |
-| Cmd/Ctrl + Shift + F | Toggle fullscreen |
-| Tab | Cycle between content tabs |
+| Shortcut             | Action                     |
+| -------------------- | -------------------------- |
+| Escape               | Minimize panel             |
+| Cmd/Ctrl + .         | Toggle panel visibility    |
+| Cmd/Ctrl + Shift + F | Toggle fullscreen          |
+| Tab                  | Cycle between content tabs |
 
 ---
 
 ## 8. Responsive Behavior
 
-| Viewport | Default Mode | Constraints |
-|----------|-------------|-------------|
-| Desktop (>1024px) | Compact, free drag | All modes available |
-| Tablet (768-1024px) | Compact or docked | No expanded, fullscreen available |
-| Mobile (<768px) | Minimized or fullscreen only | No floating, no docking |
+| Viewport            | Default Mode                 | Constraints                       |
+| ------------------- | ---------------------------- | --------------------------------- |
+| Desktop (>1024px)   | Compact, free drag           | All modes available               |
+| Tablet (768-1024px) | Compact or docked            | No expanded, fullscreen available |
+| Mobile (<768px)     | Minimized or fullscreen only | No floating, no docking           |
 
 ---
 

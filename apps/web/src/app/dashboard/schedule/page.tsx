@@ -166,7 +166,12 @@ export default function SchedulePage() {
 // GridContentWithProposals — wraps GridContent with proposal context
 // Must be rendered inside AgentProposalsProvider
 // ---------------------------------------------------------------------------
-function GridContentWithProposals(props: Omit<Parameters<typeof GridContent>[0], "proposals" | "onApproveProposal" | "onRejectProposal">) {
+function GridContentWithProposals(
+  props: Omit<
+    Parameters<typeof GridContent>[0],
+    "proposals" | "onApproveProposal" | "onRejectProposal"
+  >,
+) {
   const { proposals, approveProposal, rejectProposal } = useAgentProposals();
   return (
     <GridContent

@@ -15,15 +15,15 @@ export function PlaygroundLog({ open }: { open: boolean }) {
   if (!open) return null;
 
   return (
-    <div className="rounded-xl border border-border bg-card overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-border">
-        <span className="text-xs font-medium text-foreground">Event Stream</span>
-        <span className="text-[10px] text-muted-foreground font-mono">
+    <div className="border-border bg-card overflow-hidden rounded-xl border">
+      <div className="border-border flex items-center justify-between border-b px-4 py-2">
+        <span className="text-foreground text-xs font-medium">Event Stream</span>
+        <span className="text-muted-foreground font-mono text-[10px]">
           {agent.debugLog.length} events | {agent.transcript.length} msgs
         </span>
       </div>
 
-      <div className="h-80 overflow-y-auto p-3 space-y-1 font-mono text-[11px]">
+      <div className="h-80 space-y-1 overflow-y-auto p-3 font-mono text-[11px]">
         {/* Session config snapshot */}
         <LogEntry
           time={null}

@@ -20,28 +20,29 @@ Three distinct patterns exist in the Smartout codebase today. Each solves a spec
 ### 1.1 Onboarding Wizard — Client-Side Tool Registration
 
 **Files:**
+
 - `apps/web/src/app/onboarding/hooks/useBotsson.ts`
 - `apps/web/src/app/onboarding/hooks/useScrollProgress.ts`
 
 **Pattern:**
 The onboarding wizard uses Ultravox `temporaryTool` registration to give the voice agent direct access to page-specific actions. The hook `useBotsson` defines 13 client tools and registers their implementations on the `UltravoxSession`:
 
-| Tool | Purpose |
-|------|---------|
-| `getOnboardingState` | Returns full wizard state as JSON (section, business data, season, departments, scrape status) |
-| `updateBusiness` | Patches business fields (name, orgNumber, website, etc.) |
-| `updateSeason` | Patches season fields (name, startDate, endDate) |
-| `addDepartments` | Adds department names to wizard state |
-| `addLocations` | Adds location objects with name and type |
-| `addZones` | Adds zones within a specific location |
-| `addProcedures` | Enables/creates procedures by name |
-| `searchCompany` | Searches Bronnøysundregistrene via API |
-| `identifyCompany` | Confirms company by org number, creates workspace |
-| `scrapeWebsite` | Scrapes URL for contact info, locations, departments |
-| `advanceToNextSection` | Scrolls to next section |
-| `addKeyFact` | Adds fact to visual panel (top-left key facts card) |
-| `saveMemory` | Persists agent memory (constant or temporal) |
-| `finalizeOnboarding` | Activates workspace and redirects to dashboard |
+| Tool                   | Purpose                                                                                        |
+| ---------------------- | ---------------------------------------------------------------------------------------------- |
+| `getOnboardingState`   | Returns full wizard state as JSON (section, business data, season, departments, scrape status) |
+| `updateBusiness`       | Patches business fields (name, orgNumber, website, etc.)                                       |
+| `updateSeason`         | Patches season fields (name, startDate, endDate)                                               |
+| `addDepartments`       | Adds department names to wizard state                                                          |
+| `addLocations`         | Adds location objects with name and type                                                       |
+| `addZones`             | Adds zones within a specific location                                                          |
+| `addProcedures`        | Enables/creates procedures by name                                                             |
+| `searchCompany`        | Searches Bronnøysundregistrene via API                                                         |
+| `identifyCompany`      | Confirms company by org number, creates workspace                                              |
+| `scrapeWebsite`        | Scrapes URL for contact info, locations, departments                                           |
+| `advanceToNextSection` | Scrolls to next section                                                                        |
+| `addKeyFact`           | Adds fact to visual panel (top-left key facts card)                                            |
+| `saveMemory`           | Persists agent memory (constant or temporal)                                                   |
+| `finalizeOnboarding`   | Activates workspace and redirects to dashboard                                                 |
 
 **Section navigation** uses `data-section` attributes on DOM elements. `useScrollProgress` creates an `IntersectionObserver` (threshold 0.5) on a scroll container, reading `data-section` from intersecting elements to track which section is active. The `scrollToSection` callback uses `querySelector('[data-section="..."]')` + `scrollIntoView`.
 
@@ -50,19 +51,20 @@ The onboarding wizard uses Ultravox `temporaryTool` registration to give the voi
 ### 1.2 UI Capability Tools — Broadcast-Based Commands
 
 **Files:**
+
 - `packages/ai/src/capabilities/ui/tools.ts`
 - `packages/ai/src/capabilities/ui/index.ts`
 
 **Pattern:**
 Five tools registered in the capability system, designed for the Stage Engine (server-side agent). They communicate with the client via a `broadcast` callback injected through `UIToolContext`:
 
-| Tool | Action | Parameters |
-|------|--------|------------|
-| `navigate_to` | Sends `ui_command` with `action: "navigate"` | `target` (section/step ID) |
-| `fill_field` | Sends `ui_command` with `action: "fill_field"` | `field`, `value` |
-| `highlight_element` | Sends `ui_command` with `action: "highlight"` | `target` (CSS selector), `duration` |
-| `show_panel` | Sends `ui_command` with `action: "show_panel"` | `panel` name, `data` object |
-| `show_toast` | Sends `ui_command` with `action: "toast"` | `message`, `variant` |
+| Tool                | Action                                         | Parameters                          |
+| ------------------- | ---------------------------------------------- | ----------------------------------- |
+| `navigate_to`       | Sends `ui_command` with `action: "navigate"`   | `target` (section/step ID)          |
+| `fill_field`        | Sends `ui_command` with `action: "fill_field"` | `field`, `value`                    |
+| `highlight_element` | Sends `ui_command` with `action: "highlight"`  | `target` (CSS selector), `duration` |
+| `show_panel`        | Sends `ui_command` with `action: "show_panel"` | `panel` name, `data` object         |
+| `show_toast`        | Sends `ui_command` with `action: "toast"`      | `message`, `variant`                |
 
 **Key characteristic:** These are fire-and-forget. The agent sends a command but gets no confirmation that the UI actually executed it. The return value is always a static string like `"Navigated to ${target}"` regardless of whether navigation succeeded.
 
@@ -171,14 +173,15 @@ The agent never touches the DOM. It calls tool handlers. Tool handlers send requ
 
 Components opt in to agent visibility by adding data attributes:
 
-| Attribute | Purpose | Example |
-|-----------|---------|---------|
-| `data-walkai-id` | Unique stable identifier | `"company-name-input"` |
-| `data-walkai-intent` | What this element does (human-readable) | `"Enter the company name"` |
-| `data-walkai-type` | Element category | `"input"`, `"button"`, `"section"`, `"form"`, `"panel"`, `"list"` |
-| `data-walkai-context` | Serialized context JSON | `'{"required":true,"fieldType":"text","maxLength":100}'` |
+| Attribute             | Purpose                                 | Example                                                           |
+| --------------------- | --------------------------------------- | ----------------------------------------------------------------- |
+| `data-walkai-id`      | Unique stable identifier                | `"company-name-input"`                                            |
+| `data-walkai-intent`  | What this element does (human-readable) | `"Enter the company name"`                                        |
+| `data-walkai-type`    | Element category                        | `"input"`, `"button"`, `"section"`, `"form"`, `"panel"`, `"list"` |
+| `data-walkai-context` | Serialized context JSON                 | `'{"required":true,"fieldType":"text","maxLength":100}'`          |
 
 **Naming convention:** `data-walkai-id` values use kebab-case: `{page}-{component}-{element}`. Examples:
+
 - `onboarding-business-name-input`
 - `dashboard-schedule-add-shift-button`
 - `training-protocol-step-3`
@@ -189,39 +192,39 @@ Components opt in to agent visibility by adding data attributes:
 
 #### Environment Awareness (4 tools)
 
-| Tool | Description | Returns |
-|------|-------------|---------|
-| `getEnvironment` | Full snapshot of current page: URL, active section, visible elements (id + intent + type), form states, available actions | `EnvironmentSnapshot` |
-| `findElements` | Query elements by type, intent keyword, or id pattern | `ElementMatch[]` with id, intent, type, visibility, interactable |
-| `getElementState` | Get detailed state of a specific element: value, checked, disabled, validation errors | `ElementState` |
-| `getFormSchema` | Get all fields of a form: names, types, required, current values, validation rules | `FormSchema` |
+| Tool              | Description                                                                                                               | Returns                                                          |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `getEnvironment`  | Full snapshot of current page: URL, active section, visible elements (id + intent + type), form states, available actions | `EnvironmentSnapshot`                                            |
+| `findElements`    | Query elements by type, intent keyword, or id pattern                                                                     | `ElementMatch[]` with id, intent, type, visibility, interactable |
+| `getElementState` | Get detailed state of a specific element: value, checked, disabled, validation errors                                     | `ElementState`                                                   |
+| `getFormSchema`   | Get all fields of a form: names, types, required, current values, validation rules                                        | `FormSchema`                                                     |
 
 #### Interaction (4 tools)
 
-| Tool | Description | Returns |
-|------|-------------|---------|
-| `clickElement` | Click a button, link, or interactive element by walkai-id | `{ success, resultingState? }` |
-| `fillField` | Set a form field value by walkai-id | `{ success, previousValue, newValue }` |
-| `selectOption` | Select from dropdown/radio/checkbox by walkai-id + value | `{ success, selectedValue }` |
-| `navigate` | Navigate to a page route or scroll to a section by walkai-id | `{ success, currentRoute, activeSection }` |
+| Tool           | Description                                                  | Returns                                    |
+| -------------- | ------------------------------------------------------------ | ------------------------------------------ |
+| `clickElement` | Click a button, link, or interactive element by walkai-id    | `{ success, resultingState? }`             |
+| `fillField`    | Set a form field value by walkai-id                          | `{ success, previousValue, newValue }`     |
+| `selectOption` | Select from dropdown/radio/checkbox by walkai-id + value     | `{ success, selectedValue }`               |
+| `navigate`     | Navigate to a page route or scroll to a section by walkai-id | `{ success, currentRoute, activeSection }` |
 
 #### Visual Guidance (5 tools)
 
-| Tool | Description | Returns |
-|------|-------------|---------|
-| `highlight` | Highlight element(s) with pulse/glow animation | `{ success, elementCount }` |
-| `showTooltip` | Attach a tooltip to an element with instructional text | `{ success }` |
-| `startGuide` | Begin a multi-step guided walkthrough | `{ guideId, totalSteps, currentStep }` |
-| `advanceGuide` | Move to next step in active guide | `{ guideId, currentStep, isComplete }` |
-| `dismissGuide` | End an active guide | `{ success }` |
+| Tool           | Description                                            | Returns                                |
+| -------------- | ------------------------------------------------------ | -------------------------------------- |
+| `highlight`    | Highlight element(s) with pulse/glow animation         | `{ success, elementCount }`            |
+| `showTooltip`  | Attach a tooltip to an element with instructional text | `{ success }`                          |
+| `startGuide`   | Begin a multi-step guided walkthrough                  | `{ guideId, totalSteps, currentStep }` |
+| `advanceGuide` | Move to next step in active guide                      | `{ guideId, currentStep, isComplete }` |
+| `dismissGuide` | End an active guide                                    | `{ success }`                          |
 
 #### Wait & Listen (3 tools)
 
-| Tool | Description | Returns |
-|------|-------------|---------|
-| `waitForElement` | Block until an element with walkai-id appears or becomes visible (timeout) | `{ found, timedOut, element? }` |
-| `waitForValue` | Block until a field reaches a specific value or matches a pattern | `{ matched, currentValue }` |
-| `onUserAction` | Register a one-shot listener for click/input/navigation on a specific element | `{ actionType, elementId, value? }` |
+| Tool             | Description                                                                   | Returns                             |
+| ---------------- | ----------------------------------------------------------------------------- | ----------------------------------- |
+| `waitForElement` | Block until an element with walkai-id appears or becomes visible (timeout)    | `{ found, timedOut, element? }`     |
+| `waitForValue`   | Block until a field reaches a specific value or matches a pattern             | `{ matched, currentValue }`         |
+| `onUserAction`   | Register a one-shot listener for click/input/navigation on a specific element | `{ actionType, elementId, value? }` |
 
 ### 3.4 Environment Map Hook
 
@@ -239,10 +242,10 @@ type EnvironmentSnapshot = {
 };
 
 type SemanticElement = {
-  id: string;           // data-walkai-id
-  intent: string;       // data-walkai-intent
-  type: string;         // data-walkai-type
-  visible: boolean;     // IntersectionObserver
+  id: string; // data-walkai-id
+  intent: string; // data-walkai-intent
+  type: string; // data-walkai-type
+  visible: boolean; // IntersectionObserver
   interactable: boolean; // not disabled, not aria-hidden
   context: Record<string, unknown>; // parsed data-walkai-context
   rect: { top: number; left: number; width: number; height: number };
@@ -280,6 +283,7 @@ type AvailableAction = {
 6. The bridge layer can request the latest snapshot synchronously
 
 **Performance guardrails:**
+
 - Only tagged elements are tracked (opt-in, not whole DOM)
 - Snapshot rebuild is debounced
 - Element rect positions are only recalculated on explicit `getEnvironment` calls, not on every mutation
@@ -306,14 +310,16 @@ function createUIHandlers(bridge: UIBridge) {
       name: "getEnvironment",
       description: "Get a snapshot of what is currently visible on the user's screen.",
       schema: z.object({
-        includeOffscreen: z.boolean().optional()
+        includeOffscreen: z
+          .boolean()
+          .optional()
           .describe("Include elements not currently in viewport (default: false)"),
       }),
       execute: async ({ includeOffscreen }) => {
         const snapshot = bridge.getSnapshot();
         const elements = includeOffscreen
           ? snapshot.elements
-          : snapshot.elements.filter(e => e.visible);
+          : snapshot.elements.filter((e) => e.visible);
         return JSON.stringify({ ...snapshot, elements });
       },
     }),
@@ -322,18 +328,25 @@ function createUIHandlers(bridge: UIBridge) {
       name: "findElements",
       description: "Search for UI elements by type, intent keyword, or id pattern.",
       schema: z.object({
-        type: z.string().optional().describe("Filter by element type: input, button, section, form, panel, list"),
-        intentKeyword: z.string().optional().describe("Keyword to match in element intent description"),
+        type: z
+          .string()
+          .optional()
+          .describe("Filter by element type: input, button, section, form, panel, list"),
+        intentKeyword: z
+          .string()
+          .optional()
+          .describe("Keyword to match in element intent description"),
         idPattern: z.string().optional().describe("Glob or substring to match against element IDs"),
       }),
       execute: async ({ type, intentKeyword, idPattern }) => {
         const snapshot = bridge.getSnapshot();
         let matches = snapshot.elements;
-        if (type) matches = matches.filter(e => e.type === type);
-        if (intentKeyword) matches = matches.filter(e =>
-          e.intent.toLowerCase().includes(intentKeyword.toLowerCase())
-        );
-        if (idPattern) matches = matches.filter(e => e.id.includes(idPattern));
+        if (type) matches = matches.filter((e) => e.type === type);
+        if (intentKeyword)
+          matches = matches.filter((e) =>
+            e.intent.toLowerCase().includes(intentKeyword.toLowerCase()),
+          );
+        if (idPattern) matches = matches.filter((e) => e.id.includes(idPattern));
         return JSON.stringify({ count: matches.length, elements: matches });
       },
     }),
@@ -374,7 +387,9 @@ function createUIHandlers(bridge: UIBridge) {
       name: "navigate",
       description: "Navigate to a page or scroll to a section.",
       schema: z.object({
-        target: z.string().describe("Route path (e.g. '/dashboard/schedule') or walkai-id of a section"),
+        target: z
+          .string()
+          .describe("Route path (e.g. '/dashboard/schedule') or walkai-id of a section"),
       }),
       execute: async ({ target }) => {
         const result = await bridge.executeCommand({
@@ -387,13 +402,19 @@ function createUIHandlers(bridge: UIBridge) {
 
     startGuide: defineTool({
       name: "startGuide",
-      description: "Start a multi-step guided walkthrough. Define the steps with element IDs and instructions.",
+      description:
+        "Start a multi-step guided walkthrough. Define the steps with element IDs and instructions.",
       schema: z.object({
-        steps: z.array(z.object({
-          elementId: z.string().describe("Element to focus on"),
-          instruction: z.string().describe("What to tell the user"),
-          waitForAction: z.boolean().optional().describe("Wait for user to interact before advancing"),
-        })),
+        steps: z.array(
+          z.object({
+            elementId: z.string().describe("Element to focus on"),
+            instruction: z.string().describe("What to tell the user"),
+            waitForAction: z
+              .boolean()
+              .optional()
+              .describe("Wait for user to interact before advancing"),
+          }),
+        ),
       }),
       execute: async ({ steps }) => {
         const result = await bridge.executeCommand({
@@ -413,7 +434,7 @@ Unlike the current fire-and-forget broadcast, the UI Bridge uses a request/respo
 
 ```typescript
 type UICommand = {
-  id: string;            // UUID, for correlating response
+  id: string; // UUID, for correlating response
   action: string;
   targetId?: string;
   value?: string;
@@ -422,14 +443,15 @@ type UICommand = {
 };
 
 type UICommandResult = {
-  id: string;            // Matches command ID
+  id: string; // Matches command ID
   success: boolean;
-  error?: string;        // Why it failed (element not found, disabled, etc.)
+  error?: string; // Why it failed (element not found, disabled, etc.)
   data?: Record<string, unknown>; // Action-specific result data
 };
 ```
 
 **Transport options:**
+
 - **Same-process (client tools):** Direct function call through the bridge interface
 - **Cross-process (server agent):** WebSocket or Supabase Realtime channel with command/response correlation by ID
 - **Timeout:** All commands timeout after 5 seconds. Agent receives `{ success: false, error: "timeout" }`
@@ -475,10 +497,10 @@ Same tool definitions, same Environment Map, different transport.
 
 ```typescript
 // E2E test
-await page.locator('[data-walkai-id="onboarding-business-name-input"]').fill('Sjøbris');
+await page.locator('[data-walkai-id="onboarding-business-name-input"]').fill("Sjøbris");
 
 // Agent tool call
-fillField({ elementId: "onboarding-business-name-input", value: "Sjøbris" })
+fillField({ elementId: "onboarding-business-name-input", value: "Sjøbris" });
 ```
 
 Same identifiers, same semantics. When an agent walkthrough works, the equivalent Playwright test works. When a Playwright test breaks, the agent walkthrough is also broken. One set of IDs to maintain.
@@ -525,24 +547,24 @@ packages/walkAi/src/
 
 ## 7. Current vs Proposed
 
-| Dimension | Current (Smartout) | Proposed (WalkAi) |
-|-----------|-------------------|-------------------|
-| **Environment awareness** | `getOnboardingState` — hardcoded to one page | `getEnvironment` — generic, works on any tagged page |
-| **Element discovery** | None. Agent must know IDs in advance | `findElements` — query by type, intent, id pattern |
-| **State queries** | Full state dump (onboarding only) | `getElementState`, `getFormSchema` — per-element, per-form |
-| **Interaction** | `fill_field` (broadcast, no ack) | `fillField` (bridge, ack + previous/new value) |
-| **Navigation** | `navigate_to` (broadcast, no ack) | `navigate` (bridge, ack + resulting route/section) |
-| **Visual guidance** | `highlight_element`, `show_panel` | `highlight`, `showTooltip`, `startGuide` (multi-step walkthroughs) |
-| **Verification** | None. Always returns success string | Every command returns `{ success, error?, data? }` |
-| **Guided flows** | `advanceToNextSection` (onboarding-specific) | `startGuide` / `advanceGuide` / `dismissGuide` (generic) |
-| **Form introspection** | None | `getFormSchema` — fields, types, required, values, validation |
-| **Wait/listen** | None | `waitForElement`, `waitForValue`, `onUserAction` |
-| **Element tagging** | `data-section` (onboarding only) | `data-walkai-id/intent/type/context` (all pages) |
-| **Transport** | Broadcast (fire-and-forget) or direct function call | Bridge with request/response correlation |
-| **Multi-channel** | Ultravox (voice) and capability system (server) are separate | Single tool definition set, adapters per channel |
-| **E2E alignment** | `data-section` for scroll tracking only | `data-walkai-id` used by both agent and Playwright |
-| **Tool count** | 5 (UI capability) + 13 (onboarding client tools) | 16 unified tools covering all scenarios |
-| **Authority gating** | None on UI capability | Per-tool authority levels inherited from capability system |
+| Dimension                 | Current (Smartout)                                           | Proposed (WalkAi)                                                  |
+| ------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------ |
+| **Environment awareness** | `getOnboardingState` — hardcoded to one page                 | `getEnvironment` — generic, works on any tagged page               |
+| **Element discovery**     | None. Agent must know IDs in advance                         | `findElements` — query by type, intent, id pattern                 |
+| **State queries**         | Full state dump (onboarding only)                            | `getElementState`, `getFormSchema` — per-element, per-form         |
+| **Interaction**           | `fill_field` (broadcast, no ack)                             | `fillField` (bridge, ack + previous/new value)                     |
+| **Navigation**            | `navigate_to` (broadcast, no ack)                            | `navigate` (bridge, ack + resulting route/section)                 |
+| **Visual guidance**       | `highlight_element`, `show_panel`                            | `highlight`, `showTooltip`, `startGuide` (multi-step walkthroughs) |
+| **Verification**          | None. Always returns success string                          | Every command returns `{ success, error?, data? }`                 |
+| **Guided flows**          | `advanceToNextSection` (onboarding-specific)                 | `startGuide` / `advanceGuide` / `dismissGuide` (generic)           |
+| **Form introspection**    | None                                                         | `getFormSchema` — fields, types, required, values, validation      |
+| **Wait/listen**           | None                                                         | `waitForElement`, `waitForValue`, `onUserAction`                   |
+| **Element tagging**       | `data-section` (onboarding only)                             | `data-walkai-id/intent/type/context` (all pages)                   |
+| **Transport**             | Broadcast (fire-and-forget) or direct function call          | Bridge with request/response correlation                           |
+| **Multi-channel**         | Ultravox (voice) and capability system (server) are separate | Single tool definition set, adapters per channel                   |
+| **E2E alignment**         | `data-section` for scroll tracking only                      | `data-walkai-id` used by both agent and Playwright                 |
+| **Tool count**            | 5 (UI capability) + 13 (onboarding client tools)             | 16 unified tools covering all scenarios                            |
+| **Authority gating**      | None on UI capability                                        | Per-tool authority levels inherited from capability system         |
 
 ---
 

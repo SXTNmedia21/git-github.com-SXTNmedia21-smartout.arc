@@ -90,13 +90,19 @@ const writeNotepadDef: ClientToolDefinition = {
       {
         name: "text",
         location: "PARAMETER_LOCATION_BODY",
-        schema: { type: "string", description: "Markdown-formatted note content. Start with # Title." },
+        schema: {
+          type: "string",
+          description: "Markdown-formatted note content. Start with # Title.",
+        },
         required: true,
       },
       {
         name: "topic",
         location: "PARAMETER_LOCATION_BODY",
-        schema: { type: "string", description: "Short topic/label for this note, e.g. 'Møtenotater', 'Oppgaver', 'Ideer'" },
+        schema: {
+          type: "string",
+          description: "Short topic/label for this note, e.g. 'Møtenotater', 'Oppgaver', 'Ideer'",
+        },
         required: false,
       },
     ],
@@ -114,7 +120,10 @@ const showCalculatorDef: ClientToolDefinition = {
       {
         name: "expression",
         location: "PARAMETER_LOCATION_BODY",
-        schema: { type: "string", description: "Optional math expression to pre-fill, e.g. '150 * 8'" },
+        schema: {
+          type: "string",
+          description: "Optional math expression to pre-fill, e.g. '150 * 8'",
+        },
         required: false,
       },
     ],
@@ -169,7 +178,8 @@ const navigatePageDef: ClientToolDefinition = {
         location: "PARAMETER_LOCATION_BODY",
         schema: {
           type: "string",
-          description: "Page key: dashboard, schedule, people, operations, season, handbook, governance, etc.",
+          description:
+            "Page key: dashboard, schedule, people, operations, season, handbook, governance, etc.",
         },
         required: true,
       },
@@ -207,7 +217,8 @@ const scheduleTaskDef: ClientToolDefinition = {
         location: "PARAMETER_LOCATION_BODY",
         schema: {
           type: "string",
-          description: "When the task is due. Use ISO 8601 format or natural language like '18:00', 'i morgen 09:00'. Leave empty for no deadline.",
+          description:
+            "When the task is due. Use ISO 8601 format or natural language like '18:00', 'i morgen 09:00'. Leave empty for no deadline.",
         },
         required: false,
       },
@@ -268,7 +279,9 @@ export function buildWalkAiToolKit(
     },
 
     navigate_to_page: (params) => {
-      const pageKey = String(params.page ?? "").toLowerCase().trim();
+      const pageKey = String(params.page ?? "")
+        .toLowerCase()
+        .trim();
       const page = DASHBOARD_PAGES[pageKey];
 
       if (!page) {
@@ -334,10 +347,14 @@ export function buildWalkAiToolKit(
             description,
             due_at: dueAt,
           }),
-        }).catch(() => { /* Silent — local state is primary */ });
+        }).catch(() => {
+          /* Silent — local state is primary */
+        });
       }
 
-      const timeStr = dueAt ? ` Frist: ${new Date(dueAt).toLocaleTimeString("no", { hour: "2-digit", minute: "2-digit" })}` : "";
+      const timeStr = dueAt
+        ? ` Frist: ${new Date(dueAt).toLocaleTimeString("no", { hour: "2-digit", minute: "2-digit" })}`
+        : "";
       return `Task scheduled: "${title}".${timeStr} Confirm briefly to the user.`;
     },
   };

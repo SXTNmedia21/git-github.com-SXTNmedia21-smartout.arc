@@ -32,10 +32,7 @@ export async function POST(request: Request) {
 
   const scraplingUrl = env.SCRAPLING_SERVICE_URL;
   if (!scraplingUrl) {
-    return NextResponse.json(
-      { error: "Scrapling service not configured" },
-      { status: 503 },
-    );
+    return NextResponse.json({ error: "Scrapling service not configured" }, { status: 503 });
   }
 
   const normalizedUrl = normalizeUrl(body.url);

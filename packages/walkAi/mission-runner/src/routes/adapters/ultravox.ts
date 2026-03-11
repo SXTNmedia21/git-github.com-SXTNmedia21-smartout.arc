@@ -106,9 +106,7 @@ ultravox.post("/adapters/ultravox/create-call", zValidator("json", createCallSch
     temperature: typeof vt.temperature === "number" ? vt.temperature : 0.3,
     maxDuration: typeof vt.max_duration === "string" ? vt.max_duration : "1800s",
     timeExceededMessage:
-      typeof vt.time_exceeded_message === "string"
-        ? vt.time_exceeded_message
-        : undefined,
+      typeof vt.time_exceeded_message === "string" ? vt.time_exceeded_message : undefined,
     firstSpeaker,
     firstSpeakerSettings:
       body.first_speaker === "agent" && typeof vt.greeting === "string" && vt.greeting
