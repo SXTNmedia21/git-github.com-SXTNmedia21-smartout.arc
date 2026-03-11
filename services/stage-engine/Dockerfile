@@ -20,6 +20,9 @@ COPY packages/types/package.json ./packages/types/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
 RUN pnpm install --frozen-lockfile --filter @smartout/stage-engine... --ignore-scripts
 
+# Copy monorepo scripts (needed by @smartout/types build)
+COPY scripts/ ./scripts/
+
 # Copy workspace package sources (needed for tsc)
 COPY packages/typescript-config/ ./packages/typescript-config/
 COPY packages/types/ ./packages/types/

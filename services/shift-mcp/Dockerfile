@@ -16,10 +16,13 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY services/shift-mcp/package.json ./services/shift-mcp/
 RUN pnpm install --frozen-lockfile --filter @smartout/shift-mcp... --ignore-scripts
 
+# Copy monorepo scripts (needed by build script)
+COPY scripts/ ./scripts/
+
 WORKDIR /app/services/shift-mcp
 COPY services/shift-mcp/tsconfig.json ./
 COPY services/shift-mcp/src ./src
-RUN pnpm build
+RUN pnpm --filter @smartout/shift-mcp build
 
 # ── Stage 2: Production ────────────────────────────────────
 FROM node:22-alpine
