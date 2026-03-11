@@ -138,6 +138,14 @@ type WalkAiContextValue = {
   /** Count of unread items Emma has produced (notes, tasks) since last interaction */
   unreadCount: number;
   clearUnread: () => void;
+  /** Custom agent prompt — appended to persona prompt */
+  customPrompt: string;
+  setCustomPrompt: (prompt: string) => void;
+  /** The computed persona prompt (read-only) */
+  personaPrompt: string;
+  /** Saved arena size before settings expansion */
+  preSettingsSize: WalkAiSize | null;
+  setPreSettingsSize: (size: WalkAiSize | null) => void;
 };
 
 const WalkAiContext = createContext<WalkAiContextValue | null>(null);
@@ -188,6 +196,8 @@ export function WalkAiProvider({
   });
   const [voiceTuning, setVoiceTuningState] = useState<VoiceTuning>(DEFAULT_VOICE_TUNING);
   const [selectedVoice, setSelectedVoice] = useState(DEFAULT_VOICE_ID);
+  const [customPrompt, setCustomPromptState] = useState("");
+  const [preSettingsSize, setPreSettingsSize] = useState<WalkAiSize | null>(null);
   const [notes, setNotes] = useState<WalkAiNote[]>([]);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
   const { events: telemetryEvents, clearEvents: clearTelemetry } = useEmmaTelemetry();
@@ -204,6 +214,7 @@ export function WalkAiProvider({
   }, []);
 
   const clearUnread = useCallback(() => setUnreadCount(0), []);
+  const setCustomPrompt = useCallback((prompt: string) => setCustomPromptState(prompt), []);
 
   const activeNote = useMemo(
     () => notes.find((n) => n.id === activeNoteId) ?? null,
@@ -330,7 +341,9 @@ export function WalkAiProvider({
       first_speaker: voiceTuning.firstSpeaker,
       context: {
         page: "dashboard.walkai",
-        persona_prompt: personaPrompt,
+        persona_prompt: customPrompt
+          ? `${personaPrompt}\n\n## Egendefinert instruks\n${customPrompt}`
+          : personaPrompt,
         identity: {
           rank: identity.rank,
           persona: identity.persona,
@@ -495,6 +508,11 @@ export function WalkAiProvider({
       scheduleTask,
       unreadCount,
       clearUnread,
+      customPrompt,
+      setCustomPrompt,
+      personaPrompt,
+      preSettingsSize,
+      setPreSettingsSize,
     }),
     [
       state,
@@ -533,6 +551,11 @@ export function WalkAiProvider({
       scheduleTask,
       unreadCount,
       clearUnread,
+      customPrompt,
+      setCustomPrompt,
+      personaPrompt,
+      preSettingsSize,
+      setPreSettingsSize,
     ],
   );
 

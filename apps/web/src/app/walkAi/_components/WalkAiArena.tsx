@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useWalkAi } from "./WalkAiProvider";
 import { EASING } from "./types";
 import { PERSONAS } from "./persona-engine";
+import { EmmaProfile } from "./EmmaProfile";
 import type { ContentViewType } from "./types";
 import type { ScheduledTask } from "./walkai-tools";
 
@@ -15,32 +16,49 @@ import type { ScheduledTask } from "./walkai-tools";
 /*  Settings / reminders / tasks via Emma.    */
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
+// UI Events:
+// - action: switchView(type) (tab/tool click)
+// - action: collapse() (header minimize button)
+// - action: agent.startSession() (mic button)
+// - action: agent.endSession() (mic button when connected)
+// - action: completeTask(id) (task checkbox click)
+// - action: createNote(topic, content) (notepad new note)
+// - nav: EmmaMenu > settings | tasks (dropdown items)
+
 type DragHandleProps = {
   onPointerDown: (e: React.PointerEvent) => void;
   onPointerMove: (e: React.PointerEvent) => void;
   onPointerUp: (e: React.PointerEvent) => void;
 };
 
-/* ━━━ Emma Menu — click avatar to configure ━━━ */
+/* ━━━ View title map — Norwegian headings ━━━ */
 
-function EmmaMenu({ onClose }: { onClose: () => void }) {
+const VIEW_TITLES: Record<ContentViewType, string> = {
+  visualizer: "Stemme",
+  chat: "Samtale",
+  notepad: "Notater",
+  calculator: "Kalkulator",
+  settings: "Innstillinger",
+  tasks: "Gjøremål",
+  form: "Skjema",
+  video: "Video",
+  log: "Logg",
+  memory: "Minne",
+  history: "Historikk",
+};
+
+/* ━━━ Emma Menu — SOLID card, big touch targets ━━━ */
+
+function EmmaMenuOverlay({ onClose }: { onClose: () => void }) {
   const { switchView } = useWalkAi();
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) onClose();
-    }
-    document.addEventListener("pointerdown", handleClickOutside);
-    return () => document.removeEventListener("pointerdown", handleClickOutside);
-  }, [onClose]);
 
   const items = [
     {
       id: "settings" as ContentViewType,
       label: "Agent-innstillinger",
+      description: "Persona, stemme, temperatur",
       icon: (
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
           <path
             d="M6.5 1.5L6 3.5L4.5 4.5L2.5 4L1.5 5.5L3 7L3 9L1.5 10.5L2.5 12L4.5 11.5L6 12.5L6.5 14.5H9.5L10 12.5L11.5 11.5L13.5 12L14.5 10.5L13 9L13 7L14.5 5.5L13.5 4L11.5 4.5L10 3.5L9.5 1.5H6.5Z"
             stroke="currentColor"
@@ -54,8 +72,9 @@ function EmmaMenu({ onClose }: { onClose: () => void }) {
     {
       id: "tasks" as ContentViewType,
       label: "Påminnelser & gjøremål",
+      description: "Oppgaver, frister, sjekklister",
       icon: (
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
           <path
             d="M8 1.5C5.5 1.5 3.5 3.5 3.5 6V9L2 11H14L12.5 9V6C12.5 3.5 10.5 1.5 8 1.5Z"
             stroke="currentColor"
@@ -73,35 +92,76 @@ function EmmaMenu({ onClose }: { onClose: () => void }) {
   ];
 
   return (
-    <div
-      ref={menuRef}
-      className="bg-popover/95 border-border/40 absolute top-full left-0 z-40 mt-1.5 w-52 rounded-xl border p-1 shadow-xl backdrop-blur-xl"
-      style={{ animation: `walkai-fade-in 120ms ${EASING}` }}
-      onPointerDown={(e) => e.stopPropagation()}
-    >
-      {items.map((item) => (
-        <button
-          key={item.label}
-          onClick={() => {
-            switchView(item.id);
-            onClose();
-          }}
-          className="text-foreground/80 hover:bg-accent/60 hover:text-foreground flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] transition-colors duration-100"
-        >
-          <span className="text-muted-foreground/60">{item.icon}</span>
-          {item.label}
-        </button>
-      ))}
-    </div>
+    <>
+      {/* Backdrop — click to close */}
+      <div
+        className="absolute inset-0 z-50 bg-black/20"
+        onClick={onClose}
+        onPointerDown={(e) => e.stopPropagation()}
+      />
+      {/* Menu card — sits below header */}
+      <div
+        className="border-border bg-card absolute top-[52px] right-3 left-3 z-50 rounded-2xl border p-2.5 shadow-[0_8px_40px_-8px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.04)]"
+        style={{ animation: `walkai-fade-in 120ms ${EASING}` }}
+        onPointerDown={(e) => e.stopPropagation()}
+      >
+        <div className="border-border/30 mb-1.5 border-b px-3 pt-1 pb-2">
+          <p className="text-muted-foreground/50 text-[10px] font-semibold tracking-wider uppercase">
+            Emma-meny
+          </p>
+        </div>
+        {items.map((item) => (
+          <button
+            key={item.label}
+            onClick={() => {
+              switchView(item.id);
+              onClose();
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="text-foreground hover:bg-accent/60 active:bg-accent/80 group flex w-full cursor-pointer items-center gap-3.5 rounded-xl px-3 py-3.5 transition-colors duration-100"
+          >
+            <div className="bg-brand-orange/8 text-brand-orange/70 group-hover:bg-brand-orange/12 group-hover:text-brand-orange flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl transition-colors duration-150">
+              {item.icon}
+            </div>
+            <div className="min-w-0 flex-1 text-left">
+              <p className="truncate text-sm font-medium">{item.label}</p>
+              <p className="text-muted-foreground/50 truncate text-[11px]">{item.description}</p>
+            </div>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 16 16"
+              fill="none"
+              className="text-muted-foreground/20 group-hover:text-muted-foreground/40 flex-shrink-0 transition-colors"
+            >
+              <path
+                d="M6 4L10 8L6 12"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+        ))}
+      </div>
+    </>
   );
 }
 
 /* ━━━ Header — Emma's profile + status + menu ━━━ */
 
-function ArenaHeader({ dragHandleProps }: { dragHandleProps?: DragHandleProps }) {
-  const { collapse, agent, identity } = useWalkAi();
+function ArenaHeader({
+  dragHandleProps,
+  menuOpen,
+  setMenuOpen,
+}: {
+  dragHandleProps?: DragHandleProps;
+  menuOpen: boolean;
+  setMenuOpen: (v: boolean) => void;
+}) {
+  const { collapse, agent, identity, activeView } = useWalkAi();
   const personaName = PERSONAS[identity.persona].name;
-  const [menuOpen, setMenuOpen] = useState(false);
 
   const statusText = agent.isConnected
     ? agent.isSpeaking
@@ -121,13 +181,13 @@ function ArenaHeader({ dragHandleProps }: { dragHandleProps?: DragHandleProps })
 
   return (
     <div
-      className="border-border/20 flex animate-[walkai-slide-down_250ms_ease-out_forwards] cursor-grab items-center gap-3 border-b px-4 py-3 opacity-0 active:cursor-grabbing"
+      className="border-border/30 flex animate-[walkai-slide-down_250ms_ease-out_forwards] cursor-grab items-center gap-3 border-b px-4 py-3 opacity-0 active:cursor-grabbing"
       {...dragHandleProps}
     >
       {/* Avatar — click to open Emma menu */}
       <div className="relative flex-shrink-0">
         <button
-          onClick={() => setMenuOpen((v) => !v)}
+          onClick={() => setMenuOpen(!menuOpen)}
           onPointerDown={(e) => e.stopPropagation()}
           className="group relative"
         >
@@ -142,7 +202,6 @@ function ArenaHeader({ dragHandleProps }: { dragHandleProps?: DragHandleProps })
             )}
           </div>
         </button>
-        {menuOpen && <EmmaMenu onClose={() => setMenuOpen(false)} />}
       </div>
 
       {/* Name + status */}
@@ -169,14 +228,19 @@ function ArenaHeader({ dragHandleProps }: { dragHandleProps?: DragHandleProps })
         </div>
       </div>
 
+      {/* View title badge */}
+      <span className="text-muted-foreground/40 hidden text-[10px] font-medium tracking-wider uppercase sm:block">
+        {VIEW_TITLES[activeView]}
+      </span>
+
       {/* Collapse */}
       <button
         onClick={collapse}
         onPointerDown={(e) => e.stopPropagation()}
-        className="text-muted-foreground/40 hover:text-muted-foreground hover:bg-accent/50 flex h-7 w-7 items-center justify-center rounded-lg transition-colors duration-150"
+        className="text-muted-foreground/40 hover:text-muted-foreground hover:bg-accent flex h-8 w-8 items-center justify-center rounded-lg transition-colors duration-150"
         aria-label="Minimer"
       >
-        <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
           <path
             d="M3 5L7 9L11 5"
             stroke="currentColor"
@@ -199,7 +263,7 @@ const TOOLS: ToolDef[] = [
     id: "visualizer",
     label: "Voice",
     icon: (
-      <svg width="15" height="15" viewBox="0 0 20 20" fill="none">
+      <svg width="17" height="17" viewBox="0 0 20 20" fill="none">
         <path
           d="M10 2C8.34 2 7 3.34 7 5V10C7 11.66 8.34 13 10 13C11.66 13 13 11.66 13 10V5C13 3.34 11.66 2 10 2Z"
           fill="currentColor"
@@ -215,7 +279,7 @@ const TOOLS: ToolDef[] = [
     id: "notepad",
     label: "Notepad",
     icon: (
-      <svg width="15" height="15" viewBox="0 0 20 20" fill="none">
+      <svg width="17" height="17" viewBox="0 0 20 20" fill="none">
         <path
           d="M5 3H15V17H5V3Z"
           stroke="currentColor"
@@ -236,7 +300,7 @@ const TOOLS: ToolDef[] = [
     id: "tasks",
     label: "Gjøremål",
     icon: (
-      <svg width="15" height="15" viewBox="0 0 20 20" fill="none">
+      <svg width="17" height="17" viewBox="0 0 20 20" fill="none">
         <path
           d="M4 5L6 7L9 4"
           stroke="currentColor"
@@ -268,7 +332,7 @@ const TOOLS: ToolDef[] = [
     id: "calculator",
     label: "Kalkulator",
     icon: (
-      <svg width="15" height="15" viewBox="0 0 20 20" fill="none">
+      <svg width="17" height="17" viewBox="0 0 20 20" fill="none">
         <rect x="4" y="3" width="12" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" />
         <path
           d="M7 6H13M7 10H9M11 10H13M7 13H9M11 13H13"
@@ -281,7 +345,7 @@ const TOOLS: ToolDef[] = [
   },
 ];
 
-const BLOOM_SPACING = 38;
+const BLOOM_SPACING = 44;
 
 function ToolsFab() {
   const { switchView, activeView } = useWalkAi();
@@ -298,7 +362,7 @@ function ToolsFab() {
 
   return (
     <div
-      className="absolute bottom-2.5 left-2.5 z-20"
+      className="absolute bottom-3 left-3 z-20"
       onMouseEnter={handleEnter}
       onMouseLeave={handleLeave}
       data-walkai-no-drag
@@ -311,14 +375,14 @@ function ToolsFab() {
             setOpen(false);
           }}
           aria-label={tool.label}
+          title={tool.label}
           className={[
-            "absolute left-0 flex h-8 w-8 items-center justify-center rounded-full transition-all",
+            "absolute left-0 flex items-center justify-center rounded-xl transition-all",
+            "h-10 w-10",
             activeView === tool.id
-              ? "bg-brand-orange/15 text-brand-orange"
-              : "bg-card text-muted-foreground hover:text-foreground hover:bg-accent",
-            open
-              ? "border-border/30 scale-100 border opacity-100 shadow-md"
-              : "pointer-events-none scale-50 opacity-0",
+              ? "bg-brand-orange/15 text-brand-orange ring-brand-orange/20 ring-1"
+              : "bg-popover text-muted-foreground hover:text-foreground hover:bg-accent border-border/40 border",
+            open ? "scale-100 opacity-100 shadow-lg" : "pointer-events-none scale-50 opacity-0",
           ].join(" ")}
           style={{
             bottom: open ? (i + 1) * BLOOM_SPACING : 0,
@@ -334,14 +398,145 @@ function ToolsFab() {
       <button
         onClick={() => setOpen((v) => !v)}
         className={[
-          "relative flex h-8 w-8 animate-[walkai-pop-in_300ms_ease-out_180ms_forwards] items-center justify-center rounded-full opacity-0 transition-all duration-200",
+          "relative flex h-10 w-10 animate-[walkai-pop-in_300ms_ease-out_180ms_forwards] items-center justify-center rounded-xl opacity-0 transition-all duration-200",
           open
-            ? "bg-accent text-foreground rotate-45"
+            ? "bg-accent text-foreground rotate-45 shadow-md"
             : "text-muted-foreground/0 hover:text-muted-foreground/50",
         ].join(" ")}
         aria-label="Verktoy"
       >
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M8 3V13M3 8H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+/* ━━━ Context FAB — bloom icons from bottom-right ━━━ */
+
+type ContextDef = { id: ContentViewType; icon: React.ReactNode; label: string };
+
+const CONTEXT_ITEMS: ContextDef[] = [
+  {
+    id: "log",
+    label: "Logg",
+    icon: (
+      <svg width="17" height="17" viewBox="0 0 20 20" fill="none">
+        <path
+          d="M4 5H16M4 9H13M4 13H15M4 17H10"
+          stroke="currentColor"
+          strokeWidth="1.4"
+          strokeLinecap="round"
+        />
+      </svg>
+    ),
+  },
+  {
+    id: "memory",
+    label: "Minne",
+    icon: (
+      <svg width="17" height="17" viewBox="0 0 20 20" fill="none">
+        <circle cx="10" cy="10" r="7" stroke="currentColor" strokeWidth="1.4" />
+        <circle cx="10" cy="10" r="3" fill="currentColor" opacity="0.5" />
+        <path
+          d="M10 3V6M10 14V17M3 10H6M14 10H17"
+          stroke="currentColor"
+          strokeWidth="1.2"
+          strokeLinecap="round"
+        />
+      </svg>
+    ),
+  },
+  {
+    id: "history",
+    label: "Historikk",
+    icon: (
+      <svg width="17" height="17" viewBox="0 0 20 20" fill="none">
+        <path
+          d="M4 10C4 6.69 6.69 4 10 4C13.31 4 16 6.69 16 10C16 13.31 13.31 16 10 16C7.81 16 5.93 14.82 5 13.1"
+          stroke="currentColor"
+          strokeWidth="1.4"
+          strokeLinecap="round"
+        />
+        <path
+          d="M3 7L5 10L7.5 8"
+          stroke="currentColor"
+          strokeWidth="1.4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M10 7V10.5L12.5 12"
+          stroke="currentColor"
+          strokeWidth="1.4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ),
+  },
+];
+
+function ContextFab() {
+  const { switchView, activeView } = useWalkAi();
+  const [open, setOpen] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>(null);
+
+  const handleEnter = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setOpen(true);
+  };
+  const handleLeave = () => {
+    timeoutRef.current = setTimeout(() => setOpen(false), 300);
+  };
+
+  return (
+    <div
+      className="absolute right-3 bottom-3 z-20"
+      onMouseEnter={handleEnter}
+      onMouseLeave={handleLeave}
+      data-walkai-no-drag
+    >
+      {CONTEXT_ITEMS.map((item, i) => (
+        <button
+          key={item.id}
+          onClick={() => {
+            switchView(item.id);
+            setOpen(false);
+          }}
+          aria-label={item.label}
+          title={item.label}
+          className={[
+            "absolute left-0 flex items-center justify-center rounded-xl transition-all",
+            "h-10 w-10",
+            activeView === item.id
+              ? "bg-brand-orange/15 text-brand-orange ring-brand-orange/20 ring-1"
+              : "bg-popover text-muted-foreground hover:text-foreground hover:bg-accent border-border/40 border",
+            open ? "scale-100 opacity-100 shadow-lg" : "pointer-events-none scale-50 opacity-0",
+          ].join(" ")}
+          style={{
+            bottom: open ? (i + 1) * BLOOM_SPACING : 0,
+            transitionDuration: open ? `${150 + i * 40}ms` : "120ms",
+            transitionTimingFunction: EASING,
+            transitionDelay: open ? `${i * 30}ms` : "0ms",
+          }}
+        >
+          {item.icon}
+        </button>
+      ))}
+
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className={[
+          "relative flex h-10 w-10 animate-[walkai-pop-in_300ms_ease-out_180ms_forwards] items-center justify-center rounded-xl opacity-0 transition-all duration-200",
+          open
+            ? "bg-accent text-foreground rotate-45 shadow-md"
+            : "text-muted-foreground/0 hover:text-muted-foreground/50",
+        ].join(" ")}
+        aria-label="Kontekst"
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
           <path d="M8 3V13M3 8H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
       </button>
@@ -362,30 +557,30 @@ function VoiceControls() {
 
   return (
     <div
-      className="border-border/20 animate-[walkai-slide-up_220ms_ease-out_120ms_forwards] border-t px-3 py-2.5 opacity-0"
+      className="border-border/30 animate-[walkai-slide-up_220ms_ease-out_120ms_forwards] border-t px-3 py-3 opacity-0"
       onPointerDown={(e) => e.stopPropagation()}
     >
-      <div className="flex items-center justify-center gap-2.5">
+      <div className="flex items-center justify-center gap-3">
         {!agent.isConnected ? (
           <button
             onClick={() => void agent.startSession()}
             className={[
-              "bg-brand-orange shadow-brand-orange/25 flex items-center justify-center rounded-full text-white shadow-md transition-all duration-200 hover:scale-105 hover:brightness-110 active:scale-95",
-              isCompact ? "h-9 w-9" : "h-10 w-10",
+              "bg-brand-orange shadow-brand-orange/25 flex items-center justify-center rounded-full text-white shadow-lg transition-all duration-200 hover:scale-105 hover:brightness-110 active:scale-95",
+              isCompact ? "h-11 w-11" : "h-12 w-12",
             ].join(" ")}
             aria-label="Start samtale"
           >
-            <MicIcon size={isCompact ? 15 : 17} />
+            <MicIcon size={isCompact ? 18 : 20} />
           </button>
         ) : (
           <>
-            {/* Sleep button — ends session cleanly, no inactivity prompts */}
+            {/* Sleep button — ends session cleanly */}
             <button
               onClick={handleSleep}
-              className="bg-muted/60 text-muted-foreground/50 hover:bg-muted hover:text-muted-foreground flex h-7 w-7 items-center justify-center rounded-full transition-colors duration-150"
+              className="bg-muted/60 text-muted-foreground/50 hover:bg-muted hover:text-muted-foreground flex h-9 w-9 items-center justify-center rounded-full transition-colors duration-150"
               aria-label="Dvala"
             >
-              <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
                 <path
                   d="M13.5 8.5C13.5 11.5 11 14 8 14C5 14 2.5 11.5 2.5 8.5C2.5 5.8 4.5 3.5 7 3C6.5 4 6.5 5.5 7.5 7C8.5 8.5 10.5 9 12 8C12.8 8.2 13.5 8.5 13.5 8.5Z"
                   stroke="currentColor"
@@ -400,21 +595,21 @@ function VoiceControls() {
               onClick={agent.endSession}
               className={[
                 "flex items-center justify-center rounded-full transition-all duration-200 hover:scale-105 active:scale-95",
-                isCompact ? "h-9 w-9" : "h-10 w-10",
-                "bg-brand-orange shadow-brand-orange/25 text-white shadow-md",
+                isCompact ? "h-11 w-11" : "h-12 w-12",
+                "bg-brand-orange shadow-brand-orange/25 text-white shadow-lg",
               ].join(" ")}
               aria-label="Avslutt"
             >
-              <MicIcon size={isCompact ? 15 : 17} />
+              <MicIcon size={isCompact ? 18 : 20} />
             </button>
 
             {agent.isSpeaking && (
-              <div className="flex items-center gap-[2px]" aria-hidden>
+              <div className="flex items-center gap-[3px]" aria-hidden>
                 {[0, 1, 2, 3].map((i) => (
                   <div
                     key={i}
-                    className="bg-brand-orange/50 w-[2px] animate-[walkai-bar_0.8s_ease-in-out_infinite] rounded-full"
-                    style={{ height: 5 + i * 2, animationDelay: `${i * 0.08}s` }}
+                    className="bg-brand-orange/50 w-[3px] animate-[walkai-bar_0.8s_ease-in-out_infinite] rounded-full"
+                    style={{ height: 6 + i * 2.5, animationDelay: `${i * 0.08}s` }}
                   />
                 ))}
               </div>
@@ -443,67 +638,283 @@ function MicIcon({ size = 17 }: { size?: number }) {
   );
 }
 
-/* ━━━ View: Visualizer (voice-first, default) ━━━ */
+/* ━━━ View: Visualizer — PREMIUM voice emulator ━━━ */
+
+/** Generate particle positions for the speaking state */
+/* ━━━ Ambient idle particles — glitter + skyfall ━━━ */
+
+function useIdleParticles(count: number) {
+  return useMemo(
+    () =>
+      Array.from({ length: count }, (_, i) => ({
+        // Random positions across the arena
+        left: `${5 + Math.random() * 90}%`,
+        top: `${Math.random() * 100}%`,
+        delay: Math.random() * 12,
+        duration: 6 + Math.random() * 10,
+        size: 1 + Math.random() * 2,
+        drift: -8 + Math.random() * 16,
+        kind: i % 3 === 0 ? ("glitter" as const) : ("skyfall" as const),
+        opacity: 0.15 + Math.random() * 0.35,
+      })),
+    [count],
+  );
+}
+
+function useParticles(count: number, isSpeaking: boolean) {
+  return useMemo(() => {
+    if (!isSpeaking) return [];
+    return Array.from({ length: count }, (_, i) => {
+      const angle = (i / count) * Math.PI * 2;
+      const radius = 35 + Math.random() * 20;
+      return {
+        tx: Math.cos(angle) * radius,
+        ty: Math.sin(angle) * radius,
+        delay: Math.random() * 1.5,
+        duration: 1.2 + Math.random() * 0.8,
+        size: 2 + Math.random() * 2,
+      };
+    });
+  }, [count, isSpeaking]);
+}
 
 function VisualizerView() {
   const { agent, state } = useWalkAi();
   const isCompact = state.arenaSize.height < 400;
+  const isSpeaking = agent.isSpeaking;
+  const isListening = agent.isConnected && agent.status === "listening";
+  const isThinking = agent.status === "thinking" || agent.status === "connecting";
+  const isConnected = agent.isConnected;
+  const isIdle = !isConnected;
+
+  const particles = useParticles(12, isSpeaking);
+  const idleParticles = useIdleParticles(20);
+
+  // Sizes — responsive to arena
+  const outerSize = isCompact ? 140 : 200;
+  const middleSize = isCompact ? 100 : 150;
+  const innerSize = isCompact ? 64 : 96;
+  const coreSize = isCompact ? 44 : 64;
 
   return (
-    <div className="flex h-full flex-col items-center justify-center" data-walkai-content>
+    <div
+      className="relative flex h-full flex-col items-center justify-center overflow-hidden"
+      data-walkai-content
+    >
+      {/* Ambient idle layer — glitter & skyfall */}
+      {isIdle && (
+        <div className="pointer-events-none absolute inset-0" aria-hidden>
+          {/* Aurora shimmer */}
+          <div
+            className="absolute inset-0 rounded-b-2xl"
+            style={{
+              background:
+                "linear-gradient(135deg, rgba(var(--brand-orange-rgb, 255 140 50), 0.04) 0%, transparent 40%, rgba(var(--brand-orange-rgb, 255 140 50), 0.02) 70%, transparent 100%)",
+              animation: "walkai-aurora 20s ease-in-out infinite",
+            }}
+          />
+          {/* Particles */}
+          {idleParticles.map((p, i) => (
+            <div
+              key={i}
+              className="absolute rounded-full"
+              style={{
+                left: p.left,
+                top: p.kind === "skyfall" ? "-4px" : p.top,
+                width: p.size,
+                height: p.size,
+                background:
+                  p.kind === "glitter"
+                    ? "rgba(var(--brand-orange-rgb, 255 140 50), 0.6)"
+                    : "rgba(var(--brand-orange-rgb, 255 140 50), 0.25)",
+                boxShadow:
+                  p.kind === "glitter"
+                    ? "0 0 3px rgba(var(--brand-orange-rgb, 255 140 50), 0.4)"
+                    : "none",
+                // @ts-expect-error -- CSS custom properties for drift
+                "--drift": `${p.drift}px`,
+                animation:
+                  p.kind === "glitter"
+                    ? `walkai-glitter ${p.duration}s ease-in-out infinite`
+                    : `walkai-skyfall ${p.duration}s linear infinite`,
+                animationDelay: `${p.delay}s`,
+                opacity: p.opacity,
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Section title */}
+      <div className="absolute top-3 left-4">
+        <h3 className="text-muted-foreground/40 text-xs font-semibold tracking-wider uppercase">
+          Stemme
+        </h3>
+      </div>
+
       <div
         className="relative flex items-center justify-center"
-        style={{ width: isCompact ? 80 : 120, height: isCompact ? 80 : 120 }}
+        style={{ width: outerSize + 20, height: outerSize + 20 }}
       >
+        {/* Ring 1 — outermost, slow rotation */}
         <div
-          className={[
-            "absolute animate-[walkai-breathe_3s_ease-in-out_infinite] rounded-full border",
-            isCompact ? "h-20 w-20" : "h-28 w-28",
-            agent.isSpeaking ? "border-brand-orange/25" : "border-brand-orange/12",
-          ].join(" ")}
-          aria-hidden
-        />
-        <div
-          className={[
-            "absolute animate-[walkai-breathe_3s_ease-in-out_infinite_0.5s] rounded-full border",
-            isCompact ? "h-14 w-14" : "h-20 w-20",
-            "border-brand-orange/8",
-          ].join(" ")}
+          className="absolute rounded-full"
+          style={{
+            width: outerSize,
+            height: outerSize,
+            background: isSpeaking
+              ? "conic-gradient(from 0deg, transparent, rgba(var(--brand-orange-rgb, 255 140 50), 0.15), transparent, rgba(var(--brand-orange-rgb, 255 140 50), 0.1), transparent)"
+              : isConnected
+                ? "conic-gradient(from 0deg, transparent, rgba(var(--brand-orange-rgb, 255 140 50), 0.06), transparent)"
+                : "none",
+            border: isConnected
+              ? "1px solid rgba(var(--brand-orange-rgb, 255 140 50), 0.08)"
+              : "1px solid var(--border)",
+            opacity: isConnected ? 1 : 0.3,
+            animation: isConnected ? "walkai-orb-ring-slow 8s linear infinite" : undefined,
+            transition: "opacity 300ms, border-color 300ms",
+          }}
           aria-hidden
         />
 
+        {/* Ring 2 — middle, counter-rotation */}
         <div
-          className={[
-            "relative flex items-center justify-center rounded-full transition-all duration-300",
-            isCompact ? "h-10 w-10" : "h-14 w-14",
-            agent.isSpeaking
-              ? "bg-brand-orange/20 scale-110"
-              : agent.isConnected
-                ? "bg-brand-orange/8"
-                : "bg-muted/40",
-          ].join(" ")}
+          className="absolute rounded-full"
+          style={{
+            width: middleSize,
+            height: middleSize,
+            background: isSpeaking
+              ? "conic-gradient(from 120deg, transparent, rgba(var(--brand-orange-rgb, 255 140 50), 0.2), transparent, rgba(var(--brand-orange-rgb, 255 140 50), 0.12), transparent)"
+              : isListening
+                ? "conic-gradient(from 120deg, transparent, rgba(var(--brand-orange-rgb, 255 140 50), 0.08), transparent)"
+                : "none",
+            border: isConnected
+              ? "1px solid rgba(var(--brand-orange-rgb, 255 140 50), 0.12)"
+              : "1px solid var(--border)",
+            opacity: isConnected ? 1 : 0.2,
+            animation: isConnected
+              ? isSpeaking
+                ? "walkai-orb-ring-reverse 5s linear infinite, walkai-orb-speak-pulse 1.2s ease-in-out infinite"
+                : "walkai-orb-ring-reverse 12s linear infinite"
+              : undefined,
+            transition: "opacity 300ms, border-color 300ms",
+          }}
+          aria-hidden
+        />
+
+        {/* Ring 3 — inner glow ring */}
+        <div
+          className="absolute rounded-full"
+          style={{
+            width: innerSize,
+            height: innerSize,
+            background: isSpeaking
+              ? "radial-gradient(circle, rgba(var(--brand-orange-rgb, 255 140 50), 0.15) 0%, rgba(var(--brand-orange-rgb, 255 140 50), 0.05) 60%, transparent 100%)"
+              : isListening
+                ? "radial-gradient(circle, rgba(var(--brand-orange-rgb, 255 140 50), 0.08) 0%, transparent 70%)"
+                : isThinking
+                  ? "radial-gradient(circle, rgba(var(--brand-orange-rgb, 255 140 50), 0.06) 0%, transparent 70%)"
+                  : "none",
+            border: isConnected
+              ? "1px solid rgba(var(--brand-orange-rgb, 255 140 50), 0.15)"
+              : "1px solid var(--border)",
+            opacity: isConnected ? 1 : 0.15,
+            animation: isListening ? "walkai-orb-listen 3s ease-in-out infinite" : undefined,
+            transition: "all 300ms",
+          }}
+          aria-hidden
+        />
+
+        {/* Core orb — gradient fill */}
+        <div
+          className="relative flex items-center justify-center rounded-full transition-all duration-300"
+          style={{
+            width: coreSize,
+            height: coreSize,
+            background: isSpeaking
+              ? "radial-gradient(circle at 35% 35%, rgba(var(--brand-orange-rgb, 255 140 50), 0.5), rgba(var(--brand-orange-rgb, 255 140 50), 0.25) 60%, rgba(var(--brand-orange-rgb, 255 140 50), 0.1) 100%)"
+              : isConnected
+                ? "radial-gradient(circle at 35% 35%, rgba(var(--brand-orange-rgb, 255 140 50), 0.2), rgba(var(--brand-orange-rgb, 255 140 50), 0.08) 70%, transparent 100%)"
+                : "var(--accent)",
+            boxShadow: isSpeaking
+              ? "0 0 30px 8px rgba(var(--brand-orange-rgb, 255 140 50), 0.2), 0 0 60px 16px rgba(var(--brand-orange-rgb, 255 140 50), 0.08), inset 0 0 20px rgba(var(--brand-orange-rgb, 255 140 50), 0.15)"
+              : isListening
+                ? "0 0 20px 4px rgba(var(--brand-orange-rgb, 255 140 50), 0.1), inset 0 0 12px rgba(var(--brand-orange-rgb, 255 140 50), 0.05)"
+                : "none",
+            transform: isSpeaking ? "scale(1.08)" : "scale(1)",
+          }}
         >
-          {agent.isSpeaking ? (
-            <div className="flex items-center gap-[3px]" aria-hidden>
-              {[0, 1, 2, 3, 4].map((i) => (
+          {/* Waveform bars inside core when speaking */}
+          {isSpeaking ? (
+            <div className="flex items-center justify-center gap-[3px]" aria-hidden>
+              {[0, 1, 2, 3, 4, 5, 6].map((i) => (
                 <div
                   key={i}
-                  className="bg-brand-orange w-[3px] animate-[walkai-bar_0.8s_ease-in-out_infinite] rounded-full"
+                  className="rounded-full bg-white/70"
                   style={{
-                    height: (isCompact ? 6 : 8) + Math.abs(2 - i) * (isCompact ? 2.5 : 3.5),
-                    animationDelay: `${i * 0.07}s`,
+                    width: isCompact ? 2 : 3,
+                    height: isCompact ? 16 : 24,
+                    animation: `walkai-waveform-${(i % 3) + 1} ${0.6 + i * 0.08}s ease-in-out infinite`,
+                    animationDelay: `${i * 0.05}s`,
                   }}
                 />
               ))}
             </div>
-          ) : agent.status === "thinking" || agent.status === "connecting" ? (
-            <div className="bg-brand-orange/40 h-2 w-2 animate-[walkai-pulse_1.5s_ease-in-out_infinite] rounded-full" />
-          ) : agent.isConnected ? (
-            <div className="border-brand-orange/25 bg-brand-orange/12 h-2.5 w-2.5 rounded-full border-2" />
+          ) : isThinking ? (
+            <div
+              className="bg-brand-orange/40 animate-[walkai-pulse_1.5s_ease-in-out_infinite] rounded-full"
+              style={{ width: isCompact ? 8 : 12, height: isCompact ? 8 : 12 }}
+            />
+          ) : isConnected ? (
+            <div
+              className="bg-brand-orange/30 rounded-full"
+              style={{
+                width: isCompact ? 10 : 14,
+                height: isCompact ? 10 : 14,
+                border: "2px solid rgba(var(--brand-orange-rgb, 255 140 50), 0.2)",
+              }}
+            />
           ) : (
-            <div className="bg-muted-foreground/15 h-1.5 w-1.5 rounded-full" />
+            <div className="bg-muted-foreground/15 h-2 w-2 rounded-full" />
           )}
         </div>
+
+        {/* Particles — burst outward when speaking */}
+        {isSpeaking &&
+          particles.map((p, i) => (
+            <div
+              key={i}
+              className="bg-brand-orange/70 pointer-events-none absolute rounded-full"
+              style={{
+                width: p.size,
+                height: p.size,
+                top: "50%",
+                left: "50%",
+                marginTop: -p.size / 2,
+                marginLeft: -p.size / 2,
+                // @ts-expect-error -- CSS custom properties for particle animation
+                "--tx": `${p.tx}px`,
+                "--ty": `${p.ty}px`,
+                animation: `walkai-orb-particle ${p.duration}s ease-out infinite`,
+                animationDelay: `${p.delay}s`,
+              }}
+              aria-hidden
+            />
+          ))}
+
+        {/* Thinking shimmer ring */}
+        {isThinking && (
+          <div
+            className="pointer-events-none absolute rounded-full"
+            style={{
+              width: innerSize + 8,
+              height: innerSize + 8,
+              border: "1px dashed rgba(var(--brand-orange-rgb, 255 140 50), 0.2)",
+              animation: "walkai-orb-think 3s ease-in-out infinite",
+            }}
+            aria-hidden
+          />
+        )}
       </div>
 
       {/* Live speech — fixed height, no jump */}
@@ -524,43 +935,19 @@ function VisualizerView() {
   );
 }
 
-/* ━━━ View: Chat (tabbed — Chat / Minne / Logg) ━━━ */
-
-type ChatTab = "chat" | "memory" | "log";
+/* ━━━ View: Chat — conversation transcript ━━━ */
 
 function ChatView() {
-  const [tab, setTab] = useState<ChatTab>("chat");
-
-  const tabs: { id: ChatTab; label: string }[] = [
-    { id: "chat", label: "Chat" },
-    { id: "memory", label: "Minne" },
-    { id: "log", label: "Logg" },
-  ];
-
   return (
     <div className="flex h-full flex-col" data-walkai-content>
-      {/* Tab bar */}
-      <div className="border-border/20 flex border-b px-3 pt-1">
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={[
-              "-mb-px border-b-2 px-3 py-1.5 text-[11px] font-medium transition-colors duration-100",
-              tab === t.id
-                ? "border-brand-orange text-foreground"
-                : "text-muted-foreground/50 hover:text-muted-foreground border-transparent",
-            ].join(" ")}
-          >
-            {t.label}
-          </button>
-        ))}
+      {/* Section title */}
+      <div className="border-border/20 flex items-center justify-between border-b px-4 pt-3 pb-2">
+        <div>
+          <h3 className="text-foreground text-sm font-bold">Samtale</h3>
+          <p className="text-muted-foreground/40 text-[10px]">Transkripsjon av samtalen</p>
+        </div>
       </div>
-
-      {/* Tab content */}
-      {tab === "chat" && <TranscriptPane />}
-      {tab === "memory" && <MemoryPane />}
-      {tab === "log" && <LogPane />}
+      <TranscriptPane />
     </div>
   );
 }
@@ -574,165 +961,73 @@ function TranscriptPane() {
   }, [agent.transcript]);
 
   return (
-    <div ref={scrollRef} className="flex-1 space-y-2 overflow-y-auto px-4 py-3">
+    <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
       {agent.transcript.length === 0 ? (
-        <div className="flex h-full items-center justify-center">
-          <p className="text-muted-foreground/40 text-xs">{agent.isConnected ? "Lytter..." : ""}</p>
+        <div className="flex h-full flex-col items-center justify-center gap-3">
+          <div className="bg-accent/30 flex h-12 w-12 items-center justify-center rounded-2xl">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 20 20"
+              fill="none"
+              className="text-muted-foreground/20"
+            >
+              <path
+                d="M3 4H17V14H6L3 17V4Z"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M7 8H13M7 11H10"
+                stroke="currentColor"
+                strokeWidth="1.2"
+                strokeLinecap="round"
+              />
+            </svg>
+          </div>
+          <p className="text-muted-foreground/30 text-xs">
+            {agent.isConnected ? "Lytter..." : "Start en samtale med Emma"}
+          </p>
         </div>
       ) : (
         agent.transcript.map((entry, i) => (
           <div
             key={i}
-            className={
-              entry.role === "user"
-                ? "bg-brand-orange/10 text-foreground ml-auto max-w-[80%] rounded-2xl rounded-br-sm px-3.5 py-2 text-[13px]"
-                : "bg-accent/50 text-foreground max-w-[80%] rounded-2xl rounded-bl-sm px-3.5 py-2 text-[13px]"
-            }
+            className={entry.role === "user" ? "flex justify-end" : "flex justify-start"}
           >
-            {entry.text}
+            {entry.role !== "user" && (
+              <div className="mt-1 mr-2 flex-shrink-0">
+                <div className="from-brand-orange/60 to-brand-orange/30 flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br">
+                  <span className="text-[9px] font-bold text-white/90">E</span>
+                </div>
+              </div>
+            )}
+            <div
+              className={
+                entry.role === "user"
+                  ? "bg-brand-orange/10 border-brand-orange/10 text-foreground max-w-[78%] rounded-2xl rounded-br-md border px-3.5 py-2.5 text-[13px] leading-relaxed"
+                  : "bg-card border-border/30 text-foreground max-w-[78%] rounded-2xl rounded-bl-md border px-3.5 py-2.5 text-[13px] leading-relaxed shadow-sm"
+              }
+            >
+              {entry.text}
+            </div>
           </div>
         ))
       )}
-      {/* currentText is already included in agent.transcript — no extra bubble needed */}
-    </div>
-  );
-}
-
-function MemoryPane() {
-  const { notes, telemetryEvents } = useWalkAi();
-
-  const recentNotes = notes.slice(0, 10);
-  const uniquePages = [...new Set(telemetryEvents.map((e) => e.category))].slice(0, 8);
-
-  return (
-    <div className="flex-1 space-y-4 overflow-y-auto px-4 py-3">
-      {/* What Emma knows */}
-      <div>
-        <p className="text-muted-foreground/40 mb-2 text-[10px] tracking-wider uppercase">
-          Emmas notater
-        </p>
-        {recentNotes.length === 0 ? (
-          <p className="text-muted-foreground/30 text-xs">Ingen notater ennå</p>
-        ) : (
-          <div className="space-y-1.5">
-            {recentNotes.map((note) => (
-              <div key={note.id} className="bg-accent/20 rounded-lg px-3 py-2">
-                <p className="text-foreground truncate text-[11px] font-medium">{note.topic}</p>
-                <p className="text-muted-foreground/50 mt-0.5 line-clamp-2 text-[10px]">
-                  {note.content}
-                </p>
-                <div className="mt-1 flex items-center gap-2">
-                  <span className="text-muted-foreground/30 text-[9px]">
-                    {formatTimeAgo(note.createdAt)}
-                  </span>
-                  {note.tags.length > 0 && (
-                    <div className="flex gap-0.5">
-                      {note.tags.slice(0, 3).map((tag) => (
-                        <span
-                          key={tag}
-                          className="bg-brand-orange/10 text-brand-orange/60 rounded px-1 text-[8px]"
-                        >
-                          @{tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Context awareness */}
-      <div>
-        <p className="text-muted-foreground/40 mb-2 text-[10px] tracking-wider uppercase">
-          Kontekst
-        </p>
-        <div className="space-y-1">
-          {uniquePages.length > 0 ? (
-            uniquePages.map((cat) => (
-              <div key={cat} className="bg-accent/10 flex items-center gap-2 rounded-md px-2 py-1">
-                <div className="bg-brand-orange/40 h-1.5 w-1.5 rounded-full" />
-                <span className="text-foreground/60 text-[11px]">{cat}</span>
-                <span className="text-muted-foreground/30 ml-auto text-[9px]">
-                  {telemetryEvents.filter((e) => e.category === cat).length}
-                </span>
-              </div>
-            ))
-          ) : (
-            <p className="text-muted-foreground/30 text-xs">Ingen aktivitet registrert</p>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function formatAgo(timestamp: number, now: number): string {
-  const ago = Math.round((now - timestamp) / 1000);
-  if (ago < 60) return `${ago}s`;
-  return `${Math.round(ago / 60)}m`;
-}
-
-function LogPane() {
-  const { telemetryEvents, clearTelemetry } = useWalkAi();
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [now, setNow] = useState(() => Date.now());
-
-  useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [telemetryEvents]);
-
-  // Update "now" when events change so time labels refresh
-  useEffect(() => {
-    setNow(Date.now());
-  }, [telemetryEvents]);
-
-  return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      {/* Header with clear */}
-      <div className="flex items-center justify-between px-4 py-1.5">
-        <p className="text-muted-foreground/40 text-[10px] tracking-wider uppercase">
-          {telemetryEvents.length} hendelser
-        </p>
-        {telemetryEvents.length > 0 && (
-          <button
-            onClick={clearTelemetry}
-            className="text-muted-foreground/30 hover:text-muted-foreground text-[10px] transition-colors"
-          >
-            Tøm
-          </button>
-        )}
-      </div>
-
-      <div ref={scrollRef} className="flex-1 space-y-0.5 overflow-y-auto px-4 pb-3">
-        {telemetryEvents.length === 0 ? (
-          <div className="flex h-full items-center justify-center">
-            <p className="text-muted-foreground/30 text-xs">Ingen hendelser</p>
-          </div>
-        ) : (
-          telemetryEvents.map((ev, i) => (
-            <div
-              key={i}
-              className="border-border/5 flex items-start gap-2 border-b py-1 last:border-0"
-            >
-              <span className="text-muted-foreground/30 mt-0.5 w-6 flex-shrink-0 text-right font-mono text-[9px]">
-                {formatAgo(ev.timestamp, now)}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-foreground/70 truncate text-[11px]">{ev.event}</p>
-                {ev.summary !== ev.event && (
-                  <p className="text-muted-foreground/40 truncate text-[9px]">{ev.summary}</p>
-                )}
-              </div>
-              <span className="bg-accent/30 text-muted-foreground/40 flex-shrink-0 rounded px-1.5 py-0.5 text-[8px]">
-                {ev.category}
-              </span>
+      {agent.isSpeaking && agent.currentText && (
+        <div className="flex justify-start">
+          <div className="mt-1 mr-2 flex-shrink-0">
+            <div className="from-brand-orange/40 to-brand-orange/20 flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br">
+              <span className="text-[9px] font-bold text-white/60">E</span>
             </div>
-          ))
-        )}
-      </div>
+          </div>
+          <div className="bg-card/50 border-border/20 text-foreground/50 max-w-[78%] rounded-2xl rounded-bl-md border px-3.5 py-2.5 text-[13px] leading-relaxed">
+            {agent.currentText}
+            <span className="bg-brand-orange/40 ml-1 inline-block h-3.5 w-1.5 animate-[walkai-pulse_1s_ease-in-out_infinite] rounded-sm" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -767,7 +1062,7 @@ function NotepadView() {
       // Only update if meaningfully different (avoid loops)
       updateNote(activeNoteId, content, autoTopic);
     }
-  }, [content]);
+  }, [content]); // intentional: only track content changes
 
   const hasContent = content.trim().length > 0;
   const hasNotes = notes.length > 0;
@@ -779,6 +1074,12 @@ function NotepadView() {
         className="flex h-full flex-col items-center justify-center gap-4 px-6"
         data-walkai-content
       >
+        {/* Section title */}
+        <div className="absolute top-3 left-4">
+          <h3 className="text-muted-foreground/40 text-xs font-semibold tracking-wider uppercase">
+            Notater
+          </h3>
+        </div>
         <div className="flex animate-[walkai-fade-in_300ms_ease-out_forwards] flex-col items-center gap-2 opacity-0">
           <svg
             width="32"
@@ -808,7 +1109,7 @@ function NotepadView() {
             createNote("Notat", "");
             setIsEditing(true);
           }}
-          className="bg-brand-orange/10 text-brand-orange hover:bg-brand-orange/15 flex animate-[walkai-fade-in_300ms_ease-out_100ms_forwards] items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium opacity-0 transition-colors"
+          className="bg-brand-orange/10 text-brand-orange hover:bg-brand-orange/15 flex animate-[walkai-fade-in_300ms_ease-out_100ms_forwards] items-center gap-2 rounded-xl px-5 py-3 text-sm font-medium opacity-0 transition-colors"
         >
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
             <path
@@ -826,17 +1127,24 @@ function NotepadView() {
 
   return (
     <div className="flex h-full" data-walkai-content>
-      {/* Note list sidebar — compact */}
-      <div className="border-border/20 w-[120px] flex-shrink-0 overflow-y-auto border-r py-2">
-        {/* New note button */}
+      {/* Section title */}
+      <div className="absolute top-1 left-4 z-10">
+        <h3 className="text-muted-foreground/30 text-[10px] font-semibold tracking-wider uppercase">
+          Notater
+        </h3>
+      </div>
+
+      {/* Note list sidebar — mini-card style */}
+      <div className="border-border/20 w-[140px] flex-shrink-0 space-y-1 overflow-y-auto border-r px-1.5 py-2">
+        {/* New note button — prominent */}
         <button
           onClick={() => {
             createNote("Notat", "");
             setIsEditing(true);
           }}
-          className="text-brand-orange/60 hover:text-brand-orange hover:bg-brand-orange/5 flex w-full items-center gap-1 px-3 py-1.5 text-left text-[10px] transition-colors"
+          className="border-brand-orange/25 bg-brand-orange/5 text-brand-orange hover:bg-brand-orange/10 hover:border-brand-orange/40 flex w-full items-center gap-1.5 rounded-lg border border-dashed px-2.5 py-2 text-left text-[11px] font-medium transition-colors"
         >
-          <svg width="10" height="10" viewBox="0 0 16 16" fill="none">
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="none">
             <path
               d="M8 3V13M3 8H13"
               stroke="currentColor"
@@ -852,24 +1160,24 @@ function NotepadView() {
             key={note.id}
             onClick={() => setActiveNote(note.id)}
             className={[
-              "w-full px-3 py-2 text-left transition-colors",
+              "w-full rounded-lg px-2.5 py-2 text-left transition-all duration-150",
               note.id === activeNoteId
-                ? "bg-brand-orange/5 border-brand-orange/40 border-r-2"
-                : "hover:bg-accent/30",
+                ? "bg-brand-orange/8 border-brand-orange/20 border shadow-[0_0_8px_-2px_rgba(var(--brand-orange-rgb),0.1)]"
+                : "hover:bg-accent/40 hover:border-border/30 border border-transparent",
             ].join(" ")}
           >
-            <span className="text-foreground block truncate text-[11px] font-medium">
+            <span className="text-foreground block truncate text-[11px] leading-tight font-semibold">
               {note.topic}
             </span>
-            <span className="text-muted-foreground/50 mt-0.5 block text-[9px]">
+            <span className="bg-accent/60 text-muted-foreground/60 mt-1 inline-block rounded px-1.5 py-0.5 text-[9px] font-medium">
               {formatTimeAgo(note.createdAt)}
             </span>
             {note.tags.length > 0 && (
-              <div className="mt-1 flex flex-wrap gap-0.5">
+              <div className="mt-1.5 flex flex-wrap gap-1">
                 {note.tags.slice(0, 2).map((tag) => (
                   <span
                     key={tag}
-                    className="bg-brand-orange/10 text-brand-orange/70 rounded px-1 text-[8px]"
+                    className="bg-brand-orange/10 text-brand-orange/70 rounded-full px-1.5 py-px text-[8px] font-medium"
                   >
                     @{tag}
                   </span>
@@ -888,7 +1196,7 @@ function NotepadView() {
             <button
               onClick={() => setIsEditing(!isEditing)}
               className={[
-                "flex h-6 items-center rounded-md px-2 text-[10px] transition-all duration-150",
+                "flex h-7 items-center rounded-lg px-2.5 text-[11px] transition-all duration-150",
                 isEditing
                   ? "text-brand-orange bg-brand-orange/8"
                   : "text-muted-foreground/50 hover:text-muted-foreground hover:bg-accent/50",
@@ -920,14 +1228,27 @@ function NotepadView() {
           </div>
         )}
 
-        {/* Metadata bar */}
+        {/* Metadata header bar */}
         {activeNote && (
-          <div className="border-border/10 flex items-center gap-2 border-b px-4 py-1.5">
-            <span className="text-muted-foreground/40 text-[10px]">{activeNote.topic}</span>
-            <span className="text-muted-foreground/30 text-[9px]">·</span>
-            <span className="text-muted-foreground/30 text-[9px]">
+          <div className="border-border/20 bg-accent/20 flex items-center gap-3 border-b px-4 py-2.5">
+            <h4 className="text-foreground flex-1 truncate text-sm font-semibold">
+              {activeNote.topic}
+            </h4>
+            <span className="bg-accent/60 text-muted-foreground/60 flex-shrink-0 rounded-md px-2 py-0.5 text-[10px] font-medium">
               {formatTime(activeNote.createdAt)}
             </span>
+            {activeNote.tags.length > 0 && (
+              <div className="flex flex-shrink-0 gap-1">
+                {activeNote.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="bg-brand-orange/10 text-brand-orange/70 rounded-full px-2 py-0.5 text-[10px] font-medium"
+                  >
+                    @{tag}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -1285,7 +1606,14 @@ function CalculatorView() {
   };
 
   return (
-    <div className="flex h-full flex-col px-4 py-3" data-walkai-content>
+    <div className="relative flex h-full flex-col px-4 py-3" data-walkai-content>
+      {/* Section title */}
+      <div className="mb-2">
+        <h3 className="text-muted-foreground/40 text-xs font-semibold tracking-wider uppercase">
+          Kalkulator
+        </h3>
+      </div>
+
       {/* Display */}
       <div className="bg-accent/20 mb-3 animate-[walkai-fade-in_200ms_ease-out_forwards] rounded-xl px-4 py-3 opacity-0">
         {expression && (
@@ -1305,7 +1633,7 @@ function CalculatorView() {
             key={btn.label}
             onClick={btn.action}
             className={[
-              "flex items-center justify-center rounded-xl text-sm font-medium transition-all duration-100",
+              "flex min-h-[40px] items-center justify-center rounded-xl text-sm font-medium transition-all duration-100",
               btnClass(btn.style),
             ].join(" ")}
           >
@@ -1317,75 +1645,40 @@ function CalculatorView() {
   );
 }
 
-/* ━━━ View: Settings — Agent configuration ━━━ */
+/* ━━━ View: Settings — Emma's profile (same as WalkAi page) ━━━ */
 
 function SettingsView() {
-  const { identity, voiceTuning, setIdentity, setVoiceTuning } = useWalkAi();
+  const { switchView } = useWalkAi();
 
   return (
-    <div className="flex h-full flex-col space-y-5 overflow-y-auto px-4 py-4" data-walkai-content>
-      <div className="animate-[walkai-fade-in_200ms_ease-out_forwards] opacity-0">
-        <label className="text-muted-foreground/50 mb-1.5 block text-[10px] tracking-wider uppercase">
-          Persona
-        </label>
-        <div className="grid grid-cols-2 gap-1.5">
-          {(["saga", "puls", "gnist", "vakt"] as const).map((p) => (
-            <button
-              key={p}
-              onClick={() => setIdentity({ persona: p })}
-              className={[
-                "rounded-lg px-3 py-2 text-xs font-medium transition-colors duration-100",
-                identity.persona === p
-                  ? "bg-brand-orange/10 text-brand-orange border-brand-orange/20 border"
-                  : "bg-accent/30 text-muted-foreground hover:bg-accent/60",
-              ].join(" ")}
-            >
-              {PERSONAS[p].name}
-            </button>
-          ))}
+    <div className="flex h-full flex-col" data-walkai-content>
+      {/* Fixed header with close button */}
+      <div className="border-border/20 flex items-center justify-between border-b px-5 pt-3 pb-2">
+        <div>
+          <h3 className="text-foreground text-sm font-bold">Agent-innstillinger</h3>
+          <p className="text-muted-foreground/40 text-[10px]">
+            Endringer tar effekt ved neste samtale
+          </p>
         </div>
+        <button
+          onClick={() => switchView("visualizer")}
+          onPointerDown={(e) => e.stopPropagation()}
+          className="text-muted-foreground/40 hover:text-muted-foreground hover:bg-accent flex h-8 w-8 items-center justify-center rounded-lg transition-colors duration-150"
+          aria-label="Lukk innstillinger"
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path
+              d="M3 3L11 11M11 3L3 11"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            />
+          </svg>
+        </button>
       </div>
-
-      <div className="animate-[walkai-fade-in_200ms_ease-out_60ms_forwards] opacity-0">
-        <label className="text-muted-foreground/50 mb-1.5 block text-[10px] tracking-wider uppercase">
-          Temperatur
-        </label>
-        <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.1"
-          value={voiceTuning.temperature}
-          onChange={(e) => setVoiceTuning({ temperature: parseFloat(e.target.value) })}
-          className="accent-brand-orange w-full"
-        />
-        <div className="text-muted-foreground/40 mt-0.5 flex justify-between text-[10px]">
-          <span>Presis</span>
-          <span>{voiceTuning.temperature}</span>
-          <span>Kreativ</span>
-        </div>
-      </div>
-
-      <div className="animate-[walkai-fade-in_200ms_ease-out_120ms_forwards] opacity-0">
-        <label className="text-muted-foreground/50 mb-1.5 block text-[10px] tracking-wider uppercase">
-          Første taler
-        </label>
-        <div className="flex gap-1.5">
-          {(["user", "agent"] as const).map((s) => (
-            <button
-              key={s}
-              onClick={() => setVoiceTuning({ firstSpeaker: s })}
-              className={[
-                "flex-1 rounded-lg px-3 py-2 text-xs font-medium transition-colors duration-100",
-                voiceTuning.firstSpeaker === s
-                  ? "bg-brand-orange/10 text-brand-orange border-brand-orange/20 border"
-                  : "bg-accent/30 text-muted-foreground hover:bg-accent/60",
-              ].join(" ")}
-            >
-              {s === "user" ? "Du" : "Emma"}
-            </button>
-          ))}
-        </div>
+      {/* Scrollable content */}
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+        <EmmaProfile />
       </div>
     </div>
   );
@@ -1437,37 +1730,83 @@ function TasksView() {
 
   return (
     <div className="flex h-full flex-col" data-walkai-content>
-      <div className="flex-1 space-y-1 overflow-y-auto px-4 py-3">
-        {pending.length === 0 && done.length === 0 && !showInput ? (
-          <div className="flex h-full animate-[walkai-fade-in_300ms_ease-out_forwards] flex-col items-center justify-center gap-3 opacity-0">
-            <svg
-              width="32"
-              height="32"
-              viewBox="0 0 20 20"
-              fill="none"
-              className="text-muted-foreground/15"
-            >
+      {/* Section header */}
+      <div className="flex items-center justify-between px-4 pt-3 pb-2">
+        <div>
+          <h3 className="text-foreground text-sm font-bold">Gjøremål</h3>
+          {pending.length > 0 && (
+            <p className="text-muted-foreground/50 text-[11px]">{pending.length} ventende</p>
+          )}
+        </div>
+        {!showInput && (pending.length > 0 || done.length > 0) && (
+          <button
+            onClick={() => setShowInput(true)}
+            className="text-brand-orange hover:bg-brand-orange/5 flex h-8 items-center gap-1.5 rounded-lg px-3 text-[12px] font-medium transition-colors"
+          >
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
               <path
-                d="M4 5L6 7L9 4"
+                d="M8 3V13M3 8H13"
                 stroke="currentColor"
                 strokeWidth="1.5"
                 strokeLinecap="round"
-                strokeLinejoin="round"
               />
-              <path d="M12 5.5H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              <path
-                d="M4 10L6 12L9 9"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path d="M12 10.5H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
-            <p className="text-muted-foreground/30 text-sm">Ingen gjøremål ennå</p>
+            Ny
+          </button>
+        )}
+      </div>
+
+      <div className="flex-1 space-y-1 overflow-y-auto px-4 pb-3">
+        {pending.length === 0 && done.length === 0 && !showInput ? (
+          <div className="flex h-full animate-[walkai-fade-in_300ms_ease-out_forwards] flex-col items-center justify-center gap-4 opacity-0">
+            <div className="relative">
+              <div className="bg-brand-orange/5 absolute inset-0 rounded-full blur-xl" />
+              <div className="bg-accent/30 border-border/20 relative flex h-14 w-14 items-center justify-center rounded-2xl border">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  className="text-muted-foreground/25"
+                >
+                  <path
+                    d="M4 5L6 7L9 4"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M12 5.5H16"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M4 10L6 12L9 9"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M12 10.5H16"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </div>
+            </div>
+            <div className="text-center">
+              <p className="text-muted-foreground/40 text-sm font-medium">Ingen gjøremål ennå</p>
+              <p className="text-muted-foreground/25 mt-0.5 text-[11px]">
+                Emma kan også opprette gjøremål for deg
+              </p>
+            </div>
             <button
               onClick={() => setShowInput(true)}
-              className="bg-brand-orange/10 text-brand-orange hover:bg-brand-orange/15 flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors"
+              className="bg-brand-orange/10 border-brand-orange/20 text-brand-orange hover:bg-brand-orange/15 flex items-center gap-2 rounded-xl border px-5 py-3 text-sm font-medium transition-all duration-200 hover:shadow-[0_0_12px_-3px_rgba(var(--brand-orange-rgb),0.2)]"
             >
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
                 <path
@@ -1483,8 +1822,8 @@ function TasksView() {
         ) : (
           <>
             {/* Add task input area */}
-            {showInput ? (
-              <div className="border-brand-orange/20 bg-brand-orange/5 mb-3 animate-[walkai-fade-in_150ms_ease-out_forwards] rounded-xl border p-2.5 opacity-0">
+            {showInput && (
+              <div className="border-brand-orange/20 bg-brand-orange/5 mb-3 animate-[walkai-fade-in_150ms_ease-out_forwards] rounded-xl border p-3.5 opacity-0">
                 <input
                   ref={inputRef}
                   value={newTitle}
@@ -1493,76 +1832,70 @@ function TasksView() {
                   placeholder="Hva skal gjøres?"
                   className="text-foreground placeholder:text-muted-foreground/30 w-full bg-transparent text-sm focus:outline-none"
                 />
-                <div className="mt-2 flex items-center justify-between">
-                  <p className="text-muted-foreground/30 text-[9px]">
-                    Enter for å legge til · Esc for å lukke
-                  </p>
-                  <div className="flex gap-1">
+                <div className="mt-3 flex items-center justify-between">
+                  <p className="text-muted-foreground/30 text-[10px]">Enter for å legge til</p>
+                  <div className="flex gap-1.5">
                     <button
                       onClick={() => {
                         setShowInput(false);
                         setNewTitle("");
                       }}
-                      className="text-muted-foreground/50 hover:text-muted-foreground hover:bg-accent/50 flex h-6 items-center rounded-md px-2 text-[10px] transition-colors"
+                      className="text-muted-foreground/50 hover:text-muted-foreground hover:bg-accent/50 flex h-7 items-center rounded-lg px-3 text-[11px] transition-colors"
                     >
                       Lukk
                     </button>
                     <button
                       onClick={handleAddTask}
                       disabled={!newTitle.trim()}
-                      className="bg-brand-orange flex h-6 items-center rounded-md px-2.5 text-[10px] font-medium text-white transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-30"
+                      className="bg-brand-orange flex h-7 items-center rounded-lg px-3 text-[11px] font-medium text-white transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-30"
                     >
                       Legg til
                     </button>
                   </div>
                 </div>
               </div>
-            ) : (
-              <button
-                onClick={() => setShowInput(true)}
-                className="text-muted-foreground/40 hover:text-brand-orange hover:bg-brand-orange/5 mb-2 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-[12px] transition-colors"
-              >
-                <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-                  <path
-                    d="M8 3V13M3 8H13"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                  />
-                </svg>
-                Legg til gjøremål
-              </button>
             )}
 
             {pending.length > 0 && (
-              <div className="space-y-1">
-                <p className="text-muted-foreground/40 mb-2 text-[10px] tracking-wider uppercase">
+              <div className="space-y-2">
+                <p className="text-muted-foreground/40 mb-1 text-[10px] tracking-wider uppercase">
                   Å gjøre
                 </p>
                 {pending.map((task, i) => (
                   <button
                     key={task.id}
                     onClick={() => completeTask(task.id)}
-                    className="group hover:bg-accent/30 flex w-full animate-[walkai-fade-in_200ms_ease-out_forwards] items-start gap-2.5 rounded-lg px-2 py-2 text-left opacity-0 transition-colors"
+                    className="group border-border/20 bg-card/50 hover:border-brand-orange/20 hover:bg-brand-orange/[0.03] relative flex w-full animate-[walkai-fade-in_200ms_ease-out_forwards] items-start gap-3 overflow-hidden rounded-xl border px-3.5 py-3 text-left opacity-0 transition-all duration-150"
                     style={{ animationDelay: `${i * 40}ms` }}
                   >
-                    <div className="border-border/60 group-hover:border-brand-orange/40 mt-0.5 h-4 w-4 flex-shrink-0 rounded border transition-colors" />
+                    {/* Left accent bar */}
+                    <div className="bg-brand-orange/30 group-hover:bg-brand-orange/60 absolute top-0 bottom-0 left-0 w-[3px] rounded-l-xl transition-colors" />
+                    <div className="border-border/40 group-hover:border-brand-orange/50 mt-0.5 h-5 w-5 flex-shrink-0 rounded-md border-2 transition-colors" />
                     <div className="min-w-0 flex-1">
-                      <p className="text-foreground truncate text-sm">{task.title}</p>
+                      <p className="text-foreground truncate text-sm font-medium">{task.title}</p>
                       {task.description && (
-                        <p className="text-muted-foreground/50 mt-0.5 line-clamp-2 text-[11px]">
+                        <p className="text-muted-foreground/50 mt-1 line-clamp-2 text-[11px] leading-relaxed">
                           {task.description}
                         </p>
                       )}
                       {task.dueAt && (
-                        <p className="text-brand-orange/60 mt-1 text-[10px]">
+                        <span className="bg-brand-orange/8 border-brand-orange/15 text-brand-orange/70 mt-1.5 inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-medium">
+                          <svg width="10" height="10" viewBox="0 0 16 16" fill="none">
+                            <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.2" />
+                            <path
+                              d="M8 5V8.5L10.5 10"
+                              stroke="currentColor"
+                              strokeWidth="1.2"
+                              strokeLinecap="round"
+                            />
+                          </svg>
                           {new Date(task.dueAt).toLocaleString("nb-NO", {
                             day: "numeric",
                             month: "short",
                             hour: "2-digit",
                             minute: "2-digit",
                           })}
-                        </p>
+                        </span>
                       )}
                     </div>
                   </button>
@@ -1571,13 +1904,18 @@ function TasksView() {
             )}
 
             {done.length > 0 && (
-              <div className="mt-4 space-y-1">
-                <p className="text-muted-foreground/30 mb-2 text-[10px] tracking-wider uppercase">
+              <div className="mt-4 space-y-1.5">
+                <p className="text-muted-foreground/30 mb-1 text-[10px] tracking-wider uppercase">
                   Fullført
                 </p>
                 {done.slice(0, 5).map((task) => (
-                  <div key={task.id} className="flex items-center gap-2.5 px-2 py-1.5">
-                    <div className="border-brand-orange/30 bg-brand-orange/10 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border">
+                  <div
+                    key={task.id}
+                    className="border-border/10 bg-accent/15 relative flex items-center gap-3 overflow-hidden rounded-xl border px-3.5 py-2.5"
+                  >
+                    {/* Left accent bar — muted for done */}
+                    <div className="absolute top-0 bottom-0 left-0 w-[3px] rounded-l-xl bg-emerald-500/20" />
+                    <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md border border-emerald-500/25 bg-emerald-500/10">
                       <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
                         <path
                           d="M2.5 6L5 8.5L9.5 3.5"
@@ -1585,11 +1923,11 @@ function TasksView() {
                           strokeWidth="1.5"
                           strokeLinecap="round"
                           strokeLinejoin="round"
-                          className="text-brand-orange"
+                          className="text-emerald-500/60"
                         />
                       </svg>
                     </div>
-                    <p className="text-muted-foreground/50 truncate text-sm line-through">
+                    <p className="text-muted-foreground/40 truncate text-sm line-through">
                       {task.title}
                     </p>
                   </div>
@@ -1624,6 +1962,36 @@ function VideoView() {
     </div>
   );
 }
+function LogView() {
+  return (
+    <div
+      className="text-muted-foreground/20 flex h-full items-center justify-center text-xs"
+      data-walkai-content
+    >
+      Logg
+    </div>
+  );
+}
+function MemoryView() {
+  return (
+    <div
+      className="text-muted-foreground/20 flex h-full items-center justify-center text-xs"
+      data-walkai-content
+    >
+      Minne
+    </div>
+  );
+}
+function HistoryView() {
+  return (
+    <div
+      className="text-muted-foreground/20 flex h-full items-center justify-center text-xs"
+      data-walkai-content
+    >
+      Historikk
+    </div>
+  );
+}
 
 /* ━━━ View registry ━━━ */
 
@@ -1636,22 +2004,175 @@ const VIEW_COMPONENTS: Record<ContentViewType, React.ComponentType> = {
   tasks: TasksView,
   form: FormView,
   video: VideoView,
+  log: LogView,
+  memory: MemoryView,
+  history: HistoryView,
 };
+
+/* ━━━ Resize handles — visible grip indicators ━━━ */
+
+function ResizeHandles() {
+  const { setArenaSize, setResizing, state } = useWalkAi();
+  const resizeState = useRef({ startX: 0, startY: 0, startW: 0, startH: 0, edge: "" });
+
+  const handleResizeStart = useCallback(
+    (e: React.PointerEvent, edge: string) => {
+      e.preventDefault();
+      e.stopPropagation();
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+      resizeState.current = {
+        startX: e.clientX,
+        startY: e.clientY,
+        startW: state.arenaSize.width,
+        startH: state.arenaSize.height,
+        edge,
+      };
+      setResizing(true);
+    },
+    [state.arenaSize, setResizing],
+  );
+
+  const handleResizeMove = useCallback(
+    (e: React.PointerEvent) => {
+      if (!state.isResizing) return;
+      const dx = e.clientX - resizeState.current.startX;
+      const dy = e.clientY - resizeState.current.startY;
+      const edge = resizeState.current.edge;
+
+      let w = resizeState.current.startW;
+      let h = resizeState.current.startH;
+
+      if (edge.includes("e")) w += dx;
+      if (edge.includes("s")) h += dy;
+      if (edge.includes("w")) w -= dx;
+      if (edge.includes("n")) h -= dy;
+
+      setArenaSize({
+        width: Math.max(320, Math.min(w, 900)),
+        height: Math.max(300, Math.min(h, 800)),
+      });
+    },
+    [state.isResizing, setArenaSize],
+  );
+
+  const handleResizeEnd = useCallback(
+    (e: React.PointerEvent) => {
+      if (!state.isResizing) return;
+      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+      setResizing(false);
+    },
+    [state.isResizing, setResizing],
+  );
+
+  const sharedProps = (edge: string, cursor: string) => ({
+    onPointerDown: (e: React.PointerEvent) => handleResizeStart(e, edge),
+    onPointerMove: handleResizeMove,
+    onPointerUp: handleResizeEnd,
+    style: { cursor } as React.CSSProperties,
+  });
+
+  return (
+    <>
+      {/* Bottom-right corner — primary resize, with visible grip */}
+      <div
+        className="group absolute right-0 bottom-0 z-30"
+        onPointerDown={(e) => handleResizeStart(e, "se")}
+        onPointerMove={handleResizeMove}
+        onPointerUp={handleResizeEnd}
+        style={{ width: 24, height: 24, cursor: "nwse-resize" }}
+      >
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 10 10"
+          className="text-muted-foreground/20 group-hover:text-muted-foreground/50 absolute right-1.5 bottom-1.5 transition-colors duration-200"
+        >
+          <path
+            d="M9 1L1 9M9 4L4 9M9 7L7 9"
+            stroke="currentColor"
+            strokeWidth="1.2"
+            strokeLinecap="round"
+          />
+        </svg>
+      </div>
+
+      {/* Bottom edge */}
+      <div
+        className="hover:bg-brand-orange/5 absolute right-6 bottom-0 left-6 z-20 h-2 rounded-b-xl transition-colors"
+        {...sharedProps("s", "ns-resize")}
+      />
+
+      {/* Right edge */}
+      <div
+        className="hover:bg-brand-orange/5 absolute top-6 right-0 bottom-6 z-20 w-2 rounded-r-xl transition-colors"
+        {...sharedProps("e", "ew-resize")}
+      />
+
+      {/* Resize overlay — captures all pointer events during resize */}
+      {state.isResizing && (
+        <div
+          className="fixed inset-0 z-50"
+          style={{ cursor: "nwse-resize" }}
+          onPointerMove={handleResizeMove}
+          onPointerUp={handleResizeEnd}
+        />
+      )}
+    </>
+  );
+}
 
 /* ━━━ Arena ━━━ */
 
 export function WalkAiArena({ dragHandleProps }: { dragHandleProps?: DragHandleProps }) {
-  const { activeView } = useWalkAi();
+  const { activeView, state, setArenaSize, setPosition, preSettingsSize, setPreSettingsSize } =
+    useWalkAi();
   const ViewComponent = VIEW_COMPONENTS[activeView];
+  const isArena = state.density === "arena";
+  const _isSettings = activeView === "settings";
+  const [menuOpen, setMenuOpen] = useState(false);
+  const prevViewRef = useRef(activeView);
+
+  // Expand arena when entering settings, restore when leaving
+  useEffect(() => {
+    const prev = prevViewRef.current;
+    prevViewRef.current = activeView;
+
+    if (activeView === "settings" && prev !== "settings") {
+      // Save current size and expand to ~80% viewport
+      setPreSettingsSize({ width: state.arenaSize.width, height: state.arenaSize.height });
+      const vw = typeof window !== "undefined" ? window.innerWidth : 1200;
+      const vh = typeof window !== "undefined" ? window.innerHeight : 800;
+      const newW = Math.min(Math.round(vw * 0.75), 900);
+      const newH = Math.min(Math.round(vh * 0.8), 800);
+      setArenaSize({ width: newW, height: newH });
+      // Center it
+      setPosition({
+        x: Math.round((vw - newW) / 2),
+        y: Math.round((vh - newH) / 2),
+      });
+    } else if (prev === "settings" && activeView !== "settings" && preSettingsSize) {
+      // Restore previous size
+      setArenaSize(preSettingsSize);
+      setPreSettingsSize(null);
+    }
+  }, [activeView]); // intentional: only track activeView changes
 
   return (
     <div className="relative flex h-full flex-col">
-      <ArenaHeader dragHandleProps={dragHandleProps} />
-      <div className="min-h-0 flex-1 animate-[walkai-scale-up_280ms_ease-out_60ms_forwards] opacity-0">
+      <ArenaHeader
+        dragHandleProps={dragHandleProps}
+        menuOpen={menuOpen}
+        setMenuOpen={setMenuOpen}
+      />
+      <div className="relative z-0 min-h-0 flex-1 animate-[walkai-scale-up_280ms_ease-out_60ms_forwards] opacity-0">
         <ViewComponent />
       </div>
       <VoiceControls />
       <ToolsFab />
+      <ContextFab />
+      {isArena && <ResizeHandles />}
+      {/* Menu overlay — renders at arena level, above everything */}
+      {menuOpen && <EmmaMenuOverlay onClose={() => setMenuOpen(false)} />}
     </div>
   );
 }

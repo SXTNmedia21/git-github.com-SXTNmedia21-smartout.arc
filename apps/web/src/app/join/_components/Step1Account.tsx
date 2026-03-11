@@ -8,15 +8,25 @@ import { Loader2, ArrowRight, Globe } from "lucide-react";
 import { useSignupWizard } from "../_hooks/useSignupWizard";
 import { step1Schema } from "../_lib/validation";
 
-interface Step1AccountProps {
-  userEmail: string;
-}
+const INDUSTRY_OPTIONS = [
+  { value: "restaurant", label: "Restaurant", nace: "56.101" },
+  { value: "cafe", label: "Kafé / Bakeri", nace: "56.102" },
+  { value: "bar", label: "Bar / Nattklubb", nace: "56.301" },
+  { value: "hotel", label: "Hotell", nace: "55.101" },
+  { value: "catering", label: "Catering", nace: "56.210" },
+  { value: "fast_food", label: "Hurtigmat / Takeaway", nace: "56.102" },
+  { value: "retail", label: "Butikk / Detaljhandel", nace: "47.110" },
+  { value: "other", label: "Annet", nace: "" },
+] as const;
 
-export function Step1Account({ userEmail }: Step1AccountProps) {
-  const { state, updateStep, nextStep, scrapeStatus, triggerScrape } = useSignupWizard();
+export function Step1Account() {
+  const { state, updateStep, nextStep, scrapeStatus, triggerScrape, lookupBrreg } =
+    useSignupWizard();
 
-  const [email, setEmail] = useState(state.step1.email ?? userEmail);
+  const [email, setEmail] = useState(state.step1.email ?? "");
   const [companyName, setCompanyName] = useState(state.step1.companyName ?? "");
+  const [industry, setIndustry] = useState(state.step1.industry ?? "");
+  const [city, setCity] = useState(state.step1.city ?? "");
   const [websiteUrl, setWebsiteUrl] = useState(state.step1.websiteUrl ?? "");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -55,6 +65,8 @@ export function Step1Account({ userEmail }: Step1AccountProps) {
     const result = step1Schema.safeParse({
       email,
       companyName,
+      industry,
+      city,
       websiteUrl,
     });
 
@@ -71,8 +83,13 @@ export function Step1Account({ userEmail }: Step1AccountProps) {
     updateStep("step1", {
       email: result.data.email,
       companyName: result.data.companyName,
+      industry: result.data.industry,
+      city: result.data.city,
       websiteUrl: result.data.websiteUrl,
     });
+
+    // Trigger BRREG lookup with company name + city for accurate matching
+    lookupBrreg(result.data.companyName, result.data.city);
     nextStep();
   };
 
@@ -118,8 +135,48 @@ export function Step1Account({ userEmail }: Step1AccountProps) {
           {errors.companyName && <p className="text-destructive text-xs">{errors.companyName}</p>}
         </div>
 
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="industry">Bransje</Label>
+            <select
+              id="industry"
+              value={industry}
+              onChange={(e) => {
+                setIndustry(e.target.value);
+                setErrors((prev) => ({ ...prev, industry: "" }));
+              }}
+              aria-invalid={!!errors.industry}
+              className="border-input bg-background text-foreground placeholder:text-muted-foreground flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-orange-500/40 focus-visible:outline-none"
+            >
+              <option value="">Velg bransje</option>
+              {INDUSTRY_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            {errors.industry && <p className="text-destructive text-xs">{errors.industry}</p>}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="city">By</Label>
+            <Input
+              id="city"
+              type="text"
+              placeholder="Oslo"
+              value={city}
+              onChange={(e) => {
+                setCity(e.target.value);
+                setErrors((prev) => ({ ...prev, city: "" }));
+              }}
+              aria-invalid={!!errors.city}
+            />
+            {errors.city && <p className="text-destructive text-xs">{errors.city}</p>}
+          </div>
+        </div>
+
         <div className="space-y-2">
-          <Label htmlFor="websiteUrl">Nettside URL</Label>
+          <Label htmlFor="websiteUrl">Hjemmeside</Label>
           <div className="relative">
             <Globe className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
             <Input

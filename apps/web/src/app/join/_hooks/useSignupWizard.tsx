@@ -10,8 +10,8 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { createClient } from "@smartout/supabase/client";
-import { useScrapedData, type ScrapeStatus } from "./useScrapedData";
+import { useScrapedData, type ScrapeStatus, type BrregData } from "./useScrapedData";
+import { useAiContent, type AiContent, type AiStatus } from "./useAiContent";
 import type {
   Step1Data,
   Step2Data,
@@ -22,7 +22,8 @@ import type {
 } from "../_lib/validation";
 
 const TOTAL_STEPS = 6;
-const PERSIST_DEBOUNCE_MS = 2000;
+const PERSIST_DEBOUNCE_MS = 1000;
+const STORAGE_KEY = "smartout_signup_wizard";
 
 export interface WizardState {
   currentStep: number;
@@ -59,6 +60,14 @@ export interface WizardContextValue {
   scrapedData: ScrapedData | null;
   scrapeStatus: ScrapeStatus;
   triggerScrape: (url: string) => Promise<void>;
+  // BRREG data
+  brregData: BrregData | null;
+  brregCandidates: BrregData[];
+  selectBrregCandidate: (candidate: BrregData) => void;
+  lookupBrreg: (companyName: string, city?: string) => Promise<void>;
+  // AI content generation
+  aiContent: AiContent | null;
+  aiStatus: AiStatus;
 }
 
 const defaultState: WizardState = {
@@ -82,67 +91,73 @@ interface WizardProviderProps {
 export function WizardProvider({ children, initialState }: WizardProviderProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { scrapedData, scrapeStatus, triggerScrape } = useScrapedData();
+  const {
+    scrapedData,
+    scrapeStatus,
+    triggerScrape,
+    brregData,
+    brregCandidates,
+    selectBrregCandidate,
+    lookupBrreg,
+  } = useScrapedData();
+  const { aiContent, aiStatus, generateContent } = useAiContent();
+  const aiTriggeredRef = useRef(false);
 
   const [state, setState] = useState<WizardState>(() => {
     const stepParam = searchParams.get("step");
     const currentStep = stepParam ? Math.max(1, Math.min(TOTAL_STEPS, Number(stepParam))) : 1;
 
+    // Restore from localStorage if no server-provided initialState
+    let restored = initialState;
+    if (!restored && typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) restored = JSON.parse(stored);
+      } catch {
+        /* ignore */
+      }
+    }
+
     return {
       ...defaultState,
-      ...initialState,
-      currentStep: isNaN(currentStep) ? 1 : currentStep,
+      ...restored,
+      currentStep: isNaN(currentStep) ? (restored?.currentStep ?? 1) : currentStep,
     };
   });
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Core persist logic (extracted for reuse by debounce + flush)
-  const doPersist = useCallback(async (wizardState: WizardState) => {
+  // Persist to localStorage (no auth needed)
+  const doPersist = useCallback((wizardState: WizardState) => {
     try {
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any).from("signup_progress").upsert(
-        {
-          auth_id: user.id,
-          current_step: wizardState.currentStep,
-          step_data: {
-            scrapeJobId: wizardState.scrapeJobId,
-            step1: wizardState.step1,
-            step2: wizardState.step2,
-            step3: wizardState.step3,
-            step4: wizardState.step4,
-            step5: wizardState.step5,
-            step6: wizardState.step6,
-          },
-        },
-        { onConflict: "auth_id" },
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({
+          currentStep: wizardState.currentStep,
+          scrapeJobId: wizardState.scrapeJobId,
+          step1: wizardState.step1,
+          step2: wizardState.step2,
+          step3: wizardState.step3,
+          step4: wizardState.step4,
+          step5: wizardState.step5,
+          step6: wizardState.step6,
+        }),
       );
-    } catch (error) {
-      console.error("[WizardProvider] Failed to persist state:", error);
+    } catch {
+      // localStorage might be full or unavailable
     }
   }, []);
 
-  // Persist state to signup_progress (debounced)
+  // Persist state to localStorage (debounced)
   const persistState = useCallback(
     (wizardState: WizardState) => {
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-      }
-
-      debounceRef.current = setTimeout(() => {
-        doPersist(wizardState);
-      }, PERSIST_DEBOUNCE_MS);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => doPersist(wizardState), PERSIST_DEBOUNCE_MS);
     },
     [doPersist],
   );
 
-  // Flush pending persist immediately (used before setup)
+  // Flush pending persist immediately
   const flushPersist = useCallback(() => {
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
@@ -150,6 +165,29 @@ export function WizardProvider({ children, initialState }: WizardProviderProps) 
     }
     doPersist(state);
   }, [doPersist, state]);
+
+  // Auto-trigger AI content generation when entering Step 3
+  // (or when scrape finishes while on Step 2+)
+  useEffect(() => {
+    if (aiTriggeredRef.current) return;
+    if (aiStatus === "generating") return;
+    if (state.currentStep < 2) return;
+
+    const hasScrape = scrapedData && (scrapeStatus === "success" || scrapeStatus === "partial");
+    const companyName = state.step1.companyName;
+
+    if (companyName && hasScrape) {
+      aiTriggeredRef.current = true;
+      generateContent(companyName, scrapedData);
+    }
+  }, [
+    state.currentStep,
+    state.step1.companyName,
+    scrapedData,
+    scrapeStatus,
+    aiStatus,
+    generateContent,
+  ]);
 
   // Sync URL when step changes
   useEffect(() => {
@@ -223,6 +261,12 @@ export function WizardProvider({ children, initialState }: WizardProviderProps) 
     scrapedData,
     scrapeStatus,
     triggerScrape,
+    brregData,
+    brregCandidates,
+    selectBrregCandidate,
+    lookupBrreg,
+    aiContent,
+    aiStatus,
   };
 
   return <WizardContext.Provider value={value}>{children}</WizardContext.Provider>;
