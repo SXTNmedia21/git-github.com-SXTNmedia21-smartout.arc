@@ -21,9 +21,9 @@ export const step2Schema = z.object({
 });
 
 export const step3Schema = z.object({
-  aboutUs: z.string().min(20, "Minimum 20 tegn"),
+  aboutUs: z.string().optional(),
   ourHistory: z.string().optional(),
-  ourConcept: z.string().min(20, "Minimum 20 tegn"),
+  ourConcept: z.string().optional(),
 });
 
 export const step4Schema = z.object({
