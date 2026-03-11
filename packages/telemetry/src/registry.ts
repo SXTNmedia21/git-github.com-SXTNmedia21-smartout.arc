@@ -389,6 +389,29 @@ export interface CommunicationFailed extends BaseEvent {
 }
 
 // ─── Contract Events ──────────────────────────
+export interface ContractCreated extends BaseEvent {
+  event: "contract created";
+  properties: {
+    entity: EntityRef;
+    data: {
+      template_id: string;
+      recipient_email: string;
+      contract_type: string;
+    };
+  };
+}
+
+export interface ContractSent extends BaseEvent {
+  event: "contract sent";
+  properties: {
+    entity: EntityRef;
+    data: {
+      recipient_email: string;
+      expires_at: string;
+    };
+  };
+}
+
 export interface ContractViewed extends BaseEvent {
   event: "contract viewed";
   properties: {
@@ -401,7 +424,18 @@ export interface ContractSigned extends BaseEvent {
   event: "contract signed";
   properties: {
     entity: EntityRef;
-    data: { recipient_email: string; signed_pdf_url?: string };
+    data: {
+      recipient_email: string;
+      signed_pdf_url?: string;
+    };
+  };
+}
+
+export interface ContractCancelled extends BaseEvent {
+  event: "contract cancelled";
+  properties: {
+    entity: EntityRef;
+    data: { reason?: string };
   };
 }
 
@@ -418,6 +452,37 @@ export interface ContractExpired extends BaseEvent {
   properties: {
     entity: EntityRef;
     data: { expired_at: string };
+  };
+}
+
+// ─── Journey: Signup + Onboarding ──────────────────
+export interface SignupCompleted extends BaseEvent {
+  event: "signup completed";
+  properties: {
+    data: {
+      user_identity_id: string;
+    };
+  };
+}
+
+export interface OnboardingStepCompleted extends BaseEvent {
+  event: "onboarding step_completed";
+  properties: {
+    data: {
+      step_id: string;
+      step_index: number;
+      user_identity_id: string;
+    };
+  };
+}
+
+export interface WorkspaceCreated extends BaseEvent {
+  event: "workspace created";
+  properties: {
+    data: {
+      workspace_id: string;
+      user_identity_id: string;
+    };
   };
 }
 
@@ -467,6 +532,9 @@ export type SmartoutEvent =
   | ProtocolCompleted
   | ReconciliationSubmitted
   | ReconciliationAdminAction
+  | SignupCompleted
+  | OnboardingStepCompleted
+  | WorkspaceCreated
   | ContractCreated
   | ContractSent
   | ContractViewed
@@ -478,10 +546,6 @@ export type SmartoutEvent =
   | CommunicationSent
   | CommunicationCancelled
   | CommunicationFailed
-  | ContractViewed
-  | ContractSigned
-  | ContractDeclined
-  | ContractExpired
   | WizardStepCompleted
   | WizardCompleted
   | PageViewed
@@ -593,28 +657,6 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "communication",
   },
 
-  "contract viewed": {
-    destinations: ["posthog", "logger", "activity_trail"],
-    category: "operations",
-  },
-  "contract signed": {
-    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
-    category: "operations",
-  },
-  "contract declined": {
-    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
-    category: "operations",
-  },
-  "contract expired": {
-    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
-    category: "operations",
-  },
-
-  "handbook chapter_saved": {
-    destinations: ["posthog", "logger", "engine_event"],
-    category: "training",
-  },
-
   "contract created": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "contracts",
@@ -649,6 +691,18 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "training",
   },
 
+  "signup completed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "onboarding",
+  },
+  "onboarding step_completed": {
+    destinations: ["posthog", "logger", "engine_event"],
+    category: "onboarding",
+  },
+  "workspace created": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "onboarding",
+  },
   "wizard step_completed": {
     destinations: ["posthog", "logger", "engine_event"],
     category: "onboarding",

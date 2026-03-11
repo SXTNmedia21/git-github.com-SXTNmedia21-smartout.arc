@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { MessageSquare, Sparkles, Users } from "lucide-react";
+import { MessageSquare, Sparkles } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import type { ConversationWithPreview } from "../_hooks/chat-types";
 
@@ -38,14 +38,7 @@ function formatTime(dateStr: string): string {
   return date.toLocaleDateString("nb-NO", { day: "numeric", month: "short" });
 }
 
-const typeIcons: Record<string, typeof MessageSquare> = {
-  group: Users,
-  dm: MessageSquare,
-  ai: Sparkles,
-};
-
 export function ConversationItem({ conversation, isActive, onClick }: Props) {
-  const Icon = typeIcons[conversation.type] ?? MessageSquare;
   const displayName =
     conversation.name ??
     conversation.participants

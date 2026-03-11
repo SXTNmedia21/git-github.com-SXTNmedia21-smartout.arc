@@ -12,7 +12,7 @@
  */
 
 import { useContext, useMemo, useState } from "react";
-import { BookOpen, Loader2, FileText } from "lucide-react";
+import { Loader2, FileText } from "lucide-react";
 import { generateHTML } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import Highlight from "@tiptap/extension-highlight";
@@ -74,7 +74,6 @@ export function ChapterReader() {
       {/* Sidebar navigation */}
       <nav className={`hidden w-64 shrink-0 space-y-1 md:block`}>
         {CHAPTERS.map((chapter) => {
-          const Icon = chapter.icon;
           const isActive = activeChapterKey === chapter.key;
           const hasContent = chapterMap.has(chapter.key);
 

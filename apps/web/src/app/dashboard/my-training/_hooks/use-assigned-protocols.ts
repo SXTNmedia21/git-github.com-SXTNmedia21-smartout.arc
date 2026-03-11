@@ -106,8 +106,6 @@ export function useAssignedProtocols(profileId: string | null) {
       if (wsAssignments.length === 0) return [];
 
       const protocolIds = wsAssignments.map((a) => a.protocol_id);
-      const assignmentIds = wsAssignments.map((a) => a.assignment_id);
-
       // 2. Fetch procedures + steps
       const { data: procedures, error: procError } = await supabase
         .from("procedure")

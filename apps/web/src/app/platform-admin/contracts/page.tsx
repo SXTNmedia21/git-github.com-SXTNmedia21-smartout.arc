@@ -7,7 +7,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Plus, FileText } from "lucide-react";
 
-// Contract row shape
+// Contract row shape from Supabase query (nullable fields)
 type ContractQueryRow = {
   contract_id: string;
   title: string;
@@ -46,6 +46,12 @@ const getContractsData = unstable_cache(
       contract_type: c.contract_type || c.template?.contract_type || "custom",
       company: c.company,
       template: c.template,
+      events: [] as {
+        contract_id: string;
+        event_type: string;
+        actor_type: string;
+        created_at: string;
+      }[],
     }));
   },
   ["platform-admin-contracts-v1"],
