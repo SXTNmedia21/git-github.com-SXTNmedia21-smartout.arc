@@ -31,11 +31,16 @@ export async function GET(request: Request) {
         }
 
         // Check signup progress for resume
-        const { data: progress } = await supabase
+        const { data: progress, error: progressError } = await supabase
           .from("signup_progress")
           .select("completed, current_step")
           .eq("auth_id", user.id)
-          .single();
+          .maybeSingle();
+
+        if (progressError) {
+          // On unexpected query errors, fail safe to first signup step.
+          return NextResponse.redirect(new URL("/join?step=1", origin));
+        }
 
         if (progress?.completed) {
           return NextResponse.redirect(new URL(next || "/dashboard", origin));
