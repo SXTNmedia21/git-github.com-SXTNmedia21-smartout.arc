@@ -45,7 +45,8 @@ export async function completeSignup(data: SetupData) {
   const admin = createAdminClient();
 
   // ── Idempotency guard: prevent duplicate company creation ──────
-  const { data: existingProgress } = await admin
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: existingProgress } = await (admin as any)
     .from("signup_progress")
     .select("completed")
     .eq("auth_id", user.id)
@@ -194,7 +195,8 @@ export async function completeSignup(data: SetupData) {
   // ── Phase 2: Extended data (admin client to avoid RLS timing issues) ──
 
   // 6. Company details
-  const { error: detailsError } = await admin.from("company_details").insert({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error: detailsError } = await (admin as any).from("company_details").insert({
     workspace_id: workspace.workspace_id,
     about_us: data.step3.aboutUs || null,
     our_history: data.step3.ourHistory || null,
@@ -219,7 +221,8 @@ export async function completeSignup(data: SetupData) {
     open_time: h.isClosed ? null : h.openTime || null,
     close_time: h.isClosed ? null : h.closeTime || null,
   }));
-  const { error: hoursError } = await admin.from("company_opening_hours").insert(hoursRows);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error: hoursError } = await (admin as any).from("company_opening_hours").insert(hoursRows);
 
   if (hoursError) {
     console.error("[completeSignup] company_opening_hours insert failed:", hoursError);
@@ -246,20 +249,23 @@ export async function completeSignup(data: SetupData) {
     });
   }
   if (socialRows.length > 0) {
-    const { error: socialError } = await admin.from("company_social_media").insert(socialRows);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: socialError } = await (admin as any).from("company_social_media").insert(socialRows);
     if (socialError) {
       console.error("[completeSignup] company_social_media insert failed:", socialError);
     }
   }
 
   // 9. Link scraped data to workspace
-  await admin
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (admin as any)
     .from("company_scraped_data")
     .update({ workspace_id: workspace.workspace_id })
     .eq("auth_id", user.id);
 
   // 10. Mark signup as completed
-  await admin
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (admin as any)
     .from("signup_progress")
     .update({ completed: true, current_step: 7 })
     .eq("auth_id", user.id);
