@@ -95,7 +95,7 @@ jobs:
       matrix:
         service:
           - name: stage-engine
-            dockerfile: services/stage-engine/Dockerfile
+            dockerfile: packages/walkAi/mission-runner/Dockerfile
           - name: shift-mcp
             dockerfile: services/shift-mcp/Dockerfile
           - name: contract-service

@@ -39,7 +39,7 @@ services:
   stage-engine:
     build:
       context: ../
-      dockerfile: services/stage-engine/Dockerfile
+      dockerfile: packages/walkAi/mission-runner/Dockerfile
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
