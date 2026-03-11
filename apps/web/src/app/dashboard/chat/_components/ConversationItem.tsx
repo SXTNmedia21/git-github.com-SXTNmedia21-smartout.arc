@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { MessageSquare, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import type { ConversationWithPreview } from "../_hooks/chat-types";
 
