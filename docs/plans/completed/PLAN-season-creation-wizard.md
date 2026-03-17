@@ -1,13 +1,13 @@
 ---
 title: "Plan — season-creation-wizard"
-status: abandoned
+status: draft
 updated: 2026-03-04
 created: 2026-03-04
 module: operations
 tags: [plan]
 ---
 
-# Plan — season-creation-wizard ❌ (empty stub, never filled out)
+# Plan — season-creation-wizard
 
 > Branch: `feat/season-creation-wizard` | Module: operations
 
