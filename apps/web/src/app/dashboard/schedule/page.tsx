@@ -1018,6 +1018,9 @@ function SchedulePageContent() {
                             computed={computed}
                             scheduleUI={scheduleUI}
                             employees={locationFilteredEmployees}
+                            shifts={filteredShifts}
+                            days={days}
+                            weekStart={weekStart}
                           />
                         )}
                         {scheduleLayout === "monthly" && (
@@ -1034,6 +1037,7 @@ function SchedulePageContent() {
                             computed={computed}
                             days={days}
                             employees={locationFilteredEmployees}
+                            weekStart={weekStart}
                           />
                         )}
                       </>
@@ -1367,10 +1371,13 @@ function WeeklyGridContent({
   isSidebarOpen,
   setIsSidebarOpen,
   onDateClick,
-  filterSituation,
+  filterSituation: _filterSituation,
   computed,
   scheduleUI,
   employees,
+  shifts,
+  days,
+  weekStart,
 }: {
   isSidebarOpen: boolean;
   setIsSidebarOpen: (v: boolean) => void;
@@ -1379,18 +1386,62 @@ function WeeklyGridContent({
   computed: ScheduleComputed;
   scheduleUI: ReturnType<typeof useScheduleUI>;
   employees: ScheduleEmployee[];
+  shifts: Shift[];
+  days: DayColumn[];
+  weekStart: string;
 }) {
   const { isDark, scheduleView, weeklyPeriodCount } = useContext(DashboardContext);
   const { active } = useDndContext();
   const enableDroppable = active !== null;
-  const columns = Array.from({ length: weeklyPeriodCount }, (_, i) => i + 1);
 
-  /**
-   * Groups employees dynamically based on the current scheduleView.
-   * - "team": grouped by team name
-   * - "jobb": grouped by job title / role
-   * - "ansatt": flat list with no grouping headers
-   */
+  /** Build week column metadata from real days data */
+  const weekColumns = React.useMemo(() => {
+    const ws = new Date(weekStart + "T00:00:00");
+    return Array.from({ length: weeklyPeriodCount }, (_, i) => {
+      const colStart = new Date(ws);
+      colStart.setDate(ws.getDate() + i * 7);
+      const colEnd = new Date(colStart);
+      colEnd.setDate(colStart.getDate() + 6);
+      const weekNum = getISOWeekNumber(colStart);
+      const startDay = colStart.getDate();
+      const endDay = colEnd.getDate();
+      const startMonth = colStart.toLocaleDateString("nb-NO", { month: "short" });
+      return {
+        index: i,
+        weekNum,
+        label: `${startDay}-${endDay} ${startMonth}`,
+        /** dateIds belonging to this column (for filtering shifts) */
+        dateIds: new Set(
+          days
+            .filter((d) => {
+              const dDate = new Date(d.id + "T00:00:00");
+              return dDate >= colStart && dDate <= colEnd;
+            })
+            .map((d) => d.id),
+        ),
+        /** Whether any day in this column is today */
+        isCurrentWeek: days.some(
+          (d) =>
+            d.isToday &&
+            new Date(d.id + "T00:00:00") >= colStart &&
+            new Date(d.id + "T00:00:00") <= colEnd,
+        ),
+      };
+    });
+  }, [weekStart, weeklyPeriodCount, days]);
+
+  /** Index shifts by employee for quick lookup */
+  const shiftsByEmployee = React.useMemo(() => {
+    const index = new Map<string, Shift[]>();
+    for (const shift of shifts) {
+      if (!shift.employeeId) continue;
+      const existing = index.get(shift.employeeId) ?? [];
+      existing.push(shift);
+      index.set(shift.employeeId, existing);
+    }
+    return index;
+  }, [shifts]);
+
   const groupedEmployees = React.useMemo(() => {
     if (scheduleView === "team") {
       const map = new Map<string, ScheduleEmployee[]>();
@@ -1412,12 +1463,12 @@ function WeeklyGridContent({
       }
       return Array.from(map.entries());
     }
-    // "ansatt" — flat list, single group
     return [["Alle ansatte", employees] as [string, ScheduleEmployee[]]];
   }, [scheduleView, employees]);
 
   return (
     <div className="flex h-full w-full overflow-y-auto">
+      {/* Employee sidebar */}
       <div
         className={`w-[200px] shrink-0 border-r border-white/5 xl:w-[250px] ${isDark ? "bg-[#0a0a0c]/60" : "bg-white/80"} sticky left-0 flex flex-col shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)] backdrop-blur-md`}
         style={{ zIndex: SCHEDULE_LAYERS.stickyHeaders }}
@@ -1427,13 +1478,13 @@ function WeeklyGridContent({
           style={{ zIndex: SCHEDULE_LAYERS.stickyHeaders }}
         >
           <div className="flex w-full items-center justify-between">
-            <div className="flex items-center gap-1.5 text-[11px] font-bold tracking-widest text-zinc-500 uppercase xl:text-xs">
+            <div className="text-foreground/60 flex items-center gap-1.5 text-[11px] font-bold tracking-widest uppercase xl:text-xs">
               <Network className="h-3.5 w-3.5 text-orange-500" />
               Rullerende
             </div>
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className={`rounded-md p-1 text-zinc-500 hover:text-white ${isDark ? "hover:bg-white/10" : "hover:bg-zinc-200"} transition-colors`}
+              className="text-foreground/50 hover:text-foreground hover:bg-muted rounded-md p-1 transition-colors"
             >
               {isSidebarOpen ? (
                 <PanelLeftClose className="h-4 w-4" />
@@ -1445,7 +1496,7 @@ function WeeklyGridContent({
           <div
             className={`mt-auto rounded-lg border border-white/5 px-2 py-1 ${isDark ? "bg-[#050505]" : "bg-zinc-50"}`}
           >
-            <span className="text-xs font-bold tracking-widest text-zinc-500 uppercase">
+            <span className="text-foreground/50 text-xs font-bold tracking-widest uppercase">
               Visning:{" "}
               {scheduleView === "ansatt" ? "Ansatt" : scheduleView === "jobb" ? "Rolle" : "Team"}
             </span>
@@ -1475,84 +1526,102 @@ function WeeklyGridContent({
         </div>
       </div>
 
-      {columns.map((col) => {
-        /**
-         * Determines the situation-based background tint for this column.
-         * - "Selskap": even columns get an orange tint (simulating booking days)
-         * - "Krise": every 3rd column gets a red tint (simulating coverage risk days)
-         * - "Normal" / "Alle": only the active column (3) gets a subtle orange tint
-         */
-        const situationTint =
-          filterSituation === "Selskap" && col % 2 === 0
-            ? "bg-orange-500/[0.04]"
-            : filterSituation === "Krise" && col % 3 === 0
-              ? "bg-rose-500/[0.04]"
-              : col === 3
-                ? "bg-orange-500/[0.02]"
-                : "";
+      {/* Week columns with real shift data */}
+      {weekColumns.map((week) => {
+        const firstDateId = days.find((d) => week.dateIds.has(d.id))?.id;
 
         return (
           <div
-            key={col}
-            className={`min-w-0 flex-1 border-r ${isDark ? "border-white/5" : "border-zinc-200"} flex flex-col transition-colors hover:bg-white/[0.02] ${situationTint}`}
+            key={week.index}
+            className={`min-w-0 flex-1 border-r ${isDark ? "border-white/5" : "border-zinc-200"} flex flex-col transition-colors hover:bg-white/[0.02] ${week.isCurrentWeek ? "bg-orange-500/[0.03]" : ""}`}
           >
             <div
-              onClick={() => onDateClick && onDateClick(`Uke ${col}`)}
+              onClick={() => firstDateId && onDateClick?.(firstDateId)}
               className={`sticky top-0 h-24 border-b border-white/5 p-3 xl:h-28 xl:p-4 ${isDark ? "bg-[#0a0a0c]/80" : "bg-white/90"} relative flex cursor-pointer flex-col items-center justify-center backdrop-blur-xl hover:bg-white/5`}
               style={{ zIndex: SCHEDULE_LAYERS.stickyContent }}
             >
-              {col === 3 && (
+              {week.isCurrentWeek && (
                 <div className="absolute top-2 right-2 rounded border border-orange-500/30 bg-orange-500/20 px-1.5 py-0.5 text-[11px] font-black text-orange-400 uppercase">
                   Aktiv
                 </div>
               )}
               <h2
-                className={`font-black tracking-tighter ${weeklyPeriodCount > 5 ? "text-lg xl:text-xl" : "text-xl xl:text-3xl"} ${col === 3 ? "text-orange-400" : isDark ? "text-white" : "text-zinc-900"}`}
+                className={`font-black tracking-tighter ${weeklyPeriodCount > 5 ? "text-lg xl:text-xl" : "text-xl xl:text-3xl"} ${week.isCurrentWeek ? "text-orange-400" : isDark ? "text-white" : "text-zinc-900"}`}
               >
-                {col}
+                {week.weekNum}
               </h2>
-              <span className="mt-1 text-[11px] font-bold tracking-widest text-zinc-500 uppercase xl:text-xs">
-                Uke / Periode
+              <span className="text-foreground/50 mt-1 text-[11px] font-bold tracking-widest uppercase xl:text-xs">
+                Uke {week.weekNum} &bull; {week.label}
               </span>
             </div>
 
-            <WeeklyGridCell enableDroppable={enableDroppable}>
-              {col % 2 !== 0 ? (
-                <ShiftCard role="Sous Chef" time="5 vakter" status="published" indicator="blue" />
-              ) : (
-                <WeeklyEmptyCell
-                  onClick={() => scheduleUI.setCreateShiftContext({ dateId: `week::${col}` })}
-                />
-              )}
-            </WeeklyGridCell>
-            <WeeklyGridCell enableDroppable={enableDroppable}>
-              <ShiftCard
-                role="Manager"
-                time="5 vakter"
-                status={col === 3 ? "active" : "published"}
-                indicator="purple"
-              />
-            </WeeklyGridCell>
-            <WeeklyGridCell enableDroppable={enableDroppable}>
-              {col % 4 === 0 ? (
-                <AbsenceCard type="Avspasering" reason="Rotasjon" />
-              ) : (
-                <ShiftCard role="Kokk" time="4 vakter" status="draft" indicator="orange" />
-              )}
-            </WeeklyGridCell>
-            <WeeklyGridCell enableDroppable={enableDroppable}>
-              <ShiftCard
-                role="Housekeeping"
-                time="4 vakter"
-                status="published"
-                indicator="emerald"
-              />
-            </WeeklyGridCell>
+            {/* Shift summary cells per employee */}
+            {groupedEmployees.flatMap(([, groupEmps]) =>
+              groupEmps.map((emp) => {
+                const empShifts = shiftsByEmployee.get(emp.id) ?? [];
+                const weekShifts = empShifts.filter((s) => week.dateIds.has(s.dateId));
+                const shiftCount = weekShifts.length;
+                const totalHours = weekShifts.reduce((sum, s) => sum + s.workHours, 0);
+                const dominantStatus =
+                  weekShifts.length > 0
+                    ? (weekShifts.sort((a, b) => {
+                        const order = {
+                          active: 0,
+                          published: 1,
+                          assigned: 2,
+                          created: 3,
+                          completed: 4,
+                        };
+                        return (
+                          (order[a.status as keyof typeof order] ?? 5) -
+                          (order[b.status as keyof typeof order] ?? 5)
+                        );
+                      })[0]?.status ?? "created")
+                    : null;
+
+                return (
+                  <WeeklyGridCell key={emp.id} enableDroppable={enableDroppable}>
+                    {shiftCount > 0 ? (
+                      <ShiftCard
+                        role={emp.jobTitle || emp.role}
+                        time={`${shiftCount} vakter · ${totalHours.toFixed(1)}t`}
+                        status={dominantStatus as "published" | "draft" | "active" | "completed"}
+                        indicator={
+                          emp.avatarColor.includes("orange")
+                            ? "orange"
+                            : emp.avatarColor.includes("purple")
+                              ? "purple"
+                              : emp.avatarColor.includes("blue")
+                                ? "blue"
+                                : "emerald"
+                        }
+                      />
+                    ) : (
+                      <WeeklyEmptyCell
+                        onClick={() =>
+                          scheduleUI.setCreateShiftContext({
+                            dateId: firstDateId ?? `week::${week.weekNum}`,
+                          })
+                        }
+                      />
+                    )}
+                  </WeeklyGridCell>
+                );
+              }),
+            )}
           </div>
         );
       })}
     </div>
   );
+}
+
+/** Returns ISO week number for a date */
+function getISOWeekNumber(date: Date): number {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
 }
 
 function TeamGroup({
@@ -1729,17 +1798,30 @@ function ListGridContent({
   computed,
   days,
   employees,
+  weekStart,
 }: {
   onDateClick: (d: string) => void;
   computed: ScheduleComputed;
   days: DayColumn[];
   employees: ScheduleEmployee[];
+  weekStart: string;
 }) {
   const { isDark } = useContext(DashboardContext);
+  const { workspace } = useWorkspace();
   const employeeById = useMemo(
     () => new Map(employees.map((employee) => [employee.id, employee])),
     [employees],
   );
+
+  /** Derive week number and year from weekStart */
+  const weekLabel = useMemo(() => {
+    const d = new Date(weekStart + "T00:00:00");
+    const weekNum = getISOWeekNumber(d);
+    const year = d.getFullYear();
+    return `Uke ${weekNum}, ${year}`;
+  }, [weekStart]);
+
+  const workspaceName = workspace?.name ?? "Smartout";
 
   return (
     <div
@@ -1748,7 +1830,7 @@ function ListGridContent({
       <div className="mb-8 flex items-center justify-between print:hidden">
         <div>
           <h2 className={`text-2xl font-black ${isDark ? "text-white" : "text-zinc-900"}`}>
-            Uke 52, 2026
+            {weekLabel}
           </h2>
           <p className="text-sm font-medium text-zinc-500">Kompakt vaktlista for utskrift</p>
         </div>
@@ -1761,8 +1843,8 @@ function ListGridContent({
       </div>
 
       <div className="hidden print:mb-8 print:block">
-        <h2 className="text-2xl font-black text-black">Bårdshaug Vegkro</h2>
-        <p className="text-sm font-bold text-gray-500">Vaktliste &bull; Uke 52, 2026</p>
+        <h2 className="text-2xl font-black text-black">{workspaceName}</h2>
+        <p className="text-sm font-bold text-gray-500">Vaktliste &bull; {weekLabel}</p>
       </div>
 
       <div className="space-y-8 print:space-y-4">
@@ -1781,7 +1863,7 @@ function ListGridContent({
               <div className="mb-4 flex items-end justify-between border-b border-orange-500/20 pb-3 print:border-gray-300">
                 <div
                   className="group flex cursor-pointer items-center gap-2"
-                  onClick={() => onDateClick(day.label)}
+                  onClick={() => onDateClick(day.id)}
                 >
                   <h3
                     className={`text-lg font-black ${day.isToday ? "text-orange-400" : isDark ? "text-white" : "text-zinc-900"} transition-colors group-hover:text-orange-400`}

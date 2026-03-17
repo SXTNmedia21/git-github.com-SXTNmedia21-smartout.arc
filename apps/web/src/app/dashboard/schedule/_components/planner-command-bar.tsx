@@ -92,18 +92,20 @@ export function PlannerCommandBar({
 
         <div className="bg-border hidden h-3 w-px sm:block" />
 
-        {/* Compact mode toggle */}
-        <button
-          onClick={() => setScheduleCompactMode(!scheduleCompactMode)}
-          className={`flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-bold transition-all ${
-            scheduleCompactMode
-              ? "bg-background text-foreground shadow-sm"
-              : "text-muted-foreground hover:bg-muted hover:text-foreground"
-          }`}
-        >
-          <Rows3 className={`h-3 w-3 ${scheduleCompactMode ? "text-orange-500" : ""}`} />
-          Kompakt
-        </button>
+        {/* Compact mode toggle — only relevant for daily grid */}
+        {(!scheduleLayout || scheduleLayout === "daily") && (
+          <button
+            onClick={() => setScheduleCompactMode(!scheduleCompactMode)}
+            className={`flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-bold transition-all ${
+              scheduleCompactMode
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            }`}
+          >
+            <Rows3 className={`h-3 w-3 ${scheduleCompactMode ? "text-orange-500" : ""}`} />
+            Kompakt
+          </button>
+        )}
       </div>
 
       {/* Week span toggle */}
