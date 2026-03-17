@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import type { Shift } from "./schedule-types";
+import { SCHEDULE_LAYERS } from "./schedule-layers";
 import { useScheduleUI } from "./schedule-ui-context";
 import { usePublishShifts, useUnpublishShifts, usePasteDay } from "../_hooks/use-shifts";
 import { SaveTemplateDialog } from "./save-template-dialog";
@@ -118,7 +119,11 @@ export function DayContextMenu({
           </Button>
         </DropdownMenuTrigger>
 
-        <DropdownMenuContent align="end" className="z-50 w-52">
+        <DropdownMenuContent
+          align="end"
+          className="w-52"
+          style={{ zIndex: SCHEDULE_LAYERS.contextMenu }}
+        >
           {/* Selection & Create */}
           <DropdownMenuItem onClick={() => toggleDaySelection(dateId)}>
             {isSelected ? (

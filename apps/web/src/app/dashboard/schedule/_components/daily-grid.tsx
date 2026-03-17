@@ -80,6 +80,8 @@ export function GridContent({
         return shifts.filter((s) => s.status === "active");
       case "completed":
         return shifts.filter((s) => s.status === "completed");
+      case "open_shifts":
+        return shifts.filter((s) => !s.employeeId);
       default:
         return shifts;
     }
@@ -92,6 +94,22 @@ export function GridContent({
     if (activeStatusFilter === "absence") {
       const employeesWithAbsences = new Set(absences.map((a) => a.employeeId));
       return employees.filter((emp) => employeesWithAbsences.has(emp.id));
+    }
+    // Coverage risk: employees assigned to days with coverage alerts
+    if (activeStatusFilter === "coverage_risk") {
+      const daysWithAlerts = new Set(visibleDays.filter((d) => d.coverageAlert).map((d) => d.id));
+      const employeesOnAlertDays = new Set<string>();
+      for (const s of shifts) {
+        if (s.employeeId && daysWithAlerts.has(s.dateId)) {
+          employeesOnAlertDays.add(s.employeeId);
+        }
+      }
+      return employees.filter((emp) => employeesOnAlertDays.has(emp.id));
+    }
+    // Open shifts: show employees with unassigned shifts (no employeeId)
+    if (activeStatusFilter === "open_shifts") {
+      // Show all employees so they can be assigned to open shifts
+      return employees;
     }
     // Overtime risk: employees exceeding contracted hours
     if (activeStatusFilter === "overtime_risk") {
@@ -123,7 +141,7 @@ export function GridContent({
       return employees.filter((emp) => employeeIdsWithShifts.has(emp.id));
     }
     return employees;
-  }, [employees, activeStatusFilter, filteredShifts, absences, shifts]);
+  }, [employees, activeStatusFilter, filteredShifts, absences, shifts, visibleDays]);
 
   /** Index shifts by employee::day key for O(1) lookup in grid cells */
   const shiftsByEmployeeDay = React.useMemo(() => {
@@ -431,13 +449,13 @@ const DayHeaders = React.memo(function DayHeaders({
         style={{ zIndex: SCHEDULE_LAYERS.stickyCorner }}
       >
         <div className="flex w-full items-center justify-between">
-          <div className="flex items-center gap-2 text-xs font-bold tracking-widest text-zinc-500 uppercase">
-            <Users className={`h-4 w-4 ${isDark ? "text-zinc-400" : "text-zinc-600"}`} />
+          <div className="text-foreground/60 flex items-center gap-2 text-xs font-bold tracking-widest uppercase">
+            <Users className="text-foreground/50 h-4 w-4" />
             {scheduleView === "ansatt" ? "Ansatte" : scheduleView === "jobb" ? "Roller" : "Team"}
           </div>
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className={`rounded-md p-1 text-zinc-500 hover:text-white ${isDark ? "hover:bg-white/10" : "hover:bg-zinc-200"} transition-colors`}
+            className="text-foreground/50 hover:text-foreground hover:bg-muted rounded-md p-1 transition-colors"
           >
             {isSidebarOpen ? (
               <PanelLeftClose className="h-4 w-4" />
@@ -525,7 +543,7 @@ function DroppableDayHeader({
       </div>
 
       {/* Compact stats */}
-      <div className="mt-1 flex items-center gap-2 text-[10px] leading-none font-medium text-zinc-500/70">
+      <div className="text-foreground/50 mt-1 flex items-center gap-2 text-[10px] leading-none font-medium">
         <span className="flex items-center gap-0.5" title="Ansatte">
           <Users className="h-2.5 w-2.5" /> {day.staff}
         </span>

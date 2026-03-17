@@ -1052,7 +1052,6 @@ function SchedulePageContent() {
                   />
 
                   <StatusStrip
-                    isDark={isDark}
                     statusSummary={statusSummary}
                     activeFilter={activeStatusFilter}
                     onFilterClick={setActiveStatusFilter}
