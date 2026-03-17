@@ -1,17 +1,17 @@
 ---
 title: "STATE — System State of Truth"
 status: canonical
-updated: 2026-03-09
+updated: 2026-03-17
 created: 2026-03-08
-last-verified: 2026-03-09
+last-verified: 2026-03-17
 module: all
-tags: [state, audit, gaps, architecture, module-zero]
+tags: [state, audit, gaps, architecture]
 ---
 
 # STATE — System State of Truth
 
 > Single source of truth for what exists, what's missing, and what to build next.
-> Updated weekly. Last audit: 2026-03-08.
+> Updated weekly. Last audit: 2026-03-17.
 
 ---
 
@@ -147,6 +147,12 @@ tags: [state, audit, gaps, architecture, module-zero]
 | `service_config` + `service_health_log`              | 20260407100000 | Infrastructure monitoring                                                          |
 | `waste_log`                                          | 20260407200001 | Waste tracking by category                                                         |
 | `workspace_kpi_target` + `workspace_budget`          | 20260302152749 | Operational KPI and budget targets                                                 |
+| `supplier` + `supplier_order`                        | 20260407200000 | Vendor management and cost analysis                                                |
+| `asset_maintenance`                                  | 20260407200002 | Equipment maintenance tracking                                                     |
+| `document_extraction_log`                            | 20260416100000 | AI document analysis persistence                                                   |
+| `signup_progress`                                    | 20260415100000 | Onboarding guide progress tracking                                                 |
+
+**Totals:** 147 tables, 72 enums, 130 migrations, 31 Edge Functions, 51 ADRs, 18 learnings.
 
 ---
 
@@ -164,20 +170,20 @@ tags: [state, audit, gaps, architecture, module-zero]
 
 ### 2.2 Focus Pages (Admin)
 
-| Page             | Route                       | Status      | Notes                                                                                                                                     |
-| ---------------- | --------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Schedule Planner | `/dashboard/schedule`       | WORKING     | Full week/day/month views, DnD shifts, Day Control Panel, publish workflow, Realtime on 6 tables                                          |
-| People           | `/dashboard/people`         | WORKING     | DataTable, invite status, employee cards, row actions                                                                                     |
-| Reports          | `/dashboard/reports`        | WORKING     | ReportsPageShell, AI chat panel, saved reports, deep insights                                                                             |
-| Chat             | `/dashboard/chat`           | WORKING     | ChatShell, real-time messages, DMs, conversation management                                                                               |
-| Governance       | `/dashboard/governance`     | WORKING     | GovernanceOverview + full CRUD: PolicyForm, ProtocolForm, ProcedureBuilder, KnowledgeTestBuilder, ConfirmationForm. Real readiness scores |
-| Operations       | `/dashboard/operations`     | PLACEHOLDER | Route exists, no operational dashboard                                                                                                    |
-| Daily Close      | `/dashboard/close`          | WORKING     | CloseOutFlow, checklist, gatekeeper, image upload, settlement validation                                                                  |
-| Reconciliation   | `/dashboard/reconciliation` | WORKING     | DayList, DayApproval, ShiftApproval, Revenue, Deviation sections                                                                          |
-| Season           | `/dashboard/season`         | WORKING     | 4 tabs: overview, budget, day-factors, hour-factors                                                                                       |
-| Organization     | `/dashboard/organization`   | WORKING     | Department/location/team/position list, CRUD dialogs                                                                                      |
-| Settings         | `/dashboard/settings`       | PARTIAL     | Tab navigation, opening hours. No general settings, branding, notifications                                                               |
-| AI               | `/dashboard/ai`             | WORKING     | Full Mr. Botsson interface                                                                                                                |
+| Page             | Route                       | Status  | Notes                                                                                                                                     |
+| ---------------- | --------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Schedule Planner | `/dashboard/schedule`       | WORKING | Full week/day/month views, DnD shifts, Day Control Panel, publish workflow, Realtime on 6 tables                                          |
+| People           | `/dashboard/people`         | WORKING | DataTable, invite status, employee cards, row actions                                                                                     |
+| Reports          | `/dashboard/reports`        | WORKING | ReportsPageShell, AI chat panel, saved reports, deep insights                                                                             |
+| Chat             | `/dashboard/chat`           | WORKING | ChatShell, real-time messages, DMs, conversation management                                                                               |
+| Governance       | `/dashboard/governance`     | WORKING | GovernanceOverview + full CRUD: PolicyForm, ProtocolForm, ProcedureBuilder, KnowledgeTestBuilder, ConfirmationForm. Real readiness scores |
+| Operations       | `/dashboard/operations`     | PARTIAL | Route exists, engine-dispatch + session tables wired, but no operational dashboard UI yet                                                 |
+| Daily Close      | `/dashboard/close`          | WORKING | CloseOutFlow, checklist, gatekeeper, image upload, settlement validation                                                                  |
+| Reconciliation   | `/dashboard/reconciliation` | WORKING | DayList, DayApproval, ShiftApproval, Revenue, Deviation sections                                                                          |
+| Season           | `/dashboard/season`         | WORKING | 4 tabs: overview, budget, day-factors, hour-factors                                                                                       |
+| Organization     | `/dashboard/organization`   | WORKING | Department/location/team/position list, CRUD dialogs                                                                                      |
+| Settings         | `/dashboard/settings`       | PARTIAL | Tab navigation, opening hours. No general settings, branding, notifications                                                               |
+| AI               | `/dashboard/ai`             | WORKING | Full Mr. Botsson interface                                                                                                                |
 
 ### 2.3 Document View (Handbok)
 
@@ -223,20 +229,24 @@ tags: [state, audit, gaps, architecture, module-zero]
 | 9   | Governance Has No CRUD               | **CLOSED**  | 5 forms: PolicyForm, ProtocolForm, ProcedureBuilder, KnowledgeTestBuilder, ConfirmationForm       |
 | 10  | No Session Hooks / Operational Tasks | **CLOSED**  | 3 tables + 3 enums created. Hook dispatcher process seeded. Engine action handlers ready          |
 
-### Known Remaining Gaps (audited 2026-03-08)
+### Known Remaining Gaps (audited 2026-03-17)
 
-| Area                       | Gap                                                                            | Priority | Status     |
-| -------------------------- | ------------------------------------------------------------------------------ | -------- | ---------- |
-| Notifications              | `send_notification` handler is a console.log stub (no notification_queue flow) | Medium   | OPEN       |
-| Handbook → RAG             | Saved chapters not chunked into workspace_doc_chunk                            | Medium   | OPEN       |
-| Invite → Onboarding        | accept-invitation EF doesn't emit invitation_accepted event yet                | High     | OPEN       |
-| Shift Publish → Session    | End-to-end flow untested (emit → trigger → upsert_session → hooks)             | High     | OPEN       |
-| PolicyForm scope picker    | Department picker doesn't appear when "department" scope selected              | Low      | OPEN       |
-| Wizard forms               | 9-step industry-driven wizard with real forms, 14 E2E tests                    | —        | **CLOSED** |
-| Wizard mobile              | No responsive layout on workspace setup wizard                                 | Low      | OPEN       |
-| my-schedule realtime       | No Realtime subscription on employee shift view                                | Low      | OPEN       |
-| Invite dialog departments  | Hardcoded department list in invite dialog (pre-existing)                      | Low      | OPEN       |
-| Trainee first-day redirect | No redirect to my-training after invite accept                                 | Medium   | OPEN       |
+| Area                       | Gap                                                                             | Priority | Status |
+| -------------------------- | ------------------------------------------------------------------------------- | -------- | ------ |
+| Notifications              | `send_notification` handler is a console.log stub (no notification_queue flow)  | Medium   | OPEN   |
+| Handbook → RAG             | Saved chapters not chunked into workspace_doc_chunk                             | Medium   | OPEN   |
+| Invite → Onboarding        | accept-invitation EF doesn't emit invitation_accepted event yet                 | High     | OPEN   |
+| Shift Publish → Session    | End-to-end flow untested (emit → trigger → upsert_session → hooks)              | High     | OPEN   |
+| PolicyForm scope picker    | Department picker doesn't appear when "department" scope selected               | Low      | OPEN   |
+| Wizard mobile              | No responsive layout on workspace setup wizard                                  | Low      | OPEN   |
+| my-schedule realtime       | No Realtime subscription on employee shift view                                 | Low      | OPEN   |
+| Invite dialog departments  | Hardcoded department list in invite dialog                                      | Low      | OPEN   |
+| Trainee first-day redirect | No redirect to my-training after invite accept                                  | Medium   | OPEN   |
+| Operations dashboard UI    | Route exists, tables exist, engine wired — no actual operational dashboard UI   | High     | OPEN   |
+| Login/Join redirect        | Hype sequence redirect (window.location.href) untested. Auth required for /join | Medium   | OPEN   |
+| Agent chat UI              | `/dashboard/chat` shows "coming soon" for AI chat tab                           | Medium   | OPEN   |
+| Settings module            | Only opening hours config done. No general settings, branding, notifications    | Medium   | OPEN   |
+| Employee agent access      | Employees can't interact with agents from /my-schedule or /my-training          | Low      | OPEN   |
 
 ---
 
@@ -258,7 +268,7 @@ tags: [state, audit, gaps, architecture, module-zero]
 
 **Rationale:** The architecture is already generic — `action_type` + `action_payload` is extensible. New process types only need new action_type handlers in `engine-dispatch`, not schema changes.
 
-**Required addition:** `engine_state_step` table for per-step completion tracking (Gap 4).
+**Completed:** `engine_state_step` table created (migration 20260412100100) for per-step completion tracking (Gap 4 — CLOSED).
 
 ### 4.2 Telemetry as Single Event Emitter
 
@@ -404,19 +414,28 @@ emit("shift published") ->
 | 00012  | profile_logs_and_contracts | Employment contracts, communication tables                                                                                                   |
 | 00013  | platform_admin_tables      | Platform admin infrastructure                                                                                                                |
 
-### Latest Timestamped
+### Latest Timestamped (post-April 2026)
 
-`20260413100000_fix_company_org_number_nullable.sql`
+| Migration                                            | Purpose                                     |
+| ---------------------------------------------------- | ------------------------------------------- |
+| `20260416200000_season_opening_hours.sql`            | Season opening hours per department         |
+| `20260416100000_document_extraction_logs.sql`        | AI document analysis persistence            |
+| `20260415200000_setup_documents_storage_policy.sql`  | Storage bucket policy for setup docs        |
+| `20260415100000_add_onboarding_guide_progress.sql`   | Onboarding guide progress tracking          |
+| `20260413100000_fix_company_org_number_nullable.sql` | Allow nullable org_number for new companies |
 
 ### Enum Count
 
-**64 custom enums.** Full list in BUILD_ORDER.md Appendix or via: `grep -r "CREATE TYPE" supabase/migrations/`
+**72 custom enums.** Full list via: `grep -r "CREATE TYPE" supabase/migrations/`
 
-Enums added by Module Zero:
+Notable enums added since Module Zero:
 
 - `session_hook_type` (pre_open/open/scheduled/pre_close/close) — 20260412100000
 - `session_task_status` (pending/available/in_progress/completed/skipped/overdue/escalated) — 20260412100000
 - `session_note_type` (handoff/closing/general) — 20260412100000
+- `chat_conversation_type` — 20260320120000
+- `waste_category` — 20260407200001
+- `service_status`, `service_type` — 20260407100000
 
 ---
 
@@ -503,19 +522,31 @@ UI mutation → emit() → engine-event provider → engine-dispatch EF
 | DailyClose seed               | `supabase/migrations/20260304300000_seed_daily_close_process.sql` |
 | Process tables                | `supabase/migrations/20260304100000_engine_process_tables.sql`    |
 
-### Edge Functions — Deployment Status (verified 2026-03-08)
+### Edge Functions — Inventory (verified 2026-03-17)
 
-19 functions deployed. Last deploy: 2026-03-08.
+31 functions in `supabase/functions/`. All have real implementations.
 
-| Function                | Status | Deploy date | Notes                                                                                                                                                                                                                                                                      |
-| ----------------------- | ------ | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `engine-dispatch`       | ACTIVE | 2026-03-08  | 869.8kB. Deployed this session — was missing.                                                                                                                                                                                                                              |
-| `fire-delayed-triggers` | ACTIVE | 2026-03-08  | 860.1kB. Deployed this session — was missing.                                                                                                                                                                                                                              |
-| `workspace-api`         | ACTIVE | 2026-03-03  | API gateway, 7 endpoints                                                                                                                                                                                                                                                   |
-| `validate-api-key`      | ACTIVE | 2026-03-03  | API key validation                                                                                                                                                                                                                                                         |
-| `accept-invitation`     | ACTIVE | 2026-03-03  | Invite acceptance (does NOT emit invitation_accepted yet)                                                                                                                                                                                                                  |
-| `health-check`          | ACTIVE | 2026-03-03  | Uptime monitoring                                                                                                                                                                                                                                                          |
-| Other 13 functions      | ACTIVE | 2026-03-03  | analyze-workspace, create-invitation, extract-workspace-data, web-search-intelligence, activate-workspace, cleanup-api-keys, contract-lifecycle, scrape-raw-data, watchdog-integrity, watchdog-uptime, finalize-workspace, sendgrid-webhook, gather-workspace-intelligence |
+| Category        | Functions                                                                                                                                                                                                   | Count |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| Workspace setup | create-invitation, accept-invitation, activate-workspace, extract-workspace-data, gather-workspace-intelligence, analyze-workspace, analyze-setup-documents, finalize-workspace, google-places-intelligence | 9     |
+| Guardian        | guardian-notify, guardian-sweep, guardian-actions                                                                                                                                                           | 3     |
+| Search & scrape | search-brreg, web-search-intelligence, scrape-website, scrape-raw-data                                                                                                                                      | 4     |
+| Integrations    | sendgrid-webhook, contract-lifecycle, engine-dispatch, emma-task-trigger                                                                                                                                    | 4     |
+| Infrastructure  | health-check, watchdog-uptime, watchdog-integrity, cleanup-api-keys, fire-delayed-triggers                                                                                                                  | 5     |
+| Operations      | process-settlement-image, validate-settlement, leader-pulse, identify-company                                                                                                                               | 4     |
+| API gateway     | workspace-api (15 endpoints, dual-auth), validate-api-key                                                                                                                                                   | 2     |
+
+**Auth patterns:** 1 function uses `verify_jwt = true` (create-invitation). 30 use `verify_jwt = false` with custom auth (dual-auth, cron bearer, or webhook validation).
+
+### ADR Count (verified 2026-03-17)
+
+**51 ADRs** in `docs/decisions/` (0001-0051). Latest additions:
+
+| ADR  | Title                                               |
+| ---- | --------------------------------------------------- |
+| 0049 | Agent SDK package + Guardian WebSocket architecture |
+| 0050 | Port standardization + Vault secrets                |
+| 0051 | Unified AI runtime system definition                |
 
 ### Engine Process Templates (5 seeded)
 
@@ -586,20 +617,37 @@ UI mutation → emit() → engine-event provider → engine-dispatch EF
 
 ---
 
-### Unmerged Feature Branches
+### Active Worktrees (verified 2026-03-17)
 
-| Branch                                       | Worktree    | Status      | Notes                                                                   |
-| -------------------------------------------- | ----------- | ----------- | ----------------------------------------------------------------------- |
-| `feat/zero-to-production`                    | wt-1        | in_progress | Module Zero. Engine-dispatch deployed, e2e backbone verified 2026-03-08 |
-| `feat/document-mode`                         | wt-2        | in_progress |                                                                         |
-| `feat/infra-hardening`                       | wt-4        | in_progress |                                                                         |
-| `feat/showroom`                              | wt-8        | in_progress | Phase 2 done, 4 uncommitted files                                       |
-| `test/blender`                               | wt-blender  | in_progress |                                                                         |
-| `docs/production-menu-inventory-integration` | superpowers | in_progress | 7 dirty files (module docs, decisions)                                  |
-| `feat/season-engine`                         | —           | no worktree | Orphan branch, no worktree attached                                     |
-| `feat/journey-package-skills`                | —           | remote only | `remotes/origin/feat/journey-package-skills`                            |
+| Branch                     | Worktree   | Status | Notes                                                                              |
+| -------------------------- | ---------- | ------ | ---------------------------------------------------------------------------------- |
+| `feat/agent-chat`          | walkTalkie | active | AI chat, brreg route, emma memory, login/join hype sequence. ~34 uncommitted files |
+| `feat/dashboardWork`       | wt-14      | active | Dashboard UI improvements. Minor doc edits only                                    |
+| `feat/fix/adminpage-speed` | wt-3       | active | Admin page caching + query consolidation (30s/60s TTL)                             |
+| `feat/journey-engine-core` | wt-5       | stale  | Event-driven workflow engine. Last commit 2+ days ago                              |
+| `feat/bugfixes`            | wt-50      | active | Invite dialog, people table, wizard steps, document analysis                       |
+
+### Recently Merged (into development)
+
+| Branch                               | Merge commit | What it brought                    |
+| ------------------------------------ | ------------ | ---------------------------------- |
+| `feat/agent-chat` (partial)          | 69984c45     | env URLs, brreg route, emma memory |
+| `feat/journey-engine-core` (partial) | b25d88aa     | Journey engine core                |
+| `feat/fix/adminpage-speed` (partial) | 650c2bd4     | Admin page speed fixes             |
+| `feat/dashboardWork` (partial)       | 26809bd8     | Dashboard work                     |
+| `feat/bugfixes`                      | 23ff2051     | Bug fixes batch                    |
+| `feat/signup`                        | 551e1561     | Signup wizard improvements         |
+
+### Unmerged Remote Branches
+
+| Branch                                       | Notes                                |
+| -------------------------------------------- | ------------------------------------ |
+| `feat/signup`                                | Local branch exists, not in worktree |
+| `feat/onboarding`                            | Local branch, not in worktree        |
+| `docs/production-menu-inventory-integration` | Remote only, module docs/decisions   |
+| `feat/showroom`                              | Remote only                          |
 
 ---
 
-_Next update: Week of 2026-03-15_
+_Next update: Week of 2026-03-24_
 _Owner: Pontus Lindroth_

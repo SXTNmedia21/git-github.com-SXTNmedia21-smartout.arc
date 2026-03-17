@@ -1,11 +1,11 @@
 ---
 title: "Build Order (Detailed Implementation Plan)"
 id: PLAN_BUILD_ORDER
-version: "2.0"
+version: "3.0"
 status: canonical
 layer: plan
 created: 2026-02-24
-updated: 2026-04-11
+updated: 2026-03-17
 author: pontus
 supersedes: []
 superseded_by: null
@@ -23,13 +23,15 @@ changelog:
     change: "Status audit — marked Wave 1 progress (Org Structure done, Onboarding partial, Settings stub)"
   - date: 2026-04-11
     change: "Major audit — marked all built features across Waves 0-6, added cross-cutting systems, updated percentages"
+  - date: 2026-03-17
+    change: "Full codebase audit — updated counts (130 migrations, 72 enums, 31 Edge Functions, 51 ADRs, 147 tables), updated worktree status, verified all wave percentages against code"
 ---
 
 # Smartout — Build Order (Detailed Implementation Plan)
 
 > Step-by-step implementation tasks for each wave.
 > This is the execution companion to [`project-roadmap.md`](roadmaps/project-roadmap.md).
-> Last updated: 2026-04-11
+> Last updated: 2026-03-17
 
 ---
 
@@ -60,8 +62,8 @@ changelog:
 
 ### 0.2 — Supabase Setup
 
-- [x] Dev environment, `.env.local`, `supabase/config.toml`
-- [x] 15 migrations (00001–00012 sequential + 3 timestamped)
+- [x] Dev environment, `.env.template` (op:// based), `supabase/config.toml`
+- [x] 130 migrations (00001–00013 sequential + 117 timestamped)
 
 ### 0.3 — Core Database: Identity + Structure
 
@@ -92,11 +94,11 @@ changelog:
 
 - [x] App Router, Tailwind v4, shadcn/ui (new-york)
 - [x] Auth flows, middleware, Playwright E2E
-- [x] Dashboard layout + DashboardContext + 34 route shells
+- [x] Dashboard layout + DashboardContext + 40+ route shells
 
 ### 0.8 — Platform Admin (Module 17)
 
-- [x] 8 sub-pages (audit, billing, content, contracts, dashboard, health, users, workspaces)
+- [x] 14 sub-pages (audit, communications, content, contracts, dashboard, guardian, health, journeys, keys, landing, services, templates, users, workspaces)
 - [x] TanStack Table data tables
 - [x] Enterprise infrastructure (health-check, watchdog-integrity, watchdog-uptime edge functions)
 - [x] Landing page builder — block-based variant system (ADR-0046)
@@ -122,15 +124,16 @@ changelog:
 - [x] Scrapling (Python) — Web content extraction
 - [x] Unified Docker Compose + Caddy reverse proxy (ADR-0039)
 
-### 0.11 — Supabase Edge Functions (29 functions)
+### 0.11 — Supabase Edge Functions (31 functions)
 
-- [x] Workspace setup: create-invitation, accept-invitation, activate-workspace, extract-workspace-data, gather-workspace-intelligence, analyze-workspace, finalize-workspace, google-places-intelligence
+- [x] Workspace setup: create-invitation, accept-invitation, activate-workspace, extract-workspace-data, gather-workspace-intelligence, analyze-workspace, analyze-setup-documents, finalize-workspace, google-places-intelligence
 - [x] Guardian: guardian-notify, guardian-sweep, guardian-actions
 - [x] Search: search-brreg, web-search-intelligence, scrape-website, scrape-raw-data
 - [x] Integrations: sendgrid-webhook, contract-lifecycle, engine-dispatch
 - [x] Infrastructure: health-check, watchdog-uptime, watchdog-integrity, cleanup-api-keys
-- [x] Operations: process-settlement-image, validate-settlement, leader-pulse, identify-company
-- [x] API gateway: workspace-api (15 endpoints, dual-auth, scope-based access)
+- [x] Operations: process-settlement-image, validate-settlement, leader-pulse, identify-company, emma-task-trigger
+- [x] API gateway: workspace-api (15 endpoints, dual-auth, scope-based access), validate-api-key
+- [x] Automation: fire-delayed-triggers
 
 </details>
 
@@ -940,20 +943,30 @@ pnpm --filter e2e test:e2e -- --grep "org-structure"
 
 The project has built significantly out of wave order — especially AI (Wave 6.4) and Scheduling (Wave 2.1) which are both ~80% complete. The largest gaps are in Operations (Wave 3 department sessions/hooks), Training (Wave 4), and Payroll (Wave 5).
 
+**Active work (as of 2026-03-17):**
+
+| Worktree   | Branch                     | Focus                                                            |
+| ---------- | -------------------------- | ---------------------------------------------------------------- |
+| walkTalkie | `feat/agent-chat`          | AI conversation, brreg integration, emma memory, login/join flow |
+| wt-14      | `feat/dashboardWork`       | Dashboard UI improvements                                        |
+| wt-3       | `feat/fix/adminpage-speed` | Admin page caching + query consolidation                         |
+| wt-5       | `feat/journey-engine-core` | Event-driven workflow engine                                     |
+| wt-50      | `feat/bugfixes`            | Invite dialog, people table, wizard steps                        |
+
 **Immediate next steps (recommended order):**
 
 1. **Finish Wave 1 gaps** — Settings module, position CRUD, zone/asset CRUD, people profile detail page
-2. **Complete Schedule gaps** — Shift swap workflow, E2E tests
-3. **Build Operations core (Wave 3.1)** — Department sessions, session hooks, clock-in/out — these are the biggest missing business features
-4. **Extract shared components (Step 1.0)** — DataTable + ConfirmDialog from platform-admin to `@smartout/ui`
-5. **Complete invite-accept flow (1.3.3)** — Real auth signup, email dispatch — employee entry point
+2. **Complete invite-accept flow (1.3.3)** — Real auth signup, email dispatch — employee entry point
+3. **Build Operations core (Wave 3.1)** — Department sessions, session hooks, clock-in/out — the biggest missing business features
+4. **Complete Schedule gaps** — Shift swap workflow, E2E tests
+5. **Wire end-to-end event flows** — Shift publish → session creation, invite accept → protocol assignment (partially done but untested)
 
 **Why this order:**
 
 - Settings and invite-accept are blocking onboarding completion
 - Operations (department sessions + hooks) is the core daily workflow and blocks HACCP
+- End-to-end event flows are the glue — engine_dispatch is deployed but flows are untested
 - Schedule is functional but needs swap workflow for production use
-- Shared components should be extracted when needed, not all at once
 
 ---
 
