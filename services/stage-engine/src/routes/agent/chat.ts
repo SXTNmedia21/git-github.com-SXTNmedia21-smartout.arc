@@ -38,6 +38,18 @@ const chatSchema = z.object({
 agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
   const body = c.req.valid("json");
   const auth = c.get("auth") as AuthContext;
+  const workspaceId = auth.workspaceId;
+
+  if (!workspaceId) {
+    return c.json(
+      {
+        error: "FORBIDDEN",
+        message: "Workspace context is required for agent chat",
+        status: 403,
+      },
+      403,
+    );
+  }
 
   // Load or create session
   let sessionId = body.session_id;
@@ -72,7 +84,7 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
   } else {
     // Create new agent session
     const session = await createAgentSession({
-      workspaceId: auth.workspaceId,
+      workspaceId,
       profileId: body.profile_id,
       userId: auth.userId,
       channel: body.channel,
@@ -98,7 +110,7 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
 
   emitGuardianEvent({
     session_id: sessionId,
-    workspace_id: auth.workspaceId,
+    workspace_id: workspaceId,
     event_type: "user.message",
     actor: "user",
     summary: body.message.length > 100 ? body.message.slice(0, 100) + "\u2026" : body.message,
@@ -109,7 +121,7 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
   const response = await routeAgentMessage({
     message: body.message,
     sessionId,
-    workspaceId: auth.workspaceId,
+    workspaceId,
     profileId: body.profile_id,
     userId: auth.userId,
     conversationHistory,
@@ -125,7 +137,7 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
 
   emitGuardianEvent({
     session_id: sessionId,
-    workspace_id: auth.workspaceId,
+    workspace_id: workspaceId,
     event_type: "agent.response",
     actor: "agent",
     summary:

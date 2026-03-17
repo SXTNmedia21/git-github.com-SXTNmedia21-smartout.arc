@@ -33,6 +33,17 @@ export async function authMiddleware(c: Context, next: Next): Promise<Response |
     return next();
   }
 
+  // Local dev — skip auth entirely when no real dev key is configured
+  const hasRealDevKey = config.DEV_API_KEY && !config.DEV_API_KEY.startsWith("op://");
+  if (process.env.NODE_ENV !== "production" && !hasRealDevKey) {
+    c.set("auth", {
+      method: "api_key",
+      workspaceId: undefined,
+      scopes: ["*"],
+    } satisfies AuthContext);
+    return next();
+  }
+
   const apiKey = c.req.header("x-api-key");
   const authHeader = c.req.header("authorization");
 
@@ -42,7 +53,7 @@ export async function authMiddleware(c: Context, next: Next): Promise<Response |
     if (config.DEV_API_KEY && apiKey === config.DEV_API_KEY) {
       c.set("auth", {
         method: "api_key",
-        workspaceId: "00000000-0000-0000-0000-000000000000",
+        workspaceId: undefined,
         scopes: ["*"],
       } satisfies AuthContext);
       return next();
