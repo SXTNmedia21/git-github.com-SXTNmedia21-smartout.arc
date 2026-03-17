@@ -1042,17 +1042,6 @@ function SchedulePageContent() {
                         )}
                       </>
                     }
-                    dayInspector={
-                      <DayControlSheet
-                        selectedDate={activeSelectedDate}
-                        onClose={() => handleSetSelectedDate(null)}
-                      >
-                        <DayControlPanel
-                          date={activeSelectedDate}
-                          onClose={() => handleSetSelectedDate(null)}
-                        />
-                      </DayControlSheet>
-                    }
                   />
 
                   <StatusStrip
@@ -1065,6 +1054,17 @@ function SchedulePageContent() {
 
               <ScheduleDragOverlay isDark={isDark} />
             </DndContext>
+
+            {/* Day control sheet — rendered at page level so it escapes GridSurface stacking context */}
+            <DayControlSheet
+              selectedDate={activeSelectedDate}
+              onClose={() => handleSetSelectedDate(null)}
+            >
+              <DayControlPanel
+                date={activeSelectedDate}
+                onClose={() => handleSetSelectedDate(null)}
+              />
+            </DayControlSheet>
 
             {/* Global modals and overlays rendered at the page level */}
             <ShiftModal />

@@ -233,13 +233,23 @@ export function GridContent({
     setScrollElement(findScrollableParent(rowListRef.current));
   }, [scheduleView, filteredEmployees.length]);
 
+  const estimateRowSize = React.useCallback(
+    () => (scheduleCompactMode ? 56 : 108),
+    [scheduleCompactMode],
+  );
+
   const rowVirtualizer = useVirtualizer({
     count: scheduleView === "ansatt" ? filteredEmployees.length : 0,
     getScrollElement: () => scrollElement,
-    estimateSize: () => (scheduleCompactMode ? 56 : 108),
+    estimateSize: estimateRowSize,
     overscan: 4,
     enabled: scheduleView === "ansatt" && scrollElement !== null,
   });
+
+  // Force virtualizer to recalculate when compact mode toggles
+  React.useEffect(() => {
+    rowVirtualizer.measure();
+  }, [scheduleCompactMode, rowVirtualizer]);
 
   const virtualRows = scheduleView === "ansatt" ? rowVirtualizer.getVirtualItems() : [];
 
@@ -515,7 +525,7 @@ function DroppableDayHeader({
     <div
       ref={setNodeRef}
       data-schedule-day-id={day.id}
-      className={`flex-1 border-r border-b border-white/[0.03] ${isDark ? "bg-[#0a0a0c]/90" : "bg-white/95"} group/day relative flex h-16 cursor-pointer flex-col justify-center p-2 transition-colors hover:bg-white/5 ${day.isToday ? "bg-orange-500/[0.06]" : ""} ${isOver ? "rounded-lg border-dashed border-orange-500/50 bg-orange-500/20" : ""} ${day.situation === "__dimmed__" ? "opacity-30" : ""} ${isHighlighted ? "shadow-[0_0_0_1px_rgba(251,146,60,0.35)] ring-2 ring-orange-400/70 ring-inset" : ""}`}
+      className={`flex-1 border-r border-b border-white/[0.03] ${isDark ? "bg-[#0a0a0c]/90" : "bg-white/95"} group/day relative flex h-16 cursor-pointer flex-col justify-center p-2 transition-colors hover:bg-white/5 ${day.isToday ? "bg-orange-500/[0.06]" : ""} ${isOver ? "rounded-lg border-dashed border-orange-500/50 bg-orange-500/20" : ""} ${day.situation === "__dimmed__" ? "opacity-30" : ""} ${isHighlighted ? "shadow-[inset_0_0_0_2px_rgba(251,146,60,0.7)]" : ""}`}
       style={{ minWidth: "100px" }}
       onClick={() => onDateClick(day.id)}
     >

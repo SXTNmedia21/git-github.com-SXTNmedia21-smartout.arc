@@ -46,7 +46,7 @@ export function PlannerCommandBar({
   return (
     <div
       className="border-border bg-background/80 relative flex shrink-0 flex-wrap items-center justify-between border-b px-4 py-1 backdrop-blur-md print:hidden"
-      style={{ zIndex: SCHEDULE_LAYERS.stickyContent }}
+      style={{ zIndex: SCHEDULE_LAYERS.stickyCorner + 1 }}
     >
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="flex items-center gap-1.5 text-xs font-black tracking-tight">
