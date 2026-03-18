@@ -84,7 +84,7 @@ export default function ShiftsListScreen() {
           !isLoading ? (
             <EmptyState
               title={strings.home.noShift}
-              subtitle="Ingen vakter de neste 7 dagene."
+              subtitle="Ingen vakter de neste 7 dagene. Nye vakter vises her nar lederen publiserer dem."
             />
           ) : null
         }

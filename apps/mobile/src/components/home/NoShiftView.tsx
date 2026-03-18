@@ -49,7 +49,7 @@ export function NoShiftView({ firstName, nextShift, unreadCount = 0 }: NoShiftVi
       ) : (
         <EmptyState
           title={strings.home.noShift}
-          subtitle="Sjekk vaktlisten for oppdateringer."
+          subtitle="Lederen din publiserer nye vakter i vaktlisten. Du far varsel nar en vakt er klar."
         />
       )}
 

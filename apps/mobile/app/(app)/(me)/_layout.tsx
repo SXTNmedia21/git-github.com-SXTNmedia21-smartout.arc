@@ -1,6 +1,6 @@
 /**
  * Me tab stack layout.
- * Placeholder — full implementation in Phase 12.
+ * Single screen (index) with no header — the screen manages its own SafeAreaView.
  */
 import { Stack } from "expo-router";
 

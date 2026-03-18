@@ -53,7 +53,12 @@ export function MessageInput({ onSend, replyTo, onCancelReply, style }: MessageI
               {replyTo.content}
             </Text>
           </View>
-          <Pressable onPress={handleCancelReply} hitSlop={8} accessibilityLabel="Avbryt svar">
+          <Pressable
+            onPress={handleCancelReply}
+            hitSlop={8}
+            accessibilityLabel="Avbryt svar"
+            style={({ pressed }) => pressed && { opacity: 0.6, transform: [{ scale: 0.9 }] }}
+          >
             <Text style={styles.replyCancelIcon}>{"\u2715"}</Text>
           </Pressable>
         </View>
@@ -77,7 +82,11 @@ export function MessageInput({ onSend, replyTo, onCancelReply, style }: MessageI
         <Pressable
           onPress={handleSend}
           disabled={!canSend}
-          style={[styles.sendButton, !canSend && styles.sendButtonDisabled]}
+          style={({ pressed }) => [
+            styles.sendButton,
+            !canSend && styles.sendButtonDisabled,
+            pressed && canSend && styles.sendButtonPressed,
+          ]}
           accessibilityRole="button"
           accessibilityLabel={strings.common.send}
           accessibilityState={{ disabled: !canSend }}
@@ -152,6 +161,10 @@ const useStyles = createStyles((theme) => ({
   },
   sendButtonDisabled: {
     backgroundColor: theme.colors.secondary,
+  },
+  sendButtonPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.92 }],
   },
   sendIcon: {
     color: theme.colors.primaryForeground,
