@@ -472,3 +472,6 @@ verify_jwt = false
 
 [functions.analyze-setup-documents]
 verify_jwt = false
+
+[functions.push-dispatch]
+verify_jwt = false
