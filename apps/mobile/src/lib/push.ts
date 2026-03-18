@@ -129,26 +129,36 @@ export async function unregisterPushToken(profileId: string): Promise<void> {
 }
 
 /**
+ * Navigate to the correct screen based on push notification data.
+ * Shared between tap handler and cold-start handler.
+ */
+function navigateFromNotificationData(data: Record<string, string> | undefined): void {
+  if (!data?.event) return;
+
+  const getPath = DEEP_LINK_MAP[data.event];
+  if (getPath) {
+    const path = getPath(data);
+    // Small delay to ensure the app is fully mounted before navigating
+    setTimeout(() => {
+      router.push(path as never);
+    }, 100);
+  }
+}
+
+/**
  * Set up listeners for incoming notifications and notification taps.
  * Returns a cleanup function to remove listeners on unmount.
  *
- * - Foreground: handled by setNotificationHandler above (shows in-app banner)
- * - Tap/response: extracts deep link data and navigates to the correct screen
+ * Handles three scenarios:
+ * 1. Foreground: shows in-app banner (via setNotificationHandler above)
+ * 2. Background tap: notification response listener navigates to screen
+ * 3. Cold start: checks last notification response for app-killed-then-tapped
  */
 export function setupNotificationListeners(): () => void {
-  // Handle notification taps — navigate to the relevant screen
+  // Handle notification taps while app is running (foreground or background)
   const responseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
     const data = response.notification.request.content.data as Record<string, string> | undefined;
-    if (!data?.event) return;
-
-    const getPath = DEEP_LINK_MAP[data.event];
-    if (getPath) {
-      const path = getPath(data);
-      // Small delay to ensure the app is fully mounted before navigating
-      setTimeout(() => {
-        router.push(path as never);
-      }, 100);
-    }
+    navigateFromNotificationData(data);
   });
 
   // Handle notifications received while app is in foreground (logging only,
@@ -158,8 +168,31 @@ export function setupNotificationListeners(): () => void {
     console.log("Notification received in foreground:", data?.event ?? "unknown");
   });
 
+  // Cold start: if the app was killed and opened via a notification tap,
+  // the response listener above won't catch it. Check the last response.
+  void Notifications.getLastNotificationResponseAsync().then((response) => {
+    if (response) {
+      const data = response.notification.request.content.data as Record<string, string> | undefined;
+      navigateFromNotificationData(data);
+    }
+  });
+
   return () => {
     responseSubscription.remove();
     receivedSubscription.remove();
   };
+}
+
+/**
+ * Get the current badge count. Used by UI to show unread indicator.
+ */
+export async function getBadgeCount(): Promise<number> {
+  return Notifications.getBadgeCountAsync();
+}
+
+/**
+ * Clear the badge count (e.g., when user opens the app).
+ */
+export async function clearBadgeCount(): Promise<void> {
+  await Notifications.setBadgeCountAsync(0);
 }
