@@ -1,0 +1,102 @@
+/**
+ * All Norwegian UI strings for the mobile app, centralized.
+ * Every screen imports from here — no hardcoded strings in components.
+ * i18n via @smartout/i18n planned for V2.
+ */
+export const strings = {
+  tabs: {
+    home: "Hjem",
+    shifts: "Vakter",
+    chat: "Chat",
+    me: "Meg",
+  },
+  home: {
+    greeting: "Hei",
+    nextShift: "Neste vakt",
+    noShift: "Ingen kommende vakter",
+    onShift: "På vakt",
+    shiftDone: "Vakt avsluttet",
+    shiftStartedAgo: "Vakten din begynte for",
+    minutesAgo: "min siden",
+    unreadMessages: "uleste meldinger",
+  },
+  shift: {
+    confirm: "Bekreft vakt",
+    punchIn: "Stemple inn",
+    punchOut: "Stemple ut",
+    confirmed: "Bekreftet",
+    colleagues: "Kolleger",
+    leader: "Leder",
+    dayInfo: "Daginfo",
+    position: "Posisjon",
+  },
+  tasks: {
+    title: "Oppgaver",
+    noTasks: "Alt klart.",
+    reportDeviation: "Rapporter avvik",
+    dueSoon: "Forfaller snart",
+    completed: "Fullført",
+  },
+  chat: {
+    channels: "Kanaler",
+    directMessages: "Direktmeldinger",
+    activeShift: "Aktiv vakt",
+    placeholder: "Skriv melding...",
+    noMessages: "Ingen meldinger ennå. Start samtalen!",
+  },
+  auth: {
+    welcome: "Velkommen til Smartout",
+    invite: "Jeg har en invitasjon",
+    code: "Jeg har en kode",
+    search: "Finn min arbeidsplass",
+    enterCode: "Skriv inn 6-sifret kode",
+    searchPlaceholder: "Søk etter arbeidsplass...",
+    requestSent: "Forespørsel sendt",
+    waitingForApproval: "Du får beskjed når admin godkjenner.",
+    isThisCorrect: "Er dette riktig?",
+    joinWorkspace: "Bli med i",
+    verifyPhone: "Bekreft telefonnummer",
+    enterOtp: "Skriv inn koden du fikk på SMS",
+  },
+  sync: {
+    syncing: "Synkroniserer",
+    waiting: "poster venter",
+    failed: "mislyktes",
+    retry: "Prøv igjen",
+    synced: "Alt synkronisert",
+    noConnection: "ingen tilkobling",
+  },
+  handoff: {
+    title: "Overlevering",
+    placeholder: "Skriv overlevering...",
+    send: "Send",
+    notSubmitted: "Ej innlevert",
+  },
+  hours: {
+    title: "Bekreft timer",
+    planned: "Planlagt",
+    registered: "Registrert",
+    break: "Pause",
+    confirm: "Bekreft",
+    dispute: "Bestrid",
+  },
+  me: {
+    profile: "Profil",
+    settings: "Innstillinger",
+    logout: "Logg ut",
+    callLeader: "Ring leder",
+    trainingLocked: "Trening & sertifikat",
+    comingSoon: "Kommer snart",
+  },
+  common: {
+    send: "Send",
+    cancel: "Avbryt",
+    save: "Lagre",
+    done: "Ferdig",
+    loading: "Laster...",
+    error: "Noe gikk galt",
+    tryAgain: "Prøv igjen",
+  },
+} as const;
+
+export type Strings = typeof strings;
