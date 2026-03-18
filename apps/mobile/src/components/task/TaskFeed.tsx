@@ -61,7 +61,7 @@ export function TaskFeed({ tasks, profileId }: TaskFeedProps) {
     return (
       <EmptyState
         title={strings.tasks.noTasks}
-        subtitle="Ingen ventende oppgaver akkurat nå."
+        subtitle="Ingen ventende oppgaver akkurat na. Oppgaver tildeles automatisk gjennom vakten."
       />
     );
   }

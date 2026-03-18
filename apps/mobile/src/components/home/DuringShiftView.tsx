@@ -151,7 +151,7 @@ export function DuringShiftView({
         ) : (
           <EmptyState
             title={strings.tasks.noTasks}
-            subtitle={shift ? `Neste vakt: ${formatTime(shift.end_time)}` : undefined}
+            subtitle="Ingen oppgaver akkurat na. Nye oppgaver dukker opp her nar de tildeles."
           />
         )}
       </View>
