@@ -11,6 +11,7 @@ import type GorhomBottomSheet from "@gorhom/bottom-sheet";
 import {
   Settings,
   User,
+  Camera,
   Moon,
   HelpCircle,
   LogOut,
@@ -29,10 +30,11 @@ type MenuItem = {
   label: string;
   icon: LucideIcon;
   color: string;
-  action: "navigate-profile" | "theme" | "help" | "logout";
+  action: "edit-profile" | "navigate-profile" | "theme" | "help" | "logout";
 };
 
 const MENU_ITEMS: MenuItem[] = [
+  { key: "edit", label: "Rediger profil", icon: Camera, color: "#e85c0d", action: "edit-profile" },
   { key: "profile", label: "Min profil", icon: User, color: "#3b82f6", action: "navigate-profile" },
   { key: "theme", label: "Utseende", icon: Moon, color: "#8b5cf6", action: "theme" },
   { key: "help", label: "Hjelp og support", icon: HelpCircle, color: "#06b6d4", action: "help" },
@@ -53,6 +55,9 @@ export const SettingsSheet = forwardRef<GorhomBottomSheet>(function SettingsShee
       }
 
       switch (item.action) {
+        case "edit-profile":
+          router.push("/(app)/(me)/edit-profile");
+          break;
         case "navigate-profile":
           router.push("/(app)/(me)");
           break;
