@@ -44,19 +44,19 @@ tags: [mobile, expo, react-native, employee-app, v1]
 
 ### Tekniske valg
 
-| Område         | Valg                                                            |
-| -------------- | --------------------------------------------------------------- |
-| Framework      | Expo + Expo Router (filsystembasert)                            |
-| Serverstate    | TanStack Query                                                  |
-| Lokal UI-state | Zustand                                                         |
-| Skrivekø       | SQLite (`expo-sqlite`)                                          |
-| Lesecache      | MMKV (`react-native-mmkv`)                                      |
-| UI-komponenter | Egne med StyleSheet + design tokens + `react-native-reanimated` |
-| Push           | Expo Notifications (managed APNs/FCM)                           |
-| Chat realtime  | Supabase direkte (ingen gateway Edge Function)                  |
-| AI             | Stage Engine via same API som web (tekst-only)                  |
-| Språk          | Norsk hardkodet                                                 |
-| Ring leder     | `Linking.openURL('tel:...')` — vanlig telefonsamtale            |
+| Område         | Valg                                                                                                                         |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Framework      | Expo + Expo Router (filsystembasert)                                                                                         |
+| Serverstate    | TanStack Query                                                                                                               |
+| Lokal UI-state | Zustand                                                                                                                      |
+| Skrivekø       | SQLite (`expo-sqlite`)                                                                                                       |
+| Lesecache      | MMKV (`react-native-mmkv`)                                                                                                   |
+| UI-komponenter | Egne med StyleSheet + design tokens + `react-native-reanimated`                                                              |
+| Push           | Expo Notifications (managed APNs/FCM)                                                                                        |
+| Chat realtime  | Supabase direkte (ingen gateway Edge Function)                                                                               |
+| AI             | Stage Engine via same API som web (tekst-only)                                                                               |
+| Språk          | Norsk hardkodet (ADR kreves — overstyrer CLAUDE.md "aldri hardkod norsk"-regel for V1 mobil. i18n via `@smartout/i18n` i V2) |
+| Ring leder     | `Linking.openURL('tel:...')` — vanlig telefonsamtale                                                                         |
 
 ---
 
@@ -85,7 +85,7 @@ CREATE SCHEMA IF NOT EXISTS timesheet;
 CREATE TYPE timesheet.time_entry_status AS ENUM ('clocked_in', 'completed', 'edited');
 
 CREATE TABLE timesheet.time_entry (
-  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  time_entry_id     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   shift_id          UUID NOT NULL REFERENCES public.schedule_shift(schedule_shift_id),
   profile_id        UUID NOT NULL REFERENCES public.profile(profile_id),
   workspace_id      UUID NOT NULL REFERENCES public.workspace(workspace_id),
@@ -167,32 +167,67 @@ ALTER TABLE invitation ADD COLUMN requested_by UUID REFERENCES profile(profile_i
 -- NULL for outbound, profil-id for inbound
 ```
 
-Gjenbruker eksisterende status-logikk (pending → accepted/rejected). Admin ser begge retninger i same liste.
+Eksisterende `invite_status` enum er `pending | accepted | expired | cancelled`. Avslag (rejection) mappes til `cancelled` — admin setter status til `cancelled` med en kommentar. Ingen ny enum-verdi behøves. Admin ser begge retninger i same liste.
 
 ### 3.6 Søkbar workspace-liste
 
 ```sql
--- RPC (anon-tilgjengelig, ingen secrets):
+-- RPC (anon-tilgjengelig, SECURITY DEFINER):
 -- search_workspaces(query TEXT) → [{workspace_id, name, logo_url}]
 -- Returnerer maks 10 treff
 -- Eksponerer BARE navn + logo
+-- Krav: minimum 3 tegn i query (kortere avvises)
+-- Rate limit: maks 10 kall per minutt per IP (via Edge Function wrapper)
 ```
 
-### 3.7 Migrasjon: fjern punch fra shift_approval
+Nytt felt på `workspace`:
+
+```sql
+ALTER TABLE workspace ADD COLUMN is_searchable BOOLEAN NOT NULL DEFAULT true;
+```
+
+RPCen filtrerer på `is_searchable = true`. Workspaces som ikke vil bli funnet kan sette dette til false.
+
+### 3.7 Ny kolonne: `schedule_shift.confirmed_at`
+
+```sql
+ALTER TABLE schedule_shift ADD COLUMN confirmed_at TIMESTAMPTZ;
+ALTER TABLE schedule_shift ADD COLUMN confirmed_by UUID REFERENCES profile(profile_id);
+```
+
+Vaktbekreftelse: ansatt bekrefter ved å sette `confirmed_at` + `confirmed_by`. Null = ubekreftet. Egen RLS-policy lar ansatte oppdatere bare `confirmed_at`/`confirmed_by` på egne skift.
+
+### 3.8 Ny enum-verdi: `chat_conversation_type`
+
+Eksisterende enum er `group | dm | ai`. Chat-kanaler (`department`, `team`, `session`) representeres som `group`-samtaler med ekstra metadata:
+
+```sql
+ALTER TABLE conversation ADD COLUMN source_type TEXT;
+-- 'department' | 'team' | 'session' | NULL
+ALTER TABLE conversation ADD COLUMN source_id UUID;
+-- FK til department_id, team_id, eller department_session_id
+```
+
+Filtrering i appen: `WHERE type = 'group' AND source_type = 'department'` etc. Ingen ny enum-verdi i `chat_conversation_type`.
+
+### 3.9 Migrasjon: fjern punch fra shift_approval
 
 ```sql
 ALTER TABLE shift_approval DROP COLUMN IF EXISTS punch_in;
 ALTER TABLE shift_approval DROP COLUMN IF EXISTS punch_out;
 ```
 
-### 3.8 Sammendrag
+### 3.10 Sammendrag
 
 | Endring                                            | Type                   |
 | -------------------------------------------------- | ---------------------- |
 | `timesheet` skjema + `time_entry`                  | Nytt skjema, ny tabell |
 | `haccp_log`                                        | Ny tabell              |
 | `workspace.join_code`                              | Ny kolonne             |
+| `workspace.is_searchable`                          | Ny kolonne             |
 | `profile.expo_push_token`                          | Ny kolonne             |
+| `schedule_shift.confirmed_at/confirmed_by`         | Nye kolonner           |
+| `conversation.source_type/source_id`               | Nye kolonner           |
 | `invitation.direction` + `invitation.requested_by` | Nye kolonner           |
 | `shift_approval.punch_in/punch_out`                | Fjernes                |
 | `search_workspaces()` RPC                          | Ny funksjon            |
@@ -456,6 +491,8 @@ Hver oppgave i feeden åpner same bottom sheet. Task-typen styrer skjemaet:
 | `procedure`    | Steg-for-steg  | Aktuelt steg → marker klart → neste                                                                |
 | `general`      | Fritekst       | Beskrivelse → marker klar                                                                          |
 
+**Hvor `task_type` kommer fra:** `session_task`-tabellen har ikke et `task_type`-felt. Typen utledes fra oppgavens opphav: oppgaver opprettet fra `session_hook` arver hook-ens tilknyttede protokoll-type (prosedyre → `procedure`, rutine → `checklist`, kontrolliste → `confirmation`). HACCP-oppgaver identifiseres via `is_compliance_required = true` + tilknyttet CCP-referanse. Oppgaver uten protokoll-kobling er `general`. Mobilappen resolver dette i en `resolveTaskType(task)` utility-funksjon.
+
 Én komponent (`TaskModal`), én switch på type, minimalt skjema per type. Hver følger regelen: én skjerm, én oppgave.
 
 ---
@@ -486,14 +523,16 @@ Synkloopen har en `actionMap` — ren mapping fra action til Supabase-kall:
 ```typescript
 const actionMap: Record<string, (payload: unknown) => Promise<void>> = {
   punch_in: (p) => supabase.schema("timesheet").from("time_entry").insert(p),
-  punch_out: (p) => supabase.schema("timesheet").from("time_entry").update(p).eq("id", p.id),
+  punch_out: (p) =>
+    supabase.schema("timesheet").from("time_entry").update(p).eq("time_entry_id", p.time_entry_id),
   haccp_log: (p) => supabase.from("haccp_log").insert(p),
   report_deviation: (p) => supabase.from("deviation").insert(p),
   send_message: (p) => supabase.from("chat_message").insert(p),
   complete_task: (p) => supabase.from("session_task").update(p).eq("id", p.id),
-  confirm_shift: (p) => supabase.from("schedule_shift").update(p).eq("id", p.id),
+  confirm_shift: (p) =>
+    supabase.from("schedule_shift").update(p).eq("schedule_shift_id", p.schedule_shift_id),
   submit_handoff: (p) => supabase.from("session_note").insert(p),
-  confirm_hours: (p) => supabase.from("shift_approval").update(p).eq("id", p.id),
+  confirm_hours: (p) => supabase.from("shift_approval").update(p).eq("approval_id", p.approval_id),
 };
 ```
 
@@ -604,15 +643,17 @@ Om Supabase returnerer conflict (409/duplicate) → marker som synket (dataen fi
 
 ### 7.1 Kanaltyper
 
-| Type         | Opprettes av                 | Deltakere                                | Levetid                            |
-| ------------ | ---------------------------- | ---------------------------------------- | ---------------------------------- |
-| `department` | Automatisk per avdeling      | Alle med profil i avdelingen             | Permanent                          |
-| `team`       | Automatisk per team          | Alle teammedlemmer                       | Permanent                          |
-| `session`    | Automatisk ved session-start | Alle med vakt den dagen i den avdelingen | Dør ved session-close              |
-| `dm`         | Bruker                       | 2 personer                               | Permanent                          |
-| `ai`         | Automatisk per profil        | Profil + Botsson                         | Permanent (Stage Engine-historikk) |
+Alle kanaler bruker `conversation`-tabellen. `type`-enumen er `group | dm | ai`. Gruppekanaler differensieres via `source_type` (se seksjon 3.8).
 
-`department`, `team` og `session`-kanaler opprettes automatisk — ansatte oppretter aldri gruppekanaler. De kan starte DM-er.
+| Visuell type | DB type | `source_type` | Opprettes av                 | Deltakere                                | Levetid                            |
+| ------------ | ------- | ------------- | ---------------------------- | ---------------------------------------- | ---------------------------------- |
+| Avdeling     | `group` | `department`  | Automatisk per avdeling      | Alle med profil i avdelingen             | Permanent                          |
+| Team         | `group` | `team`        | Automatisk per team          | Alle teammedlemmer                       | Permanent                          |
+| Dagvakt      | `group` | `session`     | Automatisk ved session-start | Alle med vakt den dagen i den avdelingen | Dør ved session-close              |
+| DM           | `dm`    | NULL          | Bruker                       | 2 personer                               | Permanent                          |
+| AI           | `ai`    | NULL          | Automatisk per profil        | Profil + Botsson                         | Permanent (Stage Engine-historikk) |
+
+`department`-, `team`- og `session`-kanaler opprettes automatisk — ansatte oppretter aldri gruppekanaler. De kan starte DM-er.
 
 ### 7.2 Skjermer
 
@@ -694,7 +735,7 @@ Sende melding offline → køes i `pending_writes` med `action: 'send_message'`.
 2. `lookup_workspace_by_code(code)` → workspace navn + logo
 3. "Er dette riktig? {workspace}" → Ja
 4. Verifiseringsskjerm (SMS OTP / magic link)
-5. OTP korrekt → invitation opprettes automatisk (direction: 'outbound', status: 'accepted') → inn i appen
+5. OTP korrekt → profil opprettes direkte i workspace (join-by-code bypasser invitation-tabellen — koden ER autorisasjonen) → inn i appen
 
 **Vei 3 — Søk + join request:**
 
@@ -809,13 +850,18 @@ Ved app-start (etter auth):
 
 ### 10.2 Dispatch: Postgres trigger → Edge Function
 
-Når en relevant hendelse inntreffer (INSERT/UPDATE på riktig tabell) → Postgres trigger kaller `push-dispatch` Edge Function via `net.http_post()`.
+Når en relevant hendelse inntreffer (INSERT/UPDATE på riktig tabell) → Postgres trigger kaller `push-dispatch` Edge Function via `net.http_post()` (krever `pg_net`-extension, aktivert som standard i Supabase).
+
+**Auth-mønster:** `push-dispatch` har `verify_jwt = false` (kalt fra DB trigger, ikke bruker). Autentiseres med `PUSH_DISPATCH_SECRET` bearer token i HTTP-headeren — satt via `current_setting('app.push_dispatch_secret')` i triggerfunksjonen. Edge Function validerer token før prosessering. Legges til i `config.toml`.
+
+**Feilhåndtering:** `pg_net` er fire-and-forget — Edge Function-feil dropprer push stille. Akseptabelt for V1. Push er best-effort, ikke garantert delivery. Kritiske events har SMS-fallback som separat kanal (ikke avhengig av push).
 
 Edge Function:
 
-1. Henter `profile.expo_push_token` for mottakerprofilen
-2. Om token finnes → POST til Expo Push API (`https://exp.host/--/api/v2/push/send`)
-3. Om token mangler + kritisk event → fallback til SMS via Twilio
+1. Validerer `PUSH_DISPATCH_SECRET` bearer token
+2. Henter `profile.expo_push_token` for mottakerprofilen
+3. Om token finnes → POST til Expo Push API (`https://exp.host/--/api/v2/push/send`)
+4. Om token mangler + kritisk event → fallback til SMS via Twilio
 
 ### 10.3 Events som trigger push
 
