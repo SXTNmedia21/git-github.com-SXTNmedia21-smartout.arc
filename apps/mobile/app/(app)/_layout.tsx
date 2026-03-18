@@ -8,14 +8,16 @@
  * QuickActions overlay appears on FAB swipe-up with phase-aware shortcuts.
  */
 
-import React, { useCallback, useState } from "react";
-import { View, Linking } from "react-native";
+import React, { useCallback, useRef, useState } from "react";
+import { View } from "react-native";
 import { Tabs } from "expo-router";
 import { useSharedValue, withSpring } from "react-native-reanimated";
+import type GorhomBottomSheet from "@gorhom/bottom-sheet";
 import { createStyles } from "@/theme";
 import { TabBar } from "@/components/navigation/TabBar";
 import { AIFab } from "@/components/navigation/AIFab";
 import { QuickActions } from "@/components/navigation/QuickActions";
+import { BotssonSheet } from "@/components/ai/BotssonSheet";
 import { useShiftPhase } from "@/hooks/stores/use-shift-phase";
 import { strings } from "@/constants/strings";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
@@ -25,6 +27,7 @@ export default function AppLayout() {
   const { phase } = useShiftPhase();
   const [quickActionsVisible, setQuickActionsVisible] = useState(false);
   const quickActionsVisibility = useSharedValue(0);
+  const botssonSheetRef = useRef<GorhomBottomSheet>(null);
 
   const showQuickActions = useCallback(() => {
     setQuickActionsVisible(true);
@@ -38,8 +41,11 @@ export default function AppLayout() {
   }, [quickActionsVisibility]);
 
   const handleFabPress = useCallback(() => {
-    // Placeholder: opens Botsson sheet in Phase 11
-    // For now, toggle quick actions as a preview
+    botssonSheetRef.current?.snapToIndex(0);
+  }, []);
+
+  const handleBotssonDismiss = useCallback(() => {
+    botssonSheetRef.current?.close();
   }, []);
 
   const handleQuickAction = useCallback(
@@ -107,6 +113,9 @@ export default function AppLayout() {
         onDismiss={hideQuickActions}
         visibility={quickActionsVisibility}
       />
+
+      {/* Botsson AI chat sheet — opened via FAB tap */}
+      <BotssonSheet ref={botssonSheetRef} onDismiss={handleBotssonDismiss} />
     </View>
   );
 }

@@ -88,6 +88,13 @@ export const strings = {
     trainingLocked: "Trening & sertifikat",
     comingSoon: "Kommer snart",
   },
+  botsson: {
+    title: "Mr. Botsson",
+    greetingNoShift: "Hei! Hva kan jeg hjelpe med?",
+    greetingBeforeShift: "Hei! Du har vakt snart. Hva trenger du?",
+    greetingDuringShift: "Hei! Du er p\u00e5 vakt. Hva trenger du hjelp med?",
+    greetingAfterShift: "Vakt avsluttet. Trenger du hjelp med noe?",
+  },
   common: {
     send: "Send",
     cancel: "Avbryt",
