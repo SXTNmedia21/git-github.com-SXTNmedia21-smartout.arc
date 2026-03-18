@@ -60,8 +60,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Not signed in, redirect to welcome
       router.replace("/(auth)/welcome");
     } else if (session && inAuthGroup) {
-      // Signed in, redirect to app
-      router.replace("/(app)");
+      // Signed in but still in auth group — workspace-select handles the routing
+      // (auto-redirects to app if 1 profile, pending if 0, shows list if >1)
+      const isInPostAuthFlow =
+        segments[1] === "workspace-select" || segments[1] === "pending" || segments[1] === "verify";
+      if (!isInPostAuthFlow) {
+        router.replace("/(auth)/workspace-select");
+      }
     }
   }, [session, segments, isLoading, router]);
 

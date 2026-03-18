@@ -14,10 +14,25 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "ai.smartout.mobile"
+      "bundleIdentifier": "ai.smartout.mobile",
+      "associatedDomains": ["applinks:app.smartout.ai"]
     },
     "android": {
       "package": "ai.smartout.mobile",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "app.smartout.ai",
+              "pathPrefix": "/invite"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
