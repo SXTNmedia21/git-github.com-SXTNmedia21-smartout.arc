@@ -7,31 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       activity_trail: {
@@ -542,6 +517,8 @@ export type Database = {
           id: string
           is_archived: boolean
           name: string | null
+          source_id: string | null
+          source_type: string | null
           type: Database["public"]["Enums"]["chat_conversation_type"]
           updated_at: string
           workspace_id: string
@@ -554,6 +531,8 @@ export type Database = {
           id?: string
           is_archived?: boolean
           name?: string | null
+          source_id?: string | null
+          source_type?: string | null
           type: Database["public"]["Enums"]["chat_conversation_type"]
           updated_at?: string
           workspace_id: string
@@ -566,6 +545,8 @@ export type Database = {
           id?: string
           is_archived?: boolean
           name?: string | null
+          source_id?: string | null
+          source_type?: string | null
           type?: Database["public"]["Enums"]["chat_conversation_type"]
           updated_at?: string
           workspace_id?: string
@@ -3296,6 +3277,83 @@ export type Database = {
           },
         ]
       }
+      haccp_log: {
+        Row: {
+          ccp_reference: string
+          corrective_action: string | null
+          created_at: string
+          equipment_id: string | null
+          haccp_log_id: string
+          is_within_range: boolean
+          logged_at: string
+          profile_id: string
+          session_id: string | null
+          temperature: number
+          unit: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          ccp_reference: string
+          corrective_action?: string | null
+          created_at?: string
+          equipment_id?: string | null
+          haccp_log_id?: string
+          is_within_range: boolean
+          logged_at?: string
+          profile_id: string
+          session_id?: string | null
+          temperature: number
+          unit?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          ccp_reference?: string
+          corrective_action?: string | null
+          created_at?: string
+          equipment_id?: string | null
+          haccp_log_id?: string
+          is_within_range?: boolean
+          logged_at?: string
+          profile_id?: string
+          session_id?: string | null
+          temperature?: number
+          unit?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "haccp_log_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "asset"
+            referencedColumns: ["asset_id"]
+          },
+          {
+            foreignKeyName: "haccp_log_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "haccp_log_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "department_session"
+            referencedColumns: ["department_session_id"]
+          },
+          {
+            foreignKeyName: "haccp_log_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       handbook_chapter: {
         Row: {
           chapter_key: string
@@ -3394,6 +3452,7 @@ export type Database = {
           company_id: string
           created_at: string
           department_ids: string[] | null
+          direction: string
           email: string | null
           expires_at: string
           first_name: string | null
@@ -3402,6 +3461,7 @@ export type Database = {
           invited_by: string | null
           last_name: string | null
           phone: string | null
+          requested_by: string | null
           role: Database["public"]["Enums"]["profile_role"]
           status: Database["public"]["Enums"]["invite_status"]
           team_ids: string[] | null
@@ -3413,6 +3473,7 @@ export type Database = {
           company_id: string
           created_at?: string
           department_ids?: string[] | null
+          direction?: string
           email?: string | null
           expires_at?: string
           first_name?: string | null
@@ -3421,6 +3482,7 @@ export type Database = {
           invited_by?: string | null
           last_name?: string | null
           phone?: string | null
+          requested_by?: string | null
           role?: Database["public"]["Enums"]["profile_role"]
           status?: Database["public"]["Enums"]["invite_status"]
           team_ids?: string[] | null
@@ -3432,6 +3494,7 @@ export type Database = {
           company_id?: string
           created_at?: string
           department_ids?: string[] | null
+          direction?: string
           email?: string | null
           expires_at?: string
           first_name?: string | null
@@ -3440,6 +3503,7 @@ export type Database = {
           invited_by?: string | null
           last_name?: string | null
           phone?: string | null
+          requested_by?: string | null
           role?: Database["public"]["Enums"]["profile_role"]
           status?: Database["public"]["Enums"]["invite_status"]
           team_ids?: string[] | null
@@ -3468,6 +3532,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "workspace"
             referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "invitation_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
           },
         ]
       }
@@ -5985,6 +6056,7 @@ export type Database = {
           departments: string[] | null
           display_name: string
           employee_number: string | null
+          expo_push_token: string | null
           is_active: boolean
           job_title: string | null
           joined_at: string
@@ -6018,6 +6090,7 @@ export type Database = {
           departments?: string[] | null
           display_name: string
           employee_number?: string | null
+          expo_push_token?: string | null
           is_active?: boolean
           job_title?: string | null
           joined_at?: string
@@ -6051,6 +6124,7 @@ export type Database = {
           departments?: string[] | null
           display_name?: string
           employee_number?: string | null
+          expo_push_token?: string | null
           is_active?: boolean
           job_title?: string | null
           joined_at?: string
@@ -6811,6 +6885,8 @@ export type Database = {
       schedule_shift: {
         Row: {
           breaks: number
+          confirmed_at: string | null
+          confirmed_by: string | null
           created_at: string
           day_category: Database["public"]["Enums"]["day_category"]
           employee_id: string | null
@@ -6832,6 +6908,8 @@ export type Database = {
         }
         Insert: {
           breaks?: number
+          confirmed_at?: string | null
+          confirmed_by?: string | null
           created_at?: string
           day_category: Database["public"]["Enums"]["day_category"]
           employee_id?: string | null
@@ -6853,6 +6931,8 @@ export type Database = {
         }
         Update: {
           breaks?: number
+          confirmed_at?: string | null
+          confirmed_by?: string | null
           created_at?: string
           day_category?: Database["public"]["Enums"]["day_category"]
           employee_id?: string | null
@@ -6873,6 +6953,13 @@ export type Database = {
           zone?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "schedule_shift_confirmed_by_fkey"
+            columns: ["confirmed_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
           {
             foreignKeyName: "schedule_shift_employee_id_fkey"
             columns: ["employee_id"]
@@ -7635,8 +7722,6 @@ export type Database = {
           handoff_completed: boolean
           handoff_requested: boolean
           planned_hours: number
-          punch_in: string | null
-          punch_out: string | null
           reconciliation_id: string
           shift_id: string
           status: Database["public"]["Enums"]["shift_approval_status"]
@@ -7655,8 +7740,6 @@ export type Database = {
           handoff_completed?: boolean
           handoff_requested?: boolean
           planned_hours: number
-          punch_in?: string | null
-          punch_out?: string | null
           reconciliation_id: string
           shift_id: string
           status?: Database["public"]["Enums"]["shift_approval_status"]
@@ -7675,8 +7758,6 @@ export type Database = {
           handoff_completed?: boolean
           handoff_requested?: boolean
           planned_hours?: number
-          punch_in?: string | null
-          punch_out?: string | null
           reconciliation_id?: string
           shift_id?: string
           status?: Database["public"]["Enums"]["shift_approval_status"]
@@ -8239,6 +8320,8 @@ export type Database = {
           grace_period_ends: string | null
           intelligence_data: Json | null
           is_active: boolean
+          is_searchable: boolean
+          join_code: string | null
           language: Database["public"]["Enums"]["preferred_language"]
           latitude: number | null
           logo_url: string | null
@@ -8288,6 +8371,8 @@ export type Database = {
           grace_period_ends?: string | null
           intelligence_data?: Json | null
           is_active?: boolean
+          is_searchable?: boolean
+          join_code?: string | null
           language?: Database["public"]["Enums"]["preferred_language"]
           latitude?: number | null
           logo_url?: string | null
@@ -8337,6 +8422,8 @@ export type Database = {
           grace_period_ends?: string | null
           intelligence_data?: Json | null
           is_active?: boolean
+          is_searchable?: boolean
+          join_code?: string | null
           language?: Database["public"]["Enums"]["preferred_language"]
           latitude?: number | null
           logo_url?: string | null
@@ -8785,6 +8872,14 @@ export type Database = {
         Args: { p_endpoint: string; p_key_id: string; p_status: number }
         Returns: undefined
       }
+      lookup_workspace_by_code: {
+        Args: { code: string }
+        Returns: {
+          logo_url: string
+          name: string
+          workspace_id: string
+        }[]
+      }
       match_platform_docs: {
         Args: {
           filter_doc_type?: Database["public"]["Enums"]["doc_type"]
@@ -8859,6 +8954,14 @@ export type Database = {
           result_id: string
           subtitle: string
           title: string
+        }[]
+      }
+      search_workspaces: {
+        Args: { query: string }
+        Returns: {
+          logo_url: string
+          name: string
+          workspace_id: string
         }[]
       }
       seed_onboarding_journey: {
@@ -9116,6 +9219,64 @@ export type Database = {
       [_ in never]: never
     }
   }
+  timesheet: {
+    Tables: {
+      time_entry: {
+        Row: {
+          breaks: Json | null
+          created_at: string
+          profile_id: string
+          punch_in: string
+          punch_in_location: Json | null
+          punch_out: string | null
+          shift_id: string
+          status: Database["timesheet"]["Enums"]["time_entry_status"]
+          time_entry_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          breaks?: Json | null
+          created_at?: string
+          profile_id: string
+          punch_in: string
+          punch_in_location?: Json | null
+          punch_out?: string | null
+          shift_id: string
+          status?: Database["timesheet"]["Enums"]["time_entry_status"]
+          time_entry_id?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          breaks?: Json | null
+          created_at?: string
+          profile_id?: string
+          punch_in?: string
+          punch_in_location?: Json | null
+          punch_out?: string | null
+          shift_id?: string
+          status?: Database["timesheet"]["Enums"]["time_entry_status"]
+          time_entry_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      time_entry_status: "clocked_in" | "completed" | "edited"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
 }
 
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
@@ -9236,9 +9397,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       absence_status: ["pending", "approved", "rejected"],
@@ -9504,6 +9662,11 @@ export const Constants = {
         "review",
       ],
       wizard_session_status: ["active", "completed", "abandoned"],
+    },
+  },
+  timesheet: {
+    Enums: {
+      time_entry_status: ["clocked_in", "completed", "edited"],
     },
   },
 } as const
