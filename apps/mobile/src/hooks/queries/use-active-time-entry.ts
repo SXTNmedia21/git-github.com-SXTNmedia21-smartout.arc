@@ -58,16 +58,19 @@ async function fetchActiveTimeEntry(): Promise<TimeEntry | null> {
 
   if (profileError) throw profileError;
 
-  // Query time_entry for active clocked_in entry
-  // TODO: migrate to .schema("timesheet") once the timesheet schema exists
-  const { data, error } = await supabase
-    .from("time_entry" as never)
+  // Query timesheet.time_entry for active clocked_in entry
+  // Timesheet schema not in generated types — cast to any for the chain
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  const { data, error } = await (supabase as any)
+    .schema("timesheet")
+    .from("time_entry")
     .select("*")
-    .eq("profile_id" as never, profile.profile_id)
-    .eq("status" as never, "clocked_in")
-    .is("punch_out" as never, null)
+    .eq("profile_id", profile.profile_id)
+    .eq("status", "clocked_in")
+    .is("punch_out", null)
     .limit(1)
     .maybeSingle();
+  /* eslint-enable @typescript-eslint/no-explicit-any */
 
   if (error) throw error;
 
@@ -86,5 +89,6 @@ export function useActiveTimeEntry() {
     queryFn: fetchActiveTimeEntry,
     staleTime: STALE_TIME_MS,
     placeholderData: getPlaceholderData,
+    retry: 1,
   });
 }

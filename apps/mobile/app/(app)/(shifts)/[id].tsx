@@ -12,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
+import { ChevronLeft } from "lucide-react-native";
 import { createStyles } from "@/theme";
 import { ShiftCardRich } from "@/components/shift/ShiftCardRich";
 import { SyncIndicator } from "@/components/common/SyncIndicator";
@@ -83,7 +84,9 @@ export default function ShiftDetailScreen() {
               router.back();
             }}
             accessibilityRole="button"
+            style={styles.backLinkButton}
           >
+            <ChevronLeft size={18} color={styles.backLink.color} strokeWidth={2} />
             <Text style={styles.backLink}>Tilbake</Text>
           </Pressable>
         </View>
@@ -106,7 +109,7 @@ export default function ShiftDetailScreen() {
           accessibilityRole="button"
           accessibilityLabel="Tilbake"
         >
-          <Text style={styles.backArrow}>←</Text>
+          <ChevronLeft size={28} color={styles.backArrow.color} strokeWidth={2} />
         </Pressable>
         <Text style={styles.headerTitle}>{formatShiftDate(shift.shift_date)}</Text>
       </View>
@@ -137,7 +140,6 @@ const useStyles = createStyles((theme) => ({
     paddingVertical: theme.spacing.element,
   },
   backArrow: {
-    ...theme.typography.title,
     color: theme.colors.foreground,
   },
   headerTitle: {
@@ -157,6 +159,11 @@ const useStyles = createStyles((theme) => ({
   notFoundText: {
     ...theme.typography.headline,
     color: theme.colors.mutedForeground,
+  },
+  backLinkButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.xs,
   },
   backLink: {
     ...theme.typography.body,

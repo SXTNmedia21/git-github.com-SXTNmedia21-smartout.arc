@@ -12,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 
+import { Phone, Lock, Settings } from "lucide-react-native";
 import { createStyles, withOpacity } from "@/theme";
 import { strings } from "@/constants/strings";
 import { Card } from "@/components/ui/Card";
@@ -147,7 +148,7 @@ export default function MeScreen() {
             accessibilityRole="button"
             accessibilityLabel={strings.me.callLeader}
           >
-            <Text style={styles.callLeaderIcon}>📞</Text>
+            <Phone size={20} color="#e85c0d" strokeWidth={2} />
             <Text style={styles.callLeaderText}>{strings.me.callLeader}</Text>
           </Pressable>
         )}
@@ -156,7 +157,7 @@ export default function MeScreen() {
         <View style={styles.lockedSection}>
           <Card>
             <EmptyState
-              icon={<Text style={styles.lockIcon}>🔒</Text>}
+              icon={<Lock size={28} color={styles.lockIconColor.color} strokeWidth={1.8} />}
               title={strings.me.trainingLocked}
               subtitle={strings.me.comingSoon}
             />
@@ -241,8 +242,8 @@ const useStyles = createStyles((theme) => ({
     borderWidth: 1,
     borderColor: theme.colors.border,
   },
-  callLeaderIcon: {
-    fontSize: 22,
+  lockIconColor: {
+    color: theme.colors.mutedForeground,
   },
   callLeaderText: {
     ...theme.typography.bodyBold,
@@ -257,9 +258,7 @@ const useStyles = createStyles((theme) => ({
     marginBottom: theme.spacing.section,
     opacity: 0.6,
   },
-  lockIcon: {
-    fontSize: 28,
-  },
+  // lockIconColor defined above for Lucide icon
   logoutSection: {
     marginHorizontal: theme.spacing.card,
     marginTop: theme.spacing.element,
