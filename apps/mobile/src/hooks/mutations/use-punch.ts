@@ -14,9 +14,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { enqueue } from "@/lib/sync/queue";
 import { supabase } from "@/lib/supabase";
-import type { Database } from "@smartout/supabase/database.types";
-
-type TimeEntry = Database["timesheet"]["Tables"]["time_entry"]["Row"];
+import type { TimeEntry } from "@/types/time-entry";
 
 /**
  * Fetches profile_id and workspace_id for the current user.
@@ -80,22 +78,19 @@ export function usePunch() {
       await enqueue("punch_in", payload);
 
       // Optimistically update the active time entry cache so the UI flips instantly
-      queryClient.setQueryData<TimeEntry | null>(
-        ["active-time-entry"],
-        {
-          time_entry_id: timeEntryId,
-          shift_id: shiftId,
-          profile_id: profileId,
-          workspace_id: workspaceId,
-          punch_in: now,
-          punch_out: null,
-          breaks: null,
-          punch_in_location: null,
-          status: "clocked_in",
-          created_at: now,
-          updated_at: now,
-        } satisfies TimeEntry,
-      );
+      queryClient.setQueryData<TimeEntry | null>(["active-time-entry"], {
+        time_entry_id: timeEntryId,
+        shift_id: shiftId,
+        profile_id: profileId,
+        workspace_id: workspaceId,
+        punch_in: now,
+        punch_out: null,
+        breaks: null,
+        punch_in_location: null,
+        status: "clocked_in",
+        created_at: now,
+        updated_at: now,
+      } satisfies TimeEntry);
     },
     [queryClient],
   );
@@ -120,10 +115,7 @@ export function usePunch() {
       await enqueue("punch_out", payload);
 
       // Optimistically clear the active time entry — employee is no longer clocked in
-      queryClient.setQueryData<TimeEntry | null>(
-        ["active-time-entry"],
-        null,
-      );
+      queryClient.setQueryData<TimeEntry | null>(["active-time-entry"], null);
     },
     [queryClient],
   );

@@ -37,14 +37,14 @@ async function registerPushForUser(userId: string): Promise<void> {
   try {
     const { data: profile } = await supabase
       .from("profile")
-      .select("id")
+      .select("profile_id")
       .eq("user_id", userId)
       .eq("is_active", true)
       .limit(1)
       .single();
 
-    if (profile?.id) {
-      await registerPushToken(profile.id);
+    if (profile?.profile_id) {
+      await registerPushToken(profile.profile_id);
     }
   } catch (error) {
     // Non-critical — push registration failure shouldn't block the app

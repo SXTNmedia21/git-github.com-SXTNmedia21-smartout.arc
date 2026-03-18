@@ -37,20 +37,13 @@ async function assertOk(
  * casts here are safe because assertOk() will surface any DB-level
  * constraint violations at sync time. */
 export const actionMap: Record<WriteAction, ActionHandler> = {
-  punch_in: (p) =>
-    assertOk(
-      supabase
-        .schema("timesheet")
-        .from("time_entry")
-        .insert(p as any),
-    ),
+  // TODO: migrate to .schema("timesheet") once the timesheet schema exists
+  punch_in: (p) => assertOk(supabase.from("time_entry" as never).insert(p as any)),
 
   punch_out: (p) =>
     assertOk(
-      supabase
-        .schema("timesheet")
-        .from("time_entry")
-        .update(p as any)
+      (supabase.from("time_entry" as never) as any)
+        .update(p)
         .eq("time_entry_id", p.time_entry_id as string),
     ),
 

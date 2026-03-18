@@ -18,9 +18,9 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { strings } from "@/constants/strings";
 import { formatTime } from "@/components/shift/ShiftCard";
 import type { Database } from "@smartout/supabase/database.types";
+import type { TimeEntry } from "@/types/time-entry";
 
 type ScheduleShift = Database["public"]["Tables"]["schedule_shift"]["Row"];
-type TimeEntry = Database["timesheet"]["Tables"]["time_entry"]["Row"];
 type SessionTask = Database["public"]["Tables"]["session_task"]["Row"];
 
 type DuringShiftViewProps = {
@@ -86,9 +86,7 @@ export function DuringShiftView({
     return () => clearInterval(interval);
   }, [timeEntry.punch_in]);
 
-  const activeTasks = tasks.filter(
-    (t) => t.status !== "completed" && t.status !== "skipped",
-  );
+  const activeTasks = tasks.filter((t) => t.status !== "completed" && t.status !== "skipped");
   const sortedTasks = sortTasksByPriority(activeTasks);
 
   const handleCallLeader = useCallback(() => {
@@ -102,7 +100,8 @@ export function DuringShiftView({
       {/* Shift header with timer */}
       <View style={styles.header}>
         <Text style={styles.headerText}>
-          {strings.home.onShift} · {shift ? `${formatTime(shift.start_time)}–${formatTime(shift.end_time)}` : ""}
+          {strings.home.onShift} ·{" "}
+          {shift ? `${formatTime(shift.start_time)}–${formatTime(shift.end_time)}` : ""}
         </Text>
         <Text style={styles.timer}>{elapsed}</Text>
       </View>

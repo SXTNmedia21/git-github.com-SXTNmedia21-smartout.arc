@@ -15,9 +15,9 @@ import { Button } from "@/components/ui/Button";
 import { SectionHeader } from "@/components/common/SectionHeader";
 import { strings } from "@/constants/strings";
 import type { Database } from "@smartout/supabase/database.types";
+import type { TimeEntry } from "@/types/time-entry";
 
 type ScheduleShift = Database["public"]["Tables"]["schedule_shift"]["Row"];
-type TimeEntry = Database["timesheet"]["Tables"]["time_entry"]["Row"];
 
 type AfterShiftViewProps = {
   shift: ScheduleShift | null;

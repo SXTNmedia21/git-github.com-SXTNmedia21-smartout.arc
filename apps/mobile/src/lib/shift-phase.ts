@@ -8,11 +8,11 @@
  */
 
 import type { Database } from "@smartout/supabase/database.types";
+import type { TimeEntry } from "@/types/time-entry";
 
 export type ShiftPhase = "no_shift" | "before_shift" | "during_shift" | "after_shift";
 
 type ScheduleShift = Database["public"]["Tables"]["schedule_shift"]["Row"];
-type TimeEntry = Database["timesheet"]["Tables"]["time_entry"]["Row"];
 
 export type ShiftPhaseInput = {
   /** Upcoming/recent shifts for this employee */

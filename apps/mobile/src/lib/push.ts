@@ -10,7 +10,6 @@
  * Called from AuthProvider after successful authentication.
  */
 import * as Notifications from "expo-notifications";
-import * as Device from "expo-device";
 import { Platform } from "react-native";
 import { router } from "expo-router";
 import { supabase } from "./supabase";
@@ -34,7 +33,8 @@ const DEEP_LINK_MAP: Record<string, (data: Record<string, string>) => string> = 
  */
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
   }),
@@ -53,9 +53,16 @@ Notifications.setNotificationHandler({
  */
 export async function registerPushToken(profileId: string): Promise<void> {
   // Push notifications only work on physical devices
-  if (!Device.isDevice) {
-    console.log("Push notifications require a physical device, skipping registration");
-    return;
+  // expo-device is checked dynamically to avoid hard dependency issues
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const Device = require("expo-device") as { isDevice: boolean };
+    if (!Device.isDevice) {
+      console.log("Push notifications require a physical device, skipping registration");
+      return;
+    }
+  } catch {
+    // expo-device not available — skip device check and attempt registration
   }
 
   // Check current permission status
@@ -95,7 +102,7 @@ export async function registerPushToken(profileId: string): Promise<void> {
     const { data: profile } = await supabase
       .from("profile")
       .select("expo_push_token")
-      .eq("id", profileId)
+      .eq("profile_id", profileId)
       .single();
 
     // Only update if the token has changed
@@ -103,7 +110,7 @@ export async function registerPushToken(profileId: string): Promise<void> {
       const { error } = await supabase
         .from("profile")
         .update({ expo_push_token: token })
-        .eq("id", profileId);
+        .eq("profile_id", profileId);
 
       if (error) {
         console.error("Failed to update push token:", error.message);
@@ -122,7 +129,7 @@ export async function registerPushToken(profileId: string): Promise<void> {
  */
 export async function unregisterPushToken(profileId: string): Promise<void> {
   try {
-    await supabase.from("profile").update({ expo_push_token: null }).eq("id", profileId);
+    await supabase.from("profile").update({ expo_push_token: null }).eq("profile_id", profileId);
   } catch (error) {
     console.error("Failed to clear push token:", error);
   }

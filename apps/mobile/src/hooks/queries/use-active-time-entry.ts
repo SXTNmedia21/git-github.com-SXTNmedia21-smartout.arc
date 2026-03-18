@@ -6,9 +6,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import type { Database } from "@smartout/supabase/database.types";
-
-type TimeEntry = Database["timesheet"]["Tables"]["time_entry"]["Row"];
+import type { TimeEntry } from "@/types/time-entry";
 
 /** Cache key for MMKV persistence */
 const CACHE_KEY = "cache:active-punch";
@@ -60,14 +58,14 @@ async function fetchActiveTimeEntry(): Promise<TimeEntry | null> {
 
   if (profileError) throw profileError;
 
-  // Query timesheet schema for active clocked_in entry
+  // Query time_entry for active clocked_in entry
+  // TODO: migrate to .schema("timesheet") once the timesheet schema exists
   const { data, error } = await supabase
-    .schema("timesheet")
-    .from("time_entry")
+    .from("time_entry" as never)
     .select("*")
-    .eq("profile_id", profile.profile_id)
-    .eq("status", "clocked_in")
-    .is("punch_out", null)
+    .eq("profile_id" as never, profile.profile_id)
+    .eq("status" as never, "clocked_in")
+    .is("punch_out" as never, null)
     .limit(1)
     .maybeSingle();
 

@@ -52,9 +52,7 @@ export default function MeScreen() {
   const isDuringShift = phase === "during_shift";
 
   /** Full display name from profile, or empty fallback */
-  const displayName = profile
-    ? `${profile.first_name ?? ""} ${profile.last_name ?? ""}`.trim()
-    : "";
+  const displayName = profile ? profile.display_name : "";
 
   const handleTogglePush = useCallback((value: boolean) => {
     Haptics.selectionAsync();
@@ -111,18 +109,12 @@ export default function MeScreen() {
         {/* Profile info card */}
         <Card style={styles.profileCard}>
           <View style={styles.profileRow}>
-            <Avatar
-              name={displayName || "?"}
-              imageUrl={profile?.avatar_url}
-              size="lg"
-            />
+            <Avatar name={displayName || "?"} imageUrl={profile?.avatar_url} size="lg" />
             <View style={styles.profileInfo}>
               <Text style={styles.profileName}>
                 {isLoading ? strings.common.loading : displayName || "—"}
               </Text>
-              {profile?.role && (
-                <Text style={styles.profileDetail}>{profile.role}</Text>
-              )}
+              {profile?.role && <Text style={styles.profileDetail}>{profile.role}</Text>}
               {profile?.department_id && (
                 <Text style={styles.profileDetail}>
                   {/* Department name would come from a join — showing role for now */}
