@@ -1,6 +1,6 @@
 ---
 title: "Worklog — dev-prod-fix"
-status: in_progress
+status: done
 updated: 2026-03-18
 created: 2026-03-18
 module: development
@@ -52,3 +52,4 @@ tags: []
 | 2026-03-18 | 10:35 | E2E verification passed: scrapling 200 with auth, stage engine healthy, Caddy proxying, no new 401s                                                                                      |
 | 2026-03-18 | 10:36 | Docker cleanup reclaimed 19.14GB on Droplet                                                                                                                                              |
 | 2026-03-18 | 10:50 | Session ended: All infra done, pending deploy to main + manual testing                                                                                                                   |
+| 2026-03-18 | 11:40 | Feature closed and merged to development                                                                                                                                                 |
