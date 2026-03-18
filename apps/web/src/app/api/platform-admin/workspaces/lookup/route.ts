@@ -104,9 +104,13 @@ async function fetchDagligLeder(orgNumber: string): Promise<string | null> {
 
 async function scrapeWebsite(url: string): Promise<{ email?: string; phone?: string } | null> {
   try {
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    const token = process.env.SCRAPLING_AUTH_TOKEN;
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+
     const res = await fetch(`${SCRAPLING_URL}/extract`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({
         url,
         config: { include_company_info: true },
