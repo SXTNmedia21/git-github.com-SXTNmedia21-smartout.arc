@@ -134,7 +134,9 @@ Add to `apps/mobile/package.json`:
     "expo-linking": "~7",
     "expo-haptics": "~14",
     "expo-router": "~4",
-    "@react-native-community/netinfo": "^11"
+    "@react-native-community/netinfo": "^11",
+    "@gorhom/bottom-sheet": "^5",
+    "react-native-gesture-handler": "~2"
   }
 }
 ```
@@ -392,8 +394,8 @@ All remaining schema changes in one migration:
 - `ALTER TABLE schedule_shift ADD COLUMN confirmed_at TIMESTAMPTZ`
 - `ALTER TABLE schedule_shift ADD COLUMN confirmed_by UUID REFERENCES profile(profile_id)`
 - Employee self-confirm RLS policy
-- `ALTER TABLE conversation ADD COLUMN source_type TEXT`
-- `ALTER TABLE conversation ADD COLUMN source_id UUID`
+- `ALTER TABLE conversation ADD COLUMN source_type TEXT` + CHECK constraint: `source_type IN ('department', 'team', 'session')` or NULL
+- `ALTER TABLE conversation ADD COLUMN source_id UUID` — polymorphic reference, NO FK constraint (references department_id, team_id, or department_session_id depending on source_type)
 - `ALTER TABLE invitation ADD COLUMN direction TEXT NOT NULL DEFAULT 'outbound'`
 - `ALTER TABLE invitation ADD COLUMN requested_by UUID REFERENCES profile(profile_id)`
 - `ALTER TABLE profile ADD COLUMN expo_push_token TEXT`
@@ -411,17 +413,21 @@ git commit -m "feat(db): add shift confirmation, chat source, invitation directi
 **Files:**
 
 - Create: `supabase/migrations/YYYYMMDDHHMMSS_remove_shift_approval_punch.sql`
+- Modify: `apps/web/src/app/dashboard/reconciliation/_components/ShiftApprovalSection.tsx`
+- Modify: `apps/web/src/app/dashboard/reconciliation/_components/DayApproval.tsx`
 
-- [ ] **Step 1: Write migration**
+> **IMPORTANT:** This migration MUST have the highest timestamp of all Phase 1 migrations and MUST run last. The web reconciliation components actively reference `punch_in`/`punch_out` — update them BEFORE running the migration.
+
+- [ ] **Step 1: Update web reconciliation components**
+
+Remove `punch_in`/`punch_out` references from `ShiftApprovalSection.tsx` (lines ~13-14, ~115) and `DayApproval.tsx` (lines ~61-62). Replace with reads from `timesheet.time_entry` joined via `shift_id`, or remove display if not needed in V1.
+
+- [ ] **Step 2: Write migration**
 
 ```sql
 ALTER TABLE shift_approval DROP COLUMN IF EXISTS punch_in;
 ALTER TABLE shift_approval DROP COLUMN IF EXISTS punch_out;
 ```
-
-- [ ] **Step 2: Verify web app doesn't reference these columns**
-
-Search codebase: `grep -r "punch_in\|punch_out" apps/web/src/`. If found, update web code.
 
 - [ ] **Step 3: Run migration, regenerate types, commit**
 
@@ -572,7 +578,32 @@ git commit -m "feat(mobile): add shift phase calculation with tests"
 
 ---
 
-### Task 3.2: Shift Phase Zustand Store
+### Task 3.2: Query Hooks (shifts + time entry)
+
+**Files:**
+
+- Create: `apps/mobile/src/hooks/queries/use-my-shifts.ts`
+- Create: `apps/mobile/src/hooks/queries/use-active-time-entry.ts`
+
+> **NOTE:** These hooks are created here (not Phase 6) because the shift phase store depends on them. Phase 6 Task 6.1 creates the remaining query hooks (use-my-tasks, use-day-info, use-shift-colleagues).
+
+- [ ] **Step 1: Build useMyShifts hook**
+
+Queries `schedule_shift` WHERE `employee_id = me` for next 7 days. Uses MMKV placeholderData if Phase 2 cache is available (graceful fallback if not merged yet).
+
+- [ ] **Step 2: Build useActiveTimeEntry hook**
+
+Queries `timesheet.time_entry` WHERE `profile_id = me` AND `status = 'clocked_in'`.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git commit -m "feat(mobile): add shift and time entry query hooks"
+```
+
+---
+
+### Task 3.3: Shift Phase Zustand Store
 
 **Files:**
 
@@ -580,7 +611,7 @@ git commit -m "feat(mobile): add shift phase calculation with tests"
 
 - [ ] **Step 1: Create store**
 
-Zustand store wrapping `calculateShiftPhase()`. Subscribed to TanStack Query data (my shifts, active time entry). Recalculates on data change + 1-minute interval timer.
+Zustand store wrapping `calculateShiftPhase()`. Subscribes to `useMyShifts()` and `useActiveTimeEntry()` (created in Task 3.2). Recalculates on data change + 1-minute interval timer.
 
 Exports: `useShiftPhase()` → `{ phase, activeShift, activeTimeEntry, nextShift }`.
 
@@ -604,15 +635,30 @@ git commit -m "feat(mobile): add shift phase zustand store"
 - Create: `apps/mobile/src/theme/spacing.ts`
 - Create: `apps/mobile/src/theme/colors.ts`
 - Create: `apps/mobile/src/theme/typography.ts`
+- Create: `apps/mobile/src/constants/strings.ts`
 
 - [ ] **Step 1: Create theme module**
 
 Import from `@smartout/design-tokens/native`. Add RN-specific helpers: `createStyles()` factory (typed StyleSheet.create wrapper with theme access), shadow presets, safe area constants.
 
-- [ ] **Step 2: Commit**
+- [ ] **Step 2: Create strings.ts**
+
+Central file for all hardcoded Norwegian strings. All UI text imports from here. Makes future i18n migration trivial (swap this file for i18n keys).
+
+```typescript
+// apps/mobile/src/constants/strings.ts
+export const strings = {
+  tabs: { home: "Hjem", shifts: "Vakter", chat: "Chat", me: "Meg" },
+  home: { greeting: "Hei", nextShift: "Neste vakt", noShift: "Ingen kommende vakter" },
+  shift: { confirm: "Bekreft vakt", punchIn: "Stemple inn", punchOut: "Stemple ut" },
+  // ... all UI strings centralized here
+} as const;
+```
+
+- [ ] **Step 3: Commit**
 
 ```bash
-git commit -m "feat(mobile): add theme module wrapping design tokens"
+git commit -m "feat(mobile): add theme module and centralized Norwegian strings"
 ```
 
 ---
@@ -777,23 +823,21 @@ git commit -m "feat(mobile): add deep link handling for invite flow"
 
 > Depends on Phase 3 (shift phase engine) + Phase 4 (UI primitives).
 
-### Task 6.1: TanStack Query Hooks
+### Task 6.1: Remaining TanStack Query Hooks
 
 **Files:**
 
-- Create: `apps/mobile/src/hooks/queries/use-my-shifts.ts`
-- Create: `apps/mobile/src/hooks/queries/use-active-time-entry.ts`
 - Create: `apps/mobile/src/hooks/queries/use-my-tasks.ts`
 - Create: `apps/mobile/src/hooks/queries/use-day-info.ts`
 - Create: `apps/mobile/src/hooks/queries/use-shift-colleagues.ts`
+
+> **NOTE:** `use-my-shifts.ts` and `use-active-time-entry.ts` were created in Phase 3 (Task 3.2).
 
 - [ ] **Step 1: Build each hook**
 
 Each hook uses `createCachedQuery()` from Phase 2 for MMKV placeholderData. Queries Supabase directly. Workspace-scoped via auth JWT.
 
-- `useMyShifts()` — next 7 days of shifts for current profile
-- `useActiveTimeEntry()` — `time_entry` WHERE `status = 'clocked_in'` AND `profile_id = me`
-- `useMyTasks()` — `session_task` WHERE `assigned_to = me` AND `shift_date = today`
+- `useMyTasks()` — `session_task` joined through `department_session` WHERE `department_session.date = today` AND `assigned_to = me`. NOTE: `session_task` has no `shift_date` column — filter via the session's date.
 - `useDayInfo()` — bookings, messages, active deviations for today
 - `useShiftColleagues()` — profiles with shifts on same date+department
 
@@ -1144,15 +1188,16 @@ git commit -m "feat(mobile): add push notification token registration"
 **Files:**
 
 - Create: `supabase/functions/push-dispatch/index.ts`
+- Create: `supabase/migrations/YYYYMMDDHHMMSS_push_dispatch_triggers.sql`
 - Modify: `supabase/functions/config.toml` — add `verify_jwt = false` for push-dispatch
 
 - [ ] **Step 1: Build Edge Function**
 
 Validates `PUSH_DISPATCH_SECRET`. Takes `{ event, profile_id, workspace_id, payload }`. Fetches `expo_push_token` from profile. Posts to Expo Push API. Falls back to SMS via Twilio for critical events.
 
-- [ ] **Step 2: Create Postgres trigger functions**
+- [ ] **Step 2: Create Postgres trigger migration**
 
-One trigger function per event type (shift published, task assigned, deviation reported, etc.). Each calls `push-dispatch` via `net.http_post()`.
+Migration file: `supabase/migrations/YYYYMMDDHHMMSS_push_dispatch_triggers.sql`. One trigger function per event type (shift published, task assigned, deviation reported, etc.). Each calls `push-dispatch` via `net.http_post()`. Run migration via `docker exec`.
 
 - [ ] **Step 3: Commit**
 
