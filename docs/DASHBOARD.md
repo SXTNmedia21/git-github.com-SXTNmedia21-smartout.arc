@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: in_progress
-updated: 2026-03-11
+updated: 2026-03-18
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -13,31 +13,37 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #    | Branch                     | Module    | Status            | Progress                                               | Blockers | Health |
-| ---- | -------------------------- | --------- | ----------------- | ------------------------------------------------------ | -------- | ------ |
-| wt-2 | `feat/client/contract`     | contracts | ready_for_closure | All gates pass. Run `cf 2`.                            | —        | dirty  |
-| wt-3 | `feat/fix/adminpage-speed` | admin     | active            | 11 uncommitted files. Last commit ~1h ago.             | —        | dirty  |
-| wt-4 | `feat/signup`              | auth      | active            | Clean. Last commit ~1h ago. Code review fixes applied. | —        | clean  |
-| wt-5 | `feat/journey-engine-core` | core      | stale             | Clean. Last commit 2 days ago.                         | —        | clean  |
+| #   | Branch        | Module | Status | Progress                               | Blockers | Health |
+| --- | ------------- | ------ | ------ | -------------------------------------- | -------- | ------ |
+| —   | (none active) | —      | —      | All mobile worktrees closed and merged | —        | —      |
+
+## Parked Branches (no worktree)
+
+| Branch            | Status | Notes                                                                                                 |
+| ----------------- | ------ | ----------------------------------------------------------------------------------------------------- |
+| `feat/onboarding` | WIP    | FlowPlayer + alkohol flow. Rebased on dev, typefix committed. framer-motion devDep missing in ui pkg. |
 
 ## Free Slots
 
-| #     | Available                     |
-| ----- | ----------------------------- |
-| wt-1  | yes                           |
-| wt-2  | no (feat/client/contract)     |
-| wt-3  | no (feat/fix/adminpage-speed) |
-| wt-4  | no (feat/signup)              |
-| wt-5  | no (feat/journey-engine-core) |
-| wt-8  | yes                           |
-| wt-20 | yes                           |
+| #     | Available                      |
+| ----- | ------------------------------ |
+| wt-1  | yes                            |
+| wt-2  | yes                            |
+| wt-3  | yes                            |
+| wt-4  | yes                            |
+| wt-5  | yes                            |
+| wt-6  | no (feat/mobile-shift-engine)  |
+| wt-7  | no (feat/mobile-ui-primitives) |
+| wt-8  | no (feat/mobile-auth)          |
+| wt-15 | yes                            |
+| wt-20 | yes                            |
 
 ## Pending Journeys
 
 | WT   | Feature            | Journey File                                  | Status  |
 | ---- | ------------------ | --------------------------------------------- | ------- |
 | wt-1 | zero-to-production | `docs/journeys/JOURNEY-zero-to-production.md` | done    |
-| wt-2 | journey-engine     | `docs/journeys/JOURNEY-journey-engine.md`     | missing |
+| wt-2 | mobile-app         | `docs/journeys/JOURNEY-mobile-app.md`         | missing |
 | wt-4 | infra-hardening    | `docs/journeys/JOURNEY-infra-hardening.md`    | missing |
 
 ## Recent Closures
@@ -91,6 +97,10 @@ tags: [dashboard, worktrees, tracking]
 
 | Date       | Feature                          | Action            | Notes                                                                                                                                                                                                                                                                                                                     |
 | ---------- | -------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-03-18 | infra-prod-alignment             | session ended     | Full audit of DO Droplet, Supabase secrets, Vercel env vars. Found: scrapling 401s (missing auth), stage-engine crash (20 commits behind + hardcoded localhost SUPABASE_URL), missing secrets. Plan written: `docs/superpowers/plans/2026-03-18-infra-prod-alignment.md` — 6 tasks, not yet executed.                     |
+| 2026-03-18 | git-cleanup                      | session ended     | Deleted 7 stale branches + 5 worktrees (all merged/dead). Rebased feat/onboarding, fixed 14 typecheck errors. Build/lint/typecheck all pass. 10 unpushed commits + 30 uncommitted changes on development.                                                                                                                 |
+| 2026-04-18 | mobile-app                       | completed         | All 13 phases done. ~44 commits, ~65 files, 6 migrations, 1 Edge Function. 3 parallel blocks (4+4+3 agents). Typecheck+lint green. All worktrees closed.                                                                                                                                                                  |
+| 2026-03-18 | mobile-app                       | started           | wt-2, module: mobile — Employee app V1 (Expo + React Native)                                                                                                                                                                                                                                                              |
 | 2026-03-02 | (meta)                           | Dashboard created | Boot sequence, plugin cleanup, slash commands                                                                                                                                                                                                                                                                             |
 | 2026-03-02 | (meta)                           | session ended     | All infra done: SESSION.md, DASHBOARD.md, 4 slash commands, plugin cleanup                                                                                                                                                                                                                                                |
 | 2026-03-02 | dashboard-redesign               | closed            | Merged to development, wt-3 freed                                                                                                                                                                                                                                                                                         |
@@ -207,3 +217,4 @@ tags: [dashboard, worktrees, tracking]
 | 2026-03-08 | zero-to-production               | started           | wt-1, module: cross-cutting — Module Zero: close 10 gaps, event engine, employee UI, journey runner                                                                                                                                                                                                                       |
 | 2026-03-08 | zero-to-production               | closed            | Merged to development, wt-1 freed. Contract step hidden, setup-skip scoped to workspace, 14 E2E tests (signup + setup wizard)                                                                                                                                                                                             |
 | 2026-03-08 | (audit + deploy)                 | session ended     | Deployed engine-dispatch + fire-delayed-triggers EFs. Verified e2e backbone (invitation.accepted → 2 engine_states). Inventoried journey/mission/roadmap system (4 skills, 68 journeys, 5 processes, 6 triggers). Updated STATE.md with verified data.                                                                    |
+| 2026-03-18 | dev-prod-fix                     | session ended     | Infra prod alignment: auth headers on 3 routes, Droplet pulled+rebuilt (6 healthy), 8 Supabase secrets set, 14 Vercel env vars added. Smoke tests 8/8. Pending: deploy to main + manual testing (9 journeys in MANUAL-TEST-dev-prod-fix.md).                                                                              |
