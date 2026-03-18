@@ -44,7 +44,7 @@ export function TabBar({ state, navigation, unreadCount = 0, centerFab }: TabBar
   const leftRoutes = state.routes.slice(0, 2);
   const rightRoutes = state.routes.slice(2);
 
-  function renderTab(route: (typeof state.routes)[number], index: number) {
+  function renderTab(route: (typeof state)["routes"][number], index: number) {
     const isFocused = state.index === index;
     const icon = TAB_ICONS[route.name] ?? "?";
     const label = TAB_LABELS[route.name] ?? route.name;
@@ -65,14 +65,10 @@ export function TabBar({ state, navigation, unreadCount = 0, centerFab }: TabBar
         accessibilityLabel={label}
       >
         <View style={styles.tabIconContainer}>
-          <Text style={[styles.tabIcon, isFocused && styles.tabIconActive]}>
-            {icon}
-          </Text>
+          <Text style={[styles.tabIcon, isFocused && styles.tabIconActive]}>{icon}</Text>
           {isChatTab && <Badge count={unreadCount} style={styles.badge} />}
         </View>
-        <Text style={[styles.tabLabel, isFocused && styles.tabLabelActive]}>
-          {label}
-        </Text>
+        <Text style={[styles.tabLabel, isFocused && styles.tabLabelActive]}>{label}</Text>
       </Pressable>
     );
   }

@@ -53,36 +53,38 @@ async function fetchShiftColleagues(
   // Fetch profile data for all colleagues
   const { data: profiles, error: profileError } = await supabase
     .from("profile")
-    .select("profile_id, first_name, last_name, avatar_url")
+    .select("profile_id, display_name, avatar_url")
     .in("profile_id", employeeIds);
 
   if (profileError) throw profileError;
 
   // Build a lookup for profiles
-  const profileMap = new Map(
-    (profiles ?? []).map((p) => [p.profile_id, p]),
-  );
+  const profileMap = new Map((profiles ?? []).map((p) => [p.profile_id, p]));
 
   // Map shifts to Colleague objects
-  return shifts
-    .filter((s) => s.employee_id && s.employee_id !== currentProfileId)
-    .map((s) => {
-      const profile = profileMap.get(s.employee_id!);
-      return {
-        profileId: s.employee_id!,
-        firstName: profile?.first_name ?? "",
-        lastName: profile?.last_name ?? "",
-        avatarUrl: profile?.avatar_url ?? null,
-        role: s.role,
-        startTime: s.start_time,
-        endTime: s.end_time,
-      };
-    })
-    // Deduplicate by profileId (in case of multiple shifts for same person)
-    .filter(
-      (colleague, index, self) =>
-        self.findIndex((c) => c.profileId === colleague.profileId) === index,
-    );
+  return (
+    shifts
+      .filter((s) => s.employee_id && s.employee_id !== currentProfileId)
+      .map((s) => {
+        const profile = profileMap.get(s.employee_id!);
+        const displayName = profile?.display_name ?? "";
+        const nameParts = displayName.split(" ");
+        return {
+          profileId: s.employee_id!,
+          firstName: nameParts[0] ?? "",
+          lastName: nameParts.slice(1).join(" "),
+          avatarUrl: profile?.avatar_url ?? null,
+          role: s.role,
+          startTime: s.start_time,
+          endTime: s.end_time,
+        };
+      })
+      // Deduplicate by profileId (in case of multiple shifts for same person)
+      .filter(
+        (colleague, index, self) =>
+          self.findIndex((c) => c.profileId === colleague.profileId) === index,
+      )
+  );
 }
 
 /**

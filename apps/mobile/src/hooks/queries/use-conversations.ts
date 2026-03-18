@@ -130,14 +130,11 @@ async function fetchConversations(): Promise<ConversationWithMeta[]> {
   if (senderIds.size > 0) {
     const { data: senderProfiles } = await supabase
       .from("profile")
-      .select("profile_id, first_name, last_name")
+      .select("profile_id, display_name")
       .in("profile_id", [...senderIds]);
 
     for (const sp of senderProfiles ?? []) {
-      senderNameMap.set(
-        sp.profile_id,
-        [sp.first_name, sp.last_name].filter(Boolean).join(" ") || "Ukjent",
-      );
+      senderNameMap.set(sp.profile_id, sp.display_name || "Ukjent");
     }
   }
 

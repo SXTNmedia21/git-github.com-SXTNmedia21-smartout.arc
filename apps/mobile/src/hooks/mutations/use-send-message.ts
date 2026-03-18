@@ -96,7 +96,7 @@ export function useSendMessage() {
       // Also update the conversations list to show this as the latest message
       queryClient.setQueryData(["conversations"], (old: unknown[] | undefined) => {
         if (!old || !Array.isArray(old)) return old;
-        return old.map((conv: Record<string, unknown>) => {
+        return (old as Record<string, unknown>[]).map((conv) => {
           if (conv.id === conversationId) {
             return {
               ...conv,

@@ -15,6 +15,7 @@
   "dependencies": {
     "@gorhom/bottom-sheet": "^5",
     "@react-native-community/netinfo": "^11",
+    "@react-navigation/bottom-tabs": "^7.15.5",
     "@smartout/design-tokens": "workspace:*",
     "@smartout/supabase": "workspace:*",
     "@smartout/telemetry": "workspace:*",

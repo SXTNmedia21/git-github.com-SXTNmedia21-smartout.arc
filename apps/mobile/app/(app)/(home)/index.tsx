@@ -30,23 +30,15 @@ export default function HomeScreen() {
 
   // Load colleagues for the relevant shift date
   const relevantShiftDate = activeShift?.shift_date ?? nextShift?.shift_date ?? null;
-  const { data: colleagues } = useShiftColleagues(
-    relevantShiftDate,
-    profile?.profile_id ?? null,
-  );
+  const { data: colleagues } = useShiftColleagues(relevantShiftDate, profile?.profile_id ?? null);
 
-  const firstName = profile?.first_name ?? "";
+  const firstName = profile?.display_name?.split(" ")[0] ?? "";
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <SyncIndicator />
       <View style={styles.content}>
-        {phase === "no_shift" && (
-          <NoShiftView
-            firstName={firstName}
-            nextShift={nextShift}
-          />
-        )}
+        {phase === "no_shift" && <NoShiftView firstName={firstName} nextShift={nextShift} />}
         {phase === "before_shift" && nextShift && (
           <BeforeShiftView
             shift={nextShift}
@@ -56,17 +48,10 @@ export default function HomeScreen() {
           />
         )}
         {phase === "during_shift" && activeTimeEntry && (
-          <DuringShiftView
-            shift={activeShift}
-            timeEntry={activeTimeEntry}
-            tasks={tasks ?? []}
-          />
+          <DuringShiftView shift={activeShift} timeEntry={activeTimeEntry} tasks={tasks ?? []} />
         )}
         {phase === "after_shift" && activeTimeEntry && (
-          <AfterShiftView
-            shift={activeShift}
-            timeEntry={activeTimeEntry}
-          />
+          <AfterShiftView shift={activeShift} timeEntry={activeTimeEntry} />
         )}
       </View>
     </SafeAreaView>

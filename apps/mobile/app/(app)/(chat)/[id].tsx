@@ -61,14 +61,14 @@ export default function ConversationScreen() {
     async function loadContext() {
       const { data: profile } = await supabase
         .from("profile")
-        .select("profile_id, first_name, last_name, avatar_url")
+        .select("profile_id, display_name, avatar_url")
         .eq("user_id", user!.id)
         .limit(1)
         .single();
 
       if (profile) {
         setProfileId(profile.profile_id);
-        setProfileName([profile.first_name, profile.last_name].filter(Boolean).join(" ") || "Meg");
+        setProfileName(profile.display_name || "Meg");
         setProfileAvatarUrl(profile.avatar_url);
       }
 
@@ -134,16 +134,13 @@ export default function ConversationScreen() {
           // Message from someone else — fetch sender profile and add to cache
           const { data: senderProfile } = await supabase
             .from("profile")
-            .select("profile_id, first_name, last_name, avatar_url")
+            .select("profile_id, display_name, avatar_url")
             .eq("profile_id", newMsg.sender_id)
             .single();
 
           const messageWithSender: MessageWithSender = {
             ...newMsg,
-            senderName: senderProfile
-              ? [senderProfile.first_name, senderProfile.last_name].filter(Boolean).join(" ") ||
-                "Ukjent"
-              : "Ukjent",
+            senderName: senderProfile?.display_name || "Ukjent",
             senderAvatarUrl: senderProfile?.avatar_url ?? null,
           };
 

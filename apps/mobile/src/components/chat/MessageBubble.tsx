@@ -173,11 +173,11 @@ const useStyles = createStyles((theme) => ({
   },
   bubbleOwn: {
     backgroundColor: theme.colors.primary,
-    borderBottomRightRadius: theme.radius.xs,
+    borderBottomRightRadius: theme.radius.sm,
   },
   bubbleOther: {
     backgroundColor: theme.colors.secondary,
-    borderBottomLeftRadius: theme.radius.xs,
+    borderBottomLeftRadius: theme.radius.sm,
   },
   bubblePressed: {
     opacity: 0.85,

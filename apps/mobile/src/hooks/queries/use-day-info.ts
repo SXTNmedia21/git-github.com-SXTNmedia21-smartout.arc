@@ -64,7 +64,7 @@ async function fetchDayInfo(): Promise<DayInfo> {
     supabase
       .from("deviation")
       .select("*")
-      .in("status", ["reported", "acknowledged"])
+      .in("status", ["open", "acknowledged"])
       .order("created_at", { ascending: false })
       .limit(10),
   ]);

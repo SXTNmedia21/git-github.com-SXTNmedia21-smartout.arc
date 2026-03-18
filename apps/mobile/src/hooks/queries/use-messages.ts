@@ -76,7 +76,7 @@ async function fetchMessages({
 
   const { data: profiles, error: profileError } = await supabase
     .from("profile")
-    .select("profile_id, first_name, last_name, avatar_url")
+    .select("profile_id, display_name, avatar_url")
     .in("profile_id", senderIds);
 
   if (profileError) throw profileError;
@@ -86,7 +86,7 @@ async function fetchMessages({
     (profiles ?? []).map((p) => [
       p.profile_id,
       {
-        name: [p.first_name, p.last_name].filter(Boolean).join(" ") || "Ukjent",
+        name: p.display_name || "Ukjent",
         avatarUrl: p.avatar_url,
       },
     ]),
