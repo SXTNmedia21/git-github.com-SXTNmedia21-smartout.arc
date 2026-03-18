@@ -9,10 +9,20 @@
  *
  * Called from AuthProvider after successful authentication.
  */
-import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import { router } from "expo-router";
 import { supabase } from "./supabase";
+
+// expo-notifications is native-only — guard all usage on web
+const isNative = Platform.OS !== "web";
+
+// Lazy-load to avoid crash on web
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let Notifications: typeof import("expo-notifications") | null = null;
+if (isNative) {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  Notifications = require("expo-notifications") as typeof import("expo-notifications");
+}
 
 /**
  * Deep link mapping — maps push event types to Expo Router paths.
@@ -31,7 +41,7 @@ const DEEP_LINK_MAP: Record<string, (data: Record<string, string>) => string> = 
  * Configure how notifications appear when the app is in the foreground.
  * Shows alert + sound + badge so the user sees in-app banners.
  */
-Notifications.setNotificationHandler({
+Notifications?.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowBanner: true,
     shouldShowList: true,
@@ -52,6 +62,8 @@ Notifications.setNotificationHandler({
  * @param profileId - The current user's profile ID in the active workspace
  */
 export async function registerPushToken(profileId: string): Promise<void> {
+  if (!Notifications) return; // Web — skip push registration
+
   // Push notifications only work on physical devices
   // expo-device is checked dynamically to avoid hard dependency issues
   try {
@@ -162,6 +174,8 @@ function navigateFromNotificationData(data: Record<string, string> | undefined):
  * 3. Cold start: checks last notification response for app-killed-then-tapped
  */
 export function setupNotificationListeners(): () => void {
+  if (!Notifications) return () => {}; // Web — no push listeners
+
   // Handle notification taps while app is running (foreground or background)
   const responseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
     const data = response.notification.request.content.data as Record<string, string> | undefined;
@@ -194,6 +208,7 @@ export function setupNotificationListeners(): () => void {
  * Get the current badge count. Used by UI to show unread indicator.
  */
 export async function getBadgeCount(): Promise<number> {
+  if (!Notifications) return 0;
   return Notifications.getBadgeCountAsync();
 }
 
@@ -201,5 +216,6 @@ export async function getBadgeCount(): Promise<number> {
  * Clear the badge count (e.g., when user opens the app).
  */
 export async function clearBadgeCount(): Promise<void> {
+  if (!Notifications) return;
   await Notifications.setBadgeCountAsync(0);
 }
