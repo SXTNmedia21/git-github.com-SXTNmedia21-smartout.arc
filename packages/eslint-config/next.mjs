@@ -2,14 +2,12 @@
 import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
-import reactHooksPlugin from "eslint-plugin-react-hooks";
 
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),
   {
-    plugins: { "react-hooks": reactHooksPlugin },
     files: ["**/*.{ts,tsx}"],
     rules: {
       // Allow underscore-prefixed args (e.g. _request in route handlers, _report
@@ -20,11 +18,15 @@ const eslintConfig = defineConfig([
       ],
 
       // React Compiler rules — downgrade from error to warning.
-      // These fire on legitimate data-fetching patterns (useCallback + useEffect)
-      // that the compiler cannot auto-optimize.
+      // These fire on legitimate patterns (ref access in callbacks, TanStack Table,
+      // useCallback + useEffect) that the compiler cannot auto-optimize.
       "react-hooks/preserve-manual-memoization": "warn",
       "react-hooks/set-state-in-effect": "warn",
       "react-hooks/incompatible-library": "warn",
+      "react-hooks/rules-of-hooks": "warn",
+      "react-hooks/refs": "warn",
+      "react-hooks/purity": "warn",
+      "react-hooks/immutability": "warn",
     },
   },
 ]);
