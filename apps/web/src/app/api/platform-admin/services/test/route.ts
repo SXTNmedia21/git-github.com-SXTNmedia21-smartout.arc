@@ -68,6 +68,9 @@ export async function POST(req: NextRequest) {
     if (serviceKey === "contract-service" && env.CONTRACT_SERVICE_KEY) {
       fetchHeaders["X-Service-Key"] = env.CONTRACT_SERVICE_KEY;
     }
+    if (serviceKey === "scrapling" && env.SCRAPLING_AUTH_TOKEN) {
+      fetchHeaders["Authorization"] = `Bearer ${env.SCRAPLING_AUTH_TOKEN}`;
+    }
 
     if (body && !fetchHeaders["Content-Type"]) {
       fetchHeaders["Content-Type"] = "application/json";
