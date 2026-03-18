@@ -10,11 +10,7 @@
  * fresh data in the background. If offline, cached data stays visible
  * with no loading spinners.
  */
-import type {
-  QueryFunction,
-  QueryKey,
-  UseQueryOptions,
-} from "@tanstack/react-query";
+import type { QueryFunction, QueryKey, UseQueryOptions } from "@tanstack/react-query";
 
 import { cacheGet, cacheSet } from "./mmkv";
 
@@ -67,6 +63,10 @@ export function createCachedQuery<TData>({
     queryKey,
     queryFn: wrappedQueryFn,
     staleTime,
-    placeholderData: () => cacheGet<TData>(key),
+    /* Cache lookup returns TData | undefined which matches PlaceholderDataFunction.
+     * The `as any` is needed because TanStack Query v5 uses NonFunctionGuard<TData>
+     * which can't be satisfied when TData is an unconstrained generic. */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    placeholderData: ((_prev: unknown) => cacheGet<TData>(key)) as any,
   };
 }

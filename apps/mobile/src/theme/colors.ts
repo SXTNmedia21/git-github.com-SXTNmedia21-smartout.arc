@@ -3,14 +3,14 @@
  * Re-exports design tokens with RN-specific helpers for color manipulation.
  */
 import { nativeTheme } from "@smartout/design-tokens/native";
-import { ColorSchemeName } from "react-native";
+import type { ColorSchemeName } from "react-native";
 
 export const lightColors = nativeTheme.light;
 export const darkColors = nativeTheme.dark;
 export const departmentColors = nativeTheme.department;
 export const statusColors = nativeTheme.status;
 
-export type ThemeColors = typeof lightColors;
+export type ThemeColors = typeof lightColors | typeof darkColors;
 
 /**
  * Returns the correct color set based on the current color scheme.

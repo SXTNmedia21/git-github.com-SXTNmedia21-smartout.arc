@@ -33,7 +33,7 @@ function makeShift(overrides: Partial<ScheduleShift> = {}): ScheduleShift {
     is_published: true,
     breaks: 0,
     work_hours: 7,
-    day_category: "weekday",
+    day_category: "morning",
     indicator: "green",
     confirmed_at: null,
     confirmed_by: null,

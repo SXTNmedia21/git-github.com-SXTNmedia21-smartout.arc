@@ -18,49 +18,45 @@ type BottomSheetProps = Omit<GorhomProps, "style" | "backgroundStyle" | "handleI
   style?: ViewStyle;
 };
 
-export const BottomSheet = forwardRef<GorhomBottomSheet, BottomSheetProps>(
-  function BottomSheet({ children, style, onChange, ...rest }, ref) {
-    const styles = useStyles();
-    const theme = useTheme();
+export const BottomSheet = forwardRef<GorhomBottomSheet, BottomSheetProps>(function BottomSheet(
+  { children, style, onChange, ...rest },
+  ref,
+) {
+  const styles = useStyles();
+  const theme = useTheme();
 
-    const handleChange = useCallback(
-      (index: number) => {
-        // Haptic when sheet snaps to a new position
-        if (index >= 0) {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        }
-        onChange?.(index);
-      },
-      [onChange],
-    );
+  const handleChange = useCallback(
+    (...args: Parameters<NonNullable<GorhomProps["onChange"]>>) => {
+      // Haptic when sheet snaps to a new position
+      if (args[0] >= 0) {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+      onChange?.(...args);
+    },
+    [onChange],
+  );
 
-    const renderBackdrop = useCallback(
-      (props: BottomSheetBackdropProps) => (
-        <BottomSheetBackdrop
-          {...props}
-          disappearsOnIndex={-1}
-          appearsOnIndex={0}
-          opacity={0.4}
-        />
-      ),
-      [],
-    );
+  const renderBackdrop = useCallback(
+    (props: BottomSheetBackdropProps) => (
+      <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.4} />
+    ),
+    [],
+  );
 
-    return (
-      <GorhomBottomSheet
-        ref={ref}
-        backgroundStyle={styles.background}
-        handleIndicatorStyle={styles.handle}
-        backdropComponent={renderBackdrop}
-        onChange={handleChange}
-        enablePanDownToClose
-        {...rest}
-      >
-        <View style={[styles.content, style]}>{children}</View>
-      </GorhomBottomSheet>
-    );
-  },
-);
+  return (
+    <GorhomBottomSheet
+      ref={ref}
+      backgroundStyle={styles.background}
+      handleIndicatorStyle={styles.handle}
+      backdropComponent={renderBackdrop}
+      onChange={handleChange}
+      enablePanDownToClose
+      {...rest}
+    >
+      <View style={[styles.content, style]}>{children}</View>
+    </GorhomBottomSheet>
+  );
+});
 
 const useStyles = createStyles((theme) => ({
   background: {
