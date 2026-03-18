@@ -42,18 +42,19 @@ tags: [session, continuity]
 ### Where we stopped
 
 - All code merged to development, all worktrees closed
-- App not yet tested in browser (Expo web server needs manual start)
-- Phase 13 (ADR for hardcoded Norwegian) not written yet
+- Fixed 2 web-compat issues: expo-notifications guarded, supabase client uses localStorage on web
+- Added EXPO_PUBLIC_SUPABASE_URL/KEY to .env.template for `op run` support
+- App starts in browser but not yet fully tested (user was about to test)
 
 ### Known blockers / errors
 
-- Expo web: `react-native-screens` had `featureFlags.experiment` undefined on web — fixed by installing correct version, but untested in browser
-- `expo-secure-store` may not work on web (native-only) — needs Platform.OS check or polyfill for web testing
 - `timesheet` schema not in `database.types.ts` auto-generation — local TimeEntry type created as workaround
+- ~55 uncommitted files on development (mix of pre-existing web changes + new mobile .env.template)
 
 ### Pending decisions
 
-- [ ] Test app in browser (manual Expo start)
+- [ ] Test app in browser and fix any remaining web-compat issues
 - [ ] Write ADR for hardcoded Norwegian (Phase 13, Task 13.2)
 - [ ] Push development to origin
+- [ ] Commit or stash the ~55 uncommitted changes on development
 - [ ] Infrastructure alignment plan still pending (`docs/superpowers/plans/2026-03-18-infra-prod-alignment.md`)
