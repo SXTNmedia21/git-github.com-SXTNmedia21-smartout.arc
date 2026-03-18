@@ -1,11 +1,8 @@
 /**
- * PunchButton — Navigates to the full-screen punch clock.
+ * PunchButton — Clean, prominent CTA that navigates to the punch clock.
  *
- * Full-width button that shows "STEMPLE INN" or "STEMPLE UT" based on the
- * current shift phase. Tapping opens the dedicated punch clock screen
- * where the actual punch in/out happens.
- *
- * Uses haptic feedback and a spring-back press animation via Reanimated.
+ * Design: rounded pill shape, brand orange for punch-in, muted red for out.
+ * Less text, more weight. Icon + short label.
  */
 
 import React from "react";
@@ -13,19 +10,13 @@ import { Text, Pressable } from "react-native";
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { Clock, Fingerprint } from "lucide-react-native";
+import { Fingerprint, LogOut } from "lucide-react-native";
 
 import { useShiftPhase } from "@/hooks/stores/use-shift-phase";
 import { useActiveTimeEntry } from "@/hooks/queries/use-active-time-entry";
 import { strings } from "@/constants/strings";
 import { createStyles } from "@/theme";
 
-const PRESS_SPRING = { damping: 15, stiffness: 300, mass: 0.8 };
-
-/**
- * Punch clock button on the home screen. Navigates to /(app)/(home)/punch-clock
- * instead of punching inline — the full-screen experience is better.
- */
 export function PunchButton() {
   const { phase, activeShift, nextShift, activeTimeEntry } = useShiftPhase();
   const { data: timeEntry } = useActiveTimeEntry();
@@ -40,48 +31,32 @@ export function PunchButton() {
   const isClockedIn = currentTimeEntry?.status === "clocked_in";
   const shiftForPunch = activeShift ?? nextShift;
 
-  // Hide when there's no shift context and not clocked in
   const shouldShow = isClockedIn || (phase !== "no_shift" && shiftForPunch);
   if (!shouldShow) return null;
 
-  const label = isClockedIn
-    ? strings.shift.punchOut.toUpperCase()
-    : strings.shift.punchIn.toUpperCase();
-
-  const handlePressIn = () => {
-    scale.value = withSpring(0.95, PRESS_SPRING);
-  };
-
-  const handlePressOut = () => {
-    scale.value = withSpring(1, PRESS_SPRING);
-  };
-
-  const handlePress = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.push("/(app)/(home)/punch-clock");
-  };
-
-  const styles = useStyles();
+  const label = isClockedIn ? strings.shift.punchOut : strings.shift.punchIn;
 
   return (
     <Animated.View style={[styles.wrapper, animatedStyle]}>
       <Pressable
-        onPress={handlePress}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        style={({ pressed }) => [
-          styles.button,
-          isClockedIn ? styles.punchOut : styles.punchIn,
-          pressed && styles.pressed,
-        ]}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          router.push("/(app)/(home)/punch-clock");
+        }}
+        onPressIn={() => {
+          scale.value = withSpring(0.96, { damping: 15, stiffness: 300 });
+        }}
+        onPressOut={() => {
+          scale.value = withSpring(1, { damping: 12, stiffness: 200 });
+        }}
+        style={[styles.button, isClockedIn ? styles.punchOut : styles.punchIn]}
         accessibilityRole="button"
         accessibilityLabel={label}
-        accessibilityHint="Åpner stemplingsklocka"
       >
         {isClockedIn ? (
-          <Clock size={22} color="#ffffff" strokeWidth={2} style={styles.icon} />
+          <LogOut size={20} color="#ffffff" strokeWidth={2} />
         ) : (
-          <Fingerprint size={22} color="#ffffff" strokeWidth={2} style={styles.icon} />
+          <Fingerprint size={20} color="#ffffff" strokeWidth={2} />
         )}
         <Text style={styles.label}>{label}</Text>
       </Pressable>
@@ -89,37 +64,37 @@ export function PunchButton() {
   );
 }
 
-const useStyles = createStyles((theme) => ({
-  wrapper: {
-    width: "100%",
-    paddingHorizontal: theme.spacing.card,
-  },
-  button: {
-    width: "100%",
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.radius.lg,
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    gap: theme.spacing.tight,
-    minHeight: 56,
-    ...theme.shadows.md,
-  },
-  punchIn: {
-    backgroundColor: theme.colors.brandOrange,
-  },
-  punchOut: {
-    backgroundColor: theme.colors.destructive,
-  },
-  pressed: {
-    opacity: 0.9,
-  },
-  icon: {
-    marginRight: 2,
-  },
-  label: {
-    ...theme.typography.headline,
-    color: "#ffffff",
-    letterSpacing: 2,
-  },
-}));
+const styles = (() => {
+  // Static styles — no theme needed for this simple component
+  return {
+    wrapper: {
+      paddingHorizontal: 20,
+    },
+    button: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+      gap: 10,
+      paddingVertical: 16,
+      borderRadius: 14,
+      minHeight: 56,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.15,
+      shadowRadius: 12,
+      elevation: 4,
+    },
+    punchIn: {
+      backgroundColor: "#e85c0d",
+    },
+    punchOut: {
+      backgroundColor: "#dc2626",
+    },
+    label: {
+      fontSize: 16,
+      fontWeight: "600" as const,
+      color: "#ffffff",
+      letterSpacing: 0.5,
+    },
+  };
+})();

@@ -56,7 +56,7 @@ export const SettingsSheet = forwardRef<GorhomBottomSheet>(function SettingsShee
 
       switch (item.action) {
         case "edit-profile":
-          router.push("/(app)/(me)/edit-profile");
+          router.push("/(app)/(home)/edit-profile");
           break;
         case "navigate-profile":
           router.push("/(app)/(me)");

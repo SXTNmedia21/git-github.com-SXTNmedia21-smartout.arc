@@ -1,13 +1,11 @@
 /**
- * HomeHeader — Premium profile header with animated quick actions.
+ * HomeHeader — Clean, minimal header with depth.
  *
- * Animations:
- * - Avatar drops in with spring bounce
- * - Greeting fades in with slight delay
- * - Each quick action circle enters individually with stagger (50ms between)
- * - Quick action circles have spring scale on press
- * - Top bar icons fade in
- * - Notification bell has a subtle shake animation
+ * Design principles:
+ * - Monochrome base, brand orange only for primary CTA
+ * - Subtle shadows for depth instead of colored backgrounds
+ * - Clear hierarchy: avatar → greeting → actions (descending importance)
+ * - Quick actions are subtle icons, not competing colored circles
  */
 
 import React, { useMemo, useCallback } from "react";
@@ -38,48 +36,15 @@ type QuickActionItem = {
   key: string;
   label: string;
   icon: LucideIcon;
-  color: string;
   route: string;
 };
 
 const QUICK_ACTIONS: QuickActionItem[] = [
-  {
-    key: "tasks",
-    label: "Oppgaver",
-    icon: CheckSquare,
-    color: "#e85c0d",
-    route: "/(app)/(home)/haccp",
-  },
-  {
-    key: "training",
-    label: "Opplaering",
-    icon: GraduationCap,
-    color: "#3b82f6",
-    route: "/(app)/(me)",
-  },
-  {
-    key: "deviation",
-    label: "Avvik",
-    icon: AlertTriangle,
-    color: "#22c55e",
-    route: "/(app)/(home)/deviation",
-  },
-  {
-    key: "punch",
-    label: "Stempling",
-    icon: Clock,
-    color: "#06b6d4",
-    route: "/(app)/(home)/punch-clock",
-  },
+  { key: "tasks", label: "Oppgaver", icon: CheckSquare, route: "/(app)/(home)/haccp" },
+  { key: "training", label: "Opplaering", icon: GraduationCap, route: "/(app)/(me)" },
+  { key: "deviation", label: "Avvik", icon: AlertTriangle, route: "/(app)/(home)/deviation" },
+  { key: "punch", label: "Stempling", icon: Clock, route: "/(app)/(home)/punch-clock" },
 ];
-
-function getTimeIcon(): string {
-  const hour = new Date().getHours();
-  if (hour >= 5 && hour < 12) return "\u2600\uFE0F";
-  if (hour >= 12 && hour < 17) return "\u26C5";
-  if (hour >= 17 && hour < 21) return "\uD83C\uDF05";
-  return "\uD83C\uDF19";
-}
 
 function getTimeGreeting(): string {
   const hour = new Date().getHours();
@@ -89,7 +54,7 @@ function getTimeGreeting(): string {
   return strings.home.goodNight;
 }
 
-/** Animated quick action button with spring press */
+/** Minimal quick action button — monochrome, no colored circles */
 function QuickActionButton({ action, index }: { action: QuickActionItem; index: number }) {
   const styles = useActionStyles();
   const router = useRouter();
@@ -99,38 +64,32 @@ function QuickActionButton({ action, index }: { action: QuickActionItem; index: 
     transform: [{ scale: scale.value }],
   }));
 
-  const handlePressIn = useCallback(() => {
-    scale.value = withSpring(0.85, { damping: 10, stiffness: 300 });
-  }, [scale]);
-
-  const handlePressOut = useCallback(() => {
-    scale.value = withSpring(1, { damping: 8, stiffness: 200 });
-  }, [scale]);
-
-  const handlePress = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push(action.route as never);
-  }, [router, action.route]);
-
   const IconComponent = action.icon;
 
   return (
     <Animated.View
-      entering={FadeInDown.delay(350 + index * 70)
-        .duration(400)
+      entering={FadeInDown.delay(300 + index * 60)
+        .duration(350)
         .springify()}
     >
       <Animated.View style={animatedStyle}>
         <Pressable
-          onPress={handlePress}
-          onPressIn={handlePressIn}
-          onPressOut={handlePressOut}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push(action.route as never);
+          }}
+          onPressIn={() => {
+            scale.value = withSpring(0.88, { damping: 10, stiffness: 300 });
+          }}
+          onPressOut={() => {
+            scale.value = withSpring(1, { damping: 8, stiffness: 200 });
+          }}
           style={styles.actionItem}
           accessibilityRole="button"
           accessibilityLabel={action.label}
         >
-          <View style={[styles.actionCircle, { backgroundColor: action.color + "15" }]}>
-            <IconComponent size={24} color={action.color} strokeWidth={1.8} />
+          <View style={styles.actionCircle}>
+            <IconComponent size={20} color={styles.iconColor.color} strokeWidth={1.6} />
           </View>
           <Text style={styles.actionLabel} numberOfLines={1}>
             {action.label}
@@ -149,14 +108,13 @@ export function HomeHeader({
 }: HomeHeaderProps) {
   const styles = useStyles();
   const greeting = useMemo(() => getTimeGreeting(), []);
-  const timeIcon = useMemo(() => getTimeIcon(), []);
   const firstName = displayName.split(" ")[0];
   const router = useRouter();
 
   return (
     <View style={styles.container}>
-      {/* Top bar: menu + bell — fade in */}
-      <Animated.View entering={FadeIn.delay(50).duration(400)} style={styles.topBar}>
+      {/* Top bar */}
+      <Animated.View entering={FadeIn.delay(50).duration(300)} style={styles.topBar}>
         <Pressable
           onPress={() => {
             Haptics.selectionAsync();
@@ -166,9 +124,8 @@ export function HomeHeader({
           accessibilityRole="button"
           accessibilityLabel="Meny"
         >
-          <Menu size={22} color={styles.topBarIconColor.color} strokeWidth={1.8} />
+          <Menu size={22} color={styles.topBarIconColor.color} strokeWidth={1.6} />
         </Pressable>
-
         <Pressable
           onPress={() => {
             Haptics.selectionAsync();
@@ -178,14 +135,12 @@ export function HomeHeader({
           accessibilityRole="button"
           accessibilityLabel="Varsler"
         >
-          <Bell size={22} color={styles.topBarIconColor.color} strokeWidth={1.8} />
+          <Bell size={22} color={styles.topBarIconColor.color} strokeWidth={1.6} />
         </Pressable>
       </Animated.View>
 
-      {/* Avatar with spring drop */}
-      <Animated.View
-        entering={FadeInDown.delay(100).duration(500).springify().damping(12).stiffness(100)}
-      >
+      {/* Avatar — the hero element */}
+      <Animated.View entering={FadeInDown.delay(80).duration(500).springify().damping(12)}>
         <Pressable
           onPress={() => {
             Haptics.selectionAsync();
@@ -195,20 +150,18 @@ export function HomeHeader({
           accessibilityRole="button"
           accessibilityLabel="Profil"
         >
-          <View style={styles.avatarRing}>
-            <Avatar name={displayName} imageUrl={avatarUrl} size="xl" />
-          </View>
+          <Avatar name={displayName} imageUrl={avatarUrl} size="xl" style={styles.avatar} />
         </Pressable>
       </Animated.View>
 
-      {/* Greeting with fade */}
-      <Animated.View entering={FadeInDown.delay(220).duration(400).springify()}>
+      {/* Greeting — secondary, understated */}
+      <Animated.View entering={FadeInDown.delay(180).duration(400).springify()}>
         <Text style={styles.greeting}>
-          {greeting}, {firstName} {timeIcon}
+          {greeting}, {firstName}
         </Text>
       </Animated.View>
 
-      {/* Quick action circles — individually staggered */}
+      {/* Quick actions — subtle, monochrome */}
       <View style={styles.actionsRow}>
         {QUICK_ACTIONS.map((action, i) => (
           <QuickActionButton key={action.key} action={action} index={i} />
@@ -221,20 +174,23 @@ export function HomeHeader({
 const useActionStyles = createStyles((theme) => ({
   actionItem: {
     alignItems: "center",
-    gap: theme.spacing.tight,
-    width: 68,
+    gap: 6,
+    width: 64,
   },
   actionCircle: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: theme.isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
+  },
+  iconColor: {
+    color: theme.isDark ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.5)",
   },
   actionLabel: {
     ...theme.typography.micro,
     color: theme.colors.mutedForeground,
-    fontWeight: theme.fontWeights.medium,
     textAlign: "center",
   },
 }));
@@ -243,10 +199,6 @@ const useStyles = createStyles((theme) => ({
   container: {
     paddingBottom: theme.spacing.section,
     alignItems: "center",
-    backgroundColor: theme.isDark ? "#1f1f1f" : "#fafafa",
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    ...theme.shadows.sm,
   },
   topBar: {
     flexDirection: "row",
@@ -265,16 +217,13 @@ const useStyles = createStyles((theme) => ({
     borderRadius: 22,
   },
   topBarIconColor: {
-    color: theme.colors.mutedForeground,
+    color: theme.isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.35)",
   },
   avatarContainer: {
     marginBottom: theme.spacing.element,
   },
-  avatarRing: {
-    padding: 3,
-    borderRadius: 999,
-    borderWidth: 2.5,
-    borderColor: theme.colors.brandOrange,
+  avatar: {
+    ...theme.shadows.md,
   },
   greeting: {
     ...theme.typography.title,
@@ -286,7 +235,7 @@ const useStyles = createStyles((theme) => ({
   actionsRow: {
     flexDirection: "row",
     justifyContent: "center",
-    gap: theme.spacing.card,
+    gap: 20,
     paddingHorizontal: theme.spacing.md,
   },
 }));

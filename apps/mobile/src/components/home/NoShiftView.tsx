@@ -1,20 +1,18 @@
 /**
- * NoShiftView — Home screen content when the employee has no upcoming shift
- * within the "before_shift" window.
+ * NoShiftView — Clean, minimal view when no shift is active.
  *
- * Shows: greeting, next shift card (if any within 7 days), unread message count,
- * and a locked V2 section (training & certifications placeholder).
+ * Shows next shift card (if any) with clear visual hierarchy.
+ * Important info (next shift time, colleagues) stands out.
+ * Secondary info (training, messages) is subdued.
  */
 
 import React from "react";
 import { View, Text, Pressable } from "react-native";
+import { CalendarDays, Clock, ChevronRight } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import { createStyles, withOpacity } from "@/theme";
-import { Card } from "@/components/ui/Card";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { SectionHeader } from "@/components/common/SectionHeader";
-import { ShiftCard } from "@/components/shift/ShiftCard";
+import Animated, { FadeInUp } from "react-native-reanimated";
+import { createStyles } from "@/theme";
 import { strings } from "@/constants/strings";
 import type { Database } from "@smartout/supabase/database.types";
 
@@ -26,106 +24,193 @@ type NoShiftViewProps = {
   unreadCount?: number;
 };
 
-export function NoShiftView({ firstName, nextShift, unreadCount = 0 }: NoShiftViewProps) {
+function formatShiftDate(dateStr: string): string {
+  const date = new Date(`${dateStr}T00:00:00Z`);
+  const days = ["Son", "Man", "Tir", "Ons", "Tor", "Fre", "Lor"];
+  const months = [
+    "jan",
+    "feb",
+    "mar",
+    "apr",
+    "mai",
+    "jun",
+    "jul",
+    "aug",
+    "sep",
+    "okt",
+    "nov",
+    "des",
+  ];
+  return `${days[date.getUTCDay()]} ${date.getUTCDate()}. ${months[date.getUTCMonth()]}`;
+}
+
+function formatTime(time: string): string {
+  return time.slice(0, 5);
+}
+
+export function NoShiftView({ firstName, nextShift }: NoShiftViewProps) {
   const styles = useStyles();
   const router = useRouter();
 
   return (
     <View style={styles.container}>
-      {/* Greeting */}
-      <Text style={styles.greeting}>
-        {strings.home.greeting}, {firstName}
-      </Text>
-
-      {/* Next shift card or empty state */}
       {nextShift ? (
-        <View style={styles.section}>
-          <SectionHeader title={strings.home.nextShift} />
-          <ShiftCard
-            shift={nextShift}
-            onPress={() => router.push(`/(app)/(shifts)/${nextShift.schedule_shift_id}`)}
-          />
-        </View>
-      ) : (
-        <EmptyState
-          title={strings.home.noShift}
-          subtitle="Lederen din publiserer nye vakter i vaktlisten. Du far varsel nar en vakt er klar."
-        />
-      )}
-
-      {/* Unread messages link */}
-      {unreadCount > 0 && (
-        <Pressable
-          style={styles.unreadRow}
-          onPress={() => {
-            Haptics.selectionAsync();
-            router.push("/(app)/(chat)");
-          }}
-          accessibilityRole="button"
-        >
-          <Text style={styles.unreadText}>
-            {unreadCount} {strings.home.unreadMessages} →
-          </Text>
-        </Pressable>
-      )}
-
-      {/* V2 locked section — training & certifications placeholder */}
-      <View style={styles.lockedSection}>
-        <Card>
-          <View style={styles.lockedContent}>
-            <Text style={styles.lockedIcon}>🔒</Text>
-            <View>
-              <Text style={styles.lockedTitle}>{strings.me.trainingLocked}</Text>
-              <Text style={styles.lockedSubtitle}>{strings.me.comingSoon}</Text>
+        <Animated.View entering={FadeInUp.delay(100).duration(400).springify()}>
+          <Pressable
+            onPress={() => {
+              Haptics.selectionAsync();
+              router.push(`/(app)/(shifts)/${nextShift.schedule_shift_id}`);
+            }}
+            style={({ pressed }) => [styles.nextShiftCard, pressed && styles.pressed]}
+            accessibilityRole="button"
+          >
+            <View style={styles.nextShiftHeader}>
+              <Text style={styles.nextShiftLabel}>{strings.home.nextShift}</Text>
+              <ChevronRight size={16} color={styles.mutedColor.color} strokeWidth={2} />
             </View>
-          </View>
-        </Card>
-      </View>
+
+            <View style={styles.nextShiftBody}>
+              <View style={styles.dateRow}>
+                <CalendarDays size={18} color={styles.foregroundColor.color} strokeWidth={1.8} />
+                <Text style={styles.dateText}>{formatShiftDate(nextShift.shift_date)}</Text>
+              </View>
+
+              <View style={styles.timeRow}>
+                <Clock size={16} color={styles.mutedColor.color} strokeWidth={1.8} />
+                <Text style={styles.timeText}>
+                  {formatTime(nextShift.start_time)} – {formatTime(nextShift.end_time)}
+                </Text>
+                {nextShift.role && (
+                  <>
+                    <View style={styles.dot} />
+                    <Text style={styles.roleText}>{nextShift.role}</Text>
+                  </>
+                )}
+              </View>
+            </View>
+
+            {!nextShift.confirmed_at && (
+              <View style={styles.confirmHint}>
+                <Text style={styles.confirmHintText}>Ubekreftet — trykk for a bekrefte</Text>
+              </View>
+            )}
+          </Pressable>
+        </Animated.View>
+      ) : (
+        <Animated.View
+          entering={FadeInUp.delay(100).duration(400).springify()}
+          style={styles.emptyState}
+        >
+          <CalendarDays size={32} color={styles.emptyIcon.color} strokeWidth={1.2} />
+          <Text style={styles.emptyTitle}>{strings.home.noShift}</Text>
+          <Text style={styles.emptySubtitle}>Nye vakter vises her nar lederen publiserer dem.</Text>
+        </Animated.View>
+      )}
     </View>
   );
 }
 
 const useStyles = createStyles((theme) => ({
   container: {
-    flex: 1,
     paddingHorizontal: theme.spacing.card,
-    paddingTop: theme.spacing.section,
+    paddingTop: theme.spacing.tight,
   },
-  greeting: {
-    ...theme.typography.largeTitle,
-    color: theme.colors.foreground,
-    marginBottom: theme.spacing.section,
+
+  /* Next shift card — the hero */
+  nextShiftCard: {
+    backgroundColor: theme.colors.card,
+    borderRadius: 16,
+    padding: theme.spacing.card,
+    ...theme.shadows.md,
+    borderWidth: 1,
+    borderColor: theme.isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
   },
-  section: {
-    marginBottom: theme.spacing.section,
+  pressed: {
+    opacity: 0.92,
+    transform: [{ scale: 0.99 }],
   },
-  unreadRow: {
-    paddingVertical: theme.spacing.element,
+  nextShiftHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: theme.spacing.element,
   },
-  unreadText: {
-    ...theme.typography.body,
+  nextShiftLabel: {
+    ...theme.typography.caption,
+    color: theme.colors.mutedForeground,
     fontWeight: theme.fontWeights.medium,
-    color: theme.colors.brandOrange,
+    letterSpacing: 0.5,
+    textTransform: "uppercase" as const,
   },
-  lockedSection: {
-    marginTop: theme.spacing.element,
-    opacity: 0.6,
+  nextShiftBody: {
+    gap: theme.spacing.tight,
   },
-  lockedContent: {
+  dateRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: theme.spacing.element,
+    gap: theme.spacing.tight,
   },
-  lockedIcon: {
-    fontSize: 24,
-  },
-  lockedTitle: {
-    ...theme.typography.bodyBold,
+  dateText: {
+    ...theme.typography.title,
     color: theme.colors.foreground,
   },
-  lockedSubtitle: {
+  timeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.tight,
+    paddingLeft: 26,
+  },
+  timeText: {
+    ...theme.typography.body,
+    color: theme.colors.mutedForeground,
+    fontVariant: ["tabular-nums" as const],
+  },
+  dot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: theme.colors.mutedForeground,
+  },
+  roleText: {
+    ...theme.typography.body,
+    color: theme.colors.mutedForeground,
+  },
+  confirmHint: {
+    marginTop: theme.spacing.element,
+    paddingTop: theme.spacing.element,
+    borderTopWidth: 1,
+    borderTopColor: theme.isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
+  },
+  confirmHintText: {
     ...theme.typography.caption,
+    color: theme.colors.brandOrange,
+    fontWeight: theme.fontWeights.medium,
+  },
+
+  /* Empty state */
+  emptyState: {
+    alignItems: "center",
+    paddingVertical: theme.spacing.xl,
+    gap: theme.spacing.element,
+  },
+  emptyIcon: {
+    color: theme.isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.12)",
+  },
+  emptyTitle: {
+    ...theme.typography.headline,
+    color: theme.colors.mutedForeground,
+  },
+  emptySubtitle: {
+    ...theme.typography.subheadline,
+    color: theme.isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.25)",
+    textAlign: "center",
+    maxWidth: 260,
+  },
+
+  foregroundColor: {
+    color: theme.colors.foreground,
+  },
+  mutedColor: {
     color: theme.colors.mutedForeground,
   },
 }));
