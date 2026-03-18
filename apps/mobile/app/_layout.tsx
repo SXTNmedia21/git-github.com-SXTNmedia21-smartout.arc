@@ -1,9 +1,17 @@
 /**
  * Root layout — wraps the entire app with providers and handles auth-based routing.
- * Providers are injected here so every screen has access to QueryClient and auth state.
+ * QueryProvider must be outermost (AuthProvider uses router which needs React context).
  */
 import { Stack } from "expo-router";
+import { QueryProvider } from "@/providers/query-provider";
+import { AuthProvider } from "@/providers/auth-provider";
 
 export default function RootLayout() {
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <QueryProvider>
+      <AuthProvider>
+        <Stack screenOptions={{ headerShown: false }} />
+      </AuthProvider>
+    </QueryProvider>
+  );
 }
