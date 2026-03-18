@@ -1,16 +1,12 @@
 /**
- * AIFab — Circular FAB button centered in the tab bar.
+ * AIFab — Smartout logo button centered in the tab bar.
  *
- * Breaks the tab bar line upward (elevated, oversized circle).
- * Tap -> opens Botsson chat sheet (placeholder until Phase 11).
- * Swipe-up -> opens QuickActions menu with context-aware shortcuts.
- *
- * Uses PanResponder for swipe-up detection to avoid gesture conflicts
- * with the tab bar's touch handling.
+ * The logo overflows the circle slightly for a bold, branded feel.
+ * Tap → navigate home. Swipe up → QuickActions.
  */
 
-import React, { useCallback, useRef } from "react";
-import { View, Text, Pressable } from "react-native";
+import React, { useCallback } from "react";
+import { View, Image } from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -21,16 +17,13 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import * as Haptics from "expo-haptics";
 import { createStyles } from "@/theme";
 
-/** Minimum upward swipe distance (px) to trigger QuickActions */
 const SWIPE_THRESHOLD = 40;
-
-/** FAB size — must be larger than tab bar height to "break" the line */
 const FAB_SIZE = 56;
+/** Logo extends beyond the circle for visual impact */
+const LOGO_SIZE = FAB_SIZE + 16;
 
 type AIFabProps = {
-  /** Called on tap — opens Botsson sheet */
   onPress?: () => void;
-  /** Called on swipe up — opens QuickActions */
   onSwipeUp?: () => void;
 };
 
@@ -48,14 +41,12 @@ export function AIFab({ onPress, onSwipeUp }: AIFabProps) {
     onSwipeUp?.();
   }, [onSwipeUp]);
 
-  // Pan gesture for swipe-up detection
   const panGesture = Gesture.Pan()
     .onBegin(() => {
       scale.value = withSpring(0.92, { damping: 15, stiffness: 200 });
     })
     .onEnd((event) => {
       scale.value = withSpring(1, { damping: 15, stiffness: 200 });
-      // Negative translationY = upward swipe
       if (event.translationY < -SWIPE_THRESHOLD) {
         runOnJS(handleSwipeUp)();
       }
@@ -64,12 +55,10 @@ export function AIFab({ onPress, onSwipeUp }: AIFabProps) {
       scale.value = withSpring(1, { damping: 15, stiffness: 200 });
     });
 
-  // Tap gesture
   const tapGesture = Gesture.Tap().onEnd(() => {
     runOnJS(handlePress)();
   });
 
-  // Combine: pan takes priority when swiping, tap fires otherwise
   const composed = Gesture.Race(panGesture, tapGesture);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -80,7 +69,11 @@ export function AIFab({ onPress, onSwipeUp }: AIFabProps) {
     <View style={styles.container}>
       <GestureDetector gesture={composed}>
         <Animated.View style={[styles.fab, animatedStyle]}>
-          <Text style={styles.icon}>S</Text>
+          <Image
+            source={require("@assets/smartout-icon.png")}
+            style={styles.logoImage}
+            accessibilityLabel="Smartout"
+          />
         </Animated.View>
       </GestureDetector>
     </View>
@@ -90,7 +83,6 @@ export function AIFab({ onPress, onSwipeUp }: AIFabProps) {
 const useStyles = createStyles((theme) => ({
   container: {
     alignItems: "center",
-    // Push the FAB above the tab bar line
     marginTop: -(FAB_SIZE / 2 + 4),
   },
   fab: {
@@ -100,14 +92,15 @@ const useStyles = createStyles((theme) => ({
     backgroundColor: theme.colors.brandOrange,
     alignItems: "center",
     justifyContent: "center",
+    // Allow logo to overflow the circle
+    overflow: "visible",
     ...theme.shadows.lg,
-    // White border ring for visual separation from tab bar
     borderWidth: 3,
     borderColor: theme.colors.card,
   },
-  icon: {
-    fontSize: 24,
-    fontWeight: theme.fontWeights.bold,
-    color: "#ffffff",
+  logoImage: {
+    width: LOGO_SIZE,
+    height: LOGO_SIZE,
+    resizeMode: "contain",
   },
 }));

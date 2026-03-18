@@ -54,19 +54,24 @@ export const SettingsSheet = forwardRef<GorhomBottomSheet>(function SettingsShee
         ref.current.close();
       }
 
-      switch (item.action) {
-        case "edit-profile":
-          router.push("/(app)/(home)/edit-profile");
-          break;
-        case "navigate-profile":
-          router.push("/(app)/(me)");
-          break;
-        case "logout":
-          router.push("/(app)/(me)");
-          break;
-        default:
-          break;
-      }
+      // Small delay to let the sheet close animation start before navigating
+      const navigate = () => {
+        switch (item.action) {
+          case "edit-profile":
+            router.push("/(app)/(home)/edit-profile");
+            break;
+          case "navigate-profile":
+            router.push("/(app)/(me)");
+            break;
+          case "logout":
+            router.push("/(app)/(me)");
+            break;
+          default:
+            break;
+        }
+      };
+
+      setTimeout(navigate, 200);
     },
     [router, ref],
   );
