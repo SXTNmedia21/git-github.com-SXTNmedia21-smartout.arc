@@ -1,17 +1,18 @@
 /**
  * Home screen — renders different content based on the current shift phase.
  *
- * Layout:
- * - HomeHeader (profile, greeting, quick actions) — scrolls with content
- * - PunchButton — prominent call-to-action
- * - Phase-specific content cards below
- * - NotificationSheet + SettingsSheet (bottom sheets triggered from header)
+ * Animations:
+ * - Animated ScrollView for smooth native scroll
+ * - Header scrolls with content (not sticky — more natural on mobile)
+ * - Punch button enters with spring from below
+ * - Phase content fades in with delay after header/punch settle
+ * - Bottom sheets for notifications + settings
  */
 
 import React, { useCallback, useRef } from "react";
-import { View, ScrollView } from "react-native";
+import { View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Animated, { FadeInUp } from "react-native-reanimated";
+import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
 import type GorhomBottomSheet from "@gorhom/bottom-sheet";
 import { createStyles } from "@/theme";
 import { SyncIndicator } from "@/components/common/SyncIndicator";
@@ -56,10 +57,11 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.container} edges={["top"]}>
       <SyncIndicator />
 
-      <ScrollView
+      <Animated.ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
       >
         {/* Header: avatar, greeting, quick actions */}
         <HomeHeader
@@ -69,16 +71,16 @@ export default function HomeScreen() {
           onMenuPress={handleMenuPress}
         />
 
-        {/* Punch button — prominent CTA below header */}
+        {/* Punch button — enters from below with spring */}
         <Animated.View
-          entering={FadeInUp.delay(400).duration(400).springify()}
+          entering={FadeInUp.delay(500).duration(500).springify().damping(13)}
           style={styles.punchArea}
         >
           <PunchButton />
         </Animated.View>
 
-        {/* Phase-specific content */}
-        <View style={styles.content}>
+        {/* Phase-specific content — fades in after punch settles */}
+        <Animated.View entering={FadeIn.delay(700).duration(500)} style={styles.content}>
           {phase === "no_shift" && <NoShiftView firstName={firstName} nextShift={nextShift} />}
           {phase === "before_shift" && nextShift && (
             <BeforeShiftView
@@ -94,8 +96,8 @@ export default function HomeScreen() {
           {phase === "after_shift" && activeTimeEntry && (
             <AfterShiftView shift={activeShift} timeEntry={activeTimeEntry} />
           )}
-        </View>
-      </ScrollView>
+        </Animated.View>
+      </Animated.ScrollView>
 
       {/* Bottom sheets — mounted outside scroll */}
       <NotificationSheet ref={notificationSheetRef} />
@@ -114,7 +116,7 @@ const useStyles = createStyles((theme) => ({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: theme.spacing.xl,
+    paddingBottom: theme.spacing.xl + 20,
   },
   punchArea: {
     paddingTop: theme.spacing.section,
