@@ -23,14 +23,11 @@ const fadeUp = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 1.0, ease: [0.16, 1, 0.3, 1] },
+    transition: { duration: 1.0, ease: [0.16, 1, 0.3, 1] as const },
   },
-};
+} as const;
 
-function resolveTemplate(
-  template: string,
-  ctx: Record<string, string>,
-): string {
+function resolveTemplate(template: string, ctx: Record<string, string>): string {
   return template.replace(/\{\{(\w+)\}\}/g, (_, key: string) => ctx[key] ?? "");
 }
 

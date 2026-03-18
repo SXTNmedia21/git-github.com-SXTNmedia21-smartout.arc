@@ -25,15 +25,11 @@ const fadeUp = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 1.0, ease: [0.16, 1, 0.3, 1] },
+    transition: { duration: 1.0, ease: [0.16, 1, 0.3, 1] as const },
   },
-};
+} as const;
 
-export function SummarySlide({
-  config,
-  context,
-  onAction,
-}: SummarySlideProps) {
+export function SummarySlide({ config, context, onAction }: SummarySlideProps) {
   return (
     <div className="flex h-full items-center justify-center px-6">
       {/* Ambient glow */}
@@ -41,8 +37,7 @@ export function SummarySlide({
         <div
           className="absolute top-1/3 left-1/2 h-[50vh] w-[50vh] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-30"
           style={{
-            background:
-              "radial-gradient(circle, oklch(0.80 0.10 50) 0%, transparent 70%)",
+            background: "radial-gradient(circle, oklch(0.80 0.10 50) 0%, transparent 70%)",
             filter: "blur(80px)",
           }}
         />

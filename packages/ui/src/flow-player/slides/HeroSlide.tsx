@@ -23,14 +23,11 @@ const fadeUp = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 1.2, ease: [0.16, 1, 0.3, 1] },
+    transition: { duration: 1.2, ease: [0.16, 1, 0.3, 1] as const },
   },
-};
+} as const;
 
-function resolveTemplate(
-  template: string,
-  ctx: Record<string, string>,
-): string {
+function resolveTemplate(template: string, ctx: Record<string, string>): string {
   return template.replace(/\{\{(\w+)\}\}/g, (_, key: string) => ctx[key] ?? "");
 }
 
@@ -42,16 +39,14 @@ export function HeroSlide({ config, context, onContinue }: HeroSlideProps) {
         <div
           className="absolute -top-[30%] left-1/2 h-[60vh] w-[60vh] -translate-x-1/2 rounded-full opacity-40"
           style={{
-            background:
-              "radial-gradient(circle, oklch(0.85 0.08 55) 0%, transparent 70%)",
+            background: "radial-gradient(circle, oklch(0.85 0.08 55) 0%, transparent 70%)",
             filter: "blur(80px)",
           }}
         />
         <div
           className="absolute -right-[15%] bottom-[10%] h-[40vh] w-[40vh] rounded-full opacity-25"
           style={{
-            background:
-              "radial-gradient(circle, oklch(0.80 0.06 40) 0%, transparent 70%)",
+            background: "radial-gradient(circle, oklch(0.80 0.06 40) 0%, transparent 70%)",
             filter: "blur(60px)",
           }}
         />

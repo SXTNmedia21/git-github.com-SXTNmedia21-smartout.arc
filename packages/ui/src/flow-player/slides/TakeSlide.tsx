@@ -29,9 +29,9 @@ const cardFadeUp = {
     opacity: 1,
     y: 0,
     scale: 1,
-    transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] },
+    transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] as const },
   },
-};
+} as const;
 
 export function TakeSlide({
   config,
@@ -69,9 +69,7 @@ export function TakeSlide({
             style={{ fontFamily: "var(--font-heading, serif)" }}
           />
           {config.multi && (
-            <p className="mt-2 text-sm text-[var(--muted-foreground)]">
-              Velg en eller flere
-            </p>
+            <p className="mt-2 text-sm text-[var(--muted-foreground)]">Velg en eller flere</p>
           )}
         </motion.div>
 
@@ -86,9 +84,7 @@ export function TakeSlide({
             <motion.div key={option.id} variants={cardFadeUp}>
               <ChoiceCard
                 label={option.label}
-                icon={
-                  option.icon && renderIcon ? renderIcon(option.icon) : undefined
-                }
+                icon={option.icon && renderIcon ? renderIcon(option.icon) : undefined}
                 description={option.description}
                 selected={selected.includes(option.id)}
                 onSelect={() => onToggle(option.id)}
