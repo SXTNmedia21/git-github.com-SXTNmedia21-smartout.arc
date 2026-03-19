@@ -126,6 +126,7 @@ services:
       - PORT=8000
       - SCRAPLING_AUTH_TOKEN=${SCRAPLING_AUTH_TOKEN}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - SERPER_API_KEY=${SERPER_API_KEY}
     networks:
       - smartout-internal
     healthcheck:
