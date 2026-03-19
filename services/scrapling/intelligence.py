@@ -185,6 +185,8 @@ def compute_years_in_business(founding_date: Optional[str]) -> Optional[int]:
 
 # ── Constants for enrichment pipeline ────────────────────────────────
 
+OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
+
 BRREG_BASE = "https://data.brreg.no/enhetsregisteret/api"
 SERPER_API_KEY = os.environ.get("SERPER_API_KEY")
 
@@ -749,4 +751,107 @@ async def handle_enrich(req: EnrichRequest) -> EnrichResponse:
         intelligence=intel,
         sources_added=sources_added,
         gaps_remaining=gaps,
+    )
+
+
+# ── Generate endpoint — LLM copywriting from structured intelligence ─
+
+
+class GenerateRequest(BaseModel):
+    intelligence: WorkspaceIntelligence
+
+
+class GenerateResponse(BaseModel):
+    about_us: str
+    our_history: str
+    our_concept: str
+
+
+def build_generate_prompt(intel: WorkspaceIntelligence) -> str:
+    """Build an LLM prompt that turns structured intelligence into short business copy.
+
+    The prompt enforces tone (jordnært, ekte), length limits (300 chars),
+    and factual grounding (never invent data not in context).
+    """
+    context = build_context(intel)
+    name = intel.company_name or "bedriften"
+    return f'''Du skal skrive tre korte tekster for bedriften "{name}".
+Disse tekstene skal kunne brukes direkte på Google Business, Facebook og Instagram.
+
+FAKTA OM BEDRIFTEN:
+{context}
+
+REGLER:
+- Hver tekst: maks 300 tegn, 2-3 setninger. Skal fungere på Google Business (750 tegn), Facebook (255 tegn) og Instagram bio (150 tegn) — hold det kort nok for alle tre.
+- Skriv som eieren ville sagt det til naboen. Jordnært, ekte, rett på sak.
+- ALDRI finn opp fakta som ikke står i konteksten over.
+- Ingen superlativ: ikke "unike", "enestående", "lidenskapelige", "fantastiske".
+- Hvis stiftelsesår finnes, bruk det naturlig ("Siden 2004...").
+- Hvis du ikke har nok data for en seksjon, skriv det du kan og hold det kort.
+- De tre tekstene skal ikke gjenta hverandre — hver tekst har sitt eget fokus.
+
+TEKSTENE:
+1. "Om oss" — Hvem er dere? Hva gjør dere? Hvor holder dere til?
+2. "Vår historie" — Når startet dere? Hva har skjedd siden? Eventuelle milepæler.
+3. "Vårt konsept" — Hva gjør dere spesielt? Matfilosofi, stemning, målgruppe.
+
+Returner KUN et JSON-objekt:
+{{"about_us": "...", "our_history": "...", "our_concept": "..."}}'''
+
+
+def _extract_json_from_llm(text: str) -> str:
+    """Extract JSON from LLM response, handling markdown code blocks."""
+    code_block = re.search(r'```(?:json)?\s*\n?([\s\S]*?)\n?```', text)
+    if code_block and code_block.group(1):
+        return code_block.group(1).strip()
+    obj_match = re.search(r'\{[\s\S]*\}', text)
+    if obj_match and obj_match.group(0):
+        return obj_match.group(0).strip()
+    return text.strip()
+
+
+async def handle_generate(req: GenerateRequest) -> GenerateResponse:
+    """Call OpenRouter LLM to generate business copy from structured intelligence.
+
+    Uses the enriched WorkspaceIntelligence as context — the LLM writes
+    three short texts (about_us, our_history, our_concept) grounded in real data.
+    """
+    api_key = OPENROUTER_API_KEY
+    if not api_key:
+        raise HTTPException(status_code=503, detail="OPENROUTER_API_KEY not configured")
+
+    prompt = build_generate_prompt(req.intelligence)
+
+    timeout = aiohttp.ClientTimeout(total=30)
+    async with aiohttp.ClientSession(timeout=timeout) as session:
+        async with session.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {api_key}",
+            },
+            json={
+                "model": "anthropic/claude-3.5-sonnet",
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.4,
+                "max_tokens": 1024,
+            },
+        ) as resp:
+            if resp.status != 200:
+                error = await resp.text()
+                logger.error(f"[generate] OpenRouter error: {resp.status} {error}")
+                raise HTTPException(status_code=502, detail="AI generation failed")
+            data = await resp.json()
+
+    raw = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+    if not raw:
+        raise HTTPException(status_code=502, detail="Empty AI response")
+
+    json_str = _extract_json_from_llm(raw)
+    parsed = json.loads(json_str)
+
+    return GenerateResponse(
+        about_us=parsed.get("about_us", ""),
+        our_history=parsed.get("our_history", ""),
+        our_concept=parsed.get("our_concept", ""),
     )

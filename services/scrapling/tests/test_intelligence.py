@@ -344,3 +344,76 @@ async def test_handle_enrich_seeds_identity():
     assert resp.intelligence.company_name == "TestCo"
     assert resp.intelligence.city == "Oslo"
     assert resp.intelligence.website_url == "https://testco.no"
+
+
+# ── Generate endpoint tests ──────────────────────────────────────────
+
+
+def test_build_prompt_includes_context():
+    from intelligence import WorkspaceIntelligence, build_generate_prompt
+    intel = WorkspaceIntelligence(
+        company_name="Solsiden",
+        city="Trondheim",
+        founding_date="2004-06-15",
+        years_in_business=22,
+    )
+    prompt = build_generate_prompt(intel)
+    assert "Solsiden" in prompt
+    assert "300 tegn" in prompt
+    assert "Google Business" in prompt
+    assert "naboen" in prompt
+
+
+@pytest.mark.asyncio
+async def test_handle_generate_calls_openrouter():
+    from intelligence import handle_generate, GenerateRequest, WorkspaceIntelligence
+    import json
+    intel = WorkspaceIntelligence(
+        company_name="Solsiden",
+        city="Trondheim",
+        founding_date="2004-06-15",
+        years_in_business=22,
+        concept_clues=["sjomat", "uteservering"],
+    )
+    mock_ai_response = {
+        "choices": [{"message": {"content": json.dumps({
+            "about_us": "Solsiden ligger pa havna.",
+            "our_history": "Siden 2004.",
+            "our_concept": "Fersk sjomat."
+        })}}]
+    }
+    from unittest.mock import AsyncMock, patch, MagicMock
+
+    mock_resp = AsyncMock()
+    mock_resp.status = 200
+    mock_resp.json = AsyncMock(return_value=mock_ai_response)
+    mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
+    mock_resp.__aexit__ = AsyncMock(return_value=False)
+
+    mock_session = MagicMock()
+    mock_session.post = MagicMock(return_value=mock_resp)
+    mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+    mock_session.__aexit__ = AsyncMock(return_value=False)
+
+    with patch("intelligence.aiohttp") as mock_aiohttp:
+        mock_aiohttp.ClientTimeout = MagicMock()
+        mock_aiohttp.ClientSession = MagicMock(return_value=mock_session)
+
+        with patch("intelligence.OPENROUTER_API_KEY", "test-key"):
+            result = await handle_generate(GenerateRequest(intelligence=intel))
+
+    assert result.about_us == "Solsiden ligger pa havna."
+    assert result.our_history == "Siden 2004."
+    assert result.our_concept == "Fersk sjomat."
+
+
+def test_extract_json_from_llm_code_block():
+    from intelligence import _extract_json_from_llm
+    text = '```json\n{"about_us": "test"}\n```'
+    assert _extract_json_from_llm(text) == '{"about_us": "test"}'
+
+
+def test_extract_json_from_llm_raw_object():
+    from intelligence import _extract_json_from_llm
+    text = 'Here is the result: {"about_us": "test"}'
+    assert _extract_json_from_llm(text) == '{"about_us": "test"}'
