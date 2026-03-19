@@ -83,6 +83,7 @@ function mapEntity(e: Record<string, unknown>) {
     street: ((addr?.adresse as string[]) ?? [])[0] || "",
     postalCode: (addr?.postnummer as string) || "",
     city: (addr?.poststed as string) || "",
+    foundingDate: (e.stiftelsesdato as string) || null,
   };
 }
 
@@ -95,6 +96,7 @@ function mapCandidate(e: Record<string, unknown>) {
     street: ((addr?.adresse as string[]) ?? [])[0] || "",
     postalCode: (addr?.postnummer as string) || "",
     city: (addr?.poststed as string) || "",
+    foundingDate: (e.stiftelsesdato as string) || null,
     industry: nace?.beskrivelse || "",
   };
 }

@@ -23,6 +23,7 @@ export interface BrregData {
   street: string;
   postalCode: string;
   city: string;
+  foundingDate?: string;
   industry?: string;
 }
 
