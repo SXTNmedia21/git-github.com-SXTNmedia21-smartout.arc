@@ -4,14 +4,16 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, Loader2, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, RefreshCw, Sparkles } from "lucide-react";
 import { useSignupWizard } from "../_hooks/useSignupWizard";
+import { useWorkspaceIntelligence } from "../_hooks/useWorkspaceIntelligence";
 import { useTypewriterSequence } from "../_hooks/useTypewriter";
 import { step3Schema } from "../_lib/validation";
 import { AiBadge } from "./AiBadge";
 
 export function Step3About() {
-  const { state, updateStep, nextStep, prevStep, aiContent, aiStatus } = useSignupWizard();
+  const { state, updateStep, nextStep, prevStep } = useSignupWizard();
+  const { content, status, enrichAndGenerate, rewrite } = useWorkspaceIntelligence();
 
   const [aboutUs, setAboutUs] = useState(state.step3.aboutUs ?? "");
   const [ourHistory, setOurHistory] = useState(state.step3.ourHistory ?? "");
@@ -19,16 +21,25 @@ export function Step3About() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [userEdited, setUserEdited] = useState<Record<string, boolean>>({});
 
-  // Build typewriter fields from AI content
+  // Auto-trigger on mount (first time entering Step 3)
+  const hasTriggered = useRef(false);
+  useEffect(() => {
+    if (!hasTriggered.current && status === "idle") {
+      hasTriggered.current = true;
+      enrichAndGenerate();
+    }
+  }, [status, enrichAndGenerate]);
+
+  // Build typewriter fields from content
   const hasApplied = useRef(false);
   const typewriterFields = useMemo(() => {
-    if (!aiContent || hasApplied.current) return [];
+    if (!content || hasApplied.current) return [];
     const fields: Array<{ key: string; value: string }> = [];
-    if (aiContent.about_us) fields.push({ key: "aboutUs", value: aiContent.about_us });
-    if (aiContent.our_history) fields.push({ key: "ourHistory", value: aiContent.our_history });
-    if (aiContent.our_concept) fields.push({ key: "ourConcept", value: aiContent.our_concept });
+    if (content.about_us) fields.push({ key: "aboutUs", value: content.about_us });
+    if (content.our_history) fields.push({ key: "ourHistory", value: content.our_history });
+    if (content.our_concept) fields.push({ key: "ourConcept", value: content.our_concept });
     return fields;
-  }, [aiContent]);
+  }, [content]);
 
   const shouldType = typewriterFields.length > 0 && !hasApplied.current;
   const {
@@ -49,13 +60,27 @@ export function Step3About() {
     if (typedValues.ourConcept && !userEdited.ourConcept) setOurConcept(typedValues.ourConcept);
   }, [typedValues, shouldType, userEdited]);
 
-  // Mark done
+  // Mark typewriter done
   useEffect(() => {
     if (allDone && shouldType) hasApplied.current = true;
   }, [allDone, shouldType]);
 
+  // Reset typewriter when new content arrives (from "Skriv på nytt")
+  useEffect(() => {
+    if (content && hasApplied.current) {
+      hasApplied.current = false;
+      setUserEdited({});
+    }
+  }, [content]);
+
   const markEdited = (field: string) => {
     setUserEdited((prev) => ({ ...prev, [field]: true }));
+  };
+
+  const handleRewrite = () => {
+    hasApplied.current = false;
+    setUserEdited({});
+    rewrite();
   };
 
   const handleNext = () => {
@@ -84,6 +109,8 @@ export function Step3About() {
       ? typewriterFields[activeIndex]!.key
       : null;
 
+  const isLoading = status === "enriching" || status === "generating";
+
   return (
     <div className="mx-auto w-full max-w-md space-y-6">
       <div>
@@ -91,10 +118,10 @@ export function Step3About() {
         <p className="text-muted-foreground mt-1 text-sm">
           Dette brukes til opplæring og onboarding av ansatte.
         </p>
-        {aiStatus === "generating" && (
+        {isLoading && (
           <p className="text-muted-foreground mt-2 flex items-center gap-1.5 text-xs">
             <Loader2 className="h-3 w-3 animate-spin" />
-            Skriver utkast...
+            {status === "enriching" ? "Henter informasjon..." : "Skriver utkast..."}
           </p>
         )}
         {allDone && (
@@ -103,7 +130,7 @@ export function Step3About() {
             Utkast fylt ut — rediger fritt
           </p>
         )}
-        {aiStatus === "failed" && (
+        {status === "failed" && (
           <p className="text-muted-foreground mt-2 text-xs">
             Kunne ikke generere utkast. Fyll inn manuelt.
           </p>
@@ -118,7 +145,7 @@ export function Step3About() {
           placeholder="Beskriv bedriften din..."
           value={aboutUs}
           typing={typingField === "aboutUs"}
-          autoFilled={allDone && !userEdited.aboutUs && !!aiContent?.about_us}
+          autoFilled={allDone && !userEdited.aboutUs && !!content?.about_us}
           onChange={(val) => {
             setAboutUs(val);
             markEdited("aboutUs");
@@ -139,7 +166,7 @@ export function Step3About() {
           placeholder="Fortell historien bak bedriften..."
           value={ourHistory}
           typing={typingField === "ourHistory"}
-          autoFilled={allDone && !userEdited.ourHistory && !!aiContent?.our_history}
+          autoFilled={allDone && !userEdited.ourHistory && !!content?.our_history}
           onChange={(val) => {
             setOurHistory(val);
             markEdited("ourHistory");
@@ -157,7 +184,7 @@ export function Step3About() {
           placeholder="Hva gjør dere unike?"
           value={ourConcept}
           typing={typingField === "ourConcept"}
-          autoFilled={allDone && !userEdited.ourConcept && !!aiContent?.our_concept}
+          autoFilled={allDone && !userEdited.ourConcept && !!content?.our_concept}
           onChange={(val) => {
             setOurConcept(val);
             markEdited("ourConcept");
@@ -170,6 +197,19 @@ export function Step3About() {
           error={errors.ourConcept}
         />
       </div>
+
+      {/* "Skriv på nytt" button — always visible */}
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={handleRewrite}
+        disabled={isLoading}
+        className="w-full border-orange-200 text-orange-600 hover:bg-orange-50"
+      >
+        <RefreshCw className={`mr-2 h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
+        Skriv på nytt
+      </Button>
 
       <div className="flex gap-3">
         <Button type="button" variant="outline" onClick={prevStep} className="flex-1">
@@ -189,7 +229,7 @@ export function Step3About() {
   );
 }
 
-/* ── Typewriter textarea wrapper ── */
+/* -- Typewriter textarea wrapper -- */
 
 function TypewriterTextarea({
   label,

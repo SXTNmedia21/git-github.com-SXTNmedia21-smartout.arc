@@ -11,7 +11,6 @@ import {
 } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useScrapedData, type ScrapeStatus, type BrregData } from "./useScrapedData";
-import { useAiContent, type AiContent, type AiStatus } from "./useAiContent";
 import type {
   Step1Data,
   Step2Data,
@@ -65,9 +64,6 @@ export interface WizardContextValue {
   brregCandidates: BrregData[];
   selectBrregCandidate: (candidate: BrregData) => void;
   lookupBrreg: (companyName: string, city?: string) => Promise<void>;
-  // AI content generation
-  aiContent: AiContent | null;
-  aiStatus: AiStatus;
 }
 
 const defaultState: WizardState = {
@@ -100,8 +96,6 @@ export function WizardProvider({ children, initialState }: WizardProviderProps) 
     selectBrregCandidate,
     lookupBrreg,
   } = useScrapedData();
-  const { aiContent, aiStatus, generateContent } = useAiContent();
-  const aiTriggeredRef = useRef(false);
 
   const [state, setState] = useState<WizardState>(() => {
     const stepParam = searchParams.get("step");
@@ -165,29 +159,6 @@ export function WizardProvider({ children, initialState }: WizardProviderProps) 
     }
     doPersist(state);
   }, [doPersist, state]);
-
-  // Auto-trigger AI content generation when entering Step 3
-  // (or when scrape finishes while on Step 2+)
-  useEffect(() => {
-    if (aiTriggeredRef.current) return;
-    if (aiStatus === "generating") return;
-    if (state.currentStep < 2) return;
-
-    const hasScrape = scrapedData && (scrapeStatus === "success" || scrapeStatus === "partial");
-    const companyName = state.step1.companyName;
-
-    if (companyName && hasScrape) {
-      aiTriggeredRef.current = true;
-      generateContent(companyName, scrapedData);
-    }
-  }, [
-    state.currentStep,
-    state.step1.companyName,
-    scrapedData,
-    scrapeStatus,
-    aiStatus,
-    generateContent,
-  ]);
 
   // Sync URL when step changes
   useEffect(() => {
@@ -265,8 +236,6 @@ export function WizardProvider({ children, initialState }: WizardProviderProps) 
     brregCandidates,
     selectBrregCandidate,
     lookupBrreg,
-    aiContent,
-    aiStatus,
   };
 
   return <WizardContext.Provider value={value}>{children}</WizardContext.Provider>;
