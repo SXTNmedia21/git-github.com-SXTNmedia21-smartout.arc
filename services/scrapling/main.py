@@ -15,6 +15,10 @@ import aiohttp
 
 from extractors import extract_file, SUPPORTED_EXTENSIONS
 from extractors.pdf import ExtractionError
+from intelligence import (
+    EnrichRequest, EnrichResponse, handle_enrich,
+    GenerateRequest, GenerateResponse, handle_generate,
+)
 
 import logging
 
@@ -537,7 +541,19 @@ async def extract_document_batch(files: list[UploadFile] = File(...)):
     }
 
 
-# ── AI Content Generation ─────────────────────────────────────────
+# ── Intelligence pipeline endpoints (enrichment + generation) ─────
+
+@app.post("/enrich", response_model=EnrichResponse, dependencies=[Depends(verify_auth)])
+async def enrich_endpoint(req: EnrichRequest):
+    return await handle_enrich(req)
+
+
+@app.post("/generate", response_model=GenerateResponse, dependencies=[Depends(verify_auth)])
+async def generate_endpoint(req: GenerateRequest):
+    return await handle_generate(req)
+
+
+# ── AI Content Generation (legacy — kept for backwards compatibility) ─
 
 class GenerateContentRequest(BaseModel):
     company_name: str
