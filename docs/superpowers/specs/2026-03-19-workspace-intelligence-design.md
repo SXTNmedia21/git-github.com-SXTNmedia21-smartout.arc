@@ -130,6 +130,7 @@ class EnrichRequest(BaseModel):
     city: str | None = None
     website_url: str | None = None
     org_number: str | None = None
+    force_new_queries: bool = False                     # True on "Skriv pa nytt" — always try new search queries
 
 class EnrichResponse(BaseModel):
     intelligence: WorkspaceIntelligence
@@ -196,9 +197,9 @@ async def enrich(req: EnrichRequest) -> EnrichResponse:
             intel = merge_partial(intel, result)  # sequential merge after gather
             sources_added.append(name)
 
-    # Phase 3: web search — always runs if new queries are available
+    # Phase 3: web search — always runs if new queries are available or force_new_queries
     has_new_queries = _has_unused_queries(intel, req)
-    if "web_search" not in intel.sources or has_new_queries:
+    if "web_search" not in intel.sources or has_new_queries or req.force_new_queries:
         try:
             partial = await enrich_from_web_search(req, intel)
             intel = merge_partial(intel, partial)
@@ -306,7 +307,7 @@ FAKTA OM BEDRIFTEN:
 {structured_context}
 
 REGLER:
-- Hver tekst: maks 300 tegn. 2-3 setninger.
+- Hver tekst: maks 300 tegn, 2-3 setninger. Skal fungere pa Google Business (750 tegn), Facebook (255 tegn) og Instagram bio (150 tegn) — hold det kort nok for alle tre.
 - Skriv som eieren ville sagt det til naboen. Jordnaert, ekte, rett pa sak.
 - ALDRI finn opp fakta som ikke star i konteksten over.
 - Ingen superlativ: ikke "unike", "enestaaende", "lidenskapelige", "fantastiske".
@@ -384,6 +385,7 @@ interface WorkspaceIntelligenceRequest {
   city?: string;
   website_url?: string;
   org_number?: string;
+  force_new_queries?: boolean; // true on "Skriv pa nytt" — ensures new search queries
 }
 
 // Response
@@ -421,6 +423,7 @@ export async function POST(request: Request) {
         city: body.city,
         website_url: body.website_url,
         org_number: body.org_number,
+        force_new_queries: body.force_new_queries ?? false,
       }),
       signal: AbortSignal.timeout(45_000), // 45s — covers parallel scrape + web search
     });
@@ -501,7 +504,7 @@ interface UseWorkspaceIntelligence {
     websiteUrl?: string;
     orgNumber?: string;
   }) => Promise<void>;
-  rewrite: () => Promise<void>; // "Skriv pa nytt" — enrich with new queries + regenerate
+  rewrite: () => Promise<void>; // "Skriv pa nytt" — sends force_new_queries: true, enrich with new queries + regenerate
 }
 ```
 
@@ -556,6 +559,7 @@ const initialIntelligence: Partial<WorkspaceIntelligence> = {
   // Seed from existing scrape data (already fetched in Step 1)
   ...(scrapedData && {
     website_description: scrapedData.description ?? null,
+    website_about_text: scrapedData.summary ?? null, // about/summary text from scrape
     email: scrapedData.email ?? null,
     phone: scrapedData.phone ?? null,
     logo_url: scrapedData.logoUrl ?? null,
@@ -664,3 +668,4 @@ All external calls use `aiohttp.ClientTimeout(total=N)`. If a source times out, 
 - `key_people` from BRREG roller/styremedlemmer — not relevant for Step 3
 - Multi-language support — Norwegian bokmal only for now
 - Persisting intelligence to database — localStorage only during signup flow
+- Saving generation history — "Skriv pa nytt" overwrites the previous text, no rollback. Deliberate for MVP: simpler state management, and the user can always edit the text manually. History/undo can be added later if needed.
