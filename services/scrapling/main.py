@@ -1,5 +1,4 @@
 import os
-import json
 from datetime import datetime
 from pathlib import Path
 
@@ -11,8 +10,6 @@ from scrapling import Fetcher
 import urllib.parse
 from typing import Optional
 import re
-import aiohttp
-
 from extractors import extract_file, SUPPORTED_EXTENSIONS
 from extractors.pdf import ExtractionError
 from intelligence import (
@@ -32,7 +29,6 @@ DASHBOARD_HTML = (Path(__file__).parent / "dashboard.html").read_text()
 # Bearer token auth — required when SCRAPLING_AUTH_TOKEN is set.
 # Internal Docker callers without the env var skip auth (backwards compatible).
 SCRAPLING_AUTH_TOKEN = os.environ.get("SCRAPLING_AUTH_TOKEN")
-OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
 
 async def verify_auth(request: Request):
     if not SCRAPLING_AUTH_TOKEN:
@@ -551,97 +547,6 @@ async def enrich_endpoint(req: EnrichRequest):
 @app.post("/generate", response_model=GenerateResponse, dependencies=[Depends(verify_auth)])
 async def generate_endpoint(req: GenerateRequest):
     return await handle_generate(req)
-
-
-# ── AI Content Generation (legacy — kept for backwards compatibility) ─
-
-class GenerateContentRequest(BaseModel):
-    company_name: str
-    scraped_data: Optional[dict] = None
-
-class GenerateContentResponse(BaseModel):
-    about_us: str
-    our_history: str
-    our_concept: str
-
-def _build_content_prompt(company_name: str, scraped_data: Optional[dict]) -> str:
-    context = ""
-    if scraped_data:
-        context = f"\n\nData fra nettsiden:\n{json.dumps(scraped_data, indent=2, ensure_ascii=False)}"
-
-    return f"""Skriv tre korte tekster på norsk bokmål for bedriften "{company_name}".{context}
-
-Regler:
-- Hver tekst: maks 1-2 setninger. Kort og konkret.
-- Tone: nøktern, ærlig, jordnær. Tenk janteloven — ingen superlativ, ingen «unike», «enestående», «lidenskapelige» eller lignende.
-- Skriv som en vanlig bedriftseier ville sagt det til en nabo. Enkelt og rett på sak.
-- Ikke dikter opp spesifikke detaljer du ikke har data for.
-
-Returner KUN et JSON-objekt:
-{{"about_us": "...", "our_history": "...", "our_concept": "..."}}"""
-
-def _extract_json(text: str) -> str:
-    code_block = re.search(r'```(?:json)?\s*\n?([\s\S]*?)\n?```', text)
-    if code_block and code_block.group(1):
-        return code_block.group(1).strip()
-    obj_match = re.search(r'\{[\s\S]*\}', text)
-    if obj_match and obj_match.group(0):
-        return obj_match.group(0).strip()
-    return text.strip()
-
-@app.post("/generate-content", response_model=GenerateContentResponse, dependencies=[Depends(verify_auth)])
-async def generate_content(req: GenerateContentRequest):
-    if not OPENROUTER_API_KEY:
-        raise HTTPException(status_code=503, detail="OPENROUTER_API_KEY not configured")
-
-    prompt = _build_content_prompt(req.company_name, req.scraped_data)
-
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                "https://openrouter.ai/api/v1/chat/completions",
-                headers={
-                    "Content-Type": "application/json",
-                    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                },
-                json={
-                    "model": "anthropic/claude-3.5-sonnet",
-                    "messages": [{"role": "user", "content": prompt}],
-                    "temperature": 0.7,
-                    "max_tokens": 1024,
-                },
-                timeout=aiohttp.ClientTimeout(total=30),
-            ) as resp:
-                if resp.status != 200:
-                    error_text = await resp.text()
-                    logger.error(f"[generate-content] OpenRouter error: {resp.status} {error_text}")
-                    raise HTTPException(status_code=502, detail="AI generation failed")
-
-                data = await resp.json()
-
-        raw_content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
-        if not raw_content:
-            raise HTTPException(status_code=502, detail="Empty response from AI")
-
-        json_str = _extract_json(raw_content)
-        parsed = json.loads(json_str)
-
-        if not parsed.get("about_us") or not parsed.get("our_history") or not parsed.get("our_concept"):
-            logger.error(f"[generate-content] Incomplete AI response: {parsed}")
-            raise HTTPException(status_code=502, detail="AI returned incomplete content")
-
-        return GenerateContentResponse(
-            about_us=parsed["about_us"],
-            our_history=parsed["our_history"],
-            our_concept=parsed["our_concept"],
-        )
-
-    except aiohttp.ClientError as e:
-        logger.error(f"[generate-content] Request error: {e}")
-        raise HTTPException(status_code=502, detail="AI service connection failed")
-    except json.JSONDecodeError as e:
-        logger.error(f"[generate-content] JSON parse error: {e}")
-        raise HTTPException(status_code=502, detail="AI returned invalid JSON")
 
 
 @app.get("/health")

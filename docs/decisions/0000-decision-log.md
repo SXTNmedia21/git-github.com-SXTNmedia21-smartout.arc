@@ -1,11 +1,11 @@
 ---
 title: Decision Log
 status: in_progress
-updated: 2026-03-18
-created: 2026-03-18
-module: development
+updated: 2026-03-19
+created: 2026-03-19
+module: onboarding
 tags: [decisions]
 ---
-# Decision Log — dev-prod-fix
+# Decision Log — workspace-intelligence
 | # | Date | Decision | Status |
 |---|------|----------|--------|
