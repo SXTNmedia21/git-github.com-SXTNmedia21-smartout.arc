@@ -133,3 +133,214 @@ def test_years_in_business_computed():
 def test_years_in_business_none():
     from intelligence import compute_years_in_business
     assert compute_years_in_business(None) is None
+
+
+# ── Enrichment function tests ────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_enrich_from_brreg_by_org_number():
+    """Mock aiohttp to simulate BRREG direct lookup by org number."""
+    from unittest.mock import AsyncMock, MagicMock, patch
+    from intelligence import enrich_from_brreg
+
+    brreg_response = {
+        "organisasjonsnummer": "912345678",
+        "stiftelsesdato": "2004-06-15",
+        "forretningsadresse": {
+            "adresse": ["Munkegata 10"],
+            "postnummer": "7011",
+            "poststed": "TRONDHEIM",
+        },
+        "naeringskode1": {
+            "kode": "56.101",
+            "beskrivelse": "Drift av restauranter og kafeer",
+        },
+    }
+
+    mock_resp = AsyncMock()
+    mock_resp.status = 200
+    mock_resp.json = AsyncMock(return_value=brreg_response)
+    mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
+    mock_resp.__aexit__ = AsyncMock(return_value=False)
+
+    mock_session = MagicMock()
+    mock_session.get = MagicMock(return_value=mock_resp)
+    mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+    mock_session.__aexit__ = AsyncMock(return_value=False)
+
+    with patch("intelligence.aiohttp") as mock_aiohttp:
+        mock_aiohttp.ClientTimeout = MagicMock()
+        mock_aiohttp.ClientSession = MagicMock(return_value=mock_session)
+
+        result = await enrich_from_brreg(org_number="912345678")
+
+    assert result["founding_date"] == "2004-06-15"
+    assert result["industry"] == "Drift av restauranter og kafeer"
+    assert "TRONDHEIM" in result["address"]
+    assert result["org_number"] == "912345678"
+    assert "brreg" in result["sources"]
+    assert result["years_in_business"] == datetime.now().year - 2004
+
+
+@pytest.mark.asyncio
+async def test_enrich_from_brreg_search_by_name():
+    """Mock aiohttp to simulate BRREG name search with city matching."""
+    from unittest.mock import AsyncMock, MagicMock, patch
+    from intelligence import enrich_from_brreg
+
+    search_response = {
+        "_embedded": {
+            "enheter": [
+                {
+                    "organisasjonsnummer": "111111111",
+                    "stiftelsesdato": "2010-01-01",
+                    "forretningsadresse": {
+                        "adresse": ["Storgata 1"],
+                        "postnummer": "0182",
+                        "poststed": "OSLO",
+                    },
+                    "naeringskode1": {"kode": "56.101", "beskrivelse": "Restaurant"},
+                },
+                {
+                    "organisasjonsnummer": "222222222",
+                    "stiftelsesdato": "2015-05-20",
+                    "forretningsadresse": {
+                        "adresse": ["Nordre gate 5"],
+                        "postnummer": "7011",
+                        "poststed": "TRONDHEIM",
+                    },
+                    "naeringskode1": {"kode": "56.101", "beskrivelse": "Kafedrift"},
+                },
+            ]
+        }
+    }
+
+    mock_resp = AsyncMock()
+    mock_resp.status = 200
+    mock_resp.json = AsyncMock(return_value=search_response)
+    mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
+    mock_resp.__aexit__ = AsyncMock(return_value=False)
+
+    mock_session = MagicMock()
+    mock_session.get = MagicMock(return_value=mock_resp)
+    mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+    mock_session.__aexit__ = AsyncMock(return_value=False)
+
+    with patch("intelligence.aiohttp") as mock_aiohttp:
+        mock_aiohttp.ClientTimeout = MagicMock()
+        mock_aiohttp.ClientSession = MagicMock(return_value=mock_session)
+
+        result = await enrich_from_brreg(company_name="TestKafe", city="Trondheim")
+
+    # Should pick the Trondheim match
+    assert result["org_number"] == "222222222"
+    assert result["founding_date"] == "2015-05-20"
+    assert "brreg" in result["sources"]
+
+
+@pytest.mark.asyncio
+async def test_enrich_from_web_search():
+    """Mock aiohttp to simulate Serper API response."""
+    from unittest.mock import AsyncMock, MagicMock, patch
+    from intelligence import enrich_from_web_search, WorkspaceIntelligence
+
+    serper_organic_response = {
+        "knowledgeGraph": {
+            "rating": "4.3",
+            "reviewCount": "1,204",
+        },
+        "organic": [
+            {
+                "title": "Solsiden Restaurant - Trondheim",
+                "snippet": "Fantastisk sjomat restaurant med uteservering ved kanalen.",
+                "link": "https://example.com/solsiden",
+            },
+            {
+                "title": "Solsiden - TripAdvisor",
+                "snippet": "4.5 / 5 basert pa 800 anmeldelser",
+                "link": "https://tripadvisor.com/Solsiden",
+            },
+        ],
+    }
+
+    serper_news_response = {
+        "news": [
+            {
+                "title": "Solsiden apner ny terrasse",
+                "snippet": "Restauranten utvider med sommersesong.",
+                "source": "Adressa",
+                "date": "2026-03-01",
+                "link": "https://adressa.no/solsiden",
+            },
+        ],
+    }
+
+    call_count = 0
+
+    def mock_post(*args, **kwargs):
+        """Return a sync context manager that yields a mock response."""
+        nonlocal call_count
+        call_count += 1
+        mock_resp = AsyncMock()
+        mock_resp.status = 200
+        if call_count % 2 == 1:
+            mock_resp.json = AsyncMock(return_value=serper_organic_response)
+        else:
+            mock_resp.json = AsyncMock(return_value=serper_news_response)
+        mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
+        mock_resp.__aexit__ = AsyncMock(return_value=False)
+        return mock_resp
+
+    mock_session = MagicMock()
+    mock_session.post = mock_post
+    mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+    mock_session.__aexit__ = AsyncMock(return_value=False)
+
+    intel = WorkspaceIntelligence()
+
+    with patch("intelligence.aiohttp") as mock_aiohttp:
+        mock_aiohttp.ClientTimeout = MagicMock()
+        mock_aiohttp.ClientSession = MagicMock(return_value=mock_session)
+
+        result = await enrich_from_web_search(
+            intel, "Solsiden", "Trondheim", serper_api_key="test-key"
+        )
+
+    assert result["google_rating"] == 4.3
+    assert result["google_review_count"] == 1204
+    assert len(result["web_mentions"]) >= 1
+    assert any(r["source"] == "TripAdvisor" for r in result.get("external_ratings", []))
+    assert "web_search" in result["sources"]
+    assert len(result["sources"]["web_search"]["queries_used"]) > 0
+
+
+@pytest.mark.asyncio
+async def test_enrich_from_web_search_no_api_key():
+    """Without API key, web search should return empty dict."""
+    from intelligence import enrich_from_web_search, WorkspaceIntelligence
+
+    intel = WorkspaceIntelligence()
+    result = await enrich_from_web_search(intel, "Test", serper_api_key=None)
+    assert result == {}
+
+
+@pytest.mark.asyncio
+async def test_handle_enrich_seeds_identity():
+    """handle_enrich should seed identity fields on the intelligence model."""
+    from unittest.mock import AsyncMock, patch
+    from intelligence import handle_enrich, EnrichRequest
+
+    with patch("intelligence.enrich_from_brreg", new_callable=AsyncMock, return_value={}), \
+         patch("intelligence.enrich_from_scrape", new_callable=AsyncMock, return_value={}), \
+         patch("intelligence.enrich_from_web_search", new_callable=AsyncMock, return_value={}):
+
+        req = EnrichRequest(
+            company_name="TestCo",
+            city="Oslo",
+            website_url="https://testco.no",
+        )
+        resp = await handle_enrich(req)
+
+    assert resp.intelligence.company_name == "TestCo"
+    assert resp.intelligence.city == "Oslo"
+    assert resp.intelligence.website_url == "https://testco.no"
