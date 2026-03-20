@@ -11,6 +11,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useRouter } from "next/navigation";
 import { useAgent } from "@smartout/agent-sdk";
 import type { AgentSession, AgentStatus } from "@smartout/agent-sdk";
 import type {
@@ -30,7 +31,8 @@ import type {
 } from "./types";
 import { DENSITY_DIMENSIONS, DEFAULT_VOICE_TUNING, DEFAULT_VOICE_ID } from "./types";
 import { buildPersonaPrompt, identityLabel } from "./persona-engine";
-import { buildWalkAiToolKit, type ViewActions, type ScheduledTask } from "./walkai-tools";
+import { buildWalkAiToolKit, type ViewActions, type ScheduledTask, type TaskPriority } from "./walkai-tools";
+import { SCHEDULE_TOOL_DEFINITIONS } from "@/app/dashboard/schedule/_hooks/schedule-tool-definitions";
 import { useEmmaTelemetry, buildTelemetrySummary, type TelemetryEntry } from "./emma-awareness";
 import { useRegisteredTools } from "./tool-registry";
 import { useEmmaTriggeredTasks } from "./use-emma-tasks";
@@ -135,10 +137,7 @@ type WalkAiContextValue = {
   tasks: ScheduledTask[];
   completeTask: (taskId: string) => void;
   scheduleTask: (task: ScheduledTask) => void;
-  updateTask: (
-    taskId: string,
-    updates: Partial<Pick<ScheduledTask, "priority" | "dueAt" | "position">>,
-  ) => void;
+  updateTask: (taskId: string, updates: Partial<Pick<ScheduledTask, "priority" | "dueAt" | "position">>) => void;
   reorderTask: (taskId: string, newPosition: number) => void;
   /** Count of unread items Emma has produced (notes, tasks) since last interaction */
   unreadCount: number;
@@ -194,14 +193,36 @@ export function WalkAiProvider({
   workspaceId?: string | null;
 }) {
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
-  const [identity, setIdentityState] = useState<AgentIdentity>({
-    rank: initialRank,
-    persona: initialPersona,
-    blend: initialBlend,
+  // ── Settings persistence (localStorage) ──
+  // Loads saved settings on mount, saves on every change.
+  const [identity, setIdentityState] = useState<AgentIdentity>(() => {
+    if (typeof window === "undefined") return { rank: initialRank, persona: initialPersona, blend: initialBlend };
+    try {
+      const saved = localStorage.getItem("emma-identity");
+      if (saved) return JSON.parse(saved) as AgentIdentity;
+    } catch { /* ignore parse errors */ }
+    return { rank: initialRank, persona: initialPersona, blend: initialBlend };
   });
-  const [voiceTuning, setVoiceTuningState] = useState<VoiceTuning>(DEFAULT_VOICE_TUNING);
-  const [selectedVoice, setSelectedVoice] = useState(DEFAULT_VOICE_ID);
-  const [customPrompt, setCustomPromptState] = useState("");
+  const [voiceTuning, setVoiceTuningState] = useState<VoiceTuning>(() => {
+    if (typeof window === "undefined") return DEFAULT_VOICE_TUNING;
+    try {
+      const saved = localStorage.getItem("emma-voice-tuning");
+      if (saved) return { ...DEFAULT_VOICE_TUNING, ...JSON.parse(saved) };
+    } catch { /* ignore parse errors */ }
+    return DEFAULT_VOICE_TUNING;
+  });
+  const [selectedVoice, setSelectedVoiceRaw] = useState(() => {
+    if (typeof window === "undefined") return DEFAULT_VOICE_ID;
+    return localStorage.getItem("emma-voice-id") ?? DEFAULT_VOICE_ID;
+  });
+  const setSelectedVoice = useCallback((voiceId: string) => {
+    setSelectedVoiceRaw(voiceId);
+    try { localStorage.setItem("emma-voice-id", voiceId); } catch { /* quota */ }
+  }, []);
+  const [customPrompt, setCustomPromptState] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return localStorage.getItem("emma-custom-prompt") ?? "";
+  });
   const [preSettingsSize, setPreSettingsSize] = useState<WalkAiSize | null>(null);
   const [notes, setNotes] = useState<WalkAiNote[]>([]);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
@@ -209,10 +230,45 @@ export function WalkAiProvider({
   const [tasks, setTasks] = useState<ScheduledTask[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  const router = useRouter();
+  const routerRef = useRef(router);
+  useEffect(() => { routerRef.current = router; }, [router]);
+
   const scheduleTask = useCallback((task: ScheduledTask) => {
-    setTasks((prev) => [task, ...prev]);
+    setTasks((prev) => {
+      const withDefaults = {
+        ...task,
+        priority: task.priority ?? ("medium" as const),
+        position: task.position ?? prev.length,
+      };
+      return [withDefaults, ...prev];
+    });
     setUnreadCount((c) => c + 1);
-  }, []);
+
+    // Persist to DB
+    const wsId = workspaceId;
+    if (wsId) {
+      void fetch("/api/emma/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workspace_id: wsId,
+          title: task.title,
+          description: task.description,
+          due_at: task.dueAt,
+          priority: task.priority ?? "medium",
+          position: task.position,
+        }),
+      }).then(async (res) => {
+        if (!res.ok) return;
+        const data = (await res.json()) as { task: { id: string } };
+        // Replace temp ID with DB ID
+        if (data.task?.id) {
+          setTasks((prev) => prev.map((t) => t.id === task.id ? { ...t, id: data.task.id } : t));
+        }
+      }).catch(() => { /* Silent */ });
+    }
+  }, [workspaceId]);
 
   const completeTask = useCallback((taskId: string) => {
     setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: "done" as const } : t)));
@@ -221,22 +277,117 @@ export function WalkAiProvider({
   const updateTask = useCallback(
     (taskId: string, updates: Partial<Pick<ScheduledTask, "priority" | "dueAt" | "position">>) => {
       setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, ...updates } : t)));
+
+      void fetch("/api/emma/tasks", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          task_id: taskId,
+          priority: updates.priority,
+          due_at: updates.dueAt,
+          position: updates.position,
+        }),
+      }).catch(() => { /* Silent — local state is primary */ });
     },
     [],
   );
 
-  const reorderTask = useCallback((taskId: string, newPosition: number) => {
-    setTasks((prev) => {
-      const task = prev.find((t) => t.id === taskId);
-      if (!task) return prev;
-      const without = prev.filter((t) => t.id !== taskId);
-      without.splice(newPosition, 0, { ...task, position: newPosition });
-      return without.map((t, i) => ({ ...t, position: i }));
-    });
+  const reorderTask = useCallback(
+    (taskId: string, newPosition: number) => {
+      setTasks((prev) => {
+        const pending = prev.filter((t) => t.status === "pending");
+        const done = prev.filter((t) => t.status !== "pending");
+        const taskIdx = pending.findIndex((t) => t.id === taskId);
+        if (taskIdx === -1) return prev;
+
+        const [task] = pending.splice(taskIdx, 1);
+        const clampedPos = Math.max(0, Math.min(newPosition, pending.length));
+        pending.splice(clampedPos, 0, task!);
+
+        const reordered = pending.map((t, i) => ({ ...t, position: i }));
+        return [...reordered, ...done];
+      });
+    },
+    [],
+  );
+
+  // Load persisted data from DB on mount (tasks, notes, memories)
+  const [emmaMemories, setEmmaMemories] = useState<Array<{ content: string; memory_type: string }>>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadAll() {
+      const [tasksRes, notesRes, memoriesRes] = await Promise.allSettled([
+        fetch("/api/emma/tasks?status=pending"),
+        fetch("/api/emma/notes"),
+        fetch("/api/emma/memory"),
+      ]);
+
+      if (cancelled) return;
+
+      // Tasks
+      if (tasksRes.status === "fulfilled" && tasksRes.value.ok) {
+        const data = (await tasksRes.value.json()) as { tasks: Array<{
+          id: string; title: string; description: string | null;
+          due_at: string | null; priority: string; position: number;
+          status: string; created_at: string;
+        }> };
+        if (data.tasks?.length) {
+          setTasks(data.tasks.map((t) => ({
+            id: t.id,
+            title: t.title,
+            description: t.description ?? "",
+            dueAt: t.due_at,
+            priority: (t.priority as ScheduledTask["priority"]) ?? "medium",
+            position: t.position ?? 0,
+            status: t.status === "done" ? "done" as const : "pending" as const,
+            createdAt: new Date(t.created_at).getTime(),
+          })));
+        }
+      }
+
+      // Notes
+      if (notesRes.status === "fulfilled" && notesRes.value.ok) {
+        const data = (await notesRes.value.json()) as { notes: Array<{
+          id: string; topic: string; content: string; tags: string[];
+          screen: string; context: string; created_at: string; updated_at: string;
+        }> };
+        if (data.notes?.length) {
+          setNotes(data.notes.map((n) => ({
+            id: n.id,
+            topic: n.topic,
+            content: n.content,
+            tags: n.tags ?? [],
+            screen: n.screen ?? "walkai",
+            context: n.context ?? "",
+            createdAt: new Date(n.created_at).getTime(),
+            updatedAt: new Date(n.updated_at).getTime(),
+          })));
+          setActiveNoteId(data.notes[0]!.id);
+        }
+      }
+
+      // Memories — loaded into context for Emma
+      if (memoriesRes.status === "fulfilled" && memoriesRes.value.ok) {
+        const data = (await memoriesRes.value.json()) as { memories: Array<{
+          content: string; memory_type: string;
+        }> };
+        if (data.memories?.length) {
+          setEmmaMemories(data.memories);
+        }
+      }
+    }
+
+    void loadAll();
+    return () => { cancelled = true; };
   }, []);
 
   const clearUnread = useCallback(() => setUnreadCount(0), []);
-  const setCustomPrompt = useCallback((prompt: string) => setCustomPromptState(prompt), []);
+  const setCustomPrompt = useCallback((prompt: string) => {
+    setCustomPromptState(prompt);
+    try { localStorage.setItem("emma-custom-prompt", prompt); } catch { /* quota */ }
+  }, []);
 
   const activeNote = useMemo(
     () => notes.find((n) => n.id === activeNoteId) ?? null,
@@ -256,9 +407,19 @@ export function WalkAiProvider({
   );
 
   const createNote = useCallback((topic: string, content: string, context = "") => {
+    // Strip leading markdown title if it duplicates the topic — prevents double-heading
+    let cleanContent = content;
+    const firstLine = content.split("\n")[0]?.trim() ?? "";
+    if (firstLine.startsWith("# ")) {
+      const titleFromContent = firstLine.slice(2).trim();
+      if (titleFromContent.toLowerCase() === topic.toLowerCase()) {
+        cleanContent = content.slice(content.indexOf("\n") + 1).trimStart();
+      }
+    }
+
     const note: WalkAiNote = {
       id: `note-${Date.now()}`,
-      content,
+      content: cleanContent,
       topic,
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -269,10 +430,41 @@ export function WalkAiProvider({
     setNotes((prev) => [note, ...prev]);
     setActiveNoteId(note.id);
     setUnreadCount((c) => c + 1);
-    return note;
-  }, []);
 
+    // Persist to DB
+    const wsId = workspaceId;
+    if (wsId) {
+      void fetch("/api/emma/notes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workspace_id: wsId,
+          topic,
+          content: cleanContent,
+          tags: note.tags,
+          screen: "walkai",
+          context,
+        }),
+      }).then(async (res) => {
+        if (!res.ok) return;
+        const data = (await res.json()) as { note: { id: string } };
+        // Replace temp ID with DB ID
+        if (data.note?.id) {
+          setNotes((prev) => prev.map((n) => n.id === note.id ? { ...n, id: data.note.id } : n));
+          setActiveNoteId(data.note.id);
+        }
+      }).catch(() => { /* Silent */ });
+    }
+
+    return note;
+  }, [workspaceId]);
+
+  // Debounce note updates to DB (avoid spamming on every keystroke)
+  const noteUpdateTimer = useRef<ReturnType<typeof setTimeout>>(null);
+  // Cleanup debounce timer on unmount
+  useEffect(() => () => { if (noteUpdateTimer.current) clearTimeout(noteUpdateTimer.current); }, []);
   const updateNote = useCallback((noteId: string, content: string, topic?: string) => {
+    const tags = (content.match(/@\w+/g) ?? []).map((t) => t.slice(1));
     setNotes((prev) =>
       prev.map((n) =>
         n.id === noteId
@@ -281,11 +473,27 @@ export function WalkAiProvider({
               content,
               ...(topic !== undefined ? { topic } : {}),
               updatedAt: Date.now(),
-              tags: (content.match(/@\w+/g) ?? []).map((t) => t.slice(1)),
+              tags,
             }
           : n,
       ),
     );
+
+    // Debounced DB persist (1s after last keystroke)
+    if (noteUpdateTimer.current) clearTimeout(noteUpdateTimer.current);
+    noteUpdateTimer.current = setTimeout(() => {
+      if (noteId.startsWith("note-")) return; // Temp ID — not yet in DB
+      void fetch("/api/emma/notes", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          note_id: noteId,
+          content,
+          ...(topic !== undefined ? { topic } : {}),
+          tags,
+        }),
+      }).catch(() => { /* Silent */ });
+    }, 1000);
   }, []);
 
   const notepadRef = useRef(notepadContent);
@@ -333,23 +541,66 @@ export function WalkAiProvider({
 
   const registeredTools = useRegisteredTools();
 
-  // Merge base tools + page-registered tools
+  // Merge base tools + page-registered tools + schedule tool definitions (always included
+  // so Ultravox knows about them at session start — implementations register dynamically)
   const walkAiTools = useMemo(
-    () =>
-      baseTools
-        ? {
-            definitions: [...baseTools.definitions, ...registeredTools.definitions],
-            implementations: {
-              ...baseTools.implementations,
-              ...registeredTools.implementations,
-            },
-          }
-        : {
-            definitions: registeredTools.definitions,
-            implementations: registeredTools.implementations,
-          },
+    () => {
+      const defs = [
+        ...(baseTools?.definitions ?? []),
+        ...registeredTools.definitions,
+      ];
+      const impls = {
+        ...(baseTools?.implementations ?? {}),
+        ...registeredTools.implementations,
+      };
+
+      // Include schedule tool definitions if not already registered by the page
+      // (ensures Ultravox always has the schemas, even before navigating to schedule)
+      const registeredNames = new Set(defs.map((d) =>
+        (d as { temporaryTool?: { modelToolName?: string } }).temporaryTool?.modelToolName,
+      ));
+      for (const def of SCHEDULE_TOOL_DEFINITIONS) {
+        const name = (def as { temporaryTool?: { modelToolName?: string } }).temporaryTool?.modelToolName;
+        if (name && !registeredNames.has(name)) {
+          defs.push(def);
+        }
+      }
+
+      return { definitions: defs, implementations: impls };
+    },
     [baseTools, registeredTools],
   );
+
+  /* ━━━ Derive active view from stack ━━━ */
+  const topItem = state.contentStack[state.contentStack.length - 1];
+  const activeView: ContentViewType = topItem ? topItem.type : "chat";
+
+  /* ━━━ Track current page for Emma's context ━━━ */
+  const [currentPage, setCurrentPage] = useState(
+    typeof window !== "undefined" ? window.location.pathname : "/dashboard",
+  );
+  // Patch routerRef.push to capture navigation events without polling
+  const originalPushRef = useRef<typeof router.push | null>(null);
+  useEffect(() => {
+    const update = () => setCurrentPage(window.location.pathname);
+    window.addEventListener("popstate", update);
+
+    // Monkey-patch router.push to detect client-side navigation
+    if (!originalPushRef.current) {
+      const originalPush = routerRef.current.push.bind(routerRef.current);
+      originalPushRef.current = originalPush;
+      routerRef.current.push = (...args: Parameters<typeof router.push>) => {
+        const result = originalPush(...args);
+        // Update after Next.js has processed the navigation
+        setTimeout(update, 100);
+        return result;
+      };
+    }
+
+    return () => {
+      window.removeEventListener("popstate", update);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ━━━ Voice agent — Emma via Ultravox ━━━ */
   const agent = useAgent({
@@ -362,7 +613,9 @@ export function WalkAiProvider({
       language_hint: "nb-NO",
       first_speaker: voiceTuning.firstSpeaker,
       context: {
-        page: "dashboard.walkai",
+        page: currentPage,
+        active_view: activeView,
+        density: state.density,
         persona_prompt: customPrompt
           ? `${personaPrompt}\n\n## Egendefinert instruks\n${customPrompt}`
           : personaPrompt,
@@ -373,6 +626,9 @@ export function WalkAiProvider({
         },
         user: resolvedUser,
         recent_activity: telemetrySummary || undefined,
+        saved_memories: emmaMemories.length > 0
+          ? emmaMemories.slice(0, 15).map((m) => `[${m.memory_type}] ${m.content}`)
+          : undefined,
         pending_missions:
           triggeredTasks.length > 0
             ? triggeredTasks.map((t) => ({
@@ -403,13 +659,109 @@ export function WalkAiProvider({
     dispatch({ type: "SET_ORB_STATUS", status: agentStatusToOrb(agent.status) });
   }, [agent.status]);
 
-  /* ━━━ Identity control ━━━ */
+  /* ━━━ Conversation logging — start/end sessions, log transcripts ━━━ */
+  const conversationIdRef = useRef<string | null>(null);
+  const prevConnected = useRef(false);
+  const transcriptBuffer = useRef<Array<{ role: string; content: string }>>([]);
+
+  const flushTranscript = useCallback((convId: string) => {
+    if (transcriptBuffer.current.length === 0) return;
+    const toFlush = [...transcriptBuffer.current];
+    transcriptBuffer.current = [];
+    void fetch("/api/emma/history", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "append", conversation_id: convId, entries: toFlush }),
+    }).catch(() => { /* Silent */ });
+  }, []);
+
+  useEffect(() => {
+    const wsId = workspaceId;
+    if (!wsId) return;
+
+    // Session started
+    if (agent.isConnected && !prevConnected.current) {
+      void (async () => {
+        try {
+          const res = await fetch("/api/emma/history", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "start", workspace_id: wsId }),
+          });
+          if (!res.ok) return;
+          const data = (await res.json()) as { conversation: { id: string } };
+          const convId = data.conversation?.id ?? null;
+          conversationIdRef.current = convId;
+          // Flush any entries that were buffered while waiting for the ID
+          if (convId && transcriptBuffer.current.length > 0) {
+            flushTranscript(convId);
+          }
+        } catch {
+          /* Silent */
+        }
+      })();
+    }
+
+    // Session ended
+    if (!agent.isConnected && prevConnected.current && conversationIdRef.current) {
+      const convId = conversationIdRef.current;
+      flushTranscript(convId);
+      void fetch("/api/emma/history", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "end", conversation_id: convId }),
+      }).catch(() => { /* Silent */ });
+      conversationIdRef.current = null;
+    }
+
+    prevConnected.current = agent.isConnected;
+  }, [agent.isConnected, workspaceId, flushTranscript]);
+
+  // Log transcript entries from agent
+  const lastTranscriptLen = useRef(0);
+  useEffect(() => {
+    if (!agent.isConnected || !agent.transcript) return;
+    const latest = agent.transcript;
+    if (latest.length === 0 || latest.length <= lastTranscriptLen.current) return;
+
+    // Buffer only new entries since last check
+    const newEntries = latest.slice(lastTranscriptLen.current);
+    lastTranscriptLen.current = latest.length;
+
+    for (const entry of newEntries) {
+      transcriptBuffer.current.push({
+        role: entry.role,
+        content: entry.text,
+      });
+    }
+
+    // Flush every 10 entries if conversation ID is available
+    const convId = conversationIdRef.current;
+    if (convId && transcriptBuffer.current.length >= 10) {
+      flushTranscript(convId);
+    }
+  }, [agent.isConnected, agent.transcript]);
+
+  // Reset transcript counter when session ends
+  useEffect(() => {
+    if (!agent.isConnected) lastTranscriptLen.current = 0;
+  }, [agent.isConnected]);
+
+  /* ━━━ Identity control — persisted to localStorage ━━━ */
   const setIdentity = useCallback((partial: Partial<AgentIdentity>) => {
-    setIdentityState((prev) => ({ ...prev, ...partial }));
+    setIdentityState((prev) => {
+      const next = { ...prev, ...partial };
+      try { localStorage.setItem("emma-identity", JSON.stringify(next)); } catch { /* quota */ }
+      return next;
+    });
   }, []);
 
   const setVoiceTuning = useCallback((partial: Partial<VoiceTuning>) => {
-    setVoiceTuningState((prev) => ({ ...prev, ...partial }));
+    setVoiceTuningState((prev) => {
+      const next = { ...prev, ...partial };
+      try { localStorage.setItem("emma-voice-tuning", JSON.stringify(next)); } catch { /* quota */ }
+      return next;
+    });
   }, []);
 
   /* ━━━ Actions ━━━ */
@@ -434,9 +786,7 @@ export function WalkAiProvider({
   }, []);
   const popView = useCallback(() => dispatch({ type: "POP_CONTENT" }), []);
 
-  /* ━━━ Derive active view from stack ━━━ */
-  const topItem = state.contentStack[state.contentStack.length - 1];
-  const activeView: ContentViewType = topItem ? topItem.type : "chat";
+  // activeView is derived above (before useAgent) — kept here for reference
 
   /* ━━━ Keep view actions ref in sync for tool implementations ━━━ */
   const createNoteRef = useRef(createNote);
@@ -456,6 +806,22 @@ export function WalkAiProvider({
     scheduleTaskRef.current = scheduleTask;
   }, [scheduleTask]);
 
+  // Refs for task operations — lets tool impls call the latest version
+  const completeTaskRef = useRef(completeTask);
+  const updateTaskRef = useRef(updateTask);
+  const reorderTaskRef = useRef(reorderTask);
+  const tasksRef = useRef(tasks);
+  useEffect(() => { completeTaskRef.current = completeTask; }, [completeTask]);
+  useEffect(() => { updateTaskRef.current = updateTask; }, [updateTask]);
+  useEffect(() => { reorderTaskRef.current = reorderTask; }, [reorderTask]);
+  useEffect(() => { tasksRef.current = tasks; }, [tasks]);
+
+  // Keep density in a ref so tool impls can read it synchronously without stale closures
+  const densityRef = useRef(state.density);
+  useEffect(() => {
+    densityRef.current = state.density;
+  }, [state.density]);
+
   useEffect(() => {
     viewActionsRef.current = {
       switchView,
@@ -469,28 +835,12 @@ export function WalkAiProvider({
       getWorkspaceId: () => workspaceId ?? null,
       expandArena: () => dispatch({ type: "SET_DENSITY", density: "arena" }),
       collapseArena: () => dispatch({ type: "SET_DENSITY", density: "orb" }),
-      getDensity: () => state.density,
-      navigateTo: (path: string) => {
-        if (typeof window !== "undefined") window.location.href = path;
-      },
-      completeTask: (taskId: string) => {
-        setTasks((prev) =>
-          prev.map((t) => (t.id === taskId ? { ...t, status: "done" as const } : t)),
-        );
-      },
-      updateTask: (taskId, updates) => {
-        setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, ...updates } : t)));
-      },
-      reorderTask: (taskId, newPosition) => {
-        setTasks((prev) => {
-          const task = prev.find((t) => t.id === taskId);
-          if (!task) return prev;
-          const without = prev.filter((t) => t.id !== taskId);
-          without.splice(newPosition, 0, { ...task, position: newPosition });
-          return without.map((t, i) => ({ ...t, position: i }));
-        });
-      },
-      getTasks: () => tasks,
+      getDensity: () => densityRef.current,
+      navigateTo: (path: string) => routerRef.current.push(path),
+      completeTask: (taskId: string) => completeTaskRef.current(taskId),
+      updateTask: (taskId: string, updates) => updateTaskRef.current(taskId, updates),
+      reorderTask: (taskId: string, newPos: number) => reorderTaskRef.current(taskId, newPos),
+      getTasks: () => tasksRef.current,
     };
   }, [switchView, activeView, workspaceId, state.density, tasks]);
   const setPosition = useCallback(
