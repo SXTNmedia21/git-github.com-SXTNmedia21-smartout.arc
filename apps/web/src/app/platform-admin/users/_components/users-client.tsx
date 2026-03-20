@@ -57,7 +57,7 @@ const ComposeEmailSheet = dynamic(
 
 export type UserRow = {
   user_id: string;
-  email: string;
+  email: string | null;
   first_name: string | null;
   last_name: string | null;
   is_godmode: boolean;
@@ -369,7 +369,7 @@ export function UsersClient({ users: initialUsers }: UsersClientProps) {
       const search = filterValue.toLowerCase();
       const user = row.original;
       const name = getUserName(user).toLowerCase();
-      const email = user.email.toLowerCase();
+      const email = (user.email ?? "").toLowerCase();
       return name.includes(search) || email.includes(search);
     },
     state: { sorting, rowSelection, globalFilter: debouncedFilter },

@@ -40,6 +40,7 @@
     "@smartout/telemetry": "workspace:*",
     "@smartout/types": "workspace:*",
     "@smartout/ui": "workspace:*",
+    "@smartout/utils": "workspace:^",
     "@supabase/ssr": "^0.5.0",
     "@supabase/supabase-js": "2.49.4",
     "@t3-oss/env-nextjs": "^0.13.10",
