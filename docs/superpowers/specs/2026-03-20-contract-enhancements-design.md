@@ -1,6 +1,6 @@
 ---
 title: "Design: Contract Enhancements — Placeholder Resolve + Per-Contract Attachments + DocuSeal Delivery"
-status: review
+status: approved
 updated: 2026-03-20
 created: 2026-03-20
 module: contracts
@@ -54,17 +54,29 @@ Two creation paths exist:
 
 Extract from `services/contract-service/src/lib/placeholders.ts`:
 
-- `buildAutofillMap(workspace, company)` — pure function, takes data as arguments (no DB dependency)
+- `buildAutofillMap(workspace, company, smartoutConfig)` — pure function, takes data as arguments (no DB dependency). The `smartoutConfig` parameter replaces the contract-service's `config` import:
+  ```ts
+  type SmartoutConfig = {
+    companyName: string; // config.SMARTOUT_COMPANY_NAME
+    orgNumber: string; // config.SMARTOUT_ORG_NUMBER
+    contactEmail: string; // config.SMARTOUT_CONTACT_EMAIL
+    contactName: string; // "Pontus S. Lindroth"
+  };
+  ```
 - `resolvePlaceholders(html, placeholders, autofillMap, overrides)` — pure function, string replacement only
 - `escapeRegex(str)` and `escapeReplace(str)` — helpers
 
-The DB-fetching stays in the caller. Each creation path fetches workspace + company data and passes it to the pure functions.
+The DB-fetching and config-reading stay in the caller. Each creation path fetches workspace + company data and passes it to the pure functions along with Smartout constants.
 
 **Contract-service refactor:**
 
+- Add `"@smartout/utils": "workspace:*"` to `services/contract-service/package.json`
 - Import from `@smartout/utils` instead of local `./lib/placeholders.ts`
 - Remove local file after migration
 - DB fetch stays in route handler
+- Pass `config` values as `smartoutConfig` parameter to `buildAutofillMap`
+
+**ESM compatibility note:** Contract-service is ESM (`"type": "module"`) with tsc build. `@smartout/utils` exports raw TS. Verify import resolution works — if not, add a build step to utils or use `tsx` loader in contract-service.
 
 **Next.js API route fix (`apps/web/src/app/api/platform-admin/contracts/route.ts`):**
 
@@ -83,8 +95,9 @@ The DB-fetching stays in the caller. Each creation path fetches workspace + comp
 | `packages/utils/src/contract-placeholders.ts`            | Create — shared pure functions                         |
 | `packages/utils/src/index.ts`                            | Add `export * from "./contract-placeholders"`          |
 | `packages/utils/package.json`                            | No change expected (already a package)                 |
+| `services/contract-service/package.json`                 | Add `"@smartout/utils": "workspace:*"` dependency      |
 | `services/contract-service/src/lib/placeholders.ts`      | Refactor — import from shared, remove duplicated logic |
-| `services/contract-service/src/routes/contracts.ts`      | Update import path                                     |
+| `services/contract-service/src/routes/contracts.ts`      | Update import path + pass smartoutConfig               |
 | `apps/web/src/app/api/platform-admin/contracts/route.ts` | Add workspace/company fetch + resolve call             |
 
 ---
@@ -173,9 +186,21 @@ New collapsible section in `contract-editor.tsx`, placed after the template atta
 ```
 
 - Drag-and-drop or click-to-select
-- Shows filename, size, delete button
+- Shows filename, size, delete button (download via Storage signed URL)
 - Upload/delete disabled when contract is not draft
 - Separate from template attachments (which are read-only HTML)
+- All UI strings via i18n keys (not hardcoded Norwegian/Swedish)
+
+### Telemetry
+
+Attachment mutations must emit telemetry per CLAUDE.md rules:
+
+| Event                          | When            | Properties                                                                                                                           |
+| ------------------------------ | --------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `contract attachment uploaded` | POST succeeds   | `{ entity: { entity_type: "contract_attachment", entity_id, entity_label: filename }, data: { contract_id, mime_type, file_size } }` |
+| `contract attachment deleted`  | DELETE succeeds | `{ entity: { entity_type: "contract_attachment", entity_id, entity_label: filename }, data: { contract_id } }`                       |
+
+Events must be registered in `packages/telemetry/src/registry.ts`.
 
 ### Files Changed
 
@@ -187,6 +212,15 @@ New collapsible section in `contract-editor.tsx`, placed after the template atta
 | `apps/web/src/app/api/platform-admin/contracts/[id]/attachments/[attachmentId]/route.ts` | Create — DELETE          |
 | `apps/web/src/app/platform-admin/contracts/[id]/contract-editor.tsx`                     | Add attachments section  |
 | `apps/web/src/app/platform-admin/contracts/[id]/page.tsx`                                | Fetch + pass attachments |
+| `packages/telemetry/src/registry.ts`                                                     | Add attachment events    |
+
+### Post-Migration Step
+
+After running the migration, regenerate types:
+
+```bash
+npx supabase gen types typescript --local > packages/supabase/src/database.types.ts
+```
 
 ---
 
