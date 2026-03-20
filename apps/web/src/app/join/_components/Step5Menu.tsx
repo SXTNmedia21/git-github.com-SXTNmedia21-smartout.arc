@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, Sparkles } from "lucide-react";
 import { useSignupWizard } from "../_hooks/useSignupWizard";
 
 const RESTAURANT_TYPES = [
@@ -48,13 +48,98 @@ const PRICE_CATEGORIES = [
   { value: "fine_dining", label: "Fine dining (800+kr)" },
 ];
 
+/* Map intelligence cuisine_types to our CUISINE_TYPES display values */
+const CUISINE_MAP: Record<string, string> = {
+  sjomat: "Sjomat",
+  seafood: "Sjomat",
+  nordisk: "Norsk/Nordisk",
+  norsk: "Norsk/Nordisk",
+  italiensk: "Italiensk",
+  pizza: "Pizza",
+  burger: "Burger",
+  sushi: "Sushi",
+  japansk: "Sushi",
+  indisk: "Indisk",
+  meksikansk: "Meksikansk",
+  thai: "Asiatisk",
+  asiatisk: "Asiatisk",
+};
+
+/* Map intelligence price_range to our PRICE_CATEGORIES values */
+function mapPriceRange(range: string | null | undefined): string {
+  if (!range) return "";
+  const r = range.toLowerCase();
+  if (r.includes("$$$$") || r.includes("fine") || r.includes("dyr")) return "fine_dining";
+  if (r.includes("$$$") || r.includes("prem")) return "premium";
+  if (r.includes("$$") || r.includes("mod")) return "moderate";
+  if (r.includes("$") || r.includes("bud")) return "budget";
+  return "";
+}
+
+/* Map intelligence concept_clues to restaurant type */
+function mapRestaurantType(clues: string[]): string {
+  const joined = clues.join(" ").toLowerCase();
+  if (joined.includes("fine dining")) return "Fine dining";
+  if (joined.includes("fast food") || joined.includes("take away")) return "Fast food";
+  if (joined.includes("bar") || joined.includes("cocktail")) return "Bar/Pub";
+  if (joined.includes("bistro") || joined.includes("casual dining")) return "Restaurant";
+  if (joined.includes("bakeri")) return "Bakeri";
+  if (joined.includes("gastropub")) return "Bar/Pub";
+  return "";
+}
+
 export function Step5Menu() {
   const { state, updateStep, nextStep, prevStep } = useSignupWizard();
+  const intel = state.intelligence as Record<string, unknown> | null;
 
   const [restaurantType, setRestaurantType] = useState(state.step5.restaurantType ?? "");
   const [cuisineTypes, setCuisineTypes] = useState<string[]>(state.step5.cuisineTypes ?? []);
   const [priceCategory, setPriceCategory] = useState(state.step5.priceCategory ?? "");
   const [menuDescription, setMenuDescription] = useState(state.step5.menuDescription ?? "");
+  const [prePopulated, setPrePopulated] = useState(false);
+
+  // Pre-populate from intelligence data (once)
+  const hasApplied = useRef(false);
+  useEffect(() => {
+    if (!intel || hasApplied.current) return;
+    hasApplied.current = true;
+    let applied = false;
+
+    // Cuisine types
+    const intelCuisines = (intel.cuisine_types as string[]) ?? [];
+    if (intelCuisines.length > 0 && cuisineTypes.length === 0) {
+      const mapped = intelCuisines
+        .map((c) => CUISINE_MAP[c.toLowerCase()] ?? null)
+        .filter((v): v is string => v !== null);
+      const unique = [...new Set(mapped)];
+      if (unique.length > 0) {
+        setCuisineTypes(unique);
+        applied = true;
+      }
+    }
+
+    // Price range
+    const intelPrice = intel.price_range as string | undefined;
+    if (intelPrice && !priceCategory) {
+      const mapped = mapPriceRange(intelPrice);
+      if (mapped) {
+        setPriceCategory(mapped);
+        applied = true;
+      }
+    }
+
+    // Restaurant type from concept clues
+    const clues = (intel.concept_clues as string[]) ?? [];
+    if (clues.length > 0 && !restaurantType) {
+      const mapped = mapRestaurantType(clues);
+      if (mapped) {
+        setRestaurantType(mapped);
+        applied = true;
+      }
+    }
+
+    if (applied) setPrePopulated(true);
+  }, [intel]); // intentional: only run when intelligence changes
 
   const toggleCuisine = (cuisine: string) => {
     setCuisineTypes((prev) =>
@@ -84,6 +169,12 @@ export function Step5Menu() {
         <p className="text-muted-foreground mt-1 text-sm">
           Fortell oss om maten og drikken dere serverer.
         </p>
+        {prePopulated && (
+          <p className="mt-2 flex items-center gap-1.5 text-xs text-orange-500">
+            <Sparkles className="h-3 w-3" />
+            Foreslått basert på det vi fant — endre fritt
+          </p>
+        )}
       </div>
 
       <div className="space-y-4">

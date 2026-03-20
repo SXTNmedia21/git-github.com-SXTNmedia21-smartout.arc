@@ -33,6 +33,7 @@ export interface WizardState {
   step4: Partial<Step4Data>;
   step5: Partial<Step5Data>;
   step6: Partial<Step6Data>;
+  intelligence: Record<string, unknown> | null;
 }
 
 interface ScrapedData {
@@ -75,6 +76,7 @@ const defaultState: WizardState = {
   step4: {},
   step5: {},
   step6: {},
+  intelligence: null,
 };
 
 const WizardContext = createContext<WizardContextValue | null>(null);

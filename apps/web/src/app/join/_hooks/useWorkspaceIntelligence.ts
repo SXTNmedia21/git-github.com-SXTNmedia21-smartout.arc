@@ -19,8 +19,13 @@ interface WorkspaceIntelligence {
 }
 
 export function useWorkspaceIntelligence() {
-  const { state, scrapedData, brregData } = useSignupWizard();
-  const [intelligence, setIntelligence] = useState<WorkspaceIntelligence | null>(null);
+  const { state, updateStep, scrapedData, brregData } = useSignupWizard();
+  // Intelligence persists in wizard state (survives step navigation + localStorage)
+  const intelligence = (state.intelligence as WorkspaceIntelligence) ?? null;
+  const setIntelligence = useCallback(
+    (intel: WorkspaceIntelligence) => updateStep("intelligence", intel as Record<string, unknown>),
+    [updateStep],
+  );
   const [content, setContent] = useState<WorkspaceIntelligenceContent | null>(null);
   const [status, setStatus] = useState<IntelligenceStatus>("idle");
   const [gapsRemaining, setGapsRemaining] = useState<string[]>([]);
@@ -97,7 +102,7 @@ export function useWorkspaceIntelligence() {
         const data = await res.json();
 
         if (data.intelligence) {
-          setIntelligence(data.intelligence);
+          setIntelligence(data.intelligence as WorkspaceIntelligence);
         }
 
         if (data.content?.about_us || data.content?.our_history || data.content?.our_concept) {
