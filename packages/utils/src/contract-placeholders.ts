@@ -91,10 +91,12 @@ export function resolvePlaceholders(
   const values: Record<string, string> = {};
 
   for (const p of placeholders) {
-    if (overrides[p.key]) {
-      values[p.key] = overrides[p.key];
-    } else if (autofillMap[p.key]) {
-      values[p.key] = autofillMap[p.key];
+    const override = overrides[p.key];
+    const autofill = autofillMap[p.key];
+    if (override) {
+      values[p.key] = override;
+    } else if (autofill) {
+      values[p.key] = autofill;
     } else {
       values[p.key] = p.default_value ?? "";
     }
