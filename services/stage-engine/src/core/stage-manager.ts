@@ -57,14 +57,24 @@ export async function advanceStage(
 
   // No next stage → mission complete
   if (!nextStage) {
-    await supabaseAdmin
+    // Optimistic concurrency: only complete if stage hasn't been changed by another advance
+    const { count } = await supabaseAdmin
       .from("engine_sessions")
       .update({
         status: "complete",
         completed_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
-      .eq("id", session.id);
+      .eq("id", session.id)
+      .eq("current_stage_id", session.current_stage_id ?? "")
+      .eq("status", "active");
+
+    if (count === 0) {
+      console.warn(
+        `[stage-manager] Skipped completion for session ${session.id} — concurrent advance detected`,
+      );
+      return null;
+    }
 
     emitGuardianEvent({
       session_id: session.id,
@@ -124,10 +134,10 @@ export async function advanceStage(
     };
   }
 
-  // Advance to next stage
+  // Advance to next stage — optimistic concurrency check prevents double-advance
   const nextIndex = stages.findIndex((s) => s.stage_id === nextStage.stage_id);
 
-  await supabaseAdmin
+  const { count: advanceCount } = await supabaseAdmin
     .from("engine_sessions")
     .update({
       current_stage_id: nextStage.stage_id,
@@ -135,7 +145,16 @@ export async function advanceStage(
       stage_started_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
-    .eq("id", session.id);
+    .eq("id", session.id)
+    .eq("current_stage_id", session.current_stage_id ?? "")
+    .eq("status", "active");
+
+  if (advanceCount === 0) {
+    console.warn(
+      `[stage-manager] Skipped advance for session ${session.id} — concurrent advance detected`,
+    );
+    return null;
+  }
 
   // Build stage context, enriched with linked journey step data (including timing + progress)
   const stageContext = { ...(session.context as Record<string, unknown>) };

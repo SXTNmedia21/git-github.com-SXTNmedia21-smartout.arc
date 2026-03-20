@@ -28,8 +28,9 @@ export async function authMiddleware(c: Context, next: Next): Promise<Response |
     return next();
   }
 
-  // Guardian WebSocket — auth handled in the upgrade handler (guardian.ts)
-  if (c.req.path.startsWith("/guardian/")) {
+  // Guardian WebSocket — auth handled in the upgrade handler (guardian.ts).
+  // Only bypass for actual WebSocket upgrades to prevent unauthenticated HTTP access.
+  if (c.req.path.startsWith("/guardian/") && c.req.header("upgrade") === "websocket") {
     return next();
   }
 
@@ -130,14 +131,16 @@ async function validateJwt(token: string): Promise<AuthContext | null> {
     return null;
   }
 
-  // Get user's first active workspace (for workspace context)
+  // Get user's first active workspace (for workspace context).
+  // Uses maybeSingle() to handle users with 0 or multiple profiles gracefully.
   const { data: profile } = await supabaseAdmin
     .from("profile")
     .select("workspace_id")
     .eq("user_id", user.id)
     .eq("is_active", true)
+    .order("created_at", { ascending: true })
     .limit(1)
-    .single();
+    .maybeSingle();
 
   if (!profile) {
     return null;

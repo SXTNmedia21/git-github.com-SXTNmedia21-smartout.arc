@@ -2,10 +2,12 @@
 import type { CapabilityDefinition, CapabilityName } from "./types.js";
 import { profileCapability } from "./profile/index.js";
 import { uiCapability } from "./ui/index.js";
+import { guardianCapability } from "./guardian/index.js";
 
 const capabilities: Record<string, CapabilityDefinition> = {
   profile: profileCapability,
   ui: uiCapability,
+  guardian: guardianCapability,
 };
 
 export function getCapability(name: CapabilityName): CapabilityDefinition | undefined {

@@ -80,32 +80,53 @@ export async function loadAgentSession(
 
 /**
  * Appends a conversation turn to the session's collected_data.conversation array.
- * Uses Supabase jsonb concatenation to avoid race conditions.
+ * Uses an atomic Postgres jsonb_set + array append via RPC to avoid race conditions
+ * when concurrent messages (user + assistant) arrive close together.
  */
 export async function appendConversationTurn(
   sessionId: string,
   turn: ConversationTurn,
 ): Promise<void> {
-  // Load current conversation
-  const { data: session } = await supabaseAdmin
-    .from("engine_sessions")
-    .select("collected_data")
-    .eq("id", sessionId)
-    .single();
+  // Atomic append using jsonb_set with array concatenation — no read-modify-write race
+  const { error } = await supabaseAdmin.rpc("append_conversation_turn", {
+    p_session_id: sessionId,
+    p_turn: turn as unknown as Record<string, unknown>,
+  });
 
-  if (!session) return;
+  if (error) {
+    // Fallback to read-modify-write if RPC doesn't exist yet (pre-migration)
+    console.warn(
+      "[agent-session] RPC append_conversation_turn failed, using fallback:",
+      error.message,
+    );
 
-  const collectedData = (session.collected_data ?? {}) as Record<string, unknown>;
-  const conversation = (collectedData.conversation ?? []) as ConversationTurn[];
-  conversation.push(turn);
+    const { data: session } = await supabaseAdmin
+      .from("engine_sessions")
+      .select("collected_data")
+      .eq("id", sessionId)
+      .single();
 
-  await supabaseAdmin
-    .from("engine_sessions")
-    .update({
-      collected_data: { ...collectedData, conversation },
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", sessionId);
+    if (!session) {
+      console.error("[agent-session] Session not found for conversation append:", sessionId);
+      return;
+    }
+
+    const collectedData = (session.collected_data ?? {}) as Record<string, unknown>;
+    const conversation = (collectedData.conversation ?? []) as ConversationTurn[];
+    conversation.push(turn);
+
+    const { error: updateError } = await supabaseAdmin
+      .from("engine_sessions")
+      .update({
+        collected_data: { ...collectedData, conversation },
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", sessionId);
+
+    if (updateError) {
+      console.error("[agent-session] Failed to append conversation turn:", updateError.message);
+    }
+  }
 }
 
 /**

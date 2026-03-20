@@ -76,13 +76,14 @@ export async function collectContext(params: {
         .order("created_at", { ascending: false })
         .limit(10)
         .then((r) => r.data ?? []),
+      // schedule_shift has no department_id — get department via profile's department
       sb
         .from("schedule_shift")
-        .select("start_time, end_time, role, department:department_id(name)")
+        .select("start_time, end_time, role")
         .eq("employee_id", profileId)
         .eq("status", "active")
         .limit(1)
-        .single()
+        .maybeSingle()
         .then((r) => r.data),
     ]);
 
@@ -161,7 +162,7 @@ export async function collectContext(params: {
           start: activeShiftRow.start_time,
           end: activeShiftRow.end_time,
           role: activeShiftRow.role ?? "",
-          department: (activeShiftRow.department as unknown as { name: string } | null)?.name ?? "",
+          department: profile.department ?? "",
         }
       : null,
     relationship,

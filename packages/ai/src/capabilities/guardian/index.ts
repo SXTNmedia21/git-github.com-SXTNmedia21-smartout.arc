@@ -16,7 +16,7 @@ const suggestTools = [acknowledgeSignal] as unknown as ReadonlyArray<
 >;
 
 export const guardianCapability: CapabilityDefinition = {
-  name: "knowledge" as CapabilityName, // deprecated — guardian is being replaced by ui capability
+  name: "guardian",
   description:
     "Workspace health monitoring: readiness alerts, maturity signals, and agent behavior tracking",
   tools: allTools,

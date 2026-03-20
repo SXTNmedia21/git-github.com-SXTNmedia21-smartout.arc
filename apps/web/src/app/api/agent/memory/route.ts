@@ -44,13 +44,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "No profile found" }, { status: 404 });
   }
 
+  // Map to valid memory_type values (CHECK constraint: preference/fact/summary/general/constant)
+  const validTypes = new Set(["preference", "fact", "summary", "general", "constant"]);
+  const validMemoryType = validTypes.has(memoryType ?? "") ? memoryType! : "fact";
+
   const { error } = await supabase.from("engine_memory").insert({
     content,
-    memory_type: memoryType ?? "constant",
+    memory_type: validMemoryType,
     expires_at: expiresAt ?? null,
     profile_id: profile.profile_id,
     workspace_id: profile.workspace_id,
-    importance: 1,
+    importance: 0.5,
     scope: "onboarding",
   });
 
