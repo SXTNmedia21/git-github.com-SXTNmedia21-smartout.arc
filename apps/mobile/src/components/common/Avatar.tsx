@@ -6,7 +6,7 @@ import React, { useState } from "react";
 import { View, Text, Image, type ViewStyle } from "react-native";
 import { createStyles, withOpacity } from "@/theme";
 
-type AvatarSize = "sm" | "md" | "lg";
+type AvatarSize = "sm" | "md" | "lg" | "xl";
 
 type AvatarProps = {
   /** Full name — used to extract initials */
@@ -23,12 +23,14 @@ const sizeMap: Record<AvatarSize, number> = {
   sm: 32,
   md: 40,
   lg: 56,
+  xl: 80,
 };
 
 const fontSizeMap: Record<AvatarSize, number> = {
   sm: 12,
   md: 15,
   lg: 22,
+  xl: 30,
 };
 
 /**
@@ -48,8 +50,14 @@ function getInitials(name: string): string {
  */
 function getColorFromName(name: string): string {
   const palette = [
-    "#e85c0d", "#14b8a6", "#8b5cf6", "#d97706",
-    "#3b82f6", "#22c55e", "#ef4444", "#ec4899",
+    "#e85c0d",
+    "#14b8a6",
+    "#8b5cf6",
+    "#d97706",
+    "#3b82f6",
+    "#22c55e",
+    "#ef4444",
+    "#ec4899",
   ];
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
@@ -77,7 +85,10 @@ export function Avatar({ name, imageUrl, size = "md", style }: AvatarProps) {
       {showImage ? (
         <Image
           source={{ uri: imageUrl }}
-          style={[styles.image, { width: dimension, height: dimension, borderRadius: dimension / 2 }]}
+          style={[
+            styles.image,
+            { width: dimension, height: dimension, borderRadius: dimension / 2 },
+          ]}
           onError={() => setImageError(true)}
         />
       ) : (
