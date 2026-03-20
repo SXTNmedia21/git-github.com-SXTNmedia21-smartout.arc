@@ -7,6 +7,31 @@ export type Json =
   | Json[]
 
 export type Database = {
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       activity_trail: {
@@ -1388,6 +1413,53 @@ export type Database = {
           },
         ]
       }
+      contract_attachment: {
+        Row: {
+          attachment_id: string
+          contract_id: string
+          created_at: string | null
+          created_by: string | null
+          display_order: number | null
+          file_size: number | null
+          filename: string
+          mime_type: string
+          storage_path: string
+          updated_at: string | null
+        }
+        Insert: {
+          attachment_id?: string
+          contract_id: string
+          created_at?: string | null
+          created_by?: string | null
+          display_order?: number | null
+          file_size?: number | null
+          filename: string
+          mime_type: string
+          storage_path: string
+          updated_at?: string | null
+        }
+        Update: {
+          attachment_id?: string
+          contract_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          display_order?: number | null
+          file_size?: number | null
+          filename?: string
+          mime_type?: string
+          storage_path?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_attachment_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contract"
+            referencedColumns: ["contract_id"]
+          },
+        ]
+      }
       contract_event: {
         Row: {
           actor_id: string | null
@@ -2170,6 +2242,128 @@ export type Database = {
           },
         ]
       }
+      emma_conversation: {
+        Row: {
+          created_at: string
+          ended_at: string | null
+          id: string
+          profile_id: string
+          started_at: string
+          summary: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          profile_id: string
+          started_at?: string
+          summary?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          profile_id?: string
+          started_at?: string
+          summary?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emma_conversation_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "emma_conversation_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      emma_note: {
+        Row: {
+          assigned_to: string | null
+          content: string
+          context: string
+          converted_task_id: string | null
+          created_at: string
+          id: string
+          profile_id: string
+          screen: string
+          status: string
+          tags: string[]
+          topic: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          content?: string
+          context?: string
+          converted_task_id?: string | null
+          created_at?: string
+          id?: string
+          profile_id: string
+          screen?: string
+          status?: string
+          tags?: string[]
+          topic?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          assigned_to?: string | null
+          content?: string
+          context?: string
+          converted_task_id?: string | null
+          created_at?: string
+          id?: string
+          profile_id?: string
+          screen?: string
+          status?: string
+          tags?: string[]
+          topic?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emma_note_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "emma_note_converted_task_id_fkey"
+            columns: ["converted_task_id"]
+            isOneToOne: false
+            referencedRelation: "emma_task"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emma_note_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "emma_note_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       emma_task: {
         Row: {
           context: Json | null
@@ -2178,6 +2372,8 @@ export type Database = {
           due_at: string | null
           id: string
           mission: string | null
+          position: number
+          priority: string
           profile_id: string
           status: string
           title: string
@@ -2192,6 +2388,8 @@ export type Database = {
           due_at?: string | null
           id?: string
           mission?: string | null
+          position?: number
+          priority?: string
           profile_id: string
           status?: string
           title: string
@@ -2206,6 +2404,8 @@ export type Database = {
           due_at?: string | null
           id?: string
           mission?: string | null
+          position?: number
+          priority?: string
           profile_id?: string
           status?: string
           title?: string
@@ -2227,6 +2427,41 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "workspace"
             referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      emma_transcript: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          role: string
+          tool_name: string | null
+        }
+        Insert: {
+          content?: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          role: string
+          tool_name?: string | null
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          role?: string
+          tool_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emma_transcript_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "emma_conversation"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -8089,7 +8324,7 @@ export type Database = {
           auth_provider_id: string | null
           created_at: string
           date_of_birth: string | null
-          email: string
+          email: string | null
           emergency_contact_name: string | null
           emergency_contact_phone: string | null
           emergency_contact_relation: string | null
@@ -8110,7 +8345,7 @@ export type Database = {
           auth_provider_id?: string | null
           created_at?: string
           date_of_birth?: string | null
-          email: string
+          email?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           emergency_contact_relation?: string | null
@@ -8131,7 +8366,7 @@ export type Database = {
           auth_provider_id?: string | null
           created_at?: string
           date_of_birth?: string | null
-          email?: string
+          email?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           emergency_contact_relation?: string | null
@@ -8821,6 +9056,10 @@ export type Database = {
         Returns: string
       }
       anonymize_user: { Args: { target_user_id: string }; Returns: undefined }
+      append_conversation_turn: {
+        Args: { p_session_id: string; p_turn: Json }
+        Returns: undefined
+      }
       archive_onboarding_workspaces: {
         Args: { p_workspace_ids: string[] }
         Returns: undefined
@@ -9219,64 +9458,6 @@ export type Database = {
       [_ in never]: never
     }
   }
-  timesheet: {
-    Tables: {
-      time_entry: {
-        Row: {
-          breaks: Json | null
-          created_at: string
-          profile_id: string
-          punch_in: string
-          punch_in_location: Json | null
-          punch_out: string | null
-          shift_id: string
-          status: Database["timesheet"]["Enums"]["time_entry_status"]
-          time_entry_id: string
-          updated_at: string
-          workspace_id: string
-        }
-        Insert: {
-          breaks?: Json | null
-          created_at?: string
-          profile_id: string
-          punch_in: string
-          punch_in_location?: Json | null
-          punch_out?: string | null
-          shift_id: string
-          status?: Database["timesheet"]["Enums"]["time_entry_status"]
-          time_entry_id?: string
-          updated_at?: string
-          workspace_id: string
-        }
-        Update: {
-          breaks?: Json | null
-          created_at?: string
-          profile_id?: string
-          punch_in?: string
-          punch_in_location?: Json | null
-          punch_out?: string | null
-          shift_id?: string
-          status?: Database["timesheet"]["Enums"]["time_entry_status"]
-          time_entry_id?: string
-          updated_at?: string
-          workspace_id?: string
-        }
-        Relationships: []
-      }
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      [_ in never]: never
-    }
-    Enums: {
-      time_entry_status: "clocked_in" | "completed" | "edited"
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
 }
 
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
@@ -9397,6 +9578,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       absence_status: ["pending", "approved", "rejected"],
@@ -9662,11 +9846,6 @@ export const Constants = {
         "review",
       ],
       wizard_session_status: ["active", "completed", "abandoned"],
-    },
-  },
-  timesheet: {
-    Enums: {
-      time_entry_status: ["clocked_in", "completed", "edited"],
     },
   },
 } as const
