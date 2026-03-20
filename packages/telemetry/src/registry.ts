@@ -59,6 +59,7 @@ export type EntityType =
   | "runbook"
   | "contract"
   | "contract_template"
+  | "contract_attachment"
   | "invitation"
   | "announcement"
   | "chat_message"
@@ -455,6 +456,22 @@ export interface ContractExpired extends BaseEvent {
   };
 }
 
+export interface ContractAttachmentUploaded extends BaseEvent {
+  event: "contract attachment uploaded";
+  properties: {
+    entity: EntityRef;
+    data: { contract_id: string; mime_type: string; file_size: number };
+  };
+}
+
+export interface ContractAttachmentDeleted extends BaseEvent {
+  event: "contract attachment deleted";
+  properties: {
+    entity: EntityRef;
+    data: { contract_id: string };
+  };
+}
+
 // ─── Journey: Signup + Onboarding ──────────────────
 export interface SignupCompleted extends BaseEvent {
   event: "signup completed";
@@ -542,6 +559,8 @@ export type SmartoutEvent =
   | ContractCancelled
   | ContractDeclined
   | ContractExpired
+  | ContractAttachmentUploaded
+  | ContractAttachmentDeleted
   | HandbookChapterSaved
   | CommunicationSent
   | CommunicationCancelled
@@ -683,6 +702,14 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "contract expired": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract attachment uploaded": {
+    destinations: ["logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contract attachment deleted": {
+    destinations: ["logger", "activity_trail"],
     category: "contracts",
   },
 
