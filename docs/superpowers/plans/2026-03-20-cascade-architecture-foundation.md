@@ -2082,38 +2082,54 @@ grep -rn "'active'" apps/web/src/ packages/ --include="*.ts" --include="*.tsx" |
 
 **Files:**
 
-- Create: `apps/web/src/app/dashboard/season/_components/YearWheelView.tsx`
+- Create: `apps/web/src/app/dashboard/season/_components/YearWheelTab.tsx`
+- Create: `apps/web/src/app/dashboard/season/_components/YearWheelTimeline.tsx`
 
 **Component tree:**
 
-- `YearWheelView`
-  - `CycleHeader` — cycle name, date range, revenue target, status badge
-  - `TimelineStrip` — horizontal scrollable timeline
-    - `SeasonBlock` (one per season) — colored block spanning date range
-    - `EventMarker` (one per planning_event) — icon pin on timeline
-    - `TodayMarker` — red vertical line at current date
-  - `SeasonDetail` (expandable) — shows budget, factors, hours summary
-  - `EventList` — filtered list of events within selected season
+- `YearWheelTab` (new tab "Årshjul" in season page tab bar)
+  - `PlanningCycleHeader` — cycle name, date range, revenue target, status badge, create/edit controls
+  - `YearWheelTimeline` — horizontal scrollable timeline
+    - `TimelineAxis` — month labels along top, gridlines for month boundaries
+    - `SeasonBlock` (one per season) — colored horizontal bar positioned by dates
+      - Season name label, status badge (draft/ready/archived), active glow
+    - `PlanningEventMarker` — diamond/pin icons on timeline (tooltip on hover)
+    - `TodayIndicator` — vertical orange line, auto-scroll to center on render
+  - `YearWheelLegend` — compact legend for season statuses + event categories
+  - `SeasonQuickActions` — floating bar when season selected: "Rediger", "Sett som aktiv", "Vis budsjett"
 
-**Layout:** Full-width timeline with months as grid. Seasons as colored horizontal bars. Events as small markers above the timeline. Click season to expand detail panel below.
+**Layout:** Full-width timeline, months as grid columns. Seasons as colored tiling blocks (no gaps). ~120px blocks + 40px markers + 30px labels. Horizontal scroll with month snap. Below `md:` → vertical season card stack.
 
 **Key interactions:**
 
-1. Horizontal scroll through the year
-2. Click season block → expand detail panel with budget/factors tabs
-3. Hover event marker → tooltip with name, demand multiplier, confidence
-4. Click "+" on timeline → create new event at that date
-5. Drag season boundary → adjust season dates (with non-overlap enforcement)
+1. Click season block → select with orange glow (`shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]`), show quick actions
+2. Drag season boundary → adjust date, adjacent auto-adjusts for no-gap tiling, confirmation dialog on drop
+3. Hover event marker → tooltip with name, type, demand multiplier, confidence
+4. "Sett som aktiv" → confirmation, then `useSetActiveSeason()` mutation
+5. "Vis budsjett" → switches to budget tab with season pre-selected
 
 **Design tokens:**
 
-- Season colors from `season.color` field
-- Active season: solid background, subtle glow
-- Draft season: hatched/dashed border pattern
-- Archived: 50% opacity
+- Season colors from `season.color`. Active: solid + orange glow. Draft: dashed border. Archived: 50% opacity.
+- Status badges: draft=yellow, ready=emerald, archived=zinc
+- Today line: `bg-brand-orange w-0.5` with dot at top
+- Event markers: external=blue, cultural=purple, internal=orange, weather=teal, recurring=zinc
 
-- [ ] **Step 1: Build component**
-- [ ] **Step 2: Commit**
+**Animation:** Tier 2 — staggered season entrance (`motion.div`, delay: index \* 0.08, spring), today indicator `scaleY: 0→1`, event markers `scale: 0→1` stagger.
+
+**Accessibility:** Timeline `role="img"` with descriptive `aria-label`. Season blocks are buttons. Hidden `sr-only` table below. Drag handles have keyboard alternatives.
+
+**Data flow:**
+
+- `usePlanningCycles()` — new hook
+- `useSeasons()` — existing, now with `is_active`
+- `usePlanningEvents(cycleId)` — new hook
+- `useUpdateSeasonDates()`, `useSetActiveSeason()` — new mutations
+
+- [ ] **Step 1: Build `YearWheelTimeline` (core visualization)**
+- [ ] **Step 2: Build `YearWheelTab` wrapper with header + legend + quick actions**
+- [ ] **Step 3: Add "Årshjul" tab to season page tab bar**
+- [ ] **Step 4: Commit**
 
 ---
 
@@ -2157,24 +2173,40 @@ grep -rn "'active'" apps/web/src/ packages/ --include="*.ts" --include="*.tsx" |
 
 **Component tree:**
 
-- `EventCalendarTab`
-  - `CalendarGrid` — month view showing events
-    - `EventDot` — colored dot per event category
-  - `EventSidebar` — list of events for selected date/range
-    - `EventCard` — name, category badge, demand multiplier, confidence
-  - `CreateEventForm` (Sheet) — name, dates, category, source, demand_multiplier, confidence, recurrence
-  - `ImportButton` — triggers scraping for external events
+- `EventCalendarTab` (new tab "Hendelser" in season page, adjacent to "Årshjul")
+  - `EventCalendarHeader` — category filter pills + "Legg til hendelse" + "Importer hendelser"
+  - `EventCalendarGrid` — month-based calendar (3-col at `lg:`, 2 at `md:`, 1 below)
+    - `CalendarMonth` → `CalendarDay` → colored event dots (shape varies for color-blind safety)
+  - `EventDetailPopover` (shadcn `Popover`) — event list with name, category badge, demand multiplier, confidence bar
+  - `DemandHeatmap` — toggle-able overlay tinting day backgrounds by aggregate demand
+  - `CreateEventSheet` (shadcn `Sheet`) — name, date range, category, demand slider (0.5x–3.0x), confidence, source, recurring toggle
+- Create: `apps/web/src/app/dashboard/season/_components/CreateEventSheet.tsx`
 
-**Event category colors:**
+**Event category colors (with shape variation for a11y):**
 
-- External scraped: `bg-purple-500`
-- Cultural/commercial: `bg-amber-500`
-- Internal: `bg-blue-500`
-- Weather: `bg-cyan-500`
-- Recurring: `bg-green-500`
+- External scraped: `blue-400` (circle)
+- Cultural/commercial: `purple-400` (diamond)
+- Internal: `orange-400` (triangle)
+- Weather: `teal-400` (square)
+- Recurring: `zinc-400` (ring)
 
-- [ ] **Step 1: Build component**
-- [ ] **Step 2: Commit**
+**Key interactions:**
+
+1. Filter pills → show/hide events with `transition-opacity`
+2. Click day cell → `EventDetailPopover`
+3. Demand slider → live preview: "Forventet bemanningsendring: +40%"
+4. Recurring toggle → reveals frequency/interval/end-date config
+5. Demand heatmap toggle → `bg-orange-500/[0.04]` to `bg-orange-500/[0.15]`
+
+**Data flow:**
+
+- `usePlanningEvents(cycleId, filter?)`, CRUD mutations, `useImportExternalEvents()`
+- Demand aggregation: client-side from events grouped by date
+
+- [ ] **Step 1: Build `EventCalendarTab` with grid + filters**
+- [ ] **Step 2: Build `CreateEventSheet` with form + demand slider**
+- [ ] **Step 3: Add "Hendelser" tab to season page**
+- [ ] **Step 4: Commit**
 
 ---
 

@@ -52,3 +52,4 @@ artifacts/
 supabase/.env
 supabase/functions/.env
 client_secret_*.json
+.superpowers/
