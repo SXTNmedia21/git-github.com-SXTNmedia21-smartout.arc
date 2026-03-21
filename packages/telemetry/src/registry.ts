@@ -728,6 +728,67 @@ export interface SalaryCodeDeleted extends BaseEvent {
   };
 }
 
+// ─── Employee Group Events ────────────────────────
+export interface EmployeeGroupCreated extends BaseEvent {
+  event: "employee_group created";
+  properties: {
+    data: {
+      employee_group_id: string;
+      name: string;
+    };
+  };
+}
+
+export interface EmployeeGroupUpdated extends BaseEvent {
+  event: "employee_group updated";
+  properties: {
+    data: {
+      employee_group_id: string;
+      name: string;
+    };
+  };
+}
+
+export interface EmployeeGroupDeleted extends BaseEvent {
+  event: "employee_group deleted";
+  properties: {
+    data: {
+      employee_group_id: string;
+      name: string;
+    };
+  };
+}
+
+export interface GroupMemberAdded extends BaseEvent {
+  event: "group_member added";
+  properties: {
+    data: {
+      employee_group_id: string;
+      profile_id: string;
+    };
+  };
+}
+
+export interface GroupMemberUpdated extends BaseEvent {
+  event: "group_member updated";
+  properties: {
+    data: {
+      employee_group_id: string;
+      profile_id: string;
+    };
+  };
+}
+
+export interface GroupMemberRemoved extends BaseEvent {
+  event: "group_member removed";
+  properties: {
+    data: {
+      employee_group_id: string;
+      profile_id: string;
+    };
+  };
+}
+
 // ─── AI / Authority Config Events ───────────────
 export interface AuthorityConfigUpdated extends BaseEvent {
   event: "authority_config updated";
@@ -896,6 +957,12 @@ export type SmartoutEvent =
   | SalaryCodeCreated
   | SalaryCodeUpdated
   | SalaryCodeDeleted
+  | EmployeeGroupCreated
+  | EmployeeGroupUpdated
+  | EmployeeGroupDeleted
+  | GroupMemberAdded
+  | GroupMemberUpdated
+  | GroupMemberRemoved
   | AuthorityConfigUpdated
   | OnboardingGuideUpdated
   | IndustryPackageLoaded
@@ -1202,6 +1269,31 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "operations",
   },
   "salary_code deleted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+
+  "employee_group created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "employee_group updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "employee_group deleted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "group_member added": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "group_member updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "group_member removed": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",
   },
