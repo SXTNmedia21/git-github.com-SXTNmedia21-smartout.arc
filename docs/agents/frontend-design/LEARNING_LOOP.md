@@ -1,10 +1,10 @@
 ---
 title: "LEARNING_LOOP"
-status: draft
-updated: 2026-04-10
+status: active
+updated: 2026-04-18
 created: 2026-03-01
 module: ai
-tags: []
+tags: [agent, frontend, learning-loop, telemetry, ux]
 ---
 
 # Frontend Architect: Self-Reflection & Learning Loop
@@ -51,3 +51,33 @@ The agent has the explicit authority to rewrite its own aesthetic and mechanical
 ## 5. The "Rage-Click" Auto-Revert
 
 As a safety mechanism, the loop contains a circuit breaker. If the agent deploys a new UI variant and the Event Motor detects a 300% spike in `rage_click_count` or `abandonment_flag` within the first 100 sessions, the agent must automatically execute a hard-revert to the previous `schema_hash` and log a "Failed State" reflection, preventing that specific UI pattern from being attempted again.
+
+## 6. Cross-Platform Learning Sync
+
+The web `frontend-designer` and mobile `mobile-designer` share a design token foundation and learning loop structure. Insights should flow between them.
+
+- **Shared principles:** `docs/agents/SHARED_DESIGN_PRINCIPLES.md` — universal rules both agents follow
+- **Mobile hypothesis ledger:** `docs/agents/mobile-design/hypotheses.md`
+- **Mobile decisions:** `docs/agents/mobile-design/decisions.md`
+
+### When to share a learning
+
+Tag an experiment `cross-platform: true` when:
+
+- The insight is about data patterns (e.g., `queryData ?? []` anti-pattern)
+- The insight is about state management (e.g., Zustand `useShallow`)
+- The insight is about information architecture (e.g., progressive disclosure)
+- The insight is about user behavior (e.g., rage clicks on ambiguous CTAs)
+
+Keep platform-specific when:
+
+- The insight is about CSS/Tailwind-specific rendering
+- The insight is about Framer Motion choreography
+- The insight is about web-only interaction patterns (hover, focus rings)
+
+### Sync process
+
+1. Prove the pattern on your platform first
+2. Tag `cross-platform: true` in your hypothesis ledger
+3. Add a reference entry in the mobile agent's `docs/agents/mobile-design/hypotheses.md`
+4. If broadly proven on both platforms → add to `docs/agents/SHARED_DESIGN_PRINCIPLES.md` section 5 (anti-patterns) or section 3 (interaction principles)
