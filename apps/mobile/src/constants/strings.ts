@@ -12,6 +12,10 @@ export const strings = {
   },
   home: {
     greeting: "Hei",
+    goodMorning: "God morgen",
+    goodAfternoon: "God ettermiddag",
+    goodEvening: "God kveld",
+    goodNight: "God natt",
     nextShift: "Neste vakt",
     noShift: "Ingen kommende vakter",
     onShift: "På vakt",

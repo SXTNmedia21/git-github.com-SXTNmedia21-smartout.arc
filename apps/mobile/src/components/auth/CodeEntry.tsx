@@ -38,7 +38,10 @@ export function CodeEntry({ onBack }: CodeEntryProps) {
 
   function handleCodeChange(text: string) {
     // Only allow alphanumeric, max 6 chars
-    const cleaned = text.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, CODE_LENGTH);
+    const cleaned = text
+      .replace(/[^a-zA-Z0-9]/g, "")
+      .toUpperCase()
+      .slice(0, CODE_LENGTH);
     setCode(cleaned);
     setError(null);
 
@@ -63,9 +66,13 @@ export function CodeEntry({ onBack }: CodeEntryProps) {
       return;
     }
 
-    // RPC returns a single object with workspace_id, name, logo_url
-    const result = data as unknown as WorkspaceResult;
-    setWorkspace(result);
+    // RPC uses RETURNS TABLE so Supabase returns an array — take first row
+    const rows = data as unknown as WorkspaceResult[];
+    if (!rows || rows.length === 0) {
+      setError("Ingen arbeidsplass funnet med denne koden. Sjekk og prov igjen.");
+      return;
+    }
+    setWorkspace(rows[0]);
   }
 
   function handleConfirm() {
@@ -95,9 +102,7 @@ export function CodeEntry({ onBack }: CodeEntryProps) {
           <Image source={{ uri: workspace.logo_url }} style={styles.logo} />
         ) : (
           <View style={styles.logoPlaceholder}>
-            <Text style={styles.logoPlaceholderText}>
-              {workspace.name.charAt(0).toUpperCase()}
-            </Text>
+            <Text style={styles.logoPlaceholderText}>{workspace.name.charAt(0).toUpperCase()}</Text>
           </View>
         )}
 
@@ -147,9 +152,7 @@ export function CodeEntry({ onBack }: CodeEntryProps) {
         autoFocus
       />
 
-      {isLoading && (
-        <ActivityIndicator color="#F97316" style={styles.loader} />
-      )}
+      {isLoading && <ActivityIndicator color="#F97316" style={styles.loader} />}
 
       {error && <Text style={styles.errorText}>{error}</Text>}
 

@@ -2,7 +2,7 @@
  * Supabase client configured for React Native + Web.
  * Native: uses expo-secure-store for encrypted token persistence.
  * Web: uses localStorage (standard browser storage).
- * detectSessionInUrl is disabled — mobile auth uses OTP, not URL-based redirects.
+ * detectSessionInUrl: enabled on web (magic link redirects), disabled on native (OTP only).
  */
 import { createClient } from "@supabase/supabase-js";
 import { Platform } from "react-native";
@@ -40,6 +40,6 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, 
     storage,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: false,
+    detectSessionInUrl: Platform.OS === "web",
   },
 });

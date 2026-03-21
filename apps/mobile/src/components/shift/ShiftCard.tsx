@@ -2,13 +2,14 @@
  * ShiftCard — Compact shift summary card for use in the shifts list.
  *
  * Shows: date, time range, position/role, zone, work hours, confirmation status.
- * Pressable with haptic feedback. Unconfirmed shifts show an inline confirm button.
+ * Card body navigates to shift detail. Confirm button is a separate touch target
+ * to avoid nested <button> elements on web.
  */
 
 import React, { useCallback } from "react";
 import { View, Text, Pressable } from "react-native";
 import * as Haptics from "expo-haptics";
-import { createStyles, withOpacity } from "@/theme";
+import { createStyles } from "@/theme";
 import { Card } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { Button } from "@/components/ui/Button";
@@ -35,8 +36,18 @@ function formatShiftDate(dateStr: string): string {
   const date = new Date(`${dateStr}T00:00:00Z`);
   const days = ["Sondag", "Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lordag"];
   const months = [
-    "januar", "februar", "mars", "april", "mai", "juni",
-    "juli", "august", "september", "oktober", "november", "desember",
+    "januar",
+    "februar",
+    "mars",
+    "april",
+    "mai",
+    "juni",
+    "juli",
+    "august",
+    "september",
+    "oktober",
+    "november",
+    "desember",
   ];
   const dayName = days[date.getUTCDay()];
   const dayNum = date.getUTCDate();
@@ -66,27 +77,54 @@ export function ShiftCard({ shift, onPress, onConfirm, confirming = false }: Shi
     onConfirm?.(shift.schedule_shift_id);
   }, [onConfirm, shift.schedule_shift_id]);
 
+  const needsConfirm = !isConfirmed && Boolean(onConfirm);
+
+  // When a confirm button exists, the Card can't be pressable (nested <button> on web).
+  // Instead, we make the card body a separate Pressable for navigation.
   return (
-    <Card onPress={onPress}>
-      <View style={styles.header}>
-        <Text style={styles.date}>{formatShiftDate(shift.shift_date)}</Text>
-        {isConfirmed ? (
-          <StatusBadge label={strings.shift.confirmed} variant="success" />
-        ) : (
-          <StatusBadge label={strings.shift.confirm} variant="warning" />
-        )}
-      </View>
+    <Card onPress={needsConfirm ? undefined : onPress}>
+      {needsConfirm && onPress ? (
+        <Pressable
+          onPress={() => {
+            Haptics.selectionAsync();
+            onPress();
+          }}
+          accessibilityRole="link"
+          accessibilityLabel={`${formatShiftDate(shift.shift_date)} ${shift.role}`}
+        >
+          <View style={styles.header}>
+            <Text style={styles.date}>{formatShiftDate(shift.shift_date)}</Text>
+            <StatusBadge label={strings.shift.confirm} variant="warning" />
+          </View>
+          <Text style={styles.timeRange}>
+            {formatTime(shift.start_time)}–{formatTime(shift.end_time)} · {shift.role}
+          </Text>
+          <View style={styles.details}>
+            {shift.zone && <Text style={styles.detail}>{shift.zone}</Text>}
+            <Text style={styles.detail}>{formatWorkHours(shift.work_hours)}</Text>
+          </View>
+        </Pressable>
+      ) : (
+        <>
+          <View style={styles.header}>
+            <Text style={styles.date}>{formatShiftDate(shift.shift_date)}</Text>
+            {isConfirmed ? (
+              <StatusBadge label={strings.shift.confirmed} variant="success" />
+            ) : (
+              <StatusBadge label={strings.shift.confirm} variant="warning" />
+            )}
+          </View>
+          <Text style={styles.timeRange}>
+            {formatTime(shift.start_time)}–{formatTime(shift.end_time)} · {shift.role}
+          </Text>
+          <View style={styles.details}>
+            {shift.zone && <Text style={styles.detail}>{shift.zone}</Text>}
+            <Text style={styles.detail}>{formatWorkHours(shift.work_hours)}</Text>
+          </View>
+        </>
+      )}
 
-      <Text style={styles.timeRange}>
-        {formatTime(shift.start_time)}–{formatTime(shift.end_time)} · {shift.role}
-      </Text>
-
-      <View style={styles.details}>
-        {shift.zone && <Text style={styles.detail}>{shift.zone}</Text>}
-        <Text style={styles.detail}>{formatWorkHours(shift.work_hours)}</Text>
-      </View>
-
-      {!isConfirmed && onConfirm && (
+      {needsConfirm && (
         <View style={styles.confirmRow}>
           <Button
             title={strings.shift.confirm}

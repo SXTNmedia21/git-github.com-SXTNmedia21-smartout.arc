@@ -11,45 +11,53 @@
  * The menu is NOT navigation — it triggers actions within the current context.
  */
 
-import React, { useCallback } from "react";
+import React from "react";
 import { View, Text, Pressable } from "react-native";
-import Animated, {
-  useAnimatedStyle,
-  withSpring,
-  withSequence,
-  withDelay,
-  type SharedValue,
-} from "react-native-reanimated";
+import Animated, { useAnimatedStyle, type SharedValue } from "react-native-reanimated";
+import {
+  StopCircle,
+  ClipboardList,
+  AlertTriangle,
+  Phone,
+  FileText,
+  BarChart3,
+  CheckCircle,
+  PenLine,
+  Clock,
+  CalendarDays,
+  MessageCircle,
+} from "lucide-react-native";
 import * as Haptics from "expo-haptics";
-import { createStyles, withOpacity } from "@/theme";
+import { createStyles } from "@/theme";
 import type { ShiftPhase } from "@/lib/shift-phase";
+import type { LucideIcon } from "lucide-react-native";
 
 type QuickAction = {
   key: string;
   label: string;
-  icon: string;
+  icon: LucideIcon;
 };
 
 /** Phase-specific action sets as defined in the design spec */
 const PHASE_ACTIONS: Record<ShiftPhase, QuickAction[]> = {
   during_shift: [
-    { key: "punch_out", label: "Punch ut", icon: "⏹" },
-    { key: "tasks", label: "Oppgaver", icon: "📋" },
-    { key: "deviation", label: "Avvik", icon: "⚠️" },
-    { key: "call_leader", label: "Ring leder", icon: "📞" },
+    { key: "punch_out", label: "Punch ut", icon: StopCircle },
+    { key: "tasks", label: "Oppgaver", icon: ClipboardList },
+    { key: "deviation", label: "Avvik", icon: AlertTriangle },
+    { key: "call_leader", label: "Ring leder", icon: Phone },
   ],
   before_shift: [
-    { key: "shift_card", label: "Skiftkort", icon: "📄" },
-    { key: "day_brief", label: "Day brief", icon: "📊" },
-    { key: "confirm_shift", label: "Bekreft vakt", icon: "✓" },
+    { key: "shift_card", label: "Skiftkort", icon: FileText },
+    { key: "day_brief", label: "Day brief", icon: BarChart3 },
+    { key: "confirm_shift", label: "Bekreft vakt", icon: CheckCircle },
   ],
   after_shift: [
-    { key: "handoff", label: "Handoff", icon: "📝" },
-    { key: "confirm_hours", label: "Bekreft timer", icon: "⏱" },
+    { key: "handoff", label: "Handoff", icon: PenLine },
+    { key: "confirm_hours", label: "Bekreft timer", icon: Clock },
   ],
   no_shift: [
-    { key: "next_shift", label: "Neste vakt", icon: "📅" },
-    { key: "messages", label: "Meldinger", icon: "💬" },
+    { key: "next_shift", label: "Neste vakt", icon: CalendarDays },
+    { key: "messages", label: "Meldinger", icon: MessageCircle },
   ],
 };
 
@@ -101,22 +109,25 @@ export function QuickActions({
 
       {/* Action buttons */}
       <Animated.View style={[styles.container, containerStyle]}>
-        {actions.map((action, index) => (
-          <Animated.View key={action.key}>
-            <Pressable
-              style={styles.actionButton}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                onAction(action.key);
-              }}
-              accessibilityRole="button"
-              accessibilityLabel={action.label}
-            >
-              <Text style={styles.actionIcon}>{action.icon}</Text>
-              <Text style={styles.actionLabel}>{action.label}</Text>
-            </Pressable>
-          </Animated.View>
-        ))}
+        {actions.map((action) => {
+          const IconComponent = action.icon;
+          return (
+            <Animated.View key={action.key}>
+              <Pressable
+                style={styles.actionButton}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  onAction(action.key);
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={action.label}
+              >
+                <IconComponent size={20} color={styles.actionIconColor.color} strokeWidth={1.8} />
+                <Text style={styles.actionLabel}>{action.label}</Text>
+              </Pressable>
+            </Animated.View>
+          );
+        })}
       </Animated.View>
     </>
   );
@@ -158,8 +169,9 @@ const useStyles = createStyles((theme) => ({
     borderWidth: 1,
     borderColor: theme.colors.border,
   },
-  actionIcon: {
-    fontSize: 18,
+  /** Color-only style for passing to Lucide icon component */
+  actionIconColor: {
+    color: theme.colors.brandOrange,
   },
   actionLabel: {
     ...theme.typography.bodyBold,

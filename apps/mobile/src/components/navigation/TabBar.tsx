@@ -10,17 +10,19 @@
 import React from "react";
 import { View, Text, Pressable, Platform } from "react-native";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
+import { Home, CalendarDays, MessageCircle, User } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
-import { createStyles, withOpacity } from "@/theme";
+import { createStyles, withOpacity, type ThemeColors } from "@/theme";
 import { Badge } from "@/components/ui/Badge";
 import { strings } from "@/constants/strings";
+import type { LucideIcon } from "lucide-react-native";
 
-/** Tab icons — using text emoji as placeholders (replace with Lucide in polish pass) */
-const TAB_ICONS: Record<string, string> = {
-  "(home)": "🏠",
-  "(shifts)": "📅",
-  "(chat)": "💬",
-  "(me)": "👤",
+/** Tab icon mapping — Lucide icons for crisp, scalable rendering */
+const TAB_ICONS: Record<string, LucideIcon> = {
+  "(home)": Home,
+  "(shifts)": CalendarDays,
+  "(chat)": MessageCircle,
+  "(me)": User,
 };
 
 const TAB_LABELS: Record<string, string> = {
@@ -46,7 +48,7 @@ export function TabBar({ state, navigation, unreadCount = 0, centerFab }: TabBar
 
   function renderTab(route: (typeof state)["routes"][number], index: number) {
     const isFocused = state.index === index;
-    const icon = TAB_ICONS[route.name] ?? "?";
+    const IconComponent = TAB_ICONS[route.name];
     const label = TAB_LABELS[route.name] ?? route.name;
     const isChatTab = route.name === "(chat)";
 
@@ -65,7 +67,13 @@ export function TabBar({ state, navigation, unreadCount = 0, centerFab }: TabBar
         accessibilityLabel={label}
       >
         <View style={styles.tabIconContainer}>
-          <Text style={[styles.tabIcon, isFocused && styles.tabIconActive]}>{icon}</Text>
+          {IconComponent && (
+            <IconComponent
+              size={22}
+              color={isFocused ? styles.tabIconActiveColor.color : styles.tabIconColor.color}
+              strokeWidth={isFocused ? 2.2 : 1.8}
+            />
+          )}
           {isChatTab && <Badge count={unreadCount} style={styles.badge} />}
         </View>
         <Text style={[styles.tabLabel, isFocused && styles.tabLabelActive]}>{label}</Text>
@@ -114,12 +122,12 @@ const useStyles = createStyles((theme) => ({
   tabIconContainer: {
     position: "relative",
   },
-  tabIcon: {
-    fontSize: 22,
-    opacity: 0.5,
+  /** Color-only styles used to pass color values to Lucide components */
+  tabIconColor: {
+    color: theme.colors.mutedForeground,
   },
-  tabIconActive: {
-    opacity: 1,
+  tabIconActiveColor: {
+    color: theme.colors.brandOrange,
   },
   tabLabel: {
     ...theme.typography.micro,

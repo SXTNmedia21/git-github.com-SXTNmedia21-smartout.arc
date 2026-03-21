@@ -95,5 +95,6 @@ export function useMyShifts() {
     queryFn: fetchMyShifts,
     staleTime: STALE_TIME_MS,
     placeholderData: getPlaceholderData,
+    retry: 1,
   });
 }

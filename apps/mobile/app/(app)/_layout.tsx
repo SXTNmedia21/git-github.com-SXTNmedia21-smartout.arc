@@ -10,7 +10,7 @@
 
 import React, { useCallback, useRef, useState } from "react";
 import { View } from "react-native";
-import { Tabs } from "expo-router";
+import { Tabs, useRouter } from "expo-router";
 import { useSharedValue, withSpring } from "react-native-reanimated";
 import type GorhomBottomSheet from "@gorhom/bottom-sheet";
 import { createStyles } from "@/theme";
@@ -24,6 +24,7 @@ import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 
 export default function AppLayout() {
   const styles = useStyles();
+  const router = useRouter();
   const { phase } = useShiftPhase();
   const [quickActionsVisible, setQuickActionsVisible] = useState(false);
   const quickActionsVisibility = useSharedValue(0);
@@ -41,8 +42,9 @@ export default function AppLayout() {
   }, [quickActionsVisibility]);
 
   const handleFabPress = useCallback(() => {
-    botssonSheetRef.current?.snapToIndex(0);
-  }, []);
+    // Smartout logo tap → navigate to home tab
+    router.navigate("/(app)/(home)");
+  }, [router]);
 
   const handleBotssonDismiss = useCallback(() => {
     botssonSheetRef.current?.close();
@@ -70,12 +72,7 @@ export default function AppLayout() {
     (props: BottomTabBarProps) => (
       <TabBar
         {...props}
-        centerFab={
-          <AIFab
-            onPress={handleFabPress}
-            onSwipeUp={showQuickActions}
-          />
-        }
+        centerFab={<AIFab onPress={handleFabPress} onSwipeUp={showQuickActions} />}
       />
     ),
     [handleFabPress, showQuickActions],
@@ -83,26 +80,11 @@ export default function AppLayout() {
 
   return (
     <View style={styles.container}>
-      <Tabs
-        screenOptions={{ headerShown: false }}
-        tabBar={renderTabBar}
-      >
-        <Tabs.Screen
-          name="(home)"
-          options={{ title: strings.tabs.home }}
-        />
-        <Tabs.Screen
-          name="(shifts)"
-          options={{ title: strings.tabs.shifts }}
-        />
-        <Tabs.Screen
-          name="(chat)"
-          options={{ title: strings.tabs.chat }}
-        />
-        <Tabs.Screen
-          name="(me)"
-          options={{ title: strings.tabs.me }}
-        />
+      <Tabs screenOptions={{ headerShown: false }} tabBar={renderTabBar}>
+        <Tabs.Screen name="(home)" options={{ title: strings.tabs.home }} />
+        <Tabs.Screen name="(shifts)" options={{ title: strings.tabs.shifts }} />
+        <Tabs.Screen name="(chat)" options={{ title: strings.tabs.chat }} />
+        <Tabs.Screen name="(me)" options={{ title: strings.tabs.me }} />
       </Tabs>
 
       {/* QuickActions overlay — positioned above the tab bar */}

@@ -1,32 +1,9 @@
 /**
- * Entry screen — redirects to auth or app based on session state.
- * Placeholder until AuthProvider handles routing in Task 0.3.
+ * Entry screen — redirects to auth welcome immediately.
+ * AuthProvider handles the actual routing (welcome vs app) based on session state.
  */
-import { View, Text, StyleSheet } from "react-native";
+import { Redirect } from "expo-router";
 
 export default function Index() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Smartout</Text>
-      <Text style={styles.subtitle}>Ansattapp</Text>
-    </View>
-  );
+  return <Redirect href="/(auth)/welcome" />;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFFFFF",
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "700",
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#6B7280",
-    marginTop: 4,
-  },
-});

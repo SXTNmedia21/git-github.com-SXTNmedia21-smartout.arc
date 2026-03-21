@@ -10,6 +10,7 @@
 
 import { useEffect, useRef, useMemo } from "react";
 import { create } from "zustand";
+import { useShallow } from "zustand/react/shallow";
 import { calculateShiftPhase, type ShiftPhase, type ShiftPhaseResult } from "@/lib/shift-phase";
 import { useMyShifts } from "@/hooks/queries/use-my-shifts";
 import { useActiveTimeEntry } from "@/hooks/queries/use-active-time-entry";
@@ -91,10 +92,12 @@ export function useShiftPhase() {
     return () => clearInterval(interval);
   }, [update]);
 
-  return useShiftPhaseStore((s) => ({
-    phase: s.phase,
-    activeShift: s.activeShift,
-    activeTimeEntry: s.activeTimeEntry,
-    nextShift: s.nextShift,
-  }));
+  return useShiftPhaseStore(
+    useShallow((s) => ({
+      phase: s.phase,
+      activeShift: s.activeShift,
+      activeTimeEntry: s.activeTimeEntry,
+      nextShift: s.nextShift,
+    })),
+  );
 }
