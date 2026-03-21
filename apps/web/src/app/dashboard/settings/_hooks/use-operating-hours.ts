@@ -28,14 +28,9 @@ export type OperatingHoursEntry = {
   is_closed: boolean;
 };
 
-type OperatingHoursRow = {
-  id: string;
-  workspace_id: string;
-  location_id: string | null;
-  day_of_week: number;
-  open_time: string;
-  close_time: string;
-  is_closed: boolean;
+type OperatingHoursOptions = {
+  locationId?: string;
+  seasonId?: string;
 };
 
 const DEFAULT_ENTRY = {
@@ -44,30 +39,62 @@ const DEFAULT_ENTRY = {
   is_closed: false,
 } as const;
 
-function operatingHoursKeys(workspaceId: string, locationId?: string) {
-  return ["settings", "operating-hours", workspaceId, locationId ?? "default"] as const;
+function operatingHoursKeys(
+  workspaceId: string,
+  departmentId: string,
+  locationId?: string,
+  seasonId?: string,
+) {
+  return [
+    "settings",
+    "department-operating-hours",
+    workspaceId,
+    departmentId,
+    locationId ?? "default",
+    seasonId ?? "default",
+  ] as const;
 }
 
 /**
- * Fetches and persists operating hours for the workspace (optionally per location).
- * Uses operating_hours table with upsert on (workspace_id, location_id, day_of_week).
+ * Fetches and persists operating hours for a department.
+ * Reads/writes department_operating_hours table (cascade A1).
  * Falls back to 08:00-22:00, open all days when no DB rows exist.
+ *
+ * The return shape (hours, isLoading, upsertHours) is identical to the
+ * legacy hook so downstream consumers (OpeningHoursSettings, HourFactorsTab,
+ * SeasonOverviewTab) work unchanged.
  */
-export function useOperatingHours(locationId?: string) {
+export function useOperatingHours(
+  departmentId: string | undefined,
+  options?: OperatingHoursOptions,
+) {
   const ctx = useWorkspaceOptional();
   const wsId = ctx?.workspace.workspace_id;
   const { profileId } = useContext(DashboardContext);
   const supabase = createClient();
   const queryClient = useQueryClient();
+  const locationId = options?.locationId;
+  const seasonId = options?.seasonId;
 
   const query = useQuery({
-    queryKey: operatingHoursKeys(wsId ?? "none", locationId),
+    queryKey: operatingHoursKeys(wsId ?? "none", departmentId ?? "none", locationId, seasonId),
     queryFn: async (): Promise<OperatingHoursEntry[]> => {
       let q = supabase
-        .from("operating_hours")
-        .select("id, workspace_id, location_id, day_of_week, open_time, close_time, is_closed")
-        .eq("workspace_id", wsId!);
+        .from("department_operating_hours")
+        .select(
+          "id, workspace_id, department_id, location_id, season_id, day_of_week, open_time, close_time, is_closed",
+        )
+        .eq("workspace_id", wsId!)
+        .eq("department_id", departmentId!);
 
+      // Season: prefer season-specific rows, fall back to default (NULL)
+      if (seasonId) {
+        q = q.eq("season_id", seasonId);
+      } else {
+        q = q.is("season_id", null);
+      }
+
+      // Location: prefer location-specific rows, fall back to default (NULL)
       if (locationId) {
         q = q.eq("location_id", locationId);
       } else {
@@ -75,10 +102,9 @@ export function useOperatingHours(locationId?: string) {
       }
 
       const { data, error } = await q;
-
       if (error) throw new Error(error.message);
 
-      const rowsByDay = new Map<number, OperatingHoursRow>();
+      const rowsByDay = new Map<number, (typeof data)[number]>();
       for (const row of data ?? []) {
         rowsByDay.set(row.day_of_week, row);
       }
@@ -94,15 +120,17 @@ export function useOperatingHours(locationId?: string) {
         };
       });
     },
-    enabled: !!wsId,
-    staleTime: 10 * 60 * 1000, // 10 minutes — stable workspace settings
+    enabled: !!wsId && !!departmentId,
+    staleTime: 10 * 60 * 1000,
   });
 
   const upsertHours = useMutation({
     mutationFn: async (entries: OperatingHoursEntry[]) => {
       const rows = entries.map((entry) => ({
         workspace_id: wsId!,
+        department_id: departmentId!,
         location_id: locationId ?? null,
+        season_id: seasonId ?? null,
         day_of_week: entry.day_of_week,
         open_time: entry.open_time,
         close_time: entry.close_time,
@@ -110,8 +138,8 @@ export function useOperatingHours(locationId?: string) {
         updated_at: new Date().toISOString(),
       }));
 
-      const { error } = await supabase.from("operating_hours").upsert(rows, {
-        onConflict: "workspace_id,location_id,day_of_week",
+      const { error } = await supabase.from("department_operating_hours").upsert(rows, {
+        onConflict: "department_id,location_id,season_id,day_of_week",
       });
 
       if (error) throw new Error(error.message);
@@ -126,7 +154,7 @@ export function useOperatingHours(locationId?: string) {
         },
       });
       queryClient.invalidateQueries({
-        queryKey: operatingHoursKeys(wsId!, locationId),
+        queryKey: operatingHoursKeys(wsId!, departmentId!, locationId, seasonId),
       });
       toast.success("Opening hours saved");
     },
