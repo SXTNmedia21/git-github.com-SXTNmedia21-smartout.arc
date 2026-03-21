@@ -1,12 +1,14 @@
 ---
 title: "Investigation & Design: Core Structure, Operating Hours & Cascade Model"
 status: in_progress
-updated: 2026-03-20
+updated: 2026-03-21
 created: 2026-03-19
 module: cross-cutting
 tags:
   [investigation, operating-hours, department, location, cascade, architecture, season, vaktlista]
 ---
+
+> **Canonical cascade reference:** `docs/cascade-spreadsheet-overview.md` — the Five Dimensions, waterfall layers, compliance rules, Riksavtalen rates, and schema gaps are all defined there. This document contains the investigation findings and design decisions that led to that architecture.
 
 # Investigation & Design: Core Structure, Operating Hours & Cascade Model
 
@@ -402,97 +404,29 @@ The cascade runs silently even without published shifts:
 
 ---
 
-# PART C: THE FOUR DOMAIN CATEGORIES
+# PART C: THE FIVE DIMENSIONS (Updated 2026-03-21)
 
-The cascade model rests on four primary domains. All four must be defined for the system to function.
+> Supersedes the original "Four Domain Categories." The fifth dimension (Service Concept) was identified by AI Council review on 2026-03-21 as the parameterizing layer that all previous categories missed.
+> Full specification: `docs/cascade-spreadsheet-overview.md`
 
-## Category 1: Operational Framework (Temporal + Physical Reality)
+| # | English | Norwegian | Core Question | Role in Cascade |
+|---|---------|-----------|---------------|-----------------|
+| D1 | Operational Envelope | Driftsrammer | When/where/with what capacity? | Defines time boundaries |
+| D2 | Resource Availability | Resurstilgang | Who is available, qualified, willing? | Enables solution |
+| D3 | Rules & Constraints | Regler og begrensninger | What is allowed/required/forbidden? | Constrains solution |
+| D4 | Demand Signal | Ettersporselsignal | How much activity to prepare for? | Drives need |
+| D5 | Service Concept | Driftskonsept | What kind of operation are we? | Parameterizes all others |
 
-**"When and where does this business operate?"**
+**Key insight:** D5 does NOT appear as a cascade layer. It sets coefficients and thresholds across D1-D4. A fine-dining restaurant and a fast-casual burger joint use the same cascade waterfall, but D5 changes the weights throughout.
 
-Contains:
+**Season impact by dimension:**
+- D1: DIRECT — season redefines operating hours and capacity
+- D2: INDIRECT — seasonal staff, student availability, vacation periods
+- D3: NONE — labor law and rules do not change with seasons
+- D4: DIRECT — demand profiles shift dramatically with seasons
+- D5: RARE — service concept is mostly stable, but some venues change style seasonally
 
-- Operating hours (per department, location, season, weekday)
-- Date overrides (holidays, special events, emergency closures)
-- Capacity constraints (max guests, open sections, uteservering)
-- Event/exception markers (julbord, closed kitchen, private events)
-
-**Role in cascade:** Defines time boundaries. This is the system's absolute source of truth for time.
-
-**Season impact:** DIRECT. Season redefines operating hours, capacity, open sections.
-
-## Category 2: Resource Availability (Supply Layer)
-
-**"What resources can you deploy?"**
-
-Contains:
-
-- Staff profiles + availability
-- Contract hours + constraints
-- Roles / competencies / certifications
-- Seniority levels
-- (Future industries: machines, rooms, vehicles)
-
-**Role in cascade:** Defines what is POSSIBLE. The system's constraint on solutions.
-
-**Season impact:** INDIRECT. Seasonal staff, student availability, vacation periods.
-
-## Category 3: Rules & Policy (Constraints Engine)
-
-**"What is ALLOWED?"**
-
-Contains:
-
-- Labor law (arbeidsmiljøloven — rest periods, max hours)
-- Collective agreements (Riksavtalen, tariffs)
-- Budget / cost caps
-- Internal rules ("min 1 senior per shift", "max 10 consecutive days")
-- Compliance requirements (HACCP, food safety certifications)
-
-**Role in cascade:** Defines guardrails. Constrains the solution space.
-
-**Season impact:** NONE. Rules don't change with seasons. Labor law is labor law.
-
-## Category 4: Demand Signal (Demand Layer)
-
-**"What does reality require?"**
-
-Contains (hospitality-specific):
-
-- Reservations / bookings
-- Walk-in forecasts
-- Occupancy per time slot
-- Season-based demand profile
-- Event load (concerts, holidays, tourism peaks)
-
-**Role in cascade:** Defines the DRIVER. What the system is solving for.
-
-**Season impact:** DIRECT. Demand profiles shift dramatically with seasons.
-
-## How the four categories create the cascade:
-
-```
-Demand signal (what do we need?)
-    ↓
-Operational framework (when/where can we operate?)
-    ↓
-Template shifts (structural patterns via anchors)
-    ↓
-Resource allocation (who is available?)
-    ↓
-Rule validation (is this legal/allowed?)
-    ↓
-Published shifts / sessions / hooks / notifications
-```
-
-| Category              | Role in cascade         |
-| --------------------- | ----------------------- |
-| Operational framework | Defines time boundaries |
-| Demand signal         | Determines need         |
-| Resources             | Enables solution        |
-| Rules                 | Constrains solution     |
-
-**The cascade is a constraint satisfaction + optimization process.**
+**The cascade is a constraint satisfaction + optimization process.** D4 drives need, D1 sets boundaries, D2 enables solutions, D3 constrains them, D5 parameterizes everything.
 
 ---
 
@@ -500,9 +434,9 @@ Published shifts / sessions / hooks / notifications
 
 Issues identified but not yet resolved. Must be addressed before implementation.
 
-### OQ-1: Employee availability vs roster vs template reconciliation
+### OQ-1: Employee availability vs roster vs template reconciliation — RESOLVED
 
-Three inputs that compete: template says "need someone 07-15", roster says "Per works Mon-Fri 07-15", availability says "Per is off Thursday." What is the priority order? How does the cascade resolve conflicts?
+Three inputs that compete: template says "need someone 07-15", roster says "Per works Mon-Fri 07-15", availability says "Per is off Thursday." Resolution: The Resource Matching layer (between L4 and L5 in the cascade) handles this. Input A = resources (contracts, availability, certs), Input B = compliance tasks. Output = staffing proposal with conflict flags. Priority: availability declarations > roster patterns > template defaults. Hard blocks (AML violations) cannot be overridden.
 
 ### OQ-2: Migration path from current operating_hours
 
@@ -524,9 +458,9 @@ When a year's seasons are set up: manual "prepare next year" action or auto-clon
 
 Category 4 (demand) is critical but we have no reservation integration yet. What is the MVP demand signal? Manual input? Historical patterns? Or is the cascade functional without demand for now (operating on just categories 1-3)?
 
-### OQ-7: Constraint solver priority
+### OQ-7: Constraint solver priority — PARTIALLY RESOLVED
 
-When the system can't satisfy all constraints: what is optimized first? Coverage > cost > fairness? Or configurable per workspace?
+Compliance enforcement uses four severity levels (confirmed 2026-03-21): Hard Block (no override: minors after 21:00, >69h/week, <11h rest, unsigned contract), Hard Warn (override with reason: >9h/day, >40h/week, missing cert), Soft Warn (display: cert expiring 30d, <7d notice, 6+ consecutive days), Display (supplements, weekly hours vs contracted). Full list: `docs/cascade-spreadsheet-overview.md`. Optimization priority order (coverage > cost > fairness) remains configurable per workspace — not yet locked.
 
 ### OQ-8: Confidence scoring
 
@@ -557,7 +491,7 @@ These must be frozen before any implementation begins:
 | Anchor system on template shifts           | ✅ Decided      |
 | Cascade via engine_process (not triggers)  | ✅ Decided      |
 | Two cascade modes (simulation + execution) | ✅ Decided      |
-| Four domain categories                     | ✅ Decided      |
+| Five dimensions (D1-D5)                    | ✅ Decided (2026-03-21) |
 | Three-layer shift architecture             | ✅ Decided      |
 | Open questions OQ-1 through OQ-10          | ⬜ Must resolve |
 
