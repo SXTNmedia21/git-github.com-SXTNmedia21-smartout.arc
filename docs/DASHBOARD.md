@@ -19,6 +19,7 @@ tags: [dashboard, worktrees, tracking]
 | wt-2 | `docs/cascade-five-dimensions` | cascade  | in_progress | Foundation built: 17 tables, 16 enums, 29 tests. Hours integrated: hook rewritten, 3 consumers updated, session planned hours wired. Next: cascade UI. 104 uncommitted docs audit changes. | None     | dirty  |
 | wt-3 | `feat/emma-arena-views`        | walkAi   | in_progress | Spec + mockups done, settings persistence committed. Implementation not started.                                                                                                           | None     | clean  |
 | wt-4 | `feat/vaktlista-view`          | schedule | in_progress | —                                                                                                                                                                                          | —        | —      |
+| wt-5 | `feat/payroll-foundation`      | payroll  | in_progress | Plans written + reviewed. 23 tables, 16 enums, 10 UI components. Ready for execution.                                                                                                      | None     | clean  |
 
 ## Parked Branches (no worktree)
 
@@ -34,7 +35,7 @@ tags: [dashboard, worktrees, tracking]
 | wt-2  | no (docs/cascade-five-dimensions) |
 | wt-3  | no (feat/emma-arena-views)        |
 | wt-4  | no (feat/vaktlista-view)          |
-| wt-5  | yes                               |
+| wt-5  | no (feat/payroll-foundation)      |
 | wt-15 | yes                               |
 | wt-20 | yes                               |
 
@@ -47,6 +48,7 @@ tags: [dashboard, worktrees, tracking]
 | wt-2 | contract-enhancements   | `docs/journeys/JOURNEY-contract-enhancements.md`   | done    |
 | wt-2 | cascade-core-foundation | `docs/journeys/JOURNEY-cascade-core-foundation.md` | missing |
 | wt-4 | infra-hardening         | `docs/journeys/JOURNEY-infra-hardening.md`         | missing |
+| wt-5 | payroll-foundation      | `docs/journeys/JOURNEY-payroll-foundation.md`      | missing |
 
 ## Recent Closures
 
