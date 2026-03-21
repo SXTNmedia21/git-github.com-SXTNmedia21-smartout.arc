@@ -70,9 +70,9 @@ describe("evaluateFrameworkRules", () => {
 
     const result = evaluateFrameworkRules(changes, rules, [], "2026-04-07");
     expect(result).toHaveLength(1);
-    expect(result[0].ruleId).toBe("r1");
-    expect(result[0].outcome).toBe("blocked");
-    expect(result[0].category).toBe("constraint");
+    expect(result[0]!.ruleId).toBe("r1");
+    expect(result[0]!.outcome).toBe("blocked");
+    expect(result[0]!.category).toBe("constraint");
   });
 
   it("does NOT trigger when threshold is not exceeded", () => {
@@ -130,8 +130,8 @@ describe("evaluateFrameworkRules", () => {
 
     const result = evaluateFrameworkRules(changes, rules, overrides, "2026-04-07");
     expect(result).toHaveLength(1);
-    expect(result[0].outcome).toBe("allowed_with_exception");
-    expect(result[0].exceptionPath).toBe("workspace_override");
+    expect(result[0]!.outcome).toBe("allowed_with_exception");
+    expect(result[0]!.exceptionPath).toBe("workspace_override");
   });
 
   it("non-overridable rule ignores workspace override outcome", () => {
@@ -166,7 +166,7 @@ describe("evaluateFrameworkRules", () => {
 
     const result = evaluateFrameworkRules(changes, rules, overrides, "2026-04-07");
     expect(result).toHaveLength(1);
-    expect(result[0].outcome).toBe("blocked"); // Override ignored
+    expect(result[0]!.outcome).toBe("blocked"); // Override ignored
   });
 
   it("expired override is ignored", () => {
@@ -201,7 +201,7 @@ describe("evaluateFrameworkRules", () => {
 
     const result = evaluateFrameworkRules(changes, rules, overrides, "2026-04-07");
     expect(result).toHaveLength(1);
-    expect(result[0].outcome).toBe("blocked"); // Expired override ignored
+    expect(result[0]!.outcome).toBe("blocked"); // Expired override ignored
   });
 
   it("config tightening override lowers threshold", () => {
@@ -296,8 +296,8 @@ describe("evaluateFrameworkRules", () => {
 
     const result = evaluateFrameworkRules(changes, rules, [], "2026-04-07");
     expect(result).toHaveLength(1);
-    expect(result[0].severity).toBe("soft_warn");
-    expect(result[0].category).toBe("advisory");
-    expect(result[0].outcome).toBe("review_required");
+    expect(result[0]!.severity).toBe("soft_warn");
+    expect(result[0]!.category).toBe("advisory");
+    expect(result[0]!.outcome).toBe("review_required");
   });
 });

@@ -14,7 +14,9 @@
 import type { AnchorInput, ComputedShiftTime, EffectiveHours } from "./types";
 
 function addMinutesToTime(time: string, minutes: number): { time: string; isNextDay: boolean } {
-  const [h, m] = time.split(":").map(Number);
+  const parts = time.split(":").map(Number);
+  const h = parts[0] ?? 0;
+  const m = parts[1] ?? 0;
   let totalMinutes = h * 60 + m + minutes;
 
   let isNextDay = false;
