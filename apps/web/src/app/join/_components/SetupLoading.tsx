@@ -50,16 +50,33 @@ export function SetupLoading() {
       flushPersist();
 
       try {
-        await completeSignup({
+        const result = await completeSignup({
           step1: state.step1 as Step1Data,
           step2: state.step2 as Step2Data,
           step3: state.step3 as Step3Data,
           step4: state.step4 as Step4Data,
           step5: state.step5 as Step5Data,
           step6: state.step6 as Step6Data,
+          intelligence: state.intelligence ?? null,
         });
 
-        router.push(`/dashboard`);
+        // Clear wizard state from localStorage — signup is complete
+        try {
+          localStorage.removeItem("smartout_signup_wizard");
+        } catch {
+          // localStorage might be unavailable
+        }
+
+        // Redirect to the new workspace dashboard
+        if (result?.slug && window.location.hostname !== "localhost") {
+          // Production: use subdomain routing
+          window.location.href = `https://${result.slug}.smartout.ai/dashboard`;
+        } else if (result?.workspaceId) {
+          // Local dev: use ?ws= parameter
+          router.push(`/dashboard?ws=${result.workspaceId}`);
+        } else {
+          router.push("/dashboard");
+        }
       } catch (err) {
         console.error("[SetupLoading] Setup failed:", err);
         setError(err instanceof Error ? err.message : "Noe gikk galt under oppsettet.");

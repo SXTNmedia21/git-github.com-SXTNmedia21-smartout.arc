@@ -56,6 +56,7 @@ interface SetupData {
     menuDescription?: string;
   };
   step6: { employeeCount?: string; teamInvites?: string[] };
+  intelligence?: Record<string, unknown> | null;
 }
 
 export async function completeSignup(data: SetupData) {
@@ -153,6 +154,7 @@ export async function completeSignup(data: SetupData) {
       slug: finalSlug,
       phone: data.step4.phone,
       email: user.email,
+      onboarding_completed: true,
     })
     .select("workspace_id")
     .single();
@@ -168,6 +170,7 @@ export async function completeSignup(data: SetupData) {
         slug: finalSlug,
         phone: data.step4.phone,
         email: user.email,
+        onboarding_completed: true,
       })
       .select("workspace_id")
       .single();
@@ -283,11 +286,14 @@ export async function completeSignup(data: SetupData) {
     }
   }
 
-  // 9. Link scraped data to workspace
+  // 9. Link scraped data to workspace + save intelligence
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (admin as any)
     .from("company_scraped_data")
-    .update({ workspace_id: workspace.workspace_id })
+    .update({
+      workspace_id: workspace.workspace_id,
+      ...(data.intelligence ? { parsed_data: data.intelligence } : {}),
+    })
     .eq("auth_id", user.id);
 
   // 10. Mark signup as completed
