@@ -8,7 +8,7 @@ tags:
   [investigation, operating-hours, department, location, cascade, architecture, season, vaktlista]
 ---
 
-> **Canonical cascade reference:** `docs/cascade-spreadsheet-overview.md` — the Six Dimensions (D1-D6), waterfall layers, compliance rules, Riksavtalen rates, and schema gaps are all defined there. This document contains the investigation findings and design decisions that led to that architecture.
+> **Canonical cascade reference:** `docs/cascade-spreadsheet-overview.md` — the 6D + 4C + K1 model (execution dimensions, control planes, knowledge substrate), waterfall layers, compliance rules, Riksavtalen rates, and schema gaps are all defined there. This document contains the investigation findings and design decisions that led to that architecture.
 
 # Investigation & Design: Core Structure, Operating Hours & Cascade Model
 
@@ -404,27 +404,46 @@ The cascade runs silently even without published shifts:
 
 ---
 
-# PART C: THE SIX DIMENSIONS (Updated 2026-03-21)
+# PART C: THE 6D + 4C + K1 MODEL (Finalized 2026-03-21)
 
-> Supersedes the original "Four Domain Categories." D5 (Service Concept) identified by AI Council on 2026-03-21. D6 (Production & Product) added after stress-test (7/0 unanimous).
+> Stress-tested by 12-persona AI Council (hospitality + infrastructure + AI).
 > Full specification: `docs/cascade-spreadsheet-overview.md`
 
-| # | English | Norwegian | Core Question | Role in Cascade |
-|---|---------|-----------|---------------|-----------------|
-| D1 | Operational Envelope | Driftsrammer | When/where/with what capacity? | Defines time boundaries |
-| D2 | Resource Availability | Resurstilgang | Who is available NOW and within the planning horizon? | Enables solution |
-| D3 | Rules & Constraints | Regler og begrensninger | What is allowed/required/forbidden? | Constrains solution |
-| D4 | Demand Signal | Ettersporselsignal | How much activity to prepare for? | Drives need |
-| D5 | Service Concept | Driftskonsept | What kind of operation are we? | Parameterizes all others |
-| D6 | Production & Product | Produksjon og produkt | What must be produced and what is the current production state? | Adds temporal debt + live state |
+### Execution Dimensions (D1-D6)
 
-**Key insights:**
-- D5 does NOT appear as a cascade layer. It sets coefficients and thresholds across D1-D4, D6.
-- D6 has a UNIQUE property: **temporal debt**. Production state accumulates — yesterday's deficit becomes today's extra workload. No other dimension has this property.
-- D1 must be multi-instance aware for multi-location businesses.
-- D2 must be time-projected: "Who is available NOW and within the planning horizon."
+| # | Name | Core Question | Type |
+|---|------|---------------|------|
+| D1 | Operational Envelope | When/where/with what capacity? | Structural |
+| D2 | Resource Availability | Who can/will/may work? | Volatile (time-projected) |
+| D3 | Rules & Constraints | What's allowed/forbidden? | Stable |
+| D4 | Demand Signal | How much activity? | Predictive |
+| D5 | Service Concept | What kind of operation? | Strategic |
+| D6 | Production & Product | What to produce, what's the state? | Live (temporal debt) |
 
-**Season impact by dimension:**
+### Control Planes (C1-C4) — replaces earlier "intelligence layer" concept
+
+| # | Name | Core Question | Loop |
+|---|------|---------------|------|
+| C1 | Observability & Calibration | What happened vs plan? | Plan -> actual -> correction |
+| C2 | Context & Interaction | What's relevant now? | State -> inference -> explanation -> response |
+| C3 | Commercial & Outcome | What value was created? | Value -> attribution -> pricing |
+| C4 | Policy & Governance | What is the system ALLOWED to do? | Capability -> permission -> audit |
+
+### Knowledge Substrate (K1) — shared, not a plane
+
+Semantic memory (engine_memory), workspace knowledge (workspace_doc_chunk), historical patterns (planning_factors), learned factors (adjustment_factors), policy artifacts, retrieval index (pgvector). Used by C1, C2, C4.
+
+### Critical separation: "Confident" does not equal "Authorized"
+
+- C1 says: "System BELIEVES Friday needs +15% staff"
+- C4 says: "System is ALLOWED to auto-adjust up to 5%"
+- C2 says: "This is HOW we explain it to the manager"
+- C3 says: "That adjustment SAVED 12,000 kr last month"
+
+C4 gates C1, always.
+
+### Season impact by dimension
+
 - D1: DIRECT — season redefines operating hours and capacity
 - D2: INDIRECT — seasonal staff, student availability, vacation periods
 - D3: NONE — labor law and rules do not change with seasons
@@ -432,7 +451,7 @@ The cascade runs silently even without published shifts:
 - D5: RARE — service concept is mostly stable, but some venues change style seasonally
 - D6: INDIRECT — seasonal menus change production requirements, but production state itself is live
 
-**The cascade is a constraint satisfaction + optimization process.** D4 drives need, D1 sets boundaries, D2 enables solutions, D3 constrains them, D5 parameterizes everything, D6 adds temporal debt and live state.
+**The cascade is a constraint satisfaction + optimization process.** D4 drives need, D1 sets boundaries, D2 enables solutions, D3 constrains them, D5 parameterizes everything, D6 adds temporal debt and live state. Control planes observe (C1), explain (C2), value (C3), and govern (C4) the entire process.
 
 ---
 
@@ -497,7 +516,7 @@ These must be frozen before any implementation begins:
 | Anchor system on template shifts           | ✅ Decided      |
 | Cascade via engine_process (not triggers)  | ✅ Decided      |
 | Two cascade modes (simulation + execution) | ✅ Decided      |
-| Six dimensions (D1-D6)                     | ✅ Decided (2026-03-21) |
+| 6D + 4C + K1 architecture                  | ✅ Decided (2026-03-21) |
 | Three-layer shift architecture             | ✅ Decided      |
 | Open questions OQ-1 through OQ-10          | ⬜ Must resolve |
 

@@ -1,5 +1,5 @@
 ---
-title: "Cascade Architecture — The Six Dimensions & Spreadsheet Model"
+title: "Cascade Architecture — 6D + 4C + K1 Model"
 status: canonical
 updated: 2026-03-21
 created: 2026-03-21
@@ -7,25 +7,26 @@ module: cross-cutting
 tags: [cascade, scheduling, dimensions, operating-hours, payroll, compliance, architecture]
 ---
 
-# Cascade Architecture — The Six Dimensions & Spreadsheet Model
+# Cascade Architecture — 6D + 4C + K1 Model
 
 > Canonical source for how Smartout's scheduling, staffing, and operations cascade works.
 > Every doc that mentions cascade, scheduling, salary, or operating hours should reference this file.
+> Architecture stress-tested by 12-persona AI Council (hospitality + infrastructure + AI) on 2026-03-21.
 
 ---
 
-## The Six Dimensions
+## Execution Dimensions (D1-D6)
 
-All scheduling and staffing decisions in Smartout are shaped by six dimensions. D1-D5 were confirmed by AI Council + Pontus on 2026-03-21. D6 added after stress-test on 2026-03-21 (7/0 unanimous).
+Six dimensions shape all scheduling and staffing decisions. These are the EXECUTION layer — where authoritative data LIVES.
 
-| # | English | Norwegian | Core Question | Type |
-|---|---------|-----------|---------------|------|
+| # | Name | Norwegian | Core Question | Type |
+|---|------|-----------|---------------|------|
 | D1 | Operational Envelope | Driftsrammer | When/where/with what capacity? | Structural |
-| D2 | Resource Availability | Resurstilgang | Who is available NOW and within the planning horizon? | Live |
-| D3 | Rules & Constraints | Regler og begrensninger | What is allowed/required/forbidden? | Static |
-| D4 | Demand Signal | Ettersporselsignal | How much activity to prepare for? | Forecast |
-| D5 | Service Concept | Driftskonsept | What kind of operation are we? | Parameterizing |
-| D6 | Production & Product | Produksjon og produkt | What must be produced and what is the current production state? | Live/accumulating |
+| D2 | Resource Availability | Resurstilgang | Who is available NOW and within the planning horizon? | Volatile (time-projected) |
+| D3 | Rules & Constraints | Regler og begrensninger | What is allowed/required/forbidden? | Stable |
+| D4 | Demand Signal | Ettersporselsignal | How much activity to prepare for? | Predictive |
+| D5 | Service Concept | Driftskonsept | What kind of operation are we? | Strategic |
+| D6 | Production & Product | Produksjon og produkt | What to produce, what's the state? | Live (temporal debt) |
 
 **D5 is special:** It parameterizes coefficients in all other dimensions. A fine-dining restaurant and a fast-casual burger joint have the same cascade layers, but D5 changes the weights, thresholds, and defaults throughout. D5 does NOT appear as a cascade layer itself.
 
@@ -33,9 +34,9 @@ All scheduling and staffing decisions in Smartout are shaped by six dimensions. 
 
 ### Dimension Details
 
-**D1 — Operational Envelope:** Operating hours per department/location/season/weekday. Date overrides (holidays, events, closures). Capacity constraints (max guests, open sections, uteservering). Season as context switch — redefines hours and capacity, not rules. **Note:** D1 must be multi-instance aware for multi-location businesses — each location has its own envelope.
+**D1 — Operational Envelope:** Operating hours per department/location/season/weekday. Date overrides (holidays, events, closures). Capacity constraints (max guests, open sections, uteservering). Season as context switch — redefines hours and capacity, not rules. Multi-instance aware for multi-location businesses.
 
-**D2 — Resource Availability:** Staff profiles, contract hours, availability declarations, certifications, seniority, cost. Future: machines, rooms, vehicles for other industries. **Note:** D2 must be time-projected — "Who is available NOW and within the planning horizon" (not just a static roster).
+**D2 — Resource Availability:** Staff profiles, contract hours, availability declarations, certifications, seniority, cost. Future: machines, rooms, vehicles for other industries. Time-projected — "Who is available NOW and within the planning horizon" (not just a static roster).
 
 **D3 — Rules & Constraints:** Labor law (Arbeidsmiljoeloven), collective agreements (Riksavtalen), budget caps, internal rules, compliance requirements (HACCP, food safety certs). Rules do NOT change with seasons.
 
@@ -44,6 +45,60 @@ All scheduling and staffing decisions in Smartout are shaped by six dimensions. 
 **D5 — Service Concept:** Industry, niche, price segment, service style. Determines staffing ratios, skill requirements, acceptable wait times, quality thresholds. Configured per workspace via industry engine package.
 
 **D6 — Production & Product:** The live state of what must be produced and what has been produced. Unlike other dimensions, D6 accumulates — yesterday's deficit becomes today's extra workload.
+
+---
+
+## Control Planes (C1-C4)
+
+Four control planes operate ACROSS the execution dimensions. They observe, interpret, govern, and value what happens in D1-D6. These replace the earlier monolithic "intelligence layer" concept.
+
+| # | Name | Core Question | Loop | Smartout Code |
+|---|------|---------------|------|---------------|
+| C1 | Observability & Calibration | What happened vs plan? How to correct? | Plan -> actual -> correction | telemetry, activity_trail, guardian_log, planning_factors, adjustment_factors |
+| C2 | Context & Interaction | What's relevant now? How to explain it? | State -> inference -> explanation -> response | mr-botsson.ts, posture.ts, collector.ts, Stage Engine, agent_relationship |
+| C3 | Commercial & Outcome | What value was created? What does it cost? | Value -> attribution -> pricing | Stripe, contract-service, workspace_kpi_target, daily_reconciliation |
+| C4 | Policy & Governance | What is the system ALLOWED to do? | Capability -> permission -> audit | engine_authority_config, guardian, deviation, RLS, shift_approval |
+
+### Critical Separation Principle
+
+- **C1** says: "System BELIEVES Friday needs +15% staff"
+- **C4** says: "System is ALLOWED to auto-adjust up to 5%"
+- **C2** says: "This is HOW we explain it to the manager"
+- **C3** says: "That adjustment SAVED 12,000 kr last month"
+
+**"Confident" does not equal "Authorized" — C4 gates C1, always.**
+
+### How Control Planes Interact with Dimensions
+
+| Control Plane | Reads from | Writes to / Affects |
+|---------------|------------|---------------------|
+| C1 (Observability) | All D1-D6 (actual vs planned) | adjustment_factors -> D4 tuning, planning_factors -> D1 calibration |
+| C2 (Context) | D1-D6 state, K1 memory | Employee/manager-facing explanations, agent conversations |
+| C3 (Commercial) | D2 (cost), D4 (demand), D6 (production) | KPI targets, reconciliation, billing |
+| C4 (Governance) | D3 (rules), D2 (certs/qualifications) | Authority limits on C1 corrections, deviation tracking, approval gates |
+
+---
+
+## Knowledge Substrate (K1)
+
+Shared memory layer used by multiple control planes. NOT a control plane itself — it is the substrate they read from and write to.
+
+| Component | Used by | Smartout Code |
+|-----------|---------|---------------|
+| Semantic memory | C1 (priors), C2 (context), C4 (governance) | engine_memory (pgvector) |
+| Workspace knowledge | C2 (retrieval), D3/D5 (institutional) | workspace_doc_chunk |
+| Historical patterns | C1 (calibration) | planning_factors |
+| Learned factors | C1 (corrections), D4 (demand tuning) | adjustment_factors |
+| Policy artifacts | C4 (authority), D3 (rules) | engine_authority_config, policy/protocol chain |
+| Retrieval index | C2 (contextual search) | pgvector embeddings |
+
+---
+
+## Boundary Rules
+
+1. **Primary dimension = where authoritative data LIVES**, not where it originates. Fire code originates externally but is owned by D3 (rules) and constrains D1 (envelope).
+2. **D1 = physics. D3 = norms.** Physical capacity vs legal/contractual rules. Both constrain, but from different sources.
+3. **D5 = design intent. D6 = runtime state.** D5 says "we are a fine-dining restaurant" (stable). D6 says "the fryer is broken and we are 3 prep hours behind" (live).
 
 ### D6 Factors (~15)
 
@@ -297,7 +352,7 @@ Fields and tables that must be created before the full cascade + payroll system 
 1. **Declarative truth vs derived artifacts.** Only source-of-truth data is stored. Everything downstream must be derivable and recomputable.
 2. **Season modifies reality, not rules.** Season redefines operating hours and demand profiles. Labor law and contracts do not change with seasons.
 3. **Overrides only at the real-world layer.** Template shifts and operating hours are structural. Manual edits happen on schedule_shift.
-4. **The cascade is a constraint satisfaction + optimization process.** D4 (demand) drives need, D1 (envelope) sets boundaries, D2 (resources) enables solutions, D3 (rules) constrains them, D5 (concept) parameterizes everything, D6 (production) adds temporal debt and live state.
+4. **The cascade is a constraint satisfaction + optimization process.** D4 (demand) drives need, D1 (envelope) sets boundaries, D2 (resources) enables solutions, D3 (rules) constrains them, D5 (concept) parameterizes everything, D6 (production) adds temporal debt and live state. Control planes observe (C1), explain (C2), value (C3), and govern (C4) the entire process. K1 provides shared memory across all planes.
 
 ---
 

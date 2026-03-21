@@ -100,7 +100,7 @@ Master navigation map for all documentation. An agent reads this to find any doc
 
 | id | File | Status | Description |
 |----|------|--------|-------------|
-| CASCADE_MASTER | cascade-spreadsheet-overview.md | canonical | Six Dimensions (D1-D6), waterfall layers, Riksavtalen rates, compliance enforcement, schema gaps |
+| CASCADE_MASTER | cascade-spreadsheet-overview.md | canonical | 6D + 4C + K1 model, waterfall layers, Riksavtalen rates, compliance enforcement, schema gaps |
 | CASCADE_INVESTIGATION | INVESTIGATION_OPERATING_HOURS_CORE_STRUCTURE.md | in_progress | Investigation findings + design decisions |
 | CASCADE_ADR_DRAFT | decisions/ADR-DRAFT-core-hierarchy-cascade.md | draft | Draft ADR for core hierarchy changes |
 
