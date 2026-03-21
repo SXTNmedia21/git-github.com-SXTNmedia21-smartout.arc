@@ -1,7 +1,7 @@
 ---
 title: Session Log
 status: in_progress
-updated: 2026-03-21
+updated: 2026-03-22
 created: 2026-03-02
 module: cross-cutting
 tags: [session, continuity]
@@ -9,51 +9,58 @@ tags: [session, continuity]
 
 ## Last Session
 
-| Field   | Value                                                         |
-| ------- | ------------------------------------------------------------- |
-| Date    | 2026-03-19 to 2026-03-21 (multi-day session)                  |
-| Branch  | `feat/workspace-intelligence` (wt-1) merged to development    |
-| Feature | workspace-intelligence (join wizard Step 3 enrich + generate) |
-| Status  | in_progress (9/10 tasks done, transition fixes applied)       |
+| Field   | Value                                                                 |
+| ------- | --------------------------------------------------------------------- |
+| Date    | 2026-03-22                                                            |
+| Branch  | `docs/cascade-five-dimensions` (wt-2)                                 |
+| Feature | cascade-docs-alignment + mobile parity rule                           |
+| Status  | in_progress — docs aligned, ready for cascade Phase C or next feature |
 
 ### What was done
 
-1. Brainstormed + designed workspace intelligence pipeline
-2. Built full pipeline: Scrapling enrich/generate, Next.js orchestrator, React hook, Step 3 rewrite, Step 5 pre-population
-3. Removed old code: useAiContent, /api/generate-content, Scrapling /generate-content
-4. BRREG founding date: Added stiftelsesdato extraction
-5. Infrastructure: Two-vault env template, SERVICE_ROUTING.md, setup-vault.sh --sync
-6. Transition fixes: onboarding_completed flag, slug redirect, intelligence persistence, localStorage cleanup
-7. Playwright E2E: 8 tests passing
-8. Secrets protocol skill updated: two-vault architecture, WSL eval pattern
+**System Steward Review:**
+
+1. Dispatched system-steward to review entire system against Cascade Core Foundation spec
+2. Found: Phase A schema complete, Phase B partial, active conflicts (settings hook, wrong hospitality.ts rates), empty framework tables
+3. Steward recommended blocking full rewrite; supervisor recommended parallel execution — debated and chose full rewrite per user decision
+
+**Cascade Documentation Alignment (full sweep):** 4. Brainstormed approach: 3 options debated, chose Approach C (parallel layers) 5. Designed 5-section spec: CLAUDE.md rewrite + reference docs + module docs + agent memory + execution sequence 6. Spec written, reviewed by steward (7 conditions found), all conditions fixed 7. Implementation plan written (9 tasks), reviewed by steward (pass with conditions), conditions fixed 8. Executed via subagent-driven development:
+
+- Task 0: Existing 69 docs changes already committed (verified)
+- Task 1: CLAUDE.md rewritten through cascade lens (foreground agent)
+- Tasks 2-7: 6 agents dispatched in parallel (zero file overlap):
+  - DATABASE.md: dimension tags, cascade tables section, triple OH warning
+  - INDEX.md: source of truth hierarchy, ADR count corrected (55)
+  - 5 core modules deep-rewritten (3, 4, 4.5, 8, 15)
+  - 18 modules got cascade mapping headers
+  - SYSTEM_OVERVIEW.md rewritten in Swedish with cascade model
+  - Steward + supervisor agent memory checklists created
+- Task 8: Consistency verification passed (23/23 cross-refs, no orphaned concepts, no hardcoded rates)
+
+9. All committed in `66a3e0d5`
+
+**Mobile Parity Rule:** 10. Added React Native + Expo to tech stack in CLAUDE.md 11. Added Mobile Parity convention: data layer must support both web and mobile 12. Added enforcement rule: never build web-only architecture 13. Committed in `9aeff644`
 
 ### Where we stopped
 
-- Task 10 (live AI test) blocked on vault setup
-- wt-1 still exists (feature merged but worktree not closed)
+- All cascade docs alignment work committed and verified
+- Mobile parity rule committed
+- CLAUDE.md now cascade-aware (I1+6D+4C+K1a/K1b as organizing principle)
+- All 23 module docs have cascade mapping headers
+- Steward + supervisor have cascade enforcement checklists
 
-### Known blockers
+### Known blockers / errors
 
 - Vault fields not created yet (service URLs need op item edit)
 - Production vault smartout_ai_prod not created
-- Caddy DNS resolves to production IP, not localhost
+- `hospitality.ts` rates still WRONG in code (documented in CLAUDE.md as warning)
+- Settings operating hours hook still reads legacy table (documented)
 
 ### Pending decisions
 
-- [ ] Run op item edit commands for vault fields
-- [ ] Create smartout_ai_prod vault
+- [ ] Process docs/needs-rewrite/ merge candidates (12 files)
 - [ ] Close wt-1 worktree
-- [ ] Full E2E test with live AI
-- [ ] Step 6 team invites UI (exists but not wired)
-
-### Vault setup commands (ready to run)
-
-```bash
-eval $(op signin)
-op item edit "Scrapling" --vault smartout_ai url=http://localhost:8000
-op item edit "Stage-Engine" --vault smartout_ai url=http://localhost:5010
-op item edit "Contract-Service" --vault smartout_ai url=http://localhost:5012
-op item edit "Shift-MCP" --vault smartout_ai url=http://localhost:5011
-op item edit "SmartOut" --vault smartout_ai root_domain=localhost landing_url=http://localhost:3055 web_app_url=http://localhost:3060 node_env=development environment=development revalidation_secret=local-revalidation-secret
-op item edit "n8n" --vault smartout_ai host=localhost webhook_url=http://localhost:5678/
-```
+- [ ] Start Phase C bootstrap (framework seed data + bootstrap service)
+- [ ] Fix hospitality.ts wrong rates
+- [ ] Fix settings operating hours hook to read cascade tables
+- [ ] Which feature to work on next (cascade Phase C vs other worktree work)

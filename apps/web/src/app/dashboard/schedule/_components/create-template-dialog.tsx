@@ -111,6 +111,7 @@ export function CreateTemplateDialog({ open, onOpenChange }: CreateTemplateDialo
       id: crypto.randomUUID(),
       name: name.trim(),
       department: department.trim(),
+      departmentId: null,
       shifts: validShifts.map((s) => ({
         employeeId: null,
         role: s.role.trim(),

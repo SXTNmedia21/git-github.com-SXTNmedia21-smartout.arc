@@ -5,7 +5,7 @@ version: "1.0"
 status: canonical
 layer: module
 created: 2026-02-24
-updated: 2026-02-28
+updated: 2026-03-22
 author: pontus
 supersedes: []
 superseded_by: null
@@ -18,6 +18,7 @@ tags:
   - protocol-training
   - knowledge-tests
   - spaced-repetition
+  - cascade
 tables:
   - protocol_assignment
   - knowledge_test_attempt
@@ -26,6 +27,17 @@ changelog:
   - date: 2026-02-28
     change: "Added YAML frontmatter"
 ---
+
+## Cascade Mapping
+
+> This module's relationship to the Cascade Core Foundation
+> (spec: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`)
+
+| Dimension                | Role                                                        |
+| ------------------------ | ----------------------------------------------------------- |
+| D3 Rules & Constraints   | Primary — training requirements constrain who can work what |
+| D2 Resource Availability | Produces — readiness scores determine schedulable capacity  |
+| K1a Industry Knowledge   | Consumes — industry-standard training templates             |
 
 # Module 6: Opplæring & Kompetanse (Training & Competence)
 

@@ -1,11 +1,22 @@
 ---
 title: "Module 19: Menu & Production System"
 status: draft
-updated: 2026-03-11
+updated: 2026-03-22
 created: 2026-03-01
 module: production
-tags: [menu, production, recipe, kitchen]
+tags: [menu, production, recipe, kitchen, cascade]
 ---
+
+## Cascade Mapping
+
+> This module's relationship to the Cascade Core Foundation
+> (spec: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`)
+
+| Dimension               | Role                                                     |
+| ----------------------- | -------------------------------------------------------- |
+| D6 Production & Product | Primary — menu items, recipes, production planning       |
+| D4 Demand Signal        | Consumes — production volumes driven by demand forecasts |
+| D5 Service Concept      | Consumes — menu structure reflects service concept       |
 
 # Module 19: Menu & Production System
 

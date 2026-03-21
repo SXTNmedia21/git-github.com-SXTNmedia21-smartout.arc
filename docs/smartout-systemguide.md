@@ -4,6 +4,7 @@ audience: power-user
 language: no
 updated: 2026-03-05
 tags: [overview, system, operations, readiness, ai, onboarding]
+note: "Norwegian version. Swedish version: SMARTOUT_SYSTEM_OVERVIEW.md"
 ---
 
 # Smartout — Systemguide

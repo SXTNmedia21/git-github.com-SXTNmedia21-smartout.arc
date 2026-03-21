@@ -151,7 +151,9 @@ export function useSaveTemplate() {
 
 type UpdateTemplateInput = {
   id: string;
-  patch: Partial<Pick<ShiftTemplate, "name" | "department" | "includeAssignments">>;
+  patch: Partial<
+    Pick<ShiftTemplate, "name" | "department" | "departmentId" | "includeAssignments">
+  >;
 };
 
 export function useUpdateTemplate() {
@@ -167,6 +169,7 @@ export function useUpdateTemplate() {
       const dbPatch: Record<string, unknown> = {};
       if (patch.name !== undefined) dbPatch.name = patch.name;
       if (patch.department !== undefined) dbPatch.department = patch.department;
+      if (patch.departmentId !== undefined) dbPatch.department_id = patch.departmentId;
       if (patch.includeAssignments !== undefined)
         dbPatch.include_assignments = patch.includeAssignments;
 

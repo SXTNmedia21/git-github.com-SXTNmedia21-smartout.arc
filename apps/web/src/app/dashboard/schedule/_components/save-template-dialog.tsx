@@ -85,6 +85,7 @@ export function SaveTemplateDialog({ dayShifts, open, onOpenChange }: SaveTempla
       id: crypto.randomUUID(),
       name: name.trim(),
       department: department.trim(),
+      departmentId: null,
       shifts: templateShifts,
       includeAssignments,
       createdBy: profileId ?? "",

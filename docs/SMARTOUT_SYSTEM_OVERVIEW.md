@@ -1,10 +1,12 @@
 ---
 title: "Smartout — Systemöversikt"
 status: in_progress
-updated: 2026-03-05
+updated: 2026-03-22
 created: 2026-03-05
 module: root
-tags: [overview, system, concepts, readiness, operations, ai]
+tags: [overview, system, concepts, readiness, operations, ai, cascade]
+language: sv
+note: "Swedish version. Norwegian version: smartout-systemguide.md"
 ---
 
 # Smartout — Systemöversikt
@@ -25,13 +27,43 @@ Mr. Botsson — systemets AI-kollega — är inte ett tillägg ovanpå plattform
 
 ---
 
-## Systemets byggstenar
+## Cascademodellen — hur Smartout förstår en verksamhet
 
-Smartout är organiserat i ett antal kärnkoncept som hänger tätt samman. De kan läsas separat, men förstås bäst i relation till varandra.
+Bakom alla funktioner i Smartout finns en enhetlig tankemodell vi kallar **Cascade**. Den beskriver hur systemet förstår, planerar och styr en verksamhet — inte genom enskilda funktioner, utan genom sex sammanlänkade dimensioner och fyra kontrollplan.
+
+**Sex dimensioner fångar verkligheten:**
+
+| Dimension               | Vad den beskriver                                                           |
+| ----------------------- | --------------------------------------------------------------------------- |
+| **D1** Driftsrammer     | Organisationens struktur — avdelningar, lokaler, roller, regler             |
+| **D2** Personalresurser | Vilka människor som finns, deras kompetens och tillgänglighet               |
+| **D3** Regelmotor       | Arbetsrätt, kollektivavtal, interna policyer — det som sätter gränser       |
+| **D4** Efterfrågesignal | Hur många gäster, vilken omsättning, vilken belastning — per timme, per dag |
+| **D5** Driftskoncept    | Menyer, serviceformat, öppettider — hur verksamheten vill möta gästerna     |
+| **D6** Produktionsplan  | Det färdiga resultatet: schema, uppgifter, bemanning, kontroller            |
+
+**Fyra kontrollplan övervakar och styr:**
+
+| Kontrollplan        | Vad det gör                                                        |
+| ------------------- | ------------------------------------------------------------------ |
+| **C1** Kalibrering  | Bedömer vad systemet tror sig veta — och hur säkert det är         |
+| **C2** Interaktion  | Förklarar varje beslut — varför just detta schema, denna bemanning |
+| **C3** Kommersiellt | Mäter ekonomisk påverkan — kostnad, intäkt, marginal               |
+| **C4** Styrning     | Ser till att regler följs — lagar, avtal, interna policyer         |
+
+Dimensionerna flödar in i varandra som ett vattenfall — därav namnet _Cascade_. När en säsong ändras, när en medarbetare blir sjuk, eller när en meny byts ut, propagerar förändringen genom alla berörda dimensioner och kontrollplanen kvalitetssäkrar varje steg.
+
+Du behöver inte tänka på dimensioner och kontrollplan när du använder Smartout. Men de finns där bakom varje beslut systemet föreslår.
 
 ---
 
-### 1. Organisationsstruktur — scenen innan allt börjar
+## Systemets byggstenar
+
+Smartout är organiserat i ett antal kärnkoncept som hänger tätt samman. De kan läsas separat, men förstås bäst i relation till varandra. Varje byggsten motsvarar en eller flera dimensioner i Cascademodellen ovan — vi anger dem i rubriken som referens.
+
+---
+
+### 1. Organisationsstruktur — scenen innan allt börjar (D1 Driftsrammer)
 
 Innan ett enda schema kan läggas eller en enda uppgift skapas måste verksamheten vara kartlagd.
 
@@ -47,7 +79,7 @@ Det handlar inte om ett organisationsschema i traditionell mening. Det handlar o
 
 ---
 
-### 2. Säsong — planeringens fundament
+### 2. Säsong — planeringens fundament (D4 Efterfrågesignal + D5 Driftskoncept)
 
 En säsong är den operativa tidsperiod verksamheten planerar kring. Det kan vara sommarsäsong, vintersäsong, julperiod eller ett helt kalenderår. Säsongen är ramen allt annat hänger på.
 
@@ -68,7 +100,7 @@ Säsongen avslutas med en stängning — och historiken lever kvar för jämför
 
 ---
 
-### 3. Schemaläggning — vem, vad och när
+### 3. Schemaläggning — vem, vad och när (D6 Produktionsplan, driven av D1+D2+D3)
 
 Schemaläggning i Smartout sker i ett rutnät: medarbetare vertikalt, dagar horisontalt. Varje cell är ett skift.
 
@@ -86,7 +118,7 @@ Lönetillägg, övertidsregler och avspasering styrs av arbetsrätten (Arbeidsmi
 
 ---
 
-### 4. Operationer & Daglig styrning — varje dag som en enhet
+### 4. Operationer & Daglig styrning — varje dag som en enhet (D6 Produktionsplan + C3 Kommersiellt)
 
 Det finns ett koncept i Smartout som är viktigare än alla andra att förstå: **Avdelningssessionen**.
 
@@ -131,7 +163,7 @@ Det som aktiverar en Roadmap är en **hook** — en tidpunkt eller händelse som
 
 ---
 
-### 5. Avstämning — den digitala handoffen
+### 5. Avstämning — den digitala handoffen (C3 Kommersiellt + C4 Styrning)
 
 Smartout bygger på en idé om att varje dag måste stängas ordentligt. Inte bara operativt — utan som ett gemensamt ansvar mellan personal och ledning. Det sker genom tre nivåer av avstämning, där varje nivå bygger på den föregående.
 
@@ -161,7 +193,7 @@ Avstämningssystemet är en statisk kontrollpunkt. Det måste genomföras för a
 
 ---
 
-### 6. Beredskap (Readiness) — det centrala produktmåttet
+### 6. Beredskap (Readiness) — det centrala produktmåttet (D2 Personalresurser + D3 Regelmotor)
 
 Beredskap är det enskilt viktigaste begreppet i Smartout.
 
@@ -185,7 +217,7 @@ När en medarbetare börjar i ett team tilldelas de automatiskt rätt policyer �
 
 ---
 
-### 7. HACCP & Livsmedelssäkerhet — compliance som en del av driften
+### 7. HACCP & Livsmedelssäkerhet — compliance som en del av driften (D3 Regelmotor + C4 Styrning)
 
 HACCP i Smartout är inte ett separat system. Det är styrmodellen (Policy → Protokoll → Procedur → Rutin) tillämpad på livsmedelssäkerhet.
 
@@ -195,7 +227,7 @@ Allt är tidsstämplat. Allt är spårbart. Allt är redo för Mattilsynet.
 
 ---
 
-### 8. Mr. Botsson — AI-kollegiet
+### 8. Mr. Botsson — AI-kollegiet (C1 Kalibrering + C2 Interaktion)
 
 Mr. Botsson är inte en chatbot. Det är ett konversationslager ovanpå hela plattformen, med en tydlig personlighet och minne.
 
@@ -218,9 +250,9 @@ Han är inte ett verktyg du väljer att använda. Han är kollegan som alltid fi
 
 ---
 
-## Helheten — plan → utför → mät → lär
+## Helheten — plan, utför, mät, lär
 
-Det som gör Smartout sammanhängande är att alla dessa delar hänger ihop i ett naturligt flöde:
+Det som gör Smartout sammanhängande är att alla dessa delar hänger ihop i ett naturligt flöde — Cascademodellens dimensioner och kontrollplan i praktiken:
 
 ```
 Säsong skapas          → Mål, team, policyer, budget

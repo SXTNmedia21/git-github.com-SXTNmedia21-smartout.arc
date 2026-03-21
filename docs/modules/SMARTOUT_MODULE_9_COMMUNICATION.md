@@ -5,7 +5,7 @@ version: "1.0"
 status: canonical
 layer: module
 created: 2026-02-24
-updated: 2026-02-28
+updated: 2026-03-22
 author: pontus
 supersedes: []
 superseded_by: null
@@ -19,6 +19,7 @@ tags:
   - push-notifications
   - sms
   - email
+  - cascade
 tables:
   - notification
   - chat_channel
@@ -29,6 +30,16 @@ changelog:
   - date: 2026-02-28
     change: "Added YAML frontmatter"
 ---
+
+## Cascade Mapping
+
+> This module's relationship to the Cascade Core Foundation
+> (spec: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`)
+
+| Dimension                | Role                                                          |
+| ------------------------ | ------------------------------------------------------------- |
+| C2 Context & Interaction | Primary — notification dispatch and conversational channels   |
+| All Dimensions           | Consumes — routes notifications from every dimension's events |
 
 # Module 9: Kommunikasjon (Communication)
 

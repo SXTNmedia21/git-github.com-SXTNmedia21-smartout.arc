@@ -1,9 +1,20 @@
+---
+title: "ADR-DRAFT: Core Data Hierarchy & Cascade Architecture"
+status: draft
+updated: 2026-03-21
+created: 2026-03-20
+module: cross-cutting
+tags: [adr, cascade, hierarchy, operating-hours, architecture]
+---
+
 # ADR-DRAFT: Core Data Hierarchy & Cascade Architecture
 
 > **Status:** DRAFT — awaiting Pontus decision
 > **Created:** 2026-03-20
 > **Scope:** Irreversible — affects every module
 > **Trigger:** Investigation revealed three disconnected operating hours systems, no department-location bridge, zero cascade, and naming mismatches between docs and database.
+>
+> **Canonical cascade reference:** `docs/cascade-spreadsheet-overview.md` — 6D + 4C + K1 model (finalized 2026-03-21), corrected Riksavtalen rates, compliance enforcement levels, and complete schema gap analysis live there.
 
 ---
 

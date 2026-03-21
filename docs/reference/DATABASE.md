@@ -5,12 +5,12 @@ version: "1.0"
 status: canonical
 layer: reference
 created: 2026-02-28
-updated: 2026-04-13
+updated: 2026-03-22
 author: claude
 supersedes: []
 superseded_by: null
 depends_on: []
-tags: [database, schema, rls, enums, tables, migrations, seed]
+tags: [database, schema, rls, enums, tables, migrations, seed, cascade]
 tables:
   [
     user_identity,
@@ -110,18 +110,18 @@ Single source of truth for all database tables, enums, RLS patterns, naming conv
 
 ### Identity Layer (workspace_id scoped)
 
-| Table       | PK             | Purpose                                                                                                                                                          |
-| ----------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `workspace` | `workspace_id` | Physical workplace. Operational unit. Has `company_id`. Also has contract columns: `contract_status`, `trial_started_at`, `trial_ends_at`, `active_contract_id`. |
-| `profile`   | `profile_id`   | Rich bridge: User <-> Workspace. Role, status (enum), department, display_name.                                                                                  |
+| Table       | PK             | Cascade     | Purpose                                                                                                                                                          |
+| ----------- | -------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `workspace` | `workspace_id` |             | Physical workplace. Operational unit. Has `company_id`. Also has contract columns: `contract_status`, `trial_started_at`, `trial_ends_at`, `active_contract_id`. |
+| `profile`   | `profile_id`   | D2 Resource | Rich bridge: User <-> Workspace. Role, status (enum), department, display_name.                                                                                  |
 
 ### Structure Layer (workspace_id scoped)
 
-| Table         | PK               | Purpose                                                                           |
-| ------------- | ---------------- | --------------------------------------------------------------------------------- |
-| `department`  | `department_id`  | What (Kitchen, Floor, Bar). Permanent. Never seasonal.                            |
-| `location`    | `location_id`    | Where (Main building, Terrace). Physical places.                                  |
-| `team`        | `team_id`        | Access grouping. Can be seasonal. Has `leader_profile_id`.                        |
+| Table         | PK               | Cascade                                                                           | Purpose                                                    |
+| ------------- | ---------------- | --------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `department`  | `department_id`  | D1 Ops Env                                                                        | What (Kitchen, Floor, Bar). Permanent. Never seasonal.     |
+| `location`    | `location_id`    | D1 Ops Env                                                                        | Where (Main building, Terrace). Physical places.           |
+| `team`        | `team_id`        | D2 Resource                                                                       | Access grouping. Can be seasonal. Has `leader_profile_id`. |
 | `team_member` | `team_member_id` | Bridge: Profile <-> Team.                                                         |
 | `zone`        | `zone_id`        | Extends Location. Service sections. Season-aware.                                 |
 | `asset`       | `asset_id`       | Extends Location. Equipment. CCP flag for HACCP.                                  |
@@ -163,11 +163,11 @@ Single source of truth for all database tables, enums, RLS patterns, naming conv
 
 ### Season Planning (workspace_id scoped, Module 15)
 
-| Table           | PK                 | Purpose                                                                 |
-| --------------- | ------------------ | ----------------------------------------------------------------------- |
-| `season_budget` | `season_budget_id` | Strategic revenue target per season. 1:1 with season. Status lifecycle. |
-| `day_factor`    | `day_factor_id`    | Weekday weight (0=Mon...6=Sun). UNIQUE(season_budget_id, weekday).      |
-| `hour_factor`   | `hour_factor_id`   | Hour weight (0-23). UNIQUE(season_budget_id, hour).                     |
+| Table           | PK                 | Cascade   | Purpose                                                                 |
+| --------------- | ------------------ | --------- | ----------------------------------------------------------------------- |
+| `season_budget` | `season_budget_id` | D4 Demand | Strategic revenue target per season. 1:1 with season. Status lifecycle. |
+| `day_factor`    | `day_factor_id`    | D4 Demand | Weekday weight (0=Mon...6=Sun). UNIQUE(season_budget_id, weekday).      |
+| `hour_factor`   | `hour_factor_id`   | D4 Demand | Hour weight (0-23). UNIQUE(season_budget_id, hour).                     |
 
 **season_budget key columns:** `season_id` (FK, UNIQUE), `total_target_revenue` (NUMERIC), `base_price_per_guest` (NUMERIC, nullable), `season_price_factor` (NUMERIC, default 1.0), `target_labor_percentage` (NUMERIC, default 0.30), `avg_hourly_wage` (NUMERIC, nullable), `status` (budget_status enum).
 
@@ -191,32 +191,32 @@ Single source of truth for all database tables, enums, RLS patterns, naming conv
 
 ### Operations (workspace_id scoped)
 
-| Table                 | PK                       | Purpose                                                               |
-| --------------------- | ------------------------ | --------------------------------------------------------------------- |
-| `activity_trail`      | `id` (serial)            | Action audit trail per workspace.                                     |
-| `onboarding_session`  | `onboarding_session_id`  | AI onboarding session state and context.                              |
-| `invitation`          | `invitation_id`          | Workspace invitations. Status: pending, accepted, expired, cancelled. |
-| `employment_contract` | `employment_contract_id` | Employment contracts (uses `contract_status` enum).                   |
+| Table                 | PK                       | Cascade     | Purpose                                                               |
+| --------------------- | ------------------------ | ----------- | --------------------------------------------------------------------- |
+| `activity_trail`      | `id` (serial)            |             | Action audit trail per workspace.                                     |
+| `onboarding_session`  | `onboarding_session_id`  |             | AI onboarding session state and context.                              |
+| `invitation`          | `invitation_id`          |             | Workspace invitations. Status: pending, accepted, expired, cancelled. |
+| `employment_contract` | `employment_contract_id` | D2 Resource | Employment contracts (uses `contract_status` enum).                   |
 
 ### Session Infrastructure (workspace_id scoped, Module Zero)
 
-| Table                  | PK                        | Purpose                                                                                      |
-| ---------------------- | ------------------------- | -------------------------------------------------------------------------------------------- |
-| `department_session`   | `department_session_id`   | Daily container per dept. Status: upcoming/active/pending_signoff/closed/missed              |
-| `session_hook`         | `session_hook_id`         | Hook definitions: hook_type (enum), trigger_time, linked procedure/routine                   |
-| `session_task`         | `session_task_id`         | Hook-triggered operational tasks. Status enum lifecycle. Compliance tracking                 |
-| `session_note`         | `session_note_id`         | Handoff/closing notes per session. note_type: handoff/closing/general                        |
-| `daily_reconciliation` | `daily_reconciliation_id` | End-of-day settlement. Status: open/submitted/awaiting_approval/approved/locked/unreconciled |
-| `deviation`            | `deviation_id`            | Incident reports. Domain: safety/customer/procedure/system/material                          |
-| `shift_approval`       | `shift_approval_id`       | Post-shift hour verification. Status: pending/approved/edited/disputed                       |
+| Table                  | PK                        | Cascade        | Purpose                                                                                      |
+| ---------------------- | ------------------------- | -------------- | -------------------------------------------------------------------------------------------- |
+| `department_session`   | `department_session_id`   | D6 Production  | Daily container per dept. Status: upcoming/active/pending_signoff/closed/missed              |
+| `session_hook`         | `session_hook_id`         | D6 Production  | Hook definitions: hook_type (enum), trigger_time, linked procedure/routine                   |
+| `session_task`         | `session_task_id`         | D6 Production  | Hook-triggered operational tasks. Status enum lifecycle. Compliance tracking                 |
+| `session_note`         | `session_note_id`         |                | Handoff/closing notes per session. note_type: handoff/closing/general                        |
+| `daily_reconciliation` | `daily_reconciliation_id` | C1 Calibration | End-of-day settlement. Status: open/submitted/awaiting_approval/approved/locked/unreconciled |
+| `deviation`            | `deviation_id`            | D6 Production  | Incident reports. Domain: safety/customer/procedure/system/material                          |
+| `shift_approval`       | `shift_approval_id`       |                | Post-shift hour verification. Status: pending/approved/edited/disputed                       |
 
 **New SQL enums:** `session_hook_type` (pre_open/open/scheduled/pre_close/close), `session_task_status` (pending/available/in_progress/completed/skipped/overdue/escalated), `session_note_type` (handoff/closing/general).
 
 ### Schedule (workspace_id scoped, ADR-0036)
 
-| Table            | PK                  | Purpose                                                                                  |
-| ---------------- | ------------------- | ---------------------------------------------------------------------------------------- |
-| `schedule_shift` | `schedule_shift_id` | Individual work shifts. FK to profile (employee), position, team. Has RLS JWT + API key. |
+| Table            | PK                  | Cascade       | Purpose                                                                                  |
+| ---------------- | ------------------- | ------------- | ---------------------------------------------------------------------------------------- |
+| `schedule_shift` | `schedule_shift_id` | D6 Production | Individual work shifts. FK to profile (employee), position, team. Has RLS JWT + API key. |
 
 **Key columns:** `shift_date` (DATE), `start_time`/`end_time` (TIME), `work_hours` (NUMERIC(4,2) computed), `breaks` (INTEGER minutes), `status` (shift_status enum), `day_category` (day_category enum), `is_published` (BOOLEAN), `employee_id` (nullable → unassigned shift), `zone`, `indicator` (default 'blue'), `notes`.
 
@@ -235,10 +235,10 @@ Single source of truth for all database tables, enums, RLS patterns, naming conv
 
 ### AI / Agent (workspace_id scoped, ADR-0042)
 
-| Table                     | PK                           | Purpose                                                                                                       |
-| ------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `engine_memory`           | `engine_memory_id`           | Persistent agent memories with pgvector embeddings. Semantic retrieval for context. RLS: workspace isolation. |
-| `engine_authority_config` | `engine_authority_config_id` | Per-workspace, per-capability authority levels. UNIQUE(workspace_id, capability).                             |
+| Table                     | PK                           | Cascade       | Purpose                                                                                                       |
+| ------------------------- | ---------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------- |
+| `engine_memory`           | `engine_memory_id`           | K1b Workspace | Persistent agent memories with pgvector embeddings. Semantic retrieval for context. RLS: workspace isolation. |
+| `engine_authority_config` | `engine_authority_config_id` | C4 Governance | Per-workspace, per-capability authority levels. UNIQUE(workspace_id, capability).                             |
 
 **engine_sessions changes (ADR-0042):** Added `mode` column — 'mission' (structured stages) or 'agent' (free-form conversation). Agent sessions have NULL `mission_id`. The `mission_id` FK is now nullable.
 
@@ -266,9 +266,9 @@ Single source of truth for all database tables, enums, RLS patterns, naming conv
 
 ### Context & Search (workspace_id scoped)
 
-| Table                 | PK         | Purpose                                                                                                       |
-| --------------------- | ---------- | ------------------------------------------------------------------------------------------------------------- |
-| `workspace_doc_chunk` | `chunk_id` | Workspace-scoped semantic chunks for handbook/policy/protocol/procedure. pgvector embeddings. RLS: dual-auth. |
+| Table                 | PK         | Cascade       | Purpose                                                                                                       |
+| --------------------- | ---------- | ------------- | ------------------------------------------------------------------------------------------------------------- |
+| `workspace_doc_chunk` | `chunk_id` | K1b Workspace | Workspace-scoped semantic chunks for handbook/policy/protocol/procedure. pgvector embeddings. RLS: dual-auth. |
 
 **workspace_doc_chunk key columns:** `workspace_id`, `source_type` (handbook_chapter, policy, protocol, procedure, routine, runbook, other), `source_id`, `source_path`, `source_hash`, `content_hash`, `chunk_index`, `title`, `content`, `token_count`, `metadata` (JSONB), `embedding` (vector(1536)). UNIQUE(workspace_id, source_path, chunk_index).
 
@@ -527,6 +527,161 @@ Dev seed creates a default workspace setup:
 | User (admin)          | `e0000000-...`    | admin@smartout.local / password123 |
 
 Chain: Company -> Workspace -> Location -> Department -> User -> CompanyMember -> Profile
+
+---
+
+## Planned Tables & Fields (Cascade Architecture, 2026-03-21)
+
+These are identified as required by the cascade architecture and AI Council review. Not yet in migrations. Full context: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md` (Phase A schema).
+
+### Planned new tables
+
+| Table                        | Purpose                                                                 | Layer  |
+| ---------------------------- | ----------------------------------------------------------------------- | ------ |
+| `department_operating_hours` | Consolidated weekly hours per dept/location/season (replaces 3 systems) | L3     |
+| `department_hours_override`  | Date-specific exceptions (holidays, events, closures)                   | L3     |
+| `planning_cycle`             | Year wheel container — ordered, gap-free seasons                        | L1     |
+| `planning_event`             | External/internal demand events affecting staffing                      | L1     |
+| `tariff_rate_table`          | Versioned Riksavtalen rates with effective_from/until                   | D3     |
+| `employee_payroll_profile`   | Links contract to payroll calculation (base rate, seniority step)       | D2     |
+| `shift_cost_snapshot`        | Append-only per-shift cost audit                                        | L5     |
+| `change_proposal`            | Persisted cascade preview (Terraform saved plan model)                  | Engine |
+
+### Planned fields on existing tables
+
+| Table                 | Field                     | Type    | Purpose                                      |
+| --------------------- | ------------------------- | ------- | -------------------------------------------- |
+| `employment_contract` | `agreed_weekly_hours`     | NUMERIC | Critical for overtime detection              |
+| `profile`             | `seniority_start_date`    | DATE    | Ansiennitet wage step lookup                 |
+| `profile`             | `has_fagbrev`             | BOOLEAN | Fagbrev/non-fagbrev rate distinction         |
+| `procedure`           | `required_certifications` | TEXT[]  | Which certs needed to perform                |
+| `routine`             | `required_certifications` | TEXT[]  | Which certs needed to perform                |
+| `session_hook`        | `required_certifications` | TEXT[]  | Which certs needed for hook                  |
+| `department_session`  | `planned_open`            | TIME    | Set from operating hours at session creation |
+| `department_session`  | `planned_close`           | TIME    | Set from operating hours at session creation |
+| `schedule_shift`      | `department_id`           | UUID FK | Direct FK (currently only via position)      |
+| `schedule_shift`      | `location_id`             | UUID FK | Direct FK for location scoping               |
+| `department`          | `department_type`         | ENUM    | operational / administrative / hybrid        |
+
+### Planned new enums
+
+| Enum              | Values                                              | Purpose                       |
+| ----------------- | --------------------------------------------------- | ----------------------------- |
+| `department_type` | operational, administrative, hybrid                 | Department classification     |
+| `shift_function`  | opening, closing, supporting, rush_hour, sub_supply | Template shift purpose        |
+| `anchor_type`     | fixed, open, close                                  | Template shift time anchoring |
+| `proposal_status` | pending, approved, applied, rejected                | Change proposal lifecycle     |
+
+### Tables to deprecate
+
+| Table                                                                | Replacement                  | Reason                              |
+| -------------------------------------------------------------------- | ---------------------------- | ----------------------------------- |
+| `company_opening_hours`                                              | `department_operating_hours` | Signup-only, unused                 |
+| `operating_hours` `[LEGACY — migrate to department_operating_hours]` | `department_operating_hours` | No department dimension, no cascade |
+| `season.opening_hours` (JSONB column)                                | `department_operating_hours` | String-keyed, un-queryable          |
+
+> **Triple Operating Hours Warning:** Three tables store operating hours data:
+>
+> - `company_opening_hours` — wizard intake (keep, reclassify)
+> - `operating_hours` — LEGACY (migrate away, do not use in new code)
+> - `department_operating_hours` — CASCADE runtime truth (use this)
+
+---
+
+## Cascade Foundation Tables
+
+Tables grouped by cascade dimension. Only tables that exist in the database are listed. Planned tables are marked.
+
+### D1 Operational Envelope
+
+| Table                        | Status  | Purpose                                               |
+| ---------------------------- | ------- | ----------------------------------------------------- |
+| `department`                 | Live    | Permanent organizational unit                         |
+| `location`                   | Live    | Physical places                                       |
+| `department_operating_hours` | Planned | Consolidated weekly hours per dept/location/season    |
+| `department_hours_override`  | Planned | Date-specific exceptions (holidays, events, closures) |
+| `planning_cycle`             | Planned | Year wheel container — ordered, gap-free seasons      |
+
+### D2 Resource Availability
+
+| Table                      | Status  | Purpose                                |
+| -------------------------- | ------- | -------------------------------------- |
+| `profile`                  | Live    | Employee identity within workspace     |
+| `employment_contract`      | Live    | Employment contracts                   |
+| `team`                     | Live    | Access grouping, can be seasonal       |
+| `employee_payroll_profile` | Planned | Links contract to payroll calculation  |
+| `schedule_absence`         | Planned | Absence records (sick, vacation, etc.) |
+
+### D3 Rules & Constraints
+
+| Table                  | Status  | Purpose                                        |
+| ---------------------- | ------- | ---------------------------------------------- |
+| `regulatory_framework` | Planned | Named regulation sets (e.g. Riksavtalen)       |
+| `framework_rule`       | Planned | Individual rules within a framework            |
+| `framework_trigger`    | Planned | Conditions that activate rules                 |
+| `tariff_rate_table`    | Planned | Versioned wage rates with effective_from/until |
+| `public_holiday`       | Planned | Official holidays affecting scheduling         |
+
+### D4 Demand Signal
+
+| Table              | Status  | Purpose                                            |
+| ------------------ | ------- | -------------------------------------------------- |
+| `season_budget`    | Live    | Strategic revenue target per season                |
+| `day_factor`       | Live    | Weekday weight distribution                        |
+| `hour_factor`      | Live    | Hour weight distribution                           |
+| `workspace_budget` | Planned | Operational per-date targets                       |
+| `planning_event`   | Planned | External/internal demand events affecting staffing |
+
+### D5 Service Concept
+
+No dedicated tables. D5 parameterizes via workspace config and policy settings.
+
+### D6 Production & Product
+
+| Table                | Status | Purpose                                  |
+| -------------------- | ------ | ---------------------------------------- |
+| `department_session` | Live   | Daily container per department           |
+| `session_hook`       | Live   | Time triggers firing procedures/routines |
+| `session_task`       | Live   | Hook-triggered operational tasks         |
+| `schedule_shift`     | Live   | Individual work shifts                   |
+| `deviation`          | Live   | Incident reports                         |
+
+### C1 Calibration
+
+| Table                  | Status  | Purpose                       |
+| ---------------------- | ------- | ----------------------------- |
+| `daily_reconciliation` | Live    | End-of-day settlement         |
+| `workspace_kpi_target` | Planned | KPI targets per workspace     |
+| `planning_factors`     | Planned | Calibration parameters        |
+| `adjustment_factors`   | Planned | Runtime adjustment parameters |
+
+### C3 Commercial
+
+| Table                 | Status  | Purpose                          |
+| --------------------- | ------- | -------------------------------- |
+| `shift_cost_snapshot` | Planned | Append-only per-shift cost audit |
+
+### C4 Governance
+
+| Table                     | Status  | Purpose                                          |
+| ------------------------- | ------- | ------------------------------------------------ |
+| `engine_authority_config` | Live    | Per-workspace, per-capability authority levels   |
+| `change_proposal`         | Planned | Persisted cascade preview (Terraform saved plan) |
+
+### K1a Industry Knowledge
+
+| Table                  | Status  | Purpose                                            |
+| ---------------------- | ------- | -------------------------------------------------- |
+| `regulatory_framework` | Planned | Platform-level regulation sets (NULL workspace_id) |
+| `tariff_rate_table`    | Planned | Platform-level wage rates (NULL workspace_id)      |
+| `public_holiday`       | Planned | Official holidays (platform-level)                 |
+
+### K1b Workspace Knowledge
+
+| Table                 | Status | Purpose                                      |
+| --------------------- | ------ | -------------------------------------------- |
+| `workspace_doc_chunk` | Live   | Semantic chunks for handbook/policy/protocol |
+| `engine_memory`       | Live   | Persistent agent memories with pgvector      |
 
 ---
 

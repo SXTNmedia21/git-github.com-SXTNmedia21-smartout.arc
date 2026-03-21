@@ -1,11 +1,11 @@
 ---
 title: "Module 3: Vaktplanlegging (Shift Planning)"
 id: MODULE_03
-version: "1.0"
+version: "1.1"
 status: canonical
 layer: module
 created: 2026-02-24
-updated: 2026-02-28
+updated: 2026-03-22
 author: pontus
 supersedes: []
 superseded_by: null
@@ -18,7 +18,10 @@ tags:
   - calendar
   - staffing
   - open-shifts
+  - cascade
 changelog:
+  - date: 2026-03-21
+    change: "Added cascade architecture references, 5 dimensions, resource matching, corrected supplement rates"
   - date: 2026-02-28
     change: "Added YAML frontmatter"
 ---
@@ -26,7 +29,25 @@ changelog:
 # Modul 3: Vaktplanlegging (Shift Planning)
 
 > **Smartout.ai** — Funksjonell dokumentasjon for migrering
-> Versjon 1.0 | Februar 2026
+> Versjon 1.1 | Mars 2026
+
+## Cascade Mapping
+
+> This module's relationship to the Cascade Core Foundation
+> (spec: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`)
+
+| Dimension                | Role                                                   |
+| ------------------------ | ------------------------------------------------------ |
+| D1 Operational Envelope  | Primary — operating hours define when shifts can exist |
+| D2 Resource Availability | Primary — who is available for assignment              |
+| D3 Rules & Constraints   | Primary — framework rules constrain shift parameters   |
+| D4 Demand Signal         | Consumes — demand drives staffing targets              |
+| D5 Service Concept       | Parameterizes — service type affects shift weights     |
+| D6 Production & Product  | Produces — shifts become D6 production state           |
+| C1 Calibration           | Observes — plan vs actual staffing                     |
+| C4 Governance            | Enforces — permission gates on auto-scheduling         |
+
+**Implementation notes:** Operating hours resolve via D1 through `resolve_hours()` (Phase B). Template shifts anchor to open/close times via `schedule_template_shift` with anchor types (Phase A schema). Shift assignments flow through the proposal/enforcement pipeline (`change_proposal` → framework evaluation → apply). Resource matching is a future product layer, not part of Phase A/B. Rates and constraints are framework-loaded from `tariff_rate_table`, not hardcoded.
 
 ---
 
@@ -289,6 +310,26 @@ Vaktplanleggingsmodulen er den mest sammenkoblede modulen i Smartout og berører
 | **8. Lønn**              | Lønnsgrunnlag beregnes per vakt (fanen i modalen). Vaktdata er input til lønnskjøring.   |
 | **9. Kommunikasjon**     | Publiseringsvarsler sendes via Push/E-post/SMS. Skift-overlevering bruker vaktdata.      |
 | **12. AI (Mr. Botsson)** | Operasjonsmotoren bruker vaktdata for proaktive varsler og forslag.                      |
+
+---
+
+## 14.5 Resource Matching & Cascade Integration
+
+Between template shifts (L4) and published schedule shifts (L5), a Resource Matching layer proposes staffing. This is where the system's intelligence lives.
+
+**Inputs:**
+
+- Templates define _what shifts are needed_ (from operating hours + shift_function anchoring)
+- Resources define _who is available_ (contracts, availability, certifications, seniority, cost)
+- Compliance tasks define _what must be done_ (procedures, routines, required_certifications)
+
+**Outputs:**
+
+- Staffing proposal with cost estimate per shift
+- Compliance flags via framework rule evaluation (see cascade spec Section 2.5 for evaluation outcomes)
+- Coverage gaps and overstaffing warnings
+
+**Supplement rates:** Framework-loaded from `tariff_rate_table` (seeded by the active regulatory framework). Rates are NOT hardcoded — they are resolved at runtime. See cascade spec Section 5 for the framework seed data structure and Module 8 for payroll integration.
 
 ---
 

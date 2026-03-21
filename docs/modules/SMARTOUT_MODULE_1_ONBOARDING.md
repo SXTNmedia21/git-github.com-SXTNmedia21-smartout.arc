@@ -5,7 +5,7 @@ version: "3.0"
 status: canonical
 layer: module
 created: 2026-02-24
-updated: 2026-03-03
+updated: 2026-03-22
 author: pontus
 supersedes:
   - SMARTOUT_ONBOARDING_FRAMEWORK.md
@@ -19,6 +19,7 @@ tags:
   - module-journeys
   - sandbox
   - ai-guided
+  - cascade
 tables:
   - invitation
   - onboarding_session
@@ -32,6 +33,16 @@ changelog:
   - date: 2026-03-03
     change: "v3.0: Audit against codebase. Updated wizard (15 steps), invitation table naming, SendGrid, emergency contact on user_identity. Added implementation status markers, Roadmap section. Created ADR-0043/44/45, Learning-0016/17."
 ---
+
+## Cascade Mapping
+
+> This module's relationship to the Cascade Core Foundation
+> (spec: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`)
+
+| Dimension                          | Role                                                          |
+| ---------------------------------- | ------------------------------------------------------------- |
+| I1 Industry Intelligence Bootstrap | Primary — seeds workspace with industry defaults at signup    |
+| D2 Resource Availability           | Produces — creates profiles that become schedulable resources |
 
 # Module 1: Onboarding & Brukerregistrering
 

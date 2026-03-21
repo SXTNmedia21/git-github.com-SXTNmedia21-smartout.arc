@@ -99,6 +99,8 @@ export function fromDbShift(row: ShiftRow): Shift {
     employeeId: row.employee_id,
     dateId: row.shift_date,
     role: row.role,
+    departmentId: row.department_id ?? undefined,
+    locationId: row.location_id ?? undefined,
     positionId: row.position_id ?? undefined,
     teamId: row.team_id ?? undefined,
     time: `${startTime} - ${endTime}`,
@@ -126,6 +128,8 @@ export function toDbShiftInsert(
     employee_id: shift.employeeId,
     shift_date: shift.dateId,
     role: shift.role,
+    department_id: shift.departmentId ?? null,
+    location_id: shift.locationId ?? null,
     position_id: shift.positionId ?? null,
     team_id: shift.teamId ?? null,
     start_time: shift.startTime,
@@ -150,6 +154,8 @@ export function toDbShiftUpdate(
   if (patch.employeeId !== undefined) update.employee_id = patch.employeeId;
   if (patch.dateId !== undefined) update.shift_date = patch.dateId;
   if (patch.role !== undefined) update.role = patch.role;
+  if (patch.departmentId !== undefined) update.department_id = patch.departmentId ?? null;
+  if (patch.locationId !== undefined) update.location_id = patch.locationId ?? null;
   if (patch.positionId !== undefined) update.position_id = patch.positionId ?? null;
   if (patch.teamId !== undefined) update.team_id = patch.teamId ?? null;
   if (patch.startTime !== undefined) update.start_time = patch.startTime;
@@ -229,6 +235,7 @@ export function fromDbTemplate(row: TemplateRow, shiftRows: TemplateShiftRow[]):
     id: row.schedule_template_id,
     name: row.name,
     department: row.department,
+    departmentId: row.department_id ?? null,
     includeAssignments: row.include_assignments,
     createdBy: row.created_by,
     createdAt: row.created_at,
@@ -262,6 +269,7 @@ export function toDbTemplateInsert(
     schedule_template_id: template.id,
     name: template.name,
     department: template.department,
+    department_id: template.departmentId ?? null,
     include_assignments: template.includeAssignments,
     created_by: template.createdBy,
     workspace_id: workspaceId,

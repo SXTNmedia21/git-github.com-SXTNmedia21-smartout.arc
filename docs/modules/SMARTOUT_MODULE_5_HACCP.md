@@ -5,7 +5,7 @@ version: "1.0"
 status: canonical
 layer: module
 created: 2026-02-24
-updated: 2026-02-28
+updated: 2026-03-22
 author: pontus
 supersedes: []
 superseded_by: null
@@ -19,12 +19,24 @@ tags:
   - temperature-logging
   - mattilsynet
   - ccp
+  - cascade
 tables:
   - haccp_control_point
 changelog:
   - date: 2026-02-28
     change: "Added YAML frontmatter"
 ---
+
+## Cascade Mapping
+
+> This module's relationship to the Cascade Core Foundation
+> (spec: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`)
+
+| Dimension               | Role                                                   |
+| ----------------------- | ------------------------------------------------------ |
+| D6 Production & Product | Primary — food safety controls on production processes |
+| D3 Rules & Constraints  | Consumes — regulatory requirements (Mattilsynet, CCP)  |
+| C4 Policy & Governance  | Consumes — compliance enforcement and audit trails     |
 
 # Module 5: HACCP & Matsikkerhet (Food Safety)
 

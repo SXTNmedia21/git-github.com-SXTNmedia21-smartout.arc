@@ -21,6 +21,7 @@ export type Season = {
   color: string | null;
   icon: string | null;
   description: string | null;
+  planning_cycle_id: string | null;
 };
 
 type CreateSeasonInput = {
@@ -53,7 +54,7 @@ export function useSeasons() {
       const { data, error } = await supabase
         .from("season")
         .select(
-          "season_id, name, slug, season_type, start_date, end_date, status, is_default, color, icon, description",
+          "season_id, name, slug, season_type, start_date, end_date, status, is_default, color, icon, description, planning_cycle_id",
         )
         .eq("workspace_id", wsId!)
         .order("start_date", { ascending: false });
@@ -90,7 +91,7 @@ export function useSeasons() {
           status: "draft",
         })
         .select(
-          "season_id, name, slug, season_type, start_date, end_date, status, is_default, color, icon, description",
+          "season_id, name, slug, season_type, start_date, end_date, status, is_default, color, icon, description, planning_cycle_id",
         )
         .single();
 

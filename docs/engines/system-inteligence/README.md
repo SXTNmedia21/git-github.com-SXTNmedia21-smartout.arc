@@ -16,6 +16,14 @@ tags:
 
 # System Intelligence Engine
 
+> **Supersession Notice (2026-03-22):** Most files in this directory have been
+> archived to `docs/archive/system-inteligence/`. The Cascade Core Foundation
+> spec (`docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`)
+> now defines the canonical architecture for state management, governance,
+> and proposal/enforcement. Remaining files (this README, 07-journey-package-compiler)
+> are still active. Files in `docs/needs-rewrite/` contain content pending
+> consolidation into the cascade spec.
+
 This package defines the user-facing system engine for AI-first behavior in Smartout.
 
 The focus is platform-wide machinery: states, transitions, agent runtime, event routing, notifications, verification, and learning loops.

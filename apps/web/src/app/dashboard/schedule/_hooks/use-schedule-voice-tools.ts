@@ -8,6 +8,8 @@ import type {
 } from "@/components/voice-tools-context";
 import { SCHEDULE_TOOL_DEFINITIONS } from "./schedule-tool-definitions";
 import { createClient } from "@smartout/supabase/client";
+import { resolveEffectiveHours } from "@/lib/cascade/resolve-hours";
+import type { DepartmentOperatingHoursRow, DepartmentHoursOverrideRow } from "@/lib/cascade/types";
 import type { Shift, Absence, ShiftProposal } from "../_components/schedule-types";
 import type { ScheduleEmployee } from "./use-employees";
 import type { ScheduleComputed } from "./use-schedule-computed";
@@ -768,6 +770,31 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
 
           if (!dept) return JSON.stringify({ error: "No department found in workspace" });
 
+          // Fetch operating hours to populate planned_open/close
+          const { data: weeklyHours } = await supabase
+            .from("department_operating_hours")
+            .select(
+              "id, department_id, location_id, season_id, day_of_week, open_time, close_time, is_closed",
+            )
+            .eq("department_id", dept.department_id)
+            .eq("workspace_id", wsId);
+
+          const { data: overrides } = await supabase
+            .from("department_hours_override")
+            .select(
+              "id, department_id, location_id, override_date, open_time, close_time, is_closed, reason",
+            )
+            .eq("department_id", dept.department_id)
+            .eq("override_date", dateId);
+
+          const effectiveHours = resolveEffectiveHours(
+            dept.department_id,
+            null,
+            dateId,
+            (weeklyHours ?? []) as DepartmentOperatingHoursRow[],
+            (overrides ?? []) as DepartmentHoursOverrideRow[],
+          );
+
           const { data: newSession, error: sessionError } = await supabase
             .from("department_session")
             .insert({
@@ -775,6 +802,8 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
               department_id: dept.department_id,
               session_date: dateId,
               status: "upcoming",
+              planned_open: effectiveHours.isOpen ? effectiveHours.openTime : null,
+              planned_close: effectiveHours.isOpen ? effectiveHours.closeTime : null,
             })
             .select("department_session_id")
             .single();

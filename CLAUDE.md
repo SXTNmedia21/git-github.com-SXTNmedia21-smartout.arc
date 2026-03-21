@@ -16,6 +16,7 @@ Rebuild from Bubble.io. Live Stripe billing + DocuSign contracts. Modern stack, 
 
 1. **Code + database schema** → always wins
 2. **This file** → conventions, rules, critical traps
+   2.5. **Cascade Core Foundation spec** → canonical cascade architecture (`docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`)
    2.5. **docs/STATE.md** → current system state, gaps, weekly plan (updated weekly)
 3. **docs/reference/** → DATABASE, ROUTES, PACKAGES, ENV_VARS
 4. **docs/engines/** → Event Motor domain packaging (industry, niche, role capability, environment, handbook)
@@ -29,7 +30,7 @@ Rebuild from Bubble.io. Live Stripe billing + DocuSign contracts. Modern stack, 
 
 ## Tech Stack
 
-Next.js 16 (App Router) + React 19 + TypeScript (strict) | Tailwind v4 (CSS config, no config file) | shadcn/ui (new-york) | Supabase (PostgreSQL 17, Auth, Storage, Edge Functions) | Vercel (web + landing) | PostHog EU | pnpm 9.15 + Turborepo | Playwright E2E
+Next.js 16 (App Router) + React 19 + TypeScript (strict) | Tailwind v4 (CSS config, no config file) | shadcn/ui (new-york) | React Native + Expo (mobile) | Supabase (PostgreSQL 17, Auth, Storage, Edge Functions) | Vercel (web + landing) | PostHog EU | pnpm 9.15 + Turborepo | Playwright E2E
 
 Integrations: Stripe (API-only via Edge Functions), DocuSeal (contracts), SendGrid (API-only via Edge Functions/webhooks), Twilio (API-only), Sentry, Upstash Redis, Ultravox (voice), Remotion (video)
 
@@ -43,6 +44,7 @@ Integrations: Stripe (API-only via Edge Functions), DocuSeal (contracts), SendGr
 smartout_v3/
 ├── apps/web/          → Dashboard (port 3060)
 │   ├── onboarding/     → Wizard: 10 sections + 14 UI components + WizardContext + 3 hooks (useOnboardingState, useScrollProgress, useBotsson)
+├── apps/mobile/       → Mobile app (React Native + Expo)
 ├── apps/landing/      → Landing page (port 3055)
 ├── apps/e2e/          → Playwright tests
 ├── packages/          → agent-sdk, ai (+ adapters/, agents/, capabilities/, context/, engine/, generators/,
@@ -85,6 +87,13 @@ smartout_v3/
 - `engine_state_step` — per-step tracking on engine_state instances. RLS cascades via subquery on engine_state.
 - Season table has `status` enum (draft/active/archived) — NOT `is_active` boolean.
 - Timestamp triggers should use `set_updated_at()` (not `moddatetime`) for migration compatibility.
+- Triple operating hours: `company_opening_hours` (wizard intake, keep), `operating_hours` (legacy — MUST migrate away), `department_operating_hours` (cascade runtime truth). Never read/write `operating_hours` in new code.
+- `hospitality.ts` rates are WRONG (kveldstillegg: 56 should be 15.65, helgetillegg: 56 should be 29.74, helligdagstillegg: 133% should be 100%). `tariff_rate_table` is cascade source of truth.
+- Cascade framework tables: `regulatory_framework`, `framework_rule`, `framework_trigger`, `tariff_rate_table`, `public_holiday`. Check seed status before assuming data exists.
+- `change_proposal_status` enum — do NOT confuse with `contract_status`.
+- Cascade tables use `btree_gist` extension for exclusion constraints.
+- `tariff_rate_table.workspace_id` is nullable — platform-level rates have NULL workspace_id.
+- Cascade provenance: every cascade record carries `source_type` + `source_id`.
 
 > Full schema, tables, enums, RLS patterns: `docs/reference/DATABASE.md`
 
@@ -127,6 +136,8 @@ Ingen unntak.
 **Supabase:** RLS everywhere (except platform-admin) | `auth.uid()` in policies | Helpers: `get_workspace_ids_for_user()`, `is_admin_in_workspace()` | Edge Functions: Zod validation | User ops: anon key, admin ops: service role
 
 **React/Next.js:** App Router only | Server Components default, `"use client"` as deep as possible | shadcn/ui for all UI | CSS variables for theming | `sonner` for toasts | Fonts: Geist + Geist Mono
+
+**Mobile Parity:** Every dashboard feature must be designed for mobile from the start. Data hooks, API endpoints, and business logic must support both web and mobile surfaces. Shared logic goes in `packages/` (not `apps/web/`). Mobile UI can ship in a follow-up PR, but the architecture must never be web-only. When building a new feature: (1) data layer in packages, (2) web UI in apps/web, (3) mobile UI in apps/mobile — steps 2 and 3 can be separate PRs but step 1 must enable both.
 
 **Telemetry:** Every mutation emits. `emit()` from `@smartout/telemetry` drives four destinations: PostHog (analytics), Logger (stdout), activity_trail (audit), engine_event (workflow automation). No mutation without emit. No second event system.
 
@@ -174,12 +185,25 @@ Goal: a non-developer should be able to read the codebase and follow the logic.
 
 > Full details: `docs/reference/DATABASE.md`
 
-**Identity:** user_identity → company → company_member → workspace → profile
-**Structure:** department (permanent) | location | team (can be seasonal)
-**Governance:** policy → protocol → {procedure, routine, runbook, control_list, knowledge_test, confirmation}
-**Time:** season → season_budget → {day_factor, hour_factor} (wraps operations, gamification, revenue planning)
+**Identity (pre-workspace):** user_identity → company → company_member → workspace → profile
 
-**Key rules:** All tables have `workspace_id` (except identity layer + platform-admin). Profile has no season connection. Position is per-shift, not per-person.
+**Cascade Dimensions (workspace-scoped):**
+
+- **D1 Envelope:** department (permanent), location, department_operating_hours, department_hours_override, planning_cycle
+- **D2 Resource:** profile, employment_contract, employee_payroll_profile, schedule_absence, team (can be seasonal)
+- **D3 Rules:** regulatory_framework, framework_rule, framework_trigger, tariff_rate_table, public_holiday
+- **D4 Demand:** season_budget, day_factor, hour_factor, workspace_budget, planning_event
+- **D5 Concept:** workspace config, niche parameters (parameterizes coefficients in D1-D4, D6)
+- **D6 Production:** department_session, session_hook, session_task, schedule_shift, deviation
+- **C1 Calibration:** daily_reconciliation, workspace_kpi_target, planning_factors, adjustment_factors
+- **C3 Commercial:** shift_cost_snapshot
+- **C4 Governance:** engine_authority_config, change_proposal
+- **K1a Industry:** regulatory_framework (platform-level), tariff_rate_table (NULL workspace_id), public_holiday
+- **K1b Workspace:** workspace_doc_chunk, engine_memory
+
+**Governance (content layer):** policy → protocol → {procedure, routine, runbook, control_list, knowledge_test, confirmation}
+
+**Key rules:** All tables have `workspace_id` (except identity layer + platform-admin + K1a platform-level). Profile has no season connection. Position is per-shift, not per-person.
 
 **Roles:** employee → manager → admin → owner
 **Statuses:** trainee → active → inactive → offboarding
@@ -187,35 +211,68 @@ Goal: a non-developer should be able to read the codebase and follow the logic.
 
 ---
 
-## Domain Concepts
+## Cascade Core Model
 
-- **Department Session** — Daily container per dept. Lifecycle: upcoming → active → pending_signoff → closed | missed
-- **Session Hooks** — Time triggers firing procedures/routines at pre_open, open, scheduled, pre_close, close
-- **Readiness** — Employee "ready" when all assigned Protocols completed. Score = % completed.
-- **Trainee Mode** — Status flag on profile (`profile_status = 'trainee'`). Timestamps: `trainee_started`, `trainee_completed`. Sandbox write restrictions and 48h escalation are planned but NOT yet implemented.
-- **Season** — Time period wrapping operations. Own leaderboard and point rules.
-- **Season Budget** — Strategic revenue target per season. 1:1 with season. Contains total target, labor %, avg hourly wage, base price per guest. Day/hour factors distribute targets across weekdays and hours. Calculation engine: `apps/web/src/lib/season-calculations.ts` (pure functions, no DB deps). UI: `/dashboard/season` with 4 tabs (overview, budget, day-factors, hour-factors).
-- **Event Engine** — Universal workflow runtime. `engine_process` (blueprint) → `engine_state` (live instance) → `engine_state_step` (per-step tracking). ALL workflows run through this: onboarding, training, HACCP, daily close, session hooks. New workflow = new engine_process + action_type handlers. Never create separate workflow state tables. Note: `journey` / `journey_step` / `journey_event` tables are a **metadata registry** (ADR-0031, 68 journey definitions from Bubble migration) — not workflow state tracking. Action type handlers: `wait_for_event`, `assign_task`, `send_notification` (stub), `update_entity`, `create_deviation`, `validate_settlement`, `lock_checkout`, `schedule_control` (reserved), `start_process`, `upsert_session`. Dispatch: `supabase/functions/engine-dispatch/index.ts`.
-- **Veikart → Reise → Protokoll** — Conceptual mapping (not yet implemented as routes/views). Veikart = engine_process (blueprint). Reise = engine_state (employee experience). Protokoll = engine_state (leader oversight). Norwegian terms are design vocabulary, not code constructs.
-- **Telemetry Registry** — All valid events and their routing destinations defined in `packages/telemetry/src/registry.ts`. This is the single source of truth for what can be emitted and where it goes.
+> Canonical model: **I1 + 6D + 4C + K1a/K1b**. Full spec: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`
 
----
+**Implementation status:**
 
-## Industry Engine Layer (Mandatory)
+- Phase A (schema): done — 7 migrations, 17 tables, 16 enums
+- Phase B (pure functions): partial — 4/6 done in `apps/web/src/lib/cascade/`
+- Phase C (bootstrap): in progress — framework seed + bootstrap service
+- Phase D (adapters): not started — Tripletex, external integrations
 
-- Canonical path for the first industry package: `docs/engines/industri-inteligence/hospitalety/`
-- This engine package is the central documentation for:
-  - Event-layer specialization by industry
-  - AI council and personas
-  - Default policy baselines
-  - Template families (structure/pipeline/journey)
-  - Testing profiles
-  - Relevance mapping
-  - Company handbook template
-  - Role capability profiles
-  - Environment baseline
-  - Niche specialization
+### Execution Dimensions
+
+| #   | Name                  | Core Question                                     | Type                                |
+| --- | --------------------- | ------------------------------------------------- | ----------------------------------- |
+| D1  | Operational Envelope  | When/where/with what capacity?                    | Structural                          |
+| D2  | Resource Availability | Who is available now and within planning horizon? | Volatile                            |
+| D3  | Rules & Constraints   | What is allowed/required/forbidden?               | Stable                              |
+| D4  | Demand Signal         | How much activity to prepare for?                 | Predictive                          |
+| D5  | Service Concept       | What kind of operation are we?                    | Strategic (parameterizes D1-D4, D6) |
+| D6  | Production & Product  | What to produce, what is the state?               | Live (temporal debt)                |
+
+### Control Planes
+
+| #   | Name                        | Core Question                    | Loop                            |
+| --- | --------------------------- | -------------------------------- | ------------------------------- |
+| C1  | Observability & Calibration | What happened vs plan?           | Plan → actual → correction      |
+| C2  | Context & Interaction       | What's relevant, how to explain? | State → inference → response    |
+| C3  | Commercial & Outcome        | What value, what cost?           | Value → attribution → pricing   |
+| C4  | Policy & Governance         | What is system ALLOWED to do?    | Capability → permission → audit |
+
+**"Confident != Authorized"** — C1 determines belief, C4 determines permission. Always separate.
+
+### Knowledge Substrate
+
+| Tier          | Owner                       | Contents                                                                      |
+| ------------- | --------------------------- | ----------------------------------------------------------------------------- |
+| K1a Industry  | Platform (per vertical)     | Tariff baselines, policy templates, role capabilities, hospitality primitives |
+| K1b Workspace | Workspace (tenant-isolated) | Semantic memory (pgvector), learned factors, local overrides                  |
+
+### I1 Industry Intelligence Bootstrap
+
+Pre-runtime layer. Loads vertical defaults, applies SQL templates, seeds all dimensions.
+
+- Canonical path: `docs/engines/industri-inteligence/hospitalety/`
+- Central documentation for: event-layer specialization, AI council and personas, default policy baselines, template families (structure/pipeline/journey), testing profiles, relevance mapping, company handbook template, role capability profiles, environment baseline, niche specialization
+- Code: `apps/web/src/lib/industry/` (hospitality.ts, types.ts)
+- Templates: `supabase/templates/restaurant/` (13 SQL + \_apply.sql)
+- Admin portal NEVER creates empty workspaces — always from I1 bootstrap.
 - When implementing or modifying event-layer, onboarding, readiness, or journey/testing behavior, consult this engine package before making changes.
+
+### Domain Concepts (mapped to dimensions)
+
+- **Department Session** (D6) — Daily container per dept. Lifecycle: upcoming → active → pending_signoff → closed | missed
+- **Session Hooks** (D6) — Time triggers firing procedures/routines at pre_open, open, scheduled, pre_close, close
+- **Readiness** (D2/D6) — Employee "ready" when all assigned Protocols completed. Score = % completed.
+- **Trainee Mode** (D2) — Status flag on profile (`profile_status = 'trainee'`). Timestamps: `trainee_started`, `trainee_completed`. Sandbox write restrictions and 48h escalation are planned but NOT yet implemented.
+- **Season** (D4/D5) — Time period wrapping operations, gamification, and revenue planning. Own leaderboard and point rules.
+- **Season Budget** (D4) — Strategic revenue target per season. 1:1 with season. Contains total target, labor %, avg hourly wage, base price per guest. Day/hour factors distribute targets across weekdays and hours. Calculation engine: `apps/web/src/lib/season-calculations.ts` (pure functions, no DB deps). UI: `/dashboard/season` with 4 tabs (overview, budget, day-factors, hour-factors).
+- **Event Engine** — Universal workflow runtime. `engine_process` (blueprint) → `engine_state` (live instance) → `engine_state_step` (per-step tracking). Cascade pipeline is a PRODUCER of events; Event Engine is the CONSUMER. New workflow = new engine_process + action_type handlers. Never create separate workflow state tables. Note: `journey` / `journey_step` / `journey_event` tables are a **metadata registry** (ADR-0031, 68 journey definitions from Bubble migration) — not workflow state tracking. Action type handlers: `wait_for_event`, `assign_task`, `send_notification` (stub), `update_entity`, `create_deviation`, `validate_settlement`, `lock_checkout`, `schedule_control` (reserved), `start_process`, `upsert_session`. Dispatch: `supabase/functions/engine-dispatch/index.ts`.
+- **Veikart → Reise → Protokoll** — Conceptual mapping (not yet implemented as routes/views). Veikart = engine_process (blueprint). Reise = engine_state (employee experience). Protokoll = engine_state (leader oversight). Norwegian terms are design vocabulary, not code constructs.
+- **Telemetry Registry** — Orthogonal to cascade. All valid events and their routing destinations defined in `packages/telemetry/src/registry.ts`. This is the single source of truth for what can be emitted and where it goes.
 
 ---
 
@@ -364,6 +421,14 @@ ALL microservices (contract-service, scrapling, future services):
 - Never create public API endpoints without scope guards
 - Never create a TanStack Query mutation without an `emit()` call in `onSuccess`
 - Never create Edge Functions outside the workspace-api gateway (for data endpoints)
+- Never hardcode regulatory rates — use `framework_rule` / `tariff_rate_table`
+- Never reference `operating_hours` table — use `department_operating_hours`
+- Never create schedule constraints outside D3 framework resolution
+- Never implement control plane behavior without C4 permission gate
+- Never create workspace without I1 bootstrap (no empty workspaces)
+- Never mix dimension concerns across tables (D2 data in D4 table = wrong)
+- Never treat cascade pipeline and Event Engine as the same thing — cascade produces, event engine consumes
+- Never build dashboard features with web-only architecture — data layer and hooks must support mobile. Shared logic in `packages/`, not `apps/web/`
 
 ---
 
@@ -444,28 +509,29 @@ When spawning a worker, always include in the task description:
 
 ## Changelog
 
-| Date       | Version | Change                                                                                                                                                                                                                                              | Author |
-| ---------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| 2026-03-17 | 9.5.0   | Domain audit: Trainee Mode status-only clarification, Veikart/Reise/Protokoll conceptual-only, Event Engine journey registry clarification, action_type handlers documented, telemetry registry reference added, emit() coverage fix (33 mutations) | Claude |
-| 2026-03-17 | 9.4.0   | Audit fix: ports (3060, 5010-5012, 8000), counts (72 enums, 31 EFs, 54 ADRs, 23 modules), onboarding rewrite, added packages (agent-sdk, walkAi, walkieTalkie), organization scope, packages/ai subdirs, integration clarifications                 | Pontus |
-| 2026-03-17 | 9.3.0   | Code Readability section added to Code Conventions: self-documenting first, comment WHY not WHAT, priority order for naming/comments                                                                                                                | Pontus |
-| 2026-03-17 | 9.2.0   | Added commitlint rules to Code Conventions (header/body max 100 chars, types, scope kebab-case)                                                                                                                                                     | Claude |
-| 2026-03-09 | 9.1.0   | ENV protocol: op run as standard, .env.template as single source of truth, removed .env.local references, added ENV_PROTOCOL.md to protocols table                                                                                                  | Pontus |
-| 2026-04-13 | 9.0.0   | Module Zero: 7 new tables, 3 enums, 26 telemetry events, 13 engine handlers, employee UI (my-schedule, my-training, handbook), governance CRUD, setup wizard, season status trap                                                                    | Claude |
-| 2026-03-06 | 8.1.0   | Season planning (Module 15 MVP): season_budget, day_factor, hour_factor tables, budget_status enum, calculation engine, 4 hooks, 5 UI components, /dashboard/season page                                                                            | Claude |
-| 2026-03-02 | 8.0.0   | Agent architecture: engine_memory, engine_authority_config tables, agent mode in engine_sessions, ADR-0042                                                                                                                                          | Claude |
-| 2026-03-01 | 7.9.0   | Onboarding wizard refactored: 15 step components, 4 drawers, progressive save, auth step, invite step                                                                                                                                               | Claude |
-| 2026-03-01 | 7.8.0   | Doc audit: add infra/, stage-engine, interview-mcp, i18n, tailwind-config; fix counts                                                                                                                                                               | Claude |
-| 2026-03-01 | 7.7.0   | shift-mcp service, schedule_shift table, ADR-0036, schedules scope active                                                                                                                                                                           | Claude |
-| 2026-03-01 | 7.6.0   | workspace-api gateway: 7 endpoints, usage tracking, env enforcement, 15 Edge Functions                                                                                                                                                              | Claude |
-| 2026-03-01 | 7.5.0   | API Gateway enforcement: mandatory checklists, scope table, service auth, env enforcement                                                                                                                                                           | Claude |
-| 2026-03-01 | 7.4.0   | Inline security summary: Three Laws, API key tiers, env vars always in context                                                                                                                                                                      | Claude |
-| 2026-03-01 | 7.3.0   | Protocols folder, templates folder, security protocol populated                                                                                                                                                                                     | Claude |
-| 2026-02-28 | 7.2.0   | API key management: 3 tables, 2 Edge Functions, 8 API routes, UI, ADR-0028                                                                                                                                                                          | Claude |
-| 2026-02-28 | 7.1.0   | Added Security section referencing SMARTOUT_SECURITY_PROTOCOL                                                                                                                                                                                       | Pontus |
-| 2026-02-28 | 7.0.0   | Major trim: moved details to reference files, <280 lines                                                                                                                                                                                            | Claude |
-| 2026-02-28 | 6.1.0   | Pricing terms, workspace creation, ADR-0027                                                                                                                                                                                                         | Claude |
-| 2026-02-28 | 6.0.0   | Docs restructuring, INDEX.md, reference files, YAML, ADR-0025                                                                                                                                                                                       | Claude |
-| 2026-02-28 | 5.0.0   | Contract system, microservice, notifications, ADR-0021-0024                                                                                                                                                                                         | Claude |
-| 2026-02-27 | 2.0.0   | Complete rewrite verified against codebase                                                                                                                                                                                                          | Claude |
-| 2026-01-01 | 1.0.0   | Initial version                                                                                                                                                                                                                                     | Pontus |
+| Date       | Version | Change                                                                                                                                                                                                                                                                 | Author |
+| ---------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| 2026-03-21 | 10.0.0  | Cascade Core Foundation: I1+6D+4C+K1a/K1b as organizing principle. Source of Truth updated, 7 cascade DB traps, Data Model reorganized by dimension, Domain Concepts + Industry Engine Layer merged into Cascade Core Model section, 7 cascade rules in What NOT To Do | Claude |
+| 2026-03-17 | 9.5.0   | Domain audit: Trainee Mode status-only clarification, Veikart/Reise/Protokoll conceptual-only, Event Engine journey registry clarification, action_type handlers documented, telemetry registry reference added, emit() coverage fix (33 mutations)                    | Claude |
+| 2026-03-17 | 9.4.0   | Audit fix: ports (3060, 5010-5012, 8000), counts (72 enums, 31 EFs, 54 ADRs, 23 modules), onboarding rewrite, added packages (agent-sdk, walkAi, walkieTalkie), organization scope, packages/ai subdirs, integration clarifications                                    | Pontus |
+| 2026-03-17 | 9.3.0   | Code Readability section added to Code Conventions: self-documenting first, comment WHY not WHAT, priority order for naming/comments                                                                                                                                   | Pontus |
+| 2026-03-17 | 9.2.0   | Added commitlint rules to Code Conventions (header/body max 100 chars, types, scope kebab-case)                                                                                                                                                                        | Claude |
+| 2026-03-09 | 9.1.0   | ENV protocol: op run as standard, .env.template as single source of truth, removed .env.local references, added ENV_PROTOCOL.md to protocols table                                                                                                                     | Pontus |
+| 2026-04-13 | 9.0.0   | Module Zero: 7 new tables, 3 enums, 26 telemetry events, 13 engine handlers, employee UI (my-schedule, my-training, handbook), governance CRUD, setup wizard, season status trap                                                                                       | Claude |
+| 2026-03-06 | 8.1.0   | Season planning (Module 15 MVP): season_budget, day_factor, hour_factor tables, budget_status enum, calculation engine, 4 hooks, 5 UI components, /dashboard/season page                                                                                               | Claude |
+| 2026-03-02 | 8.0.0   | Agent architecture: engine_memory, engine_authority_config tables, agent mode in engine_sessions, ADR-0042                                                                                                                                                             | Claude |
+| 2026-03-01 | 7.9.0   | Onboarding wizard refactored: 15 step components, 4 drawers, progressive save, auth step, invite step                                                                                                                                                                  | Claude |
+| 2026-03-01 | 7.8.0   | Doc audit: add infra/, stage-engine, interview-mcp, i18n, tailwind-config; fix counts                                                                                                                                                                                  | Claude |
+| 2026-03-01 | 7.7.0   | shift-mcp service, schedule_shift table, ADR-0036, schedules scope active                                                                                                                                                                                              | Claude |
+| 2026-03-01 | 7.6.0   | workspace-api gateway: 7 endpoints, usage tracking, env enforcement, 15 Edge Functions                                                                                                                                                                                 | Claude |
+| 2026-03-01 | 7.5.0   | API Gateway enforcement: mandatory checklists, scope table, service auth, env enforcement                                                                                                                                                                              | Claude |
+| 2026-03-01 | 7.4.0   | Inline security summary: Three Laws, API key tiers, env vars always in context                                                                                                                                                                                         | Claude |
+| 2026-03-01 | 7.3.0   | Protocols folder, templates folder, security protocol populated                                                                                                                                                                                                        | Claude |
+| 2026-02-28 | 7.2.0   | API key management: 3 tables, 2 Edge Functions, 8 API routes, UI, ADR-0028                                                                                                                                                                                             | Claude |
+| 2026-02-28 | 7.1.0   | Added Security section referencing SMARTOUT_SECURITY_PROTOCOL                                                                                                                                                                                                          | Pontus |
+| 2026-02-28 | 7.0.0   | Major trim: moved details to reference files, <280 lines                                                                                                                                                                                                               | Claude |
+| 2026-02-28 | 6.1.0   | Pricing terms, workspace creation, ADR-0027                                                                                                                                                                                                                            | Claude |
+| 2026-02-28 | 6.0.0   | Docs restructuring, INDEX.md, reference files, YAML, ADR-0025                                                                                                                                                                                                          | Claude |
+| 2026-02-28 | 5.0.0   | Contract system, microservice, notifications, ADR-0021-0024                                                                                                                                                                                                            | Claude |
+| 2026-02-27 | 2.0.0   | Complete rewrite verified against codebase                                                                                                                                                                                                                             | Claude |
+| 2026-01-01 | 1.0.0   | Initial version                                                                                                                                                                                                                                                        | Pontus |

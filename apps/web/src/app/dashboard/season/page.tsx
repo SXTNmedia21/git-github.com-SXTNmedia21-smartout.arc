@@ -9,16 +9,19 @@ import { HourFactorsTab } from "./_components/HourFactorsTab";
 import { SeasonOverviewTab } from "./_components/SeasonOverviewTab";
 import { SeasonManagementCard } from "./_components/SeasonManagementCard";
 import { useDayFactors, useHourFactors, useSeasonBudget, useSeasons } from "./_hooks";
-import { Target, BarChart3, Clock, LayoutDashboard } from "lucide-react";
+import { PlanningEventsTab } from "./_components/PlanningEventsTab";
+import { PlanningCycleSelector } from "./_components/PlanningCycleSelector";
+import { Target, BarChart3, Clock, LayoutDashboard, CalendarDays } from "lucide-react";
 import { isSeasonSetupReady } from "./_definitions/season-planning";
 
-type SeasonTab = "overview" | "budget" | "day-factors" | "hour-factors";
+type SeasonTab = "overview" | "budget" | "day-factors" | "hour-factors" | "events";
 
 const TABS: { id: SeasonTab; label: string; icon: typeof Target }[] = [
   { id: "overview", label: "Oversikt", icon: LayoutDashboard },
   { id: "budget", label: "Budsjett", icon: Target },
   { id: "day-factors", label: "Dagfaktorer", icon: BarChart3 },
   { id: "hour-factors", label: "Timefaktorer", icon: Clock },
+  { id: "events", label: "Hendelser", icon: CalendarDays },
 ];
 
 export default function SeasonPage() {
@@ -65,6 +68,11 @@ export default function SeasonPage() {
           onSelect={setSelectedSeasonId}
           isDark={isDark}
         />
+      </div>
+
+      {/* Planning cycle selector */}
+      <div className="mb-6">
+        <PlanningCycleSelector selectedSeasonId={selectedSeasonId} isDark={isDark} />
       </div>
 
       <div className="mb-6">
@@ -171,6 +179,9 @@ export default function SeasonPage() {
               isDark={isDark}
               isReadOnly={isBudgetLocked}
             />
+          )}
+          {activeTab === "events" && (
+            <PlanningEventsTab seasonId={selectedSeasonId} isDark={isDark} />
           )}
         </>
       )}
