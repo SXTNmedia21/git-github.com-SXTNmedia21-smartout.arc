@@ -94,6 +94,44 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Template not found" }, { status: 404 });
   }
 
+  // Resolve placeholders from workspace/company data
+  const placeholders =
+    (template.placeholders as Array<{
+      key: string;
+      label: string;
+      source: string;
+      default_value?: string;
+      required: boolean;
+    }>) ?? [];
+
+  let resolvedHtml = template.content_html ?? "";
+  let resolvedValues: Record<string, string> = {};
+
+  if (workspaceId && placeholders.length > 0) {
+    const { data: wsData } = await admin
+      .from("workspace")
+      .select("*, company:company_id(*)")
+      .eq("workspace_id", workspaceId)
+      .single();
+
+    const company = (wsData?.company ?? null) as Record<string, unknown> | null;
+
+    const { buildAutofillMap, resolvePlaceholders } = await import("@smartout/utils");
+    const autofillMap = buildAutofillMap(wsData, company, {
+      companyName: "Smartout AS",
+      orgNumber: "929 620 291",
+      contactEmail: "pontus@smartout.io",
+      contactName: "Pontus S. Lindroth",
+    });
+
+    const result = resolvePlaceholders(resolvedHtml, placeholders, autofillMap, {
+      recipient_name: body.data.recipient_name,
+      recipient_email: body.data.recipient_email,
+    });
+    resolvedHtml = result.resolved_html;
+    resolvedValues = result.resolved_values;
+  }
+
   // Create the contract record as draft
   const contractTitle = body.data.title || `${template.name} - ${body.data.recipient_name}`;
   const now = new Date().toISOString();
@@ -110,7 +148,8 @@ export async function POST(request: NextRequest) {
       status: "draft",
       recipient_name: body.data.recipient_name,
       recipient_email: body.data.recipient_email,
-      resolved_html: template.content_html,
+      resolved_html: resolvedHtml,
+      resolved_values: resolvedValues as unknown as Json,
       expires_at: expiresAt,
       metadata: (body.data.notes ? { internal_notes: body.data.notes } : {}) as unknown as Json,
       created_by: adminId,

@@ -10,7 +10,7 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
 
   const admin = createAdminClient();
 
-  const [contractResult, eventsResult, remindersResult] = await Promise.all([
+  const [contractResult, eventsResult, remindersResult, attachmentsResult] = await Promise.all([
     admin
       .from("contract")
       .select(
@@ -30,6 +30,12 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
       .select("*")
       .eq("contract_id", id)
       .order("scheduled_at", { ascending: true }),
+    admin
+      .from("contract_attachment")
+      .select("attachment_id, filename, mime_type, file_size, display_order, created_at")
+      .eq("contract_id", id)
+      .order("display_order")
+      .order("created_at"),
   ]);
 
   const contract = contractResult.data;
@@ -119,6 +125,16 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
           scheduled_at: string;
           sent_at: string | null;
           status: string | null;
+        }>
+      }
+      fileAttachments={
+        (attachmentsResult.data ?? []) as Array<{
+          attachment_id: string;
+          filename: string;
+          mime_type: string;
+          file_size: number;
+          display_order: number;
+          created_at: string;
         }>
       }
     />

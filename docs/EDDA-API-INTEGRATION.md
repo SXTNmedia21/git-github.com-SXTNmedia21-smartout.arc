@@ -1,3 +1,12 @@
+---
+title: "SmartOut API — EDDA Technical Specification"
+status: done
+updated: 2026-03-21
+created: 2026-03-11
+module: integrations
+tags: [api, edda, partner, integration]
+---
+
 # SmartOut API — EDDA Technical Specification
 
 **Version:** 1.0

@@ -116,7 +116,7 @@ file_size_limit = "50MiB"
 [storage.buckets.contract-attachments]
 public = false
 file_size_limit = "10MiB"
-allowed_mime_types = ["application/pdf"]
+allowed_mime_types = ["application/pdf", "image/png", "image/jpeg"]
 
 [storage.buckets.setup-documents]
 public = false

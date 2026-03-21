@@ -97,6 +97,15 @@ type Attachment = {
   content_html: string;
 };
 
+type FileAttachment = {
+  attachment_id: string;
+  filename: string;
+  mime_type: string;
+  file_size: number;
+  display_order: number;
+  created_at: string;
+};
+
 type Props = {
   contract: ContractData;
   placeholders: PlaceholderDef[];
@@ -105,6 +114,7 @@ type Props = {
   contentCss: string;
   events: ContractEvent[];
   reminders: ContractReminder[];
+  fileAttachments: FileAttachment[];
 };
 
 const statusStyles: Record<string, { bg: string; text: string; dot: string }> = {
@@ -158,6 +168,7 @@ export function ContractEditor({
   contentCss,
   events,
   reminders,
+  fileAttachments,
 }: Props) {
   const router = useRouter();
   const isDraft = contract.status === "draft";
@@ -175,6 +186,51 @@ export function ContractEditor({
   const [dataOpen, setDataOpen] = useState(false);
   const [timelineOpen, setTimelineOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<FileAttachment[]>(fileAttachments);
+  const [uploading, setUploading] = useState(false);
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch(`/api/platform-admin/contracts/${contract.contract_id}/attachments`, {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error ?? "Upload feilet");
+      }
+      const { data } = await res.json();
+      setUploadedFiles((prev) => [...prev, data]);
+      toast.success("Fil lastet opp");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Noe gikk galt");
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  }
+
+  async function handleDeleteAttachment(attachmentId: string) {
+    try {
+      const res = await fetch(
+        `/api/platform-admin/contracts/${contract.contract_id}/attachments/${attachmentId}`,
+        { method: "DELETE" },
+      );
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error ?? "Sletting feilet");
+      }
+      setUploadedFiles((prev) => prev.filter((f) => f.attachment_id !== attachmentId));
+      toast.success("Fil slettet");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Noe gikk galt");
+    }
+  }
 
   const updateValue = useCallback((key: string, val: string) => {
     setValues((prev) => ({ ...prev, [key]: val }));
@@ -543,6 +599,63 @@ export function ContractEditor({
             ))}
           </div>
         )}
+
+        {/* Per-contract file attachments */}
+        <Collapsible>
+          <CollapsibleTrigger asChild>
+            <button
+              type="button"
+              className="border-border hover:bg-muted/50 flex w-full items-center gap-2 rounded-lg border px-4 py-2.5 text-left text-sm font-medium transition-colors"
+            >
+              <FileText className="text-muted-foreground h-4 w-4" />
+              <span className="flex-1">Bilagor</span>
+              <span className="text-muted-foreground text-xs">{uploadedFiles.length}</span>
+              <ChevronRight className="text-muted-foreground h-4 w-4 transition-transform [[data-state=open]>&]:rotate-90" />
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="border-border space-y-2 rounded-b-lg border border-t-0 px-4 py-3">
+              {isDraft && (
+                <label className="border-border hover:bg-muted/30 flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed px-4 py-3 text-sm transition-colors">
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept=".pdf,.png,.jpg,.jpeg"
+                    onChange={handleFileUpload}
+                    disabled={uploading}
+                  />
+                  {uploading ? (
+                    <span className="text-muted-foreground">Laster opp...</span>
+                  ) : (
+                    <span className="text-muted-foreground">Klikk for å laste opp fil</span>
+                  )}
+                </label>
+              )}
+              {uploadedFiles.map((f) => (
+                <div key={f.attachment_id} className="flex items-center gap-3 text-sm">
+                  <FileText className="text-muted-foreground h-4 w-4 shrink-0" />
+                  <span className="flex-1 truncate">{f.filename}</span>
+                  <span className="text-muted-foreground text-xs">
+                    {f.file_size ? `${(f.file_size / 1024).toFixed(0)} KB` : ""}
+                  </span>
+                  {isDraft && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => handleDeleteAttachment(f.attachment_id)}
+                    >
+                      <span className="text-xs text-red-400">✕</span>
+                    </Button>
+                  )}
+                </div>
+              ))}
+              {uploadedFiles.length === 0 && !isDraft && (
+                <p className="text-muted-foreground text-xs">Ingen bilagor</p>
+              )}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
 
         {/* ── Timeline + Reminders (collapsible, bottom) ── */}
         <div className="flex gap-3">

@@ -1413,6 +1413,53 @@ export type Database = {
           },
         ]
       }
+      contract_attachment: {
+        Row: {
+          attachment_id: string
+          contract_id: string
+          created_at: string | null
+          created_by: string | null
+          display_order: number | null
+          file_size: number | null
+          filename: string
+          mime_type: string
+          storage_path: string
+          updated_at: string | null
+        }
+        Insert: {
+          attachment_id?: string
+          contract_id: string
+          created_at?: string | null
+          created_by?: string | null
+          display_order?: number | null
+          file_size?: number | null
+          filename: string
+          mime_type: string
+          storage_path: string
+          updated_at?: string | null
+        }
+        Update: {
+          attachment_id?: string
+          contract_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          display_order?: number | null
+          file_size?: number | null
+          filename?: string
+          mime_type?: string
+          storage_path?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_attachment_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contract"
+            referencedColumns: ["contract_id"]
+          },
+        ]
+      }
       contract_event: {
         Row: {
           actor_id: string | null
@@ -8277,7 +8324,7 @@ export type Database = {
           auth_provider_id: string | null
           created_at: string
           date_of_birth: string | null
-          email: string
+          email: string | null
           emergency_contact_name: string | null
           emergency_contact_phone: string | null
           emergency_contact_relation: string | null
@@ -8298,7 +8345,7 @@ export type Database = {
           auth_provider_id?: string | null
           created_at?: string
           date_of_birth?: string | null
-          email: string
+          email?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           emergency_contact_relation?: string | null
@@ -8319,7 +8366,7 @@ export type Database = {
           auth_provider_id?: string | null
           created_at?: string
           date_of_birth?: string | null
-          email?: string
+          email?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           emergency_contact_relation?: string | null
@@ -9009,6 +9056,10 @@ export type Database = {
         Returns: string
       }
       anonymize_user: { Args: { target_user_id: string }; Returns: undefined }
+      append_conversation_turn: {
+        Args: { p_session_id: string; p_turn: Json }
+        Returns: undefined
+      }
       archive_onboarding_workspaces: {
         Args: { p_workspace_ids: string[] }
         Returns: undefined
