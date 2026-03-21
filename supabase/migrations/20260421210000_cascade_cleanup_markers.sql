@@ -14,9 +14,13 @@ COMMENT ON TABLE company_opening_hours IS
 COMMENT ON TABLE operating_hours IS
   'LEGACY: deprecated by Cascade A1. Runtime reads must use department_operating_hours.';
 
--- season.opening_hours deprecated
-COMMENT ON COLUMN season.opening_hours IS
-  'LEGACY: deprecated by Cascade A1. Runtime reads must use department_operating_hours.';
+-- season.opening_hours deprecated (conditional — column may not exist in all environments)
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'season' AND column_name = 'opening_hours') THEN
+    COMMENT ON COLUMN season.opening_hours IS
+      'LEGACY: deprecated by Cascade A1. Runtime reads must use department_operating_hours.';
+  END IF;
+END $$;;
 
 -- schedule_template.department TEXT is compatibility only
 COMMENT ON COLUMN schedule_template.department IS
