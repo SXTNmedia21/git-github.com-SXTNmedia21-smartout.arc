@@ -1,7 +1,7 @@
 ---
 title: "Cascade Legacy Usage Inventory"
 status: in_progress
-updated: 2026-03-21
+updated: 2026-03-22
 created: 2026-03-21
 module: cascade
 tags: [cascade, migration, legacy, inventory]
@@ -78,14 +78,16 @@ tags: [cascade, migration, legacy, inventory]
 
 ## Summary
 
-| Structure                             | Total Hits | Must Refactor | Safe to Defer | Allowed Intake        |
-| ------------------------------------- | ---------- | ------------- | ------------- | --------------------- |
-| `company_opening_hours`               | 4          | 0             | 0             | 1 (join wizard write) |
-| `operating_hours`                     | 11         | 2             | 4             | 0                     |
-| `season.opening_hours`                | 4          | 1             | 0             | 0                     |
-| `schedule_template.department` (TEXT) | 8          | 3             | 1             | 1                     |
+| Structure                             | Total Hits | Must Refactor | Safe to Defer | Allowed Intake        | Done (2026-03-22)                   |
+| ------------------------------------- | ---------- | ------------- | ------------- | --------------------- | ----------------------------------- |
+| `company_opening_hours`               | 4          | 0             | 0             | 1 (join wizard write) | —                                   |
+| `operating_hours`                     | 11         | 0 (was 2)     | 4             | 0                     | 2 (hook rewritten to cascade table) |
+| `season.opening_hours`                | 4          | 1             | 0             | 0                     | —                                   |
+| `schedule_template.department` (TEXT) | 8          | 3             | 1             | 1                     | —                                   |
 
 > Migration DDL files and auto-generated types are excluded from the counts above — they are not actionable items.
+>
+> **2026-03-22 update:** `use-operating-hours.ts` rewritten to read/write `department_operating_hours`. `HourFactorsTab` and `SeasonOverviewTab` updated to pass departmentId. operating_hours must-refactor count: 2 → 0.
 
 ### Must-Refactor Backlog (6 items)
 
