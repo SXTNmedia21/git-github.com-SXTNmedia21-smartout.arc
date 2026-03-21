@@ -46,12 +46,13 @@ tags: [cascade, docs, alignment, schema, ui]
 
 ## Log
 
-| Date       | Time | Event                                                    |
-| ---------- | ---- | -------------------------------------------------------- |
-| 2026-03-21 | —    | Spec written, reviewed, locked (I1 + 6D + 4C + K1a/K1b)  |
-| 2026-03-21 | —    | Implementation plan approved (5 tracks, 20+ tasks)       |
-| 2026-03-22 | —    | Foundation executed: 7 migrations, 29 tests              |
-| 2026-03-22 | —    | Hours integration: backfill + hook + consumers + session |
-| 2026-03-22 | —    | 4 cascade UI surfaces built                              |
-| 2026-03-22 | —    | Full docs audit + alignment                              |
-| 2026-03-22 | —    | Closure: typecheck fix, WORKLOG + JOURNEY created        |
+| Date       | Time  | Event                                                    |
+| ---------- | ----- | -------------------------------------------------------- |
+| 2026-03-21 | —     | Spec written, reviewed, locked (I1 + 6D + 4C + K1a/K1b)  |
+| 2026-03-21 | —     | Implementation plan approved (5 tracks, 20+ tasks)       |
+| 2026-03-22 | —     | Foundation executed: 7 migrations, 29 tests              |
+| 2026-03-22 | —     | Hours integration: backfill + hook + consumers + session |
+| 2026-03-22 | —     | 4 cascade UI surfaces built                              |
+| 2026-03-22 | —     | Full docs audit + alignment                              |
+| 2026-03-22 | —     | Closure: typecheck fix, WORKLOG + JOURNEY created        |
+| 2026-03-22 | 00:56 | Feature closed and merged to development                 |
