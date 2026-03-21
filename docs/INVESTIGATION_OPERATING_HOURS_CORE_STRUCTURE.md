@@ -8,7 +8,7 @@ tags:
   [investigation, operating-hours, department, location, cascade, architecture, season, vaktlista]
 ---
 
-> **Canonical cascade reference:** `docs/cascade-spreadsheet-overview.md` — the Five Dimensions, waterfall layers, compliance rules, Riksavtalen rates, and schema gaps are all defined there. This document contains the investigation findings and design decisions that led to that architecture.
+> **Canonical cascade reference:** `docs/cascade-spreadsheet-overview.md` — the Six Dimensions (D1-D6), waterfall layers, compliance rules, Riksavtalen rates, and schema gaps are all defined there. This document contains the investigation findings and design decisions that led to that architecture.
 
 # Investigation & Design: Core Structure, Operating Hours & Cascade Model
 
@@ -404,20 +404,25 @@ The cascade runs silently even without published shifts:
 
 ---
 
-# PART C: THE FIVE DIMENSIONS (Updated 2026-03-21)
+# PART C: THE SIX DIMENSIONS (Updated 2026-03-21)
 
-> Supersedes the original "Four Domain Categories." The fifth dimension (Service Concept) was identified by AI Council review on 2026-03-21 as the parameterizing layer that all previous categories missed.
+> Supersedes the original "Four Domain Categories." D5 (Service Concept) identified by AI Council on 2026-03-21. D6 (Production & Product) added after stress-test (7/0 unanimous).
 > Full specification: `docs/cascade-spreadsheet-overview.md`
 
 | # | English | Norwegian | Core Question | Role in Cascade |
 |---|---------|-----------|---------------|-----------------|
 | D1 | Operational Envelope | Driftsrammer | When/where/with what capacity? | Defines time boundaries |
-| D2 | Resource Availability | Resurstilgang | Who is available, qualified, willing? | Enables solution |
+| D2 | Resource Availability | Resurstilgang | Who is available NOW and within the planning horizon? | Enables solution |
 | D3 | Rules & Constraints | Regler og begrensninger | What is allowed/required/forbidden? | Constrains solution |
 | D4 | Demand Signal | Ettersporselsignal | How much activity to prepare for? | Drives need |
 | D5 | Service Concept | Driftskonsept | What kind of operation are we? | Parameterizes all others |
+| D6 | Production & Product | Produksjon og produkt | What must be produced and what is the current production state? | Adds temporal debt + live state |
 
-**Key insight:** D5 does NOT appear as a cascade layer. It sets coefficients and thresholds across D1-D4. A fine-dining restaurant and a fast-casual burger joint use the same cascade waterfall, but D5 changes the weights throughout.
+**Key insights:**
+- D5 does NOT appear as a cascade layer. It sets coefficients and thresholds across D1-D4, D6.
+- D6 has a UNIQUE property: **temporal debt**. Production state accumulates — yesterday's deficit becomes today's extra workload. No other dimension has this property.
+- D1 must be multi-instance aware for multi-location businesses.
+- D2 must be time-projected: "Who is available NOW and within the planning horizon."
 
 **Season impact by dimension:**
 - D1: DIRECT — season redefines operating hours and capacity
@@ -425,8 +430,9 @@ The cascade runs silently even without published shifts:
 - D3: NONE — labor law and rules do not change with seasons
 - D4: DIRECT — demand profiles shift dramatically with seasons
 - D5: RARE — service concept is mostly stable, but some venues change style seasonally
+- D6: INDIRECT — seasonal menus change production requirements, but production state itself is live
 
-**The cascade is a constraint satisfaction + optimization process.** D4 drives need, D1 sets boundaries, D2 enables solutions, D3 constrains them, D5 parameterizes everything.
+**The cascade is a constraint satisfaction + optimization process.** D4 drives need, D1 sets boundaries, D2 enables solutions, D3 constrains them, D5 parameterizes everything, D6 adds temporal debt and live state.
 
 ---
 
@@ -491,7 +497,7 @@ These must be frozen before any implementation begins:
 | Anchor system on template shifts           | ✅ Decided      |
 | Cascade via engine_process (not triggers)  | ✅ Decided      |
 | Two cascade modes (simulation + execution) | ✅ Decided      |
-| Five dimensions (D1-D5)                    | ✅ Decided (2026-03-21) |
+| Six dimensions (D1-D6)                     | ✅ Decided (2026-03-21) |
 | Three-layer shift architecture             | ✅ Decided      |
 | Open questions OQ-1 through OQ-10          | ⬜ Must resolve |
 

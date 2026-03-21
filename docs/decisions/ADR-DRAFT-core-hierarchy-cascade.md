@@ -14,7 +14,7 @@ tags: [adr, cascade, hierarchy, operating-hours, architecture]
 > **Scope:** Irreversible — affects every module
 > **Trigger:** Investigation revealed three disconnected operating hours systems, no department-location bridge, zero cascade, and naming mismatches between docs and database.
 >
-> **Canonical cascade reference:** `docs/cascade-spreadsheet-overview.md` — Five Dimensions (confirmed 2026-03-21), corrected Riksavtalen rates, compliance enforcement levels, and complete schema gap analysis live there.
+> **Canonical cascade reference:** `docs/cascade-spreadsheet-overview.md` — Six Dimensions (D1-D6, confirmed 2026-03-21), corrected Riksavtalen rates, compliance enforcement levels, and complete schema gap analysis live there.
 
 ---
 

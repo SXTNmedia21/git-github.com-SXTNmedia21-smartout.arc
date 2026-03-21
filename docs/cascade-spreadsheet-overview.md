@@ -1,5 +1,5 @@
 ---
-title: "Cascade Architecture — The Five Dimensions & Spreadsheet Model"
+title: "Cascade Architecture — The Six Dimensions & Spreadsheet Model"
 status: canonical
 updated: 2026-03-21
 created: 2026-03-21
@@ -7,38 +7,71 @@ module: cross-cutting
 tags: [cascade, scheduling, dimensions, operating-hours, payroll, compliance, architecture]
 ---
 
-# Cascade Architecture — The Five Dimensions & Spreadsheet Model
+# Cascade Architecture — The Six Dimensions & Spreadsheet Model
 
 > Canonical source for how Smartout's scheduling, staffing, and operations cascade works.
 > Every doc that mentions cascade, scheduling, salary, or operating hours should reference this file.
 
 ---
 
-## The Five Dimensions
+## The Six Dimensions
 
-All scheduling and staffing decisions in Smartout are shaped by five dimensions. These were confirmed by AI Council + Pontus on 2026-03-21.
+All scheduling and staffing decisions in Smartout are shaped by six dimensions. D1-D5 were confirmed by AI Council + Pontus on 2026-03-21. D6 added after stress-test on 2026-03-21 (7/0 unanimous).
 
-| # | English | Norwegian | Core Question |
-|---|---------|-----------|---------------|
-| D1 | Operational Envelope | Driftsrammer | When/where/with what capacity? |
-| D2 | Resource Availability | Resurstilgang | Who is available, qualified, willing? |
-| D3 | Rules & Constraints | Regler og begrensninger | What is allowed/required/forbidden? |
-| D4 | Demand Signal | Ettersporselsignal | How much activity to prepare for? |
-| D5 | Service Concept | Driftskonsept | What kind of operation are we? |
+| # | English | Norwegian | Core Question | Type |
+|---|---------|-----------|---------------|------|
+| D1 | Operational Envelope | Driftsrammer | When/where/with what capacity? | Structural |
+| D2 | Resource Availability | Resurstilgang | Who is available NOW and within the planning horizon? | Live |
+| D3 | Rules & Constraints | Regler og begrensninger | What is allowed/required/forbidden? | Static |
+| D4 | Demand Signal | Ettersporselsignal | How much activity to prepare for? | Forecast |
+| D5 | Service Concept | Driftskonsept | What kind of operation are we? | Parameterizing |
+| D6 | Production & Product | Produksjon og produkt | What must be produced and what is the current production state? | Live/accumulating |
 
 **D5 is special:** It parameterizes coefficients in all other dimensions. A fine-dining restaurant and a fast-casual burger joint have the same cascade layers, but D5 changes the weights, thresholds, and defaults throughout. D5 does NOT appear as a cascade layer itself.
 
+**D6 is special:** It has a UNIQUE property no other dimension has — **temporal debt**. If Monday's staff didn't do prep, Tuesday needs extra staff to compensate. Production state ACCUMULATES — it doesn't reset daily like other dimensions. Equipment failure (broken fryer, wine cellar cooling) = production capacity degradation. Stock levels, supplier deliveries, menu availability — all live state.
+
 ### Dimension Details
 
-**D1 — Operational Envelope:** Operating hours per department/location/season/weekday. Date overrides (holidays, events, closures). Capacity constraints (max guests, open sections, uteservering). Season as context switch — redefines hours and capacity, not rules.
+**D1 — Operational Envelope:** Operating hours per department/location/season/weekday. Date overrides (holidays, events, closures). Capacity constraints (max guests, open sections, uteservering). Season as context switch — redefines hours and capacity, not rules. **Note:** D1 must be multi-instance aware for multi-location businesses — each location has its own envelope.
 
-**D2 — Resource Availability:** Staff profiles, contract hours, availability declarations, certifications, seniority, cost. Future: machines, rooms, vehicles for other industries.
+**D2 — Resource Availability:** Staff profiles, contract hours, availability declarations, certifications, seniority, cost. Future: machines, rooms, vehicles for other industries. **Note:** D2 must be time-projected — "Who is available NOW and within the planning horizon" (not just a static roster).
 
 **D3 — Rules & Constraints:** Labor law (Arbeidsmiljoeloven), collective agreements (Riksavtalen), budget caps, internal rules, compliance requirements (HACCP, food safety certs). Rules do NOT change with seasons.
 
 **D4 — Demand Signal:** Reservations, walk-in forecasts, occupancy per time slot, season-based demand profiles, event load (concerts, holidays, tourism peaks). MVP: manual input + historical patterns.
 
 **D5 — Service Concept:** Industry, niche, price segment, service style. Determines staffing ratios, skill requirements, acceptable wait times, quality thresholds. Configured per workspace via industry engine package.
+
+**D6 — Production & Product:** The live state of what must be produced and what has been produced. Unlike other dimensions, D6 accumulates — yesterday's deficit becomes today's extra workload.
+
+### D6 Factors (~15)
+
+| Factor | Description |
+|--------|-------------|
+| Menu/product catalog | Static + seasonal changes |
+| Prep requirements per dish | Time, station, skills needed |
+| Current prep status | Done vs pending vs deficit from yesterday |
+| Raw material stock levels | What's available, what's running out |
+| Supplier delivery schedule | Expected deliveries and status |
+| Equipment operational status | Working, degraded, broken |
+| Production capacity per station/hour | Throughput limits |
+| Waste/svinn tracking | Actual vs target |
+| Recipe/allergen profiles | Constraints on what can be produced |
+| Catering production orders | External orders requiring production |
+| Menu availability | What CAN we serve right now |
+| Production quality state | Temp logs, HACCP status |
+| Handover state | What's communicated between shifts |
+
+### D6 Cross-Dimension Interactions
+
+| Interaction | Effect |
+|-------------|--------|
+| D6 deficit → D2 | Need extra staff tomorrow for catch-up prep |
+| D6 equipment failure → D1 | May need to close a station/section |
+| D6 stock shortage → D4 | Can't meet demand for certain items |
+| D6 menu complexity → D5 | Concept defines WHAT, D6 tracks STATE |
+| D6 HACCP requirements → D3 | Rules say what must be checked, D6 tracks whether it was |
 
 ---
 
@@ -67,9 +100,9 @@ L9  Notifications           (employee-facing alerts)
 | L2 | Seasons | D1, D4, D5 | Time periods that redefine operating hours, demand profiles, capacity. Status: draft / ready / archived. `is_active` boolean for current season. |
 | L3 | Operating Hours | D1, D5 | `department_operating_hours` (weekly defaults) + `department_hours_override` (date exceptions). Resolution: override(date) OR default(weekday). |
 | L4 | Template Shifts | D1, D5 | Anchor-based patterns. `shift_function`: opening / closing / supporting / rush_hour / sub_supply. Start/end anchored to open_time, close_time, or fixed. |
-| RM | Resource Matching | D2, D3, D4, D5 | Dual-input layer (see below). Matches people to shifts with cost estimates and compliance flags. |
-| L5 | Schedule Shifts | All | Real-world assignments. Manual edits and overrides happen here. |
-| L6 | Sessions | D1, D3 | `department_session` with planned_open/planned_close from L3. Status lifecycle: upcoming -> active -> pending_signoff -> closed. |
+| RM | Resource Matching | D2, D3, D4, D5, D6 | Dual-input layer (see below). Matches people to shifts with cost estimates, compliance flags, and production debt. |
+| L5 | Schedule Shifts | All | Real-world assignments. Manual edits and overrides happen here. D6 production debt may add catch-up shifts. |
+| L6 | Sessions | D1, D3, D6 | `department_session` with planned_open/planned_close from L3. D6 handover state feeds into session context. Status lifecycle: upcoming -> active -> pending_signoff -> closed. |
 | L7 | Hooks | D1, D3 | `session_hook` firing times = anchor_time + trigger_offset_min. Types: pre_open / open / scheduled / pre_close / close. |
 | L8 | Tasks | D3 | `session_task` materialized from hooks + linked procedures/routines. |
 | L9 | Notifications | All | Push/email/SMS to affected employees. Only fires if abs(time_delta) > threshold. |
@@ -264,7 +297,7 @@ Fields and tables that must be created before the full cascade + payroll system 
 1. **Declarative truth vs derived artifacts.** Only source-of-truth data is stored. Everything downstream must be derivable and recomputable.
 2. **Season modifies reality, not rules.** Season redefines operating hours and demand profiles. Labor law and contracts do not change with seasons.
 3. **Overrides only at the real-world layer.** Template shifts and operating hours are structural. Manual edits happen on schedule_shift.
-4. **The cascade is a constraint satisfaction + optimization process.** D4 (demand) drives need, D1 (envelope) sets boundaries, D2 (resources) enables solutions, D3 (rules) constrains them, D5 (concept) parameterizes everything.
+4. **The cascade is a constraint satisfaction + optimization process.** D4 (demand) drives need, D1 (envelope) sets boundaries, D2 (resources) enables solutions, D3 (rules) constrains them, D5 (concept) parameterizes everything, D6 (production) adds temporal debt and live state.
 
 ---
 
