@@ -491,6 +491,54 @@ const ENTITY_PK: Record<string, string> = {
 };
 
 /**
+ * Resolve planned open/close for a department session by checking
+ * department_hours_override (date-specific) then department_operating_hours (weekly).
+ */
+async function resolveSessionHours(
+  supabase: ReturnType<typeof createClient>,
+  workspaceId: string,
+  departmentId: string,
+  date: string,
+): Promise<{ open: string | null; close: string | null }> {
+  // 1. Check date-specific override
+  const { data: override } = await supabase
+    .from("department_hours_override")
+    .select("open_time, close_time, is_closed")
+    .eq("workspace_id", workspaceId)
+    .eq("department_id", departmentId)
+    .eq("override_date", date)
+    .limit(1)
+    .maybeSingle();
+
+  if (override) {
+    if (override.is_closed) return { open: null, close: null };
+    return { open: override.open_time, close: override.close_time };
+  }
+
+  // 2. Fall back to weekly hours — JS getDay() 0=Sun, convert to 0=Mon
+  const jsDay = new Date(date + "T12:00:00Z").getUTCDay();
+  const dayOfWeek = jsDay === 0 ? 6 : jsDay - 1;
+
+  const { data: weekly } = await supabase
+    .from("department_operating_hours")
+    .select("open_time, close_time, is_closed")
+    .eq("workspace_id", workspaceId)
+    .eq("department_id", departmentId)
+    .eq("day_of_week", dayOfWeek)
+    .is("location_id", null)
+    .order("season_id", { ascending: true, nullsFirst: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (weekly) {
+    if (weekly.is_closed) return { open: null, close: null };
+    return { open: weekly.open_time, close: weekly.close_time };
+  }
+
+  return { open: null, close: null };
+}
+
+/**
  * Execute a single engine step. Updates state based on action_type.
  */
 async function executeStep(
@@ -685,14 +733,17 @@ async function executeStep(
 
       for (const date of dates) {
         for (const deptId of deptIds) {
+          // Resolve planned hours: override > weekly > null
+          const hours = await resolveSessionHours(supabase, state.workspace_id, deptId, date);
+
           await supabase.from("department_session").upsert(
             {
               workspace_id: state.workspace_id,
               department_id: deptId,
               session_date: date,
               status: "upcoming",
-              // TODO(cascade): populate planned_open/close from resolveEffectiveHours()
-              // when cascade pure functions are available as a shared package
+              planned_open: hours.open,
+              planned_close: hours.close,
             },
             { onConflict: "workspace_id,department_id,session_date" },
           );

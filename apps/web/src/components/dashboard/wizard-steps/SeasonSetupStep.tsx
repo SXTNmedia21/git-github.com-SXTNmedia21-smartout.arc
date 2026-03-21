@@ -48,6 +48,74 @@ const DEFAULT_DEPT_HOURS: Record<string, string> = {
 
 type OpeningHoursMap = Record<string, Record<WeekdayKey, string>>;
 
+// Map weekday key index to cascade day_of_week (0=Mon...6=Sun)
+const WEEKDAY_INDEX: Record<WeekdayKey, number> = {
+  mon: 0,
+  tue: 1,
+  wed: 2,
+  thu: 3,
+  fri: 4,
+  sat: 5,
+  sun: 6,
+};
+
+type DeptRow = { department_id: string; name: string };
+
+/**
+ * Converts the wizard's opening hours map (keyed by department name) into
+ * department_operating_hours rows. Matches department name to department_id.
+ */
+async function upsertDepartmentHours(
+  supabase: ReturnType<typeof createClient>,
+  workspaceId: string,
+  openingHours: OpeningHoursMap,
+  departments: DeptRow[],
+  seasonId: string,
+) {
+  const rows: {
+    workspace_id: string;
+    department_id: string;
+    season_id: string;
+    location_id: null;
+    day_of_week: number;
+    open_time: string | null;
+    close_time: string | null;
+    is_closed: boolean;
+  }[] = [];
+
+  for (const [deptName, weeklyHours] of Object.entries(openingHours)) {
+    const dept = departments.find((d) => d.name.toLowerCase() === deptName.toLowerCase());
+    if (!dept) continue;
+
+    for (const [dayKey, timeRange] of Object.entries(weeklyHours) as [WeekdayKey, string][]) {
+      const dayOfWeek = WEEKDAY_INDEX[dayKey];
+      if (dayOfWeek === undefined) continue;
+
+      const [open, close] = timeRange.split("-").map((t) => t.trim());
+      const isClosed = !open || !close;
+
+      rows.push({
+        workspace_id: workspaceId,
+        department_id: dept.department_id,
+        season_id: seasonId,
+        location_id: null,
+        day_of_week: dayOfWeek,
+        open_time: isClosed ? null : open!,
+        close_time: isClosed ? null : close!,
+        is_closed: isClosed,
+      });
+    }
+  }
+
+  if (rows.length === 0) return;
+
+  const { error } = await supabase
+    .from("department_operating_hours")
+    .upsert(rows, { onConflict: "department_id,location_id,season_id,day_of_week" });
+
+  if (error) throw error;
+}
+
 // ─── Helpers ────────────────────────────────────────────────
 
 function suggestSeason(): { name: string; startDate: string; endDate: string } {
@@ -404,12 +472,20 @@ export function SeasonSetupStep({
             slug,
             start_date: startDate,
             end_date: endDate,
-            opening_hours: openingHours,
           })
           .eq("season_id", existingSeason.season_id);
 
         if (updateError) throw updateError;
         seasonId = existingSeason.season_id;
+
+        // Write opening hours to department_operating_hours (cascade D1)
+        await upsertDepartmentHours(
+          supabase,
+          workspace.workspace_id,
+          openingHours,
+          departments ?? [],
+          seasonId,
+        );
 
         // Update budget if it exists, otherwise create
         if (existingSeason.budget) {
@@ -484,13 +560,21 @@ export function SeasonSetupStep({
             status: "draft" as const,
             workspace_id: workspace.workspace_id,
             created_by: profileId,
-            opening_hours: openingHours,
           })
           .select("season_id")
           .single();
 
         if (seasonError) throw seasonError;
         seasonId = season.season_id;
+
+        // Write opening hours to department_operating_hours (cascade D1)
+        await upsertDepartmentHours(
+          supabase,
+          workspace.workspace_id,
+          openingHours,
+          departments ?? [],
+          seasonId,
+        );
 
         // 2. Create season budget
         const { data: budget, error: budgetError } = await supabase
