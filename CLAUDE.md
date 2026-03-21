@@ -30,7 +30,7 @@ Rebuild from Bubble.io. Live Stripe billing + DocuSign contracts. Modern stack, 
 
 ## Tech Stack
 
-Next.js 16 (App Router) + React 19 + TypeScript (strict) | Tailwind v4 (CSS config, no config file) | shadcn/ui (new-york) | Supabase (PostgreSQL 17, Auth, Storage, Edge Functions) | Vercel (web + landing) | PostHog EU | pnpm 9.15 + Turborepo | Playwright E2E
+Next.js 16 (App Router) + React 19 + TypeScript (strict) | Tailwind v4 (CSS config, no config file) | shadcn/ui (new-york) | React Native + Expo (mobile) | Supabase (PostgreSQL 17, Auth, Storage, Edge Functions) | Vercel (web + landing) | PostHog EU | pnpm 9.15 + Turborepo | Playwright E2E
 
 Integrations: Stripe (API-only via Edge Functions), DocuSeal (contracts), SendGrid (API-only via Edge Functions/webhooks), Twilio (API-only), Sentry, Upstash Redis, Ultravox (voice), Remotion (video)
 
@@ -44,6 +44,7 @@ Integrations: Stripe (API-only via Edge Functions), DocuSeal (contracts), SendGr
 smartout_v3/
 ├── apps/web/          → Dashboard (port 3060)
 │   ├── onboarding/     → Wizard: 10 sections + 14 UI components + WizardContext + 3 hooks (useOnboardingState, useScrollProgress, useBotsson)
+├── apps/mobile/       → Mobile app (React Native + Expo)
 ├── apps/landing/      → Landing page (port 3055)
 ├── apps/e2e/          → Playwright tests
 ├── packages/          → agent-sdk, ai (+ adapters/, agents/, capabilities/, context/, engine/, generators/,
@@ -135,6 +136,8 @@ Ingen unntak.
 **Supabase:** RLS everywhere (except platform-admin) | `auth.uid()` in policies | Helpers: `get_workspace_ids_for_user()`, `is_admin_in_workspace()` | Edge Functions: Zod validation | User ops: anon key, admin ops: service role
 
 **React/Next.js:** App Router only | Server Components default, `"use client"` as deep as possible | shadcn/ui for all UI | CSS variables for theming | `sonner` for toasts | Fonts: Geist + Geist Mono
+
+**Mobile Parity:** Every dashboard feature must be designed for mobile from the start. Data hooks, API endpoints, and business logic must support both web and mobile surfaces. Shared logic goes in `packages/` (not `apps/web/`). Mobile UI can ship in a follow-up PR, but the architecture must never be web-only. When building a new feature: (1) data layer in packages, (2) web UI in apps/web, (3) mobile UI in apps/mobile — steps 2 and 3 can be separate PRs but step 1 must enable both.
 
 **Telemetry:** Every mutation emits. `emit()` from `@smartout/telemetry` drives four destinations: PostHog (analytics), Logger (stdout), activity_trail (audit), engine_event (workflow automation). No mutation without emit. No second event system.
 
@@ -425,6 +428,7 @@ ALL microservices (contract-service, scrapling, future services):
 - Never create workspace without I1 bootstrap (no empty workspaces)
 - Never mix dimension concerns across tables (D2 data in D4 table = wrong)
 - Never treat cascade pipeline and Event Engine as the same thing — cascade produces, event engine consumes
+- Never build dashboard features with web-only architecture — data layer and hooks must support mobile. Shared logic in `packages/`, not `apps/web/`
 
 ---
 
