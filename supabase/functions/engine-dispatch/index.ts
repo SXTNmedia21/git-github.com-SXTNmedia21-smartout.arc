@@ -691,6 +691,8 @@ async function executeStep(
               department_id: deptId,
               session_date: date,
               status: "upcoming",
+              // TODO(cascade): populate planned_open/close from resolveEffectiveHours()
+              // when cascade pure functions are available as a shared package
             },
             { onConflict: "workspace_id,department_id,session_date" },
           );
