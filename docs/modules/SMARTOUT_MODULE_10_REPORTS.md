@@ -5,7 +5,7 @@ version: "1.1"
 status: design-spec
 layer: module
 created: 2026-02-24
-updated: 2026-03-01
+updated: 2026-03-22
 author: pontus
 supersedes: []
 superseded_by: null
@@ -20,6 +20,7 @@ tags:
   - kpis
   - settlement
   - qr-routines
+  - cascade
 tables_implemented:
   - custom_report
 tables_planned:
@@ -42,6 +43,17 @@ changelog:
   - date: 2026-02-28
     change: "Added YAML frontmatter"
 ---
+
+## Cascade Mapping
+
+> This module's relationship to the Cascade Core Foundation
+> (spec: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`)
+
+| Dimension                      | Role                                                   |
+| ------------------------------ | ------------------------------------------------------ |
+| C1 Observability & Calibration | Primary — dashboards, KPIs, and reconciliation reports |
+| C3 Commercial & Outcome        | Produces — revenue, cost, and settlement analysis      |
+| All Dimensions                 | Consumes — aggregates data from every dimension        |
 
 # Module 10: Reports, Dashboards & Reconciliation
 

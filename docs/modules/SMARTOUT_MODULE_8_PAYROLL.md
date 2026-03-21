@@ -5,7 +5,7 @@ version: "2.0"
 status: in_progress
 layer: module
 created: 2026-02-24
-updated: 2026-03-21
+updated: 2026-03-22
 author: pontus
 supersedes: []
 superseded_by: null
@@ -41,10 +41,23 @@ changelog:
 > Version 2.0 | March 2026
 > **Dependencies:** Core Architecture v2 (Profile, Department), Module 3 (Scheduling — shifts/punches), Module 7 (Absence)
 > **Status:** IN PROGRESS — fleshed out with AI Council findings 2026-03-21
->
-> **Cascade architecture:** This module consumes D6 (Production) shift data and applies D3 (Rules & Constraints) for rate calculations. Supplement rates, thresholds, and time windows are framework-loaded from `tariff_rate_table` (seeded by the active regulatory framework package). Concrete numerical values are NOT hardcoded in this module — they are resolved at runtime from the framework. See `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md` (Cascade Core Foundation spec, Section 5) for the framework seed data structure.
->
-> **Key principle:** This module READS cost data from `shift_cost_snapshot` (created by the cascade engine). It does not independently compute shift costs. The cascade proposal pipeline owns cost computation; this module owns payroll aggregation and export.
+
+## Cascade Mapping
+
+> This module's relationship to the Cascade Core Foundation
+> (spec: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`)
+
+| Dimension                | Role                                                  |
+| ------------------------ | ----------------------------------------------------- |
+| D3 Rules & Constraints   | Primary — Riksavtalen/AML rates from framework tables |
+| C3 Commercial & Outcome  | Primary — cost model, labor cost attribution          |
+| D2 Resource Availability | Consumes — employee contracts, payroll profiles       |
+| D6 Production & Product  | Consumes — actual hours worked from shifts            |
+| C4 Governance            | Enforces — payroll approval authorization             |
+
+All rates resolved from `tariff_rate_table` via `framework_rule` (D3). Note: `hospitality.ts` rates are WRONG — do not use as source.
+
+**Key principle:** This module READS cost data from `shift_cost_snapshot` (created by the cascade engine). It does not independently compute shift costs. The cascade proposal pipeline owns cost computation; this module owns payroll aggregation and export.
 
 ---
 
@@ -111,11 +124,7 @@ Fagbrev distinction: employees with/without fagbrev have different tariff catego
 
 ### 3.4 Personal supplements (personlige tillegg)
 
-| Seniority | Monthly     |
-| --------- | ----------- |
-| 10 years  | 900 kr/mnd  |
-| 15 years  | 1400 kr/mnd |
-| 20 years  | 1900 kr/mnd |
+Personal supplement amounts are resolved from `tariff_rate_table` via `framework_rule` (D3) with seniority bracket lookups. Note: `hospitality.ts` rates are WRONG — do not use as source. The active regulatory framework (`hospitality.no.default.v1`) seeds correct values at release time.
 
 ### 3.5 Allmenngjoring
 
@@ -145,7 +154,7 @@ Overtime is triggered when hours exceed the threshold from `employment_contract.
 1. Sum all schedule_shift hours for the week (Mon-Sun)
 2. Compare against agreed_weekly_hours from employment_contract
 3. If over: mark excess hours as overtime
-4. Apply correct rate: +50% (day) or +100% (night/holiday)
+4. Apply correct rate from `tariff_rate_table` (rate multipliers are framework-loaded, not hardcoded)
 
 **AML limits (hard blocks in cascade):**
 
@@ -166,8 +175,8 @@ Overtime is triggered when hours exceed the threshold from `employment_contract.
 
 > **TODO:** Detailed specification needed
 
-- Sick pay: employer period (16 days) at full pay
-- Vacation pay: 12% of previous year's earnings (10.2% for over-60s)
+- Sick pay: employer period and rates resolved from `tariff_rate_table` via `framework_rule` (D3)
+- Vacation pay: rate percentages (standard and over-60) resolved from framework tables
 - Parental leave: NAV coverage
 - NAV refund tracking for employer
 
@@ -201,10 +210,10 @@ Shifts (from Module 3, L5 in cascade)
           → + Personal supplements (seniority-based monthly amounts)
             → - Absence deductions + absence pay (from Module 7)
               → = Gross salary
-                → + Employer costs:
-                    Arbeidsgiveravgift (14.1%)
-                    Feriepenger (12% / 10.2% for over-60s)
-                    OTP Pension (2% minimum)
+                → + Employer costs (rates from framework tables):
+                    Arbeidsgiveravgift (rate from tariff_rate_table)
+                    Feriepenger (rate from tariff_rate_table, age-adjusted)
+                    OTP Pension (rate from tariff_rate_table)
                 → = Total employer cost
 ```
 

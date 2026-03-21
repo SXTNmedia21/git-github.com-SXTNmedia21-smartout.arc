@@ -5,7 +5,7 @@ version: "1.0"
 status: canonical
 layer: module
 created: 2026-02-24
-updated: 2026-02-28
+updated: 2026-03-22
 author: pontus
 supersedes: []
 superseded_by: null
@@ -18,6 +18,7 @@ tags:
   - livekit
   - push-to-talk
   - sip
+  - cascade
 tables:
   - call_session
   - call_participant
@@ -25,6 +26,16 @@ changelog:
   - date: 2026-02-28
     change: "Added YAML frontmatter"
 ---
+
+## Cascade Mapping
+
+> This module's relationship to the Cascade Core Foundation
+> (spec: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`)
+
+| Dimension                | Role                                                       |
+| ------------------------ | ---------------------------------------------------------- |
+| C2 Context & Interaction | Primary — real-time voice and video communication channels |
+| D6 Production & Product  | Consumes — live operational state for contextual calls     |
 
 # Module 18: WebRTC Voice & Video (LiveKit Integration)
 

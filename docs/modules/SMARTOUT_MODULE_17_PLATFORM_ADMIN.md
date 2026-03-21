@@ -5,7 +5,7 @@ version: "1.0"
 status: canonical
 layer: module
 created: 2026-02-24
-updated: 2026-02-28
+updated: 2026-03-22
 author: pontus
 supersedes: []
 superseded_by: null
@@ -20,6 +20,7 @@ tags:
   - landing-config
   - contracts
   - audit-log
+  - cascade
 tables:
   - landing_config
   - landing_config_version
@@ -30,6 +31,16 @@ changelog:
   - date: 2026-02-28
     change: "Added YAML frontmatter"
 ---
+
+## Cascade Mapping
+
+> This module's relationship to the Cascade Core Foundation
+> (spec: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`)
+
+| Dimension              | Role                                                           |
+| ---------------------- | -------------------------------------------------------------- |
+| C4 Policy & Governance | Primary — platform-level policy enforcement and oversight      |
+| All Dimensions         | Consumes — platform admin has visibility across all dimensions |
 
 # Module 17: Platform Administration (Super Admin Backoffice)
 

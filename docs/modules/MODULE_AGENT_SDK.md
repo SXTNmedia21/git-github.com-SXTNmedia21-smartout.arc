@@ -2,11 +2,22 @@
 title: "Module: Agent SDK (@smartout/agent-sdk)"
 id: MODULE_AGENT_SDK
 status: in_progress
-updated: 2026-03-30
+updated: 2026-03-22
 created: 2026-03-30
 module: ai
-tags: [agent-sdk, voice, client-tools, ultravox, livekit]
+tags: [agent-sdk, voice, client-tools, ultravox, livekit, cascade]
 ---
+
+## Cascade Mapping
+
+> This module's relationship to the Cascade Core Foundation
+> (spec: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`)
+
+| Dimension                | Role                                                   |
+| ------------------------ | ------------------------------------------------------ |
+| C2 Context & Interaction | Primary — agent conversation runtime and tool dispatch |
+| C4 Policy & Governance   | Consumes — authority levels gate agent capabilities    |
+| K1b Workspace Knowledge  | Consumes — workspace memory for contextual responses   |
 
 # Module: Agent SDK (`@smartout/agent-sdk`)
 

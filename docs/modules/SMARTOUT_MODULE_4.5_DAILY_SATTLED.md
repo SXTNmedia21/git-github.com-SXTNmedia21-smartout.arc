@@ -1,10 +1,10 @@
 ---
 title: "Module 4.5: Daily Financial Close Engine"
 status: in_progress
-updated: 2026-03-11
+updated: 2026-03-22
 created: 2026-03-05
 module: operations
-tags: [settlement, daily-close, ocr, reconciliation]
+tags: [settlement, daily-close, ocr, reconciliation, cascade]
 ---
 
 # Module 4.5: Sättelfunktion — Daily Financial Close Engine
@@ -31,7 +31,19 @@ The Sättelfunktion turns this into a **hard-locked, AI-verified, image-based fi
 **This is not "kassaavstämning."**
 **This is a behavior-driven financial close engine that enforces operational discipline.**
 
-> **Cascade architecture:** Financial close extends D6 (Production) session lifecycle. When close is approved, it should finalize `shift_cost_snapshot` records (C3 Commercial control plane, append-only). Cost data is READ from cascade-computed snapshots, not independently recomputed. See cascade spec Phase A (`shift_cost_snapshot` table) and Section 4.4 (provenance requirements).
+## Cascade Mapping
+
+> This module's relationship to the Cascade Core Foundation
+> (spec: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`)
+
+| Dimension               | Role                                                        |
+| ----------------------- | ----------------------------------------------------------- |
+| D6 Production & Product | Primary — settlement closes the day's production state      |
+| C1 Calibration          | Primary — plan vs actual comparison drives corrections      |
+| C3 Commercial & Outcome | Produces — cost attribution for the settled day             |
+| D4 Demand Signal        | Consumes — settled actuals refine future demand predictions |
+
+**Implementation notes:** Financial close extends D6 session lifecycle. When close is approved, it should finalize `shift_cost_snapshot` records (C3 Commercial control plane, append-only). Cost data is READ from cascade-computed snapshots, not independently recomputed. See cascade spec Phase A (`shift_cost_snapshot` table) and Section 4.4 (provenance requirements).
 
 ---
 

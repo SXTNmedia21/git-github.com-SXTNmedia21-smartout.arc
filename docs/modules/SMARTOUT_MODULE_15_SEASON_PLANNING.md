@@ -5,30 +5,28 @@ version: "1.0"
 status: canonical
 layer: module
 created: 2026-02-24
-updated: 2026-04-10
+updated: 2026-03-22
 author: pontus
 supersedes: []
 superseded_by: null
 depends_on:
   - CORE_ARCH_V2
-tags: [season, budget, planning]
----
-
-- season-planning
-- budget
-- revenue-forecasting
-- staffing-capacity
-- factor-hierarchy
-  tables:
-- season_budget
-- day_factor
-- hour_factor
-- date_override
-- factor_learning
-  changelog:
-- date: 2026-02-28
-  change: "Added YAML frontmatter"
-
+tags:
+  - season-planning
+  - budget
+  - revenue-forecasting
+  - staffing-capacity
+  - factor-hierarchy
+  - cascade
+tables:
+  - season_budget
+  - day_factor
+  - hour_factor
+  - date_override
+  - factor_learning
+changelog:
+  - date: 2026-02-28
+    change: "Added YAML frontmatter"
 ---
 
 # Module 15: Season Planning & Budget Engine
@@ -38,9 +36,21 @@ tags: [season, budget, planning]
 >
 > **New module.** Extends the Season concept from Core Architecture with budget targets, revenue forecasting, factor hierarchies, and staffing capacity models. This is the strategic planning layer — "setting up the battlefield" with numbers.
 >
-> **Cascade architecture:** Season budget is a strategic input to D4 (Demand Signal) in the Cascade Core Foundation. Seasons sit inside `planning_cycle` (year wheel, Phase A). Day/hour factors feed `planning_factors` (C1 calibration learning data). Staffing calculations feed the cascade proposal engine. Framework defaults for factor templates are bootstrapped from I1 (Industry Intelligence) via K1a. See `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`.
->
 > **Kildeutviklere:** Pontus Lindroth & Martin Lundqvist
+
+## Cascade Mapping
+
+> This module's relationship to the Cascade Core Foundation
+> (spec: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`)
+
+| Dimension               | Role                                                     |
+| ----------------------- | -------------------------------------------------------- |
+| D4 Demand Signal        | Primary — season budget generates demand targets         |
+| D5 Service Concept      | Primary — service type parameterizes budget coefficients |
+| C1 Calibration          | Produces — season actuals feed calibration loop          |
+| C3 Commercial & Outcome | Produces — season P&L attribution                        |
+
+**Implementation notes:** Seasons sit inside `planning_cycle` (year wheel, Phase A). Day/hour factors feed `planning_factors` (C1 calibration learning data). Staffing calculations feed the cascade proposal engine. Framework defaults for factor templates are bootstrapped from I1 (Industry Intelligence) via K1a.
 
 ---
 

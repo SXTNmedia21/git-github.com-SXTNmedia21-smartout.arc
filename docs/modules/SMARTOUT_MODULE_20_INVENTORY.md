@@ -1,11 +1,22 @@
 ---
 title: "Module 20: Inventory & Supply Chain"
 status: draft
-updated: 2026-03-11
+updated: 2026-03-22
 created: 2026-03-01
 module: inventory
-tags: [inventory, supply-chain, procurement]
+tags: [inventory, supply-chain, procurement, cascade]
 ---
+
+## Cascade Mapping
+
+> This module's relationship to the Cascade Core Foundation
+> (spec: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`)
+
+| Dimension               | Role                                                    |
+| ----------------------- | ------------------------------------------------------- |
+| D6 Production & Product | Primary — inventory levels, raw material lifecycle      |
+| D3 Rules & Constraints  | Consumes — storage rules, HACCP constraints, par levels |
+| C3 Commercial & Outcome | Produces — cost data, waste metrics, procurement spend  |
 
 # Module 20: Inventory & Supply Chain
 

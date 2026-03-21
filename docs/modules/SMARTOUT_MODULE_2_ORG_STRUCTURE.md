@@ -5,7 +5,7 @@ version: "1.0"
 status: canonical
 layer: module
 created: 2026-02-24
-updated: 2026-02-28
+updated: 2026-03-22
 author: pontus
 supersedes: []
 superseded_by: null
@@ -19,6 +19,7 @@ tags:
   - positions
   - zones
   - assets
+  - cascade
 tables:
   - department
   - location
@@ -31,6 +32,16 @@ changelog:
   - date: 2026-02-28
     change: "Added YAML frontmatter"
 ---
+
+## Cascade Mapping
+
+> This module's relationship to the Cascade Core Foundation
+> (spec: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`)
+
+| Dimension               | Role                                                                      |
+| ----------------------- | ------------------------------------------------------------------------- |
+| D1 Operational Envelope | Primary — departments, locations, and operating hours define the envelope |
+| D5 Service Concept      | Consumes — department configuration reflects service concept              |
 
 # Module 2: Organisasjonsstruktur (Organization Structure)
 

@@ -5,7 +5,7 @@ version: "1.1"
 status: canonical
 layer: module
 created: 2026-02-24
-updated: 2026-03-21
+updated: 2026-03-22
 author: pontus
 supersedes: []
 superseded_by: null
@@ -30,8 +30,24 @@ changelog:
 
 > **Smartout.ai** — Funksjonell dokumentasjon for migrering
 > Versjon 1.1 | Mars 2026
->
-> **Cascade architecture:** This module implements the scheduling product layer on top of the Cascade Core Foundation. Operating hours resolve via D1 (Operational Envelope) through `resolve_hours()` (Phase B). Template shifts anchor to open/close times via `schedule_template_shift` with anchor types (Phase A schema). Shift assignments flow through the proposal/enforcement pipeline (`change_proposal` → framework evaluation → apply). Resource matching is a future product layer, not part of Phase A/B. Rates and constraints are framework-loaded from `tariff_rate_table`, not hardcoded. See `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md` for the canonical Cascade Core Foundation spec.
+
+## Cascade Mapping
+
+> This module's relationship to the Cascade Core Foundation
+> (spec: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`)
+
+| Dimension                | Role                                                   |
+| ------------------------ | ------------------------------------------------------ |
+| D1 Operational Envelope  | Primary — operating hours define when shifts can exist |
+| D2 Resource Availability | Primary — who is available for assignment              |
+| D3 Rules & Constraints   | Primary — framework rules constrain shift parameters   |
+| D4 Demand Signal         | Consumes — demand drives staffing targets              |
+| D5 Service Concept       | Parameterizes — service type affects shift weights     |
+| D6 Production & Product  | Produces — shifts become D6 production state           |
+| C1 Calibration           | Observes — plan vs actual staffing                     |
+| C4 Governance            | Enforces — permission gates on auto-scheduling         |
+
+**Implementation notes:** Operating hours resolve via D1 through `resolve_hours()` (Phase B). Template shifts anchor to open/close times via `schedule_template_shift` with anchor types (Phase A schema). Shift assignments flow through the proposal/enforcement pipeline (`change_proposal` → framework evaluation → apply). Resource matching is a future product layer, not part of Phase A/B. Rates and constraints are framework-loaded from `tariff_rate_table`, not hardcoded.
 
 ---
 
