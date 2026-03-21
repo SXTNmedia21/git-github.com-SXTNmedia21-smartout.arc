@@ -1,8 +1,11 @@
 "use client";
 
+import { useContext } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
+import { emit } from "@smartout/telemetry";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { dashboardKeys } from "./dashboard-keys";
 
 export type BudgetPeriodType = "monthly" | "weekly" | "daily" | "hourly";
@@ -46,6 +49,7 @@ export function useBudget({
 }) {
   const ctx = useWorkspaceOptional();
   const wsId = ctx?.workspace.workspace_id;
+  const { profileId } = useContext(DashboardContext);
   const supabase = createClient();
   const queryClient = useQueryClient();
 
@@ -103,6 +107,14 @@ export function useBudget({
       if (error) throw error;
     },
     onSuccess: () => {
+      void emit({
+        event: "workspace_budget updated",
+        workspace_id: wsId ?? null,
+        actor_id: profileId ?? "",
+        properties: {
+          data: { period_type: periodType, period_date: startDate },
+        },
+      });
       queryClient.invalidateQueries({
         queryKey: dashboardKeys.budgets(wsId!, periodType, startDate, endDate),
       });

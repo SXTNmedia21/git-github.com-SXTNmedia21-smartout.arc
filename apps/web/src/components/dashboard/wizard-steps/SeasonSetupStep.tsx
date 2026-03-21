@@ -745,13 +745,13 @@ export function SeasonSetupStep({
                 </tr>
               </thead>
               <tbody>
-                {(departments ?? []).map((dept) => {
+                {(departments ?? []).map((dept, idx) => {
                   const deptHours = openingHours[dept.name];
                   const firstDay = deptHours?.mon ?? "";
 
                   return (
                     <tr
-                      key={dept.department_id}
+                      key={dept.department_id ?? idx}
                       className={`border-t ${isDark ? "border-zinc-800" : "border-zinc-200"}`}
                     >
                       <td className="px-3 py-2">

@@ -6,10 +6,13 @@
  * Connected to: schedule-types.ts (Absence type)
  */
 
+import { useContext } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspace } from "@/lib/workspace-context";
+import { emit } from "@smartout/telemetry";
 import { createClient } from "@smartout/supabase/client";
 
 import type { Absence } from "../_components/schedule-types";
@@ -51,6 +54,7 @@ export function useAbsences(weekStart: string, weekEnd: string) {
 export function useCreateAbsence(weekStart: string) {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
   const queryKey = scheduleKeys.absences(workspace.workspace_id, weekStart);
 
   return useMutation({
@@ -85,6 +89,25 @@ export function useCreateAbsence(weekStart: string) {
       return { previous };
     },
 
+    onSuccess: (data) => {
+      void emit({
+        event: "absence created",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: {
+            entity_type: "absence",
+            entity_id: data.id,
+          },
+          data: {
+            profile_id: data.employeeId ?? "",
+            start_date: data.startDate,
+            end_date: data.endDate,
+          },
+        },
+      });
+    },
+
     onError: (_err, _newAbsence, context) => {
       if (context?.previous) {
         queryClient.setQueryData(queryKey, context.previous);
@@ -105,6 +128,7 @@ export function useCreateAbsence(weekStart: string) {
 export function useDeleteAbsence(weekStart: string) {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
   const queryKey = scheduleKeys.absences(workspace.workspace_id, weekStart);
 
   return useMutation({
@@ -129,6 +153,23 @@ export function useDeleteAbsence(weekStart: string) {
       );
 
       return { previous };
+    },
+
+    onSuccess: (_data, absenceId) => {
+      void emit({
+        event: "absence deleted",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: {
+            entity_type: "absence",
+            entity_id: absenceId,
+          },
+          data: {
+            profile_id: "",
+          },
+        },
+      });
     },
 
     onError: (_err, _absenceId, context) => {

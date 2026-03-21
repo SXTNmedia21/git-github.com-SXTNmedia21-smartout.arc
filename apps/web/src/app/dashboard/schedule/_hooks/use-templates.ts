@@ -11,10 +11,13 @@
  * useLoadTemplate reads template shifts and inserts them as real schedule_shift rows.
  */
 
+import { useContext } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspace } from "@/lib/workspace-context";
+import { emit } from "@smartout/telemetry";
 import { createClient } from "@smartout/supabase/client";
 import type { Database } from "@smartout/supabase";
 
@@ -68,6 +71,7 @@ export function useTemplates(options?: { enabled?: boolean }) {
 export function useSaveTemplate() {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
   const queryKey = scheduleKeys.templates(workspace.workspace_id);
 
   return useMutation({
@@ -110,6 +114,24 @@ export function useSaveTemplate() {
       return { previous };
     },
 
+    onSuccess: (_data, input) => {
+      void emit({
+        event: "template created",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: {
+            entity_type: "template",
+            entity_id: input.id,
+          },
+          data: {
+            name: input.name ?? "",
+            shift_count: input.shifts?.length ?? 0,
+          },
+        },
+      });
+    },
+
     onError: (_err, _newTemplate, context) => {
       if (context?.previous) {
         queryClient.setQueryData(queryKey, context.previous);
@@ -135,6 +157,7 @@ type UpdateTemplateInput = {
 export function useUpdateTemplate() {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
   const queryKey = scheduleKeys.templates(workspace.workspace_id);
 
   return useMutation({
@@ -170,6 +193,23 @@ export function useUpdateTemplate() {
       return { previous };
     },
 
+    onSuccess: (_data, { id, patch }) => {
+      void emit({
+        event: "template updated",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: {
+            entity_type: "template",
+            entity_id: id,
+          },
+          data: {
+            name: patch.name ?? "",
+          },
+        },
+      });
+    },
+
     onError: (_err, _vars, context) => {
       if (context?.previous) {
         queryClient.setQueryData(queryKey, context.previous);
@@ -190,6 +230,7 @@ export function useUpdateTemplate() {
 export function useDeleteTemplate() {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
   const queryKey = scheduleKeys.templates(workspace.workspace_id);
 
   return useMutation({
@@ -214,6 +255,21 @@ export function useDeleteTemplate() {
       );
 
       return { previous };
+    },
+
+    onSuccess: (_data, templateId) => {
+      void emit({
+        event: "template deleted",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: {
+            entity_type: "template",
+            entity_id: templateId,
+          },
+          data: {},
+        },
+      });
     },
 
     onError: (_err, _templateId, context) => {
@@ -242,6 +298,7 @@ type LoadTemplateInput = {
 export function useLoadTemplate(weekStart: string) {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
   const shiftsQueryKey = scheduleKeys.shifts(workspace.workspace_id, weekStart);
 
   return useMutation({
@@ -282,7 +339,21 @@ export function useLoadTemplate(weekStart: string) {
       toast.error("Kunne ikke laste inn mal");
     },
 
-    onSuccess: () => {
+    onSuccess: (data, { template }) => {
+      void emit({
+        event: "template loaded",
+        workspace_id: workspace.workspace_id,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: {
+            entity_type: "template",
+            entity_id: template.id,
+          },
+          data: {
+            shift_count: data?.length ?? 0,
+          },
+        },
+      });
       toast.success("Mal lastet inn");
     },
 

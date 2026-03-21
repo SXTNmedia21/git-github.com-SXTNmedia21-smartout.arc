@@ -7,11 +7,13 @@
 // ============================================
 "use client";
 
-import { useMemo } from "react";
+import { useContext, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspace } from "@/lib/workspace-context";
+import { emit } from "@smartout/telemetry";
 import { createClient } from "@smartout/supabase/client";
 
 // ── Types ─────────────────────────────────────────────────────
@@ -156,6 +158,7 @@ export function useDayInfo(weekStart: string, weekEnd: string, options?: { enabl
 export function useCreateDayInfo(weekStart: string) {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
   const workspaceId = workspace.workspace_id;
   const queryKey = dayInfoKey(workspaceId, weekStart);
 
@@ -178,7 +181,15 @@ export function useCreateDayInfo(weekStart: string) {
       if (error) throw new Error(error.message);
     },
 
-    onSuccess: () => {
+    onSuccess: (_data, input) => {
+      void emit({
+        event: "day_info created",
+        workspace_id: workspaceId,
+        actor_id: profileId ?? "",
+        properties: {
+          data: { date: input.date, category: input.category },
+        },
+      });
       queryClient.invalidateQueries({ queryKey });
       toast.success("Daginfo opprettet");
     },

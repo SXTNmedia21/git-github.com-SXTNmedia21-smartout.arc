@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
+import { emit } from "@smartout/telemetry";
 
 const CAPABILITIES = [
   "knowledge",
@@ -122,6 +123,14 @@ export function useUpdateAuthority() {
       if (context?.previous) {
         queryClient.setQueryData(authorityKeys.all(workspaceId), context.previous);
       }
+    },
+    onSuccess: (_data, { capability, level }) => {
+      void emit({
+        event: "authority_config updated",
+        workspace_id: workspaceId,
+        actor_id: "",
+        properties: { data: { capability, level } },
+      });
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: authorityKeys.all(workspaceId) });

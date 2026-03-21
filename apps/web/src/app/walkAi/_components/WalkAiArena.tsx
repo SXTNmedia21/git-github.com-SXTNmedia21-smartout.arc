@@ -1059,10 +1059,9 @@ function NotepadView() {
     const firstLine = content.split("\n")[0]?.trim() ?? "";
     const autoTopic = firstLine.slice(0, 30) || "Notat";
     if (autoTopic !== activeNote.topic) {
-      // Only update if meaningfully different (avoid loops)
       updateNote(activeNoteId, content, autoTopic);
     }
-  }, [content]); // intentional: only track content changes
+  }, [content, activeNoteId, activeNote, updateNote]);
 
   const hasContent = content.trim().length > 0;
   const hasNotes = notes.length > 0;
@@ -1501,10 +1500,16 @@ function CalculatorView() {
   const handleEquals = useCallback(() => {
     try {
       const fullExpr = expression + display;
-      // Safe eval: only allow numbers and basic operators
       const sanitized = fullExpr.replace(/[^0-9+\-*/.() ]/g, "");
-      if (!sanitized) return;
-      const result = Function(`"use strict"; return (${sanitized})`)() as number;
+      if (!sanitized || sanitized.length > 100) return;
+      // Guard against deeply nested parens (DoS via stack overflow)
+      const depth = sanitized.split("(").length - 1;
+      if (depth > 20) {
+        setDisplay("Feil");
+        return;
+      }
+      // Safe eval: regex already strips everything except digits and basic operators
+      const result = new Function(`"use strict"; return (${sanitized})`)() as number;
       setDisplay(Number.isFinite(result) ? String(result) : "Feil");
       setExpression("");
       setHasResult(true);
@@ -1687,13 +1692,84 @@ function SettingsView() {
 /* ━━━ View: Tasks & Reminders — with manual task creation ━━━ */
 
 function TasksView() {
-  const { tasks, completeTask, scheduleTask } = useWalkAi();
+  const { tasks, completeTask, scheduleTask, updateTask, reorderTask } = useWalkAi();
   const [newTitle, setNewTitle] = useState("");
   const [showInput, setShowInput] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [editingDeadlineId, setEditingDeadlineId] = useState<string | null>(null);
 
-  const pending = tasks.filter((t) => t.status === "pending");
+  const pending = tasks
+    .filter((t) => t.status === "pending")
+    .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
   const done = tasks.filter((t) => t.status === "done");
+
+  const handleDragStart = useCallback((e: React.DragEvent, taskId: string) => {
+    setDragId(taskId);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", taskId);
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent, taskId: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOverId(taskId);
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent, targetId: string) => {
+      e.preventDefault();
+      setDragId(null);
+      setDragOverId(null);
+      if (!dragId || dragId === targetId) return;
+      const targetIdx = pending.findIndex((t) => t.id === targetId);
+      if (targetIdx !== -1) reorderTask(dragId, targetIdx);
+    },
+    [dragId, pending, reorderTask],
+  );
+
+  const handleDragEnd = useCallback(() => {
+    setDragId(null);
+    setDragOverId(null);
+  }, []);
+
+  const priorityColors: Record<string, string> = {
+    high: "bg-brand-orange/80",
+    medium: "bg-amber-400/60",
+    low: "bg-muted-foreground/30",
+  };
+
+  const priorityLabels: Record<string, string> = {
+    high: "Høy",
+    medium: "Middels",
+    low: "Lav",
+  };
+
+  const cyclePriority = useCallback(
+    (taskId: string, current: string) => {
+      const order = ["high", "medium", "low"] as const;
+      const idx = order.indexOf(current as (typeof order)[number]);
+      const next = order[(idx + 1) % order.length]!;
+      updateTask(taskId, { priority: next });
+    },
+    [updateTask],
+  );
+
+  const handleDeadlineChange = useCallback(
+    (taskId: string, value: string) => {
+      if (!value) {
+        updateTask(taskId, { dueAt: null });
+      } else {
+        const parsed = new Date(value);
+        if (!isNaN(parsed.getTime())) {
+          updateTask(taskId, { dueAt: parsed.toISOString() });
+        }
+      }
+      setEditingDeadlineId(null);
+    },
+    [updateTask],
+  );
 
   useEffect(() => {
     if (showInput && inputRef.current) inputRef.current.focus();
@@ -1862,43 +1938,118 @@ function TasksView() {
                   Å gjøre
                 </p>
                 {pending.map((task, i) => (
-                  <button
+                  <div
                     key={task.id}
-                    onClick={() => completeTask(task.id)}
-                    className="group border-border/20 bg-card/50 hover:border-brand-orange/20 hover:bg-brand-orange/[0.03] relative flex w-full animate-[walkai-fade-in_200ms_ease-out_forwards] items-start gap-3 overflow-hidden rounded-xl border px-3.5 py-3 text-left opacity-0 transition-all duration-150"
-                    style={{ animationDelay: `${i * 40}ms` }}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, task.id)}
+                    onDragOver={(e) => handleDragOver(e, task.id)}
+                    onDrop={(e) => handleDrop(e, task.id)}
+                    onDragEnd={handleDragEnd}
+                    className={[
+                      "group border-border/20 bg-card/50 hover:border-brand-orange/20 hover:bg-brand-orange/[0.03]",
+                      "relative flex w-full animate-[walkai-fade-in_200ms_ease-out_forwards] items-start gap-3",
+                      "overflow-hidden rounded-xl border px-3.5 py-3 text-left opacity-0 transition-all duration-150",
+                      dragId === task.id && "opacity-40",
+                      dragOverId === task.id &&
+                        dragId !== task.id &&
+                        "border-brand-orange/40 bg-brand-orange/5",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                    style={{ animationDelay: `${i * 40}ms`, cursor: "grab" }}
                   >
-                    {/* Left accent bar */}
-                    <div className="bg-brand-orange/30 group-hover:bg-brand-orange/60 absolute top-0 bottom-0 left-0 w-[3px] rounded-l-xl transition-colors" />
-                    <div className="border-border/40 group-hover:border-brand-orange/50 mt-0.5 h-5 w-5 flex-shrink-0 rounded-md border-2 transition-colors" />
+                    {/* Left accent bar — colored by priority */}
+                    <div
+                      className={[
+                        "absolute top-0 bottom-0 left-0 w-[3px] rounded-l-xl transition-colors",
+                        task.priority === "high"
+                          ? "bg-brand-orange/60 group-hover:bg-brand-orange"
+                          : task.priority === "low"
+                            ? "bg-muted-foreground/20 group-hover:bg-muted-foreground/40"
+                            : "bg-amber-400/40 group-hover:bg-amber-400/60",
+                      ].join(" ")}
+                    />
+
+                    {/* Checkbox — click to complete */}
+                    <button
+                      onClick={() => completeTask(task.id)}
+                      className="border-border/40 group-hover:border-brand-orange/50 mt-0.5 h-5 w-5 flex-shrink-0 rounded-md border-2 transition-colors"
+                      aria-label={`Fullfør ${task.title}`}
+                    />
+
                     <div className="min-w-0 flex-1">
-                      <p className="text-foreground truncate text-sm font-medium">{task.title}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-foreground truncate text-sm font-medium">{task.title}</p>
+                        {/* Priority badge — click to cycle */}
+                        <button
+                          onClick={() => cyclePriority(task.id, task.priority ?? "medium")}
+                          className={[
+                            "flex h-4 items-center rounded-full px-1.5 text-[9px] font-medium text-white/90 transition-all hover:scale-110",
+                            priorityColors[task.priority ?? "medium"],
+                          ].join(" ")}
+                          title={`Prioritet: ${priorityLabels[task.priority ?? "medium"]}. Klikk for å endre.`}
+                        >
+                          {priorityLabels[task.priority ?? "medium"]}
+                        </button>
+                      </div>
                       {task.description && (
                         <p className="text-muted-foreground/50 mt-1 line-clamp-2 text-[11px] leading-relaxed">
                           {task.description}
                         </p>
                       )}
-                      {task.dueAt && (
-                        <span className="bg-brand-orange/8 border-brand-orange/15 text-brand-orange/70 mt-1.5 inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-medium">
-                          <svg width="10" height="10" viewBox="0 0 16 16" fill="none">
-                            <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.2" />
-                            <path
-                              d="M8 5V8.5L10.5 10"
-                              stroke="currentColor"
-                              strokeWidth="1.2"
-                              strokeLinecap="round"
-                            />
-                          </svg>
-                          {new Date(task.dueAt).toLocaleString("nb-NO", {
-                            day: "numeric",
-                            month: "short",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </span>
-                      )}
+                      {/* Deadline — click to edit */}
+                      <div className="mt-1.5 flex items-center gap-1">
+                        {editingDeadlineId === task.id ? (
+                          <input
+                            type="datetime-local"
+                            defaultValue={
+                              task.dueAt ? new Date(task.dueAt).toISOString().slice(0, 16) : ""
+                            }
+                            onBlur={(e) => handleDeadlineChange(task.id, e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter")
+                                handleDeadlineChange(task.id, e.currentTarget.value);
+                              if (e.key === "Escape") setEditingDeadlineId(null);
+                            }}
+                            autoFocus
+                            className="bg-card border-border/40 text-foreground rounded px-1.5 py-0.5 text-[10px] focus:outline-none"
+                          />
+                        ) : (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingDeadlineId(task.id);
+                            }}
+                            className={[
+                              "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-medium transition-colors",
+                              task.dueAt
+                                ? "bg-brand-orange/8 border-brand-orange/15 text-brand-orange/70 hover:bg-brand-orange/15"
+                                : "border-border/20 text-muted-foreground/30 hover:border-border/40 hover:text-muted-foreground/50",
+                            ].join(" ")}
+                            title="Klikk for å sette/endre frist"
+                          >
+                            <svg width="10" height="10" viewBox="0 0 16 16" fill="none">
+                              <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.2" />
+                              <path
+                                d="M8 5V8.5L10.5 10"
+                                stroke="currentColor"
+                                strokeWidth="1.2"
+                                strokeLinecap="round"
+                              />
+                            </svg>
+                            {task.dueAt
+                              ? new Date(task.dueAt).toLocaleString("nb-NO", {
+                                  day: "numeric",
+                                  month: "short",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })
+                              : "Sett frist"}
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </button>
+                  </div>
                 ))}
               </div>
             )}

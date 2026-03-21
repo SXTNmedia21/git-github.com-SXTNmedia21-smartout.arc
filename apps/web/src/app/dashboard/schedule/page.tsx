@@ -931,6 +931,7 @@ function SchedulePageContent() {
       <ScheduleVoiceToolsBridge
         weekStart={weekStart}
         weekEnd={weekEnd}
+        workspaceId={workspace.workspace_id}
         enrichedDays={enrichedDays}
         shifts={shiftsQuery.data ?? []}
         absences={absencesQuery.data ?? []}

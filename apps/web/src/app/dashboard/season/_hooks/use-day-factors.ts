@@ -1,8 +1,11 @@
 "use client";
 
+import { useContext } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
+import { emit } from "@smartout/telemetry";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { dashboardKeys } from "../../_hooks/dashboard-keys";
 import { toast } from "sonner";
 import { getDayFactorTemplate, WEEKDAY_LABELS } from "../_definitions/season-planning";
@@ -21,6 +24,7 @@ export { WEEKDAY_LABELS, DEFAULT_DAY_FACTORS };
 export function useDayFactors(seasonBudgetId: string | null) {
   const ctx = useWorkspaceOptional();
   const wsId = ctx?.workspace.workspace_id;
+  const { profileId } = useContext(DashboardContext);
   const supabase = createClient();
   const queryClient = useQueryClient();
 
@@ -63,7 +67,18 @@ export function useDayFactors(seasonBudgetId: string | null) {
 
       if (insertError) throw new Error(insertError.message);
     },
-    onSuccess: () => {
+    onSuccess: (_data, factors) => {
+      void emit({
+        event: "day_factors updated",
+        workspace_id: wsId ?? null,
+        actor_id: profileId ?? "",
+        properties: {
+          data: {
+            season_budget_id: seasonBudgetId ?? "",
+            count: factors.length,
+          },
+        },
+      });
       queryClient.invalidateQueries({
         queryKey: dashboardKeys.dayFactors(wsId!, seasonBudgetId!),
       });

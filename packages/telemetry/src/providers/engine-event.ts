@@ -64,11 +64,14 @@ export async function sendToEngine(event: SmartoutEvent): Promise<void> {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      if (!res.ok) {
+      if (!res.ok && process.env.NODE_ENV === "production") {
         console.error(`[telemetry.engine_event] Relay failed: ${res.status}`);
       }
-    } catch (err) {
-      console.error("[telemetry.engine_event] Relay error:", err);
+    } catch {
+      // Silently swallow in dev — engine-dispatch may not be running
+      if (process.env.NODE_ENV === "production") {
+        console.error("[telemetry.engine_event] Relay error");
+      }
     }
     return;
   }

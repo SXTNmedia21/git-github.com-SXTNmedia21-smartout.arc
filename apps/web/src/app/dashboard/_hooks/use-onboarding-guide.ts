@@ -1,9 +1,11 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useContext } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
+import { emit } from "@smartout/telemetry";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import type { Json } from "@smartout/supabase";
 import { dashboardKeys } from "./dashboard-keys";
 
@@ -22,6 +24,7 @@ const DEFAULT_PROGRESS: OnboardingGuideProgress = {
 export function useOnboardingGuide() {
   const ctx = useWorkspaceOptional();
   const workspaceId = ctx?.workspace.workspace_id ?? "";
+  const { profileId } = useContext(DashboardContext);
   const queryClient = useQueryClient();
   const supabase = createClient();
 
@@ -64,7 +67,18 @@ export function useOnboardingGuide() {
         .update({ onboarding_guide_progress: next as unknown as Json })
         .eq("workspace_id", workspaceId);
     },
-    onSuccess: () => {
+    onSuccess: (_data, next) => {
+      void emit({
+        event: "onboarding_guide updated",
+        workspace_id: workspaceId || null,
+        actor_id: profileId ?? "",
+        properties: {
+          data: {
+            step: next.currentStep?.toString() ?? "",
+            is_complete: next.isComplete ?? false,
+          },
+        },
+      });
       void queryClient.invalidateQueries({ queryKey });
     },
   });

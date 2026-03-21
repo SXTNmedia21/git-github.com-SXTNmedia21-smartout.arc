@@ -1,8 +1,11 @@
 "use client";
 
+import { useContext } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
+import { emit } from "@smartout/telemetry";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { toast } from "sonner";
 
 const DAY_NAMES = [
@@ -53,6 +56,7 @@ function operatingHoursKeys(workspaceId: string, locationId?: string) {
 export function useOperatingHours(locationId?: string) {
   const ctx = useWorkspaceOptional();
   const wsId = ctx?.workspace.workspace_id;
+  const { profileId } = useContext(DashboardContext);
   const supabase = createClient();
   const queryClient = useQueryClient();
 
@@ -113,6 +117,14 @@ export function useOperatingHours(locationId?: string) {
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {
+      void emit({
+        event: "operating_hours updated",
+        workspace_id: wsId ?? null,
+        actor_id: profileId ?? "",
+        properties: {
+          data: { location_id: locationId },
+        },
+      });
       queryClient.invalidateQueries({
         queryKey: operatingHoursKeys(wsId!, locationId),
       });

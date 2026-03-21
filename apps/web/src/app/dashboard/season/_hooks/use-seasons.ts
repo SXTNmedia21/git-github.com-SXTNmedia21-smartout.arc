@@ -1,8 +1,11 @@
 "use client";
 
+import { useContext } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
+import { emit } from "@smartout/telemetry";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { dashboardKeys } from "../../_hooks/dashboard-keys";
 import { toast } from "sonner";
 
@@ -40,6 +43,7 @@ function toSlug(value: string): string {
 export function useSeasons() {
   const ctx = useWorkspaceOptional();
   const wsId = ctx?.workspace.workspace_id;
+  const { profileId } = useContext(DashboardContext);
   const supabase = createClient();
   const queryClient = useQueryClient();
 
@@ -93,7 +97,20 @@ export function useSeasons() {
       if (error) throw new Error(error.message);
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data, { name }) => {
+      void emit({
+        event: "season created",
+        workspace_id: wsId ?? null,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: {
+            entity_type: "season",
+            entity_id: data.season_id,
+            entity_label: name,
+          },
+          data: { name, status: "draft" },
+        },
+      });
       queryClient.invalidateQueries({
         queryKey: dashboardKeys.seasons(wsId ?? "none"),
       });

@@ -7,6 +7,7 @@ import type {
   ClientTools,
 } from "@/components/voice-tools-context";
 import { SCHEDULE_TOOL_DEFINITIONS } from "./schedule-tool-definitions";
+import { createClient } from "@smartout/supabase/client";
 import type { Shift, Absence, ShiftProposal } from "../_components/schedule-types";
 import type { ScheduleEmployee } from "./use-employees";
 import type { ScheduleComputed } from "./use-schedule-computed";
@@ -14,6 +15,7 @@ import type { ScheduleComputed } from "./use-schedule-computed";
 type ScheduleVoiceToolsInput = {
   weekStart: string;
   weekEnd: string;
+  workspaceId?: string;
   days: Array<{ id: string; label: string; isToday?: boolean; isHoliday?: boolean }>;
   shifts: Shift[];
   absences: Absence[];
@@ -577,6 +579,243 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
       return JSON.stringify({ success: true, message: "Closed day planner" });
     };
 
+    // -- Reservation tool ---------------------------------------------
+
+    const addReservationTool: ClientToolImplementation = async (params) => {
+      const d = dataRef.current;
+      const wsId = d.workspaceId;
+      if (!wsId) return JSON.stringify({ error: "No workspace context" });
+
+      const dayInput = (params.day as string) ?? "";
+      const dateId = resolveDateId(dayInput, d.days);
+      if (!dateId) return JSON.stringify({ error: `Could not resolve day "${dayInput}"` });
+
+      const title = (params.title as string) ?? "";
+      if (!title) return JSON.stringify({ error: "Booking title/name required" });
+
+      const guestCount = Number(params.guestCount ?? 0);
+      const bookingTime = (params.bookingTime as string) ?? "18:00";
+      const contactPerson = (params.contactPerson as string) ?? null;
+      const notes = (params.notes as string) ?? null;
+      const isVip = (params.isVip as boolean) ?? false;
+      const location = (params.location as string) ?? null;
+      const menu = (params.menu as string) ?? null;
+
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase
+          .from("schedule_day_booking")
+          .insert({
+            workspace_id: wsId,
+            shift_date: dateId,
+            title,
+            guest_count: guestCount,
+            booking_time: bookingTime,
+            status: "confirmed",
+            is_vip: isVip,
+            contact_person: contactPerson,
+            location,
+            menu,
+            notes,
+          })
+          .select("schedule_day_booking_id, title, booking_time, guest_count, location")
+          .single();
+
+        if (error) return JSON.stringify({ error: error.message });
+
+        const dayLabel = d.days.find((day) => day.id === dateId)?.label ?? dateId;
+        const locMsg = location ? ` ${location}.` : "";
+        return JSON.stringify({
+          success: true,
+          message: `Reservasjon lagt til: ${title}, ${guestCount} gjester kl ${bookingTime} på ${dayLabel}.${locMsg}${isVip ? " (VIP)" : ""}`,
+          booking: data,
+        });
+      } catch (err) {
+        return JSON.stringify({
+          error: `Failed: ${err instanceof Error ? err.message : "unknown"}`,
+        });
+      }
+    };
+
+    // -- Update reservation tool ----------------------------------------
+
+    const updateReservationTool: ClientToolImplementation = async (params) => {
+      const d = dataRef.current;
+      const wsId = d.workspaceId;
+      if (!wsId) return JSON.stringify({ error: "No workspace context" });
+
+      const dayInput = (params.day as string) ?? "";
+      const dateId = resolveDateId(dayInput, d.days);
+      if (!dateId) return JSON.stringify({ error: `Could not resolve day "${dayInput}"` });
+
+      const titleQuery = (params.title as string) ?? "";
+      if (!titleQuery) return JSON.stringify({ error: "Guest name required to find reservation" });
+
+      try {
+        const supabase = createClient();
+
+        // Find the reservation by fuzzy title match on the given date
+        const { data: bookings, error: findError } = await supabase
+          .from("schedule_day_booking")
+          .select(
+            "schedule_day_booking_id, title, booking_time, guest_count, location, status, is_vip, notes, contact_person, menu",
+          )
+          .eq("workspace_id", wsId)
+          .eq("shift_date", dateId)
+          .order("booking_time", { ascending: true });
+
+        if (findError) return JSON.stringify({ error: findError.message });
+        if (!bookings || bookings.length === 0) {
+          return JSON.stringify({ error: `Ingen reservasjoner funnet på ${dateId}` });
+        }
+
+        // Fuzzy match on title
+        const query = titleQuery.toLowerCase().trim();
+        const match =
+          bookings.find((b) => b.title.toLowerCase().includes(query)) ??
+          bookings.find((b) => b.title.toLowerCase().startsWith(query));
+
+        if (!match) {
+          const names = bookings.map((b) => b.title).join(", ");
+          return JSON.stringify({
+            error: `Ingen reservasjon matchet "${titleQuery}". Tilgjengelige: ${names}`,
+          });
+        }
+
+        // Build update object
+        const updates: Record<string, unknown> = {};
+        if (params.guestCount !== undefined) updates.guest_count = Number(params.guestCount);
+        if (params.bookingTime !== undefined) updates.booking_time = params.bookingTime;
+        if (params.location !== undefined) updates.location = params.location;
+        if (params.status !== undefined) updates.status = params.status;
+        if (params.isVip !== undefined) updates.is_vip = params.isVip;
+        if (params.notes !== undefined) updates.notes = params.notes;
+        if (params.contactPerson !== undefined) updates.contact_person = params.contactPerson;
+        if (params.menu !== undefined) updates.menu = params.menu;
+
+        if (Object.keys(updates).length === 0) {
+          return JSON.stringify({ error: "Ingen felter å oppdatere" });
+        }
+
+        const { error: updateError } = await supabase
+          .from("schedule_day_booking")
+          .update(updates)
+          .eq("schedule_day_booking_id", match.schedule_day_booking_id);
+
+        if (updateError) return JSON.stringify({ error: updateError.message });
+
+        const dayLabel = d.days.find((day) => day.id === dateId)?.label ?? dateId;
+        const changes = Object.keys(updates).join(", ");
+        return JSON.stringify({
+          success: true,
+          message: `Reservasjon "${match.title}" på ${dayLabel} oppdatert: ${changes}.`,
+        });
+      } catch (err) {
+        return JSON.stringify({
+          error: `Failed: ${err instanceof Error ? err.message : "unknown"}`,
+        });
+      }
+    };
+
+    // -- Session task tool ---------------------------------------------
+
+    const addSessionTaskTool: ClientToolImplementation = async (params) => {
+      const d = dataRef.current;
+      const wsId = d.workspaceId;
+      if (!wsId) return JSON.stringify({ error: "No workspace context" });
+
+      const dayInput = (params.day as string) ?? "";
+      const dateId = resolveDateId(dayInput, d.days);
+      if (!dateId) return JSON.stringify({ error: `Could not resolve day "${dayInput}"` });
+
+      const title = (params.title as string) ?? "";
+      if (!title) return JSON.stringify({ error: "Task title required" });
+
+      const description = (params.description as string) ?? null;
+      const isComplianceRequired = (params.isComplianceRequired as boolean) ?? false;
+
+      // Resolve employee assignment if provided
+      let assignedTo: string | null = null;
+      const assignName = (params.assignTo as string) ?? "";
+      if (assignName) {
+        const employee = findEmployeeByName(d.employees, assignName);
+        if (employee) assignedTo = employee.id;
+      }
+
+      try {
+        const supabase = createClient();
+
+        // Find or create the department_session for this date
+        // First, try to find an existing session
+        const { data: existingSession } = await supabase
+          .from("department_session")
+          .select("department_session_id")
+          .eq("workspace_id", wsId)
+          .eq("session_date", dateId)
+          .limit(1)
+          .maybeSingle();
+
+        let sessionId = existingSession?.department_session_id as string | null;
+
+        if (!sessionId) {
+          // No session exists yet — find the first department to create one
+          const { data: dept } = await supabase
+            .from("department")
+            .select("department_id")
+            .eq("workspace_id", wsId)
+            .limit(1)
+            .maybeSingle();
+
+          if (!dept) return JSON.stringify({ error: "No department found in workspace" });
+
+          const { data: newSession, error: sessionError } = await supabase
+            .from("department_session")
+            .insert({
+              workspace_id: wsId,
+              department_id: dept.department_id,
+              session_date: dateId,
+              status: "upcoming",
+            })
+            .select("department_session_id")
+            .single();
+
+          if (sessionError) return JSON.stringify({ error: `Session: ${sessionError.message}` });
+          sessionId = newSession.department_session_id as string;
+        }
+
+        // Create the session task
+        const { data: task, error } = await supabase
+          .from("session_task")
+          .insert({
+            workspace_id: wsId,
+            department_session_id: sessionId,
+            title,
+            description,
+            status: "pending",
+            assigned_to: assignedTo,
+            is_compliance_required: isComplianceRequired,
+          })
+          .select("id, title, status")
+          .single();
+
+        if (error) return JSON.stringify({ error: error.message });
+
+        const dayLabel = d.days.find((day) => day.id === dateId)?.label ?? dateId;
+        const assignMsg = assignedTo
+          ? ` Tildelt ${d.employees.find((e) => e.id === assignedTo)?.name ?? "ukjent"}.`
+          : "";
+        return JSON.stringify({
+          success: true,
+          message: `Dagsoppgave lagt til på ${dayLabel}: "${title}".${assignMsg}${isComplianceRequired ? " (Compliance)" : ""}`,
+          task,
+        });
+      } catch (err) {
+        return JSON.stringify({
+          error: `Failed: ${err instanceof Error ? err.message : "unknown"}`,
+        });
+      }
+    };
+
     // -- Combine definitions and implementations ----------------------
 
     const allDefinitions = [...TOOL_DEFINITIONS];
@@ -592,6 +831,9 @@ export function useScheduleVoiceTools(input: ScheduleVoiceToolsInput): ClientToo
       focusDay: focusDayTool,
       openDayPlanner: openDayPlannerTool,
       closeDayPlanner: closeDayPlannerTool,
+      addReservation: addReservationTool,
+      updateReservation: updateReservationTool,
+      addSessionTask: addSessionTaskTool,
     };
 
     return {

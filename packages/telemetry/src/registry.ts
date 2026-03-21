@@ -64,7 +64,20 @@ export type EntityType =
   | "chat_message"
   | "reconciliation"
   | "handbook_chapter"
-  | "contract";
+  | "contract"
+  | "absence"
+  | "roster"
+  | "open_shift"
+  | "template"
+  | "day_info"
+  | "guardian_signal"
+  | "leader_pulse"
+  | "conversation"
+  | "season_budget"
+  | "operating_hours"
+  | "kpi_target"
+  | "workspace_budget"
+  | "authority_config";
 
 export type ActionVerb =
   | "created"
@@ -101,7 +114,12 @@ export type ActionVerb =
   | "step_completed"
   | "chapter_saved"
   | "hook_fired"
-  | "task_completed";
+  | "task_completed"
+  | "acknowledged"
+  | "dismissed"
+  | "answered"
+  | "loaded"
+  | "auto_filled";
 
 // ─── Auth Module Events ─────────────────────────
 export interface AuthSignedUp extends BaseEvent {
@@ -455,6 +473,242 @@ export interface ContractExpired extends BaseEvent {
   };
 }
 
+// ─── Season & Budget Events ─────────────────────
+export interface SeasonCreated extends BaseEvent {
+  event: "season created";
+  properties: {
+    entity: EntityRef;
+    data: { name: string; status: string };
+  };
+}
+
+export interface SeasonBudgetUpdated extends BaseEvent {
+  event: "season_budget updated";
+  properties: {
+    entity: EntityRef;
+    data: { season_id: string; total_target_revenue?: number };
+  };
+}
+
+export interface DayFactorsUpdated extends BaseEvent {
+  event: "day_factors updated";
+  properties: {
+    data: { season_budget_id: string; count: number };
+  };
+}
+
+export interface HourFactorsUpdated extends BaseEvent {
+  event: "hour_factors updated";
+  properties: {
+    data: { season_budget_id: string; count: number };
+  };
+}
+
+export interface OperatingHoursUpdated extends BaseEvent {
+  event: "operating_hours updated";
+  properties: {
+    data: { location_id?: string };
+  };
+}
+
+export interface KpiTargetUpdated extends BaseEvent {
+  event: "kpi_target updated";
+  properties: {
+    data: { metric: string; value: number };
+  };
+}
+
+export interface WorkspaceBudgetUpdated extends BaseEvent {
+  event: "workspace_budget updated";
+  properties: {
+    data: { period_type: string; period_date: string };
+  };
+}
+
+// ─── Schedule: Absences, Roster, Open Shifts, Templates, Day Content ──
+export interface AbsenceCreated extends BaseEvent {
+  event: "absence created";
+  properties: {
+    entity: EntityRef;
+    data: { profile_id: string; start_date: string; end_date: string };
+  };
+}
+
+export interface AbsenceDeleted extends BaseEvent {
+  event: "absence deleted";
+  properties: {
+    entity: EntityRef;
+    data: { profile_id: string };
+  };
+}
+
+export interface RosterCreated extends BaseEvent {
+  event: "roster created";
+  properties: {
+    data: { department_id: string };
+  };
+}
+
+export interface RosterUpdated extends BaseEvent {
+  event: "roster updated";
+  properties: {
+    data: { department_id: string };
+  };
+}
+
+export interface RosterDeleted extends BaseEvent {
+  event: "roster deleted";
+  properties: {
+    data: { roster_id: string };
+  };
+}
+
+export interface OpenShiftCreated extends BaseEvent {
+  event: "open_shift created";
+  properties: {
+    entity: EntityRef;
+    data: { date: string; department_id: string };
+  };
+}
+
+export interface OpenShiftAssigned extends BaseEvent {
+  event: "open_shift assigned";
+  properties: {
+    entity: EntityRef;
+    data: { assigned_to: string };
+  };
+}
+
+export interface OpenShiftDeleted extends BaseEvent {
+  event: "open_shift deleted";
+  properties: {
+    entity: EntityRef;
+    data: Record<string, never>;
+  };
+}
+
+export interface TemplateCreated extends BaseEvent {
+  event: "template created";
+  properties: {
+    entity: EntityRef;
+    data: { name: string; shift_count: number };
+  };
+}
+
+export interface TemplateUpdated extends BaseEvent {
+  event: "template updated";
+  properties: {
+    entity: EntityRef;
+    data: { name: string };
+  };
+}
+
+export interface TemplateDeleted extends BaseEvent {
+  event: "template deleted";
+  properties: {
+    entity: EntityRef;
+    data: Record<string, never>;
+  };
+}
+
+export interface TemplateLoaded extends BaseEvent {
+  event: "template loaded";
+  properties: {
+    entity: EntityRef;
+    data: { shift_count: number };
+  };
+}
+
+export interface DayInfoCreated extends BaseEvent {
+  event: "day_info created";
+  properties: {
+    data: { date: string; category: string };
+  };
+}
+
+export interface DayInfoUpdated extends BaseEvent {
+  event: "day_info updated";
+  properties: {
+    data: { date: string; category: string };
+  };
+}
+
+export interface DayInfoDeleted extends BaseEvent {
+  event: "day_info deleted";
+  properties: {
+    data: { day_info_id: string };
+  };
+}
+
+// ─── Guardian Events ────────────────────────────
+export interface GuardianSignalAcknowledged extends BaseEvent {
+  event: "guardian_signal acknowledged";
+  properties: {
+    data: { signal_id: string; note?: string };
+  };
+}
+
+export interface GuardianSignalDismissed extends BaseEvent {
+  event: "guardian_signal dismissed";
+  properties: {
+    data: { signal_id: string };
+  };
+}
+
+// ─── Leader Pulse Events ────────────────────────
+export interface LeaderPulseAnswered extends BaseEvent {
+  event: "leader_pulse answered";
+  properties: {
+    data: { pulse_id: string };
+  };
+}
+
+export interface LeaderPulseDismissed extends BaseEvent {
+  event: "leader_pulse dismissed";
+  properties: {
+    data: { pulse_id: string };
+  };
+}
+
+// ─── Chat Events ────────────────────────────────
+export interface ConversationCreated extends BaseEvent {
+  event: "conversation created";
+  properties: {
+    data: { conversation_id: string; type: string };
+  };
+}
+
+export interface MessageSent extends BaseEvent {
+  event: "message sent";
+  properties: {
+    data: { conversation_id: string };
+  };
+}
+
+// ─── AI / Authority Config Events ───────────────
+export interface AuthorityConfigUpdated extends BaseEvent {
+  event: "authority_config updated";
+  properties: {
+    data: { capability: string; level: string };
+  };
+}
+
+// ─── Onboarding Guide Events ────────────────────
+export interface OnboardingGuideUpdated extends BaseEvent {
+  event: "onboarding_guide updated";
+  properties: {
+    data: { step: string; is_complete: boolean };
+  };
+}
+
+// ─── Industry Package Events ────────────────────
+export interface IndustryPackageLoaded extends BaseEvent {
+  event: "industry_package loaded";
+  properties: {
+    data: { industry: string };
+  };
+}
+
 // ─── Journey: Signup + Onboarding ──────────────────
 export interface SignupCompleted extends BaseEvent {
   event: "signup completed";
@@ -548,6 +802,37 @@ export type SmartoutEvent =
   | CommunicationFailed
   | WizardStepCompleted
   | WizardCompleted
+  | SeasonCreated
+  | SeasonBudgetUpdated
+  | DayFactorsUpdated
+  | HourFactorsUpdated
+  | OperatingHoursUpdated
+  | KpiTargetUpdated
+  | WorkspaceBudgetUpdated
+  | AbsenceCreated
+  | AbsenceDeleted
+  | RosterCreated
+  | RosterUpdated
+  | RosterDeleted
+  | OpenShiftCreated
+  | OpenShiftAssigned
+  | OpenShiftDeleted
+  | TemplateCreated
+  | TemplateUpdated
+  | TemplateDeleted
+  | TemplateLoaded
+  | DayInfoCreated
+  | DayInfoUpdated
+  | DayInfoDeleted
+  | GuardianSignalAcknowledged
+  | GuardianSignalDismissed
+  | LeaderPulseAnswered
+  | LeaderPulseDismissed
+  | ConversationCreated
+  | MessageSent
+  | AuthorityConfigUpdated
+  | OnboardingGuideUpdated
+  | IndustryPackageLoaded
   | PageViewed
   | ButtonClicked;
 
@@ -708,6 +993,138 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "onboarding",
   },
   "wizard completed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "onboarding",
+  },
+
+  "season created": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "season_budget updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "day_factors updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "hour_factors updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "operating_hours updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "kpi_target updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "workspace_budget updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+
+  "absence created": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "absence deleted": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "roster created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
+  "roster updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
+  "roster deleted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
+  "open_shift created": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "open_shift assigned": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "open_shift deleted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
+  "template created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
+  "template updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
+  "template deleted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
+  "template loaded": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
+  "day_info created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
+  "day_info updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
+  "day_info deleted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduling",
+  },
+
+  "guardian_signal acknowledged": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "system",
+  },
+  "guardian_signal dismissed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "system",
+  },
+
+  "leader_pulse answered": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "leader_pulse dismissed": {
+    destinations: ["posthog", "logger"],
+    category: "operations",
+  },
+
+  "conversation created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "communication",
+  },
+  "message sent": {
+    destinations: ["posthog", "logger"],
+    category: "communication",
+  },
+
+  "authority_config updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "system",
+  },
+
+  "onboarding_guide updated": {
+    destinations: ["posthog", "logger"],
+    category: "onboarding",
+  },
+
+  "industry_package loaded": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "onboarding",
   },
