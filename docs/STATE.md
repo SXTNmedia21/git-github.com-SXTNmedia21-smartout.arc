@@ -1,9 +1,9 @@
 ---
 title: "STATE — System State of Truth"
 status: canonical
-updated: 2026-03-17
+updated: 2026-03-21
 created: 2026-03-08
-last-verified: 2026-03-17
+last-verified: 2026-03-22
 module: all
 tags: [state, audit, gaps, architecture]
 ---
@@ -318,6 +318,14 @@ emit("shift published") ->
 
 `engine_state_step` tracks the _process instance_ progress. These tables track the _permanent record_ of completion. A process can be re-run, but the completion record stands.
 
+### 4.5 Cascade Core Foundation — Independent Layer
+
+**Decision:** Cascade Core Foundation spec complete (`docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`). Canonical model: I1 + 6D + 4C + K1a/K1b. Framework-driven regulatory engine with proposal pipeline (preview → persist → freshness check → framework gate → apply). Migration split into A1 (domain tables), A2 (framework model), A3 (integration — deferred until needed).
+
+**Cascade ↔ Event Engine:** Cascade operates as an independent service layer with its own lifecycle. It does NOT run inside `engine_process`/`engine_state`. On successful apply, `apply_cascade()` emits domain events via `emit()` which flow through `engine_dispatch` like any other mutation. Cascade is the producer; the event engine is a consumer.
+
+**Status:** Spec reviewed and locked. A1 migration not yet created.
+
 ---
 
 ## 5. Module Zero — Week-by-Week Plan
@@ -424,9 +432,23 @@ emit("shift published") ->
 | `20260415100000_add_onboarding_guide_progress.sql`   | Onboarding guide progress tracking          |
 | `20260413100000_fix_company_org_number_nullable.sql` | Allow nullable org_number for new companies |
 
+### Cascade Core Foundation (A1 + A2)
+
+| Migration                                        | Purpose                                         |
+| ------------------------------------------------ | ----------------------------------------------- |
+| `20260421100000_cascade_a1_extensions.sql`       | Enable btree_gist for EXCLUDE USING gist        |
+| `20260421100100_cascade_a1_enums.sql`            | 10 domain enums                                 |
+| `20260421100200_cascade_a1_domain_tables.sql`    | 11 domain tables with RLS                       |
+| `20260421100300_cascade_a1_alter_existing.sql`   | New fields on 7 existing tables                 |
+| `20260421200000_cascade_a2_enums.sql`            | 6 framework enums                               |
+| `20260421200100_cascade_a2_framework_tables.sql` | 6 framework tables + change_proposal FK upgrade |
+| `20260421210000_cascade_cleanup_markers.sql`     | Legacy truth source annotations                 |
+
+**Status:** Migration files committed. Not yet validated via `supabase db reset` (Docker unavailable at implementation time).
+
 ### Enum Count
 
-**72 custom enums.** Full list via: `grep -r "CREATE TYPE" supabase/migrations/`
+**88 custom enums** (72 existing + 16 new from Cascade). Full list via: `grep -r "CREATE TYPE" supabase/migrations/`
 
 Notable enums added since Module Zero:
 
@@ -436,6 +458,8 @@ Notable enums added since Module Zero:
 - `chat_conversation_type` — 20260320120000
 - `waste_category` — 20260407200001
 - `service_status`, `service_type` — 20260407100000
+- Cascade A1: `department_type`, `shift_function`, `anchor_type`, `change_proposal_status`, `planning_event_category`, `planning_event_source`, `planning_cycle_status`, `cascade_initiator`, `tariff_source`, `evaluation_outcome` — 20260421100100
+- Cascade A2: `framework_trigger_type`, `framework_rule_type`, `framework_trigger_mode`, `external_provider`, `sync_direction`, `sync_status` — 20260421200000
 
 ---
 
