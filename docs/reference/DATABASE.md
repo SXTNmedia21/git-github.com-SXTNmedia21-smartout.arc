@@ -532,53 +532,53 @@ Chain: Company -> Workspace -> Location -> Department -> User -> CompanyMember -
 
 ## Planned Tables & Fields (Cascade Architecture, 2026-03-21)
 
-These are identified as required by the cascade architecture and AI Council review. Not yet in migrations. Full context: `docs/cascade-spreadsheet-overview.md`.
+These are identified as required by the cascade architecture and AI Council review. Not yet in migrations. Full context: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md` (Phase A schema).
 
 ### Planned new tables
 
-| Table | Purpose | Layer |
-|-------|---------|-------|
-| `department_operating_hours` | Consolidated weekly hours per dept/location/season (replaces 3 systems) | L3 |
-| `department_hours_override` | Date-specific exceptions (holidays, events, closures) | L3 |
-| `planning_cycle` | Year wheel container — ordered, gap-free seasons | L1 |
-| `planning_event` | External/internal demand events affecting staffing | L1 |
-| `tariff_rate_table` | Versioned Riksavtalen rates with effective_from/until | D3 |
-| `employee_payroll_profile` | Links contract to payroll calculation (base rate, seniority step) | D2 |
-| `shift_cost_snapshot` | Append-only per-shift cost audit | L5 |
-| `change_proposal` | Persisted cascade preview (Terraform saved plan model) | Engine |
+| Table                        | Purpose                                                                 | Layer  |
+| ---------------------------- | ----------------------------------------------------------------------- | ------ |
+| `department_operating_hours` | Consolidated weekly hours per dept/location/season (replaces 3 systems) | L3     |
+| `department_hours_override`  | Date-specific exceptions (holidays, events, closures)                   | L3     |
+| `planning_cycle`             | Year wheel container — ordered, gap-free seasons                        | L1     |
+| `planning_event`             | External/internal demand events affecting staffing                      | L1     |
+| `tariff_rate_table`          | Versioned Riksavtalen rates with effective_from/until                   | D3     |
+| `employee_payroll_profile`   | Links contract to payroll calculation (base rate, seniority step)       | D2     |
+| `shift_cost_snapshot`        | Append-only per-shift cost audit                                        | L5     |
+| `change_proposal`            | Persisted cascade preview (Terraform saved plan model)                  | Engine |
 
 ### Planned fields on existing tables
 
-| Table | Field | Type | Purpose |
-|-------|-------|------|---------|
-| `employment_contract` | `agreed_weekly_hours` | NUMERIC | Critical for overtime detection |
-| `profile` | `seniority_start_date` | DATE | Ansiennitet wage step lookup |
-| `profile` | `has_fagbrev` | BOOLEAN | Fagbrev/non-fagbrev rate distinction |
-| `procedure` | `required_certifications` | TEXT[] | Which certs needed to perform |
-| `routine` | `required_certifications` | TEXT[] | Which certs needed to perform |
-| `session_hook` | `required_certifications` | TEXT[] | Which certs needed for hook |
-| `department_session` | `planned_open` | TIME | Set from operating hours at session creation |
-| `department_session` | `planned_close` | TIME | Set from operating hours at session creation |
-| `schedule_shift` | `department_id` | UUID FK | Direct FK (currently only via position) |
-| `schedule_shift` | `location_id` | UUID FK | Direct FK for location scoping |
-| `department` | `department_type` | ENUM | operational / administrative / hybrid |
+| Table                 | Field                     | Type    | Purpose                                      |
+| --------------------- | ------------------------- | ------- | -------------------------------------------- |
+| `employment_contract` | `agreed_weekly_hours`     | NUMERIC | Critical for overtime detection              |
+| `profile`             | `seniority_start_date`    | DATE    | Ansiennitet wage step lookup                 |
+| `profile`             | `has_fagbrev`             | BOOLEAN | Fagbrev/non-fagbrev rate distinction         |
+| `procedure`           | `required_certifications` | TEXT[]  | Which certs needed to perform                |
+| `routine`             | `required_certifications` | TEXT[]  | Which certs needed to perform                |
+| `session_hook`        | `required_certifications` | TEXT[]  | Which certs needed for hook                  |
+| `department_session`  | `planned_open`            | TIME    | Set from operating hours at session creation |
+| `department_session`  | `planned_close`           | TIME    | Set from operating hours at session creation |
+| `schedule_shift`      | `department_id`           | UUID FK | Direct FK (currently only via position)      |
+| `schedule_shift`      | `location_id`             | UUID FK | Direct FK for location scoping               |
+| `department`          | `department_type`         | ENUM    | operational / administrative / hybrid        |
 
 ### Planned new enums
 
-| Enum | Values | Purpose |
-|------|--------|---------|
-| `department_type` | operational, administrative, hybrid | Department classification |
-| `shift_function` | opening, closing, supporting, rush_hour, sub_supply | Template shift purpose |
-| `anchor_type` | fixed, open, close | Template shift time anchoring |
-| `proposal_status` | pending, approved, applied, rejected | Change proposal lifecycle |
+| Enum              | Values                                              | Purpose                       |
+| ----------------- | --------------------------------------------------- | ----------------------------- |
+| `department_type` | operational, administrative, hybrid                 | Department classification     |
+| `shift_function`  | opening, closing, supporting, rush_hour, sub_supply | Template shift purpose        |
+| `anchor_type`     | fixed, open, close                                  | Template shift time anchoring |
+| `proposal_status` | pending, approved, applied, rejected                | Change proposal lifecycle     |
 
 ### Tables to deprecate
 
-| Table | Replacement | Reason |
-|-------|-------------|--------|
-| `company_opening_hours` | `department_operating_hours` | Signup-only, unused |
-| `operating_hours` | `department_operating_hours` | No department dimension, no cascade |
-| `season.opening_hours` (JSONB column) | `department_operating_hours` | String-keyed, un-queryable |
+| Table                                 | Replacement                  | Reason                              |
+| ------------------------------------- | ---------------------------- | ----------------------------------- |
+| `company_opening_hours`               | `department_operating_hours` | Signup-only, unused                 |
+| `operating_hours`                     | `department_operating_hours` | No department dimension, no cascade |
+| `season.opening_hours` (JSONB column) | `department_operating_hours` | String-keyed, un-queryable          |
 
 ---
 

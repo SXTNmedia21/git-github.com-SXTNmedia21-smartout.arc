@@ -1,27 +1,19 @@
 ---
-title: "SMARTOUT_MODULE_15_SEASON_PLANNING"
-status: draft
-updated: 2026-04-10
-created: 2026-03-01
-module: operations
-tags: []
----
-
-\*\*---
 title: "Module 15: Season Planning & Budget Engine"
 id: MODULE_15
 version: "1.0"
 status: canonical
 layer: module
 created: 2026-02-24
-updated: 2026-02-28
+updated: 2026-04-10
 author: pontus
 supersedes: []
 superseded_by: null
 depends_on:
+  - CORE_ARCH_V2
+tags: [season, budget, planning]
+---
 
-- CORE_ARCH_V2
-  tags:
 - season-planning
 - budget
 - revenue-forecasting
@@ -45,6 +37,8 @@ depends_on:
 > Version 1.0 | February 2026
 >
 > **New module.** Extends the Season concept from Core Architecture with budget targets, revenue forecasting, factor hierarchies, and staffing capacity models. This is the strategic planning layer — "setting up the battlefield" with numbers.
+>
+> **Cascade architecture:** Season budget is a strategic input to D4 (Demand Signal) in the Cascade Core Foundation. Seasons sit inside `planning_cycle` (year wheel, Phase A). Day/hour factors feed `planning_factors` (C1 calibration learning data). Staffing calculations feed the cascade proposal engine. Framework defaults for factor templates are bootstrapped from I1 (Industry Intelligence) via K1a. See `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`.
 >
 > **Kildeutviklere:** Pontus Lindroth & Martin Lundqvist
 

@@ -31,6 +31,8 @@ The Sättelfunktion turns this into a **hard-locked, AI-verified, image-based fi
 **This is not "kassaavstämning."**
 **This is a behavior-driven financial close engine that enforces operational discipline.**
 
+> **Cascade architecture:** Financial close extends D6 (Production) session lifecycle. When close is approved, it should finalize `shift_cost_snapshot` records (C3 Commercial control plane, append-only). Cost data is READ from cascade-computed snapshots, not independently recomputed. See cascade spec Phase A (`shift_cost_snapshot` table) and Section 4.4 (provenance requirements).
+
 ---
 
 ## 2. How It Fits Into the Session Lifecycle

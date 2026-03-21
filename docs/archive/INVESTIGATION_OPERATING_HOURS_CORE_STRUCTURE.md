@@ -421,23 +421,23 @@ I1 is the pre-runtime layer that gives initial form to a workspace before any di
 
 ### Execution Dimensions (D1-D6)
 
-| # | Name | Core Question | Type |
-|---|------|---------------|------|
-| D1 | Operational Envelope | When/where/with what capacity? | Structural |
-| D2 | Resource Availability | Who can/will/may work? | Volatile (time-projected) |
-| D3 | Rules & Constraints | What's allowed/forbidden? | Stable |
-| D4 | Demand Signal | How much activity? | Predictive |
-| D5 | Service Concept | What kind of operation? | Strategic |
-| D6 | Production & Product | What to produce, what's the state? | Live (temporal debt) |
+| #   | Name                  | Core Question                      | Type                      |
+| --- | --------------------- | ---------------------------------- | ------------------------- |
+| D1  | Operational Envelope  | When/where/with what capacity?     | Structural                |
+| D2  | Resource Availability | Who can/will/may work?             | Volatile (time-projected) |
+| D3  | Rules & Constraints   | What's allowed/forbidden?          | Stable                    |
+| D4  | Demand Signal         | How much activity?                 | Predictive                |
+| D5  | Service Concept       | What kind of operation?            | Strategic                 |
+| D6  | Production & Product  | What to produce, what's the state? | Live (temporal debt)      |
 
 ### Control Planes (C1-C4) — replaces earlier "intelligence layer" concept
 
-| # | Name | Core Question | Loop |
-|---|------|---------------|------|
-| C1 | Observability & Calibration | What happened vs plan? | Plan -> actual -> correction |
-| C2 | Context & Interaction | What's relevant now? | State -> inference -> explanation -> response |
-| C3 | Commercial & Outcome | What value was created? | Value -> attribution -> pricing |
-| C4 | Policy & Governance | What is the system ALLOWED to do? | Capability -> permission -> audit |
+| #   | Name                        | Core Question                     | Loop                                          |
+| --- | --------------------------- | --------------------------------- | --------------------------------------------- |
+| C1  | Observability & Calibration | What happened vs plan?            | Plan -> actual -> correction                  |
+| C2  | Context & Interaction       | What's relevant now?              | State -> inference -> explanation -> response |
+| C3  | Commercial & Outcome        | What value was created?           | Value -> attribution -> pricing               |
+| C4  | Policy & Governance         | What is the system ALLOWED to do? | Capability -> permission -> audit             |
 
 ### Knowledge Substrate (K1a + K1b) — shared, not a plane
 
@@ -522,20 +522,20 @@ The `sub_supply` shift function is "computed from gaps." What algorithm? What tr
 
 These must be frozen before any implementation begins:
 
-| Decision                                   | Status          |
-| ------------------------------------------ | --------------- |
-| `department_operating_hours` table schema  | ✅ Decided      |
-| `department_hours_override` table schema   | ✅ Decided      |
-| `department_type` ENUM on department       | ✅ Decided      |
-| Season status: draft / ready / archived    | ✅ Decided      |
-| Season `is_active` boolean                 | ✅ Decided      |
-| `shift_function` ENUM                      | ✅ Decided      |
-| Anchor system on template shifts           | ✅ Decided      |
-| Cascade via engine_process (not triggers)  | ✅ Decided      |
-| Two cascade modes (simulation + execution) | ✅ Decided      |
+| Decision                                   | Status                  |
+| ------------------------------------------ | ----------------------- |
+| `department_operating_hours` table schema  | ✅ Decided              |
+| `department_hours_override` table schema   | ✅ Decided              |
+| `department_type` ENUM on department       | ✅ Decided              |
+| Season status: draft / ready / archived    | ✅ Decided              |
+| Season `is_active` boolean                 | ✅ Decided              |
+| `shift_function` ENUM                      | ✅ Decided              |
+| Anchor system on template shifts           | ✅ Decided              |
+| Cascade via engine_process (not triggers)  | ✅ Decided              |
+| Two cascade modes (simulation + execution) | ✅ Decided              |
 | I1 + 6D + 4C + K1a/K1b architecture        | ✅ Decided (2026-03-21) |
-| Three-layer shift architecture             | ✅ Decided      |
-| Open questions OQ-1 through OQ-10          | ⬜ Must resolve |
+| Three-layer shift architecture             | ✅ Decided              |
+| Open questions OQ-1 through OQ-10          | ⬜ Must resolve         |
 
 ---
 

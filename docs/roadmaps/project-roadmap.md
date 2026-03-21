@@ -61,7 +61,7 @@ Each module builds on what came before it.
 | What                                      | Status | Key References                                                                                                                                                                         |
 | ----------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Monorepo scaffold                         | Done   | [ADR-0001](../decisions/0001-use-turborepo-pnpm.md)                                                                                                                                    |
-| Database: 15 migrations, 11 core tables   | Done   | [Data Model](../architecture/SMARTOUT_FOUNDATION_DATA_MODEL.md)                                                                                                                        |
+| Database: 15 migrations, 11 core tables   | Done   | [Data Model](../architecture/SMARTOUT_CORE_ARCHITECTURE_v2.md)                                                                                                                         |
 | Auth flows (login, signup, reset, invite) | Done   | [Security](../cross-cutting/SMARTOUT_CROSSCUT_SECURITY_INFRA.md)                                                                                                                       |
 | Shared packages (11 packages)             | Done   | [Packages](../architecture/SMARTOUT_PACKAGES_ARCHITECTURE.md)                                                                                                                          |
 | Dashboard layout + 34 route shells        | Done   | [ADR-0007](../decisions/0007-dashboard-architecture.md), [ADR-0008](../decisions/0008-dashboard-scroll-behavior.md)                                                                    |
@@ -94,7 +94,7 @@ The skeleton of every workspace. Departments, locations, teams, positions — th
 | ------------------------------------------------------------------------ | ---------------------------------------------------------------- |
 | CRUD for departments, locations, zones, assets, teams, positions         | [Module 2 Spec](../modules/SMARTOUT_MODULE_2_ORG_STRUCTURE.md)   |
 | Workspace structure visualization                                        | [Org Roadmap](../architecture/SMARTOUT_ORG_STRUCTURE_ROADMAP.md) |
-| DB tables: `department`, `location`, `zone`, `asset`, `team`, `position` | [Data Model](../architecture/SMARTOUT_FOUNDATION_DATA_MODEL.md)  |
+| DB tables: `department`, `location`, `zone`, `asset`, `team`, `position` | [Data Model](../architecture/SMARTOUT_CORE_ARCHITECTURE_v2.md)   |
 | Route: `/dashboard/organization`                                         | Dashboard shell exists                                           |
 
 #### Module 11: Settings

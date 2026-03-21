@@ -5,6 +5,8 @@ updated: 2026-03-05
 created: 2026-03-05
 module: root
 tags: [overview, system, concepts, readiness, operations, ai]
+language: sv
+note: "Swedish version. Norwegian version: smartout-systemguide.md"
 ---
 
 # Smartout — Systemöversikt

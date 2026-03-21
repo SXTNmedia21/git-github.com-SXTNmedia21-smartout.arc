@@ -1,6 +1,6 @@
 ---
 title: "Hva er Smartout, og hvordan bruker du det?"
-id: MANUAL_01
+id: MANUAL_00
 version: "1.0"
 status: canonical
 layer: manual

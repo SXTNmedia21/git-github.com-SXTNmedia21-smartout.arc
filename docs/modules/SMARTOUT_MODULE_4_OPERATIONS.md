@@ -37,6 +37,8 @@ changelog:
 > Version 1.0 | February 2026
 >
 > **Scope change:** This module was originally titled "Oppgavehåndtering (Task Management)" in the index. After architectural analysis, it has been elevated to **Operations & Task Management** because it introduces the **Department Session** — the daily operational container that binds shifts, procedures, tasks, and accountability into a single auditable unit.
+>
+> **Cascade architecture:** Department Session is the D6 (Production & Product) runtime instance in the Cascade Core Foundation. Operating hours resolve via D1 through `resolve_hours()` (Phase B) — this module should use that function, not inline resolution logic. Session hooks relate to `framework_trigger` definitions (Phase A) but are separately admin-configurable. `planned_open`/`planned_close` fields (Phase A) are set from resolved operating hours at session creation. See `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md` for the canonical spec.
 
 ---
 

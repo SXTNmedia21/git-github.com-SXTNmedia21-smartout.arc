@@ -42,7 +42,9 @@ changelog:
 > **Dependencies:** Core Architecture v2 (Profile, Department), Module 3 (Scheduling — shifts/punches), Module 7 (Absence)
 > **Status:** IN PROGRESS — fleshed out with AI Council findings 2026-03-21
 >
-> **Cascade architecture:** This module consumes L5 (Schedule Shifts) and applies D3 (Rules & Constraints) for rate calculations. Supplement rates come from the Riksavtalen tariff tables. See `docs/cascade-spreadsheet-overview.md` for the full framework.
+> **Cascade architecture:** This module consumes D6 (Production) shift data and applies D3 (Rules & Constraints) for rate calculations. Supplement rates, thresholds, and time windows are framework-loaded from `tariff_rate_table` (seeded by the active regulatory framework package). Concrete numerical values are NOT hardcoded in this module — they are resolved at runtime from the framework. See `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md` (Cascade Core Foundation spec, Section 5) for the framework seed data structure.
+>
+> **Key principle:** This module READS cost data from `shift_cost_snapshot` (created by the cascade engine). It does not independently compute shift costs. The cascade proposal pipeline owns cost computation; this module owns payroll aggregation and export.
 
 ---
 
@@ -75,46 +77,45 @@ Full payroll calculation from shift data. Covers wage types, supplements (evenin
 
 ## 3. Supplements (Riksavtalen — Verified 2026-03-21)
 
-Previous documentation had incorrect placeholder values. These are the verified Riksavtalen rates.
+All rates, thresholds, and time windows are framework-managed data loaded from `tariff_rate_table` at runtime. They are NOT hardcoded in application code or module documentation. The active regulatory framework (`hospitality.no.default.v1`) seeds these values from the verified source bundle at release time.
 
 ### 3.1 Tillegg (supplements)
 
-| Supplement | Norwegian | Rate | Window |
-|------------|-----------|------|--------|
-| Evening | Kveldstillegg | 15.65 kr/t | Mon-Fri 21:00-24:00 |
-| Night | Nattillegg | 54.76 kr/t | 00:00-06:00 |
-| Weekend | Helgetillegg | 29.74 kr/t | Sat 14:00-24:00, Sun 06:00-24:00 |
-| Public holiday | Helligdagstillegg | 100% of individual hourly rate | Red calendar days |
+Supplement types defined by the framework. Each has: amount (kr/t or %), time window, and source layer.
+
+| Supplement     | Norwegian         | Parameter Types                               |
+| -------------- | ----------------- | --------------------------------------------- |
+| Evening        | Kveldstillegg     | Amount (kr/t), weekday + hour window          |
+| Night          | Nattillegg        | Amount (kr/t), hour window                    |
+| Weekend        | Helgetillegg      | Amount (kr/t), weekday + hour window          |
+| Public holiday | Helligdagstillegg | Rate type (% of base), calendar day reference |
+
+Concrete rates are resolved from `tariff_rate_table` rows with the active framework's `effective_from`/`effective_until` dates. See cascade spec Section 5.3 for framework seed structure.
 
 ### 3.2 Overtid (overtime)
 
-| Type | Rate | Trigger |
-|------|------|---------|
-| Daytime overtime | +50% of base | Hours beyond agreed_weekly_hours or 9h/day |
-| Night/holiday overtime | +100% of base | Overtime hours during night/holiday windows |
+Overtime factors are framework-defined with rate multipliers and trigger thresholds:
 
-**AML overtime rules (Arbeidsmiljoeloven ss 10-6):**
-- Overtime = hours beyond agreed_weekly_hours (from employment_contract)
-- Max 10h overtime/week, 25h/4 weeks, 200h/year (can be extended by agreement to 300h or 400h with Arbeidstilsynet)
-- Overtime MUST be paid — cannot be compensated solely with time off unless explicitly agreed
+| Factor                  | Parameter Types                                   |
+| ----------------------- | ------------------------------------------------- |
+| Standard overtime       | Rate multiplier (%), daily/weekly hour thresholds |
+| Unsocial-hours overtime | Rate multiplier (%), applicable time windows      |
+
+Thresholds are AML ordinary-hours baselines (framework-configured, not hardcoded). The active work-time regime resolves actual applicable thresholds per employee context (shift patterns, contract terms, averaging arrangements). See cascade spec Section 5.3 for details.
 
 ### 3.3 Ansiennitet wage steps (seniority)
 
-Wages increase with seniority. Example: Kokk med fagbrev (NHO/Fellesforbundet tariff):
+Wages increase with seniority. Rate tables are stored as `tariff_rate_table` rows with `seniority_years` brackets and `source = 'riksavtalen'`. The framework defines brackets per tariff category (e.g., `kokk_fagbrev`, `kokk_uten_fagbrev`, `servitor`).
 
-| Years | 0 | 2 | 4 | 6 | 8 | 10 |
-|-------|---|---|---|---|---|---|
-| kr/t | 224.45 | 228.67 | 233.01 | 237.47 | 242.06 | 247.03 |
-
-Fagbrev distinction: employees with/without fagbrev have different rate tables. Tracked via `profile.has_fagbrev`.
+Fagbrev distinction: employees with/without fagbrev have different tariff categories. Tracked via `employee_payroll_profile.has_fagbrev` and `tariff_category`.
 
 ### 3.4 Personal supplements (personlige tillegg)
 
-| Seniority | Monthly |
-|-----------|---------|
-| 10 years | 900 kr/mnd |
-| 15 years | 1400 kr/mnd |
-| 20 years | 1900 kr/mnd |
+| Seniority | Monthly     |
+| --------- | ----------- |
+| 10 years  | 900 kr/mnd  |
+| 15 years  | 1400 kr/mnd |
+| 20 years  | 1900 kr/mnd |
 
 ### 3.5 Allmenngjoring
 
@@ -123,12 +124,13 @@ ALL Riksavtalen rates are mandatory for ALL restaurants in Norway. No opt-out. N
 ### 3.6 Tariff Rate Versioning
 
 Rates change annually when new tariff agreements are negotiated. The system must support:
+
 - `tariff_rate_table` with `effective_from` / `effective_until` dates
 - Lookup: for a given shift date, find the active tariff version
 - Historical accuracy: past shifts use the tariff that was active at the time
 - Source tracking: which Riksavtalen version the rates come from
 
-Configured via `tariff_rate_table` (planned, see `docs/cascade-spreadsheet-overview.md` Schema Gaps).
+Configured via `tariff_rate_table` (planned, see `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md` Schema Gaps).
 
 ---
 
@@ -136,15 +138,17 @@ Configured via `tariff_rate_table` (planned, see `docs/cascade-spreadsheet-overv
 
 ### 4.1 Overtime Detection
 
-Overtime is triggered when hours exceed the threshold from `employment_contract.agreed_weekly_hours`. This field is CRITICAL and currently missing from the schema (see Schema Gaps in `docs/cascade-spreadsheet-overview.md`).
+Overtime is triggered when hours exceed the threshold from `employment_contract.agreed_weekly_hours`. This field is CRITICAL and currently missing from the schema (see Schema Gaps in `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`).
 
 **Detection logic:**
+
 1. Sum all schedule_shift hours for the week (Mon-Sun)
 2. Compare against agreed_weekly_hours from employment_contract
 3. If over: mark excess hours as overtime
 4. Apply correct rate: +50% (day) or +100% (night/holiday)
 
 **AML limits (hard blocks in cascade):**
+
 - Max 10h overtime per 7-day period
 - Max 25h overtime per 4-week period
 - Max 200h overtime per 52 weeks (extendable to 300h/400h by agreement)
@@ -176,17 +180,14 @@ Overtime is triggered when hours exceed the threshold from `employment_contract.
 Every shift gets a cost snapshot at creation/update. This feeds the schedule UI cost column.
 
 ```
-For each schedule_shift:
-  1. Look up employee_payroll_profile → base_hourly_rate, seniority_step
-  2. Look up active tariff_rate_table for shift_date
-  3. Calculate base cost = work_hours * base_hourly_rate
-  4. Calculate supplements:
-     - For each hour of the shift, check which supplement windows apply
-     - Kveldstillegg: 15.65 kr/t (Mon-Fri 21-24)
-     - Nattillegg: 54.76 kr/t (00-06)
-     - Helgetillegg: 29.74 kr/t (Sat 14-24, Sun 06-24)
-     - Helligdagstillegg: 100% (red days)
-  5. Store as shift_cost_snapshot (append-only audit)
+Per-shift cost is computed by the cascade engine (Phase B), NOT by this module.
+The cascade engine:
+  1. Looks up employee_payroll_profile → tariff_category, seniority bracket
+  2. Resolves active tariff_rate_table rows for shift_date (framework-loaded)
+  3. Evaluates framework supplement rules against shift hours + time windows
+  4. Stores result as shift_cost_snapshot (append-only audit trail)
+
+This module READS shift_cost_snapshot for payroll aggregation. It does not recompute.
 ```
 
 ### 6.2 Monthly Payroll Run Pipeline
@@ -210,6 +211,7 @@ Shifts (from Module 3, L5 in cascade)
 ### 6.3 A-melding Requirements
 
 Monthly reporting to Norwegian tax authorities. Must include:
+
 - Hours worked per employee
 - Gross pay breakdown (base + supplements + overtime)
 - Employer contributions (arbeidsgiveravgift, feriepenger, OTP)
@@ -243,14 +245,14 @@ Validation checks before finalization. Admin review and approval step.
 
 ### 8.2 New tables needed
 
-| Table | Purpose | Key Columns |
-|-------|---------|-------------|
-| `tariff_rate_table` | Versioned Riksavtalen rates | effective_from, effective_until, rate_type, amount, source |
-| `employee_payroll_profile` | Links contract to payroll calculation | profile_id, employment_contract_id, tariff_table_id, base_hourly_rate, seniority_step |
-| `shift_cost_snapshot` | Append-only per-shift cost audit | schedule_shift_id, base_cost, supplements_json, total_cost, calculated_at |
-| `payroll_run` | Monthly run with status | workspace_id, period_start, period_end, status (draft/calculating/review/finalized) |
-| `payroll_line` | Individual line items per employee per run | payroll_run_id, profile_id, line_type, hours, rate, amount |
-| `timebank_balance` | TOIL balance per employee | profile_id, balance_hours, last_updated |
+| Table                      | Purpose                                    | Key Columns                                                                           |
+| -------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------- |
+| `tariff_rate_table`        | Versioned Riksavtalen rates                | effective_from, effective_until, rate_type, amount, source                            |
+| `employee_payroll_profile` | Links contract to payroll calculation      | profile_id, employment_contract_id, tariff_table_id, base_hourly_rate, seniority_step |
+| `shift_cost_snapshot`      | Append-only per-shift cost audit           | schedule_shift_id, base_cost, supplements_json, total_cost, calculated_at             |
+| `payroll_run`              | Monthly run with status                    | workspace_id, period_start, period_end, status (draft/calculating/review/finalized)   |
+| `payroll_line`             | Individual line items per employee per run | payroll_run_id, profile_id, line_type, hours, rate, amount                            |
+| `timebank_balance`         | TOIL balance per employee                  | profile_id, balance_hours, last_updated                                               |
 
 ### 8.3 Expected enums
 
@@ -259,7 +261,7 @@ Validation checks before finalization. Admin review and approval step.
 - `SalaryType`: hourly | monthly
 - `EmploymentCategory`: full_time | part_time | temporary | flexible | apprentice
 
-Full schema gap list: `docs/cascade-spreadsheet-overview.md` (Schema Gaps section)
+Full schema gap list: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md` (Schema Gaps section)
 
 ---
 

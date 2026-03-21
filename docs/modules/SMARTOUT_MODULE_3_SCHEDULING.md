@@ -31,7 +31,7 @@ changelog:
 > **Smartout.ai** — Funksjonell dokumentasjon for migrering
 > Versjon 1.1 | Mars 2026
 >
-> **Cascade architecture:** This module implements layers L4 (Template Shifts) and L5 (Schedule Shifts) of the cascade waterfall. It is fed by D1 (Operational Envelope) via operating hours and constrained by D3 (Rules & Constraints) via labor law and Riksavtalen. See `docs/cascade-spreadsheet-overview.md` for the full five-dimension framework.
+> **Cascade architecture:** This module implements the scheduling product layer on top of the Cascade Core Foundation. Operating hours resolve via D1 (Operational Envelope) through `resolve_hours()` (Phase B). Template shifts anchor to open/close times via `schedule_template_shift` with anchor types (Phase A schema). Shift assignments flow through the proposal/enforcement pipeline (`change_proposal` → framework evaluation → apply). Resource matching is a future product layer, not part of Phase A/B. Rates and constraints are framework-loaded from `tariff_rate_table`, not hardcoded. See `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md` for the canonical Cascade Core Foundation spec.
 
 ---
 
@@ -302,23 +302,18 @@ Vaktplanleggingsmodulen er den mest sammenkoblede modulen i Smartout og berører
 Between template shifts (L4) and published schedule shifts (L5), a Resource Matching layer proposes staffing. This is where the system's intelligence lives.
 
 **Inputs:**
-- Templates define *what shifts are needed* (from operating hours + shift_function anchoring)
-- Resources define *who is available* (contracts, availability, certifications, seniority, cost)
-- Compliance tasks define *what must be done* (procedures, routines, required_certifications)
+
+- Templates define _what shifts are needed_ (from operating hours + shift_function anchoring)
+- Resources define _who is available_ (contracts, availability, certifications, seniority, cost)
+- Compliance tasks define _what must be done_ (procedures, routines, required_certifications)
 
 **Outputs:**
+
 - Staffing proposal with cost estimate per shift
-- Compliance flags and hard blocks (see `docs/cascade-spreadsheet-overview.md` for enforcement levels)
+- Compliance flags via framework rule evaluation (see cascade spec Section 2.5 for evaluation outcomes)
 - Coverage gaps and overstaffing warnings
 
-**Supplement rates (Riksavtalen — verified 2026-03-21):**
-- Kveldstillegg: 15.65 kr/t (mon-fri 21:00-24:00)
-- Nattillegg: 54.76 kr/t (00:00-06:00)
-- Helgetillegg: 29.74 kr/t (sat 14:00-24:00, sun 06:00-24:00)
-- Helligdagstillegg: 100% of individual hourly rate
-- Overtime day: +50%, night/holiday: +100%
-
-Full rates and ansiennitet steps: `docs/cascade-spreadsheet-overview.md`
+**Supplement rates:** Framework-loaded from `tariff_rate_table` (seeded by the active regulatory framework). Rates are NOT hardcoded — they are resolved at runtime. See cascade spec Section 5 for the framework seed data structure and Module 8 for payroll integration.
 
 ---
 

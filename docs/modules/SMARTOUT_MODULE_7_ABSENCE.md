@@ -2,7 +2,8 @@
 title: "Module 7: Fravær & Permisjon (Absence & Leave)"
 id: MODULE_07
 version: "1.0"
-status: draft
+status: placeholder
+note: "This module has no implementation. Specification needed before development."
 layer: module
 created: 2026-02-24
 updated: 2026-02-28
