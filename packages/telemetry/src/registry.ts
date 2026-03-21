@@ -697,6 +697,37 @@ export interface PayrollSettingsUpdated extends BaseEvent {
   };
 }
 
+// ─── Salary Code Events ──────────────────────────
+export interface SalaryCodeCreated extends BaseEvent {
+  event: "salary_code created";
+  properties: {
+    data: {
+      code: string;
+      category: string;
+    };
+  };
+}
+
+export interface SalaryCodeUpdated extends BaseEvent {
+  event: "salary_code updated";
+  properties: {
+    data: {
+      salary_code_id: string;
+      code: string;
+    };
+  };
+}
+
+export interface SalaryCodeDeleted extends BaseEvent {
+  event: "salary_code deleted";
+  properties: {
+    data: {
+      salary_code_id: string;
+      code: string;
+    };
+  };
+}
+
 // ─── AI / Authority Config Events ───────────────
 export interface AuthorityConfigUpdated extends BaseEvent {
   event: "authority_config updated";
@@ -862,6 +893,9 @@ export type SmartoutEvent =
   | ConversationCreated
   | MessageSent
   | PayrollSettingsUpdated
+  | SalaryCodeCreated
+  | SalaryCodeUpdated
+  | SalaryCodeDeleted
   | AuthorityConfigUpdated
   | OnboardingGuideUpdated
   | IndustryPackageLoaded
@@ -1155,6 +1189,19 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
 
   "payroll_settings updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+
+  "salary_code created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "salary_code updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "salary_code deleted": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",
   },
