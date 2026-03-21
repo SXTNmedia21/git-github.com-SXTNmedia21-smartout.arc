@@ -13,11 +13,11 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #    | Branch                        | Module     | Status      | Progress                                                                         | Blockers            | Health |
-| ---- | ----------------------------- | ---------- | ----------- | -------------------------------------------------------------------------------- | ------------------- | ------ |
-| wt-1 | `feat/workspace-intelligence` | onboarding | in_progress | 9/10 tasks done                                                                  | vault setup for E2E | clean  |
-| wt-3 | `feat/emma-arena-views`       | walkAi     | in_progress | Spec + mockups done, settings persistence committed. Implementation not started. | None                | clean  |
-| wt-4 | `feat/vaktlista-view`         | schedule   | in_progress | —                                                                                | —                   | —      |
+| #    | Branch                  | Module   | Status      | Progress                                                                         | Blockers | Health |
+| ---- | ----------------------- | -------- | ----------- | -------------------------------------------------------------------------------- | -------- | ------ |
+| —    | —                       | —        | —           | wt-1 closed (workspace-intelligence merged)                                      | —        | —      |
+| wt-3 | `feat/emma-arena-views` | walkAi   | in_progress | Spec + mockups done, settings persistence committed. Implementation not started. | None     | clean  |
+| wt-4 | `feat/vaktlista-view`   | schedule | in_progress | —                                                                                | —        | —      |
 
 ## Parked Branches (no worktree)
 
@@ -27,21 +27,21 @@ tags: [dashboard, worktrees, tracking]
 
 ## Free Slots
 
-| #     | Available                        |
-| ----- | -------------------------------- |
-| wt-1  | no (feat/workspace-intelligence) |
-| wt-2  | yes                              |
-| wt-3  | no (feat/emma-arena-views)       |
-| wt-4  | no (feat/vaktlista-view)         |
-| wt-5  | yes                              |
-| wt-15 | yes                              |
-| wt-20 | yes                              |
+| #     | Available                  |
+| ----- | -------------------------- |
+| wt-1  | yes                        |
+| wt-2  | yes                        |
+| wt-3  | no (feat/emma-arena-views) |
+| wt-4  | no (feat/vaktlista-view)   |
+| wt-5  | yes                        |
+| wt-15 | yes                        |
+| wt-20 | yes                        |
 
 ## Pending Journeys
 
 | WT   | Feature                | Journey File                                      | Status  |
 | ---- | ---------------------- | ------------------------------------------------- | ------- |
-| wt-1 | workspace-intelligence | `docs/journeys/JOURNEY-workspace-intelligence.md` | missing |
+| wt-1 | workspace-intelligence | `docs/journeys/JOURNEY-workspace-intelligence.md` | done    |
 | wt-1 | zero-to-production     | `docs/journeys/JOURNEY-zero-to-production.md`     | done    |
 | wt-2 | contract-enhancements  | `docs/journeys/JOURNEY-contract-enhancements.md`  | done    |
 | wt-4 | infra-hardening        | `docs/journeys/JOURNEY-infra-hardening.md`        | missing |
@@ -50,6 +50,7 @@ tags: [dashboard, worktrees, tracking]
 
 | Date       | Feature                   | Branch                                                             | Merged To   |
 | ---------- | ------------------------- | ------------------------------------------------------------------ | ----------- |
+| 2026-03-21 | workspace-intelligence    | `feat/workspace-intelligence`                                      | development |
 | 2026-03-02 | unified-keys-admin        | `feat/unified-keys-admin`                                          | development |
 | 2026-03-02 | fix-onboarding-flow       | `feat/fix-onboarding-flow`                                         | development |
 | 2026-03-02 | fix-admin-bugs            | `feat/fix-admin-bugs`                                              | development |
