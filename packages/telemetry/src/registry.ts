@@ -883,6 +883,17 @@ export interface BreakRuleDeleted extends BaseEvent {
   };
 }
 
+// ─── Working Time Rules Events ──────────────────
+export interface WorkingTimeRulesUpdated extends BaseEvent {
+  event: "working_time_rules updated";
+  properties: {
+    data: {
+      rule_codes: string[];
+      active_count: number;
+    };
+  };
+}
+
 // ─── AI / Authority Config Events ───────────────
 export interface AuthorityConfigUpdated extends BaseEvent {
   event: "authority_config updated";
@@ -1066,6 +1077,7 @@ export type SmartoutEvent =
   | BreakRuleCreated
   | BreakRuleUpdated
   | BreakRuleDeleted
+  | WorkingTimeRulesUpdated
   | AuthorityConfigUpdated
   | OnboardingGuideUpdated
   | IndustryPackageLoaded
@@ -1436,6 +1448,11 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "operations",
   },
   "break_rule deleted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+
+  "working_time_rules updated": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",
   },
