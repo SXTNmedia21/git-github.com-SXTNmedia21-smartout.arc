@@ -789,6 +789,38 @@ export interface GroupMemberRemoved extends BaseEvent {
   };
 }
 
+// ─── Supplement Rule Events ──────────────────────
+export interface SupplementRuleCreated extends BaseEvent {
+  event: "supplement_rule created";
+  properties: {
+    data: {
+      name: string;
+      supplement_type: string;
+    };
+  };
+}
+
+export interface SupplementRuleUpdated extends BaseEvent {
+  event: "supplement_rule updated";
+  properties: {
+    data: {
+      supplement_rule_id: string;
+      name: string;
+      supplement_type: string;
+    };
+  };
+}
+
+export interface SupplementRuleDeleted extends BaseEvent {
+  event: "supplement_rule deleted";
+  properties: {
+    data: {
+      supplement_rule_id: string;
+      name: string;
+    };
+  };
+}
+
 // ─── AI / Authority Config Events ───────────────
 export interface AuthorityConfigUpdated extends BaseEvent {
   event: "authority_config updated";
@@ -963,6 +995,9 @@ export type SmartoutEvent =
   | GroupMemberAdded
   | GroupMemberUpdated
   | GroupMemberRemoved
+  | SupplementRuleCreated
+  | SupplementRuleUpdated
+  | SupplementRuleDeleted
   | AuthorityConfigUpdated
   | OnboardingGuideUpdated
   | IndustryPackageLoaded
@@ -1294,6 +1329,19 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "operations",
   },
   "group_member removed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+
+  "supplement_rule created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "supplement_rule updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "supplement_rule deleted": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",
   },
