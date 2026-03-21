@@ -51,8 +51,11 @@ tags: [cascade, foundation, schema, migration, phase-b]
 
 ## Log
 
-| Date       | Time | Event                                             |
-| ---------- | ---- | ------------------------------------------------- |
-| 2026-03-21 | —    | Spec written, reviewed, locked                    |
-| 2026-03-21 | —    | Implementation plan written (5 tracks, 20+ tasks) |
-| 2026-03-21 | —    | Plan approved after 3 review rounds               |
+| Date       | Time | Event                                                    |
+| ---------- | ---- | -------------------------------------------------------- |
+| 2026-03-21 | —    | Spec written, reviewed, locked                           |
+| 2026-03-21 | —    | Implementation plan written (5 tracks, 20+ tasks)        |
+| 2026-03-21 | —    | Plan approved after 3 review rounds                      |
+| 2026-03-22 | —    | Foundation executed: 19 tasks, 7 migrations, 29 tests    |
+| 2026-03-22 | —    | Hours integration: backfill + hook + consumers + session |
+| 2026-03-22 | —    | Session ended. Next: cascade UI implementation           |

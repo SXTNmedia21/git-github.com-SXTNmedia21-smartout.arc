@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: in_progress
-updated: 2026-03-21
+updated: 2026-03-22
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -13,11 +13,12 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #    | Branch                  | Module   | Status      | Progress                                                                         | Blockers | Health |
-| ---- | ----------------------- | -------- | ----------- | -------------------------------------------------------------------------------- | -------- | ------ |
-| —    | —                       | —        | —           | wt-1 closed (workspace-intelligence merged)                                      | —        | —      |
-| wt-3 | `feat/emma-arena-views` | walkAi   | in_progress | Spec + mockups done, settings persistence committed. Implementation not started. | None     | clean  |
-| wt-4 | `feat/vaktlista-view`   | schedule | in_progress | —                                                                                | —        | —      |
+| #    | Branch                         | Module   | Status      | Progress                                                                                                                                                                                   | Blockers | Health |
+| ---- | ------------------------------ | -------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- | ------ |
+| —    | —                              | —        | —           | wt-1 closed (workspace-intelligence merged)                                                                                                                                                | —        | —      |
+| wt-2 | `docs/cascade-five-dimensions` | cascade  | in_progress | Foundation built: 17 tables, 16 enums, 29 tests. Hours integrated: hook rewritten, 3 consumers updated, session planned hours wired. Next: cascade UI. 104 uncommitted docs audit changes. | None     | dirty  |
+| wt-3 | `feat/emma-arena-views`        | walkAi   | in_progress | Spec + mockups done, settings persistence committed. Implementation not started.                                                                                                           | None     | clean  |
+| wt-4 | `feat/vaktlista-view`          | schedule | in_progress | —                                                                                                                                                                                          | —        | —      |
 
 ## Parked Branches (no worktree)
 
@@ -27,24 +28,25 @@ tags: [dashboard, worktrees, tracking]
 
 ## Free Slots
 
-| #     | Available                  |
-| ----- | -------------------------- |
-| wt-1  | yes                        |
-| wt-2  | yes                        |
-| wt-3  | no (feat/emma-arena-views) |
-| wt-4  | no (feat/vaktlista-view)   |
-| wt-5  | yes                        |
-| wt-15 | yes                        |
-| wt-20 | yes                        |
+| #     | Available                         |
+| ----- | --------------------------------- |
+| wt-1  | yes                               |
+| wt-2  | no (docs/cascade-five-dimensions) |
+| wt-3  | no (feat/emma-arena-views)        |
+| wt-4  | no (feat/vaktlista-view)          |
+| wt-5  | yes                               |
+| wt-15 | yes                               |
+| wt-20 | yes                               |
 
 ## Pending Journeys
 
-| WT   | Feature                | Journey File                                      | Status  |
-| ---- | ---------------------- | ------------------------------------------------- | ------- |
-| wt-1 | workspace-intelligence | `docs/journeys/JOURNEY-workspace-intelligence.md` | done    |
-| wt-1 | zero-to-production     | `docs/journeys/JOURNEY-zero-to-production.md`     | done    |
-| wt-2 | contract-enhancements  | `docs/journeys/JOURNEY-contract-enhancements.md`  | done    |
-| wt-4 | infra-hardening        | `docs/journeys/JOURNEY-infra-hardening.md`        | missing |
+| WT   | Feature                 | Journey File                                       | Status  |
+| ---- | ----------------------- | -------------------------------------------------- | ------- |
+| wt-1 | workspace-intelligence  | `docs/journeys/JOURNEY-workspace-intelligence.md`  | done    |
+| wt-1 | zero-to-production      | `docs/journeys/JOURNEY-zero-to-production.md`      | done    |
+| wt-2 | contract-enhancements   | `docs/journeys/JOURNEY-contract-enhancements.md`   | done    |
+| wt-2 | cascade-core-foundation | `docs/journeys/JOURNEY-cascade-core-foundation.md` | missing |
+| wt-4 | infra-hardening         | `docs/journeys/JOURNEY-infra-hardening.md`         | missing |
 
 ## Recent Closures
 
@@ -94,6 +96,8 @@ tags: [dashboard, worktrees, tracking]
 ## Session History
 
 | 2026-03-21 | stage-engine-walkai-audit | session ended | Deep audit (37 issues), Sprint 1-3 bugfixes (5 migrations, 14 files), settings persistence, EmmaProfile overview tab, arena views spec + 8 mockups, accumulated commits (mobile/emma/dashboard/schedule/telemetry), contract-enhancements merged+closed, pre-commit hook fixed. wt-3 created for emma-arena-views. |
+| 2026-03-22 | cascade-spec-and-docs-audit | session ended | Cascade spec: 5 review rounds (foundation reframe, framework model, override grammar, provenance, temporal invariants). Full docs audit: 33 files archived, 12 staged for rewrite, 5 modules cascade-aligned, hardcoded rates removed, all stale refs fixed. 69 uncommitted changes. |
+| 2026-03-22 | cascade-core-foundation | session ended | Foundation: 25 tasks, 7 migrations (17 tables, 16 enums), 4 Phase B functions (29 tests), ADR-0056, legacy cleanup track. Hours integration: backfill + hook rewrite + 3 consumers + session planned hours. 0 typecheck errors, 0 lint errors. Next: cascade UI (override manager, planned hours display). |
 | 2026-03-11 | login-join-flow | session ended | Login hype sequence (spinner+pulsing text→checkmark burst→redirect), SignupWizard polish, /signup→/login route cleanup, redirect fix (window.location.href). Uncommitted in walkTalkie. |
 | 2026-03-10 | journey-engine | session ended | Route rename /onboarding→/setup, env import dialog overflow+new keys, redirect condition changed to workspace-empty check, docs updated. 116 uncommitted files. |
 | 2026-03-08 | journey-engine | started | wt-2, module: core — Journey Engine runtime, compile, 2 journeys |

@@ -1,7 +1,7 @@
 ---
 title: Session Log
 status: in_progress
-updated: 2026-03-21
+updated: 2026-03-22
 created: 2026-03-02
 module: cross-cutting
 tags: [session, continuity]
@@ -9,51 +9,51 @@ tags: [session, continuity]
 
 ## Last Session
 
-| Field   | Value                                                         |
-| ------- | ------------------------------------------------------------- |
-| Date    | 2026-03-19 to 2026-03-21 (multi-day session)                  |
-| Branch  | `feat/workspace-intelligence` (wt-1) merged to development    |
-| Feature | workspace-intelligence (join wizard Step 3 enrich + generate) |
-| Status  | in_progress (9/10 tasks done, transition fixes applied)       |
+| Field   | Value                                                |
+| ------- | ---------------------------------------------------- |
+| Date    | 2026-03-22                                           |
+| Branch  | `docs/cascade-five-dimensions` (wt-2)                |
+| Feature | cascade-core-foundation + hours integration          |
+| Status  | in_progress — foundation built, hours wired, UI next |
 
 ### What was done
 
-1. Brainstormed + designed workspace intelligence pipeline
-2. Built full pipeline: Scrapling enrich/generate, Next.js orchestrator, React hook, Step 3 rewrite, Step 5 pre-population
-3. Removed old code: useAiContent, /api/generate-content, Scrapling /generate-content
-4. BRREG founding date: Added stiftelsesdato extraction
-5. Infrastructure: Two-vault env template, SERVICE_ROUTING.md, setup-vault.sh --sync
-6. Transition fixes: onboarding_completed flag, slug redirect, intelligence persistence, localStorage cleanup
-7. Playwright E2E: 8 tests passing
-8. Secrets protocol skill updated: two-vault architecture, WSL eval pattern
+**Cascade Core Foundation (25 commits):**
+
+1. Implementation plan written (5 tracks, 20+ tasks, 3 review rounds)
+2. A1 domain: 4 migrations (btree_gist, 10 enums, 11 tables, 7 altered tables)
+3. A2 framework: 2 migrations (6 enums, 6 tables + change_proposal FK upgrade)
+4. Phase B: 4 pure functions (resolveEffectiveHours, computeAnchoredTime, evaluateFrameworkRules skeleton, validateProposalFreshness) — 29 tests passing
+5. Cleanup track: legacy markers migration, runtime cutover checklist, legacy usage inventory (6 must-refactor files found), backfill plan
+6. ADR-0056 written, STATE.md updated, decision log updated
+7. Fixed 3 pre-existing migration bugs (walkai seed, pg_cron, duplicate timestamps)
+
+**Hours Integration (4 commits):** 8. Backfill migration: operating_hours → department_operating_hours 9. useOperatingHours hook rewritten to read/write cascade table 10. 3 UI consumers updated (OpeningHoursSettings, HourFactorsTab, SeasonOverviewTab) with department selector 11. department_session.planned_open/close wired to resolveEffectiveHours()
+
+**Validation:** 154 migrations pass db reset, 0 typecheck errors, 0 lint errors, 29 cascade tests passing.
 
 ### Where we stopped
 
-- Task 10 (live AI test) blocked on vault setup
-- wt-1 still exists (feature merged but worktree not closed)
+- Cascade foundation + hours integration done and committed
+- 104 uncommitted changes from earlier docs audit (not this session) — needs commit
+- Next: UI implementation to make cascade visible in dashboard
+
+### Next steps
+
+1. **Commit docs audit changes** (104 files — archive moves, module updates, index updates)
+2. **UI: Planned hours on schedule view** — show planned_open/close on day view
+3. **UI: Hours override manager** — CRUD for department_hours_override (holidays, events)
+4. **UI: Planning events** — demand signal calendar with multipliers
 
 ### Known blockers
 
-- Vault fields not created yet (service URLs need op item edit)
-- Production vault smartout_ai_prod not created
-- Caddy DNS resolves to production IP, not localhost
+- Vault fields not created yet
+- Engine dispatch planned_open/close needs shared cascade package (TODO added)
+- Telemetry registry needs department_operating_hours event
 
 ### Pending decisions
 
-- [ ] Run op item edit commands for vault fields
-- [ ] Create smartout_ai_prod vault
+- [ ] Commit docs audit changes (104 files)
+- [ ] Which cascade UI to build first (override manager vs planned hours display)
+- [ ] Process docs/needs-rewrite/ merge candidates
 - [ ] Close wt-1 worktree
-- [ ] Full E2E test with live AI
-- [ ] Step 6 team invites UI (exists but not wired)
-
-### Vault setup commands (ready to run)
-
-```bash
-eval $(op signin)
-op item edit "Scrapling" --vault smartout_ai url=http://localhost:8000
-op item edit "Stage-Engine" --vault smartout_ai url=http://localhost:5010
-op item edit "Contract-Service" --vault smartout_ai url=http://localhost:5012
-op item edit "Shift-MCP" --vault smartout_ai url=http://localhost:5011
-op item edit "SmartOut" --vault smartout_ai root_domain=localhost landing_url=http://localhost:3055 web_app_url=http://localhost:3060 node_env=development environment=development revalidation_secret=local-revalidation-secret
-op item edit "n8n" --vault smartout_ai host=localhost webhook_url=http://localhost:5678/
-```
