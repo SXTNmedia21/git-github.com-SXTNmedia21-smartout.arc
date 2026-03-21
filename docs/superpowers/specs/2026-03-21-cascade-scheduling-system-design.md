@@ -1,6 +1,6 @@
 ---
 title: "Cascade Scheduling System — Design Specification"
-status: review
+status: done
 updated: 2026-03-21
 created: 2026-03-21
 module: cascade
