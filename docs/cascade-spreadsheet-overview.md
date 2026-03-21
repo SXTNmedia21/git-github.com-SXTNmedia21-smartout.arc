@@ -1,17 +1,74 @@
 ---
-title: "Cascade Architecture — 6D + 4C + K1 Model"
+title: "Cascade Architecture — I1 + 6D + 4C + K1a/K1b Model"
 status: canonical
 updated: 2026-03-21
 created: 2026-03-21
 module: cross-cutting
-tags: [cascade, scheduling, dimensions, operating-hours, payroll, compliance, architecture]
+tags: [cascade, scheduling, dimensions, operating-hours, payroll, compliance, architecture, industry-intelligence, rego]
 ---
 
-# Cascade Architecture — 6D + 4C + K1 Model
+# Cascade Architecture — I1 + 6D + 4C + K1a/K1b Model
 
 > Canonical source for how Smartout's scheduling, staffing, and operations cascade works.
 > Every doc that mentions cascade, scheduling, salary, or operating hours should reference this file.
 > Architecture stress-tested by 12-persona AI Council (hospitality + infrastructure + AI) on 2026-03-21.
+> Final canonical model locked 2026-03-21: I1 pre-runtime + 6D execution + 4C control + K1a/K1b knowledge.
+
+---
+
+## System Overview
+
+```
+PRE-RUNTIME
+  I1 Industry Intelligence Bootstrap
+     loads vertical defaults, applies SQL templates, sets baselines
+
+RUNTIME
+  Execution:  D1 Envelope | D2 Resource | D3 Rules | D4 Demand | D5 Concept | D6 Production
+  Control:    C1 Calibration | C2 Interaction | C3 Commercial | C4 Governance
+  Knowledge:  K1a Industry Base | K1b Workspace Base
+```
+
+**Sequence:** Platform Shell (login, org) --> I1 Bootstrap (choose vertical, load profile, apply defaults) --> Workspace Runtime (D1-D6, C1-C4, K1a+K1b)
+
+The admin portal NEVER creates empty workspaces. Every workspace starts from I1 bootstrap.
+
+---
+
+## Pre-Runtime: I1 Industry Intelligence Bootstrap
+
+I1 is the pre-runtime layer that gives initial form to a workspace. Before any runtime dimension or control plane activates, I1 loads the vertical's defaults, applies SQL templates, and sets baselines for every dimension.
+
+### What I1 bootstraps
+
+| I1 Source | Target Dimensions/Planes | What it seeds |
+|-----------|--------------------------|---------------|
+| `departments.sql` | D1, D2 | Operational envelope structure, resource slots |
+| `budget.sql` | D4, C1 | Demand baselines, calibration starting points |
+| `policies.sql` + `governance.sql` | D3, C4 | Rules, authority config, governance constraints |
+| `hospitality.ts` tariffs | D3, D2 | Riksavtalen rates, supplement rules, seniority steps |
+| `schedule.sql` | D1, D6 | Template shifts, production anchors |
+| Niche profiles | D5 | Service concept parameters (fine-dining vs fast-casual vs bar) |
+| AI council + posture | C2 | Interaction style, explanation tone, agent personas |
+| `_apply.sql` | ALL | The bootstrap engine — orchestrates all template application |
+
+### Codebase mapping (3 levels)
+
+| Level | Path | Contents |
+|-------|------|----------|
+| Documentation | `docs/engines/industri-inteligence/` | 30 files — industry engine specs, niche profiles, role capabilities, AI council |
+| SQL Templates | `supabase/templates/restaurant/` | 13 SQL files + `_apply.sql` — departments, budget, policies, governance, schedule |
+| TypeScript Config | `apps/web/src/lib/industry/` | `hospitality.ts` (tariffs, supplements), `types.ts` (industry package interface) |
+| Document Analysis | `supabase/functions/analyze-setup-documents/` | Extracts company handbook data to seed K1b |
+
+### I1 lifecycle
+
+1. Admin creates company + workspace (platform shell)
+2. Admin selects industry vertical (e.g., hospitality)
+3. I1 loads the industry profile and niche variant
+4. `_apply.sql` executes all SQL templates against the workspace
+5. TypeScript config sets runtime parameters (tariffs, coefficients)
+6. Workspace is ready for runtime — all dimensions have baseline values
 
 ---
 
@@ -73,15 +130,31 @@ Four control planes operate ACROSS the execution dimensions. They observe, inter
 | Control Plane | Reads from | Writes to / Affects |
 |---------------|------------|---------------------|
 | C1 (Observability) | All D1-D6 (actual vs planned) | adjustment_factors -> D4 tuning, planning_factors -> D1 calibration |
-| C2 (Context) | D1-D6 state, K1 memory | Employee/manager-facing explanations, agent conversations |
+| C2 (Context) | D1-D6 state, K1a+K1b memory | Employee/manager-facing explanations, agent conversations |
 | C3 (Commercial) | D2 (cost), D4 (demand), D6 (production) | KPI targets, reconciliation, billing |
 | C4 (Governance) | D3 (rules), D2 (certs/qualifications) | Authority limits on C1 corrections, deviation tracking, approval gates |
 
 ---
 
-## Knowledge Substrate (K1)
+## Knowledge Substrate (K1a + K1b)
 
-Shared memory layer used by multiple control planes. NOT a control plane itself — it is the substrate they read from and write to.
+Shared memory layer used by multiple control planes. NOT a control plane itself — it is the substrate they read from and write to. Split into two tiers with different ownership and mutation rates.
+
+### K1a — Industry Knowledge Base
+
+Platform-owned. Shared per vertical. Changes rarely (new Riksavtalen rates, updated labor law, new niche profiles).
+
+| Component | Used by | Smartout Code |
+|-----------|---------|---------------|
+| Industry primitives | D5 (concept defaults), I1 (bootstrap) | `docs/engines/industri-inteligence/`, `hospitality.ts` |
+| Standard patterns | D1 (template shifts), D3 (policy templates) | `supabase/templates/restaurant/*.sql` |
+| Tariff baselines | D3 (rules), D2 (cost calculation) | `hospitality.ts` tariff tables |
+| Role capabilities | D2 (qualification profiles) | Engine niche profiles |
+| Policy templates | C4 (governance defaults), D3 (compliance) | `policies.sql`, `governance.sql` |
+
+### K1b — Workspace Knowledge Base
+
+Workspace-owned. Tenant-isolated. Changes continuously via C1 learning and admin configuration.
 
 | Component | Used by | Smartout Code |
 |-----------|---------|---------------|
@@ -89,8 +162,16 @@ Shared memory layer used by multiple control planes. NOT a control plane itself 
 | Workspace knowledge | C2 (retrieval), D3/D5 (institutional) | workspace_doc_chunk |
 | Historical patterns | C1 (calibration) | planning_factors |
 | Learned factors | C1 (corrections), D4 (demand tuning) | adjustment_factors |
-| Policy artifacts | C4 (authority), D3 (rules) | engine_authority_config, policy/protocol chain |
+| Local overrides | D3 (house rules), D5 (local concept tuning) | policy/protocol chain (workspace-scoped) |
+| Policy artifacts | C4 (authority), D3 (rules) | engine_authority_config |
 | Retrieval index | C2 (contextual search) | pgvector embeddings |
+
+### K1a/K1b interaction
+
+- I1 bootstrap seeds K1b FROM K1a (industry defaults become workspace starting point)
+- C1 calibration writes to K1b only (learned corrections are workspace-specific)
+- K1a updates propagate as suggestions, not overwrites (new Riksavtalen rates prompt admin review)
+- K1b can override K1a values (workspace house rules > industry defaults, within legal limits)
 
 ---
 
@@ -347,12 +428,35 @@ Fields and tables that must be created before the full cascade + payroll system 
 
 ---
 
+## Tech Stack
+
+| Concern | Technology | Scope |
+|---------|------------|-------|
+| TypeScript | Portal, services, orchestration, bootstrap, AI/context, runtime, industry config | Everything except policy evaluation |
+| Rego / OPA | C4 policy evaluation | Permissions, approval thresholds, escalation rules, governance constraints, auditable decisions |
+
+### Why Rego for C4
+
+C4's core question is "What is the system ALLOWED to do?" This is exactly what Rego is built for:
+
+- Declarative policy rules with formal evaluation
+- Auditable decision logs (every policy evaluation produces a trace)
+- Separates policy from code (rules can be updated without redeployment)
+- Supports hierarchical rule composition (labor law > collective agreement > house rules)
+- OPA's partial evaluation enables efficient pre-filtering of allowed actions
+
+C4 is the ONLY plane that uses Rego. All other planes, dimensions, and I1 bootstrap use TypeScript.
+
+---
+
 ## Key Design Principles
 
 1. **Declarative truth vs derived artifacts.** Only source-of-truth data is stored. Everything downstream must be derivable and recomputable.
 2. **Season modifies reality, not rules.** Season redefines operating hours and demand profiles. Labor law and contracts do not change with seasons.
 3. **Overrides only at the real-world layer.** Template shifts and operating hours are structural. Manual edits happen on schedule_shift.
-4. **The cascade is a constraint satisfaction + optimization process.** D4 (demand) drives need, D1 (envelope) sets boundaries, D2 (resources) enables solutions, D3 (rules) constrains them, D5 (concept) parameterizes everything, D6 (production) adds temporal debt and live state. Control planes observe (C1), explain (C2), value (C3), and govern (C4) the entire process. K1 provides shared memory across all planes.
+4. **No empty workspaces.** Every workspace starts from I1 bootstrap. Industry defaults seed all dimensions.
+5. **K1a is shared, K1b is owned.** Industry knowledge (K1a) is platform-managed. Workspace knowledge (K1b) is tenant-isolated. C1 learning only writes to K1b.
+6. **The cascade is a constraint satisfaction + optimization process.** D4 (demand) drives need, D1 (envelope) sets boundaries, D2 (resources) enables solutions, D3 (rules) constrains them, D5 (concept) parameterizes everything, D6 (production) adds temporal debt and live state. Control planes observe (C1), explain (C2), value (C3), and govern (C4) the entire process. K1a+K1b provide shared memory across all planes.
 
 ---
 

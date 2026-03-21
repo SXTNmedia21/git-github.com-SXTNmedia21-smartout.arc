@@ -8,7 +8,7 @@ tags:
   [investigation, operating-hours, department, location, cascade, architecture, season, vaktlista]
 ---
 
-> **Canonical cascade reference:** `docs/cascade-spreadsheet-overview.md` — the 6D + 4C + K1 model (execution dimensions, control planes, knowledge substrate), waterfall layers, compliance rules, Riksavtalen rates, and schema gaps are all defined there. This document contains the investigation findings and design decisions that led to that architecture.
+> **Canonical cascade reference:** `docs/cascade-spreadsheet-overview.md` — the I1 + 6D + 4C + K1a/K1b model (pre-runtime bootstrap, execution dimensions, control planes, knowledge substrate), waterfall layers, compliance rules, Riksavtalen rates, and schema gaps are all defined there. This document contains the investigation findings and design decisions that led to that architecture.
 
 # Investigation & Design: Core Structure, Operating Hours & Cascade Model
 
@@ -404,10 +404,20 @@ The cascade runs silently even without published shifts:
 
 ---
 
-# PART C: THE 6D + 4C + K1 MODEL (Finalized 2026-03-21)
+# PART C: THE I1 + 6D + 4C + K1a/K1b MODEL (Finalized 2026-03-21)
 
 > Stress-tested by 12-persona AI Council (hospitality + infrastructure + AI).
 > Full specification: `docs/cascade-spreadsheet-overview.md`
+
+### Pre-Runtime: I1 Industry Intelligence Bootstrap
+
+I1 is the pre-runtime layer that gives initial form to a workspace before any dimension or control plane activates. It loads industry vertical defaults (departments, budget, policies, tariffs, schedule templates, niche profiles, AI posture) and applies them via SQL templates + TypeScript config.
+
+- Codebase: `docs/engines/industri-inteligence/` (30 files), `supabase/templates/restaurant/` (13 SQL + `_apply.sql`), `apps/web/src/lib/industry/` (hospitality.ts, types.ts)
+- I1 bootstraps ALL dimensions: D1-D6 get baseline values, C1-C4 get starting config, K1b is seeded from K1a
+- Principle: admin portal NEVER creates empty workspaces — always from I1 bootstrap
+
+**Sequence:** Platform Shell --> I1 Bootstrap --> Workspace Runtime (D1-D6, C1-C4, K1a+K1b)
 
 ### Execution Dimensions (D1-D6)
 
@@ -429,9 +439,16 @@ The cascade runs silently even without published shifts:
 | C3 | Commercial & Outcome | What value was created? | Value -> attribution -> pricing |
 | C4 | Policy & Governance | What is the system ALLOWED to do? | Capability -> permission -> audit |
 
-### Knowledge Substrate (K1) — shared, not a plane
+### Knowledge Substrate (K1a + K1b) — shared, not a plane
 
-Semantic memory (engine_memory), workspace knowledge (workspace_doc_chunk), historical patterns (planning_factors), learned factors (adjustment_factors), policy artifacts, retrieval index (pgvector). Used by C1, C2, C4.
+Split into two tiers:
+
+- **K1a Industry Knowledge Base** — Platform-owned, shared per vertical. Hospitality primitives, standard patterns, policy templates, tariff baselines, role capabilities. Changes rarely.
+- **K1b Workspace Knowledge Base** — Tenant-isolated. Local overrides, learned factors (from C1), workspace docs, engine_memory, local patterns. Changes continuously.
+
+I1 bootstrap seeds K1b FROM K1a. C1 calibration writes to K1b only. K1a updates propagate as suggestions, not overwrites.
+
+Smartout code: engine_memory (pgvector), workspace_doc_chunk, planning_factors, adjustment_factors, engine_authority_config, policy/protocol chain. Used by C1, C2, C4.
 
 ### Critical separation: "Confident" does not equal "Authorized"
 
@@ -516,7 +533,7 @@ These must be frozen before any implementation begins:
 | Anchor system on template shifts           | ✅ Decided      |
 | Cascade via engine_process (not triggers)  | ✅ Decided      |
 | Two cascade modes (simulation + execution) | ✅ Decided      |
-| 6D + 4C + K1 architecture                  | ✅ Decided (2026-03-21) |
+| I1 + 6D + 4C + K1a/K1b architecture        | ✅ Decided (2026-03-21) |
 | Three-layer shift architecture             | ✅ Decided      |
 | Open questions OQ-1 through OQ-10          | ⬜ Must resolve |
 
