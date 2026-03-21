@@ -686,6 +686,17 @@ export interface MessageSent extends BaseEvent {
   };
 }
 
+// ─── Payroll Settings Events ─────────────────────
+export interface PayrollSettingsUpdated extends BaseEvent {
+  event: "payroll_settings updated";
+  properties: {
+    data: {
+      period_type: string;
+      shift_grouping: string;
+    };
+  };
+}
+
 // ─── AI / Authority Config Events ───────────────
 export interface AuthorityConfigUpdated extends BaseEvent {
   event: "authority_config updated";
@@ -850,6 +861,7 @@ export type SmartoutEvent =
   | LeaderPulseDismissed
   | ConversationCreated
   | MessageSent
+  | PayrollSettingsUpdated
   | AuthorityConfigUpdated
   | OnboardingGuideUpdated
   | IndustryPackageLoaded
@@ -1140,6 +1152,11 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "message sent": {
     destinations: ["posthog", "logger"],
     category: "communication",
+  },
+
+  "payroll_settings updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
   },
 
   "authority_config updated": {
