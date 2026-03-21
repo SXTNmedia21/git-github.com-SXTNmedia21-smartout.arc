@@ -1,9 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { resolveEffectiveHours } from "../resolve-hours";
-import type {
-  DepartmentOperatingHoursRow,
-  DepartmentHoursOverrideRow,
-} from "../types";
+import type { DepartmentOperatingHoursRow, DepartmentHoursOverrideRow } from "../types";
 
 const deptId = "dept-001";
 const locId = "loc-001";
@@ -45,7 +42,9 @@ describe("resolveEffectiveHours", () => {
   });
 
   it("returns closed when is_closed is true", () => {
-    const weekly = [weeklyRow({ day_of_week: 1, is_closed: true, open_time: null, close_time: null })];
+    const weekly = [
+      weeklyRow({ day_of_week: 1, is_closed: true, open_time: null, close_time: null }),
+    ];
     const result = resolveEffectiveHours(deptId, null, "2026-04-07", weekly, []);
 
     expect(result.isOpen).toBe(false);
@@ -59,11 +58,13 @@ describe("resolveEffectiveHours", () => {
         id: "ov-1",
         department_id: deptId,
         location_id: null,
+        season_id: null,
         override_date: "2026-04-07",
         open_time: "12:00",
         close_time: "20:00",
         is_closed: false,
         reason: "Holiday hours",
+        planning_event_id: null,
       },
     ];
 
@@ -82,11 +83,13 @@ describe("resolveEffectiveHours", () => {
         id: "ov-1",
         department_id: deptId,
         location_id: null,
+        season_id: null,
         override_date: "2026-04-07",
         open_time: null,
         close_time: null,
         is_closed: true,
         reason: "Christmas Eve",
+        planning_event_id: null,
       },
     ];
 
@@ -99,7 +102,13 @@ describe("resolveEffectiveHours", () => {
   it("season-specific hours override defaults", () => {
     const weekly = [
       weeklyRow({ day_of_week: 1 }), // default
-      weeklyRow({ day_of_week: 1, season_id: seasonId, open_time: "08:00", close_time: "23:00", id: "wh-1-summer" }),
+      weeklyRow({
+        day_of_week: 1,
+        season_id: seasonId,
+        open_time: "08:00",
+        close_time: "23:00",
+        id: "wh-1-summer",
+      }),
     ];
 
     const result = resolveEffectiveHours(deptId, null, "2026-04-07", weekly, [], seasonId);
@@ -123,7 +132,13 @@ describe("resolveEffectiveHours", () => {
   it("location-specific hours override null-location defaults", () => {
     const weekly = [
       weeklyRow({ day_of_week: 1 }), // default (null location)
-      weeklyRow({ day_of_week: 1, location_id: locId, open_time: "11:00", close_time: "21:00", id: "wh-1-loc" }),
+      weeklyRow({
+        day_of_week: 1,
+        location_id: locId,
+        open_time: "11:00",
+        close_time: "21:00",
+        id: "wh-1-loc",
+      }),
     ];
 
     const result = resolveEffectiveHours(deptId, locId, "2026-04-07", weekly, []);

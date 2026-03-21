@@ -46,6 +46,7 @@ artifacts/
 .claude/*
 !.claude/settings.local.json
 !.claude/skills/
+!.claude/agent-memory/
 
 .vercel
 .env*.local

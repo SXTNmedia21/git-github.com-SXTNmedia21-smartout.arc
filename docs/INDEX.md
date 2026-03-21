@@ -1,6 +1,6 @@
 ---
 title: "Smartout Documentation Index"
-updated: 2026-03-21
+updated: 2026-03-22
 ---
 
 # Smartout Documentation Index
@@ -11,6 +11,8 @@ Master navigation map for all documentation. An agent reads this to find any doc
 
 1. **Code + database schema** -- implementation always wins
 2. **CLAUDE.md** -- conventions, rules, verified facts
+   2.5. **Cascade Core Foundation spec** -- canonical cascade architecture (`superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`)
+   2.5. **docs/STATE.md** -- current system state, gaps, weekly plan
 3. **docs/reference/** -- detailed lookup during coding
 4. **docs/engines/** -- industry engine packaging and event-layer specialization
 5. **docs/modules/** -- business logic per module
@@ -146,7 +148,7 @@ Reusable document templates in `docs/templates/`.
 
 ### Decisions (ADRs)
 
-See `docs/decisions/0000-decision-log.md` -- 51 ADRs (0001-0051).
+See `docs/decisions/0000-decision-log.md` -- 55 ADRs.
 
 | id       | File                                                     | Subject                                      |
 | -------- | -------------------------------------------------------- | -------------------------------------------- |
