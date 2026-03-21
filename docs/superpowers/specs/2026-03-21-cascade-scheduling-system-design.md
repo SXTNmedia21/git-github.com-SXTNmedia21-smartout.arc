@@ -43,7 +43,7 @@ RUNTIME
 | D5 | Service Concept | Driftskonsept | What kind of operation are we? | Strategic |
 | D6 | Production & Product | Produksjon og produkt | What to produce, what is the state? | Live (temporal debt) |
 
-**D5** parameterizes coefficients in all other dimensions. A fine-dining restaurant and a fast-casual burger joint share cascade layers but D5 changes weights, thresholds, and defaults throughout. D5 does NOT appear as a cascade layer itself.
+**D5** parameterizes coefficients in all other dimensions. A fine-dining restaurant and a fast-casual burger joint share cascade layers but D5 changes weights, thresholds, and defaults throughout. D5 is an execution dimension but not a linear cascade-propagation layer. It parameterizes coefficients in D1-D4 and D6 rather than generating daily runtime diffs. When D5 changes (rare — business model pivot), it triggers a full re-parameterization of all other dimensions.
 
 **D6** has a unique property: **temporal debt**. If Monday's staff skipped prep, Tuesday needs extra staff. Production state accumulates across days. Equipment failure degrades capacity. Stock levels and supplier deliveries are live state.
 
@@ -102,7 +102,7 @@ RUNTIME
 | `department_operating_hours` | Consolidated weekly hours per (dept, location, season, weekday). Replaces 3 systems. | Runtime (D1) |
 | `department_hours_override` | Date-specific exceptions (holidays, events, closures). | Runtime (D1) |
 | `planning_event` | External/internal demand events with multipliers. | Runtime (D4) |
-| `tariff_rate_table` | Versioned Riksavtalen rates with effective dates. | Control (C4/K1a) |
+| `tariff_rate_table` | Versioned Riksavtalen rates with effective dates. | K1a (platform baseline) / K1b (workspace override). Consumed by D3, C3, C4. |
 | `employee_payroll_profile` | Links contract to payroll calculation. | Runtime (D2/D3) |
 | `shift_cost_snapshot` | Append-only per-shift cost audit trail. | Control (C3) |
 | `change_proposal` | Persisted cascade preview (Terraform saved plan). | Control (C4) |
@@ -557,6 +557,8 @@ The current `hospitality.ts` has **incorrect** hardcoded values (e.g., kveldstil
 
 **Scope:** Five UI surfaces that expose cascade functionality to users.
 
+**Note:** The route and file structure below is a proposed initial implementation layout, not a locked information architecture. Actual routes may adapt to existing dashboard conventions.
+
 #### A. Operating Hours CRUD (D1)
 
 **Route:** `/dashboard/settings` (existing, replace current operating hours section)
@@ -667,7 +669,7 @@ type CalibrationEngine = {
 
 - **EWMA formula:** `F(t+1) = F(t) + alpha * [A(t) - F(t)]`
 - **MAD outlier detection:** Median Absolute Deviation to filter noise before updating EWMA
-- **Alpha decay:** `alpha = max(0.1, 0.5 / ln(observation_count + 2))` — starts reactive (0.5), converges toward stability
+- **Alpha decay:** `alpha(n) = max(0.1, 0.5 / sqrt(n))` where n = observation_count — starts reactive (0.5), converges toward stability. Square root decay chosen over logarithmic: faster initial convergence, still reaches steady-state by n=25. Locked per ADR — do not change without calibration testing.
 - **Seasonal boundary handler:** Reset alpha to 0.3 at season transitions (new season = new patterns)
 - **Confidence tracking:** `confidence = min(1.0, observation_count / 10)` — 10 observations = fully confident
 - **Cross-dimensional pattern detection:** If D4 demand spike correlates with D6 prep deficit, write pattern to K1b
@@ -693,7 +695,7 @@ type CascadeExplanation = {
 - Trainee filter: Simplified explanations for `profile_status = 'trainee'`
 - Intent tags on match results: `{ intent: 'cost_optimization' | 'coverage_gap' | 'compliance_risk' }`
 
-C2 reads from: All D1-D6, K1a+K1b. Writes to: Nothing (pure presentation).
+C2 reads from: All D1-D6, K1a+K1b. C2 does NOT mutate execution truth, rankings, policy decisions, or commercial facts. C2 MAY write interaction artifacts: conversation events to `engine_memory`, presentation logs to `activity_trail`.
 
 #### C3 — Commercial & Outcome
 
@@ -710,7 +712,7 @@ type CommercialReport = {
 
 - Commercial report aggregator: Rolls up `shift_cost_snapshot` + `daily_reconciliation` + `workspace_kpi_target`
 - Value attribution calculator: Links cost changes to specific cascade decisions via `change_proposal`
-- **Consumes** `shift_cost_snapshot` — does NOT create cost data. Cost data is created by fas 3 resource matching.
+- **Consumes** `shift_cost_snapshot` — does NOT create cost data. Fas 3 produces cost ESTIMATES. Cost SNAPSHOTS (accounting truth) are created by the cascade engine at preview/publish/approval/reconciliation steps and written to `shift_cost_snapshot`. C3 aggregates snapshots — it never creates cost data.
 
 C3 reads from: D2 (cost), D4 (demand), D6 (production), `shift_cost_snapshot`, `change_proposal`. Writes to: `workspace_kpi_target` (targets only, not actuals).
 
@@ -788,7 +790,7 @@ CREATE TABLE department_operating_hours (
   workspace_id    UUID NOT NULL REFERENCES workspace(workspace_id) ON DELETE CASCADE,
   department_id   UUID NOT NULL REFERENCES department(department_id) ON DELETE CASCADE,
   location_id     UUID REFERENCES location(location_id) ON DELETE CASCADE,
-  season_id       UUID NOT NULL REFERENCES season(season_id) ON DELETE CASCADE,
+  season_id       UUID REFERENCES season(season_id) ON DELETE CASCADE,
   day_of_week     INT NOT NULL CHECK (day_of_week BETWEEN 0 AND 6),
   open_time       TIME,
   close_time      TIME,
@@ -800,6 +802,8 @@ CREATE TABLE department_operating_hours (
 );
 ```
 
+When `season_id IS NULL`, the row represents a workspace default that applies when no season-specific hours exist. Resolution: override(date) > season-specific(day_of_week) > default(day_of_week, season_id IS NULL) > closed.
+
 #### `department_hours_override`
 
 ```sql
@@ -808,7 +812,7 @@ CREATE TABLE department_hours_override (
   workspace_id    UUID NOT NULL REFERENCES workspace(workspace_id) ON DELETE CASCADE,
   department_id   UUID NOT NULL REFERENCES department(department_id) ON DELETE CASCADE,
   location_id     UUID REFERENCES location(location_id) ON DELETE CASCADE,
-  season_id       UUID NOT NULL REFERENCES season(season_id) ON DELETE CASCADE,
+  season_id       UUID REFERENCES season(season_id) ON DELETE CASCADE,
   override_date   DATE NOT NULL,
   open_time       TIME,
   close_time      TIME,
@@ -880,15 +884,22 @@ CREATE TABLE employee_payroll_profile (
   workspace_id            UUID NOT NULL REFERENCES workspace(workspace_id) ON DELETE CASCADE,
   profile_id              UUID NOT NULL REFERENCES profile(profile_id) ON DELETE CASCADE,
   employment_contract_id  UUID REFERENCES employment_contract(employment_contract_id),
-  base_hourly_rate        NUMERIC(8,2) NOT NULL,
-  seniority_step          INT NOT NULL DEFAULT 0,
+  salary_type             TEXT NOT NULL CHECK (salary_type IN ('hourly', 'monthly')),
+  agreed_weekly_hours     NUMERIC(4,2) NOT NULL,
+  tariff_category         TEXT NOT NULL,          -- 'kokk_fagbrev', 'servitor', 'ung_16' etc.
+  seniority_start_date    DATE NOT NULL,
+  sector_experience_years INTEGER NOT NULL DEFAULT 0,
   has_fagbrev             BOOLEAN NOT NULL DEFAULT false,
-  tariff_override_id      UUID REFERENCES tariff_rate_table(id),  -- workspace-specific rate
+  tariff_override_id      UUID REFERENCES tariff_rate_table(id),  -- workspace-specific rate override
+  valid_from              DATE NOT NULL,
+  valid_until             DATE,
   created_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
-  CONSTRAINT uq_payroll_profile UNIQUE (profile_id)
+  CONSTRAINT uq_payroll_profile UNIQUE (profile_id, valid_from)
 );
 ```
+
+Base hourly rate is NOT stored here. It is resolved at query time from `tariff_rate_table` using `tariff_category` + computed seniority bracket. This prevents drift between contract classification and actual rate.
 
 #### `shift_cost_snapshot`
 
@@ -926,6 +937,13 @@ CREATE TABLE change_proposal (
   preview             JSONB NOT NULL DEFAULT '{}',
   input_state_hash    TEXT,                                    -- SHA-256 for staleness detection
   risk_score          NUMERIC(3,2),
+  policy_decision       TEXT,                -- 'allowed' | 'requires_approval' | 'blocked' | 'advisory_only'
+  policy_rule_ids       TEXT[],              -- which rules triggered
+  approval_required     BOOLEAN NOT NULL DEFAULT false,
+  approved_by           UUID REFERENCES profile(profile_id),
+  approved_at           TIMESTAMPTZ,
+  rejected_at           TIMESTAMPTZ,
+  rejection_reason      TEXT,
   affected_employee_count INTEGER DEFAULT 0,
   affected_shift_count    INTEGER DEFAULT 0,
   conflict_count          INTEGER DEFAULT 0,
@@ -948,6 +966,8 @@ CREATE TABLE public_holiday (
   PRIMARY KEY (country_code, holiday_date)
 );
 ```
+
+**Scoped MVP:** This table is intentionally simplified for Norway-only launch. Future versions should add `region_code TEXT`, `holiday_type TEXT` (national/regional/religious/commercial), and change PK to synthetic UUID with unique constraint on `(country_code, region_code, holiday_date)`.
 
 #### `planning_factors`
 
@@ -1002,7 +1022,7 @@ CREATE TABLE adjustment_factors (
 | `department_operating_hours` | Runtime (D1) | Admin CRUD, bootstrap |
 | `department_hours_override` | Runtime (D1) | Admin CRUD, planning events |
 | `planning_event` | Runtime (D4) | Admin, scrapers, integrations |
-| `tariff_rate_table` | K1a (platform) / K1b (workspace override) | Platform admin, Riksavtalen updates |
+| `tariff_rate_table` | K1a / K1b (override) | Platform admin, Riksavtalen updates. Consumed by D3, C3, C4. C4 uses but does not own. |
 | `employee_payroll_profile` | Runtime (D2) | HR CRUD, contract changes |
 | `shift_cost_snapshot` | Control (C3) | Cascade engine (append-only) |
 | `change_proposal` | Control (C4) | Cascade engine |
@@ -1029,7 +1049,7 @@ Corrected 2024 rates from Lovdata (NHO/Fellesforbundet collective agreement for 
 
 | Seniority (years) | 0 | 2 | 4 | 6 | 8 | 10 |
 |---|---|---|---|---|---|---|
-| kr/t | 224.45 | 228.67 | 233.01 | 237.47 | 242.06 | 247.03 |
+| kr/t | 224.45 | 226.16 | 240.52 | 241.73 | 244.50 | 247.03 |
 
 Kokk uten fagbrev: approximately 90% of med fagbrev rates at corresponding seniority step.
 
@@ -1059,7 +1079,7 @@ Kokk uten fagbrev: approximately 90% of med fagbrev rates at corresponding senio
 
 ### 5.5 Allmenngjoring
 
-ALL rates above are mandatory for ALL restaurants in Norway via allmenngjoring (general application of collective agreements). There is no opt-out. Even non-unionized restaurants must pay these minimums. This is enforced by Arbeidstilsynet.
+Under current allmenngjoring regulations, these rates serve as mandatory minimums for the restaurant/hospitality sector in Norway. Seed values must be verified against current legally applicable tariff/allmenngjoring sources before production use.
 
 ---
 
