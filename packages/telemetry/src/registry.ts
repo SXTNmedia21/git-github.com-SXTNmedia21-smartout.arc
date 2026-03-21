@@ -789,6 +789,37 @@ export interface GroupMemberRemoved extends BaseEvent {
   };
 }
 
+// ─── Shift Type Events ───────────────────────────
+export interface ShiftTypeCreated extends BaseEvent {
+  event: "shift_type created";
+  properties: {
+    data: {
+      name: string;
+      rate_adjustment_type: string;
+    };
+  };
+}
+
+export interface ShiftTypeUpdated extends BaseEvent {
+  event: "shift_type updated";
+  properties: {
+    data: {
+      shift_type_id: string;
+      name: string;
+    };
+  };
+}
+
+export interface ShiftTypeDeleted extends BaseEvent {
+  event: "shift_type deleted";
+  properties: {
+    data: {
+      shift_type_id: string;
+      name: string;
+    };
+  };
+}
+
 // ─── Supplement Rule Events ──────────────────────
 export interface SupplementRuleCreated extends BaseEvent {
   event: "supplement_rule created";
@@ -995,6 +1026,9 @@ export type SmartoutEvent =
   | GroupMemberAdded
   | GroupMemberUpdated
   | GroupMemberRemoved
+  | ShiftTypeCreated
+  | ShiftTypeUpdated
+  | ShiftTypeDeleted
   | SupplementRuleCreated
   | SupplementRuleUpdated
   | SupplementRuleDeleted
@@ -1329,6 +1363,19 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "operations",
   },
   "group_member removed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+
+  "shift_type created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "shift_type updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "shift_type deleted": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",
   },
