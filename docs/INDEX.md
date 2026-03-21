@@ -1,6 +1,6 @@
 ---
 title: "Smartout Documentation Index"
-updated: 2026-03-14
+updated: 2026-03-21
 ---
 
 # Smartout Documentation Index
@@ -95,6 +95,14 @@ Master navigation map for all documentation. An agent reads this to find any doc
 | AI_RUNTIME_DEF     | architecture/AI_RUNTIME_SYSTEM_DEFINITION_V1.md            | canonical             |
 | AI_RUNTIME_RUNBOOK | architecture/AI_RUNTIME_RUNBOOK.md                         | canonical             |
 | AGENT_FRAMEWORK    | architecture/agent-framework.md                            | reference             |
+
+### Cascade Architecture
+
+| id | File | Status | Description |
+|----|------|--------|-------------|
+| CASCADE_MASTER | cascade-spreadsheet-overview.md | canonical | Five Dimensions, waterfall layers, Riksavtalen rates, compliance enforcement, schema gaps |
+| CASCADE_INVESTIGATION | INVESTIGATION_OPERATING_HOURS_CORE_STRUCTURE.md | in_progress | Investigation findings + design decisions |
+| CASCADE_ADR_DRAFT | decisions/ADR-DRAFT-core-hierarchy-cascade.md | draft | Draft ADR for core hierarchy changes |
 
 ### Cross-Cutting
 
