@@ -954,6 +954,38 @@ export interface HolidaysImported extends BaseEvent {
   };
 }
 
+// ─── Meal Rule Events ────────────────────────────
+export interface MealRuleCreated extends BaseEvent {
+  event: "meal_rule created";
+  properties: {
+    data: {
+      meal_rule_id: string;
+      name: string;
+      meal_type: string;
+    };
+  };
+}
+
+export interface MealRuleUpdated extends BaseEvent {
+  event: "meal_rule updated";
+  properties: {
+    data: {
+      meal_rule_id: string;
+      name: string;
+    };
+  };
+}
+
+export interface MealRuleDeleted extends BaseEvent {
+  event: "meal_rule deleted";
+  properties: {
+    data: {
+      meal_rule_id: string;
+      name: string;
+    };
+  };
+}
+
 // ─── AI / Authority Config Events ───────────────
 export interface AuthorityConfigUpdated extends BaseEvent {
   event: "authority_config updated";
@@ -1147,6 +1179,9 @@ export type SmartoutEvent =
   | HolidayEntryCreated
   | HolidayEntryDeleted
   | HolidaysImported
+  | MealRuleCreated
+  | MealRuleUpdated
+  | MealRuleDeleted
   | PageViewed
   | ButtonClicked;
 
@@ -1559,6 +1594,19 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "operations",
   },
   "holidays imported": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+
+  "meal_rule created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "meal_rule updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "meal_rule deleted": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",
   },
