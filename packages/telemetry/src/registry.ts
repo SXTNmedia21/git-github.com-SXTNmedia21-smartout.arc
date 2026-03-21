@@ -852,6 +852,37 @@ export interface SupplementRuleDeleted extends BaseEvent {
   };
 }
 
+// ─── Break Rule Events ──────────────────────────
+export interface BreakRuleCreated extends BaseEvent {
+  event: "break_rule created";
+  properties: {
+    data: {
+      name: string;
+      trigger_type: string;
+    };
+  };
+}
+
+export interface BreakRuleUpdated extends BaseEvent {
+  event: "break_rule updated";
+  properties: {
+    data: {
+      break_rule_id: string;
+      name: string;
+    };
+  };
+}
+
+export interface BreakRuleDeleted extends BaseEvent {
+  event: "break_rule deleted";
+  properties: {
+    data: {
+      break_rule_id: string;
+      name: string;
+    };
+  };
+}
+
 // ─── AI / Authority Config Events ───────────────
 export interface AuthorityConfigUpdated extends BaseEvent {
   event: "authority_config updated";
@@ -1032,6 +1063,9 @@ export type SmartoutEvent =
   | SupplementRuleCreated
   | SupplementRuleUpdated
   | SupplementRuleDeleted
+  | BreakRuleCreated
+  | BreakRuleUpdated
+  | BreakRuleDeleted
   | AuthorityConfigUpdated
   | OnboardingGuideUpdated
   | IndustryPackageLoaded
@@ -1389,6 +1423,19 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "operations",
   },
   "supplement_rule deleted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+
+  "break_rule created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "break_rule updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "break_rule deleted": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",
   },
