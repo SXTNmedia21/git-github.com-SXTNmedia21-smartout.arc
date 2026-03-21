@@ -9,51 +9,58 @@ tags: [session, continuity]
 
 ## Last Session
 
-| Field   | Value                                                |
-| ------- | ---------------------------------------------------- |
-| Date    | 2026-03-22                                           |
-| Branch  | `docs/cascade-five-dimensions` (wt-2)                |
-| Feature | cascade-core-foundation + hours integration          |
-| Status  | in_progress — foundation built, hours wired, UI next |
+| Field   | Value                                                                 |
+| ------- | --------------------------------------------------------------------- |
+| Date    | 2026-03-22                                                            |
+| Branch  | `docs/cascade-five-dimensions` (wt-2)                                 |
+| Feature | cascade-docs-alignment + mobile parity rule                           |
+| Status  | in_progress — docs aligned, ready for cascade Phase C or next feature |
 
 ### What was done
 
-**Cascade Core Foundation (25 commits):**
+**System Steward Review:**
 
-1. Implementation plan written (5 tracks, 20+ tasks, 3 review rounds)
-2. A1 domain: 4 migrations (btree_gist, 10 enums, 11 tables, 7 altered tables)
-3. A2 framework: 2 migrations (6 enums, 6 tables + change_proposal FK upgrade)
-4. Phase B: 4 pure functions (resolveEffectiveHours, computeAnchoredTime, evaluateFrameworkRules skeleton, validateProposalFreshness) — 29 tests passing
-5. Cleanup track: legacy markers migration, runtime cutover checklist, legacy usage inventory (6 must-refactor files found), backfill plan
-6. ADR-0056 written, STATE.md updated, decision log updated
-7. Fixed 3 pre-existing migration bugs (walkai seed, pg_cron, duplicate timestamps)
+1. Dispatched system-steward to review entire system against Cascade Core Foundation spec
+2. Found: Phase A schema complete, Phase B partial, active conflicts (settings hook, wrong hospitality.ts rates), empty framework tables
+3. Steward recommended blocking full rewrite; supervisor recommended parallel execution — debated and chose full rewrite per user decision
 
-**Hours Integration (4 commits):** 8. Backfill migration: operating_hours → department_operating_hours 9. useOperatingHours hook rewritten to read/write cascade table 10. 3 UI consumers updated (OpeningHoursSettings, HourFactorsTab, SeasonOverviewTab) with department selector 11. department_session.planned_open/close wired to resolveEffectiveHours()
+**Cascade Documentation Alignment (full sweep):** 4. Brainstormed approach: 3 options debated, chose Approach C (parallel layers) 5. Designed 5-section spec: CLAUDE.md rewrite + reference docs + module docs + agent memory + execution sequence 6. Spec written, reviewed by steward (7 conditions found), all conditions fixed 7. Implementation plan written (9 tasks), reviewed by steward (pass with conditions), conditions fixed 8. Executed via subagent-driven development:
 
-**Validation:** 154 migrations pass db reset, 0 typecheck errors, 0 lint errors, 29 cascade tests passing.
+- Task 0: Existing 69 docs changes already committed (verified)
+- Task 1: CLAUDE.md rewritten through cascade lens (foreground agent)
+- Tasks 2-7: 6 agents dispatched in parallel (zero file overlap):
+  - DATABASE.md: dimension tags, cascade tables section, triple OH warning
+  - INDEX.md: source of truth hierarchy, ADR count corrected (55)
+  - 5 core modules deep-rewritten (3, 4, 4.5, 8, 15)
+  - 18 modules got cascade mapping headers
+  - SYSTEM_OVERVIEW.md rewritten in Swedish with cascade model
+  - Steward + supervisor agent memory checklists created
+- Task 8: Consistency verification passed (23/23 cross-refs, no orphaned concepts, no hardcoded rates)
+
+9. All committed in `66a3e0d5`
+
+**Mobile Parity Rule:** 10. Added React Native + Expo to tech stack in CLAUDE.md 11. Added Mobile Parity convention: data layer must support both web and mobile 12. Added enforcement rule: never build web-only architecture 13. Committed in `9aeff644`
 
 ### Where we stopped
 
-- Cascade foundation + hours integration done and committed
-- 104 uncommitted changes from earlier docs audit (not this session) — needs commit
-- Next: UI implementation to make cascade visible in dashboard
+- All cascade docs alignment work committed and verified
+- Mobile parity rule committed
+- CLAUDE.md now cascade-aware (I1+6D+4C+K1a/K1b as organizing principle)
+- All 23 module docs have cascade mapping headers
+- Steward + supervisor have cascade enforcement checklists
 
-### Next steps
+### Known blockers / errors
 
-1. **Commit docs audit changes** (104 files — archive moves, module updates, index updates)
-2. **UI: Planned hours on schedule view** — show planned_open/close on day view
-3. **UI: Hours override manager** — CRUD for department_hours_override (holidays, events)
-4. **UI: Planning events** — demand signal calendar with multipliers
-
-### Known blockers
-
-- Vault fields not created yet
-- Engine dispatch planned_open/close needs shared cascade package (TODO added)
-- Telemetry registry needs department_operating_hours event
+- Vault fields not created yet (service URLs need op item edit)
+- Production vault smartout_ai_prod not created
+- `hospitality.ts` rates still WRONG in code (documented in CLAUDE.md as warning)
+- Settings operating hours hook still reads legacy table (documented)
 
 ### Pending decisions
 
-- [ ] Commit docs audit changes (104 files)
-- [ ] Which cascade UI to build first (override manager vs planned hours display)
-- [ ] Process docs/needs-rewrite/ merge candidates
+- [ ] Process docs/needs-rewrite/ merge candidates (12 files)
 - [ ] Close wt-1 worktree
+- [ ] Start Phase C bootstrap (framework seed data + bootstrap service)
+- [ ] Fix hospitality.ts wrong rates
+- [ ] Fix settings operating hours hook to read cascade tables
+- [ ] Which feature to work on next (cascade Phase C vs other worktree work)

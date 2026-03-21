@@ -13,13 +13,13 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #    | Branch                         | Module   | Status      | Progress                                                                                                                                                                                   | Blockers | Health |
-| ---- | ------------------------------ | -------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- | ------ |
-| —    | —                              | —        | —           | wt-1 closed (workspace-intelligence merged)                                                                                                                                                | —        | —      |
-| wt-2 | `docs/cascade-five-dimensions` | cascade  | in_progress | Foundation built: 17 tables, 16 enums, 29 tests. Hours integrated: hook rewritten, 3 consumers updated, session planned hours wired. Next: cascade UI. 104 uncommitted docs audit changes. | None     | dirty  |
-| wt-3 | `feat/emma-arena-views`        | walkAi   | in_progress | Spec + mockups done, settings persistence committed. Implementation not started.                                                                                                           | None     | clean  |
-| wt-4 | `feat/vaktlista-view`          | schedule | in_progress | —                                                                                                                                                                                          | —        | —      |
-| wt-5 | `feat/payroll-foundation`      | payroll  | in_progress | Plans written + reviewed. 23 tables, 16 enums, 10 UI components. Ready for execution.                                                                                                      | None     | clean  |
+| #    | Branch                         | Module   | Status      | Progress                                                                                                                                                                                                            | Blockers | Health |
+| ---- | ------------------------------ | -------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------ |
+| —    | —                              | —        | —           | wt-1 closed (workspace-intelligence merged)                                                                                                                                                                         | —        | —      |
+| wt-2 | `docs/cascade-five-dimensions` | cascade  | in_progress | Foundation built: 17 tables, 16 enums, 29 tests. Full docs alignment: CLAUDE.md cascade rewrite, 23 modules cascade-mapped, DATABASE.md dimension-tagged, steward+supervisor enforcement. Mobile parity rule added. | None     | clean  |
+| wt-3 | `feat/emma-arena-views`        | walkAi   | in_progress | Spec + mockups done, settings persistence committed. Implementation not started.                                                                                                                                    | None     | clean  |
+| wt-4 | `feat/vaktlista-view`          | schedule | in_progress | —                                                                                                                                                                                                                   | —        | —      |
+| wt-5 | `feat/payroll-foundation`      | payroll  | in_progress | Plans written + reviewed. 23 tables, 16 enums, 10 UI components. Ready for execution.                                                                                                                               | None     | clean  |
 
 ## Parked Branches (no worktree)
 
@@ -97,9 +97,11 @@ tags: [dashboard, worktrees, tracking]
 
 ## Session History
 
+| 2026-03-21 | payroll-foundation | session ended | Payroll feature spec analyzed. Plan 1: Data Foundation (23 tables, 16 enums, 7 migrations) — 3x reviewed, all blockers fixed. Plan 2: Settings UI (10 components, 9 hooks). Absence/timebank extension (5 tables, 4 enums). wt-5 created from cascade branch. No blockers — Cascade A1+A2 fully applied. |
 | 2026-03-21 | stage-engine-walkai-audit | session ended | Deep audit (37 issues), Sprint 1-3 bugfixes (5 migrations, 14 files), settings persistence, EmmaProfile overview tab, arena views spec + 8 mockups, accumulated commits (mobile/emma/dashboard/schedule/telemetry), contract-enhancements merged+closed, pre-commit hook fixed. wt-3 created for emma-arena-views. |
 | 2026-03-22 | cascade-spec-and-docs-audit | session ended | Cascade spec: 5 review rounds (foundation reframe, framework model, override grammar, provenance, temporal invariants). Full docs audit: 33 files archived, 12 staged for rewrite, 5 modules cascade-aligned, hardcoded rates removed, all stale refs fixed. 69 uncommitted changes. |
 | 2026-03-22 | cascade-core-foundation | session ended | Foundation: 25 tasks, 7 migrations (17 tables, 16 enums), 4 Phase B functions (29 tests), ADR-0056, legacy cleanup track. Hours integration: backfill + hook rewrite + 3 consumers + session planned hours. 0 typecheck errors, 0 lint errors. Next: cascade UI (override manager, planned hours display). |
+| 2026-03-22 | cascade-docs-alignment | session ended | Full docs alignment: CLAUDE.md rewritten through cascade lens (I1+6D+4C+K1a/K1b), 23 module docs cascade-mapped, DATABASE.md dimension-tagged, SYSTEM_OVERVIEW.md Swedish rewrite, steward+supervisor enforcement checklists. Mobile parity rule added. 6 parallel agents, all verified. |
 | 2026-03-11 | login-join-flow | session ended | Login hype sequence (spinner+pulsing text→checkmark burst→redirect), SignupWizard polish, /signup→/login route cleanup, redirect fix (window.location.href). Uncommitted in walkTalkie. |
 | 2026-03-10 | journey-engine | session ended | Route rename /onboarding→/setup, env import dialog overflow+new keys, redirect condition changed to workspace-empty check, docs updated. 116 uncommitted files. |
 | 2026-03-08 | journey-engine | started | wt-2, module: core — Journey Engine runtime, compile, 2 journeys |
