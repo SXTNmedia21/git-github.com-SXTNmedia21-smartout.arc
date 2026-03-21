@@ -894,6 +894,66 @@ export interface WorkingTimeRulesUpdated extends BaseEvent {
   };
 }
 
+// ─── Holiday Calendar Events ─────────────────────
+export interface HolidayCalendarCreated extends BaseEvent {
+  event: "holiday_calendar created";
+  properties: {
+    data: {
+      calendar_id: string;
+      name: string;
+    };
+  };
+}
+
+export interface HolidayCalendarUpdated extends BaseEvent {
+  event: "holiday_calendar updated";
+  properties: {
+    data: {
+      calendar_id: string;
+      name: string;
+    };
+  };
+}
+
+export interface HolidayCalendarDeleted extends BaseEvent {
+  event: "holiday_calendar deleted";
+  properties: {
+    data: {
+      calendar_id: string;
+      name: string;
+    };
+  };
+}
+
+export interface HolidayEntryCreated extends BaseEvent {
+  event: "holiday_entry created";
+  properties: {
+    data: {
+      calendar_id: string;
+    };
+  };
+}
+
+export interface HolidayEntryDeleted extends BaseEvent {
+  event: "holiday_entry deleted";
+  properties: {
+    data: {
+      calendar_id: string;
+    };
+  };
+}
+
+export interface HolidaysImported extends BaseEvent {
+  event: "holidays imported";
+  properties: {
+    data: {
+      calendar_id: string;
+      count: number;
+      inserted: number;
+    };
+  };
+}
+
 // ─── AI / Authority Config Events ───────────────
 export interface AuthorityConfigUpdated extends BaseEvent {
   event: "authority_config updated";
@@ -1081,6 +1141,12 @@ export type SmartoutEvent =
   | AuthorityConfigUpdated
   | OnboardingGuideUpdated
   | IndustryPackageLoaded
+  | HolidayCalendarCreated
+  | HolidayCalendarUpdated
+  | HolidayCalendarDeleted
+  | HolidayEntryCreated
+  | HolidayEntryDeleted
+  | HolidaysImported
   | PageViewed
   | ButtonClicked;
 
@@ -1470,6 +1536,31 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "industry_package loaded": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "onboarding",
+  },
+
+  "holiday_calendar created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "holiday_calendar updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "holiday_calendar deleted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "holiday_entry created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "holiday_entry deleted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "holidays imported": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
   },
 
   "page viewed": { destinations: ["posthog"], category: "navigation" },
