@@ -1,3 +1,12 @@
+---
+title: "ADR-DRAFT: Core Data Hierarchy & Cascade Architecture"
+status: draft
+updated: 2026-03-21
+created: 2026-03-20
+module: cross-cutting
+tags: [adr, cascade, hierarchy, operating-hours, architecture]
+---
+
 # ADR-DRAFT: Core Data Hierarchy & Cascade Architecture
 
 > **Status:** DRAFT — awaiting Pontus decision
