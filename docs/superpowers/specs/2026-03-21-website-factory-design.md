@@ -1,7 +1,7 @@
 ---
 title: Website Factory Design Spec
 status: approved
-updated: 2026-03-21
+updated: 2026-03-22
 created: 2026-03-21
 module: website-factory
 tags: [website, multi-tenant, public-site, builder, publishing, menu, ISR]
@@ -13,7 +13,7 @@ tags: [website, multi-tenant, public-site, builder, publishing, menu, ISR]
 
 ## Executive Summary
 
-The Website Factory is an admin portal feature that gives each SmartOut workspace a public website. Admins choose a template, customize content via structured section editing, manage menus (structured data or PDF), and publish to `{slug}.smartout.info`. Content is auto-generated from workspace intelligence. Published sites are served as ISR pages from immutable snapshots — fast, stable, and SEO-friendly.
+The Website Factory is an admin portal feature that gives each SmartOut workspace a public website. Admins choose a template, customize content via structured section editing, manage menus (structured data or PDF), and publish to `{site_slug}.smartout.info`. Content is auto-generated from workspace intelligence. Published sites are served as ISR pages from immutable snapshots — fast, stable, and SEO-friendly.
 
 **Product frame:** The website is the public face of the workspace. It distributes SmartOut's structured business data (branding, menus, hours, contact, booking) to the public web.
 
@@ -32,12 +32,12 @@ The Website Factory is an admin portal feature that gives each SmartOut workspac
 
 ### Domain Map
 
-| Domain                 | Purpose                                          | Auth          | Rendering                           |
-| ---------------------- | ------------------------------------------------ | ------------- | ----------------------------------- |
-| `app.smartout.ai`      | Admin portal, workspace selector, platform-admin | Authenticated | SSR                                 |
-| `{slug}.smartout.ai`   | Workspace dashboard (existing)                   | Authenticated | SSR                                 |
-| `{slug}.smartout.info` | Public website (default)                         | Anonymous     | ISR from snapshot, server-side only |
-| `customdomain.com`     | Public website (custom, Phase 2)                 | Anonymous     | ISR from snapshot, server-side only |
+| Domain                      | Purpose                                          | Auth          | Rendering                           |
+| --------------------------- | ------------------------------------------------ | ------------- | ----------------------------------- |
+| `app.smartout.ai`           | Admin portal, workspace selector, platform-admin | Authenticated | SSR                                 |
+| `{slug}.smartout.ai`        | Workspace dashboard (existing)                   | Authenticated | SSR                                 |
+| `{site_slug}.smartout.info` | Public website (default)                         | Anonymous     | ISR from snapshot, server-side only |
+| `customdomain.com`          | Public website (custom, Phase 2)                 | Anonymous     | ISR from snapshot, server-side only |
 
 No overlap. `.ai` is internal. `.info` is public. Custom domains are Phase 2.
 
@@ -49,7 +49,17 @@ No overlap. `.ai` is internal. `.info` is public. Custom domains are Phase 2.
 - That's all middleware does. No DB lookups, no auth, no content fetching.
 - Server components in `/public-site/` route group resolve host, fetch snapshot, render.
 
-**Middleware integration:** `extractSubdomain()` in `apps/web/src/lib/subdomain.ts` must be extended with a new `SubdomainResult` variant: `{ type: "public-site"; host: string }`. This check must run **before** the existing `.smartout.ai` subdomain logic. All consumers of `SubdomainResult` must be audited for exhaustive-switch handling.
+**Middleware integration:** `extractSubdomain()` in `apps/web/src/lib/subdomain.ts` must be extended with a new `SubdomainResult` variant: `{ type: "public-site"; host: string }`. All consumers of `SubdomainResult` must be audited for exhaustive-switch handling.
+
+**Middleware routing order (strict):**
+
+1. `*.smartout.info` → `public-site`
+2. `*.public.localhost` → `public-site`
+3. `*.smartout.ai` subdomain → workspace dashboard
+4. `app.smartout.ai` → admin portal
+5. fallback
+
+If this order is wrong, routing bugs will be extremely hard to debug. The `.smartout.info` check **must** come first because `.smartout.ai` matching could otherwise intercept public-site requests.
 
 **Local development:** Public sites are tested via `*.public.localhost:3060`. The `extractSubdomain()` function maps `{slug}.public.localhost` to the same `public-site` result type. No `/etc/hosts` changes needed.
 
@@ -91,6 +101,26 @@ Supporting objects (enums/CHECK constraints, views, RPC functions, triggers, ind
 - All `*_by` columns (e.g. `published_by`, `created_by`, `uploaded_by`, `performed_by`) reference `public.profile(profile_id)`, NOT `public.user_identity(user_id)`. Builder actions resolve the current workspace profile before writing.
 - CHECK constraints are used instead of enums for all `websites.*` columns. Rationale: the `websites` schema is a bounded context — CHECK constraints keep type definitions local and avoid polluting the shared enum namespace. New values require only a constraint update, not a global enum migration.
 - Auto-increment per-parent version numbers (`website_published_snapshot.version`, `website_draft_revision.revision_number`) are computed via `SELECT COALESCE(MAX(version), 0) + 1 ... FOR UPDATE` within a transaction. No sequences.
+- All data tables support soft delete via `deleted_at timestamptz`. NULL = active, set = deleted. Queries must filter `WHERE deleted_at IS NULL` unless explicitly recovering deleted data. Unique constraints use partial indexes excluding soft-deleted rows.
+
+### MVP Limits
+
+Enforced at the application layer and/or via CHECK constraints:
+
+| Resource                       | Limit    |
+| ------------------------------ | -------- |
+| Pages per site                 | 20       |
+| Sections per page              | 30       |
+| Menus per site                 | 10       |
+| Menu items per menu            | 200      |
+| Assets per site                | 500      |
+| Snapshot JSON size             | 2 MB     |
+| Active preview tokens per site | 50       |
+| Preview token TTL              | 24 hours |
+| Image upload size              | 5 MB     |
+| PDF upload size                | 20 MB    |
+
+Without limits, large snapshots will degrade ISR performance and DB storage.
 
 ### 2.1 `websites.website` — 1:1 with workspace
 
@@ -98,6 +128,7 @@ Supporting objects (enums/CHECK constraints, views, RPC functions, triggers, ind
 | -------------------------- | ---------------------------------- | -------------------------------------------------------------------------------- |
 | `website_id`               | UUID PK                            |                                                                                  |
 | `workspace_id`             | UUID FK UNIQUE                     | References `public.workspace`. UNIQUE enforces 1:1 for MVP.                      |
+| `site_slug`                | text NOT NULL UNIQUE               | Public URL slug: `{site_slug}.smartout.info`. Independent of workspace slug.     |
 | `name`                     | text NOT NULL                      |                                                                                  |
 | `tagline`                  | text                               |                                                                                  |
 | `theme`                    | JSONB NOT NULL                     | Presentation tokens only: colors, fonts, radius, spacing, shadow, button variant |
@@ -115,6 +146,9 @@ Supporting objects (enums/CHECK constraints, views, RPC functions, triggers, ind
 | `default_og_image_path`    | text                               |                                                                                  |
 | `created_at`               | timestamptz NOT NULL DEFAULT now() |                                                                                  |
 | `updated_at`               | timestamptz NOT NULL DEFAULT now() |                                                                                  |
+| `deleted_at`               | timestamptz                        | Soft delete. NULL = active. Set = deleted.                                       |
+
+**`site_slug` rationale:** Decoupled from workspace slug. Workspace slugs can change, and multi-site per workspace (Phase 3) requires independent site identity. Platform domain becomes `{site_slug}.smartout.info`. Defaults to workspace slug at creation but is independently editable. CHECK: `slug ~ '^[a-z0-9-]+$'`, min 3 chars.
 
 **Visibility semantics:**
 
@@ -140,10 +174,13 @@ Supporting objects (enums/CHECK constraints, views, RPC functions, triggers, ind
 | `created_at`       | timestamptz NOT NULL DEFAULT now() |                                                                                     |
 | `updated_at`       | timestamptz NOT NULL DEFAULT now() |                                                                                     |
 
+| `deleted_at` | timestamptz | Soft delete |
+
 **Constraints:**
 
-- `UNIQUE(website_id, slug)`
-- Partial unique index: one `page_type = 'home'` per website
+- `UNIQUE(website_id, slug) WHERE deleted_at IS NULL`
+- Partial unique index: one `page_type = 'home'` per website `WHERE deleted_at IS NULL`
+- `UNIQUE(website_id, sort_order) WHERE is_visible = true AND deleted_at IS NULL` — deterministic navigation order
 - `CHECK(slug ~ '^[a-z0-9-]*$')` (lowercase alphanumeric + hyphens, empty allowed for home)
 
 ### 2.3 `websites.website_section`
@@ -160,6 +197,7 @@ Supporting objects (enums/CHECK constraints, views, RPC functions, triggers, ind
 | `sort_order`         | int NOT NULL DEFAULT 0             | CHECK >= 0                                                 |
 | `created_at`         | timestamptz NOT NULL DEFAULT now() |                                                            |
 | `updated_at`         | timestamptz NOT NULL DEFAULT now() |                                                            |
+| `deleted_at`         | timestamptz                        | Soft delete                                                |
 
 **MVP section types (CHECK constraint):**
 `hero`, `rich_text`, `text_image`, `feature_grid`, `gallery`, `testimonials`, `cta`, `hours`, `map`, `contact`, `menu_preview`, `menu_full`, `faq`, `booking_cta`, `pdf_viewer`, `footer`
@@ -191,6 +229,7 @@ interface SectionSettings {
 | `is_visible`       | boolean NOT NULL DEFAULT true      |                                                          |
 | `created_at`       | timestamptz NOT NULL DEFAULT now() |                                                          |
 | `updated_at`       | timestamptz NOT NULL DEFAULT now() |                                                          |
+| `deleted_at`       | timestamptz                        | Soft delete                                              |
 
 ### 2.5 `websites.website_menu_category`
 
@@ -205,6 +244,7 @@ interface SectionSettings {
 | `sort_order`               | int NOT NULL DEFAULT 0             |                                         |
 | `created_at`               | timestamptz NOT NULL DEFAULT now() |                                         |
 | `updated_at`               | timestamptz NOT NULL DEFAULT now() |                                         |
+| `deleted_at`               | timestamptz                        | Soft delete                             |
 
 ### 2.6 `websites.website_menu_item`
 
@@ -225,21 +265,24 @@ interface SectionSettings {
 | `sort_order`               | int NOT NULL DEFAULT 0             |                                         |
 | `created_at`               | timestamptz NOT NULL DEFAULT now() |                                         |
 | `updated_at`               | timestamptz NOT NULL DEFAULT now() |                                         |
+| `deleted_at`               | timestamptz                        | Soft delete                             |
 
 ### 2.7 `websites.website_published_snapshot`
 
-| Column          | Type                               | Notes                                                    |
-| --------------- | ---------------------------------- | -------------------------------------------------------- |
-| `snapshot_id`   | UUID PK                            |                                                          |
-| `website_id`    | UUID FK                            |                                                          |
-| `workspace_id`  | UUID FK                            | For RLS                                                  |
-| `version`       | int NOT NULL                       | Auto-increment per website. UNIQUE(website_id, version). |
-| `snapshot_data` | JSONB NOT NULL                     | Render contract (see snapshot shape below)               |
-| `is_active`     | boolean NOT NULL DEFAULT false     | Partial unique: one active per website                   |
-| `published_by`  | UUID FK                            | References public.profile(profile_id)                    |
-| `published_at`  | timestamptz NOT NULL DEFAULT now() |                                                          |
-| `created_at`    | timestamptz NOT NULL DEFAULT now() |                                                          |
-| `updated_at`    | timestamptz NOT NULL DEFAULT now() | Tracks `is_active` toggle changes                        |
+| Column          | Type                               | Notes                                                       |
+| --------------- | ---------------------------------- | ----------------------------------------------------------- |
+| `snapshot_id`   | UUID PK                            |                                                             |
+| `website_id`    | UUID FK                            |                                                             |
+| `workspace_id`  | UUID FK                            | For RLS                                                     |
+| `version`       | int NOT NULL                       | Auto-increment per website. UNIQUE(website_id, version).    |
+| `snapshot_data` | JSONB NOT NULL                     | Render contract (see snapshot shape below)                  |
+| `snapshot_hash` | text NOT NULL                      | SHA-256 of snapshot_data JSON. Detects identical publishes. |
+| `is_active`     | boolean NOT NULL DEFAULT false     | Partial unique: one active per website                      |
+| `published_by`  | UUID FK                            | References public.profile(profile_id)                       |
+| `published_at`  | timestamptz NOT NULL DEFAULT now() |                                                             |
+| `created_at`    | timestamptz NOT NULL DEFAULT now() |                                                             |
+| `updated_at`    | timestamptz NOT NULL DEFAULT now() | Tracks `is_active` toggle changes                           |
+| `deleted_at`    | timestamptz                        | Soft delete                                                 |
 
 **Constraints:**
 
@@ -279,11 +322,12 @@ interface SectionSettings {
 | `uploaded_by`      | UUID FK                            | References public.profile(profile_id)                     |
 | `created_at`       | timestamptz NOT NULL DEFAULT now() |                                                           |
 | `updated_at`       | timestamptz NOT NULL DEFAULT now() | Tracks alt_text/dimension updates                         |
+| `deleted_at`       | timestamptz                        | Soft delete                                               |
 
 ### 2.10 `websites.website_domain`
 
 | Column               | Type                                         | Notes                                                         |
-| -------------------- | -------------------------------------------- | ------------------------------------------------------------- |
+| -------------------- | -------------------------------------------- | ------------------------------------------------------------- | --- |
 | `website_domain_id`  | UUID PK                                      |                                                               |
 | `website_id`         | UUID FK                                      |                                                               |
 | `workspace_id`       | UUID FK                                      | For RLS                                                       |
@@ -296,7 +340,8 @@ interface SectionSettings {
 | `verified_at`        | timestamptz                                  |                                                               |
 | `ssl_status`         | text NOT NULL DEFAULT 'pending'              | CHECK: `pending`, `active`, `error`                           |
 | `created_at`         | timestamptz NOT NULL DEFAULT now()           |                                                               |
-| `updated_at`         | timestamptz NOT NULL DEFAULT now()           |                                                               |
+| `updated_at`         | timestamptz NOT NULL DEFAULT now()           |
+| `deleted_at`         | timestamptz                                  | Soft delete                                                   |     |
 
 **Constraints:**
 
@@ -735,17 +780,20 @@ function SitePageRenderer({ page, theme, assets }: Props) {
 
 When admin clicks Publish:
 
+0. **Lock** — `SELECT * FROM websites.website WHERE website_id = $1 FOR UPDATE` — prevents double publish, concurrent rollback, and version increment races
 1. **Validate** — required pages exist (home minimum), all sections pass Zod validation, required fields populated
 2. **Create revision** — save current draft state as `website_draft_revision` with source=`manual`
 3. **Build snapshot** — assemble render contract from live draft tables (site + pages + sections + menus + assets + integrations + buildMeta with current schemaVersion)
-4. **Write snapshot** — insert `websites.website_published_snapshot` with next version number
-5. **Activate** — transaction: new snapshot `is_active = true`, all others `is_active = false`
-6. **Update website** — set `visibility = 'live'`
-7. **Log event** — insert `websites.website_publish_event` with action=`publish`
-8. **Invalidate cache** — `revalidateTag('site:${host}')` for all domains
-9. **Emit telemetry** — `website.published` event
+4. **Hash snapshot** — SHA-256 of `snapshot_data` JSON. If hash matches latest snapshot, skip (no-op publish). Otherwise continue.
+5. **Write snapshot** — insert `websites.website_published_snapshot` with next version number + hash
+6. **Activate** — new snapshot `is_active = true`, all others `is_active = false`
+7. **Update website** — set `visibility = 'live'`
+8. **Log event** — insert `websites.website_publish_event` with action=`publish`
+9. **Commit transaction**
+10. **Invalidate cache** — `revalidateTag('site:${host}')` for all domains (after commit)
+11. **Emit telemetry** — `website.published` event (after commit)
 
-**Synchronous.** One server action, one transaction. Data is small (one JSONB doc).
+**Synchronous.** Steps 0-9 run in a single database transaction. Steps 10-11 run after commit (cache invalidation and telemetry are side effects, not transactional).
 
 **Rollback:** Admin picks previous snapshot from history. Pipeline runs steps 5-9 with old snapshot. Logged as `action = 'rollback'`.
 
@@ -1120,9 +1168,15 @@ supabase/migrations/
 | Visibility status          | `draft` / `live` / `offline` with clear semantics                        |
 | Asset references           | By UUID in content, `assets.byId` in snapshot                            |
 | Draft revisions            | Site-level with `schema_version` and `template_key`                      |
-| Preview                    | Token-based with optional revision pinning                               |
+| Preview                    | Token-based, always pinned to a revision                                 |
 | Domain model               | `platform_subdomain` + `custom` types, `is_primary`, `redirect_behavior` |
 | Middleware                 | Hostname detection + rewrite only. Nothing else.                         |
+| `site_slug`                | Dedicated column, decoupled from workspace slug                          |
+| Snapshot hash              | SHA-256 of snapshot JSON, skip duplicate publishes                       |
+| Soft delete                | `deleted_at` on all data tables, no hard deletes                         |
+| Publish locking            | `SELECT ... FOR UPDATE` on website row before publish                    |
+| Snapshot/content limits    | 2 MB max snapshot, 20 pages, 30 sections/page, 500 assets                |
+| Middleware order           | `.smartout.info` before `.smartout.ai` — strict                          |
 
 ---
 
@@ -1139,9 +1193,36 @@ supabase/migrations/
 
 ---
 
+## 21. Invariants
+
+These rules must never be violated. They define the architectural contract.
+
+1. Every website belongs to exactly one workspace
+2. Every live website has exactly one active snapshot
+3. Public rendering only uses snapshot data — never draft tables
+4. Draft tables are never read by public routes
+5. Section content must validate against registry schema before save AND before publish
+6. Middleware only performs hostname routing — no DB lookups, no auth, no content
+7. Service role is only used in `site-public-repository.ts`
+8. Snapshot `buildMeta.schemaVersion` must be incremented on any contract shape change
+9. Assets are referenced by UUID only — never by raw storage path in content
+10. Preview tokens must always point to a pinned revision
+11. One `platform_subdomain` domain per site
+12. Exactly one `is_primary = true` domain per site
+13. Publish pipeline must run in a transaction with row lock
+14. No renderer may use `dangerouslySetInnerHTML`
+15. Navigation order is driven by `website_page.sort_order` — never by creation order
+16. `site_slug` is the public identity — never derive public URLs from workspace slug
+17. Snapshot hash must be checked before creating duplicate versions
+18. All deletions are soft deletes (`deleted_at`) — no hard deletes on data tables
+19. All queries on data tables must filter `WHERE deleted_at IS NULL` unless explicitly recovering
+
+---
+
 ## Changelog
 
 | Date       | Change                                                                                                                                                                                                                                                                                                                                                                                                                       | Author          |
 | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
 | 2026-03-21 | Initial spec — approved architecture                                                                                                                                                                                                                                                                                                                                                                                         | Claude + Pontus |
 | 2026-03-21 | Spec review fixes: middleware integration detail, updated_at on all tables, preview always pinned to revision, admin-only RLS reads, asset URL resilience, search_path on SECURITY DEFINER, CHECK vs enum rationale, domain status lifecycle, ticket dependency fixes, local dev story, draft asset visibility note, booking deduplication in snapshot, website_id on deeply nested menu tables, version increment mechanism | Claude          |
+| 2026-03-22 | Final technical review: added site_slug (decoupled from workspace), snapshot_hash (duplicate detection), soft delete on all data tables, publish row locking (step 0), snapshot size limits, middleware routing order, invariants section (19 rules), navigation sort_order unique constraint                                                                                                                                | Claude + Pontus |
