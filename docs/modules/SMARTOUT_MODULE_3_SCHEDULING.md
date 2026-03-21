@@ -1,11 +1,11 @@
 ---
 title: "Module 3: Vaktplanlegging (Shift Planning)"
 id: MODULE_03
-version: "1.0"
+version: "1.1"
 status: canonical
 layer: module
 created: 2026-02-24
-updated: 2026-02-28
+updated: 2026-03-21
 author: pontus
 supersedes: []
 superseded_by: null
@@ -18,7 +18,10 @@ tags:
   - calendar
   - staffing
   - open-shifts
+  - cascade
 changelog:
+  - date: 2026-03-21
+    change: "Added cascade architecture references, 5 dimensions, resource matching, corrected supplement rates"
   - date: 2026-02-28
     change: "Added YAML frontmatter"
 ---
@@ -26,7 +29,9 @@ changelog:
 # Modul 3: Vaktplanlegging (Shift Planning)
 
 > **Smartout.ai** — Funksjonell dokumentasjon for migrering
-> Versjon 1.0 | Februar 2026
+> Versjon 1.1 | Mars 2026
+>
+> **Cascade architecture:** This module implements layers L4 (Template Shifts) and L5 (Schedule Shifts) of the cascade waterfall. It is fed by D1 (Operational Envelope) via operating hours and constrained by D3 (Rules & Constraints) via labor law and Riksavtalen. See `docs/cascade-spreadsheet-overview.md` for the full five-dimension framework.
 
 ---
 
@@ -289,6 +294,31 @@ Vaktplanleggingsmodulen er den mest sammenkoblede modulen i Smartout og berører
 | **8. Lønn**              | Lønnsgrunnlag beregnes per vakt (fanen i modalen). Vaktdata er input til lønnskjøring.   |
 | **9. Kommunikasjon**     | Publiseringsvarsler sendes via Push/E-post/SMS. Skift-overlevering bruker vaktdata.      |
 | **12. AI (Mr. Botsson)** | Operasjonsmotoren bruker vaktdata for proaktive varsler og forslag.                      |
+
+---
+
+## 14.5 Resource Matching & Cascade Integration
+
+Between template shifts (L4) and published schedule shifts (L5), a Resource Matching layer proposes staffing. This is where the system's intelligence lives.
+
+**Inputs:**
+- Templates define *what shifts are needed* (from operating hours + shift_function anchoring)
+- Resources define *who is available* (contracts, availability, certifications, seniority, cost)
+- Compliance tasks define *what must be done* (procedures, routines, required_certifications)
+
+**Outputs:**
+- Staffing proposal with cost estimate per shift
+- Compliance flags and hard blocks (see `docs/cascade-spreadsheet-overview.md` for enforcement levels)
+- Coverage gaps and overstaffing warnings
+
+**Supplement rates (Riksavtalen — verified 2026-03-21):**
+- Kveldstillegg: 15.65 kr/t (mon-fri 21:00-24:00)
+- Nattillegg: 54.76 kr/t (00:00-06:00)
+- Helgetillegg: 29.74 kr/t (sat 14:00-24:00, sun 06:00-24:00)
+- Helligdagstillegg: 100% of individual hourly rate
+- Overtime day: +50%, night/holiday: +100%
+
+Full rates and ansiennitet steps: `docs/cascade-spreadsheet-overview.md`
 
 ---
 
