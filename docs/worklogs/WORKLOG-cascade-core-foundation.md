@@ -1,7 +1,7 @@
 ---
 title: "Worklog — cascade-core-foundation"
 status: in_progress
-updated: 2026-03-21
+updated: 2026-03-22
 created: 2026-03-21
 module: cascade
 tags: [cascade, foundation, schema, migration, phase-b]
@@ -31,6 +31,11 @@ tags: [cascade, foundation, schema, migration, phase-b]
 - [x] Hours integration: rewrite useOperatingHours hook to cascade table
 - [x] Hours integration: update 3 consumers with department context
 - [x] Hours integration: wire department_session planned_open/close
+- [x] Cascade UI: planned hours on OversiktTab (usePlannedHours hook + live display)
+- [x] Cascade UI: hours override popover (useHoursOverrides hook + HoursOverridePopover)
+- [x] Cascade UI: planning events calendar tab (usePlanningEvents hook + PlanningEventsTab)
+- [x] Cascade UI: planning cycle selector (usePlanningCycles hook + PlanningCycleSelector)
+- [x] Type additions: PlanningEventRow, PlanningCycleRow, fixed DepartmentHoursOverrideRow
 
 ## Remaining
 
@@ -51,11 +56,12 @@ tags: [cascade, foundation, schema, migration, phase-b]
 
 ## Log
 
-| Date       | Time | Event                                                    |
-| ---------- | ---- | -------------------------------------------------------- |
-| 2026-03-21 | —    | Spec written, reviewed, locked                           |
-| 2026-03-21 | —    | Implementation plan written (5 tracks, 20+ tasks)        |
-| 2026-03-21 | —    | Plan approved after 3 review rounds                      |
-| 2026-03-22 | —    | Foundation executed: 19 tasks, 7 migrations, 29 tests    |
-| 2026-03-22 | —    | Hours integration: backfill + hook + consumers + session |
-| 2026-03-22 | —    | Session ended. Next: cascade UI implementation           |
+| Date       | Time | Event                                                                  |
+| ---------- | ---- | ---------------------------------------------------------------------- |
+| 2026-03-21 | —    | Spec written, reviewed, locked                                         |
+| 2026-03-21 | —    | Implementation plan written (5 tracks, 20+ tasks)                      |
+| 2026-03-21 | —    | Plan approved after 3 review rounds                                    |
+| 2026-03-22 | —    | Foundation executed: 19 tasks, 7 migrations, 29 tests                  |
+| 2026-03-22 | —    | Hours integration: backfill + hook + consumers + session               |
+| 2026-03-22 | —    | Session ended. Next: cascade UI implementation                         |
+| 2026-03-22 | —    | Cascade UI: 4 surfaces built (hours display, override, events, cycles) |
