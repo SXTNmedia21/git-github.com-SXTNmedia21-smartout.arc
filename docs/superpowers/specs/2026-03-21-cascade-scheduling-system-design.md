@@ -145,6 +145,7 @@ RUNTIME
 | `planning_event_category` | external_scraped, cultural_commercial, internal, weather, recurring | Event classification |
 | `planning_event_source` | manual, scraped_municipality, scraped_cultural, weather_api, booking_integration, historical_import | Event origin |
 | `planning_cycle_status` | draft, active, archived | Year wheel lifecycle |
+| `cascade_initiator` | cascade_engine, admin_manual, c1_calibration, bootstrap | Who originated the proposal |
 | `tariff_source` | riksavtalen, allmenngjoring, internal | Rate provenance |
 
 #### Season Status Change
@@ -165,7 +166,7 @@ ALTER TYPE season_status RENAME VALUE 'active' TO 'ready';
 #### Logged Adjustments (from brainstorming)
 
 1. **`policy_status` vs `approval_status`**: `change_proposal` uses `change_proposal_status` (pending/approved/applied/rejected/expired). Separate from C4 policy evaluation result.
-2. **`created_by_plane`**: ENUM on `change_proposal` — `cascade_engine | admin_manual | c1_calibration | bootstrap`. Tracks which plane originated the proposal.
+2. **`created_by_plane`**: ENUM `cascade_initiator` — `cascade_engine | admin_manual | c1_calibration | bootstrap`. Tracks which plane originated the proposal.
 3. **`proposal_payload` diff contract**: `changes` JSONB stores the proposed mutation. `preview` JSONB stores the full CascadePreview result. Both immutable after creation.
 4. **`expected_demand_multiplier`**: Named `demand_multiplier` on `planning_event` (not `expected_demand_multiplier`). 1.0 = normal, 1.5 = +50%.
 5. **`public_holiday` PK**: Composite `(country_code, holiday_date)` — not UUID. Norway-only for now but extensible.
@@ -398,7 +399,7 @@ If any hard gate fails, candidate is excluded. No override possible.
 | Cost | 0.15 | D3 (base rate + supplements for this shift) |
 | Preference | 0.07 | D2 (employee-stated preferences) |
 
-Weights are explicit and tunable per workspace via D5 (service concept).
+Weights are parameterized by D5 (service concept) at the vertical/niche level. Workspace-level weight overrides may be supported in future under C4 governance gating. Initial implementation uses fixed weights per service concept.
 
 #### Shift Cost Estimation
 
@@ -674,7 +675,7 @@ type CalibrationEngine = {
 - **Confidence tracking:** `confidence = min(1.0, observation_count / 10)` — 10 observations = fully confident
 - **Cross-dimensional pattern detection:** If D4 demand spike correlates with D6 prep deficit, write pattern to K1b
 
-C1 writes to: `planning_factors`, `adjustment_factors`, `engine_memory` (K1b).
+C1 writes to: `planning_factors`, `adjustment_factors`, `engine_memory` (K1b). Pattern insights written to `engine_memory` are narrative/explanatory only — they do not directly mutate adjustment factors. Factor updates require explicit calibration logic and C4 gating.
 
 #### C2 — Context & Interaction
 
@@ -741,6 +742,16 @@ function evaluatePolicy(
 - Enforcement severity: hard_block | hard_warn | soft_warn | info_only | monitor
 - Rules deploy in monitor mode first, graduate to blocking after validation
 
+**C4 Operational Separation:**
+
+| Concern | Responsibility | Where |
+|---------|---------------|-------|
+| **Evaluate** | Run policy rules against proposed action | Policy engine (TypeScript → Rego) |
+| **Enforce** | Block or gate the action based on evaluation | Assignment/publish/apply service layer |
+| **Log** | Record every evaluation with full context | `activity_trail` (immutable audit) |
+
+These three concerns must remain separated. The policy engine produces decisions. The service layer enforces them. The audit trail records them. No single component does all three.
+
 #### Plane Interaction Boundaries
 
 | Rule | Enforced |
@@ -790,7 +801,7 @@ CREATE TABLE department_operating_hours (
   workspace_id    UUID NOT NULL REFERENCES workspace(workspace_id) ON DELETE CASCADE,
   department_id   UUID NOT NULL REFERENCES department(department_id) ON DELETE CASCADE,
   location_id     UUID REFERENCES location(location_id) ON DELETE CASCADE,
-  season_id       UUID REFERENCES season(season_id) ON DELETE CASCADE,
+  season_id       UUID REFERENCES season(season_id) ON DELETE CASCADE,  -- NULL = workspace default; season-specific rows override defaults
   day_of_week     INT NOT NULL CHECK (day_of_week BETWEEN 0 AND 6),
   open_time       TIME,
   close_time      TIME,
@@ -802,7 +813,7 @@ CREATE TABLE department_operating_hours (
 );
 ```
 
-When `season_id IS NULL`, the row represents a workspace default that applies when no season-specific hours exist. Resolution: override(date) > season-specific(day_of_week) > default(day_of_week, season_id IS NULL) > closed.
+`season_id` is nullable by design. `NULL` means workspace-wide default. Season-specific rows (with `season_id` set) override default rows for that season. Resolution order: override(date) > season-specific(day_of_week) > default(day_of_week, season_id IS NULL) > closed.
 
 #### `department_hours_override`
 
@@ -895,7 +906,11 @@ CREATE TABLE employee_payroll_profile (
   valid_until             DATE,
   created_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
-  CONSTRAINT uq_payroll_profile UNIQUE (profile_id, valid_from)
+  CONSTRAINT uq_payroll_profile UNIQUE (profile_id, valid_from),
+  CONSTRAINT excl_payroll_no_overlap EXCLUDE USING gist (
+    profile_id WITH =,
+    daterange(valid_from, COALESCE(valid_until, '9999-12-31'::date), '[]') WITH &&
+  )
 );
 ```
 
@@ -931,7 +946,7 @@ CREATE TABLE change_proposal (
   trigger_layer       cascade_trigger_layer NOT NULL,
   trigger_entity_type TEXT NOT NULL,
   trigger_entity_id   UUID,
-  created_by_plane    TEXT NOT NULL DEFAULT 'admin_manual',    -- cascade_engine | admin_manual | c1_calibration | bootstrap
+  created_by_plane    cascade_initiator NOT NULL DEFAULT 'admin_manual',
   status              change_proposal_status NOT NULL DEFAULT 'pending',
   changes             JSONB NOT NULL DEFAULT '{}',
   preview             JSONB NOT NULL DEFAULT '{}',
@@ -1037,13 +1052,15 @@ CREATE TABLE adjustment_factors (
 3. K1a tables are platform-managed, tenant-visible but not tenant-writable (except workspace overrides).
 4. K1b tables are workspace-scoped with strict RLS isolation.
 5. `shift_cost_snapshot` is append-only. C3 reads, never writes.
-6. `change_proposal` is effectively immutable after creation. Only `status` and `applied_at` change.
+6. `change_proposal` payload fields (`changes`, `preview`, `input_state_hash`) are immutable after creation. Lifecycle and governance fields (`status`, `policy_decision`, `policy_rule_ids`, `approval_required`, `approved_by`, `approved_at`, `rejected_at`, `rejection_reason`, `applied_at`) may be updated as the proposal progresses through its lifecycle.
 
 ---
 
 ## 5. Riksavtalen Reference Data
 
 Corrected 2024 rates from Lovdata (NHO/Fellesforbundet collective agreement for restaurants/hospitality). The current `hospitality.ts` file has incorrect values and is NOT the source of truth for rates.
+
+Numerical values below are seed candidates based on Lovdata retrieval dated 2026-03-21. All rates must be verified against current legally applicable sources before production seeding.
 
 ### 5.1 Base Wages — Kokk med fagbrev
 
