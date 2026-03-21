@@ -10,6 +10,7 @@
 
 **Key docs:**
 
+- `docs/cascade-spreadsheet-overview.md` — CANONICAL: Five Dimensions, waterfall layers, Riksavtalen rates, compliance enforcement, schema gaps
 - `docs/INVESTIGATION_OPERATING_HOURS_CORE_STRUCTURE.md` — full investigation + design decisions
 - `docs/handoffs/2026-03-20-cascade-plan-revision.md` — revision mission + locked decisions
 - `.claude/projects/-home-sxtnl-dev-smartout-ai/memory/project_cascade_architecture.md` — all locked decisions

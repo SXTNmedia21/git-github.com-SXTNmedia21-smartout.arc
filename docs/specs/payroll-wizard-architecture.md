@@ -1,11 +1,13 @@
 ---
 title: "Payroll Wizard Architecture — Tillegg og lønnsarter"
 status: draft
-updated: 2026-03-10
+updated: 2026-03-21
 created: 2026-03-10
 module: wizard
-tags: [payroll, wizard, tillegg, lønnsarter, tariff, overtid, avspasering]
+tags: [payroll, wizard, tillegg, lønnsarter, tariff, overtid, avspasering, cascade]
 ---
+
+> **Note:** Verified Riksavtalen rates and tariff versioning concept are in `docs/cascade-spreadsheet-overview.md`. The rates in the wizard defaults should be sourced from `tariff_rate_table` (planned).
 
 # Payroll Wizard Architecture — Tillegg og lønnsarter
 
