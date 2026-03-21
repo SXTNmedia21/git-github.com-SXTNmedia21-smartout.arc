@@ -43,8 +43,13 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 3. Cron job: every 10 minutes, trigger due tasks directly in DB
-SELECT cron.schedule(
-  'emma_task_trigger',
-  '*/10 * * * *',
-  'SELECT trigger_due_emma_tasks();'
-);
+-- Conditional: pg_cron may not be available in all environments (e.g. local Supabase)
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') THEN
+    PERFORM cron.schedule(
+      'emma_task_trigger',
+      '*/10 * * * *',
+      'SELECT trigger_due_emma_tasks();'
+    );
+  END IF;
+END $$;;
