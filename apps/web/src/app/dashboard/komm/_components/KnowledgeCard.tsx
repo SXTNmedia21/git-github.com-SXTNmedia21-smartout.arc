@@ -24,7 +24,7 @@ type Props = {
 };
 
 export function KnowledgeCard({ data }: Props) {
-  const config = TYPE_CONFIG[data.shared_type] ?? TYPE_CONFIG.manual;
+  const config = (TYPE_CONFIG[data.shared_type] ?? TYPE_CONFIG.manual)!;
   const Icon = config.icon;
 
   return (

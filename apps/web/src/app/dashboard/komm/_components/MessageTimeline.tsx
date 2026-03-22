@@ -2,6 +2,7 @@
 
 import { useRef, useEffect, useCallback, useMemo } from "react";
 import { useChannelMessages } from "../_hooks/use-channel-messages";
+import type { MessageWithSender } from "../_hooks/channel-types";
 import { useMarkAsRead } from "../_hooks/use-mark-as-read";
 import { MessageBubble } from "./MessageBubble";
 import { SystemMessage } from "./SystemMessage";
@@ -23,7 +24,7 @@ export function MessageTimeline({ channelId, profileId, onReply }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Flatten pages and reverse for chronological order (RPC returns DESC)
-  const messages = useMemo(() => (data?.pages.flat() ?? []).toReversed(), [data]);
+  const messages = useMemo(() => [...(data?.pages.flat() ?? [])].reverse(), [data]);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -31,7 +32,7 @@ export function MessageTimeline({ channelId, profileId, onReply }: Props) {
   }, [messages.length]);
 
   // Mark latest message as read when channel opens or new messages arrive
-  const latestMessageId = messages.length > 0 ? messages[messages.length - 1].message_id : null;
+  const latestMessageId = messages.length > 0 ? messages[messages.length - 1]!.message_id : null;
   const markAsReadMutate = markAsRead.mutate;
   useEffect(() => {
     if (!latestMessageId) return;
@@ -61,7 +62,7 @@ export function MessageTimeline({ channelId, profileId, onReply }: Props) {
         currentDate = date;
         groups.push({ date, messages: [] });
       }
-      groups[groups.length - 1].messages.push(msg);
+      groups[groups.length - 1]!.messages.push(msg);
     }
     return groups;
   }, [messages]);
@@ -97,7 +98,7 @@ export function MessageTimeline({ channelId, profileId, onReply }: Props) {
               <div className="bg-border h-px flex-1" />
             </div>
 
-            {group.messages.map((msg) =>
+            {group.messages.map((msg: MessageWithSender) =>
               SYSTEM_TYPES.has(msg.message_type) ? (
                 <SystemMessage key={msg.message_id} message={msg} />
               ) : (

@@ -17,7 +17,7 @@ type Props = {
 };
 
 export function SystemMessage({ message }: Props) {
-  const config = TYPE_CONFIG[message.message_type] ?? TYPE_CONFIG.system;
+  const config = (TYPE_CONFIG[message.message_type] ?? TYPE_CONFIG.system)!;
   const Icon = config.icon;
 
   return (

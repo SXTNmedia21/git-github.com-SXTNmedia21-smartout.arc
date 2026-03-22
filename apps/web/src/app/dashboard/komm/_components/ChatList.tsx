@@ -57,7 +57,7 @@ const INITIALS_COLORS = [
 
 function getColorClass(name: string): string {
   const hash = name.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  return INITIALS_COLORS[hash % INITIALS_COLORS.length];
+  return INITIALS_COLORS[hash % INITIALS_COLORS.length]!;
 }
 
 type Props = {
@@ -94,7 +94,7 @@ export function ChatList({ channels, activeChannelId, onSelectChannel, profileId
     const { data, error } = await supabase.rpc("create_channel", {
       p_workspace_id: workspace.workspace_id,
       p_channel_type: "direct",
-      p_name: null,
+      p_name: undefined,
       p_created_by: profileId,
       p_member_profile_ids: [profileId, memberProfileId],
     });

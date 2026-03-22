@@ -27,7 +27,7 @@ export function MessageBubble({ message, channelId, profileId, isOwn, onReply }:
   const reactionGroups = message.reactions.reduce(
     (acc, r) => {
       if (!acc[r.emoji]) acc[r.emoji] = [];
-      acc[r.emoji].push(r.profile_id);
+      acc[r.emoji]!.push(r.profile_id);
       return acc;
     },
     {} as Record<string, string[]>,
@@ -96,18 +96,19 @@ export function MessageBubble({ message, channelId, profileId, isOwn, onReply }:
           </p>
 
           {/* Knowledge cards for shared content */}
-          {message.system_data && (message.system_data as Record<string, unknown>).shared_type && (
-            <KnowledgeCard
-              data={
-                message.system_data as {
-                  shared_type: string;
-                  shared_id: string;
-                  title: string;
-                  description?: string;
+          {message.system_data &&
+            (message.system_data as Record<string, unknown>).shared_type != null && (
+              <KnowledgeCard
+                data={
+                  message.system_data as unknown as {
+                    shared_type: string;
+                    shared_id: string;
+                    title: string;
+                    description?: string;
+                  }
                 }
-              }
-            />
-          )}
+              />
+            )}
 
           {/* Attachments */}
           {message.attachments.length > 0 && (

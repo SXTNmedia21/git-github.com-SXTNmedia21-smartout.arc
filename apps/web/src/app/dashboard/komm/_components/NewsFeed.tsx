@@ -69,7 +69,7 @@ export function NewsFeed({ channels, profileId }: Props) {
 
   const { data, isLoading } = useChannelMessages(newsChannel?.channel_id ?? null);
 
-  const messages = useMemo(() => (data?.pages.flat() ?? []).toReversed(), [data]);
+  const messages = useMemo(() => [...(data?.pages.flat() ?? [])].reverse(), [data]);
 
   if (!newsChannel) {
     return (
@@ -99,7 +99,7 @@ export function NewsFeed({ channels, profileId }: Props) {
 
   return (
     <div className="py-1">
-      {messages.map((msg) => (
+      {messages.map((msg: MessageWithSender) => (
         <NewsCard key={msg.message_id} message={msg} />
       ))}
     </div>

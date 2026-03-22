@@ -25,9 +25,9 @@ export function useCreateChannel(profileId: string) {
       const { data, error } = await supabase.rpc("create_channel", {
         p_workspace_id: workspaceId,
         p_channel_type: channelType,
-        p_name: name ?? null,
+        p_name: name,
         p_created_by: profileId,
-        p_member_profile_ids: memberProfileIds ?? null,
+        p_member_profile_ids: memberProfileIds,
       });
       if (error) throw error;
       return data as { channel_id: string; created: boolean };
