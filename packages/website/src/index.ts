@@ -29,9 +29,8 @@ export type {
 export { SCHEMA_VERSION, SECTION_TYPES, LIMITS } from "./constants";
 export type { SectionType } from "./constants";
 
-// Section schemas
-export { SECTION_SCHEMA_MAP } from "./sections/schemas";
-export { sectionSettingsSchema, defaultSectionSettings } from "./sections/schemas";
+// Section schemas — export everything including individual schemas and types for editor components
+export * from "./sections/schemas";
 
 // Section registry
 export { registerSection, getSectionDef, getAllSectionDefs } from "./sections/registry";

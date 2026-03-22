@@ -79,7 +79,10 @@ export type EntityType =
   | "kpi_target"
   | "workspace_budget"
   | "authority_config"
-  | "website";
+  | "website"
+  | "website_page"
+  | "website_section"
+  | "website_asset";
 
 export type ActionVerb =
   | "created"
@@ -825,6 +828,64 @@ export interface WebsiteContentGenerated extends BaseEvent {
   properties: { entity: EntityRef; data: { section_count: number } };
 }
 
+export interface WebsiteUpdated extends BaseEvent {
+  event: "website updated";
+  properties: { entity: EntityRef; data: Record<string, unknown> };
+}
+
+export interface WebsiteSetupCompleted extends BaseEvent {
+  event: "website setup completed";
+  properties: { entity: EntityRef; data: { template_key: string; page_count: number } };
+}
+
+export interface WebsitePageCreated extends BaseEvent {
+  event: "website page created";
+  properties: { entity: EntityRef; data: { title: string; page_type: string } };
+}
+
+export interface WebsitePageDeleted extends BaseEvent {
+  event: "website page deleted";
+  properties: { entity: EntityRef };
+}
+
+export interface WebsitePagesReordered extends BaseEvent {
+  event: "website pages reordered";
+  properties: { entity: EntityRef; data: { page_count: number } };
+}
+
+export interface WebsiteSectionCreated extends BaseEvent {
+  event: "website section created";
+  properties: { entity: EntityRef; data: { section_type: string; page_id?: string } };
+}
+
+export interface WebsiteSectionDeleted extends BaseEvent {
+  event: "website section deleted";
+  properties: { entity: EntityRef };
+}
+
+export interface WebsiteSectionUpdated extends BaseEvent {
+  event: "website section updated";
+  properties: { entity: EntityRef; data: { section_type: string; source: string } };
+}
+
+export interface WebsiteSectionsReordered extends BaseEvent {
+  event: "website sections reordered";
+  properties: { entity: EntityRef; data: { section_count: number } };
+}
+
+export interface WebsiteAssetUploaded extends BaseEvent {
+  event: "website asset uploaded";
+  properties: {
+    entity: EntityRef;
+    data: { asset_id: string; mime_type: string; size_bytes: number };
+  };
+}
+
+export interface WebsitePreviewTokenCreated extends BaseEvent {
+  event: "website preview token created";
+  properties: { entity: EntityRef; data: { expires_at: string } };
+}
+
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
 export type SmartoutEvent =
@@ -909,7 +970,18 @@ export type SmartoutEvent =
   | WebsiteDomainVerified
   | WebsiteDomainFailed
   | WebsitePreviewCreated
-  | WebsiteContentGenerated;
+  | WebsiteContentGenerated
+  | WebsiteUpdated
+  | WebsiteSetupCompleted
+  | WebsitePageCreated
+  | WebsitePageDeleted
+  | WebsitePagesReordered
+  | WebsiteSectionCreated
+  | WebsiteSectionDeleted
+  | WebsiteSectionUpdated
+  | WebsiteSectionsReordered
+  | WebsiteAssetUploaded
+  | WebsitePreviewTokenCreated;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -1226,4 +1298,15 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "website domain_failed": { destinations: ["activity_trail", "logger"], category: "system" },
   "website preview_created": { destinations: ["activity_trail"], category: "system" },
   "website content_generated": { destinations: ["posthog", "activity_trail"], category: "system" },
+  "website updated": { destinations: ["posthog", "activity_trail"], category: "system" },
+  "website setup completed": { destinations: ["posthog", "activity_trail"], category: "system" },
+  "website page created": { destinations: ["posthog", "activity_trail"], category: "system" },
+  "website page deleted": { destinations: ["activity_trail"], category: "system" },
+  "website pages reordered": { destinations: ["activity_trail"], category: "system" },
+  "website section created": { destinations: ["posthog", "activity_trail"], category: "system" },
+  "website section deleted": { destinations: ["activity_trail"], category: "system" },
+  "website section updated": { destinations: ["activity_trail"], category: "system" },
+  "website sections reordered": { destinations: ["activity_trail"], category: "system" },
+  "website asset uploaded": { destinations: ["activity_trail"], category: "system" },
+  "website preview token created": { destinations: ["activity_trail"], category: "system" },
 };
