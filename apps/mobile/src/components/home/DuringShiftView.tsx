@@ -17,6 +17,8 @@ import { SectionHeader } from "@/components/common/SectionHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { strings } from "@/constants/strings";
 import { formatTime } from "@/components/shift/ShiftCard";
+import { PayrollHomeCard } from "@/components/payroll/PayrollHomeCard";
+import { usePayrollSummary } from "@/hooks/queries/use-payroll-summary";
 import type { Database } from "@smartout/supabase/database.types";
 import type { TimeEntry } from "@/types/time-entry";
 
@@ -76,6 +78,7 @@ export function DuringShiftView({
 }: DuringShiftViewProps) {
   const styles = useStyles();
   const router = useRouter();
+  const summary = usePayrollSummary();
 
   // Live timer — recalculates every minute
   const [elapsed, setElapsed] = useState(() => formatElapsedTime(timeEntry.punch_in));
@@ -153,6 +156,16 @@ export function DuringShiftView({
             subtitle="Ingen oppgaver akkurat na. Nye oppgaver dukker opp her nar de tildeles."
           />
         )}
+      </View>
+
+      {/* Live earnings counter — informational, below punch out and task feed */}
+      <View style={styles.payrollCard}>
+        <PayrollHomeCard
+          phase="during_shift"
+          shift={shift}
+          timeEntry={timeEntry}
+          summary={summary.data ?? null}
+        />
       </View>
 
       {/* Quick action bar — thumb zone */}
@@ -248,6 +261,11 @@ const useStyles = createStyles((theme) => ({
     ...theme.typography.caption,
     color: theme.colors.mutedForeground,
   },
+  /* Payroll card spacing — sits below task feed, above action bar */
+  payrollCard: {
+    marginBottom: theme.spacing.section,
+  },
+
   actionBar: {
     flexDirection: "row",
     gap: theme.spacing.element,

@@ -14,6 +14,8 @@ import { useRouter } from "expo-router";
 import Animated, { FadeInUp } from "react-native-reanimated";
 import { createStyles } from "@/theme";
 import { strings } from "@/constants/strings";
+import { PayrollHomeCard } from "@/components/payroll/PayrollHomeCard";
+import { usePayrollSummary } from "@/hooks/queries/use-payroll-summary";
 import type { Database } from "@smartout/supabase/database.types";
 
 type ScheduleShift = Database["public"]["Tables"]["schedule_shift"]["Row"];
@@ -51,6 +53,7 @@ function formatTime(time: string): string {
 export function NoShiftView({ firstName, nextShift }: NoShiftViewProps) {
   const styles = useStyles();
   const router = useRouter();
+  const summary = usePayrollSummary();
 
   return (
     <View style={styles.container}>
@@ -106,6 +109,16 @@ export function NoShiftView({ firstName, nextShift }: NoShiftViewProps) {
           <Text style={styles.emptySubtitle}>Nye vakter vises her nar lederen publiserer dem.</Text>
         </Animated.View>
       )}
+
+      {/* Payroll overview — informational, never blocks action */}
+      <View style={styles.payrollCard}>
+        <PayrollHomeCard
+          phase="no_shift"
+          shift={nextShift}
+          timeEntry={null}
+          summary={summary.data ?? null}
+        />
+      </View>
     </View>
   );
 }
@@ -185,6 +198,11 @@ const useStyles = createStyles((theme) => ({
     ...theme.typography.caption,
     color: theme.colors.brandOrange,
     fontWeight: theme.fontWeights.medium,
+  },
+
+  /* Payroll card spacing — sits below shift card or empty state */
+  payrollCard: {
+    marginTop: theme.spacing.section,
   },
 
   /* Empty state */

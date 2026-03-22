@@ -16,6 +16,8 @@ import { SectionHeader } from "@/components/common/SectionHeader";
 import { ShiftCardRich } from "@/components/shift/ShiftCardRich";
 import { strings } from "@/constants/strings";
 import { formatTime } from "@/components/shift/ShiftCard";
+import { PayrollHomeCard } from "@/components/payroll/PayrollHomeCard";
+import { usePayrollSummary } from "@/hooks/queries/use-payroll-summary";
 import type { Colleague } from "@/hooks/queries/use-shift-colleagues";
 import type { DayInfo } from "@/hooks/queries/use-day-info";
 import type { Database } from "@smartout/supabase/database.types";
@@ -58,13 +60,12 @@ export function BeforeShiftView({
   const lateMinutes = useMemo(() => minutesSinceShiftStart(shift), [shift]);
   const isLate = lateMinutes > 0;
   const pendingTasks = tasks.filter((t) => t.status === "pending" || t.status === "available");
+  const summary = usePayrollSummary();
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Shift time header */}
-      <Text style={styles.header}>
-        Vakt i dag kl. {formatTime(shift.start_time)}
-      </Text>
+      <Text style={styles.header}>Vakt i dag kl. {formatTime(shift.start_time)}</Text>
 
       {/* Late punch-in warning — shift started but no punch */}
       {isLate && (
@@ -103,10 +104,7 @@ export function BeforeShiftView({
           {pendingTasks.map((task) => (
             <View key={task.id} style={styles.taskRow}>
               <View
-                style={[
-                  styles.taskDot,
-                  task.is_compliance_required && styles.taskDotCompliance,
-                ]}
+                style={[styles.taskDot, task.is_compliance_required && styles.taskDotCompliance]}
               />
               <Text style={styles.taskTitle} numberOfLines={1}>
                 {task.title}
@@ -115,6 +113,16 @@ export function BeforeShiftView({
           ))}
         </View>
       )}
+
+      {/* Supplement preview — informational, below all action items */}
+      <View style={styles.payrollCard}>
+        <PayrollHomeCard
+          phase="before_shift"
+          shift={shift}
+          timeEntry={null}
+          summary={summary.data ?? null}
+        />
+      </View>
     </ScrollView>
   );
 }
@@ -167,5 +175,10 @@ const useStyles = createStyles((theme) => ({
     ...theme.typography.body,
     color: theme.colors.foreground,
     flex: 1,
+  },
+
+  /* Payroll card spacing — sits below shift card and tasks */
+  payrollCard: {
+    marginTop: theme.spacing.section,
   },
 }));
