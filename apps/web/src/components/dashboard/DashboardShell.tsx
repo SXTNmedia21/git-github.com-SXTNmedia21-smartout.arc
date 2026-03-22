@@ -271,6 +271,7 @@ import {
   LoaderCircle,
   Sparkles,
   BookOpen,
+  Globe,
 } from "lucide-react";
 
 import { ContractPendingBanner } from "./ContractPendingBanner";
@@ -1336,6 +1337,14 @@ export function DashboardShell({
                           label="Organisasjon"
                           isDark={isDark}
                           active={isActive("/dashboard/organization")}
+                          isCollapsed={isSidebarCollapsed}
+                        />
+                        <NavItem
+                          href="/dashboard/website"
+                          icon={Globe}
+                          label="Nettside"
+                          isDark={isDark}
+                          active={isActive("/dashboard/website")}
                           isCollapsed={isSidebarCollapsed}
                         />
                         <NavItem
