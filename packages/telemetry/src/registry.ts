@@ -1680,11 +1680,11 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "operations",
   },
   "season_budget updated": {
-    destinations: ["posthog", "logger", "activity_trail"],
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "operations",
   },
   "day_factors updated": {
-    destinations: ["posthog", "logger", "activity_trail"],
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "operations",
   },
   "hour_factors updated": {

@@ -26,9 +26,7 @@ describe("buildEntityContext", () => {
   });
 
   it("multiple shifts same day → dailyHoursWorked = sum of durations", () => {
-    const existing = [
-      makeShift({ startTime: "06:00", endTime: "10:00", date: "2026-03-23" }),
-    ];
+    const existing = [makeShift({ startTime: "06:00", endTime: "10:00", date: "2026-03-23" })];
     const draft = makeShift({ startTime: "12:00", endTime: "18:00", date: "2026-03-23" });
     const result = buildEntityContext(existing, draft, { birthDate: null, contractType: null });
 
@@ -51,9 +49,7 @@ describe("buildEntityContext", () => {
   });
 
   it("draft shift added to existing → both included in totals", () => {
-    const existing = [
-      makeShift({ startTime: "06:00", endTime: "14:00", date: "2026-03-23" }),
-    ];
+    const existing = [makeShift({ startTime: "06:00", endTime: "14:00", date: "2026-03-23" })];
     const draft = makeShift({ startTime: "16:00", endTime: "22:00", date: "2026-03-23" });
 
     const result = buildEntityContext(existing, draft, { birthDate: null, contractType: null });

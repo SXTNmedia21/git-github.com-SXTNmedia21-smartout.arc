@@ -103,8 +103,9 @@ export function buildEntityContext(
   }
 
   // Employee age
-  const employeeAge =
-    employeeContext.birthDate ? computeAge(employeeContext.birthDate, draftDate) : undefined;
+  const employeeAge = employeeContext.birthDate
+    ? computeAge(employeeContext.birthDate, draftDate)
+    : undefined;
 
   return {
     date: draftDate,
