@@ -1,7 +1,7 @@
 ---
 title: Session Log
 status: in_progress
-updated: 2026-03-21
+updated: 2026-03-22
 created: 2026-03-02
 module: cross-cutting
 tags: [session, continuity]
@@ -9,49 +9,48 @@ tags: [session, continuity]
 
 ## Last Session
 
-| Field   | Value                                      |
-| ------- | ------------------------------------------ |
-| Date    | 2026-03-21                                 |
-| Branch  | `development` (main repo, no worktree)     |
-| Feature | Training curriculum design + repo analysis |
-| Status  | done                                       |
+| Field   | Value                                         |
+| ------- | --------------------------------------------- |
+| Date    | 2026-03-22                                    |
+| Branch  | `feat/payroll-foundation` (wt-5)              |
+| Feature | Payroll foundation: mobile UI + web dashboard |
+| Status  | in_progress                                   |
 
 ### What was done
 
-1. **Full repo analysis** for training curriculum — mapped 1402 TS files, 146 migrations, 33 Edge Functions, 47 enums, 409 client components, 80 route handlers, 297 TanStack Query usages, 11 Context providers, 0 error boundaries.
+1. **Mobile Payroll UI** — designed via visual companion mockups, brainstormed with Planday/Tripletex research, implemented via subagent-driven development:
+   - 6 screens: PayrollHomeCard (4 phase modes), AbsenceBalance, Timebank, AbsenceRequest, Payslip, SupplementBadges
+   - 4 pure functions with 117 tests: supplements (stacking rules), absence-projection, earnings-calc, trust-labels
+   - 6 query hooks + 2 mutation hooks (offline-first with enqueue)
+   - Meg tab integration + 4 expo-router routes
+   - Trust model: three-tier labeling (estimate/recorded/settled) on every monetary figure
+   - UX review: 4 critical + 5 important + 10 minor issues found and fixed
 
-2. **Training curriculum structure designed** — trimmed user's 28-module proposal to 14 focused modules with pedagogical ordering (TypeScript first, then stack knowledge, then tools, then hardening). Key design decisions:
-   - Two-layer per module: narrative (read once) + reference (look up forever)
-   - 800-word cap on Konsepter section
-   - All examples must be Smartout-specific, never generic
-   - Fixed internal structure: Konsepter → I Smartout → Fallgropar → Referanse
+2. **Web Dashboard wired with real data:**
+   - Reports page: 4 hooks replacing ALL mock data (overview KPIs, staffing, people, training)
+   - Operations/Drift: real session/task/shift/cost data with 60s auto-refresh
+   - Min Lønn page: 3-column payslip view with breakdown, absence balance, timebank sidebar
 
-3. **Batch 1 material gathered** — complete data for Modul 01 (TypeScript), 05 (Database Design), 09 (Debugging):
-   - 3 Zod schema examples with file paths
-   - Type quality metrics (38 `as any`, 2 `@ts-ignore`, 38 `as unknown as Json`)
-   - 66-table overview, junction table example, normalization example
-   - 15 representative enums with values
-   - 6 learnings mined for debugging examples (cookie preservation, x-forwarded-host, enum mismatch, optimistic locking, webhook regression, DocuSeal verification)
-
-4. **Rego/OPA discussed** — decision: Rego IS coming (cross-validation policy model), placed in Modul 14 as orientation (read .rego files, understand input/data/allow pattern). ADR recommended before implementation.
+3. **Quality gates all pass:** 22/22 typecheck, 0 lint errors, 134/134 tests
 
 ### Where we stopped
 
-- All curriculum material delivered to content agent in conversation
-- No files written to repo (this was analysis + design, not implementation)
-- Content agent has full spec + Smartout-specific data for Batch 1
+- All implementation done for mobile + web payroll UI
+- 30 commits on `feat/payroll-foundation` (data foundation + settings UI + mobile + web)
+- Feature NOT yet merged — remaining deliverables for closure
 
 ### Known blockers
 
-- wt-1 still exists (all commits merged, needs removal)
-- hospitality.ts still has wrong Riksavtalen rates
-- wt-2 branch (`docs/cascade-five-dimensions`) ready for merge
+- None — all gates pass
 
 ### Pending decisions
 
-- [ ] Remove wt-1 worktree + delete branch
-- [ ] Merge wt-2 to development
-- [ ] Run writing-plans skill for cascade implementation plan
-- [ ] Fix hospitality.ts rates in code
-- [ ] Rego/OPA — write ADR before implementation
-- [ ] Training curriculum Batch 2 (modules 02-04, 06-08) — content agent needs data
+- [ ] Absence type settings UI (payroll.absence_type has no CRUD screen on web)
+- [ ] W01-W06 seed migration (working time rule defaults only in UI)
+- [ ] Update CLAUDE.md with `--schema public --schema payroll` type gen command
+- [ ] Update DATABASE.md with 23 new payroll tables
+- [ ] Write user journeys (required for feature closure)
+- [ ] Update decision log + learning log (required for feature closure)
+- [ ] MMKV offline caching for payroll hooks (noted but deferred)
+- [ ] Timebank balance: move to DB view/RPC (tech debt)
+- [ ] Add "cancelled" to absence_status enum (currently using "rejected" for withdrawal)
