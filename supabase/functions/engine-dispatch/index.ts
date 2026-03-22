@@ -731,8 +731,22 @@ async function executeStep(
       const deptIds =
         (ctxData.department_ids as string[]) ?? (ctx.department_ids as string[]) ?? [];
 
+      // Filter: only operational/hybrid departments create sessions (not administrative)
+      const { data: deptRows } = await supabase
+        .from("department")
+        .select("department_id, department_type")
+        .in("department_id", deptIds);
+      const eligibleDeptIds = (deptRows ?? [])
+        .filter(
+          (d: { department_type: string | null }) =>
+            !d.department_type ||
+            d.department_type === "operational" ||
+            d.department_type === "hybrid",
+        )
+        .map((d: { department_id: string }) => d.department_id);
+
       for (const date of dates) {
-        for (const deptId of deptIds) {
+        for (const deptId of eligibleDeptIds) {
           // Resolve planned hours: override > weekly > null
           const hours = await resolveSessionHours(supabase, state.workspace_id, deptId, date);
 
