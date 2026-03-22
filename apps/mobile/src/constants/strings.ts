@@ -187,6 +187,20 @@ export const strings = {
       "Ingen lønnsslipp tilgjengelig ennå. Din første lønnsslipp vises her etter første lønnskjøring.",
     noQuotas: "Ingen fraværskvoter er satt opp ennå. Kontakt din leder.",
     noTimebank: "Ingen timer i timebanken ennå.",
+    // Error states
+    loadError: "Kunne ikke laste fraværssaldo",
+    loadErrorTimebank: "Kunne ikke laste timebank",
+    loadErrorPayslip: "Kunne ikke laste lønnsslipp",
+    // Fallback labels
+    unknownType: "Ukjent type",
+    // Balance display
+    days: "dager",
+    // Vacation strip
+    vacationDaysLeftIn: "Feriedager igjen i",
+    // Absence request form
+    fromDate: "Fra dato",
+    toDate: "Til dato",
+    commentPlaceholder: "F.eks. planlagt ferie uke 28-30",
   },
 } as const;
 

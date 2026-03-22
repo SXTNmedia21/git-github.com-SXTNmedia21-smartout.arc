@@ -14,9 +14,18 @@ type CardProps = {
   onPress?: PressableProps["onPress"];
   noPadding?: boolean;
   style?: ViewStyle;
+  accessibilityLabel?: string;
+  accessibilityRole?: PressableProps["accessibilityRole"];
 };
 
-export function Card({ children, onPress, noPadding = false, style }: CardProps) {
+export function Card({
+  children,
+  onPress,
+  noPadding = false,
+  style,
+  accessibilityLabel,
+  accessibilityRole,
+}: CardProps) {
   const styles = useStyles();
 
   const content = (
@@ -32,7 +41,8 @@ export function Card({ children, onPress, noPadding = false, style }: CardProps)
         onPress(e);
       }}
       style={({ pressed }) => pressed && styles.pressed}
-      accessibilityRole="button"
+      accessibilityRole={accessibilityRole ?? "button"}
+      accessibilityLabel={accessibilityLabel}
     >
       {content}
     </Pressable>

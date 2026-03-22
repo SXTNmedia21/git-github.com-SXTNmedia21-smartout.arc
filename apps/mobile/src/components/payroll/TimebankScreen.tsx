@@ -16,6 +16,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { SectionHeader } from "@/components/common/SectionHeader";
 import { strings } from "@/constants/strings";
 import { useTimebankBalance } from "@/hooks/queries/use-timebank-balance";
+import { formatDate, formatTimestamp } from "@/lib/format-date";
 import type { Database } from "@smartout/supabase/database.types";
 
 // UI Events:
@@ -39,25 +40,6 @@ function formatHours(hours: number): string {
   return `${h}t ${m}m`;
 }
 
-/** Format a date string as "DD.MM.YYYY" */
-function formatDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  const dd = date.getDate().toString().padStart(2, "0");
-  const mm = (date.getMonth() + 1).toString().padStart(2, "0");
-  const yyyy = date.getFullYear();
-  return `${dd}.${mm}.${yyyy}`;
-}
-
-/** Format a timestamp for "last updated" display */
-function formatTimestamp(dateStr: string): string {
-  const date = new Date(dateStr);
-  const dd = date.getDate().toString().padStart(2, "0");
-  const mm = (date.getMonth() + 1).toString().padStart(2, "0");
-  const hh = date.getHours().toString().padStart(2, "0");
-  const min = date.getMinutes().toString().padStart(2, "0");
-  return `${dd}.${mm} kl. ${hh}:${min}`;
-}
-
 export function TimebankScreen() {
   const styles = useStyles();
   const theme = useTheme();
@@ -67,7 +49,7 @@ export function TimebankScreen() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" />
-        <Text style={styles.loadingText}>Laster...</Text>
+        <Text style={styles.loadingText}>{strings.common.loading}</Text>
       </View>
     );
   }
@@ -75,7 +57,7 @@ export function TimebankScreen() {
   if (error) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={styles.errorText}>Kunne ikke laste timebank</Text>
+        <Text style={styles.errorText}>{strings.payroll.loadErrorTimebank}</Text>
       </View>
     );
   }

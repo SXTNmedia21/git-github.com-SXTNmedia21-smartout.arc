@@ -15,13 +15,14 @@ import React, { useState, useCallback, useMemo } from "react";
 import { View, Text, ScrollView, Pressable, ActivityIndicator } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import { createStyles, useTheme } from "@/theme";
+import { createStyles, useTheme, withOpacity } from "@/theme";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SectionHeader } from "@/components/common/SectionHeader";
 import { strings } from "@/constants/strings";
 import { usePayslips, usePayslipDetail } from "@/hooks/queries/use-payslips";
 import { useAbsenceBalance } from "@/hooks/queries/use-absence-balance";
+import { useAbsenceTypes } from "@/hooks/queries/use-absence-types";
 import { SupplementBadges } from "@/components/payroll/SupplementBadges";
 import type { ShiftSupplement } from "@/lib/supplements";
 import type { PayslipEntry } from "@/hooks/queries/use-payslips";
@@ -129,6 +130,8 @@ export function PayslipScreen() {
 
   const { data: payslipsData, isLoading: payslipsLoading, error: payslipsError } = usePayslips();
   const absenceBalance = useAbsenceBalance();
+  const absenceTypesQuery = useAbsenceTypes();
+  const currentYear = new Date().getFullYear();
 
   const payslips = payslipsData?.payslips ?? [];
 
@@ -165,7 +168,7 @@ export function PayslipScreen() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" />
-        <Text style={styles.loadingText}>Laster...</Text>
+        <Text style={styles.loadingText}>{strings.common.loading}</Text>
       </View>
     );
   }
@@ -173,7 +176,7 @@ export function PayslipScreen() {
   if (payslipsError) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={styles.errorText}>Kunne ikke laste lønnsslipp</Text>
+        <Text style={styles.errorText}>{strings.payroll.loadErrorPayslip}</Text>
       </View>
     );
   }
@@ -203,11 +206,28 @@ export function PayslipScreen() {
 
   const supplementBadges = extractSupplementBadges(lines);
 
-  /** Vacation quota for the vacation strip */
-  const currentYear = new Date().getFullYear();
-  const vacationQuota = absenceBalance.data?.quotas.find((q) => {
-    return q.year === currentYear;
-  });
+  /** Vacation quota for the vacation strip.
+   *
+   * We need the quota whose absence type has category "vacation" — not just any
+   * quota for the current year. useAbsenceTypes() is called at the top of the
+   * component (before any early returns, as required by React's Rules of Hooks)
+   * and is already cached via the shared hook. */
+  const vacationQuota = useMemo(() => {
+    const quotas = absenceBalance.data?.quotas ?? [];
+    const types = absenceTypesQuery.data ?? [];
+
+    // Find the absence type id for the vacation category
+    const vacationType = types.find((t) => t.category === "vacation");
+    if (!vacationType) {
+      // Fallback: if we can't identify the vacation type yet, use the first
+      // quota for the current year (matches pre-existing behavior)
+      return quotas.find((q) => q.year === currentYear) ?? null;
+    }
+
+    return (
+      quotas.find((q) => q.year === currentYear && q.absence_type_id === vacationType.id) ?? null
+    );
+  }, [absenceBalance.data?.quotas, absenceTypesQuery.data, currentYear]);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -231,9 +251,14 @@ export function PayslipScreen() {
 
       {/* Vacation strip — links to absence balance */}
       {vacationQuota && (
-        <Pressable onPress={handleVacationPress} style={styles.vacationStrip}>
+        <Pressable
+          onPress={handleVacationPress}
+          style={styles.vacationStrip}
+          accessibilityRole="link"
+          accessibilityLabel={strings.payroll.absenceBalance}
+        >
           <Text style={styles.vacationText}>
-            Feriedager igjen i {currentYear}: {vacationQuota.remaining_days ?? 0}{" "}
+            {strings.payroll.vacationDaysLeftIn} {currentYear}: {vacationQuota.remaining_days ?? 0}{" "}
             {strings.payroll.of} {vacationQuota.entitled_days}
           </Text>
           <Text style={styles.chevron}>›</Text>
@@ -380,7 +405,12 @@ function PeriodCard({ payslip, onPress }: { payslip: PayslipEntry; onPress: () =
   const styles = useStyles();
 
   return (
-    <Card onPress={onPress} style={styles.periodCard}>
+    <Card
+      onPress={onPress}
+      style={styles.periodCard}
+      accessibilityRole="button"
+      accessibilityLabel={formatPeriodName(payslip.period.start_date)}
+    >
       <View style={styles.periodCardContent}>
         <View style={styles.periodCardLeft}>
           <Text style={styles.periodCardName}>{formatPeriodName(payslip.period.start_date)}</Text>
@@ -448,7 +478,7 @@ const useStyles = createStyles((theme) => ({
     marginTop: theme.spacing.xs,
   },
   statusBadge: {
-    backgroundColor: theme.colors.success + "1A",
+    backgroundColor: withOpacity(theme.colors.success, 0.1),
     borderRadius: theme.radius.sm,
     paddingHorizontal: theme.spacing.tight,
     paddingVertical: theme.spacing.xxs,
@@ -465,7 +495,7 @@ const useStyles = createStyles((theme) => ({
     flexDirection: "row" as const,
     justifyContent: "space-between" as const,
     alignItems: "center" as const,
-    backgroundColor: theme.colors.success + "1A",
+    backgroundColor: withOpacity(theme.colors.success, 0.1),
     borderRadius: theme.radius.lg,
     paddingVertical: theme.spacing.element,
     paddingHorizontal: theme.spacing.card,

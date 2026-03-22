@@ -13,7 +13,6 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert } from "react-native";
 import * as Haptics from "expo-haptics";
-import { useQuery } from "@tanstack/react-query";
 
 import { createStyles, useTheme, withOpacity } from "@/theme";
 import { Card } from "@/components/ui/Card";
@@ -23,13 +22,12 @@ import { SectionHeader } from "@/components/common/SectionHeader";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { strings } from "@/constants/strings";
 import { useAbsenceBalance } from "@/hooks/queries/use-absence-balance";
+import { useAbsenceTypes } from "@/hooks/queries/use-absence-types";
 import { useMyAbsenceRequests } from "@/hooks/queries/use-my-absence-requests";
 import { useSupplementRules } from "@/hooks/queries/use-supplement-rules";
 import { useRequestAbsence } from "@/hooks/mutations/use-request-absence";
 import { useCancelAbsence } from "@/hooks/mutations/use-cancel-absence";
 import { projectAbsenceBalance } from "@/lib/absence-projection";
-import { supabase } from "@/lib/supabase";
-import type { Database } from "@smartout/supabase/database.types";
 import type { ProjectionResult } from "@/lib/absence-projection";
 
 // UI Events:
@@ -38,8 +36,6 @@ import type { ProjectionResult } from "@/lib/absence-projection";
 // - action: selectAbsenceType(type) (type picker row press)
 // - action: pickStartDate / pickEndDate (date field press)
 // - color-regime: balance-health-based (green > 20%, amber < 20%, red = 0)
-
-type AbsenceType = Database["payroll"]["Tables"]["absence_type"]["Row"];
 
 /** Maps absence category to the top-border accent color */
 const CATEGORY_COLORS: Record<string, { accent: string; label: string }> = {
@@ -88,33 +84,6 @@ function formatDateShort(isoDate: string): string {
   return `${dd}. ${months[date.getMonth()]}`;
 }
 
-/** Fetch absence types for the workspace (cached) */
-async function fetchAbsenceTypes(): Promise<AbsenceType[]> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
-
-  const { data: profile, error: profileError } = await supabase
-    .from("profile")
-    .select("workspace_id")
-    .eq("user_id", user.id)
-    .limit(1)
-    .single();
-  if (profileError) throw profileError;
-
-  const { data, error } = await supabase
-    .schema("payroll")
-    .from("absence_type")
-    .select("*")
-    .eq("workspace_id", profile.workspace_id)
-    .eq("is_active", true)
-    .order("sort_order", { ascending: true });
-
-  if (error) throw error;
-  return data ?? [];
-}
-
 export function AbsenceRequestScreen() {
   const styles = useStyles();
   const theme = useTheme();
@@ -124,12 +93,7 @@ export function AbsenceRequestScreen() {
   const { requestAbsence } = useRequestAbsence();
   const { cancelAbsence } = useCancelAbsence();
 
-  const absenceTypesQuery = useQuery<AbsenceType[]>({
-    queryKey: ["absence-types"],
-    queryFn: fetchAbsenceTypes,
-    staleTime: 10 * 60 * 1000,
-    retry: 1,
-  });
+  const absenceTypesQuery = useAbsenceTypes();
 
   // Form state
   const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null);
@@ -261,7 +225,7 @@ export function AbsenceRequestScreen() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" />
-        <Text style={styles.loadingText}>Laster...</Text>
+        <Text style={styles.loadingText}>{strings.common.loading}</Text>
       </View>
     );
   }
@@ -280,7 +244,7 @@ export function AbsenceRequestScreen() {
         style={styles.balanceCardsScroll}
       >
         {quotas.map((quota) => {
-          const typeName = typeNameMap.get(quota.absence_type_id) ?? "Ukjent";
+          const typeName = typeNameMap.get(quota.absence_type_id) ?? strings.payroll.unknownType;
           const remaining = quota.remaining_days ?? 0;
           const entitled = quota.entitled_days;
           const absType = absenceTypes.find((t) => t.id === quota.absence_type_id);
@@ -357,7 +321,7 @@ export function AbsenceRequestScreen() {
               maxLength={10}
               style={styles.dateInput}
             />
-            <Text style={styles.dateHint}>Fra dato</Text>
+            <Text style={styles.dateHint}>{strings.payroll.fromDate}</Text>
           </View>
 
           <Text style={styles.dateSeparator}>–</Text>
@@ -371,7 +335,7 @@ export function AbsenceRequestScreen() {
               maxLength={10}
               style={styles.dateInput}
             />
-            <Text style={styles.dateHint}>Til dato</Text>
+            <Text style={styles.dateHint}>{strings.payroll.toDate}</Text>
           </View>
         </View>
 
@@ -406,7 +370,7 @@ export function AbsenceRequestScreen() {
         {/* Comment */}
         <Input
           label={strings.payroll.commentOptional}
-          placeholder="F.eks. planlagt ferie uke 28-30"
+          placeholder={strings.payroll.commentPlaceholder}
           value={comment}
           onChangeText={setComment}
           multiline

@@ -12,49 +12,21 @@
 
 import React, { useMemo } from "react";
 import { View, Text, ScrollView, ActivityIndicator } from "react-native";
-import { useQuery } from "@tanstack/react-query";
 import { createStyles, useTheme } from "@/theme";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SectionHeader } from "@/components/common/SectionHeader";
 import { strings } from "@/constants/strings";
 import { useAbsenceBalance } from "@/hooks/queries/use-absence-balance";
-import { supabase } from "@/lib/supabase";
+import { useAbsenceTypes } from "@/hooks/queries/use-absence-types";
+import { formatDate, formatTimestamp } from "@/lib/format-date";
 import type { Database } from "@smartout/supabase/database.types";
 
 // UI Events:
 // - display-only: read-only screen, no mutations
 // - color-regime: balance-health-based (green > 20%, amber < 20%, red = 0)
 
-type AbsenceType = Database["payroll"]["Tables"]["absence_type"]["Row"];
 type AbsenceLedgerType = Database["payroll"]["Enums"]["absence_ledger_type"];
-
-/** Fetch absence type names for display labels */
-async function fetchAbsenceTypes(): Promise<AbsenceType[]> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
-
-  const { data: profile, error: profileError } = await supabase
-    .from("profile")
-    .select("workspace_id")
-    .eq("user_id", user.id)
-    .limit(1)
-    .single();
-  if (profileError) throw profileError;
-
-  const { data, error } = await supabase
-    .schema("payroll")
-    .from("absence_type")
-    .select("*")
-    .eq("workspace_id", profile.workspace_id)
-    .eq("is_active", true)
-    .order("sort_order", { ascending: true });
-
-  if (error) throw error;
-  return data ?? [];
-}
 
 /** Ledger entry types that represent positive movements (entitlement, carry-over, adjustment) */
 const POSITIVE_ENTRY_TYPES: AbsenceLedgerType[] = ["entitlement", "carry_over", "adjustment"];
@@ -69,35 +41,11 @@ function getBalanceColorKey(
   return "success";
 }
 
-/** Format a date string as "DD.MM.YYYY" */
-function formatDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  const dd = date.getDate().toString().padStart(2, "0");
-  const mm = (date.getMonth() + 1).toString().padStart(2, "0");
-  const yyyy = date.getFullYear();
-  return `${dd}.${mm}.${yyyy}`;
-}
-
-/** Format a timestamp for "last updated" display */
-function formatTimestamp(dateStr: string): string {
-  const date = new Date(dateStr);
-  const dd = date.getDate().toString().padStart(2, "0");
-  const mm = (date.getMonth() + 1).toString().padStart(2, "0");
-  const hh = date.getHours().toString().padStart(2, "0");
-  const min = date.getMinutes().toString().padStart(2, "0");
-  return `${dd}.${mm} kl. ${hh}:${min}`;
-}
-
 export function AbsenceBalanceScreen() {
   const styles = useStyles();
   const theme = useTheme();
   const { data, isLoading, error } = useAbsenceBalance();
-  const absenceTypesQuery = useQuery<AbsenceType[]>({
-    queryKey: ["absence-types"],
-    queryFn: fetchAbsenceTypes,
-    staleTime: 10 * 60 * 1000,
-    retry: 1,
-  });
+  const absenceTypesQuery = useAbsenceTypes();
 
   /** Map absence_type_id to display name (Norwegian preferred) */
   const typeNameMap = useMemo(() => {
@@ -114,7 +62,7 @@ export function AbsenceBalanceScreen() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" />
-        <Text style={styles.loadingText}>Laster...</Text>
+        <Text style={styles.loadingText}>{strings.common.loading}</Text>
       </View>
     );
   }
@@ -122,7 +70,7 @@ export function AbsenceBalanceScreen() {
   if (error || absenceTypesQuery.error) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={styles.errorText}>Kunne ikke laste fraværssaldo</Text>
+        <Text style={styles.errorText}>{strings.payroll.loadError}</Text>
       </View>
     );
   }
@@ -148,7 +96,7 @@ export function AbsenceBalanceScreen() {
       {/* Balance rows — one per absence type */}
       <Card style={styles.section}>
         {quotas.map((quota, index) => {
-          const typeName = typeNameMap.get(quota.absence_type_id) ?? "Ukjent type";
+          const typeName = typeNameMap.get(quota.absence_type_id) ?? strings.payroll.unknownType;
           const remaining = quota.remaining_days ?? 0;
           const entitled = quota.entitled_days;
           const colorKey = getBalanceColorKey(remaining, entitled);
@@ -163,7 +111,7 @@ export function AbsenceBalanceScreen() {
                   <Text style={styles.typeName}>{typeName}</Text>
                 </View>
                 <Text style={[styles.balanceValue, { color }]}>
-                  {remaining} {strings.payroll.of} {entitled} dager
+                  {remaining} {strings.payroll.of} {entitled} {strings.payroll.days}
                 </Text>
               </View>
             </View>

@@ -94,7 +94,7 @@ export function NoShiftView({ firstName, nextShift }: NoShiftViewProps) {
 
             {!nextShift.confirmed_at && (
               <View style={styles.confirmHint}>
-                <Text style={styles.confirmHintText}>Ubekreftet — trykk for a bekrefte</Text>
+                <Text style={styles.confirmHintText}>Ubekreftet — trykk for å bekrefte</Text>
               </View>
             )}
           </Pressable>
@@ -106,7 +106,7 @@ export function NoShiftView({ firstName, nextShift }: NoShiftViewProps) {
         >
           <CalendarDays size={32} color={styles.emptyIcon.color} strokeWidth={1.2} />
           <Text style={styles.emptyTitle}>{strings.home.noShift}</Text>
-          <Text style={styles.emptySubtitle}>Nye vakter vises her nar lederen publiserer dem.</Text>
+          <Text style={styles.emptySubtitle}>Nye vakter vises her når lederen publiserer dem.</Text>
         </Animated.View>
       )}
 

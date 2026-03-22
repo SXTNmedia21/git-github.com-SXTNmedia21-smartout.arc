@@ -111,13 +111,11 @@ async function fetchPayrollSummary(): Promise<PayrollSummary> {
         .eq("profile_id", profileId)
         .eq("year", currentYear),
 
-      // 2. Timebank entries (hours + type only needed for balance calc)
+      // 2. Timebank entries — only the columns needed for net balance computation
       supabase
         .schema("payroll")
         .from("timebank_entry")
-        .select(
-          "id, entry_type, hours, effective_date, workspace_id, profile_id, created_at, created_by, description, expiry_date, payroll_calculation_id, schedule_absence_id",
-        )
+        .select("id, entry_type, hours")
         .eq("profile_id", profileId),
 
       // 3. Most recent exported period for this workspace

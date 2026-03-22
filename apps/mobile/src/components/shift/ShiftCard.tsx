@@ -37,7 +37,7 @@ type ShiftCardProps = {
  */
 function formatShiftDate(dateStr: string): string {
   const date = new Date(`${dateStr}T00:00:00Z`);
-  const days = ["Sondag", "Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lordag"];
+  const days = ["Søndag", "Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag"];
   const months = [
     "januar",
     "februar",
