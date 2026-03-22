@@ -13,10 +13,14 @@ export { evaluateFrameworkRules } from "./evaluate-framework-rules";
 export { validateProposalFreshness, computeStateHash } from "./validate-proposal-freshness";
 
 export type {
+  // Operating hours
   EffectiveHours,
   AnchorInput,
   AnchorType,
   ComputedShiftTime,
+  DepartmentOperatingHoursRow,
+  DepartmentHoursOverrideRow,
+  // Legacy evaluation types (kept for existing consumers)
   Conflict,
   ConflictCategory,
   ConflictSeverity,
@@ -24,8 +28,24 @@ export type {
   FrameworkRule,
   WorkspaceRuleOverride,
   ProposedChange,
+  // Proposal freshness
   ChangeProposalRow,
   FreshnessResult,
-  DepartmentOperatingHoursRow,
-  DepartmentHoursOverrideRow,
+  // Bootstrap types
+  BootstrapSourcePath,
+  BootstrapStatus,
+  BootstrapWarning,
+  BootstrapStepName,
+  // Tariff types
+  TariffContext,
+  TariffRateRow,
+  TariffSupplement,
+  TariffResolution,
+  // New evaluation types (Phase B)
+  EvaluationOutcomeLevel,
+  RuleHit,
+  EvaluationResult,
+  EntityContext,
+  FrameworkRuleRow,
+  WorkspaceRuleOverrideRow,
 } from "./types";
