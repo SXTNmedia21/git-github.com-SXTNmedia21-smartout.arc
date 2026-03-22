@@ -32,6 +32,7 @@ export function useChannels() {
 
   return useQuery({
     queryKey: channelKeys.list(workspaceId),
+    staleTime: 30_000,
     queryFn: async (): Promise<ChannelGroup[]> => {
       const supabase = createClient();
       const { data, error } = await supabase.rpc("get_my_channels", {

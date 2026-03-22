@@ -15,6 +15,7 @@ export function useChannelMessages(channelId: string | null) {
   return useInfiniteQuery({
     queryKey: channelKeys.messages(workspaceId, channelId ?? "none"),
     enabled: !!channelId,
+    staleTime: 10_000,
     initialPageParam: new Date().toISOString(),
     queryFn: async ({ pageParam }): Promise<MessageWithSender[]> => {
       const supabase = createClient();

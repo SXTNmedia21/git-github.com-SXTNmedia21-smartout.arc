@@ -12,7 +12,7 @@ export function useUnreadCounts() {
 
   return useQuery({
     queryKey: channelKeys.unread(workspaceId),
-    refetchInterval: 30_000,
+    staleTime: 30_000,
     queryFn: async (): Promise<UnreadCount[]> => {
       const supabase = createClient();
       const { data, error } = await supabase.rpc("get_unread_counts", {
