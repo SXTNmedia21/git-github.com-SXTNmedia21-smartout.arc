@@ -241,18 +241,16 @@ export async function publishWebsite(websiteId: string): Promise<PublishResult> 
     });
 
     // Revalidate ISR cache
-    revalidateTag(`website:${websiteId}`);
-    revalidateTag(`website:workspace:${workspaceId}`);
+    revalidateTag(`website:${websiteId}`, "default");
+    revalidateTag(`website:workspace:${workspaceId}`, "default");
 
     // Emit telemetry
     await emit({
       event: "website published",
+      workspace_id: workspaceId,
+      actor_id: user.id,
       properties: {
-        entity: {
-          type: "website",
-          id: websiteId,
-          workspace_id: workspaceId,
-        },
+        entity: { entity_type: "website", entity_id: websiteId },
         data: { version: nextVersion, snapshot_hash: finalHash },
       },
     });
@@ -343,18 +341,16 @@ export async function rollbackWebsite(
     });
 
     // Revalidate ISR cache
-    revalidateTag(`website:${websiteId}`);
-    revalidateTag(`website:workspace:${workspaceId}`);
+    revalidateTag(`website:${websiteId}`, "default");
+    revalidateTag(`website:workspace:${workspaceId}`, "default");
 
     // Emit telemetry
     await emit({
       event: "website rollback",
+      workspace_id: workspaceId,
+      actor_id: user.id,
       properties: {
-        entity: {
-          type: "website",
-          id: websiteId,
-          workspace_id: workspaceId,
-        },
+        entity: { entity_type: "website", entity_id: websiteId },
         data: { from_version: fromVersion, to_version: targetVersion },
       },
     });
@@ -397,18 +393,16 @@ export async function unpublishWebsite(websiteId: string): Promise<ActionResult>
     });
 
     // Revalidate ISR cache
-    revalidateTag(`website:${websiteId}`);
-    revalidateTag(`website:workspace:${workspaceId}`);
+    revalidateTag(`website:${websiteId}`, "default");
+    revalidateTag(`website:workspace:${workspaceId}`, "default");
 
     // Emit telemetry
     await emit({
       event: "website unpublished",
+      workspace_id: workspaceId,
+      actor_id: user.id,
       properties: {
-        entity: {
-          type: "website",
-          id: websiteId,
-          workspace_id: workspaceId,
-        },
+        entity: { entity_type: "website", entity_id: websiteId },
       },
     });
 

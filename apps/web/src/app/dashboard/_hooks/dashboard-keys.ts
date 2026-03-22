@@ -82,4 +82,11 @@ export const dashboardKeys = {
     ["dashboard", "workspace-setup-status", workspaceId] as const,
 
   onboardingGuide: (workspaceId: string) => ["dashboard", "onboarding-guide", workspaceId] as const,
+
+  // Website Factory
+  website: (workspaceId: string) => ["dashboard", "website", workspaceId] as const,
+
+  websitePages: (websiteId: string) => ["dashboard", "website-pages", websiteId] as const,
+
+  websiteSections: (pageId: string) => ["dashboard", "website-sections", pageId] as const,
 };
