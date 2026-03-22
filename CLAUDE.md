@@ -62,6 +62,26 @@ smartout_v3/
 
 ---
 
+## Database — Architecture Rules
+
+### Schema separation (mandatory brainstorm topic)
+
+Every new feature that touches the database MUST include a schema placement decision during brainstorming/design. Questions to resolve:
+
+1. **Which PostgreSQL schema?** — Does this belong in `public` (default), or a dedicated schema (`payroll`, `websites`, `timesheet`, or a new one)?
+2. **Schema boundary criteria:** A dedicated schema is warranted when the domain has 5+ tables, distinct RLS patterns, or clear ownership boundary. Document the decision in the spec.
+3. **Existing schemas:** `public` (169 tables — core + HMS + cascade), `payroll` (23), `websites` (13), `timesheet` (1). New domains with clear boundaries should get their own schema.
+
+Never skip this discussion. Undecided schema placement leads to 169-table `public` schemas.
+
+### Supabase environments
+
+- **Development:** Always Supabase Local (`npx supabase start`). All migrations run against local DB via `docker exec`.
+- **Production:** Supabase Cloud. Migrations applied via Supabase CLI or dashboard.
+- Never develop against production. Never skip local testing before pushing migrations.
+
+---
+
 ## Database — Critical Traps
 
 - Table is `user_identity`, NOT `user`. No `public.user` table exists.
@@ -429,6 +449,8 @@ ALL microservices (contract-service, scrapling, future services):
 - Never mix dimension concerns across tables (D2 data in D4 table = wrong)
 - Never treat cascade pipeline and Event Engine as the same thing — cascade produces, event engine consumes
 - Never build dashboard features with web-only architecture — data layer and hooks must support mobile. Shared logic in `packages/`, not `apps/web/`
+- Never create new database tables without brainstorming schema placement first (public vs dedicated schema)
+- Never develop or test against Supabase Cloud — always use Supabase Local for development
 
 ---
 
