@@ -112,11 +112,13 @@ CREATE TRIGGER set_updated_at BEFORE UPDATE ON {table}
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 ```
 
-### ON DELETE Convention
+### Archive vs Delete Convention
 
-- Child tables referencing `channel` use `ON DELETE CASCADE` (archiving removes all related data)
+- **Archive** (normal operation): `channel.is_archived = true`. Channel row and all child data remain. Hidden from active UX. Searchable per retention policy.
+- **Hard delete** (rare, admin/service-only): Physical delete via retention purge job or explicit admin action. Child tables use `ON DELETE CASCADE` for referential integrity IF a hard delete occurs.
+- No normal API route performs physical delete. `DELETE /api/channels/[id]` sets `is_archived = true`.
 - `channel_message` self-reference (`reply_to_id`) uses `ON DELETE SET NULL`
-- `channel_event.rendered_message_id` uses `ON DELETE SET NULL`
+- Reverse lookup (event -> message) via `channel_message.event_id` query, no cyclic FK
 - Profile references use `ON DELETE RESTRICT` (never delete profiles with channel history)
 
 ---
@@ -240,29 +242,30 @@ Indexes:
 
 #### `channel_message`
 
-| Column               | Type                       | Constraint                                             | Notes                                           |
-| -------------------- | -------------------------- | ------------------------------------------------------ | ----------------------------------------------- |
-| `id`                 | uuid                       | PK, default gen_random_uuid()                          |                                                 |
-| `channel_id`         | uuid                       | FK -> channel(id) ON DELETE CASCADE, NOT NULL          |                                                 |
-| `workspace_id`       | uuid                       | FK -> workspace(workspace_id), NOT NULL                | RLS + API key                                   |
-| `sender_id`          | uuid                       | FK -> profile(profile_id) ON DELETE RESTRICT, NOT NULL | AI uses system profile                          |
-| `content`            | text                       | NOT NULL                                               | Markdown supported                              |
-| `message_type`       | channel_message_type       | DEFAULT 'text'                                         |                                                 |
-| `origin_type`        | channel_origin_type        | DEFAULT 'human'                                        | Who/what created this                           |
-| `origin_id`          | text                       | NULL                                                   | Source identity (webhook ID, workflow ID, etc.) |
-| `delivery_mode`      | channel_delivery_mode      | DEFAULT 'timeline'                                     |                                                 |
-| `visibility_scope`   | channel_message_visibility | DEFAULT 'all_members'                                  | Who can see this                                |
-| `target_profile_ids` | uuid[]                     | NULL                                                   | For targeted_members visibility                 |
-| `event_id`           | uuid                       | FK -> channel_event(id) ON DELETE SET NULL, NULL       | Source event if machine-generated               |
-| `reply_to_id`        | uuid                       | FK -> self ON DELETE SET NULL, NULL                    | Threading                                       |
-| `system_data`        | jsonb                      | NULL                                                   | Structured metadata for system messages         |
-| `is_pinned`          | boolean                    | DEFAULT false                                          |                                                 |
-| `pinned_by`          | uuid                       | FK -> profile(profile_id), NULL                        |                                                 |
-| `pinned_at`          | timestamptz                | NULL                                                   |                                                 |
-| `edited_at`          | timestamptz                | NULL                                                   |                                                 |
-| `deleted_at`         | timestamptz                | NULL                                                   | Soft delete                                     |
-| `created_at`         | timestamptz                | DEFAULT now()                                          |                                                 |
-| `updated_at`         | timestamptz                | DEFAULT now()                                          | + set_updated_at trigger                        |
+| Column               | Type                       | Constraint                                             | Notes                                                   |
+| -------------------- | -------------------------- | ------------------------------------------------------ | ------------------------------------------------------- |
+| `id`                 | uuid                       | PK, default gen_random_uuid()                          |                                                         |
+| `channel_id`         | uuid                       | FK -> channel(id) ON DELETE CASCADE, NOT NULL          |                                                         |
+| `workspace_id`       | uuid                       | FK -> workspace(workspace_id), NOT NULL                | RLS + API key                                           |
+| `sender_id`          | uuid                       | FK -> profile(profile_id) ON DELETE RESTRICT, NOT NULL | AI uses system profile                                  |
+| `content`            | text                       | NOT NULL                                               | Markdown supported                                      |
+| `message_type`       | channel_message_type       | DEFAULT 'text'                                         |                                                         |
+| `origin_type`        | channel_origin_type        | DEFAULT 'human'                                        | Who/what created this                                   |
+| `origin_id`          | text                       | NULL                                                   | Source identity (webhook ID, workflow ID, etc.)         |
+| `delivery_mode`      | channel_delivery_mode      | DEFAULT 'timeline'                                     |                                                         |
+| `visibility_scope`   | channel_message_visibility | DEFAULT 'all_members'                                  | Who can see this                                        |
+| `target_profile_ids` | uuid[]                     | NULL                                                   | For targeted_members visibility                         |
+| `event_id`           | uuid                       | FK -> channel_event(id) ON DELETE SET NULL, NULL       | Source event if machine-generated                       |
+| `reply_to_id`        | uuid                       | FK -> self ON DELETE SET NULL, NULL                    | Threading                                               |
+| `system_data`        | jsonb                      | NULL                                                   | Structured metadata for system messages                 |
+| `is_pinned`          | boolean                    | DEFAULT false                                          |                                                         |
+| `pinned_by`          | uuid                       | FK -> profile(profile_id), NULL                        |                                                         |
+| `pinned_at`          | timestamptz                | NULL                                                   |                                                         |
+| `edited_at`          | timestamptz                | NULL                                                   |                                                         |
+| `deleted_at`         | timestamptz                | NULL                                                   | Soft delete                                             |
+| `client_message_id`  | uuid                       | NULL                                                   | Client-generated UUID for idempotent retry (Section 13) |
+| `created_at`         | timestamptz                | DEFAULT now()                                          |                                                         |
+| `updated_at`         | timestamptz                | DEFAULT now()                                          | + set_updated_at trigger                                |
 
 Indexes:
 
@@ -270,25 +273,27 @@ Indexes:
 - `idx_channel_message_workspace` ON (workspace_id) — for API key RLS
 - `idx_channel_message_reply_to` ON (reply_to_id) WHERE reply_to_id IS NOT NULL
 - `idx_channel_message_event` ON (event_id) WHERE event_id IS NOT NULL
+- `CREATE UNIQUE INDEX idx_channel_message_client_id ON channel_message(channel_id, client_message_id) WHERE client_message_id IS NOT NULL`
 
 #### `channel_event`
 
 Immutable source-of-truth for machine/system/AI/external/generated events.
 
-| Column                | Type        | Constraint                                         | Notes                                                                     |
-| --------------------- | ----------- | -------------------------------------------------- | ------------------------------------------------------------------------- |
-| `id`                  | uuid        | PK, default gen_random_uuid()                      |                                                                           |
-| `channel_id`          | uuid        | FK -> channel(id) ON DELETE CASCADE, NOT NULL      |                                                                           |
-| `workspace_id`        | uuid        | FK -> workspace(workspace_id), NOT NULL            |                                                                           |
-| `event_type`          | text        | NOT NULL                                           | e.g. 'shift_prep', 'reminder', 'handoff', 'webhook_payload', 'ai_summary' |
-| `source`              | text        | NOT NULL                                           | e.g. 'scheduler', 'stage-engine', 'n8n', 'livekit', 'guardian'            |
-| `source_id`           | text        | NULL                                               | External reference ID                                                     |
-| `payload`             | jsonb       | NOT NULL                                           | Event data                                                                |
-| `correlation_id`      | uuid        | NULL                                               | Trace through event chains                                                |
-| `causation_id`        | uuid        | NULL                                               | Which event caused this one                                               |
-| `idempotency_key`     | text        | NULL                                               | Dedupe for webhooks                                                       |
-| `rendered_message_id` | uuid        | FK -> channel_message(id) ON DELETE SET NULL, NULL | The visible message, if any                                               |
-| `created_at`          | timestamptz | DEFAULT now()                                      | Immutable — no updated_at                                                 |
+| Column            | Type        | Constraint                                    | Notes                                                                     |
+| ----------------- | ----------- | --------------------------------------------- | ------------------------------------------------------------------------- |
+| `id`              | uuid        | PK, default gen_random_uuid()                 |                                                                           |
+| `channel_id`      | uuid        | FK -> channel(id) ON DELETE CASCADE, NOT NULL |                                                                           |
+| `workspace_id`    | uuid        | FK -> workspace(workspace_id), NOT NULL       |                                                                           |
+| `event_type`      | text        | NOT NULL                                      | e.g. 'shift_prep', 'reminder', 'handoff', 'webhook_payload', 'ai_summary' |
+| `source`          | text        | NOT NULL                                      | e.g. 'scheduler', 'stage-engine', 'n8n', 'livekit', 'guardian'            |
+| `source_id`       | text        | NULL                                          | External reference ID                                                     |
+| `payload`         | jsonb       | NOT NULL                                      | Event data                                                                |
+| `correlation_id`  | uuid        | NULL                                          | Trace through event chains                                                |
+| `causation_id`    | uuid        | NULL                                          | Which event caused this one                                               |
+| `idempotency_key` | text        | NULL                                          | Dedupe for webhooks                                                       |
+| `created_at`      | timestamptz | DEFAULT now()                                 | Immutable — no updated_at                                                 |
+
+Note: No back-reference to `channel_message`. To find the rendered message for an event: `SELECT id FROM channel_message WHERE event_id = $1`. This avoids cyclic FK dependencies, insert ordering issues, and retry complications.
 
 Indexes:
 
@@ -349,7 +354,7 @@ Constraints:
 
 #### `channel_presence`
 
-Ephemeral runtime state. Hot path via Supabase Realtime Presence; persisted to PG for analytics.
+**Non-authoritative persistence.** Authoritative runtime presence lives in Supabase Realtime Presence and LiveKit participant state. This table is a coarse analytics/last-seen snapshot only. Do NOT build business logic that depends on `channel_presence.status = 'online'` being current — it will drift.
 
 | Column         | Type                    | Constraint                                             | Notes                    |
 | -------------- | ----------------------- | ------------------------------------------------------ | ------------------------ |
@@ -547,9 +552,16 @@ CREATE POLICY "channel_jwt_select" ON channel FOR SELECT USING (
   )
 );
 
--- JWT: create custom/news channels if workspace member
+-- JWT: insert gated by security-definer function (not direct RLS)
+-- Creation permissions enforced by create_channel() function which checks:
+--   custom: manager/admin/owner role
+--   news: admin/owner only
+--   direct: any member (function enforces exactly 2 participants + dedup)
+--   department/team/session/skill: system/service role only (auto-created by triggers)
+-- RLS INSERT policy delegates to the function:
 CREATE POLICY "channel_jwt_insert" ON channel FOR INSERT WITH CHECK (
   workspace_id IN (SELECT get_workspace_ids_for_user(auth.uid()))
+  AND channel_type IN ('custom', 'direct')  -- news via admin-only function
 );
 
 -- JWT: update if channel admin
@@ -767,19 +779,19 @@ Full SQL for all policies will be in the migration file.
 
 Business operations beyond CRUD. Implemented as internal service functions called by routes.
 
-| Command                   | Trigger                              | Effect                                               |
-| ------------------------- | ------------------------------------ | ---------------------------------------------------- |
-| `join-channel`            | POST /members or auto-trigger        | Add member, emit event, update presence              |
-| `leave-channel`           | DELETE /members                      | Remove member, emit event, leave call if active      |
-| `mark-read`               | POST /read                           | Update last_read_message_id, clear badge             |
-| `start-call-session`      | POST /call/token (first participant) | Create channel_call_session, create LiveKit room     |
-| `end-call-session`        | LiveKit webhook (room_finished)      | Finalize call_session, create call_log, emit         |
-| `set-ptt-state`           | Client-side (LiveKit SDK)            | Update call_participant.mic_enabled                  |
-| `set-camera-state`        | Client-side (LiveKit SDK)            | Update call_participant.camera_enabled               |
-| `post-system-event`       | Scheduler, workflow, webhook         | Create channel_event, optionally render as message   |
-| `generate-shift-summary`  | Session close trigger                | AI generates summary, posts as pinned system message |
-| `request-ai-response`     | @mention or proactive trigger        | Route to Stage Engine, post response as AI message   |
-| `archive-session-channel` | Session close + grace period         | Archive channel, pin summary, enforce retention      |
+| Command                   | Trigger                              | Effect                                                                                                                           |
+| ------------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| `join-channel`            | POST /members or auto-trigger        | Add member, emit event, update presence                                                                                          |
+| `leave-channel`           | DELETE /members                      | Remove member, emit event, leave call if active                                                                                  |
+| `mark-read`               | POST /read                           | Update last_read_message_id, clear badge                                                                                         |
+| `start-call-session`      | POST /call/token (first participant) | Create channel_call_session, create LiveKit room                                                                                 |
+| `end-call-session`        | LiveKit webhook (room_finished)      | Finalize call_session, create call_log, emit                                                                                     |
+| `set-ptt-state`           | Client-side (LiveKit SDK)            | Local SDK action only. Telemetry sampled/debounced. DB persistence only in call summary aggregation, NOT per press.              |
+| `set-camera-state`        | Client-side (LiveKit SDK)            | Local SDK action + LiveKit participant metadata update (requires canUpdateOwnMetadata token grant). DB only on call end summary. |
+| `post-system-event`       | Scheduler, workflow, webhook         | Create channel_event, optionally render as message                                                                               |
+| `generate-shift-summary`  | Session close trigger                | AI generates summary, posts as pinned system message                                                                             |
+| `request-ai-response`     | @mention or proactive trigger        | Route to Stage Engine, post response as AI message                                                                               |
+| `archive-session-channel` | Session close + grace period         | Archive channel, pin summary, enforce retention                                                                                  |
 
 ### 4.3 Supabase Edge Functions
 
@@ -835,6 +847,7 @@ const grant: VideoGrant = {
   canPublishData: true,
   canSubscribe: true,
   canPublishSources: buildAllowedSources(audioPolicy, videoPolicy),
+  canUpdateOwnMetadata: true, // Required for camera facing, mode markers, ephemeral state
 };
 ```
 
@@ -916,13 +929,13 @@ LiveKit webhooks are **authoritative** for call state. Client-initiated start/en
 
 ### 5.8 Mobile-Specific
 
-| Concern            | iOS                                      | Android                            |
-| ------------------ | ---------------------------------------- | ---------------------------------- |
-| Background audio   | CallKit via react-native-callkeep        | Foreground service                 |
-| Audio session      | AudioSession.startAudioSession()         | AudioType.CommunicationAudioType() |
-| Noise cancellation | @livekit/react-native-krisp-noise-filter | Same                               |
-| Camera permission  | NSCameraUsageDescription in Info.plist   | Expo plugin handles                |
-| Expo compatibility | Dev builds only (no Expo Go)             | Dev builds only                    |
+| Concern            | iOS                                                          | Android                            |
+| ------------------ | ------------------------------------------------------------ | ---------------------------------- |
+| Background audio   | CallKit via react-native-callkeep                            | Foreground service                 |
+| Audio session      | AudioSession.startAudioSession()                             | AudioType.CommunicationAudioType() |
+| Noise cancellation | LiveKit Krisp NC (pin exact RN package after proof-of-build) | Same                               |
+| Camera permission  | NSCameraUsageDescription in Info.plist                       | Expo plugin handles                |
+| Expo compatibility | Dev builds only (no Expo Go)                                 | Dev builds only                    |
 
 ### 5.9 Agent SDK LiveKit Provider
 
@@ -1253,7 +1266,105 @@ Added to `.env.template` and `apps/web/src/env.ts` Zod validation.
 
 ---
 
-## 12. Out of Scope (YAGNI)
+## 12. Channel Kind Rules
+
+Permissions and invariants per channel type:
+
+| Type         | Who creates         | Who joins                      | Who posts    | AI auto-joins | Media allowed | Retention                           | Comments if read-only     |
+| ------------ | ------------------- | ------------------------------ | ------------ | ------------- | ------------- | ----------------------------------- | ------------------------- |
+| `department` | System (trigger)    | Auto: all dept profiles        | All members  | Yes           | Yes           | Permanent                           | N/A (not read-only)       |
+| `team`       | System (trigger)    | Auto: all team profiles        | All members  | No (opt-in)   | Yes           | Permanent                           | N/A                       |
+| `session`    | System (trigger)    | Auto: on-shift profiles        | All members  | Yes           | Yes           | Archive on close + retention policy | N/A                       |
+| `custom`     | Manager/admin/owner | Invited by admin               | All members  | No (opt-in)   | Yes           | Until archived                      | N/A                       |
+| `direct`     | Any member          | Exactly 2 (enforced)           | Both members | No            | Yes           | Permanent                           | N/A                       |
+| `news`       | Admin/owner only    | All workspace (auto)           | Admins only  | No            | Yes           | Until archived                      | Yes (members can comment) |
+| `skill`      | System (trigger)    | Auto: profiles with assignment | All members  | No (opt-in)   | Yes           | Until assignment removed            | N/A                       |
+
+### Direct Channel Uniqueness
+
+Direct channels must be unique per pair. Enforced via a normalized hash:
+
+```sql
+-- Computed column on channel (for direct type only)
+ALTER TABLE channel ADD COLUMN direct_pair_hash text
+  GENERATED ALWAYS AS (
+    CASE WHEN channel_type = 'direct' THEN
+      -- Hash is computed from sorted profile_id pair via create_channel() function
+      -- Stored as: lesser_profile_id || ':' || greater_profile_id
+      NULL -- Set by create_channel() function, not generated column
+    END
+  ) STORED;
+```
+
+Actually implemented as:
+
+- `create_channel()` security-definer function computes `direct_pair_hash = sort(profile_a, profile_b).join(':')`
+- `UNIQUE(workspace_id, direct_pair_hash)` WHERE `direct_pair_hash IS NOT NULL`
+- Mobile retries and race conditions produce the same hash — dedup guaranteed
+
+---
+
+## 13. Message Idempotency
+
+For client retries (especially mobile with poor connectivity):
+
+| Column              | Type | Constraint               | Notes                                        |
+| ------------------- | ---- | ------------------------ | -------------------------------------------- |
+| `client_message_id` | uuid | UNIQUE per channel, NULL | Client-generated UUID sent with each message |
+
+Added to `channel_message` table. Client sets this on send. Server checks uniqueness before insert. If duplicate, returns the existing message (idempotent). Mobile clients generate UUID locally before network call.
+
+```sql
+CREATE UNIQUE INDEX idx_channel_message_client_id
+  ON channel_message(channel_id, client_message_id)
+  WHERE client_message_id IS NOT NULL;
+```
+
+---
+
+## 14. Attachment Lifecycle
+
+| Aspect         | Rule                                                                                                     |
+| -------------- | -------------------------------------------------------------------------------------------------------- |
+| Storage bucket | `{workspace_id}/channels/{channel_id}/attachments/`                                                      |
+| Upload flow    | Upload-before-message: client uploads to Storage, gets URL, then sends message with attachment reference |
+| Max size       | Images: 10MB, Documents: 25MB, Voice clips: 5MB, Video: 50MB                                             |
+| Allowed types  | Images (jpg, png, gif, webp), Documents (pdf, xlsx, csv), Voice (m4a, opus, wav), Video (mp4, webm)      |
+| Validation     | Mime-type check on upload via Storage policy. No server-side antivirus in v1 (add later if needed).      |
+| Orphan cleanup | Cron job: delete Storage objects not referenced by any `channel_message_attachment` row after 24h        |
+| Retention      | Per `channel_retention_policy.retain_media_days`. Purge job deletes Storage objects + attachment rows.   |
+
+---
+
+## 15. Call Participant Identity
+
+LiveKit participant identity must be stable and unique per room.
+
+| Rule                    | Value                                                                                                         |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Participant identity    | `profile_id` (stable across devices)                                                                          |
+| Device info             | Stored in LiveKit participant metadata: `{ device_type, camera_facing }`                                      |
+| Reconnect behavior      | Same identity reconnects — LiveKit displaces the old connection (correct behavior for single-device-per-user) |
+| AI participant identity | `botsson:{workspace_id}` (unique per workspace, distinguishable from human profiles)                          |
+| Multi-device            | Not supported in v1. If user joins from second device, first connection is displaced.                         |
+
+```typescript
+// Token generation
+const identity = profileId; // Stable human identity
+// or for AI:
+const identity = `botsson:${workspaceId}`;
+
+const metadata = JSON.stringify({
+  device_type: "web", // or 'ios', 'android'
+  display_name: profile.full_name,
+  avatar_url: profile.avatar_url,
+  is_ai: false,
+});
+```
+
+---
+
+## 16. Out of Scope (YAGNI)
 
 - E2E encryption (evaluate later, conflicts with recording)
 - SIP/PSTN telephony (keep Twilio for now, add when needed)
