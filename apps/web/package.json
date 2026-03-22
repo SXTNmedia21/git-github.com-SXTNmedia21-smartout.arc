@@ -43,6 +43,7 @@
     "@smartout/supabase": "workspace:*",
     "@smartout/telemetry": "workspace:*",
     "@smartout/types": "workspace:*",
+    "@smartout/walkie-talkie": "workspace:*",
     "@smartout/ui": "workspace:*",
     "@smartout/utils": "workspace:^",
     "@smartout/website": "workspace:^",
