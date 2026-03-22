@@ -13,6 +13,7 @@ export { evaluateFrameworkRules } from "./evaluate-framework-rules";
 export { validateProposalFreshness, computeStateHash } from "./validate-proposal-freshness";
 export { resolveTariffRate } from "./resolve-tariff-rate";
 export { getTariffContext } from "./get-tariff-context";
+export { propagateBudgetTargets } from "./propagate-budget-targets";
 
 export type {
   // Operating hours
@@ -51,3 +52,5 @@ export type {
   FrameworkRuleRow,
   WorkspaceRuleOverrideRow,
 } from "./types";
+
+export type { BudgetPropagationInput, DailyTarget } from "./propagate-budget-targets";
