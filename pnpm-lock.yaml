@@ -715,6 +715,10 @@ importers:
         version: 9.39.3(jiti@2.6.1)
 
   packages/hms:
+    dependencies:
+      zod:
+        specifier: ^3.25.0
+        version: 3.25.76
     devDependencies:
       '@smartout/typescript-config':
         specifier: workspace:*
