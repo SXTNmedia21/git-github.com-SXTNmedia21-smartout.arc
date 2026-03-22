@@ -13,14 +13,15 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #    | Branch                        | Module          | Status            | Progress                                                                                                             | Blockers | Health |
-| ---- | ----------------------------- | --------------- | ----------------- | -------------------------------------------------------------------------------------------------------------------- | -------- | ------ |
-| wt-1 | `feat/workspace-intelligence` | core            | merged            | Fully merged to development. Worktree needs cleanup removal.                                                         | —        | stale  |
-| wt-2 | `feat/cascade-foundation`     | cross-cutting   | ready_for_closure | All tasks done. 40+ commits. Bootstrap, rules, tariffs, governance, demand, costs. Typecheck clean.                  | —        | clean  |
-| wt-3 | `feat/emma-arena-views`       | walkAi          | in_progress       | Spec + mockups done, settings persistence committed. Implementation not started.                                     | None     | clean  |
-| wt-4 | `feat/vaktlista-view`         | schedule        | in_progress       | —                                                                                                                    | —        | —      |
-| wt-5 | `feat/hms-phase-1`            | hms             | in_progress       | Spec complete (Cascade-native). Plan written (7 tasks). Just started.                                                | —        | clean  |
-| wt-6 | `feat/website-factory`        | website-factory | in_progress       | Plan A DONE (10 commits). Plan B designed (20 templates, editor, mobile, approval, telemetry). Spec not yet written. | —        | clean  |
+| #    | Branch                        | Module        | Status      | Progress                                                                         | Blockers | Health |
+| ---- | ----------------------------- | ------------- | ----------- | -------------------------------------------------------------------------------- | -------- | ------ |
+| wt-1 | `feat/workspace-intelligence` | core          | merged      | Fully merged. Worktree needs cleanup removal.                                    | —        | stale  |
+| wt-2 | `feat/cascade-foundation`     | cross-cutting | merged      | 41 commits merged to development. Worktree needs cleanup removal.                | —        | stale  |
+| wt-3 | `feat/emma-arena-views`       | walkAi        | in_progress | Spec + mockups done, settings persistence committed. Implementation not started. | None     | clean  |
+| wt-4 | `feat/vaktlista-view`         | schedule      | in_progress | —                                                                                | —        | —      |
+| wt-5 | `feat/hms-phase-1`            | hms           | merged      | All commits on development. Worktree needs cleanup removal.                      | —        | stale  |
+| wt-6 | `feat/livekit-phase2`         | webrtc        | in_progress | Just started. Phase 2 WebRTC — LiveKit voice/PTT for Komm channels.              | —        | clean  |
+| wt-7 | `feat/fix-invitation-flow`    | core          | in_progress | Just started. Fix invitation flow gaps.                                          | —        | clean  |
 
 ## Parked Branches (no worktree)
 
@@ -30,16 +31,17 @@ tags: [dashboard, worktrees, tracking]
 
 ## Free Slots
 
-| #     | Available                        |
-| ----- | -------------------------------- |
-| wt-1  | no (feat/workspace-intelligence) |
-| wt-2  | no (feat/walkie-talkie)          |
-| wt-3  | no (feat/emma-arena-views)       |
-| wt-4  | no (feat/vaktlista-view)         |
-| wt-5  | no (feat/hms-phase-1)            |
-| wt-6  | no (feat/website-factory)        |
-| wt-15 | yes                              |
-| wt-20 | yes                              |
+| #     | Available                                               |
+| ----- | ------------------------------------------------------- |
+| wt-1  | no (feat/workspace-intelligence — stale, needs removal) |
+| wt-2  | no (feat/cascade-foundation — stale, needs removal)     |
+| wt-3  | no (feat/emma-arena-views)                              |
+| wt-4  | no (feat/vaktlista-view)                                |
+| wt-5  | no (feat/hms-phase-1 — stale, needs removal)            |
+| wt-6  | no (feat/livekit-phase2)                                |
+| wt-7  | no (feat/fix-invitation-flow)                           |
+| wt-15 | yes                                                     |
+| wt-20 | yes                                                     |
 
 ## Pending Journeys
 
@@ -52,12 +54,24 @@ tags: [dashboard, worktrees, tracking]
 | wt-6 | website-factory        | `docs/journeys/JOURNEY-website-factory.md`        | missing |
 | wt-2 | walkie-talkie          | `docs/journeys/JOURNEY-walkie-talkie.md`          | missing |
 | wt-2 | cascade-foundation     | `docs/journeys/JOURNEY-cascade-foundation.md`     | done    |
-| wt-5 | hms-phase-1            | `docs/journeys/JOURNEY-hms-phase-1.md`            | missing |
+
+<<<<<<< Updated upstream
+| wt-5 | hms-phase-1 | `docs/journeys/JOURNEY-hms-phase-1.md` | missing |
+=======
+| wt-5 | hms-phase-1 | `docs/journeys/JOURNEY-hms-phase-1.md` | done |
+| wt-6 | livekit-phase2 | `docs/journeys/JOURNEY-livekit-phase2.md` | missing |
+| wt-7 | fix-invitation-flow | `docs/journeys/JOURNEY-fix-invitation-flow.md` | missing |
+
+> > > > > > > Stashed changes
 
 ## Recent Closures
 
 | Date       | Feature                   | Branch                                                             | Merged To   |
 | ---------- | ------------------------- | ------------------------------------------------------------------ | ----------- |
+| 2026-03-22 | cascade-foundation        | `feat/cascade-foundation`                                          | development |
+| 2026-03-22 | hms-phase-1               | `feat/hms-phase-1`                                                 | development |
+| 2026-03-22 | hms-phase-1               | `feat/hms-phase-1`                                                 | development |
+| 2026-03-22 | cascade-foundation        | `feat/cascade-foundation`                                          | development |
 | 2026-03-21 | workspace-intelligence    | `feat/workspace-intelligence`                                      | development |
 | 2026-03-02 | unified-keys-admin        | `feat/unified-keys-admin`                                          | development |
 | 2026-03-02 | fix-onboarding-flow       | `feat/fix-onboarding-flow`                                         | development |
@@ -103,20 +117,27 @@ tags: [dashboard, worktrees, tracking]
 
 ## Session History
 
+<<<<<<< Updated upstream
 | 2026-03-22 | cascade-foundation | closed | Merged to development, wt-2 freed. 40+ commits: bootstrap EF, rules engine, tariff resolution, governance (change proposals), demand propagation, cost snapshots, settings UI, invite cascade. |
 | 2026-03-22 | hms-phase-1 | started | wt-5, module: hms. Cascade-native spec (governing loop, branch placement, 14 invariants, evidence trust tiers). Plan: 7 tasks. Linear: 37 Triage cleaned (19 canceled, 18 backlogged). |
-| 2026-03-22 | cascade-foundation | started | wt-2, module: cross-cutting. Spec v1.3.0 (3 review rounds, 14+4+7 corrections). Plan: 18 tasks, 5 phases. Bootstrap + rules + governance + invite cascade. |
-| 2026-03-22 | walkie-talkie | started | wt-2, module: communications. Channel comms spec + Phase 1 plan (16 tasks). LiveKit voice/video Phase 2. |
-| 2026-03-22 | website-factory | closed | Merged to development, wt-6 freed. Plan A (12 tables, shared package, public site, publish pipeline) + Plan B (builder UI, spokesperson flow, mobile admin). 30+ commits. |
-| 2026-03-22 | website-factory | started | wt-6, module: website-factory. Spec + Plan A (foundation) ready. |
-| 2026-03-22 | close-feature-gates | session ended | Reviewed close-feature.sh + slash commands. Fixed 5 friction points: Gate 5 scoped to branch-changed docs only, Gate 4 checks feature-specific journey, Gate 1 warns on name mismatch, final commit gets Co-Authored-By, script bumped to v4. wt-1 confirmed already merged — needs worktree removal only. |
-| 2026-03-21 | training-curriculum | session ended | Designed 14-module training curriculum (trimmed from 28). Full repo analysis (1402 files, 146 migrations, 47 enums). Gathered Batch 1 material (TypeScript, DB Design, Debugging) with Smartout-specific examples. Rego/OPA confirmed for Modul 14. Content agent has all data for Batch 1. |
-| 2026-03-21 | cascade-architecture | spec locked | Full design session: I1+6D+4C+K1a/K1b canonical model. 12-persona AI Council stress-tested. 6-phase implementation designed. Spec written (1150 lines), 2 review passes (18 corrections), locked as done. wt-2: 12 commits, ready for merge. Next: implementation planning. |
-| 2026-03-21 | cascade-architecture | session ended (earlier) | Brainstorming paused at step 4, resumed and completed through step 8. |
-| 2026-03-21 | stage-engine-walkai-audit | session ended | Deep audit (37 issues), Sprint 1-3 bugfixes (5 migrations, 14 files), settings persistence, EmmaProfile overview tab, arena views spec + 8 mockups, accumulated commits (mobile/emma/dashboard/schedule/telemetry), contract-enhancements merged+closed, pre-commit hook fixed. wt-3 created for emma-arena-views. |
-| 2026-03-11 | login-join-flow | session ended | Login hype sequence (spinner+pulsing text→checkmark burst→redirect), SignupWizard polish, /signup→/login route cleanup, redirect fix (window.location.href). Uncommitted in walkTalkie. |
-| 2026-03-10 | journey-engine | session ended | Route rename /onboarding→/setup, env import dialog overflow+new keys, redirect condition changed to workspace-empty check, docs updated. 116 uncommitted files. |
-| 2026-03-08 | journey-engine | started | wt-2, module: core — Journey Engine runtime, compile, 2 journeys |
+=======
+| 2026-03-22 | fix-invitation-flow | started | wt-7, module: core. Fix 5 gaps: company_member not created on invite accept, listUsers scalability, company_member RLS, invitation resend, expired cleanup. |
+| 2026-03-22 | css-build-fix | session ended | Tailwind v4 CSS parsing error: stale `.next-e2e-web/` cache poisoning content scan with corrupted `rgba(var(--brand-orange-rgb))` class. Fixed 5 `shadow-brand-orange/N` in WalkAi. Remaining: delete stale caches manually. |
+| 2026-03-22 | hms-phase-1 | session ended | Spec complete (Cascade-native v4). Plan written (7 tasks). Linear cleaned (37->0 Triage). wt-5 ready for implementation. Next: Task 1 migration. |
+
+> > > > > > > Stashed changes
+> > > > > > > | 2026-03-22 | cascade-foundation | started | wt-2, module: cross-cutting. Spec v1.3.0 (3 review rounds, 14+4+7 corrections). Plan: 18 tasks, 5 phases. Bootstrap + rules + governance + invite cascade. |
+> > > > > > > | 2026-03-22 | walkie-talkie | started | wt-2, module: communications. Channel comms spec + Phase 1 plan (16 tasks). LiveKit voice/video Phase 2. |
+> > > > > > > | 2026-03-22 | website-factory | closed | Merged to development, wt-6 freed. Plan A (12 tables, shared package, public site, publish pipeline) + Plan B (builder UI, spokesperson flow, mobile admin). 30+ commits. |
+> > > > > > > | 2026-03-22 | website-factory | started | wt-6, module: website-factory. Spec + Plan A (foundation) ready. |
+> > > > > > > | 2026-03-22 | close-feature-gates | session ended | Reviewed close-feature.sh + slash commands. Fixed 5 friction points: Gate 5 scoped to branch-changed docs only, Gate 4 checks feature-specific journey, Gate 1 warns on name mismatch, final commit gets Co-Authored-By, script bumped to v4. wt-1 confirmed already merged — needs worktree removal only. |
+> > > > > > > | 2026-03-21 | training-curriculum | session ended | Designed 14-module training curriculum (trimmed from 28). Full repo analysis (1402 files, 146 migrations, 47 enums). Gathered Batch 1 material (TypeScript, DB Design, Debugging) with Smartout-specific examples. Rego/OPA confirmed for Modul 14. Content agent has all data for Batch 1. |
+> > > > > > > | 2026-03-21 | cascade-architecture | spec locked | Full design session: I1+6D+4C+K1a/K1b canonical model. 12-persona AI Council stress-tested. 6-phase implementation designed. Spec written (1150 lines), 2 review passes (18 corrections), locked as done. wt-2: 12 commits, ready for merge. Next: implementation planning. |
+> > > > > > > | 2026-03-21 | cascade-architecture | session ended (earlier) | Brainstorming paused at step 4, resumed and completed through step 8. |
+> > > > > > > | 2026-03-21 | stage-engine-walkai-audit | session ended | Deep audit (37 issues), Sprint 1-3 bugfixes (5 migrations, 14 files), settings persistence, EmmaProfile overview tab, arena views spec + 8 mockups, accumulated commits (mobile/emma/dashboard/schedule/telemetry), contract-enhancements merged+closed, pre-commit hook fixed. wt-3 created for emma-arena-views. |
+> > > > > > > | 2026-03-11 | login-join-flow | session ended | Login hype sequence (spinner+pulsing text→checkmark burst→redirect), SignupWizard polish, /signup→/login route cleanup, redirect fix (window.location.href). Uncommitted in walkTalkie. |
+> > > > > > > | 2026-03-10 | journey-engine | session ended | Route rename /onboarding→/setup, env import dialog overflow+new keys, redirect condition changed to workspace-empty check, docs updated. 116 uncommitted files. |
+> > > > > > > | 2026-03-08 | journey-engine | started | wt-2, module: core — Journey Engine runtime, compile, 2 journeys |
 
 | Date       | Feature                          | Action            | Notes                                                                                                                                                                                                                                                                                                                                                                     |
 | ---------- | -------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

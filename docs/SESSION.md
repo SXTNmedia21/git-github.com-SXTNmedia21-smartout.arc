@@ -7,35 +7,34 @@ created: 2026-03-02
 
 ## Last Session
 
-| Field   | Value                            |
-| ------- | -------------------------------- |
-| Date    | 2026-03-22                       |
-| Branch  | `feat/cascade-foundation` (wt-2) |
-| Feature | cascade-foundation               |
-| Status  | ready_for_closure                |
+| Field   | Value                             |
+| ------- | --------------------------------- |
+| Date    | 2026-03-22                        |
+| Branch  | `feat/fix-invitation-flow` (wt-7) |
+| Feature | Fix Invitation Flow               |
+| Status  | in_progress                       |
 
 ### What was done
 
-- Fixed typecheck: applied unapplied migrations (help_request, workspace_operating_hours, cascade tables)
-- Regenerated `database.types.ts` — typecheck clean (0 errors, 23/23 tasks)
-- All closure gates verified and fixed
+- Audited full user management + invitation flow (3 entry paths: self-signup, admin invite, re-invite)
+- Identified 5 gaps: company_member missing on invite accept, listUsers() scalability, company_member RLS, no resend, no expiry cleanup
+- Created feature branch + worktree wt-7
+- Writing implementation plan
 
 ### Where we stopped
 
-- Feature ready for closure
-- Run: `~/.claude/scripts/close-feature.sh 2`
-
-### Previous sessions (still active in other worktrees)
-
-- wt-3: `feat/emma-arena-views` — spec + mockups done
-- wt-4: `feat/vaktlista-view` — in progress
-- wt-5: `feat/hms-phase-1` — spec complete, plan written, ready for implementation
-- wt-6: `feat/website-factory` — Plan A done, Plan B designed
+- Plan being written, implementation not started
 
 ### Known blockers / errors
 
-- None (all gates passed)
+- None
 
 ### Pending decisions
 
-- None
+- [ ] Whether to add invitation resend as separate endpoint or extend create-invitation
+
+### Previous session (hms-phase-1)
+
+- HMS Phase 1+2 complete (16 commits), ready for closure
+- `supabase db reset` blocked by pre-existing FK issue (NOT HMS)
+- `trg_push_deviation_reported` trigger has `id` instead of `profile_id` bug (pre-existing)
