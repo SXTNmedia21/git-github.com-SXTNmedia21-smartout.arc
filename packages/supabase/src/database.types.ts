@@ -7,6 +7,31 @@ export type Json =
   | Json[]
 
 export type Database = {
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   payroll: {
     Tables: {
       absence_ledger: {
@@ -6397,67 +6422,6 @@ export type Database = {
           },
         ]
       }
-      help_request: {
-        Row: {
-          created_at: string
-          description: string | null
-          id: string
-          profile_id: string
-          resolved_at: string | null
-          resolved_by: string | null
-          status: string
-          title: string
-          updated_at: string
-          workspace_id: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          profile_id: string
-          resolved_at?: string | null
-          resolved_by?: string | null
-          status?: string
-          title: string
-          updated_at?: string
-          workspace_id: string
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          profile_id?: string
-          resolved_at?: string | null
-          resolved_by?: string | null
-          status?: string
-          title?: string
-          updated_at?: string
-          workspace_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "help_request_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profile"
-            referencedColumns: ["profile_id"]
-          },
-          {
-            foreignKeyName: "help_request_resolved_by_fkey"
-            columns: ["resolved_by"]
-            isOneToOne: false
-            referencedRelation: "profile"
-            referencedColumns: ["profile_id"]
-          },
-          {
-            foreignKeyName: "help_request_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspace"
-            referencedColumns: ["workspace_id"]
-          },
-        ]
-      }
       hour_factor: {
         Row: {
           created_at: string
@@ -9204,10 +9168,12 @@ export type Database = {
           description: string
           estimated_minutes: number | null
           is_required: boolean
+          media_urls: Json | null
           procedure_id: string
           step_id: string
           step_order: number
           title: string
+          training_content: string | null
           updated_at: string
         }
         Insert: {
@@ -9215,10 +9181,12 @@ export type Database = {
           description: string
           estimated_minutes?: number | null
           is_required?: boolean
+          media_urls?: Json | null
           procedure_id: string
           step_id?: string
           step_order?: number
           title: string
+          training_content?: string | null
           updated_at?: string
         }
         Update: {
@@ -9226,10 +9194,12 @@ export type Database = {
           description?: string
           estimated_minutes?: number | null
           is_required?: boolean
+          media_urls?: Json | null
           procedure_id?: string
           step_id?: string
           step_order?: number
           title?: string
+          training_content?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -13152,6 +13122,64 @@ export type Database = {
       [_ in never]: never
     }
   }
+  timesheet: {
+    Tables: {
+      time_entry: {
+        Row: {
+          breaks: Json | null
+          created_at: string
+          profile_id: string
+          punch_in: string
+          punch_in_location: Json | null
+          punch_out: string | null
+          shift_id: string
+          status: Database["timesheet"]["Enums"]["time_entry_status"]
+          time_entry_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          breaks?: Json | null
+          created_at?: string
+          profile_id: string
+          punch_in: string
+          punch_in_location?: Json | null
+          punch_out?: string | null
+          shift_id: string
+          status?: Database["timesheet"]["Enums"]["time_entry_status"]
+          time_entry_id?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          breaks?: Json | null
+          created_at?: string
+          profile_id?: string
+          punch_in?: string
+          punch_in_location?: Json | null
+          punch_out?: string | null
+          shift_id?: string
+          status?: Database["timesheet"]["Enums"]["time_entry_status"]
+          time_entry_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      time_entry_status: "clocked_in" | "completed" | "edited"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   websites: {
     Tables: {
       website: {
@@ -13162,6 +13190,7 @@ export type Database = {
           contact_email: string | null
           contact_phone: string | null
           created_at: string
+          created_by: string | null
           default_meta_description: string | null
           default_meta_title: string | null
           default_og_image_path: string | null
@@ -13185,6 +13214,7 @@ export type Database = {
           contact_email?: string | null
           contact_phone?: string | null
           created_at?: string
+          created_by?: string | null
           default_meta_description?: string | null
           default_meta_title?: string | null
           default_og_image_path?: string | null
@@ -13208,6 +13238,7 @@ export type Database = {
           contact_email?: string | null
           contact_phone?: string | null
           created_at?: string
+          created_by?: string | null
           default_meta_description?: string | null
           default_meta_title?: string | null
           default_og_image_path?: string | null
@@ -13291,7 +13322,9 @@ export type Database = {
           deleted_at: string | null
           domain: string
           domain_type: string
+          hostname: string | null
           is_primary: boolean
+          is_verified: boolean
           redirect_behavior: string
           ssl_status: string
           status: string
@@ -13307,7 +13340,9 @@ export type Database = {
           deleted_at?: string | null
           domain: string
           domain_type: string
+          hostname?: string | null
           is_primary?: boolean
+          is_verified?: boolean
           redirect_behavior?: string
           ssl_status?: string
           status?: string
@@ -13323,7 +13358,9 @@ export type Database = {
           deleted_at?: string | null
           domain?: string
           domain_type?: string
+          hostname?: string | null
           is_primary?: boolean
+          is_verified?: boolean
           redirect_behavior?: string
           ssl_status?: string
           status?: string
@@ -13346,41 +13383,47 @@ export type Database = {
       }
       website_draft_revision: {
         Row: {
+          change_summary: string | null
+          changed_by: string | null
           created_at: string
           created_by: string | null
-          draft_data: Json
+          draft_data: Json | null
           revision_id: string
-          revision_number: number
-          schema_version: number
+          revision_number: number | null
+          schema_version: number | null
           source: string
-          template_key: string
-          template_version: number
+          template_key: string | null
+          template_version: number | null
           website_id: string
           workspace_id: string
         }
         Insert: {
+          change_summary?: string | null
+          changed_by?: string | null
           created_at?: string
           created_by?: string | null
-          draft_data: Json
+          draft_data?: Json | null
           revision_id?: string
-          revision_number: number
-          schema_version: number
+          revision_number?: number | null
+          schema_version?: number | null
           source: string
-          template_key: string
-          template_version: number
+          template_key?: string | null
+          template_version?: number | null
           website_id: string
           workspace_id: string
         }
         Update: {
+          change_summary?: string | null
+          changed_by?: string | null
           created_at?: string
           created_by?: string | null
-          draft_data?: Json
+          draft_data?: Json | null
           revision_id?: string
-          revision_number?: number
-          schema_version?: number
+          revision_number?: number | null
+          schema_version?: number | null
           source?: string
-          template_key?: string
-          template_version?: number
+          template_key?: string | null
+          template_version?: number | null
           website_id?: string
           workspace_id?: string
         }
@@ -14048,6 +14091,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   payroll: {
     Enums: {
       absence_category: [
@@ -14485,6 +14531,11 @@ export const Constants = {
         "review",
       ],
       wizard_session_status: ["active", "completed", "abandoned"],
+    },
+  },
+  timesheet: {
+    Enums: {
+      time_entry_status: ["clocked_in", "completed", "edited"],
     },
   },
   websites: {
