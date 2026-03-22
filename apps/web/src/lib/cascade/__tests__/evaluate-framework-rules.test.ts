@@ -47,7 +47,7 @@ describe("evaluateFrameworkRules", () => {
 
     expect(result.outcome).toBe("blocked");
     expect(result.hits).toHaveLength(1);
-    expect(result.hits[0].ruleId).toBe("max-daily");
+    expect(result.hits[0]!.ruleId).toBe("max-daily");
   });
 
   it("allows when daily hours within limit", () => {
@@ -137,7 +137,7 @@ describe("evaluateFrameworkRules", () => {
     const result = evaluateFrameworkRules(makeContext({ employeeAge: 16 }), rules, []);
 
     expect(result.outcome).toBe("blocked");
-    expect(result.hits[0].ruleId).toBe("under18-night");
+    expect(result.hits[0]!.ruleId).toBe("under18-night");
   });
 
   it("allows night work for adults", () => {
@@ -233,8 +233,8 @@ describe("evaluateFrameworkRules", () => {
     const result = evaluateFrameworkRules(makeContext({ dailyHoursWorked: 10 }), rules, overrides);
 
     expect(result.outcome).toBe("allowed_with_exception");
-    expect(result.hits[0].overrideApplied).toBe(true);
-    expect(result.hits[0].overrideId).toBe("override-1");
+    expect(result.hits[0]!.overrideApplied).toBe(true);
+    expect(result.hits[0]!.overrideId).toBe("override-1");
   });
 
   it("ignores expired override", () => {
@@ -266,7 +266,7 @@ describe("evaluateFrameworkRules", () => {
     );
 
     expect(result.outcome).toBe("review_required");
-    expect(result.hits[0].overrideApplied).toBe(false);
+    expect(result.hits[0]!.overrideApplied).toBe(false);
   });
 
   it("all rules pass returns allowed", () => {

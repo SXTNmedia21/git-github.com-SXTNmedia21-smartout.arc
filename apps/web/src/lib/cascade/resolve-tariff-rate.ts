@@ -23,7 +23,7 @@ function findRate(rates: TariffRateRow[], rateType: string, dateStr: string): Ta
 
   if (matching.length === 0) return null;
   // Latest effective_from wins
-  return matching.sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom))[0];
+  return matching.sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom))[0] ?? null;
 }
 
 /** Check if timestamp falls in evening supplement window (21:00-06:00) */
@@ -46,7 +46,7 @@ export function resolveTariffRate(
   effectiveTimestamp: string,
 ): TariffResolution {
   const dt = new Date(effectiveTimestamp);
-  const dateStr = effectiveTimestamp.split("T")[0];
+  const dateStr = effectiveTimestamp.split("T")[0]!;
   const supplements: TariffSupplement[] = [];
 
   // Determine which tariff rate set to use

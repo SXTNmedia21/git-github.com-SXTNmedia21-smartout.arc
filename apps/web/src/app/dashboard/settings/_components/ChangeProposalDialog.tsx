@@ -41,10 +41,10 @@ export function ChangeProposalDialog({
 
   if (!proposal) return null;
 
-  const preview = (proposal.preview_payload ?? {}) as ProposalPreview;
-  const payload = proposal.proposal_payload;
+  const preview = (proposal.preview ?? {}) as ProposalPreview;
+  const payload = proposal.changes;
   const changeType = payload.change_type as string;
-  const badge = STATUS_BADGE[proposal.status] ?? STATUS_BADGE.pending;
+  const badge = STATUS_BADGE[proposal.status] ?? STATUS_BADGE["pending"]!;
 
   return (
     <div

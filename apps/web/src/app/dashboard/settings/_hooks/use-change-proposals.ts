@@ -12,9 +12,9 @@ export type ChangeProposal = {
   change_proposal_id: string;
   workspace_id: string;
   status: string;
-  proposal_payload: Record<string, unknown>;
-  preview_payload: Record<string, unknown> | null;
-  initiator: string;
+  changes: Record<string, unknown>;
+  preview: Record<string, unknown>;
+  created_by_plane: string;
   created_at: string;
   applied_at: string | null;
 };
@@ -41,7 +41,7 @@ export function useChangeProposals() {
         .order("created_at", { ascending: false });
 
       if (error) throw new Error(error.message);
-      return data ?? [];
+      return (data ?? []) as unknown as ChangeProposal[];
     },
     enabled: !!wsId,
     staleTime: 30_000,
@@ -53,21 +53,35 @@ export function useChangeProposals() {
       proposalPayload: Record<string, unknown>;
       previewPayload: Record<string, unknown>;
     }) => {
+      // Resolve profile for initiated_by FK
+      const { data: profile } = await supabase
+        .from("profile")
+        .select("profile_id")
+        .eq("workspace_id", wsId!)
+        .eq("user_id", profileId ?? "")
+        .single();
+
       const { error } = await supabase.from("change_proposal").insert({
         workspace_id: wsId!,
         status: "pending",
-        initiator: "admin_manual",
-        proposal_payload: { change_type: payload.changeType, ...payload.proposalPayload },
-        preview_payload: payload.previewPayload,
+        created_by_plane: "admin_manual",
+        initiated_by: profile?.profile_id ?? profileId!,
+        trigger_type: "manual_override",
+        trigger_entity_type: payload.changeType,
+        changes: {
+          change_type: payload.changeType,
+          ...payload.proposalPayload,
+        } as unknown as Record<string, never>,
+        preview: payload.previewPayload as unknown as Record<string, never>,
       });
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {
       void emit({
-        event: "change_proposal created",
+        event: "button clicked",
         workspace_id: wsId ?? null,
         actor_id: profileId ?? "",
-        properties: {},
+        properties: { trackingId: "change-proposal-created" },
       });
       queryClient.invalidateQueries({ queryKey: proposalKeys(wsId!) });
       toast.success("Endringsforslag opprettet");
@@ -114,10 +128,10 @@ export function useChangeProposals() {
     },
     onSuccess: () => {
       void emit({
-        event: "change_proposal applied",
+        event: "button clicked",
         workspace_id: wsId ?? null,
         actor_id: profileId ?? "",
-        properties: {},
+        properties: { trackingId: "change-proposal-applied" },
       });
       queryClient.invalidateQueries({ queryKey: proposalKeys(wsId!) });
       toast.success("Endring gjennomført");

@@ -39,15 +39,15 @@ describe("hospitality industry package", () => {
 
   describe("department type mapping", () => {
     it("maps operational departments correctly", () => {
-      expect(DEPARTMENT_TYPE_MAP["Kjøkken"].type).toBe("operational");
-      expect(DEPARTMENT_TYPE_MAP["Sal"].type).toBe("operational");
-      expect(DEPARTMENT_TYPE_MAP["Bar"].type).toBe("operational");
+      expect(DEPARTMENT_TYPE_MAP["Kjøkken"]!.type).toBe("operational");
+      expect(DEPARTMENT_TYPE_MAP["Sal"]!.type).toBe("operational");
+      expect(DEPARTMENT_TYPE_MAP["Bar"]!.type).toBe("operational");
     });
 
     it("maps administrative departments correctly", () => {
-      expect(DEPARTMENT_TYPE_MAP["Kontor"].type).toBe("administrative");
-      expect(DEPARTMENT_TYPE_MAP["HR"].type).toBe("administrative");
-      expect(DEPARTMENT_TYPE_MAP["Regnskap"].type).toBe("administrative");
+      expect(DEPARTMENT_TYPE_MAP["Kontor"]!.type).toBe("administrative");
+      expect(DEPARTMENT_TYPE_MAP["HR"]!.type).toBe("administrative");
+      expect(DEPARTMENT_TYPE_MAP["Regnskap"]!.type).toBe("administrative");
     });
 
     it("includes confidence for all mappings", () => {
@@ -85,20 +85,20 @@ describe("hospitality industry package", () => {
 
   describe("department offset defaults", () => {
     it("kitchen opens 2h before workspace", () => {
-      expect(DEPARTMENT_OFFSET_DEFAULTS["Kjøkken"].openOffset).toBe(-120);
-      expect(DEPARTMENT_OFFSET_DEFAULTS["Kjøkken"].closeOffset).toBe(0);
+      expect(DEPARTMENT_OFFSET_DEFAULTS["Kjøkken"]!.openOffset).toBe(-120);
+      expect(DEPARTMENT_OFFSET_DEFAULTS["Kjøkken"]!.closeOffset).toBe(0);
     });
 
     it("floor/sal opens 1h before workspace", () => {
-      expect(DEPARTMENT_OFFSET_DEFAULTS["Sal"].openOffset).toBe(-60);
+      expect(DEPARTMENT_OFFSET_DEFAULTS["Sal"]!.openOffset).toBe(-60);
     });
 
     it("bar has no offset", () => {
-      expect(DEPARTMENT_OFFSET_DEFAULTS["Bar"].openOffset).toBe(0);
+      expect(DEPARTMENT_OFFSET_DEFAULTS["Bar"]!.openOffset).toBe(0);
     });
 
     it("bar ute opens 4h after workspace", () => {
-      expect(DEPARTMENT_OFFSET_DEFAULTS["Bar ute"].openOffset).toBe(240);
+      expect(DEPARTMENT_OFFSET_DEFAULTS["Bar ute"]!.openOffset).toBe(240);
     });
   });
 

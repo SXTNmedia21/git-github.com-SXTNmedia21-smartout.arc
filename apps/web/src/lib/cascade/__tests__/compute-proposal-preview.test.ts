@@ -51,7 +51,7 @@ describe("computeProposalPreview", () => {
     );
 
     expect(result.affectedDepartments).toHaveLength(1);
-    expect(result.affectedDepartments[0].departmentId).toBe("d1");
+    expect(result.affectedDepartments[0]!.departmentId).toBe("d1");
   });
 
   it("lists affected future sessions", () => {
