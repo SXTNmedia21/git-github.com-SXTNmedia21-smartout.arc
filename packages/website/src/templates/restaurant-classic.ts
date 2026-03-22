@@ -6,6 +6,8 @@ export const restaurantClassic: WebsiteTemplate = {
   name: "Restaurant Classic",
   description: "Traditional restaurant layout with hero, menu, and reservations",
   industry: "restaurant",
+  tier: "basic",
+  category: "Restaurant",
   defaultPages: [
     {
       type: "home",

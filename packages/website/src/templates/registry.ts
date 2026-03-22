@@ -16,6 +16,8 @@ export type WebsiteTemplate = {
   name: string;
   description: string;
   industry: string;
+  tier: "basic" | "pro" | "premium";
+  category: string;
   defaultPages: TemplatePage[];
   defaultTheme: WebsiteTheme;
 };

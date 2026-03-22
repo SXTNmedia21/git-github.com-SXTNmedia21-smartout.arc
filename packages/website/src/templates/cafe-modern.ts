@@ -6,6 +6,8 @@ export const cafeModern: WebsiteTemplate = {
   name: "Cafe Modern",
   description: "Clean, modern layout for cafes and bars",
   industry: "cafe",
+  tier: "pro",
+  category: "Kafe & Bar",
   defaultPages: [
     {
       type: "home",
