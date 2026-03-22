@@ -54,11 +54,12 @@ tags: [cascade, bootstrap, rules, tariff, governance, demand]
 
 ## Log
 
-| Date       | Time  | Event                                |
-| ---------- | ----- | ------------------------------------ |
-| 2026-03-22 | 13:56 | Feature started                      |
-| 2026-03-22 | 14:45 | Foundation phase complete — 18 tasks |
-| 2026-03-22 | 15:30 | Operational layer plan — 22 tasks    |
-| 2026-03-22 | 16:40 | All tasks complete                   |
-| 2026-03-22 | 16:55 | 359 tests, typecheck clean           |
-| 2026-03-22 | 17:00 | Feature closure                      |
+| Date       | Time  | Event                                    |
+| ---------- | ----- | ---------------------------------------- |
+| 2026-03-22 | 13:56 | Feature started                          |
+| 2026-03-22 | 14:45 | Foundation phase complete — 18 tasks     |
+| 2026-03-22 | 15:30 | Operational layer plan — 22 tasks        |
+| 2026-03-22 | 16:40 | All tasks complete                       |
+| 2026-03-22 | 16:55 | 359 tests, typecheck clean               |
+| 2026-03-22 | 17:00 | Feature closure                          |
+| 2026-03-22 | 18:08 | Feature closed and merged to development |
