@@ -429,6 +429,9 @@ importers:
       '@smartout/utils':
         specifier: workspace:^
         version: link:../../packages/utils
+      '@smartout/website':
+        specifier: workspace:^
+        version: link:../../packages/website
       '@supabase/ssr':
         specifier: ^0.5.0
         version: 0.5.2(@supabase/supabase-js@2.49.4)
@@ -958,6 +961,22 @@ importers:
         version: 4.21.0
       typescript:
         specifier: ^5.7.3
+        version: 5.9.3
+
+  packages/website:
+    dependencies:
+      zod:
+        specifier: ^3.22.0
+        version: 3.25.76
+    devDependencies:
+      '@smartout/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@types/node':
+        specifier: ^20
+        version: 20.19.35
+      typescript:
+        specifier: ^5.9.0
         version: 5.9.3
 
   services/contract-service:

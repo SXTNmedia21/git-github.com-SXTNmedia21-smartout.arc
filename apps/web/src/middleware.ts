@@ -106,6 +106,16 @@ export async function middleware(request: NextRequest): Promise<Response> {
   const host = request.headers.get("host") ?? "localhost";
   const subdomain = extractSubdomain(host);
 
+  // Public site (*.smartout.info) — rewrite to /public-site/{host}/...
+  if (subdomain.type === "public-site") {
+    const url = request.nextUrl.clone();
+    const pathSegments = url.pathname.split("/").filter(Boolean);
+    url.pathname = `/public-site/${subdomain.host}/${pathSegments.join("/")}`;
+    const response = NextResponse.rewrite(url);
+    response.headers.set("x-site-host", subdomain.host);
+    return response;
+  }
+
   // Root domain (smartout.ai) — should be handled by landing Vercel project.
   // If it hits this app, redirect to landing.
   if (subdomain.type === "root") {

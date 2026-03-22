@@ -21,7 +21,7 @@ type ScheduleShift = Database["public"]["Tables"]["schedule_shift"]["Row"];
 const BASE_DATE = new Date("2026-03-18T12:00:00Z");
 
 function makeShift(overrides: Partial<ScheduleShift> = {}): ScheduleShift {
-  return {
+  const base: ScheduleShift = {
     schedule_shift_id: "shift-1",
     workspace_id: "ws-1",
     employee_id: "emp-1",
@@ -55,8 +55,8 @@ function makeShift(overrides: Partial<ScheduleShift> = {}): ScheduleShift {
     shift_type_id: null,
     created_at: "2026-03-17T10:00:00Z",
     updated_at: "2026-03-17T10:00:00Z",
-    ...overrides,
   };
+  return { ...base, ...overrides } as ScheduleShift;
 }
 
 function makeTimeEntry(overrides: Partial<TimeEntry> = {}): TimeEntry {

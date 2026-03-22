@@ -7,7 +7,12 @@ export interface BaseEvent {
 }
 
 // ─── Routing Metadata ───────────────────────────
-export type EventDestination = "posthog" | "logger" | "activity_trail" | "engine_event";
+export type EventDestination =
+  | "posthog"
+  | "logger"
+  | "activity_trail"
+  | "engine_event"
+  | "notifications";
 
 export interface EventMeta {
   destinations: EventDestination[];
@@ -85,7 +90,12 @@ export type EntityType =
   | "channel_message"
   | "channel_event"
   | "help_request"
-  | "news_post";
+  | "news_post"
+  | "website"
+  | "website_page"
+  | "website_section"
+  | "website_asset"
+  | "website_spokesperson";
 
 export type ActionVerb =
   | "created"
@@ -136,7 +146,12 @@ export type ActionVerb =
   | "unreacted"
   | "read"
   | "shared"
-  | "requested_help";
+  | "requested_help"
+  | "unpublished"
+  | "rollback"
+  | "verified"
+  | "failed"
+  | "generated";
 
 // ─── Auth Module Events ─────────────────────────
 export interface AuthSignedUp extends BaseEvent {
@@ -1200,6 +1215,146 @@ export interface NewsPostReacted extends BaseEvent {
   entity: EntityRef;
 }
 
+// ─── Website Factory Events ────────────────────
+export interface WebsiteCreated extends BaseEvent {
+  event: "website created";
+  properties: { entity: EntityRef; data: { template_key: string } };
+}
+
+export interface WebsitePublished extends BaseEvent {
+  event: "website published";
+  properties: { entity: EntityRef; data: { version: number; snapshot_hash: string } };
+}
+
+export interface WebsiteUnpublished extends BaseEvent {
+  event: "website unpublished";
+  properties: { entity: EntityRef };
+}
+
+export interface WebsiteRollback extends BaseEvent {
+  event: "website rollback";
+  properties: { entity: EntityRef; data: { from_version: number; to_version: number } };
+}
+
+export interface WebsiteDomainVerified extends BaseEvent {
+  event: "website domain_verified";
+  properties: { entity: EntityRef; data: { domain: string } };
+}
+
+export interface WebsiteDomainFailed extends BaseEvent {
+  event: "website domain_failed";
+  properties: { entity: EntityRef; data: { domain: string; reason: string } };
+}
+
+export interface WebsitePreviewCreated extends BaseEvent {
+  event: "website preview_created";
+  properties: { entity: EntityRef; data: { revision_number: number } };
+}
+
+export interface WebsiteContentGenerated extends BaseEvent {
+  event: "website content_generated";
+  properties: { entity: EntityRef; data: { section_count: number } };
+}
+
+export interface WebsiteUpdated extends BaseEvent {
+  event: "website updated";
+  properties: { entity: EntityRef; data: Record<string, unknown> };
+}
+
+export interface WebsiteSetupCompleted extends BaseEvent {
+  event: "website setup completed";
+  properties: { entity: EntityRef; data: { template_key: string; page_count: number } };
+}
+
+export interface WebsitePageCreated extends BaseEvent {
+  event: "website page created";
+  properties: { entity: EntityRef; data: { title: string; page_type: string } };
+}
+
+export interface WebsitePageDeleted extends BaseEvent {
+  event: "website page deleted";
+  properties: { entity: EntityRef };
+}
+
+export interface WebsitePagesReordered extends BaseEvent {
+  event: "website pages reordered";
+  properties: { entity: EntityRef; data: { page_count: number } };
+}
+
+export interface WebsiteSectionCreated extends BaseEvent {
+  event: "website section created";
+  properties: { entity: EntityRef; data: { section_type: string; page_id?: string } };
+}
+
+export interface WebsiteSectionDeleted extends BaseEvent {
+  event: "website section deleted";
+  properties: { entity: EntityRef };
+}
+
+export interface WebsiteSectionUpdated extends BaseEvent {
+  event: "website section updated";
+  properties: { entity: EntityRef; data: { section_type: string; source: string } };
+}
+
+export interface WebsiteSectionsReordered extends BaseEvent {
+  event: "website sections reordered";
+  properties: { entity: EntityRef; data: { section_count: number } };
+}
+
+export interface WebsiteAssetUploaded extends BaseEvent {
+  event: "website asset uploaded";
+  properties: {
+    entity: EntityRef;
+    data: { asset_id: string; mime_type: string; size_bytes: number };
+  };
+}
+
+export interface WebsitePreviewTokenCreated extends BaseEvent {
+  event: "website preview token created";
+  properties: { entity: EntityRef; data: { expires_at: string } };
+}
+
+export interface WebsiteHoursUpdated extends BaseEvent {
+  event: "website hours_updated";
+  properties: { entity: EntityRef; data: { days_updated: number } };
+}
+
+export interface WebsiteMenuSynced extends BaseEvent {
+  event: "website menu_synced";
+  properties: { entity: EntityRef; data: { menu_count: number } };
+}
+
+export interface WebsiteSystemSectionAdded extends BaseEvent {
+  event: "website system_section_added";
+  properties: { entity: EntityRef; data: { section_type: string } };
+}
+
+// ─── Website Spokesperson Events ───────────────
+export interface WebsiteSpokespersonAssigned extends BaseEvent {
+  event: "website spokesperson_assigned";
+  properties: { entity: EntityRef; data: { profile_id: string; role_title: string } };
+}
+
+export interface WebsiteSpokespersonApproved extends BaseEvent {
+  event: "website spokesperson_approved";
+  properties: { entity: EntityRef; data: { profile_id: string } };
+}
+
+export interface WebsiteSpokespersonDeclined extends BaseEvent {
+  event: "website spokesperson_declined";
+  properties: { entity: EntityRef; data: { profile_id: string; reason?: string } };
+}
+
+export interface WebsiteSpokespersonContentSubmitted extends BaseEvent {
+  event: "website spokesperson_content_submitted";
+  properties: { entity: EntityRef; data: { task_type: string } };
+}
+
+export interface WebsiteSpokespersonTaskOverdue extends BaseEvent {
+  event: "website spokesperson_task_overdue";
+  properties: { entity: EntityRef; data: { task_type: string; profile_id: string } };
+}
+
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
 export type SmartoutEvent =
@@ -1322,7 +1477,34 @@ export type SmartoutEvent =
   | HelpRequestResolved
   | KnowledgeShared
   | NewsPostCreated
-  | NewsPostReacted;
+  | NewsPostReacted
+  | WebsiteCreated
+  | WebsitePublished
+  | WebsiteUnpublished
+  | WebsiteRollback
+  | WebsiteDomainVerified
+  | WebsiteDomainFailed
+  | WebsitePreviewCreated
+  | WebsiteContentGenerated
+  | WebsiteUpdated
+  | WebsiteSetupCompleted
+  | WebsitePageCreated
+  | WebsitePageDeleted
+  | WebsitePagesReordered
+  | WebsiteSectionCreated
+  | WebsiteSectionDeleted
+  | WebsiteSectionUpdated
+  | WebsiteSectionsReordered
+  | WebsiteAssetUploaded
+  | WebsitePreviewTokenCreated
+  | WebsiteHoursUpdated
+  | WebsiteMenuSynced
+  | WebsiteSystemSectionAdded
+  | WebsiteSpokespersonAssigned
+  | WebsiteSpokespersonApproved
+  | WebsiteSpokespersonDeclined
+  | WebsiteSpokespersonContentSubmitted
+  | WebsiteSpokespersonTaskOverdue;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -1823,5 +2005,55 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "news.post.reacted": {
     destinations: ["posthog"],
     category: "channels",
+  },
+
+  // Website factory events
+  "website created": { destinations: ["posthog", "activity_trail"], category: "system" },
+  "website published": {
+    destinations: ["posthog", "activity_trail", "engine_event"],
+    category: "system",
+  },
+  "website unpublished": { destinations: ["posthog", "activity_trail"], category: "system" },
+  "website rollback": { destinations: ["posthog", "activity_trail"], category: "system" },
+  "website domain_verified": { destinations: ["activity_trail"], category: "system" },
+  "website domain_failed": { destinations: ["activity_trail", "logger"], category: "system" },
+  "website preview_created": { destinations: ["activity_trail"], category: "system" },
+  "website content_generated": { destinations: ["posthog", "activity_trail"], category: "system" },
+  "website updated": { destinations: ["posthog", "activity_trail"], category: "system" },
+  "website setup completed": { destinations: ["posthog", "activity_trail"], category: "system" },
+  "website page created": { destinations: ["posthog", "activity_trail"], category: "system" },
+  "website page deleted": { destinations: ["activity_trail"], category: "system" },
+  "website pages reordered": { destinations: ["activity_trail"], category: "system" },
+  "website section created": { destinations: ["posthog", "activity_trail"], category: "system" },
+  "website section deleted": { destinations: ["activity_trail"], category: "system" },
+  "website section updated": { destinations: ["activity_trail"], category: "system" },
+  "website sections reordered": { destinations: ["activity_trail"], category: "system" },
+  "website asset uploaded": { destinations: ["activity_trail"], category: "system" },
+  "website preview token created": { destinations: ["activity_trail"], category: "system" },
+  "website hours_updated": { destinations: ["posthog", "activity_trail"], category: "system" },
+  "website menu_synced": { destinations: ["activity_trail"], category: "system" },
+  "website system_section_added": {
+    destinations: ["posthog", "activity_trail"],
+    category: "system",
+  },
+  "website spokesperson_assigned": {
+    destinations: ["posthog", "activity_trail", "engine_event", "notifications"],
+    category: "system",
+  },
+  "website spokesperson_approved": {
+    destinations: ["posthog", "activity_trail", "engine_event", "notifications"],
+    category: "system",
+  },
+  "website spokesperson_declined": {
+    destinations: ["posthog", "activity_trail", "engine_event", "notifications"],
+    category: "system",
+  },
+  "website spokesperson_content_submitted": {
+    destinations: ["posthog", "activity_trail", "engine_event"],
+    category: "system",
+  },
+  "website spokesperson_task_overdue": {
+    destinations: ["activity_trail", "engine_event", "notifications"],
+    category: "system",
   },
 };

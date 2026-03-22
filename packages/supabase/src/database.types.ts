@@ -7,31 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       activity_trail: {
@@ -11735,59 +11710,705 @@ export type Database = {
       [_ in never]: never
     }
   }
-  timesheet: {
+  websites: {
     Tables: {
-      time_entry: {
+      website: {
         Row: {
-          breaks: Json | null
+          booking_provider: string
+          booking_url: string | null
+          contact_address: Json | null
+          contact_email: string | null
+          contact_phone: string | null
           created_at: string
-          profile_id: string
-          punch_in: string
-          punch_in_location: Json | null
-          punch_out: string | null
-          shift_id: string
-          status: Database["timesheet"]["Enums"]["time_entry_status"]
-          time_entry_id: string
+          default_meta_description: string | null
+          default_meta_title: string | null
+          default_og_image_path: string | null
+          deleted_at: string | null
+          name: string
+          site_slug: string
+          social_links: Json | null
+          tagline: string | null
+          template_key: string
+          template_version: number
+          theme: Json
           updated_at: string
+          visibility: string
+          website_id: string
           workspace_id: string
         }
         Insert: {
-          breaks?: Json | null
+          booking_provider?: string
+          booking_url?: string | null
+          contact_address?: Json | null
+          contact_email?: string | null
+          contact_phone?: string | null
           created_at?: string
-          profile_id: string
-          punch_in: string
-          punch_in_location?: Json | null
-          punch_out?: string | null
-          shift_id: string
-          status?: Database["timesheet"]["Enums"]["time_entry_status"]
-          time_entry_id?: string
+          default_meta_description?: string | null
+          default_meta_title?: string | null
+          default_og_image_path?: string | null
+          deleted_at?: string | null
+          name: string
+          site_slug: string
+          social_links?: Json | null
+          tagline?: string | null
+          template_key: string
+          template_version: number
+          theme?: Json
           updated_at?: string
+          visibility?: string
+          website_id?: string
           workspace_id: string
         }
         Update: {
-          breaks?: Json | null
+          booking_provider?: string
+          booking_url?: string | null
+          contact_address?: Json | null
+          contact_email?: string | null
+          contact_phone?: string | null
           created_at?: string
-          profile_id?: string
-          punch_in?: string
-          punch_in_location?: Json | null
-          punch_out?: string | null
-          shift_id?: string
-          status?: Database["timesheet"]["Enums"]["time_entry_status"]
-          time_entry_id?: string
+          default_meta_description?: string | null
+          default_meta_title?: string | null
+          default_og_image_path?: string | null
+          deleted_at?: string | null
+          name?: string
+          site_slug?: string
+          social_links?: Json | null
+          tagline?: string | null
+          template_key?: string
+          template_version?: number
+          theme?: Json
           updated_at?: string
+          visibility?: string
+          website_id?: string
           workspace_id?: string
         }
         Relationships: []
+      }
+      website_asset: {
+        Row: {
+          alt_text: string
+          created_at: string
+          deleted_at: string | null
+          file_name: string
+          file_size_bytes: number | null
+          height: number | null
+          mime_type: string
+          storage_path: string
+          updated_at: string
+          uploaded_by: string | null
+          website_asset_id: string
+          website_id: string
+          width: number | null
+          workspace_id: string
+        }
+        Insert: {
+          alt_text?: string
+          created_at?: string
+          deleted_at?: string | null
+          file_name: string
+          file_size_bytes?: number | null
+          height?: number | null
+          mime_type: string
+          storage_path: string
+          updated_at?: string
+          uploaded_by?: string | null
+          website_asset_id?: string
+          website_id: string
+          width?: number | null
+          workspace_id: string
+        }
+        Update: {
+          alt_text?: string
+          created_at?: string
+          deleted_at?: string | null
+          file_name?: string
+          file_size_bytes?: number | null
+          height?: number | null
+          mime_type?: string
+          storage_path?: string
+          updated_at?: string
+          uploaded_by?: string | null
+          website_asset_id?: string
+          website_id?: string
+          width?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_asset_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "website"
+            referencedColumns: ["website_id"]
+          },
+        ]
+      }
+      website_domain: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          domain: string
+          domain_type: string
+          is_primary: boolean
+          redirect_behavior: string
+          ssl_status: string
+          status: string
+          updated_at: string
+          verification_token: string | null
+          verified_at: string | null
+          website_domain_id: string
+          website_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          domain: string
+          domain_type: string
+          is_primary?: boolean
+          redirect_behavior?: string
+          ssl_status?: string
+          status?: string
+          updated_at?: string
+          verification_token?: string | null
+          verified_at?: string | null
+          website_domain_id?: string
+          website_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          domain?: string
+          domain_type?: string
+          is_primary?: boolean
+          redirect_behavior?: string
+          ssl_status?: string
+          status?: string
+          updated_at?: string
+          verification_token?: string | null
+          verified_at?: string | null
+          website_domain_id?: string
+          website_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_domain_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "website"
+            referencedColumns: ["website_id"]
+          },
+        ]
+      }
+      website_draft_revision: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          draft_data: Json
+          revision_id: string
+          revision_number: number
+          schema_version: number
+          source: string
+          template_key: string
+          template_version: number
+          website_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          draft_data: Json
+          revision_id?: string
+          revision_number: number
+          schema_version: number
+          source: string
+          template_key: string
+          template_version: number
+          website_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          draft_data?: Json
+          revision_id?: string
+          revision_number?: number
+          schema_version?: number
+          source?: string
+          template_key?: string
+          template_version?: number
+          website_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_draft_revision_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "website"
+            referencedColumns: ["website_id"]
+          },
+        ]
+      }
+      website_menu: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          description: string | null
+          is_visible: boolean
+          name: string
+          pdf_storage_path: string | null
+          sort_order: number
+          source_type: string
+          updated_at: string
+          website_id: string
+          website_menu_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          is_visible?: boolean
+          name: string
+          pdf_storage_path?: string | null
+          sort_order?: number
+          source_type?: string
+          updated_at?: string
+          website_id: string
+          website_menu_id?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          is_visible?: boolean
+          name?: string
+          pdf_storage_path?: string | null
+          sort_order?: number
+          source_type?: string
+          updated_at?: string
+          website_id?: string
+          website_menu_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_menu_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "website"
+            referencedColumns: ["website_id"]
+          },
+        ]
+      }
+      website_menu_category: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          description: string | null
+          name: string
+          sort_order: number
+          updated_at: string
+          website_id: string
+          website_menu_category_id: string
+          website_menu_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          name: string
+          sort_order?: number
+          updated_at?: string
+          website_id: string
+          website_menu_category_id?: string
+          website_menu_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          name?: string
+          sort_order?: number
+          updated_at?: string
+          website_id?: string
+          website_menu_category_id?: string
+          website_menu_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_menu_category_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "website"
+            referencedColumns: ["website_id"]
+          },
+          {
+            foreignKeyName: "website_menu_category_website_menu_id_fkey"
+            columns: ["website_menu_id"]
+            isOneToOne: false
+            referencedRelation: "website_menu"
+            referencedColumns: ["website_menu_id"]
+          },
+        ]
+      }
+      website_menu_item: {
+        Row: {
+          allergens: string[] | null
+          created_at: string
+          currency: string
+          deleted_at: string | null
+          description: string | null
+          dietary_tags: string[] | null
+          image_asset_id: string | null
+          is_visible: boolean
+          name: string
+          price: number | null
+          sort_order: number
+          updated_at: string
+          website_id: string
+          website_menu_category_id: string
+          website_menu_item_id: string
+          workspace_id: string
+        }
+        Insert: {
+          allergens?: string[] | null
+          created_at?: string
+          currency?: string
+          deleted_at?: string | null
+          description?: string | null
+          dietary_tags?: string[] | null
+          image_asset_id?: string | null
+          is_visible?: boolean
+          name: string
+          price?: number | null
+          sort_order?: number
+          updated_at?: string
+          website_id: string
+          website_menu_category_id: string
+          website_menu_item_id?: string
+          workspace_id: string
+        }
+        Update: {
+          allergens?: string[] | null
+          created_at?: string
+          currency?: string
+          deleted_at?: string | null
+          description?: string | null
+          dietary_tags?: string[] | null
+          image_asset_id?: string | null
+          is_visible?: boolean
+          name?: string
+          price?: number | null
+          sort_order?: number
+          updated_at?: string
+          website_id?: string
+          website_menu_category_id?: string
+          website_menu_item_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_menu_item_image_fk"
+            columns: ["image_asset_id"]
+            isOneToOne: false
+            referencedRelation: "website_asset"
+            referencedColumns: ["website_asset_id"]
+          },
+          {
+            foreignKeyName: "website_menu_item_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "website"
+            referencedColumns: ["website_id"]
+          },
+          {
+            foreignKeyName: "website_menu_item_website_menu_category_id_fkey"
+            columns: ["website_menu_category_id"]
+            isOneToOne: false
+            referencedRelation: "website_menu_category"
+            referencedColumns: ["website_menu_category_id"]
+          },
+        ]
+      }
+      website_page: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          is_visible: boolean
+          meta_description: string | null
+          meta_title: string | null
+          og_image_path: string | null
+          page_type: string
+          slug: string
+          sort_order: number
+          title: string
+          updated_at: string
+          website_id: string
+          website_page_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          is_visible?: boolean
+          meta_description?: string | null
+          meta_title?: string | null
+          og_image_path?: string | null
+          page_type: string
+          slug: string
+          sort_order?: number
+          title: string
+          updated_at?: string
+          website_id: string
+          website_page_id?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          is_visible?: boolean
+          meta_description?: string | null
+          meta_title?: string | null
+          og_image_path?: string | null
+          page_type?: string
+          slug?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string
+          website_id?: string
+          website_page_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_page_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "website"
+            referencedColumns: ["website_id"]
+          },
+        ]
+      }
+      website_preview_session: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          preview_session_id: string
+          revision_id: string
+          revoked_at: string | null
+          token: string
+          website_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expires_at: string
+          preview_session_id?: string
+          revision_id: string
+          revoked_at?: string | null
+          token: string
+          website_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          preview_session_id?: string
+          revision_id?: string
+          revoked_at?: string | null
+          token?: string
+          website_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_preview_session_revision_id_fkey"
+            columns: ["revision_id"]
+            isOneToOne: false
+            referencedRelation: "website_draft_revision"
+            referencedColumns: ["revision_id"]
+          },
+          {
+            foreignKeyName: "website_preview_session_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "website"
+            referencedColumns: ["website_id"]
+          },
+        ]
+      }
+      website_publish_event: {
+        Row: {
+          action: string
+          created_at: string
+          performed_by: string | null
+          publish_event_id: string
+          snapshot_id: string | null
+          website_id: string
+          workspace_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          performed_by?: string | null
+          publish_event_id?: string
+          snapshot_id?: string | null
+          website_id: string
+          workspace_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          performed_by?: string | null
+          publish_event_id?: string
+          snapshot_id?: string | null
+          website_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_publish_event_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "website_published_snapshot"
+            referencedColumns: ["snapshot_id"]
+          },
+          {
+            foreignKeyName: "website_publish_event_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "website"
+            referencedColumns: ["website_id"]
+          },
+        ]
+      }
+      website_published_snapshot: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          is_active: boolean
+          published_at: string
+          published_by: string | null
+          snapshot_data: Json
+          snapshot_hash: string
+          snapshot_id: string
+          updated_at: string
+          version: number
+          website_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          is_active?: boolean
+          published_at?: string
+          published_by?: string | null
+          snapshot_data: Json
+          snapshot_hash: string
+          snapshot_id?: string
+          updated_at?: string
+          version: number
+          website_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          is_active?: boolean
+          published_at?: string
+          published_by?: string | null
+          snapshot_data?: Json
+          snapshot_hash?: string
+          snapshot_id?: string
+          updated_at?: string
+          version?: number
+          website_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_published_snapshot_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "website"
+            referencedColumns: ["website_id"]
+          },
+        ]
+      }
+      website_section: {
+        Row: {
+          content: Json
+          created_at: string
+          deleted_at: string | null
+          is_visible: boolean
+          section_type: string
+          settings: Json
+          sort_order: number
+          updated_at: string
+          website_page_id: string
+          website_section_id: string
+          workspace_id: string
+        }
+        Insert: {
+          content?: Json
+          created_at?: string
+          deleted_at?: string | null
+          is_visible?: boolean
+          section_type: string
+          settings?: Json
+          sort_order?: number
+          updated_at?: string
+          website_page_id: string
+          website_section_id?: string
+          workspace_id: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          deleted_at?: string | null
+          is_visible?: boolean
+          section_type?: string
+          settings?: Json
+          sort_order?: number
+          updated_at?: string
+          website_page_id?: string
+          website_section_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_section_website_page_id_fkey"
+            columns: ["website_page_id"]
+            isOneToOne: false
+            referencedRelation: "website_page"
+            referencedColumns: ["website_page_id"]
+          },
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_active_site_snapshot_by_host: {
+        Args: { p_host: string }
+        Returns: Json
+      }
+      get_preview_site_by_token: { Args: { p_token: string }; Returns: Json }
     }
     Enums: {
-      time_entry_status: "clocked_in" | "completed" | "edited"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -11913,9 +12534,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       absence_status: ["pending", "approved", "rejected"],
@@ -12289,10 +12907,8 @@ export const Constants = {
       wizard_session_status: ["active", "completed", "abandoned"],
     },
   },
-  timesheet: {
-    Enums: {
-      time_entry_status: ["clocked_in", "completed", "edited"],
-    },
+  websites: {
+    Enums: {},
   },
 } as const
 
