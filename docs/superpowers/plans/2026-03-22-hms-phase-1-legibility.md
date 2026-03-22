@@ -11,15 +11,40 @@ tags: [hms, governance, implementation, phase-1]
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Restructure the governance dashboard into five intent-driven HMS surfaces, making the system coherent and navigable for the first time.
+**Goal:** Add a clear `/dashboard/hms` surface without regressing the working governance CRUD flow or the current assignment-based training system.
 
-**Architecture:** One procedure engine exposed through five UX lenses (Oversikt, Drift, Opplaering, Dokumenter, Avvik). Phase 1 builds the routing shell, Oversikt (attention system), Documents (action-linked), improved Training (5-stage flow + competence matrix), and the unified Procedure Detail Page. Drift and Avvik are placeholder tabs pointing to Phase 2.
+**Architecture:** Phase 1 is additive, not destructive. `/dashboard/hms` becomes the new legibility shell and sidebar destination, while `/dashboard/governance` stays live as the existing admin CRUD surface until a later phase achieves true parity. New HMS hooks stay inside `apps/web` for now, because the current training and dashboard data layer is still web-coupled and not yet safe to extract into a shared package. Documents and procedure detail are read-first surfaces that only expose training actions when a valid `protocol_assignment` context exists. Phase 1 reuses the current assignment-backed training runtime and existing seeded training process; do not reintroduce `learning-journey-v1` or a second workflow runtime.
 
-**Tech Stack:** Next.js 16 App Router, React 19, TypeScript strict, Tailwind v4 (CSS config), shadcn/ui (new-york), TanStack Query v5, Tiptap (generateHTML for document rendering), Supabase PostgreSQL.
+**Tech Stack:** Next.js 16 App Router, React 19, TypeScript strict, Tailwind v4, shadcn/ui, TanStack Query v5, Tiptap render helpers, Supabase PostgreSQL.
 
 **Spec:** `docs/superpowers/specs/2026-03-22-hms-governance-redesign-design.md`
 
+**Spec override for execution:** If the spec still instructs workers to redirect `/dashboard/governance` to `/dashboard/hms`, this plan overrides that instruction for Phase 1. Keep `/dashboard/governance` live until a later phase delivers real CRUD parity inside HMS.
+
 **Branch:** `feat/hms-phase-1`
+
+---
+
+## Phase 1 Contract
+
+These rules are part of the plan. Do not violate them while implementing:
+
+- Keep `/dashboard/governance` live for the full phase. No redirect in this plan.
+- Do not create `packages/hms` yet. All new hooks live in `apps/web/src/app/dashboard/hms/_hooks/`.
+- Do not build procedure-only training mutations. Employee progress remains `protocol_assignment`-driven.
+- Treat `/dashboard/hms/drift` and `/dashboard/hms/deviations` as legibility placeholders or pointers, not as new source-of-truth modules.
+- If the `procedure_step` migration lands, extend the existing `ProcedureBuilder` in the same phase so the new fields can actually be authored.
+- Do not introduce a new i18n integration pattern in this phase. Follow the existing dashboard string pattern already used in nearby pages.
+
+## Commit Protocol
+
+Every commit created from this plan must:
+
+- run with normal git hooks enabled
+- use the conventional commit subject listed in the task
+- include this footer exactly:
+
+`Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>`
 
 ---
 
@@ -27,826 +52,680 @@ tags: [hms, governance, implementation, phase-1]
 
 ### New files
 
-| File                                                                 | Responsibility                                                            |
-| -------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| `supabase/migrations/YYYYMMDDHHMMSS_hms_procedure_step_training.sql` | Add `training_content` + `media_urls` to procedure_step                   |
-| `apps/web/src/app/dashboard/hms/layout.tsx`                          | HMS layout with sub-nav tabs                                              |
-| `apps/web/src/app/dashboard/hms/page.tsx`                            | Oversikt — attention system                                               |
-| `apps/web/src/app/dashboard/hms/drift/page.tsx`                      | Drift placeholder (Phase 2)                                               |
-| `apps/web/src/app/dashboard/hms/training/page.tsx`                   | Opplaering — capability system                                            |
-| `apps/web/src/app/dashboard/hms/documents/page.tsx`                  | Dokumenter — source-of-truth                                              |
-| `apps/web/src/app/dashboard/hms/deviations/page.tsx`                 | Avvik placeholder (Phase 2)                                               |
-| `apps/web/src/app/dashboard/hms/procedure/[id]/page.tsx`             | Procedure Detail Page                                                     |
-| `apps/web/src/app/dashboard/hms/_components/HmsSubNav.tsx`           | Horizontal tab navigation                                                 |
-| `apps/web/src/app/dashboard/hms/_components/OversiktDashboard.tsx`   | Oversikt: admin view with status/attention/action blocks                  |
-| `apps/web/src/app/dashboard/hms/_components/OversiktEmployee.tsx`    | Oversikt: employee view with readiness ring + next action                 |
-| `apps/web/src/app/dashboard/hms/_components/CompetenceMatrix.tsx`    | Person x Protocol matrix for admin                                        |
-| `apps/web/src/app/dashboard/hms/_components/LearnFlow.tsx`           | 5-stage employee learning experience                                      |
-| `apps/web/src/app/dashboard/hms/_components/DocumentBrowser.tsx`     | Left panel tree + search for documents                                    |
-| `apps/web/src/app/dashboard/hms/_components/DocumentViewer.tsx`      | Right panel: rendered document with action bar                            |
-| `apps/web/src/app/dashboard/hms/_components/ProcedureDetailTabs.tsx` | Tab container for procedure detail (admin)                                |
-| `apps/web/src/app/dashboard/hms/_components/ProcedureExperience.tsx` | Staged flow wrapper (employee)                                            |
-| `packages/hms/src/hooks/use-procedure-steps.ts`                      | Fetch procedure steps with training_content (shared for mobile parity)    |
-| `packages/hms/src/hooks/use-readiness-score.ts`                      | Calculate readiness from assignments (shared for mobile parity)           |
-| `packages/hms/src/hooks/use-governance-filtered.ts`                  | Governance overview with domain filter support (shared for mobile parity) |
-| `packages/hms/src/index.ts`                                          | Barrel export for all HMS shared hooks                                    |
-| `packages/hms/package.json`                                          | Package config                                                            |
-| `packages/hms/tsconfig.json`                                         | TypeScript config extending base                                          |
+| File                                                                 | Responsibility                                                             |
+| -------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `supabase/migrations/YYYYMMDDHHMMSS_hms_procedure_step_training.sql` | Add `training_content` + `media_urls` to `procedure_step`                  |
+| `apps/web/src/app/dashboard/hms/layout.tsx`                          | HMS route shell with sub-navigation                                        |
+| `apps/web/src/app/dashboard/hms/page.tsx`                            | Oversikt entry page                                                        |
+| `apps/web/src/app/dashboard/hms/drift/page.tsx`                      | Read-only placeholder that points toward existing operations ownership     |
+| `apps/web/src/app/dashboard/hms/training/page.tsx`                   | Admin competence matrix or employee protocol list                          |
+| `apps/web/src/app/dashboard/hms/documents/page.tsx`                  | Documents surface with URL-driven selection                                |
+| `apps/web/src/app/dashboard/hms/deviations/page.tsx`                 | Read-only placeholder for future avvik surface                             |
+| `apps/web/src/app/dashboard/hms/procedure/[id]/page.tsx`             | Procedure detail entry point                                               |
+| `apps/web/src/app/dashboard/hms/_components/HmsSubNav.tsx`           | Top tab navigation                                                         |
+| `apps/web/src/app/dashboard/hms/_components/OversiktDashboard.tsx`   | Admin attention surface                                                    |
+| `apps/web/src/app/dashboard/hms/_components/OversiktEmployee.tsx`    | Employee readiness surface                                                 |
+| `apps/web/src/app/dashboard/hms/_components/CompetenceMatrix.tsx`    | Admin matrix view for assignments by employee and protocol                 |
+| `apps/web/src/app/dashboard/hms/_components/DocumentBrowser.tsx`     | Left document tree and search                                              |
+| `apps/web/src/app/dashboard/hms/_components/DocumentViewer.tsx`      | Right document view with guarded action bar                                |
+| `apps/web/src/app/dashboard/hms/_components/ProcedureDetailTabs.tsx` | Admin procedure detail tabs                                                |
+| `apps/web/src/app/dashboard/hms/_components/ProcedureExperience.tsx` | Employee/read-only procedure experience wrapper                            |
+| `apps/web/src/app/dashboard/hms/_hooks/useHmsGovernanceFiltered.ts`  | HMS-local governance filter hook                                           |
+| `apps/web/src/app/dashboard/hms/_hooks/useHmsReadinessScore.ts`      | HMS-local readiness hook preserving current readiness semantics            |
+| `apps/web/src/app/dashboard/hms/_hooks/useProcedureTrainingSteps.ts` | Fetch procedure steps with training fields                                 |
+| `apps/web/src/app/dashboard/hms/_hooks/useProcedureContext.ts`       | Resolve procedure -> protocol -> optional assignment context               |
+| `apps/e2e/tests/hms-legibility-smoke.spec.ts`                        | Automated smoke test for additive routing and assignment-aware HMS actions |
 
 ### Modified files
 
-| File                                                   | Change                                                                 |
-| ------------------------------------------------------ | ---------------------------------------------------------------------- |
-| `apps/web/src/components/dashboard/DashboardShell.tsx` | Sidebar: change governance href to `/dashboard/hms`, update mobile nav |
-| `apps/web/src/app/dashboard/governance/page.tsx`       | Redirect to `/dashboard/hms`                                           |
-| `packages/supabase/src/database.types.ts`              | Regenerate after migration                                             |
+| File                                                                       | Change                                                                     |
+| -------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `apps/web/src/components/dashboard/DashboardShell.tsx`                     | Point HMS nav item to `/dashboard/hms`, keep legacy governance route alive |
+| `apps/web/src/components/dashboard/GlobalSearchPalette.tsx`                | Retarget front-door HMS search links to `/dashboard/hms`                   |
+| `apps/web/src/app/walkAi/_components/walkai-tools.ts`                      | Retarget front-door HMS tool links to `/dashboard/hms`                     |
+| `apps/web/src/app/dashboard/governance/_components/ProcedureBuilder.tsx`   | Add authoring controls for new procedure step fields                       |
+| `apps/web/src/app/dashboard/governance/_hooks/use-governance-mutations.ts` | Persist new step fields when creating procedures                           |
+| `packages/supabase/src/database.types.ts`                                  | Regenerate after migration                                                 |
 
-### Reused (no changes needed)
+### Reused without ownership changes
 
-| File                                                                       | Reused for                                             |
-| -------------------------------------------------------------------------- | ------------------------------------------------------ |
-| `apps/web/src/app/dashboard/handbook/_components/ChapterReader.tsx`        | Pattern reference for document rendering               |
-| `apps/web/src/app/dashboard/my-training/_hooks/use-assigned-protocols.ts`  | Data source for training tab                           |
-| `apps/web/src/app/dashboard/my-training/_components/KnowledgeTestView.tsx` | Quiz UI inside LearnFlow                               |
-| `apps/web/src/app/dashboard/my-training/_components/ConfirmationSign.tsx`  | Confirmation UI inside LearnFlow                       |
-| `apps/web/src/app/dashboard/my-training/_components/ProcedureStepper.tsx`  | Step UI reference (Drift will need its own in Phase 2) |
-| `apps/web/src/app/dashboard/_hooks/use-governance-overview.ts`             | Base hook for Oversikt (refactored with filter)        |
+| File                                                                      | Reused for                                                      |
+| ------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `apps/web/src/app/dashboard/governance/page.tsx`                          | Existing admin CRUD surface remains live                        |
+| `apps/web/src/app/dashboard/handbook/_components/ChapterReader.tsx`       | Tiptap rendering pattern                                        |
+| `apps/web/src/app/dashboard/my-training/_hooks/use-assigned-protocols.ts` | Employee training data source                                   |
+| `apps/web/src/app/dashboard/my-training/_components/ProtocolList.tsx`     | Employee training page under HMS                                |
+| `apps/web/src/app/dashboard/_hooks/use-governance-overview.ts`            | Base governance overview source                                 |
+| `apps/web/src/app/dashboard/_hooks/use-my-dashboard.ts`                   | Existing employee readiness semantics (`0 assignments => 100%`) |
+| `apps/web/src/app/dashboard/_hooks/use-protocol-journey.ts`               | Proof that progress and evidence are assignment-driven          |
 
 ---
 
-## Task 1: Database Migration — procedure_step training columns
+## Task 1: Data Foundation — Migration + Existing Authoring Path
 
 **Files:**
 
 - Create: `supabase/migrations/YYYYMMDDHHMMSS_hms_procedure_step_training.sql`
-- Modify: `packages/supabase/src/database.types.ts` (regenerate)
+- Modify: `packages/supabase/src/database.types.ts`
+- Modify: `apps/web/src/app/dashboard/governance/_components/ProcedureBuilder.tsx`
+- Modify: `apps/web/src/app/dashboard/governance/_hooks/use-governance-mutations.ts`
 
-- [ ] **Step 1: Create migration file**
+- [ ] **Step 1: Create the migration**
 
 ```sql
--- Add training content columns to procedure_step
--- Required for HMS Phase 1: Opplaering 5-stage learning flow
--- These columns enable rich learning content per step (video, images, extended explanations)
--- while keeping the compact `description` for operational task view (Drift)
-
 ALTER TABLE procedure_step ADD COLUMN training_content text;
 ALTER TABLE procedure_step ADD COLUMN media_urls jsonb;
 
-COMMENT ON COLUMN procedure_step.training_content IS 'Extended learning material shown in training mode. Markdown supported.';
-COMMENT ON COLUMN procedure_step.media_urls IS 'Array of {type: "image"|"video", url: string, caption: string} for training media.';
+COMMENT ON COLUMN procedure_step.training_content IS
+  'Extended learning material shown in HMS training/detail surfaces.';
+
+COMMENT ON COLUMN procedure_step.media_urls IS
+  'JSON array of media items: [{ type, url, caption }]';
 ```
 
-Use timestamp format: `YYYYMMDDHHMMSS` (check latest migration number and increment).
+Use the next timestamped filename in `supabase/migrations/`.
 
-- [ ] **Step 2: Apply migration locally**
+- [ ] **Step 2: Apply the migration locally**
 
 Run: `docker exec -i $(docker ps -q -f name=supabase_db) psql -U postgres < supabase/migrations/<filename>.sql`
-Expected: `ALTER TABLE` x2, no errors.
 
-- [ ] **Step 3: Regenerate types**
+Expected: two `ALTER TABLE` statements succeed.
 
-Run: `npx supabase gen types typescript --local > packages/supabase/src/database.types.ts`
+- [ ] **Step 3: Regenerate Supabase types**
 
-- [ ] **Step 4: Verify new columns in types**
+Run: `pnpm db:gen-types`
 
-Run: `grep -A 5 'training_content' packages/supabase/src/database.types.ts`
-Expected: `training_content: string | null` in procedure_step Row type.
+Expected: `packages/supabase/src/database.types.ts` now includes `training_content` and `media_urls` on `procedure_step`.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 4: Extend the existing governance mutation shape**
 
-```bash
-git add supabase/migrations/<filename>.sql packages/supabase/src/database.types.ts
-git commit -m "feat(hms): add training_content and media_urls to procedure_step
+In `use-governance-mutations.ts`, extend `ProcedureInput.steps` so each step can carry:
 
-Required for Phase 1 Opplaering: rich learning content per step.
-description = compact (Drift). training_content = rich (Opplaering).
+- `training_content?: string`
+- `media_urls?: Json`
 
-Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
+When inserting into `procedure_step`, pass those fields through alongside the existing `title`, `description`, `step_order`, `is_required`, and `estimated_minutes`.
+
+- [ ] **Step 5: Extend `ProcedureBuilder` with minimal authoring controls**
+
+Do not invent a full media studio in this phase. Add the smallest safe editor:
+
+- A `trainingContent` textarea on each step
+- A `mediaUrlsText` textarea on each step where admins can paste a JSON array
+
+Implementation rules:
+
+- Keep `description` as the compact operational copy
+- Use `trainingContent` for richer explanatory copy
+- Parse `mediaUrlsText` with `JSON.parse` on submit
+- If parsing fails, show a toast and abort submit instead of sending malformed JSON
+
+- [ ] **Step 6: Wire the builder payload**
+
+Map the builder draft to the mutation payload:
+
+```ts
+steps: steps.map((step, index) => ({
+  title: step.title,
+  description: step.description || step.title,
+  training_content: step.trainingContent.trim() || undefined,
+  media_urls: parsedMediaUrls ?? undefined,
+  step_order: index + 1,
+  is_required: step.isRequired,
+  estimated_minutes: step.estimatedMinutes || undefined,
+}));
 ```
+
+- [ ] **Step 7: Verify with the existing governance UI**
+
+Run: `pnpm --filter web dev`
+
+Manual check:
+
+- Open `/dashboard/governance`
+- Create a procedure with one step containing `trainingContent`
+- If testing media, use a valid JSON array
+- Confirm the procedure is created and no client/runtime error occurs
+
+- [ ] **Step 8: Run validation**
+
+Run: `pnpm typecheck`
+
+Expected: 0 errors.
+
+- [ ] **Step 9: Commit**
+
+Stage only:
+
+- `supabase/migrations/<filename>.sql`
+- `packages/supabase/src/database.types.ts`
+- `apps/web/src/app/dashboard/governance/_components/ProcedureBuilder.tsx`
+- `apps/web/src/app/dashboard/governance/_hooks/use-governance-mutations.ts`
+
+Commit:
+
+`feat(hms): add training fields to procedure steps`
+
+Use normal hooks and include the required footer from `Commit Protocol`.
 
 ---
 
-## Task 2: HMS Layout + Sub-Nav + Route Shell
+## Task 2: HMS Shell — Additive Routing, No Redirect
 
 **Files:**
 
 - Create: `apps/web/src/app/dashboard/hms/layout.tsx`
 - Create: `apps/web/src/app/dashboard/hms/_components/HmsSubNav.tsx`
-- Create: `apps/web/src/app/dashboard/hms/page.tsx` (minimal placeholder)
-- Create: `apps/web/src/app/dashboard/hms/drift/page.tsx` (placeholder)
-- Create: `apps/web/src/app/dashboard/hms/training/page.tsx` (placeholder)
-- Create: `apps/web/src/app/dashboard/hms/documents/page.tsx` (placeholder)
-- Create: `apps/web/src/app/dashboard/hms/deviations/page.tsx` (placeholder)
+- Create: `apps/web/src/app/dashboard/hms/drift/page.tsx`
+- Create: `apps/web/src/app/dashboard/hms/deviations/page.tsx`
 - Modify: `apps/web/src/components/dashboard/DashboardShell.tsx`
-- Modify: `apps/web/src/app/dashboard/governance/page.tsx`
+- Modify: `apps/web/src/components/dashboard/GlobalSearchPalette.tsx`
+- Modify: `apps/web/src/app/walkAi/_components/walkai-tools.ts`
 
-- [ ] **Step 1: Create HmsSubNav component**
+- [ ] **Step 1: Create `HmsSubNav`**
 
-Follow the exact tab pattern from `apps/web/src/app/dashboard/season/page.tsx:101-138`. The tabs are: Oversikt, Drift, Opplaering, Dokumenter, Avvik.
+Follow the visual pattern from the season page tabs, but use route navigation:
 
-Key differences from season tabs:
+- `/dashboard/hms` -> `Oversikt`
+- `/dashboard/hms/drift` -> `Drift`
+- `/dashboard/hms/training` -> `Opplaering`
+- `/dashboard/hms/documents` -> `Dokumenter`
+- `/dashboard/hms/deviations` -> `Avvik`
 
-- These use Next.js `usePathname()` + `Link` for URL-based navigation (not local state)
-- Each tab maps to a sub-route, not a client-side state toggle
+Use `Link` + `usePathname()` and CSS variable classes only.
 
-```typescript
-// apps/web/src/app/dashboard/hms/_components/HmsSubNav.tsx
-"use client";
+- [ ] **Step 2: Create the HMS layout**
 
-import { useContext } from "react";
-import { usePathname } from "next/navigation";
-import Link from "next/link";
-import {
-  LayoutDashboard,
-  ClipboardCheck,
-  GraduationCap,
-  FileText,
-  AlertTriangle,
-} from "lucide-react";
-import { DashboardContext } from "@/components/dashboard/DashboardShell";
+Wrap all HMS pages in a shared shell that renders `HmsSubNav` above `children`.
 
-const HMS_TABS = [
-  { id: "oversikt", href: "/dashboard/hms", label: "Oversikt", icon: LayoutDashboard },
-  { id: "drift", href: "/dashboard/hms/drift", label: "Drift", icon: ClipboardCheck },
-  { id: "training", href: "/dashboard/hms/training", label: "Opplaering", icon: GraduationCap },
-  { id: "documents", href: "/dashboard/hms/documents", label: "Dokumenter", icon: FileText },
-  { id: "deviations", href: "/dashboard/hms/deviations", label: "Avvik", icon: AlertTriangle },
-] as const;
+- [ ] **Step 3: Create safe placeholders for `drift` and `deviations`**
 
-export function HmsSubNav() {
-  const { isDark } = useContext(DashboardContext);
-  const pathname = usePathname();
+These are not source-of-truth surfaces yet.
 
-  function isActive(href: string) {
-    if (href === "/dashboard/hms") return pathname === "/dashboard/hms";
-    return pathname.startsWith(href);
-  }
+Requirements:
 
-  return (
-    <div className="bg-muted/50 border-border mb-6 flex gap-1 rounded-xl border p-1">
-      {HMS_TABS.map((tab) => {
-        const active = isActive(tab.href);
-        const Icon = tab.icon;
+- `drift/page.tsx` explains that live operations still live in `/dashboard/operations`
+- `deviations/page.tsx` explains that the dedicated avvik workspace is coming later
+- Each page should include one obvious CTA button or link to the current owner surface where appropriate
 
-        return (
-          <Link
-            key={tab.id}
-            href={tab.href}
-            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
-              active
-                ? "bg-background text-foreground shadow"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Icon className="h-4 w-4" />
-            {tab.label}
-          </Link>
-        );
-      })}
-    </div>
-  );
-}
-```
+- [ ] **Step 4: Retarget the sidebar HMS item**
 
-- [ ] **Step 2: Create HMS layout**
+In `DashboardShell.tsx`:
 
-```typescript
-// apps/web/src/app/dashboard/hms/layout.tsx
-import { HmsSubNav } from "./_components/HmsSubNav";
+- Change the HMS nav item `href` from `/dashboard/governance` to `/dashboard/hms`
+- Make the active-nav logic treat both `/dashboard/hms` and legacy `/dashboard/governance` as HMS during the transition
+- Update `ROUTE_MISSION_MAP` and any top-bar route-label logic for `/dashboard/hms`, `/dashboard/hms/training`, `/dashboard/hms/documents`, `/dashboard/hms/deviations`, and `/dashboard/hms/procedure/[id]`
+- Update walkthrough selector/path references tied to the HMS nav item
 
-export default function HmsLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="z-10 flex-1 overflow-y-auto px-10 pt-8 pb-20">
-      <HmsSubNav />
-      {children}
-    </div>
-  );
-}
-```
+Do **not** remove or modify the `/dashboard/governance` page route in this task.
 
-- [ ] **Step 3: Create placeholder pages**
+- [ ] **Step 5: Audit other front-door HMS entry points**
 
-Each placeholder page should show the tab name and a "Coming in Phase X" message. Oversikt page.tsx is the default landing (will be fleshed out in Task 3).
+Retarget the non-sidebar HMS entry points that are intended as front doors:
 
-Create minimal placeholder for each: `drift/page.tsx`, `training/page.tsx`, `documents/page.tsx`, `deviations/page.tsx`, and `hms/page.tsx`.
+- `GlobalSearchPalette.tsx`
+- `walkai-tools.ts`
 
-**i18n rule:** All Norwegian text MUST use i18n keys via `@smartout/i18n`. No hardcoded Norwegian strings. If the i18n package does not yet have HMS keys, add them to the Norwegian locale file and reference them. For Phase 1, acceptable fallback is to define string constants at the top of the file with `// TODO: move to i18n` comments, but NEVER inline Norwegian strings in JSX.
+Rules:
 
-Placeholder pattern (uses CSS variable classes, not hardcoded zinc colors):
+- point general HMS or quality-control entry points to `/dashboard/hms`
+- keep governance-specific authoring/setup links on `/dashboard/governance` where the user truly needs the legacy CRUD surface
 
-```typescript
-// apps/web/src/app/dashboard/hms/drift/page.tsx
-"use client";
-
-import { ClipboardCheck } from "lucide-react";
-
-// TODO: move to i18n
-const STRINGS = {
-  title: "Drift",
-  description: "Daglige oppgaver, sjekklister og rutinelogging. Kommer i Phase 2.",
-} as const;
-
-export default function DriftPage() {
-  return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border bg-card/50 p-16">
-      <ClipboardCheck className="text-muted-foreground mb-4 h-12 w-12" />
-      <h2 className="text-foreground text-xl font-bold">{STRINGS.title}</h2>
-      <p className="text-muted-foreground mt-2 text-sm">{STRINGS.description}</p>
-    </div>
-  );
-}
-```
-
-Repeat for deviations with `AlertTriangle` icon and appropriate text. Use `bg-background`, `text-foreground`, `text-muted-foreground`, `border-border`, `bg-card` CSS variable classes throughout — never hardcoded `zinc-*` values.
-
-- [ ] **Step 4: Update DashboardShell sidebar**
-
-In `apps/web/src/components/dashboard/DashboardShell.tsx`, find the NavItem for governance (around line 1318) and change `href="/dashboard/governance"` to `href="/dashboard/hms"`. The label is already "HMS". Also update the `isActive` check and the `data-autoplay` selector.
-
-Find all references to `/dashboard/governance` in DashboardShell and update to `/dashboard/hms`.
-
-- [ ] **Step 5: Add redirect from old governance route**
-
-```typescript
-// apps/web/src/app/dashboard/governance/page.tsx
-import { redirect } from "next/navigation";
-
-export default function GovernancePage() {
-  redirect("/dashboard/hms");
-}
-```
-
-Replace the entire existing file content. The old governance components stay in place — they are still accessible at `/dashboard/hms` for admin CRUD operations. Specifically: PolicyForm, ProtocolForm, ProcedureBuilder, KnowledgeTestBuilder, and ConfirmationForm will be integrated into the Procedure Detail Page admin view. Until then, admin users access CRUD via the Oversikt admin view which will render these forms inline (or via a temporary "Administrer" button linking to the old component set).
-
-- [ ] **Step 6: Verify routing works**
+- [ ] **Step 6: Verify route ownership**
 
 Run: `pnpm --filter web dev`
-Navigate to: `http://localhost:3060/dashboard/hms`
-Expected: See sub-nav with 5 tabs, Oversikt tab active, placeholder content.
-Navigate to: `http://localhost:3060/dashboard/governance`
-Expected: Redirects to `/dashboard/hms`.
-Navigate to: `http://localhost:3060/dashboard/hms/drift`
-Expected: Drift placeholder with Phase 2 message.
 
-- [ ] **Step 7: Run typecheck**
+Manual check:
 
-Run: `pnpm turbo typecheck`
-Expected: 0 errors.
+- `/dashboard/hms` resolves to the new shell
+- `/dashboard/hms/drift` renders placeholder and points to `/dashboard/operations`
+- `/dashboard/hms/deviations` renders placeholder
+- `/dashboard/governance` still works exactly as before
+- Sidebar HMS button now opens `/dashboard/hms`
+
+- [ ] **Step 7: Run validation**
+
+Run: `pnpm typecheck`
 
 - [ ] **Step 8: Commit**
 
-```bash
-git add apps/web/src/app/dashboard/hms/ apps/web/src/components/dashboard/DashboardShell.tsx apps/web/src/app/dashboard/governance/page.tsx
-git commit -m "feat(hms): route shell with sub-nav and 5 tab placeholders
+Stage only the new HMS shell files plus:
 
-/dashboard/hms with Oversikt, Drift, Opplaering, Dokumenter, Avvik tabs.
-Governance page redirects to /dashboard/hms.
-Sidebar updated. Season tab pattern reused for sub-nav.
+- `apps/web/src/components/dashboard/DashboardShell.tsx`
+- `apps/web/src/components/dashboard/GlobalSearchPalette.tsx`
+- `apps/web/src/app/walkAi/_components/walkai-tools.ts`
 
-Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
-```
+Commit:
+
+`feat(hms): add additive route shell for hms`
+
+Use normal hooks and include the required footer from `Commit Protocol`.
 
 ---
 
-## Task 3: Oversikt — Attention System
+## Task 3: Oversikt — Attention Surface Without Breaking Admin CRUD
 
 **Files:**
 
-- Create: `packages/hms/package.json`
-- Create: `packages/hms/tsconfig.json`
-- Create: `packages/hms/src/index.ts`
-- Create: `packages/hms/src/hooks/use-readiness-score.ts`
-- Create: `packages/hms/src/hooks/use-governance-filtered.ts`
+- Create: `apps/web/src/app/dashboard/hms/_hooks/useHmsGovernanceFiltered.ts`
+- Create: `apps/web/src/app/dashboard/hms/_hooks/useHmsReadinessScore.ts`
 - Create: `apps/web/src/app/dashboard/hms/_components/OversiktDashboard.tsx`
 - Create: `apps/web/src/app/dashboard/hms/_components/OversiktEmployee.tsx`
-- Modify: `apps/web/src/app/dashboard/hms/page.tsx`
+- Create: `apps/web/src/app/dashboard/hms/page.tsx`
 
-- [ ] **Step 0: Create packages/hms package**
+- [ ] **Step 1: Create `useHmsGovernanceFiltered` in `apps/web`**
 
-Create `packages/hms/package.json` following the pattern of existing packages (e.g., `packages/utils/`):
+Wrap `useGovernanceOverview()` and add an optional local HMS filter for display grouping.
 
-```json
-{
-  "name": "@smartout/hms",
-  "version": "0.0.0",
-  "private": true,
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
-  "scripts": {
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@smartout/supabase": "workspace:*",
-    "@tanstack/react-query": "catalog:"
-  },
-  "devDependencies": {
-    "@smartout/typescript-config": "workspace:*"
-  }
-}
-```
+Do not move this hook into `packages/`.
 
-Create `packages/hms/tsconfig.json` extending base config. Create `packages/hms/src/index.ts` as barrel export. Run `pnpm install` from root to wire up the workspace.
+- [ ] **Step 2: Create `useHmsReadinessScore` preserving current semantics**
 
-All new HMS data hooks go in this package. Web app imports via `@smartout/hms`. Mobile app can import the same hooks later.
+Base it on existing assignment queries and preserve the current rule:
 
-- [ ] **Step 1: Create use-readiness-score hook**
+- `0 assignments => 100% readiness`
 
-This hook calculates readiness from existing `useAssignedProtocols` data. Pure computation, no new DB queries.
+Match the semantics already used in `use-my-dashboard.ts` and `use-training-readiness.ts`.
 
-```typescript
-// packages/hms/src/hooks/use-readiness-score.ts
-"use client";
+- [ ] **Step 3: Build `OversiktDashboard`**
 
-import { useMemo } from "react";
-import { useAssignedProtocols } from "@/app/dashboard/my-training/_hooks/use-assigned-protocols";
+Admin view should show:
 
-export function useReadinessScore(profileId: string | null) {
-  const { data: protocols, isLoading } = useAssignedProtocols(profileId);
+- Status cards
+- Attention list
+- Action row
 
-  const score = useMemo(() => {
-    if (!protocols || protocols.length === 0) return { percent: 0, completed: 0, total: 0 };
-    const completed = protocols.filter((p) => p.assignmentStatus === "completed").length;
-    return {
-      percent: Math.round((completed / protocols.length) * 100),
-      completed,
-      total: protocols.length,
-    };
-  }, [protocols]);
+Action row requirements:
 
-  return { score, isLoading };
-}
-```
+- Include a clear `Administrer innhold` CTA linking to `/dashboard/governance`
+- Include a `Se drift` CTA linking to `/dashboard/operations`
+- Include a `Dokumenter` CTA linking to `/dashboard/hms/documents`
 
-- [ ] **Step 2: Create use-governance-filtered hook**
+This is the bridge that keeps the old governance CRUD accessible while HMS becomes the new front door.
 
-Extends `useGovernanceOverview` with optional `policyType` filter for IK-Mat scoping.
+- [ ] **Step 4: Build `OversiktEmployee`**
 
-```typescript
-// packages/hms/src/hooks/use-governance-filtered.ts
-"use client";
+Employee view should show:
 
-import { useMemo } from "react";
-import { useGovernanceOverview } from "@/app/dashboard/_hooks";
-import type { ProtocolOverviewItem } from "@/app/dashboard/_hooks";
+- Readiness ring
+- Remaining assignments count
+- Next-action CTA linking to `/dashboard/hms/training`
 
-type Domain = "all" | "haccp" | "safety" | "hr" | "operational";
+Use existing assignment data and do not invent a second training state model.
 
-export function useGovernanceFiltered(domain: Domain = "all") {
-  const { data: protocols, isLoading, error } = useGovernanceOverview();
+- [ ] **Step 5: Wire the page**
 
-  const filtered = useMemo(() => {
-    if (!protocols || domain === "all") return protocols ?? [];
-    const domainTypes: Record<Domain, string[]> = {
-      all: [],
-      haccp: ["haccp"],
-      safety: ["haccp", "safety"],
-      hr: ["hr"],
-      operational: ["operational"],
-    };
-    const types = domainTypes[domain];
-    return protocols.filter((p) => types.includes(p.policyType));
-  }, [protocols, domain]);
+`page.tsx` switches on `DashboardContext.isAdminMode` and renders either the admin or employee view.
 
-  const stats = useMemo(() => {
-    const total = filtered.length;
-    const overdue = filtered.filter((p) => p.expiredCount > 0).length;
-    const avgCompletion =
-      total > 0 ? Math.round(filtered.reduce((s, p) => s + p.completionPercent, 0) / total) : 0;
-    return { total, overdue, avgCompletion };
-  }, [filtered]);
-
-  return { protocols: filtered, stats, isLoading, error };
-}
-```
-
-- [ ] **Step 3: Create OversiktDashboard (admin view)**
-
-Three blocks: Status, Attention, Action. Follow the spec section 3 exactly.
-
-Uses `useGovernanceFiltered` for protocol data and renders:
-
-- Status block: readiness %, open deviations (placeholder count), overdue items, critical controls
-- Attention block: protocols with low completion, employees with expired assignments
-- Action block: buttons for assign training, review deviation, log control, inspection pack
-
-Reference the existing card patterns from `apps/web/src/app/dashboard/reports/_components/OverviewSection.tsx` for KPI card styling.
-
-This is a substantial component (~200 lines). Key sections:
-
-- Readiness ring (use a simple SVG circle with stroke-dasharray)
-- KPI cards grid (4 cards)
-- Attention list (protocols sorted by worst completion)
-- Action buttons row
-
-- [ ] **Step 4: Create OversiktEmployee (employee view)**
-
-Simpler view: readiness ring, "X ting gjenstar" text, next-action card.
-
-Uses `useReadinessScore` and `useAssignedProtocols` to show:
-
-- Large readiness percentage with ring
-- Count of remaining protocols
-- Next recommended protocol with "Fortsett" button linking to `/dashboard/hms/training`
-
-- [ ] **Step 5: Wire up Oversikt page**
-
-```typescript
-// apps/web/src/app/dashboard/hms/page.tsx
-"use client";
-
-import { useContext } from "react";
-import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { OversiktDashboard } from "./_components/OversiktDashboard";
-import { OversiktEmployee } from "./_components/OversiktEmployee";
-
-export default function HmsOversiktPage() {
-  const { isAdminMode } = useContext(DashboardContext);
-
-  return isAdminMode ? <OversiktDashboard /> : <OversiktEmployee />;
-}
-```
-
-- [ ] **Step 6: Verify**
+- [ ] **Step 6: Verify both personas**
 
 Run: `pnpm --filter web dev`
-Toggle admin mode on/off in dashboard — verify two different views render.
-Run: `pnpm turbo typecheck`
 
-- [ ] **Step 7: Commit**
+Manual check:
 
-```bash
-git add apps/web/src/app/dashboard/hms/
-git commit -m "feat(hms): Oversikt attention system with admin + employee views
+- Admin mode shows status, attention, and CTA bridge to `/dashboard/governance`
+- Employee mode shows readiness and next action
+- Empty-state readiness still behaves correctly for unassigned employees
 
-Admin: status/attention/action blocks with readiness %, overdue, alerts.
-Employee: readiness ring + next action card.
-Strict rule: only what requires attention now.
+- [ ] **Step 7: Run validation**
 
-Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
-```
+Run: `pnpm typecheck`
+
+- [ ] **Step 8: Commit**
+
+Commit:
+
+`feat(hms): add oversikt attention surface`
+
+Use normal hooks and include the required footer from `Commit Protocol`.
 
 ---
 
-## Task 4: Documents — Source-of-Truth System
+## Task 4: Documents — Read-First With Guarded Actions
 
 **Files:**
 
 - Create: `apps/web/src/app/dashboard/hms/_components/DocumentBrowser.tsx`
 - Create: `apps/web/src/app/dashboard/hms/_components/DocumentViewer.tsx`
-- Modify: `apps/web/src/app/dashboard/hms/documents/page.tsx`
+- Create: `apps/web/src/app/dashboard/hms/documents/page.tsx`
+- Create: `apps/web/src/app/dashboard/hms/_hooks/useProcedureContext.ts`
 
-- [ ] **Step 1: Create DocumentBrowser (left panel)**
+- [ ] **Step 1: Build the document browser**
 
-Tree navigation with max 3 levels: Policy -> Protocol -> Procedure.
+Tree depth:
 
-Fetches all policies + protocols + procedures for the workspace. Renders as a collapsible tree with search bar at top.
+- Handbook chapter
+- Policy
+- Protocol
+- Procedure
 
-Data: Query `policy` -> for each, query `protocol` -> for each, query `procedure`. Use existing Supabase client patterns.
+Requirements:
 
-Key features:
+- Search field
+- Collapsible groups
+- URL-driven selection, not local-only state
 
-- Search input (filters tree by title match)
-- Collapsible sections per policy
-- Protocol items show procedure count badge
-- Procedure items are clickable (set selectedProcedureId)
-- Handbook chapters section at top (from `handbook_chapter` table)
+Use query parameters:
 
-- [ ] **Step 2: Create DocumentViewer (right panel)**
+- `/dashboard/hms/documents?type=policy&id=<uuid>`
+- `/dashboard/hms/documents?type=procedure&id=<uuid>`
 
-Renders the selected document with metadata header and action bar.
+- [ ] **Step 2: Create `useProcedureContext`**
 
-For handbook chapters: use `generateHTML()` pattern from `ChapterReader.tsx`.
-For procedures: programmatic rendering of steps as ordered list.
-For policies/protocols: render statement/description as prose.
+This hook resolves:
 
-Action bar (top-right): Start opplaering, Ta quiz, Signer, Meld avvik, Spor AI.
+- the selected procedure
+- its parent protocol
+- the current employee's matching assignment, if any
 
-- "Start opplaering" links to `/dashboard/hms/training` with `?procedure=<id>` param
-- "Meld avvik" links to `/dashboard/hms/deviations` (placeholder in Phase 1)
-- "Spor AI" is disabled with tooltip "Kommer i Phase 4"
-- Visibility gated by `isAdminMode` for admin-only actions (Rediger)
+Return shape:
 
-Metadata header shows: status badge, policy type, last updated, owner, assignment count.
+- `procedure`
+- `protocol`
+- `assignment`
+- `isLoading`
 
-- [ ] **Step 3: Wire up Documents page**
+This same hook will later be reused by procedure detail.
 
-Two-panel layout: DocumentBrowser (left, ~300px) + DocumentViewer (right, flex-1).
+- [ ] **Step 3: Build the document viewer**
 
-```typescript
-// apps/web/src/app/dashboard/hms/documents/page.tsx
-"use client";
+Rendering rules:
 
-import { useState } from "react";
-import { DocumentBrowser } from "../_components/DocumentBrowser";
-import { DocumentViewer } from "../_components/DocumentViewer";
+- Handbook -> render with the existing `ChapterReader` pattern
+- Policy / protocol -> prose and metadata
+- Procedure -> ordered steps, including `training_content` when present
 
-type DocumentSelection = {
-  type: "handbook" | "policy" | "protocol" | "procedure";
-  id: string;
-};
+Action bar rules for Phase 1:
 
-export default function DocumentsPage() {
-  const [selection, setSelection] = useState<DocumentSelection | null>(null);
+- Always safe: `Open procedure detail`
+- Admin-only: `Open in governance`
+- Assignment-aware: `Continue training` only when `!isAdminMode && assignment`
+- Disabled placeholder: AI-related actions
+- Do **not** show quiz/sign actions directly from documents in this phase
 
-  return (
-    <div className="flex min-h-[600px] gap-0 overflow-hidden rounded-xl border border-border">
-      <DocumentBrowser onSelect={setSelection} selected={selection} />
-      <DocumentViewer selection={selection} />
-    </div>
-  );
-}
-```
+- [ ] **Step 4: Build the page with URL-synced selection**
 
-- [ ] **Step 4: Verify browse + context modes**
+The page should:
 
-Browse mode: navigate to `/dashboard/hms/documents` — see tree, click items, see rendered content.
-Context mode: navigate to `/dashboard/hms/documents?type=procedure&id=<uuid>` — document auto-opens.
+- read `searchParams`
+- pass selected state to the browser and viewer
+- update the URL when selection changes
 
-- [ ] **Step 5: Run typecheck**
+Do not rely on an internal `useState` that loses context on refresh.
 
-Run: `pnpm turbo typecheck`
+- [ ] **Step 5: Verify browse and context mode**
 
-- [ ] **Step 6: Commit**
+Run: `pnpm --filter web dev`
 
-```bash
-git add apps/web/src/app/dashboard/hms/
-git commit -m "feat(hms): Documents source-of-truth with browse + context modes
+Manual check:
 
-Two-panel layout: tree browser (left) + document viewer (right).
-Action bar on every document: start training, take quiz, sign, report.
-Renders handbook chapters (Tiptap), procedures (steps), policies (prose).
+- `/dashboard/hms/documents` opens with no crash
+- selecting a document updates the URL
+- pasting a URL with `type` + `id` auto-opens the right document
+- procedure documents only show `Continue training` when an assignment exists
 
-Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
-```
+- [ ] **Step 6: Run validation**
 
----
-
-## Task 5: Training — 5-Stage Learn Flow + Competence Matrix
-
-**Files:**
-
-- Create: `apps/web/src/app/dashboard/hms/_components/LearnFlow.tsx`
-- Create: `apps/web/src/app/dashboard/hms/_components/CompetenceMatrix.tsx`
-- Create: `packages/hms/src/hooks/use-procedure-steps.ts`
-- Modify: `apps/web/src/app/dashboard/hms/training/page.tsx`
-
-- [ ] **Step 1: Create use-procedure-steps hook**
-
-Fetches procedure steps including new `training_content` and `media_urls` columns.
-
-```typescript
-// packages/hms/src/hooks/use-procedure-steps.ts
-"use client";
-
-import { useQuery } from "@tanstack/react-query";
-import { createClient } from "@smartout/supabase/client";
-
-export type ProcedureStepWithTraining = {
-  stepId: string;
-  title: string;
-  description: string;
-  trainingContent: string | null;
-  mediaUrls: Array<{ type: "image" | "video"; url: string; caption: string }> | null;
-  estimatedMinutes: number | null;
-  isRequired: boolean;
-  stepOrder: number;
-};
-
-export function useProcedureSteps(procedureId: string | undefined) {
-  return useQuery({
-    queryKey: ["procedure-steps", procedureId],
-    enabled: !!procedureId,
-    queryFn: async (): Promise<ProcedureStepWithTraining[]> => {
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from("procedure_step")
-        .select(
-          "step_id, title, description, training_content, media_urls, estimated_minutes, is_required, step_order",
-        )
-        .eq("procedure_id", procedureId!)
-        .order("step_order");
-
-      if (error) throw error;
-
-      return (data ?? []).map((s) => ({
-        stepId: s.step_id,
-        title: s.title,
-        description: s.description,
-        trainingContent: s.training_content,
-        mediaUrls: s.media_urls as ProcedureStepWithTraining["mediaUrls"],
-        estimatedMinutes: s.estimated_minutes,
-        isRequired: s.is_required,
-        stepOrder: s.step_order,
-      }));
-    },
-  });
-}
-```
-
-- [ ] **Step 2: Create LearnFlow component**
-
-The 5-stage learning experience for employees. This is a NEW component that does NOT reuse ProcedureStepper (different interaction contract — learn vs do).
-
-Stages: Understand -> Practice -> Test -> Confirm -> Done.
-
-Key differences from existing my-training components:
-
-- Shows `training_content` (rich text) not just `description`
-- Shows `media_urls` (images/videos) inline
-- Has AI placeholder button ("Forklar dette enklere" — disabled in Phase 1)
-- Progress is staged (not just step checkmarks)
-- Completion triggers readiness score update
-
-Reuse `KnowledgeTestView` and `ConfirmationSign` from my-training for stages 3 and 4 — import them directly.
-
-- [ ] **Step 3: Create CompetenceMatrix component**
-
-Admin view: table with employees as rows, protocols as columns, completion status in cells.
-
-Data source: fetch all `protocol_assignment` for the workspace, group by profile_id and protocol_id.
-
-Cell states: OK (completed), percentage (in_progress), -- (not_started), Forfalt (expired).
-Row summary: readiness % per employee.
-Column summary: compliance % per protocol.
-
-Department/team filter at top.
-
-- [ ] **Step 4: Wire up Training page**
-
-```typescript
-// apps/web/src/app/dashboard/hms/training/page.tsx
-"use client";
-
-import { useContext } from "react";
-import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { CompetenceMatrix } from "../_components/CompetenceMatrix";
-import { ProtocolList } from "@/app/dashboard/my-training/_components/ProtocolList";
-
-export default function TrainingPage() {
-  const { isAdminMode } = useContext(DashboardContext);
-
-  // Admin sees competence matrix. Employee sees their protocol list.
-  // Note: Employee view reuses existing ProtocolList from my-training.
-  // In a future iteration, ProtocolList will be replaced with LearnFlow
-  // as the primary employee experience once training_content is populated.
-  return isAdminMode ? <CompetenceMatrix /> : <ProtocolList />;
-}
-```
-
-Note: The full LearnFlow integration requires training_content data to be populated in procedures. For Phase 1, employee view reuses existing ProtocolList. LearnFlow is created and accessible via `/dashboard/hms/procedure/[id]` but is not the default training page yet.
-
-- [ ] **Step 5: Verify**
-
-Admin mode: see competence matrix with real protocol data.
-Employee mode: see existing protocol list (same as my-training).
-
-- [ ] **Step 6: Run typecheck**
-
-Run: `pnpm turbo typecheck`
+Run: `pnpm typecheck`
 
 - [ ] **Step 7: Commit**
 
-```bash
-git add apps/web/src/app/dashboard/hms/
-git commit -m "feat(hms): Training tab with competence matrix + learn flow
+Commit:
 
-Admin: competence matrix (person x protocol) with readiness %.
-Employee: reuses existing ProtocolList (LearnFlow created for procedure detail).
-New hook: useProcedureSteps with training_content + media_urls.
+`feat(hms): add read-first documents surface`
 
-Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
-```
+Use normal hooks and include the required footer from `Commit Protocol`.
 
 ---
 
-## Task 6: Procedure Detail Page — Canonical Control Plane
+## Task 5: Training — HMS Surface Over Existing Assignment Flow
 
 **Files:**
 
-- Create: `apps/web/src/app/dashboard/hms/procedure/[id]/page.tsx`
-- Create: `apps/web/src/app/dashboard/hms/_components/ProcedureDetailTabs.tsx`
-- Create: `apps/web/src/app/dashboard/hms/_components/ProcedureExperience.tsx`
+- Create: `apps/web/src/app/dashboard/hms/_components/CompetenceMatrix.tsx`
+- Create: `apps/web/src/app/dashboard/hms/training/page.tsx`
 
-- [ ] **Step 1: Create ProcedureDetailTabs (admin view)**
+- [ ] **Step 1: Build `CompetenceMatrix` for admin mode**
 
-Tabs: Oversikt, Steg, Quiz, Bekreftelse. (Logg, Avvik, Historikk are Phase 2/3.)
+Data source:
 
-Each tab renders the appropriate content for the procedure.
+- `protocol_assignment`
+- related `profile`
+- related `protocol`
 
-- Oversikt: metadata, status, assignment count, completion rate, related policy
-- Steg: procedure steps with training_content and media (uses useProcedureSteps)
-- Quiz: list of knowledge tests for this protocol (link to KnowledgeTestView)
-- Bekreftelse: list of confirmations (link to ConfirmationSign)
+Display:
 
-- [ ] **Step 2: Create ProcedureExperience (employee view)**
+- employee rows
+- protocol columns
+- cell states for `completed`, `pending`, `expired`
+- row readiness summary
 
-Wraps LearnFlow for the specific procedure. Shows the 5-stage flow.
+Phase 1 rule:
 
-If the employee has an assignment for this procedure's protocol, resume at current stage.
-If no assignment exists, show read-only view (document mode).
+- do not build assignment editing here
+- this is visibility, not a new admin mutation surface
 
-- [ ] **Step 3: Create procedure detail page**
+- [ ] **Step 2: Reuse `ProtocolList` for employee mode**
 
-```typescript
-// apps/web/src/app/dashboard/hms/procedure/[id]/page.tsx
-"use client";
+For employee mode, reuse `apps/web/src/app/dashboard/my-training/_components/ProtocolList.tsx`.
 
-import { useContext } from "react";
-import { useParams } from "next/navigation";
-import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { ProcedureDetailTabs } from "../../_components/ProcedureDetailTabs";
-import { ProcedureExperience } from "../../_components/ProcedureExperience";
+Do not replace it with a new learn flow in this phase.
 
-export default function ProcedureDetailPage() {
-  const { id } = useParams<{ id: string }>();
-  const { isAdminMode } = useContext(DashboardContext);
+- [ ] **Step 3: Wire the training page**
 
-  return isAdminMode
-    ? <ProcedureDetailTabs procedureId={id} />
-    : <ProcedureExperience procedureId={id} />;
-}
-```
+Behavior:
 
-- [ ] **Step 4: Verify**
+- admin -> `CompetenceMatrix`
+- employee -> existing `ProtocolList`
 
-Navigate to `/dashboard/hms/procedure/<real-procedure-id>`.
-Admin mode: see tabs with procedure data.
-Employee mode: see staged learn flow (or read-only if no assignment).
+If a future enhancement needs richer deep links, build it on top of assignment context rather than procedure-only routing.
 
-- [ ] **Step 5: Run typecheck**
+- [ ] **Step 4: Verify both paths**
 
-Run: `pnpm turbo typecheck`
+Run: `pnpm --filter web dev`
+
+Manual check:
+
+- admin sees competence matrix
+- employee sees the same real protocol list they already trust
+
+- [ ] **Step 5: Run validation**
+
+Run: `pnpm typecheck`
 
 - [ ] **Step 6: Commit**
 
-```bash
-git add apps/web/src/app/dashboard/hms/procedure/ apps/web/src/app/dashboard/hms/_components/ProcedureDetailTabs.tsx apps/web/src/app/dashboard/hms/_components/ProcedureExperience.tsx
-git commit -m "feat(hms): Procedure Detail Page — canonical control plane
+Commit:
 
-Admin: tabbed view (Oversikt, Steg, Quiz, Bekreftelse).
-Employee: 5-stage learn flow wrapper.
-Procedure Detail = master page. Procedure Experience = role wrapper.
+`feat(hms): add training surface on top of assignments`
 
-Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
-```
+Use normal hooks and include the required footer from `Commit Protocol`.
 
 ---
 
-## Task 7: Final Verification + Cleanup
+## Task 6: Procedure Detail — Assignment-Aware, Read-First
 
-- [ ] **Step 1: Full typecheck**
+**Files:**
 
-Run: `pnpm turbo typecheck`
+- Create: `apps/web/src/app/dashboard/hms/_hooks/useProcedureTrainingSteps.ts`
+- Create: `apps/web/src/app/dashboard/hms/_components/ProcedureDetailTabs.tsx`
+- Create: `apps/web/src/app/dashboard/hms/_components/ProcedureExperience.tsx`
+- Create: `apps/web/src/app/dashboard/hms/procedure/[id]/page.tsx`
+
+- [ ] **Step 1: Create `useProcedureTrainingSteps`**
+
+Fetch:
+
+- `step_id`
+- `title`
+- `description`
+- `training_content`
+- `media_urls`
+- `estimated_minutes`
+- `is_required`
+- `step_order`
+
+Keep this hook local to `apps/web`.
+
+- [ ] **Step 2: Build the admin detail tabs**
+
+Admin tabs:
+
+- `Oversikt`
+- `Steg`
+- `Relatert`
+
+Phase 1 rules:
+
+- `Oversikt` shows metadata and related protocol/policy info
+- `Steg` shows the step list and training content
+- `Relatert` shows links out to `/dashboard/governance` for editing tests/confirmations
+
+Do not embed the old CRUD forms here yet.
+
+- [ ] **Step 3: Build `ProcedureExperience`**
+
+This is the employee/read-only wrapper.
+
+Behavior:
+
+- if `!isAdminMode && assignment`, show read-first procedure content plus `Continue training` CTA
+- if no assignment exists, show read-only procedure content with no mutation controls
+
+Do not embed `KnowledgeTestView` or `ConfirmationSign` directly here in Phase 1.
+
+- [ ] **Step 4: Wire the route**
+
+The page should:
+
+- read the route param `id`
+- use `DashboardContext.isAdminMode`
+- render admin tabs in admin mode
+- render `ProcedureExperience` in employee mode
+
+- [ ] **Step 5: Verify with a real procedure**
+
+Run: `pnpm --filter web dev`
+
+Manual check:
+
+- admin can open `/dashboard/hms/procedure/<id>` and inspect metadata + steps
+- employee can open the same route and gets a safe read-only or assignment-aware view
+- no path in this page creates quiz/sign attempts without assignment context
+
+- [ ] **Step 6: Run validation**
+
+Run: `pnpm typecheck`
+
+- [ ] **Step 7: Commit**
+
+Commit:
+
+`feat(hms): add assignment-aware procedure detail`
+
+Use normal hooks and include the required footer from `Commit Protocol`.
+
+---
+
+## Task 7: Automated Smoke + Final Verification
+
+**Files:**
+
+- Modify: `apps/web/src/components/dashboard/DashboardShell.tsx`
+- Create: `apps/e2e/tests/hms-legibility-smoke.spec.ts`
+
+- [ ] **Step 1: Create HMS smoke regression spec**
+
+Base the file on the login helper pattern already used in:
+
+- `apps/e2e/tests/dashboard.spec.ts`
+- `apps/e2e/tests/cascade-ui.spec.ts`
+
+The spec should cover at least these checks:
+
+- `/dashboard/hms` loads after login
+- `/dashboard/governance` still loads after the sidebar retarget
+- front-door HMS navigation opens `/dashboard/hms` instead of `/dashboard/governance`
+- admin-mode documents/procedure routes do **not** expose `Continue training`
+- employee-mode `/dashboard/hms/training` still renders the assignment-backed `ProtocolList`
+
+- [ ] **Step 2: Run the targeted smoke spec**
+
+Run: `pnpm --filter e2e test:e2e -- tests/hms-legibility-smoke.spec.ts`
+
+Expected: the HMS smoke spec passes.
+
+- [ ] **Step 3: Full typecheck**
+
+Run: `pnpm typecheck`
+
 Expected: 0 errors.
 
-- [ ] **Step 2: Lint**
+- [ ] **Step 4: Lint**
 
 Run: `pnpm lint`
-Expected: 0 errors (warnings acceptable).
 
-- [ ] **Step 3: Visual verification**
+Expected: no new errors in changed areas.
 
-Navigate through all 5 tabs. Verify:
+- [ ] **Step 5: Manual route walkthrough**
 
-- Oversikt shows real data (or graceful empty states)
-- Documents tree loads policies/protocols/procedures
-- Training shows competence matrix (admin) or protocol list (employee)
-- Drift and Avvik show Phase 2 placeholders
-- Procedure detail page renders for a real procedure ID
-- Old `/dashboard/governance` redirects correctly
-- Sidebar "HMS" link works
+Verify:
 
-- [ ] **Step 4: Update DashboardShell walkthrough**
+- `/dashboard/hms` works for admin and employee
+- `/dashboard/hms/documents` supports direct URLs
+- `/dashboard/hms/training` preserves the current employee training flow
+- `/dashboard/hms/procedure/<id>` is read-first and assignment-aware
+- `/dashboard/hms/drift` points toward `/dashboard/operations`
+- `/dashboard/governance` still works
 
-In DashboardShell.tsx, update the autoplay/walkthrough step that references governance:
+- [ ] **Step 6: Run targeted regression checks**
 
-- Change `id: "governance"` to `id: "hms"`
-- Change `selector` to `'[data-autoplay="nav-/dashboard/hms"]'`
-- Change `expectedPathname` to `"/dashboard/hms"`
+Verify explicitly:
 
-- [ ] **Step 5: Commit cleanup**
+- `/dashboard/hms` loads
+- `/dashboard/governance` still loads
+- employee-mode `/dashboard/hms/training` still renders the assignment-backed `ProtocolList`
+- document and procedure routes never expose `Continue training` unless `!isAdminMode && assignment`
 
-```bash
-git add -A
-git commit -m "chore(hms): Phase 1 cleanup — typecheck, lint, walkthrough update
+- [ ] **Step 7: Update any remaining HMS walkthrough selectors**
 
-Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
-```
+If `DashboardShell.tsx` still contains guidance or autoplay references for the old HMS destination, update them to `/dashboard/hms`.
+
+- [ ] **Step 8: Do not redirect governance**
+
+Before final commit, explicitly confirm that this plan did **not** add a redirect from `/dashboard/governance`.
+
+If someone has already added that redirect on the branch, remove it before closing the phase.
+
+- [ ] **Step 9: Commit**
+
+Stage only HMS-related files touched in this plan.
+
+Commit:
+
+`chore(hms): finish phase 1 legibility verification`
+
+Use normal hooks and include the required footer from `Commit Protocol`.
 
 ---
 
 ## Summary
 
-| Task                | What it delivers                                       | Estimated complexity               |
-| ------------------- | ------------------------------------------------------ | ---------------------------------- |
-| 1. Migration        | training_content + media_urls on procedure_step        | Small (2 ALTER TABLE)              |
-| 2. Route Shell      | /dashboard/hms/\* with 5 tabs + sidebar update         | Medium (layout + nav + redirect)   |
-| 3. Oversikt         | Attention system: admin dashboard + employee readiness | Large (2 views + 2 hooks)          |
-| 4. Documents        | Browse + context document viewer with action bar       | Large (2 panels + data queries)    |
-| 5. Training         | Competence matrix + learn flow + procedure steps hook  | Large (2 views + 1 hook)           |
-| 6. Procedure Detail | Canonical control plane with admin/employee views      | Medium (tabs + experience wrapper) |
-| 7. Verification     | Typecheck, lint, visual QA, walkthrough update         | Small                              |
+| Task                | What it delivers                                                            | Estimated complexity |
+| ------------------- | --------------------------------------------------------------------------- | -------------------- |
+| 1. Data foundation  | Training fields plus safe authoring path in the existing builder            | Medium               |
+| 2. HMS shell        | Additive route shell with sidebar retarget, no destructive redirect         | Medium               |
+| 3. Oversikt         | Admin attention surface and employee readiness surface                      | Medium               |
+| 4. Documents        | URL-driven, read-first document browser with guarded actions                | Large                |
+| 5. Training         | Admin matrix plus existing employee assignment flow                         | Medium               |
+| 6. Procedure detail | Assignment-aware, read-first procedure page                                 | Medium               |
+| 7. Verification     | E2E smoke, typecheck, lint, route walkthrough, no-governance-redirect check | Medium               |
 
-**Total new files:** ~17
-**Total modified files:** ~3
-**Migration:** 1 (procedure_step training columns)
+**Total new files:** ~16
+
+**Critical safety changes vs previous draft:**
+
+- `/dashboard/governance` stays live
+- no premature `packages/hms`
+- no procedure-only mutation flow
+- documents and procedure detail now honor assignment context
