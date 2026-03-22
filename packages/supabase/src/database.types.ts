@@ -4675,6 +4675,8 @@ export type Database = {
           domain: Database["public"]["Enums"]["deviation_domain"]
           linked_shift_id: string | null
           payroll_impact: boolean
+          procedure_id: string | null
+          protocol_id: string | null
           reconciliation_id: string | null
           reported_by: string | null
           requires_action: boolean
@@ -4683,6 +4685,7 @@ export type Database = {
           resolved_by: string | null
           session_id: string | null
           severity: Database["public"]["Enums"]["deviation_severity"]
+          source_task_id: string | null
           status: Database["public"]["Enums"]["deviation_status"]
           subcategory: string | null
           title: string
@@ -4700,6 +4703,8 @@ export type Database = {
           domain: Database["public"]["Enums"]["deviation_domain"]
           linked_shift_id?: string | null
           payroll_impact?: boolean
+          procedure_id?: string | null
+          protocol_id?: string | null
           reconciliation_id?: string | null
           reported_by?: string | null
           requires_action?: boolean
@@ -4708,6 +4713,7 @@ export type Database = {
           resolved_by?: string | null
           session_id?: string | null
           severity?: Database["public"]["Enums"]["deviation_severity"]
+          source_task_id?: string | null
           status?: Database["public"]["Enums"]["deviation_status"]
           subcategory?: string | null
           title: string
@@ -4725,6 +4731,8 @@ export type Database = {
           domain?: Database["public"]["Enums"]["deviation_domain"]
           linked_shift_id?: string | null
           payroll_impact?: boolean
+          procedure_id?: string | null
+          protocol_id?: string | null
           reconciliation_id?: string | null
           reported_by?: string | null
           requires_action?: boolean
@@ -4733,6 +4741,7 @@ export type Database = {
           resolved_by?: string | null
           session_id?: string | null
           severity?: Database["public"]["Enums"]["deviation_severity"]
+          source_task_id?: string | null
           status?: Database["public"]["Enums"]["deviation_status"]
           subcategory?: string | null
           title?: string
@@ -4753,6 +4762,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "schedule_shift"
             referencedColumns: ["schedule_shift_id"]
+          },
+          {
+            foreignKeyName: "deviation_procedure_id_fkey"
+            columns: ["procedure_id"]
+            isOneToOne: false
+            referencedRelation: "procedure"
+            referencedColumns: ["procedure_id"]
+          },
+          {
+            foreignKeyName: "deviation_protocol_id_fkey"
+            columns: ["protocol_id"]
+            isOneToOne: false
+            referencedRelation: "protocol"
+            referencedColumns: ["protocol_id"]
           },
           {
             foreignKeyName: "deviation_reconciliation_id_fkey"
@@ -4781,6 +4804,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "department_session"
             referencedColumns: ["department_session_id"]
+          },
+          {
+            foreignKeyName: "deviation_source_task_id_fkey"
+            columns: ["source_task_id"]
+            isOneToOne: false
+            referencedRelation: "session_task"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "deviation_workspace_id_fkey"
@@ -11313,12 +11343,16 @@ export type Database = {
           base_cost: number
           base_hours: number
           base_rate: number
+          basis: Database["public"]["Enums"]["snapshot_basis"]
           calculated_at: string
           calculation_version: number
+          effective_end: string | null
+          effective_start: string | null
           id: string
           overtime_cost: number
           profile_id: string | null
           schedule_shift_id: string
+          source_event: string | null
           supplements: Json
           total_cost: number
           workspace_id: string
@@ -11327,12 +11361,16 @@ export type Database = {
           base_cost: number
           base_hours: number
           base_rate: number
+          basis?: Database["public"]["Enums"]["snapshot_basis"]
           calculated_at?: string
           calculation_version?: number
+          effective_end?: string | null
+          effective_start?: string | null
           id?: string
           overtime_cost?: number
           profile_id?: string | null
           schedule_shift_id: string
+          source_event?: string | null
           supplements?: Json
           total_cost: number
           workspace_id: string
@@ -11341,12 +11379,16 @@ export type Database = {
           base_cost?: number
           base_hours?: number
           base_rate?: number
+          basis?: Database["public"]["Enums"]["snapshot_basis"]
           calculated_at?: string
           calculation_version?: number
+          effective_end?: string | null
+          effective_start?: string | null
           id?: string
           overtime_cost?: number
           profile_id?: string | null
           schedule_shift_id?: string
+          source_event?: string | null
           supplements?: Json
           total_cost?: number
           workspace_id?: string
@@ -13289,6 +13331,7 @@ export type Database = {
         | "active"
         | "completed"
         | "unpublished"
+      snapshot_basis: "planned" | "actual"
       sync_direction: "inbound" | "outbound" | "bidirectional"
       sync_status: "pending" | "synced" | "failed" | "conflict"
       tariff_source: "riksavtalen" | "allmenngjoring" | "internal"
@@ -14701,6 +14744,7 @@ export const Constants = {
         "completed",
         "unpublished",
       ],
+      snapshot_basis: ["planned", "actual"],
       sync_direction: ["inbound", "outbound", "bidirectional"],
       sync_status: ["pending", "synced", "failed", "conflict"],
       tariff_source: ["riksavtalen", "allmenngjoring", "internal"],
