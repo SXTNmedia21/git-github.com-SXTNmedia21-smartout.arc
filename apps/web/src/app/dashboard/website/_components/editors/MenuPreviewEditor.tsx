@@ -161,7 +161,7 @@ export default function MenuPreviewEditor({ content, onChange }: Props) {
 
         {/* Link text for "view full menu" button */}
         <div>
-          <Label>Tekst på "full meny"-lenke</Label>
+          <Label>Tekst på &ldquo;full meny&rdquo;-lenke</Label>
           <Input {...form.register("linkText")} />
         </div>
       </div>

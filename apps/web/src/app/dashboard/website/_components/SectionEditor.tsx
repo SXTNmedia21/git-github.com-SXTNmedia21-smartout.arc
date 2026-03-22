@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { ChevronRight, Eye } from "lucide-react";
 import { useSections } from "../_hooks/use-sections";
@@ -9,6 +9,7 @@ import SectionSidebar from "./SectionSidebar";
 import SectionForm from "./SectionForm";
 import SaveStatus from "./SaveStatus";
 import type { SaveState } from "./SaveStatus";
+import { getEditor } from "./editors/editor-registry";
 
 /**
  * Re-export SectionRow as WebsiteSection for use in sibling components.
@@ -37,6 +38,10 @@ export default function SectionEditor({ pageId, websiteId, pageTitle }: Props) {
   const [saveState, setSaveState] = useState<SaveState>("saved");
 
   const activeSection = sections.find((s) => s.website_section_id === activeSectionId) ?? null;
+  const EditorComponent = useMemo(
+    () => (activeSection ? getEditor(activeSection.section_type) : null),
+    [activeSection?.section_type],
+  );
 
   return (
     <div className="flex h-full flex-col">
@@ -86,6 +91,7 @@ export default function SectionEditor({ pageId, websiteId, pageTitle }: Props) {
                   section={activeSection}
                   websiteId={websiteId}
                   onSaveStateChange={setSaveState}
+                  EditorComponent={EditorComponent}
                 />
               ) : (
                 <div className="text-muted-foreground flex h-full items-center justify-center p-8 text-center text-sm">

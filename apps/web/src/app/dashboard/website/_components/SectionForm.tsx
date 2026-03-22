@@ -1,17 +1,18 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo } from "react";
-import { getEditor } from "./editors/editor-registry";
+import { Suspense, useCallback, useEffect, type ComponentType } from "react";
 import { updateSectionContent } from "../_actions/section-actions";
 import { useAutosave } from "../_hooks/use-autosave";
 import { toast } from "sonner";
 import type { SaveState } from "./SaveStatus";
 import type { WebsiteSection } from "./SectionEditor";
+import type { EditorProps } from "./editors/editor-registry";
 
 type Props = {
   section: WebsiteSection;
   websiteId: string;
   onSaveStateChange: (state: SaveState) => void;
+  EditorComponent: ComponentType<EditorProps> | null;
 };
 
 /**
@@ -19,12 +20,14 @@ type Props = {
  * Wires react-hook-form content changes to the autosave hook and explicit Cmd+S keyboard shortcut.
  *
  * Editor components are lazy-loaded from the editor registry to keep the initial bundle small.
+ * The parent resolves the editor via getEditor() and passes it as a prop.
  */
-export default function SectionForm({ section, websiteId, onSaveStateChange }: Props) {
-  // Memoize so the lazy component identity stays stable across renders.
-  // getEditor() calls React.lazy() each time, so we must only call it once per section type.
-  const EditorComponent = useMemo(() => getEditor(section.section_type), [section.section_type]);
-
+export default function SectionForm({
+  section,
+  websiteId,
+  onSaveStateChange,
+  EditorComponent,
+}: Props) {
   const handleSave = useCallback(
     async (content: Record<string, unknown>) => {
       onSaveStateChange("saving");
