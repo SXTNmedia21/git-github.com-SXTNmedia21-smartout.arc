@@ -100,7 +100,16 @@ export function usePages(websiteId: string | null) {
       const result = await reorderPages(websiteId, orderedPageIds);
       if (!result.success) throw new Error(result.error);
     },
-    onSuccess: () => {
+    onSuccess: (_data, orderedPageIds) => {
+      void emit({
+        event: "website pages reordered",
+        workspace_id: wsId ?? null,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: { entity_type: "website_page", entity_id: websiteId ?? "" },
+          data: { page_count: orderedPageIds.length },
+        },
+      });
       queryClient.invalidateQueries({ queryKey: websiteKeys.pages(websiteId ?? "none") });
     },
     onError: (error: Error) => {

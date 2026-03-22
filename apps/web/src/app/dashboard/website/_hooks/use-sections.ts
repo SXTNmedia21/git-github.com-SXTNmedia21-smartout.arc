@@ -120,7 +120,16 @@ export function useSections(websiteId: string | null, pageId: string | null) {
       const result = await reorderSections(websiteId, pageId, orderedSectionIds);
       if (!result.success) throw new Error(result.error);
     },
-    onSuccess: () => {
+    onSuccess: (_data, orderedSectionIds) => {
+      void emit({
+        event: "website sections reordered",
+        workspace_id: wsId ?? null,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: { entity_type: "website_page" as const, entity_id: pageId ?? "" },
+          data: { section_count: orderedSectionIds.length },
+        },
+      });
       queryClient.invalidateQueries({ queryKey: websiteKeys.sections(pageId ?? "none") });
     },
     onError: (error: Error) => {

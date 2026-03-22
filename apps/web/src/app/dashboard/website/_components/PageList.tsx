@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import type { DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import { usePages, type PageRow } from "../_hooks/use-pages";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Eye, EyeOff, Trash2, Plus, ChevronRight } from "lucide-react";
+import SortablePageItem from "./SortablePageItem";
 
 type Props = {
   websiteId: string;
@@ -36,19 +40,39 @@ const PAGE_TYPE_LABELS: Record<string, string> = {
 
 export default function PageList({ websiteId }: Props) {
   const router = useRouter();
-  const { pages, isLoading, create, remove, toggleVisibility } = usePages(websiteId);
+  const { pages, isLoading, create, remove, reorder, toggleVisibility } = usePages(websiteId);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newPageType, setNewPageType] = useState("custom");
   const [newSlug, setNewSlug] = useState("");
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+  );
+
   // Home page is the one with sort_order 0 or page_type "hjem"
   const isHomePage = (page: PageRow) => page.page_type === "hjem" || page.sort_order === 0;
 
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = pages.findIndex((p) => p.website_page_id === active.id);
+    const newIndex = pages.findIndex((p) => p.website_page_id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    // Prevent moving anything to index 0 (home page stays pinned)
+    if (newIndex === 0) return;
+
+    const reordered = arrayMove(pages, oldIndex, newIndex);
+    reorder.mutate(reordered.map((p) => p.website_page_id));
+  }
+
   const handleVisibilityToggle = (page: PageRow, e: React.MouseEvent) => {
     e.stopPropagation();
-    // Optimistic update happens inside the mutation via query invalidation
     toggleVisibility.mutate({ pageId: page.website_page_id, isVisible: !page.is_visible });
   };
 
@@ -93,53 +117,63 @@ export default function PageList({ websiteId }: Props) {
 
   return (
     <div className="space-y-2">
-      {pages.map((page) => (
-        <div
-          key={page.website_page_id}
-          className="border-border bg-card hover:bg-accent flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 transition-colors"
-          onClick={() => router.push(`/dashboard/website/pages/${page.website_page_id}`)}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext
+          items={pages.map((p) => p.website_page_id)}
+          strategy={verticalListSortingStrategy}
         >
-          {/* Page title + type badge */}
-          <div className="min-w-0 flex-1">
-            <p className="text-foreground truncate font-medium">{page.title}</p>
-            <p className="text-muted-foreground text-xs">
-              {PAGE_TYPE_LABELS[page.page_type] ?? page.page_type} · /{page.slug}
-            </p>
-          </div>
-
-          {/* Actions */}
-          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-            {/* Visibility toggle */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={(e) => handleVisibilityToggle(page, e)}
-              title={page.is_visible ? "Skjul side" : "Vis side"}
+          {pages.map((page) => (
+            <SortablePageItem
+              key={page.website_page_id}
+              id={page.website_page_id}
+              pinned={isHomePage(page)}
             >
-              {page.is_visible ? (
-                <Eye className="h-4 w-4" />
-              ) : (
-                <EyeOff className="text-muted-foreground h-4 w-4" />
-              )}
-            </Button>
+              <div
+                className="border-border bg-card hover:bg-accent flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 transition-colors"
+                onClick={() => router.push(`/dashboard/website/pages/${page.website_page_id}`)}
+              >
+                {/* Page title + type badge */}
+                <div className="min-w-0 flex-1">
+                  <p className="text-foreground truncate font-medium">{page.title}</p>
+                  <p className="text-muted-foreground text-xs">
+                    {PAGE_TYPE_LABELS[page.page_type] ?? page.page_type} · /{page.slug}
+                  </p>
+                </div>
 
-            {/* Delete — disabled for home page */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              disabled={isHomePage(page)}
-              onClick={(e) => handleDelete(page, e)}
-              title={isHomePage(page) ? "Hjemmesiden kan ikke slettes" : "Slett side"}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
+                {/* Actions */}
+                <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={(e) => handleVisibilityToggle(page, e)}
+                    title={page.is_visible ? "Skjul side" : "Vis side"}
+                  >
+                    {page.is_visible ? (
+                      <Eye className="h-4 w-4" />
+                    ) : (
+                      <EyeOff className="text-muted-foreground h-4 w-4" />
+                    )}
+                  </Button>
 
-          <ChevronRight className="text-muted-foreground h-4 w-4 shrink-0" />
-        </div>
-      ))}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    disabled={isHomePage(page)}
+                    onClick={(e) => handleDelete(page, e)}
+                    title={isHomePage(page) ? "Hjemmesiden kan ikke slettes" : "Slett side"}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <ChevronRight className="text-muted-foreground h-4 w-4 shrink-0" />
+              </div>
+            </SortablePageItem>
+          ))}
+        </SortableContext>
+      </DndContext>
 
       <Button variant="outline" size="sm" className="w-full" onClick={() => setDialogOpen(true)}>
         <Plus className="mr-2 h-4 w-4" />
