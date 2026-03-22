@@ -7,6 +7,1444 @@ export type Json =
   | Json[]
 
 export type Database = {
+  payroll: {
+    Tables: {
+      absence_ledger: {
+        Row: {
+          absence_type_id: string
+          created_at: string
+          created_by: string | null
+          days: number
+          description: string | null
+          effective_date: string
+          entry_type: Database["payroll"]["Enums"]["absence_ledger_type"]
+          id: string
+          profile_id: string
+          quota_id: string
+          schedule_absence_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          absence_type_id: string
+          created_at?: string
+          created_by?: string | null
+          days: number
+          description?: string | null
+          effective_date: string
+          entry_type: Database["payroll"]["Enums"]["absence_ledger_type"]
+          id?: string
+          profile_id: string
+          quota_id: string
+          schedule_absence_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          absence_type_id?: string
+          created_at?: string
+          created_by?: string | null
+          days?: number
+          description?: string | null
+          effective_date?: string
+          entry_type?: Database["payroll"]["Enums"]["absence_ledger_type"]
+          id?: string
+          profile_id?: string
+          quota_id?: string
+          schedule_absence_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_absence_ledger_absence_type_id_fkey"
+            columns: ["absence_type_id"]
+            isOneToOne: false
+            referencedRelation: "absence_type"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_absence_ledger_quota_id_fkey"
+            columns: ["quota_id"]
+            isOneToOne: false
+            referencedRelation: "absence_quota"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      absence_quota: {
+        Row: {
+          absence_type_id: string
+          adjusted_days: number
+          carried_over_days: number
+          created_at: string
+          entitled_days: number
+          expired_days: number
+          id: string
+          paid_out_days: number
+          profile_id: string
+          remaining_days: number | null
+          updated_at: string
+          used_days: number
+          workspace_id: string
+          year: number
+        }
+        Insert: {
+          absence_type_id: string
+          adjusted_days?: number
+          carried_over_days?: number
+          created_at?: string
+          entitled_days: number
+          expired_days?: number
+          id?: string
+          paid_out_days?: number
+          profile_id: string
+          remaining_days?: number | null
+          updated_at?: string
+          used_days?: number
+          workspace_id: string
+          year: number
+        }
+        Update: {
+          absence_type_id?: string
+          adjusted_days?: number
+          carried_over_days?: number
+          created_at?: string
+          entitled_days?: number
+          expired_days?: number
+          id?: string
+          paid_out_days?: number
+          profile_id?: string
+          remaining_days?: number | null
+          updated_at?: string
+          used_days?: number
+          workspace_id?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_absence_quota_absence_type_id_fkey"
+            columns: ["absence_type_id"]
+            isOneToOne: false
+            referencedRelation: "absence_type"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      absence_type: {
+        Row: {
+          affects_payroll: boolean
+          category: Database["payroll"]["Enums"]["absence_category"]
+          count_weekends: boolean
+          created_at: string
+          documentation_after_days: number | null
+          employer_pays_days: number | null
+          id: string
+          is_active: boolean
+          is_paid: boolean
+          max_days_per_instance: number | null
+          max_days_per_year: number | null
+          max_instances_per_year: number | null
+          name: string
+          name_no: string | null
+          requires_documentation: boolean
+          salary_code: string | null
+          sort_order: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          affects_payroll?: boolean
+          category: Database["payroll"]["Enums"]["absence_category"]
+          count_weekends?: boolean
+          created_at?: string
+          documentation_after_days?: number | null
+          employer_pays_days?: number | null
+          id?: string
+          is_active?: boolean
+          is_paid?: boolean
+          max_days_per_instance?: number | null
+          max_days_per_year?: number | null
+          max_instances_per_year?: number | null
+          name: string
+          name_no?: string | null
+          requires_documentation?: boolean
+          salary_code?: string | null
+          sort_order?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          affects_payroll?: boolean
+          category?: Database["payroll"]["Enums"]["absence_category"]
+          count_weekends?: boolean
+          created_at?: string
+          documentation_after_days?: number | null
+          employer_pays_days?: number | null
+          id?: string
+          is_active?: boolean
+          is_paid?: boolean
+          max_days_per_instance?: number | null
+          max_days_per_year?: number | null
+          max_instances_per_year?: number | null
+          name?: string
+          name_no?: string | null
+          requires_documentation?: boolean
+          salary_code?: string | null
+          sort_order?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      break_rule: {
+        Row: {
+          created_at: string
+          department_ids: string[]
+          duration_minutes: number
+          employee_group_ids: string[]
+          id: string
+          is_active: boolean
+          is_paid: boolean
+          min_shift_duration_minutes: number
+          name: string
+          trigger_minutes: number | null
+          trigger_time: string | null
+          trigger_type: Database["payroll"]["Enums"]["break_trigger_type"]
+          updated_at: string
+          valid_from: string | null
+          valid_until: string | null
+          weekdays: number[]
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          department_ids?: string[]
+          duration_minutes: number
+          employee_group_ids?: string[]
+          id?: string
+          is_active?: boolean
+          is_paid?: boolean
+          min_shift_duration_minutes?: number
+          name: string
+          trigger_minutes?: number | null
+          trigger_time?: string | null
+          trigger_type: Database["payroll"]["Enums"]["break_trigger_type"]
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+          weekdays?: number[]
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          department_ids?: string[]
+          duration_minutes?: number
+          employee_group_ids?: string[]
+          id?: string
+          is_active?: boolean
+          is_paid?: boolean
+          min_shift_duration_minutes?: number
+          name?: string
+          trigger_minutes?: number | null
+          trigger_time?: string | null
+          trigger_type?: Database["payroll"]["Enums"]["break_trigger_type"]
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+          weekdays?: number[]
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      calculation: {
+        Row: {
+          actual_end: string | null
+          actual_start: string | null
+          base_pay: number
+          base_rate: number
+          break_minutes_paid: number
+          break_minutes_unpaid: number
+          calculated_at: string
+          calculation_version: number
+          employee_group_id: string | null
+          gross_minutes: number
+          id: string
+          net_working_minutes: number
+          period_id: string
+          profile_id: string
+          schedule_shift_id: string
+          scheduled_end: string
+          scheduled_start: string
+          shift_date: string
+          shift_type_id: string | null
+          total_deductions: number
+          total_pay: number
+          total_supplements: number
+          workspace_id: string
+        }
+        Insert: {
+          actual_end?: string | null
+          actual_start?: string | null
+          base_pay: number
+          base_rate: number
+          break_minutes_paid?: number
+          break_minutes_unpaid?: number
+          calculated_at?: string
+          calculation_version?: number
+          employee_group_id?: string | null
+          gross_minutes: number
+          id?: string
+          net_working_minutes: number
+          period_id: string
+          profile_id: string
+          schedule_shift_id: string
+          scheduled_end: string
+          scheduled_start: string
+          shift_date: string
+          shift_type_id?: string | null
+          total_deductions?: number
+          total_pay: number
+          total_supplements?: number
+          workspace_id: string
+        }
+        Update: {
+          actual_end?: string | null
+          actual_start?: string | null
+          base_pay?: number
+          base_rate?: number
+          break_minutes_paid?: number
+          break_minutes_unpaid?: number
+          calculated_at?: string
+          calculation_version?: number
+          employee_group_id?: string | null
+          gross_minutes?: number
+          id?: string
+          net_working_minutes?: number
+          period_id?: string
+          profile_id?: string
+          schedule_shift_id?: string
+          scheduled_end?: string
+          scheduled_start?: string
+          shift_date?: string
+          shift_type_id?: string | null
+          total_deductions?: number
+          total_pay?: number
+          total_supplements?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_calculation_employee_group_id_fkey"
+            columns: ["employee_group_id"]
+            isOneToOne: false
+            referencedRelation: "employee_group"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_calculation_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "period"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_calculation_shift_type_id_fkey"
+            columns: ["shift_type_id"]
+            isOneToOne: false
+            referencedRelation: "shift_type"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calculation_line: {
+        Row: {
+          amount: number
+          calculation_id: string
+          created_at: string
+          description: string
+          hours: number | null
+          id: string
+          line_type: string
+          metadata: Json | null
+          rate: number | null
+          salary_code: string
+          supplement_rule_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          amount: number
+          calculation_id: string
+          created_at?: string
+          description: string
+          hours?: number | null
+          id?: string
+          line_type: string
+          metadata?: Json | null
+          rate?: number | null
+          salary_code: string
+          supplement_rule_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          amount?: number
+          calculation_id?: string
+          created_at?: string
+          description?: string
+          hours?: number | null
+          id?: string
+          line_type?: string
+          metadata?: Json | null
+          rate?: number | null
+          salary_code?: string
+          supplement_rule_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_calculation_line_calculation_id_fkey"
+            columns: ["calculation_id"]
+            isOneToOne: false
+            referencedRelation: "calculation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_calculation_line_supplement_rule_id_fkey"
+            columns: ["supplement_rule_id"]
+            isOneToOne: false
+            referencedRelation: "supplement_rule"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deviation: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          calculation_id: string | null
+          check_id: string
+          created_at: string
+          details: Json | null
+          id: string
+          message: string
+          period_id: string | null
+          profile_id: string | null
+          resolution: string | null
+          schedule_shift_id: string | null
+          severity: Database["payroll"]["Enums"]["deviation_severity"]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          calculation_id?: string | null
+          check_id: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          message: string
+          period_id?: string | null
+          profile_id?: string | null
+          resolution?: string | null
+          schedule_shift_id?: string | null
+          severity: Database["payroll"]["Enums"]["deviation_severity"]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          calculation_id?: string | null
+          check_id?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          message?: string
+          period_id?: string | null
+          profile_id?: string | null
+          resolution?: string | null
+          schedule_shift_id?: string | null
+          severity?: Database["payroll"]["Enums"]["deviation_severity"]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_deviation_calculation_id_fkey"
+            columns: ["calculation_id"]
+            isOneToOne: false
+            referencedRelation: "calculation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_deviation_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "period"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_group: {
+        Row: {
+          created_at: string
+          default_hourly_rate: number
+          department_id: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          salary_code: string | null
+          sort_order: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          default_hourly_rate?: number
+          department_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          salary_code?: string | null
+          sort_order?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          default_hourly_rate?: number
+          department_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          salary_code?: string | null
+          sort_order?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      employee_group_member: {
+        Row: {
+          created_at: string
+          employee_group_id: string
+          hourly_rate: number | null
+          id: string
+          profile_id: string
+          updated_at: string
+          valid_from: string
+          valid_until: string | null
+          wage_type: Database["payroll"]["Enums"]["wage_type"]
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          employee_group_id: string
+          hourly_rate?: number | null
+          id?: string
+          profile_id: string
+          updated_at?: string
+          valid_from?: string
+          valid_until?: string | null
+          wage_type?: Database["payroll"]["Enums"]["wage_type"]
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          employee_group_id?: string
+          hourly_rate?: number | null
+          id?: string
+          profile_id?: string
+          updated_at?: string
+          valid_from?: string
+          valid_until?: string | null
+          wage_type?: Database["payroll"]["Enums"]["wage_type"]
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_employee_group_member_employee_group_id_fkey"
+            columns: ["employee_group_id"]
+            isOneToOne: false
+            referencedRelation: "employee_group"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      export_event: {
+        Row: {
+          completed_at: string | null
+          error_message: string | null
+          export_format: string
+          exported_by: string
+          id: string
+          metadata: Json | null
+          period_id: string
+          started_at: string
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          error_message?: string | null
+          export_format: string
+          exported_by: string
+          id?: string
+          metadata?: Json | null
+          period_id: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          error_message?: string | null
+          export_format?: string
+          exported_by?: string
+          id?: string
+          metadata?: Json | null
+          period_id?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_export_event_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "period"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      export_line: {
+        Row: {
+          amount: number
+          calculation_line_id: string | null
+          created_at: string
+          error_message: string | null
+          export_event_id: string
+          external_code: string | null
+          external_id: string | null
+          hours: number | null
+          id: string
+          metadata: Json | null
+          profile_id: string
+          rate: number | null
+          salary_code: string
+          sync_status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          amount: number
+          calculation_line_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          export_event_id: string
+          external_code?: string | null
+          external_id?: string | null
+          hours?: number | null
+          id?: string
+          metadata?: Json | null
+          profile_id: string
+          rate?: number | null
+          salary_code: string
+          sync_status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          amount?: number
+          calculation_line_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          export_event_id?: string
+          external_code?: string | null
+          external_id?: string | null
+          hours?: number | null
+          id?: string
+          metadata?: Json | null
+          profile_id?: string
+          rate?: number | null
+          salary_code?: string
+          sync_status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_export_line_calculation_line_id_fkey"
+            columns: ["calculation_line_id"]
+            isOneToOne: false
+            referencedRelation: "calculation_line"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_export_line_export_event_id_fkey"
+            columns: ["export_event_id"]
+            isOneToOne: false
+            referencedRelation: "export_event"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      holiday_calendar: {
+        Row: {
+          created_at: string
+          id: string
+          is_default: boolean
+          name: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      holiday_entry: {
+        Row: {
+          calendar_id: string
+          created_at: string
+          holiday_date: string
+          hours: number
+          id: string
+          is_full_day: boolean
+          name: string
+          name_no: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          calendar_id: string
+          created_at?: string
+          holiday_date: string
+          hours?: number
+          id?: string
+          is_full_day?: boolean
+          name: string
+          name_no?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          calendar_id?: string
+          created_at?: string
+          holiday_date?: string
+          hours?: number
+          id?: string
+          is_full_day?: boolean
+          name?: string
+          name_no?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_holiday_entry_calendar_id_fkey"
+            columns: ["calendar_id"]
+            isOneToOne: false
+            referencedRelation: "holiday_calendar"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      manual_supplement: {
+        Row: {
+          added_by: string
+          amount: number
+          created_at: string
+          description: string
+          id: string
+          salary_code: string | null
+          schedule_shift_id: string
+          supplement_rule_id: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          added_by: string
+          amount: number
+          created_at?: string
+          description: string
+          id?: string
+          salary_code?: string | null
+          schedule_shift_id: string
+          supplement_rule_id?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          added_by?: string
+          amount?: number
+          created_at?: string
+          description?: string
+          id?: string
+          salary_code?: string | null
+          schedule_shift_id?: string
+          supplement_rule_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_manual_supplement_supplement_rule_id_fkey"
+            columns: ["supplement_rule_id"]
+            isOneToOne: false
+            referencedRelation: "supplement_rule"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meal_rule: {
+        Row: {
+          amount: number
+          created_at: string
+          department_ids: string[]
+          employee_group_ids: string[]
+          id: string
+          is_active: boolean
+          meal_type: Database["payroll"]["Enums"]["meal_rule_type"]
+          min_shift_hours: number
+          name: string
+          salary_code: string | null
+          shift_type_ids: string[]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          department_ids?: string[]
+          employee_group_ids?: string[]
+          id?: string
+          is_active?: boolean
+          meal_type: Database["payroll"]["Enums"]["meal_rule_type"]
+          min_shift_hours?: number
+          name: string
+          salary_code?: string | null
+          shift_type_ids?: string[]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          department_ids?: string[]
+          employee_group_ids?: string[]
+          id?: string
+          is_active?: boolean
+          meal_type?: Database["payroll"]["Enums"]["meal_rule_type"]
+          min_shift_hours?: number
+          name?: string
+          salary_code?: string | null
+          shift_type_ids?: string[]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      period: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          end_date: string
+          exported_at: string | null
+          id: string
+          locked_at: string | null
+          locked_by: string | null
+          start_date: string
+          status: Database["payroll"]["Enums"]["period_status"]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          end_date: string
+          exported_at?: string | null
+          id?: string
+          locked_at?: string | null
+          locked_by?: string | null
+          start_date: string
+          status?: Database["payroll"]["Enums"]["period_status"]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          end_date?: string
+          exported_at?: string | null
+          id?: string
+          locked_at?: string | null
+          locked_by?: string | null
+          start_date?: string
+          status?: Database["payroll"]["Enums"]["period_status"]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      salary_code: {
+        Row: {
+          a_melding_code: string | null
+          category: Database["payroll"]["Enums"]["salary_code_category"]
+          code: string
+          created_at: string
+          description: string | null
+          external_code: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          a_melding_code?: string | null
+          category: Database["payroll"]["Enums"]["salary_code_category"]
+          code: string
+          created_at?: string
+          description?: string | null
+          external_code?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          a_melding_code?: string | null
+          category?: Database["payroll"]["Enums"]["salary_code_category"]
+          code?: string
+          created_at?: string
+          description?: string | null
+          external_code?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      shift_type: {
+        Row: {
+          affects_salaried: boolean
+          allow_breaks: boolean
+          allow_conflicting_shifts: boolean
+          allow_meal_deduction: boolean
+          allow_supplements: boolean
+          color: string | null
+          count_in_payroll: boolean
+          created_at: string
+          id: string
+          include_in_schedule_print: boolean
+          is_active: boolean
+          name: string
+          overwrite_on_template: boolean
+          rate_adjustment_type: Database["payroll"]["Enums"]["rate_adjustment_type"]
+          rate_adjustment_value: number | null
+          salary_code: string | null
+          sort_order: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          affects_salaried?: boolean
+          allow_breaks?: boolean
+          allow_conflicting_shifts?: boolean
+          allow_meal_deduction?: boolean
+          allow_supplements?: boolean
+          color?: string | null
+          count_in_payroll?: boolean
+          created_at?: string
+          id?: string
+          include_in_schedule_print?: boolean
+          is_active?: boolean
+          name: string
+          overwrite_on_template?: boolean
+          rate_adjustment_type?: Database["payroll"]["Enums"]["rate_adjustment_type"]
+          rate_adjustment_value?: number | null
+          salary_code?: string | null
+          sort_order?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          affects_salaried?: boolean
+          allow_breaks?: boolean
+          allow_conflicting_shifts?: boolean
+          allow_meal_deduction?: boolean
+          allow_supplements?: boolean
+          color?: string | null
+          count_in_payroll?: boolean
+          created_at?: string
+          id?: string
+          include_in_schedule_print?: boolean
+          is_active?: boolean
+          name?: string
+          overwrite_on_template?: boolean
+          rate_adjustment_type?: Database["payroll"]["Enums"]["rate_adjustment_type"]
+          rate_adjustment_value?: number | null
+          salary_code?: string | null
+          sort_order?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      sick_leave_period: {
+        Row: {
+          absence_type_id: string
+          created_at: string
+          custom_grade_pct: number | null
+          doctor_note_date: string | null
+          doctor_note_received: boolean
+          egenmelding_instance: number | null
+          employer_days: number
+          employer_period_end: string | null
+          end_date: string | null
+          followup_4w_completed: boolean
+          followup_4w_date: string | null
+          followup_7w_completed: boolean
+          followup_7w_date: string | null
+          grade: Database["payroll"]["Enums"]["sick_leave_grade"]
+          id: string
+          is_egenmelding: boolean
+          nav_refund_amount: number | null
+          nav_takeover_date: string | null
+          notes: string | null
+          profile_id: string
+          schedule_absence_id: string | null
+          start_date: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          absence_type_id: string
+          created_at?: string
+          custom_grade_pct?: number | null
+          doctor_note_date?: string | null
+          doctor_note_received?: boolean
+          egenmelding_instance?: number | null
+          employer_days?: number
+          employer_period_end?: string | null
+          end_date?: string | null
+          followup_4w_completed?: boolean
+          followup_4w_date?: string | null
+          followup_7w_completed?: boolean
+          followup_7w_date?: string | null
+          grade?: Database["payroll"]["Enums"]["sick_leave_grade"]
+          id?: string
+          is_egenmelding?: boolean
+          nav_refund_amount?: number | null
+          nav_takeover_date?: string | null
+          notes?: string | null
+          profile_id: string
+          schedule_absence_id?: string | null
+          start_date: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          absence_type_id?: string
+          created_at?: string
+          custom_grade_pct?: number | null
+          doctor_note_date?: string | null
+          doctor_note_received?: boolean
+          egenmelding_instance?: number | null
+          employer_days?: number
+          employer_period_end?: string | null
+          end_date?: string | null
+          followup_4w_completed?: boolean
+          followup_4w_date?: string | null
+          followup_7w_completed?: boolean
+          followup_7w_date?: string | null
+          grade?: Database["payroll"]["Enums"]["sick_leave_grade"]
+          id?: string
+          is_egenmelding?: boolean
+          nav_refund_amount?: number | null
+          nav_takeover_date?: string | null
+          notes?: string | null
+          profile_id?: string
+          schedule_absence_id?: string | null
+          start_date?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_sick_leave_period_absence_type_id_fkey"
+            columns: ["absence_type_id"]
+            isOneToOne: false
+            referencedRelation: "absence_type"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supplement_rule: {
+        Row: {
+          affected_by_breaks: boolean
+          affects_salaried: boolean
+          after_minutes: number | null
+          allow_rate_override: boolean
+          consider_midnight: boolean
+          contract_rule_id: string | null
+          created_at: string
+          daily_max_hours: number | null
+          daily_threshold_hours: number | null
+          default_rate: number | null
+          employee_group_ids: string[]
+          employee_types: string[]
+          enforced_payment: boolean
+          evaluation_field: string | null
+          holiday_calendar_id: string | null
+          id: string
+          is_active: boolean
+          name: string
+          rate_type: Database["payroll"]["Enums"]["supplement_rate_type"]
+          rate_value: number
+          salary_code: string | null
+          shift_type_ids: string[]
+          sort_order: number
+          start_type:
+            | Database["payroll"]["Enums"]["supplement_start_type"]
+            | null
+          supplement_type: Database["payroll"]["Enums"]["supplement_type"]
+          threshold_value: number | null
+          time_window_end: string | null
+          time_window_start: string | null
+          updated_at: string
+          valid_from: string | null
+          valid_until: string | null
+          weekdays: number[]
+          weekly_max_hours: number | null
+          weekly_threshold_hours: number | null
+          workspace_id: string
+        }
+        Insert: {
+          affected_by_breaks?: boolean
+          affects_salaried?: boolean
+          after_minutes?: number | null
+          allow_rate_override?: boolean
+          consider_midnight?: boolean
+          contract_rule_id?: string | null
+          created_at?: string
+          daily_max_hours?: number | null
+          daily_threshold_hours?: number | null
+          default_rate?: number | null
+          employee_group_ids?: string[]
+          employee_types?: string[]
+          enforced_payment?: boolean
+          evaluation_field?: string | null
+          holiday_calendar_id?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          rate_type?: Database["payroll"]["Enums"]["supplement_rate_type"]
+          rate_value?: number
+          salary_code?: string | null
+          shift_type_ids?: string[]
+          sort_order?: number
+          start_type?:
+            | Database["payroll"]["Enums"]["supplement_start_type"]
+            | null
+          supplement_type: Database["payroll"]["Enums"]["supplement_type"]
+          threshold_value?: number | null
+          time_window_end?: string | null
+          time_window_start?: string | null
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+          weekdays?: number[]
+          weekly_max_hours?: number | null
+          weekly_threshold_hours?: number | null
+          workspace_id: string
+        }
+        Update: {
+          affected_by_breaks?: boolean
+          affects_salaried?: boolean
+          after_minutes?: number | null
+          allow_rate_override?: boolean
+          consider_midnight?: boolean
+          contract_rule_id?: string | null
+          created_at?: string
+          daily_max_hours?: number | null
+          daily_threshold_hours?: number | null
+          default_rate?: number | null
+          employee_group_ids?: string[]
+          employee_types?: string[]
+          enforced_payment?: boolean
+          evaluation_field?: string | null
+          holiday_calendar_id?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          rate_type?: Database["payroll"]["Enums"]["supplement_rate_type"]
+          rate_value?: number
+          salary_code?: string | null
+          shift_type_ids?: string[]
+          sort_order?: number
+          start_type?:
+            | Database["payroll"]["Enums"]["supplement_start_type"]
+            | null
+          supplement_type?: Database["payroll"]["Enums"]["supplement_type"]
+          threshold_value?: number | null
+          time_window_end?: string | null
+          time_window_start?: string | null
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+          weekdays?: number[]
+          weekly_max_hours?: number | null
+          weekly_threshold_hours?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_supplement_rule_holiday_calendar_id_fkey"
+            columns: ["holiday_calendar_id"]
+            isOneToOne: false
+            referencedRelation: "holiday_calendar"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      timebank_entry: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          effective_date: string
+          entry_type: Database["payroll"]["Enums"]["timebank_entry_type"]
+          expiry_date: string | null
+          hours: number
+          id: string
+          payroll_calculation_id: string | null
+          profile_id: string
+          schedule_absence_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          effective_date: string
+          entry_type: Database["payroll"]["Enums"]["timebank_entry_type"]
+          expiry_date?: string | null
+          hours: number
+          id?: string
+          payroll_calculation_id?: string | null
+          profile_id: string
+          schedule_absence_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          effective_date?: string
+          entry_type?: Database["payroll"]["Enums"]["timebank_entry_type"]
+          expiry_date?: string | null
+          hours?: number
+          id?: string
+          payroll_calculation_id?: string | null
+          profile_id?: string
+          schedule_absence_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_timebank_entry_payroll_calculation_id_fkey"
+            columns: ["payroll_calculation_id"]
+            isOneToOne: false
+            referencedRelation: "calculation"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      working_time_rule: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          scope_id: string | null
+          scope_type: string
+          severity: Database["payroll"]["Enums"]["rule_severity"]
+          threshold_value: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          scope_id?: string | null
+          scope_type?: string
+          severity?: Database["payroll"]["Enums"]["rule_severity"]
+          threshold_value: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          scope_id?: string | null
+          scope_type?: string
+          severity?: Database["payroll"]["Enums"]["rule_severity"]
+          threshold_value?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      workspace_settings: {
+        Row: {
+          created_at: string
+          default_monthly_salary_code: string | null
+          default_worked_hours_salary_code: string | null
+          employer_social_security_pct: number
+          id: string
+          pension_pct: number
+          period_start_day: number
+          period_type: string
+          shift_grouping: string
+          updated_at: string
+          vacation_pay_pct: number
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          default_monthly_salary_code?: string | null
+          default_worked_hours_salary_code?: string | null
+          employer_social_security_pct?: number
+          id?: string
+          pension_pct?: number
+          period_start_day?: number
+          period_type?: string
+          shift_grouping?: string
+          updated_at?: string
+          vacation_pay_pct?: number
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          default_monthly_salary_code?: string | null
+          default_worked_hours_salary_code?: string | null
+          employer_social_security_pct?: number
+          id?: string
+          pension_pct?: number
+          period_start_day?: number
+          period_type?: string
+          shift_grouping?: string
+          updated_at?: string
+          vacation_pay_pct?: number
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      absence_category:
+        | "vacation"
+        | "sick_self"
+        | "sick_doctor"
+        | "parental"
+        | "care_of_child"
+        | "military"
+        | "training"
+        | "welfare"
+        | "toil"
+        | "unpaid"
+        | "other"
+      absence_ledger_type:
+        | "entitlement"
+        | "carry_over"
+        | "usage"
+        | "adjustment"
+        | "expiry"
+        | "payout"
+      break_trigger_type: "after_duration" | "time_of_day"
+      custom_rate_type: "per_hour" | "per_shift"
+      deviation_severity: "error" | "warning" | "info"
+      meal_rule_type: "deduction" | "contribution"
+      period_status: "open" | "locked" | "approved" | "exported"
+      rate_adjustment_type: "none" | "replace" | "add" | "percentage"
+      rule_severity: "block" | "warn"
+      salary_code_category:
+        | "worked_hours"
+        | "supplement"
+        | "overtime"
+        | "absence"
+        | "deduction"
+        | "monthly_salary"
+      sick_leave_grade:
+        | "full"
+        | "graded_75"
+        | "graded_50"
+        | "graded_25"
+        | "graded_custom"
+      supplement_rate_type: "fixed_per_hour" | "percentage" | "fixed_per_shift"
+      supplement_start_type: "time_of_day" | "after_shift_start"
+      supplement_type:
+        | "normal"
+        | "week_based"
+        | "day_based"
+        | "manual"
+        | "holiday"
+        | "contract_rule"
+      timebank_entry_type:
+        | "accrual"
+        | "withdrawal"
+        | "adjustment"
+        | "expiry"
+        | "carry_over"
+        | "payout"
+      wage_type: "hourly" | "per_shift" | "monthly"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       activity_trail: {
@@ -8803,7 +10241,9 @@ export type Database = {
           confirmed_by: string | null
           created_at: string
           custom_rate: number | null
-          custom_rate_type: "per_hour" | "per_shift" | null
+          custom_rate_type:
+            | Database["payroll"]["Enums"]["custom_rate_type"]
+            | null
           day_category: Database["public"]["Enums"]["day_category"]
           department_id: string | null
           employee_id: string | null
@@ -8833,7 +10273,9 @@ export type Database = {
           confirmed_by?: string | null
           created_at?: string
           custom_rate?: number | null
-          custom_rate_type?: "per_hour" | "per_shift" | null
+          custom_rate_type?:
+            | Database["payroll"]["Enums"]["custom_rate_type"]
+            | null
           day_category: Database["public"]["Enums"]["day_category"]
           department_id?: string | null
           employee_id?: string | null
@@ -8863,7 +10305,9 @@ export type Database = {
           confirmed_by?: string | null
           created_at?: string
           custom_rate?: number | null
-          custom_rate_type?: "per_hour" | "per_shift" | null
+          custom_rate_type?:
+            | Database["payroll"]["Enums"]["custom_rate_type"]
+            | null
           day_category?: Database["public"]["Enums"]["day_category"]
           department_id?: string | null
           employee_id?: string | null
@@ -11240,8 +12684,6 @@ export type Database = {
           last_message_sender_name: string
           member_count: number
           name: string
-          other_member_avatar: string
-          other_member_name: string
           unread_count: number
           video_policy: Database["public"]["Enums"]["channel_video_policy"]
           workspace_id: string
@@ -12396,6 +13838,78 @@ export type Database = {
           },
         ]
       }
+      website_spokesperson: {
+        Row: {
+          assigned_at: string
+          assigned_by: string
+          bio: string
+          content_schedule: Json
+          created_at: string
+          decline_reason: string | null
+          profile_id: string
+          quote: string
+          responded_at: string | null
+          role_title: string
+          status: Database["websites"]["Enums"]["spokesperson_status"]
+          updated_at: string
+          website_id: string
+          website_section_id: string
+          website_spokesperson_id: string
+          workspace_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by: string
+          bio?: string
+          content_schedule?: Json
+          created_at?: string
+          decline_reason?: string | null
+          profile_id: string
+          quote?: string
+          responded_at?: string | null
+          role_title?: string
+          status?: Database["websites"]["Enums"]["spokesperson_status"]
+          updated_at?: string
+          website_id: string
+          website_section_id: string
+          website_spokesperson_id?: string
+          workspace_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string
+          bio?: string
+          content_schedule?: Json
+          created_at?: string
+          decline_reason?: string | null
+          profile_id?: string
+          quote?: string
+          responded_at?: string | null
+          role_title?: string
+          status?: Database["websites"]["Enums"]["spokesperson_status"]
+          updated_at?: string
+          website_id?: string
+          website_section_id?: string
+          website_spokesperson_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_spokesperson_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "website"
+            referencedColumns: ["website_id"]
+          },
+          {
+            foreignKeyName: "website_spokesperson_website_section_id_fkey"
+            columns: ["website_section_id"]
+            isOneToOne: true
+            referencedRelation: "website_section"
+            referencedColumns: ["website_section_id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -12408,7 +13922,7 @@ export type Database = {
       get_preview_site_by_token: { Args: { p_token: string }; Returns: Json }
     }
     Enums: {
-      [_ in never]: never
+      spokesperson_status: "pending" | "approved" | "declined" | "revoked"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -12534,6 +14048,72 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  payroll: {
+    Enums: {
+      absence_category: [
+        "vacation",
+        "sick_self",
+        "sick_doctor",
+        "parental",
+        "care_of_child",
+        "military",
+        "training",
+        "welfare",
+        "toil",
+        "unpaid",
+        "other",
+      ],
+      absence_ledger_type: [
+        "entitlement",
+        "carry_over",
+        "usage",
+        "adjustment",
+        "expiry",
+        "payout",
+      ],
+      break_trigger_type: ["after_duration", "time_of_day"],
+      custom_rate_type: ["per_hour", "per_shift"],
+      deviation_severity: ["error", "warning", "info"],
+      meal_rule_type: ["deduction", "contribution"],
+      period_status: ["open", "locked", "approved", "exported"],
+      rate_adjustment_type: ["none", "replace", "add", "percentage"],
+      rule_severity: ["block", "warn"],
+      salary_code_category: [
+        "worked_hours",
+        "supplement",
+        "overtime",
+        "absence",
+        "deduction",
+        "monthly_salary",
+      ],
+      sick_leave_grade: [
+        "full",
+        "graded_75",
+        "graded_50",
+        "graded_25",
+        "graded_custom",
+      ],
+      supplement_rate_type: ["fixed_per_hour", "percentage", "fixed_per_shift"],
+      supplement_start_type: ["time_of_day", "after_shift_start"],
+      supplement_type: [
+        "normal",
+        "week_based",
+        "day_based",
+        "manual",
+        "holiday",
+        "contract_rule",
+      ],
+      timebank_entry_type: [
+        "accrual",
+        "withdrawal",
+        "adjustment",
+        "expiry",
+        "carry_over",
+        "payout",
+      ],
+      wage_type: ["hourly", "per_shift", "monthly"],
+    },
+  },
   public: {
     Enums: {
       absence_status: ["pending", "approved", "rejected"],
@@ -12908,7 +14488,9 @@ export const Constants = {
     },
   },
   websites: {
-    Enums: {},
+    Enums: {
+      spokesperson_status: ["pending", "approved", "declined", "revoked"],
+    },
   },
 } as const
 
