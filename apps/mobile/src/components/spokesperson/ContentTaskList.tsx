@@ -145,7 +145,7 @@ export function ContentTaskList({ tasks, spokespersonId, onTaskSubmitted }: Cont
 
 function TaskRow({ task, onPress }: { task: ContentTaskItem; onPress: () => void }) {
   const styles = useStyles();
-  // Theme available via useTheme() if needed
+  const theme = useTheme();
   const config = STATUS_CONFIG[task.status];
 
   const dueDate = new Date(task.dueDate).toLocaleDateString("nb-NO", {
