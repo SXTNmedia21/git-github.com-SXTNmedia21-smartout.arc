@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: in_progress
-updated: 2026-03-21
+updated: 2026-03-22
 created: 2026-03-02
 module: meta
 tags: [dashboard, worktrees, tracking]
@@ -13,12 +13,14 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #    | Branch                         | Module   | Status      | Progress                                                                         | Blockers | Health |
-| ---- | ------------------------------ | -------- | ----------- | -------------------------------------------------------------------------------- | -------- | ------ |
-| wt-1 | `feat/workspace-intelligence`  | core     | merged      | Fully merged to development. Worktree needs cleanup removal.                     | —        | stale  |
-| wt-2 | `docs/cascade-five-dimensions` | cascade  | done        | 12 commits. Spec locked. I1+6D+4C+K1a/K1b. Ready for merge + impl planning.      | None     | clean  |
-| wt-3 | `feat/emma-arena-views`        | walkAi   | in_progress | Spec + mockups done, settings persistence committed. Implementation not started. | None     | clean  |
-| wt-4 | `feat/vaktlista-view`          | schedule | in_progress | —                                                                                | —        | —      |
+| #    | Branch                        | Module          | Status      | Progress                                                                         | Blockers | Health |
+| ---- | ----------------------------- | --------------- | ----------- | -------------------------------------------------------------------------------- | -------- | ------ |
+| wt-1 | `feat/workspace-intelligence` | core            | merged      | Fully merged to development. Worktree needs cleanup removal.                     | —        | stale  |
+| wt-2 | `feat/walkie-talkie`          | communications  | in_progress | Just started. Spec + Phase 1 plan ready. 16 tasks.                               | —        | clean  |
+| wt-3 | `feat/emma-arena-views`       | walkAi          | in_progress | Spec + mockups done, settings persistence committed. Implementation not started. | None     | clean  |
+| wt-4 | `feat/vaktlista-view`         | schedule        | in_progress | —                                                                                | —        | —      |
+| wt-5 | `feat/payroll-foundation`     | payroll         | in_progress | —                                                                                | —        | —      |
+| wt-6 | `feat/website-factory`        | website-factory | in_progress | Just started. Spec + Plan A ready. 10 tasks.                                     | —        | clean  |
 
 ## Parked Branches (no worktree)
 
@@ -28,15 +30,16 @@ tags: [dashboard, worktrees, tracking]
 
 ## Free Slots
 
-| #     | Available                         |
-| ----- | --------------------------------- |
-| wt-1  | no (feat/workspace-intelligence)  |
-| wt-2  | no (docs/cascade-five-dimensions) |
-| wt-3  | no (feat/emma-arena-views)        |
-| wt-4  | no (feat/vaktlista-view)          |
-| wt-5  | yes                               |
-| wt-15 | yes                               |
-| wt-20 | yes                               |
+| #     | Available                        |
+| ----- | -------------------------------- |
+| wt-1  | no (feat/workspace-intelligence) |
+| wt-2  | no (feat/walkie-talkie)          |
+| wt-3  | no (feat/emma-arena-views)       |
+| wt-4  | no (feat/vaktlista-view)         |
+| wt-5  | no (feat/payroll-foundation)     |
+| wt-6  | no (feat/website-factory)        |
+| wt-15 | yes                              |
+| wt-20 | yes                              |
 
 ## Pending Journeys
 
@@ -46,6 +49,8 @@ tags: [dashboard, worktrees, tracking]
 | wt-1 | zero-to-production     | `docs/journeys/JOURNEY-zero-to-production.md`     | done    |
 | wt-2 | contract-enhancements  | `docs/journeys/JOURNEY-contract-enhancements.md`  | done    |
 | wt-4 | infra-hardening        | `docs/journeys/JOURNEY-infra-hardening.md`        | missing |
+| wt-6 | website-factory        | `docs/journeys/JOURNEY-website-factory.md`        | missing |
+| wt-2 | walkie-talkie          | `docs/journeys/JOURNEY-walkie-talkie.md`          | missing |
 
 ## Recent Closures
 
@@ -94,6 +99,8 @@ tags: [dashboard, worktrees, tracking]
 
 ## Session History
 
+| 2026-03-22 | walkie-talkie | started | wt-2, module: communications. Channel comms spec + Phase 1 plan (16 tasks). LiveKit voice/video Phase 2. |
+| 2026-03-22 | website-factory | started | wt-6, module: website-factory. Spec + Plan A (foundation) ready. |
 | 2026-03-22 | close-feature-gates | session ended | Reviewed close-feature.sh + slash commands. Fixed 5 friction points: Gate 5 scoped to branch-changed docs only, Gate 4 checks feature-specific journey, Gate 1 warns on name mismatch, final commit gets Co-Authored-By, script bumped to v4. wt-1 confirmed already merged — needs worktree removal only. |
 | 2026-03-21 | training-curriculum | session ended | Designed 14-module training curriculum (trimmed from 28). Full repo analysis (1402 files, 146 migrations, 47 enums). Gathered Batch 1 material (TypeScript, DB Design, Debugging) with Smartout-specific examples. Rego/OPA confirmed for Modul 14. Content agent has all data for Batch 1. |
 | 2026-03-21 | cascade-architecture | spec locked | Full design session: I1+6D+4C+K1a/K1b canonical model. 12-persona AI Council stress-tested. 6-phase implementation designed. Spec written (1150 lines), 2 review passes (18 corrections), locked as done. wt-2: 12 commits, ready for merge. Next: implementation planning. |
