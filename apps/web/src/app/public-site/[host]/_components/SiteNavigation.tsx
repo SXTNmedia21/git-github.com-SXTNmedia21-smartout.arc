@@ -19,6 +19,7 @@ export function SiteNavigation({
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="relative flex h-16 items-center justify-between">
           {/* Logo / Site name */}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- public site uses native anchor for customer domain routing */}
           <a href="/" className="flex shrink-0 items-center gap-3">
             {logoAsset && (
               <img

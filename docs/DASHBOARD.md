@@ -102,7 +102,7 @@ tags: [dashboard, worktrees, tracking]
 
 ## Session History
 
-| 2026-03-22 | hms-phase-1 | started | wt-5, module: hms. Cascade-native spec (governing loop, branch placement, 14 invariants, evidence trust tiers). Plan: 7 tasks. Linear: 37 Triage cleaned (19 canceled, 18 backlogged). |
+| 2026-03-22 | hms-phase-1 | session ended | Spec complete (Cascade-native v4). Plan written (7 tasks). Linear cleaned (37->0 Triage). wt-5 ready for implementation. Next: Task 1 migration. |
 | 2026-03-22 | cascade-foundation | started | wt-2, module: cross-cutting. Spec v1.3.0 (3 review rounds, 14+4+7 corrections). Plan: 18 tasks, 5 phases. Bootstrap + rules + governance + invite cascade. |
 | 2026-03-22 | walkie-talkie | started | wt-2, module: communications. Channel comms spec + Phase 1 plan (16 tasks). LiveKit voice/video Phase 2. |
 | 2026-03-22 | website-factory | closed | Merged to development, wt-6 freed. Plan A (12 tables, shared package, public site, publish pipeline) + Plan B (builder UI, spokesperson flow, mobile admin). 30+ commits. |
