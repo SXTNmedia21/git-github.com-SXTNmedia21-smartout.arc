@@ -1,6 +1,6 @@
 ---
 title: "Worklog — walkie-talkie"
-status: in_progress
+status: done
 updated: 2026-03-22
 created: 2026-03-22
 module: communications
@@ -11,7 +11,7 @@ tags: [channels, messaging, realtime, phase-1]
 
 > Branch: `feat/walkie-talkie` | Worktree: wt-2 | Started: 2026-03-22
 
-## Status: 🟡 In Progress — Phase 1 Complete (Web)
+## Status: ✅ Done — Phase 1 Complete (Web)
 
 ## Done
 
@@ -62,3 +62,4 @@ tags: [channels, messaging, realtime, phase-1]
 | 2026-03-22 | 03:35 | Sidebar navigation added                         |
 | 2026-03-22 | 03:40 | Auto-create triggers added                       |
 | 2026-03-22 | 03:45 | Dev server verified, Phase 1 web complete        |
+| 2026-03-22 | 04:42 | Feature closed and merged to development         |
