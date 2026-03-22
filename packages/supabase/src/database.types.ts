@@ -1,3 +1,6 @@
+WARN: environment variable is unset: SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID
+WARN: environment variable is unset: SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET
+Connecting to db 5432
 export type Json =
   | string
   | number
@@ -690,6 +693,767 @@ export type Database = {
           },
           {
             foreignKeyName: "change_proposal_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      channel: {
+        Row: {
+          ai_voice_policy: Database["public"]["Enums"]["channel_ai_voice_policy"]
+          allow_user_override: boolean
+          audio_policy: Database["public"]["Enums"]["channel_audio_policy"]
+          avatar_url: string | null
+          channel_type: Database["public"]["Enums"]["comm_channel_type"]
+          created_at: string
+          created_by: string | null
+          department_id: string | null
+          description: string | null
+          direct_pair_hash: string | null
+          id: string
+          is_archived: boolean
+          is_read_only: boolean
+          name: string | null
+          read_receipts_enabled: boolean
+          recording_policy: Database["public"]["Enums"]["channel_recording_policy"]
+          session_id: string | null
+          team_id: string | null
+          updated_at: string
+          video_policy: Database["public"]["Enums"]["channel_video_policy"]
+          workspace_id: string
+        }
+        Insert: {
+          ai_voice_policy?: Database["public"]["Enums"]["channel_ai_voice_policy"]
+          allow_user_override?: boolean
+          audio_policy?: Database["public"]["Enums"]["channel_audio_policy"]
+          avatar_url?: string | null
+          channel_type: Database["public"]["Enums"]["comm_channel_type"]
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          description?: string | null
+          direct_pair_hash?: string | null
+          id?: string
+          is_archived?: boolean
+          is_read_only?: boolean
+          name?: string | null
+          read_receipts_enabled?: boolean
+          recording_policy?: Database["public"]["Enums"]["channel_recording_policy"]
+          session_id?: string | null
+          team_id?: string | null
+          updated_at?: string
+          video_policy?: Database["public"]["Enums"]["channel_video_policy"]
+          workspace_id: string
+        }
+        Update: {
+          ai_voice_policy?: Database["public"]["Enums"]["channel_ai_voice_policy"]
+          allow_user_override?: boolean
+          audio_policy?: Database["public"]["Enums"]["channel_audio_policy"]
+          avatar_url?: string | null
+          channel_type?: Database["public"]["Enums"]["comm_channel_type"]
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          description?: string | null
+          direct_pair_hash?: string | null
+          id?: string
+          is_archived?: boolean
+          is_read_only?: boolean
+          name?: string | null
+          read_receipts_enabled?: boolean
+          recording_policy?: Database["public"]["Enums"]["channel_recording_policy"]
+          session_id?: string | null
+          team_id?: string | null
+          updated_at?: string
+          video_policy?: Database["public"]["Enums"]["channel_video_policy"]
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "channel_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "department"
+            referencedColumns: ["department_id"]
+          },
+          {
+            foreignKeyName: "channel_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "department_session"
+            referencedColumns: ["department_session_id"]
+          },
+          {
+            foreignKeyName: "channel_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "team"
+            referencedColumns: ["team_id"]
+          },
+          {
+            foreignKeyName: "channel_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      channel_ai_policy: {
+        Row: {
+          auto_reminders: boolean
+          auto_shift_prep: boolean
+          auto_summarize: boolean
+          channel_id: string
+          created_at: string
+          id: string
+          personality_override: Json | null
+          text_participation: Database["public"]["Enums"]["channel_ai_text_mode"]
+          updated_at: string
+          voice_participation: Database["public"]["Enums"]["channel_ai_voice_mode"]
+          workspace_id: string
+        }
+        Insert: {
+          auto_reminders?: boolean
+          auto_shift_prep?: boolean
+          auto_summarize?: boolean
+          channel_id: string
+          created_at?: string
+          id?: string
+          personality_override?: Json | null
+          text_participation?: Database["public"]["Enums"]["channel_ai_text_mode"]
+          updated_at?: string
+          voice_participation?: Database["public"]["Enums"]["channel_ai_voice_mode"]
+          workspace_id: string
+        }
+        Update: {
+          auto_reminders?: boolean
+          auto_shift_prep?: boolean
+          auto_summarize?: boolean
+          channel_id?: string
+          created_at?: string
+          id?: string
+          personality_override?: Json | null
+          text_participation?: Database["public"]["Enums"]["channel_ai_text_mode"]
+          updated_at?: string
+          voice_participation?: Database["public"]["Enums"]["channel_ai_voice_mode"]
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_ai_policy_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: true
+            referencedRelation: "channel"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_ai_policy_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      channel_event: {
+        Row: {
+          causation_id: string | null
+          channel_id: string
+          correlation_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          idempotency_key: string | null
+          payload: Json
+          source: string
+          source_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          causation_id?: string | null
+          channel_id: string
+          correlation_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          idempotency_key?: string | null
+          payload: Json
+          source: string
+          source_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          causation_id?: string | null
+          channel_id?: string
+          correlation_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          idempotency_key?: string | null
+          payload?: Json
+          source?: string
+          source_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_event_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channel"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_event_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      channel_integration: {
+        Row: {
+          channel_id: string
+          config: Json
+          created_at: string
+          created_by: string
+          display_name: string
+          enabled_events: string[] | null
+          endpoint_secret_vault_id: string | null
+          endpoint_url: string | null
+          id: string
+          provider_type: string
+          status: Database["public"]["Enums"]["channel_integration_status"]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          channel_id: string
+          config?: Json
+          created_at?: string
+          created_by: string
+          display_name: string
+          enabled_events?: string[] | null
+          endpoint_secret_vault_id?: string | null
+          endpoint_url?: string | null
+          id?: string
+          provider_type: string
+          status?: Database["public"]["Enums"]["channel_integration_status"]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          channel_id?: string
+          config?: Json
+          created_at?: string
+          created_by?: string
+          display_name?: string
+          enabled_events?: string[] | null
+          endpoint_secret_vault_id?: string | null
+          endpoint_url?: string | null
+          id?: string
+          provider_type?: string
+          status?: Database["public"]["Enums"]["channel_integration_status"]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_integration_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channel"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_integration_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "channel_integration_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      channel_member: {
+        Row: {
+          channel_id: string
+          id: string
+          is_ai: boolean
+          is_muted: boolean
+          joined_at: string
+          last_read_message_id: string | null
+          left_at: string | null
+          muted_until: string | null
+          profile_id: string
+          role: Database["public"]["Enums"]["channel_member_role"]
+          workspace_id: string
+        }
+        Insert: {
+          channel_id: string
+          id?: string
+          is_ai?: boolean
+          is_muted?: boolean
+          joined_at?: string
+          last_read_message_id?: string | null
+          left_at?: string | null
+          muted_until?: string | null
+          profile_id: string
+          role?: Database["public"]["Enums"]["channel_member_role"]
+          workspace_id: string
+        }
+        Update: {
+          channel_id?: string
+          id?: string
+          is_ai?: boolean
+          is_muted?: boolean
+          joined_at?: string
+          last_read_message_id?: string | null
+          left_at?: string | null
+          muted_until?: string | null
+          profile_id?: string
+          role?: Database["public"]["Enums"]["channel_member_role"]
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_member_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channel"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_member_last_read_fk"
+            columns: ["last_read_message_id"]
+            isOneToOne: false
+            referencedRelation: "channel_message"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_member_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "channel_member_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      channel_message: {
+        Row: {
+          channel_id: string
+          client_message_id: string | null
+          content: string
+          created_at: string
+          deleted_at: string | null
+          delivery_mode: Database["public"]["Enums"]["channel_delivery_mode"]
+          edited_at: string | null
+          event_id: string | null
+          id: string
+          is_pinned: boolean
+          message_type: Database["public"]["Enums"]["channel_message_type"]
+          origin_id: string | null
+          origin_type: Database["public"]["Enums"]["channel_origin_type"]
+          pinned_at: string | null
+          pinned_by: string | null
+          reply_to_id: string | null
+          sender_id: string
+          system_data: Json | null
+          target_profile_ids: string[] | null
+          updated_at: string
+          visibility_scope: Database["public"]["Enums"]["channel_message_visibility"]
+          workspace_id: string
+        }
+        Insert: {
+          channel_id: string
+          client_message_id?: string | null
+          content: string
+          created_at?: string
+          deleted_at?: string | null
+          delivery_mode?: Database["public"]["Enums"]["channel_delivery_mode"]
+          edited_at?: string | null
+          event_id?: string | null
+          id?: string
+          is_pinned?: boolean
+          message_type?: Database["public"]["Enums"]["channel_message_type"]
+          origin_id?: string | null
+          origin_type?: Database["public"]["Enums"]["channel_origin_type"]
+          pinned_at?: string | null
+          pinned_by?: string | null
+          reply_to_id?: string | null
+          sender_id: string
+          system_data?: Json | null
+          target_profile_ids?: string[] | null
+          updated_at?: string
+          visibility_scope?: Database["public"]["Enums"]["channel_message_visibility"]
+          workspace_id: string
+        }
+        Update: {
+          channel_id?: string
+          client_message_id?: string | null
+          content?: string
+          created_at?: string
+          deleted_at?: string | null
+          delivery_mode?: Database["public"]["Enums"]["channel_delivery_mode"]
+          edited_at?: string | null
+          event_id?: string | null
+          id?: string
+          is_pinned?: boolean
+          message_type?: Database["public"]["Enums"]["channel_message_type"]
+          origin_id?: string | null
+          origin_type?: Database["public"]["Enums"]["channel_origin_type"]
+          pinned_at?: string | null
+          pinned_by?: string | null
+          reply_to_id?: string | null
+          sender_id?: string
+          system_data?: Json | null
+          target_profile_ids?: string[] | null
+          updated_at?: string
+          visibility_scope?: Database["public"]["Enums"]["channel_message_visibility"]
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_message_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channel"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_message_event_fk"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "channel_event"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_message_pinned_by_fkey"
+            columns: ["pinned_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "channel_message_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "channel_message"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_message_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "channel_message_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      channel_message_attachment: {
+        Row: {
+          channel_id: string
+          created_at: string
+          duration_seconds: number | null
+          file_type: string
+          filename: string
+          id: string
+          message_id: string
+          mime_type: string | null
+          size_bytes: number
+          url: string
+          workspace_id: string
+        }
+        Insert: {
+          channel_id: string
+          created_at?: string
+          duration_seconds?: number | null
+          file_type: string
+          filename: string
+          id?: string
+          message_id: string
+          mime_type?: string | null
+          size_bytes: number
+          url: string
+          workspace_id: string
+        }
+        Update: {
+          channel_id?: string
+          created_at?: string
+          duration_seconds?: number | null
+          file_type?: string
+          filename?: string
+          id?: string
+          message_id?: string
+          mime_type?: string | null
+          size_bytes?: number
+          url?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_message_attachment_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channel"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_message_attachment_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "channel_message"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_message_attachment_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      channel_message_reaction: {
+        Row: {
+          channel_id: string
+          created_at: string
+          emoji: string
+          id: string
+          message_id: string
+          profile_id: string
+          workspace_id: string
+        }
+        Insert: {
+          channel_id: string
+          created_at?: string
+          emoji: string
+          id?: string
+          message_id: string
+          profile_id: string
+          workspace_id: string
+        }
+        Update: {
+          channel_id?: string
+          created_at?: string
+          emoji?: string
+          id?: string
+          message_id?: string
+          profile_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_message_reaction_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channel"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_message_reaction_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "channel_message"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_message_reaction_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "channel_message_reaction_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      channel_message_read: {
+        Row: {
+          id: string
+          message_id: string
+          profile_id: string
+          read_at: string
+          workspace_id: string
+        }
+        Insert: {
+          id?: string
+          message_id: string
+          profile_id: string
+          read_at?: string
+          workspace_id: string
+        }
+        Update: {
+          id?: string
+          message_id?: string
+          profile_id?: string
+          read_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_message_read_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "channel_message"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_message_read_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "channel_message_read_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      channel_notification_policy: {
+        Row: {
+          channel_id: string
+          created_at: string
+          delivery_channels: string[]
+          event_type: string
+          id: string
+          priority: Database["public"]["Enums"]["channel_notification_priority"]
+          respect_quiet_hours: boolean
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          channel_id: string
+          created_at?: string
+          delivery_channels?: string[]
+          event_type: string
+          id?: string
+          priority?: Database["public"]["Enums"]["channel_notification_priority"]
+          respect_quiet_hours?: boolean
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          channel_id?: string
+          created_at?: string
+          delivery_channels?: string[]
+          event_type?: string
+          id?: string
+          priority?: Database["public"]["Enums"]["channel_notification_priority"]
+          respect_quiet_hours?: boolean
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_notification_policy_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channel"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_notification_policy_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      channel_retention_policy: {
+        Row: {
+          archive_grace_period_hours: number
+          auto_archive_on_close: boolean
+          channel_id: string
+          created_at: string
+          generate_summary_on_close: boolean
+          id: string
+          pin_summary_on_close: boolean
+          retain_media_days: number
+          retain_messages_days: number
+          searchable_after_archive: boolean
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          archive_grace_period_hours?: number
+          auto_archive_on_close?: boolean
+          channel_id: string
+          created_at?: string
+          generate_summary_on_close?: boolean
+          id?: string
+          pin_summary_on_close?: boolean
+          retain_media_days?: number
+          retain_messages_days?: number
+          searchable_after_archive?: boolean
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          archive_grace_period_hours?: number
+          auto_archive_on_close?: boolean
+          channel_id?: string
+          created_at?: string
+          generate_summary_on_close?: boolean
+          id?: string
+          pin_summary_on_close?: boolean
+          retain_media_days?: number
+          retain_messages_days?: number
+          searchable_after_archive?: boolean
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_retention_policy_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: true
+            referencedRelation: "channel"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_retention_policy_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspace"
@@ -7077,6 +7841,7 @@ export type Database = {
           bank_account: string | null
           city: string | null
           company_id: string | null
+          contracted_weekly_hours: number | null
           created_at: string
           department_id: string | null
           departments: string[] | null
@@ -7098,6 +7863,7 @@ export type Database = {
           profile_code: string
           profile_id: string
           role: Database["public"]["Enums"]["profile_role"]
+          salary_identifier: string | null
           seniority_start_date: string | null
           status: Database["public"]["Enums"]["profile_status"]
           trainee_completed: string | null
@@ -7113,6 +7879,7 @@ export type Database = {
           bank_account?: string | null
           city?: string | null
           company_id?: string | null
+          contracted_weekly_hours?: number | null
           created_at?: string
           department_id?: string | null
           departments?: string[] | null
@@ -7134,6 +7901,7 @@ export type Database = {
           profile_code: string
           profile_id?: string
           role?: Database["public"]["Enums"]["profile_role"]
+          salary_identifier?: string | null
           seniority_start_date?: string | null
           status?: Database["public"]["Enums"]["profile_status"]
           trainee_completed?: string | null
@@ -7149,6 +7917,7 @@ export type Database = {
           bank_account?: string | null
           city?: string | null
           company_id?: string | null
+          contracted_weekly_hours?: number | null
           created_at?: string
           department_id?: string | null
           departments?: string[] | null
@@ -7170,6 +7939,7 @@ export type Database = {
           profile_code?: string
           profile_id?: string
           role?: Database["public"]["Enums"]["profile_role"]
+          salary_identifier?: string | null
           seniority_start_date?: string | null
           status?: Database["public"]["Enums"]["profile_status"]
           trainee_completed?: string | null
@@ -7993,10 +8763,14 @@ export type Database = {
       }
       schedule_shift: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
           breaks: number
           confirmed_at: string | null
           confirmed_by: string | null
           created_at: string
+          custom_rate: number | null
+          custom_rate_type: "per_hour" | "per_shift" | null
           day_category: Database["public"]["Enums"]["day_category"]
           department_id: string | null
           employee_id: string | null
@@ -8009,6 +8783,7 @@ export type Database = {
           role: string
           schedule_shift_id: string
           shift_date: string
+          shift_type_id: string | null
           start_time: string
           status: Database["public"]["Enums"]["shift_status"]
           team_id: string | null
@@ -8018,10 +8793,14 @@ export type Database = {
           zone: string | null
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
           breaks?: number
           confirmed_at?: string | null
           confirmed_by?: string | null
           created_at?: string
+          custom_rate?: number | null
+          custom_rate_type?: "per_hour" | "per_shift" | null
           day_category: Database["public"]["Enums"]["day_category"]
           department_id?: string | null
           employee_id?: string | null
@@ -8034,6 +8813,7 @@ export type Database = {
           role: string
           schedule_shift_id?: string
           shift_date: string
+          shift_type_id?: string | null
           start_time: string
           status?: Database["public"]["Enums"]["shift_status"]
           team_id?: string | null
@@ -8043,10 +8823,14 @@ export type Database = {
           zone?: string | null
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
           breaks?: number
           confirmed_at?: string | null
           confirmed_by?: string | null
           created_at?: string
+          custom_rate?: number | null
+          custom_rate_type?: "per_hour" | "per_shift" | null
           day_category?: Database["public"]["Enums"]["day_category"]
           department_id?: string | null
           employee_id?: string | null
@@ -8059,6 +8843,7 @@ export type Database = {
           role?: string
           schedule_shift_id?: string
           shift_date?: string
+          shift_type_id?: string | null
           start_time?: string
           status?: Database["public"]["Enums"]["shift_status"]
           team_id?: string | null
@@ -8068,6 +8853,13 @@ export type Database = {
           zone?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "schedule_shift_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
           {
             foreignKeyName: "schedule_shift_confirmed_by_fkey"
             columns: ["confirmed_by"]
@@ -9619,6 +10411,7 @@ export type Database = {
           google_rating: number | null
           google_rating_count: number | null
           grace_period_ends: string | null
+          has_website: boolean
           intelligence_data: Json | null
           is_active: boolean
           is_searchable: boolean
@@ -9670,6 +10463,7 @@ export type Database = {
           google_rating?: number | null
           google_rating_count?: number | null
           grace_period_ends?: string | null
+          has_website?: boolean
           intelligence_data?: Json | null
           is_active?: boolean
           is_searchable?: boolean
@@ -9721,6 +10515,7 @@ export type Database = {
           google_rating?: number | null
           google_rating_count?: number | null
           grace_period_ends?: string | null
+          has_website?: boolean
           intelligence_data?: Json | null
           is_active?: boolean
           is_searchable?: boolean
@@ -10320,6 +11115,16 @@ export type Database = {
       compute_platform_metrics: { Args: never; Returns: undefined }
       count_dangling_company_members: { Args: never; Returns: number }
       count_empty_workspaces: { Args: never; Returns: number }
+      create_channel: {
+        Args: {
+          p_channel_type: Database["public"]["Enums"]["comm_channel_type"]
+          p_created_by?: string
+          p_member_profile_ids?: string[]
+          p_name?: string
+          p_workspace_id: string
+        }
+        Returns: Json
+      }
       create_workspace_transaction:
         | {
             Args: {
@@ -10498,7 +11303,46 @@ export type Database = {
         | "applied"
         | "rejected"
         | "expired"
+      channel_ai_text_mode: "disabled" | "mention_only" | "proactive"
+      channel_ai_voice_mode: "disabled" | "listen_only" | "interactive"
+      channel_ai_voice_policy: "disabled" | "listen_only" | "interactive"
+      channel_audio_policy: "disabled" | "ptt" | "open_mic" | "listen_only"
+      channel_call_status: "active" | "ending" | "ended"
+      channel_delivery_mode: "timeline" | "silent" | "notification_only"
+      channel_integration_status: "active" | "paused" | "error"
+      channel_member_role: "member" | "admin"
+      channel_message_type:
+        | "text"
+        | "image"
+        | "file"
+        | "voice_clip"
+        | "system"
+        | "brief"
+        | "handoff"
+        | "announcement"
+        | "reminder"
+        | "summary"
+      channel_message_visibility: "all_members" | "admins" | "targeted_members"
+      channel_notification_priority: "critical" | "high" | "normal" | "low"
+      channel_origin_type:
+        | "human"
+        | "ai"
+        | "system"
+        | "webhook"
+        | "scheduler"
+        | "workflow"
+      channel_presence_status: "online" | "away" | "offline"
+      channel_recording_policy: "off" | "optional" | "auto"
+      channel_video_policy: "disabled" | "optional" | "default_on" | "required"
       chat_conversation_type: "group" | "dm" | "ai"
+      comm_channel_type:
+        | "department"
+        | "team"
+        | "session"
+        | "custom"
+        | "direct"
+        | "news"
+        | "skill"
       communication_channel: "email" | "sms" | "push" | "in_app"
       communication_status:
         | "pending"
@@ -10694,7 +11538,7 @@ export type Database = {
         | "safety"
         | "maintenance"
         | "custom"
-      profile_role: "employee" | "manager" | "admin" | "owner"
+      profile_role: "employee" | "manager" | "admin" | "owner" | "system"
       profile_status: "trainee" | "active" | "inactive" | "offboarding"
       protocol_assignment_status: "pending" | "completed" | "expired"
       protocol_status: "draft" | "active" | "deprecated"
@@ -10983,7 +11827,49 @@ export const Constants = {
         "rejected",
         "expired",
       ],
+      channel_ai_text_mode: ["disabled", "mention_only", "proactive"],
+      channel_ai_voice_mode: ["disabled", "listen_only", "interactive"],
+      channel_ai_voice_policy: ["disabled", "listen_only", "interactive"],
+      channel_audio_policy: ["disabled", "ptt", "open_mic", "listen_only"],
+      channel_call_status: ["active", "ending", "ended"],
+      channel_delivery_mode: ["timeline", "silent", "notification_only"],
+      channel_integration_status: ["active", "paused", "error"],
+      channel_member_role: ["member", "admin"],
+      channel_message_type: [
+        "text",
+        "image",
+        "file",
+        "voice_clip",
+        "system",
+        "brief",
+        "handoff",
+        "announcement",
+        "reminder",
+        "summary",
+      ],
+      channel_message_visibility: ["all_members", "admins", "targeted_members"],
+      channel_notification_priority: ["critical", "high", "normal", "low"],
+      channel_origin_type: [
+        "human",
+        "ai",
+        "system",
+        "webhook",
+        "scheduler",
+        "workflow",
+      ],
+      channel_presence_status: ["online", "away", "offline"],
+      channel_recording_policy: ["off", "optional", "auto"],
+      channel_video_policy: ["disabled", "optional", "default_on", "required"],
       chat_conversation_type: ["group", "dm", "ai"],
+      comm_channel_type: [
+        "department",
+        "team",
+        "session",
+        "custom",
+        "direct",
+        "news",
+        "skill",
+      ],
       communication_channel: ["email", "sms", "push", "in_app"],
       communication_status: [
         "pending",
@@ -11200,7 +12086,7 @@ export const Constants = {
         "maintenance",
         "custom",
       ],
-      profile_role: ["employee", "manager", "admin", "owner"],
+      profile_role: ["employee", "manager", "admin", "owner", "system"],
       profile_status: ["trainee", "active", "inactive", "offboarding"],
       protocol_assignment_status: ["pending", "completed", "expired"],
       protocol_status: ["draft", "active", "deprecated"],
