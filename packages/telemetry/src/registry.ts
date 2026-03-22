@@ -78,7 +78,8 @@ export type EntityType =
   | "operating_hours"
   | "kpi_target"
   | "workspace_budget"
-  | "authority_config";
+  | "authority_config"
+  | "website";
 
 export type ActionVerb =
   | "created"
@@ -120,7 +121,12 @@ export type ActionVerb =
   | "dismissed"
   | "answered"
   | "loaded"
-  | "auto_filled";
+  | "auto_filled"
+  | "unpublished"
+  | "rollback"
+  | "verified"
+  | "failed"
+  | "generated";
 
 // ─── Auth Module Events ─────────────────────────
 export interface AuthSignedUp extends BaseEvent {
@@ -778,6 +784,47 @@ export interface WizardCompleted extends BaseEvent {
   };
 }
 
+// ─── Website Factory Events ────────────────────
+export interface WebsiteCreated extends BaseEvent {
+  event: "website created";
+  properties: { entity: EntityRef; data: { template_key: string } };
+}
+
+export interface WebsitePublished extends BaseEvent {
+  event: "website published";
+  properties: { entity: EntityRef; data: { version: number; snapshot_hash: string } };
+}
+
+export interface WebsiteUnpublished extends BaseEvent {
+  event: "website unpublished";
+  properties: { entity: EntityRef };
+}
+
+export interface WebsiteRollback extends BaseEvent {
+  event: "website rollback";
+  properties: { entity: EntityRef; data: { from_version: number; to_version: number } };
+}
+
+export interface WebsiteDomainVerified extends BaseEvent {
+  event: "website domain_verified";
+  properties: { entity: EntityRef; data: { domain: string } };
+}
+
+export interface WebsiteDomainFailed extends BaseEvent {
+  event: "website domain_failed";
+  properties: { entity: EntityRef; data: { domain: string; reason: string } };
+}
+
+export interface WebsitePreviewCreated extends BaseEvent {
+  event: "website preview_created";
+  properties: { entity: EntityRef; data: { revision_number: number } };
+}
+
+export interface WebsiteContentGenerated extends BaseEvent {
+  event: "website content_generated";
+  properties: { entity: EntityRef; data: { section_count: number } };
+}
+
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
 export type SmartoutEvent =
@@ -854,7 +901,15 @@ export type SmartoutEvent =
   | OnboardingGuideUpdated
   | IndustryPackageLoaded
   | PageViewed
-  | ButtonClicked;
+  | ButtonClicked
+  | WebsiteCreated
+  | WebsitePublished
+  | WebsiteUnpublished
+  | WebsiteRollback
+  | WebsiteDomainVerified
+  | WebsiteDomainFailed
+  | WebsitePreviewCreated
+  | WebsiteContentGenerated;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -1159,4 +1214,16 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
 
   "page viewed": { destinations: ["posthog"], category: "navigation" },
   "button clicked": { destinations: ["posthog"], category: "navigation" },
+
+  "website created": { destinations: ["posthog", "activity_trail"], category: "system" },
+  "website published": {
+    destinations: ["posthog", "activity_trail", "engine_event"],
+    category: "system",
+  },
+  "website unpublished": { destinations: ["posthog", "activity_trail"], category: "system" },
+  "website rollback": { destinations: ["posthog", "activity_trail"], category: "system" },
+  "website domain_verified": { destinations: ["activity_trail"], category: "system" },
+  "website domain_failed": { destinations: ["activity_trail", "logger"], category: "system" },
+  "website preview_created": { destinations: ["activity_trail"], category: "system" },
+  "website content_generated": { destinations: ["posthog", "activity_trail"], category: "system" },
 };
