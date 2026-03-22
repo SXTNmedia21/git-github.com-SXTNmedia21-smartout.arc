@@ -14,7 +14,7 @@ import { useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { enqueue } from "@/lib/sync/queue";
-import type { AbsenceRequest } from "./use-request-absence";
+import type { AbsenceRequestsResult } from "@/hooks/queries/use-my-absence-requests";
 
 /**
  * Hook that returns a cancelAbsence function.
@@ -37,23 +37,27 @@ export function useCancelAbsence() {
    */
   const cancelAbsence = useCallback(
     async (scheduleAbsenceId: string) => {
+      // absence_status enum only has: "pending" | "approved" | "rejected"
+      // There is no "cancelled" value — use "rejected" to represent
+      // an employee-initiated withdrawal of their own pending request.
       const payload = {
         schedule_absence_id: scheduleAbsenceId,
-        status: "cancelled" as const,
+        status: "rejected" as const,
       };
 
       await enqueue("cancel_absence", payload);
 
-      // Optimistically flip the status in cache so the list updates instantly
-      queryClient.setQueryData<AbsenceRequest[]>(
-        ["my-absence-requests"],
-        (prev) =>
-          prev?.map((request) =>
-            request.id === scheduleAbsenceId
-              ? { ...request, status: "cancelled" as const }
+      // Optimistically flip the status in cache so the list updates instantly.
+      // The cache holds { requests: ScheduleAbsence[] } — match that shape.
+      // Match by schedule_absence_id (the real DB PK, not "id").
+      queryClient.setQueryData<AbsenceRequestsResult>(["my-absence-requests"], (prev) => ({
+        requests:
+          prev?.requests.map((request) =>
+            request.schedule_absence_id === scheduleAbsenceId
+              ? { ...request, status: "rejected" as const }
               : request,
           ) ?? [],
-      );
+      }));
 
       // Invalidate balance — the cancelled request is no longer pending approval,
       // so the projected balance should be recalculated

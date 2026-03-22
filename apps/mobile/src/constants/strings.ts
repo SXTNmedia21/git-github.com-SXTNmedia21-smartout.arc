@@ -150,6 +150,8 @@ export const strings = {
     rejected: "Avslått",
     cancelled: "Kansellert",
     cancelRequest: "Kanseller",
+    requestFailedTitle: "Søknad feilet",
+    requestFailed: "Noe gikk galt. Prøv igjen.",
     overlapWarning: "Overlapper med eksisterende fravær",
     insufficientBalance: "Ikke nok dager tilgjengelig",
     // Payslip

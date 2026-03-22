@@ -14,23 +14,18 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { enqueue } from "@/lib/sync/queue";
 import { supabase } from "@/lib/supabase";
+import type { Database } from "@smartout/supabase/database.types";
+import type { AbsenceRequestsResult } from "@/hooks/queries/use-my-absence-requests";
 
-/** Shape of the public absence row we track in the local cache. */
-export type AbsenceRequest = {
-  id: string;
-  employee_id: string;
-  workspace_id: string;
-  absence_type_id: string;
-  start_date: string;
-  end_date: string;
-  comment: string | null;
-  status: "pending" | "approved" | "rejected" | "cancelled";
-  created_at: string;
-};
+// Re-export the DB row type so consumers can reference it without importing from the query hook.
+export type AbsenceRequest = Database["public"]["Tables"]["schedule_absence"]["Row"];
 
 /** Input the caller provides — IDs and dates are all that's needed to book an absence. */
 export type RequestAbsencePayload = {
-  absenceTypeId: string;
+  /** Free-text absence type name stored directly on schedule_absence.absence_type */
+  absenceType: string;
+  /** YYYY-MM-DD — the primary shift date this absence covers (required by DB) */
+  shiftDate: string;
   /** YYYY-MM-DD */
   startDate: string;
   /** YYYY-MM-DD */
@@ -92,28 +87,32 @@ export function useRequestAbsence() {
       const absenceId = randomUUID();
       const now = new Date().toISOString();
 
-      const payload = {
-        id: absenceId,
+      // schedule_absence.absence_type is a free-text string (not a UUID FK),
+      // and shift_date is required by the DB schema — use startDate as the anchor.
+      const payload: AbsenceRequest = {
+        schedule_absence_id: absenceId,
         employee_id: profileId,
         workspace_id: workspaceId,
-        absence_type_id: input.absenceTypeId,
+        absence_type: input.absenceType,
+        shift_date: input.shiftDate,
         start_date: input.startDate,
         end_date: input.endDate,
-        comment: input.comment ?? null,
+        reason: input.comment ?? null,
+        request_type: null,
+        is_full_day: true,
         status: "pending" as const,
+        created_at: now,
+        updated_at: now,
       };
 
       await enqueue("request_absence", payload);
 
-      // Optimistically add the new request to the top of the list so the
-      // employee sees it immediately without waiting for the sync worker
-      queryClient.setQueryData<AbsenceRequest[]>(["my-absence-requests"], (prev) => [
-        {
-          ...payload,
-          created_at: now,
-        },
-        ...(prev ?? []),
-      ]);
+      // Optimistically prepend the new request to the list so the employee
+      // sees it immediately without waiting for the sync worker.
+      // The cache holds { requests: ScheduleAbsence[] } — match that shape.
+      queryClient.setQueryData<AbsenceRequestsResult>(["my-absence-requests"], (prev) => ({
+        requests: [payload, ...(prev?.requests ?? [])],
+      }));
 
       // Invalidate balance — it will update once the request is approved,
       // but a proactive refetch avoids stale data if the server responds fast

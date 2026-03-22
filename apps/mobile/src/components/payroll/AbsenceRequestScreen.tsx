@@ -11,7 +11,7 @@
  */
 
 import React, { useState, useMemo, useCallback } from "react";
-import { View, Text, ScrollView, Pressable, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useQuery } from "@tanstack/react-query";
 
@@ -24,6 +24,7 @@ import { StatusBadge } from "@/components/common/StatusBadge";
 import { strings } from "@/constants/strings";
 import { useAbsenceBalance } from "@/hooks/queries/use-absence-balance";
 import { useMyAbsenceRequests } from "@/hooks/queries/use-my-absence-requests";
+import { useSupplementRules } from "@/hooks/queries/use-supplement-rules";
 import { useRequestAbsence } from "@/hooks/mutations/use-request-absence";
 import { useCancelAbsence } from "@/hooks/mutations/use-cancel-absence";
 import { projectAbsenceBalance } from "@/lib/absence-projection";
@@ -119,6 +120,7 @@ export function AbsenceRequestScreen() {
   const theme = useTheme();
   const { data: balanceData, isLoading: balanceLoading } = useAbsenceBalance();
   const { data: requestsData, isLoading: requestsLoading } = useMyAbsenceRequests();
+  const { data: supplementRulesData } = useSupplementRules();
   const { requestAbsence } = useRequestAbsence();
   const { cancelAbsence } = useCancelAbsence();
 
@@ -155,13 +157,16 @@ export function AbsenceRequestScreen() {
     return map;
   }, [absenceTypes]);
 
-  /** Count current-year instances of the selected type from existing requests */
+  /** Count current-year instances of the selected type from existing requests.
+   *
+   * schedule_absence.absence_type is a free-text name string (not a UUID FK),
+   * so we match against the type's name field, not its id. */
   const currentYearInstances = useMemo(() => {
     if (!selectedType) return 0;
     const currentYear = new Date().getFullYear().toString();
     return requests.filter(
       (r) =>
-        r.absence_type === selectedType.id &&
+        r.absence_type === selectedType.name &&
         r.start_date.startsWith(currentYear) &&
         (r.status === "pending" || r.status === "approved"),
     ).length;
@@ -187,7 +192,7 @@ export function AbsenceRequestScreen() {
         maxInstancesPerYear: selectedType.max_instances_per_year,
         currentYearInstances,
       },
-      holidays: [], // TODO: fetch public holidays from supplement rules
+      holidays: supplementRulesData?.holidays ?? [],
       existingRequests: requests
         .filter((r) => r.status === "pending" || r.status === "approved")
         .map((r) => ({
@@ -208,16 +213,23 @@ export function AbsenceRequestScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
       await requestAbsence({
-        absenceTypeId: selectedType.id,
+        // absence_type is a free-text name on the DB row, not a UUID
+        absenceType: selectedType.name,
+        // shift_date is required by the schema — use startDate as the anchor date
+        shiftDate: startDate,
         startDate,
         endDate,
         comment: comment.trim() || undefined,
       });
-      // Reset form after successful submit
+      // Reset form only after a successful submit — not on error
       setSelectedTypeId(null);
       setStartDate("");
       setEndDate("");
       setComment("");
+    } catch (error) {
+      // Surface the error to the user — do NOT reset the form so they can retry
+      const message = error instanceof Error ? error.message : strings.payroll.requestFailed;
+      Alert.alert(strings.payroll.requestFailedTitle, message);
     } finally {
       setSubmitting(false);
     }

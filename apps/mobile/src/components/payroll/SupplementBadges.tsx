@@ -30,8 +30,8 @@ const badgeColors = {
 /** Formats qualifying hours for badge display: "2t" or "1.5t" */
 function formatBadgeHours(hours: number): string {
   const rounded = Math.round(hours * 10) / 10;
-  // Drop the decimal if it's a whole number
-  return rounded % 1 === 0 ? `${rounded}t` : `${rounded}t`;
+  // Drop the decimal when it's a whole number (e.g. 2 → "2t", 1.5 → "1.5t")
+  return rounded % 1 === 0 ? `${Math.round(rounded)}t` : `${rounded}t`;
 }
 
 // UI Events:

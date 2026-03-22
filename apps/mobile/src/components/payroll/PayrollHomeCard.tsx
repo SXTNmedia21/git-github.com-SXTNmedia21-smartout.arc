@@ -247,7 +247,9 @@ function DuringShiftContent({
     const supplementEarnings = supplements.map((s) => ({
       type: s.type,
       hours: s.hours,
-      rate: s.estimatedAmount ? s.estimatedAmount / (s.hours || 1) : 0,
+      // Guard: estimatedAmount is optional (undefined when rate data is missing).
+      // Also guard hours=0 to avoid division-by-zero NaN.
+      rate: (s.estimatedAmount ?? 0) / (s.hours || 1),
       rateType: "fixed_per_hour" as const,
     }));
 
@@ -329,7 +331,9 @@ function AfterShiftContent({
     const supplementEarnings = supplements.map((s) => ({
       type: s.type,
       hours: s.hours,
-      rate: s.estimatedAmount ? s.estimatedAmount / (s.hours || 1) : 0,
+      // Guard: estimatedAmount is optional (undefined when rate data is missing).
+      // Also guard hours=0 to avoid division-by-zero NaN.
+      rate: (s.estimatedAmount ?? 0) / (s.hours || 1),
       rateType: "fixed_per_hour" as const,
     }));
 
