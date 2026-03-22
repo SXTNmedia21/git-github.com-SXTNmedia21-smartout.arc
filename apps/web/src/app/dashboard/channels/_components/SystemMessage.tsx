@@ -1,21 +1,14 @@
 "use client";
 
 import type { MessageWithSender } from "../_hooks/channel-types";
-import {
-  Info,
-  ArrowRightLeft,
-  Bell,
-  FileText,
-  Megaphone,
-  Clock,
-} from "lucide-react";
+import { Info, ArrowRightLeft, Bell, FileText, Megaphone, Clock } from "lucide-react";
 
 const TYPE_CONFIG: Record<string, { icon: typeof Info; label: string }> = {
   system: { icon: Info, label: "System" },
   brief: { icon: FileText, label: "Briefing" },
   handoff: { icon: ArrowRightLeft, label: "Overlevering" },
-  announcement: { icon: Megaphone, label: "Kunngjoring" },
-  reminder: { icon: Clock, label: "Paminnelse" },
+  announcement: { icon: Megaphone, label: "Kunngjøring" },
+  reminder: { icon: Clock, label: "Påminnelse" },
   summary: { icon: Bell, label: "Oppsummering" },
 };
 

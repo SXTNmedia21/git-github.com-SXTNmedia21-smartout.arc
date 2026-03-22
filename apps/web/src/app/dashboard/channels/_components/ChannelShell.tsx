@@ -63,9 +63,7 @@ export function ChannelShell({ profileId }: { profileId: string }) {
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center gap-3">
             <MessageSquare className="text-muted-foreground/40 h-12 w-12" />
-            <p className="text-muted-foreground text-sm">
-              Velg en kanal for å starte
-            </p>
+            <p className="text-muted-foreground text-sm">Velg en kanal for å begynne</p>
           </div>
         )}
       </div>

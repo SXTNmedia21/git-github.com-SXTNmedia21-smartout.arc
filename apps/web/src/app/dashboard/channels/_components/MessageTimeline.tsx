@@ -7,14 +7,7 @@ import { MessageBubble } from "./MessageBubble";
 import { SystemMessage } from "./SystemMessage";
 import { Loader2 } from "lucide-react";
 
-const SYSTEM_TYPES = new Set([
-  "system",
-  "brief",
-  "handoff",
-  "announcement",
-  "reminder",
-  "summary",
-]);
+const SYSTEM_TYPES = new Set(["system", "brief", "handoff", "announcement", "reminder", "summary"]);
 
 type Props = {
   channelId: string;
@@ -30,10 +23,7 @@ export function MessageTimeline({ channelId, profileId, onReply }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Flatten pages and reverse for chronological order (RPC returns DESC)
-  const messages = useMemo(
-    () => (data?.pages.flat() ?? []).toReversed(),
-    [data],
-  );
+  const messages = useMemo(() => (data?.pages.flat() ?? []).toReversed(), [data]);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -41,11 +31,12 @@ export function MessageTimeline({ channelId, profileId, onReply }: Props) {
   }, [messages.length]);
 
   // Mark latest message as read when channel opens or new messages arrive
+  const latestMessageId = messages.length > 0 ? messages[messages.length - 1].message_id : null;
+  const markAsReadMutate = markAsRead.mutate;
   useEffect(() => {
-    if (messages.length === 0) return;
-    const latest = messages[messages.length - 1];
-    markAsRead.mutate({ messageId: latest.message_id });
-  }, [channelId, messages.length]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!latestMessageId) return;
+    markAsReadMutate({ messageId: latestMessageId });
+  }, [channelId, latestMessageId, markAsReadMutate]);
 
   // Infinite scroll: load older messages on scroll to top
   const handleScroll = useCallback(() => {
@@ -84,11 +75,7 @@ export function MessageTimeline({ channelId, profileId, onReply }: Props) {
   }
 
   return (
-    <div
-      ref={scrollRef}
-      onScroll={handleScroll}
-      className="flex-1 overflow-y-auto"
-    >
+    <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto">
       {/* Loading older messages */}
       {isFetchingNextPage && (
         <div className="flex justify-center py-2">
@@ -98,9 +85,7 @@ export function MessageTimeline({ channelId, profileId, onReply }: Props) {
 
       {messages.length === 0 ? (
         <div className="flex h-full items-center justify-center">
-          <p className="text-muted-foreground text-sm">
-            Ingen meldinger enna. Start samtalen!
-          </p>
+          <p className="text-muted-foreground text-sm">Ingen meldinger ennå. Start samtalen!</p>
         </div>
       ) : (
         groupedByDate.map((group) => (
@@ -108,9 +93,7 @@ export function MessageTimeline({ channelId, profileId, onReply }: Props) {
             {/* Date separator */}
             <div className="flex items-center gap-4 px-4 py-3">
               <div className="bg-border h-px flex-1" />
-              <span className="text-muted-foreground text-[11px] font-medium">
-                {group.date}
-              </span>
+              <span className="text-muted-foreground text-[11px] font-medium">{group.date}</span>
               <div className="bg-border h-px flex-1" />
             </div>
 

@@ -28,18 +28,14 @@ export function ChannelList({
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
 
-  const unreadMap = new Map(
-    (unreadCounts ?? []).map((u) => [u.channel_id, u.unread_count]),
-  );
+  const unreadMap = new Map((unreadCounts ?? []).map((u) => [u.channel_id, u.unread_count]));
 
   const filtered = search
     ? channelGroups
         .map((g) => ({
           ...g,
           channels: g.channels.filter(
-            (ch) =>
-              ch.name?.toLowerCase().includes(search.toLowerCase()) ??
-              false,
+            (ch) => ch.name?.toLowerCase().includes(search.toLowerCase()) ?? false,
           ),
         }))
         .filter((g) => g.channels.length > 0)
@@ -50,12 +46,7 @@ export function ChannelList({
       {/* Header */}
       <div className="flex items-center justify-between border-b p-3">
         <h2 className="text-sm font-semibold">Kanaler</h2>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7"
-          onClick={() => setShowCreate(true)}
-        >
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowCreate(true)}>
           <Plus className="h-4 w-4" />
         </Button>
       </div>
@@ -63,9 +54,9 @@ export function ChannelList({
       {/* Search */}
       <div className="border-b p-2">
         <div className="relative">
-          <Search className="text-muted-foreground absolute left-2.5 top-2.5 h-3.5 w-3.5" />
+          <Search className="text-muted-foreground absolute top-2.5 left-2.5 h-3.5 w-3.5" />
           <Input
-            placeholder="Sok i kanaler..."
+            placeholder="Søk i kanaler..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="h-8 pl-8 text-xs"
@@ -86,12 +77,12 @@ export function ChannelList({
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-6">
-            <p className="text-muted-foreground text-xs">Ingen kanaler enna</p>
+            <p className="text-muted-foreground text-xs">Ingen kanaler ennå</p>
           </div>
         ) : (
           filtered.map((group) => (
             <div key={group.type}>
-              <div className="text-muted-foreground px-3 pt-3 pb-1 text-[11px] font-medium uppercase tracking-wider">
+              <div className="text-muted-foreground px-3 pt-3 pb-1 text-[11px] font-medium tracking-wider uppercase">
                 {group.label}
               </div>
               {group.channels.map((ch) => (

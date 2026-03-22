@@ -26,16 +26,14 @@ function formatTime(dateStr: string | null): string {
   if (!dateStr) return "";
   const date = new Date(dateStr);
   const now = new Date();
-  const diffDays = Math.floor(
-    (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24),
-  );
+  const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
   if (diffDays === 0) {
     return date.toLocaleTimeString("nb-NO", {
       hour: "2-digit",
       minute: "2-digit",
     });
   }
-  if (diffDays === 1) return "I gar";
+  if (diffDays === 1) return "I går";
   if (diffDays < 7) {
     return date.toLocaleDateString("nb-NO", { weekday: "short" });
   }
@@ -58,7 +56,7 @@ export function ChannelItem({ channel, isActive, unreadCount, onClick }: Props) 
       className={cn(
         "flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors",
         isActive
-          ? "bg-accent border-l-2 border-primary"
+          ? "bg-accent border-primary border-l-2"
           : "hover:bg-accent/50 border-l-2 border-transparent",
       )}
     >
@@ -74,10 +72,7 @@ export function ChannelItem({ channel, isActive, unreadCount, onClick }: Props) 
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between">
           <span
-            className={cn(
-              "truncate text-sm",
-              unreadCount > 0 ? "font-semibold" : "font-medium",
-            )}
+            className={cn("truncate text-sm", unreadCount > 0 ? "font-semibold" : "font-medium")}
           >
             {channel.name ?? "Direktemelding"}
           </span>
@@ -92,7 +87,7 @@ export function ChannelItem({ channel, isActive, unreadCount, onClick }: Props) 
                   0,
                   50,
                 )
-              : "Ingen meldinger enna"}
+              : "Ingen meldinger ennå"}
           </p>
           {unreadCount > 0 && (
             <span className="bg-primary text-primary-foreground ml-1 flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1.5 text-[10px] font-bold">
