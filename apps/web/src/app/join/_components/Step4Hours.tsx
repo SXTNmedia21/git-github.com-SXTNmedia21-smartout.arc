@@ -50,7 +50,11 @@ function parseIsoOpeningHours(isoHours: string[]): DayHours[] | null {
     const match = entry.match(/^([A-Za-z,-]+)\s+(\d{1,2}:\d{2})-(\d{1,2}:\d{2})$/);
     if (!match) continue;
 
-    const [, daysPart, openTime, closeTime] = match;
+    const daysPart = match[1];
+    const openTime = match[2];
+    const closeTime = match[3];
+    if (!daysPart || !openTime || !closeTime) continue;
+
     const normalizedOpen = openTime.padStart(5, "0");
     const normalizedClose = closeTime.padStart(5, "0");
 
@@ -58,13 +62,13 @@ function parseIsoOpeningHours(isoHours: string[]): DayHours[] | null {
     const dayIndices: number[] = [];
     for (const segment of daysPart.split(",")) {
       const rangeParts = segment.split("-");
-      if (rangeParts.length === 2) {
+      if (rangeParts.length === 2 && rangeParts[0] && rangeParts[1]) {
         const start = ISO_DAY_MAP[rangeParts[0]];
         const end = ISO_DAY_MAP[rangeParts[1]];
         if (start !== undefined && end !== undefined) {
           for (let i = start; i <= end; i++) dayIndices.push(i);
         }
-      } else {
+      } else if (rangeParts[0]) {
         const idx = ISO_DAY_MAP[rangeParts[0]];
         if (idx !== undefined) dayIndices.push(idx);
       }
