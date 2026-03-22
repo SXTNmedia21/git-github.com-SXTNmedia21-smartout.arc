@@ -4,16 +4,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, Loader2, RefreshCw, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Settings2, Sparkles } from "lucide-react";
 import { useSignupWizard } from "../_hooks/useSignupWizard";
 import { useWorkspaceIntelligence } from "../_hooks/useWorkspaceIntelligence";
 import { useTypewriterSequence } from "../_hooks/useTypewriter";
 import { step3Schema } from "../_lib/validation";
-import { AiBadge } from "./AiBadge";
 
 export function Step3About() {
   const { state, updateStep, nextStep, prevStep } = useSignupWizard();
-  const { content, status, enrichAndGenerate, rewrite } = useWorkspaceIntelligence();
+  const { content, status, enrichAndGenerate, rewriteField } = useWorkspaceIntelligence();
 
   const [aboutUs, setAboutUs] = useState(state.step3.aboutUs ?? "");
   const [ourHistory, setOurHistory] = useState(state.step3.ourHistory ?? "");
@@ -65,22 +64,34 @@ export function Step3About() {
     if (allDone && shouldType) hasApplied.current = true;
   }, [allDone, shouldType]);
 
-  // Reset typewriter when new content arrives (from "Skriv på nytt")
+  // Sync content changes — for per-field rewrites, apply only the changed field
+  const prevContentRef = useRef(content);
   useEffect(() => {
-    if (content && hasApplied.current) {
-      hasApplied.current = false;
-      setUserEdited({});
-    }
+    if (!content) return;
+    const prev = prevContentRef.current;
+    prevContentRef.current = content;
+
+    if (!prev) return;
+
+    if (content.about_us !== prev.about_us && content.about_us) setAboutUs(content.about_us);
+    if (content.our_history !== prev.our_history && content.our_history)
+      setOurHistory(content.our_history);
+    if (content.our_concept !== prev.our_concept && content.our_concept)
+      setOurConcept(content.our_concept);
   }, [content]);
 
   const markEdited = (field: string) => {
     setUserEdited((prev) => ({ ...prev, [field]: true }));
   };
 
-  const handleRewrite = () => {
-    hasApplied.current = false;
-    setUserEdited({});
-    rewrite();
+  const handleRewriteField = async (
+    contentKey: "about_us" | "our_history" | "our_concept",
+    stateKey: "aboutUs" | "ourHistory" | "ourConcept",
+    mode: "rewrite" | "longer" | "shorter" = "rewrite",
+  ) => {
+    const currentText =
+      stateKey === "aboutUs" ? aboutUs : stateKey === "ourHistory" ? ourHistory : ourConcept;
+    await rewriteField(contentKey, currentText, mode);
   };
 
   const handleNext = () => {
@@ -146,15 +157,13 @@ export function Step3About() {
           value={aboutUs}
           typing={typingField === "aboutUs"}
           autoFilled={allDone && !userEdited.aboutUs && !!content?.about_us}
+          isLoading={isLoading}
           onChange={(val) => {
             setAboutUs(val);
             markEdited("aboutUs");
             setErrors((prev) => ({ ...prev, aboutUs: "" }));
           }}
-          onClearAi={() => {
-            setAboutUs("");
-            markEdited("aboutUs");
-          }}
+          onRewrite={(mode) => handleRewriteField("about_us", "aboutUs", mode)}
           error={errors.aboutUs}
         />
 
@@ -167,14 +176,12 @@ export function Step3About() {
           value={ourHistory}
           typing={typingField === "ourHistory"}
           autoFilled={allDone && !userEdited.ourHistory && !!content?.our_history}
+          isLoading={isLoading}
           onChange={(val) => {
             setOurHistory(val);
             markEdited("ourHistory");
           }}
-          onClearAi={() => {
-            setOurHistory("");
-            markEdited("ourHistory");
-          }}
+          onRewrite={(mode) => handleRewriteField("our_history", "ourHistory", mode)}
         />
 
         <TypewriterTextarea
@@ -185,31 +192,16 @@ export function Step3About() {
           value={ourConcept}
           typing={typingField === "ourConcept"}
           autoFilled={allDone && !userEdited.ourConcept && !!content?.our_concept}
+          isLoading={isLoading}
           onChange={(val) => {
             setOurConcept(val);
             markEdited("ourConcept");
             setErrors((prev) => ({ ...prev, ourConcept: "" }));
           }}
-          onClearAi={() => {
-            setOurConcept("");
-            markEdited("ourConcept");
-          }}
+          onRewrite={(mode) => handleRewriteField("our_concept", "ourConcept", mode)}
           error={errors.ourConcept}
         />
       </div>
-
-      {/* "Skriv på nytt" button — always visible */}
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={handleRewrite}
-        disabled={isLoading}
-        className="w-full border-orange-200 text-orange-600 hover:bg-orange-50"
-      >
-        <RefreshCw className={`mr-2 h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
-        Skriv på nytt
-      </Button>
 
       <div className="flex gap-3">
         <Button type="button" variant="outline" onClick={prevStep} className="flex-1">
@@ -229,7 +221,9 @@ export function Step3About() {
   );
 }
 
-/* -- Typewriter textarea wrapper -- */
+/* -- Typewriter textarea with gear menu -- */
+
+type AiAction = "rewrite" | "longer" | "shorter";
 
 function TypewriterTextarea({
   label,
@@ -240,8 +234,9 @@ function TypewriterTextarea({
   value,
   typing,
   autoFilled,
+  isLoading,
   onChange,
-  onClearAi,
+  onRewrite,
   error,
 }: {
   label: string;
@@ -252,10 +247,31 @@ function TypewriterTextarea({
   value: string;
   typing: boolean;
   autoFilled: boolean;
+  isLoading: boolean;
   onChange: (val: string) => void;
-  onClearAi: () => void;
+  onRewrite: (mode: AiAction) => void;
   error?: string;
 }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!menuOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [menuOpen]);
+
+  const handleAction = (action: AiAction) => {
+    setMenuOpen(false);
+    onRewrite(action);
+  };
+
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
@@ -269,8 +285,57 @@ function TypewriterTextarea({
               <Sparkles className="h-2.5 w-2.5" />
             </span>
           )}
+          {autoFilled && !typing && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-600">
+              <Sparkles className="h-2.5 w-2.5" />
+              AI
+            </span>
+          )}
         </div>
-        {autoFilled && !typing && <AiBadge onClear={onClearAi} />}
+
+        {/* Gear menu — visible when field has content and not typing */}
+        {value && !typing && (
+          <div className="relative" ref={menuRef}>
+            <button
+              type="button"
+              onClick={() => setMenuOpen((o) => !o)}
+              disabled={isLoading}
+              className="flex h-6 w-6 items-center justify-center rounded-md text-orange-400 transition-colors hover:bg-orange-50 hover:text-orange-600 disabled:opacity-40"
+            >
+              {isLoading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Settings2 className="h-3.5 w-3.5" />
+              )}
+            </button>
+
+            {menuOpen && (
+              <div className="absolute right-0 z-20 mt-1 w-36 rounded-lg border border-orange-100 bg-white py-1 shadow-lg">
+                <button
+                  type="button"
+                  onClick={() => handleAction("rewrite")}
+                  className="flex w-full items-center px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-orange-50 hover:text-orange-700"
+                >
+                  Skriv om
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleAction("longer")}
+                  className="flex w-full items-center px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-orange-50 hover:text-orange-700"
+                >
+                  Gjør lengre
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleAction("shorter")}
+                  className="flex w-full items-center px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-orange-50 hover:text-orange-700"
+                >
+                  Gjør kortere
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
       <Textarea
         id={id}

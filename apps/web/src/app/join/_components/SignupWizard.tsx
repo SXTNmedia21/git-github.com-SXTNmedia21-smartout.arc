@@ -109,23 +109,24 @@ function WizardContent() {
 
         {/* Step content */}
         <main className="flex flex-1 items-start justify-center px-4 pt-4 pb-12 lg:px-8 xl:px-12">
-          <div
-            key={state.currentStep}
-            className="animate-wizard-step w-full"
-            style={
-              {
-                "--step-direction": direction === "forward" ? "30px" : "-30px",
-              } as React.CSSProperties
-            }
-          >
-            {state.currentStep === 1 && <Step1Account />}
-            {state.currentStep === 2 && <Step2Business scrapeStatus={scrapeStatus} />}
-            {state.currentStep === 3 && <Step3About />}
-            {state.currentStep === 4 && <Step4Hours />}
-            {state.currentStep === 5 && <Step5Menu />}
-            {state.currentStep === 6 && <Step6CreateAccount />}
-            {isSetupPhase && <SetupLoading />}
-          </div>
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={state.currentStep}
+              className="w-full"
+              initial={{ opacity: 0, x: direction === "forward" ? 30 : -30 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: direction === "forward" ? -15 : 15 }}
+              transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
+            >
+              {state.currentStep === 1 && <Step1Account />}
+              {state.currentStep === 2 && <Step2Business scrapeStatus={scrapeStatus} />}
+              {state.currentStep === 3 && <Step3About />}
+              {state.currentStep === 4 && <Step4Hours />}
+              {state.currentStep === 5 && <Step5Menu />}
+              {state.currentStep === 6 && <Step6CreateAccount />}
+              {isSetupPhase && <SetupLoading />}
+            </motion.div>
+          </AnimatePresence>
         </main>
       </div>
 

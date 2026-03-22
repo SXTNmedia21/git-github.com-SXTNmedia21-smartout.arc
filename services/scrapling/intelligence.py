@@ -59,6 +59,8 @@ class WorkspaceIntelligence(BaseModel):
     # Web intelligence (Serper)
     google_rating: Optional[float] = None
     google_review_count: Optional[int] = None
+    google_description: Optional[str] = None
+    google_category: Optional[str] = None
     external_ratings: list[dict] = []
     news_articles: list[dict] = []
     web_mentions: list[str] = []
@@ -81,7 +83,17 @@ def merge_partial(intel: WorkspaceIntelligence, partial: dict) -> WorkspaceIntel
     for key, value in partial.items():
         current = getattr(intel, key, None)
         if isinstance(current, list) and isinstance(value, list):
-            merged = list(dict.fromkeys(current + value))
+            # Dedup: use json serialization for unhashable items (dicts)
+            seen: set[str] = set()
+            merged: list = []
+            for item in current + value:
+                try:
+                    k = item if isinstance(item, str) else json.dumps(item, sort_keys=True)
+                except (TypeError, ValueError):
+                    k = str(item)
+                if k not in seen:
+                    seen.add(k)
+                    merged.append(item)
             update[key] = merged
         elif isinstance(current, dict) and isinstance(value, dict):
             update[key] = {**current, **value}
@@ -151,6 +163,10 @@ def build_context(intel: WorkspaceIntelligence) -> str:
     if intel.website_about_text:
         about = intel.website_about_text[:500]
         lines.append(f"Fra 'Om oss'-siden: {about}")
+    if intel.google_category:
+        lines.append(f"Google Maps-kategori: {intel.google_category}")
+    if intel.google_description:
+        lines.append(f"Google-beskrivelse: {intel.google_description}")
     if intel.google_rating:
         rating_str = f"Google: {intel.google_rating}/5"
         if intel.google_review_count:
@@ -456,6 +472,8 @@ def _scrape_website_sync(website_url: str) -> dict:
         # Cuisine types — common food category keywords
         cuisine_map = {
             "norsk": "Norsk", "nordisk": "Nordisk", "skandinavisk": "Skandinavisk",
+            "husmanskost": "Husmanskost", "husman": "Husmanskost",
+            "comfort food": "Husmanskost", "tradisjonsmat": "Husmanskost",
             "italiensk": "Italiensk", "italian": "Italiensk",
             "fransk": "Fransk", "french": "Fransk",
             "japansk": "Japansk", "japanese": "Japansk", "sushi": "Japansk",
@@ -464,6 +482,7 @@ def _scrape_website_sync(website_url: str) -> dict:
             "indisk": "Indisk", "indian": "Indisk",
             "sjomat": "Sjomat", "seafood": "Sjomat",
             "pizza": "Pizza", "burger": "Burger",
+            "vegetar": "Vegetar/Vegan", "vegan": "Vegetar/Vegan",
         }
         cuisines = []
         for keyword, label in cuisine_map.items():
@@ -553,7 +572,7 @@ async def enrich_from_web_search(
                         continue
                     data = await resp.json()
 
-                # Knowledge graph (Google rating)
+                # Knowledge graph (Google rating, type, description, price)
                 kg = data.get("knowledgeGraph", {})
                 if kg:
                     rating = kg.get("rating")
@@ -568,6 +587,63 @@ async def enrich_from_web_search(
                             partial["google_review_count"] = int(str(review_count).replace(",", ""))
                         except (ValueError, TypeError):
                             pass
+
+                    # Restaurant type and cuisine from KG type field
+                    # e.g. "Italian Restaurant", "Sushi Bar", "Seafood Restaurant"
+                    kg_type = kg.get("type", "")
+                    if kg_type:
+                        kg_type_lower = kg_type.lower()
+                        # Extract cuisine from type string
+                        kg_cuisine_map = {
+                            "italian": "Italiensk", "sushi": "Japansk",
+                            "japanese": "Japansk", "chinese": "Asiatisk",
+                            "thai": "Asiatisk", "asian": "Asiatisk",
+                            "indian": "Indisk", "mexican": "Meksikansk",
+                            "seafood": "Sjomat", "french": "Fransk",
+                            "nordic": "Nordisk", "norwegian": "Norsk",
+                            "pizza": "Pizza", "burger": "Burger",
+                        }
+                        for keyword, label in kg_cuisine_map.items():
+                            if keyword in kg_type_lower:
+                                cuisines = partial.get("cuisine_types", [])
+                                if label not in cuisines:
+                                    cuisines.append(label)
+                                    partial["cuisine_types"] = cuisines
+                                break
+
+                        # Extract restaurant concept from type
+                        kg_concept_map = {
+                            "fine dining": "fine dining",
+                            "fast food": "fast food",
+                            "bar": "bar", "pub": "bar",
+                            "cafe": "kafé", "café": "kafé",
+                            "bakery": "bakeri",
+                            "bistro": "bistro", "brasserie": "brasserie",
+                        }
+                        for keyword, clue in kg_concept_map.items():
+                            if keyword in kg_type_lower:
+                                clues = partial.get("concept_clues", [])
+                                if clue not in clues:
+                                    clues.append(clue)
+                                    partial["concept_clues"] = clues
+                                break
+
+                    # Description from KG — useful for menu/concept context
+                    kg_desc = kg.get("description", "")
+                    if kg_desc and partial.get("google_description") is None:
+                        partial["google_description"] = kg_desc[:500]
+
+                    # Price level from KG attributes
+                    kg_attrs = kg.get("attributes", {})
+                    kg_price = kg_attrs.get("Price") or kg_attrs.get("price") or ""
+                    if kg_price and partial.get("price_range") is None:
+                        price_lower = kg_price.lower()
+                        if any(w in price_lower for w in ["expensive", "dyr", "$$$$"]):
+                            partial["price_range"] = "premium"
+                        elif any(w in price_lower for w in ["moderate", "$$"]):
+                            partial["price_range"] = "mid-range"
+                        elif any(w in price_lower for w in ["cheap", "inexpensive", "billig", "$"]):
+                            partial["price_range"] = "budget"
 
                 # Organic results — extract mentions, ratings, concept clues
                 web_mentions: list[str] = partial.get("web_mentions", [])
@@ -670,6 +746,114 @@ async def enrich_from_web_search(
     return partial
 
 
+async def enrich_from_places(
+    company_name: str,
+    city: Optional[str] = None,
+    serper_api_key: Optional[str] = None,
+) -> dict:
+    """Search Serper Places API (Google Maps) for structured restaurant data.
+
+    Returns category, rating, review count — the most reliable source for
+    restaurant type and price level since it comes from Google's own data.
+    """
+    api_key = serper_api_key or SERPER_API_KEY
+    if not api_key or not aiohttp:
+        return {}
+
+    query = f"{company_name} {city or ''}".strip()
+    partial: dict = {}
+
+    try:
+        timeout = aiohttp.ClientTimeout(total=10)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.post(
+                "https://google.serper.dev/places",
+                headers={"X-API-KEY": api_key, "Content-Type": "application/json"},
+                json={"q": query, "gl": "no", "hl": "no"},
+            ) as resp:
+                if resp.status != 200:
+                    logger.warning(f"Serper Places failed: {resp.status}")
+                    return {}
+                data = await resp.json()
+
+        places = data.get("places", [])
+        if not places:
+            return {}
+
+        # Find the best match — prefer exact name match, then first result
+        best = places[0]
+        name_lower = company_name.lower()
+        for place in places:
+            title = place.get("title", "").lower()
+            if name_lower in title or title in name_lower:
+                best = place
+                break
+
+        # Rating
+        rating = best.get("rating")
+        if rating is not None:
+            partial["google_rating"] = float(rating)
+        review_count = best.get("ratingCount")
+        if review_count is not None:
+            partial["google_review_count"] = int(review_count)
+
+        # Category — Google Maps category (e.g. "Restaurant", "Kaffebar", "Bar")
+        category = best.get("category", "")
+        if category:
+            partial["google_category"] = category
+
+            # Map category to concept clues
+            cat_lower = category.lower()
+            category_concept_map = {
+                "restaurant": "restaurant",
+                "fine dining": "fine dining",
+                "fast food": "fast food",
+                "bar": "bar",
+                "pub": "bar",
+                "kaffebar": "kafé",
+                "café": "kafé",
+                "cafe": "kafé",
+                "bakeri": "bakeri",
+                "bakery": "bakeri",
+                "pizzeria": "pizza",
+            }
+            for keyword, clue in category_concept_map.items():
+                if keyword in cat_lower:
+                    partial.setdefault("concept_clues", []).append(clue)
+                    break
+
+            # Map category to cuisine type
+            category_cuisine_map = {
+                "italian": "Italiensk", "sushi": "Japansk",
+                "japanese": "Japansk", "chinese": "Asiatisk",
+                "thai": "Asiatisk", "indian": "Indisk",
+                "mexican": "Meksikansk", "seafood": "Sjomat",
+                "pizza": "Pizza", "burger": "Burger",
+            }
+            for keyword, label in category_cuisine_map.items():
+                if keyword in cat_lower:
+                    partial.setdefault("cuisine_types", []).append(label)
+                    break
+
+        # Address from Places
+        address = best.get("address")
+        if address:
+            partial["address"] = address
+
+        partial["sources"] = {
+            "places": {
+                "fetched_at": datetime.utcnow().isoformat() + "Z",
+                "matched_title": best.get("title", ""),
+                "category": category,
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"Places enrichment failed: {e}")
+
+    return partial
+
+
 # ── Request/Response models + orchestrator ───────────────────────────
 
 class EnrichRequest(BaseModel):
@@ -730,20 +914,35 @@ async def handle_enrich(req: EnrichRequest) -> EnrichResponse:
                 intel = merge_partial(intel, result)
                 sources_added.append(name)
 
-    # Phase 3: Web search (sequential — benefits from Phase 1+2 data)
+    # Phase 3: Web search + Places in parallel
+    phase3_tasks = []
+    phase3_names = []
+
     needs_web = (
         "web_search" not in intel.sources
         or has_unused_queries(intel, req.company_name, req.city)
         or req.force_new_queries
     )
     if needs_web:
-        web_result = await enrich_from_web_search(
+        phase3_tasks.append(enrich_from_web_search(
             intel, req.company_name, req.city,
             force_new_queries=req.force_new_queries,
-        )
-        if web_result:
-            intel = merge_partial(intel, web_result)
-            sources_added.append("web_search")
+        ))
+        phase3_names.append("web_search")
+
+    if "places" not in intel.sources:
+        phase3_tasks.append(enrich_from_places(req.company_name, req.city))
+        phase3_names.append("places")
+
+    if phase3_tasks:
+        phase3_results = await asyncio.gather(*phase3_tasks, return_exceptions=True)
+        for name, result in zip(phase3_names, phase3_results):
+            if isinstance(result, Exception):
+                logger.error(f"Phase 3 enrichment failed for {name}: {result}")
+                continue
+            if result:
+                intel = merge_partial(intel, result)
+                sources_added.append(name)
 
     gaps = compute_gaps(intel)
 
@@ -765,6 +964,10 @@ class GenerateResponse(BaseModel):
     about_us: str
     our_history: str
     our_concept: str
+    menu_description: str
+    restaurant_type: Optional[str] = None
+    cuisine_types: list[str] = []
+    price_category: Optional[str] = None
 
 
 def build_generate_prompt(intel: WorkspaceIntelligence) -> str:
@@ -775,28 +978,42 @@ def build_generate_prompt(intel: WorkspaceIntelligence) -> str:
     """
     context = build_context(intel)
     name = intel.company_name or "bedriften"
-    return f'''Du skal skrive tre korte tekster for bedriften "{name}".
-Disse tekstene skal kunne brukes direkte på Google Business, Facebook og Instagram.
+
+    # Include web mentions for richer context
+    mentions_block = ""
+    if intel.web_mentions:
+        snippets = "\n".join(f"- {m[:200]}" for m in intel.web_mentions[:8])
+        mentions_block = f"\nFRA GOOGLE-SØKERESULTATER:\n{snippets}\n"
+
+    return f'''Du skal skrive tekster og klassifisere bedriften "{name}".
 
 FAKTA OM BEDRIFTEN:
 {context}
-
-REGLER:
-- Hver tekst: maks 300 tegn, 2-3 setninger. Skal fungere på Google Business (750 tegn), Facebook (255 tegn) og Instagram bio (150 tegn) — hold det kort nok for alle tre.
+{mentions_block}
+DEL 1 — TEKSTER
+Regler:
+- Hver tekst: maks 300 tegn, 2-3 setninger.
 - Skriv som eieren ville sagt det til naboen. Jordnært, ekte, rett på sak.
 - ALDRI finn opp fakta som ikke står i konteksten over.
 - Ingen superlativ: ikke "unike", "enestående", "lidenskapelige", "fantastiske".
 - Hvis stiftelsesår finnes, bruk det naturlig ("Siden 2004...").
-- Hvis du ikke har nok data for en seksjon, skriv det du kan og hold det kort.
-- De tre tekstene skal ikke gjenta hverandre — hver tekst har sitt eget fokus.
+- De fire tekstene skal ikke gjenta hverandre.
 
-TEKSTENE:
-1. "Om oss" — Hvem er dere? Hva gjør dere? Hvor holder dere til?
-2. "Vår historie" — Når startet dere? Hva har skjedd siden? Eventuelle milepæler.
-3. "Vårt konsept" — Hva gjør dere spesielt? Matfilosofi, stemning, målgruppe.
+Tekstene:
+1. "about_us" — Hvem er dere? Hva gjør dere? Hvor holder dere til?
+2. "our_history" — Når startet dere? Hva har skjedd siden?
+3. "our_concept" — Hva gjør dere spesielt? Matfilosofi, stemning, målgruppe.
+4. "menu_description" — Kort om maten og drikken. Kjøkkentype, typiske retter. Maks 2 setninger.
+
+DEL 2 — KLASSIFISERING
+Basert på all informasjon over, bestem:
+
+5. "restaurant_type" — Velg EN: Restaurant, Kafe, Bar/Pub, Bakeri, Fast food, Fine dining, Catering, Annet
+6. "cuisine_types" — Velg 1-3 fra: Norsk/Nordisk, Husmanskost, Italiensk, Asiatisk, Sjomat, Burger, Sushi, Pizza, Indisk, Meksikansk, Vegetar/Vegan, Internasjonal, Annet
+7. "price_category" — Velg EN: budget, moderate, premium, fine_dining
 
 Returner KUN et JSON-objekt:
-{{"about_us": "...", "our_history": "...", "our_concept": "..."}}'''
+{{"about_us": "...", "our_history": "...", "our_concept": "...", "menu_description": "...", "restaurant_type": "...", "cuisine_types": ["...", "..."], "price_category": "..."}}'''
 
 
 def _extract_json_from_llm(text: str) -> str:
@@ -854,4 +1071,8 @@ async def handle_generate(req: GenerateRequest) -> GenerateResponse:
         about_us=parsed.get("about_us", ""),
         our_history=parsed.get("our_history", ""),
         our_concept=parsed.get("our_concept", ""),
+        menu_description=parsed.get("menu_description", ""),
+        restaurant_type=parsed.get("restaurant_type"),
+        cuisine_types=parsed.get("cuisine_types", []),
+        price_category=parsed.get("price_category"),
     )

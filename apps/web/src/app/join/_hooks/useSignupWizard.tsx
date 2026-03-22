@@ -137,6 +137,7 @@ export function WizardProvider({ children, initialState }: WizardProviderProps) 
           step4: wizardState.step4,
           step5: wizardState.step5,
           step6: wizardState.step6,
+          intelligence: wizardState.intelligence,
         }),
       );
     } catch {
@@ -162,8 +163,10 @@ export function WizardProvider({ children, initialState }: WizardProviderProps) 
     doPersist(state);
   }, [doPersist, state]);
 
-  // Sync URL when step changes
+  // Sync URL when step changes (skip setup phase — transient, no URL needed)
   useEffect(() => {
+    if (state.currentStep > TOTAL_STEPS) return;
+
     const currentParam = searchParams.get("step");
     const newStep = String(state.currentStep);
 
