@@ -77,6 +77,10 @@ EOF
   export SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY
 }
 
+ensure_local_e2e_fixture() {
+  node "${SCRIPT_DIR}/ensure-local-e2e-fixture.mjs"
+}
+
 ensure_local_libs() {
   if [[ -f "${LIB_DIR_A}/libnspr4.so" && -f "${LIB_DIR_A}/libnss3.so" ]]; then
     return
@@ -152,6 +156,7 @@ prepend_ld_library_path() {
 main() {
   normalize_ci_mode
   bootstrap_local_supabase_env
+  ensure_local_e2e_fixture
   ensure_local_libs
   prepend_ld_library_path
   exec env \

@@ -477,14 +477,14 @@ export function WalkAiShell() {
         isSticky ? "overflow-visible" : "overflow-hidden",
         isOrb
           ? isNotification
-            ? "bg-gradient-to-br from-zinc-900 via-zinc-950 to-black shadow-[0_0_20px_4px_rgba(var(--brand-orange-rgb,255_140_50),0.25),0_0_40px_8px_rgba(var(--brand-orange-rgb,255_140_50),0.1)] hover:scale-110 active:scale-95"
-            : "from-brand-orange/90 to-brand-orange/60 shadow-brand-orange/25 hover:shadow-brand-orange/40 bg-gradient-to-br shadow-lg hover:scale-110 active:scale-95"
+            ? "bg-gradient-to-br from-zinc-900 via-zinc-950 to-black shadow-[0_0_20px_4px_rgba(255,140,50,0.25),0_0_40px_8px_rgba(255,140,50,0.1)] hover:scale-110 active:scale-95"
+            : "from-brand-orange/90 to-brand-orange/60 bg-gradient-to-br shadow-lg shadow-[oklch(0.65_0.22_40/0.25)] hover:scale-110 hover:shadow-[oklch(0.65_0.22_40/0.4)] active:scale-95"
           : isSticky
             ? [
                 "border-border/20 border backdrop-blur-xl",
                 "from-card/95 via-card/90 to-card/80 bg-gradient-to-br",
                 isActive
-                  ? "shadow-[0_4px_24px_-4px_rgba(var(--brand-orange-rgb,255_140_50),0.15),0_8px_32px_-8px_rgba(0,0,0,0.12)]"
+                  ? "shadow-[0_4px_24px_-4px_rgba(255,140,50,0.15),0_8px_32px_-8px_rgba(0,0,0,0.12)]"
                   : "shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1),0_2px_8px_-2px_rgba(0,0,0,0.06)]",
               ].join(" ")
             : [
@@ -492,7 +492,7 @@ export function WalkAiShell() {
                 "from-card via-card to-card/95 bg-gradient-to-b",
                 "ring-1 ring-white/[0.04]",
                 isActive
-                  ? "shadow-[0_8px_40px_-8px_rgba(var(--brand-orange-rgb,255_140_50),0.12),0_20px_50px_-12px_rgba(0,0,0,0.2)]"
+                  ? "shadow-[0_8px_40px_-8px_rgba(255,140,50,0.12),0_20px_50px_-12px_rgba(0,0,0,0.2)]"
                   : "shadow-[0_8px_32px_-8px_rgba(0,0,0,0.15),0_4px_16px_-4px_rgba(0,0,0,0.08)]",
               ].join(" "),
         isDragging && !isOrb && "!shadow-[0_25px_60px_-12px_rgba(0,0,0,0.25)]",
@@ -506,7 +506,7 @@ export function WalkAiShell() {
           className="pointer-events-none absolute top-0 right-0 left-0 z-10 h-px"
           style={{
             background: isActive
-              ? "linear-gradient(90deg, transparent, rgba(var(--brand-orange-rgb, 255 140 50), 0.25), transparent)"
+              ? "linear-gradient(90deg, transparent, rgba(255, 140, 50, 0.25), transparent)"
               : "linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent)",
           }}
         />

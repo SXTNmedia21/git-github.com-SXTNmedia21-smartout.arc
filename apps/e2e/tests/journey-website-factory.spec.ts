@@ -1,34 +1,17 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "@playwright/test";
 import { supabase, seedWorkspace, seedProfile } from "../helpers/seed";
 import { expectTelemetryEvent, telemetryTimestamp } from "../helpers/telemetry";
+import { loginAsAdmin } from "../helpers/auth";
 
 // ─── Constants ─────────────────────────────────────────────
-const TEST_EMAIL = process.env.E2E_EMAIL ?? "admin@smartout.local";
-const TEST_PASSWORD = process.env.E2E_PASSWORD ?? "password123";
-
 // Track state for cleanup
 let workspaceId: string | null = null;
 let websiteId: string | null = null;
 
-async function login(page: Page) {
-  await page.goto("/login");
-  await page.fill('input[type="email"]', TEST_EMAIL);
-  await page.fill('input[type="password"]', TEST_PASSWORD);
-  await page.click('button[type="submit"]');
+async function login(page: Parameters<typeof loginAsAdmin>[0]) {
+  await loginAsAdmin(page);
 
-  // Wait for login animation to complete and redirect
-  await page.waitForURL(/\/(dashboard|onboarding|setup)/, { timeout: 20000 }).catch(() => {});
-  await page.waitForTimeout(1000);
-
-  // If redirected to onboarding wizard, skip it
   const skipBtn = page.locator("text=Hopp over og gå til dashboard");
-  if (await skipBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-    await skipBtn.click();
-    await page.waitForLoadState("domcontentloaded");
-    await page.waitForTimeout(2000);
-  }
-
-  // May need to skip again on subsequent navigations
   if (await skipBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
     await skipBtn.click();
     await page.waitForLoadState("domcontentloaded");

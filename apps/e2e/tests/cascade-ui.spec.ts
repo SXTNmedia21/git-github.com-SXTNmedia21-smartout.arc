@@ -1,28 +1,9 @@
-import { test, expect, type Page } from "@playwright/test";
-
-const TEST_EMAIL = process.env.E2E_EMAIL ?? "admin@smartout.local";
-const TEST_PASSWORD = process.env.E2E_PASSWORD ?? "password123";
-
-async function login(page: Page) {
-  await page.goto("/login");
-  await page.fill('input[type="email"]', TEST_EMAIL);
-  await page.fill('input[type="password"]', TEST_PASSWORD);
-  await page.click('button[type="submit"]');
-
-  await page.waitForURL(/\/(dashboard|onboarding|setup)/, { timeout: 20000 }).catch(() => {});
-  await page.waitForTimeout(1000);
-
-  const skipBtn = page.locator("text=Hopp over og gå til dashboard");
-  if (await skipBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-    await skipBtn.click();
-    await page.waitForLoadState("domcontentloaded");
-    await page.waitForTimeout(2000);
-  }
-}
+import { test, expect } from "@playwright/test";
+import { loginAsAdmin } from "../helpers/auth";
 
 test.describe("Cascade UI — Schedule Day Control", () => {
   test.beforeEach(async ({ page }) => {
-    await login(page);
+    await loginAsAdmin(page);
   });
 
   test("should navigate to schedule page", async ({ page }) => {
@@ -107,7 +88,7 @@ test.describe("Cascade UI — Schedule Day Control", () => {
 
 test.describe("Cascade UI — Season Planning", () => {
   test.beforeEach(async ({ page }) => {
-    await login(page);
+    await loginAsAdmin(page);
   });
 
   test("should navigate to season page", async ({ page }) => {

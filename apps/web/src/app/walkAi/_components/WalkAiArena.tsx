@@ -565,7 +565,7 @@ function VoiceControls() {
           <button
             onClick={() => void agent.startSession()}
             className={[
-              "bg-brand-orange shadow-brand-orange/25 flex items-center justify-center rounded-full text-white shadow-lg transition-all duration-200 hover:scale-105 hover:brightness-110 active:scale-95",
+              "bg-brand-orange flex items-center justify-center rounded-full text-white shadow-lg shadow-[oklch(0.65_0.22_40/0.25)] transition-all duration-200 hover:scale-105 hover:brightness-110 active:scale-95",
               isCompact ? "h-11 w-11" : "h-12 w-12",
             ].join(" ")}
             aria-label="Start samtale"
@@ -596,7 +596,7 @@ function VoiceControls() {
               className={[
                 "flex items-center justify-center rounded-full transition-all duration-200 hover:scale-105 active:scale-95",
                 isCompact ? "h-11 w-11" : "h-12 w-12",
-                "bg-brand-orange shadow-brand-orange/25 text-white shadow-lg",
+                "bg-brand-orange text-white shadow-lg shadow-[oklch(0.65_0.22_40/0.25)]",
               ].join(" ")}
               aria-label="Avslutt"
             >
@@ -709,7 +709,7 @@ function VisualizerView() {
             className="absolute inset-0 rounded-b-2xl"
             style={{
               background:
-                "linear-gradient(135deg, rgba(var(--brand-orange-rgb, 255 140 50), 0.04) 0%, transparent 40%, rgba(var(--brand-orange-rgb, 255 140 50), 0.02) 70%, transparent 100%)",
+                "linear-gradient(135deg, rgba(255, 140, 50, 0.04) 0%, transparent 40%, rgba(255, 140, 50, 0.02) 70%, transparent 100%)",
               animation: "walkai-aurora 20s ease-in-out infinite",
             }}
           />
@@ -724,13 +724,8 @@ function VisualizerView() {
                 width: p.size,
                 height: p.size,
                 background:
-                  p.kind === "glitter"
-                    ? "rgba(var(--brand-orange-rgb, 255 140 50), 0.6)"
-                    : "rgba(var(--brand-orange-rgb, 255 140 50), 0.25)",
-                boxShadow:
-                  p.kind === "glitter"
-                    ? "0 0 3px rgba(var(--brand-orange-rgb, 255 140 50), 0.4)"
-                    : "none",
+                  p.kind === "glitter" ? "rgba(255, 140, 50, 0.6)" : "rgba(255, 140, 50, 0.25)",
+                boxShadow: p.kind === "glitter" ? "0 0 3px rgba(255, 140, 50, 0.4)" : "none",
                 // @ts-expect-error -- CSS custom properties for drift
                 "--drift": `${p.drift}px`,
                 animation:
@@ -763,13 +758,11 @@ function VisualizerView() {
             width: outerSize,
             height: outerSize,
             background: isSpeaking
-              ? "conic-gradient(from 0deg, transparent, rgba(var(--brand-orange-rgb, 255 140 50), 0.15), transparent, rgba(var(--brand-orange-rgb, 255 140 50), 0.1), transparent)"
+              ? "conic-gradient(from 0deg, transparent, rgba(255, 140, 50, 0.15), transparent, rgba(255, 140, 50, 0.1), transparent)"
               : isConnected
-                ? "conic-gradient(from 0deg, transparent, rgba(var(--brand-orange-rgb, 255 140 50), 0.06), transparent)"
+                ? "conic-gradient(from 0deg, transparent, rgba(255, 140, 50, 0.06), transparent)"
                 : "none",
-            border: isConnected
-              ? "1px solid rgba(var(--brand-orange-rgb, 255 140 50), 0.08)"
-              : "1px solid var(--border)",
+            border: isConnected ? "1px solid rgba(255, 140, 50, 0.08)" : "1px solid var(--border)",
             opacity: isConnected ? 1 : 0.3,
             animation: isConnected ? "walkai-orb-ring-slow 8s linear infinite" : undefined,
             transition: "opacity 300ms, border-color 300ms",
@@ -784,13 +777,11 @@ function VisualizerView() {
             width: middleSize,
             height: middleSize,
             background: isSpeaking
-              ? "conic-gradient(from 120deg, transparent, rgba(var(--brand-orange-rgb, 255 140 50), 0.2), transparent, rgba(var(--brand-orange-rgb, 255 140 50), 0.12), transparent)"
+              ? "conic-gradient(from 120deg, transparent, rgba(255, 140, 50, 0.2), transparent, rgba(255, 140, 50, 0.12), transparent)"
               : isListening
-                ? "conic-gradient(from 120deg, transparent, rgba(var(--brand-orange-rgb, 255 140 50), 0.08), transparent)"
+                ? "conic-gradient(from 120deg, transparent, rgba(255, 140, 50, 0.08), transparent)"
                 : "none",
-            border: isConnected
-              ? "1px solid rgba(var(--brand-orange-rgb, 255 140 50), 0.12)"
-              : "1px solid var(--border)",
+            border: isConnected ? "1px solid rgba(255, 140, 50, 0.12)" : "1px solid var(--border)",
             opacity: isConnected ? 1 : 0.2,
             animation: isConnected
               ? isSpeaking
@@ -809,15 +800,13 @@ function VisualizerView() {
             width: innerSize,
             height: innerSize,
             background: isSpeaking
-              ? "radial-gradient(circle, rgba(var(--brand-orange-rgb, 255 140 50), 0.15) 0%, rgba(var(--brand-orange-rgb, 255 140 50), 0.05) 60%, transparent 100%)"
+              ? "radial-gradient(circle, rgba(255, 140, 50, 0.15) 0%, rgba(255, 140, 50, 0.05) 60%, transparent 100%)"
               : isListening
-                ? "radial-gradient(circle, rgba(var(--brand-orange-rgb, 255 140 50), 0.08) 0%, transparent 70%)"
+                ? "radial-gradient(circle, rgba(255, 140, 50, 0.08) 0%, transparent 70%)"
                 : isThinking
-                  ? "radial-gradient(circle, rgba(var(--brand-orange-rgb, 255 140 50), 0.06) 0%, transparent 70%)"
+                  ? "radial-gradient(circle, rgba(255, 140, 50, 0.06) 0%, transparent 70%)"
                   : "none",
-            border: isConnected
-              ? "1px solid rgba(var(--brand-orange-rgb, 255 140 50), 0.15)"
-              : "1px solid var(--border)",
+            border: isConnected ? "1px solid rgba(255, 140, 50, 0.15)" : "1px solid var(--border)",
             opacity: isConnected ? 1 : 0.15,
             animation: isListening ? "walkai-orb-listen 3s ease-in-out infinite" : undefined,
             transition: "all 300ms",
@@ -832,14 +821,14 @@ function VisualizerView() {
             width: coreSize,
             height: coreSize,
             background: isSpeaking
-              ? "radial-gradient(circle at 35% 35%, rgba(var(--brand-orange-rgb, 255 140 50), 0.5), rgba(var(--brand-orange-rgb, 255 140 50), 0.25) 60%, rgba(var(--brand-orange-rgb, 255 140 50), 0.1) 100%)"
+              ? "radial-gradient(circle at 35% 35%, rgba(255, 140, 50, 0.5), rgba(255, 140, 50, 0.25) 60%, rgba(255, 140, 50, 0.1) 100%)"
               : isConnected
-                ? "radial-gradient(circle at 35% 35%, rgba(var(--brand-orange-rgb, 255 140 50), 0.2), rgba(var(--brand-orange-rgb, 255 140 50), 0.08) 70%, transparent 100%)"
+                ? "radial-gradient(circle at 35% 35%, rgba(255, 140, 50, 0.2), rgba(255, 140, 50, 0.08) 70%, transparent 100%)"
                 : "var(--accent)",
             boxShadow: isSpeaking
-              ? "0 0 30px 8px rgba(var(--brand-orange-rgb, 255 140 50), 0.2), 0 0 60px 16px rgba(var(--brand-orange-rgb, 255 140 50), 0.08), inset 0 0 20px rgba(var(--brand-orange-rgb, 255 140 50), 0.15)"
+              ? "0 0 30px 8px rgba(255, 140, 50, 0.2), 0 0 60px 16px rgba(255, 140, 50, 0.08), inset 0 0 20px rgba(255, 140, 50, 0.15)"
               : isListening
-                ? "0 0 20px 4px rgba(var(--brand-orange-rgb, 255 140 50), 0.1), inset 0 0 12px rgba(var(--brand-orange-rgb, 255 140 50), 0.05)"
+                ? "0 0 20px 4px rgba(255, 140, 50, 0.1), inset 0 0 12px rgba(255, 140, 50, 0.05)"
                 : "none",
             transform: isSpeaking ? "scale(1.08)" : "scale(1)",
           }}
@@ -871,7 +860,7 @@ function VisualizerView() {
               style={{
                 width: isCompact ? 10 : 14,
                 height: isCompact ? 10 : 14,
-                border: "2px solid rgba(var(--brand-orange-rgb, 255 140 50), 0.2)",
+                border: "2px solid rgba(255, 140, 50, 0.2)",
               }}
             />
           ) : (
@@ -909,7 +898,7 @@ function VisualizerView() {
             style={{
               width: innerSize + 8,
               height: innerSize + 8,
-              border: "1px dashed rgba(var(--brand-orange-rgb, 255 140 50), 0.2)",
+              border: "1px dashed rgba(255, 140, 50, 0.2)",
               animation: "walkai-orb-think 3s ease-in-out infinite",
             }}
             aria-hidden
@@ -1161,7 +1150,7 @@ function NotepadView() {
             className={[
               "w-full rounded-lg px-2.5 py-2 text-left transition-all duration-150",
               note.id === activeNoteId
-                ? "bg-brand-orange/8 border-brand-orange/20 border shadow-[0_0_8px_-2px_rgba(var(--brand-orange-rgb),0.1)]"
+                ? "bg-brand-orange/8 border-brand-orange/20 border shadow-[0_0_8px_-2px_rgba(255,140,50,0.1)]"
                 : "hover:bg-accent/40 hover:border-border/30 border border-transparent",
             ].join(" ")}
           >
@@ -1882,7 +1871,7 @@ function TasksView() {
             </div>
             <button
               onClick={() => setShowInput(true)}
-              className="bg-brand-orange/10 border-brand-orange/20 text-brand-orange hover:bg-brand-orange/15 flex items-center gap-2 rounded-xl border px-5 py-3 text-sm font-medium transition-all duration-200 hover:shadow-[0_0_12px_-3px_rgba(var(--brand-orange-rgb),0.2)]"
+              className="bg-brand-orange/10 border-brand-orange/20 text-brand-orange hover:bg-brand-orange/15 flex items-center gap-2 rounded-xl border px-5 py-3 text-sm font-medium transition-all duration-200 hover:shadow-[0_0_12px_-3px_rgba(255,140,50,0.2)]"
             >
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
                 <path

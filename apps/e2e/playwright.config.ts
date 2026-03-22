@@ -1,5 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const localWebPort = 3061;
+const localLandingPort = 3056;
+const webBaseUrl = `http://127.0.0.1:${localWebPort}`;
+const landingBaseUrl = `http://127.0.0.1:${localLandingPort}`;
+
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
@@ -35,14 +40,14 @@ export default defineConfig({
   ...(!process.env.SKIP_WEB_SERVER && {
     webServer: [
       {
-        command: "pnpm --filter web dev",
-        url: "http://127.0.0.1:3060",
+        command: "bash ./scripts/start-local-next-app.sh web 3061",
+        url: webBaseUrl,
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,
       },
       {
-        command: "pnpm --filter landing dev",
-        url: "http://127.0.0.1:3055",
+        command: "bash ./scripts/start-local-next-app.sh landing 3056",
+        url: landingBaseUrl,
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,
       },
@@ -55,7 +60,7 @@ export default defineConfig({
       name: "landing",
       use: {
         ...devices["Desktop Chrome"],
-        baseURL: "http://localhost:3055",
+        baseURL: landingBaseUrl,
       },
       testMatch: /landing\.spec\.ts/,
     },
@@ -63,7 +68,7 @@ export default defineConfig({
       name: "web",
       use: {
         ...devices["Desktop Chrome"],
-        baseURL: "http://localhost:3060",
+        baseURL: webBaseUrl,
       },
       testIgnore: /landing\.spec\.ts/,
     },

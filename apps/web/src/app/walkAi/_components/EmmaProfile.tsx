@@ -150,7 +150,7 @@ function IdentityTab({
                 className={[
                   "rounded-xl border px-3 py-2.5 text-left transition-all duration-150",
                   isActive
-                    ? "border-brand-orange/30 bg-brand-orange/8 shadow-[0_0_12px_-4px_rgba(var(--brand-orange-rgb),0.15)]"
+                    ? "border-brand-orange/30 bg-brand-orange/8 shadow-[0_0_12px_rgba(255,140,50,0.15)]"
                     : "border-border/30 bg-card/50 hover:border-border/50 hover:bg-accent/30",
                 ].join(" ")}
               >

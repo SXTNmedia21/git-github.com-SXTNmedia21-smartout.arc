@@ -1,24 +1,9 @@
 import { test, expect, type Page } from "@playwright/test";
 import { PERF_GATES, expectVisibleWithin, expectColdLoadWithin } from "../helpers/performance";
-
-const TEST_EMAIL = process.env.E2E_EMAIL ?? "admin@smartout.local";
-const TEST_PASSWORD = process.env.E2E_PASSWORD ?? "password123";
+import { loginAsAdmin } from "../helpers/auth";
 
 async function login(page: Page) {
-  await page.goto("/login");
-  await page.fill('input[type="email"]', TEST_EMAIL);
-  await page.fill('input[type="password"]', TEST_PASSWORD);
-  await page.click('button[type="submit"]');
-
-  await page.waitForURL(/\/(dashboard|onboarding|setup)/, { timeout: 20000 }).catch(() => {});
-  await page.waitForTimeout(1000);
-
-  const skipBtn = page.locator("text=Hopp over og gå til dashboard");
-  if (await skipBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-    await skipBtn.click();
-    await page.waitForLoadState("domcontentloaded");
-    await page.waitForTimeout(1000);
-  }
+  await loginAsAdmin(page);
 }
 
 // ─── Cold Page Load Gates (< 3s) ───────────────────────────

@@ -1,26 +1,8 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "@playwright/test";
+import { loginAsAdmin } from "../helpers/auth";
 
 const TEST_EMAIL = process.env.E2E_EMAIL ?? "admin@smartout.local";
 const TEST_PASSWORD = process.env.E2E_PASSWORD ?? "password123";
-
-async function loginAndSkipOnboarding(page: Page) {
-  await page.goto("/login");
-  await page.fill('input[type="email"]', TEST_EMAIL);
-  await page.fill('input[type="password"]', TEST_PASSWORD);
-  await page.click('button[type="submit"]');
-
-  // Wait for login animation to complete and redirect to dashboard/onboarding
-  await page.waitForURL(/\/(dashboard|onboarding|setup)/, { timeout: 20000 }).catch(() => {});
-  await page.waitForTimeout(1000);
-
-  // If redirected to onboarding wizard, skip it
-  const skipBtn = page.locator("text=Hopp over og gå til dashboard");
-  if (await skipBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-    await skipBtn.click();
-    await page.waitForLoadState("domcontentloaded");
-    await page.waitForTimeout(2000);
-  }
-}
 
 test.describe("Login Page", () => {
   test("should load the login page with Norwegian labels", async ({ page }) => {
@@ -59,12 +41,12 @@ test.describe("Login Page", () => {
 
 test.describe("Authentication Flow", () => {
   test("should login and reach dashboard", async ({ page }) => {
-    await loginAndSkipOnboarding(page);
+    await loginAsAdmin(page);
     expect(page.url()).toContain("/dashboard");
   });
 
   test("should persist session across navigation", async ({ page }) => {
-    await loginAndSkipOnboarding(page);
+    await loginAsAdmin(page);
 
     // Navigate away and back — should stay logged in
     await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
@@ -74,7 +56,7 @@ test.describe("Authentication Flow", () => {
   });
 
   test("should persist session on page reload", async ({ page }) => {
-    await loginAndSkipOnboarding(page);
+    await loginAsAdmin(page);
 
     // Reload page — should stay on dashboard
     await page.reload();
