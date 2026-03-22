@@ -197,3 +197,135 @@ export type PlanningCycleRow = {
   created_at: string;
   updated_at: string;
 };
+
+// --------------------------------------------------------
+// Bootstrap Types (I1 → workspace seeding)
+// --------------------------------------------------------
+
+export type BootstrapSourcePath = "onboarding" | "join" | "manual";
+export type BootstrapStatus = "running" | "completed" | "failed" | "partial";
+
+export type BootstrapWarning = {
+  step: string;
+  departmentId?: string;
+  departmentName?: string;
+  message: string;
+};
+
+export type BootstrapStepName =
+  | "workspace_operating_hours"
+  | "department_type"
+  | "department_operating_hours"
+  | "framework_binding"
+  | "tariff_rates"
+  | "planning_cycle"
+  | "season_budget"
+  | "day_hour_factors"
+  | "payroll_templates"
+  | "authority_config"
+  | "completion_check";
+
+// --------------------------------------------------------
+// Tariff Resolution Types (D3 → payroll calculation)
+// --------------------------------------------------------
+
+export type TariffContext = {
+  payrollProfile: {
+    tariffOverrideId: string | null;
+    tariffCategory: string;
+    seniorityStartDate: string;
+    hasFagbrev: boolean;
+  } | null;
+  workspaceTariffRates: TariffRateRow[];
+  platformTariffRates: TariffRateRow[];
+  isPublicHoliday: boolean;
+};
+
+export type TariffRateRow = {
+  id: string;
+  rateType: string;
+  amount: number;
+  unit: string;
+  effectiveFrom: string;
+  effectiveUntil: string | null;
+};
+
+export type TariffSupplement = {
+  type: string;
+  amount: number;
+  unit: "kr/t" | "percent";
+  reason: string;
+};
+
+export type TariffResolution = {
+  baseRate: number;
+  baseRateUnit: "hourly" | "monthly";
+  supplements: TariffSupplement[];
+  effectiveHourlyRate: number;
+  sourceTier: "override" | "workspace" | "platform";
+  tariffCategory: string | null;
+};
+
+// --------------------------------------------------------
+// New Evaluation Types (Phase B rewrite — replaces Conflict-based types above)
+// Old types kept until Task 11 migrates all consumers
+// --------------------------------------------------------
+
+export type EvaluationOutcomeLevel =
+  | "allowed"
+  | "allowed_with_exception"
+  | "review_required"
+  | "blocked";
+
+export type RuleHit = {
+  ruleId: string;
+  ruleName: string;
+  ruleType: string;
+  outcome: EvaluationOutcomeLevel;
+  reason: string;
+  overrideApplied: boolean;
+  overrideId?: string;
+};
+
+export type EvaluationResult = {
+  outcome: EvaluationOutcomeLevel;
+  hits: RuleHit[];
+  worstHit: RuleHit | null;
+};
+
+export type EntityContext = {
+  profileId?: string;
+  shiftId?: string;
+  date: string;
+  employeeAge?: number;
+  contractType?: string;
+  weeklyHoursWorked?: number;
+  dailyHoursWorked?: number;
+  lastShiftEnd?: string; // ISO timestamp
+};
+
+// --------------------------------------------------------
+// Framework Rule Row (DB shape for pre-loaded rules)
+// --------------------------------------------------------
+
+export type FrameworkRuleRow = {
+  ruleId: string;
+  code: string;
+  ruleType: "gate" | "constraint" | "advisory" | "commercial";
+  category: string;
+  description: string;
+  defaultOutcome: EvaluationOutcomeLevel;
+  severity: string;
+  outcomeOverridable: boolean;
+  evaluationConfig: Record<string, unknown>;
+  sourceReference: string | null;
+};
+
+export type WorkspaceRuleOverrideRow = {
+  overrideId: string;
+  ruleId: string;
+  overrideOutcome: EvaluationOutcomeLevel | null;
+  overrideConfig: Record<string, unknown>;
+  validFrom: string | null;
+  validUntil: string | null;
+};
