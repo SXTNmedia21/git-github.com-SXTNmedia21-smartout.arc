@@ -11,6 +11,8 @@ export { resolveEffectiveHours } from "./resolve-hours";
 export { computeAnchoredTime } from "./compute-anchored-shift";
 export { evaluateFrameworkRules } from "./evaluate-framework-rules";
 export { validateProposalFreshness, computeStateHash } from "./validate-proposal-freshness";
+export { resolveTariffRate } from "./resolve-tariff-rate";
+export { getTariffContext } from "./get-tariff-context";
 
 export type {
   // Operating hours
