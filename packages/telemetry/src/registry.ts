@@ -259,6 +259,18 @@ export interface ShiftPublished extends BaseEvent {
   };
 }
 
+// ─── Scheduling: Shift Completed ────────────────
+export interface ShiftCompleted extends BaseEvent {
+  event: "shift completed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      shift_ids: string[];
+      department_id: string;
+    };
+  };
+}
+
 // ─── Operations: Session Lifecycle ──────────────
 export interface SessionOpened extends BaseEvent {
   event: "session opened";
@@ -1369,6 +1381,7 @@ export type SmartoutEvent =
   | ShiftUpdated
   | ShiftDeleted
   | ShiftPublished
+  | ShiftCompleted
   | SessionOpened
   | SessionPendingSignoff
   | SessionClosed
@@ -1540,6 +1553,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "scheduling",
   },
   "shift published": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "shift completed": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "scheduling",
   },

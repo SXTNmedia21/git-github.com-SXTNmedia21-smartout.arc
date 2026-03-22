@@ -595,3 +595,71 @@ export function useUnpublishShifts(weekStart: string) {
     },
   });
 }
+
+// ══════════════════════════════════════════════════════════════
+// Mutation: Complete a shift (mark as completed after work is done)
+// ══════════════════════════════════════════════════════════════
+
+export function useCompleteShift(weekStart: string) {
+  const queryClient = useQueryClient();
+  const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
+  const workspaceId = workspace.workspace_id;
+  const queryKey = scheduleKeys.shifts(workspaceId, weekStart);
+
+  return useMutation({
+    mutationFn: async (shiftId: string) => {
+      const supabase = createClient();
+
+      const { error } = await supabase
+        .from("schedule_shift")
+        .update({ status: "completed" })
+        .eq("schedule_shift_id", shiftId);
+
+      if (error) throw error;
+    },
+
+    onMutate: async (shiftId) => {
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData<Shift[]>(queryKey);
+
+      queryClient.setQueryData<Shift[]>(queryKey, (old) =>
+        (old ?? []).map((shift) =>
+          shift.id === shiftId
+            ? { ...shift, status: "completed" as const, updatedAt: new Date().toISOString() }
+            : shift,
+        ),
+      );
+
+      return { previous };
+    },
+
+    onSuccess: (_data, shiftId, context) => {
+      const completedShift = context?.previous?.find((s) => s.id === shiftId);
+
+      void emit({
+        event: "shift completed",
+        workspace_id: workspaceId,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: { entity_type: "shift", entity_id: shiftId },
+          data: {
+            shift_ids: [shiftId],
+            department_id: completedShift?.departmentId ?? "",
+          },
+        },
+      });
+    },
+
+    onError: (_err, _id, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKey, context.previous);
+      }
+      toast.error("Kunne ikke fullføre vakt");
+    },
+
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey });
+    },
+  });
+}
