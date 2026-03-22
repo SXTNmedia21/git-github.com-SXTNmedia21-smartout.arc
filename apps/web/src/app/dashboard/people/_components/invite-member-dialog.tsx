@@ -13,6 +13,10 @@ import {
   Users,
   AlertCircle,
   Trash2,
+  Phone,
+  Link2,
+  Copy,
+  Check,
 } from "lucide-react";
 import { useState, useContext, useEffect, useCallback, useRef } from "react";
 import Papa from "papaparse";
@@ -26,6 +30,8 @@ import type { Department } from "./types";
 // ─── Types ──────────────────────────────────────────────────
 
 type InviteMode = "single" | "csv";
+
+type InviteType = "email" | "sms" | "link";
 
 type InviteEmploymentType = "employee" | "guest";
 
@@ -80,12 +86,19 @@ function validateEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-function validateRow(row: InviteRow): string[] {
+function validateRow(row: InviteRow, inviteType: InviteType = "email"): string[] {
   const errors: string[] = [];
   if (!row.firstName.trim()) errors.push("Fornavn mangler");
   if (!row.lastName.trim()) errors.push("Etternavn mangler");
-  if (!row.email.trim()) errors.push("E-post mangler");
-  else if (!validateEmail(row.email.trim())) errors.push("Ugyldig e-post");
+
+  if (inviteType === "email") {
+    if (!row.email.trim()) errors.push("E-post mangler");
+    else if (!validateEmail(row.email.trim())) errors.push("Ugyldig e-post");
+  } else if (inviteType === "sms") {
+    if (!row.phone.trim()) errors.push("Telefonnummer mangler");
+  }
+  // "link" requires neither email nor phone
+
   return errors;
 }
 
@@ -103,6 +116,9 @@ export function InviteMemberDialog({
 
   // Single mode state
   const [singleRow, setSingleRow] = useState<InviteRow>(createEmptyRow);
+  const [inviteType, setInviteType] = useState<InviteType>("email");
+  const [generatedLink, setGeneratedLink] = useState<string | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   // CSV mode state
   const [csvRows, setCsvRows] = useState<InviteRow[]>([]);
@@ -117,6 +133,9 @@ export function InviteMemberDialog({
   useEffect(() => {
     if (!isOpen) {
       setMode("single");
+      setInviteType("email");
+      setGeneratedLink(null);
+      setLinkCopied(false);
       setSingleRow(createEmptyRow());
       setCsvRows([]);
       setCsvHeaders([]);
@@ -212,9 +231,10 @@ export function InviteMemberDialog({
     if (!workspaceData) return;
 
     const rows = mode === "single" ? [singleRow] : csvRows;
+    const effectiveInviteType = mode === "single" ? inviteType : "email";
 
     // Validate
-    const validated = rows.map((r) => ({ ...r, errors: validateRow(r) }));
+    const validated = rows.map((r) => ({ ...r, errors: validateRow(r, effectiveInviteType) }));
     const hasErrors = validated.some((r) => r.errors.length > 0);
 
     if (mode === "single") {
@@ -242,7 +262,7 @@ export function InviteMemberDialog({
       } = await supabase.auth.getSession();
       if (!session) throw new Error("Ikke autentisert");
 
-      // Resolve inviter profile
+      // Resolve inviter profile for telemetry
       const { data: inviterProfile } = await supabase
         .from("profile")
         .select("profile_id")
@@ -250,36 +270,67 @@ export function InviteMemberDialog({
         .eq("user_id", profileId ?? "")
         .single();
 
-      const inviteRecords = rows.map((r) => ({
-        email: r.email.trim(),
-        first_name: r.firstName.trim(),
-        last_name: r.lastName.trim(),
-        role: r.role,
-        department_ids: r.departmentId ? [r.departmentId] : [],
-        invite_employment_type: r.inviteEmploymentType,
-        metadata:
-          r.inviteEmploymentType === "employee"
-            ? {
-                employment_category: r.employmentCategory || undefined,
-                salary_type: r.salaryType || undefined,
-                intended_weekly_hours: r.intendedWeeklyHours
-                  ? Number(r.intendedWeeklyHours)
-                  : undefined,
-                start_date: r.startDate || undefined,
-                payroll_template_id: r.payrollTemplateId || undefined,
-              }
-            : undefined,
-      }));
+      let response;
 
-      const payload = {
-        workspace_id: workspaceData.workspace_id,
-        company_id: workspaceData.company_id,
-        invites: inviteRecords,
-      };
+      if (mode === "single") {
+        // Single mode: use the Edge Function's single invite path (supports email/sms/link)
+        const r = rows[0]!;
+        response = await supabase.functions.invoke("create-invitation", {
+          body: {
+            workspace_id: workspaceData.workspace_id,
+            invite_type: effectiveInviteType,
+            email: effectiveInviteType === "email" ? r.email.trim() : undefined,
+            phone: effectiveInviteType === "sms" ? r.phone.trim() : undefined,
+            role: r.role,
+            first_name: r.firstName.trim(),
+            last_name: r.lastName.trim(),
+            department_ids: r.departmentId ? [r.departmentId] : [],
+            invite_employment_type: r.inviteEmploymentType,
+            metadata:
+              r.inviteEmploymentType === "employee"
+                ? {
+                    employment_category: r.employmentCategory || undefined,
+                    salary_type: r.salaryType || undefined,
+                    intended_weekly_hours: r.intendedWeeklyHours
+                      ? Number(r.intendedWeeklyHours)
+                      : undefined,
+                    start_date: r.startDate || undefined,
+                    payroll_template_id: r.payrollTemplateId || undefined,
+                  }
+                : undefined,
+          },
+        });
+      } else {
+        // CSV batch mode: always email, uses the Edge Function's batch path
+        const inviteRecords = rows.map((r) => ({
+          email: r.email.trim(),
+          first_name: r.firstName.trim(),
+          last_name: r.lastName.trim(),
+          role: r.role,
+          department_ids: r.departmentId ? [r.departmentId] : [],
+          invite_employment_type: r.inviteEmploymentType,
+          metadata:
+            r.inviteEmploymentType === "employee"
+              ? {
+                  employment_category: r.employmentCategory || undefined,
+                  salary_type: r.salaryType || undefined,
+                  intended_weekly_hours: r.intendedWeeklyHours
+                    ? Number(r.intendedWeeklyHours)
+                    : undefined,
+                  start_date: r.startDate || undefined,
+                  payroll_template_id: r.payrollTemplateId || undefined,
+                }
+              : undefined,
+        }));
 
-      const response = await supabase.functions.invoke("create-invitation", {
-        body: payload,
-      });
+        response = await supabase.functions.invoke("create-invitation", {
+          body: {
+            workspace_id: workspaceData.workspace_id,
+            company_id: workspaceData.company_id,
+            invites: inviteRecords,
+          },
+        });
+      }
 
       if (response.error) {
         throw new Error(response.error.message);
@@ -290,10 +341,22 @@ export function InviteMemberDialog({
         workspace_id: workspaceData.workspace_id,
         actor_id: inviterProfile?.profile_id ?? profileId ?? "",
         properties: {
-          trackingId: mode === "csv" ? "bulk-invite-csv" : "single-invite",
-          context: `invited ${rows.length} members`,
+          trackingId: mode === "csv" ? "bulk-invite-csv" : `single-invite-${effectiveInviteType}`,
+          context: `invited ${rows.length} members via ${effectiveInviteType}`,
         },
       });
+
+      // For link invites, display the copyable invite URL instead of closing
+      if (effectiveInviteType === "link" && response.data) {
+        const responseData = response.data as { token?: string };
+        if (responseData.token) {
+          const inviteUrl = `${window.location.origin}/invite/${responseData.token}`;
+          setGeneratedLink(inviteUrl);
+          toast.success("Invitasjonslenke opprettet");
+          onRefresh();
+          return;
+        }
+      }
 
       toast.success(
         rows.length === 1 ? "Invitasjon opprettet" : `${rows.length} invitasjoner opprettet`,
@@ -306,7 +369,7 @@ export function InviteMemberDialog({
     } finally {
       setIsSubmitting(false);
     }
-  }, [mode, singleRow, csvRows, workspaceData, profileId, onRefresh, onClose]);
+  }, [mode, inviteType, singleRow, csvRows, workspaceData, profileId, onRefresh, onClose]);
 
   if (!isOpen || !workspaceData) return null;
 
@@ -396,12 +459,25 @@ export function InviteMemberDialog({
 
           {/* Content */}
           <div className="max-h-[60vh] overflow-y-auto px-6 py-5">
-            {mode === "single" ? (
+            {generatedLink ? (
+              <GeneratedLinkView
+                link={generatedLink}
+                isDark={isDark}
+                copied={linkCopied}
+                onCopy={() => {
+                  void navigator.clipboard.writeText(generatedLink);
+                  setLinkCopied(true);
+                  setTimeout(() => setLinkCopied(false), 2000);
+                }}
+              />
+            ) : mode === "single" ? (
               <SingleInviteForm
                 row={singleRow}
                 onChange={setSingleRow}
                 departments={departments}
                 isDark={isDark}
+                inviteType={inviteType}
+                onInviteTypeChange={setInviteType}
               />
             ) : (
               <CsvImportView
@@ -428,39 +504,59 @@ export function InviteMemberDialog({
               )}
             </div>
             <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={onClose}
-                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                  isDark
-                    ? "text-zinc-400 hover:bg-zinc-800 hover:text-white"
-                    : "text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900"
-                }`}
-                disabled={isSubmitting}
-              >
-                Avbryt
-              </button>
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={
-                  isSubmitting ||
-                  (mode === "single" && !singleRow.firstName && !singleRow.email) ||
-                  (mode === "csv" && csvRows.length === 0)
-                }
-                className="flex items-center gap-2 rounded-lg bg-orange-500 px-5 py-2 text-sm font-semibold text-white transition-all hover:bg-orange-400 hover:shadow-[0_0_20px_rgba(249,115,22,0.3)] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isSubmitting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Plus className="h-4 w-4" />
-                )}
-                {isSubmitting
-                  ? "Sender..."
-                  : mode === "csv" && csvRows.length > 1
-                    ? `Send ${csvRows.length} invitasjoner`
-                    : "Send invitasjon"}
-              </button>
+              {generatedLink ? (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="flex items-center gap-2 rounded-lg bg-orange-500 px-5 py-2 text-sm font-semibold text-white transition-all hover:bg-orange-400 hover:shadow-[0_0_20px_rgba(249,115,22,0.3)]"
+                >
+                  Lukk
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                      isDark
+                        ? "text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                        : "text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900"
+                    }`}
+                    disabled={isSubmitting}
+                  >
+                    Avbryt
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSubmit}
+                    disabled={
+                      isSubmitting ||
+                      (mode === "single" &&
+                        !singleRow.firstName &&
+                        inviteType !== "link" &&
+                        !singleRow.email &&
+                        !singleRow.phone) ||
+                      (mode === "csv" && csvRows.length === 0)
+                    }
+                    className="flex items-center gap-2 rounded-lg bg-orange-500 px-5 py-2 text-sm font-semibold text-white transition-all hover:bg-orange-400 hover:shadow-[0_0_20px_rgba(249,115,22,0.3)] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isSubmitting ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : inviteType === "link" && mode === "single" ? (
+                      <Link2 className="h-4 w-4" />
+                    ) : (
+                      <Plus className="h-4 w-4" />
+                    )}
+                    {isSubmitting
+                      ? "Sender..."
+                      : inviteType === "link" && mode === "single"
+                        ? "Opprett lenke"
+                        : mode === "csv" && csvRows.length > 1
+                          ? `Send ${csvRows.length} invitasjoner`
+                          : "Send invitasjon"}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -496,11 +592,15 @@ function SingleInviteForm({
   onChange,
   departments,
   isDark,
+  inviteType,
+  onInviteTypeChange,
 }: {
   row: InviteRow;
   onChange: (row: InviteRow) => void;
   departments: Department[];
   isDark: boolean;
+  inviteType: InviteType;
+  onInviteTypeChange: (type: InviteType) => void;
 }) {
   const update = (field: Partial<InviteRow>) => onChange({ ...row, ...field });
 
@@ -543,29 +643,78 @@ function SingleInviteForm({
         </div>
       </div>
 
+      {/* Invite type selector */}
       <div className="space-y-1.5">
-        <label className={`flex items-center gap-1.5 ${labelClass}`}>
-          <Mail className="h-3.5 w-3.5" /> E-post
-        </label>
-        <input
-          type="email"
-          value={row.email}
-          onChange={(e) => update({ email: e.target.value })}
-          placeholder="kari@example.com"
-          className={inputClass}
-        />
+        <label className={labelClass}>Invitasjonsmetode</label>
+        <div className="grid grid-cols-3 gap-2">
+          {(
+            [
+              { type: "email" as const, label: "E-post", icon: Mail },
+              { type: "sms" as const, label: "SMS", icon: Phone },
+              { type: "link" as const, label: "Lenke", icon: Link2 },
+            ] as const
+          ).map(({ type, label, icon: Icon }) => (
+            <button
+              key={type}
+              type="button"
+              onClick={() => onInviteTypeChange(type)}
+              className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
+                inviteType === type
+                  ? "bg-orange-500 text-white"
+                  : isDark
+                    ? "border border-zinc-800 bg-zinc-950 text-zinc-400 hover:border-zinc-700"
+                    : "border border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300"
+              }`}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="space-y-1.5">
-        <label className={labelClass}>Telefon</label>
-        <input
-          type="tel"
-          value={row.phone}
-          onChange={(e) => update({ phone: e.target.value })}
-          placeholder="+47 900 00 000"
-          className={inputClass}
-        />
-      </div>
+      {/* Contact field — conditional on invite type */}
+      {inviteType === "email" && (
+        <div className="space-y-1.5">
+          <label className={`flex items-center gap-1.5 ${labelClass}`}>
+            <Mail className="h-3.5 w-3.5" /> E-post
+          </label>
+          <input
+            type="email"
+            value={row.email}
+            onChange={(e) => update({ email: e.target.value })}
+            placeholder="kari@example.com"
+            className={inputClass}
+          />
+        </div>
+      )}
+
+      {inviteType === "sms" && (
+        <div className="space-y-1.5">
+          <label className={`flex items-center gap-1.5 ${labelClass}`}>
+            <Phone className="h-3.5 w-3.5" /> Telefon
+          </label>
+          <input
+            type="tel"
+            value={row.phone}
+            onChange={(e) => update({ phone: e.target.value })}
+            placeholder="+47 900 00 000"
+            className={inputClass}
+          />
+        </div>
+      )}
+
+      {inviteType === "link" && (
+        <div
+          className={`rounded-lg border border-dashed px-4 py-3 text-sm ${
+            isDark
+              ? "border-zinc-700 bg-zinc-900/50 text-zinc-400"
+              : "border-zinc-300 bg-zinc-50 text-zinc-500"
+          }`}
+        >
+          En delbar invitasjonslenke vil bli generert som du kan kopiere og sende.
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
@@ -831,6 +980,77 @@ function CsvImportView({
             })}
           </tbody>
         </table>
+      </div>
+    </div>
+  );
+}
+
+// ─── Generated Link View ────────────────────────────────────
+
+function GeneratedLinkView({
+  link,
+  isDark,
+  copied,
+  onCopy,
+}: {
+  link: string;
+  isDark: boolean;
+  copied: boolean;
+  onCopy: () => void;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-4 py-4">
+      <div
+        className={`rounded-2xl p-4 ${
+          isDark ? "bg-orange-500/10" : "bg-orange-50"
+        }`}
+      >
+        <Link2 className="h-8 w-8 text-orange-500" />
+      </div>
+
+      <div className="text-center">
+        <p className={`text-sm font-medium ${isDark ? "text-zinc-200" : "text-zinc-800"}`}>
+          Invitasjonslenke klar
+        </p>
+        <p className={`mt-1 text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+          Del denne lenken med den du vil invitere
+        </p>
+      </div>
+
+      <div
+        className={`flex w-full items-center gap-2 rounded-lg border px-3 py-2.5 ${
+          isDark ? "border-zinc-800 bg-zinc-950" : "border-zinc-200 bg-zinc-50"
+        }`}
+      >
+        <input
+          readOnly
+          value={link}
+          className={`flex-1 bg-transparent text-xs font-mono outline-none ${
+            isDark ? "text-zinc-300" : "text-zinc-700"
+          }`}
+          onFocus={(e) => e.target.select()}
+        />
+        <button
+          type="button"
+          onClick={onCopy}
+          className={`flex shrink-0 items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
+            copied
+              ? "bg-green-500/10 text-green-500"
+              : isDark
+                ? "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+                : "bg-zinc-200 text-zinc-700 hover:bg-zinc-300"
+          }`}
+        >
+          {copied ? (
+            <>
+              <Check className="h-3 w-3" /> Kopiert
+            </>
+          ) : (
+            <>
+              <Copy className="h-3 w-3" /> Kopier
+            </>
+          )}
+        </button>
       </div>
     </div>
   );
