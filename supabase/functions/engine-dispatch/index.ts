@@ -877,6 +877,96 @@ async function executeStep(
       break;
     }
 
+    case "cascade_budget_propagation": {
+      const ctx = state.context as Record<string, unknown>;
+      const ctxData = (ctx.data as Record<string, unknown>) ?? {};
+      const seasonId = (ctxData.season_id as string) ?? (ctx.entity_id as string);
+
+      if (!seasonId || !state.workspace_id) {
+        await advanceToNextStep(supabase, state, step);
+        break;
+      }
+
+      // Load season date range
+      const { data: season } = await supabase
+        .from("season")
+        .select("start_date, end_date")
+        .eq("season_id", seasonId)
+        .single();
+
+      // Load budget parameters
+      const { data: budget } = await supabase
+        .from("season_budget")
+        .select("total_target_revenue, target_labor_percentage, avg_hourly_wage")
+        .eq("season_id", seasonId)
+        .single();
+
+      // Load day factors for this workspace
+      const { data: dayFactors } = await supabase
+        .from("day_factor")
+        .select("weekday, factor")
+        .eq("workspace_id", state.workspace_id);
+
+      if (!season || !budget || !dayFactors?.length) {
+        await advanceToNextStep(supabase, state, step);
+        break;
+      }
+
+      // Inline propagation logic (mirrors propagateBudgetTargets pure function)
+      const factorMap = new Map<number, number>();
+      for (const df of dayFactors) {
+        factorMap.set(df.weekday as number, df.factor as number);
+      }
+
+      // Enumerate dates
+      const dates: string[] = [];
+      const current = new Date(season.start_date + "T12:00:00Z");
+      const end = new Date(season.end_date + "T12:00:00Z");
+      while (current <= end) {
+        dates.push(current.toISOString().split("T")[0]);
+        current.setUTCDate(current.getUTCDate() + 1);
+      }
+
+      // Assign factors and compute sum
+      const daysWithFactors = dates.map((date) => {
+        const jsDay = new Date(date + "T12:00:00Z").getUTCDay();
+        const weekday = jsDay === 0 ? 6 : jsDay - 1; // 0=Mon...6=Sun
+        return { date, factor: factorMap.get(weekday) ?? 1.0 };
+      });
+      const factorSum = daysWithFactors.reduce((sum, d) => sum + d.factor, 0);
+      const totalRevenue = budget.total_target_revenue as number;
+      const laborPct = budget.target_labor_percentage as number;
+      const avgWage = budget.avg_hourly_wage as number;
+
+      // Upsert daily targets into workspace_budget
+      for (const { date, factor } of daysWithFactors) {
+        const targetRevenue =
+          factorSum > 0 ? totalRevenue * (factor / factorSum) : totalRevenue / dates.length;
+        const targetLaborCost = targetRevenue * laborPct;
+        const targetStaffHours = avgWage > 0 ? targetLaborCost / avgWage : 0;
+
+        await supabase.from("workspace_budget").upsert(
+          {
+            workspace_id: state.workspace_id,
+            location_id: null,
+            department_id: null,
+            period_type: "daily",
+            period_date: date,
+            hour_slot: null,
+            revenue_target: targetRevenue,
+            labor_cost_target: targetLaborCost,
+            labor_hours_target: targetStaffHours,
+          },
+          {
+            onConflict: "workspace_id,location_id,department_id,period_type,period_date,hour_slot",
+          },
+        );
+      }
+
+      await advanceToNextStep(supabase, state, step);
+      break;
+    }
+
     case "create_session_task": {
       const ap = step.action_payload as Record<string, unknown>;
       const sessionId = (state.context as Record<string, unknown>).department_session_id as
