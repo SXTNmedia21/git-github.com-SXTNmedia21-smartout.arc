@@ -7,7 +7,7 @@
  * in database.types.ts — all schema queries use .schema("websites" as any).
  */
 
-import { revalidateTag } from "next/cache";
+import { updateTag } from "next/cache";
 import { createClient as createServerClient } from "@smartout/supabase/server";
 import { createClient } from "@supabase/supabase-js";
 import { getTemplate, getSectionDef, defaultSectionSettings } from "@smartout/website";
@@ -308,8 +308,8 @@ export async function updateWebsite(
 
     if (error) return { success: false, error: error.message };
 
-    revalidateTag(`website:${websiteId}`);
-    revalidateTag(`website:workspace:${workspaceId}`);
+    updateTag(`website:${websiteId}`);
+    updateTag(`website:workspace:${workspaceId}`);
 
     await emit({
       event: "website updated",

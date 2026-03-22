@@ -9,7 +9,7 @@
  * schema is not yet in database.types.ts, so we use untyped .schema() calls.
  */
 
-import { revalidateTag } from "next/cache";
+import { updateTag } from "next/cache";
 import { createClient as createServerClient } from "@smartout/supabase/server";
 import { createClient } from "@supabase/supabase-js";
 import { hashSnapshot, validateSnapshotSize, SCHEMA_VERSION } from "@smartout/website";
@@ -241,8 +241,8 @@ export async function publishWebsite(websiteId: string): Promise<PublishResult> 
     });
 
     // Revalidate ISR cache
-    revalidateTag(`website:${websiteId}`);
-    revalidateTag(`website:workspace:${workspaceId}`);
+    updateTag(`website:${websiteId}`);
+    updateTag(`website:workspace:${workspaceId}`);
 
     // Emit telemetry
     await emit({
@@ -341,8 +341,8 @@ export async function rollbackWebsite(
     });
 
     // Revalidate ISR cache
-    revalidateTag(`website:${websiteId}`);
-    revalidateTag(`website:workspace:${workspaceId}`);
+    updateTag(`website:${websiteId}`);
+    updateTag(`website:workspace:${workspaceId}`);
 
     // Emit telemetry
     await emit({
@@ -393,8 +393,8 @@ export async function unpublishWebsite(websiteId: string): Promise<ActionResult>
     });
 
     // Revalidate ISR cache
-    revalidateTag(`website:${websiteId}`);
-    revalidateTag(`website:workspace:${workspaceId}`);
+    updateTag(`website:${websiteId}`);
+    updateTag(`website:workspace:${workspaceId}`);
 
     // Emit telemetry
     await emit({
