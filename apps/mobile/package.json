@@ -15,6 +15,9 @@
   "dependencies": {
     "@expo/metro-runtime": "~55.0.6",
     "@gorhom/bottom-sheet": "^5",
+    "@livekit/react-native": "2.9.6",
+    "@livekit/react-native-krisp-noise-filter": "0.0.3",
+    "@livekit/react-native-webrtc": "137.0.2",
     "@react-native-community/netinfo": "^11",
     "@react-navigation/bottom-tabs": "^7.15.5",
     "@smartout/design-tokens": "workspace:*",
@@ -50,6 +53,7 @@
     "zustand": "^5"
   },
   "devDependencies": {
+    "@livekit/react-native-expo-plugin": "1.0.2",
     "@types/jest": "^30.0.0",
     "@types/react": "~19.2.2",
     "babel-plugin-module-resolver": "^5",
