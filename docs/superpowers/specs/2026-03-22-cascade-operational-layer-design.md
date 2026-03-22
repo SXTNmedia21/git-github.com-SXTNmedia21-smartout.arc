@@ -54,6 +54,8 @@ This spec defines the work to make the Cascade Core Foundation operational — w
 - Server-side RPC for shift save validation (deferred — no API consumers yet)
 - Real-time session alerts for overtime (timer-based trigger, separate feature)
 - Hour-level target storage (computed on-demand by planner)
+- Base rate loading for cost snapshots (% supplements like helligdagstillegg and overtime compute to 0 until employment_contract.hourly_rate is loaded per employee — kr/t supplements like kveldstillegg and helgetillegg are correct)
+- actual_start/actual_end columns on schedule_shift (completion snapshots use planned times as fallback)
 - C1 calibration loop (EWMA correction factors)
 - C2 explanation generation
 - External adapters (Tripletex payroll sync)

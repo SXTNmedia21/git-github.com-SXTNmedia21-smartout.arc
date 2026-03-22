@@ -841,15 +841,17 @@ async function executeStep(
             supplements.push({ type: "kveldstillegg", amount: rate.amount, unit: rate.unit });
         }
 
-        // Weekend supplement: Sat-Sun
-        if (dayOfWeek === 0 || dayOfWeek === 6) {
+        // Weekend supplement: Sat 15:00 - Sun 24:00 (Riksavtalen)
+        if (dayOfWeek === 0 || (dayOfWeek === 6 && hour >= 15)) {
           const rate = allRates.find((r) => r.rate_type === "helgetillegg");
           if (rate)
             supplements.push({ type: "helgetillegg", amount: rate.amount, unit: rate.unit });
         }
 
-        // Base rate from employment contract hourly_rate (simplified)
-        const baseRate = 0; // TODO: load from employment_contract when available
+        // Base rate: deferred — requires loading employment_contract.hourly_rate per employee.
+        // kr/t supplements (kveldstillegg, helgetillegg) are correct absolute amounts.
+        // % supplements (helligdagstillegg, overtime) will compute to 0 until baseRate is loaded.
+        const baseRate = 0;
         const supplementCost = supplements.reduce((sum, s) => {
           if (s.unit === "kr/t") return sum + s.amount * baseHours;
           if (s.unit === "percent") return sum + (baseRate * baseHours * s.amount) / 100;

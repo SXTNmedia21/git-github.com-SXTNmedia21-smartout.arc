@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
 
-    const payload = proposal.proposal_payload as Record<string, unknown>;
+    const payload = proposal.changes as Record<string, unknown>;
     const changeType = payload.change_type as string;
 
     try {
@@ -103,7 +103,7 @@ async function applyWorkspaceHoursChange(
   adminClient: ReturnType<typeof createClient>,
   proposal: Record<string, unknown>,
 ) {
-  const payload = proposal.proposal_payload as Record<string, unknown>;
+  const payload = proposal.changes as Record<string, unknown>;
   const workspaceId = proposal.workspace_id as string;
   const changes = payload.changes as Array<{
     day_of_week: number;
@@ -199,7 +199,7 @@ async function applyDepartmentHoursChange(
   adminClient: ReturnType<typeof createClient>,
   proposal: Record<string, unknown>,
 ) {
-  const payload = proposal.proposal_payload as Record<string, unknown>;
+  const payload = proposal.changes as Record<string, unknown>;
   const departmentId = payload.department_id as string;
   const changes = payload.changes as Array<{
     day_of_week: number;
@@ -228,7 +228,7 @@ async function applyDepartmentTypeChange(
   adminClient: ReturnType<typeof createClient>,
   proposal: Record<string, unknown>,
 ) {
-  const payload = proposal.proposal_payload as Record<string, unknown>;
+  const payload = proposal.changes as Record<string, unknown>;
   const departmentId = payload.department_id as string;
   const newType = payload.new_type as string;
 
