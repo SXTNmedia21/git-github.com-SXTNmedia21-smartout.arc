@@ -27,6 +27,8 @@ import type { Department } from "./types";
 
 type InviteMode = "single" | "csv";
 
+type InviteEmploymentType = "employee" | "guest";
+
 type InviteRow = {
   id: string;
   firstName: string;
@@ -35,6 +37,12 @@ type InviteRow = {
   phone: string;
   departmentId: string;
   role: "employee" | "manager" | "admin";
+  inviteEmploymentType: InviteEmploymentType;
+  employmentCategory: string;
+  salaryType: string;
+  intendedWeeklyHours: string;
+  startDate: string;
+  payrollTemplateId: string;
   extraData: Record<string, string>;
   errors: string[];
 };
@@ -57,6 +65,12 @@ function createEmptyRow(): InviteRow {
     phone: "",
     departmentId: "",
     role: "employee",
+    inviteEmploymentType: "employee",
+    employmentCategory: "",
+    salaryType: "",
+    intendedWeeklyHours: "",
+    startDate: "",
+    payrollTemplateId: "",
     extraData: {},
     errors: [],
   };
@@ -242,6 +256,19 @@ export function InviteMemberDialog({
         last_name: r.lastName.trim(),
         role: r.role,
         department_ids: r.departmentId ? [r.departmentId] : [],
+        invite_employment_type: r.inviteEmploymentType,
+        metadata:
+          r.inviteEmploymentType === "employee"
+            ? {
+                employment_category: r.employmentCategory || undefined,
+                salary_type: r.salaryType || undefined,
+                intended_weekly_hours: r.intendedWeeklyHours
+                  ? Number(r.intendedWeeklyHours)
+                  : undefined,
+                start_date: r.startDate || undefined,
+                payroll_template_id: r.payrollTemplateId || undefined,
+              }
+            : undefined,
       }));
 
       const payload = {
@@ -573,6 +600,83 @@ function SingleInviteForm({
           </select>
         </div>
       </div>
+
+      {/* Employment type toggle */}
+      <div className="space-y-1.5">
+        <label className={labelClass}>Type</label>
+        <div className="grid grid-cols-2 gap-2">
+          {(["employee", "guest"] as const).map((type) => (
+            <button
+              key={type}
+              type="button"
+              onClick={() => update({ inviteEmploymentType: type })}
+              className={`rounded-lg px-3 py-2 text-sm font-medium transition-all ${
+                row.inviteEmploymentType === type
+                  ? "bg-orange-500 text-white"
+                  : isDark
+                    ? "border border-zinc-800 bg-zinc-950 text-zinc-400 hover:border-zinc-700"
+                    : "border border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300"
+              }`}
+            >
+              {type === "employee" ? "Ansatt" : "Gjest"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Employment fields — only for employee type */}
+      {row.inviteEmploymentType === "employee" && (
+        <div className="space-y-3 rounded-lg border border-dashed border-zinc-700/30 p-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className={labelClass}>Stillingstype</label>
+              <select
+                value={row.employmentCategory}
+                onChange={(e) => update({ employmentCategory: e.target.value })}
+                className={selectClass}
+              >
+                <option value="">Velg...</option>
+                <option value="fast">Fast</option>
+                <option value="deltid">Deltid</option>
+                <option value="tilkalling">Tilkalling</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className={labelClass}>Lønnstype</label>
+              <select
+                value={row.salaryType}
+                onChange={(e) => update({ salaryType: e.target.value })}
+                className={selectClass}
+              >
+                <option value="">Velg...</option>
+                <option value="hourly">Timelønn</option>
+                <option value="monthly">Månedslønn</option>
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className={labelClass}>Timer/uke</label>
+              <input
+                type="number"
+                value={row.intendedWeeklyHours}
+                onChange={(e) => update({ intendedWeeklyHours: e.target.value })}
+                placeholder="37.5"
+                className={inputClass}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className={labelClass}>Startdato</label>
+              <input
+                type="date"
+                value={row.startDate}
+                onChange={(e) => update({ startDate: e.target.value })}
+                className={inputClass}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {row.errors.length > 0 && (
         <div className="flex items-start gap-2 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-400">

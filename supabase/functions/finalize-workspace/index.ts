@@ -67,6 +67,28 @@ Deno.serve(async (req) => {
         .eq("workspace_id", data);
     }
 
+    // Post-creation: seed cascade dimension data (D1-D4, K1a) for the workspace.
+    // This is NOT an onboarding dependency — it runs after workspace is fully created.
+    // If it fails, the workspace is still functional; bootstrap can be re-run from settings.
+    try {
+      const bootstrapResponse = await fetch(
+        `${Deno.env.get("SUPABASE_URL")}/functions/v1/bootstrap-cascade`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          },
+          body: JSON.stringify({ workspaceId: data, sourcePath: "onboarding" }),
+        },
+      );
+      if (!bootstrapResponse.ok) {
+        console.error("Bootstrap cascade returned non-OK:", await bootstrapResponse.text());
+      }
+    } catch (bootstrapErr) {
+      console.error("Bootstrap cascade failed (non-fatal):", bootstrapErr);
+    }
+
     // Fetch the workspace slug for redirect
     const { data: ws } = await adminClient
       .from("workspace")

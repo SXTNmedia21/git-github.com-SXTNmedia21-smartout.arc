@@ -392,6 +392,9 @@ export function usePublishShifts(weekStart: string) {
     onSuccess: (_data, shiftIds, context) => {
       const publishedShifts = context?.previous?.filter((s) => shiftIds.includes(s.id)) ?? [];
       const dates = [...new Set(publishedShifts.map((s) => s.dateId))];
+      const departmentIds = [
+        ...new Set(publishedShifts.map((s) => s.departmentId).filter(Boolean)),
+      ] as string[];
 
       void emit({
         event: "shift published",
@@ -403,7 +406,12 @@ export function usePublishShifts(weekStart: string) {
             entity_id: shiftIds[0] ?? "",
             entity_label: `${shiftIds.length} shifts`,
           },
-          data: { dates, department_ids: [], shift_count: shiftIds.length },
+          data: {
+            dates,
+            department_ids: departmentIds,
+            shift_ids: shiftIds,
+            shift_count: shiftIds.length,
+          },
         },
       });
     },
@@ -580,6 +588,74 @@ export function useUnpublishShifts(weekStart: string) {
         queryClient.setQueryData(queryKey, context.previous);
       }
       toast.error("Kunne ikke avpublisere vakter");
+    },
+
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey });
+    },
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// Mutation: Complete a shift (mark as completed after work is done)
+// ══════════════════════════════════════════════════════════════
+
+export function useCompleteShift(weekStart: string) {
+  const queryClient = useQueryClient();
+  const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
+  const workspaceId = workspace.workspace_id;
+  const queryKey = scheduleKeys.shifts(workspaceId, weekStart);
+
+  return useMutation({
+    mutationFn: async (shiftId: string) => {
+      const supabase = createClient();
+
+      const { error } = await supabase
+        .from("schedule_shift")
+        .update({ status: "completed" })
+        .eq("schedule_shift_id", shiftId);
+
+      if (error) throw error;
+    },
+
+    onMutate: async (shiftId) => {
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData<Shift[]>(queryKey);
+
+      queryClient.setQueryData<Shift[]>(queryKey, (old) =>
+        (old ?? []).map((shift) =>
+          shift.id === shiftId
+            ? { ...shift, status: "completed" as const, updatedAt: new Date().toISOString() }
+            : shift,
+        ),
+      );
+
+      return { previous };
+    },
+
+    onSuccess: (_data, shiftId, context) => {
+      const completedShift = context?.previous?.find((s) => s.id === shiftId);
+
+      void emit({
+        event: "shift completed",
+        workspace_id: workspaceId,
+        actor_id: profileId ?? "",
+        properties: {
+          entity: { entity_type: "shift", entity_id: shiftId },
+          data: {
+            shift_ids: [shiftId],
+            department_id: completedShift?.departmentId ?? "",
+          },
+        },
+      });
+    },
+
+    onError: (_err, _id, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKey, context.previous);
+      }
+      toast.error("Kunne ikke fullføre vakt");
     },
 
     onSettled: () => {

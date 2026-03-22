@@ -15,6 +15,9 @@ import {
   Timer,
   ShieldCheck,
   CalendarDays,
+  Scale,
+  Calculator,
+  GitBranch,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@smartout/ui";
@@ -48,6 +51,15 @@ const WorkingTimeRulesSettings = lazy(() =>
 const HolidayCalendarSettings = lazy(() =>
   import("./holiday-calendar-settings").then((m) => ({ default: m.HolidayCalendarSettings })),
 );
+const FrameworkRulesPanel = lazy(() =>
+  import("./FrameworkRulesPanel").then((m) => ({ default: m.FrameworkRulesPanel })),
+);
+const TariffRatesPanel = lazy(() =>
+  import("./TariffRatesPanel").then((m) => ({ default: m.TariffRatesPanel })),
+);
+const ChangeProposalsPanel = lazy(() =>
+  import("./ChangeProposalsPanel").then((m) => ({ default: m.ChangeProposalsPanel })),
+);
 
 type Tab = { id: string; label: string; icon: LucideIcon };
 type Section = { title: string; tabs: Tab[] };
@@ -80,6 +92,14 @@ const SECTIONS: Section[] = [
       { id: "shift-types", label: "Shift Types", icon: Timer },
       { id: "break-rules", label: "Break Rules", icon: Timer },
       { id: "working-time", label: "Working Time", icon: ShieldCheck },
+    ],
+  },
+  {
+    title: "Regelverk",
+    tabs: [
+      { id: "framework-rules", label: "Arbeidsregler", icon: Scale },
+      { id: "tariff-rates", label: "Tariffsatser", icon: Calculator },
+      { id: "change-proposals", label: "Endringsforslag", icon: GitBranch },
     ],
   },
   {
@@ -172,6 +192,24 @@ function TabContent({ tabId }: { tabId: TabId }) {
       return (
         <Suspense fallback={<SettingsLoadingSkeleton />}>
           <HolidayCalendarSettings />
+        </Suspense>
+      );
+    case "framework-rules":
+      return (
+        <Suspense fallback={<SettingsLoadingSkeleton />}>
+          <FrameworkRulesPanel />
+        </Suspense>
+      );
+    case "tariff-rates":
+      return (
+        <Suspense fallback={<SettingsLoadingSkeleton />}>
+          <TariffRatesPanel />
+        </Suspense>
+      );
+    case "change-proposals":
+      return (
+        <Suspense fallback={<SettingsLoadingSkeleton />}>
+          <ChangeProposalsPanel />
         </Suspense>
       );
     default: {

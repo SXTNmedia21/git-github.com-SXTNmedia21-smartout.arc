@@ -1,170 +1,197 @@
 /**
- * evaluate_framework_rules — Cascade Phase B, Minimal Foundation Skeleton
+ * evaluateFrameworkRules — Cascade Phase B
  *
- * Evaluates proposed changes against framework rules with override capability grammar.
- * This skeleton implements:
- * - Entity-type matching via evaluationConfig.entityType
- * - Basic threshold evaluation (max_hours check)
- * - Override capability grammar: outcome override, config tightening/loosening, temporal validity
+ * Pure function: evaluates shift/schedule actions against framework rules
+ * with employee context. No DB access — caller provides pre-loaded rules.
  *
- * NOT yet implemented (requires integrated schema + real framework seed data):
- * - Full FrameworkContext object loading
- * - Multi-rule interaction (rule chaining, precedence between conflicting rules)
- * - Complex evaluation strategies beyond threshold checks
- * - Employee-specific context (contract hours, age, seniority)
- *
- * Spec: Section 3 Phase B, Function #3
+ * Severity ranking: blocked > review_required > allowed_with_exception > allowed
  */
 
 import type {
-  Conflict,
-  ConflictCategory,
-  FrameworkRule,
-  ProposedChange,
-  WorkspaceRuleOverride,
-  EvaluationOutcome,
+  EntityContext,
+  EvaluationOutcomeLevel,
+  EvaluationResult,
+  FrameworkRuleRow,
+  RuleHit,
+  WorkspaceRuleOverrideRow,
 } from "./types";
 
-const RULE_TYPE_TO_CATEGORY: Record<string, ConflictCategory> = {
-  gate: "constraint",
-  constraint: "constraint",
-  advisory: "advisory",
-  commercial: "commercial",
+const SEVERITY_RANK: Record<EvaluationOutcomeLevel, number> = {
+  allowed: 0,
+  allowed_with_exception: 1,
+  review_required: 2,
+  blocked: 3,
 };
 
-function ruleApplies(rule: FrameworkRule, change: ProposedChange): boolean {
-  const configEntityType = (rule.evaluationConfig as Record<string, unknown>).entityType;
-  if (!configEntityType) return false;
-  return configEntityType === change.entityType;
-}
-
-/**
- * Find the applicable override for a rule, respecting temporal validity.
- * Returns null if no valid override exists.
- */
 function findValidOverride(
   ruleId: string,
-  overrides: WorkspaceRuleOverride[],
-  evaluationDate: string,
-): WorkspaceRuleOverride | null {
+  overrides: WorkspaceRuleOverrideRow[],
+  date: string,
+): WorkspaceRuleOverrideRow | null {
   const override = overrides.find((o) => o.ruleId === ruleId);
   if (!override) return null;
-
-  // Check temporal validity
-  if (override.validFrom && evaluationDate < override.validFrom) return null;
-  if (override.validUntil && evaluationDate > override.validUntil) return null;
-
+  if (override.validFrom && date < override.validFrom) return null;
+  if (override.validUntil && date > override.validUntil) return null;
   return override;
 }
 
-/**
- * Merge config overrides with framework defaults, respecting tighten/loosen capability.
- * Returns the effective evaluationConfig to use for evaluation.
- */
-function mergeConfig(
-  rule: FrameworkRule,
-  override: WorkspaceRuleOverride | null,
-): Record<string, unknown> {
-  const baseConfig = rule.evaluationConfig as Record<string, unknown>;
-  if (!override || !override.overrideConfig || Object.keys(override.overrideConfig).length === 0) {
-    return baseConfig;
-  }
-
-  const merged = { ...baseConfig };
-  const overrideConfig = override.overrideConfig as Record<string, unknown>;
-
-  for (const [key, overrideValue] of Object.entries(overrideConfig)) {
-    const baseValue = baseConfig[key];
-
-    // Only merge numeric thresholds for now — the tighten/loosen grammar
-    if (typeof baseValue === "number" && typeof overrideValue === "number") {
-      const isTightening = overrideValue < baseValue; // Lower threshold = stricter
-      const isLoosening = overrideValue > baseValue;
-
-      if (isTightening && rule.configTightenAllowed) {
-        merged[key] = overrideValue;
-      } else if (isLoosening && rule.configLoosenAllowed) {
-        merged[key] = overrideValue;
-      }
-      // Otherwise: keep base value (override rejected)
-    }
-  }
-
-  return merged;
-}
-
-/**
- * Evaluate whether a rule is triggered by a proposed change.
- * Uses the effective (potentially overridden) config.
- */
-function ruleTriggered(
-  rule: FrameworkRule,
-  change: ProposedChange,
-  effectiveConfig: Record<string, unknown>,
-): boolean {
-  const check = effectiveConfig.check as string | undefined;
-
-  if (!check) {
-    // Rule matches entity type but has no specific check — always triggered
-    return true;
-  }
-
-  if (check === "max_hours" && typeof effectiveConfig.threshold === "number") {
-    const afterHours = (change.after as Record<string, unknown> | null)?.work_hours;
-    if (typeof afterHours === "number" && afterHours > effectiveConfig.threshold) {
-      return true;
-    }
-    return false;
-  }
-
-  // Unknown check type — trigger the rule (safe default for foundation skeleton)
-  return true;
-}
-
 function resolveOutcome(
-  rule: FrameworkRule,
-  override: WorkspaceRuleOverride | null,
-): EvaluationOutcome {
+  rule: FrameworkRuleRow,
+  override: WorkspaceRuleOverrideRow | null,
+): { outcome: EvaluationOutcomeLevel; overrideApplied: boolean; overrideId?: string } {
   if (override?.overrideOutcome && rule.outcomeOverridable) {
-    return override.overrideOutcome;
+    return {
+      outcome: override.overrideOutcome,
+      overrideApplied: true,
+      overrideId: override.overrideId,
+    };
   }
-  return rule.defaultOutcome;
+  return { outcome: rule.defaultOutcome, overrideApplied: false };
 }
 
 /**
- * @param evaluationDate - ISO date string (YYYY-MM-DD) for override temporal validity checks
+ * Check if a rule is violated by the given entity context.
+ * Returns null if rule does not apply, or a reason string if it does.
+ */
+function checkRule(rule: FrameworkRuleRow, ctx: EntityContext): string | null {
+  const config = rule.evaluationConfig as Record<string, unknown>;
+  const check = config.check as string | undefined;
+
+  if (!check) return null;
+
+  switch (check) {
+    case "daily_hours": {
+      const threshold = config.threshold_hours as number;
+      if (ctx.dailyHoursWorked !== undefined && ctx.dailyHoursWorked > threshold) {
+        return `Daily hours ${ctx.dailyHoursWorked}h exceeds ${threshold}h limit`;
+      }
+      return null;
+    }
+
+    case "weekly_hours": {
+      const threshold = config.threshold_hours as number;
+      if (ctx.weeklyHoursWorked !== undefined && ctx.weeklyHoursWorked > threshold) {
+        return `Weekly hours ${ctx.weeklyHoursWorked}h exceeds ${threshold}h limit`;
+      }
+      return null;
+    }
+
+    case "gap_between_shifts": {
+      const threshold = config.threshold_hours as number;
+      if (!ctx.lastShiftEnd) return null;
+      // Calculate gap from lastShiftEnd to now (date at start of day as fallback)
+      const lastEnd = new Date(ctx.lastShiftEnd).getTime();
+      const dayStart = new Date(ctx.date + "T00:00:00Z").getTime();
+      const gapMs = dayStart - lastEnd;
+      const gapHours = gapMs / (1000 * 60 * 60);
+      if (gapHours < threshold) {
+        return `Rest period ${gapHours.toFixed(1)}h is less than required ${threshold}h`;
+      }
+      return null;
+    }
+
+    case "night_work_age": {
+      const maxAge = config.max_age as number;
+      if (ctx.employeeAge !== undefined && ctx.employeeAge <= maxAge) {
+        return `Employee age ${ctx.employeeAge} is under ${maxAge + 1} — night work restricted`;
+      }
+      return null;
+    }
+
+    case "daily_hours_age": {
+      const maxAge = config.max_age as number;
+      const threshold = config.threshold_hours as number;
+      if (
+        ctx.employeeAge !== undefined &&
+        ctx.employeeAge <= maxAge &&
+        ctx.dailyHoursWorked !== undefined &&
+        ctx.dailyHoursWorked > threshold
+      ) {
+        return `Under-${maxAge + 1} employee: daily hours ${ctx.dailyHoursWorked}h exceeds ${threshold}h limit`;
+      }
+      return null;
+    }
+
+    case "overtime_agreement": {
+      const thresholdDaily = config.threshold_daily as number;
+      const thresholdWeekly = config.threshold_weekly as number;
+      const dailyExceeds =
+        ctx.dailyHoursWorked !== undefined && ctx.dailyHoursWorked > thresholdDaily;
+      const weeklyExceeds =
+        ctx.weeklyHoursWorked !== undefined && ctx.weeklyHoursWorked > thresholdWeekly;
+      if (dailyExceeds || weeklyExceeds) {
+        return "Overtime detected — written agreement required";
+      }
+      return null;
+    }
+
+    case "sunday_holiday_shift": {
+      // Check if date is a Sunday (day 0 in ISO week = Monday, day 6 = Sunday)
+      const dateObj = new Date(ctx.date + "T12:00:00Z");
+      const jsDay = dateObj.getUTCDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+      if (jsDay === 0) {
+        return "Shift scheduled on Sunday — agreement required";
+      }
+      // Holiday check would use public_holiday table, but that's loaded by caller
+      // For now, just check Sunday
+      return null;
+    }
+
+    case "split_shift_gap": {
+      // Not evaluated here — requires multi-shift context
+      return null;
+    }
+
+    default:
+      return null;
+  }
+}
+
+/**
+ * Evaluate pre-loaded framework rules against an entity context.
+ * Pure function — no DB access.
+ *
+ * @param entityContext - The shift/schedule context to evaluate
+ * @param rules - Pre-filtered framework rules (caller filters by trigger type)
+ * @param workspaceOverrides - Active workspace-level rule overrides
  */
 export function evaluateFrameworkRules(
-  proposedChanges: ProposedChange[],
-  rules: FrameworkRule[],
-  workspaceOverrides: WorkspaceRuleOverride[],
-  evaluationDate: string,
-): Conflict[] {
-  const conflicts: Conflict[] = [];
+  entityContext: EntityContext,
+  rules: FrameworkRuleRow[],
+  workspaceOverrides: WorkspaceRuleOverrideRow[],
+): EvaluationResult {
+  const hits: RuleHit[] = [];
 
-  for (const change of proposedChanges) {
-    for (const rule of rules) {
-      if (!ruleApplies(rule, change)) continue;
+  for (const rule of rules) {
+    const reason = checkRule(rule, entityContext);
+    if (reason === null) continue;
 
-      const override = findValidOverride(rule.ruleId, workspaceOverrides, evaluationDate);
-      const effectiveConfig = mergeConfig(rule, override);
+    const override = findValidOverride(rule.ruleId, workspaceOverrides, entityContext.date);
+    const { outcome, overrideApplied, overrideId } = resolveOutcome(rule, override);
 
-      if (!ruleTriggered(rule, change, effectiveConfig)) continue;
-
-      const outcome = resolveOutcome(rule, override);
-
-      conflicts.push({
-        category: RULE_TYPE_TO_CATEGORY[rule.ruleType] ?? "constraint",
-        severity: rule.severity,
-        outcome,
-        ruleId: rule.ruleId,
-        entityType: change.entityType,
-        entityId: change.entityId,
-        description: rule.description,
-        exceptionPath: outcome === "allowed_with_exception" ? "workspace_override" : undefined,
-      });
-    }
+    hits.push({
+      ruleId: rule.ruleId,
+      ruleName: rule.description,
+      ruleType: rule.ruleType,
+      outcome,
+      reason,
+      overrideApplied,
+      overrideId,
+    });
   }
 
-  return conflicts;
+  if (hits.length === 0) {
+    return { outcome: "allowed", hits: [], worstHit: null };
+  }
+
+  // Find worst outcome
+  const worstHit = hits.reduce((worst, hit) =>
+    SEVERITY_RANK[hit.outcome] > SEVERITY_RANK[worst.outcome] ? hit : worst,
+  );
+
+  return {
+    outcome: worstHit.outcome,
+    hits,
+    worstHit,
+  };
 }

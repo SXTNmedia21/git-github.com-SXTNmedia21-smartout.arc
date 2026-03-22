@@ -11,12 +11,20 @@ export { resolveEffectiveHours } from "./resolve-hours";
 export { computeAnchoredTime } from "./compute-anchored-shift";
 export { evaluateFrameworkRules } from "./evaluate-framework-rules";
 export { validateProposalFreshness, computeStateHash } from "./validate-proposal-freshness";
+export { resolveTariffRate } from "./resolve-tariff-rate";
+export { getTariffContext } from "./get-tariff-context";
+export { buildEntityContext } from "./build-entity-context";
+export { propagateBudgetTargets } from "./propagate-budget-targets";
 
 export type {
+  // Operating hours
   EffectiveHours,
   AnchorInput,
   AnchorType,
   ComputedShiftTime,
+  DepartmentOperatingHoursRow,
+  DepartmentHoursOverrideRow,
+  // Legacy evaluation types (kept for existing consumers)
   Conflict,
   ConflictCategory,
   ConflictSeverity,
@@ -24,8 +32,26 @@ export type {
   FrameworkRule,
   WorkspaceRuleOverride,
   ProposedChange,
+  // Proposal freshness
   ChangeProposalRow,
   FreshnessResult,
-  DepartmentOperatingHoursRow,
-  DepartmentHoursOverrideRow,
+  // Bootstrap types
+  BootstrapSourcePath,
+  BootstrapStatus,
+  BootstrapWarning,
+  BootstrapStepName,
+  // Tariff types
+  TariffContext,
+  TariffRateRow,
+  TariffSupplement,
+  TariffResolution,
+  // New evaluation types (Phase B)
+  EvaluationOutcomeLevel,
+  RuleHit,
+  EvaluationResult,
+  EntityContext,
+  FrameworkRuleRow,
+  WorkspaceRuleOverrideRow,
 } from "./types";
+
+export type { BudgetPropagationInput, DailyTarget } from "./propagate-budget-targets";

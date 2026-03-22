@@ -26,6 +26,17 @@ export type OperatingHoursEntry = {
   open_time: string;
   close_time: string;
   is_closed: boolean;
+  open_offset_minutes?: number;
+  close_offset_minutes?: number;
+  is_derived?: boolean;
+};
+
+export type WorkspaceBaseHoursEntry = {
+  day_of_week: number;
+  day_name: DayName;
+  open_time: string;
+  close_time: string;
+  is_closed: boolean;
 };
 
 type OperatingHoursOptions = {
@@ -82,7 +93,7 @@ export function useOperatingHours(
       let q = supabase
         .from("department_operating_hours")
         .select(
-          "id, workspace_id, department_id, location_id, season_id, day_of_week, open_time, close_time, is_closed",
+          "id, workspace_id, department_id, location_id, season_id, day_of_week, open_time, close_time, is_closed, open_offset_minutes, close_offset_minutes, is_derived",
         )
         .eq("workspace_id", wsId!)
         .eq("department_id", departmentId!);
@@ -117,6 +128,9 @@ export function useOperatingHours(
           open_time: row?.open_time ?? DEFAULT_ENTRY.open_time,
           close_time: row?.close_time ?? DEFAULT_ENTRY.close_time,
           is_closed: row?.is_closed ?? DEFAULT_ENTRY.is_closed,
+          open_offset_minutes: row?.open_offset_minutes ?? 0,
+          close_offset_minutes: row?.close_offset_minutes ?? 0,
+          is_derived: row?.is_derived ?? true,
         };
       });
     },
@@ -135,6 +149,8 @@ export function useOperatingHours(
         open_time: entry.open_time,
         close_time: entry.close_time,
         is_closed: entry.is_closed,
+        // Direct admin edit → no longer derived from workspace base
+        is_derived: false,
         updated_at: new Date().toISOString(),
       }));
 
@@ -163,6 +179,37 @@ export function useOperatingHours(
     },
   });
 
+  // Workspace base hours query (for offset display)
+  const baseHoursQuery = useQuery({
+    queryKey: ["settings", "workspace-operating-hours", wsId ?? "none"],
+    queryFn: async (): Promise<WorkspaceBaseHoursEntry[]> => {
+      const { data, error } = await supabase
+        .from("workspace_operating_hours")
+        .select("day_of_week, open_time, close_time, is_closed")
+        .eq("workspace_id", wsId!);
+
+      if (error) throw new Error(error.message);
+
+      const rowsByDay = new Map<number, (typeof data)[number]>();
+      for (const row of data ?? []) {
+        rowsByDay.set(row.day_of_week, row);
+      }
+
+      return DAY_NAMES.map((name, index) => {
+        const row = rowsByDay.get(index);
+        return {
+          day_of_week: index,
+          day_name: name,
+          open_time: row?.open_time ?? DEFAULT_ENTRY.open_time,
+          close_time: row?.close_time ?? DEFAULT_ENTRY.close_time,
+          is_closed: row?.is_closed ?? DEFAULT_ENTRY.is_closed,
+        };
+      });
+    },
+    enabled: !!wsId,
+    staleTime: 10 * 60 * 1000,
+  });
+
   const defaultHours = useMemo<OperatingHoursEntry[]>(
     () =>
       DAY_NAMES.map((name, index) => ({
@@ -175,6 +222,7 @@ export function useOperatingHours(
 
   return {
     hours: query.data ?? defaultHours,
+    baseHours: baseHoursQuery.data ?? null,
     isLoading: query.isLoading,
     upsertHours,
   };

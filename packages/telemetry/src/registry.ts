@@ -254,7 +254,20 @@ export interface ShiftPublished extends BaseEvent {
     data: {
       dates: string[];
       department_ids: string[];
+      shift_ids: string[];
       shift_count: number;
+    };
+  };
+}
+
+// ─── Scheduling: Shift Completed ────────────────
+export interface ShiftCompleted extends BaseEvent {
+  event: "shift completed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      shift_ids: string[];
+      department_id: string;
     };
   };
 }
@@ -1401,6 +1414,7 @@ export type SmartoutEvent =
   | ShiftUpdated
   | ShiftDeleted
   | ShiftPublished
+  | ShiftCompleted
   | SessionOpened
   | SessionPendingSignoff
   | SessionClosed
@@ -1578,6 +1592,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "scheduling",
   },
+  "shift completed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
 
   "session opened": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
@@ -1716,11 +1734,11 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "operations",
   },
   "season_budget updated": {
-    destinations: ["posthog", "logger", "activity_trail"],
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "operations",
   },
   "day_factors updated": {
-    destinations: ["posthog", "logger", "activity_trail"],
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "operations",
   },
   "hour_factors updated": {

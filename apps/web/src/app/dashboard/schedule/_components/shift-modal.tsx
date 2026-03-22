@@ -12,6 +12,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  AlertTriangle,
   Calendar,
   CheckCircle2,
   Clock,
@@ -50,13 +51,13 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 
-import type { Shift } from "./schedule-types";
 import { useScheduleUI } from "./schedule-ui-context";
 import { useShifts, useCreateShift, useUpdateShift, useDeleteShift } from "../_hooks/use-shifts";
 import { useWeekRange } from "../_hooks/use-week-range";
 import { useEmployees, type ScheduleEmployee } from "../_hooks/use-employees";
+import { useShiftRuleCheck } from "../_hooks/use-shift-rule-check";
 import { AVAILABLE_ZONES } from "./schedule-data";
-import type { DayCategory, ShiftStatus } from "./schedule-types";
+import type { DayCategory, ShiftStatus, Shift } from "./schedule-types";
 
 // ── Constants ───────────────────────────────────────────────
 
@@ -335,6 +336,25 @@ export function ShiftModal() {
   );
 
   const dateId = isEditMode ? existingShift?.dateId : createShiftContext?.dateId;
+
+  // ── Cascade rule evaluation (instant feedback) ─────────
+  const employeeShiftsForWeek = useMemo(
+    () =>
+      shifts
+        .filter((s: Shift) => s.employeeId === form.employeeId && s.id !== selectedShiftId)
+        .map((s: Shift) => ({ startTime: s.startTime, endTime: s.endTime, date: s.dateId })),
+    [shifts, form.employeeId, selectedShiftId],
+  );
+
+  const ruleCheck = useShiftRuleCheck(
+    {
+      employeeId: form.employeeId || undefined,
+      date: dateId ?? "",
+      startTime: form.startTime,
+      endTime: form.endTime,
+    },
+    employeeShiftsForWeek,
+  );
 
   // ── Handlers ────────────────────────────────────────────
 
@@ -1041,6 +1061,21 @@ export function ShiftModal() {
               <Trash2 className="h-3.5 w-3.5" />
               Slett
             </Button>
+          )}
+          {/* Cascade rule evaluation warning */}
+          {ruleCheck.result && ruleCheck.result.outcome !== "allowed" && (
+            <div
+              className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs ${
+                ruleCheck.result.outcome === "blocked"
+                  ? "bg-red-500/10 text-red-400"
+                  : ruleCheck.result.outcome === "review_required"
+                    ? "bg-orange-500/10 text-orange-400"
+                    : "bg-yellow-500/10 text-yellow-400"
+              }`}
+            >
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+              <span>{ruleCheck.result.worstHit?.reason ?? "Regelbrudd oppdaget"}</span>
+            </div>
           )}
           <Button type="button" variant="outline" size="sm" onClick={handleClose}>
             Avbryt
