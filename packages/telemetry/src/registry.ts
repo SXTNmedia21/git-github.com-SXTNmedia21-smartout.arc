@@ -83,7 +83,9 @@ export type EntityType =
   | "channel"
   | "channel_member"
   | "channel_message"
-  | "channel_event";
+  | "channel_event"
+  | "help_request"
+  | "news_post";
 
 export type ActionVerb =
   | "created"
@@ -132,7 +134,9 @@ export type ActionVerb =
   | "unpinned"
   | "reacted"
   | "unreacted"
-  | "read";
+  | "read"
+  | "shared"
+  | "requested_help";
 
 // ─── Auth Module Events ─────────────────────────
 export interface AuthSignedUp extends BaseEvent {
@@ -863,6 +867,39 @@ export interface ChannelMessageUnpinned extends BaseEvent {
   entity: EntityRef;
 }
 
+// ─── Help Request Events ───────────────────────
+export interface HelpRequestCreated extends BaseEvent {
+  event: "help_request.created";
+  properties: { title: string };
+  entity: EntityRef;
+}
+
+export interface HelpRequestResolved extends BaseEvent {
+  event: "help_request.resolved";
+  properties: { resolved_by: string };
+  entity: EntityRef;
+}
+
+// ─── Knowledge Sharing Events ──────────────────
+export interface KnowledgeShared extends BaseEvent {
+  event: "knowledge.shared";
+  properties: { channel_id: string; shared_type: string; shared_id: string; title: string };
+  entity: EntityRef;
+}
+
+// ─── News Events ───────────────────────────────
+export interface NewsPostCreated extends BaseEvent {
+  event: "news.post.created";
+  properties: { channel_id: string };
+  entity: EntityRef;
+}
+
+export interface NewsPostReacted extends BaseEvent {
+  event: "news.post.reacted";
+  properties: { channel_id: string; emoji: string };
+  entity: EntityRef;
+}
+
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
 export type SmartoutEvent =
@@ -951,7 +988,12 @@ export type SmartoutEvent =
   | ChannelReactionRemoved
   | ChannelRead
   | ChannelMessagePinned
-  | ChannelMessageUnpinned;
+  | ChannelMessageUnpinned
+  | HelpRequestCreated
+  | HelpRequestResolved
+  | KnowledgeShared
+  | NewsPostCreated
+  | NewsPostReacted;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -1304,6 +1346,28 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "channel.message.unpinned": {
     destinations: ["posthog", "logger"],
+    category: "channels",
+  },
+
+  // Komm redesign events
+  "help_request.created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "help_request.resolved": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "knowledge.shared": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "news.post.created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "news.post.reacted": {
+    destinations: ["posthog"],
     category: "channels",
   },
 };
