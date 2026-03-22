@@ -21,7 +21,7 @@ function timeLabel(date: string): string {
 
 export function DriftTimeline() {
   const { profileId } = useContext(DashboardContext);
-  const today = new Date().toISOString().split("T")[0];
+  const today = new Date().toISOString().split("T")[0]!;
   const { data: sessions, isLoading: sessionsLoading } = useDepartmentSessions(today);
   const activeSession = sessions?.find((s) => s.status === "active");
   const { data: tasks, isLoading: tasksLoading } = useSessionTasks(

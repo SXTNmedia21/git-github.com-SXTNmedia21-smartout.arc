@@ -27,7 +27,7 @@ type Props = {
 export function DriftTaskList({ sessionId: overrideSessionId, showAll = false }: Props) {
   const { profileId } = useContext(DashboardContext);
   const { workspace } = useWorkspace();
-  const today = new Date().toISOString().split("T")[0];
+  const today = new Date().toISOString().split("T")[0]!;
 
   const { data: sessions, isLoading: sessionsLoading } = useDepartmentSessions(today);
 

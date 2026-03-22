@@ -85,7 +85,7 @@ export function DeviationKanban({ deviations, onSelect }: Props) {
   return (
     <div className="flex gap-3 overflow-x-auto pb-2">
       {COLUMNS.map((col) => {
-        const items = grouped[col.status];
+        const items = grouped[col.status] ?? [];
         return (
           <div key={col.status} className="min-w-[200px] flex-1">
             {/* Column header */}

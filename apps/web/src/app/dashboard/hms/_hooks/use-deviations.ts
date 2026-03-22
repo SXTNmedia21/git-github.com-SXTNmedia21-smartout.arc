@@ -3,11 +3,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
-import type { DeviationRow, DeviationStatus } from "@smartout/hms";
+import type { DeviationRow, DeviationStatus, DeviationDomain } from "@smartout/hms";
 
 type UseDeviationsOptions = {
   status?: DeviationStatus[];
-  domain?: string;
+  domain?: DeviationDomain;
   sessionId?: string;
 };
 

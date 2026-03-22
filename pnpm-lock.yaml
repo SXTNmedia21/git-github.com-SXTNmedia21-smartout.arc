@@ -411,6 +411,9 @@ importers:
       '@smartout/design-tokens':
         specifier: workspace:^
         version: link:../../packages/design-tokens
+      '@smartout/hms':
+        specifier: workspace:*
+        version: link:../../packages/hms
       '@smartout/notifications':
         specifier: workspace:^
         version: link:../../packages/notifications

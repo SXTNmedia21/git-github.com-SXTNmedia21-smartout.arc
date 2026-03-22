@@ -40,13 +40,13 @@ function statusBadge(status: DepartmentSessionRow["status"]) {
     closed: { bg: "bg-muted text-muted-foreground", label: "Lukket" },
     missed: { bg: "bg-red-500/15 text-red-600", label: "Uteblitt" },
   };
-  const s = styles[status] ?? styles.upcoming;
-  return <Badge className={`${s.bg} text-[10px] hover:${s.bg}`}>{s.label}</Badge>;
+  const s = styles[status] ?? styles.upcoming!;
+  return <Badge className={`${s!.bg} text-[10px] hover:${s!.bg}`}>{s!.label}</Badge>;
 }
 
 export function DriftSessionTable() {
   const { isDark } = useContext(DashboardContext);
-  const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]!);
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
   const [signoffSession, setSignoffSession] = useState<DepartmentSessionRow | null>(null);
 
@@ -55,7 +55,7 @@ export function DriftSessionTable() {
   function shiftDate(days: number) {
     const d = new Date(date + "T00:00:00");
     d.setDate(d.getDate() + days);
-    setDate(d.toISOString().split("T")[0]);
+    setDate(d.toISOString().split("T")[0]!);
     setExpandedSession(null);
   }
 

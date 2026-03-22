@@ -44,19 +44,27 @@ export function useUpdateDeviation() {
       return input;
     },
     onSuccess: (result) => {
-      const eventName = result.action === "resolve" ? "deviation resolved" : "deviation updated";
-      void emit({
-        event: eventName,
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
-        properties: {
-          entity: { entity_type: "deviation", entity_id: result.deviationId },
-          data:
-            result.action === "resolve"
-              ? { resolution_notes: result.resolutionNotes }
-              : { status: result.status },
-        },
-      });
+      if (result.action === "resolve") {
+        void emit({
+          event: "deviation resolved",
+          workspace_id: workspace.workspace_id,
+          actor_id: profileId ?? "",
+          properties: {
+            entity: { entity_type: "deviation", entity_id: result.deviationId },
+            data: { resolution_notes: result.resolutionNotes },
+          },
+        });
+      } else {
+        void emit({
+          event: "deviation updated",
+          workspace_id: workspace.workspace_id,
+          actor_id: profileId ?? "",
+          properties: {
+            entity: { entity_type: "deviation", entity_id: result.deviationId },
+            data: { status: result.status },
+          },
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ["hms", "deviations"] });
       toast.success(result.action === "resolve" ? "Avvik lukket" : "Avvik oppdatert");
     },
