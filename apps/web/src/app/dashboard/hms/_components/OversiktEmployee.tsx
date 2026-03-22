@@ -10,6 +10,7 @@ import {
   useAssignedProtocols,
   type AssignedProtocol,
 } from "@/app/dashboard/my-training/_hooks/use-assigned-protocols";
+import { DriftFocusCard } from "./DriftFocusCard";
 
 // TODO: move to i18n
 const STRINGS = {
@@ -109,6 +110,9 @@ export function OversiktEmployee() {
       ) : (
         <p className="text-muted-foreground text-sm">{STRINGS.noAssignments}</p>
       )}
+
+      {/* Active session task widget */}
+      <DriftFocusCard />
     </div>
   );
 }

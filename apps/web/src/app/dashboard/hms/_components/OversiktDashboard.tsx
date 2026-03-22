@@ -16,6 +16,7 @@ import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useGovernanceFiltered } from "../_hooks/use-governance-filtered";
+import { useDeviations } from "../_hooks/use-deviations";
 
 // TODO: move to i18n
 const STRINGS = {
@@ -68,6 +69,8 @@ function KpiCard({ icon: Icon, label, value, sublabel, variant = "default" }: Kp
 export function OversiktDashboard() {
   const { isDark } = useContext(DashboardContext);
   const { protocols, stats, isLoading } = useGovernanceFiltered("all");
+  const { data: openDeviations } = useDeviations({ status: ["open", "acknowledged", "escalated"] });
+  const openDeviationCount = openDeviations?.length ?? 0;
 
   if (isLoading) {
     return (
@@ -103,8 +106,8 @@ export function OversiktDashboard() {
           <KpiCard
             icon={AlertTriangle}
             label={STRINGS.openDeviations}
-            value={0}
-            sublabel="Kommer i Phase 2"
+            value={openDeviationCount}
+            variant={openDeviationCount > 0 ? "warning" : "default"}
           />
           <KpiCard
             icon={Clock}
