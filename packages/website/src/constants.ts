@@ -17,6 +17,7 @@ export const SECTION_TYPES = [
   "booking_cta",
   "pdf_viewer",
   "footer",
+  "spokesperson",
 ] as const;
 
 export type SectionType = (typeof SECTION_TYPES)[number];

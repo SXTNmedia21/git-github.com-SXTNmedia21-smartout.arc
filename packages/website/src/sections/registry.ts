@@ -16,6 +16,7 @@ import { faqContentSchema, faqDefaults } from "./schemas/faq";
 import { bookingCtaContentSchema, bookingCtaDefaults } from "./schemas/booking-cta";
 import { pdfViewerContentSchema, pdfViewerDefaults } from "./schemas/pdf-viewer";
 import { footerContentSchema, footerDefaults } from "./schemas/footer";
+import { spokespersonContentSchema, spokespersonDefaults } from "./schemas/spokesperson";
 
 export type SectionDefinition<T = unknown> = {
   type: string;
@@ -172,5 +173,14 @@ registerSection({
   description: "Site footer with contact, social, and copyright",
   schema: footerContentSchema,
   defaults: footerDefaults,
+  maxPerPage: 1,
+});
+
+registerSection({
+  type: "spokesperson",
+  name: "Talsperson",
+  description: "Fremhev en ansatt som talsperson for virksomheten",
+  schema: spokespersonContentSchema,
+  defaults: spokespersonDefaults,
   maxPerPage: 1,
 });

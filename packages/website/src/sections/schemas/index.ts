@@ -52,6 +52,9 @@ export type { PdfViewerContent } from "./pdf-viewer";
 export { footerContentSchema, footerDefaults } from "./footer";
 export type { FooterContent } from "./footer";
 
+export { spokespersonContentSchema, spokespersonDefaults } from "./spokesperson";
+export type { SpokespersonContent, ContentTask } from "./spokesperson";
+
 import { heroContentSchema } from "./hero";
 import { richTextContentSchema } from "./rich-text";
 import { textImageContentSchema } from "./text-image";
@@ -68,6 +71,7 @@ import { faqContentSchema } from "./faq";
 import { bookingCtaContentSchema } from "./booking-cta";
 import { pdfViewerContentSchema } from "./pdf-viewer";
 import { footerContentSchema } from "./footer";
+import { spokespersonContentSchema } from "./spokesperson";
 
 /** Maps section type string to its Zod content schema. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -88,4 +92,5 @@ export const SECTION_SCHEMA_MAP: Record<SectionType, ZodSchema<any>> = {
   booking_cta: bookingCtaContentSchema,
   pdf_viewer: pdfViewerContentSchema,
   footer: footerContentSchema,
+  spokesperson: spokespersonContentSchema,
 };

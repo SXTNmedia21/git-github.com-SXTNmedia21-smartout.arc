@@ -7,7 +7,12 @@ export interface BaseEvent {
 }
 
 // ─── Routing Metadata ───────────────────────────
-export type EventDestination = "posthog" | "logger" | "activity_trail" | "engine_event";
+export type EventDestination =
+  | "posthog"
+  | "logger"
+  | "activity_trail"
+  | "engine_event"
+  | "notifications";
 
 export interface EventMeta {
   destinations: EventDestination[];
@@ -82,7 +87,8 @@ export type EntityType =
   | "website"
   | "website_page"
   | "website_section"
-  | "website_asset";
+  | "website_asset"
+  | "website_spokesperson";
 
 export type ActionVerb =
   | "created"
@@ -901,6 +907,32 @@ export interface WebsiteSystemSectionAdded extends BaseEvent {
   properties: { entity: EntityRef; data: { section_type: string } };
 }
 
+// ─── Website Spokesperson Events ───────────────
+export interface WebsiteSpokespersonAssigned extends BaseEvent {
+  event: "website spokesperson_assigned";
+  properties: { entity: EntityRef; data: { profile_id: string; role_title: string } };
+}
+
+export interface WebsiteSpokespersonApproved extends BaseEvent {
+  event: "website spokesperson_approved";
+  properties: { entity: EntityRef; data: { profile_id: string } };
+}
+
+export interface WebsiteSpokespersonDeclined extends BaseEvent {
+  event: "website spokesperson_declined";
+  properties: { entity: EntityRef; data: { profile_id: string; reason?: string } };
+}
+
+export interface WebsiteSpokespersonContentSubmitted extends BaseEvent {
+  event: "website spokesperson_content_submitted";
+  properties: { entity: EntityRef; data: { task_type: string } };
+}
+
+export interface WebsiteSpokespersonTaskOverdue extends BaseEvent {
+  event: "website spokesperson_task_overdue";
+  properties: { entity: EntityRef; data: { task_type: string; profile_id: string } };
+}
+
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
 export type SmartoutEvent =
@@ -999,7 +1031,12 @@ export type SmartoutEvent =
   | WebsitePreviewTokenCreated
   | WebsiteHoursUpdated
   | WebsiteMenuSynced
-  | WebsiteSystemSectionAdded;
+  | WebsiteSystemSectionAdded
+  | WebsiteSpokespersonAssigned
+  | WebsiteSpokespersonApproved
+  | WebsiteSpokespersonDeclined
+  | WebsiteSpokespersonContentSubmitted
+  | WebsiteSpokespersonTaskOverdue;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -1331,6 +1368,26 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "website menu_synced": { destinations: ["activity_trail"], category: "system" },
   "website system_section_added": {
     destinations: ["posthog", "activity_trail"],
+    category: "system",
+  },
+  "website spokesperson_assigned": {
+    destinations: ["posthog", "activity_trail", "engine_event", "notifications"],
+    category: "system",
+  },
+  "website spokesperson_approved": {
+    destinations: ["posthog", "activity_trail", "engine_event", "notifications"],
+    category: "system",
+  },
+  "website spokesperson_declined": {
+    destinations: ["posthog", "activity_trail", "engine_event", "notifications"],
+    category: "system",
+  },
+  "website spokesperson_content_submitted": {
+    destinations: ["posthog", "activity_trail", "engine_event"],
+    category: "system",
+  },
+  "website spokesperson_task_overdue": {
+    destinations: ["activity_trail", "engine_event", "notifications"],
     category: "system",
   },
 };
