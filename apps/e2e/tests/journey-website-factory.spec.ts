@@ -15,9 +15,9 @@ async function login(page: Page) {
   await page.fill('input[type="password"]', TEST_PASSWORD);
   await page.click('button[type="submit"]');
 
-  // Wait for navigation after login — could be dashboard or onboarding
-  await page.waitForLoadState("domcontentloaded");
-  await page.waitForTimeout(2000);
+  // Wait for login animation to complete and redirect
+  await page.waitForURL(/\/(dashboard|onboarding|setup)/, { timeout: 20000 }).catch(() => {});
+  await page.waitForTimeout(1000);
 
   // If redirected to onboarding wizard, skip it
   const skipBtn = page.locator("text=Hopp over og gå til dashboard");

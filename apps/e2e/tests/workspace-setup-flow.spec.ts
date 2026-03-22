@@ -157,7 +157,7 @@ test.describe("setup-wizard", () => {
 
   test("shows wizard for workspace needing setup", async ({ page }) => {
     await clearSkipFlag(page);
-    await loginAsAdmin(page);
+    await loginAsAdmin(page, { skipOnboarding: false });
 
     // Wizard should render
     const wizardHeader = page.locator('text="Oppsett av arbeidsrom"');
@@ -177,7 +177,7 @@ test.describe("setup-wizard", () => {
 
   test("step 0 shows scraped data", async ({ page }) => {
     await clearSkipFlag(page);
-    await loginAsAdmin(page);
+    await loginAsAdmin(page, { skipOnboarding: false });
 
     await expect(page.locator('h1:has-text("Velkommen til Smartout")')).toBeVisible({
       timeout: 15_000,
@@ -202,7 +202,7 @@ test.describe("setup-wizard", () => {
     test.setTimeout(60_000);
 
     await clearSkipFlag(page);
-    await loginAsAdmin(page);
+    await loginAsAdmin(page, { skipOnboarding: false });
 
     await expect(page.locator('h1:has-text("Velkommen til Smartout")')).toBeVisible({
       timeout: 15_000,
@@ -243,7 +243,7 @@ test.describe("setup-wizard", () => {
 
   test("governance templates filtered by industry", async ({ page }) => {
     await clearSkipFlag(page);
-    await loginAsAdmin(page);
+    await loginAsAdmin(page, { skipOnboarding: false });
 
     await expect(page.locator('h1:has-text("Velkommen til Smartout")')).toBeVisible({
       timeout: 15_000,
@@ -275,7 +275,7 @@ test.describe("setup-wizard", () => {
     test.setTimeout(45_000);
 
     await clearSkipFlag(page);
-    await loginAsAdmin(page);
+    await loginAsAdmin(page, { skipOnboarding: false });
 
     await expect(page.locator('h1:has-text("Velkommen til Smartout")')).toBeVisible({
       timeout: 15_000,
@@ -325,7 +325,7 @@ test.describe("setup-wizard", () => {
     test.setTimeout(45_000);
 
     await clearSkipFlag(page);
-    await loginAsAdmin(page);
+    await loginAsAdmin(page, { skipOnboarding: false });
 
     // Wait for wizard to load (any step)
     await expect(page.locator('text="Oppsett av arbeidsrom"')).toBeVisible({ timeout: 15_000 });
@@ -426,7 +426,7 @@ test.describe("setup-wizard", () => {
     restoreWorkspaceData();
 
     await clearSkipFlag(page);
-    await loginAsAdmin(page);
+    await loginAsAdmin(page, { skipOnboarding: false });
     await page.waitForURL("**/dashboard**", { timeout: 15_000 });
 
     // Wizard should NOT show
@@ -446,7 +446,7 @@ test.describe("setup-wizard", () => {
 
   test("skip saves to localStorage and persists", async ({ page }) => {
     await clearSkipFlag(page);
-    await loginAsAdmin(page);
+    await loginAsAdmin(page, { skipOnboarding: false });
 
     // Wizard should show
     const skipBtn = page.locator('button:has-text("Hopp over")');
@@ -484,7 +484,7 @@ test.describe("setup-wizard", () => {
 
     // Skip the wizard
     await clearSkipFlag(page);
-    await loginAsAdmin(page);
+    await loginAsAdmin(page, { skipOnboarding: false });
 
     const skipBtn = page.locator('button:has-text("Hopp over")');
     await expect(skipBtn).toBeVisible({ timeout: 15_000 });
@@ -510,7 +510,7 @@ test.describe("setup-wizard", () => {
 
     hideWorkspaceData();
     await clearSkipFlag(page);
-    await loginAsAdmin(page);
+    await loginAsAdmin(page, { skipOnboarding: false });
 
     const stepTitles = [
       "Velkommen til Smartout",
@@ -560,7 +560,7 @@ test.describe("setup-wizard", () => {
     restoreWorkspaceData();
 
     await clearSkipFlag(page);
-    await loginAsAdmin(page);
+    await loginAsAdmin(page, { skipOnboarding: false });
     await page.waitForURL("**/dashboard**", { timeout: 15_000 });
 
     // Wizard should NOT show
