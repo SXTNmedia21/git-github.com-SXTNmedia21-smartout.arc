@@ -29,7 +29,7 @@ function computeDurationHours(startTime: string, endTime: string): number {
   const [startH, startM] = startTime.split(":").map(Number) as [number, number];
   const [endH, endM] = endTime.split(":").map(Number) as [number, number];
 
-  let startMinutes = startH * 60 + startM;
+  const startMinutes = startH * 60 + startM;
   let endMinutes = endH * 60 + endM;
 
   if (endMinutes <= startMinutes) {

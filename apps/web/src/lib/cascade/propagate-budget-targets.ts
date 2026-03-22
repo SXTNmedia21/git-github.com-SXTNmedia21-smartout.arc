@@ -106,7 +106,7 @@ function enumerateDates(startDate: string, endDate: string): string[] {
   const end = new Date(endDate + "T12:00:00Z");
 
   while (current <= end) {
-    dates.push(current.toISOString().split("T")[0]);
+    dates.push(current.toISOString().split("T")[0]!);
     current.setUTCDate(current.getUTCDate() + 1);
   }
 

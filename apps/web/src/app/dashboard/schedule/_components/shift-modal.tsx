@@ -51,7 +51,6 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 
-import type { Shift } from "./schedule-types";
 import { useScheduleUI } from "./schedule-ui-context";
 import { useShifts, useCreateShift, useUpdateShift, useDeleteShift } from "../_hooks/use-shifts";
 import { useWeekRange } from "../_hooks/use-week-range";
