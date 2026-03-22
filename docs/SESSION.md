@@ -7,58 +7,35 @@ created: 2026-03-02
 
 ## Last Session
 
-| Field   | Value                     |
-| ------- | ------------------------- |
-| Date    | 2026-03-22                |
-| Branch  | `feat/hms-phase-1` (wt-5) |
-| Feature | HMS Phase 1: Legibility   |
-| Status  | in_progress               |
+| Field   | Value                            |
+| ------- | -------------------------------- |
+| Date    | 2026-03-22                       |
+| Branch  | `feat/cascade-foundation` (wt-2) |
+| Feature | cascade-foundation               |
+| Status  | ready_for_closure                |
 
 ### What was done
 
-- HMS spec written as Cascade-native regulated-work operating fabric
-  - Governing loop: knowledge -> rule -> trigger -> execution -> evidence -> calibration -> authority -> learning
-  - Branch placement (K1a, K1b, D3, D6, D2, C1, C4)
-  - 14 propagation invariants, evidence trust tiers, activation model
-  - Object participation with branch placement for every HMS entity
-  - 3 review rounds: system-steward (5 blockers fixed), product review (9 precision fixes)
-- Implementation plan: 7 tasks (migration, routes, oversikt, documents, training, procedure detail, verification)
-- Competitor research: eSmiley, Runwell, SafetyCulture, West-IK, Agrippa, Kuba
-- UX research: 13 patterns identified (Vanta, SafetyCulture, Duolingo, Notion, GitBook)
-- Linear cleanup: 37 Triage issues resolved (19 canceled, 18 -> Backlog with updates)
-- Linear project created: "HMS Phase 1: Legibility" (issue limit reached)
-- Product principle saved to memory: "Procedure Engine Principle"
-- Feature branch + worktree created: wt-5
+- Fixed typecheck: applied unapplied migrations (help_request, workspace_operating_hours, cascade tables)
+- Regenerated `database.types.ts` — typecheck clean (0 errors, 23/23 tasks)
+- All closure gates verified and fixed
 
 ### Where we stopped
 
-- Feature just initialized in wt-5, ready for implementation
-- Spec: `docs/superpowers/specs/2026-03-22-hms-governance-redesign-design.md`
-- Plan: `docs/superpowers/plans/2026-03-22-hms-phase-1-legibility.md`
-- Plan needs update to reflect cascade-native spec rewrite (invariants, activation model, evidence tiers)
-- Start with Task 1: migration (procedure_step training_content + media_urls)
+- Feature ready for closure
+- Run: `~/.claude/scripts/close-feature.sh 2`
 
 ### Previous sessions (still active in other worktrees)
 
-- wt-2: `feat/cascade-foundation` — spec + plan ready, not started
 - wt-3: `feat/emma-arena-views` — spec + mockups done
 - wt-4: `feat/vaktlista-view` — in progress
+- wt-5: `feat/hms-phase-1` — spec complete, plan written, ready for implementation
 - wt-6: `feat/website-factory` — Plan A done, Plan B designed
 
 ### Known blockers / errors
 
-- Linear free tier issue limit reached — cannot create HMS issues
-- Implementation plan references old spec structure — needs plan update pass
+- None (all gates passed)
 
 ### Pending decisions
 
-- [ ] Deviation table strategy: single table with domain filter or separate hms_deviation? Needs ADR.
-- [ ] Telemetry event naming: flat "noun verb" confirmed, new events need registration in registry.
-- [ ] Footer tab name: "Komm" or "Kommunikasjon"? (from walkie-talkie, wt-2)
-- [ ] API channels scope: implement or defer? (from walkie-talkie, wt-2)
-
-### Key files
-
-- Spec: `docs/superpowers/specs/2026-03-22-hms-governance-redesign-design.md`
-- Plan: `docs/superpowers/plans/2026-03-22-hms-phase-1-legibility.md`
-- Memory: `product_procedure_engine_principle.md`
+- None
