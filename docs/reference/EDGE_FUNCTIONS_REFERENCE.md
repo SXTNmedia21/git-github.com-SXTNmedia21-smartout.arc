@@ -122,13 +122,13 @@ Authorization: Bearer smo_sk_live_...
 
 ### activate-workspace
 
-| Field   | Value                                          |
-| ------- | ---------------------------------------------- |
-| Auth    | JWT required                                   |
-| Methods | POST, OPTIONS                                  |
-| Purpose | Atomically activate workspace after onboarding |
+| Field   | Value                                       |
+| ------- | ------------------------------------------- |
+| Auth    | JWT required                                |
+| Methods | POST, OPTIONS                               |
+| Purpose | Legacy-compatible workspace activation path |
 
-**Request:** `{ "workspace_id": "uuid", "company_data": {...}, "departments": [...], "locations": [...] }`
+**Status:** Deprecated as the canonical onboarding path. Keep only for compatibility.
 
 **Process:** Calls `activate_workspace_v3` RPC. Creates default agent profile (Mr. Botsson).
 
@@ -136,11 +136,11 @@ Authorization: Bearer smo_sk_live_...
 
 ### finalize-workspace
 
-| Field   | Value                                                          |
-| ------- | -------------------------------------------------------------- |
-| Auth    | JWT required                                                   |
-| Methods | POST, OPTIONS                                                  |
-| Purpose | Create workspace via RPC (deprecated — use activate-workspace) |
+| Field   | Value                                                      |
+| ------- | ---------------------------------------------------------- |
+| Auth    | JWT required                                               |
+| Methods | POST, OPTIONS                                              |
+| Purpose | Finalize the onboarding workspace shell into runtime truth |
 
 ---
 

@@ -80,19 +80,17 @@ tags: [join-wizard, ai-content, step-3, enrich, generate]
 1. User clicks "Opprett konto" on Step 6 → Supabase auth.signUp() creates auth.users + user_identity
 2. System advances to Step 7 (SetupLoading) → Shows rotating messages: "Oppretter bedriftsprofil...", "Konfigurerer arbeidsområde...", etc.
 3. completeSignup() server action runs:
-   - Creates company, workspace (with onboarding_completed=true), company_member, profile
-   - Saves company_details, opening_hours, social_media
-   - Saves intelligence JSON to company_scraped_data.parsed_data
-   - Creates team invitations if provided
-   - Emits "wizard completed" telemetry event
+   - Provisions or reuses an onboarding workspace shell
+   - Saves provisional company details, opening hours, social media, and intake intelligence
+   - Keeps final workspace truth for the authenticated onboarding flow
+   - Emits "wizard completed" telemetry event for the join wizard
    - Marks signup_progress.completed = true
 4. System clears localStorage wizard state
 5. System redirects:
-   - Production: `https://{slug}.smartout.ai/dashboard` (subdomain routing)
-   - Local dev: `/dashboard?ws={workspaceId}` (query param)
-6. Dashboard layout loads workspace → onboarding_completed is true → Shows strategic view (NOT setup wizard)
+   - `/onboarding?ws={workspaceId}`
+6. Authenticated onboarding finalizes the workspace shell, then the user continues to `/dashboard/setup` for post-bootstrap completion work
 
-**Postcondition:** User is authenticated, workspace is created and fully set up, dashboard is accessible. No double onboarding.
+**Postcondition:** User is authenticated, the workspace shell exists, and the flow continues through authenticated finalization instead of skipping directly to dashboard runtime surfaces.
 
 **Error paths:**
 

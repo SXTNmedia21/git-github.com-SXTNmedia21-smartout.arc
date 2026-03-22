@@ -2,6 +2,9 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 
+// Legacy compatibility path for older onboarding flows.
+// New workspace creation should prefer shell provisioning plus /onboarding finalization.
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -32,6 +35,8 @@ Deno.serve(async (req) => {
 
     if (rpcError) throw rpcError;
 
+    console.warn("[activate-workspace] Deprecated onboarding activation path invoked");
+
     // Create default agent profile (Mr. Botsson) for the new workspace.
     // Uses service-role to bypass RLS since the workspace was just created
     // and role-based policies may not resolve yet.
@@ -51,12 +56,20 @@ Deno.serve(async (req) => {
     }
 
     return new Response(JSON.stringify({ success: true, workspaceId: data }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json",
+        "X-Smartout-Legacy-Path": "activate-workspace",
+      },
       status: 200,
     });
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json",
+        "X-Smartout-Legacy-Path": "activate-workspace",
+      },
       status: 400,
     });
   }

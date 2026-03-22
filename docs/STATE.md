@@ -17,6 +17,18 @@ tags: [state, audit, gaps, architecture, cascade]
 
 ---
 
+## Control Gate — Onboarding Contract
+
+Current repo truth for onboarding ownership:
+
+- `/join` is public intake. It captures raw business input and may provision or enrich a workspace shell, but it is not the canonical owner of cascade runtime truth.
+- `/onboarding` is the authenticated bootstrap/finalization surface. This is where the active flow calls `finalize-workspace` / `finalize_onboarding_workspace` to turn provisional input into authoritative workspace records.
+- `/dashboard/setup` is the post-bootstrap setup guide. It is routed by real setup completeness and should never be described as the source of workspace runtime truth.
+- `workspace.onboarding_completed` is a bootstrap/finalization signal, not the dashboard setup-guide visibility switch.
+- Legacy compatibility paths such as `activate-workspace` still exist in code. Treat them as compatibility flow, not the canonical cascade-first contract.
+
+---
+
 ## 1. Database Tables — By Cascade Dimension
 
 **Totals:** 147 tables, 88 enums, 130 migrations, 31 Edge Functions, 54 ADRs, 18 learnings.
@@ -325,18 +337,18 @@ Cascade is a PRODUCER of events; Event Engine is the CONSUMER.
 > All 10 gaps identified 2026-03-08 have been addressed by `feat/zero-to-production` (30+ commits).
 > Full audit performed 2026-03-08. Typecheck 19/19 GREEN. Wizard redesign + 8 E2E tests added 2026-03-08.
 
-| Gap | Description                          | Status      | Resolution                                                                                        |
-| --- | ------------------------------------ | ----------- | ------------------------------------------------------------------------------------------------- |
-| 1   | No Event Emission                    | **CLOSED**  | emit() wired into all TanStack Query mutations. engine_event as 4th telemetry destination         |
-| 2   | Two Disconnected Event Systems       | **CLOSED**  | engine-event provider calls engine-dispatch. 26 typed events in registry. Client relay via API    |
-| 3   | No Completion Tracking               | **CLOSED**  | 3 tables created (knowledge_test_attempt, confirmation_signature, procedure_step_completion)      |
-| 4   | No Per-Step Instance Tracking        | **CLOSED**  | engine_state_step table with cascading RLS. 13 action handlers in engine-dispatch                 |
-| 5   | Schedule -> Operations Disconnect    | **PARTIAL** | upsert_session handler exists. Emit on shift publish wired. End-to-end flow not yet tested        |
-| 6   | Invite -> Trainee Dead End           | **PARTIAL** | invitation_accepted event registered. Engine trigger seeded. accept-invitation EF not yet updated |
-| 7   | Employee Pages Are Shells            | **CLOSED**  | my-schedule (MyWeekView), my-training (4 components), handbook (ChapterReader) all built          |
-| 8   | Document Mode Has No Reader          | **PARTIAL** | Employee handbook reader built. RAG chunking pipeline NOT built (handbook save -> doc_chunk)      |
-| 9   | Governance Has No CRUD               | **CLOSED**  | 5 forms: PolicyForm, ProtocolForm, ProcedureBuilder, KnowledgeTestBuilder, ConfirmationForm       |
-| 10  | No Session Hooks / Operational Tasks | **CLOSED**  | 3 tables + 3 enums created. Hook dispatcher process seeded. Engine action handlers ready          |
+| Gap | Description                          | Status      | Resolution                                                                                                    |
+| --- | ------------------------------------ | ----------- | ------------------------------------------------------------------------------------------------------------- |
+| 1   | No Event Emission                    | **CLOSED**  | emit() wired into all TanStack Query mutations. engine_event as 4th telemetry destination                     |
+| 2   | Two Disconnected Event Systems       | **CLOSED**  | engine-event provider calls engine-dispatch. Registry-driven event routing is canonical. Client relay via API |
+| 3   | No Completion Tracking               | **CLOSED**  | 3 tables created (knowledge_test_attempt, confirmation_signature, procedure_step_completion)                  |
+| 4   | No Per-Step Instance Tracking        | **CLOSED**  | engine_state_step table with cascading RLS. 13 action handlers in engine-dispatch                             |
+| 5   | Schedule -> Operations Disconnect    | **PARTIAL** | upsert_session handler exists. Emit on shift publish wired. End-to-end flow not yet tested                    |
+| 6   | Invite -> Trainee Dead End           | **PARTIAL** | invitation_accepted event registered. Engine trigger seeded. accept-invitation EF not yet updated             |
+| 7   | Employee Pages Are Shells            | **CLOSED**  | my-schedule (MyWeekView), my-training (4 components), handbook (ChapterReader) all built                      |
+| 8   | Document Mode Has No Reader          | **PARTIAL** | Employee handbook reader built. RAG chunking pipeline NOT built (handbook save -> doc_chunk)                  |
+| 9   | Governance Has No CRUD               | **CLOSED**  | 5 forms: PolicyForm, ProtocolForm, ProcedureBuilder, KnowledgeTestBuilder, ConfirmationForm                   |
+| 10  | No Session Hooks / Operational Tasks | **CLOSED**  | 3 tables + 3 enums created. Hook dispatcher process seeded. Engine action handlers ready                      |
 
 ### Known Remaining Gaps (audited 2026-03-22)
 
@@ -361,9 +373,9 @@ Cascade is a PRODUCER of events; Event Engine is the CONSUMER.
 
 ## 4. Architecture Decisions
 
-### 4.1 Event Engine as Universal Runtime
+### 4.1 Event Engine as Universal Workflow Runtime
 
-**Decision:** The Event Engine (`engine_process` + `engine_step` + `engine_state` + `engine_trigger` + `engine_event`) will serve as the universal workflow runtime for ALL process types:
+**Decision:** The Event Engine (`engine_process` + `engine_step` + `engine_state` + `engine_trigger` + `engine_event`) serves as the universal workflow runtime for orchestrated workflows, but not for the independent cascade proposal pipeline:
 
 | Process            | entity_type         | Trigger event                      | Steps                                                                | Status         |
 | ------------------ | ------------------- | ---------------------------------- | -------------------------------------------------------------------- | -------------- |
@@ -375,7 +387,7 @@ Cascade is a PRODUCER of events; Event Engine is the CONSUMER.
 | HACCP Daily        | department_session  | session_hook.pre_open              | CCP verification, temperature logging, deviation handling            | Planned        |
 | Session Hooks      | department_session  | session.opened / session.pre_close | Trigger routine tasks at specific times                              | Seeded         |
 
-**Rationale:** Architecture is generic — `action_type` + `action_payload` is extensible. New process types only need new action_type handlers.
+**Rationale:** Architecture is generic — `action_type` + `action_payload` is extensible. New workflow types only need new action_type handlers. Cascade remains separate because preview/apply, freshness checks, and framework gating are different lifecycle semantics.
 
 ### 4.2 Telemetry as Single Event Emitter
 
@@ -404,7 +416,7 @@ Cascade is a PRODUCER of events; Event Engine is the CONSUMER.
 
 **Cascade <-> Event Engine:** Cascade operates as an independent service layer. It does NOT run inside `engine_process`/`engine_state`. On successful apply, `apply_cascade()` emits domain events via `emit()`.
 
-**Open:** ADR-DRAFT has 6 unresolved hierarchy decisions awaiting Pontus.
+**Note:** `ADR-DRAFT-core-hierarchy-cascade.md` still contains unresolved hierarchy notes, but the canonical schema decision is `ADR-0056` (accepted). Treat the draft as follow-up clarification work, not as a blocker to the accepted cascade boundary.
 
 ---
 
@@ -579,10 +591,14 @@ Location: `apps/web/src/lib/cascade/`
 
 ### Package: `@smartout/telemetry`
 
+**Control-gate note:** Telemetry code is the source of truth. For exact event names,
+routing, and implemented destinations, verify `packages/telemetry/src/registry.ts`
+and `packages/telemetry/src/emit.ts` before trusting summary counts below.
+
 | File                          | Purpose                                                                  |
 | ----------------------------- | ------------------------------------------------------------------------ |
-| `registry.ts`                 | 26 typed events, BaseEvent shape, EVENT_ROUTING map                      |
-| `emit.ts`                     | Router: checks routing config, dispatches to 4 providers                 |
+| `registry.ts`                 | SmartoutEvent registry, BaseEvent shape, EVENT_ROUTING map               |
+| `emit.ts`                     | Router: checks routing config and dispatches implemented providers       |
 | `providers/posthog-client.ts` | PostHog browser-safe adapter (split from posthog.ts)                     |
 | `providers/posthog.ts`        | PostHog server-only adapter (loaded via dynamic import)                  |
 | `providers/logger.ts`         | Structured stdout logging (server-only, dynamic import)                  |
@@ -591,7 +607,7 @@ Location: `apps/web/src/lib/cascade/`
 | `hooks/use-track.ts`          | React hook for client-side tracking                                      |
 | `react.ts`                    | React bindings                                                           |
 
-### Destinations (4)
+### Destinations (implemented: 4)
 
 | Destination      | Transport                                  | Purpose             |
 | ---------------- | ------------------------------------------ | ------------------- |
@@ -600,11 +616,19 @@ Location: `apps/web/src/lib/cascade/`
 | `activity_trail` | INSERT to activity_trail table             | Audit               |
 | `engine_event`   | POST to engine-dispatch EF (or /api relay) | Workflow automation |
 
-### Registered Events (26)
+**Declared but not fully implemented in `emit.ts`:** `notifications` exists in the
+telemetry destination type system and routing metadata, but it is not yet a live
+delivery branch in `emit.ts`.
 
-Auth (3), org_structure (3), scheduling (4), operations (5), training (5), reconciliation (2), handbook (1), navigation (2).
+### Registered Events
 
-22 of 26 events route to `engine_event`. Only `auth signed_up/in/out`, `page viewed`, and `button clicked` skip engine dispatch.
+The registry has grown well beyond the original starter event set. Do not rely on
+older fixed event counts here; inspect `packages/telemetry/src/registry.ts` for the
+current authoritative set.
+
+Coverage now spans auth, onboarding, org structure, scheduling, contracts,
+operations, HACCP, training, communication, system, navigation, channels, and
+website-related domains.
 
 ### Usage
 

@@ -6,6 +6,7 @@ import { Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSignupWizard } from "../_hooks/useSignupWizard";
 import { completeSignup } from "../_lib/setupActions";
+import { buildPostSignupRedirectPath } from "../_lib/onboarding-shell";
 import type {
   Step1Data,
   Step2Data,
@@ -67,15 +68,10 @@ export function SetupLoading() {
           // localStorage might be unavailable
         }
 
-        // Redirect to the new workspace dashboard
-        if (result?.slug && window.location.hostname !== "localhost") {
-          // Production: use subdomain routing
-          window.location.href = `https://${result.slug}.smartout.ai/dashboard`;
-        } else if (result?.workspaceId) {
-          // Local dev: use ?ws= parameter
-          router.push(`/dashboard?ws=${result.workspaceId}`);
+        if (result?.workspaceId) {
+          router.push(buildPostSignupRedirectPath(result.workspaceId));
         } else {
-          router.push("/dashboard");
+          router.push("/onboarding");
         }
       } catch (err) {
         console.error("[SetupLoading] Setup failed:", err);

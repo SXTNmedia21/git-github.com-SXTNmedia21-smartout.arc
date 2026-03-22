@@ -8,6 +8,7 @@ import { emit } from "@smartout/telemetry";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import type { Json } from "@smartout/supabase";
 import { dashboardKeys } from "./dashboard-keys";
+import { useWorkspaceSetup } from "./use-workspace-setup";
 
 type OnboardingGuideProgress = {
   currentStep: number;
@@ -27,25 +28,26 @@ export function useOnboardingGuide() {
   const { profileId } = useContext(DashboardContext);
   const queryClient = useQueryClient();
   const supabase = createClient();
+  const { data: setupStatus, isLoading: isSetupLoading } = useWorkspaceSetup();
 
   const queryKey = dashboardKeys.onboardingGuide(workspaceId);
 
   const { data } = useQuery({
     queryKey,
-    enabled: !!workspaceId,
+    enabled: !!workspaceId && !isSetupLoading,
     staleTime: 60 * 1000,
     queryFn: async (): Promise<OnboardingGuideProgress> => {
+      if (!setupStatus?.needsSetup) {
+        return { ...DEFAULT_PROGRESS, isComplete: true };
+      }
+
       const { data: ws } = await supabase
         .from("workspace")
-        .select("onboarding_guide_progress, onboarding_completed")
+        .select("onboarding_guide_progress")
         .eq("workspace_id", workspaceId)
         .single();
 
       if (!ws) return DEFAULT_PROGRESS;
-
-      if (ws.onboarding_completed) {
-        return { ...DEFAULT_PROGRESS, isComplete: true };
-      }
 
       if (!ws.onboarding_guide_progress) return DEFAULT_PROGRESS;
 
@@ -110,7 +112,7 @@ export function useOnboardingGuide() {
     currentStep: progress.currentStep,
     completedSteps: progress.completedSteps,
     isComplete: progress.isComplete,
-    shouldShow: !progress.isComplete,
+    shouldShow: !!setupStatus?.needsSetup && !progress.isComplete,
     totalSteps: 9,
     setCurrentStep,
     markStepComplete,

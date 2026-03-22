@@ -33,6 +33,9 @@ desktop.ini
 .vscode/launch.json
 .vscode/*.code-workspace
 .cursor/
+!.cursor/
+!.cursor/agents/
+!.cursor/agents/*.md
 
 # Local dev artifacts
 .local/
@@ -44,6 +47,7 @@ desktop.ini
 coverage/
 artifacts/
 .claude/*
+!.claude/settings.json
 !.claude/settings.local.json
 !.claude/skills/
 !.claude/agent-memory/

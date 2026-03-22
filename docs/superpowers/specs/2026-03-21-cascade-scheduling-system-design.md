@@ -536,7 +536,7 @@ Step 9 detail: If the framework evaluation produced `review_required` outcomes, 
 
 1. **Production scope is hospitality only.** Other industries are architectural futures, not supported runtime targets.
 2. **I1 currently resolves only the hospitality package.** The package interface is generic, but only one package (`hospitality.ts`) is implemented and tested.
-3. **Join wizard stores provisional intake; setup wizard produces authoritative workspace runtime records.** The `/join` flow collects raw business data. The `/dashboard/setup` flow transforms it into cascade-ready runtime structures.
+3. **Join intake stores provisional input; authenticated onboarding produces authoritative runtime records.** The `/join` flow collects raw business data. The `/onboarding` flow finalizes the workspace shell into cascade-ready runtime structures. `/dashboard/setup` is post-bootstrap completion guidance, not the source of runtime truth.
 4. **Legacy onboarding artifacts** such as `company_opening_hours` remain as transitional inputs until migration is complete, but are **not** runtime sources of truth for cascade once `department_operating_hours` is active.
 
 #### Two-Wizard Onboarding Model
@@ -561,11 +561,11 @@ The cascade spec previously described a theoretical 10-step onboarding wizard. T
 
 **Implementation rule:** Do not break `/join`. Keep `company_opening_hours` for intake compatibility. Reclassify it as raw onboarding input, not runtime source of truth.
 
-##### B. Setup Wizard (`/dashboard/setup`) — I1 Hospitality Bootstrap Executor
+##### B. Authenticated Onboarding (`/onboarding`) — I1 Hospitality Bootstrap Executor
 
-**Purpose:** Apply hospitality package, transform raw join intake into authoritative workspace runtime structures, seed D1-D6 defaults, let admin confirm/override package outputs.
+**Purpose:** Apply the hospitality package, transform raw join intake into authoritative workspace runtime structures, seed D1-D6 defaults, and let the admin confirm or override package outputs before runtime truth is established.
 
-**Existing steps:** 9 steps — welcome → document drop → governance → payroll → employment → team → shift templates → season → handbook.
+**Existing steps:** hero → business → departments → locations → procedures → season → contract → welcome.
 
 **Outputs (target state with cascade):**
 
@@ -579,7 +579,7 @@ The cascade spec previously described a theoretical 10-step onboarding wizard. T
 - Governance defaults (policies, procedures, HACCP routines)
 - Handbook artifacts (auto-generated from confirmed setup)
 
-#### Setup Wizard Step Mapping (Revised)
+#### Authenticated Onboarding Step Mapping (Revised)
 
 Each step is defined by its **bootstrap interface** — what foundation records it creates, what provenance it stamps, and what package data it consumes. The concrete package content (which archetypes, which defaults) is defined by the loaded framework package, not by the foundation.
 
@@ -594,6 +594,14 @@ Each step is defined by its **bootstrap interface** — what foundation records 
 | 6 — Shift Templates | `ShiftTemplateSetupStep` | Consume package shift archetypes. Read `company_opening_hours` → map into department-level hours via bootstrap service. Admin modifies.         | `schedule_template`, `schedule_template_shift` (with provenance)                                                       |
 | 7 — Season          | `SeasonSetupStep`        | Create temporal structures. Transform join intake + package defaults into authoritative runtime records via bootstrap service.                  | `planning_cycle`, `season`, `department_operating_hours`, `planning_event`, `adjustment_factors` (all with provenance) |
 | 8 — Handbook        | `HandbookSetupStep`      | Downstream consumer of steps 0-7. No direct foundation record creation.                                                                         | Handbook artifacts                                                                                                     |
+
+#### Post-Bootstrap Setup Guide (`/dashboard/setup`)
+
+The dashboard setup guide remains important, but it is a **consumer of bootstrap outputs**, not a bootstrap executor.
+
+- It should be entered after workspace runtime truth exists.
+- It should route from real setup status (`policy`, `profile`, `schedule_shift`, `season`, etc.), not from `workspace.onboarding_completed`.
+- It may enrich governance, payroll, employment, team, shift-template, season, and handbook data, but it must not become a parallel source of truth beside the cascade bootstrap contract.
 
 #### Bootstrap Service
 

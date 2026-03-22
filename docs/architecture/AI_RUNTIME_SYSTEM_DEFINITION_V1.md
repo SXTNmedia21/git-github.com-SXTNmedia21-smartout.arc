@@ -365,3 +365,12 @@ This document is the canonical AI runtime specification.
 
 `docs/architecture/SMARTOUT_STATEMACHINE_BLUEPRINT.md` remains valid for the generic platform state machine domain.  
 It is not the canonical AI runtime contract.
+
+### 10.4 Onboarding and cascade ownership boundary
+
+The AI runtime may assist, validate, explain, and enrich onboarding flows, but it does not own workspace runtime truth.
+
+- `/join` intake data is provisional input.
+- `/onboarding` bootstrap/finalization establishes authoritative workspace runtime records.
+- `/dashboard/setup` is a post-bootstrap completion guide.
+- No mission, tool, or runtime hook may create a parallel onboarding state model beside the cascade bootstrap contract.

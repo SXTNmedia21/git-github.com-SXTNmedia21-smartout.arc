@@ -903,12 +903,15 @@ export function DashboardShell({
 
   const isSetupPage = pathname === "/dashboard/setup";
 
-  // ── Redirect to setup if onboarding not completed ──
+  // Route incomplete workspaces into the setup guide using live module status,
+  // not the legacy onboarding_completed flag from older onboarding narratives.
   useEffect(() => {
-    if (workspaceCtx?.workspace.onboarding_completed === false && !isSetupPage) {
-      window.location.href = "/dashboard/setup";
+    if (isSetupLoading || !isSetupMode || isSetupPage || isDashboardPage) {
+      return;
     }
-  }, [workspaceCtx?.workspace.onboarding_completed, isSetupPage]);
+
+    window.location.href = "/dashboard/setup";
+  }, [isSetupLoading, isSetupMode, isSetupPage, isDashboardPage]);
 
   // ── Setup mode: fullscreen, no chrome ──
   if ((isSetupMode && isDashboardPage) || isSetupPage) {
