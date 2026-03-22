@@ -26,6 +26,9 @@ export const env = createEnv({
     SHIFT_MCP_URL: z.string().url().optional(),
     STAGE_ENGINE_URL: z.string().url().optional(),
     STAGE_ENGINE_API_KEY: z.string().min(16).optional(),
+    LIVEKIT_API_KEY: z.string().min(1).optional(),
+    LIVEKIT_API_SECRET: z.string().min(1).optional(),
+    LIVEKIT_WEBHOOK_SECRET: z.string().min(1).optional(),
     // Allow overriding Node environment for testing
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   },
@@ -40,6 +43,7 @@ export const env = createEnv({
     NEXT_PUBLIC_LANDING_URL: z.string().url().optional(),
     NEXT_PUBLIC_REVALIDATION_SECRET: z.string().optional(),
     NEXT_PUBLIC_STAGE_ENGINE_URL: z.string().url().optional(),
+    NEXT_PUBLIC_LIVEKIT_URL: z.string().url().optional(),
   },
 
   // For Next.js >= 13.4.4, you only need to destructure client variables:
@@ -53,6 +57,7 @@ export const env = createEnv({
     NEXT_PUBLIC_LANDING_URL: process.env.NEXT_PUBLIC_LANDING_URL,
     NEXT_PUBLIC_REVALIDATION_SECRET: process.env.NEXT_PUBLIC_REVALIDATION_SECRET,
     NEXT_PUBLIC_STAGE_ENGINE_URL: process.env.NEXT_PUBLIC_STAGE_ENGINE_URL,
+    NEXT_PUBLIC_LIVEKIT_URL: process.env.NEXT_PUBLIC_LIVEKIT_URL,
   },
 
   // If variables are missing, it will throw an error automatically
