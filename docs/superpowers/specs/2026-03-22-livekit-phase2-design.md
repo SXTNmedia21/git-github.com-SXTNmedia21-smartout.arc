@@ -19,7 +19,7 @@ tags: [livekit, voice, push-to-talk, calls, realtime, mobile, krisp]
 
 ### In scope
 
-- 1:1 voice calls (DM call button, ringing, accept/reject/missed)
+- 1:1 voice calls (DM call button, invite signaling, accept/reject/missed)
 - Group voice calls (from department/team/session/custom channels)
 - Push-to-talk walkie-talkie mode (persistent rooms, hold-to-speak)
 - Web (Next.js) + Mobile (React Native + Expo)
@@ -80,6 +80,13 @@ Enums already created: `channel_call_status` (active/ending/ended), `channel_pre
 
 Channel table already has: `audio_policy`, `video_policy`, `recording_policy`, `ai_voice_policy` columns.
 
+### Ringing state
+
+`ringing` is **NOT** a value in `channel_call_status`. It is an ephemeral state that exists only
+in Supabase Realtime Broadcast signaling. The DB enum values are `active | ending | ended` only.
+A 1:1 call is created as `status = active` immediately. If the callee never joins and the room
+closes, the webhook handler detects this via `call_type = 'direct'` + `max_participants <= 1`.
+
 ### New tables
 
 #### `channel_presence`
@@ -96,6 +103,7 @@ and LiveKit participant state. This table is a coarse analytics/last-seen snapsh
 | `status`       | channel_presence_status | NOT NULL                                               |                          |
 | `device_type`  | text                    | NULL                                                   | web, ios, android        |
 | `last_seen_at` | timestamptz             | DEFAULT now()                                          |                          |
+| `created_at`   | timestamptz             | DEFAULT now()                                          |                          |
 | `updated_at`   | timestamptz             | DEFAULT now()                                          | + set_updated_at trigger |
 
 Constraints: `UNIQUE(channel_id, profile_id)`
@@ -104,39 +112,49 @@ Constraints: `UNIQUE(channel_id, profile_id)`
 
 Active call instance in a channel. One active session per channel at a time.
 
-| Column              | Type                     | Constraint                                    | Notes                               |
-| ------------------- | ------------------------ | --------------------------------------------- | ----------------------------------- |
-| `id`                | uuid                     | PK, default gen_random_uuid()                 |                                     |
-| `channel_id`        | uuid                     | FK -> channel(id) ON DELETE CASCADE, NOT NULL |                                     |
-| `workspace_id`      | uuid                     | FK -> workspace(workspace_id), NOT NULL       | RLS                                 |
-| `livekit_room_name` | text                     | NOT NULL                                      | `{workspace_id}:{channel_id}`       |
-| `status`            | channel_call_status      | NOT NULL                                      | active/ending/ended                 |
-| `audio_policy`      | channel_audio_policy     | NOT NULL                                      | Snapshot from channel at call start |
-| `video_policy`      | channel_video_policy     | NOT NULL                                      | Always 'disabled' in Phase 2        |
-| `recording_policy`  | channel_recording_policy | NOT NULL                                      | Always 'off' in Phase 2             |
-| `started_by`        | uuid                     | FK -> profile(profile_id), NULL               |                                     |
-| `max_participants`  | int                      | DEFAULT 0                                     | Updated by webhook                  |
-| `started_at`        | timestamptz              | DEFAULT now()                                 |                                     |
-| `ended_at`          | timestamptz              | NULL                                          | Set by webhook                      |
-| `created_at`        | timestamptz              | DEFAULT now()                                 |                                     |
-| `updated_at`        | timestamptz              | DEFAULT now()                                 | + set_updated_at trigger            |
+New enum required: `channel_call_type` (`direct | group | ptt`).
+
+| Column              | Type                     | Constraint                                    | Notes                                 |
+| ------------------- | ------------------------ | --------------------------------------------- | ------------------------------------- |
+| `id`                | uuid                     | PK, default gen_random_uuid()                 |                                       |
+| `channel_id`        | uuid                     | FK -> channel(id) ON DELETE CASCADE, NOT NULL |                                       |
+| `workspace_id`      | uuid                     | FK -> workspace(workspace_id), NOT NULL       | RLS                                   |
+| `call_type`         | channel_call_type        | NOT NULL                                      | direct/group/ptt                      |
+| `livekit_room_name` | text                     | NOT NULL                                      | `{workspace_id}:{channel_id}`         |
+| `status`            | channel_call_status      | NOT NULL                                      | active/ending/ended (never 'ringing') |
+| `audio_policy`      | channel_audio_policy     | NOT NULL                                      | Snapshot from channel at call start   |
+| `video_policy`      | channel_video_policy     | NOT NULL                                      | Always 'disabled' in Phase 2          |
+| `recording_policy`  | channel_recording_policy | NOT NULL                                      | Always 'off' in Phase 2               |
+| `started_by`        | uuid                     | FK -> profile(profile_id), NULL               |                                       |
+| `max_participants`  | int                      | DEFAULT 0                                     | Updated by webhook                    |
+| `started_at`        | timestamptz              | DEFAULT now()                                 |                                       |
+| `ended_at`          | timestamptz              | NULL                                          | Set by webhook                        |
+| `created_at`        | timestamptz              | DEFAULT now()                                 |                                       |
+| `updated_at`        | timestamptz              | DEFAULT now()                                 | + set_updated_at trigger              |
+
+Design note: Module 18 proposes `active_call_id` FK on `channel` and `call_status` on `profile`.
+Phase 2 intentionally omits both. Active call is queried via
+`channel_call_session WHERE channel_id = X AND status = 'active'`. Profile call status is deferred
+to Phase 3 (when SIP/telephony needs it).
 
 #### `channel_call_participant`
 
 Per-participant state in an active call.
 
-| Column             | Type        | Constraint                                                 | Notes                |
-| ------------------ | ----------- | ---------------------------------------------------------- | -------------------- |
-| `id`               | uuid        | PK, default gen_random_uuid()                              |                      |
-| `call_session_id`  | uuid        | FK -> channel_call_session(id) ON DELETE CASCADE, NOT NULL |                      |
-| `workspace_id`     | uuid        | FK -> workspace(workspace_id), NOT NULL                    | RLS                  |
-| `profile_id`       | uuid        | FK -> profile(profile_id) ON DELETE RESTRICT, NOT NULL     |                      |
-| `is_ai`            | boolean     | DEFAULT false                                              | Future: Botsson      |
-| `joined_at`        | timestamptz | DEFAULT now()                                              |                      |
-| `left_at`          | timestamptz | NULL                                                       | NULL = still in call |
-| `mic_enabled`      | boolean     | DEFAULT false                                              |                      |
-| `speaking_seconds` | int         | DEFAULT 0                                                  | Accumulated          |
-| `device_type`      | text        | NULL                                                       | web, ios, android    |
+| Column             | Type        | Constraint                                                 | Notes                    |
+| ------------------ | ----------- | ---------------------------------------------------------- | ------------------------ |
+| `id`               | uuid        | PK, default gen_random_uuid()                              |                          |
+| `call_session_id`  | uuid        | FK -> channel_call_session(id) ON DELETE CASCADE, NOT NULL |                          |
+| `workspace_id`     | uuid        | FK -> workspace(workspace_id), NOT NULL                    | RLS                      |
+| `profile_id`       | uuid        | FK -> profile(profile_id) ON DELETE RESTRICT, NOT NULL     |                          |
+| `is_ai`            | boolean     | DEFAULT false                                              | Future: Botsson          |
+| `joined_at`        | timestamptz | DEFAULT now()                                              |                          |
+| `left_at`          | timestamptz | NULL                                                       | NULL = still in call     |
+| `mic_enabled`      | boolean     | DEFAULT false                                              |                          |
+| `speaking_seconds` | int         | DEFAULT 0                                                  | Accumulated              |
+| `device_type`      | text        | NULL                                                       | web, ios, android        |
+| `created_at`       | timestamptz | DEFAULT now()                                              |                          |
+| `updated_at`       | timestamptz | DEFAULT now()                                              | + set_updated_at trigger |
 
 Partial unique index: `UNIQUE(call_session_id, profile_id) WHERE left_at IS NULL`
 
@@ -200,12 +218,12 @@ Single token issuer. No alternative minting path.
 
 Authoritative call state reconciliation. Validates HMAC via `WebhookReceiver`.
 
-| Webhook event        | Action                                                                                                                                                   |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `participant_joined` | Upsert `channel_call_participant`, update `max_participants`, emit `call.participant_joined`                                                             |
-| `participant_left`   | Set `left_at` on participant, emit `call.participant_left`                                                                                               |
-| `room_started`       | Create `channel_call_session` if not exists                                                                                                              |
-| `room_finished`      | Finalize session (status=ended, ended_at), create `call_log`, emit `call.session_ended`. If status was ringing with no answer: emit `call.invite_missed` |
+| Webhook event        | Action                                                                                                                                                                            |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `participant_joined` | Upsert `channel_call_participant`, update `max_participants`, emit `channel.call.participant_joined`                                                                              |
+| `participant_left`   | Set `left_at` on participant, emit `channel.call.participant_left`                                                                                                                |
+| `room_started`       | Create `channel_call_session` if not exists                                                                                                                                       |
+| `room_finished`      | Finalize session (status=ended, ended_at), create `call_log`, emit `channel.call.ended`. If `call_type = 'direct'` and `max_participants <= 1`: emit `channel.call.invite_missed` |
 
 ### `call-command` (verify_jwt = true)
 
@@ -217,16 +235,17 @@ Call orchestration: start, respond.
 2. Check `audio_policy != 'disabled'`
 3. Create `channel_call_session` row
 4. For 1:1: broadcast `call_invite` to `profile:{workspaceId}:{calleeProfileId}:calls`
-5. For group: broadcast `call.group_announced` to `channel:{workspaceId}:{channelId}:calls`
-6. Emit `call.session_started` telemetry (DB row created = authoritative moment)
-7. Return `{ callSessionId, roomName }`
+5. For group: broadcast `group_call_started` to `channel:{workspaceId}:{channelId}:calls`
+6. Emit `channel.call.started` telemetry (DB row created = authoritative moment)
+7. For 1:1: also emit `channel.call.invite_sent` (broadcast dispatched = authoritative moment)
+8. Return `{ callSessionId, roomName }`
 
 **Action: `respond`**
 
 1. Body: `{ callSessionId, action: 'accept' | 'reject' | 'cancel' }`
 2. Broadcast appropriate event via Realtime
 3. On reject/cancel with no other participants: update session status
-4. Emit `call.invite_accepted`, `call.invite_rejected`, or `call.invite_cancelled`
+4. Emit `channel.call.invite_accepted`, `channel.call.invite_rejected`, or `channel.call.invite_cancelled`
 
 ---
 
@@ -255,21 +274,26 @@ Events:
 ## 6. Telemetry
 
 All events registered in `packages/telemetry/src/registry.ts` before implementation.
-Reconciled with existing event namespace conventions.
+Uses `channel.call.*` namespace consistent with Phase 1's `channel.*` pattern (calls are a
+subsystem of channels, not a separate top-level domain).
 
-| Event                     | Emitted from          | Authoritative moment           | Destinations                          |
-| ------------------------- | --------------------- | ------------------------------ | ------------------------------------- |
-| `call.session_started`    | `call-command` EF     | DB row created                 | PostHog, activity_trail, engine_event |
-| `call.session_ended`      | `livekit-webhook` EF  | `room_finished` webhook        | PostHog, activity_trail, engine_event |
-| `call.participant_joined` | `livekit-webhook` EF  | `participant_joined` webhook   | PostHog, activity_trail               |
-| `call.participant_left`   | `livekit-webhook` EF  | `participant_left` webhook     | PostHog, activity_trail               |
-| `call.invite_sent`        | `call-command` EF     | Broadcast dispatched           | PostHog, activity_trail               |
-| `call.invite_accepted`    | `call-command` EF     | Respond action                 | PostHog, activity_trail               |
-| `call.invite_rejected`    | `call-command` EF     | Respond action                 | PostHog, activity_trail               |
-| `call.invite_missed`      | `livekit-webhook` EF  | `room_finished` with no answer | PostHog, activity_trail               |
-| `call.group_announced`    | `call-command` EF     | Broadcast dispatched           | PostHog, activity_trail               |
-| `call.ptt_activated`      | Client (debounced 5s) | User action                    | PostHog                               |
-| `call.ptt_deactivated`    | Client (debounced 5s) | User action                    | PostHog                               |
+Note: Edge Functions emit telemetry via direct `activity_trail` INSERT + PostHog server-side API.
+The `emit()` helper from `@smartout/telemetry` is designed for Next.js/client contexts. Edge
+Functions use a lightweight Deno-compatible emit path that must be verified in Slice 1.
+
+| Event                             | Emitted from          | Authoritative moment                                | Destinations                          |
+| --------------------------------- | --------------------- | --------------------------------------------------- | ------------------------------------- |
+| `channel.call.started`            | `call-command` EF     | DB row created                                      | PostHog, activity_trail, engine_event |
+| `channel.call.ended`              | `livekit-webhook` EF  | `room_finished` webhook                             | PostHog, activity_trail, engine_event |
+| `channel.call.participant_joined` | `livekit-webhook` EF  | `participant_joined` webhook                        | PostHog, activity_trail               |
+| `channel.call.participant_left`   | `livekit-webhook` EF  | `participant_left` webhook                          | PostHog, activity_trail               |
+| `channel.call.invite_sent`        | `call-command` EF     | Broadcast dispatched (1:1 calls only)               | PostHog, activity_trail               |
+| `channel.call.invite_accepted`    | `call-command` EF     | Respond action                                      | PostHog, activity_trail               |
+| `channel.call.invite_rejected`    | `call-command` EF     | Respond action                                      | PostHog, activity_trail               |
+| `channel.call.invite_missed`      | `livekit-webhook` EF  | `room_finished` + direct call + max_participants<=1 | PostHog, activity_trail               |
+| `channel.call.group_announced`    | `call-command` EF     | Broadcast dispatched                                | PostHog, activity_trail               |
+| `channel.call.ptt_activated`      | Client (debounced 5s) | User action                                         | PostHog                               |
+| `channel.call.ptt_deactivated`    | Client (debounced 5s) | User action                                         | PostHog                               |
 
 ---
 
@@ -310,6 +334,7 @@ type CallSession = {
   id: string;
   channelId: string;
   workspaceId: string;
+  callType: "direct" | "group" | "ptt";
   livekitRoomName: string;
   status: "active" | "ending" | "ended";
   audioPolicy: "disabled" | "ptt" | "open_mic" | "listen_only";
@@ -427,11 +452,12 @@ interface UseLiveKitCallReturn {
 ```
 LIVEKIT_API_KEY=                    # op://Smartout/livekit/api-key
 LIVEKIT_API_SECRET=                 # op://Smartout/livekit/api-secret
-NEXT_PUBLIC_LIVEKIT_URL=wss://walkie-talkie-6ejzctmi.livekit.cloud
+NEXT_PUBLIC_LIVEKIT_URL=wss://walkie-talkie-6ejzctmi.livekit.cloud   # plain value (not a secret)
 LIVEKIT_WEBHOOK_SECRET=             # op://Smartout/livekit/webhook-secret
 ```
 
-Credentials from `~/.livekit/cli-config.yaml` must be moved to 1Password.
+`NEXT_PUBLIC_LIVEKIT_URL` is a public endpoint, not a secret — stored as plain value in `.env.template`.
+The other three credentials from `~/.livekit/cli-config.yaml` must be moved to 1Password.
 
 ---
 
@@ -482,9 +508,12 @@ Vertical slices, each testable end-to-end.
 - `.env.template`: add 4 LiveKit env vars
 - `apps/web/src/env.ts`: Zod validation
 - `supabase/functions/config.toml`: register `livekit-webhook` (verify_jwt = false)
-- `packages/telemetry/src/registry.ts`: register 11 call events
+- `packages/telemetry/src/registry.ts`: register 11 `channel.call.*` events
 - `apps/mobile/app.json`: add LiveKit Expo plugins
 - `packages/walkieTalkie/`: scaffold package (types, keys, queries, mutations, signaling, ptt-logic)
+- ADRs: write "LiveKit as WebRTC provider" and "Edge Functions own call orchestration" ADRs
+- Reference docs: update `docs/reference/ENV_VARS.md`, `docs/reference/ROUTES.md`
+- Verify `emit()` works from Deno Edge Functions; if not, document alternative telemetry path
 
 ### Slice 1: Database + Edge Functions
 
@@ -533,9 +562,11 @@ Vertical slices, each testable end-to-end.
 
 - Call state persistence across navigation
 - Reconnection handling
-- Error states
-- Missed call notifications
-- ADR, WORKLOG, decision log, learning log
+- Error states (room full, connection failed, permission denied)
+- Missed call notifications (from webhook -> notification pipeline)
+- PTT room idempotency: handle `room_finished` webhook for PTT rooms gracefully (no false `invite_missed`)
+- WORKLOG, decision log, learning log updates
+- Update `docs/reference/EDGE_FUNCTIONS_REFERENCE.md` with 3 new functions
 
 **Dependency:** 0 -> 1 -> 2 -> 3 -> 4 -> 5 -> 6
 Slices 4 and 5 are independent after Slice 2.
