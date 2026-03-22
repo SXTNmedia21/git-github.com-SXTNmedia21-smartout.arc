@@ -227,7 +227,73 @@ Deno.serve(async (req: Request) => {
       await adminClient.from("team_member").insert(teamRows);
     }
 
-    // ── 5. Mark invitation as accepted ──
+    // ── 5. Employee cascade: contract + payroll profile ──
+    const isEmployee = invitation.invite_employment_type === "employee";
+    const meta = (invitation.metadata ?? {}) as Record<string, unknown>;
+
+    if (isEmployee) {
+      // 5a. Create draft employment_contract
+      const startDate = (meta.start_date as string) || new Date().toISOString().split("T")[0];
+      const { data: contract } = await adminClient
+        .from("employment_contract")
+        .insert({
+          workspace_id: invitation.workspace_id,
+          profile_id: profile.profile_id,
+          status: "draft",
+          position_title: invitation.role || "employee",
+          employment_category: (meta.employment_category as string) || "fast",
+          start_date: startDate,
+          agreed_weekly_hours: meta.intended_weekly_hours
+            ? Number(meta.intended_weekly_hours)
+            : null,
+        })
+        .select("contract_id")
+        .single();
+
+      // 5b. Create employee_payroll_profile from template or metadata
+      const salaryType = (meta.salary_type as string) || "hourly";
+      const weeklyHours = meta.intended_weekly_hours ? Number(meta.intended_weekly_hours) : 37.5;
+      const templateId = (meta.payroll_template_id as string) || null;
+
+      // If a template was selected, read its defaults
+      let tariffCategory = "ufaglart";
+      if (templateId) {
+        const { data: template } = await adminClient
+          .from("payroll_profile_template")
+          .select("tariff_category")
+          .eq("id", templateId)
+          .single();
+        if (template?.tariff_category) tariffCategory = template.tariff_category;
+      }
+
+      await adminClient.from("employee_payroll_profile").insert({
+        workspace_id: invitation.workspace_id,
+        profile_id: profile.profile_id,
+        employment_contract_id: contract?.contract_id ?? null,
+        salary_type: salaryType,
+        agreed_weekly_hours: weeklyHours,
+        tariff_category: tariffCategory,
+        seniority_start_date: startDate,
+        has_fagbrev: tariffCategory === "faglart",
+        valid_from: startDate,
+        seeded_from_template_id: templateId,
+        seeded_at: templateId ? new Date().toISOString() : null,
+      });
+
+      // 5c. Promote profile to active (payroll profile created = operational employee)
+      await adminClient
+        .from("profile")
+        .update({ status: "active" })
+        .eq("profile_id", profile.profile_id);
+    } else {
+      // Guest invite: set active directly, no contract/payroll
+      await adminClient
+        .from("profile")
+        .update({ status: "active" })
+        .eq("profile_id", profile.profile_id);
+    }
+
+    // ── 6. Mark invitation as accepted ──
     await adminClient
       .from("invitation")
       .update({ status: "accepted" })
@@ -238,6 +304,7 @@ Deno.serve(async (req: Request) => {
         success: true,
         workspace_id: invitation.workspace_id,
         profile_id: profile.profile_id,
+        employment_type: invitation.invite_employment_type ?? "guest",
       }),
       {
         status: 200,
