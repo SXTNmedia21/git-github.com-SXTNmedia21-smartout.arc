@@ -132,6 +132,7 @@ Ingen unntak.
 
 ## UI & Styling
 
+- **Design System: "Ren og Varm"** — `docs/design/ren-og-varm-styleguide.html` is the canonical visual reference. BEFORE building any UI component, read this file for colors, typography, animations, and patterns. Live at `design.smartout.ai`.
 - **Tailwind v4** — CSS-based config in `globals.css`. NO `tailwind.config.ts`.
 - Root `package.json` has Tailwind v3 — that's for Remotion only.
 - Use CSS variable classes: `bg-background`, `text-foreground`, `border-border`
@@ -140,6 +141,10 @@ Ingen unntak.
 - Add components: `cd apps/web && npx shadcn@latest add <component>`
 - Dashboard: Server layout + Client DashboardShell (ADR-0021)
 - Subdomain routing: `{slug}.smartout.ai` → middleware sets `x-workspace-slug`
+- **Design tokens:** `packages/design-tokens/src/tokens.ts` (source of truth) → `tokens.css` (web) → `native.ts` (mobile)
+- **Fonts:** Instrument Serif (headings, `font-heading`), Geist Sans (body), Geist Mono (data)
+- **Motion:** Spring physics (stiffness 30-45, damping 20-24, mass 2-2.5). Never abrupt. Min 250ms exit, 500ms entrance.
+- **Icons:** Lucide React only. No emojis in UI. No other icon libraries.
 
 > All routes: `docs/reference/ROUTES.md`
 
