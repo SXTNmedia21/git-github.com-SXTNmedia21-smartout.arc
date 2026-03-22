@@ -196,6 +196,16 @@ ALTER TABLE employee_payroll_profile
   ADD COLUMN seeded_at TIMESTAMPTZ;
 ```
 
+#### `season_budget` — add target_margin column
+
+```sql
+ALTER TABLE season_budget
+  ADD COLUMN target_margin NUMERIC(5,2);
+
+COMMENT ON COLUMN season_budget.target_margin IS
+  'Profitability target (%). Independent from target_labor_percentage which is a cost ratio.';
+```
+
 #### `tariff_rate_table` — add provenance for workspace copies
 
 ```sql
@@ -218,7 +228,7 @@ One shared bootstrap service callable from both workspace creation paths. Implem
 
 | Path          | Hook location                                          | Called after                                |
 | ------------- | ------------------------------------------------------ | ------------------------------------------- |
-| `/onboarding` | `finalize_onboarding_workspace` RPC (or post-RPC call) | Workspace + departments + locations created |
+| `/onboarding` | `finalize-workspace` Edge Function (post-finalization) | Workspace + departments + locations created |
 | `/join`       | `activate-workspace` EF                                | After agent profile creation                |
 | Manual        | Admin UI (re-run bootstrap)                            | On demand                                   |
 
@@ -277,8 +287,8 @@ Step 6: planning_cycle
 
 Step 7: season_budget enrichment
   If user-entered budget data exists (expectedRevenue, targetMargin):
-    expectedRevenue → season_budget.total_target
-    targetMargin → season_budget.target_margin (NOT labor_percentage)
+    expectedRevenue → season_budget.total_target_revenue
+    targetMargin → season_budget.target_margin (NEW COLUMN, NOT target_labor_percentage)
   If no intake data (e.g. /join path with partial data):
     Create season_budget with status='draft', NULL targets
     Suggest industry defaults as starting point (displayed in UI, not auto-saved)
@@ -313,7 +323,7 @@ Step 10: engine_authority_config
 
 One `regulatory_framework` row:
 
-- `slug`: `hospitality.no.default.v1`
+- `code`: `hospitality.no.default.v1`
 - `name`: Norsk serveringsbransje — grunnpakke
 - `jurisdiction`: NO
 - `industry`: hospitality
@@ -337,16 +347,18 @@ These are baseline framework rules for `hospitality.no.default.v1`, not an exhau
 
 ### 6.3 Framework Triggers
 
-| Trigger               | Type         | Mode         | Fires when                         |
-| --------------------- | ------------ | ------------ | ---------------------------------- |
-| shift_created         | state_change | state_change | New shift inserted                 |
-| shift_updated         | state_change | state_change | Shift times/assignment changed     |
-| schedule_published    | state_change | state_change | Batch of shifts published          |
-| hours_exceeded_daily  | threshold    | threshold    | Employee's daily hours > 9         |
-| hours_exceeded_weekly | threshold    | threshold    | Employee's weekly hours > 40       |
-| rest_period_violated  | threshold    | threshold    | Gap between shifts < 11h           |
-| age_restriction_check | state_change | state_change | Shift assigned to under-18 profile |
-| holiday_shift_check   | state_change | state_change | Shift on public_holiday date       |
+Triggers are seeded as `framework_trigger` rows. The `code` column holds the trigger identifier (free text). The `trigger_mode` column uses the `framework_trigger_mode` enum (`state_change`/`time_based`/`threshold`/`external_event`). The `trigger_type` column uses `framework_trigger_type` enum — use the closest match from existing values.
+
+| Code (free text)      | trigger_type (enum) | trigger_mode (enum) | Fires when                         |
+| --------------------- | ------------------- | ------------------- | ---------------------------------- |
+| shift_created         | operating_hours     | state_change        | New shift inserted                 |
+| shift_updated         | operating_hours     | state_change        | Shift times/assignment changed     |
+| schedule_published    | operating_hours     | state_change        | Batch of shifts published          |
+| hours_exceeded_daily  | operating_hours     | threshold           | Employee's daily hours > 9         |
+| hours_exceeded_weekly | operating_hours     | threshold           | Employee's weekly hours > 40       |
+| rest_period_violated  | operating_hours     | threshold           | Gap between shifts < 11h           |
+| age_restriction_check | manual_override     | state_change        | Shift assigned to under-18 profile |
+| holiday_shift_check   | season_transition   | state_change        | Shift on public_holiday date       |
 
 ### 6.4 Tariff Rate Baseline (Riksavtalen — Correct Rates)
 
@@ -538,7 +550,9 @@ Two-layer design:
 1. **Loader** (service layer, upstream caller): loads applicable `framework_rule` rows + `workspace_rule_override` rows for the workspace and trigger type. Passes them to the evaluator.
 2. **Pure evaluator** (`evaluateFrameworkRules`): deterministic function. Takes pre-loaded rules + context, returns evaluation result. No DB access.
 
-### 9.2 `evaluateFrameworkRules()` — Phase B Completion
+### 9.2 `evaluateFrameworkRules()` — Phase B Rewrite
+
+**Breaking change:** The existing `evaluateFrameworkRules()` has a different signature (`proposedChanges, rules, workspaceOverrides, evaluationDate`) and returns `Conflict[]`. This spec defines a complete rewrite with a new signature and return type. The existing 29 tests in `__tests__/evaluate-framework-rules.test.ts` must be rewritten to match the new interface. The existing function evaluated proposed cascade changes against rules; the new function evaluates shift/schedule actions against framework rules with employee context — a fundamentally different concern.
 
 | Capability                                                                     | Status |
 | ------------------------------------------------------------------------------ | ------ |
@@ -687,16 +701,16 @@ A season contains multiple planning cycles. When a cycle ends, the next one star
 
 ```
 Onboarding wizard (season step)
-  expectedRevenue → season_budget.total_target
-  targetMargin → season_budget.target_margin
+  expectedRevenue → season_budget.total_target_revenue (existing column)
+  targetMargin → season_budget.target_margin (NEW COLUMN — requires ALTER TABLE)
 
-  labor_percentage: NOT derived from targetMargin
+  target_labor_percentage (existing column): NOT derived from target_margin
     Suggested from industry defaults (e.g. 30% for restaurants)
     Or from prior data / scraping results
     But always explicit user input or clearly labeled suggestion
 ```
 
-**targetMargin is a profitability target. labor_percentage is a cost-ratio component. They are independent variables.** The spec must not conflate them.
+**Schema note:** `season_budget` currently has `total_target_revenue` and `target_labor_percentage` but NO `target_margin` column. This spec adds `target_margin NUMERIC(5,2)` via ALTER TABLE. targetMargin (profitability target) and target_labor_percentage (cost ratio) are independent variables — the spec must not conflate them.
 
 ### 12.2 Scraped Data Treatment
 
@@ -725,18 +739,18 @@ Design for it now: `workspace.intelligence_data.proff` field reserved. Scraping 
 
 ### 13.2 Modified Files
 
-| File                                                                     | Change                                                              |
-| ------------------------------------------------------------------------ | ------------------------------------------------------------------- |
-| `supabase/functions/activate-workspace/index.ts`                         | Call bootstrap-cascade after agent profile                          |
-| `supabase/migrations/*_finalize_onboarding*.sql`                         | Call bootstrap-cascade after finalization                           |
-| `supabase/functions/accept-invitation/index.ts`                          | Employee cascade: contract + payroll profile + status promotion     |
-| `apps/web/src/app/dashboard/people/_components/invite-member-dialog.tsx` | Add invite_employment_type, payroll fields                          |
-| `apps/web/src/lib/cascade/evaluate-framework-rules.ts`                   | Complete: multi-rule, context, overrides                            |
-| `apps/web/src/lib/cascade/types.ts`                                      | New types for evaluation, tariff, bootstrap                         |
-| `apps/web/src/lib/cascade/resolve-hours.ts`                              | No signature change — works on absolute times                       |
-| `apps/web/src/app/dashboard/settings/_hooks/use-operating-hours.ts`      | Show offsets, compute preview from base                             |
-| `apps/web/src/lib/industry/packages/hospitality.ts`                      | Fix tariff rates, add department offsets, add payroll templates     |
-| `supabase/functions/engine-dispatch/index.ts`                            | Filter session creation by department_type (upsert_session handler) |
+| File                                                                     | Change                                                                        |
+| ------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| `supabase/functions/activate-workspace/index.ts`                         | Call bootstrap-cascade after agent profile (join path)                        |
+| `supabase/functions/finalize-workspace/index.ts`                         | Call bootstrap-cascade after finalization (onboarding path)                   |
+| `supabase/functions/accept-invitation/index.ts`                          | Employee cascade: contract + payroll profile + status promotion               |
+| `apps/web/src/app/dashboard/people/_components/invite-member-dialog.tsx` | Add invite_employment_type, payroll fields                                    |
+| `apps/web/src/lib/cascade/evaluate-framework-rules.ts`                   | Rewrite: new signature, multi-rule, context, overrides. 29 tests must migrate |
+| `apps/web/src/lib/cascade/types.ts`                                      | New types for evaluation, tariff, bootstrap                                   |
+| `apps/web/src/lib/cascade/resolve-hours.ts`                              | No signature change — works on absolute times                                 |
+| `apps/web/src/app/dashboard/settings/_hooks/use-operating-hours.ts`      | Show offsets, compute preview from base                                       |
+| `apps/web/src/lib/industry/packages/hospitality.ts`                      | Fix tariff rates, add department offsets, add payroll templates               |
+| `supabase/functions/engine-dispatch/index.ts`                            | Filter session creation by department_type (upsert_session handler)           |
 
 ### 13.3 Files to Verify (Dependencies)
 
@@ -864,3 +878,18 @@ If any criterion fails, bootstrap status = `partial` with the failing steps logg
 | ---------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------- |
 | 2026-03-22 | 1.0.0   | Initial spec — Approach B foundation completion                                                                                                                                                                                                                                                                                                                                | Claude + Pontus |
 | 2026-03-22 | 1.1.0   | 14 corrections: scoped invariant #3, payroll schema consistency, FK on bootstrap_run, weekday convention, budget fallback, profile state split, guest conversion, invite_employment_type naming, proposal idempotency, evaluator/tariff loader+pure split, remove hybrid, session filter to engine-dispatch, reorder phases 4/5, add provenance + completion criteria sections | Claude + Pontus |
+| 2026-03-22 | 1.2.0   | Spec review fixes: season_budget.total_target→total_target_revenue + new target_margin column, regulatory_framework.slug→code, evaluateFrameworkRules acknowledged as rewrite (not completion), finalize-workspace EF as onboarding hook (not RPC), framework trigger table corrected (code vs enum columns)                                                                   | Claude + Pontus |
+
+## 18. Implementation Notes (From Spec Review)
+
+Non-blocking items to address during implementation:
+
+1. Add `seniority_start_date` handling to invite cascade — default to `start_date` from invite metadata
+2. Add `set_updated_at()` triggers to all 3 new tables
+3. Add API key RLS policies (`api_key_read_*`) to all 3 new tables per CLAUDE.md mandate
+4. Define contract-signed sync mechanism — recommend Edge Function hook in existing `contract-lifecycle` EF
+5. Add `description_no` to K1a framework rule seeds (i18n)
+6. Add `emit()` calls for bootstrap mutations (framework binding, tariff seed, planning cycle, templates)
+7. `planning_cycle` / season link: implicit via date overlap (start_date/end_date within season range). No FK needed.
+8. `tariff_rate_table.seeded_from_framework_binding_id`: soft reference (no FK constraint) — audit-only field
+9. `has_fagbrev` mapping: when template `tariff_category = 'faglart'`, set `has_fagbrev = true` on payroll profile
