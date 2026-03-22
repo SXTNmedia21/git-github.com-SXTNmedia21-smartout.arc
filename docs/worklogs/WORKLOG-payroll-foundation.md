@@ -1,6 +1,6 @@
 ---
 title: "Worklog — payroll-foundation"
-status: in_progress
+status: done
 updated: 2026-03-22
 created: 2026-03-21
 module: payroll
@@ -55,14 +55,15 @@ tags: [payroll, settings, absence, timebank, norwegian-compliance, mobile, repor
 
 ## Log
 
-| Date       | Time | Event                                                                               |
-| ---------- | ---- | ----------------------------------------------------------------------------------- |
-| 2026-03-21 | —    | Feature spec received, plans written and reviewed                                   |
-| 2026-03-21 | —    | wt-5 created, ready for execution                                                   |
-| 2026-03-22 | —    | Plan 1 + Plan 2 executed: 23 tables, 16 enums, 10 settings components, 9 hooks      |
-| 2026-03-22 | —    | Mobile payroll UI: spec designed via visual companion, brainstormed with mockups    |
-| 2026-03-22 | —    | Trust model added after product review (3-tier labeling, supplement stacking rules) |
-| 2026-03-22 | —    | Mobile implementation: 14 tasks via subagent-driven development, 134 tests          |
-| 2026-03-22 | —    | UX review: 4 critical + 5 important + 10 minor issues found and fixed               |
-| 2026-03-22 | —    | Web: Reports wired with real data (4 hooks), Operations wired, Min Lønn page built  |
-| 2026-03-22 | —    | All gates pass. Session ended.                                                      |
+| Date       | Time  | Event                                                                               |
+| ---------- | ----- | ----------------------------------------------------------------------------------- |
+| 2026-03-21 | —     | Feature spec received, plans written and reviewed                                   |
+| 2026-03-21 | —     | wt-5 created, ready for execution                                                   |
+| 2026-03-22 | —     | Plan 1 + Plan 2 executed: 23 tables, 16 enums, 10 settings components, 9 hooks      |
+| 2026-03-22 | —     | Mobile payroll UI: spec designed via visual companion, brainstormed with mockups    |
+| 2026-03-22 | —     | Trust model added after product review (3-tier labeling, supplement stacking rules) |
+| 2026-03-22 | —     | Mobile implementation: 14 tasks via subagent-driven development, 134 tests          |
+| 2026-03-22 | —     | UX review: 4 critical + 5 important + 10 minor issues found and fixed               |
+| 2026-03-22 | —     | Web: Reports wired with real data (4 hooks), Operations wired, Min Lønn page built  |
+| 2026-03-22 | —     | All gates pass. Session ended.                                                      |
+| 2026-03-22 | 03:58 | Feature closed and merged to development                                            |
