@@ -107,6 +107,17 @@ export async function resendInvitation(
   return data;
 }
 
+export async function reactivateProfile(profileId: string, workspaceId: string) {
+  const supabase = await getClient();
+  const { error } = await supabase
+    .from("profile")
+    .update({ status: "active", is_active: true } satisfies TablesUpdate<"profile">)
+    .eq("profile_id", profileId)
+    .eq("workspace_id", workspaceId);
+
+  if (error) throw new Error(error.message);
+}
+
 export async function bulkUpdateProfiles(
   profileIds: string[],
   workspaceId: string,

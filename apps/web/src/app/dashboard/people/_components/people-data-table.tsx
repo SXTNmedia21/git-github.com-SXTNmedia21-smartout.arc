@@ -31,6 +31,7 @@ import {
   resetUserPassword,
   cancelInvitation,
   resendInvitation,
+  reactivateProfile,
   bulkUpdateProfiles,
 } from "../_actions/people-actions";
 import type { Enums } from "@smartout/supabase";
@@ -158,6 +159,25 @@ export function PeopleDataTable({
               toast.success("Password reset email sent");
             } catch {
               toast.error("Failed to send password reset email");
+            }
+            setConfirmDialog((prev) => ({ ...prev, open: false }));
+          },
+        });
+        break;
+      case "reactivate":
+        setConfirmDialog({
+          open: true,
+          title: "Reactivate employee",
+          description: `This will restore full access for ${action.name}. Continue?`,
+          confirmLabel: "Reactivate",
+          variant: "default",
+          onConfirm: async () => {
+            try {
+              await reactivateProfile(action.profileId, workspaceId);
+              toast.success(`${action.name} has been reactivated`);
+              onRefresh();
+            } catch {
+              toast.error("Failed to reactivate employee");
             }
             setConfirmDialog((prev) => ({ ...prev, open: false }));
           },
