@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
   const checks: IntegrityCheck[] = [];
 
   // Run all checks concurrently
-  const [danglingResult, staleResult, emptyWsResult, expiredInvitesResult] = await Promise.all([
+  const [danglingResult, staleResult, emptyWsResult, expiredInvitesResult, cleanupResult] = await Promise.all([
     // 1. Company members without matching user_identity (FK prevents this normally — defensive check)
     supabase.rpc("count_dangling_company_members"),
     // 2. Stale active sessions (>24h old)
@@ -39,6 +39,8 @@ Deno.serve(async (req) => {
       .select("*", { count: "exact", head: true })
       .eq("status", "pending")
       .lt("expires_at", new Date().toISOString()),
+    // 5. Clean up stale invitations (marks expired)
+    supabase.rpc("expire_stale_invitations"),
   ]);
 
   // 1. Dangling company members
@@ -90,6 +92,23 @@ Deno.serve(async (req) => {
       name: "expired_pending_invitations",
       status: count > 10 ? "warn" : "pass",
       count,
+    });
+  }
+
+  // 5. Expired invitations cleaned up
+  if (cleanupResult.error) {
+    checks.push({
+      name: "invitation_cleanup",
+      status: "error",
+      details: cleanupResult.error.message,
+    });
+  } else {
+    const cleaned = cleanupResult.data ?? 0;
+    checks.push({
+      name: "invitation_cleanup",
+      status: "pass",
+      count: cleaned,
+      details: cleaned > 0 ? `Expired ${cleaned} stale invitations` : "No stale invitations",
     });
   }
 
