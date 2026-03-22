@@ -13,15 +13,15 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #    | Branch                        | Module     | Status      | Progress                                                                                      | Blockers | Health |
-| ---- | ----------------------------- | ---------- | ----------- | --------------------------------------------------------------------------------------------- | -------- | ------ |
-| wt-1 | `feat/workspace-intelligence` | core       | merged      | Fully merged. Worktree needs cleanup removal.                                                 | —        | stale  |
-| wt-2 | `feat/setup-flow-redesign`    | onboarding | in_progress | Just started. Data integrity + source tracking + design tokens across join/onboarding/wizard. | —        | clean  |
-| wt-3 | `feat/emma-arena-views`       | walkAi     | in_progress | Spec + mockups done, settings persistence committed. Implementation not started.              | None     | clean  |
-| wt-4 | `feat/vaktlista-view`         | schedule   | in_progress | —                                                                                             | —        | —      |
-| wt-5 | `feat/hms-phase-1`            | hms        | merged      | All commits on development. Worktree needs cleanup removal.                                   | —        | stale  |
-| wt-6 | `feat/livekit-phase2`         | webrtc     | in_progress | Just started. Phase 2 WebRTC — LiveKit voice/PTT for Komm channels.                           | —        | clean  |
-| wt-7 | `feat/fix-invitation-flow`    | core       | in_progress | Just started. Fix invitation flow gaps.                                                       | —        | clean  |
+| #    | Branch                         | Module     | Status            | Progress                                                                         | Blockers | Health |
+| ---- | ------------------------------ | ---------- | ----------------- | -------------------------------------------------------------------------------- | -------- | ------ |
+| wt-1 | `feat/workspace-intelligence`  | core       | merged            | Fully merged. Worktree needs cleanup removal.                                    | —        | stale  |
+| wt-2 | `feat/setup-flow-redesign`     | onboarding | ready_for_closure | All 14 tasks done. 15 commits. Data pipeline + source tracking + design tokens.  | —        | clean  |
+| wt-3 | `feat/emma-arena-views`        | walkAi     | in_progress       | Spec + mockups done, settings persistence committed. Implementation not started. | None     | clean  |
+| wt-4 | `feat/vaktlista-view`          | schedule   | in_progress       | —                                                                                | —        | —      |
+| wt-5 | `feat/hms-phase-1`             | hms        | merged            | All commits on development. Worktree needs cleanup removal.                      | —        | stale  |
+| wt-6 | `feat/livekit-phase2`          | webrtc     | ready_for_closure | All 8 tasks done. 11 commits. 57 files, +6363 lines. Voice calls + PTT + mobile. | —        | clean  |
+| wt-7 | `feat/staff-handling-complete` | core       | ready_for_closure | 19 gaps fixed, 296 zinc→0, mobile screens. 12 commits.                           | —        | clean  |
 
 ## Parked Branches (no worktree)
 
@@ -39,7 +39,7 @@ tags: [dashboard, worktrees, tracking]
 | wt-4  | no (feat/vaktlista-view)                                |
 | wt-5  | no (feat/hms-phase-1 — stale, needs removal)            |
 | wt-6  | no (feat/livekit-phase2)                                |
-| wt-7  | no (feat/fix-invitation-flow)                           |
+| wt-7  | no (feat/staff-handling-complete)                       |
 | wt-15 | yes                                                     |
 | wt-20 | yes                                                     |
 
@@ -56,9 +56,9 @@ tags: [dashboard, worktrees, tracking]
 | wt-2 | cascade-foundation     | `docs/journeys/JOURNEY-cascade-foundation.md`     | done    |
 
 | wt-5 | hms-phase-1 | `docs/journeys/JOURNEY-hms-phase-1.md` | done |
-| wt-6 | livekit-phase2 | `docs/journeys/JOURNEY-livekit-phase2.md` | missing |
-| wt-7 | fix-invitation-flow | `docs/journeys/JOURNEY-fix-invitation-flow.md` | missing |
-| wt-2 | setup-flow-redesign | `docs/journeys/JOURNEY-setup-flow-redesign.md` | missing |
+| wt-6 | livekit-phase2 | `docs/journeys/JOURNEY-livekit-phase2.md` | done |
+| wt-7 | staff-handling-complete | `docs/journeys/JOURNEY-staff-handling-complete.md` | done |
+| wt-2 | setup-flow-redesign | `docs/journeys/JOURNEY-setup-flow-redesign.md` | done |
 
 ## Recent Closures
 
@@ -116,7 +116,9 @@ tags: [dashboard, worktrees, tracking]
 | Date       | Feature                           | Status                  | Notes                                                                                                                                                                                                                        |
 | ---------- | --------------------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 2026-03-22 | join-intelligence + design-system | session ended           | Scrapling: merge_partial fix, Serper Places API, LLM classification. Design system "Ren og Varm": 24-section style guide (269KB), dark/light, per-element feedback, deployed to landing. CLAUDE.md + agent + memory updated. |
-| 2026-03-22 | fix-invitation-flow               | started                 | wt-7, module: core. Fix 5 gaps: company_member not created on invite accept, listUsers scalability, company_member RLS, invitation resend, expired cleanup.                                                                  |
+| 2026-03-22 | setup-flow-redesign               | ready_for_closure       | wt-2, 14 tasks, 15 commits. Data pipeline fix, source tracking, design tokens (isDark removed), extraction wiring.                                                                                                           |
+| 2026-03-22 | staff-handling-complete           | ready_for_closure       | wt-7. 19 gaps fixed, 296 zinc→0 design tokens, mobile team screens. 12 commits, 12 tasks via team agents.                                                                                                                    |
+| 2026-03-22 | fix-invitation-flow               | closed                  | wt-7, merged to development. 5 invitation gaps: company_member, listUsers, RLS, resend, expiry.                                                                                                                              |
 | 2026-03-22 | css-build-fix                     | session ended           | Tailwind v4 CSS parsing error: stale cache. Fixed 5 `shadow-brand-orange/N` in WalkAi.                                                                                                                                       |
 | 2026-03-22 | hms-phase-1                       | session ended           | Spec complete (Cascade-native v4). Plan written (7 tasks). wt-5 ready for implementation.                                                                                                                                    |
 | 2026-03-22 | cascade-foundation                | closed                  | Merged to development. 40+ commits: bootstrap, rules engine, tariff, governance, demand, cost snapshots, settings UI, invite cascade.                                                                                        |

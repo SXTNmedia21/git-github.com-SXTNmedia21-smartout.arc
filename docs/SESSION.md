@@ -1,53 +1,42 @@
 ---
 title: Session Log
 status: in_progress
-updated: 2026-03-23
+updated: 2026-03-22
 created: 2026-03-02
 ---
 
 ## Last Session
 
-| Field   | Value                      |
-| ------- | -------------------------- |
-| Date    | 2026-03-23                 |
-| Branch  | `feat/setup-flow-redesign` |
-| Feature | setup-flow-redesign        |
-| Status  | in_progress                |
+| Field   | Value                                 |
+| ------- | ------------------------------------- |
+| Date    | 2026-03-22                            |
+| Branch  | `feat/staff-handling-complete` (wt-7) |
+| Feature | Staff Handling Complete               |
+| Status  | ready_for_closure                     |
 
 ### What was done
 
-- Started new feature: setup-flow-redesign
-- Worktree: wt-2
-- Module: onboarding
-- Deep analysis of entire data pipeline (32 fields, 3 categories, 5 external APIs)
-- Comprehensive plan: 14 tasks covering data integrity, source tracking, design tokens
-- Quick fixes on development: Step4 opening hours auto-fill, Step6 form wrapper, inviter profile fix
+- Fixed 19 staff handling gaps across 3 tiers (broken, incomplete, missing)
+- Tier A: readiness scores (was always 0%), hasContract (was always false), profileId fix, fake data removal, expired invite count
+- Tier B: send reminder, SMS/link invite, multi-dept, team management, status transitions, bulk deactivate, watchdog expiry
+- Tier C: schedule tab, activity tab, export CSV, reactivation path, advanced filters
+- Design token cleanup: 296 hardcoded zinc→0 across 5 files
+- Mobile: team list + member detail screens with nativeTheme
+- Shared data layer: types, status-transitions, fetchWorkspacePeople in @smartout/utils
+- Migration: get_workspace_readiness RPC
+- 12 commits, 12 tasks executed via parallel agent teams
+- Previous: fix-invitation-flow (5 gaps) merged to development
 
 ### Where we stopped
 
-- Feature just initialized, ready for work
-- Plan at `docs/superpowers/plans/2026-03-22-setup-flow-redesign.md`
-- Implementation not started — needs to run in wt-2
+- Feature ready for closure
+- Run: `~/.claude/scripts/close-feature.sh 7`
 
 ### Known blockers / errors
+
+- None (all gates passed)
+- Pre-existing: worktree node_modules not installed (typecheck uses global tsc)
+
+### Pending decisions
 
 - None
-
-### Pending decisions
-
-- [ ] Fill in PLAN-setup-flow-redesign.md with scope and tasks (or use superpowers plan)
-- Vercel deploy pending (push + DNS for design.smartout.ai)
-
-### Known blockers / errors
-
-- Serper API key needs 1Password `op run` for Docker
-- tokens.ts ↔ tokens.css out of sync (TS cold, CSS warm) — mobile parity broken
-- Scrapling Docker needs rebuild after Python changes
-
-### Pending decisions
-
-- [ ] Reusable WizardShell — brainstorm started, not specced
-- [ ] design.smartout.ai DNS config in Vercel
-- [ ] Sync tokens.ts with tokens.css warm values
-- [ ] Per-element feedback backend (localStorage → Supabase)
-- [ ] Step 6 rating thermometer + SmartOut pitch
