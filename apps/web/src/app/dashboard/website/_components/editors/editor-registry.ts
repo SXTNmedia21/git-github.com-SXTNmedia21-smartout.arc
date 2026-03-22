@@ -8,6 +8,9 @@ export type EditorProps = {
   content: Record<string, unknown>;
   onChange: (content: Record<string, unknown>) => void;
   websiteId: string;
+  // sectionId is needed by editors that maintain server-side records tied to
+  // the section (e.g. SpokespersonEditor tracks the website_spokesperson table).
+  sectionId: string;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -32,6 +35,7 @@ const editors: Record<string, EditorLoader> = {
   menu_full: () => import("./MenuFullEditor"),
   booking_cta: () => import("./BookingCtaEditor"),
   pdf_viewer: () => import("./PdfViewerEditor"),
+  spokesperson: () => import("./SpokespersonEditor"),
 };
 
 /**

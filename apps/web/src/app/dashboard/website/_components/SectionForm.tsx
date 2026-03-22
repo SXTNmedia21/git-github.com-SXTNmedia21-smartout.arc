@@ -108,6 +108,7 @@ export default function SectionForm({ section, websiteId, onSaveStateChange }: P
         content={section.content}
         onChange={handleContentChange}
         websiteId={websiteId}
+        sectionId={section.website_section_id}
       />
     </Suspense>
   );

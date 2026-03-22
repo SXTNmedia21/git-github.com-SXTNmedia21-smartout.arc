@@ -9,4 +9,5 @@ export const websiteKeys = {
   pages: (websiteId: string) => ["website", "pages", websiteId] as const,
   sections: (pageId: string) => ["website", "sections", pageId] as const,
   templates: () => ["website", "templates"] as const,
+  spokesperson: (sectionId: string) => ["website", "spokesperson", sectionId] as const,
 };
