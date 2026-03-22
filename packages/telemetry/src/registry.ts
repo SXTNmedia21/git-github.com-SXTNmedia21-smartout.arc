@@ -253,6 +253,7 @@ export interface ShiftPublished extends BaseEvent {
     data: {
       dates: string[];
       department_ids: string[];
+      shift_ids: string[];
       shift_count: number;
     };
   };

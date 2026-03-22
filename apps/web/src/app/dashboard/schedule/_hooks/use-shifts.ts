@@ -392,6 +392,9 @@ export function usePublishShifts(weekStart: string) {
     onSuccess: (_data, shiftIds, context) => {
       const publishedShifts = context?.previous?.filter((s) => shiftIds.includes(s.id)) ?? [];
       const dates = [...new Set(publishedShifts.map((s) => s.dateId))];
+      const departmentIds = [
+        ...new Set(publishedShifts.map((s) => s.departmentId).filter(Boolean)),
+      ] as string[];
 
       void emit({
         event: "shift published",
@@ -403,7 +406,12 @@ export function usePublishShifts(weekStart: string) {
             entity_id: shiftIds[0] ?? "",
             entity_label: `${shiftIds.length} shifts`,
           },
-          data: { dates, department_ids: [], shift_count: shiftIds.length },
+          data: {
+            dates,
+            department_ids: departmentIds,
+            shift_ids: shiftIds,
+            shift_count: shiftIds.length,
+          },
         },
       });
     },
