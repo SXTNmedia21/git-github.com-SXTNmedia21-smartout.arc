@@ -1,6 +1,6 @@
 "use client";
 
-import { useContext } from "react";
+import { useContext, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
@@ -163,11 +163,15 @@ export function useOperatingHours(
     },
   });
 
-  const defaultHours: OperatingHoursEntry[] = DAY_NAMES.map((name, index) => ({
-    day_of_week: index,
-    day_name: name,
-    ...DEFAULT_ENTRY,
-  }));
+  const defaultHours = useMemo<OperatingHoursEntry[]>(
+    () =>
+      DAY_NAMES.map((name, index) => ({
+        day_of_week: index,
+        day_name: name,
+        ...DEFAULT_ENTRY,
+      })),
+    [],
+  );
 
   return {
     hours: query.data ?? defaultHours,

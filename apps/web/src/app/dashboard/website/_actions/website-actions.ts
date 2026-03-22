@@ -34,8 +34,8 @@ async function requireAdminForWorkspace(workspaceId: string) {
   const admin = getAdminClient();
 
   const { data: isAdmin } = await admin.rpc("is_admin_in_workspace", {
-    p_user_id: user.id,
-    p_workspace_id: workspaceId,
+    uid: user.id,
+    wid: workspaceId,
   });
 
   if (!isAdmin) throw new Error("Insufficient permissions — workspace admin required");
@@ -69,8 +69,8 @@ async function requireAdminForWebsite(websiteId: string) {
   const workspaceId = (website as { workspace_id: string }).workspace_id;
 
   const { data: isAdmin } = await admin.rpc("is_admin_in_workspace", {
-    p_user_id: user.id,
-    p_workspace_id: workspaceId,
+    uid: user.id,
+    wid: workspaceId,
   });
 
   if (!isAdmin) throw new Error("Insufficient permissions — workspace admin required");
@@ -308,8 +308,8 @@ export async function updateWebsite(
 
     if (error) return { success: false, error: error.message };
 
-    revalidateTag(`website:${websiteId}`, "default");
-    revalidateTag(`website:workspace:${workspaceId}`, "default");
+    revalidateTag(`website:${websiteId}`);
+    revalidateTag(`website:workspace:${workspaceId}`);
 
     await emit({
       event: "website updated",

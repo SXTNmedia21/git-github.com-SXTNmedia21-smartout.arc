@@ -9,6 +9,43 @@ const getSupabaseClient = () => {
   );
 };
 
+/**
+ * Resolves the activity trail actor to a workspace profile ID.
+ * Why: some server actions emit auth user IDs, while activity_trail stores profile IDs.
+ *
+ * @returns The matching profile ID for the workspace, or null when none can be resolved
+ */
+async function resolveActorProfileId(
+  supabase: ReturnType<typeof getSupabaseClient>,
+  event: SmartoutEvent,
+): Promise<string | null> {
+  if (!event.actor_id || !event.workspace_id) {
+    return null;
+  }
+
+  const { data: directProfile } = await supabase
+    .from("profile")
+    .select("profile_id")
+    .eq("profile_id", event.actor_id)
+    .eq("workspace_id", event.workspace_id)
+    .maybeSingle();
+
+  if (directProfile?.profile_id) {
+    return directProfile.profile_id;
+  }
+
+  const { data: profileByUser } = await supabase
+    .from("profile")
+    .select("profile_id")
+    .eq("user_id", event.actor_id)
+    .eq("workspace_id", event.workspace_id)
+    .eq("is_active", true)
+    .limit(1)
+    .maybeSingle();
+
+  return profileByUser?.profile_id ?? null;
+}
+
 export async function writeActivityTrail(event: SmartoutEvent, meta: EventMeta): Promise<void> {
   // We can loosely assume standard props to map to our explicit DB columns
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -27,9 +64,18 @@ export async function writeActivityTrail(event: SmartoutEvent, meta: EventMeta):
   const actionVerb = parts[parts.length - 1];
 
   const supabase = getSupabaseClient();
+  const actorProfileId = await resolveActorProfileId(supabase, event);
+
+  if (!actorProfileId) {
+    console.warn(
+      `[telemetry] Could not resolve actor profile for "${event.event}" in workspace "${event.workspace_id}". Activity trail rejected.`,
+    );
+    return;
+  }
+
   const { error } = await supabase.from("activity_trail").insert({
     workspace_id: event.workspace_id,
-    actor_id: event.actor_id,
+    actor_id: actorProfileId,
     event: event.event,
     action_verb: actionVerb,
     category: meta.category,
