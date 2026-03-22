@@ -46,6 +46,17 @@ Smartout turns compliance into trained behavior, not logged documentation.
 
 Compliance is a **byproduct** of the governing loop running well.
 
+### System Boundaries
+
+HMS governs regulated work inside Cascade. It does not replace:
+
+- The scheduling engine (D1/D4 resource planning — HMS provides D2 readiness constraints and D3 eligibility gates, but does not own shift assignment)
+- The payroll deviation model (`payroll.deviation` is a separate table in the payroll schema for pay calculation discrepancies — not HMS compliance deviations)
+- Raw document management (HMS surfaces knowledge content for regulated work; general file storage and collaboration are out of scope)
+- The gamification system (Module 4 — HMS produces completion events that gamification consumes, but does not own point rules or leaderboards)
+
+HMS provides regulated-work semantics across these systems where required. It is a cross-branch capability, not an all-encompassing product layer.
+
 ---
 
 ## 2. Cascade Placement
@@ -93,6 +104,10 @@ HMS role: **Regulatory rule definition and enforcement.**
 - Training requirements are D3 gate rules with `check_type: "protocol_completion"` that block D2 scheduling
 
 D3 defines what is **required, forbidden, or constrained** in regulated work. Without D3 rules, HMS has no teeth.
+
+**Protocol vs framework_rule — critical distinction:**
+
+Protocol is the assignable compliance/training bundle that groups procedures, tests, and confirmations into a requirement unit. It is a governance container spanning K (content), D2 (assignment/readiness), and D3 (rule adjacency). Protocol is NOT itself the machine-evaluable constraint — `framework_rule` holds that role. A protocol may exist without a corresponding framework_rule (e.g., a soft training protocol). A framework_rule may reference protocols via `evaluation_config.required_protocol_ids` to define what "compliant" means in machine terms.
 
 ### D6 — Production & Product
 
@@ -171,7 +186,22 @@ Compliance-critical procedure edits (linked to `framework_rule`) go through `cha
 
 ## 3. Object Participation
 
-Every major HMS entity has a defined position in the Cascade loop. This section specifies source of truth, primary branch, cross-branch effects, and evidence generation for each.
+Every major HMS entity has a defined position in the Cascade loop. This section specifies source of truth, branch participation, activation conditions, cross-branch effects, and evidence role.
+
+An HMS artifact may exist in storage without being active in the governing loop. The "Active when" rows below define when each object participates in live system behavior.
+
+### Activation Summary
+
+| Object              | Exists when | Active when                                                    |
+| ------------------- | ----------- | -------------------------------------------------------------- |
+| procedure           | Row exists  | Versioned + linked to active protocol/policy (see note below)  |
+| framework_rule      | Row exists  | Parent framework active + evaluation_config complete           |
+| protocol_assignment | Row exists  | Assigned + not expired/waived                                  |
+| session_task        | Row exists  | Parent session upcoming/active + task status pending/available |
+| deviation           | Row exists  | Status in (open, assigned, in_progress)                        |
+| engine_state        | Row exists  | status = "active" + assignee has valid protocol_assignment     |
+
+**Note on procedure activation:** Workspace-local operational procedures (e.g., ad-hoc cleaning tasks) may be executed via ad-hoc `session_task` without full policy/protocol ancestry. However, such execution does NOT generate compliance evidence and does NOT affect readiness. Only policy-mediated procedures participate in the compliance loop.
 
 ### procedure
 
@@ -193,15 +223,26 @@ Every major HMS entity has a defined position in the Cascade loop. This section 
 | Dual rendering     | `description` for D6 execution; `training_content` + `media_urls` for D2 readiness formation |
 | Evidence generated | `procedure_step_completion` with evidence jsonb                                              |
 
-### protocol + protocol_assignment
+### protocol
 
-| Property             | Value                                                                                                |
-| -------------------- | ---------------------------------------------------------------------------------------------------- |
-| Source of truth      | `protocol` (definition), `protocol_assignment` (per-employee state)                                  |
-| Primary branch       | D3 (protocol as rule container), D2 (assignment as readiness state)                                  |
-| Cross-branch effects | Assignment completion -> D2 readiness recalc -> C1 calibration signal; Expiry -> C1 attention signal |
-| Workflow state       | `engine_state` tracks learning journey per assignment                                                |
-| Evidence generated   | Aggregate of step completions + test attempts + confirmation signatures                              |
+| Property             | Value                                                                                                                                                                                        |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Source of truth      | `protocol` table                                                                                                                                                                             |
+| Primary role         | Governance and requirement container. Groups procedures, tests, and confirmations into an assignable bundle. NOT itself the machine-evaluable constraint — `framework_rule` holds that role. |
+| Branch participation | K (content grouping), D2 (assignment target via protocol_assignment), D3 (referenced by `framework_rule.evaluation_config.required_protocol_ids` for eligibility gates)                      |
+| Active when          | Status = `"active"`, linked to active policy                                                                                                                                                 |
+
+### protocol_assignment
+
+| Property             | Value                                                                                     |
+| -------------------- | ----------------------------------------------------------------------------------------- |
+| Source of truth      | `protocol_assignment` table                                                               |
+| Primary role         | D2 readiness state per employee                                                           |
+| Branch participation | D2 (readiness calculation), C1 (completion/expiry produces calibration signal)            |
+| Active when          | Assigned and not expired/waived                                                           |
+| Cross-branch effects | Completion -> D2 readiness recalc -> C1 calibration signal; Expiry -> C1 attention signal |
+| Workflow state       | `engine_state` tracks learning journey per assignment                                     |
+| Evidence generated   | Aggregate of step completions + test attempts + confirmation signatures                   |
 
 ### session_task
 
@@ -252,19 +293,21 @@ Every major HMS entity has a defined position in the Cascade loop. This section 
 
 ### knowledge_test_attempt
 
-| Property             | Value                                                                                                                                    |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| Source of truth      | `knowledge_test_attempt` table                                                                                                           |
-| Primary branch       | Evidence (proof of knowledge verification)                                                                                               |
-| Cross-branch effects | Pass -> advances engine_state_step; Fail -> C1 signal (knowledge gap); Score pattern -> K1b learning (difficulty calibration in Phase 4) |
+| Property             | Value                                                                                                                      |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Source of truth      | `knowledge_test_attempt` table                                                                                             |
+| Primary role         | Evidence artifact — proof of knowledge verification                                                                        |
+| Branch participation | D2 (pass advances readiness), C1 (fail signals knowledge gap), K1b (score patterns feed difficulty calibration in Phase 4) |
+| Trust tier           | Knowledge verification evidence                                                                                            |
 
 ### confirmation_signature
 
-| Property             | Value                                                                                                                         |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| Source of truth      | `confirmation_signature` table                                                                                                |
-| Primary branch       | Evidence (proof of acknowledgment)                                                                                            |
-| Cross-branch effects | Signature -> advances engine_state_step; Device/IP logged for audit; Cannot be retracted by employee (compliance requirement) |
+| Property             | Value                                                                               |
+| -------------------- | ----------------------------------------------------------------------------------- |
+| Source of truth      | `confirmation_signature` table                                                      |
+| Primary role         | Evidence artifact — proof of acknowledgment                                         |
+| Branch participation | D2 (signature advances readiness), C4 (immutable — cannot be retracted by employee) |
+| Trust tier           | Acknowledged evidence                                                               |
 
 ---
 
@@ -274,7 +317,7 @@ These are architectural rules, not implementation details. They define how state
 
 ### Knowledge -> Executable
 
-1. A procedure becomes executable only when it is versioned, linked to an active protocol, and that protocol is linked to an active policy.
+1. A procedure becomes **compliance-executable** (generates evidence, affects readiness) only when it is versioned, linked to an active protocol, and that protocol is linked to an active policy. A procedure may also be **operationally-executable** (ad-hoc session_task) without policy ancestry, but such execution produces no compliance evidence and no readiness effect.
 2. A `framework_rule` becomes evaluable only when its `regulatory_framework` is active and its `evaluation_config` is complete.
 3. K1a knowledge (platform templates) becomes K1b knowledge (workspace-specific) only through I1 bootstrap or explicit admin action. No implicit promotion.
 
@@ -309,7 +352,11 @@ These are architectural rules, not implementation details. They define how state
 
 12. Compliance-critical knowledge edits (procedures linked to framework_rules) must pass C4 authority control via `change_proposal` before activation.
 13. No HMS mutation that affects compliance state may bypass `engine_authority_config` checks. This includes: assigning training, closing deviations, waiving requirements, editing procedures.
-14. Authority is workspace-configurable. A workspace can tighten any default but cannot loosen gate rules.
+14. Authority is workspace-configurable with tiered constraints:
+    - **Platform-hard gates** (from K1a regulatory framework): cannot be loosened by any workspace. Example: HACCP temperature limits from Mattilsynet regulations.
+    - **Workspace-hard gates** (set by workspace admin): can be tightened from platform default but not loosened below it.
+    - **Workspace-adjustable constraints** (advisory rules): can be tightened or loosened freely.
+    - **Temporary override**: a platform-hard or workspace-hard gate may be temporarily bypassed via `change_proposal` with explicit approval, audit trail, and expiry. This covers operational emergencies and jurisdictional variations. The override is time-bound and logged.
 
 ---
 
@@ -496,7 +543,8 @@ This sequence is orchestrated by `engine_state` / `engine_state_step`, not clien
 **Stage 2 — Practice** (K layer: walk through steps)
 
 - Step-by-step walkthrough with media
-- No evidence generated yet — this is knowledge formation
+- Updates `engine_state_step` progression (learning state) but does NOT generate compliance evidence
+- Distinction: learning progression state (`engine_state_step.status`) is internal workflow tracking. Compliance evidence (`procedure_step_completion`, `knowledge_test_attempt`, `confirmation_signature`) requires explicit verification actions in stages 3-4. Stage 2 proves the user engaged with the material, not that they understood or can perform it.
 
 **Stage 3 — Test** (Evidence: prove knowledge)
 
@@ -574,6 +622,15 @@ Every document is a launchpad into other branches:
 | Meld avvik       | Enter exception path (deviation linked to this procedure) | All        |
 | Spor AI          | C2 context query (AI explains the procedure)              | All        |
 | Rediger          | K1b knowledge mutation (Tiptap editor, C4 gated)          | Admin      |
+
+**Action eligibility by document type** — not every document shows every action:
+
+| Document type    | Available actions                                             |
+| ---------------- | ------------------------------------------------------------- |
+| Procedure        | Training, quiz, sign, start task, deviation, AI, edit         |
+| Policy           | AI, sign (if has confirmation), edit                          |
+| Protocol         | Training entry (shows linked procedures), progress view, edit |
+| Handbook chapter | Read, AI, edit                                                |
 
 ### Content Sources
 
@@ -711,16 +768,31 @@ Evidence is distinct from telemetry, audit trail, and analytics. These are four 
 
 Do not blur these. A `session_task.evidence` jsonb entry is evidence. An `activity_trail` row is audit. An `engine_event` row is a workflow trigger. A PostHog event is analytics. They may originate from the same `emit()` call but serve fundamentally different purposes.
 
+### Evidence Trust Tiers
+
+Not all evidence carries equal weight. Trust tier matters for inspection pack credibility and future automation.
+
+| Tier               | Description                         | Examples                                          | Trust level |
+| ------------------ | ----------------------------------- | ------------------------------------------------- | ----------- |
+| Self-attested      | User claims completion via checkbox | procedure_step_completion, confirmation_signature | Low         |
+| Knowledge-verified | System verified knowledge via test  | knowledge_test_attempt with passed=true           | Medium      |
+| Execution-measured | System captured measured value      | session_task.evidence with temperature, photo     | High        |
+| System-validated   | Rule engine confirmed compliance    | framework_rule evaluation outcome = "allow"       | High        |
+| Manager-verified   | Manager reviewed and approved       | deviation closure, session sign-off               | Highest     |
+
+Phase 1 treats all evidence equally. Phase 3+ may weight by trust tier.
+
 ### Evidence Types
 
-| Type              | Data Source                                     | Stored In                            |
-| ----------------- | ----------------------------------------------- | ------------------------------------ |
-| Quiz pass         | knowledge_test_attempt (score, passed, answers) | knowledge_test_attempt               |
-| Digital signature | confirmation_signature (signed_at, device_info) | confirmation_signature               |
-| Task completion   | session_task (completed_at, completed_by)       | session_task                         |
-| Measured value    | session_task.evidence (temperature, weight)     | session_task.evidence jsonb          |
-| Photo             | session_task.evidence or deviation.attachments  | Supabase Storage + jsonb reference   |
-| Version history   | Protocol versioning                             | protocol_assignment.protocol_version |
+| Type              | Data Source                                   | Stored In                    | Trust Tier         |
+| ----------------- | --------------------------------------------- | ---------------------------- | ------------------ |
+| Quiz pass         | knowledge_test_attempt                        | knowledge_test_attempt       | Knowledge-verified |
+| Digital signature | confirmation_signature                        | confirmation_signature       | Self-attested      |
+| Task completion   | session_task                                  | session_task                 | Self-attested      |
+| Measured value    | session_task.evidence                         | session_task.evidence jsonb  | Execution-measured |
+| Photo             | session_task.evidence / deviation.attachments | Supabase Storage + jsonb ref | Execution-measured |
+| Rule evaluation   | framework_rule outcome                        | telemetry event              | System-validated   |
+| Version history   | Protocol versioning                           | protocol_assignment          | System-validated   |
 
 ### Inspection Pack
 
@@ -1223,7 +1295,7 @@ Event naming: flat `"noun verb"` convention per existing registry.
 **Ship:**
 
 - D6 execution surface (Drift): task UI, session task rendering, checklist completion, evidence capture
-- D6 routine logging: completion_data input (temperature, measurements)
+- D6 routine logging: evidence capture (temperature, measurements via session_task.evidence jsonb)
 - D6 triggered session tasks: hooks fire procedures at scheduled times
 - Exception path surface (Avvik): employee deviation form + admin management view
 - Migration: session_task execution metadata, deviation HMS columns + enum extension
@@ -1280,7 +1352,7 @@ ALTER TABLE session_task ADD COLUMN source_type text CHECK (source_type IN ('hoo
 
 ALTER TABLE deviation ADD COLUMN procedure_id uuid REFERENCES procedure(procedure_id);
 ALTER TABLE deviation ADD COLUMN protocol_id uuid REFERENCES protocol(protocol_id);
-ALTER TABLE deviation ADD COLUMN source_task_id uuid REFERENCES session_task(task_id);
+ALTER TABLE deviation ADD COLUMN source_task_id uuid REFERENCES session_task(id);
 ALTER TABLE deviation ADD COLUMN assigned_to uuid REFERENCES profile(profile_id);
 ALTER TABLE deviation ADD COLUMN closure_record jsonb;
 
