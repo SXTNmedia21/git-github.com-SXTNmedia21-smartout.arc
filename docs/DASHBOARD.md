@@ -95,12 +95,13 @@ tags: [dashboard, worktrees, tracking]
 | 2026-04-08 | onboarding-showcase       | `feat/onboarding-showcase-system-room`                             | development |
 | 2026-04-11 | infra-hardening           | `feat/infra-hardening`                                             | development |
 | 2026-03-08 | zero-to-production        | `feat/zero-to-production`                                          | development |
+| 2026-03-22 | website-factory           | `feat/website-factory`                                             | development |
 | 2026-03-20 | contract-enhancements     | `feat/contract-enhancements`                                       | development |
 
 ## Session History
 
 | 2026-03-22 | walkie-talkie | started | wt-2, module: communications. Channel comms spec + Phase 1 plan (16 tasks). LiveKit voice/video Phase 2. |
-| 2026-03-22 | website-factory | session ended | Plan A DONE: 10 commits, 100+ files (schema, RLS, RPC, package, middleware, renderers, pipeline, telemetry, seed). Plan B designed: 20 templates (3 tiers), editor, mobile, approval flow, AI content tasks, 24 telemetry events. Spec not yet written. Next: write spec + Plan B implementation plan. |
+| 2026-03-22 | website-factory | closed | Merged to development, wt-6 freed. Plan A (12 tables, shared package, public site, publish pipeline) + Plan B (builder UI, spokesperson flow, mobile admin). 30+ commits. |
 | 2026-03-22 | website-factory | started | wt-6, module: website-factory. Spec + Plan A (foundation) ready. |
 | 2026-03-22 | close-feature-gates | session ended | Reviewed close-feature.sh + slash commands. Fixed 5 friction points: Gate 5 scoped to branch-changed docs only, Gate 4 checks feature-specific journey, Gate 1 warns on name mismatch, final commit gets Co-Authored-By, script bumped to v4. wt-1 confirmed already merged — needs worktree removal only. |
 | 2026-03-21 | training-curriculum | session ended | Designed 14-module training curriculum (trimmed from 28). Full repo analysis (1402 files, 146 migrations, 47 enums). Gathered Batch 1 material (TypeScript, DB Design, Debugging) with Smartout-specific examples. Rego/OPA confirmed for Modul 14. Content agent has all data for Batch 1. |
