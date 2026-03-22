@@ -6,6 +6,7 @@ import { useToggleReaction } from "../_hooks/use-reactions";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Reply, SmilePlus, Pin } from "lucide-react";
+import { KnowledgeCard } from "./KnowledgeCard";
 
 const QUICK_EMOJIS = ["👍", "❤️", "😂", "🎉", "👀", "🙏"];
 
@@ -93,6 +94,20 @@ export function MessageBubble({ message, channelId, profileId, isOwn, onReply }:
           <p className="text-sm leading-relaxed break-words whitespace-pre-wrap">
             {message.content}
           </p>
+
+          {/* Knowledge cards for shared content */}
+          {message.system_data && (message.system_data as Record<string, unknown>).shared_type && (
+            <KnowledgeCard
+              data={
+                message.system_data as {
+                  shared_type: string;
+                  shared_id: string;
+                  title: string;
+                  description?: string;
+                }
+              }
+            />
+          )}
 
           {/* Attachments */}
           {message.attachments.length > 0 && (
