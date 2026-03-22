@@ -614,33 +614,38 @@ This is Smartout's "Mattilsynet-knapp" — equivalent to eSmiley's "Smilefjesgar
 
 ### Permission Matrix
 
-| Action                    | Employee | Team Lead | Manager | Admin |
-| ------------------------- | -------- | --------- | ------- | ----- |
-| View own assignments      | Yes      | Yes       | Yes     | Yes   |
-| Complete training steps   | Yes      | Yes       | Yes     | Yes   |
-| Take quiz                 | Yes      | Yes       | Yes     | Yes   |
-| Sign confirmation         | Yes      | Yes       | Yes     | Yes   |
-| Complete session tasks    | Yes      | Yes       | Yes     | Yes   |
-| Report deviation          | Yes      | Yes       | Yes     | Yes   |
-| View team readiness       | No       | Yes       | Yes     | Yes   |
-| View department readiness | No       | No        | Yes     | Yes   |
-| View competence matrix    | No       | Yes       | Yes     | Yes   |
-| Assign training           | No       | No        | Yes     | Yes   |
-| Create/edit procedures    | No       | No        | No      | Yes   |
-| Create/edit policies      | No       | No        | No      | Yes   |
-| Review deviations         | No       | Yes       | Yes     | Yes   |
-| Close deviations          | No       | No        | Yes     | Yes   |
-| Edit handbook documents   | No       | No        | No      | Yes   |
-| View inspection pack      | No       | No        | Yes     | Yes   |
-| Manage templates          | No       | No        | No      | Yes   |
-| Waive assignment          | No       | No        | Yes     | Yes   |
+Roles are `employee | manager | admin | owner` (from `profile_role` enum). There is no "team_lead" role — team leadership is a **team attribute** (`team.leader_profile_id`), not a profile role. Team leaders get elevated permissions via a `isTeamLeader(profileId, teamId)` check, not a role gate.
+
+| Action                    | Employee | Team Leader\* | Manager | Admin/Owner |
+| ------------------------- | -------- | ------------- | ------- | ----------- |
+| View own assignments      | Yes      | Yes           | Yes     | Yes         |
+| Complete training steps   | Yes      | Yes           | Yes     | Yes         |
+| Take quiz                 | Yes      | Yes           | Yes     | Yes         |
+| Sign confirmation         | Yes      | Yes           | Yes     | Yes         |
+| Complete session tasks    | Yes      | Yes           | Yes     | Yes         |
+| Report deviation          | Yes      | Yes           | Yes     | Yes         |
+| View team readiness       | No       | Own team      | Yes     | Yes         |
+| View department readiness | No       | No            | Yes     | Yes         |
+| View competence matrix    | No       | Own team      | Yes     | Yes         |
+| Assign training           | No       | No            | Yes     | Yes         |
+| Create/edit procedures    | No       | No            | No      | Yes         |
+| Create/edit policies      | No       | No            | No      | Yes         |
+| Review deviations         | No       | Own team      | Yes     | Yes         |
+| Close deviations          | No       | No            | Yes     | Yes         |
+| Edit handbook documents   | No       | No            | No      | Yes         |
+| View inspection pack      | No       | No            | Yes     | Yes         |
+| Manage templates          | No       | No            | No      | Yes         |
+| Waive assignment          | No       | No            | Yes     | Yes         |
+
+\*Team Leader = employee with `team.leader_profile_id` matching their profile. Gets elevated view for their own team only.
 
 ### Role Rendering
 
-Same URL, different component rendering based on `role` from DashboardContext:
+Same URL, different component rendering based on `isAdminMode` from DashboardContext (existing toggle) plus role from workspace context:
 
 - Employee: sees guided flow components, minimal navigation, no admin tabs
 - Manager+: sees oversight components, full navigation, management actions
+- Team leader: sees team-scoped oversight when `isAdminMode` is true
 
 ---
 
@@ -683,15 +688,25 @@ Same URL, different component rendering based on `role` from DashboardContext:
 
 Every mutation across all HMS surfaces emits via `@smartout/telemetry` `emit()`:
 
+Existing events in `packages/telemetry/src/registry.ts` (use as-is):
+
 ```typescript
-emit("hms.task.completed", { taskId, procedureId, sessionId, profileId, completionData });
-emit("hms.training.step_completed", { assignmentId, stepId, profileId });
-emit("hms.training.test_passed", { testId, assignmentId, score, profileId });
-emit("hms.training.confirmation_signed", { confirmationId, assignmentId, profileId });
-emit("hms.deviation.created", { deviationId, procedureId, protocolId, severity });
-emit("hms.deviation.resolved", { deviationId, resolvedBy, correctiveAction });
-emit("hms.readiness.updated", { profileId, readinessPercent, departmentId });
+emit("session_task completed", { taskId, procedureId, sessionId, profileId });
+emit("protocol step_completed", { assignmentId, stepId, profileId });
+emit("protocol test_submitted", { testId, assignmentId, score, profileId });
+emit("protocol confirmation_signed", { confirmationId, assignmentId, profileId });
+emit("protocol completed", { assignmentId, protocolId, profileId });
 ```
+
+New events to register (must add to registry before use):
+
+```typescript
+emit("deviation created", { deviationId, procedureId, protocolId, severity });
+emit("deviation resolved", { deviationId, resolvedBy, correctiveAction });
+emit("readiness updated", { profileId, readinessPercent, departmentId });
+```
+
+NOTE: Event naming follows existing flat `"noun verb"` convention, NOT `hms.*` dot-notation. New events must be added to `SmartoutEvent` type and `EVENT_ROUTING` in registry before implementation. Needs ADR if namespace change is desired.
 
 All events route to 4 destinations:
 
@@ -760,10 +775,61 @@ Readiness score changes (`hms.readiness.updated`) feed into:
 
 ---
 
-## 16. What This Design Does NOT Include
+## 16. Required Migrations
 
-- No new database tables in Phase 1 (uses existing governance + session_task + deviation schema)
-- No mobile app changes (mobile parity comes after web surfaces are proven)
+Phase 1 requires schema changes. The claim "no new tables" was incorrect after verification.
+
+### Phase 1 Migrations
+
+**`procedure_step` — add training content columns:**
+
+```sql
+ALTER TABLE procedure_step ADD COLUMN training_content text;
+ALTER TABLE procedure_step ADD COLUMN media_urls jsonb;
+```
+
+These are required for the Opplaering 5-stage flow (rich learning content per step).
+
+### Phase 2 Migrations
+
+**`session_task` — add execution metadata:**
+
+```sql
+ALTER TABLE session_task ADD COLUMN due_at timestamptz;
+ALTER TABLE session_task ADD COLUMN priority text CHECK (priority IN ('critical','high','normal','low')) DEFAULT 'normal';
+ALTER TABLE session_task ADD COLUMN source_type text CHECK (source_type IN ('hook','ad_hoc','inherited','routine'));
+```
+
+Note: `session_task` already has `evidence` (Json) — use this instead of `completion_data`. Already has `session_hook_id` (nullable FK) but no explicit source_type discriminator.
+
+**`deviation` — extend for HMS compliance:**
+
+The existing `deviation` table is designed for operational/financial deviations (`cost_impact`, `payroll_impact`, `blocks_day_approval`). HMS compliance needs additional columns:
+
+```sql
+ALTER TABLE deviation ADD COLUMN procedure_id uuid REFERENCES procedure(procedure_id);
+ALTER TABLE deviation ADD COLUMN protocol_id uuid REFERENCES protocol(protocol_id);
+ALTER TABLE deviation ADD COLUMN source_task_id uuid REFERENCES session_task(task_id);
+ALTER TABLE deviation ADD COLUMN assigned_to uuid REFERENCES profile(profile_id);
+ALTER TABLE deviation ADD COLUMN closure_record jsonb;
+```
+
+The existing `deviation_status` enum (`open|acknowledged|resolved|escalated`) needs extension:
+
+```sql
+ALTER TYPE deviation_status ADD VALUE 'assigned';
+ALTER TYPE deviation_status ADD VALUE 'in_progress';
+ALTER TYPE deviation_status ADD VALUE 'closed';
+ALTER TYPE deviation_status ADD VALUE 'reopened';
+```
+
+Decision needed: keep one `deviation` table for both operational and HMS use (recommended — use `domain` enum to distinguish), or create separate `hms_deviation` table.
+
+---
+
+## 17. What This Design Does NOT Include
+
+- No mobile app changes in Phase 1 (but data hooks MUST go in `packages/` not `apps/web/` per CLAUDE.md mobile parity rule)
 - No sensor integrations (temperature hardware is Phase 3+)
 - No Stripe/billing changes
 - No multi-workspace federation
@@ -771,13 +837,21 @@ Readiness score changes (`hms.readiness.updated`) feed into:
 
 ---
 
-## 17. Open Questions
+## 18. Resolved Questions
 
-1. **Deviation table:** Does `deviation` table exist with sufficient fields, or do we need a migration? (Current schema has `deviation_flagged` on session_task but may not have a standalone deviation table)
-2. **Handbook chapter storage:** Are handbook chapters stored in `handbook_chapter` table or elsewhere? Need to verify before Documents surface.
-3. **IK-Mat seed data:** Do HACCP control points exist in the database, or do we need to seed them from I1 bootstrap?
-4. **Readiness recalculation:** Should readiness be recalculated on every step completion (real-time) or on a schedule (batched)?
-5. **Anonymous deviation reporting:** How to handle RLS when reporter is anonymous?
+1. **Deviation table:** EXISTS but insufficient. Missing FKs to procedure/protocol/session_task, missing `assigned_to` and `closure_record`. Status enum conflicts. Migration required (see section 16).
+2. **Handbook chapter storage:** EXISTS in `handbook_chapter` table with Tiptap JSONContent. `ChapterReader` already renders it. Resolved.
+3. **IK-Mat seed data:** `haccp_log` table exists for logging. No `haccp_control_point` definition table — `ccp_reference` is free-text. Need either seed data via I1 bootstrap or a new definition table in Phase 3.
+4. **Readiness recalculation:** Currently client-side in `useAssignedProtocols()`. Keep client-computed for Phase 1. Consider materialized server-side score in Phase 3 for cross-system consumption (scheduling, reports).
+5. **Anonymous deviation reporting:** Requires service-role Edge Function that accepts anonymous submissions and inserts with `reporter_id = null`. RLS policy must allow null reporter for anonymous-flagged rows.
+
+---
+
+## 19. Open Questions (Remaining)
+
+1. **Deviation table strategy:** Single table with `domain` filter (recommended) or separate `hms_deviation`? Needs ADR.
+2. **HACCP control point registry:** Free-text `ccp_reference` or structured `haccp_control_point` table? Affects Phase 3 IK-Mat controls.
+3. **Telemetry event naming:** Current convention is flat `"noun verb"` (e.g., `"session_task completed"`). Spec proposed `hms.*` dot-notation. Must reconcile with existing `SmartoutEvent` types in `packages/telemetry/src/registry.ts`. Needs ADR.
 
 ---
 
@@ -793,13 +867,21 @@ Readiness score changes (`hms.readiness.updated`) feed into:
 
 ### CAN share data hooks
 
-| Shared Hook                         | Used By                                         |
-| ----------------------------------- | ----------------------------------------------- |
-| `useProtocolAssignments(profileId)` | Training + Oversikt + My Training               |
-| `useProcedureSteps(procedureId)`    | Drift + Training + Documents + Procedure Detail |
-| `useSessionTasks(sessionId)`        | Drift + Oversikt                                |
-| `useDeviations(filters)`            | Avvik + Procedure Detail + Oversikt             |
-| `useGovernanceOverview()`           | Oversikt (refactored to support filters)        |
+Existing hooks (rename if needed):
+
+| Hook (current name)               | Used By                                      | Status |
+| --------------------------------- | -------------------------------------------- | ------ |
+| `useAssignedProtocols(profileId)` | Training + Oversikt + My Training            | EXISTS |
+| `useGovernanceOverview()`         | Oversikt (refactor to support domain filter) | EXISTS |
+
+New hooks to create (in `packages/` for mobile parity):
+
+| Hook (to create)                 | Used By                                         | Status |
+| -------------------------------- | ----------------------------------------------- | ------ |
+| `useProcedureSteps(procedureId)` | Drift + Training + Documents + Procedure Detail | NEW    |
+| `useSessionTasks(sessionId)`     | Drift + Oversikt                                | NEW    |
+| `useDeviations(filters)`         | Avvik + Procedure Detail + Oversikt             | NEW    |
+| `useReadinessScore(profileId)`   | Oversikt + Training                             | NEW    |
 
 ---
 
