@@ -19,16 +19,10 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import {
-  ROLE_DISTRIBUTION,
-  STATUS_BREAKDOWN,
-  TENURE_DISTRIBUTION,
-  DEPARTMENT_STATS,
-  PIE_COLORS,
-  CHART_COLORS,
-  chartTheme,
-} from "./report-data";
+import { PIE_COLORS, CHART_COLORS, chartTheme } from "./report-data";
 import type { ReportInsightCard } from "./report-insight-types";
+import { useReportPeople } from "../_hooks/use-report-people";
+import { useReportOverview } from "../_hooks/use-report-overview";
 
 type PeopleSectionProps = {
   isDark: boolean;
@@ -37,8 +31,40 @@ type PeopleSectionProps = {
 
 export function PeopleSection({ isDark, onOpenInsight }: PeopleSectionProps) {
   const theme = chartTheme(isDark);
-  const totalEmployees = ROLE_DISTRIBUTION.reduce((s, r) => s + r.count, 0);
-  const totalByStatus = STATUS_BREAKDOWN.reduce((s, r) => s + r.count, 0);
+  const { data, isLoading } = useReportPeople();
+  // Department stats live in the overview hook — reuse the same cached query
+  const { data: overviewData } = useReportOverview();
+
+  const roleDistribution = data?.roleDistribution ?? [];
+  const statusBreakdown = data?.statusBreakdown ?? [];
+  const tenureDistribution = data?.tenureDistribution ?? [];
+  const departmentStats = overviewData?.departmentStats ?? [];
+
+  const totalEmployees = roleDistribution.reduce((s, r) => s + r.count, 0);
+  const totalByStatus = statusBreakdown.reduce((s, r) => s + r.count, 0);
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-5">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div
+              key={i}
+              className={`h-56 animate-pulse rounded-2xl border ${isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-zinc-100"}`}
+            />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div
+              key={i}
+              className={`h-48 animate-pulse rounded-2xl border ${isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-zinc-100"}`}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -86,7 +112,7 @@ export function PeopleSection({ isDark, onOpenInsight }: PeopleSectionProps) {
               <ResponsiveContainer width={160} height={160}>
                 <PieChart>
                   <Pie
-                    data={ROLE_DISTRIBUTION}
+                    data={roleDistribution}
                     dataKey="count"
                     nameKey="name"
                     cx="50%"
@@ -96,7 +122,7 @@ export function PeopleSection({ isDark, onOpenInsight }: PeopleSectionProps) {
                     paddingAngle={2}
                     strokeWidth={0}
                   >
-                    {ROLE_DISTRIBUTION.map((_, i) => (
+                    {roleDistribution.map((_, i) => (
                       <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                     ))}
                   </Pie>
@@ -129,7 +155,7 @@ export function PeopleSection({ isDark, onOpenInsight }: PeopleSectionProps) {
             </div>
             {/* Legend */}
             <div className="flex-1 space-y-1.5">
-              {ROLE_DISTRIBUTION.map((role, i) => (
+              {roleDistribution.map((role, i) => (
                 <div key={role.name} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div
@@ -189,7 +215,7 @@ export function PeopleSection({ isDark, onOpenInsight }: PeopleSectionProps) {
             </h3>
           </div>
           <div className="space-y-3">
-            {STATUS_BREAKDOWN.map((status) => {
+            {statusBreakdown.map((status) => {
               const percent = Math.round((status.count / totalByStatus) * 100);
               return (
                 <div key={status.name}>
@@ -243,8 +269,11 @@ export function PeopleSection({ isDark, onOpenInsight }: PeopleSectionProps) {
             <span
               className={`text-[10px] font-semibold ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
             >
-              {STATUS_BREAKDOWN[0]!.count} av {totalByStatus} er aktive (
-              {Math.round((STATUS_BREAKDOWN[0]!.count / totalByStatus) * 100)}%)
+              {statusBreakdown[0]?.count ?? 0} av {totalByStatus} er aktive (
+              {totalByStatus > 0
+                ? Math.round(((statusBreakdown[0]?.count ?? 0) / totalByStatus) * 100)
+                : 0}
+              %)
             </span>
           </div>
         </div>
@@ -290,10 +319,7 @@ export function PeopleSection({ isDark, onOpenInsight }: PeopleSectionProps) {
             </h3>
           </div>
           <ResponsiveContainer width="100%" height={180}>
-            <BarChart
-              data={TENURE_DISTRIBUTION}
-              margin={{ top: 0, right: 0, bottom: 0, left: -20 }}
-            >
+            <BarChart data={tenureDistribution} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={theme.grid} vertical={false} />
               <XAxis
                 dataKey="range"
@@ -379,7 +405,7 @@ export function PeopleSection({ isDark, onOpenInsight }: PeopleSectionProps) {
                 </tr>
               </thead>
               <tbody>
-                {DEPARTMENT_STATS.map((dept) => (
+                {departmentStats.map((dept) => (
                   <tr
                     key={dept.name}
                     className={`${isDark ? "border-b border-zinc-800/50" : "border-b border-zinc-50"}`}
