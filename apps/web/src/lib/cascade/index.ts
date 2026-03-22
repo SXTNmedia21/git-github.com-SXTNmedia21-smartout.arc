@@ -13,6 +13,7 @@ export { evaluateFrameworkRules } from "./evaluate-framework-rules";
 export { validateProposalFreshness, computeStateHash } from "./validate-proposal-freshness";
 export { resolveTariffRate } from "./resolve-tariff-rate";
 export { getTariffContext } from "./get-tariff-context";
+export { buildEntityContext } from "./build-entity-context";
 export { propagateBudgetTargets } from "./propagate-budget-targets";
 
 export type {
