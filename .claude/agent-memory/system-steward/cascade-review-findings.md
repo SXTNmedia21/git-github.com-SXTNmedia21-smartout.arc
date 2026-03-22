@@ -25,10 +25,11 @@ type: project
 - Cascade runtime reads `department_operating_hours` — edits via Settings are invisible to cascade
 - MUST be migrated before any cascade runtime feature goes live
 
-### Blocking Gap: Empty Framework Tables
+### Blocking Gap: Mostly Empty Framework Tables
 
-- `regulatory_framework`, `framework_rule`, `framework_trigger`, `tariff_rate_table`, `public_holiday` all EMPTY
-- No seed data exists — blocks Phase C bootstrap entirely
+- `regulatory_framework`, `framework_rule`, `framework_trigger`, and `tariff_rate_table` are still effectively unseeded for hospitality bootstrap
+- `public_holiday` is no longer empty: Norway 2026 data is seeded, so holiday truth exists but the broader framework layer is still missing
+- Incomplete seed data still blocks meaningful Phase C bootstrap
 - Need hospitality.no.default.v1 framework + Norwegian AML rules + correct Riksavtalen rates
 
 ### hospitality.ts Wrong Rates (still in codebase)
@@ -43,8 +44,10 @@ type: project
 - `operating_hours` — legacy settings (MUST migrate away)
 - `department_operating_hours` — cascade runtime truth (new)
 
-### Phase C Bootstrap: NOT STARTED
+### Phase C Bootstrap: PARTIAL
 
+- 13 SQL templates exist in `supabase/templates/restaurant/`, but they are not integrated into workspace creation
+- `_apply.sql` exists, but no bootstrap service calls it during workspace creation
 - `bootstrapWorkspaceFromHospitalityPackage()` function does not exist
-- Setup wizard not wired to create cascade records
+- Setup wizard is still not wired to create cascade records
 - Phase D Integration: correctly deferred

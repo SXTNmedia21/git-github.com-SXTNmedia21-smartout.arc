@@ -1,16 +1,5 @@
 {
   "hooks": {
-    "UserPromptSubmit": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "prompt",
-            "prompt": "If $USER_PROMPT touches onboarding, /join, /onboarding, /dashboard/setup, activate-workspace, finalize-workspace, onboarding_completed, intelligence ownership, or cascade bootstrap, add a concise systemMessage reminding Claude of these control gates: /join is provisional intake; /onboarding owns bootstrap and finalization; /dashboard/setup is post-bootstrap completion only; onboarding_completed is not the setup-guide visibility switch; intelligence layers must not create parallel onboarding truth beside cascade. Return continue=true."
-          }
-        ]
-      }
-    ],
     "PreToolUse": [
       {
         "matcher": "Write|Edit|MultiEdit|Bash",
@@ -30,17 +19,6 @@
             "type": "command",
             "command": "/home/sxtnl/dev/smartout.ai/.claude/metadata-updater.sh",
             "timeout": 5000
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "prompt",
-            "prompt": "Before approving stop, if the session changed onboarding, join, dashboard/setup, activate/finalize workspace, agent guard rails, or hook config, verify the final state still enforces: /join provisional intake only, /onboarding bootstrap/finalization owner, /dashboard/setup post-bootstrap only, onboarding_completed not the guide switch, and no parallel onboarding truth beside cascade. Approve only if aligned; otherwise block with the missing condition."
           }
         ]
       }
