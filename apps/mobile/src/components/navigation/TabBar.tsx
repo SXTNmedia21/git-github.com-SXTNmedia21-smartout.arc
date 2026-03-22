@@ -21,7 +21,7 @@ import type { LucideIcon } from "lucide-react-native";
 const TAB_ICONS: Record<string, LucideIcon> = {
   "(home)": Home,
   "(shifts)": CalendarDays,
-  "(channels)": Radio,
+  "(komm)": Radio,
   "(chat)": MessageCircle,
   "(me)": User,
 };
@@ -29,7 +29,7 @@ const TAB_ICONS: Record<string, LucideIcon> = {
 const TAB_LABELS: Record<string, string> = {
   "(home)": strings.tabs.home,
   "(shifts)": strings.tabs.shifts,
-  "(channels)": "Kanaler",
+  "(komm)": "Komm",
   "(chat)": strings.tabs.chat,
   "(me)": strings.tabs.me,
 };
@@ -54,7 +54,7 @@ export function TabBar({ state, navigation, unreadCount = 0, centerFab }: TabBar
     const isFocused = state.index === routeIndex;
     const IconComponent = TAB_ICONS[route.name];
     const label = TAB_LABELS[route.name] ?? route.name;
-    const isChannelsTab = route.name === "(channels)";
+    const isKommTab = route.name === "(komm)";
 
     return (
       <Pressable
@@ -78,7 +78,7 @@ export function TabBar({ state, navigation, unreadCount = 0, centerFab }: TabBar
               strokeWidth={isFocused ? 2.2 : 1.8}
             />
           )}
-          {isChannelsTab && <Badge count={unreadCount} style={styles.badge} />}
+          {isKommTab && <Badge count={unreadCount} style={styles.badge} />}
         </View>
         <Text style={[styles.tabLabel, isFocused && styles.tabLabelActive]}>{label}</Text>
       </Pressable>

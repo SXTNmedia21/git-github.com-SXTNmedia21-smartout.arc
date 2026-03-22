@@ -83,7 +83,7 @@ export default function AppLayout() {
       <Tabs screenOptions={{ headerShown: false }} tabBar={renderTabBar}>
         <Tabs.Screen name="(home)" options={{ title: strings.tabs.home }} />
         <Tabs.Screen name="(shifts)" options={{ title: strings.tabs.shifts }} />
-        <Tabs.Screen name="(channels)" options={{ title: "Kanaler" }} />
+        <Tabs.Screen name="(komm)" options={{ title: "Komm" }} />
         <Tabs.Screen name="(chat)" options={{ title: strings.tabs.chat, href: null }} />
         <Tabs.Screen name="(me)" options={{ title: strings.tabs.me }} />
       </Tabs>

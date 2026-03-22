@@ -14,7 +14,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 import { createStyles } from "@/theme";
 import { EmptyState } from "@/components/ui";
-import { ChannelMessageBubble } from "@/components/channels/ChannelMessageBubble";
+import { ChannelMessageBubble } from "@/components/komm/ChannelMessageBubble";
 import { MessageInput } from "@/components/chat/MessageInput";
 import { ReactionBar } from "@/components/chat/ReactionBar";
 import {

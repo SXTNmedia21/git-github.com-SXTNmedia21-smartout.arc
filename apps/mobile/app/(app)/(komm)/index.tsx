@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { createStyles } from "@/theme";
 import { EmptyState } from "@/components/ui";
 import { SectionHeader } from "@/components/common/SectionHeader";
-import { ChannelRow } from "@/components/channels/ChannelRow";
+import { ChannelRow } from "@/components/komm/ChannelRow";
 import {
   useGroupedChannels,
   type ChannelWithPreview,
@@ -50,7 +50,7 @@ export default function ChannelsIndex() {
 
   const handleChannelPress = useCallback(
     (channel: ChannelWithPreview) => {
-      router.push(`/(app)/(channels)/${channel.channel_id}`);
+      router.push(`/(app)/(komm)/${channel.channel_id}`);
     },
     [router],
   );
