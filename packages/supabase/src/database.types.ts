@@ -9288,10 +9288,12 @@ export type Database = {
           description: string
           estimated_minutes: number | null
           is_required: boolean
+          media_urls: Json | null
           procedure_id: string
           step_id: string
           step_order: number
           title: string
+          training_content: string | null
           updated_at: string
         }
         Insert: {
@@ -9299,10 +9301,12 @@ export type Database = {
           description: string
           estimated_minutes?: number | null
           is_required?: boolean
+          media_urls?: Json | null
           procedure_id: string
           step_id?: string
           step_order?: number
           title: string
+          training_content?: string | null
           updated_at?: string
         }
         Update: {
@@ -9310,10 +9314,12 @@ export type Database = {
           description?: string
           estimated_minutes?: number | null
           is_required?: boolean
+          media_urls?: Json | null
           procedure_id?: string
           step_id?: string
           step_order?: number
           title?: string
+          training_content?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -11343,12 +11349,16 @@ export type Database = {
           base_cost: number
           base_hours: number
           base_rate: number
+          basis: Database["public"]["Enums"]["snapshot_basis"]
           calculated_at: string
           calculation_version: number
+          effective_end: string | null
+          effective_start: string | null
           id: string
           overtime_cost: number
           profile_id: string | null
           schedule_shift_id: string
+          source_event: string | null
           supplements: Json
           total_cost: number
           workspace_id: string
@@ -11357,12 +11367,16 @@ export type Database = {
           base_cost: number
           base_hours: number
           base_rate: number
+          basis?: Database["public"]["Enums"]["snapshot_basis"]
           calculated_at?: string
           calculation_version?: number
+          effective_end?: string | null
+          effective_start?: string | null
           id?: string
           overtime_cost?: number
           profile_id?: string | null
           schedule_shift_id: string
+          source_event?: string | null
           supplements?: Json
           total_cost: number
           workspace_id: string
@@ -11371,12 +11385,16 @@ export type Database = {
           base_cost?: number
           base_hours?: number
           base_rate?: number
+          basis?: Database["public"]["Enums"]["snapshot_basis"]
           calculated_at?: string
           calculation_version?: number
+          effective_end?: string | null
+          effective_start?: string | null
           id?: string
           overtime_cost?: number
           profile_id?: string | null
           schedule_shift_id?: string
+          source_event?: string | null
           supplements?: Json
           total_cost?: number
           workspace_id?: string
@@ -13319,6 +13337,7 @@ export type Database = {
         | "active"
         | "completed"
         | "unpublished"
+      snapshot_basis: "planned" | "actual"
       sync_direction: "inbound" | "outbound" | "bidirectional"
       sync_status: "pending" | "synced" | "failed" | "conflict"
       tariff_source: "riksavtalen" | "allmenngjoring" | "internal"
@@ -14731,6 +14750,7 @@ export const Constants = {
         "completed",
         "unpublished",
       ],
+      snapshot_basis: ["planned", "actual"],
       sync_direction: ["inbound", "outbound", "bidirectional"],
       sync_status: ["pending", "synced", "failed", "conflict"],
       tariff_source: ["riksavtalen", "allmenngjoring", "internal"],
