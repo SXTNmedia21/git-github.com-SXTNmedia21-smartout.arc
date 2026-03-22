@@ -49,6 +49,7 @@ Both `apps/web` and `apps/landing` use `@t3-oss/env-nextjs` with Zod schemas:
 | `NEXT_PUBLIC_POSTHOG_HOST`      | `z.string().url().default(...)` | `https://eu.i.posthog.com` | No              | PostHog EU proxy                                         |
 | `NEXT_PUBLIC_SENTRY_DSN`        | `z.string().url().optional()`   | --                         | No              | Sentry client-side tracking                              |
 | `NEXT_PUBLIC_ROOT_DOMAIN`       | `z.string().default(...)`       | `localhost`                | No              | Set to `smartout.ai` in production for subdomain routing |
+| `NEXT_PUBLIC_LIVEKIT_URL`       | `z.string().url().optional()`   | --                         | No              | LiveKit Cloud WebSocket URL (voice calls)                |
 
 ### Server Variables
 
@@ -69,6 +70,9 @@ Both `apps/web` and `apps/landing` use `@t3-oss/env-nextjs` with Zod schemas:
 | `SENTRY_DSN`                | `z.string().url().optional()`                | No       | Error tracking                               |
 | `DOCUSEAL_WEBHOOK_SECRET`   | `z.string().optional()`                      | No       | DocuSeal webhook signature                   |
 | `ULTRAVOX_API_KEY`          | `z.string().optional()`                      | No       | Voice AI                                     |
+| `LIVEKIT_API_KEY`           | `z.string().min(1).optional()`               | No       | LiveKit Cloud API key                        |
+| `LIVEKIT_API_SECRET`        | `z.string().min(1).optional()`               | No       | LiveKit Cloud API secret                     |
+| `LIVEKIT_WEBHOOK_SECRET`    | `z.string().min(1).optional()`               | No       | LiveKit webhook HMAC secret                  |
 | `CONTRACT_SERVICE_URL`      | `z.string().url().optional()`                | No       | Contract microservice URL                    |
 | `CONTRACT_SERVICE_KEY`      | `z.string().min(16).optional()`              | No       | Contract microservice API key (min 16 chars) |
 | `NODE_ENV`                  | `z.enum([...]).default("development")`       | No       | development, test, production                |
@@ -210,6 +214,10 @@ These are set via `supabase/functions/.env` or Supabase Dashboard secrets.
 | `TWILIO_FROM_NUMBER`        | No       | SMS sender number            |
 | `SERPER_API_KEY`            | No       | Web search in intelligence   |
 | `SITE_URL`                  | No       | Invite link base URL         |
+| `LIVEKIT_API_KEY`           | No       | LiveKit token minting        |
+| `LIVEKIT_API_SECRET`        | No       | LiveKit token minting        |
+| `LIVEKIT_WEBHOOK_SECRET`    | No       | LiveKit webhook HMAC         |
+| `NEXT_PUBLIC_LIVEKIT_URL`   | No       | LiveKit Cloud WebSocket URL  |
 | `WATCHDOG_CRON_SECRET`      | No       | Cron-only Edge Function auth |
 
 ---

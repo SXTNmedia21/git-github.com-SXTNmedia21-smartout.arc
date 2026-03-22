@@ -24,6 +24,7 @@ tags: [learnings]
 module: cross-cutting
 module: unspecified
 tags: [learnings]
+
 ---
 
 # Learning Log — cascade-foundation
@@ -37,6 +38,21 @@ tags: [learnings]
 | 5   | 2026-03-22 | actual_start/actual_end columns don't exist on schedule_shift yet — completion emit only sets status for now                                                                | Medium — needs schema addition before actual cost snapshots work |
 | 6   | 2026-03-22 | season_budget/day_factors events don't route to engine_event by default — must explicitly add destination in telemetry registry                                             | High — engine triggers won't fire without this                   |
 | 7   | 2026-03-22 | workspace_budget upsert needs 6-column unique constraint (NULLS NOT DISTINCT) including nullable location_id, department_id, hour_slot                                      | Medium — affects demand propagation upsert pattern               |
+
 # Learning Log — fix-invitation-flow
-| # | Date | Learning | Impact |
-|---|------|----------|--------|
+
+module: webrtc
+tags: [learnings]
+
+---
+
+# Learning Log — livekit-phase2
+
+| #   | Date       | Learning                                                                                                                       | Impact                                             |
+| --- | ---------- | ------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------- |
+| 1   | 2026-03-22 | @livekit/react-native does NOT export Room/RoomEvent — import from livekit-client directly                                     | High — wrong import causes TS2305                  |
+| 2   | 2026-03-22 | livekit-client is a transitive dep via @livekit/react-native — must add explicitly to package.json                             | Medium — pnpm strict mode won't resolve transitive |
+| 3   | 2026-03-22 | RoomEvent.TrackMuted callback signature is (TrackPublication, Participant), not (unknown, RemoteParticipant\|LocalParticipant) | Medium — use Participant base type                 |
+| 4   | 2026-03-22 | Mobile theme typography has no title2 — only largeTitle, title, headline, body, subheadline, caption, micro                    | Low — check theme types before using               |
+| 5   | 2026-03-22 | AudioSession.startAudioSession() must be called before any LiveKit audio on RN — stopAudioSession() on unmount                 | High — no audio without this                       |
+| 6   | 2026-03-22 | registerGlobals() from @livekit/react-native must be called at app entry BEFORE any LiveKit component                          | High — runtime crash without this                  |
