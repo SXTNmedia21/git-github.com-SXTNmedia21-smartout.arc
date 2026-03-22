@@ -1,6 +1,6 @@
 ---
 title: "Worklog — livekit-phase2"
-status: in_progress
+status: done
 updated: 2026-03-22
 created: 2026-03-22
 module: webrtc
@@ -11,7 +11,7 @@ tags: [livekit, voice, push-to-talk, calls]
 
 > Branch: `feat/livekit-phase2` | Worktree: wt-6 | Started: 2026-03-22
 
-## Status: 🟡 In Progress
+## Status: Done
 
 ## Done
 
