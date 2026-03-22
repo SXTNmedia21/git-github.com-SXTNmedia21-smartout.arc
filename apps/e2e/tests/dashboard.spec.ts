@@ -12,14 +12,17 @@ async function login(page: Page) {
 
   // Wait for login animation to complete and redirect
   await page.waitForURL(/\/(dashboard|onboarding|setup)/, { timeout: 20000 }).catch(() => {});
-  await page.waitForTimeout(1000);
 
-  // If redirected to onboarding wizard, skip it
-  const skipBtn = page.locator("text=Hopp over og gå til dashboard");
-  if (await skipBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-    await skipBtn.click();
-    await page.waitForLoadState("domcontentloaded");
-    await page.waitForTimeout(2000);
+  // If setup wizard is showing, skip it (may appear with delay)
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const skipBtn = page.locator("text=Hopp over og gå til dashboard");
+    if (await skipBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await skipBtn.click();
+      await page.waitForLoadState("domcontentloaded");
+      await page.waitForTimeout(1500);
+    } else {
+      break;
+    }
   }
 }
 

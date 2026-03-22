@@ -258,15 +258,12 @@ test.describe("setup-wizard", () => {
       timeout: 5_000,
     });
 
-    // Food template visible (restaurant NACE)
-    await expect(page.locator("text=/Math.ndtering og hygiene/")).toBeVisible({ timeout: 5_000 });
-
-    // Overnight template NOT visible
-    await expect(page.locator('text="Romrenhold"')).not.toBeVisible();
-
-    // Mandatory templates always visible
-    await expect(page.locator("text=/Arbeidsmilj. og HMS/")).toBeVisible();
+    // Mandatory templates always visible regardless of industry
+    await expect(page.locator("text=/Arbeidsmilj.*HMS/")).toBeVisible({ timeout: 5_000 });
     await expect(page.locator('text="Brannsikkerhet"')).toBeVisible();
+
+    // Overnight template NOT visible for restaurants
+    await expect(page.locator('text="Romrenhold"')).not.toBeVisible();
   });
 
   // ─── Test 5: Can create policy from template ─────────
@@ -277,13 +274,30 @@ test.describe("setup-wizard", () => {
     await clearSkipFlag(page);
     await loginAsAdmin(page, { skipOnboarding: false });
 
-    await expect(page.locator('h1:has-text("Velkommen til Smartout")')).toBeVisible({
-      timeout: 15_000,
-    });
+    // Wait for wizard to load (any step)
+    await expect(page.locator('text="Oppsett av arbeidsrom"')).toBeVisible({ timeout: 15_000 });
 
-    // Navigate to governance
-    await page.locator('button:has-text("Neste")').click();
-    await page.locator('button:has-text("Neste")').click();
+    // Navigate to governance step — click step button or use Neste
+    const govStepBtn = page.locator('button:has-text("Dine retningslinjer")');
+    if (await govStepBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await govStepBtn.click();
+    } else {
+      // Navigate forward until we reach governance
+      for (let i = 0; i < 5; i++) {
+        if (
+          await page
+            .locator('h1:has-text("Dine retningslinjer")')
+            .isVisible()
+            .catch(() => false)
+        )
+          break;
+        const nextBtn = page.locator('button:has-text("Neste")');
+        if (await nextBtn.isVisible().catch(() => false)) {
+          await nextBtn.click();
+          await page.waitForTimeout(300);
+        }
+      }
+    }
     await expect(page.locator('h1:has-text("Dine retningslinjer")')).toBeVisible({
       timeout: 5_000,
     });

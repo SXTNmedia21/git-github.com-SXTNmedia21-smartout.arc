@@ -27,11 +27,13 @@ test.describe("Cascade UI — Schedule Day Control", () => {
 
   test("should navigate to schedule page", async ({ page }) => {
     const scheduleLink = page.locator('a[href*="/dashboard/schedule"]').first();
-    if (await scheduleLink.isVisible({ timeout: 5000 }).catch(() => false)) {
+    if (await scheduleLink.isVisible({ timeout: 10000 }).catch(() => false)) {
       await scheduleLink.click();
       await page.waitForURL("**/dashboard/schedule**", { timeout: 10000 });
-      expect(page.url()).toContain("/dashboard/schedule");
+    } else {
+      await page.goto("/dashboard/schedule", { waitUntil: "domcontentloaded" });
     }
+    expect(page.url()).toContain("/dashboard/schedule");
   });
 
   test("should render schedule grid with day columns", async ({ page }) => {
