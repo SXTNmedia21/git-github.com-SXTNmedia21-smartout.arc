@@ -21,6 +21,73 @@ tags: [cascade, bootstrap, framework, governance, payroll, plan]
 
 ---
 
+## Non-Negotiable Implementation Rules
+
+1. All bootstrap/apply workflows must be idempotent at step level.
+2. No proposal apply without state freshness check (compare `updated_at` / state hash against preview snapshot).
+3. No workspace marked healthy until bootstrap completion criteria pass. Failed bootstrap = admin warning + blocked downstream features.
+4. No mutation event emitted without idempotency key (`workspace_id + step_name + run_id`) or durable outbox row.
+5. No time-window logic without explicit overnight-span semantics (`close_time < open_time` = next day).
+6. No contract/payroll/invitation flow finalization without atomic success of required DB artifacts.
+7. Heavy multi-entity mutation workflows (apply-change-proposal, employee accept cascade) must use SQL RPC for atomic DB mutations. Edge Functions orchestrate; Postgres transacts.
+8. All bootstrap/apply/invite mutations follow outbox pattern: write event row in same DB transaction, dispatch asynchronously.
+
+## Pre-Flight Schema Assumptions
+
+Before any implementation, verify these primitives exist and have expected shape:
+
+| Table/Column                                                                  | Expected                                                            | Verify with                       |
+| ----------------------------------------------------------------------------- | ------------------------------------------------------------------- | --------------------------------- |
+| `employment_contract`                                                         | Exists, has `contract_id`, `profile_id`, `status`, `hourly_rate`    | `\d employment_contract`          |
+| `employment_contract.employment_contract_id` FK on `employee_payroll_profile` | Exists, nullable                                                    | Check `database.types.ts`         |
+| `activity_trail`                                                              | Exists, accepts JSONB audit entries                                 | `\d activity_trail`               |
+| `engine_authority_config`                                                     | Exists, workspace-scoped                                            | `\d engine_authority_config`      |
+| `company_opening_hours`                                                       | Exists, has `day_of_week` (0=Mon..6=Sun)                            | `\d company_opening_hours`        |
+| `day_factor` + `hour_factor`                                                  | Exist, workspace+season scoped                                      | `\d day_factor`                   |
+| `department_session`                                                          | Exists, has `planned_open`/`planned_close` (from A1)                | `\d department_session`           |
+| `session_hook`                                                                | Exists, has `trigger_offset_min`                                    | `\d session_hook`                 |
+| `profile.status`                                                              | Enum: trainee/active/inactive/offboarding                           | Check enum values                 |
+| `set_updated_at()` function                                                   | Exists (used by triggers)                                           | `\df set_updated_at`              |
+| `get_workspace_ids_for_user()` function                                       | Exists (used by RLS)                                                | `\df get_workspace_ids_for_user`  |
+| `create-invitation` EF payload validation                                     | Check if arbitrary columns/metadata pass through or are whitelisted | Read `create-invitation/index.ts` |
+
+**If any are missing or different:** fix before proceeding. Do not discover this in Task 9.
+
+## Overnight Hours Semantics
+
+Hospitality frequently operates past midnight (bar closes 02:00). All hours logic must handle this:
+
+- `close_time < open_time` means the window crosses midnight (e.g., 18:00 open, 02:00 close = next day)
+- Offsets apply to the logical open/close, not calendar day boundaries
+- `resolveEffectiveHours()` already handles this via `crossesMidnight` flag and `effectiveCloseTimestamp`
+- Department offsets can produce overnight windows: workspace closes 23:00, kitchen close_offset = +180 min → kitchen closes 02:00 next day
+- Preview/apply routines must compute session impacts across midnight correctly
+- Tests must include overnight scenarios for every hours-related function
+
+## Source of Truth Convention
+
+| Data               | Authoritative source                 | Code helper                                                                 |
+| ------------------ | ------------------------------------ | --------------------------------------------------------------------------- |
+| Tariff rates       | `tariff_rate_table` DB rows          | `hospitality.ts` constants used ONLY for bootstrap seeding                  |
+| Framework rules    | `framework_rule` DB rows             | No code constants                                                           |
+| Department offsets | `department_operating_hours` DB rows | `hospitality.ts` DEPARTMENT_OFFSET_DEFAULTS used ONLY for bootstrap seeding |
+| Payroll templates  | `payroll_profile_template` DB rows   | `hospitality.ts` PAYROLL_PROFILE_TEMPLATES used ONLY for bootstrap seeding  |
+
+If DB and code constants ever diverge, DB wins. Code constants are seed inputs only, not runtime truth.
+
+## Security Model
+
+| Operation                                                      | Auth                                   | RLS                             |
+| -------------------------------------------------------------- | -------------------------------------- | ------------------------------- |
+| Bootstrap mutations                                            | Service role (internal EF call)        | Bypasses RLS                    |
+| Apply-change-proposal mutations                                | Service role (internal RPC)            | Bypasses RLS                    |
+| Accept-invitation cascade                                      | Service role (unauthenticated invitee) | Bypasses RLS                    |
+| App UI reads (hours, templates, proposals)                     | JWT (authenticated user)               | Standard workspace-scoped       |
+| API reads                                                      | API key                                | `get_api_workspace_id()` scoped |
+| No user JWT path should ever perform cascade seeding mutations | —                                      | —                               |
+
+---
+
 ## Phase 1: Schema + Seed (Blocks Everything)
 
 ### Task 1: Validate A1+A2 Cascade Migrations
@@ -111,7 +178,7 @@ Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 
 - [ ] **Step 1: Write the migration SQL**
 
-Create `supabase/migrations/20260422300000_cascade_b_schema.sql` with:
+Create `supabase/migrations/20260422130000_cascade_b_schema.sql` with:
 
 ```sql
 -- Cascade Foundation Phase B — New tables + ALTER statements
@@ -277,13 +344,13 @@ COMMENT ON COLUMN season_budget.target_margin IS
   'Profitability target (%). Independent from target_labor_percentage which is a cost ratio.';
 ```
 
-- [ ] **Step 2: Apply migration**
+- [ ] **Step 2: Validate via db reset (canonical validation path)**
 
 ```bash
-docker exec -i $(docker ps -q -f name=supabase_db) psql -U postgres < supabase/migrations/20260422300000_cascade_b_schema.sql
+npx supabase db reset
 ```
 
-Expected: No errors.
+Expected: All migrations apply cleanly including new Phase B migration. Do NOT validate by piping SQL directly — always use the migration runner.
 
 - [ ] **Step 3: Verify new tables and columns**
 
@@ -307,7 +374,7 @@ npx supabase gen types typescript --local > packages/supabase/src/database.types
 - [ ] **Step 5: Commit**
 
 ```bash
-git add supabase/migrations/20260422300000_cascade_b_schema.sql packages/supabase/src/database.types.ts
+git add supabase/migrations/20260422130000_cascade_b_schema.sql packages/supabase/src/database.types.ts
 git commit -m "feat(db): cascade Phase B schema — 3 new tables, 6 ALTERs
 
 New: workspace_operating_hours, payroll_profile_template, workspace_bootstrap_run
@@ -323,7 +390,7 @@ Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 
 **Files:**
 
-- Create: `supabase/migrations/20260422300100_cascade_k1a_hospitality_seed.sql`
+- Create: `supabase/migrations/20260422130100_cascade_k1a_hospitality_seed.sql`
 
 - [ ] **Step 1: Write the seed migration**
 
@@ -347,29 +414,46 @@ Use `ON CONFLICT DO NOTHING` with appropriate conflict targets for idempotency.
 - `framework_trigger`: use `trigger_mode` column (enum: `state_change`/`time_based`/`threshold`/`external_event`). There is NO `trigger_type` column on this table — the spec table labeled "trigger_type" is actually the `code` (free text) column
 - `tariff_rate_table`: idempotency handled by EXCLUDE constraint on `(rate_type, workspace_id, daterange)`
 
-- [ ] **Step 2: Apply migration**
+- [ ] **Step 2: Validate via db reset**
 
 ```bash
-docker exec -i $(docker ps -q -f name=supabase_db) psql -U postgres < supabase/migrations/20260422300100_cascade_k1a_hospitality_seed.sql
+npx supabase db reset
 ```
+
+Expected: All migrations including K1a seed apply cleanly.
 
 - [ ] **Step 3: Verify seed data**
 
 ```bash
 docker exec -i $(docker ps -q -f name=supabase_db) psql -U postgres -c "
-  SELECT code, name, status FROM regulatory_framework WHERE code = 'hospitality.no.default.v1';
-  SELECT COUNT(*) as rule_count FROM framework_rule WHERE framework_id = (SELECT framework_id FROM regulatory_framework WHERE code = 'hospitality.no.default.v1');
-  SELECT COUNT(*) as trigger_count FROM framework_trigger WHERE framework_id = (SELECT framework_id FROM regulatory_framework WHERE code = 'hospitality.no.default.v1');
-  SELECT rate_type, amount, unit FROM tariff_rate_table WHERE workspace_id IS NULL;
+  SELECT code, name, version, is_active FROM regulatory_framework WHERE code = 'hospitality.no.default.v1';
+"
+docker exec -i $(docker ps -q -f name=supabase_db) psql -U postgres -c "
+  SELECT COUNT(*) as rule_count FROM framework_rule fr
+  JOIN regulatory_framework rf ON fr.framework_id = rf.framework_id
+  WHERE rf.code = 'hospitality.no.default.v1';
+"
+docker exec -i $(docker ps -q -f name=supabase_db) psql -U postgres -c "
+  SELECT COUNT(*) as trigger_count FROM framework_trigger ft
+  JOIN regulatory_framework rf ON ft.framework_id = rf.framework_id
+  WHERE rf.code = 'hospitality.no.default.v1';
+"
+docker exec -i $(docker ps -q -f name=supabase_db) psql -U postgres -c "
+  SELECT rate_type, amount, unit FROM tariff_rate_table WHERE workspace_id IS NULL ORDER BY rate_type;
+"
+docker exec -i $(docker ps -q -f name=supabase_db) psql -U postgres -c "
+  SELECT COUNT(*) as has_both_langs FROM framework_rule fr
+  JOIN regulatory_framework rf ON fr.framework_id = rf.framework_id
+  WHERE rf.code = 'hospitality.no.default.v1' AND fr.description IS NOT NULL AND fr.description_no IS NOT NULL;
 "
 ```
 
-Expected: 1 framework, 8 rules, 8 triggers, 5 tariff rates.
+Expected: 1 framework (is_active=true, version='1'), 8 rules, 8 triggers, 5 tariff rates, all rules have both language descriptions.
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add supabase/migrations/20260422300100_cascade_k1a_hospitality_seed.sql
+git add supabase/migrations/20260422130100_cascade_k1a_hospitality_seed.sql
 git commit -m "feat(db): seed K1a hospitality.no.default.v1 framework + tariff rates
 
 8 framework rules (AML §10-4/8/10, §11-2/3, Riksavtalen)
@@ -418,10 +502,20 @@ describe("hospitality industry package", () => {
     expect(hellig?.unit).toBe("percent");
   });
 
-  it("maps department names to types", () => {
+  it("maps department names to types with normalization", () => {
+    // Exact matches
     expect(DEPARTMENT_TYPE_MAP["Kjøkken"]).toBe("operational");
     expect(DEPARTMENT_TYPE_MAP["Kontor"]).toBe("administrative");
     expect(DEPARTMENT_TYPE_MAP["Sal"]).toBe("operational");
+  });
+
+  it("normalizes department names (case, unicode, trim)", () => {
+    // The lookup function must normalize: trim, casefold, unicode normalize
+    expect(lookupDepartmentType("kjøkken")).toBe("operational");
+    expect(lookupDepartmentType("  KJØKKEN  ")).toBe("operational");
+    expect(lookupDepartmentType("Kjokken")).toBe("operational"); // without ø
+    expect(lookupDepartmentType("Administration")).toBe("administrative");
+    expect(lookupDepartmentType("unknown dept")).toBeNull(); // returns null for unmatched
   });
 
   it("has offset defaults for operational departments", () => {
@@ -604,6 +698,25 @@ Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 
 This is the largest single task. The Edge Function implements the 10-step bootstrap sequence from spec section 5.2. It uses service-role client for all operations.
 
+**Transaction model: Stepwise commits with resume.**
+
+- Each of the 10 steps is independently idempotent
+- `steps_completed` array in `workspace_bootstrap_run` is the resume ledger
+- On rerun, skip steps already in `steps_completed`
+- Each step writes its DB mutations in a single RPC or direct insert (atomic per step)
+- After each step mutation succeeds, append step name to `steps_completed`
+- Event emission uses outbox pattern: write `engine_event` row in same transaction as mutation, dispatch reads from event table asynchronously
+- `status = 'partial'` means: some steps succeeded, data may be usable but not fully seeded. Admin can re-run.
+- `status = 'failed'` means: a step threw an unrecoverable error. `error_payload` has details.
+
+**Failure semantics:**
+
+```
+Step N mutation succeeds → append to steps_completed → continue
+Step N mutation fails → set status=failed, error_payload, stop
+Rerun → read steps_completed → skip completed steps → resume from first incomplete
+```
+
 - [ ] **Step 1: Create the Edge Function directory and file**
 
 ```bash
@@ -696,6 +809,14 @@ try {
 
 Add the same pattern after workspace finalization completes, using `sourcePath: "onboarding"`.
 
+- [ ] **Step 3.5: Add workspace bootstrap health check**
+
+After bootstrap call (success or failure), query `workspace_bootstrap_run` status. If not `completed`:
+
+- Set a `bootstrap_status` field on workspace (or use existing `intelligence_data` JSONB) marking bootstrap as incomplete
+- Downstream features that require cascade data (scheduling rules, tariff resolution, change proposals) must check this status and show admin warning: "Workspace setup incomplete — re-run bootstrap from settings"
+- Add a "Re-run Bootstrap" action in dashboard settings for manual retry
+
 - [ ] **Step 4: Test both paths locally**
 
 Create a test workspace through each path and verify `workspace_bootstrap_run` row is created.
@@ -742,9 +863,15 @@ When `guest` is selected, hide employment fields.
 
 Store employment metadata in the invitation's `metadata` JSONB field via the existing payload structure.
 
-- [ ] **Step 3: Add the invite_employment_type to the create-invitation payload**
+- [ ] **Step 3: Verify and update create-invitation EF server-side**
 
-The `create-invitation` Edge Function already supports arbitrary columns. Add `invite_employment_type` to the insert.
+**Do NOT assume** the EF accepts arbitrary columns. Read `supabase/functions/create-invitation/index.ts` and check:
+
+- Does it validate the payload with Zod or whitelist?
+- Does it explicitly list insert columns?
+- If yes: add `invite_employment_type` to validation schema and insert mapping
+- Add `metadata` pass-through for employment fields (employment_category, salary_type, weekly_hours, start_date, payroll_template_id)
+- Add test coverage for both employee and guest invite types
 
 - [ ] **Step 4: Test the dialog manually**
 
@@ -776,19 +903,30 @@ Understand the current flow: validate token → create/find auth user → create
 
 - [ ] **Step 2: Add employee cascade after profile creation**
 
-After profile creation, check `invitation.invite_employment_type`:
+**Atomicity invariant:** Invitation acceptance is only finalized (`status='accepted'`) after ALL required side effects for the selected employment type succeed. If any step fails, invitation stays `pending` and partial state is rolled back.
 
-If `'employee'`:
+**Implementation:** Wrap all DB mutations in a single SQL RPC (`accept_employee_invitation`) for atomic execution. The Edge Function calls this RPC, then emits events after commit.
 
-1. Create `employment_contract` (status: draft) with data from `invitation.metadata`
-2. Create `employee_payroll_profile` from template or metadata. Set `seniority_start_date` to `start_date` from metadata. Set `has_fagbrev` based on template tariff_category.
-3. Update `profile.status` to `'active'` (promote from trainee)
-4. Emit `employee.onboarded` event via `supabase.functions.invoke("engine-dispatch", ...)`
+After auth user creation, check `invitation.invite_employment_type`:
+
+If `'employee'` (all in one RPC transaction):
+
+1. Create profile (status: trainee)
+2. Assign departments/teams
+3. Create `employment_contract` (status: draft) from `invitation.metadata`
+4. Create `employee_payroll_profile` from template. Set `seniority_start_date` = start_date, `has_fagbrev` = true if tariff_category is `faglart`
+5. Update `profile.status` = `'active'`
+6. Mark `invitation.status` = `'accepted'`
+7. Write outbox event row for `employee.onboarded`
+
+After RPC succeeds, emit `employee.onboarded` via engine-dispatch.
 
 If `'guest'`:
 
-1. Update `profile.status` to `'active'` directly
-2. No contract, no payroll profile
+1. Create profile (status: active)
+2. Assign departments/teams
+3. Mark `invitation.status` = `'accepted'`
+4. No contract, no payroll profile
 
 - [ ] **Step 3: Test with a real employee invite**
 
@@ -859,9 +997,20 @@ Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 
 This is a **rewrite**, not a completion. The existing function (29 tests) has a different signature and evaluates proposed cascade changes. The new function evaluates shift/schedule actions against framework rules with employee context.
 
-- [ ] **Step 0: Remove deprecated types from types.ts**
+- [ ] **Step 0a: Search all consumers of evaluateFrameworkRules**
 
-Remove old types that are being replaced: `Conflict`, `ConflictCategory`, `ConflictSeverity`, `ProposedChange`. These were used by the old evaluator. The new types (`EvaluationResult`, `RuleHit`, `EntityContext`, `EvaluationOutcomeLevel`) were added in Task 5.
+```bash
+rg "evaluateFrameworkRules|from.*evaluate-framework-rules" --type ts -l
+```
+
+List all files that import or call the function. These must either be migrated to the new signature in this task or given a temporary adapter. Do NOT delete old types until all consumers are identified.
+
+- [ ] **Step 0b: Remove deprecated types from types.ts**
+
+Only after confirming no other files import `Conflict`, `ConflictCategory`, `ConflictSeverity`, `ProposedChange`:
+Remove these old types. The new types (`EvaluationResult`, `RuleHit`, `EntityContext`, `EvaluationOutcomeLevel`) were added in Task 5.
+
+If other files import the old types, create an adapter or migrate those files first.
 
 - [ ] **Step 1: Read existing implementation and tests**
 
@@ -942,15 +1091,27 @@ Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 
 - [ ] **Step 1: Write tests for resolveTariffRate**
 
+**Supplement stacking rules (must be encoded in tests):**
+
+- kr/h supplements (kveldstillegg, helgetillegg) are additive on top of base rate
+- % supplements (helligdagstillegg, overtime) apply to base rate ONLY, not base + prior supplements
+- Multiple kr/h supplements stack: evening + weekend = base + 15.65 + 29.74
+- % supplements are NOT mutually exclusive with kr/h supplements
+- Overtime is computed from cumulative worked hours (daily or weekly), not per-shift
+- When overlapping tariff_rate_table rows exist for same rate_type, use the one with latest `effective_from` that is <= timestamp
+
 Key test cases:
 
 1. Base hourly rate, no supplements → just base rate
-2. Evening shift (22:00) → kveldstillegg applied
-3. Saturday afternoon → helgetillegg applied
-4. Public holiday → helligdagstillegg applied (100% of base)
-5. Multiple supplements stack (holiday + evening)
-6. Override tier wins over workspace tier
-7. Workspace tier wins over platform tier
+2. Evening shift (22:00) → kveldstillegg 15.65 applied
+3. Saturday afternoon (16:00) → helgetillegg 29.74 applied
+4. Public holiday → helligdagstillegg 100% of base applied
+5. Multiple kr/h supplements stack: Saturday night = base + 15.65 + 29.74
+6. Holiday + evening: base + 100% of base + 15.65 (% on base, kr/h additive)
+7. Override tier wins over workspace tier
+8. Workspace tier wins over platform tier
+9. Overlapping effective dates: latest effective_from wins
+10. Overnight shift crossing midnight: supplements change at boundary (22:59 no kveld, 23:00 kveld starts — wait, kveld is 21:00-06:00)
 
 - [ ] **Step 2: Run tests to verify they fail**
 
@@ -1086,26 +1247,39 @@ Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 
 - Create: `supabase/functions/apply-change-proposal/index.ts`
 
-- [ ] **Step 1: Implement apply-change-proposal Edge Function**
+- [ ] **Step 1: Implement apply-change-proposal as SQL RPC + Edge Function wrapper**
 
-Transactional Edge Function. Guards:
+**Architecture:** The actual multi-entity mutation runs in a Postgres RPC (`apply_cascade_proposal`) for true atomicity. The Edge Function is a thin wrapper that calls the RPC and emits events after commit.
+
+**Staleness check:** Before applying, the RPC compares `updated_at` values of affected source entities against the snapshot captured during preview. If any source entity has changed since preview was computed, the proposal is marked stale and the apply is rejected — admin must re-preview.
+
+**Guards:**
 
 - `status = 'approved' AND applied_at IS NULL`
-- Uses service-role client for mutations
+- Source entity `updated_at` values match preview snapshot
 
-Apply sequence (from spec section 8.2):
+**SQL RPC `apply_cascade_proposal(p_proposal_id UUID)` — atomic:**
 
-1. Apply base change (workspace_operating_hours or department hours or dept type)
-2. Re-compute `is_derived=true` department hours (base + offsets)
-3. Update future upcoming `department_session` planned_open/planned_close
-4. Auto-adjust future unconfirmed shifts
-5. Mark impacted confirmed/published shifts (NOT auto-changed)
-6. Recalculate session_hook firing times
-7. INSERT activity_trail entries
-8. EMIT `operating_hours.changed` via engine-dispatch
-9. UPDATE change_proposal: status=applied, applied_at=now()
+1. Verify status = approved, applied_at IS NULL
+2. Verify source entity freshness (compare updated_at against proposal.preview_payload.source_snapshot)
+3. If stale: UPDATE proposal status='pending' (requires re-preview), RETURN error
+4. Apply base change (workspace_operating_hours or department hours or dept type)
+5. Re-compute `is_derived=true` department hours (base + offsets) — handle overnight spans
+6. Update future upcoming `department_session` planned_open/planned_close
+7. Auto-adjust future unconfirmed shifts (created/assigned status only)
+8. Mark impacted confirmed/published shifts as requiring review (NOT auto-changed)
+9. Recalculate session_hook firing times
+10. INSERT activity_trail entries (before/after for each mutation)
+11. INSERT outbox event row for `operating_hours.changed`
+12. UPDATE change_proposal: status=applied, applied_at=now()
 
-Status transitions: pending→approved→applied (or failed). See spec section 8.5.
+**Edge Function wrapper:**
+
+- Calls RPC
+- On success: emit `operating_hours.changed` from outbox
+- On failure: log error, RPC has already rolled back
+
+Status transitions: pending→approved→applied (or failed→pending for retry). See spec section 8.5.
 
 - [ ] **Step 2: Test locally**
 
@@ -1252,7 +1426,22 @@ npx supabase db reset
 
 Expected: All migrations apply cleanly including new Phase B migrations.
 
-- [ ] **Step 5: Regenerate types one final time**
+- [ ] **Step 5: Run negative-path tests**
+
+Ensure these failure scenarios are covered across test files:
+
+- Bootstrap rerun after partial completion (resume from steps_completed)
+- Bootstrap with no departments (edge case — completion criteria should fail)
+- Bootstrap when framework binding already exists (idempotent — skip)
+- Invitation accepted twice / token replay (should fail gracefully)
+- Payroll template missing during employee invite accept (fail with clear error)
+- Proposal apply on stale preview (reject, require re-preview)
+- Hours derivation across overnight spans (18:00-02:00 with offset)
+- Rule evaluator with conflicting workspace overrides
+- Tariff loader when workspace and platform rows overlap same effective date
+- Department name normalization edge cases (unicode, case, whitespace)
+
+- [ ] **Step 6: Regenerate types one final time**
 
 ```bash
 npx supabase gen types typescript --local > packages/supabase/src/database.types.ts
