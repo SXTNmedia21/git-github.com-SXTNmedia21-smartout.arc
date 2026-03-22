@@ -16,7 +16,7 @@ export default defineConfig({
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: process.env.CI
     ? [["html"], ["github"], ["./reporters/journey-reporter.ts"]]
-    : [["html"], ["./reporters/journey-reporter.ts"]],
+    : [["list"], ["html"], ["./reporters/journey-reporter.ts"]],
   /* Global timeout for each test */
   timeout: 30_000,
   expect: {
