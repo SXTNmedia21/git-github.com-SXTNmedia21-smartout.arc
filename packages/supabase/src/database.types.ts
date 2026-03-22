@@ -1,6 +1,3 @@
-WARN: environment variable is unset: SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID
-WARN: environment variable is unset: SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET
-Connecting to db 5432
 export type Json =
   | string
   | number
@@ -11165,7 +11162,61 @@ export type Database = {
       }
       generate_contract_number: { Args: never; Returns: string }
       get_api_workspace_id: { Args: never; Returns: string }
+      get_channel_messages: {
+        Args: { p_channel_id: string; p_cursor?: string; p_limit?: number }
+        Returns: {
+          attachments: Json
+          channel_id: string
+          client_message_id: string
+          content: string
+          created_at: string
+          deleted_at: string
+          edited_at: string
+          is_pinned: boolean
+          message_id: string
+          message_type: Database["public"]["Enums"]["channel_message_type"]
+          origin_type: Database["public"]["Enums"]["channel_origin_type"]
+          reactions: Json
+          reply_to_content: string
+          reply_to_id: string
+          reply_to_sender_name: string
+          sender_avatar: string
+          sender_id: string
+          sender_name: string
+          sender_role: string
+          system_data: Json
+          visibility_scope: Database["public"]["Enums"]["channel_message_visibility"]
+        }[]
+      }
+      get_my_channels: {
+        Args: { p_workspace_id: string }
+        Returns: {
+          audio_policy: Database["public"]["Enums"]["channel_audio_policy"]
+          avatar_url: string
+          channel_id: string
+          channel_type: Database["public"]["Enums"]["comm_channel_type"]
+          description: string
+          is_archived: boolean
+          is_read_only: boolean
+          last_message_at: string
+          last_message_content: string
+          last_message_sender_avatar: string
+          last_message_sender_name: string
+          member_count: number
+          name: string
+          unread_count: number
+          video_policy: Database["public"]["Enums"]["channel_video_policy"]
+          workspace_id: string
+        }[]
+      }
       get_secret: { Args: { secret_name: string }; Returns: string }
+      get_unread_counts: {
+        Args: { p_workspace_id: string }
+        Returns: {
+          channel_id: string
+          unread_count: number
+        }[]
+      }
       get_workspace_ids_for_user: { Args: { uid: string }; Returns: string[] }
       increment_communication_counter: {
         Args: { p_communication_id: string; p_field: string }
