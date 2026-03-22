@@ -686,6 +686,306 @@ export interface MessageSent extends BaseEvent {
   };
 }
 
+// ─── Payroll Settings Events ─────────────────────
+export interface PayrollSettingsUpdated extends BaseEvent {
+  event: "payroll_settings updated";
+  properties: {
+    data: {
+      period_type: string;
+      shift_grouping: string;
+    };
+  };
+}
+
+// ─── Salary Code Events ──────────────────────────
+export interface SalaryCodeCreated extends BaseEvent {
+  event: "salary_code created";
+  properties: {
+    data: {
+      code: string;
+      category: string;
+    };
+  };
+}
+
+export interface SalaryCodeUpdated extends BaseEvent {
+  event: "salary_code updated";
+  properties: {
+    data: {
+      salary_code_id: string;
+      code: string;
+    };
+  };
+}
+
+export interface SalaryCodeDeleted extends BaseEvent {
+  event: "salary_code deleted";
+  properties: {
+    data: {
+      salary_code_id: string;
+      code: string;
+    };
+  };
+}
+
+// ─── Employee Group Events ────────────────────────
+export interface EmployeeGroupCreated extends BaseEvent {
+  event: "employee_group created";
+  properties: {
+    data: {
+      employee_group_id: string;
+      name: string;
+    };
+  };
+}
+
+export interface EmployeeGroupUpdated extends BaseEvent {
+  event: "employee_group updated";
+  properties: {
+    data: {
+      employee_group_id: string;
+      name: string;
+    };
+  };
+}
+
+export interface EmployeeGroupDeleted extends BaseEvent {
+  event: "employee_group deleted";
+  properties: {
+    data: {
+      employee_group_id: string;
+      name: string;
+    };
+  };
+}
+
+export interface GroupMemberAdded extends BaseEvent {
+  event: "group_member added";
+  properties: {
+    data: {
+      employee_group_id: string;
+      profile_id: string;
+    };
+  };
+}
+
+export interface GroupMemberUpdated extends BaseEvent {
+  event: "group_member updated";
+  properties: {
+    data: {
+      employee_group_id: string;
+      profile_id: string;
+    };
+  };
+}
+
+export interface GroupMemberRemoved extends BaseEvent {
+  event: "group_member removed";
+  properties: {
+    data: {
+      employee_group_id: string;
+      profile_id: string;
+    };
+  };
+}
+
+// ─── Shift Type Events ───────────────────────────
+export interface ShiftTypeCreated extends BaseEvent {
+  event: "shift_type created";
+  properties: {
+    data: {
+      name: string;
+      rate_adjustment_type: string;
+    };
+  };
+}
+
+export interface ShiftTypeUpdated extends BaseEvent {
+  event: "shift_type updated";
+  properties: {
+    data: {
+      shift_type_id: string;
+      name: string;
+    };
+  };
+}
+
+export interface ShiftTypeDeleted extends BaseEvent {
+  event: "shift_type deleted";
+  properties: {
+    data: {
+      shift_type_id: string;
+      name: string;
+    };
+  };
+}
+
+// ─── Supplement Rule Events ──────────────────────
+export interface SupplementRuleCreated extends BaseEvent {
+  event: "supplement_rule created";
+  properties: {
+    data: {
+      name: string;
+      supplement_type: string;
+    };
+  };
+}
+
+export interface SupplementRuleUpdated extends BaseEvent {
+  event: "supplement_rule updated";
+  properties: {
+    data: {
+      supplement_rule_id: string;
+      name: string;
+      supplement_type: string;
+    };
+  };
+}
+
+export interface SupplementRuleDeleted extends BaseEvent {
+  event: "supplement_rule deleted";
+  properties: {
+    data: {
+      supplement_rule_id: string;
+      name: string;
+    };
+  };
+}
+
+// ─── Break Rule Events ──────────────────────────
+export interface BreakRuleCreated extends BaseEvent {
+  event: "break_rule created";
+  properties: {
+    data: {
+      name: string;
+      trigger_type: string;
+    };
+  };
+}
+
+export interface BreakRuleUpdated extends BaseEvent {
+  event: "break_rule updated";
+  properties: {
+    data: {
+      break_rule_id: string;
+      name: string;
+    };
+  };
+}
+
+export interface BreakRuleDeleted extends BaseEvent {
+  event: "break_rule deleted";
+  properties: {
+    data: {
+      break_rule_id: string;
+      name: string;
+    };
+  };
+}
+
+// ─── Working Time Rules Events ──────────────────
+export interface WorkingTimeRulesUpdated extends BaseEvent {
+  event: "working_time_rules updated";
+  properties: {
+    data: {
+      rule_codes: string[];
+      active_count: number;
+    };
+  };
+}
+
+// ─── Holiday Calendar Events ─────────────────────
+export interface HolidayCalendarCreated extends BaseEvent {
+  event: "holiday_calendar created";
+  properties: {
+    data: {
+      calendar_id: string;
+      name: string;
+    };
+  };
+}
+
+export interface HolidayCalendarUpdated extends BaseEvent {
+  event: "holiday_calendar updated";
+  properties: {
+    data: {
+      calendar_id: string;
+      name: string;
+    };
+  };
+}
+
+export interface HolidayCalendarDeleted extends BaseEvent {
+  event: "holiday_calendar deleted";
+  properties: {
+    data: {
+      calendar_id: string;
+      name: string;
+    };
+  };
+}
+
+export interface HolidayEntryCreated extends BaseEvent {
+  event: "holiday_entry created";
+  properties: {
+    data: {
+      calendar_id: string;
+    };
+  };
+}
+
+export interface HolidayEntryDeleted extends BaseEvent {
+  event: "holiday_entry deleted";
+  properties: {
+    data: {
+      calendar_id: string;
+    };
+  };
+}
+
+export interface HolidaysImported extends BaseEvent {
+  event: "holidays imported";
+  properties: {
+    data: {
+      calendar_id: string;
+      count: number;
+      inserted: number;
+    };
+  };
+}
+
+// ─── Meal Rule Events ────────────────────────────
+export interface MealRuleCreated extends BaseEvent {
+  event: "meal_rule created";
+  properties: {
+    data: {
+      meal_rule_id: string;
+      name: string;
+      meal_type: string;
+    };
+  };
+}
+
+export interface MealRuleUpdated extends BaseEvent {
+  event: "meal_rule updated";
+  properties: {
+    data: {
+      meal_rule_id: string;
+      name: string;
+    };
+  };
+}
+
+export interface MealRuleDeleted extends BaseEvent {
+  event: "meal_rule deleted";
+  properties: {
+    data: {
+      meal_rule_id: string;
+      name: string;
+    };
+  };
+}
+
 // ─── AI / Authority Config Events ───────────────
 export interface AuthorityConfigUpdated extends BaseEvent {
   event: "authority_config updated";
@@ -850,9 +1150,38 @@ export type SmartoutEvent =
   | LeaderPulseDismissed
   | ConversationCreated
   | MessageSent
+  | PayrollSettingsUpdated
+  | SalaryCodeCreated
+  | SalaryCodeUpdated
+  | SalaryCodeDeleted
+  | EmployeeGroupCreated
+  | EmployeeGroupUpdated
+  | EmployeeGroupDeleted
+  | GroupMemberAdded
+  | GroupMemberUpdated
+  | GroupMemberRemoved
+  | ShiftTypeCreated
+  | ShiftTypeUpdated
+  | ShiftTypeDeleted
+  | SupplementRuleCreated
+  | SupplementRuleUpdated
+  | SupplementRuleDeleted
+  | BreakRuleCreated
+  | BreakRuleUpdated
+  | BreakRuleDeleted
+  | WorkingTimeRulesUpdated
   | AuthorityConfigUpdated
   | OnboardingGuideUpdated
   | IndustryPackageLoaded
+  | HolidayCalendarCreated
+  | HolidayCalendarUpdated
+  | HolidayCalendarDeleted
+  | HolidayEntryCreated
+  | HolidayEntryDeleted
+  | HolidaysImported
+  | MealRuleCreated
+  | MealRuleUpdated
+  | MealRuleDeleted
   | PageViewed
   | ButtonClicked;
 
@@ -1142,6 +1471,93 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "communication",
   },
 
+  "payroll_settings updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+
+  "salary_code created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "salary_code updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "salary_code deleted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+
+  "employee_group created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "employee_group updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "employee_group deleted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "group_member added": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "group_member updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "group_member removed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+
+  "shift_type created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "shift_type updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "shift_type deleted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+
+  "supplement_rule created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "supplement_rule updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "supplement_rule deleted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+
+  "break_rule created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "break_rule updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "break_rule deleted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+
+  "working_time_rules updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+
   "authority_config updated": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "system",
@@ -1155,6 +1571,44 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "industry_package loaded": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "onboarding",
+  },
+
+  "holiday_calendar created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "holiday_calendar updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "holiday_calendar deleted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "holiday_entry created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "holiday_entry deleted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "holidays imported": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+
+  "meal_rule created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "meal_rule updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "meal_rule deleted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
   },
 
   "page viewed": { destinations: ["posthog"], category: "navigation" },

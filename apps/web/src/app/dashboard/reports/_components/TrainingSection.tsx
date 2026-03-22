@@ -16,14 +16,9 @@ import {
   User,
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import {
-  PROTOCOL_COMPLIANCE,
-  TRAINING_TREND_30D,
-  OVERDUE_ASSIGNMENTS,
-  CHART_COLORS,
-  chartTheme,
-} from "./report-data";
+import { CHART_COLORS, chartTheme } from "./report-data";
 import type { ReportInsightCard } from "./report-insight-types";
+import { useReportTraining } from "../_hooks/use-report-training";
 
 type TrainingSectionProps = {
   isDark: boolean;
@@ -32,10 +27,33 @@ type TrainingSectionProps = {
 
 export function TrainingSection({ isDark, onOpenInsight }: TrainingSectionProps) {
   const theme = chartTheme(isDark);
+  const { data, isLoading } = useReportTraining();
 
-  const totalAssigned = PROTOCOL_COMPLIANCE.reduce((s, p) => s + p.assigned, 0);
-  const totalCompleted = PROTOCOL_COMPLIANCE.reduce((s, p) => s + p.completed, 0);
-  const avgCompliance = Math.round((totalCompleted / totalAssigned) * 100);
+  const protocolCompliance = data?.protocolCompliance ?? [];
+  const trainingTrend30d = data?.trainingTrend30d ?? [];
+  const overdueAssignments = data?.overdueAssignments ?? [];
+
+  const totalAssigned = protocolCompliance.reduce((s, p) => s + p.assigned, 0);
+  const totalCompleted = protocolCompliance.reduce((s, p) => s + p.completed, 0);
+  const avgCompliance = totalAssigned > 0 ? Math.round((totalCompleted / totalAssigned) * 100) : 0;
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-5">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div
+              key={i}
+              className={`h-24 animate-pulse rounded-2xl border ${isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-zinc-100"}`}
+            />
+          ))}
+        </div>
+        <div
+          className={`h-56 animate-pulse rounded-2xl border ${isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-zinc-100"}`}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -144,9 +162,9 @@ export function TrainingSection({ isDark, onOpenInsight }: TrainingSectionProps)
         />
         <MiniKpi
           label="Forfalt"
-          value={`${OVERDUE_ASSIGNMENTS.length}`}
+          value={`${overdueAssignments.length}`}
           icon={AlertTriangle}
-          color={OVERDUE_ASSIGNMENTS.length > 0 ? "orange" : "emerald"}
+          color={overdueAssignments.length > 0 ? "orange" : "emerald"}
           isDark={isDark}
           onClick={() =>
             onOpenInsight({
@@ -218,7 +236,7 @@ export function TrainingSection({ isDark, onOpenInsight }: TrainingSectionProps)
           </div>
         </div>
         <div className="space-y-3">
-          {PROTOCOL_COMPLIANCE.map((protocol) => {
+          {protocolCompliance.map((protocol) => {
             const barColor =
               protocol.compliance >= 90
                 ? "bg-emerald-500"
@@ -353,7 +371,7 @@ export function TrainingSection({ isDark, onOpenInsight }: TrainingSectionProps)
           </div>
           <ResponsiveContainer width="100%" height={180}>
             <BarChart
-              data={TRAINING_TREND_30D}
+              data={trainingTrend30d}
               margin={{ top: 0, right: 0, bottom: 0, left: -20 }}
               barGap={2}
             >
@@ -434,12 +452,12 @@ export function TrainingSection({ isDark, onOpenInsight }: TrainingSectionProps)
                   isDark ? "bg-red-500/10 text-red-400" : "bg-red-50 text-red-600"
                 }`}
               >
-                {OVERDUE_ASSIGNMENTS.length}
+                {overdueAssignments.length}
               </span>
             </div>
           </div>
           <div className="space-y-2">
-            {OVERDUE_ASSIGNMENTS.map((item, i) => (
+            {overdueAssignments.map((item, i) => (
               <div
                 key={i}
                 className={`flex items-center justify-between rounded-xl border p-3 ${

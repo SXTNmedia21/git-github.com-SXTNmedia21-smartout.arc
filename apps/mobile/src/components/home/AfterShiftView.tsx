@@ -14,6 +14,8 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { SectionHeader } from "@/components/common/SectionHeader";
 import { strings } from "@/constants/strings";
+import { PayrollHomeCard } from "@/components/payroll/PayrollHomeCard";
+import { usePayrollSummary } from "@/hooks/queries/use-payroll-summary";
 import type { Database } from "@smartout/supabase/database.types";
 import type { TimeEntry } from "@/types/time-entry";
 
@@ -71,6 +73,7 @@ export function AfterShiftView({
   const styles = useStyles();
   const [handoffText, setHandoffText] = useState("");
   const [handoffSent, setHandoffSent] = useState(false);
+  const summary = usePayrollSummary();
 
   const handleSubmitHandoff = useCallback(() => {
     if (!handoffText.trim()) return;
@@ -159,6 +162,16 @@ export function AfterShiftView({
           />
         </View>
       </Card>
+
+      {/* Shift earnings summary — informational, below hours confirmation */}
+      <View style={styles.payrollCard}>
+        <PayrollHomeCard
+          phase="after_shift"
+          shift={shift}
+          timeEntry={timeEntry}
+          summary={summary.data ?? null}
+        />
+      </View>
     </ScrollView>
   );
 }
@@ -214,5 +227,10 @@ const useStyles = createStyles((theme) => ({
   },
   disputeButton: {
     flex: 1,
+  },
+
+  /* Payroll card spacing — sits below hours confirmation card */
+  payrollCard: {
+    marginTop: theme.spacing.section,
   },
 }));
