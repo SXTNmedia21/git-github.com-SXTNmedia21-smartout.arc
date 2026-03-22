@@ -107,20 +107,20 @@ apps/web/src/app/dashboard/channels/
 
 - Create: `supabase/migrations/YYYYMMDDHHMMSS_channel_communications.sql`
 
-- [ ] **Step 1: Create migration file with all 14 enum definitions**
+- [ ] **Step 1: Create migration file with all 16 enum definitions**
 
-All enums from spec Section 3.1. Each wrapped in `DO $$ BEGIN IF NOT EXISTS ... END $$;` guard. Enum names prefixed per spec: `comm_channel_type`, `channel_message_type`, `channel_origin_type`, `channel_delivery_mode`, `channel_message_visibility`, `channel_audio_policy`, `channel_video_policy`, `channel_recording_policy`, `channel_ai_voice_policy`, `channel_member_role`, `channel_call_status`, `channel_presence_status`, `channel_integration_status`, `channel_ai_text_mode`, `channel_ai_voice_mode`, `channel_notification_priority`.
+All enums from spec Section 3.1. Each wrapped in `DO $$ BEGIN IF NOT EXISTS ... END $$;` guard. The 16 enums: `comm_channel_type`, `channel_message_type`, `channel_origin_type`, `channel_delivery_mode`, `channel_message_visibility`, `channel_audio_policy`, `channel_video_policy`, `channel_recording_policy`, `channel_ai_voice_policy`, `channel_member_role`, `channel_call_status`, `channel_presence_status`, `channel_integration_status`, `channel_ai_text_mode`, `channel_ai_voice_mode`, `channel_notification_priority`.
 
 - [ ] **Step 2: Run migration**
 
 Run: `docker exec -i $(docker ps -q -f name=supabase_db) psql -U postgres < supabase/migrations/<filename>.sql`
-Verify: `SELECT typname FROM pg_type WHERE typname LIKE 'channel%' OR typname LIKE 'comm_%';` returns 14+ rows.
+Verify: `SELECT typname FROM pg_type WHERE typname LIKE 'channel%' OR typname LIKE 'comm_%';` returns 16 rows.
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git add supabase/migrations/YYYYMMDDHHMMSS_channel_communications.sql
-git commit -m "feat(channels): add 14 channel communication enums"
+git commit -m "feat(channels): add 16 channel communication enums"
 ```
 
 ---
@@ -374,12 +374,14 @@ git commit -m "feat(channels): add membership-scoped RLS for all channel tables"
 ```sql
 CREATE OR REPLACE FUNCTION create_channel(
   p_workspace_id uuid,
-  p_channel_type comm_channel_type,
+  p_channel_type public.comm_channel_type,
   p_name text DEFAULT NULL,
   p_created_by uuid DEFAULT NULL,
   p_member_profile_ids uuid[] DEFAULT NULL
 ) RETURNS jsonb
-LANGUAGE plpgsql SECURITY DEFINER AS $$
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = '' AS $$
 DECLARE
   v_channel_id uuid;
   v_pair_hash text;
@@ -388,7 +390,7 @@ DECLARE
 BEGIN
   -- Permission checks by type
   IF p_channel_type = 'custom' THEN
-    SELECT role::text INTO v_creator_role FROM profile
+    SELECT role::text INTO v_creator_role FROM public.profile
       WHERE profile_id = p_created_by AND workspace_id = p_workspace_id;
     IF v_creator_role NOT IN ('manager', 'admin', 'owner') THEN
       RAISE EXCEPTION 'Only manager/admin/owner can create custom channels';
@@ -407,9 +409,9 @@ BEGIN
     END IF;
     -- Both must belong to same workspace
     IF NOT EXISTS (
-      SELECT 1 FROM profile WHERE profile_id = p_member_profile_ids[1] AND workspace_id = p_workspace_id
+      SELECT 1 FROM public.profile WHERE profile_id = p_member_profile_ids[1] AND workspace_id = p_workspace_id
     ) OR NOT EXISTS (
-      SELECT 1 FROM profile WHERE profile_id = p_member_profile_ids[2] AND workspace_id = p_workspace_id
+      SELECT 1 FROM public.profile WHERE profile_id = p_member_profile_ids[2] AND workspace_id = p_workspace_id
     ) THEN
       RAISE EXCEPTION 'Both members must belong to the workspace';
     END IF;
@@ -420,11 +422,10 @@ BEGIN
       v_pair_hash := p_member_profile_ids[2]::text || ':' || p_member_profile_ids[1]::text;
     END IF;
     -- Idempotent: return existing (even if archived — reactivate)
-    SELECT id INTO v_channel_id FROM channel
+    SELECT id INTO v_channel_id FROM public.channel
       WHERE workspace_id = p_workspace_id AND direct_pair_hash = v_pair_hash;
     IF v_channel_id IS NOT NULL THEN
-      -- Reactivate if archived
-      UPDATE channel SET is_archived = false, updated_at = now()
+      UPDATE public.channel SET is_archived = false, updated_at = now()
         WHERE id = v_channel_id AND is_archived = true;
       RETURN jsonb_build_object('channel_id', v_channel_id, 'created', false);
     END IF;
@@ -433,13 +434,13 @@ BEGIN
   END IF;
 
   -- Insert channel
-  INSERT INTO channel (workspace_id, channel_type, name, created_by, direct_pair_hash)
+  INSERT INTO public.channel (workspace_id, channel_type, name, created_by, direct_pair_hash)
   VALUES (p_workspace_id, p_channel_type, p_name, p_created_by, v_pair_hash)
   RETURNING id INTO v_channel_id;
 
   -- Add creator as admin
   IF p_created_by IS NOT NULL THEN
-    INSERT INTO channel_member (channel_id, workspace_id, profile_id, role)
+    INSERT INTO public.channel_member (channel_id, workspace_id, profile_id, role)
     VALUES (v_channel_id, p_workspace_id, p_created_by, 'admin')
     ON CONFLICT (channel_id, profile_id) DO NOTHING;
   END IF;
@@ -447,7 +448,7 @@ BEGIN
   -- Add specified members
   IF p_member_profile_ids IS NOT NULL THEN
     FOREACH v_pid IN ARRAY p_member_profile_ids LOOP
-      INSERT INTO channel_member (channel_id, workspace_id, profile_id, role)
+      INSERT INTO public.channel_member (channel_id, workspace_id, profile_id, role)
       VALUES (v_channel_id, p_workspace_id, v_pid, 'member')
       ON CONFLICT (channel_id, profile_id) DO NOTHING;
     END LOOP;
@@ -465,7 +466,11 @@ $$;
 - **Option A:** `ALTER TYPE profile_role ADD VALUE IF NOT EXISTS 'system';` then seed with role=system
 - **Option B:** Use role=`employee` with a dedicated `is_system_profile boolean DEFAULT false` column
 
-**Choose Option A** (cleaner, role is semantic). Then seed:
+**Choose Option A** (cleaner, role is semantic).
+
+**Before running:** Search for exhaustive `profile_role` matches in the codebase — UI role badges, permission checks, switch statements. If any assume the enum is only `employee | manager | admin | owner`, they must be updated to handle `system`. Run: `grep -r "profile_role\|ProfileRole\|role.*employee.*manager.*admin.*owner" apps/ packages/ --include="*.ts" --include="*.tsx" -l`
+
+Then seed:
 
 ```sql
 ALTER TYPE profile_role ADD VALUE IF NOT EXISTS 'system';
@@ -572,10 +577,10 @@ git commit -m "feat(channels): regenerate types + add channel telemetry events"
 
 - [ ] **Step 1: `get_my_channels()` RPC**
 
-Returns channel list for current user with last message preview and unread count:
+Returns channel list for current user with last message preview and unread count. **Derives profile from `auth.uid()` internally** — caller cannot request another user's channels.
 
 ```sql
-CREATE OR REPLACE FUNCTION get_my_channels(p_profile_id uuid)
+CREATE OR REPLACE FUNCTION get_my_channels(p_workspace_id uuid)
 RETURNS TABLE (
   channel_id uuid,
   workspace_id uuid,
@@ -594,6 +599,12 @@ RETURNS TABLE (
   last_message_sender_name text,
   last_message_sender_avatar text
 ) LANGUAGE sql STABLE SECURITY INVOKER AS $$
+  -- Derive caller's profile_id from auth.uid() — cannot query another user's channels
+  WITH caller AS (
+    SELECT profile_id FROM profile
+    WHERE user_id = auth.uid() AND workspace_id = p_workspace_id
+    LIMIT 1
+  )
   SELECT
     c.id AS channel_id,
     c.workspace_id,
@@ -620,7 +631,7 @@ RETURNS TABLE (
     sp.avatar_url AS last_message_sender_avatar
   FROM channel c
   JOIN channel_member cm ON cm.channel_id = c.id
-    AND cm.profile_id = p_profile_id AND cm.left_at IS NULL
+    AND cm.profile_id = (SELECT profile_id FROM caller) AND cm.left_at IS NULL
   LEFT JOIN LATERAL (
     SELECT content, created_at, sender_id FROM channel_message
     WHERE channel_id = c.id AND deleted_at IS NULL AND delivery_mode = 'timeline'
@@ -710,9 +721,15 @@ $$;
 - [ ] **Step 3: `get_unread_counts()` RPC**
 
 ```sql
-CREATE OR REPLACE FUNCTION get_unread_counts(p_profile_id uuid)
+CREATE OR REPLACE FUNCTION get_unread_counts(p_workspace_id uuid)
 RETURNS TABLE (channel_id uuid, unread_count bigint)
 LANGUAGE sql STABLE SECURITY INVOKER AS $$
+  -- Derive caller's profile from auth.uid()
+  WITH caller AS (
+    SELECT profile_id FROM profile
+    WHERE user_id = auth.uid() AND workspace_id = p_workspace_id
+    LIMIT 1
+  )
   SELECT
     cm.channel_id,
     count(msg.id) AS unread_count
@@ -723,7 +740,7 @@ LANGUAGE sql STABLE SECURITY INVOKER AS $$
     AND msg.delivery_mode = 'timeline'
     AND (cm.last_read_message_id IS NULL
       OR msg.created_at > (SELECT created_at FROM channel_message WHERE id = cm.last_read_message_id))
-  WHERE cm.profile_id = p_profile_id AND cm.left_at IS NULL
+  WHERE cm.profile_id = (SELECT profile_id FROM caller) AND cm.left_at IS NULL
   GROUP BY cm.channel_id
   HAVING count(msg.id) > 0;
 $$;
@@ -731,7 +748,7 @@ $$;
 
 - [ ] **Step 4: Run migration and test RPCs**
 
-Test: `SELECT * FROM get_my_channels('some-profile-id');` — should return empty (no channels yet).
+Test with a JWT-authenticated session: `SELECT * FROM get_my_channels('some-workspace-id');` — should return empty (no channels yet). Profile derived from `auth.uid()` internally.
 
 - [ ] **Step 5: Commit**
 
@@ -788,7 +805,7 @@ git commit -m "feat(channels): add query key factory + TypeScript types"
 
 - [ ] **Step 1: `use-channels.ts`**
 
-Calls `get_my_channels()` RPC via `supabase.rpc('get_my_channels', { p_profile_id })`. Groups results by `channel_type` for the UI.
+Calls `get_my_channels()` RPC via `supabase.rpc('get_my_channels', { p_workspace_id: workspaceId })`. Profile derived from `auth.uid()` inside the RPC — no profile_id parameter needed. Groups results by `channel_type` for the UI.
 
 - [ ] **Step 2: `use-channel-messages.ts`**
 
@@ -816,7 +833,7 @@ Query members. Add/remove mutations with telemetry.
 
 - [ ] **Step 8: `use-unread-counts.ts`**
 
-Calls `get_unread_counts()` RPC. Used for sidebar badges.
+Calls `get_unread_counts()` RPC via `supabase.rpc('get_unread_counts', { p_workspace_id: workspaceId })`. Profile derived internally from `auth.uid()`. Used for sidebar badges.
 
 - [ ] **Step 9: Typecheck**
 
@@ -1036,11 +1053,17 @@ git commit -m "feat(channels): add MemberPanel + CreateChannel modal"
 
 ```sql
 CREATE OR REPLACE FUNCTION auto_create_department_channel()
-RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = '' AS $$
 BEGIN
-  INSERT INTO channel (workspace_id, channel_type, name, department_id)
-  VALUES (NEW.workspace_id, 'department', '#' || lower(NEW.name), NEW.department_id)
-  ON CONFLICT ON CONSTRAINT idx_channel_one_per_department DO NOTHING;
+  -- Guarded insert: partial unique indexes cannot be used with ON CONFLICT ON CONSTRAINT
+  INSERT INTO public.channel (workspace_id, channel_type, name, department_id)
+  SELECT NEW.workspace_id, 'department'::public.comm_channel_type, '#' || lower(NEW.name), NEW.department_id
+  WHERE NOT EXISTS (
+    SELECT 1 FROM public.channel
+    WHERE department_id = NEW.department_id
+      AND is_archived = false
+  );
   RETURN NEW;
 END;
 $$;
@@ -1052,7 +1075,7 @@ CREATE TRIGGER trg_department_channel
 
 - [ ] **Step 2: Team channel trigger**
 
-Same pattern, targeting `idx_channel_one_per_team`.
+Same guarded-insert pattern (WHERE NOT EXISTS on team_id + is_archived = false).
 
 - [ ] **Step 3: Profile department-sync trigger**
 
@@ -1063,27 +1086,28 @@ When `profile.department_id` changes:
 
 ```sql
 CREATE OR REPLACE FUNCTION sync_profile_department_channel()
-RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = '' AS $$
 DECLARE
   v_old_channel_id uuid;
   v_new_channel_id uuid;
 BEGIN
   -- Find old department channel
   IF OLD.department_id IS NOT NULL AND OLD.department_id != NEW.department_id THEN
-    SELECT id INTO v_old_channel_id FROM channel
+    SELECT id INTO v_old_channel_id FROM public.channel
       WHERE department_id = OLD.department_id AND is_archived = false LIMIT 1;
     IF v_old_channel_id IS NOT NULL THEN
-      UPDATE channel_member SET left_at = now()
+      UPDATE public.channel_member SET left_at = now()
         WHERE channel_id = v_old_channel_id AND profile_id = NEW.profile_id AND left_at IS NULL;
     END IF;
   END IF;
 
   -- Find new department channel
   IF NEW.department_id IS NOT NULL THEN
-    SELECT id INTO v_new_channel_id FROM channel
+    SELECT id INTO v_new_channel_id FROM public.channel
       WHERE department_id = NEW.department_id AND is_archived = false LIMIT 1;
     IF v_new_channel_id IS NOT NULL THEN
-      INSERT INTO channel_member (channel_id, workspace_id, profile_id, role)
+      INSERT INTO public.channel_member (channel_id, workspace_id, profile_id, role)
       VALUES (v_new_channel_id, NEW.workspace_id, NEW.profile_id, 'member')
       ON CONFLICT (channel_id, profile_id) DO UPDATE SET left_at = NULL;
     END IF;
