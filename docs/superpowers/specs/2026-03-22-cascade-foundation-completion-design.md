@@ -32,7 +32,7 @@ This spec defines the work to complete the Cascade Core Foundation runtime — t
 - Payroll profile templates (table + industry seed)
 - Change proposal lifecycle for hours and department type changes
 - `evaluateFrameworkRules()` completion (multi-rule, employee context, override layering)
-- `resolve_tariff_rate()` RPC (timestamp-based)
+- `resolveTariffRate()` pure function + `getTariffContext()` loader (timestamp-based)
 - Season budget enrichment from onboarding intake data
 - Bootstrap audit logging (`workspace_bootstrap_run`)
 
@@ -56,14 +56,15 @@ These rules are absolute. No code path may violate them.
 
 1. Every active hospitality workspace must have exactly one active framework binding.
 2. Every active department must have a `department_type` set.
-3. Every active department must have operating hours entries.
+3. No workspace may be marked bootstrap-complete while any active department lacks operating hours entries.
 4. Every employee invite must resolve to either guest access or employee setup.
 5. Every employee setup must result in a payroll profile.
 6. Administrative departments never create `department_session` records.
 7. Workspace base hour changes never mutate past or current sessions/shifts.
 8. User-entered values always win over scraped/inferred values for budget data.
-9. Seeded data always carries provenance (source framework, version, timestamp).
+9. Seeded data always carries provenance (source framework, version, timestamp). See Section 16 for standard provenance shape.
 10. Bootstrap is idempotent — re-running does not duplicate or corrupt data.
+11. Applying a change proposal must be idempotent and impossible unless `status = 'approved'` and `applied_at IS NULL`.
 
 ---
 
@@ -90,6 +91,8 @@ CREATE TABLE workspace_operating_hours (
 ```
 
 RLS: workspace membership (JWT + API key policies).
+
+**Weekday convention:** All weekday handling in cascade/runtime uses 0=Mon...6=Sun (ISO-style). This matches `department_operating_hours.day_of_week` and `resolveEffectiveHours()`. JavaScript `Date.getDay()` returns 0=Sun — callers must convert.
 
 #### `payroll_profile_template`
 
@@ -131,7 +134,7 @@ CREATE TABLE workspace_bootstrap_run (
   steps_completed TEXT[] DEFAULT '{}',
   warnings JSONB DEFAULT '[]',  -- e.g. [{step: "dept_type_inference", dept: "X", message: "low confidence"}]
   error_payload JSONB,
-  framework_binding_id UUID,
+  framework_binding_id UUID REFERENCES workspace_framework_binding(id),
   started_at TIMESTAMPTZ DEFAULT now(),
   completed_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT now()
@@ -172,16 +175,20 @@ ALTER TABLE department
 
 Used by bootstrap to flag low-confidence inferences for admin review.
 
-#### `invitation` — add employment type
+#### `invitation` — add invite employment type
 
 ```sql
 ALTER TABLE invitation
-  ADD COLUMN employment_type TEXT CHECK (employment_type IN ('employee', 'guest'));
+  ADD COLUMN invite_employment_type TEXT CHECK (invite_employment_type IN ('employee', 'guest'));
 ```
+
+Named `invite_employment_type` (not `employment_type`) to avoid confusion with `employment_category` (fast/deltid/tilkalling) which describes the employment model. `invite_employment_type` describes whether this invite creates an employee or a guest.
 
 Nullable for backwards compatibility with existing invitations. Required for new invites going forward.
 
-#### `employee_payroll_profile` — add provenance
+#### `employee_payroll_profile` — add provenance columns
+
+`employee_payroll_profile` already contains the core contract/tariff linkage (`employment_contract_id`, `tariff_override_id`, `tariff_category`, etc.). This spec adds provenance columns only.
 
 ```sql
 ALTER TABLE employee_payroll_profile
@@ -269,9 +276,13 @@ Step 6: planning_cycle
   Status: active
 
 Step 7: season_budget enrichment
-  Populate from wizard intake data:
+  If user-entered budget data exists (expectedRevenue, targetMargin):
     expectedRevenue → season_budget.total_target
     targetMargin → season_budget.target_margin (NOT labor_percentage)
+  If no intake data (e.g. /join path with partial data):
+    Create season_budget with status='draft', NULL targets
+    Suggest industry defaults as starting point (displayed in UI, not auto-saved)
+    Mark provenance: { source: 'bootstrap_default', needs_user_input: true }
   labor_percentage: suggest from industry defaults (e.g. 30% for restaurants)
     but do NOT derive from targetMargin — they are independent variables
   Scraped data: stored as provenance/comparison, never overwrites user input
@@ -357,22 +368,31 @@ Platform-level rows (`workspace_id IS NULL`):
 
 Current broken state: `trainee` forever, no promotion logic.
 
-New state transitions:
+#### Conceptual Process State
 
 ```
 invited (invitation created, not yet accepted)
-  → pending_employment_setup (invitation accepted, profile created)
+  → pending_employment_setup (invitation accepted, employee profile being configured)
     → active (payroll profile created — operational employee)
   → active (guest invite accepted — no payroll needed)
 ```
 
+#### Stored `profile_status` in Phase B
+
+The existing `profile_status` enum (`trainee`/`active`/`inactive`/`offboarding`) is sufficient. No enum migration needed.
+
+- `trainee`: used as temporary intermediate state during accept-invitation transaction
+- `active`: set at end of accept-invitation when payroll profile is created (employee) or immediately (guest)
+
+The conceptual "pending_employment_setup" maps to `trainee` in storage. The key change is that `trainee` is no longer a dead-end — it is promoted to `active` within the same transaction.
+
 **Promotion rule:** Employee invite accepted + payroll profile seeded = `active` profile. Contract signing refines employment state but does not gate activation.
 
-**Note:** This requires either adding `pending_employment_setup` to the `profile_status` enum or using `trainee` for the intermediate state and promoting to `active` within the same accept-invitation transaction. Recommendation: use existing `trainee` as the intermediate state, promote to `active` at end of accept-invitation when payroll profile is created. This avoids enum migration.
+**Guest → employee conversion:** Supported later through an explicit admin flow (change employment_type, add payroll fields, trigger contract + payroll cascade). This is NOT part of the accept-invitation transaction — it is a separate admin action.
 
 ### 7.2 Invite Dialog Changes
 
-**New field:** `employment_type: 'employee' | 'guest'`
+**New field:** `invite_employment_type: 'employee' | 'guest'`
 
 **When `employee` is selected, require:**
 
@@ -393,7 +413,7 @@ Employment metadata stored in `invitation.metadata` JSONB (already exists).
 ### 7.3 Accept-Invitation Cascade (Employee Type)
 
 ```
-accept-invitation EF (employment_type = 'employee'):
+accept-invitation EF (invite_employment_type = 'employee'):
 
   1. Create auth user + user_identity (existing)
 
@@ -511,12 +531,18 @@ Admins only for Phase B. `engine_authority_config` remains separate — it contr
 
 ## 9. Framework Rule Evaluation (Complete)
 
-### 9.1 `evaluateFrameworkRules()` — Phase B Completion
+### 9.1 Architecture: Loader + Pure Evaluator
+
+Two-layer design:
+
+1. **Loader** (service layer, upstream caller): loads applicable `framework_rule` rows + `workspace_rule_override` rows for the workspace and trigger type. Passes them to the evaluator.
+2. **Pure evaluator** (`evaluateFrameworkRules`): deterministic function. Takes pre-loaded rules + context, returns evaluation result. No DB access.
+
+### 9.2 `evaluateFrameworkRules()` — Phase B Completion
 
 | Capability                                                                     | Status |
 | ------------------------------------------------------------------------------ | ------ |
-| Load all rules matching a trigger type                                         | NEW    |
-| Evaluate each rule against entity context                                      | NEW    |
+| Evaluate all pre-loaded rules against entity context                           | NEW    |
 | Employee-context fields (age, contract type, seniority, weekly hours)          | NEW    |
 | Workspace rule overrides layered on framework defaults                         | NEW    |
 | Severity ranking: blocked > review_required > allowed_with_exception > allowed | NEW    |
@@ -562,23 +588,27 @@ type EvaluationResult = {
 };
 ```
 
-### 9.2 `resolve_tariff_rate()` RPC
+### 9.3 Tariff Resolution — Loader + Pure Resolver
 
-**Input:** employee/profile + effective timestamp (not just date).
+Same two-layer design as rule evaluation:
+
+1. **`getTariffContext()`** (DB query helper): loads `employee_payroll_profile`, applicable `tariff_rate_table` rows, and `public_holiday` status for the date. Returns a `TariffContext` object.
+2. **`resolveTariffRate()`** (pure function in `apps/web/src/lib/cascade/resolve-tariff-rate.ts`): takes pre-loaded context + timestamp, returns rate + supplements. No DB access.
+
+**`resolveTariffRate()` signature:**
 
 ```typescript
-resolve_tariff_rate(
-  profileId: string,
-  effectiveTimestamp: string,  // ISO datetime — supplements are time-sensitive
-  departmentId?: string,       // future: department-specific supplements
+resolveTariffRate(
+  context: TariffContext,       // pre-loaded payroll profile + tariff rows + holiday status
+  effectiveTimestamp: string,   // ISO datetime — supplements are time-sensitive
 ): TariffResolution
 ```
 
-**Resolution chain:**
+**Resolution chain (inside pure function):**
 
-1. `employee_payroll_profile.tariff_override_id` → specific rate (highest priority)
-2. `employee_payroll_profile.tariff_category` → workspace `tariff_rate_table` match
-3. Fallback: K1a platform baseline (NULL workspace_id rows)
+1. `context.tariffOverride` → specific rate (highest priority, from `employee_payroll_profile.tariff_override_id`)
+2. `context.tariffCategory` → matching workspace `tariff_rate_table` row
+3. Fallback: K1a platform baseline rows (NULL workspace_id)
 
 **Returns:** base_rate + applicable supplements for that timestamp:
 
@@ -616,14 +646,15 @@ resolve_tariff_rate(
 
 ### 10.3 Session Generation Filter
 
-The session generation logic (nightly job or on schedule publish) must filter:
+The session generation logic (in `engine-dispatch` or session creation service — NOT in page components) must filter:
 
 ```sql
 WHERE department.department_type = 'operational'
-   OR department.department_type = 'hybrid'
 ```
 
 Administrative departments are excluded from session creation.
+
+**`hybrid` department type:** Exists in the enum (from A1 migration) but behavior is not defined in this Phase B spec. Treat `hybrid` as `operational` for session generation until explicitly specified in a future phase.
 
 ---
 
@@ -689,33 +720,34 @@ Design for it now: `workspace.intelligence_data.proff` field reserved. Scraping 
 | `supabase/migrations/YYYYMMDD_cascade_b_schema.sql` | New tables + ALTER statements                               |
 | `supabase/migrations/YYYYMMDD_cascade_k1a_seed.sql` | K1a platform data: framework, rules, triggers, tariff rates |
 | `supabase/functions/bootstrap-cascade/index.ts`     | Shared bootstrap service                                    |
-| `apps/web/src/lib/cascade/resolve-tariff-rate.ts`   | Tariff resolution pure function                             |
+| `apps/web/src/lib/cascade/resolve-tariff-rate.ts`   | Tariff resolution pure function (no DB access)              |
+| `apps/web/src/lib/cascade/get-tariff-context.ts`    | Tariff context loader (DB query helper)                     |
 
 ### 13.2 Modified Files
 
-| File                                                                     | Change                                                          |
-| ------------------------------------------------------------------------ | --------------------------------------------------------------- |
-| `supabase/functions/activate-workspace/index.ts`                         | Call bootstrap-cascade after agent profile                      |
-| `supabase/migrations/*_finalize_onboarding*.sql`                         | Call bootstrap-cascade after finalization                       |
-| `supabase/functions/accept-invitation/index.ts`                          | Employee cascade: contract + payroll profile + status promotion |
-| `apps/web/src/app/dashboard/people/_components/invite-member-dialog.tsx` | Add employment_type, payroll fields                             |
-| `apps/web/src/lib/cascade/evaluate-framework-rules.ts`                   | Complete: multi-rule, context, overrides                        |
-| `apps/web/src/lib/cascade/types.ts`                                      | New types for evaluation, tariff, bootstrap                     |
-| `apps/web/src/lib/cascade/resolve-hours.ts`                              | No signature change — works on absolute times                   |
-| `apps/web/src/app/dashboard/settings/_hooks/use-operating-hours.ts`      | Show offsets, compute preview from base                         |
-| `apps/web/src/lib/industry/packages/hospitality.ts`                      | Fix tariff rates, add department offsets, add payroll templates |
-| `apps/web/src/app/dashboard/schedule/page.tsx`                           | Filter session creation by department_type                      |
+| File                                                                     | Change                                                              |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------- |
+| `supabase/functions/activate-workspace/index.ts`                         | Call bootstrap-cascade after agent profile                          |
+| `supabase/migrations/*_finalize_onboarding*.sql`                         | Call bootstrap-cascade after finalization                           |
+| `supabase/functions/accept-invitation/index.ts`                          | Employee cascade: contract + payroll profile + status promotion     |
+| `apps/web/src/app/dashboard/people/_components/invite-member-dialog.tsx` | Add invite_employment_type, payroll fields                          |
+| `apps/web/src/lib/cascade/evaluate-framework-rules.ts`                   | Complete: multi-rule, context, overrides                            |
+| `apps/web/src/lib/cascade/types.ts`                                      | New types for evaluation, tariff, bootstrap                         |
+| `apps/web/src/lib/cascade/resolve-hours.ts`                              | No signature change — works on absolute times                       |
+| `apps/web/src/app/dashboard/settings/_hooks/use-operating-hours.ts`      | Show offsets, compute preview from base                             |
+| `apps/web/src/lib/industry/packages/hospitality.ts`                      | Fix tariff rates, add department offsets, add payroll templates     |
+| `supabase/functions/engine-dispatch/index.ts`                            | Filter session creation by department_type (upsert_session handler) |
 
 ### 13.3 Files to Verify (Dependencies)
 
-| File                                                                              | Why                                                        |
-| --------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| `apps/web/src/app/dashboard/schedule/_hooks/use-planned-hours.ts`                 | Uses resolveEffectiveHours — may need base hours awareness |
-| `apps/web/src/app/dashboard/season/_components/HourFactorsTab.tsx`                | Derives hour range from department hours                   |
-| `apps/web/src/app/dashboard/website/_hooks/use-company-hours.ts`                  | Reads company_opening_hours — bootstrap source             |
-| `apps/web/src/app/join/_lib/setupActions.ts`                                      | Writes company_opening_hours — intake point                |
-| `supabase/functions/engine-dispatch/index.ts`                                     | Session creation must respect department_type filter       |
-| `apps/web/src/app/dashboard/schedule/_components/day-control/DayControlPanel.tsx` | Tab visibility by department_type                          |
+| File                                                                              | Why                                                             |
+| --------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `apps/web/src/app/dashboard/schedule/_hooks/use-planned-hours.ts`                 | Uses resolveEffectiveHours — may need base hours awareness      |
+| `apps/web/src/app/dashboard/season/_components/HourFactorsTab.tsx`                | Derives hour range from department hours                        |
+| `apps/web/src/app/dashboard/website/_hooks/use-company-hours.ts`                  | Reads company_opening_hours — bootstrap source                  |
+| `apps/web/src/app/join/_lib/setupActions.ts`                                      | Writes company_opening_hours — intake point                     |
+| `apps/web/src/app/dashboard/schedule/_components/day-control/DayControlPanel.tsx` | Tab visibility by department_type (reduce tabs for admin depts) |
+| `apps/web/src/app/dashboard/schedule/page.tsx`                                    | Department list filtering by type for planner display           |
 
 ---
 
@@ -745,7 +777,7 @@ If `db reset` fails, fix migrations before proceeding.
 3. `workspace_operating_hours` table migration
 4. `payroll_profile_template` table migration
 5. `workspace_bootstrap_run` table migration
-6. ALTER migrations: dept_operating_hours offsets, invitation employment_type, payroll provenance, tariff provenance, department classification fields
+6. ALTER migrations: dept_operating_hours offsets, invitation invite_employment_type, payroll provenance, tariff provenance, department classification fields
 
 ### Phase 2: Bootstrap Service (unblocks workspace creation)
 
@@ -761,25 +793,74 @@ If `db reset` fails, fix migrations before proceeding.
 13. Profile status promotion logic (trainee → active on payroll profile creation)
 14. Contract signed → payroll profile sync
 
-### Phase 4: Hours Cascade + Change Proposals
+### Phase 4: Rule Evaluation + Tariff Resolution (unblocks governance)
 
-15. `resolveEffectiveHours()` awareness of base + offset model
-16. `useOperatingHours()` refactor for offset display
-17. Change proposal creation (preview computation)
-18. Change proposal apply (transactional cascade)
-19. Change proposal UI (preview + approve/reject)
+15. `evaluateFrameworkRules()` completion (loader + pure evaluator)
+16. `getTariffContext()` query helper
+17. `resolveTariffRate()` pure function
+18. Wire evaluation into shift creation/update flow
+19. Wire tariff resolution into cost snapshot population
 
-### Phase 5: Rule Evaluation + Tariff Resolution
+### Phase 5: Hours Cascade + Change Proposals (uses rule evaluation)
 
-20. `evaluateFrameworkRules()` completion
-21. `resolve_tariff_rate()` pure function
-22. Wire evaluation into shift creation/update flow
-23. Wire tariff resolution into cost snapshot population
+20. `resolveEffectiveHours()` awareness of base + offset model
+21. `useOperatingHours()` refactor for offset display
+22. Change proposal creation (preview computation, optionally rule-aware)
+23. Change proposal apply (transactional cascade)
+24. Change proposal UI (preview + approve/reject)
+
+---
+
+## 16. Provenance Fields — Standard Shape
+
+All seeded, copied, or inferred data in the cascade system carries provenance. This is the standard shape used across tables.
+
+| Field             | Type        | Purpose                                      | Example                                  |
+| ----------------- | ----------- | -------------------------------------------- | ---------------------------------------- |
+| `seed_source`     | TEXT        | Framework or package that produced this data | `hospitality.no.default.v1`              |
+| `seed_version`    | TEXT        | Version of the source at seed time           | `1.0.0`                                  |
+| `seeded_at`       | TIMESTAMPTZ | When the seed/copy occurred                  | `2026-03-22T14:30:00Z`                   |
+| `copied_from_id`  | UUID        | Original row ID if this is a copy            | FK to platform-level row                 |
+| `is_user_entered` | BOOLEAN     | True if value came from explicit user input  | `true` for wizard data                   |
+| `is_inferred`     | BOOLEAN     | True if value was inferred by system         | `true` for dept type auto-classification |
+
+Not every table needs all fields. Apply what is relevant:
+
+| Table                                | Provenance fields used                                                         |
+| ------------------------------------ | ------------------------------------------------------------------------------ |
+| `tariff_rate_table` (workspace rows) | `seeded_from_framework_binding_id`, `seeded_at`                                |
+| `payroll_profile_template`           | `seed_source`, `seed_version`, `seeded_at`, `is_system_template`, `is_locked`  |
+| `employee_payroll_profile`           | `seeded_from_template_id`, `seeded_at`                                         |
+| `department_operating_hours`         | `provenance` JSONB (already exists — carries source_type, backfill metadata)   |
+| `department` (classification)        | `classification_source`, `classification_confidence`                           |
+| `season_budget`                      | Store in existing metadata or provenance JSONB: `{ source, needs_user_input }` |
+| `workspace_bootstrap_run`            | `source_path`, `framework_binding_id`                                          |
+
+---
+
+## 17. Bootstrap Completion Criteria
+
+A bootstrap run (`workspace_bootstrap_run.status`) may only be set to `completed` if ALL of the following are true:
+
+| #   | Criterion                                                 | Verification                                           |
+| --- | --------------------------------------------------------- | ------------------------------------------------------ |
+| 1   | `workspace_operating_hours` exists for all 7 days         | COUNT = 7 for workspace_id                             |
+| 2   | Every active department has `department_type` set         | No NULL department_type where is_active = true         |
+| 3   | Every active department has operating hours entries       | JOIN department_operating_hours has rows for each dept |
+| 4   | `workspace_framework_binding` exists and is_active = true | Exactly 1 active binding                               |
+| 5   | Workspace-scoped `tariff_rate_table` rows exist           | At least 1 row with this workspace_id                  |
+| 6   | `planning_cycle` exists for active season                 | At least 1 row                                         |
+| 7   | `season_budget` exists for active season                  | At least 1 row (status may be draft)                   |
+| 8   | `payroll_profile_template` seeded                         | At least 1 is_system_template = true row               |
+| 9   | `engine_authority_config` exists or confirmed preexisting | At least 1 row for workspace                           |
+
+If any criterion fails, bootstrap status = `partial` with the failing steps logged in `warnings`.
 
 ---
 
 ## Changelog
 
-| Date       | Version | Change                                          | Author          |
-| ---------- | ------- | ----------------------------------------------- | --------------- |
-| 2026-03-22 | 1.0.0   | Initial spec — Approach B foundation completion | Claude + Pontus |
+| Date       | Version | Change                                                                                                                                                                                                                                                                                                                                                                         | Author          |
+| ---------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------- |
+| 2026-03-22 | 1.0.0   | Initial spec — Approach B foundation completion                                                                                                                                                                                                                                                                                                                                | Claude + Pontus |
+| 2026-03-22 | 1.1.0   | 14 corrections: scoped invariant #3, payroll schema consistency, FK on bootstrap_run, weekday convention, budget fallback, profile state split, guest conversion, invite_employment_type naming, proposal idempotency, evaluator/tariff loader+pure split, remove hybrid, session filter to engine-dispatch, reorder phases 4/5, add provenance + completion criteria sections | Claude + Pontus |
