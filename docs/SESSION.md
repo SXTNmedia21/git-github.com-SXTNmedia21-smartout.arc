@@ -1,40 +1,49 @@
 ---
 title: Session Log
 status: in_progress
-updated: 2026-03-22
+updated: 2026-03-23
 created: 2026-03-02
 ---
 
 ## Last Session
 
-| Field   | Value                             |
-| ------- | --------------------------------- |
-| Date    | 2026-03-22                        |
-| Branch  | `feat/fix-invitation-flow` (wt-7) |
-| Feature | Fix Invitation Flow               |
-| Status  | in_progress                       |
+| Field   | Value                      |
+| ------- | -------------------------- |
+| Date    | 2026-03-23                 |
+| Branch  | `feat/setup-flow-redesign` |
+| Feature | setup-flow-redesign        |
+| Status  | in_progress                |
 
 ### What was done
-
-- Audited full user management + invitation flow (3 entry paths: self-signup, admin invite, re-invite)
-- Identified 5 gaps: company_member missing on invite accept, listUsers() scalability, company_member RLS, no resend, no expiry cleanup
-- Created feature branch + worktree wt-7
-- Writing implementation plan
+- Started new feature: setup-flow-redesign
+- Worktree: wt-2
+- Module: onboarding
+- Deep analysis of entire data pipeline (32 fields, 3 categories, 5 external APIs)
+- Comprehensive plan: 14 tasks covering data integrity, source tracking, design tokens
+- Quick fixes on development: Step4 opening hours auto-fill, Step6 form wrapper, inviter profile fix
 
 ### Where we stopped
-
-- Plan being written, implementation not started
+- Feature just initialized, ready for work
+- Plan at `docs/superpowers/plans/2026-03-22-setup-flow-redesign.md`
+- Implementation not started — needs to run in wt-2
 
 ### Known blockers / errors
-
 - None
 
 ### Pending decisions
+- [ ] Fill in PLAN-setup-flow-redesign.md with scope and tasks (or use superpowers plan)
+- Vercel deploy pending (push + DNS for design.smartout.ai)
 
-- [ ] Whether to add invitation resend as separate endpoint or extend create-invitation
+### Known blockers / errors
 
-### Previous session (hms-phase-1)
+- Serper API key needs 1Password `op run` for Docker
+- tokens.ts ↔ tokens.css out of sync (TS cold, CSS warm) — mobile parity broken
+- Scrapling Docker needs rebuild after Python changes
 
-- HMS Phase 1+2 complete (16 commits), ready for closure
-- `supabase db reset` blocked by pre-existing FK issue (NOT HMS)
-- `trg_push_deviation_reported` trigger has `id` instead of `profile_id` bug (pre-existing)
+### Pending decisions
+
+- [ ] Reusable WizardShell — brainstorm started, not specced
+- [ ] design.smartout.ai DNS config in Vercel
+- [ ] Sync tokens.ts with tokens.css warm values
+- [ ] Per-element feedback backend (localStorage → Supabase)
+- [ ] Step 6 rating thermometer + SmartOut pitch

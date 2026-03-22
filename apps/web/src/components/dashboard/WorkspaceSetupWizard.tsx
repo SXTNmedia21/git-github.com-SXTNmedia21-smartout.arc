@@ -240,15 +240,9 @@ export function WorkspaceSetupWizard({
 
     const supabase = createClient();
 
-    // Resolve inviter profile
-    const { data: inviterProfile } = await supabase
-      .from("profile")
-      .select("profile_id")
-      .eq("workspace_id", workspaceId)
-      .eq("user_id", profileId ?? "")
-      .single();
-
-    if (!inviterProfile) {
+    // Resolve inviter profile — profileId from DashboardContext is already a profile_id
+    const inviterProfileId = profileId;
+    if (!inviterProfileId) {
       console.error("[wizard] Could not resolve inviter profile");
       return;
     }
@@ -275,7 +269,7 @@ export function WorkspaceSetupWizard({
       department_ids: m.departmentId ? [m.departmentId] : [],
       status: "pending" as const,
       invite_type: "email" as const,
-      invited_by: inviterProfile.profile_id,
+      invited_by: inviterProfileId,
       metadata: {
         ...(m.phone ? { phone: m.phone } : {}),
         ...(m.positionId ? { positionId: m.positionId } : {}),

@@ -10,6 +10,17 @@ import { step4Schema } from "../_lib/validation";
 
 const DAY_LABELS = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lordag", "Sondag"];
 
+/** Maps ISO day abbreviations (Mo, Tu, ...) to our 0-indexed weekday (Mon=0 … Sun=6) */
+const ISO_DAY_MAP: Record<string, number> = {
+  Mo: 0,
+  Tu: 1,
+  We: 2,
+  Th: 3,
+  Fr: 4,
+  Sa: 5,
+  Su: 6,
+};
+
 interface DayHours {
   dayOfWeek: number;
   isClosed: boolean;
@@ -24,6 +35,53 @@ function getDefaultHours(): DayHours[] {
     openTime: "10:00",
     closeTime: "22:00",
   }));
+}
+
+/**
+ * Parses ISO opening hours strings like "Mo-Fr 11:00-22:00" or "Sa 12:00-23:00"
+ * into our DayHours[] format. Returns null if nothing could be parsed.
+ */
+function parseIsoOpeningHours(isoHours: string[]): DayHours[] | null {
+  const result = getDefaultHours();
+  let parsed = false;
+
+  for (const entry of isoHours) {
+    // Match patterns like "Mo-Fr 11:00-22:00" or "Sa 12:00-23:00"
+    const match = entry.match(/^([A-Za-z,-]+)\s+(\d{1,2}:\d{2})-(\d{1,2}:\d{2})$/);
+    if (!match) continue;
+
+    const [, daysPart, openTime, closeTime] = match;
+    const normalizedOpen = openTime.padStart(5, "0");
+    const normalizedClose = closeTime.padStart(5, "0");
+
+    // Expand day ranges like "Mo-Fr" or single days like "Sa"
+    const dayIndices: number[] = [];
+    for (const segment of daysPart.split(",")) {
+      const rangeParts = segment.split("-");
+      if (rangeParts.length === 2) {
+        const start = ISO_DAY_MAP[rangeParts[0]];
+        const end = ISO_DAY_MAP[rangeParts[1]];
+        if (start !== undefined && end !== undefined) {
+          for (let i = start; i <= end; i++) dayIndices.push(i);
+        }
+      } else {
+        const idx = ISO_DAY_MAP[rangeParts[0]];
+        if (idx !== undefined) dayIndices.push(idx);
+      }
+    }
+
+    for (const idx of dayIndices) {
+      result[idx] = {
+        dayOfWeek: idx,
+        isClosed: false,
+        openTime: normalizedOpen,
+        closeTime: normalizedClose,
+      };
+      parsed = true;
+    }
+  }
+
+  return parsed ? result : null;
 }
 
 export function Step4Hours() {
@@ -74,10 +132,21 @@ export function Step4Hours() {
     });
   }, []); // intentional: run once on mount only
 
-  // Apply scraped contact data — re-check when scrapedData arrives
+  // Apply scraped data (opening hours + contact) — re-check when scrapedData arrives
   const appliedFieldsRef = useRef<Set<string>>(new Set());
   useEffect(() => {
     if (!scrapedData) return;
+
+    // Opening hours from ISO strings like "Mo-Fr 11:00-22:00"
+    const isoHours = scrapedData.openingHours as string[] | undefined;
+    if (isoHours?.length && !appliedFieldsRef.current.has("openingHours")) {
+      const parsed = parseIsoOpeningHours(isoHours);
+      if (parsed) {
+        appliedFieldsRef.current.add("openingHours");
+        hasAnimated.current = true; // skip cascade animation when pre-filling
+        setHours(parsed);
+      }
+    }
 
     if (scrapedData.phone && !phone && !appliedFieldsRef.current.has("phone")) {
       appliedFieldsRef.current.add("phone");

@@ -73,7 +73,13 @@ export function Step6CreateAccount() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-md space-y-6">
+    <form
+      className="mx-auto w-full max-w-md space-y-6"
+      onSubmit={(e) => {
+        e.preventDefault();
+        handleCreate();
+      }}
+    >
       <div>
         <h2 className="text-foreground text-2xl font-bold">Opprett konto</h2>
         <p className="text-muted-foreground mt-1 text-sm">
@@ -147,8 +153,7 @@ export function Step6CreateAccount() {
           Tilbake
         </Button>
         <Button
-          type="button"
-          onClick={handleCreate}
+          type="submit"
           disabled={loading || !password}
           className="flex-1 bg-orange-500 text-white hover:bg-orange-600"
         >
@@ -162,6 +167,6 @@ export function Step6CreateAccount() {
           )}
         </Button>
       </div>
-    </div>
+    </form>
   );
 }
