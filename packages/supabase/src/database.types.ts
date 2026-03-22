@@ -6480,6 +6480,67 @@ export type Database = {
           },
         ]
       }
+      help_request: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          profile_id: string
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          profile_id: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          profile_id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "help_request_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "help_request_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "help_request_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       hour_factor: {
         Row: {
           created_at: string
@@ -9288,10 +9349,12 @@ export type Database = {
           description: string
           estimated_minutes: number | null
           is_required: boolean
+          media_urls: Json | null
           procedure_id: string
           step_id: string
           step_order: number
           title: string
+          training_content: string | null
           updated_at: string
         }
         Insert: {
@@ -9299,10 +9362,12 @@ export type Database = {
           description: string
           estimated_minutes?: number | null
           is_required?: boolean
+          media_urls?: Json | null
           procedure_id: string
           step_id?: string
           step_order?: number
           title: string
+          training_content?: string | null
           updated_at?: string
         }
         Update: {
@@ -9310,10 +9375,12 @@ export type Database = {
           description?: string
           estimated_minutes?: number | null
           is_required?: boolean
+          media_urls?: Json | null
           procedure_id?: string
           step_id?: string
           step_order?: number
           title?: string
+          training_content?: string | null
           updated_at?: string
         }
         Relationships: [
