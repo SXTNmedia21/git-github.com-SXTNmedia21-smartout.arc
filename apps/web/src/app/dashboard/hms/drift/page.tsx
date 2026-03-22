@@ -1,19 +1,12 @@
 "use client";
 
-import { ClipboardCheck } from "lucide-react";
-
-// TODO: move to i18n
-const STRINGS = {
-  title: "Drift",
-  description: "Daglige oppgaver, sjekklister og rutinelogging. Kommer i Phase 2.",
-} as const;
+import { useContext } from "react";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
+import { DriftSessionTable } from "../_components/DriftSessionTable";
+import { DriftTaskList } from "../_components/DriftTaskList";
 
 export default function DriftPage() {
-  return (
-    <div className="border-border bg-card/50 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-16">
-      <ClipboardCheck className="text-muted-foreground mb-4 h-12 w-12" />
-      <h2 className="text-foreground text-xl font-bold">{STRINGS.title}</h2>
-      <p className="text-muted-foreground mt-2 text-sm">{STRINGS.description}</p>
-    </div>
-  );
+  const { isAdminMode } = useContext(DashboardContext);
+
+  return isAdminMode ? <DriftSessionTable /> : <DriftTaskList />;
 }
