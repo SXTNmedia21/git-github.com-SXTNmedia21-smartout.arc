@@ -5,8 +5,10 @@
  * The SyncWorker calls actionMap[action](payload) — it never touches
  * Supabase directly. Adding a new offline-capable action = one new entry here.
  *
- * PKs used: time_entry_id, schedule_shift_id, approval_id, id (session_task).
+ * PKs used: time_entry_id, schedule_shift_id, approval_id, id (session_task),
+ *           id (schedule_absence — absence request uses `id` as PK).
  * timesheet schema: time_entry lives in the `timesheet` schema, not `public`.
+ * schedule_absence lives in the `public` schema.
  */
 import { supabase } from "@/lib/supabase";
 
@@ -85,5 +87,17 @@ export const actionMap: Record<WriteAction, ActionHandler> = {
         .from("shift_approval")
         .update(p as any)
         .eq("approval_id", p.approval_id as string),
+    ),
+
+  // Insert a new absence request row — `id` is the client-generated UUID PK
+  request_absence: (p) => assertOk(supabase.from("schedule_absence").insert(p as any)),
+
+  // Flip status to 'cancelled' on an existing pending absence request
+  cancel_absence: (p) =>
+    assertOk(
+      supabase
+        .from("schedule_absence")
+        .update({ status: p.status } as any)
+        .eq("id", p.schedule_absence_id as string),
     ),
 };
