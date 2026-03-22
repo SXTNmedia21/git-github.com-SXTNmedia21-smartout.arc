@@ -1418,11 +1418,11 @@ export function DashboardShell({
                       )}
                       {isSidebarCollapsed && <div className="mt-2" />}
                       <NavItem
-                        href="/dashboard/channels"
+                        href="/dashboard/komm"
                         icon={Radio}
-                        label="Kanaler"
+                        label="Komm"
                         isDark={isDark}
-                        active={isActive("/dashboard/channels")}
+                        active={isActive("/dashboard/komm")}
                         isCollapsed={isSidebarCollapsed}
                       />
                       <NavItem

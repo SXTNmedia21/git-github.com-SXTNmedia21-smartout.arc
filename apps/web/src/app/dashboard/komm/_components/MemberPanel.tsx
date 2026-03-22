@@ -19,12 +19,7 @@ export function MemberPanel({ channelId, profileId, onClose }: Props) {
       {/* Header */}
       <div className="flex items-center justify-between border-b px-3 py-3">
         <h3 className="text-sm font-semibold">Medlemmer</h3>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7"
-          onClick={onClose}
-        >
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
           <X className="h-4 w-4" />
         </Button>
       </div>
@@ -57,7 +52,7 @@ export function MemberPanel({ channelId, profileId, onClose }: Props) {
                   )}
                 >
                   <div className="relative">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">
+                    <div className="bg-primary/10 text-primary flex h-8 w-8 items-center justify-center rounded-full text-xs font-medium">
                       {profile.avatar_url ? (
                         <img
                           src={profile.avatar_url}
@@ -69,7 +64,7 @@ export function MemberPanel({ channelId, profileId, onClose }: Props) {
                       )}
                     </div>
                     {isAi && (
-                      <div className="absolute -bottom-0.5 -right-0.5 rounded-full bg-amber-500 p-0.5">
+                      <div className="absolute -right-0.5 -bottom-0.5 rounded-full bg-amber-500 p-0.5">
                         <Bot className="h-2.5 w-2.5 text-white" />
                       </div>
                     )}
@@ -77,17 +72,10 @@ export function MemberPanel({ channelId, profileId, onClose }: Props) {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">
                       {profile.display_name ?? "Ukjent"}
-                      {isSelf && (
-                        <span className="text-muted-foreground font-normal">
-                          {" "}
-                          (deg)
-                        </span>
-                      )}
+                      {isSelf && <span className="text-muted-foreground font-normal"> (deg)</span>}
                     </p>
                   </div>
-                  {isAdmin && (
-                    <Shield className="h-3.5 w-3.5 shrink-0 text-amber-500" />
-                  )}
+                  {isAdmin && <Shield className="h-3.5 w-3.5 shrink-0 text-amber-500" />}
                 </div>
               );
             })}

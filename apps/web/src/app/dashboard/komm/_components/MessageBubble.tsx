@@ -17,13 +17,7 @@ type Props = {
   onReply: (messageId: string) => void;
 };
 
-export function MessageBubble({
-  message,
-  channelId,
-  profileId,
-  isOwn,
-  onReply,
-}: Props) {
+export function MessageBubble({ message, channelId, profileId, isOwn, onReply }: Props) {
   const [showActions, setShowActions] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const toggleReaction = useToggleReaction(channelId, profileId);
@@ -46,16 +40,14 @@ export function MessageBubble({
   if (message.deleted_at) {
     return (
       <div className="px-4 py-1">
-        <p className="text-muted-foreground text-xs italic">
-          Melding slettet
-        </p>
+        <p className="text-muted-foreground text-xs italic">Melding slettet</p>
       </div>
     );
   }
 
   return (
     <div
-      className="group relative px-4 py-1.5 hover:bg-accent/30"
+      className="group hover:bg-accent/30 relative px-4 py-1.5"
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => {
         setShowActions(false);
@@ -64,7 +56,7 @@ export function MessageBubble({
     >
       {/* Reply preview */}
       {message.reply_to_id && message.reply_to_content && (
-        <div className="text-muted-foreground mb-1 ml-11 border-l-2 border-primary/30 pl-2 text-xs">
+        <div className="text-muted-foreground border-primary/30 mb-1 ml-11 border-l-2 pl-2 text-xs">
           <span className="font-medium">{message.reply_to_sender_name}</span>{" "}
           {message.reply_to_content.slice(0, 80)}
         </div>
@@ -72,13 +64,9 @@ export function MessageBubble({
 
       <div className="flex gap-3">
         {/* Avatar */}
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">
+        <div className="bg-primary/10 text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-medium">
           {message.sender_avatar ? (
-            <img
-              src={message.sender_avatar}
-              alt=""
-              className="h-8 w-8 rounded-full object-cover"
-            />
+            <img src={message.sender_avatar} alt="" className="h-8 w-8 rounded-full object-cover" />
           ) : (
             (message.sender_name ?? "?").charAt(0).toUpperCase()
           )}
@@ -100,11 +88,9 @@ export function MessageBubble({
             {message.edited_at && (
               <span className="text-muted-foreground text-[10px]">(redigert)</span>
             )}
-            {message.is_pinned && (
-              <Pin className="text-amber-500 h-3 w-3" />
-            )}
+            {message.is_pinned && <Pin className="h-3 w-3 text-amber-500" />}
           </div>
-          <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+          <p className="text-sm leading-relaxed break-words whitespace-pre-wrap">
             {message.content}
           </p>
 
@@ -117,7 +103,7 @@ export function MessageBubble({
                   href={att.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-muted-foreground hover:text-foreground rounded bg-muted px-2 py-1 text-xs transition-colors"
+                  className="text-muted-foreground hover:text-foreground bg-muted rounded px-2 py-1 text-xs transition-colors"
                 >
                   📎 {att.filename}
                 </a>
@@ -145,9 +131,7 @@ export function MessageBubble({
                   )}
                 >
                   <span>{emoji}</span>
-                  <span className="text-muted-foreground">
-                    {profileIds.length}
-                  </span>
+                  <span className="text-muted-foreground">{profileIds.length}</span>
                 </button>
               ))}
             </div>
@@ -157,7 +141,7 @@ export function MessageBubble({
 
       {/* Hover actions */}
       {showActions && (
-        <div className="absolute -top-3 right-4 flex items-center gap-0.5 rounded-md border bg-card p-0.5 shadow-sm">
+        <div className="bg-card absolute -top-3 right-4 flex items-center gap-0.5 rounded-md border p-0.5 shadow-sm">
           <Button
             variant="ghost"
             size="icon"
@@ -179,7 +163,7 @@ export function MessageBubble({
 
       {/* Quick emoji picker */}
       {showEmojiPicker && (
-        <div className="absolute -top-10 right-4 flex gap-0.5 rounded-md border bg-card p-1 shadow-sm">
+        <div className="bg-card absolute -top-10 right-4 flex gap-0.5 rounded-md border p-1 shadow-sm">
           {QUICK_EMOJIS.map((emoji) => (
             <button
               key={emoji}
@@ -190,7 +174,7 @@ export function MessageBubble({
                 });
                 setShowEmojiPicker(false);
               }}
-              className="rounded p-1 text-sm hover:bg-accent"
+              className="hover:bg-accent rounded p-1 text-sm"
             >
               {emoji}
             </button>

@@ -5,10 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { channelKeys } from "./channel-keys";
 
-export function useChannelRealtime(
-  workspaceId: string,
-  channelId: string | null,
-) {
+export function useChannelRealtime(workspaceId: string, channelId: string | null) {
   const queryClient = useQueryClient();
 
   useEffect(() => {

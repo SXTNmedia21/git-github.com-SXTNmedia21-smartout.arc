@@ -14,12 +14,7 @@ type Props = {
   onCancelReply: () => void;
 };
 
-export function MessageInput({
-  channelId,
-  profileId,
-  replyToId,
-  onCancelReply,
-}: Props) {
+export function MessageInput({ channelId, profileId, replyToId, onCancelReply }: Props) {
   const [content, setContent] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const sendMessage = useSendMessage(channelId, profileId);
@@ -95,7 +90,7 @@ export function MessageInput({
           onKeyDown={handleKeyDown}
           placeholder="Skriv en melding..."
           rows={1}
-          className="bg-muted text-foreground placeholder:text-muted-foreground min-h-[36px] flex-1 resize-none rounded-md border-0 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+          className="bg-muted text-foreground placeholder:text-muted-foreground focus:ring-primary min-h-[36px] flex-1 resize-none rounded-md border-0 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
         />
         <Button
           size="icon"

@@ -56,8 +56,7 @@ export function useCreateChannel(profileId: string) {
     },
 
     onError: (error) => {
-      const msg =
-        error instanceof Error ? error.message : "Kunne ikke opprette kanal";
+      const msg = error instanceof Error ? error.message : "Kunne ikke opprette kanal";
       toast.error(msg);
     },
   });

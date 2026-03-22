@@ -12,13 +12,7 @@ export function useToggleReaction(channelId: string | null, profileId: string) {
   const workspaceId = workspace.workspace_id;
 
   return useMutation({
-    mutationFn: async ({
-      messageId,
-      emoji,
-    }: {
-      messageId: string;
-      emoji: string;
-    }) => {
+    mutationFn: async ({ messageId, emoji }: { messageId: string; emoji: string }) => {
       if (!channelId) throw new Error("No channel selected");
       const supabase = createClient();
 

@@ -2,7 +2,7 @@
 
 import { useContext } from "react";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { ChannelShell } from "./ChannelShell";
+import { KommShell } from "./KommShell";
 
 export function ChannelsPageClient() {
   const { profileId } = useContext(DashboardContext);
@@ -15,5 +15,5 @@ export function ChannelsPageClient() {
     );
   }
 
-  return <ChannelShell profileId={profileId} />;
+  return <KommShell profileId={profileId} />;
 }

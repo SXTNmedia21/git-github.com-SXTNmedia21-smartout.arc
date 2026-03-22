@@ -19,9 +19,7 @@ export function useChannelMembers(channelId: string | null) {
       const supabase = createClient();
       const { data, error } = await supabase
         .from("channel_member")
-        .select(
-          `*, profile:profile!inner(profile_id, display_name, avatar_url, role)`,
-        )
+        .select(`*, profile:profile!inner(profile_id, display_name, avatar_url, role)`)
         .eq("channel_id", channelId!)
         .is("left_at", null)
         .order("joined_at", { ascending: true });
@@ -32,10 +30,7 @@ export function useChannelMembers(channelId: string | null) {
   });
 }
 
-export function useAddChannelMember(
-  channelId: string | null,
-  profileId: string,
-) {
+export function useAddChannelMember(channelId: string | null, profileId: string) {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
   const workspaceId = workspace.workspace_id;
@@ -78,10 +73,7 @@ export function useAddChannelMember(
   });
 }
 
-export function useRemoveChannelMember(
-  channelId: string | null,
-  profileId: string,
-) {
+export function useRemoveChannelMember(channelId: string | null, profileId: string) {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
   const workspaceId = workspace.workspace_id;

@@ -13,13 +13,7 @@ export function useSendMessage(channelId: string | null, profileId: string) {
   const workspaceId = workspace.workspace_id;
 
   return useMutation({
-    mutationFn: async ({
-      content,
-      replyToId,
-    }: {
-      content: string;
-      replyToId?: string;
-    }) => {
+    mutationFn: async ({ content, replyToId }: { content: string; replyToId?: string }) => {
       if (!channelId) throw new Error("No channel selected");
       const supabase = createClient();
       const clientMessageId = crypto.randomUUID();

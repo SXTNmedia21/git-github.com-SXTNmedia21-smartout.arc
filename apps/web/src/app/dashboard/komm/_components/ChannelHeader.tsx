@@ -14,12 +14,9 @@ export function ChannelHeader({ channel, showMembers, onToggleMembers }: Props) 
   return (
     <div className="flex items-center justify-between border-b px-4 py-3">
       <div className="min-w-0">
-        <h3 className="truncate text-sm font-semibold">
-          {channel.name ?? "Direktemelding"}
-        </h3>
+        <h3 className="truncate text-sm font-semibold">{channel.name ?? "Direktemelding"}</h3>
         <p className="text-muted-foreground text-xs">
-          {channel.member_count}{" "}
-          {channel.member_count === 1 ? "medlem" : "medlemmer"}
+          {channel.member_count} {channel.member_count === 1 ? "medlem" : "medlemmer"}
           {channel.description && ` · ${channel.description}`}
         </p>
       </div>
