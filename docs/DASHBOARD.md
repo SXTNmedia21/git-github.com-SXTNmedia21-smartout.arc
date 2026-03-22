@@ -13,14 +13,14 @@ tags: [dashboard, worktrees, tracking]
 
 ## Active Worktrees
 
-| #    | Branch                        | Module          | Status      | Progress                                                                         | Blockers | Health |
-| ---- | ----------------------------- | --------------- | ----------- | -------------------------------------------------------------------------------- | -------- | ------ |
-| wt-1 | `feat/workspace-intelligence` | core            | merged      | Fully merged to development. Worktree needs cleanup removal.                     | —        | stale  |
-| wt-2 | `feat/walkie-talkie`          | communications  | in_progress | Just started. Spec + Phase 1 plan ready. 16 tasks.                               | —        | clean  |
-| wt-3 | `feat/emma-arena-views`       | walkAi          | in_progress | Spec + mockups done, settings persistence committed. Implementation not started. | None     | clean  |
-| wt-4 | `feat/vaktlista-view`         | schedule        | in_progress | —                                                                                | —        | —      |
-| wt-5 | `feat/payroll-foundation`     | payroll         | in_progress | —                                                                                | —        | —      |
-| wt-6 | `feat/website-factory`        | website-factory | in_progress | Just started. Spec + Plan A ready. 10 tasks.                                     | —        | clean  |
+| #    | Branch                        | Module          | Status      | Progress                                                                                                             | Blockers | Health |
+| ---- | ----------------------------- | --------------- | ----------- | -------------------------------------------------------------------------------------------------------------------- | -------- | ------ |
+| wt-1 | `feat/workspace-intelligence` | core            | merged      | Fully merged to development. Worktree needs cleanup removal.                                                         | —        | stale  |
+| wt-2 | `feat/walkie-talkie`          | communications  | in_progress | Just started. Spec + Phase 1 plan ready. 16 tasks.                                                                   | —        | clean  |
+| wt-3 | `feat/emma-arena-views`       | walkAi          | in_progress | Spec + mockups done, settings persistence committed. Implementation not started.                                     | None     | clean  |
+| wt-4 | `feat/vaktlista-view`         | schedule        | in_progress | —                                                                                                                    | —        | —      |
+| wt-5 | `feat/payroll-foundation`     | payroll         | in_progress | —                                                                                                                    | —        | —      |
+| wt-6 | `feat/website-factory`        | website-factory | in_progress | Plan A DONE (10 commits). Plan B designed (20 templates, editor, mobile, approval, telemetry). Spec not yet written. | —        | clean  |
 
 ## Parked Branches (no worktree)
 
@@ -100,6 +100,7 @@ tags: [dashboard, worktrees, tracking]
 ## Session History
 
 | 2026-03-22 | walkie-talkie | started | wt-2, module: communications. Channel comms spec + Phase 1 plan (16 tasks). LiveKit voice/video Phase 2. |
+| 2026-03-22 | website-factory | session ended | Plan A DONE: 10 commits, 100+ files (schema, RLS, RPC, package, middleware, renderers, pipeline, telemetry, seed). Plan B designed: 20 templates (3 tiers), editor, mobile, approval flow, AI content tasks, 24 telemetry events. Spec not yet written. Next: write spec + Plan B implementation plan. |
 | 2026-03-22 | website-factory | started | wt-6, module: website-factory. Spec + Plan A (foundation) ready. |
 | 2026-03-22 | close-feature-gates | session ended | Reviewed close-feature.sh + slash commands. Fixed 5 friction points: Gate 5 scoped to branch-changed docs only, Gate 4 checks feature-specific journey, Gate 1 warns on name mismatch, final commit gets Co-Authored-By, script bumped to v4. wt-1 confirmed already merged — needs worktree removal only. |
 | 2026-03-21 | training-curriculum | session ended | Designed 14-module training curriculum (trimmed from 28). Full repo analysis (1402 files, 146 migrations, 47 enums). Gathered Batch 1 material (TypeScript, DB Design, Debugging) with Smartout-specific examples. Rego/OPA confirmed for Modul 14. Content agent has all data for Batch 1. |
