@@ -16,7 +16,6 @@ created: 2026-03-02
 
 ### What was done
 
-
 - Started new feature: setup-flow-redesign
 - Worktree: wt-2
 - Module: onboarding
@@ -24,16 +23,13 @@ created: 2026-03-02
 - Comprehensive plan: 14 tasks covering data integrity, source tracking, design tokens
 - Quick fixes on development: Step4 opening hours auto-fill, Step6 form wrapper, inviter profile fix
 
-
 ### Where we stopped
 
 - Feature just initialized, ready for work
 - Plan at `docs/superpowers/plans/2026-03-22-setup-flow-redesign.md`
 - Implementation not started — needs to run in wt-2
 
-
 ### Known blockers / errors
-
 
 - None
 
