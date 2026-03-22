@@ -7,10 +7,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": {
-    "@smartout/supabase": "workspace:*",
-    "@tanstack/react-query": "catalog:"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@smartout/typescript-config": "workspace:*",
     "typescript": "^5.9.0"
