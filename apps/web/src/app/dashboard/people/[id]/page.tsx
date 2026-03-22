@@ -18,11 +18,17 @@ import {
   History,
   Wallet,
   Loader2,
+  Calendar,
+  X,
+  Plus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@smartout/supabase/client";
+import { VALID_TRANSITIONS } from "@smartout/utils";
+import type { ProfileStatus } from "@smartout/utils";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { EntityDetailLayout } from "../../organization/_components/EntityDetailLayout";
+import { addToTeam, removeFromTeam, updateProfileStatus } from "../_actions/people-actions";
 
 /* ───────── types ───────── */
 
@@ -70,6 +76,16 @@ type ActivityEntry = {
   created_at: string;
 };
 
+type ShiftEntry = {
+  shift_id: string;
+  start_time: string;
+  end_time: string;
+  status: string;
+  department: { name: string } | null;
+};
+
+type WorkspaceTeam = { team_id: string; name: string };
+
 /* ───────── helpers ───────── */
 
 const STATUS_COLORS: Record<string, { bg: string; text: string; label: string }> = {
@@ -99,6 +115,12 @@ export default function ProfileDetailPage() {
   const [protocols, setProtocols] = useState<ProtocolAssignment[]>([]);
   const [teams, setTeams] = useState<TeamMembership[]>([]);
   const [activity, setActivity] = useState<ActivityEntry[]>([]);
+  const [shifts, setShifts] = useState<ShiftEntry[]>([]);
+  const [fullActivity, setFullActivity] = useState<ActivityEntry[]>([]);
+  const [activityPage, setActivityPage] = useState(0);
+  const [hasMoreActivity, setHasMoreActivity] = useState(false);
+  const [loadingMoreActivity, setLoadingMoreActivity] = useState(false);
+  const [workspaceTeams, setWorkspaceTeams] = useState<WorkspaceTeam[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingProtocols, setLoadingProtocols] = useState(false);
 
@@ -194,38 +216,117 @@ export default function ProfileDetailPage() {
     setActivity((data as ActivityEntry[]) ?? []);
   }, [id]);
 
+  const ACTIVITY_PAGE_SIZE = 20;
+
+  const fetchShifts = useCallback(async () => {
+    if (!id) return;
+    const now = Date.now();
+    const weekMs = 7 * 24 * 60 * 60 * 1000;
+    const { data } = await supabase
+      .from("schedule_shift")
+      .select("shift_id, start_time, end_time, status, department:department_id(name)")
+      .eq("profile_id", id)
+      .gte("start_time", new Date(now - weekMs).toISOString())
+      .lte("start_time", new Date(now + weekMs).toISOString())
+      .order("start_time");
+    setShifts((data as ShiftEntry[]) ?? []);
+  }, [id]);
+
+  const fetchFullActivity = useCallback(
+    async (page: number) => {
+      if (!id) return;
+      setLoadingMoreActivity(true);
+      const end = (page + 1) * ACTIVITY_PAGE_SIZE - 1;
+      const { data } = await supabase
+        .from("activity_trail")
+        .select("id, event, action_verb, category, entity_type, entity_label, created_at")
+        .eq("actor_id", id)
+        .order("created_at", { ascending: false })
+        .range(0, end);
+      const items = (data as ActivityEntry[]) ?? [];
+      setFullActivity(items);
+      setHasMoreActivity(items.length > page * ACTIVITY_PAGE_SIZE + ACTIVITY_PAGE_SIZE - 1);
+      setLoadingMoreActivity(false);
+    },
+    [id],
+  );
+
+  const fetchWorkspaceTeams = useCallback(async () => {
+    if (!workspaceData?.workspace_id) return;
+    const { data } = await supabase
+      .from("team")
+      .select("team_id, name")
+      .eq("workspace_id", workspaceData.workspace_id)
+      .order("name");
+    setWorkspaceTeams((data as WorkspaceTeam[]) ?? []);
+  }, [workspaceData?.workspace_id]);
+
   useEffect(() => {
     fetchProfile();
     fetchProtocols();
     fetchTeams();
     fetchActivity();
-  }, [fetchProfile, fetchProtocols, fetchTeams, fetchActivity]);
+    fetchShifts();
+    fetchFullActivity(0);
+    fetchWorkspaceTeams();
+  }, [fetchProfile, fetchProtocols, fetchTeams, fetchActivity, fetchShifts, fetchFullActivity, fetchWorkspaceTeams]);
 
   async function handleSettingsSave() {
-    if (!profile) return;
+    if (!profile || !workspaceData?.workspace_id) return;
     setSaving(true);
 
-    const updates: Record<string, unknown> = {};
-    if (editRole !== profile.role.toLowerCase()) updates.role = editRole;
-    if (editDeptId !== (profile.department_id ?? "")) updates.department_id = editDeptId || null;
-    if (editStatus !== profile.status) {
-      updates.status = editStatus;
-      if (editStatus === "offboarding" || editStatus === "inactive") updates.is_active = false;
-      else updates.is_active = true;
-    }
-
-    if (Object.keys(updates).length > 0) {
-      const { error } = await supabase
-        .from("profile")
-        .update(updates)
-        .eq("profile_id", profile.profile_id);
-      if (error) toast.error(error.message);
-      else {
-        toast.success("Profile updated");
-        fetchProfile();
+    try {
+      // Handle status change via server action with transition validation
+      if (editStatus !== profile.status) {
+        await updateProfileStatus(
+          profile.profile_id,
+          workspaceData.workspace_id,
+          profile.status as ProfileStatus,
+          editStatus as ProfileStatus,
+        );
       }
+
+      // Handle role/department changes via direct update
+      const updates: Record<string, unknown> = {};
+      if (editRole !== profile.role.toLowerCase()) updates.role = editRole;
+      if (editDeptId !== (profile.department_id ?? "")) updates.department_id = editDeptId || null;
+
+      if (Object.keys(updates).length > 0) {
+        const { error } = await supabase
+          .from("profile")
+          .update(updates)
+          .eq("profile_id", profile.profile_id);
+        if (error) throw new Error(error.message);
+      }
+
+      toast.success("Profile updated");
+      fetchProfile();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update profile");
     }
     setSaving(false);
+  }
+
+  async function handleAddToTeam(teamId: string) {
+    if (!profile) return;
+    try {
+      await addToTeam(profile.profile_id, teamId);
+      toast.success("Added to team");
+      fetchTeams();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to add to team");
+    }
+  }
+
+  async function handleRemoveFromTeam(teamId: string) {
+    if (!profile) return;
+    try {
+      await removeFromTeam(profile.profile_id, teamId);
+      toast.success("Removed from team");
+      fetchTeams();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to remove from team");
+    }
   }
 
   async function handleHrSave() {
@@ -754,6 +855,151 @@ export default function ProfileDetailPage() {
     </div>
   );
 
+  /* ───────── tab: schedule ───────── */
+
+  const groupedShifts = shifts.reduce<Record<string, ShiftEntry[]>>((acc, s) => {
+    const dateKey = new Date(s.start_time).toLocaleDateString("nb-NO", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+    });
+    if (!acc[dateKey]) acc[dateKey] = [];
+    acc[dateKey].push(s);
+    return acc;
+  }, {});
+
+  const scheduleTab = (
+    <div className="space-y-4">
+      {shifts.length === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-2 py-12">
+          <Calendar className={`h-8 w-8 ${isDark ? "text-zinc-600" : "text-zinc-300"}`} />
+          <p className={`text-sm ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+            No shifts scheduled
+          </p>
+        </div>
+      ) : (
+        Object.entries(groupedShifts).map(([date, dateShifts]) => (
+          <div key={date}>
+            <h4
+              className={`mb-2 text-xs font-bold tracking-widest uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+            >
+              {date}
+            </h4>
+            <div className="space-y-1.5">
+              {dateShifts.map((s) => {
+                const start = new Date(s.start_time);
+                const end = new Date(s.end_time);
+                const fmt = (d: Date) =>
+                  d.toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit" });
+                const isPast = end.getTime() < Date.now();
+                return (
+                  <div
+                    key={s.shift_id}
+                    className={`flex items-center justify-between rounded-lg border p-3 ${
+                      isDark
+                        ? "border-zinc-800 bg-zinc-900"
+                        : "border-zinc-200 bg-zinc-50"
+                    } ${isPast ? "opacity-60" : ""}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Clock className={`h-4 w-4 ${isDark ? "text-zinc-500" : "text-zinc-400"}`} />
+                      <span className={`text-sm font-medium ${isDark ? "text-zinc-200" : "text-zinc-700"}`}>
+                        {fmt(start)} – {fmt(end)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {s.department?.name && (
+                        <span className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+                          {s.department.name}
+                        </span>
+                      )}
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
+                          s.status === "confirmed"
+                            ? "bg-emerald-500/10 text-emerald-500"
+                            : s.status === "cancelled"
+                              ? "bg-rose-500/10 text-rose-500"
+                              : isDark
+                                ? "bg-zinc-800 text-zinc-400"
+                                : "bg-zinc-200 text-zinc-500"
+                        }`}
+                      >
+                        {s.status}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+
+  /* ───────── tab: activity ───────── */
+
+  const activityTab = (
+    <div className="space-y-4">
+      {fullActivity.length === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-2 py-12">
+          <History className={`h-8 w-8 ${isDark ? "text-zinc-600" : "text-zinc-300"}`} />
+          <p className={`text-sm ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+            No activity recorded yet
+          </p>
+        </div>
+      ) : (
+        <>
+          <div
+            className={`relative flex flex-col space-y-3 before:absolute before:inset-y-2 before:left-3 before:w-px ${isDark ? "before:bg-zinc-800" : "before:bg-zinc-200"}`}
+          >
+            {fullActivity.map((a) => (
+              <ActivityItem
+                key={a.id}
+                icon={<History className="h-3 w-3" />}
+                color={a.category === "training" ? "emerald" : a.category === "schedule" ? "orange" : "zinc"}
+                title={
+                  <>
+                    {a.action_verb}{" "}
+                    {a.entity_label && (
+                      <span className={`font-medium ${isDark ? "text-white" : "text-zinc-900"}`}>
+                        {a.entity_label}
+                      </span>
+                    )}
+                  </>
+                }
+                time={new Date(a.created_at).toLocaleString("nb-NO", {
+                  day: "numeric",
+                  month: "short",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+                isDark={isDark}
+              />
+            ))}
+          </div>
+          {hasMoreActivity && (
+            <button
+              onClick={() => {
+                const nextPage = activityPage + 1;
+                setActivityPage(nextPage);
+                fetchFullActivity(nextPage);
+              }}
+              disabled={loadingMoreActivity}
+              className={`w-full rounded-lg border py-2.5 text-sm font-medium transition-colors ${
+                isDark
+                  ? "border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                  : "border-zinc-200 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
+              } disabled:opacity-50`}
+            >
+              {loadingMoreActivity ? "Loading..." : "Load more"}
+            </button>
+          )}
+        </>
+      )}
+    </div>
+  );
+
   /* ───────── tab: settings ───────── */
 
   const settingsTab = (
@@ -777,6 +1023,65 @@ export default function ProfileDetailPage() {
               </option>
             ))}
           </select>
+        </div>
+
+        {/* Team Management */}
+        <div className="space-y-1.5">
+          <label
+            className={`text-xs font-semibold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+          >
+            Teams
+          </label>
+          {teams.length > 0 && (
+            <div className="flex flex-wrap gap-2 pb-1">
+              {teams.map((t) => (
+                <span
+                  key={t.team_id}
+                  className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-medium ${
+                    isDark
+                      ? "border-zinc-800 bg-zinc-900 text-zinc-300"
+                      : "border-zinc-200 bg-zinc-50 text-zinc-700"
+                  }`}
+                >
+                  {t.name}
+                  <button
+                    onClick={() => handleRemoveFromTeam(t.team_id)}
+                    className={`ml-0.5 rounded p-0.5 transition-colors ${
+                      isDark ? "hover:bg-zinc-700 hover:text-white" : "hover:bg-zinc-200 hover:text-zinc-900"
+                    }`}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+          {(() => {
+            const assignedIds = new Set(teams.map((t) => t.team_id));
+            const available = workspaceTeams.filter((t) => !assignedIds.has(t.team_id));
+            if (available.length === 0) return null;
+            return (
+              <select
+                defaultValue=""
+                onChange={(e) => {
+                  if (e.target.value) {
+                    handleAddToTeam(e.target.value);
+                    e.target.value = "";
+                  }
+                }}
+                className={selectClass}
+              >
+                <option value="" disabled>
+                  Add to team...
+                </option>
+                {available.map((t) => (
+                  <option key={t.team_id} value={t.team_id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            );
+          })()}
         </div>
 
         <div className="space-y-1.5">
@@ -806,16 +1111,33 @@ export default function ProfileDetailPage() {
           >
             Status
           </label>
-          <select
-            value={editStatus}
-            onChange={(e) => setEditStatus(e.target.value)}
-            className={selectClass}
-          >
-            <option value="active">Active</option>
-            <option value="trainee">Trainee</option>
-            <option value="inactive">Inactive</option>
-            <option value="offboarding">Offboarding</option>
-          </select>
+          {(() => {
+            const currentStatus = profile.status as ProfileStatus;
+            const allowed = VALID_TRANSITIONS[currentStatus] ?? [];
+            const STATUS_LABELS: Record<string, string> = {
+              active: "Active",
+              trainee: "Trainee",
+              inactive: "Inactive",
+              offboarding: "Offboarding",
+            };
+            return (
+              <select
+                value={editStatus}
+                onChange={(e) => setEditStatus(e.target.value)}
+                className={selectClass}
+              >
+                {(["active", "trainee", "inactive", "offboarding"] as ProfileStatus[]).map((s) => (
+                  <option
+                    key={s}
+                    value={s}
+                    disabled={!allowed.includes(s) && s !== currentStatus}
+                  >
+                    {STATUS_LABELS[s]}{!allowed.includes(s) && s !== currentStatus ? " (not allowed)" : ""}
+                  </option>
+                ))}
+              </select>
+            );
+          })()}
         </div>
       </div>
 
@@ -905,7 +1227,9 @@ export default function ProfileDetailPage() {
       }
       tabs={[
         { value: "overview", label: "Overview", content: overviewTab },
+        { value: "schedule", label: "Schedule", content: scheduleTab },
         { value: "competence", label: "Competence", content: competenceTab },
+        { value: "activity", label: "Activity", content: activityTab },
         { value: "hr", label: "HR & Logs", content: hrTab },
         { value: "settings", label: "Settings", content: settingsTab },
       ]}
