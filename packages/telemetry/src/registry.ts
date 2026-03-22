@@ -25,7 +25,8 @@ export type EventCategory =
   | "training"
   | "communication"
   | "system"
-  | "navigation";
+  | "navigation"
+  | "channels";
 
 // ─── Entity Reference (for robust UI audit trails) ─
 export interface EntityRef {
@@ -78,7 +79,13 @@ export type EntityType =
   | "operating_hours"
   | "kpi_target"
   | "workspace_budget"
-  | "authority_config";
+  | "authority_config"
+  | "channel"
+  | "channel_member"
+  | "channel_message"
+  | "channel_event"
+  | "help_request"
+  | "news_post";
 
 export type ActionVerb =
   | "created"
@@ -120,7 +127,16 @@ export type ActionVerb =
   | "dismissed"
   | "answered"
   | "loaded"
-  | "auto_filled";
+  | "auto_filled"
+  | "joined"
+  | "left"
+  | "pinned"
+  | "unpinned"
+  | "reacted"
+  | "unreacted"
+  | "read"
+  | "shared"
+  | "requested_help";
 
 // ─── Auth Module Events ─────────────────────────
 export interface AuthSignedUp extends BaseEvent {
@@ -1078,6 +1094,112 @@ export interface WizardCompleted extends BaseEvent {
   };
 }
 
+// ─── Channel Events ─────────────────────────────
+export interface ChannelCreated extends BaseEvent {
+  event: "channel.created";
+  properties: { channel_type: string; name: string | null };
+  entity: EntityRef;
+}
+
+export interface ChannelArchived extends BaseEvent {
+  event: "channel.archived";
+  properties: { channel_type: string };
+  entity: EntityRef;
+}
+
+export interface ChannelMessageSent extends BaseEvent {
+  event: "channel.message.sent";
+  properties: { channel_id: string; origin_type: string; message_type: string };
+  entity: EntityRef;
+}
+
+export interface ChannelMessageEdited extends BaseEvent {
+  event: "channel.message.edited";
+  properties: { channel_id: string };
+  entity: EntityRef;
+}
+
+export interface ChannelMessageDeleted extends BaseEvent {
+  event: "channel.message.deleted";
+  properties: { channel_id: string };
+  entity: EntityRef;
+}
+
+export interface ChannelMemberJoined extends BaseEvent {
+  event: "channel.member.joined";
+  properties: { channel_id: string; role: string };
+  entity: EntityRef;
+}
+
+export interface ChannelMemberLeft extends BaseEvent {
+  event: "channel.member.left";
+  properties: { channel_id: string };
+  entity: EntityRef;
+}
+
+export interface ChannelReactionAdded extends BaseEvent {
+  event: "channel.reaction.added";
+  properties: { channel_id: string; message_id: string; emoji: string };
+  entity: EntityRef;
+}
+
+export interface ChannelReactionRemoved extends BaseEvent {
+  event: "channel.reaction.removed";
+  properties: { channel_id: string; message_id: string; emoji: string };
+  entity: EntityRef;
+}
+
+export interface ChannelRead extends BaseEvent {
+  event: "channel.read";
+  properties: { channel_id: string; message_id: string };
+  entity: EntityRef;
+}
+
+export interface ChannelMessagePinned extends BaseEvent {
+  event: "channel.message.pinned";
+  properties: { channel_id: string };
+  entity: EntityRef;
+}
+
+export interface ChannelMessageUnpinned extends BaseEvent {
+  event: "channel.message.unpinned";
+  properties: { channel_id: string };
+  entity: EntityRef;
+}
+
+// ─── Help Request Events ───────────────────────
+export interface HelpRequestCreated extends BaseEvent {
+  event: "help_request.created";
+  properties: { title: string };
+  entity: EntityRef;
+}
+
+export interface HelpRequestResolved extends BaseEvent {
+  event: "help_request.resolved";
+  properties: { resolved_by: string };
+  entity: EntityRef;
+}
+
+// ─── Knowledge Sharing Events ──────────────────
+export interface KnowledgeShared extends BaseEvent {
+  event: "knowledge.shared";
+  properties: { channel_id: string; shared_type: string; shared_id: string; title: string };
+  entity: EntityRef;
+}
+
+// ─── News Events ───────────────────────────────
+export interface NewsPostCreated extends BaseEvent {
+  event: "news.post.created";
+  properties: { channel_id: string };
+  entity: EntityRef;
+}
+
+export interface NewsPostReacted extends BaseEvent {
+  event: "news.post.reacted";
+  properties: { channel_id: string; emoji: string };
+  entity: EntityRef;
+}
+
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
 export type SmartoutEvent =
@@ -1183,7 +1305,24 @@ export type SmartoutEvent =
   | MealRuleUpdated
   | MealRuleDeleted
   | PageViewed
-  | ButtonClicked;
+  | ButtonClicked
+  | ChannelCreated
+  | ChannelArchived
+  | ChannelMessageSent
+  | ChannelMessageEdited
+  | ChannelMessageDeleted
+  | ChannelMemberJoined
+  | ChannelMemberLeft
+  | ChannelReactionAdded
+  | ChannelReactionRemoved
+  | ChannelRead
+  | ChannelMessagePinned
+  | ChannelMessageUnpinned
+  | HelpRequestCreated
+  | HelpRequestResolved
+  | KnowledgeShared
+  | NewsPostCreated
+  | NewsPostReacted;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -1613,4 +1752,76 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
 
   "page viewed": { destinations: ["posthog"], category: "navigation" },
   "button clicked": { destinations: ["posthog"], category: "navigation" },
+
+  // Channel events
+  "channel.created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "channel.archived": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "channel.message.sent": {
+    destinations: ["posthog", "logger"],
+    category: "channels",
+  },
+  "channel.message.edited": {
+    destinations: ["posthog", "logger"],
+    category: "channels",
+  },
+  "channel.message.deleted": {
+    destinations: ["posthog", "logger"],
+    category: "channels",
+  },
+  "channel.member.joined": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "channel.member.left": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "channel.reaction.added": {
+    destinations: ["posthog"],
+    category: "channels",
+  },
+  "channel.reaction.removed": {
+    destinations: ["posthog"],
+    category: "channels",
+  },
+  "channel.read": {
+    destinations: ["posthog"],
+    category: "channels",
+  },
+  "channel.message.pinned": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "channel.message.unpinned": {
+    destinations: ["posthog", "logger"],
+    category: "channels",
+  },
+
+  // Komm redesign events
+  "help_request.created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "help_request.resolved": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "knowledge.shared": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "news.post.created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "news.post.reacted": {
+    destinations: ["posthog"],
+    category: "channels",
+  },
 };

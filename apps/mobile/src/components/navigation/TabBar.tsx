@@ -10,7 +10,7 @@
 import React from "react";
 import { View, Text, Pressable, Platform } from "react-native";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
-import { Home, CalendarDays, MessageCircle, User } from "lucide-react-native";
+import { Home, CalendarDays, Radio, MessageCircle, User } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { createStyles, withOpacity, type ThemeColors } from "@/theme";
 import { Badge } from "@/components/ui/Badge";
@@ -21,6 +21,7 @@ import type { LucideIcon } from "lucide-react-native";
 const TAB_ICONS: Record<string, LucideIcon> = {
   "(home)": Home,
   "(shifts)": CalendarDays,
+  "(komm)": Radio,
   "(chat)": MessageCircle,
   "(me)": User,
 };
@@ -28,6 +29,7 @@ const TAB_ICONS: Record<string, LucideIcon> = {
 const TAB_LABELS: Record<string, string> = {
   "(home)": strings.tabs.home,
   "(shifts)": strings.tabs.shifts,
+  "(komm)": "Komm",
   "(chat)": strings.tabs.chat,
   "(me)": strings.tabs.me,
 };
@@ -42,15 +44,17 @@ type TabBarProps = BottomTabBarProps & {
 export function TabBar({ state, navigation, unreadCount = 0, centerFab }: TabBarProps) {
   const styles = useStyles();
 
-  // Split routes into left (first 2) and right (last 2) around the FAB
-  const leftRoutes = state.routes.slice(0, 2);
-  const rightRoutes = state.routes.slice(2);
+  // Filter out hidden tabs (href: null) and split into left/right around FAB
+  const visibleRoutes = state.routes.filter((_r, i) => state.routeNames[i] !== "(chat)");
+  const leftRoutes = visibleRoutes.slice(0, 2);
+  const rightRoutes = visibleRoutes.slice(2);
 
-  function renderTab(route: (typeof state)["routes"][number], index: number) {
-    const isFocused = state.index === index;
+  function renderTab(route: (typeof state)["routes"][number]) {
+    const routeIndex = state.routes.findIndex((r) => r.key === route.key);
+    const isFocused = state.index === routeIndex;
     const IconComponent = TAB_ICONS[route.name];
     const label = TAB_LABELS[route.name] ?? route.name;
-    const isChatTab = route.name === "(chat)";
+    const isKommTab = route.name === "(komm)";
 
     return (
       <Pressable
@@ -74,7 +78,7 @@ export function TabBar({ state, navigation, unreadCount = 0, centerFab }: TabBar
               strokeWidth={isFocused ? 2.2 : 1.8}
             />
           )}
-          {isChatTab && <Badge count={unreadCount} style={styles.badge} />}
+          {isKommTab && <Badge count={unreadCount} style={styles.badge} />}
         </View>
         <Text style={[styles.tabLabel, isFocused && styles.tabLabelActive]}>{label}</Text>
       </Pressable>
@@ -85,13 +89,13 @@ export function TabBar({ state, navigation, unreadCount = 0, centerFab }: TabBar
     <View style={styles.container}>
       <View style={styles.barBackground}>
         {/* Left tabs */}
-        {leftRoutes.map((route, i) => renderTab(route, i))}
+        {leftRoutes.map((route) => renderTab(route))}
 
         {/* Center FAB placeholder — takes up tab width but the FAB overflows upward */}
         <View style={styles.fabSlot}>{centerFab}</View>
 
         {/* Right tabs */}
-        {rightRoutes.map((route, i) => renderTab(route, i + 2))}
+        {rightRoutes.map((route) => renderTab(route))}
       </View>
     </View>
   );

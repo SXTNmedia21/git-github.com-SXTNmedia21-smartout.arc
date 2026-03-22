@@ -256,6 +256,7 @@ import {
   Moon,
   Gamepad2,
   MessageSquare,
+  Radio,
   Bot,
   HelpCircle,
   Building2,
@@ -1416,6 +1417,14 @@ export function DashboardShell({
                         </div>
                       )}
                       {isSidebarCollapsed && <div className="mt-2" />}
+                      <NavItem
+                        href="/dashboard/komm"
+                        icon={Radio}
+                        label="Komm"
+                        isDark={isDark}
+                        active={isActive("/dashboard/komm")}
+                        isCollapsed={isSidebarCollapsed}
+                      />
                       <NavItem
                         href="/dashboard/chat"
                         icon={MessageSquare}
