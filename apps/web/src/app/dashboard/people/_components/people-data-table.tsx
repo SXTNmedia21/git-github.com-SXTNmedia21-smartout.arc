@@ -15,6 +15,7 @@ import {
   Loader2,
   GraduationCap,
   LogOut,
+  Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import { EmployeeProfileCard } from "./employee-profile-card";
@@ -24,6 +25,7 @@ import type { ConfirmAction } from "./people-row-actions";
 import { ConfirmationDialog } from "@/components/platform-admin/confirmation-dialog";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   updateProfileRole,
   updateProfileDepartment,
@@ -85,6 +87,85 @@ export function PeopleDataTable({
 
   const workspaceId = workspaceData?.workspace_id ?? "";
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [advancedFilters, setAdvancedFilters] = useState({
+    statuses: [] as string[],
+    roles: [] as string[],
+    readinessMin: 0,
+    readinessMax: 100,
+    hasContract: null as boolean | null,
+  });
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (advancedFilters.statuses.length > 0) count++;
+    if (advancedFilters.roles.length > 0) count++;
+    if (advancedFilters.readinessMin > 0 || advancedFilters.readinessMax < 100) count++;
+    if (advancedFilters.hasContract !== null) count++;
+    return count;
+  }, [advancedFilters]);
+
+  function toggleFilterValue(key: "statuses" | "roles", value: string) {
+    setAdvancedFilters((prev) => {
+      const arr = prev[key];
+      return {
+        ...prev,
+        [key]: arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value],
+      };
+    });
+  }
+
+  function setReadinessRange(min: number, max: number) {
+    setAdvancedFilters((prev) => {
+      if (prev.readinessMin === min && prev.readinessMax === max) {
+        return { ...prev, readinessMin: 0, readinessMax: 100 };
+      }
+      return { ...prev, readinessMin: min, readinessMax: max };
+    });
+  }
+
+  function clearAdvancedFilters() {
+    setAdvancedFilters({
+      statuses: [],
+      roles: [],
+      readinessMin: 0,
+      readinessMax: 100,
+      hasContract: null,
+    });
+  }
+
+  function handleExport() {
+    const headers = [
+      "Name",
+      "Email",
+      "Phone",
+      "Role",
+      "Department",
+      "Status",
+      "Readiness %",
+      "Contract",
+    ];
+    const rows = filteredEmployees.map((emp) => [
+      emp.name,
+      emp.email,
+      emp.phone ?? "",
+      emp.role,
+      emp.department,
+      emp.status,
+      emp.readinessScore !== undefined ? `${emp.readinessScore}` : "N/A",
+      emp.hasContract ? "Yes" : "No",
+    ]);
+
+    const csv = [headers, ...rows]
+      .map((row) => row.map((cell) => `"${cell}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `employees-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   async function handleRoleChange(profileId: string, newRole: string) {
     try {
@@ -262,13 +343,34 @@ export function PeopleDataTable({
       result = result.filter((emp) => emp.department === selectedDept);
     }
 
+    // Advanced filters
+    if (advancedFilters.statuses.length > 0) {
+      result = result.filter((emp) => advancedFilters.statuses.includes(emp.status));
+    }
+    if (advancedFilters.roles.length > 0) {
+      result = result.filter((emp) =>
+        advancedFilters.roles.includes(emp.role.toLowerCase()),
+      );
+    }
+    if (advancedFilters.readinessMin > 0 || advancedFilters.readinessMax < 100) {
+      result = result.filter((emp) => {
+        const score = emp.readinessScore ?? 0;
+        return score >= advancedFilters.readinessMin && score <= advancedFilters.readinessMax;
+      });
+    }
+    if (advancedFilters.hasContract !== null) {
+      result = result.filter((emp) =>
+        advancedFilters.hasContract ? emp.hasContract : !emp.hasContract,
+      );
+    }
+
     // Readiness sort
     if (activeFilter === "readiness") {
       result = [...result].sort((a, b) => (a.readinessScore ?? 0) - (b.readinessScore ?? 0));
     }
 
     return result;
-  }, [employees, activeFilter, searchTerm, selectedDept]);
+  }, [employees, activeFilter, searchTerm, selectedDept, advancedFilters]);
 
   const selectableEmployees = filteredEmployees.filter(
     (e) => e.status !== "invited" && e.profileId,
@@ -345,10 +447,135 @@ export function PeopleDataTable({
             ))}
           </div>
           <button
+            onClick={handleExport}
             className={`rounded-lg border p-2.5 transition-all ${isDark ? "border-zinc-800 bg-zinc-950 text-zinc-400 hover:border-zinc-700 hover:text-white" : "border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300 hover:text-zinc-900"}`}
           >
-            <Filter className="h-4 w-4" />
+            <Download className="h-4 w-4" />
           </button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                className={`relative rounded-lg border p-2.5 transition-all ${isDark ? "border-zinc-800 bg-zinc-950 text-zinc-400 hover:border-zinc-700 hover:text-white" : "border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300 hover:text-zinc-900"}`}
+              >
+                <Filter className="h-4 w-4" />
+                {activeFilterCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-orange-500 text-[10px] font-bold text-white">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-72 p-4">
+              <div className="space-y-4">
+                {/* Status filter */}
+                <div>
+                  <p className="mb-2 text-xs font-bold tracking-wider text-muted-foreground uppercase">
+                    Status
+                  </p>
+                  <div className="space-y-1.5">
+                    {(["active", "trainee", "inactive", "offboarding", "invited"] as const).map(
+                      (s) => (
+                        <label key={s} className="flex items-center gap-2 text-sm">
+                          <Checkbox
+                            checked={advancedFilters.statuses.includes(s)}
+                            onCheckedChange={() => toggleFilterValue("statuses", s)}
+                          />
+                          <span className="capitalize">{s}</span>
+                        </label>
+                      ),
+                    )}
+                  </div>
+                </div>
+
+                {/* Role filter */}
+                <div>
+                  <p className="mb-2 text-xs font-bold tracking-wider text-muted-foreground uppercase">
+                    Role
+                  </p>
+                  <div className="space-y-1.5">
+                    {(["owner", "admin", "manager", "employee"] as const).map((r) => (
+                      <label key={r} className="flex items-center gap-2 text-sm">
+                        <Checkbox
+                          checked={advancedFilters.roles.includes(r)}
+                          onCheckedChange={() => toggleFilterValue("roles", r)}
+                        />
+                        <span className="capitalize">{r}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Readiness range */}
+                <div>
+                  <p className="mb-2 text-xs font-bold tracking-wider text-muted-foreground uppercase">
+                    Readiness
+                  </p>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {([
+                      [0, 25],
+                      [25, 50],
+                      [50, 75],
+                      [75, 100],
+                    ] as const).map(([min, max]) => (
+                      <button
+                        key={`${min}-${max}`}
+                        onClick={() => setReadinessRange(min, max)}
+                        className={`rounded-md border px-2 py-1.5 text-xs font-semibold transition-colors ${
+                          advancedFilters.readinessMin === min &&
+                          advancedFilters.readinessMax === max
+                            ? "border-orange-500/50 bg-orange-500/10 text-orange-500"
+                            : "border-border text-muted-foreground hover:bg-accent"
+                        }`}
+                      >
+                        {min}–{max}%
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Contract toggle */}
+                <div>
+                  <p className="mb-2 text-xs font-bold tracking-wider text-muted-foreground uppercase">
+                    Contract
+                  </p>
+                  <div className="flex gap-1.5">
+                    {([
+                      { label: "All", value: null },
+                      { label: "Has", value: true },
+                      { label: "No", value: false },
+                    ] as const).map((opt) => (
+                      <button
+                        key={opt.label}
+                        onClick={() =>
+                          setAdvancedFilters((prev) => ({
+                            ...prev,
+                            hasContract: opt.value,
+                          }))
+                        }
+                        className={`flex-1 rounded-md border px-2 py-1.5 text-xs font-semibold transition-colors ${
+                          advancedFilters.hasContract === opt.value
+                            ? "border-orange-500/50 bg-orange-500/10 text-orange-500"
+                            : "border-border text-muted-foreground hover:bg-accent"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Clear filters */}
+                {activeFilterCount > 0 && (
+                  <button
+                    onClick={clearAdvancedFilters}
+                    className="w-full rounded-md border border-border px-2 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent"
+                  >
+                    Clear filters
+                  </button>
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
@@ -469,6 +696,38 @@ export function PeopleDataTable({
               }`}
             >
               Clear
+            </button>
+            {/* Bulk Deactivate */}
+            <button
+              onClick={() => {
+                const profileIds = Array.from(selectedIds)
+                  .map((id) => employees.find((emp) => emp.id === id)?.profileId)
+                  .filter((pid): pid is string => !!pid);
+                setConfirmDialog({
+                  open: true,
+                  title: "Deactivate selected employees",
+                  description: `Are you sure you want to deactivate ${profileIds.length} employees? They will be moved to offboarding status.`,
+                  confirmLabel: "Deactivate All",
+                  variant: "destructive",
+                  onConfirm: async () => {
+                    try {
+                      await bulkUpdateProfiles(profileIds, workspaceId, {
+                        status: "offboarding",
+                        is_active: false,
+                      });
+                      toast.success(`Deactivated ${profileIds.length} employees`);
+                      setSelectedIds(new Set());
+                      onRefresh();
+                    } catch {
+                      toast.error("Failed to deactivate employees");
+                    }
+                    setConfirmDialog((prev) => ({ ...prev, open: false }));
+                  },
+                });
+              }}
+              className="rounded-lg border border-destructive/30 bg-destructive/10 px-2 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/20"
+            >
+              Deactivate Selected
             </button>
           </div>
         </div>
