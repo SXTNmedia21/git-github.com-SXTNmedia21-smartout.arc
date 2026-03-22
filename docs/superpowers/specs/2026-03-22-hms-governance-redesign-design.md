@@ -670,21 +670,159 @@ Same URL, different component rendering based on `isAdminMode` from DashboardCon
 
 ---
 
-## 14. Cascade Integration
+## 14. Cascade Integration — Deep Alignment
 
-### Dimension Mapping
+HMS is not a separate system that references cascade. It is a **UX surface over cascade dimensions**. Every HMS concept maps to a specific cascade table and follows cascade's data flow patterns.
 
-| Cascade Dimension        | HMS Surface     | Role                                              |
-| ------------------------ | --------------- | ------------------------------------------------- |
-| D3 Rules & Constraints   | Opplaering      | Training requirements constrain who can work what |
-| D6 Production & Product  | Drift           | Session tasks are live production state           |
-| D2 Resource Availability | Opplaering      | Readiness scores determine schedulable capacity   |
-| C1 Calibration           | Oversikt        | Plan vs actual (readiness target vs current)      |
-| C4 Governance            | All surfaces    | Permission gates on every action                  |
-| K1a Industry Knowledge   | Dokumenter      | Industry-standard procedure templates             |
-| K1b Workspace Knowledge  | Dokumenter + AI | Workspace-specific learned content                |
+### 14.1 D3 Rules & Constraints — Regulatory Backbone
 
-### Telemetry Integration
+HMS compliance rules are `framework_rule` entries within a `regulatory_framework`, NOT ad-hoc policy_type filters.
+
+**IK-Mat as Regulatory Framework:**
+
+The `regulatory_framework` table (existing) stores IK-mat as a framework entry:
+
+- code: `"ik-mat-no-2025"`
+- industry: `"hospitality"`, jurisdiction: `"NO"`
+- Seeded by I1 hospitality bootstrap
+
+**HACCP control points as Framework Rules:**
+
+Each HACCP control point is a `framework_rule` (existing table) with:
+
+- `rule_type: "gate"` (must pass, no override) or `"constraint"` (soft limit)
+- `category: "food_safety"`
+- `evaluation_config` containing: check_type, min/max thresholds, frequency, `linked_procedure_id`
+- `source_reference` to Mattilsynet regulations
+
+Example: "Walk-in cooler must be 0-4C" = a gate rule with evaluation_config `{min: 0, max: 4, unit: "celsius", frequency_minutes: 240}`.
+
+**HMS triggers as Framework Triggers:**
+
+The `framework_trigger` table (existing) fires when conditions are met:
+
+- `trigger_mode: "reactive"` — fires on condition (e.g., overdue check)
+- `evaluation_config` defines: condition, threshold, action (create_session_task), escalation (create_deviation)
+- `linked_rule_ids` connects trigger to the rules it monitors
+
+**How this changes each surface:**
+
+| Surface         | Without Cascade                  | With Cascade                                                                     |
+| --------------- | -------------------------------- | -------------------------------------------------------------------------------- |
+| Oversikt IK-Mat | Filter procedures by policy_type | Query `framework_rule` WHERE framework = IK-mat, show evaluation status per rule |
+| Drift tasks     | Session hooks fire procedures    | Session hooks link to `framework_trigger`, compliance tracking automatic         |
+| Documents       | Procedures listed by type        | Each procedure shows linked `framework_rule` with regulatory source              |
+| Avvik           | Manual deviation creation        | Deviation auto-created when `framework_rule` gate evaluation returns "deny"      |
+
+**I1 Bootstrap seeds these:** `docs/engines/industri-inteligence/hospitalety/` provides default regulatory_framework + framework_rule entries.
+
+### 14.2 D6 Production — Session-Bound Execution
+
+Drift tab is a direct view of D6 Production state.
+
+**Session lifecycle drives HMS:**
+
+- `department_session` status: upcoming -> active -> pending_signoff -> closed
+- Sign-off requires: all is_required session_tasks completed, all HACCP gate checks passing, all deviations acknowledged
+- Incomplete HMS tasks -> `signoff_type: "with_exceptions"`
+- Critical framework_rule gate failing -> signoff BLOCKED
+
+**Session hooks trigger HMS tasks:**
+
+- `session_hook.action_type: "procedure"` with `action_ref_id` -> procedure
+- At trigger time, creates `session_task` linked to procedure + framework_trigger + department_session
+- Completion/failure emits telemetry -> engine_event
+
+### 14.3 D2 Resource Availability — Readiness as Schedulable Capacity
+
+Readiness is a D2 constraint, not just a UI number.
+
+**Schedule constraint:** Position requires protocols [HACCP-Temp, Hygiene, Allergen]. Employee has completed [HACCP-Temp, Hygiene] = 66%. Employee CANNOT be scheduled for this position until Allergen is completed. This is enforced as a D3 gate rule.
+
+**KPI target integration:**
+
+- `workspace_kpi_target` (existing table): metric = "team_readiness_percent", target_value = 90
+- Oversikt compares actual readiness vs target
+- C1 Calibration: if actual < target, generate attention item
+
+### 14.4 C1 Calibration — Plan vs Actual Loop
+
+HMS Oversikt IS a C1 surface. Every attention item is a calibration signal.
+
+**Three calibration loops:**
+
+1. **Readiness:** workspace_kpi_target (plan) vs protocol_assignment completion (actual) -> delta drives Attention block
+2. **HACCP:** framework_rule frequency (plan) vs last check timestamp (actual) -> overdue drives Attention block
+3. **Deviations:** `daily_reconciliation` (existing table) links to session deviations. Manager reviews during sign-off. Unresolved deviations = temporal debt (D6 carry-forward).
+
+### 14.5 C4 Governance — Confident != Authorized
+
+Every HMS action passes TWO gates:
+
+1. **C1 (belief):** Is this action appropriate? (readiness score, rule evaluation)
+2. **C4 (permission):** Is the actor ALLOWED? (engine_authority_config)
+
+**Engine authority config (existing table) for HMS capabilities:**
+
+| capability                 | default level | meaning                              |
+| -------------------------- | ------------- | ------------------------------------ |
+| `hms.assign_training`      | manager       | Who can assign protocols             |
+| `hms.close_deviation`      | manager       | Who can close deviations             |
+| `hms.edit_procedure`       | admin         | Who can modify procedures            |
+| `hms.waive_assignment`     | admin         | Who can waive requirements           |
+| `hms.view_inspection_pack` | manager       | Who can see full compliance evidence |
+
+Per-workspace configurable: a workspace can tighten or loosen any capability.
+
+**Change proposals for procedure modifications (Phase 2+):**
+
+When admin edits a compliance-critical procedure (linked to framework_rule), the change goes through `change_proposal` (existing table): proposed -> approved -> applied. Non-critical procedures can be edited freely.
+
+### 14.6 K1a/K1b — Knowledge Substrate
+
+**K1a (platform-level):**
+
+- `regulatory_framework` with NULL workspace_id = industry-standard frameworks
+- `framework_rule` under platform frameworks = industry HMS rules
+- I1 hospitality package seeds: IK-mat, HMS, fire safety frameworks
+- Procedure templates from `docs/engines/industri-inteligence/hospitalety/03-templates/`
+
+**K1b (tenant-level):**
+
+- `workspace_doc_chunk` (pgvector) stores procedure content as embeddings
+- AI Job 1 queries K1b via `match_workspace_docs()` for workspace-specific context
+- `engine_memory` stores learned patterns (e.g., this workspace checks fridge at 06:00)
+- K1b grows through daily operation: every task, deviation, quiz enriches workspace knowledge
+
+### 14.7 Engine Process — Learning Journey as Blueprint
+
+The 5-stage learning journey is an `engine_process` blueprint, NOT client-side state.
+
+```
+engine_process (platform blueprint)
+  id: "learning-journey-v1"
+  name: "Protocol Learning Journey"
+  max_steps: 5
+
+engine_state (one per protocol_assignment)
+  process_id: -> "learning-journey-v1"
+  assignee_id: -> profile
+  status: "active"
+  current_step: 2 (Practice)
+
+engine_state_step (5 per state)
+  step 1: "understand" -> completed
+  step 2: "practice"   -> in_progress
+  step 3: "test"       -> pending
+  step 4: "confirm"    -> pending
+  step 5: "done"       -> pending
+```
+
+**Why engine state, not client state:** Client-side state is invisible to scheduling (D2), AI (C2), calibration (C1), and governance (C4). Engine state is queryable system-wide.
+
+**Phase 1 pragmatic choice:** Phase 1 MAY implement learning journey as client-side state for speed, BUT must create engine_process blueprint and write engine_state records as shadow writes. Phase 2 makes engine_state the source of truth.
+
+### 14.8 Telemetry Integration
 
 Every mutation across all HMS surfaces emits via `@smartout/telemetry` `emit()`:
 
@@ -704,24 +842,55 @@ New events to register (must add to registry before use):
 emit("deviation created", { deviationId, procedureId, protocolId, severity });
 emit("deviation resolved", { deviationId, resolvedBy, correctiveAction });
 emit("readiness updated", { profileId, readinessPercent, departmentId });
+emit("framework_rule evaluated", { ruleId, frameworkId, outcome, procedureId });
 ```
 
-NOTE: Event naming follows existing flat `"noun verb"` convention, NOT `hms.*` dot-notation. New events must be added to `SmartoutEvent` type and `EVENT_ROUTING` in registry before implementation. Needs ADR if namespace change is desired.
+NOTE: Event naming follows existing flat `"noun verb"` convention. New events must be added to `SmartoutEvent` type and `EVENT_ROUTING` in registry. Needs ADR if namespace change is desired.
 
-All events route to 4 destinations:
+All events route to 4 destinations: PostHog (analytics), Logger (stdout), activity_trail (audit), engine_event (workflow automation).
 
-- PostHog (analytics)
-- Logger (stdout)
-- activity_trail (audit)
-- engine_event (workflow automation — triggers runbooks, escalations, notifications)
+### 14.9 Full Cascade Data Flow
 
-### Data Flow Compliance
+```
+I1 Bootstrap
+  -> Seeds regulatory_framework (IK-mat, HMS, fire safety)
+  -> Seeds framework_rule (HACCP gates, temperature thresholds)
+  -> Seeds framework_trigger (overdue check triggers)
+  -> Seeds engine_process (learning-journey-v1 blueprint)
+  -> Seeds procedure templates from hospitality package
 
-Readiness score changes (`hms.readiness.updated`) feed into:
+D3 framework_rule
+  -> Defines what HMS controls exist
+  -> Links to procedures via evaluation_config.linked_procedure_id
+  -> Drives Oversikt IK-Mat status
+  -> Drives Drift task generation via framework_trigger
 
-- D2 Resource Availability: profile with readiness < 100% has constrained schedulability
-- C1 Calibration: readiness target vs actual drives management alerts
-- C3 Commercial: shift cost includes training debt (untrained employee = supervision cost)
+D6 department_session
+  -> session_hook fires at scheduled time
+  -> Creates session_task linked to procedure + framework_trigger
+  -> Employee completes in Drift -> telemetry -> engine_event
+  -> Deviation if rule gate fails -> linked to task + procedure + protocol
+
+D2 readiness (from protocol_assignment)
+  -> Constrains scheduling (unready = unschedulable for that position)
+  -> Feeds Oversikt readiness ring
+  -> Compared against workspace_kpi_target (C1)
+
+C1 daily_reconciliation
+  -> Links to session deviations
+  -> Manager reviews during sign-off
+  -> Unresolved deviations = temporal debt (D6)
+
+C4 engine_authority_config
+  -> Gates every HMS action by capability + level
+  -> Per-workspace configurable
+
+K1a -> Industry frameworks, procedure templates, regulatory baselines
+K1b -> Workspace embeddings, learned patterns, local overrides
+
+C2 AI (Phase 4) -> Queries K1b for context, K1a for baselines
+C3 Commercial (Phase 3) -> Untrained employee = supervision cost on shift_cost_snapshot
+```
 
 ---
 
