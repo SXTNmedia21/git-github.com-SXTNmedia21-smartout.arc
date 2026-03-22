@@ -1,0 +1,822 @@
+/**
+ * Bootstrap Cascade Edge Function
+ *
+ * Seeds cascade data for a new workspace: base hours, department classification,
+ * department hours with offsets, framework binding, tariff rates, planning cycle,
+ * season budget enrichment, day/hour factors, payroll templates, authority config.
+ *
+ * Properties: Idempotent. Resumable. Auditable via workspace_bootstrap_run.
+ * Auth: Service-role only (called internally from activate-workspace / finalize-workspace).
+ */
+
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
+import { corsHeaders } from "../_shared/cors.ts";
+
+// Department name → type mapping (mirrors hospitality.ts DEPARTMENT_TYPE_MAP)
+const DEPARTMENT_TYPE_MAP: Record<string, { type: string; confidence: string }> = {
+  kjøkken: { type: "operational", confidence: "high" },
+  kjokken: { type: "operational", confidence: "high" },
+  kitchen: { type: "operational", confidence: "high" },
+  sal: { type: "operational", confidence: "high" },
+  floor: { type: "operational", confidence: "high" },
+  "front of house": { type: "operational", confidence: "high" },
+  service: { type: "operational", confidence: "high" },
+  bar: { type: "operational", confidence: "high" },
+  "bar ute": { type: "operational", confidence: "high" },
+  uteservering: { type: "operational", confidence: "high" },
+  oppvask: { type: "operational", confidence: "high" },
+  bakeri: { type: "operational", confidence: "high" },
+  kafe: { type: "operational", confidence: "high" },
+  resepsjon: { type: "operational", confidence: "high" },
+  kontor: { type: "administrative", confidence: "high" },
+  admin: { type: "administrative", confidence: "high" },
+  administrasjon: { type: "administrative", confidence: "high" },
+  administration: { type: "administrative", confidence: "high" },
+  hr: { type: "administrative", confidence: "high" },
+  regnskap: { type: "administrative", confidence: "high" },
+  økonomi: { type: "administrative", confidence: "high" },
+  ledelse: { type: "administrative", confidence: "high" },
+};
+
+// Department offset defaults in minutes
+const OFFSET_DEFAULTS: Record<string, { open: number; close: number }> = {
+  kjøkken: { open: -120, close: 0 },
+  kjokken: { open: -120, close: 0 },
+  kitchen: { open: -120, close: 0 },
+  sal: { open: -60, close: 0 },
+  floor: { open: -60, close: 0 },
+  service: { open: -60, close: 0 },
+  "front of house": { open: -60, close: 0 },
+  bar: { open: 0, close: 0 },
+  "bar ute": { open: 240, close: 0 },
+  uteservering: { open: 0, close: 0 },
+};
+
+// Hospitality default base hours (0=Mon..6=Sun)
+const DEFAULT_BASE_HOURS = [
+  { dayOfWeek: 0, openTime: "11:00", closeTime: "23:00", isClosed: false },
+  { dayOfWeek: 1, openTime: "11:00", closeTime: "23:00", isClosed: false },
+  { dayOfWeek: 2, openTime: "11:00", closeTime: "23:00", isClosed: false },
+  { dayOfWeek: 3, openTime: "11:00", closeTime: "23:00", isClosed: false },
+  { dayOfWeek: 4, openTime: "11:00", closeTime: "23:00", isClosed: false },
+  { dayOfWeek: 5, openTime: "11:00", closeTime: "23:00", isClosed: false },
+  { dayOfWeek: 6, openTime: "12:00", closeTime: "22:00", isClosed: false },
+];
+
+// Administrative default hours
+const ADMIN_DEFAULT_HOURS = [
+  { dayOfWeek: 0, openTime: "09:00", closeTime: "17:00", isClosed: false },
+  { dayOfWeek: 1, openTime: "09:00", closeTime: "17:00", isClosed: false },
+  { dayOfWeek: 2, openTime: "09:00", closeTime: "17:00", isClosed: false },
+  { dayOfWeek: 3, openTime: "09:00", closeTime: "17:00", isClosed: false },
+  { dayOfWeek: 4, openTime: "09:00", closeTime: "17:00", isClosed: false },
+  { dayOfWeek: 5, openTime: null, closeTime: null, isClosed: true },
+  { dayOfWeek: 6, openTime: null, closeTime: null, isClosed: true },
+];
+
+// Payroll profile templates
+const PAYROLL_TEMPLATES = [
+  {
+    name: "Servitør heltid",
+    salaryType: "hourly",
+    weeklyHours: 37.5,
+    tariffCategory: "ufaglart",
+    employmentCategory: "fast",
+  },
+  {
+    name: "Servitør deltid",
+    salaryType: "hourly",
+    weeklyHours: 20,
+    tariffCategory: "ufaglart",
+    employmentCategory: "deltid",
+  },
+  {
+    name: "Kokk heltid",
+    salaryType: "hourly",
+    weeklyHours: 37.5,
+    tariffCategory: "faglart",
+    employmentCategory: "fast",
+  },
+  {
+    name: "Leder",
+    salaryType: "monthly",
+    weeklyHours: 37.5,
+    tariffCategory: "leder",
+    employmentCategory: "fast",
+  },
+];
+
+// Day factor defaults (0=Mon..6=Sun, higher Fri-Sat)
+const DAY_FACTOR_DEFAULTS = [
+  { weekday: 0, factor: 0.85 },
+  { weekday: 1, factor: 0.9 },
+  { weekday: 2, factor: 1.0 },
+  { weekday: 3, factor: 1.05 },
+  { weekday: 4, factor: 1.3 },
+  { weekday: 5, factor: 1.4 },
+  { weekday: 6, factor: 0.5 },
+];
+
+// Hour factor defaults (peak 18-21)
+const HOUR_FACTOR_DEFAULTS = Array.from({ length: 24 }, (_, h) => {
+  let factor = 0.3;
+  if (h >= 7 && h < 10) factor = 0.5;
+  if (h >= 10 && h < 12) factor = 0.7;
+  if (h >= 12 && h < 14) factor = 1.0;
+  if (h >= 14 && h < 17) factor = 0.6;
+  if (h >= 17 && h < 18) factor = 0.9;
+  if (h >= 18 && h < 21) factor = 1.4;
+  if (h >= 21 && h < 23) factor = 0.8;
+  if (h >= 23) factor = 0.4;
+  return { hour: h, factor };
+});
+
+type BootstrapWarning = {
+  step: string;
+  departmentId?: string;
+  departmentName?: string;
+  message: string;
+};
+
+/** Apply time offset in minutes to a TIME string (HH:MM). Handles overnight wrap. */
+function applyOffset(time: string, offsetMin: number): string {
+  const [h, m] = time.split(":").map(Number);
+  let totalMin = h * 60 + m + offsetMin;
+  // Wrap around 24h (can go negative for early opens)
+  totalMin = ((totalMin % 1440) + 1440) % 1440;
+  const newH = Math.floor(totalMin / 60);
+  const newM = totalMin % 60;
+  return `${String(newH).padStart(2, "0")}:${String(newM).padStart(2, "0")}`;
+}
+
+/** Lookup department type with case-insensitive + diacritics fallback */
+function classifyDepartment(name: string): { type: string; confidence: string } | null {
+  const normalized = name.trim().normalize("NFC").toLowerCase();
+  if (DEPARTMENT_TYPE_MAP[normalized]) return DEPARTMENT_TYPE_MAP[normalized];
+  const withoutDiacritics = normalized.replace(/ø/g, "o").replace(/æ/g, "ae").replace(/å/g, "a");
+  for (const [key, value] of Object.entries(DEPARTMENT_TYPE_MAP)) {
+    if (key === withoutDiacritics) return value;
+  }
+  return null;
+}
+
+/** Get offset defaults for a department name */
+function getOffsets(name: string): { open: number; close: number } {
+  const normalized = name.trim().normalize("NFC").toLowerCase();
+  if (OFFSET_DEFAULTS[normalized]) return OFFSET_DEFAULTS[normalized];
+  const withoutDiacritics = normalized.replace(/ø/g, "o").replace(/æ/g, "ae").replace(/å/g, "a");
+  for (const [key, value] of Object.entries(OFFSET_DEFAULTS)) {
+    if (key === withoutDiacritics) return value;
+  }
+  return { open: 0, close: 0 };
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
+  const adminClient = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+  );
+
+  try {
+    const { workspaceId, sourcePath } = await req.json();
+    if (!workspaceId) throw new Error("Missing workspaceId");
+    if (!sourcePath) throw new Error("Missing sourcePath");
+
+    const warnings: BootstrapWarning[] = [];
+    let stepsCompleted: string[] = [];
+    let frameworkBindingId: string | null = null;
+
+    // Check for existing run (resume support)
+    const { data: existingRun } = await adminClient
+      .from("workspace_bootstrap_run")
+      .select("id, steps_completed, framework_binding_id, status")
+      .eq("workspace_id", workspaceId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    let runId: string;
+
+    if (existingRun && (existingRun.status === "partial" || existingRun.status === "running")) {
+      // Resume existing run
+      runId = existingRun.id;
+      stepsCompleted = existingRun.steps_completed ?? [];
+      frameworkBindingId = existingRun.framework_binding_id;
+      await adminClient
+        .from("workspace_bootstrap_run")
+        .update({ status: "running", current_step: "resuming" })
+        .eq("id", runId);
+    } else {
+      // Create new run
+      const { data: newRun, error: runError } = await adminClient
+        .from("workspace_bootstrap_run")
+        .insert({
+          workspace_id: workspaceId,
+          source_path: sourcePath,
+          status: "running",
+          current_step: "workspace_operating_hours",
+        })
+        .select("id")
+        .single();
+      if (runError || !newRun)
+        throw new Error(`Failed to create bootstrap run: ${runError?.message}`);
+      runId = newRun.id;
+    }
+
+    const updateStep = async (step: string) => {
+      await adminClient
+        .from("workspace_bootstrap_run")
+        .update({ current_step: step })
+        .eq("id", runId);
+    };
+
+    const completeStep = async (step: string) => {
+      stepsCompleted.push(step);
+      await adminClient
+        .from("workspace_bootstrap_run")
+        .update({ steps_completed: stepsCompleted, current_step: step })
+        .eq("id", runId);
+    };
+
+    const isCompleted = (step: string) => stepsCompleted.includes(step);
+
+    // ============================================================
+    // Step 1: workspace_operating_hours
+    // ============================================================
+    if (!isCompleted("workspace_operating_hours")) {
+      await updateStep("workspace_operating_hours");
+
+      // Try to copy from company_opening_hours (intake data)
+      const { data: intakeHours } = await adminClient
+        .from("company_opening_hours")
+        .select("day_of_week, open_time, close_time, is_closed")
+        .eq("workspace_id", workspaceId);
+
+      const hoursSource = intakeHours && intakeHours.length > 0 ? intakeHours : DEFAULT_BASE_HOURS;
+
+      const rows = hoursSource.map((h: Record<string, unknown>) => ({
+        workspace_id: workspaceId,
+        day_of_week: h.dayOfWeek ?? h.day_of_week,
+        open_time: h.openTime ?? h.open_time,
+        close_time: h.closeTime ?? h.close_time,
+        is_closed: h.isClosed ?? h.is_closed ?? false,
+      }));
+
+      await adminClient
+        .from("workspace_operating_hours")
+        .upsert(rows, { onConflict: "workspace_id,day_of_week" });
+
+      await completeStep("workspace_operating_hours");
+    }
+
+    // ============================================================
+    // Step 2: department.department_type (HARD DEPENDENCY for Step 3)
+    // ============================================================
+    if (!isCompleted("department_type")) {
+      await updateStep("department_type");
+
+      const { data: departments } = await adminClient
+        .from("department")
+        .select("department_id, name, department_type")
+        .eq("workspace_id", workspaceId)
+        .eq("is_active", true);
+
+      if (departments) {
+        for (const dept of departments) {
+          if (dept.department_type) continue; // Already classified
+
+          const classification = classifyDepartment(dept.name);
+          if (classification) {
+            await adminClient
+              .from("department")
+              .update({
+                department_type: classification.type,
+                classification_source: "industry_package",
+                classification_confidence: classification.confidence,
+              })
+              .eq("department_id", dept.department_id);
+          } else {
+            // Unknown name → default to operational with low confidence
+            await adminClient
+              .from("department")
+              .update({
+                department_type: "operational",
+                classification_source: "industry_package",
+                classification_confidence: "low",
+              })
+              .eq("department_id", dept.department_id);
+
+            warnings.push({
+              step: "department_type",
+              departmentId: dept.department_id,
+              departmentName: dept.name,
+              message: `Could not classify "${dept.name}" — defaulted to operational (low confidence)`,
+            });
+          }
+        }
+      }
+
+      await completeStep("department_type");
+    }
+
+    // ============================================================
+    // Step 3: department_operating_hours (with offsets)
+    // ============================================================
+    if (!isCompleted("department_operating_hours")) {
+      await updateStep("department_operating_hours");
+
+      // Fetch workspace base hours
+      const { data: baseHours } = await adminClient
+        .from("workspace_operating_hours")
+        .select("day_of_week, open_time, close_time, is_closed")
+        .eq("workspace_id", workspaceId);
+
+      // Fetch all active departments with their types
+      const { data: departments } = await adminClient
+        .from("department")
+        .select("department_id, name, department_type")
+        .eq("workspace_id", workspaceId)
+        .eq("is_active", true);
+
+      if (departments && baseHours) {
+        for (const dept of departments) {
+          const isAdmin = dept.department_type === "administrative";
+          const hoursTemplate = isAdmin ? ADMIN_DEFAULT_HOURS : baseHours;
+          const offsets = isAdmin ? { open: 0, close: 0 } : getOffsets(dept.name);
+
+          const deptHoursRows = hoursTemplate.map((h: Record<string, unknown>) => {
+            const dayOfWeek = h.dayOfWeek ?? h.day_of_week;
+            const isClosed = h.isClosed ?? h.is_closed ?? false;
+            const rawOpen = h.openTime ?? h.open_time;
+            const rawClose = h.closeTime ?? h.close_time;
+
+            const openTime =
+              !isClosed && rawOpen ? applyOffset(String(rawOpen), offsets.open) : rawOpen;
+            const closeTime =
+              !isClosed && rawClose ? applyOffset(String(rawClose), offsets.close) : rawClose;
+
+            return {
+              department_id: dept.department_id,
+              day_of_week: dayOfWeek,
+              open_time: openTime,
+              close_time: closeTime,
+              is_closed: isClosed,
+              open_offset_minutes: isAdmin ? 0 : offsets.open,
+              close_offset_minutes: isAdmin ? 0 : offsets.close,
+              is_derived: !isAdmin,
+              provenance: { source_type: "bootstrap", framework: "hospitality.no.default.v1" },
+            };
+          });
+
+          // Unique constraint: (department_id, location_id, season_id, day_of_week) NULLS NOT DISTINCT
+          // Check existing rows first, then insert missing ones
+          const { data: existingHours } = await adminClient
+            .from("department_operating_hours")
+            .select("day_of_week")
+            .eq("department_id", dept.department_id)
+            .is("location_id", null)
+            .is("season_id", null);
+
+          const existingDays = new Set(
+            (existingHours ?? []).map((h: { day_of_week: number }) => h.day_of_week),
+          );
+          const newRows = deptHoursRows.filter(
+            (r: { day_of_week: unknown }) => !existingDays.has(r.day_of_week as number),
+          );
+
+          if (newRows.length > 0) {
+            await adminClient.from("department_operating_hours").insert(newRows);
+          }
+        }
+      }
+
+      await completeStep("department_operating_hours");
+    }
+
+    // ============================================================
+    // Step 4: workspace_framework_binding
+    // ============================================================
+    if (!isCompleted("framework_binding")) {
+      await updateStep("framework_binding");
+
+      // Find the hospitality framework
+      const { data: framework } = await adminClient
+        .from("regulatory_framework")
+        .select("framework_id")
+        .eq("code", "hospitality.no.default.v1")
+        .eq("is_active", true)
+        .single();
+
+      if (framework) {
+        const { data: binding } = await adminClient
+          .from("workspace_framework_binding")
+          .upsert(
+            {
+              workspace_id: workspaceId,
+              framework_id: framework.framework_id,
+              is_active: true,
+            },
+            { onConflict: "workspace_id", ignoreDuplicates: true },
+          )
+          .select("id")
+          .single();
+
+        if (binding) {
+          frameworkBindingId = binding.id;
+        } else {
+          // Fetch existing if upsert was a no-op
+          const { data: existing } = await adminClient
+            .from("workspace_framework_binding")
+            .select("id")
+            .eq("workspace_id", workspaceId)
+            .eq("is_active", true)
+            .single();
+          frameworkBindingId = existing?.id ?? null;
+        }
+
+        // Update run with framework binding
+        await adminClient
+          .from("workspace_bootstrap_run")
+          .update({ framework_binding_id: frameworkBindingId })
+          .eq("id", runId);
+      } else {
+        warnings.push({
+          step: "framework_binding",
+          message: "hospitality.no.default.v1 framework not found — K1a seed may not have run",
+        });
+      }
+
+      await completeStep("framework_binding");
+    }
+
+    // ============================================================
+    // Step 5: tariff_rate_table (workspace copies from platform)
+    // ============================================================
+    if (!isCompleted("tariff_rates")) {
+      await updateStep("tariff_rates");
+
+      // Fetch platform-level rates (NULL workspace_id)
+      const { data: platformRates } = await adminClient
+        .from("tariff_rate_table")
+        .select("*")
+        .is("workspace_id", null);
+
+      if (platformRates && platformRates.length > 0) {
+        for (const rate of platformRates) {
+          // Copy to workspace scope — exclusion constraint handles duplicates
+          const { error: insertError } = await adminClient.from("tariff_rate_table").insert({
+            workspace_id: workspaceId,
+            rate_type: rate.rate_type,
+            source: rate.source,
+            effective_from: rate.effective_from,
+            effective_until: rate.effective_until,
+            seniority_years: rate.seniority_years,
+            amount: rate.amount,
+            unit: rate.unit,
+            metadata: rate.metadata,
+            provenance: { ...rate.provenance, copied_from: rate.id },
+            seeded_from_framework_binding_id: frameworkBindingId,
+            seeded_at: new Date().toISOString(),
+          });
+
+          // Ignore exclusion constraint violations (idempotent)
+          if (insertError && !insertError.message.includes("excl_tariff_no_overlap")) {
+            console.error("Tariff insert error:", insertError);
+          }
+        }
+      }
+
+      await completeStep("tariff_rates");
+    }
+
+    // ============================================================
+    // Step 6: planning_cycle (4-week default)
+    // ============================================================
+    if (!isCompleted("planning_cycle")) {
+      await updateStep("planning_cycle");
+
+      // Check if a planning cycle already exists
+      const { data: existingCycle } = await adminClient
+        .from("planning_cycle")
+        .select("planning_cycle_id")
+        .eq("workspace_id", workspaceId)
+        .limit(1)
+        .single();
+
+      if (!existingCycle) {
+        const now = new Date();
+        const startDate = now.toISOString().split("T")[0];
+        const endDate = new Date(now.getTime() + 28 * 24 * 60 * 60 * 1000)
+          .toISOString()
+          .split("T")[0];
+
+        await adminClient.from("planning_cycle").insert({
+          workspace_id: workspaceId,
+          name: "Standard 4-ukers syklus",
+          start_date: startDate,
+          end_date: endDate,
+          status: "active",
+        });
+      }
+
+      await completeStep("planning_cycle");
+    }
+
+    // ============================================================
+    // Step 7: season_budget enrichment
+    // ============================================================
+    if (!isCompleted("season_budget")) {
+      await updateStep("season_budget");
+
+      // Find active season's budget
+      const { data: activeSeason } = await adminClient
+        .from("season")
+        .select("season_id")
+        .eq("workspace_id", workspaceId)
+        .eq("status", "active")
+        .limit(1)
+        .single();
+
+      if (activeSeason) {
+        const { data: budget } = await adminClient
+          .from("season_budget")
+          .select("season_budget_id, total_target_revenue, target_labor_percentage")
+          .eq("season_id", activeSeason.season_id)
+          .single();
+
+        if (budget) {
+          // Only update if fields are at defaults (0 or 0.30)
+          const needsEnrichment =
+            budget.total_target_revenue === 0 || budget.target_labor_percentage === 0.3;
+
+          if (needsEnrichment) {
+            // Check workspace intelligence data for scraped/intake data
+            const { data: workspace } = await adminClient
+              .from("workspace")
+              .select("intelligence_data")
+              .eq("workspace_id", workspaceId)
+              .single();
+
+            const intel = workspace?.intelligence_data as Record<string, unknown> | null;
+            const expectedRevenue = intel?.expectedRevenue as number | null;
+            const targetMargin = intel?.targetMargin as number | null;
+
+            const updates: Record<string, unknown> = {};
+            if (expectedRevenue && budget.total_target_revenue === 0) {
+              updates.total_target_revenue = expectedRevenue;
+            }
+            if (targetMargin) {
+              updates.target_margin = targetMargin;
+            }
+
+            if (Object.keys(updates).length > 0) {
+              await adminClient
+                .from("season_budget")
+                .update(updates)
+                .eq("season_budget_id", budget.season_budget_id);
+            }
+          }
+        }
+      }
+
+      await completeStep("season_budget");
+    }
+
+    // ============================================================
+    // Step 8: day_factor + hour_factor
+    // ============================================================
+    if (!isCompleted("day_hour_factors")) {
+      await updateStep("day_hour_factors");
+
+      // Find active season's budget for FK
+      const { data: activeSeason } = await adminClient
+        .from("season")
+        .select("season_id")
+        .eq("workspace_id", workspaceId)
+        .eq("status", "active")
+        .limit(1)
+        .single();
+
+      if (activeSeason) {
+        const { data: budget } = await adminClient
+          .from("season_budget")
+          .select("season_budget_id")
+          .eq("season_id", activeSeason.season_id)
+          .single();
+
+        if (budget) {
+          // Check existing day factors
+          const { data: existingDayFactors } = await adminClient
+            .from("day_factor")
+            .select("day_factor_id")
+            .eq("season_budget_id", budget.season_budget_id)
+            .limit(1);
+
+          if (!existingDayFactors || existingDayFactors.length === 0) {
+            const dayRows = DAY_FACTOR_DEFAULTS.map((d) => ({
+              season_budget_id: budget.season_budget_id,
+              workspace_id: workspaceId,
+              weekday: d.weekday,
+              factor: d.factor,
+            }));
+            await adminClient.from("day_factor").insert(dayRows);
+          }
+
+          // Check existing hour factors
+          const { data: existingHourFactors } = await adminClient
+            .from("hour_factor")
+            .select("hour_factor_id")
+            .eq("season_budget_id", budget.season_budget_id)
+            .limit(1);
+
+          if (!existingHourFactors || existingHourFactors.length === 0) {
+            const hourRows = HOUR_FACTOR_DEFAULTS.map((h) => ({
+              season_budget_id: budget.season_budget_id,
+              workspace_id: workspaceId,
+              hour: h.hour,
+              factor: h.factor,
+            }));
+            await adminClient.from("hour_factor").insert(hourRows);
+          }
+        }
+      }
+
+      await completeStep("day_hour_factors");
+    }
+
+    // ============================================================
+    // Step 9: payroll_profile_template
+    // ============================================================
+    if (!isCompleted("payroll_templates")) {
+      await updateStep("payroll_templates");
+
+      for (const template of PAYROLL_TEMPLATES) {
+        await adminClient.from("payroll_profile_template").upsert(
+          {
+            workspace_id: workspaceId,
+            name: template.name,
+            salary_type: template.salaryType,
+            agreed_weekly_hours: template.weeklyHours,
+            tariff_category: template.tariffCategory,
+            employment_category: template.employmentCategory,
+            is_system_template: true,
+            is_locked: false,
+            seed_source: "hospitality.no.default.v1",
+            seed_version: "1",
+            seeded_at: new Date().toISOString(),
+          },
+          { onConflict: "workspace_id,name" },
+        );
+      }
+
+      await completeStep("payroll_templates");
+    }
+
+    // ============================================================
+    // Step 10: engine_authority_config
+    // ============================================================
+    if (!isCompleted("authority_config")) {
+      await updateStep("authority_config");
+
+      // Check if already exists
+      const { data: existingAuth } = await adminClient
+        .from("engine_authority_config")
+        .select("id")
+        .eq("workspace_id", workspaceId)
+        .limit(1);
+
+      if (!existingAuth || existingAuth.length === 0) {
+        // Fetch any admin user for the updated_by FK
+        const { data: adminProfile } = await adminClient
+          .from("profile")
+          .select("user_id")
+          .eq("workspace_id", workspaceId)
+          .in("role", ["admin", "owner"])
+          .limit(1)
+          .single();
+
+        if (adminProfile) {
+          const capabilities = [
+            "schedule_management",
+            "shift_assignment",
+            "absence_management",
+            "employee_onboarding",
+            "compliance_check",
+            "report_generation",
+            "notification_dispatch",
+            "deviation_handling",
+            "session_management",
+          ];
+
+          const configRows = capabilities.map((cap) => ({
+            workspace_id: workspaceId,
+            capability: cap,
+            level: "suggest",
+            updated_by: adminProfile.user_id,
+          }));
+
+          // Insert one by one to handle conflicts gracefully
+          for (const row of configRows) {
+            const { error } = await adminClient
+              .from("engine_authority_config")
+              .upsert(row, { onConflict: "workspace_id,capability", ignoreDuplicates: true });
+            if (error) console.error("Authority config insert error:", error);
+          }
+        } else {
+          warnings.push({
+            step: "authority_config",
+            message: "No admin profile found — skipped engine_authority_config seeding",
+          });
+        }
+      }
+
+      await completeStep("authority_config");
+    }
+
+    // ============================================================
+    // Completion criteria check
+    // ============================================================
+    await updateStep("completion_check");
+
+    const checks = await Promise.all([
+      // 1. workspace_operating_hours has 7 days
+      adminClient
+        .from("workspace_operating_hours")
+        .select("id", { count: "exact" })
+        .eq("workspace_id", workspaceId)
+        .then((r) => ({ check: "workspace_hours_7_days", passed: (r.count ?? 0) === 7 })),
+      // 2. All active departments have department_type
+      adminClient
+        .from("department")
+        .select("department_id", { count: "exact" })
+        .eq("workspace_id", workspaceId)
+        .eq("is_active", true)
+        .is("department_type", null)
+        .then((r) => ({ check: "all_depts_typed", passed: (r.count ?? 0) === 0 })),
+      // 4. framework binding exists
+      adminClient
+        .from("workspace_framework_binding")
+        .select("id", { count: "exact" })
+        .eq("workspace_id", workspaceId)
+        .eq("is_active", true)
+        .then((r) => ({ check: "framework_binding", passed: (r.count ?? 0) >= 1 })),
+      // 5. workspace tariff rates exist
+      adminClient
+        .from("tariff_rate_table")
+        .select("id", { count: "exact" })
+        .eq("workspace_id", workspaceId)
+        .then((r) => ({ check: "tariff_rates", passed: (r.count ?? 0) >= 1 })),
+      // 8. payroll templates seeded
+      adminClient
+        .from("payroll_profile_template")
+        .select("id", { count: "exact" })
+        .eq("workspace_id", workspaceId)
+        .eq("is_system_template", true)
+        .then((r) => ({ check: "payroll_templates", passed: (r.count ?? 0) >= 1 })),
+    ]);
+
+    const failedChecks = checks.filter((c) => !c.passed);
+    for (const fc of failedChecks) {
+      warnings.push({ step: "completion_check", message: `Failed: ${fc.check}` });
+    }
+
+    const finalStatus = failedChecks.length > 0 ? "partial" : "completed";
+
+    await adminClient
+      .from("workspace_bootstrap_run")
+      .update({
+        status: finalStatus,
+        current_step: null,
+        warnings: warnings.length > 0 ? warnings : [],
+        completed_at: new Date().toISOString(),
+      })
+      .eq("id", runId);
+
+    return new Response(
+      JSON.stringify({
+        success: finalStatus === "completed",
+        status: finalStatus,
+        runId,
+        stepsCompleted,
+        warnings,
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      },
+    );
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("Bootstrap cascade error:", message);
+
+    return new Response(JSON.stringify({ error: message }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500,
+    });
+  }
+});
