@@ -311,3 +311,6 @@ export function calculateSupplements(input: SupplementInput): ShiftSupplement[] 
 
   return result;
 }
+
+/** Alias used by spec and downstream consumers */
+export const getShiftSupplements = calculateSupplements;
