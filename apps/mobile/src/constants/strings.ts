@@ -113,6 +113,79 @@ export const strings = {
     error: "Noe gikk galt",
     tryAgain: "Prøv igjen",
   },
+  payroll: {
+    title: "Lønn & fravær",
+    absence: "Fravær",
+    absenceBalance: "Fraværssaldo",
+    timebank: "Timebank",
+    myPay: "Min lønn",
+    seeAll: "Se alt",
+    // Trust labels
+    preliminaryEstimate: "Foreløpig estimat",
+    registeredTime: "Registrert tid",
+    settledInPayroll: "Avregnet i lønn",
+    estimateDisclaimer:
+      "Foreløpig estimat basert på planlagt tid og gjeldende satser. Endelig beløp kan avvike.",
+    // Absence types
+    vacation: "Ferie",
+    selfReported: "Egenmelding",
+    careDays: "Omsorgsdager",
+    // Balance
+    daysRemaining: "dager igjen",
+    of: "av",
+    balanceAfter: "Saldo etter",
+    workdays: "virkedager",
+    available: "Tilgjengelig",
+    lastUpdated: "Sist oppdatert",
+    // Request
+    requestAbsence: "Søk om fravær",
+    absenceType: "Type fravær",
+    period: "Periode",
+    comment: "Kommentar",
+    commentOptional: "Kommentar (valgfritt)",
+    sendRequest: "Send søknad",
+    myRequests: "Mine søknader",
+    pending: "Venter",
+    approved: "Godkjent",
+    rejected: "Avslått",
+    cancelled: "Kansellert",
+    cancelRequest: "Kanseller",
+    overlapWarning: "Overlapper med eksisterende fravær",
+    insufficientBalance: "Ikke nok dager tilgjengelig",
+    // Payslip
+    lastPaid: "Sist utbetalt",
+    netPay: "Utbetalt",
+    grossPay: "Bruttolønn",
+    baseSalary: "Grunnlønn",
+    supplements: "Tillegg",
+    overtime: "Overtid",
+    taxDeduction: "Skattetrekk",
+    workHours: "Arbeidstimer",
+    absenceDeduction: "Fraværstrekk",
+    downloadPdf: "Last ned PDF",
+    previousPeriods: "Tidligere",
+    specification: "Spesifikasjon",
+    // Supplements
+    eveningSupplement: "Kveldstillegg",
+    weekendSupplement: "Helgetillegg",
+    holidaySupplement: "Helligdagstillegg",
+    todaysSupplements: "Dagens tillegg",
+    // Home card
+    earnedToday: "Opptjent i dag",
+    earnedThisShift: "Opptjent denne vakten",
+    totalSoFar: "Totalt så langt",
+    totalEarned: "Totalt opptjent",
+    // Timebank
+    availableForToil: "Tilgjengelig for avspasering",
+    recentMovements: "Siste bevegelser",
+    hours: "timer",
+    // Empty states
+    noPayData: "Ingen lønnsdata ennå",
+    noPayslips:
+      "Ingen lønnsslipp tilgjengelig ennå. Din første lønnsslipp vises her etter første lønnskjøring.",
+    noQuotas: "Ingen fraværskvoter er satt opp ennå. Kontakt din leder.",
+    noTimebank: "Ingen timer i timebanken ennå.",
+  },
 } as const;
 
 export type Strings = typeof strings;
