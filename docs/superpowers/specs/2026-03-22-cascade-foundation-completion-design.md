@@ -169,8 +169,8 @@ COMMENT ON COLUMN department_operating_hours.is_derived IS
 
 ```sql
 ALTER TABLE department
-  ADD COLUMN classification_source TEXT,       -- 'industry_package' | 'admin_confirmed' | 'manual'
-  ADD COLUMN classification_confidence TEXT;    -- 'high' | 'medium' | 'low'
+  ADD COLUMN classification_source TEXT CHECK (classification_source IN ('industry_package', 'admin_confirmed', 'manual')),
+  ADD COLUMN classification_confidence TEXT CHECK (classification_confidence IN ('high', 'medium', 'low'));
 ```
 
 Used by bootstrap to flag low-confidence inferences for admin review.
@@ -278,7 +278,8 @@ Step 4: workspace_framework_binding
 Step 5: tariff_rate_table (workspace rows)
   Copy K1a platform baseline rates (NULL workspace_id rows) to workspace scope
   Set: workspace_id, seeded_from_framework_binding_id, seeded_at = now()
-  ON CONFLICT DO NOTHING (idempotent)
+  Idempotent via EXCLUDE constraint: (rate_type, workspace_id, daterange(effective_from, effective_until))
+  Conflicts are caught by the exclusion constraint — no duplicate rate+period per workspace
 
 Step 6: planning_cycle
   Create default 4-week rolling cycle
@@ -539,6 +540,24 @@ Framework rule changes and tariff rate changes are deferred to a later phase.
 
 Admins only for Phase B. `engine_authority_config` remains separate — it controls AI/agent permissions, not human approval workflows.
 
+### 8.5 Proposal Status Transitions
+
+```
+pending → approved    (admin approves)
+pending → rejected    (admin rejects)
+approved → applied    (apply_change_proposal() succeeds)
+approved → failed     (apply_change_proposal() errors)
+applied  → terminal
+rejected → terminal
+failed   → pending    (admin can re-review after fix)
+```
+
+**Guards:**
+
+- `apply_change_proposal()` only executes when `status = 'approved' AND applied_at IS NULL`
+- Status transitions are one-way (no approved → pending, no applied → approved)
+- `failed` can return to `pending` for re-review — the only non-terminal backward transition
+
 ---
 
 ## 9. Framework Rule Evaluation (Complete)
@@ -624,12 +643,31 @@ resolveTariffRate(
 2. `context.tariffCategory` → matching workspace `tariff_rate_table` row
 3. Fallback: K1a platform baseline rows (NULL workspace_id)
 
-**Returns:** base_rate + applicable supplements for that timestamp:
+**Returns:**
 
-- Evening supplement (kveldstillegg) if time is 21:00-06:00
-- Weekend supplement (helgetillegg) if Sat 15:00 - Sun 24:00
-- Holiday supplement (helligdagstillegg) if date matches `public_holiday`
-- Overtime supplements (50% / 100%) based on daily/weekly hour thresholds
+```typescript
+type TariffResolution = {
+  baseRate: number; // kr/h or kr/month
+  baseRateUnit: "hourly" | "monthly";
+  supplements: Array<{
+    type: string; // 'kveldstillegg' | 'helgetillegg' | 'helligdagstillegg' | 'overtid_50' | 'overtid_100'
+    amount: number;
+    unit: "kr/h" | "percent";
+    reason: string; // human-readable: "21:00-06:00 evening supplement"
+  }>;
+  effectiveHourlyRate: number; // baseRate + all supplements resolved to kr/h
+  sourceTier: "override" | "workspace" | "platform"; // which tariff_rate_table level was used
+  tariffCategory: string | null; // e.g. 'ufaglart', 'faglart', 'leder'
+};
+```
+
+Supplement rules:
+
+- Evening (kveldstillegg): 21:00-06:00
+- Weekend (helgetillegg): Sat 15:00 - Sun 24:00
+- Holiday (helligdagstillegg): date matches `public_holiday`
+- Overtime 50%: first 2h beyond daily/weekly threshold
+- Overtime 100%: beyond 2h overtime
 
 ---
 
@@ -663,12 +701,12 @@ resolveTariffRate(
 The session generation logic (in `engine-dispatch` or session creation service — NOT in page components) must filter:
 
 ```sql
-WHERE department.department_type = 'operational'
+WHERE department.department_type IN ('operational', 'hybrid')
 ```
 
 Administrative departments are excluded from session creation.
 
-**`hybrid` department type:** Exists in the enum (from A1 migration) but behavior is not defined in this Phase B spec. Treat `hybrid` as `operational` for session generation until explicitly specified in a future phase.
+**`hybrid` department type:** Exists in the enum (from A1 migration) but full behavior is not defined in this Phase B spec. For Phase B, `hybrid` is treated identically to `operational` for session generation, hooks, and reconciliation. The filter includes both types explicitly so the SQL and the spec agree.
 
 ---
 
@@ -802,7 +840,7 @@ If `db reset` fails, fix migrations before proceeding.
 
 ### Phase 3: Invite → Contract → Payroll Cascade
 
-11. Update invite dialog — employment_type, payroll fields
+11. Update invite dialog — invite_employment_type, payroll fields
 12. Update `accept-invitation` EF — contract + payroll profile cascade
 13. Profile status promotion logic (trainee → active on payroll profile creation)
 14. Contract signed → payroll profile sync
@@ -856,17 +894,17 @@ Not every table needs all fields. Apply what is relevant:
 
 A bootstrap run (`workspace_bootstrap_run.status`) may only be set to `completed` if ALL of the following are true:
 
-| #   | Criterion                                                 | Verification                                           |
-| --- | --------------------------------------------------------- | ------------------------------------------------------ |
-| 1   | `workspace_operating_hours` exists for all 7 days         | COUNT = 7 for workspace_id                             |
-| 2   | Every active department has `department_type` set         | No NULL department_type where is_active = true         |
-| 3   | Every active department has operating hours entries       | JOIN department_operating_hours has rows for each dept |
-| 4   | `workspace_framework_binding` exists and is_active = true | Exactly 1 active binding                               |
-| 5   | Workspace-scoped `tariff_rate_table` rows exist           | At least 1 row with this workspace_id                  |
-| 6   | `planning_cycle` exists for active season                 | At least 1 row                                         |
-| 7   | `season_budget` exists for active season                  | At least 1 row (status may be draft)                   |
-| 8   | `payroll_profile_template` seeded                         | At least 1 is_system_template = true row               |
-| 9   | `engine_authority_config` exists or confirmed preexisting | At least 1 row for workspace                           |
+| #   | Criterion                                                                  | Verification                                   |
+| --- | -------------------------------------------------------------------------- | ---------------------------------------------- |
+| 1   | `workspace_operating_hours` exists for all 7 days                          | COUNT = 7 for workspace_id                     |
+| 2   | Every active department has `department_type` set                          | No NULL department_type where is_active = true |
+| 3   | Every active department has 7 weekday rows in `department_operating_hours` | COUNT = 7 per active department_id             |
+| 4   | `workspace_framework_binding` exists and is_active = true                  | Exactly 1 active binding                       |
+| 5   | Workspace-scoped `tariff_rate_table` rows exist                            | At least 1 row with this workspace_id          |
+| 6   | `planning_cycle` exists for active season                                  | At least 1 row                                 |
+| 7   | `season_budget` exists for active season                                   | At least 1 row (status may be draft)           |
+| 8   | `payroll_profile_template` seeded                                          | At least 1 is_system_template = true row       |
+| 9   | `engine_authority_config` exists or confirmed preexisting                  | At least 1 row for workspace                   |
 
 If any criterion fails, bootstrap status = `partial` with the failing steps logged in `warnings`.
 
