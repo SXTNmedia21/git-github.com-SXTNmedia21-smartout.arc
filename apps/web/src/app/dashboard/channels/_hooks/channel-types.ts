@@ -41,6 +41,8 @@ export type ChannelWithPreview = {
   last_message_at: string | null;
   last_message_sender_name: string | null;
   last_message_sender_avatar: string | null;
+  other_member_name: string | null;
+  other_member_avatar: string | null;
 };
 
 // Reaction from JSON aggregate
