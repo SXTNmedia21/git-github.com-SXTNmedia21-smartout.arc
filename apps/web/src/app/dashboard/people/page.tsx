@@ -124,24 +124,24 @@ export default function PeoplePage() {
         {/* Total Staff */}
         <div
           onClick={() => handleCardClick("all")}
-          className={`${cardBase(activeFilter === "all")} ${isDark ? "border-zinc-800/50 bg-zinc-950" : "border-zinc-200 bg-white"}`}
+          className={`${cardBase(activeFilter === "all")} border-border/50 bg-background`}
         >
           <div className="absolute -top-4 -right-4 h-24 w-24 rounded-full bg-orange-500/10 blur-2xl transition-colors group-hover:bg-orange-500/20" />
           <div className="relative z-10 mb-3 flex items-center gap-3">
             <div
-              className={`rounded-lg border p-2 ${isDark ? "border-zinc-800 bg-zinc-900 text-zinc-400" : "border-orange-100 bg-orange-50 text-orange-600"}`}
+              className={`rounded-lg border p-2 ${isDark ? "border-border bg-secondary text-muted-foreground" : "border-orange-100 bg-orange-50 text-orange-600"}`}
             >
               <Users className="h-4 w-4" />
             </div>
             <h3
-              className={`text-xs font-bold tracking-widest uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+              className="text-xs font-bold tracking-widest uppercase text-muted-foreground"
             >
               Total Staff
             </h3>
           </div>
           <div className="relative z-10 flex items-end gap-2">
             <span
-              className={`text-3xl leading-none font-bold ${isDark ? "text-white" : "text-zinc-900"}`}
+              className="text-3xl leading-none font-bold text-foreground"
             >
               {employees.length}
             </span>
@@ -151,29 +151,29 @@ export default function PeoplePage() {
         {/* Active Now */}
         <div
           onClick={() => handleCardClick("active")}
-          className={`${cardBase(activeFilter === "active")} ${isDark ? "border-zinc-800/50 bg-zinc-950" : "border-zinc-200 bg-white"}`}
+          className={`${cardBase(activeFilter === "active")} border-border/50 bg-background`}
         >
           <div className="absolute -top-4 -right-4 h-24 w-24 rounded-full bg-emerald-500/10 blur-2xl transition-colors group-hover:bg-emerald-500/20" />
           <div className="relative z-10 mb-3 flex items-center gap-3">
             <div
-              className={`rounded-lg border p-2 ${isDark ? "border-zinc-800 bg-zinc-900 text-zinc-400" : "border-emerald-100 bg-emerald-50 text-emerald-600"}`}
+              className={`rounded-lg border p-2 ${isDark ? "border-border bg-secondary text-muted-foreground" : "border-emerald-100 bg-emerald-50 text-emerald-600"}`}
             >
               <Star className="h-4 w-4" />
             </div>
             <h3
-              className={`text-xs font-bold tracking-widest uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+              className="text-xs font-bold tracking-widest uppercase text-muted-foreground"
             >
               Active Now
             </h3>
           </div>
           <div className="relative z-10 flex items-end gap-2">
             <span
-              className={`text-3xl leading-none font-bold ${isDark ? "text-white" : "text-zinc-900"}`}
+              className="text-3xl leading-none font-bold text-foreground"
             >
               {activeCount}
             </span>
             <span
-              className={`mb-0.5 text-sm font-medium ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+              className="mb-0.5 text-sm font-medium text-muted-foreground"
             >
               clocked in
             </span>
@@ -183,29 +183,29 @@ export default function PeoplePage() {
         {/* Avg Readiness */}
         <div
           onClick={() => handleCardClick("readiness")}
-          className={`${cardBase(activeFilter === "readiness")} ${isDark ? "border-zinc-800/50 bg-zinc-950" : "border-zinc-200 bg-white"}`}
+          className={`${cardBase(activeFilter === "readiness")} border-border/50 bg-background`}
         >
           <div className="absolute -top-4 -right-4 h-24 w-24 rounded-full bg-blue-500/10 blur-2xl transition-colors group-hover:bg-blue-500/20" />
           <div className="relative z-10 mb-3 flex items-center gap-3">
             <div
-              className={`rounded-lg border p-2 ${isDark ? "border-zinc-800 bg-zinc-900 text-zinc-400" : "border-blue-100 bg-blue-50 text-blue-600"}`}
+              className={`rounded-lg border p-2 ${isDark ? "border-border bg-secondary text-muted-foreground" : "border-blue-100 bg-blue-50 text-blue-600"}`}
             >
               <ShieldCheck className="h-4 w-4" />
             </div>
             <h3
-              className={`text-xs font-bold tracking-widest uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+              className="text-xs font-bold tracking-widest uppercase text-muted-foreground"
             >
               Avg Readiness
             </h3>
           </div>
           <div className="relative z-10 flex items-end gap-2">
             <span
-              className={`text-3xl leading-none font-bold ${isDark ? "text-white" : "text-zinc-900"}`}
+              className="text-3xl leading-none font-bold text-foreground"
             >
               {avgReadiness}%
             </span>
             <span
-              className={`mb-0.5 text-sm font-medium ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+              className="mb-0.5 text-sm font-medium text-muted-foreground"
             >
               workspace
             </span>
@@ -215,7 +215,7 @@ export default function PeoplePage() {
         {/* Pending Invites */}
         <div
           onClick={() => handleCardClick("invites")}
-          className={`${cardBase(activeFilter === "invites")} ${isDark ? "border-zinc-800/50 bg-zinc-950" : "border-zinc-200 bg-white hover:border-zinc-300"}`}
+          className={`${cardBase(activeFilter === "invites")} border-border/50 bg-background`}
         >
           <div className="absolute -top-4 -right-4 h-24 w-24 rounded-full bg-rose-500/10 blur-2xl transition-colors group-hover:bg-rose-500/20" />
           <div className="relative z-10 mb-3 flex items-center justify-between">
@@ -224,7 +224,7 @@ export default function PeoplePage() {
                 <Mail className="h-4 w-4" />
               </div>
               <h3
-                className={`text-xs font-bold tracking-widest uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+                className="text-xs font-bold tracking-widest uppercase text-muted-foreground"
               >
                 Pending Invites
               </h3>
@@ -235,7 +235,7 @@ export default function PeoplePage() {
               {invitations.filter((i) => i.inviteStatus !== "expired").length}
             </span>
             <span
-              className={`mb-0.5 text-sm font-medium ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+              className="mb-0.5 text-sm font-medium text-muted-foreground"
             >
               awaiting signup
             </span>

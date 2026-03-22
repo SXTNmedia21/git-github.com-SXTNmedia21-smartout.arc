@@ -379,38 +379,36 @@ export function InviteMemberDialog({
     <>
       <div
         className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${
-          isDark ? "bg-zinc-950/80" : "bg-zinc-800/30"
+          "bg-black/50"
         } animate-in fade-in backdrop-blur-sm duration-200`}
       >
         <div
           className={`animate-in zoom-in-95 flex w-full flex-col overflow-hidden rounded-2xl border shadow-2xl duration-200 ${
             mode === "csv" && csvRows.length > 0 ? "max-w-2xl" : "max-w-md"
-          } ${isDark ? "border-zinc-800 bg-zinc-900" : "border-zinc-200 bg-white"}`}
+          } ${"border-border bg-card"}`}
         >
           {/* Header */}
           <div
             className={`flex items-center justify-between border-b px-6 py-5 ${
-              isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-zinc-50"
+              "border-border bg-muted"
             }`}
           >
             <div>
               <h2
                 className={`text-lg leading-tight font-bold ${
-                  isDark ? "text-white" : "text-zinc-900"
+                  "text-foreground"
                 }`}
               >
                 Legg til ansatte
               </h2>
-              <p className={`text-sm ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
+              <p className={`text-sm ${"text-muted-foreground"}`}>
                 Inviter til {workspaceData.name}
               </p>
             </div>
             <button
               onClick={onClose}
               className={`rounded-full p-2 transition-colors ${
-                isDark
-                  ? "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
-                  : "text-zinc-500 hover:bg-zinc-200 hover:text-zinc-900"
+                "text-muted-foreground hover:bg-accent hover:text-foreground"
               }`}
             >
               <X className="h-4 w-4" />
@@ -421,7 +419,7 @@ export function InviteMemberDialog({
           <div className="px-6 pt-5">
             <div
               className={`flex rounded-lg border p-1 ${
-                isDark ? "border-zinc-800 bg-zinc-950" : "border-zinc-200 bg-zinc-50"
+                "border-border bg-muted"
               }`}
             >
               <button
@@ -430,11 +428,9 @@ export function InviteMemberDialog({
                 className={`flex flex-1 items-center justify-center gap-2 rounded-md py-2 text-sm font-medium transition-all ${
                   mode === "single"
                     ? isDark
-                      ? "bg-zinc-800 text-white shadow-sm"
-                      : "bg-white text-zinc-900 shadow-sm"
-                    : isDark
-                      ? "text-zinc-400 hover:text-zinc-300"
-                      : "text-zinc-400 hover:text-zinc-700"
+                      ? "bg-secondary text-foreground shadow-sm"
+                      : "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 <UserPlus className="h-4 w-4" /> Enkelt
@@ -445,11 +441,9 @@ export function InviteMemberDialog({
                 className={`flex flex-1 items-center justify-center gap-2 rounded-md py-2 text-sm font-medium transition-all ${
                   mode === "csv"
                     ? isDark
-                      ? "bg-zinc-800 text-white shadow-sm"
-                      : "bg-white text-zinc-900 shadow-sm"
-                    : isDark
-                      ? "text-zinc-400 hover:text-zinc-300"
-                      : "text-zinc-400 hover:text-zinc-700"
+                      ? "bg-secondary text-foreground shadow-sm"
+                      : "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 <FileSpreadsheet className="h-4 w-4" /> CSV-import
@@ -493,12 +487,12 @@ export function InviteMemberDialog({
           {/* Footer */}
           <div
             className={`flex items-center justify-between border-t px-6 py-4 ${
-              isDark ? "border-zinc-800 bg-zinc-950" : "border-zinc-200 bg-zinc-50"
+              "border-border bg-muted"
             }`}
           >
             <div>
               {mode === "csv" && csvRows.length > 0 && (
-                <span className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+                <span className={`text-xs ${"text-muted-foreground"}`}>
                   {validCsvCount} av {csvRows.length} gyldige
                 </span>
               )}
@@ -518,9 +512,7 @@ export function InviteMemberDialog({
                     type="button"
                     onClick={onClose}
                     className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                      isDark
-                        ? "text-zinc-400 hover:bg-zinc-800 hover:text-white"
-                        : "text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900"
+                      "text-muted-foreground hover:bg-accent hover:text-foreground"
                     }`}
                     disabled={isSubmitting}
                   >
@@ -605,17 +597,15 @@ function SingleInviteForm({
   const update = (field: Partial<InviteRow>) => onChange({ ...row, ...field });
 
   const inputClass = `w-full rounded-lg px-4 py-2.5 text-sm transition-all focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none ${
-    isDark
-      ? "border-zinc-800 bg-zinc-950 text-white placeholder:text-zinc-600"
-      : "border-zinc-200 bg-white text-zinc-900 placeholder:text-zinc-400"
+    "border-border bg-background text-foreground placeholder:text-muted-foreground"
   }`;
 
   const labelClass = `text-xs font-semibold tracking-wider uppercase ${
-    isDark ? "text-zinc-400" : "text-zinc-500"
+    "text-muted-foreground"
   }`;
 
   const selectClass = `w-full appearance-none rounded-lg px-3 py-2.5 text-sm focus:border-orange-500/50 focus:outline-none ${
-    isDark ? "border-zinc-800 bg-zinc-950 text-white" : "border-zinc-200 bg-white text-zinc-900"
+    "border-border bg-background text-foreground"
   }`;
 
   return (
@@ -661,9 +651,7 @@ function SingleInviteForm({
               className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
                 inviteType === type
                   ? "bg-orange-500 text-white"
-                  : isDark
-                    ? "border border-zinc-800 bg-zinc-950 text-zinc-400 hover:border-zinc-700"
-                    : "border border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300"
+                  : "border border-border bg-background text-muted-foreground hover:border-border/70"
               }`}
             >
               <Icon className="h-3.5 w-3.5" />
@@ -707,9 +695,7 @@ function SingleInviteForm({
       {inviteType === "link" && (
         <div
           className={`rounded-lg border border-dashed px-4 py-3 text-sm ${
-            isDark
-              ? "border-zinc-700 bg-zinc-900/50 text-zinc-400"
-              : "border-zinc-300 bg-zinc-50 text-zinc-500"
+            "border-border bg-muted text-muted-foreground"
           }`}
         >
           En delbar invitasjonslenke vil bli generert som du kan kopiere og sende.
@@ -762,9 +748,7 @@ function SingleInviteForm({
               className={`rounded-lg px-3 py-2 text-sm font-medium transition-all ${
                 row.inviteEmploymentType === type
                   ? "bg-orange-500 text-white"
-                  : isDark
-                    ? "border border-zinc-800 bg-zinc-950 text-zinc-400 hover:border-zinc-700"
-                    : "border border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300"
+                  : "border border-border bg-background text-muted-foreground hover:border-border/70"
               }`}
             >
               {type === "employee" ? "Ansatt" : "Gjest"}
@@ -775,7 +759,7 @@ function SingleInviteForm({
 
       {/* Employment fields — only for employee type */}
       {row.inviteEmploymentType === "employee" && (
-        <div className="space-y-3 rounded-lg border border-dashed border-zinc-700/30 p-3">
+        <div className="space-y-3 rounded-lg border border-dashed border-border/30 p-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className={labelClass}>Stillingstype</label>
@@ -859,16 +843,16 @@ function CsvImportView({
       <div className="flex flex-col items-center gap-4 py-8">
         <div
           className={`rounded-2xl border-2 border-dashed p-6 ${
-            isDark ? "border-zinc-800" : "border-zinc-200"
+            "border-border"
           }`}
         >
-          <Upload className={`h-8 w-8 ${isDark ? "text-zinc-600" : "text-zinc-300"}`} />
+          <Upload className={`h-8 w-8 ${isDark ? "text-muted-foreground" : "text-foreground"}`} />
         </div>
         <div className="text-center">
-          <p className={`text-sm font-medium ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
+          <p className={`text-sm font-medium ${"text-foreground"}`}>
             Last opp CSV-fil med ansatte
           </p>
-          <p className={`mt-1 text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+          <p className={`mt-1 text-xs ${"text-muted-foreground"}`}>
             Obligatoriske kolonner: fornavn, etternavn, e-post
           </p>
         </div>
@@ -890,8 +874,8 @@ function CsvImportView({
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Users className={`h-4 w-4 ${isDark ? "text-zinc-400" : "text-zinc-500"}`} />
-          <span className={`text-sm font-medium ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
+          <Users className={`h-4 w-4 ${"text-muted-foreground"}`} />
+          <span className={`text-sm font-medium ${"text-foreground"}`}>
             {rows.length} rader importert
           </span>
           {errorCount > 0 && (
@@ -904,9 +888,7 @@ function CsvImportView({
           type="button"
           onClick={onUploadClick}
           className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-            isDark
-              ? "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300"
-              : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700"
+            "text-muted-foreground hover:bg-accent hover:text-foreground"
           }`}
         >
           <Upload className="h-3 w-3" />
@@ -916,12 +898,12 @@ function CsvImportView({
 
       <div
         className={`overflow-hidden rounded-xl border ${
-          isDark ? "border-zinc-800" : "border-zinc-200"
+          "border-border"
         }`}
       >
         <table className="w-full text-xs">
           <thead>
-            <tr className={isDark ? "bg-zinc-900/70 text-zinc-500" : "bg-zinc-50 text-zinc-400"}>
+            <tr className={"bg-muted text-muted-foreground"}>
               <th className="px-3 py-2 text-left font-semibold">Navn</th>
               <th className="px-3 py-2 text-left font-semibold">E-post</th>
               <th className="px-3 py-2 text-left font-semibold">Avdeling</th>
@@ -940,26 +922,24 @@ function CsvImportView({
                       ? isDark
                         ? "border-red-500/20 bg-red-950/10"
                         : "border-red-200 bg-red-50/50"
-                      : isDark
-                        ? "border-zinc-800"
-                        : "border-zinc-200"
+                      : "border-border"
                   }`}
                 >
                   <td className="px-3 py-2">
-                    <span className={isDark ? "text-zinc-300" : "text-zinc-700"}>
+                    <span className={"text-foreground"}>
                       {row.firstName} {row.lastName}
                     </span>
                     {hasError && (
                       <p className="mt-0.5 text-[10px] text-red-400">{row.errors.join(", ")}</p>
                     )}
                   </td>
-                  <td className={`px-3 py-2 ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
+                  <td className={`px-3 py-2 ${"text-muted-foreground"}`}>
                     {row.email}
                   </td>
-                  <td className={`px-3 py-2 ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
+                  <td className={`px-3 py-2 ${"text-muted-foreground"}`}>
                     {deptMap.get(row.departmentId) ?? "—"}
                   </td>
-                  <td className={`px-3 py-2 ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
+                  <td className={`px-3 py-2 ${"text-muted-foreground"}`}>
                     {row.role === "admin" ? "Admin" : row.role === "manager" ? "Leder" : "Ansatt"}
                   </td>
                   <td className="px-2 py-2">
@@ -967,9 +947,7 @@ function CsvImportView({
                       type="button"
                       onClick={() => onRemoveRow(row.id)}
                       className={`rounded p-1 transition-colors ${
-                        isDark
-                          ? "text-zinc-600 hover:bg-zinc-800 hover:text-zinc-400"
-                          : "text-zinc-300 hover:bg-zinc-100 hover:text-zinc-500"
+                        "text-muted-foreground hover:bg-accent hover:text-foreground"
                       }`}
                     >
                       <Trash2 className="h-3 w-3" />
@@ -1009,24 +987,24 @@ function GeneratedLinkView({
       </div>
 
       <div className="text-center">
-        <p className={`text-sm font-medium ${isDark ? "text-zinc-200" : "text-zinc-800"}`}>
+        <p className={`text-sm font-medium ${"text-foreground"}`}>
           Invitasjonslenke klar
         </p>
-        <p className={`mt-1 text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+        <p className={`mt-1 text-xs ${"text-muted-foreground"}`}>
           Del denne lenken med den du vil invitere
         </p>
       </div>
 
       <div
         className={`flex w-full items-center gap-2 rounded-lg border px-3 py-2.5 ${
-          isDark ? "border-zinc-800 bg-zinc-950" : "border-zinc-200 bg-zinc-50"
+          "border-border bg-muted"
         }`}
       >
         <input
           readOnly
           value={link}
           className={`flex-1 bg-transparent text-xs font-mono outline-none ${
-            isDark ? "text-zinc-300" : "text-zinc-700"
+            "text-foreground"
           }`}
           onFocus={(e) => e.target.select()}
         />
@@ -1036,9 +1014,7 @@ function GeneratedLinkView({
           className={`flex shrink-0 items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
             copied
               ? "bg-green-500/10 text-green-500"
-              : isDark
-                ? "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
-                : "bg-zinc-200 text-zinc-700 hover:bg-zinc-300"
+              : "bg-secondary text-foreground hover:bg-accent"
           }`}
         >
           {copied ? (

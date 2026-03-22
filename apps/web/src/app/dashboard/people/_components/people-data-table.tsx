@@ -62,7 +62,7 @@ export function PeopleDataTable({
   onRefresh: () => void;
 }) {
   const router = useRouter();
-  const { isDark, workspaceData } = useContext(DashboardContext);
+  const { workspaceData } = useContext(DashboardContext);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDept, setSelectedDept] = useState("All");
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
@@ -397,21 +397,21 @@ export function PeopleDataTable({
 
   return (
     <div
-      className={`flex min-h-0 flex-1 flex-col ${isDark ? "border-zinc-800/50 bg-zinc-950" : "border-zinc-200 bg-white"} relative overflow-hidden rounded-2xl border shadow-xl`}
+      className="flex min-h-0 flex-1 flex-col border-border/50 bg-background relative overflow-hidden rounded-2xl border shadow-xl"
     >
       {/* Table Header/Controls */}
       <div
-        className={`border-b ${isDark ? "border-zinc-800 bg-zinc-900/40" : "border-zinc-200 bg-zinc-50/80"} flex flex-col items-start justify-between gap-4 p-5 sm:flex-row sm:items-center`}
+        className="border-b border-border bg-muted/40 flex flex-col items-start justify-between gap-4 p-5 sm:flex-row sm:items-center"
       >
         <div className="flex w-full items-center gap-3 sm:w-auto">
           <div className="group relative w-full sm:w-72">
-            <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-zinc-500 transition-colors group-focus-within:text-orange-500" />
+            <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-orange-500" />
             <input
               type="text"
               placeholder="Search people, roles, email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className={`w-full ${isDark ? "border-zinc-800 bg-zinc-950 text-zinc-100 placeholder:text-zinc-600" : "border-zinc-200 bg-white text-zinc-900 placeholder:text-zinc-400"} rounded-lg py-2 pr-4 pl-9 text-sm transition-all focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none`}
+              className="w-full border-border bg-background text-foreground placeholder:text-muted-foreground rounded-lg py-2 pr-4 pl-9 text-sm transition-all focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none"
             />
           </div>
 
@@ -426,7 +426,7 @@ export function PeopleDataTable({
 
         <div className="flex items-center gap-2">
           <div
-            className={`${isDark ? "border-zinc-800 bg-zinc-950" : "border-zinc-200 bg-white"} flex rounded-lg border p-1`}
+            className="border-border bg-background flex rounded-lg border p-1"
           >
             {deptNames.map((dept) => (
               <button
@@ -434,12 +434,8 @@ export function PeopleDataTable({
                 onClick={() => setSelectedDept(dept)}
                 className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-all ${
                   selectedDept === dept
-                    ? isDark
-                      ? "bg-zinc-800 text-white shadow-sm"
-                      : "bg-zinc-100 text-zinc-900 shadow-sm"
-                    : isDark
-                      ? "text-zinc-500 hover:text-zinc-300"
-                      : "text-zinc-500 hover:text-zinc-700"
+                    ? "bg-secondary text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {dept}
@@ -448,14 +444,14 @@ export function PeopleDataTable({
           </div>
           <button
             onClick={handleExport}
-            className={`rounded-lg border p-2.5 transition-all ${isDark ? "border-zinc-800 bg-zinc-950 text-zinc-400 hover:border-zinc-700 hover:text-white" : "border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300 hover:text-zinc-900"}`}
+            className="rounded-lg border border-border bg-background text-muted-foreground p-2.5 transition-all hover:border-border hover:text-foreground"
           >
             <Download className="h-4 w-4" />
           </button>
           <Popover>
             <PopoverTrigger asChild>
               <button
-                className={`relative rounded-lg border p-2.5 transition-all ${isDark ? "border-zinc-800 bg-zinc-950 text-zinc-400 hover:border-zinc-700 hover:text-white" : "border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300 hover:text-zinc-900"}`}
+                className="relative rounded-lg border border-border bg-background text-muted-foreground p-2.5 transition-all hover:border-border hover:text-foreground"
               >
                 <Filter className="h-4 w-4" />
                 {activeFilterCount > 0 && (
@@ -582,13 +578,10 @@ export function PeopleDataTable({
       {/* Bulk Action Bar */}
       {selectedIds.size > 0 && (
         <div
-          className={`flex items-center gap-3 border-b px-5 py-3 ${
-            isDark ? "border-zinc-800 bg-orange-500/5" : "border-zinc-200 bg-orange-50"
-          }`}
+          className="flex items-center gap-3 border-b border-border bg-orange-500/5 px-5 py-3"
         >
-          <span
-            className={`text-sm font-semibold ${isDark ? "text-orange-400" : "text-orange-600"}`}
-          >
+          <span className="text-sm font-semibold text-orange-500">
+
             {selectedIds.size} selected
           </span>
           <div className="flex items-center gap-2">
@@ -610,11 +603,7 @@ export function PeopleDataTable({
                 }
                 e.target.value = "";
               }}
-              className={`rounded-lg border px-2 py-1.5 text-xs ${
-                isDark
-                  ? "border-zinc-700 bg-zinc-900 text-zinc-300"
-                  : "border-zinc-200 bg-white text-zinc-700"
-              }`}
+              className="rounded-lg border border-border bg-card text-foreground px-2 py-1.5 text-xs"
             >
               <option value="">Assign Dept...</option>
               {departments.map((d) => (
@@ -641,11 +630,7 @@ export function PeopleDataTable({
                 }
                 e.target.value = "";
               }}
-              className={`rounded-lg border px-2 py-1.5 text-xs ${
-                isDark
-                  ? "border-zinc-700 bg-zinc-900 text-zinc-300"
-                  : "border-zinc-200 bg-white text-zinc-700"
-              }`}
+              className="rounded-lg border border-border bg-card text-foreground px-2 py-1.5 text-xs"
             >
               <option value="">Change Role...</option>
               <option value="employee">Employee</option>
@@ -674,11 +659,7 @@ export function PeopleDataTable({
                 }
                 e.target.value = "";
               }}
-              className={`rounded-lg border px-2 py-1.5 text-xs ${
-                isDark
-                  ? "border-zinc-700 bg-zinc-900 text-zinc-300"
-                  : "border-zinc-200 bg-white text-zinc-700"
-              }`}
+              className="rounded-lg border border-border bg-card text-foreground px-2 py-1.5 text-xs"
             >
               <option value="">Change Status...</option>
               <option value="active">Active</option>
@@ -689,11 +670,7 @@ export function PeopleDataTable({
             {/* Clear */}
             <button
               onClick={() => setSelectedIds(new Set())}
-              className={`rounded-lg border px-2 py-1.5 text-xs font-semibold ${
-                isDark
-                  ? "border-zinc-700 bg-zinc-900 text-zinc-400 hover:text-zinc-200"
-                  : "border-zinc-200 bg-white text-zinc-500 hover:text-zinc-700"
-              }`}
+              className="rounded-lg border border-border bg-card text-muted-foreground px-2 py-1.5 text-xs font-semibold hover:text-foreground"
             >
               Clear
             </button>
@@ -738,39 +715,39 @@ export function PeopleDataTable({
         {loading ? (
           <div className="flex h-full flex-col items-center justify-center p-8">
             <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
-            <p className="mt-3 text-sm text-zinc-500">Loading people...</p>
+            <p className="mt-3 text-sm text-muted-foreground">Loading people...</p>
           </div>
         ) : filteredEmployees.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center p-8 text-zinc-500">
-            <SearchX className="mb-4 h-12 w-12 text-zinc-700" />
-            <p className="font-medium text-zinc-400">No employees found</p>
+          <div className="flex h-full flex-col items-center justify-center p-8 text-muted-foreground">
+            <SearchX className="mb-4 h-12 w-12 text-muted-foreground" />
+            <p className="font-medium text-muted-foreground">No employees found</p>
             <p className="mt-1 text-sm">Try adjusting your search criteria</p>
           </div>
         ) : (
           <table className="w-full border-collapse text-left">
             <thead
-              className={`sticky top-0 ${isDark ? "border-zinc-800 bg-zinc-950/95" : "border-zinc-200 bg-white/95"} z-10 border-b backdrop-blur`}
+              className="sticky top-0 border-border bg-background/95 z-10 border-b backdrop-blur"
             >
               <tr>
                 <th className="w-12 px-3 py-4">
                   <Checkbox checked={allSelected} onCheckedChange={toggleSelectAll} />
                 </th>
-                <th className="px-6 py-4 text-xs font-bold tracking-widest text-zinc-500 uppercase">
+                <th className="px-6 py-4 text-xs font-bold tracking-widest text-muted-foreground uppercase">
                   Employee
                 </th>
-                <th className="px-6 py-4 text-xs font-bold tracking-widest text-zinc-500 uppercase">
+                <th className="px-6 py-4 text-xs font-bold tracking-widest text-muted-foreground uppercase">
                   Role & Dept
                 </th>
-                <th className="px-6 py-4 text-center text-xs font-bold tracking-widest text-zinc-500 uppercase">
+                <th className="px-6 py-4 text-center text-xs font-bold tracking-widest text-muted-foreground uppercase">
                   Status
                 </th>
-                <th className="px-6 py-4 text-center text-xs font-bold tracking-widest text-zinc-500 uppercase">
+                <th className="px-6 py-4 text-center text-xs font-bold tracking-widest text-muted-foreground uppercase">
                   Readiness
                 </th>
-                <th className="px-6 py-4 text-right text-xs font-bold tracking-widest text-zinc-500 uppercase"></th>
+                <th className="px-6 py-4 text-right text-xs font-bold tracking-widest text-muted-foreground uppercase"></th>
               </tr>
             </thead>
-            <tbody className={`divide-y ${isDark ? "divide-zinc-800/50" : "divide-zinc-200"}`}>
+            <tbody className="divide-y divide-border">
               {filteredEmployees.map((emp) => (
                 <tr
                   key={emp.id}
@@ -779,7 +756,7 @@ export function PeopleDataTable({
                       ? router.push(`/dashboard/people/${emp.profileId}`)
                       : setSelectedEmployee(emp)
                   }
-                  className={`group ${isDark ? "hover:bg-zinc-900/50" : "hover:bg-zinc-50"} cursor-pointer transition-colors`}
+                  className="group hover:bg-accent cursor-pointer transition-colors"
                 >
                   <td className="px-3 py-4" onClick={(e) => e.stopPropagation()}>
                     {emp.status !== "invited" && emp.profileId && (
@@ -793,7 +770,7 @@ export function PeopleDataTable({
                     <div className="flex items-center gap-3">
                       <div className="relative">
                         <div
-                          className={`flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border font-bold ${isDark ? "border-zinc-700 bg-zinc-800 text-zinc-400" : "border-zinc-200 bg-zinc-100 text-zinc-500"}`}
+                          className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-border bg-secondary text-muted-foreground font-bold"
                         >
                           {emp.avatar ? (
                             // eslint-disable-next-line -- suppress no-img-element: dynamic user avatar with unknown dimensions; next/image requires explicit width/height
@@ -808,17 +785,17 @@ export function PeopleDataTable({
                         </div>
                         {emp.status === "active" && (
                           <div
-                            className={`absolute right-0 bottom-0 z-10 h-2.5 w-2.5 rounded-full border-2 bg-emerald-500 ${isDark ? "border-zinc-950" : "border-white"}`}
+                            className="absolute right-0 bottom-0 z-10 h-2.5 w-2.5 rounded-full border-2 border-background bg-emerald-500"
                           />
                         )}
                       </div>
                       <div>
                         <p
-                          className={`text-sm font-bold transition-colors ${isDark ? "text-zinc-200 group-hover:text-white" : "text-zinc-800 group-hover:text-zinc-900"}`}
+                          className="text-sm font-bold transition-colors text-foreground group-hover:text-foreground"
                         >
                           {emp.name}
                         </p>
-                        <p className="mt-0.5 flex items-center gap-1 text-xs text-zinc-500">
+                        <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
                           <Mail className="h-3 w-3" /> {emp.email}
                         </p>
                       </div>
@@ -826,17 +803,16 @@ export function PeopleDataTable({
                   </td>
                   <td className="px-6 py-4">
                     <p
-                      className={`text-sm font-semibold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}
+                      className="text-sm font-semibold text-foreground"
                     >
                       {emp.role}
                     </p>
-                    <p className="mt-0.5 text-xs text-zinc-500">{emp.department}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">{emp.department}</p>
                   </td>
                   <td className="px-6 py-4 text-center">
                     <StatusBadge
                       status={emp.status}
                       inviteStatus={emp.inviteStatus}
-                      isDark={isDark}
                     />
                   </td>
                   <td className="px-6 py-4">
@@ -857,7 +833,7 @@ export function PeopleDataTable({
                           </span>
                         </div>
                         <div
-                          className={`h-1.5 w-full max-w-[100px] overflow-hidden rounded-full ${isDark ? "bg-zinc-800" : "bg-zinc-200"}`}
+                          className="h-1.5 w-full max-w-[100px] overflow-hidden rounded-full bg-secondary"
                         >
                           <div
                             className={`h-full rounded-full transition-all duration-500 ${emp.readinessScore === 100 ? "bg-emerald-500" : emp.readinessScore > 50 ? "bg-orange-500" : "bg-rose-500"}`}
@@ -874,7 +850,7 @@ export function PeopleDataTable({
                     ) : (
                       <div className="flex flex-col items-center justify-center">
                         <span
-                          className={`text-xs font-semibold ${isDark ? "text-zinc-600" : "text-zinc-400"}`}
+                          className="text-xs font-semibold text-muted-foreground"
                         >
                           Awaiting signup
                         </span>
@@ -933,11 +909,9 @@ export function PeopleDataTable({
 function StatusBadge({
   status,
   inviteStatus,
-  isDark,
 }: {
   status: Employee["status"];
   inviteStatus?: "pending" | "expired";
-  isDark: boolean;
 }) {
   switch (status) {
     case "active":
@@ -949,7 +923,7 @@ function StatusBadge({
     case "inactive":
       return (
         <span
-          className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-bold tracking-wider uppercase ${isDark ? "bg-zinc-800 text-zinc-400" : "bg-zinc-100 text-zinc-500"}`}
+          className="inline-flex items-center gap-1.5 rounded-md bg-secondary text-muted-foreground px-2.5 py-1 text-[11px] font-bold tracking-wider uppercase"
         >
           <Clock className="h-3 w-3" /> Inactive
         </span>
@@ -971,12 +945,8 @@ function StatusBadge({
         <span
           className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-bold tracking-wider uppercase ${
             inviteStatus === "expired"
-              ? isDark
-                ? "border border-orange-500/20 bg-orange-500/10 text-orange-400"
-                : "border border-orange-200 bg-orange-50 text-orange-600"
-              : isDark
-                ? "bg-zinc-800 text-zinc-300"
-                : "bg-zinc-100 text-zinc-600"
+              ? "border border-orange-500/20 bg-orange-500/10 text-orange-400"
+              : "bg-secondary text-muted-foreground"
           }`}
         >
           {inviteStatus === "expired" ? (
