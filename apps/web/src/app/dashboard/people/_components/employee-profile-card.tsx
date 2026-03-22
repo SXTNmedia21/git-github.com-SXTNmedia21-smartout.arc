@@ -2,7 +2,6 @@
 
 import {
   X,
-  FileText,
   CheckCircle2,
   Clock,
   AlertTriangle,
@@ -245,12 +244,27 @@ export function EmployeeProfileCard({
             <div
               className={`${isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-zinc-50"} flex flex-col items-center justify-center rounded-xl border p-3 text-center`}
             >
-              <span className="mb-1 text-xs font-semibold tracking-widest text-zinc-500 uppercase">
-                Hours
-              </span>
-              <span className={`text-lg font-bold ${isDark ? "text-white" : "text-zinc-900"}`}>
-                142<span className="ml-0.5 text-xs font-normal text-zinc-500">h</span>
-              </span>
+              {employee.status === "invited" ? (
+                <>
+                  <span className="mb-1 text-xs font-semibold tracking-widest text-zinc-500 uppercase">
+                    Invite
+                  </span>
+                  <span
+                    className={`text-sm font-bold ${employee.inviteStatus === "expired" ? "text-rose-400" : "text-orange-400"}`}
+                  >
+                    {employee.inviteStatus === "expired" ? "Expired" : "Pending"}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="mb-1 text-xs font-semibold tracking-widest text-zinc-500 uppercase">
+                    Hours
+                  </span>
+                  <span className={`text-lg font-bold ${isDark ? "text-white" : "text-zinc-900"}`}>
+                    —
+                  </span>
+                </>
+              )}
             </div>
             <div
               className={`${isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-zinc-50"} flex flex-col items-center justify-center rounded-xl border p-3 text-center`}
@@ -358,47 +372,58 @@ export function EmployeeProfileCard({
                 </div>
               )}
 
-              <div>
-                <h3 className="mb-3 text-xs font-bold tracking-widest text-zinc-500 uppercase">
-                  Recent Activity
-                </h3>
-                <div className="relative flex flex-col space-y-3 before:absolute before:inset-y-2 before:left-3 before:w-px before:bg-zinc-800">
-                  <div className="relative flex gap-4">
-                    <div className="z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-500">
-                      <Clock className="h-3 w-3" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-zinc-300">
-                        Clocked in for <span className="font-medium text-white">Opening Shift</span>
-                      </p>
-                      <span className="text-xs text-zinc-500">Today, 07:58</span>
-                    </div>
-                  </div>
-                  <div className="relative flex gap-4">
-                    <div className="z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-orange-500/20 bg-orange-500/10 text-orange-500">
-                      <CheckCircle2 className="h-3 w-3" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-zinc-300">
-                        Completed{" "}
-                        <span className="font-medium text-white">Temperature Check Routine</span>
-                      </p>
-                      <span className="text-xs text-zinc-500">Today, 11:30</span>
-                    </div>
-                  </div>
-                  <div className="relative flex gap-4">
-                    <div className="z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-zinc-700 bg-zinc-800 text-zinc-400">
-                      <FileText className="h-3 w-3" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-zinc-300">
-                        Signed <span className="font-medium text-white">Fire Safety Protocol</span>
-                      </p>
-                      <span className="text-xs text-zinc-500">Yesterday, 14:12</span>
+              {employee.profileId ? (
+                <div>
+                  <h3
+                    className={`mb-3 text-xs font-bold tracking-widest uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+                  >
+                    Recent Activity
+                  </h3>
+                  <p
+                    className={`py-4 text-center text-sm ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+                  >
+                    No activity recorded yet
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <h3
+                    className={`mb-3 text-xs font-bold tracking-widest uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
+                  >
+                    Invite Details
+                  </h3>
+                  <div className="space-y-2">
+                    {employee.inviteType && (
+                      <div
+                        className={`flex items-center justify-between text-sm ${isDark ? "text-zinc-300" : "text-zinc-600"}`}
+                      >
+                        <span className="text-zinc-500">Sent via</span>
+                        <span className="font-medium capitalize">{employee.inviteType}</span>
+                      </div>
+                    )}
+                    {employee.inviteExpiresAt && (
+                      <div
+                        className={`flex items-center justify-between text-sm ${isDark ? "text-zinc-300" : "text-zinc-600"}`}
+                      >
+                        <span className="text-zinc-500">Expires</span>
+                        <span className="font-medium">
+                          {new Date(employee.inviteExpiresAt).toLocaleDateString("nb-NO")}
+                        </span>
+                      </div>
+                    )}
+                    <div
+                      className={`flex items-center justify-between text-sm ${isDark ? "text-zinc-300" : "text-zinc-600"}`}
+                    >
+                      <span className="text-zinc-500">Status</span>
+                      <span
+                        className={`font-medium ${employee.inviteStatus === "expired" ? "text-rose-400" : "text-orange-400"}`}
+                      >
+                        {employee.inviteStatus === "expired" ? "Expired" : "Awaiting response"}
+                      </span>
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
 

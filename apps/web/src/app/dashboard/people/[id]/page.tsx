@@ -60,6 +60,16 @@ type ProtocolAssignment = {
 
 type TeamMembership = { team_id: string; name: string; team_type: string };
 
+type ActivityEntry = {
+  id: number;
+  event: string;
+  action_verb: string;
+  category: string;
+  entity_type: string;
+  entity_label: string | null;
+  created_at: string;
+};
+
 /* ───────── helpers ───────── */
 
 const STATUS_COLORS: Record<string, { bg: string; text: string; label: string }> = {
@@ -88,6 +98,7 @@ export default function ProfileDetailPage() {
   const [departments, setDepartments] = useState<DeptOption[]>([]);
   const [protocols, setProtocols] = useState<ProtocolAssignment[]>([]);
   const [teams, setTeams] = useState<TeamMembership[]>([]);
+  const [activity, setActivity] = useState<ActivityEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingProtocols, setLoadingProtocols] = useState(false);
 
@@ -172,11 +183,23 @@ export default function ProfileDetailPage() {
     );
   }, [id]);
 
+  const fetchActivity = useCallback(async () => {
+    if (!id) return;
+    const { data } = await supabase
+      .from("activity_trail")
+      .select("id, event, action_verb, category, entity_type, entity_label, created_at")
+      .eq("actor_id", id)
+      .order("created_at", { ascending: false })
+      .limit(5);
+    setActivity((data as ActivityEntry[]) ?? []);
+  }, [id]);
+
   useEffect(() => {
     fetchProfile();
     fetchProtocols();
     fetchTeams();
-  }, [fetchProfile, fetchProtocols, fetchTeams]);
+    fetchActivity();
+  }, [fetchProfile, fetchProtocols, fetchTeams, fetchActivity]);
 
   async function handleSettingsSave() {
     if (!profile) return;
@@ -356,59 +379,47 @@ export default function ProfileDetailPage() {
         </div>
       )}
 
-      {/* Recent Activity (placeholder — same as employee-profile-card) */}
+      {/* Recent Activity */}
       <div>
         <h3
           className={`mb-3 text-xs font-bold tracking-widest uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
         >
           Recent Activity
         </h3>
-        <div
-          className={`relative flex flex-col space-y-3 before:absolute before:inset-y-2 before:left-3 before:w-px ${isDark ? "before:bg-zinc-800" : "before:bg-zinc-200"}`}
-        >
-          <ActivityItem
-            icon={<Clock className="h-3 w-3" />}
-            color="emerald"
-            title={
-              <>
-                Clocked in for{" "}
-                <span className={`font-medium ${isDark ? "text-white" : "text-zinc-900"}`}>
-                  Opening Shift
-                </span>
-              </>
-            }
-            time="Today, 07:58"
-            isDark={isDark}
-          />
-          <ActivityItem
-            icon={<CheckCircle2 className="h-3 w-3" />}
-            color="orange"
-            title={
-              <>
-                Completed{" "}
-                <span className={`font-medium ${isDark ? "text-white" : "text-zinc-900"}`}>
-                  Temperature Check Routine
-                </span>
-              </>
-            }
-            time="Today, 11:30"
-            isDark={isDark}
-          />
-          <ActivityItem
-            icon={<FileText className="h-3 w-3" />}
-            color="zinc"
-            title={
-              <>
-                Signed{" "}
-                <span className={`font-medium ${isDark ? "text-white" : "text-zinc-900"}`}>
-                  Fire Safety Protocol
-                </span>
-              </>
-            }
-            time="Yesterday, 14:12"
-            isDark={isDark}
-          />
-        </div>
+        {activity.length === 0 ? (
+          <p className={`py-4 text-center text-sm ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+            No activity recorded yet
+          </p>
+        ) : (
+          <div
+            className={`relative flex flex-col space-y-3 before:absolute before:inset-y-2 before:left-3 before:w-px ${isDark ? "before:bg-zinc-800" : "before:bg-zinc-200"}`}
+          >
+            {activity.map((a) => (
+              <ActivityItem
+                key={a.id}
+                icon={<History className="h-3 w-3" />}
+                color={a.category === "training" ? "emerald" : a.category === "schedule" ? "orange" : "zinc"}
+                title={
+                  <>
+                    {a.action_verb}{" "}
+                    {a.entity_label && (
+                      <span className={`font-medium ${isDark ? "text-white" : "text-zinc-900"}`}>
+                        {a.entity_label}
+                      </span>
+                    )}
+                  </>
+                }
+                time={new Date(a.created_at).toLocaleString("nb-NO", {
+                  day: "numeric",
+                  month: "short",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+                isDark={isDark}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
