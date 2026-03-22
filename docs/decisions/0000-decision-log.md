@@ -22,8 +22,8 @@ tags: [decisions]
 | 9   | 2026-03-22 | CLAUDE.md: mandatory DB schema brainstorm for every feature                         | accepted |
 
 module: cross-cutting
+module: unspecified
 tags: [decisions]
-
 ---
 
 # Decision Log — cascade-foundation
@@ -38,3 +38,6 @@ tags: [decisions]
 | 6   | 2026-03-22 | Contract-payroll sync via DB trigger (not Edge Function)                                                                  | accepted |
 | 7   | 2026-03-22 | Department classification via name matching with confidence levels                                                        | accepted |
 | 8   | 2026-03-22 | activate-workspace bootstrap hook deferred due to prompt hook constraint                                                  | deferred |
+# Decision Log — fix-invitation-flow
+| # | Date | Decision | Status |
+|---|------|----------|--------|
