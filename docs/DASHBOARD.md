@@ -19,7 +19,7 @@ tags: [dashboard, worktrees, tracking]
 | wt-2 | `feat/cascade-foundation`     | cross-cutting   | in_progress | Just started. Spec v1.3.0 + plan (18 tasks, 5 phases) ready. Bootstrap + rules + governance + invite cascade.        | —        | clean  |
 | wt-3 | `feat/emma-arena-views`       | walkAi          | in_progress | Spec + mockups done, settings persistence committed. Implementation not started.                                     | None     | clean  |
 | wt-4 | `feat/vaktlista-view`         | schedule        | in_progress | —                                                                                                                    | —        | —      |
-| wt-5 | `feat/payroll-foundation`     | payroll         | in_progress | —                                                                                                                    | —        | —      |
+| wt-5 | `feat/hms-phase-1`            | hms             | in_progress | Spec complete (Cascade-native). Plan written (7 tasks). Just started.                                                | —        | clean  |
 | wt-6 | `feat/website-factory`        | website-factory | in_progress | Plan A DONE (10 commits). Plan B designed (20 templates, editor, mobile, approval, telemetry). Spec not yet written. | —        | clean  |
 
 ## Parked Branches (no worktree)
@@ -36,7 +36,7 @@ tags: [dashboard, worktrees, tracking]
 | wt-2  | no (feat/walkie-talkie)          |
 | wt-3  | no (feat/emma-arena-views)       |
 | wt-4  | no (feat/vaktlista-view)         |
-| wt-5  | no (feat/payroll-foundation)     |
+| wt-5  | no (feat/hms-phase-1)            |
 | wt-6  | no (feat/website-factory)        |
 | wt-15 | yes                              |
 | wt-20 | yes                              |
@@ -52,6 +52,7 @@ tags: [dashboard, worktrees, tracking]
 | wt-6 | website-factory        | `docs/journeys/JOURNEY-website-factory.md`        | missing |
 | wt-2 | walkie-talkie          | `docs/journeys/JOURNEY-walkie-talkie.md`          | missing |
 | wt-2 | cascade-foundation     | `docs/journeys/JOURNEY-cascade-foundation.md`     | missing |
+| wt-5 | hms-phase-1            | `docs/journeys/JOURNEY-hms-phase-1.md`            | missing |
 
 ## Recent Closures
 
@@ -101,6 +102,7 @@ tags: [dashboard, worktrees, tracking]
 
 ## Session History
 
+| 2026-03-22 | hms-phase-1 | started | wt-5, module: hms. Cascade-native spec (governing loop, branch placement, 14 invariants, evidence trust tiers). Plan: 7 tasks. Linear: 37 Triage cleaned (19 canceled, 18 backlogged). |
 | 2026-03-22 | cascade-foundation | started | wt-2, module: cross-cutting. Spec v1.3.0 (3 review rounds, 14+4+7 corrections). Plan: 18 tasks, 5 phases. Bootstrap + rules + governance + invite cascade. |
 | 2026-03-22 | walkie-talkie | started | wt-2, module: communications. Channel comms spec + Phase 1 plan (16 tasks). LiveKit voice/video Phase 2. |
 | 2026-03-22 | website-factory | closed | Merged to development, wt-6 freed. Plan A (12 tables, shared package, public site, publish pipeline) + Plan B (builder UI, spokesperson flow, mobile admin). 30+ commits. |

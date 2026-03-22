@@ -7,56 +7,58 @@ created: 2026-03-02
 
 ## Last Session
 
-| Field   | Value                            |
-| ------- | -------------------------------- |
-| Date    | 2026-03-22                       |
-| Branch  | `feat/cascade-foundation` (wt-2) |
-| Feature | Cascade Foundation Completion    |
-| Status  | in_progress                      |
+| Field   | Value                     |
+| ------- | ------------------------- |
+| Date    | 2026-03-22                |
+| Branch  | `feat/hms-phase-1` (wt-5) |
+| Feature | HMS Phase 1: Legibility   |
+| Status  | in_progress               |
 
 ### What was done
 
-- Full cascade audit: code (48% overall), docs (75% aligned)
-- STATE.md rewritten: tables by cascade dimension, build order by phase
-- Spec written: `docs/superpowers/specs/2026-03-22-cascade-foundation-completion-design.md` v1.3.0
-  - 3 review rounds: 14 user corrections + 4 blocking steward fixes + 7 final polish
-  - 26 design decisions locked, 11 invariants, 17 bootstrap completion criteria
-- Implementation plan: `docs/superpowers/plans/2026-03-22-cascade-foundation-completion.md`
-  - 18 tasks, 5 phases, hardened with execution semantics
-  - Non-negotiable rules, pre-flight assumptions, overnight hours semantics
-- Feature branch + worktree created: wt-2
+- HMS spec written as Cascade-native regulated-work operating fabric
+  - Governing loop: knowledge -> rule -> trigger -> execution -> evidence -> calibration -> authority -> learning
+  - Branch placement (K1a, K1b, D3, D6, D2, C1, C4)
+  - 14 propagation invariants, evidence trust tiers, activation model
+  - Object participation with branch placement for every HMS entity
+  - 3 review rounds: system-steward (5 blockers fixed), product review (9 precision fixes)
+- Implementation plan: 7 tasks (migration, routes, oversikt, documents, training, procedure detail, verification)
+- Competitor research: eSmiley, Runwell, SafetyCulture, West-IK, Agrippa, Kuba
+- UX research: 13 patterns identified (Vanta, SafetyCulture, Duolingo, Notion, GitBook)
+- Linear cleanup: 37 Triage issues resolved (19 canceled, 18 -> Backlog with updates)
+- Linear project created: "HMS Phase 1: Legibility" (issue limit reached)
+- Product principle saved to memory: "Procedure Engine Principle"
+- Feature branch + worktree created: wt-5
 
 ### Where we stopped
 
-- Feature just initialized in wt-2, ready for implementation
-- Plan is in main repo docs/ — copy spec+plan to worktree before starting
-- Start with Phase 1 Task 1: validate A1+A2 migrations via `supabase db reset`
+- Feature just initialized in wt-5, ready for implementation
+- Spec: `docs/superpowers/specs/2026-03-22-hms-governance-redesign-design.md`
+- Plan: `docs/superpowers/plans/2026-03-22-hms-phase-1-legibility.md`
+- Plan needs update to reflect cascade-native spec rewrite (invariants, activation model, evidence tiers)
+- Start with Task 1: migration (procedure_step training_content + media_urls)
 
-### Previous session (website-factory closure)
+### Previous sessions (still active in other worktrees)
 
-- All closure gates verified and passed
-- Branch merged to development
+- wt-2: `feat/cascade-foundation` — spec + plan ready, not started
+- wt-3: `feat/emma-arena-views` — spec + mockups done
+- wt-4: `feat/vaktlista-view` — in progress
+- wt-6: `feat/website-factory` — Plan A done, Plan B designed
 
 ### Known blockers / errors
 
-- A1+A2 migrations not yet validated via db reset (Task 1)
-- `hospitality.ts` tariff rates still wrong in code (Task 4)
-- `create-invitation` EF payload validation needs inspection (Task 8)
+- Linear free tier issue limit reached — cannot create HMS issues
+- Implementation plan references old spec structure — needs plan update pass
 
 ### Pending decisions
 
-- [ ] Confirm `create-invitation` accepts `invite_employment_type` + metadata pass-through
-- [ ] Resolve ADR-DRAFT 3 remaining decisions (template day-overrides, hook offset, cascade conflicts) — deferred to scheduling product phase
+- [ ] Deviation table strategy: single table with domain filter or separate hms_deviation? Needs ADR.
+- [ ] Telemetry event naming: flat "noun verb" confirmed, new events need registration in registry.
+- [ ] Footer tab name: "Komm" or "Kommunikasjon"? (from walkie-talkie, wt-2)
+- [ ] API channels scope: implement or defer? (from walkie-talkie, wt-2)
 
-### Pending decisions
+### Key files
 
-- [ ] Write Plan B spec document (formalize all mockup designs)
-- [ ] Save 20 page-type prompts as design reference document
-- [ ] Decide Plan B scope split: B1 (core builder) vs B2 (extended features)
-- [ ] Template count in code: start with 4-5 or build all 20?
-- [ ] Mobile admin: responsive web or React Native screen?
-- [ ] Spokesperson content: where does published content appear? (new section type? blog page?)
-- [ ] Menu bridge: bidirectional sync or one-way (system → website)?
-- [ ] Premium template payment integration — timing and approach
-- [ ] Footer tab name: "Komm" or "Kommunikasjon"? (from walkie-talkie)
-- [ ] API channels scope: implement or defer? (from walkie-talkie)
+- Spec: `docs/superpowers/specs/2026-03-22-hms-governance-redesign-design.md`
+- Plan: `docs/superpowers/plans/2026-03-22-hms-phase-1-legibility.md`
+- Memory: `product_procedure_engine_principle.md`
