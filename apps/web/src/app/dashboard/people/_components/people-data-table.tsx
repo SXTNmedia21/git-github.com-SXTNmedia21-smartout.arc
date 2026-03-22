@@ -561,30 +561,36 @@ export function PeopleDataTable({
                     />
                   </td>
                   <td className="px-6 py-4">
-                    {emp.status !== "invited" ? (
+                    {emp.status !== "invited" && emp.readinessScore !== undefined ? (
                       <div className="flex flex-col items-center justify-center">
                         <div className="mb-1 flex items-center gap-2">
                           {emp.readinessScore === 100 ? (
                             <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                          ) : (emp.readinessScore ?? 0) > 50 ? (
+                          ) : emp.readinessScore > 50 ? (
                             <Clock className="h-4 w-4 text-orange-500" />
                           ) : (
                             <AlertCircle className="h-4 w-4 text-rose-500" />
                           )}
                           <span
-                            className={`text-sm font-bold ${emp.readinessScore === 100 ? "text-emerald-500" : (emp.readinessScore ?? 0) > 50 ? "text-orange-500" : "text-rose-500"}`}
+                            className={`text-sm font-bold ${emp.readinessScore === 100 ? "text-emerald-500" : emp.readinessScore > 50 ? "text-orange-500" : "text-rose-500"}`}
                           >
-                            {emp.readinessScore ?? 0}%
+                            {emp.readinessScore}%
                           </span>
                         </div>
                         <div
                           className={`h-1.5 w-full max-w-[100px] overflow-hidden rounded-full ${isDark ? "bg-zinc-800" : "bg-zinc-200"}`}
                         >
                           <div
-                            className={`h-full rounded-full transition-all duration-500 ${emp.readinessScore === 100 ? "bg-emerald-500" : (emp.readinessScore ?? 0) > 50 ? "bg-orange-500" : "bg-rose-500"}`}
-                            style={{ width: `${emp.readinessScore ?? 0}%` }}
+                            className={`h-full rounded-full transition-all duration-500 ${emp.readinessScore === 100 ? "bg-emerald-500" : emp.readinessScore > 50 ? "bg-orange-500" : "bg-rose-500"}`}
+                            style={{ width: `${emp.readinessScore}%` }}
                           />
                         </div>
+                      </div>
+                    ) : emp.status !== "invited" ? (
+                      <div className="flex flex-col items-center justify-center">
+                        <span className="text-xs font-semibold text-muted-foreground">
+                          —
+                        </span>
                       </div>
                     ) : (
                       <div className="flex flex-col items-center justify-center">
