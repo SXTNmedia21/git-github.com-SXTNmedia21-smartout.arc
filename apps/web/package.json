@@ -35,6 +35,7 @@
     "@smartout/agent-sdk": "workspace:^",
     "@smartout/ai": "workspace:*",
     "@smartout/design-tokens": "workspace:^",
+    "@smartout/hms": "workspace:*",
     "@smartout/notifications": "workspace:^",
     "@smartout/supabase": "workspace:*",
     "@smartout/telemetry": "workspace:*",

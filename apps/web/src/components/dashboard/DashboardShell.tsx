@@ -29,7 +29,7 @@ const EmmaOverlay = dynamic(
 const ROUTE_MISSION_MAP: Record<string, MissionId> = {
   "/dashboard": "mr-botsson",
   "/dashboard/schedule": "shift-assistant",
-  "/dashboard/governance": "haccp-inspector",
+  "/dashboard/hms": "haccp-inspector",
   "/dashboard/operations": "mr-botsson",
   "/dashboard/chat": "mr-botsson",
   "/dashboard/people": "mr-botsson",
@@ -681,10 +681,10 @@ export function DashboardShell({
         expectedPathname: "/dashboard/reports",
       },
       {
-        id: "governance",
-        label: "Open governance",
-        selector: '[data-autoplay="nav-/dashboard/governance"]',
-        expectedPathname: "/dashboard/governance",
+        id: "hms",
+        label: "Open HMS",
+        selector: '[data-autoplay="nav-/dashboard/hms"]',
+        expectedPathname: "/dashboard/hms",
       },
       {
         id: "season",
@@ -1320,11 +1320,11 @@ export function DashboardShell({
                         )}
                         {isSidebarCollapsed && <div className="mt-2" />}
                         <NavItem
-                          href="/dashboard/governance"
+                          href="/dashboard/hms"
                           icon={ShieldCheck}
                           label="HMS"
                           isDark={isDark}
-                          active={isActive("/dashboard/governance")}
+                          active={isActive("/dashboard/hms")}
                           isCollapsed={isSidebarCollapsed}
                         />
                         <NavItem
@@ -1570,6 +1570,7 @@ export function DashboardShell({
                             people: "Ansatte",
                             reports: "Rapporter",
                             operations: "Drift",
+                            hms: "HMS",
                             governance: "HMS",
                             season: "Sesong",
                             organization: "Organisasjon",

@@ -7,6 +7,31 @@ export type Json =
   | Json[]
 
 export type Database = {
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   payroll: {
     Tables: {
       absence_ledger: {
@@ -4295,6 +4320,8 @@ export type Database = {
       }
       department: {
         Row: {
+          classification_confidence: string | null
+          classification_source: string | null
           color: string | null
           created_at: string
           department_id: string
@@ -4310,6 +4337,8 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          classification_confidence?: string | null
+          classification_source?: string | null
           color?: string | null
           created_at?: string
           department_id?: string
@@ -4327,6 +4356,8 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          classification_confidence?: string | null
+          classification_source?: string | null
           color?: string | null
           created_at?: string
           department_id?: string
@@ -4446,13 +4477,16 @@ export type Database = {
       }
       department_operating_hours: {
         Row: {
+          close_offset_minutes: number | null
           close_time: string | null
           created_at: string
           day_of_week: number
           department_id: string
           id: string
           is_closed: boolean
+          is_derived: boolean | null
           location_id: string | null
+          open_offset_minutes: number | null
           open_time: string | null
           provenance: Json
           season_id: string | null
@@ -4460,13 +4494,16 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          close_offset_minutes?: number | null
           close_time?: string | null
           created_at?: string
           day_of_week: number
           department_id: string
           id?: string
           is_closed?: boolean
+          is_derived?: boolean | null
           location_id?: string | null
+          open_offset_minutes?: number | null
           open_time?: string | null
           provenance?: Json
           season_id?: string | null
@@ -4474,13 +4511,16 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          close_offset_minutes?: number | null
           close_time?: string | null
           created_at?: string
           day_of_week?: number
           department_id?: string
           id?: string
           is_closed?: boolean
+          is_derived?: boolean | null
           location_id?: string | null
+          open_offset_minutes?: number | null
           open_time?: string | null
           provenance?: Json
           season_id?: string | null
@@ -4635,6 +4675,8 @@ export type Database = {
           domain: Database["public"]["Enums"]["deviation_domain"]
           linked_shift_id: string | null
           payroll_impact: boolean
+          procedure_id: string | null
+          protocol_id: string | null
           reconciliation_id: string | null
           reported_by: string | null
           requires_action: boolean
@@ -4643,6 +4685,7 @@ export type Database = {
           resolved_by: string | null
           session_id: string | null
           severity: Database["public"]["Enums"]["deviation_severity"]
+          source_task_id: string | null
           status: Database["public"]["Enums"]["deviation_status"]
           subcategory: string | null
           title: string
@@ -4660,6 +4703,8 @@ export type Database = {
           domain: Database["public"]["Enums"]["deviation_domain"]
           linked_shift_id?: string | null
           payroll_impact?: boolean
+          procedure_id?: string | null
+          protocol_id?: string | null
           reconciliation_id?: string | null
           reported_by?: string | null
           requires_action?: boolean
@@ -4668,6 +4713,7 @@ export type Database = {
           resolved_by?: string | null
           session_id?: string | null
           severity?: Database["public"]["Enums"]["deviation_severity"]
+          source_task_id?: string | null
           status?: Database["public"]["Enums"]["deviation_status"]
           subcategory?: string | null
           title: string
@@ -4685,6 +4731,8 @@ export type Database = {
           domain?: Database["public"]["Enums"]["deviation_domain"]
           linked_shift_id?: string | null
           payroll_impact?: boolean
+          procedure_id?: string | null
+          protocol_id?: string | null
           reconciliation_id?: string | null
           reported_by?: string | null
           requires_action?: boolean
@@ -4693,6 +4741,7 @@ export type Database = {
           resolved_by?: string | null
           session_id?: string | null
           severity?: Database["public"]["Enums"]["deviation_severity"]
+          source_task_id?: string | null
           status?: Database["public"]["Enums"]["deviation_status"]
           subcategory?: string | null
           title?: string
@@ -4713,6 +4762,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "schedule_shift"
             referencedColumns: ["schedule_shift_id"]
+          },
+          {
+            foreignKeyName: "deviation_procedure_id_fkey"
+            columns: ["procedure_id"]
+            isOneToOne: false
+            referencedRelation: "procedure"
+            referencedColumns: ["procedure_id"]
+          },
+          {
+            foreignKeyName: "deviation_protocol_id_fkey"
+            columns: ["protocol_id"]
+            isOneToOne: false
+            referencedRelation: "protocol"
+            referencedColumns: ["protocol_id"]
           },
           {
             foreignKeyName: "deviation_reconciliation_id_fkey"
@@ -4741,6 +4804,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "department_session"
             referencedColumns: ["department_session_id"]
+          },
+          {
+            foreignKeyName: "deviation_source_task_id_fkey"
+            columns: ["source_task_id"]
+            isOneToOne: false
+            referencedRelation: "session_task"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "deviation_workspace_id_fkey"
@@ -5022,6 +5092,8 @@ export type Database = {
           profile_id: string
           salary_type: string
           sector_experience_years: number
+          seeded_at: string | null
+          seeded_from_template_id: string | null
           seniority_start_date: string
           tariff_category: string
           tariff_override_id: string | null
@@ -5039,6 +5111,8 @@ export type Database = {
           profile_id: string
           salary_type: string
           sector_experience_years?: number
+          seeded_at?: string | null
+          seeded_from_template_id?: string | null
           seniority_start_date: string
           tariff_category: string
           tariff_override_id?: string | null
@@ -5056,6 +5130,8 @@ export type Database = {
           profile_id?: string
           salary_type?: string
           sector_experience_years?: number
+          seeded_at?: string | null
+          seeded_from_template_id?: string | null
           seniority_start_date?: string
           tariff_category?: string
           tariff_override_id?: string | null
@@ -5078,6 +5154,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profile"
             referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "employee_payroll_profile_seeded_from_template_id_fkey"
+            columns: ["seeded_from_template_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_profile_template"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "employee_payroll_profile_tariff_override_id_fkey"
@@ -6397,67 +6480,6 @@ export type Database = {
           },
         ]
       }
-      help_request: {
-        Row: {
-          created_at: string
-          description: string | null
-          id: string
-          profile_id: string
-          resolved_at: string | null
-          resolved_by: string | null
-          status: string
-          title: string
-          updated_at: string
-          workspace_id: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          profile_id: string
-          resolved_at?: string | null
-          resolved_by?: string | null
-          status?: string
-          title: string
-          updated_at?: string
-          workspace_id: string
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          profile_id?: string
-          resolved_at?: string | null
-          resolved_by?: string | null
-          status?: string
-          title?: string
-          updated_at?: string
-          workspace_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "help_request_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profile"
-            referencedColumns: ["profile_id"]
-          },
-          {
-            foreignKeyName: "help_request_resolved_by_fkey"
-            columns: ["resolved_by"]
-            isOneToOne: false
-            referencedRelation: "profile"
-            referencedColumns: ["profile_id"]
-          },
-          {
-            foreignKeyName: "help_request_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspace"
-            referencedColumns: ["workspace_id"]
-          },
-        ]
-      }
       hour_factor: {
         Row: {
           created_at: string
@@ -6513,6 +6535,7 @@ export type Database = {
           expires_at: string
           first_name: string | null
           invitation_id: string
+          invite_employment_type: string | null
           invite_type: Database["public"]["Enums"]["invite_type"]
           invited_by: string | null
           last_name: string | null
@@ -6535,6 +6558,7 @@ export type Database = {
           expires_at?: string
           first_name?: string | null
           invitation_id?: string
+          invite_employment_type?: string | null
           invite_type?: Database["public"]["Enums"]["invite_type"]
           invited_by?: string | null
           last_name?: string | null
@@ -6557,6 +6581,7 @@ export type Database = {
           expires_at?: string
           first_name?: string | null
           invitation_id?: string
+          invite_employment_type?: string | null
           invite_type?: Database["public"]["Enums"]["invite_type"]
           invited_by?: string | null
           last_name?: string | null
@@ -7982,6 +8007,65 @@ export type Database = {
           },
         ]
       }
+      payroll_profile_template: {
+        Row: {
+          agreed_weekly_hours: number | null
+          created_at: string
+          employment_category: string | null
+          id: string
+          is_locked: boolean | null
+          is_system_template: boolean | null
+          name: string
+          salary_type: string
+          seed_source: string | null
+          seed_version: string | null
+          seeded_at: string | null
+          tariff_category: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          agreed_weekly_hours?: number | null
+          created_at?: string
+          employment_category?: string | null
+          id?: string
+          is_locked?: boolean | null
+          is_system_template?: boolean | null
+          name: string
+          salary_type: string
+          seed_source?: string | null
+          seed_version?: string | null
+          seeded_at?: string | null
+          tariff_category?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          agreed_weekly_hours?: number | null
+          created_at?: string
+          employment_category?: string | null
+          id?: string
+          is_locked?: boolean | null
+          is_system_template?: boolean | null
+          name?: string
+          salary_type?: string
+          seed_source?: string | null
+          seed_version?: string | null
+          seeded_at?: string | null
+          tariff_category?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_profile_template_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       planning_cycle: {
         Row: {
           created_at: string
@@ -9204,10 +9288,12 @@ export type Database = {
           description: string
           estimated_minutes: number | null
           is_required: boolean
+          media_urls: Json | null
           procedure_id: string
           step_id: string
           step_order: number
           title: string
+          training_content: string | null
           updated_at: string
         }
         Insert: {
@@ -9215,10 +9301,12 @@ export type Database = {
           description: string
           estimated_minutes?: number | null
           is_required?: boolean
+          media_urls?: Json | null
           procedure_id: string
           step_id?: string
           step_order?: number
           title: string
+          training_content?: string | null
           updated_at?: string
         }
         Update: {
@@ -9226,10 +9314,12 @@ export type Database = {
           description?: string
           estimated_minutes?: number | null
           is_required?: boolean
+          media_urls?: Json | null
           procedure_id?: string
           step_id?: string
           step_order?: number
           title?: string
+          training_content?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -10652,6 +10742,7 @@ export type Database = {
           season_price_factor: number
           status: Database["public"]["Enums"]["budget_status"]
           target_labor_percentage: number
+          target_margin: number | null
           total_target_revenue: number
           updated_at: string
           workspace_id: string
@@ -10666,6 +10757,7 @@ export type Database = {
           season_price_factor?: number
           status?: Database["public"]["Enums"]["budget_status"]
           target_labor_percentage?: number
+          target_margin?: number | null
           total_target_revenue?: number
           updated_at?: string
           workspace_id: string
@@ -10680,6 +10772,7 @@ export type Database = {
           season_price_factor?: number
           status?: Database["public"]["Enums"]["budget_status"]
           target_labor_percentage?: number
+          target_margin?: number | null
           total_target_revenue?: number
           updated_at?: string
           workspace_id?: string
@@ -11256,12 +11349,16 @@ export type Database = {
           base_cost: number
           base_hours: number
           base_rate: number
+          basis: Database["public"]["Enums"]["snapshot_basis"]
           calculated_at: string
           calculation_version: number
+          effective_end: string | null
+          effective_start: string | null
           id: string
           overtime_cost: number
           profile_id: string | null
           schedule_shift_id: string
+          source_event: string | null
           supplements: Json
           total_cost: number
           workspace_id: string
@@ -11270,12 +11367,16 @@ export type Database = {
           base_cost: number
           base_hours: number
           base_rate: number
+          basis?: Database["public"]["Enums"]["snapshot_basis"]
           calculated_at?: string
           calculation_version?: number
+          effective_end?: string | null
+          effective_start?: string | null
           id?: string
           overtime_cost?: number
           profile_id?: string | null
           schedule_shift_id: string
+          source_event?: string | null
           supplements?: Json
           total_cost: number
           workspace_id: string
@@ -11284,12 +11385,16 @@ export type Database = {
           base_cost?: number
           base_hours?: number
           base_rate?: number
+          basis?: Database["public"]["Enums"]["snapshot_basis"]
           calculated_at?: string
           calculation_version?: number
+          effective_end?: string | null
+          effective_start?: string | null
           id?: string
           overtime_cost?: number
           profile_id?: string | null
           schedule_shift_id?: string
+          source_event?: string | null
           supplements?: Json
           total_cost?: number
           workspace_id?: string
@@ -11496,6 +11601,8 @@ export type Database = {
           metadata: Json | null
           provenance: Json
           rate_type: string
+          seeded_at: string | null
+          seeded_from_framework_binding_id: string | null
           seniority_years: number | null
           source: Database["public"]["Enums"]["tariff_source"]
           unit: string
@@ -11511,6 +11618,8 @@ export type Database = {
           metadata?: Json | null
           provenance?: Json
           rate_type: string
+          seeded_at?: string | null
+          seeded_from_framework_binding_id?: string | null
           seniority_years?: number | null
           source?: Database["public"]["Enums"]["tariff_source"]
           unit?: string
@@ -11526,6 +11635,8 @@ export type Database = {
           metadata?: Json | null
           provenance?: Json
           rate_type?: string
+          seeded_at?: string | null
+          seeded_from_framework_binding_id?: string | null
           seniority_years?: number | null
           source?: Database["public"]["Enums"]["tariff_source"]
           unit?: string
@@ -12030,6 +12141,69 @@ export type Database = {
           },
         ]
       }
+      workspace_bootstrap_run: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          current_step: string | null
+          error_payload: Json | null
+          framework_binding_id: string | null
+          id: string
+          source_path: string
+          started_at: string | null
+          status: string
+          steps_completed: string[] | null
+          updated_at: string
+          warnings: Json | null
+          workspace_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          current_step?: string | null
+          error_payload?: Json | null
+          framework_binding_id?: string | null
+          id?: string
+          source_path: string
+          started_at?: string | null
+          status: string
+          steps_completed?: string[] | null
+          updated_at?: string
+          warnings?: Json | null
+          workspace_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          current_step?: string | null
+          error_payload?: Json | null
+          framework_binding_id?: string | null
+          id?: string
+          source_path?: string
+          started_at?: string | null
+          status?: string
+          steps_completed?: string[] | null
+          updated_at?: string
+          warnings?: Json | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_bootstrap_run_framework_binding_id_fkey"
+            columns: ["framework_binding_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_framework_binding"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_bootstrap_run_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       workspace_budget: {
         Row: {
           absence_threshold: number | null
@@ -12365,6 +12539,47 @@ export type Database = {
           },
           {
             foreignKeyName: "workspace_note_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      workspace_operating_hours: {
+        Row: {
+          close_time: string | null
+          created_at: string
+          day_of_week: number
+          id: string
+          is_closed: boolean | null
+          open_time: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          close_time?: string | null
+          created_at?: string
+          day_of_week: number
+          id?: string
+          is_closed?: boolean | null
+          open_time?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          close_time?: string | null
+          created_at?: string
+          day_of_week?: number
+          id?: string
+          is_closed?: boolean | null
+          open_time?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_operating_hours_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspace"
@@ -12834,6 +13049,7 @@ export type Database = {
         | "applied"
         | "rejected"
         | "expired"
+        | "failed"
       channel_ai_text_mode: "disabled" | "mention_only" | "proactive"
       channel_ai_voice_mode: "disabled" | "listen_only" | "interactive"
       channel_ai_voice_policy: "disabled" | "listen_only" | "interactive"
@@ -13121,6 +13337,7 @@ export type Database = {
         | "active"
         | "completed"
         | "unpublished"
+      snapshot_basis: "planned" | "actual"
       sync_direction: "inbound" | "outbound" | "bidirectional"
       sync_status: "pending" | "synced" | "failed" | "conflict"
       tariff_source: "riksavtalen" | "allmenngjoring" | "internal"
@@ -13152,6 +13369,64 @@ export type Database = {
       [_ in never]: never
     }
   }
+  timesheet: {
+    Tables: {
+      time_entry: {
+        Row: {
+          breaks: Json | null
+          created_at: string
+          profile_id: string
+          punch_in: string
+          punch_in_location: Json | null
+          punch_out: string | null
+          shift_id: string
+          status: Database["timesheet"]["Enums"]["time_entry_status"]
+          time_entry_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          breaks?: Json | null
+          created_at?: string
+          profile_id: string
+          punch_in: string
+          punch_in_location?: Json | null
+          punch_out?: string | null
+          shift_id: string
+          status?: Database["timesheet"]["Enums"]["time_entry_status"]
+          time_entry_id?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          breaks?: Json | null
+          created_at?: string
+          profile_id?: string
+          punch_in?: string
+          punch_in_location?: Json | null
+          punch_out?: string | null
+          shift_id?: string
+          status?: Database["timesheet"]["Enums"]["time_entry_status"]
+          time_entry_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      time_entry_status: "clocked_in" | "completed" | "edited"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   websites: {
     Tables: {
       website: {
@@ -13162,6 +13437,7 @@ export type Database = {
           contact_email: string | null
           contact_phone: string | null
           created_at: string
+          created_by: string | null
           default_meta_description: string | null
           default_meta_title: string | null
           default_og_image_path: string | null
@@ -13185,6 +13461,7 @@ export type Database = {
           contact_email?: string | null
           contact_phone?: string | null
           created_at?: string
+          created_by?: string | null
           default_meta_description?: string | null
           default_meta_title?: string | null
           default_og_image_path?: string | null
@@ -13208,6 +13485,7 @@ export type Database = {
           contact_email?: string | null
           contact_phone?: string | null
           created_at?: string
+          created_by?: string | null
           default_meta_description?: string | null
           default_meta_title?: string | null
           default_og_image_path?: string | null
@@ -13291,7 +13569,9 @@ export type Database = {
           deleted_at: string | null
           domain: string
           domain_type: string
+          hostname: string | null
           is_primary: boolean
+          is_verified: boolean
           redirect_behavior: string
           ssl_status: string
           status: string
@@ -13307,7 +13587,9 @@ export type Database = {
           deleted_at?: string | null
           domain: string
           domain_type: string
+          hostname?: string | null
           is_primary?: boolean
+          is_verified?: boolean
           redirect_behavior?: string
           ssl_status?: string
           status?: string
@@ -13323,7 +13605,9 @@ export type Database = {
           deleted_at?: string | null
           domain?: string
           domain_type?: string
+          hostname?: string | null
           is_primary?: boolean
+          is_verified?: boolean
           redirect_behavior?: string
           ssl_status?: string
           status?: string
@@ -13346,41 +13630,47 @@ export type Database = {
       }
       website_draft_revision: {
         Row: {
+          change_summary: string | null
+          changed_by: string | null
           created_at: string
           created_by: string | null
-          draft_data: Json
+          draft_data: Json | null
           revision_id: string
-          revision_number: number
-          schema_version: number
+          revision_number: number | null
+          schema_version: number | null
           source: string
-          template_key: string
-          template_version: number
+          template_key: string | null
+          template_version: number | null
           website_id: string
           workspace_id: string
         }
         Insert: {
+          change_summary?: string | null
+          changed_by?: string | null
           created_at?: string
           created_by?: string | null
-          draft_data: Json
+          draft_data?: Json | null
           revision_id?: string
-          revision_number: number
-          schema_version: number
+          revision_number?: number | null
+          schema_version?: number | null
           source: string
-          template_key: string
-          template_version: number
+          template_key?: string | null
+          template_version?: number | null
           website_id: string
           workspace_id: string
         }
         Update: {
+          change_summary?: string | null
+          changed_by?: string | null
           created_at?: string
           created_by?: string | null
-          draft_data?: Json
+          draft_data?: Json | null
           revision_id?: string
-          revision_number?: number
-          schema_version?: number
+          revision_number?: number | null
+          schema_version?: number | null
           source?: string
-          template_key?: string
-          template_version?: number
+          template_key?: string | null
+          template_version?: number | null
           website_id?: string
           workspace_id?: string
         }
@@ -14048,6 +14338,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   payroll: {
     Enums: {
       absence_category: [
@@ -14138,6 +14431,7 @@ export const Constants = {
         "applied",
         "rejected",
         "expired",
+        "failed",
       ],
       channel_ai_text_mode: ["disabled", "mention_only", "proactive"],
       channel_ai_voice_mode: ["disabled", "listen_only", "interactive"],
@@ -14456,6 +14750,7 @@ export const Constants = {
         "completed",
         "unpublished",
       ],
+      snapshot_basis: ["planned", "actual"],
       sync_direction: ["inbound", "outbound", "bidirectional"],
       sync_status: ["pending", "synced", "failed", "conflict"],
       tariff_source: ["riksavtalen", "allmenngjoring", "internal"],
@@ -14485,6 +14780,11 @@ export const Constants = {
         "review",
       ],
       wizard_session_status: ["active", "completed", "abandoned"],
+    },
+  },
+  timesheet: {
+    Enums: {
+      time_entry_status: ["clocked_in", "completed", "edited"],
     },
   },
   websites: {

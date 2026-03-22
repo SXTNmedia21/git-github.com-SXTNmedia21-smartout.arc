@@ -1,0 +1,8 @@
+{
+  "extends": "@smartout/typescript-config/library.json",
+  "compilerOptions": {
+    "lib": ["ES2022"],
+    "outDir": "dist"
+  },
+  "include": ["src"]
+}

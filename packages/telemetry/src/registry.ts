@@ -95,7 +95,8 @@ export type EntityType =
   | "website_page"
   | "website_section"
   | "website_asset"
-  | "website_spokesperson";
+  | "website_spokesperson"
+  | "deviation";
 
 export type ActionVerb =
   | "created"
@@ -306,6 +307,38 @@ export interface SessionTaskCompleted extends BaseEvent {
     data: {
       task_id: string;
       profile_id: string;
+    };
+  };
+}
+
+// ─── HMS: Deviations ────────────────────────────
+export interface DeviationReported extends BaseEvent {
+  event: "deviation reported";
+  properties: {
+    entity: EntityRef;
+    data: {
+      domain: string;
+      severity: string;
+    };
+  };
+}
+
+export interface DeviationUpdated extends BaseEvent {
+  event: "deviation updated";
+  properties: {
+    entity: EntityRef;
+    data: {
+      status: string;
+    };
+  };
+}
+
+export interface DeviationResolved extends BaseEvent {
+  event: "deviation resolved";
+  properties: {
+    entity: EntityRef;
+    data: {
+      resolution_notes: string;
     };
   };
 }
@@ -1504,7 +1537,10 @@ export type SmartoutEvent =
   | WebsiteSpokespersonApproved
   | WebsiteSpokespersonDeclined
   | WebsiteSpokespersonContentSubmitted
-  | WebsiteSpokespersonTaskOverdue;
+  | WebsiteSpokespersonTaskOverdue
+  | DeviationReported
+  | DeviationUpdated
+  | DeviationResolved;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -2055,5 +2091,19 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "website spokesperson_task_overdue": {
     destinations: ["activity_trail", "engine_event", "notifications"],
     category: "system",
+  },
+
+  // ─── HMS: Deviations ────────────────────────────
+  "deviation reported": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "deviation updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "deviation resolved": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
   },
 };
