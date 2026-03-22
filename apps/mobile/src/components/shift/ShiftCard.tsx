@@ -6,14 +6,17 @@
  * to avoid nested <button> elements on web.
  */
 
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import { View, Text, Pressable } from "react-native";
 import * as Haptics from "expo-haptics";
 import { createStyles } from "@/theme";
 import { Card } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { Button } from "@/components/ui/Button";
+import { SupplementBadges } from "@/components/payroll/SupplementBadges";
 import { strings } from "@/constants/strings";
+import { getShiftSupplements, mapDbRules } from "@/lib/supplements";
+import { useSupplementRules } from "@/hooks/queries/use-supplement-rules";
 import type { Database } from "@smartout/supabase/database.types";
 
 type ScheduleShift = Database["public"]["Tables"]["schedule_shift"]["Row"];
@@ -68,9 +71,29 @@ function formatWorkHours(hours: number): string {
   return `${h}t ${m}min`;
 }
 
+// UI Events:
+// - nav: shift detail (card press / body press)
+// - action: confirmShift(shiftId) (confirm button)
+// - display: supplement badges (kveld/helg/helligdag color-coded)
+
 export function ShiftCard({ shift, onPress, onConfirm, confirming = false }: ShiftCardProps) {
   const styles = useStyles();
   const isConfirmed = Boolean(shift.confirmed_at);
+  const { data: supplementData } = useSupplementRules();
+
+  const supplements = useMemo(() => {
+    if (!supplementData?.rules || supplementData.rules.length === 0) return [];
+    const engineRules = mapDbRules(supplementData.rules);
+    if (engineRules.length === 0) return [];
+    return getShiftSupplements({
+      shiftDate: shift.shift_date,
+      startTime: shift.start_time,
+      endTime: shift.end_time,
+      breakMinutes: shift.breaks ?? 0,
+      rules: engineRules,
+      holidays: supplementData.holidays ?? [],
+    });
+  }, [supplementData, shift.shift_date, shift.start_time, shift.end_time, shift.breaks]);
 
   const handleConfirm = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -103,6 +126,11 @@ export function ShiftCard({ shift, onPress, onConfirm, confirming = false }: Shi
             {shift.zone && <Text style={styles.detail}>{shift.zone}</Text>}
             <Text style={styles.detail}>{formatWorkHours(shift.work_hours)}</Text>
           </View>
+          {supplements.length > 0 && (
+            <View style={styles.badgeRow}>
+              <SupplementBadges supplements={supplements} />
+            </View>
+          )}
         </Pressable>
       ) : (
         <>
@@ -121,6 +149,11 @@ export function ShiftCard({ shift, onPress, onConfirm, confirming = false }: Shi
             {shift.zone && <Text style={styles.detail}>{shift.zone}</Text>}
             <Text style={styles.detail}>{formatWorkHours(shift.work_hours)}</Text>
           </View>
+          {supplements.length > 0 && (
+            <View style={styles.badgeRow}>
+              <SupplementBadges supplements={supplements} />
+            </View>
+          )}
         </>
       )}
 
@@ -166,6 +199,9 @@ const useStyles = createStyles((theme) => ({
   detail: {
     ...theme.typography.caption,
     color: theme.colors.mutedForeground,
+  },
+  badgeRow: {
+    marginTop: theme.spacing.xs,
   },
   confirmRow: {
     marginTop: theme.spacing.element,

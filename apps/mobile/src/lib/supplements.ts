@@ -314,3 +314,89 @@ export function calculateSupplements(input: SupplementInput): ShiftSupplement[] 
 
 /** Alias used by spec and downstream consumers */
 export const getShiftSupplements = calculateSupplements;
+
+// ---------------------------------------------------------------------------
+// DB row → engine rule mapper
+// ---------------------------------------------------------------------------
+
+/**
+ * Maps a Supabase supplement_rule row to the local SupplementRule type
+ * used by calculateSupplements.
+ *
+ * DB supplement_type enum → engine supplementType:
+ *   "normal" (with time window)  → "evening"
+ *   "week_based" / "day_based"   → "weekend"
+ *   "holiday"                    → "holiday"
+ *
+ * Other DB types ("manual", "contract_rule") are skipped — they don't
+ * map to automatic time-based supplements.
+ */
+export function mapDbRuleToSupplementRule(dbRow: {
+  id: string;
+  name: string;
+  supplement_type: string;
+  time_window_start: string | null;
+  time_window_end: string | null;
+  rate_value: number;
+  rate_type: string;
+  is_active: boolean;
+  weekdays: number[];
+}): SupplementRule | null {
+  let supplementType: SupplementRule["supplementType"];
+
+  switch (dbRow.supplement_type) {
+    case "normal":
+      supplementType = "evening";
+      break;
+    case "week_based":
+    case "day_based":
+      supplementType = "weekend";
+      break;
+    case "holiday":
+      supplementType = "holiday";
+      break;
+    default:
+      // "manual" and "contract_rule" don't apply to automatic calculation
+      return null;
+  }
+
+  const weekdays = dbRow.weekdays ?? [];
+  const appliesToWeekends = weekdays.includes(0) || weekdays.includes(6);
+
+  return {
+    id: dbRow.id,
+    name: dbRow.name,
+    supplementType,
+    startTime: dbRow.time_window_start ?? "00:00:00",
+    endTime: dbRow.time_window_end ?? "00:00:00",
+    rate: dbRow.rate_value,
+    rateType: dbRow.rate_type === "percentage" ? "percentage" : "fixed_per_hour",
+    isActive: dbRow.is_active,
+    appliesToWeekdays: weekdays,
+    appliesToWeekends,
+  };
+}
+
+/**
+ * Batch-maps an array of DB supplement_rule rows, filtering out unmappable types.
+ */
+export function mapDbRules(
+  dbRows: Array<{
+    id: string;
+    name: string;
+    supplement_type: string;
+    time_window_start: string | null;
+    time_window_end: string | null;
+    rate_value: number;
+    rate_type: string;
+    is_active: boolean;
+    weekdays: number[];
+  }>,
+): SupplementRule[] {
+  const mapped: SupplementRule[] = [];
+  for (const row of dbRows) {
+    const rule = mapDbRuleToSupplementRule(row);
+    if (rule) mapped.push(rule);
+  }
+  return mapped;
+}
