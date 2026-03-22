@@ -886,6 +886,21 @@ export interface WebsitePreviewTokenCreated extends BaseEvent {
   properties: { entity: EntityRef; data: { expires_at: string } };
 }
 
+export interface WebsiteHoursUpdated extends BaseEvent {
+  event: "website hours_updated";
+  properties: { entity: EntityRef; data: { days_updated: number } };
+}
+
+export interface WebsiteMenuSynced extends BaseEvent {
+  event: "website menu_synced";
+  properties: { entity: EntityRef; data: { menu_count: number } };
+}
+
+export interface WebsiteSystemSectionAdded extends BaseEvent {
+  event: "website system_section_added";
+  properties: { entity: EntityRef; data: { section_type: string } };
+}
+
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
 export type SmartoutEvent =
@@ -981,7 +996,10 @@ export type SmartoutEvent =
   | WebsiteSectionUpdated
   | WebsiteSectionsReordered
   | WebsiteAssetUploaded
-  | WebsitePreviewTokenCreated;
+  | WebsitePreviewTokenCreated
+  | WebsiteHoursUpdated
+  | WebsiteMenuSynced
+  | WebsiteSystemSectionAdded;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -1309,4 +1327,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "website sections reordered": { destinations: ["activity_trail"], category: "system" },
   "website asset uploaded": { destinations: ["activity_trail"], category: "system" },
   "website preview token created": { destinations: ["activity_trail"], category: "system" },
+  "website hours_updated": { destinations: ["posthog", "activity_trail"], category: "system" },
+  "website menu_synced": { destinations: ["activity_trail"], category: "system" },
+  "website system_section_added": {
+    destinations: ["posthog", "activity_trail"],
+    category: "system",
+  },
 };
