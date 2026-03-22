@@ -5,22 +5,20 @@
  *
  * Shows site status, stats, page list, and action bar for admins.
  * Handles the "no website yet" empty state by linking to /setup.
+ * Fully responsive — 2-column stats on mobile, 4-column on desktop.
  */
 
-import { useContext } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Globe, Eye, UploadCloud, FileText, Layers, Tag, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { Button, Badge, Card, CardContent, CardHeader, CardTitle } from "@smartout/ui";
-import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWebsite } from "../_hooks/use-website";
 import { usePages } from "../_hooks/use-pages";
 import { publishWebsite } from "../_actions/publish-actions";
 import { createPreviewToken } from "../_actions/preview-actions";
 
 export default function WebsiteOverview() {
-  const { isDark } = useContext(DashboardContext);
   const router = useRouter();
 
   const { website, isLoading } = useWebsite();
@@ -30,10 +28,8 @@ export default function WebsiteOverview() {
 
   if (isLoading) {
     return (
-      <div className="z-10 flex-1 overflow-y-auto px-10 pt-8 pb-20">
-        <div
-          className={`h-8 w-48 animate-pulse rounded ${isDark ? "bg-zinc-800" : "bg-zinc-200"}`}
-        />
+      <div className="z-10 flex-1 overflow-y-auto px-4 pt-8 pb-20 md:px-10">
+        <div className="bg-muted h-8 w-48 animate-pulse rounded" />
       </div>
     );
   }
@@ -42,27 +38,17 @@ export default function WebsiteOverview() {
 
   if (!website) {
     return (
-      <div className="z-10 flex-1 overflow-y-auto px-10 pt-8 pb-20">
+      <div className="z-10 flex-1 overflow-y-auto px-4 pt-8 pb-20 md:px-10">
         <div className="mb-6">
-          <h1
-            className={`mb-2 text-3xl font-extrabold tracking-tight ${isDark ? "text-white" : "text-zinc-900"}`}
-          >
-            Nettside
-          </h1>
-          <p className={`text-sm ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
+          <h1 className="text-foreground mb-2 text-3xl font-extrabold tracking-tight">Nettside</h1>
+          <p className="text-muted-foreground text-sm">
             Du har ingen nettside ennå. Kom i gang med en mal.
           </p>
         </div>
 
-        <div
-          className={`flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-16 ${
-            isDark ? "border-zinc-800 bg-zinc-900/20" : "border-zinc-300 bg-zinc-50"
-          }`}
-        >
-          <Globe className={`mb-4 h-12 w-12 ${isDark ? "text-zinc-600" : "text-zinc-400"}`} />
-          <p className={`mb-6 text-base font-medium ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-            Ingen nettside opprettet
-          </p>
+        <div className="border-border flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-16">
+          <Globe className="text-muted-foreground mb-4 h-12 w-12" />
+          <p className="text-foreground mb-6 text-base font-medium">Ingen nettside opprettet</p>
           <Button asChild>
             <Link href="/dashboard/website/setup">Opprett nettside</Link>
           </Button>
@@ -114,14 +100,12 @@ export default function WebsiteOverview() {
   // ─── Render ───────────────────────────────────────────────────
 
   return (
-    <div className="z-10 flex-1 overflow-y-auto px-10 pt-8 pb-20">
+    <div className="z-10 flex-1 overflow-y-auto px-4 pt-8 pb-20 md:px-10">
       {/* Header */}
-      <div className="mb-6 flex items-start justify-between">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="mb-1 flex items-center gap-3">
-            <h1
-              className={`text-3xl font-extrabold tracking-tight ${isDark ? "text-white" : "text-zinc-900"}`}
-            >
+            <h1 className="text-foreground text-3xl font-extrabold tracking-tight">
               {website.name}
             </h1>
             <Badge variant={isPublished ? "default" : "secondary"}>
@@ -133,7 +117,7 @@ export default function WebsiteOverview() {
               href={`https://${domainUrl}`}
               target="_blank"
               rel="noopener noreferrer"
-              className={`flex items-center gap-1 text-sm hover:underline ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
+              className="text-muted-foreground flex items-center gap-1 text-sm hover:underline"
             >
               {domainUrl}
               <ExternalLink className="h-3 w-3" />
@@ -154,7 +138,7 @@ export default function WebsiteOverview() {
         </div>
       </div>
 
-      {/* Stat cards */}
+      {/* Stat cards — 2 cols on mobile, 4 on desktop */}
       <div className="mb-8 grid grid-cols-2 gap-4 md:grid-cols-4">
         {stats.map((stat) => {
           const Icon = stat.icon;
@@ -162,12 +146,10 @@ export default function WebsiteOverview() {
             <Card key={stat.label}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">{stat.label}</CardTitle>
-                <Icon className={`h-4 w-4 ${isDark ? "text-zinc-400" : "text-zinc-500"}`} />
+                <Icon className="text-muted-foreground h-4 w-4" />
               </CardHeader>
               <CardContent>
-                <div className={`text-2xl font-bold ${isDark ? "text-white" : "text-zinc-900"}`}>
-                  {stat.value}
-                </div>
+                <div className="text-foreground text-2xl font-bold">{stat.value}</div>
               </CardContent>
             </Card>
           );
@@ -177,9 +159,7 @@ export default function WebsiteOverview() {
       {/* Page list */}
       <div>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className={`text-lg font-semibold ${isDark ? "text-white" : "text-zinc-900"}`}>
-            Sider
-          </h2>
+          <h2 className="text-foreground text-lg font-semibold">Sider</h2>
           <Button
             variant="outline"
             size="sm"
@@ -189,32 +169,22 @@ export default function WebsiteOverview() {
           </Button>
         </div>
 
-        <div
-          className={`divide-y rounded-xl border ${isDark ? "divide-zinc-800 border-zinc-800 bg-zinc-900/40" : "divide-zinc-200 border-zinc-200 bg-white"}`}
-        >
+        <div className="border-border divide-border divide-y rounded-xl border">
           {pages.length === 0 ? (
-            <div
-              className={`px-5 py-8 text-center text-sm ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-            >
+            <div className="text-muted-foreground px-5 py-8 text-center text-sm">
               Ingen sider ennå
             </div>
           ) : (
             pages.map((page) => (
               <div
                 key={page.website_page_id}
-                className={`flex items-center justify-between px-5 py-4`}
+                className="flex items-center justify-between px-5 py-4"
               >
                 <div className="flex items-center gap-3">
-                  <FileText className={`h-4 w-4 ${isDark ? "text-zinc-500" : "text-zinc-400"}`} />
+                  <FileText className="text-muted-foreground h-4 w-4" />
                   <div>
-                    <p
-                      className={`text-sm font-medium ${isDark ? "text-zinc-100" : "text-zinc-900"}`}
-                    >
-                      {page.title}
-                    </p>
-                    <p className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
-                      /{page.slug}
-                    </p>
+                    <p className="text-foreground text-sm font-medium">{page.title}</p>
+                    <p className="text-muted-foreground text-xs">/{page.slug}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">

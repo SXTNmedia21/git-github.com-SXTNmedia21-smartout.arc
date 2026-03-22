@@ -24,10 +24,10 @@ type Props = {
 };
 
 /**
- * Two-column section editor layout.
+ * Section editor layout.
  *
- * Left (280px): SectionSidebar — lists all sections, handles add/select.
- * Right (flex-1): SectionForm — renders the editor for the active section.
+ * Desktop (lg+): SectionSidebar fixed 280px left, SectionForm flex-1 right.
+ * Mobile (<lg): SectionSidebar renders as horizontal tab bar on top, form stacks below.
  *
  * The top bar shows a breadcrumb, current save state, and a preview link.
  */
@@ -41,7 +41,7 @@ export default function SectionEditor({ pageId, websiteId, pageTitle }: Props) {
   return (
     <div className="flex h-full flex-col">
       {/* Top bar */}
-      <div className="bg-background sticky top-0 z-10 flex items-center justify-between border-b px-6 py-3">
+      <div className="bg-background sticky top-0 z-10 flex items-center justify-between border-b px-4 py-3 lg:px-6">
         <nav className="text-muted-foreground flex items-center gap-1 text-sm">
           <Link href="/dashboard/website" className="hover:text-foreground">
             Nettside
@@ -59,13 +59,13 @@ export default function SectionEditor({ pageId, websiteId, pageTitle }: Props) {
             className="hover:bg-accent inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm transition-colors"
           >
             <Eye className="h-4 w-4" />
-            Forhåndsvisning
+            <span className="hidden sm:inline">Forhåndsvisning</span>
           </a>
         </div>
       </div>
 
-      {/* Two-column body */}
-      <div className="flex min-h-0 flex-1">
+      {/* Body — SectionSidebar handles responsive layout internally */}
+      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         {isLoading ? (
           <div className="text-muted-foreground flex w-full items-center justify-center text-sm">
             Laster seksjoner...
@@ -88,8 +88,9 @@ export default function SectionEditor({ pageId, websiteId, pageTitle }: Props) {
                   onSaveStateChange={setSaveState}
                 />
               ) : (
-                <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
-                  Velg en seksjon fra sidepanelet
+                <div className="text-muted-foreground flex h-full items-center justify-center p-8 text-center text-sm">
+                  Velg en seksjon <span className="lg:hidden">&nbsp;fra fanene ovenfor</span>
+                  <span className="hidden lg:inline">&nbsp;fra sidepanelet</span>
                 </div>
               )}
             </div>
