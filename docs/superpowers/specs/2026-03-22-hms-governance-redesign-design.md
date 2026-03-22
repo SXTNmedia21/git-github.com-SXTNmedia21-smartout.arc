@@ -894,7 +894,462 @@ C3 Commercial (Phase 3) -> Untrained employee = supervision cost on shift_cost_s
 
 ---
 
-## 15. Phasing
+## 15. Schema & Data Architecture
+
+### 15.1 Entity Relationship Map
+
+```
+GOVERNANCE LAYER (content authoring)
+==============================================================
+policy ─────────────────┐
+  policy_id (PK)        │
+  workspace_id (FK)     │  1:N
+  policy_type (enum)    │
+  name, statement       │
+                        ▼
+              protocol ─────────────────┐
+                protocol_id (PK)       │
+                policy_id (FK)         │  1:N
+                workspace_id (FK)      │
+                status (enum)          │
+                version                │
+                                       ▼
+                    ┌─── procedure ◄──────── session_hook
+                    │      procedure_id (PK)    linked_procedure_id (FK)
+                    │      protocol_id (FK)     department_id (FK)
+                    │      procedure_type        hook_type (enum)
+                    │                            trigger_offset_min
+                    │
+                    ├─── knowledge_test
+                    │      knowledge_test_id (PK)
+                    │      protocol_id (FK)
+                    │      questions (jsonb)
+                    │      pass_threshold
+                    │
+                    └─── confirmation
+                           confirmation_id (PK)
+                           protocol_id (FK)
+                           confirmation_text
+
+
+ASSIGNMENT LAYER (per-employee tracking)
+==============================================================
+protocol_assignment ──────────────────────────────────┐
+  assignment_id (PK)                                  │
+  profile_id (FK) ◄──── profile                       │
+  protocol_id (FK) ◄──── protocol                     │
+  status: pending | completed | expired               │
+  assigned_at, completed_at                           │
+                                                      │  1:N
+  ┌───────────────────────────────────────────────────┘
+  │
+  ├── procedure_step_completion
+  │     procedure_step_id (FK) ◄── procedure_step
+  │     profile_id (FK)
+  │     protocol_assignment_id (FK)
+  │     completed_at, evidence (json)
+  │
+  ├── knowledge_test_attempt
+  │     knowledge_test_id (FK)
+  │     profile_id (FK)
+  │     protocol_assignment_id (FK)
+  │     score, passed, answers (jsonb)
+  │
+  └── confirmation_signature
+        confirmation_id (FK)
+        profile_id (FK)
+        protocol_assignment_id (FK)
+        signed_at, device_info, signature_data
+
+
+CASCADE D3 LAYER (regulatory rules)
+==============================================================
+regulatory_framework ──────────┐
+  framework_id (PK)            │
+  code: "ik-mat-no-2025"       │  1:N
+  industry: "hospitality"      │
+  jurisdiction: "NO"           │
+  workspace_id: NULL (K1a)     │
+                               ▼
+          framework_rule ──────────────────────────┐
+            rule_id (PK)                           │
+            framework_id (FK)                      │  N:1
+            rule_type: gate|constraint|advisory    │
+            category: "food_safety"                │
+            evaluation_config (jsonb):             │
+              linked_procedure_id ─────────────────┼──► procedure
+              check_type, min, max, unit           │
+              frequency_minutes                    │
+            severity, source_reference             │
+                                                   │
+          framework_trigger ───────────────────────┘
+            trigger_id (PK)                 links via
+            framework_id (FK)               linked_rule_ids[]
+            trigger_mode: reactive|scheduled
+            evaluation_config (jsonb):
+              condition, threshold
+              action: create_session_task
+              escalation: create_deviation
+
+
+CASCADE D6 LAYER (production execution)
+==============================================================
+department_session ────────────────┐
+  session_id (PK)                  │
+  department_id (FK)               │  1:N
+  date, status (enum)              │
+  signed_off_by, signoff_type      │
+                                   ▼
+          session_task ────────────────────────────┐
+            id (PK)                                │
+            department_session_id (FK)             │
+            session_hook_id (FK, nullable)         │
+            assigned_to (FK -> profile, nullable)  │
+            status: pending|available|in_progress  │
+                    |completed|skipped|overdue     │
+            title, description                     │
+            evidence (json)                        │
+            is_compliance_required (bool)           │
+            completed_by (FK), completed_at        │
+            workspace_id (FK)                      │
+                                                   │
+            ┌──── PHASE 2 ADDITIONS ──────────────┤
+            │  due_at (timestamptz)                │
+            │  priority: critical|high|normal|low  │
+            │  source_type: hook|ad_hoc|inherited  │
+            │       |routine                       │
+            └──────────────────────────────────────┘
+
+
+CASCADE C1 LAYER (calibration)
+==============================================================
+daily_reconciliation
+  reconciliation_id (PK)
+  department_id (FK)
+  session_id (FK) ◄──── department_session
+  reconciliation_date
+  ──── links to deviations via session_id
+
+workspace_kpi_target
+  id (PK)
+  workspace_id (FK)
+  metric: "team_readiness_percent"
+  target_value: 90
+  benchmark_value (nullable)
+
+
+CASCADE C4 LAYER (governance/authority)
+==============================================================
+engine_authority_config
+  id (PK)
+  workspace_id (FK)
+  capability: "hms.assign_training" | "hms.close_deviation" | ...
+  level: "employee" | "manager" | "admin" | "owner"
+  UNIQUE(workspace_id, capability)
+
+change_proposal (for procedure edits, Phase 2+)
+  change_proposal_id (PK)
+  workspace_id (FK)
+  trigger_entity_type: "procedure"
+  trigger_entity_id (FK) ◄──── procedure
+  changes (jsonb)
+  status: proposed|approved|applied|rejected
+  framework_trigger_id (FK, nullable)
+  policy_rule_ids (text[], nullable)
+  approval_required (bool)
+
+
+DEVIATION (HMS exception tracking)
+==============================================================
+public.deviation (existing table)
+  deviation_id (PK)
+  workspace_id (FK)
+  department_id (FK, nullable)
+  session_id (FK) ◄──── department_session
+  domain: safety|customer|procedure|system|material
+  severity: low|medium|high|critical
+  status: open|acknowledged|resolved|escalated
+  title, description
+  reported_by (FK -> profile)
+  resolved_by (FK -> profile), resolved_at
+  resolution_notes
+  attachments (json)
+  blocks_day_approval (bool)
+  cost_impact, payroll_impact
+  reconciliation_id (FK) ◄──── daily_reconciliation
+  subcategory
+  ──── PHASE 2 ADDITIONS:
+  procedure_id (FK) ◄──── procedure
+  protocol_id (FK) ◄──── protocol
+  source_task_id (FK) ◄──── session_task
+  assigned_to (FK -> profile)
+  closure_record (jsonb)
+
+NOTE: payroll.deviation is a SEPARATE table in the payroll schema
+for payroll-specific deviations. Do NOT confuse with public.deviation.
+
+
+ENGINE LAYER (workflow state)
+==============================================================
+engine_process (blueprint, platform-level)
+  id (PK)
+  name: "learning-journey-v1"
+  max_steps: 5
+  workspace_id: NULL (platform blueprint)
+
+engine_state (one per protocol_assignment)
+  id (PK)
+  process_id (FK) ◄──── engine_process
+  workspace_id (FK)
+  assignee_id (FK) ◄──── profile
+  entity_type: "protocol_assignment"
+  entity_id (FK) ◄──── protocol_assignment.assignment_id
+  status: "active" | "completed" | "failed"
+  current_step: integer
+  context (jsonb)
+  steps_snapshot (jsonb)
+  started_at, completed_at
+
+engine_state_step (5 per learning journey state)
+  id (PK)
+  state_id (FK) ◄──── engine_state
+  step_order: 1-5
+  action_type: "wait_for_event" | "assign_task" | "validate_settlement"
+  action_payload (jsonb):
+    step 1: { type: "understand", procedure_id: "..." }
+    step 2: { type: "practice", procedure_id: "..." }
+    step 3: { type: "test", knowledge_test_id: "..." }
+    step 4: { type: "confirm", confirmation_id: "..." }
+    step 5: { type: "complete", assignment_id: "..." }
+  status: "pending" | "active" | "completed" | "skipped"
+  completed_at, completed_by
+
+KNOWLEDGE LAYER
+==============================================================
+workspace_doc_chunk (K1b, pgvector)
+  id (PK)
+  workspace_id (FK)
+  content, embedding (vector)
+  metadata (jsonb)
+  ──── queried via match_workspace_docs() RPC
+
+engine_memory (K1b, learned patterns)
+  id (PK)
+  workspace_id (FK)
+  content, embedding (vector)
+  metadata (jsonb)
+```
+
+### 15.2 procedure_step — Extended Schema
+
+```sql
+-- EXISTING columns (verified in database.types.ts)
+procedure_step
+  step_id          uuid PK
+  procedure_id     uuid FK -> procedure
+  title            text NOT NULL
+  description      text NOT NULL
+  estimated_minutes integer
+  is_required      boolean DEFAULT true
+  step_order       integer DEFAULT 0
+  created_at       timestamptz
+  updated_at       timestamptz
+
+-- PHASE 1 ADDITIONS (migration required)
+  training_content text          -- Rich learning material (markdown). Shown in Opplaering.
+  media_urls       jsonb         -- [{type: "image"|"video", url: string, caption: string}]
+```
+
+**Dual rendering contract:**
+
+| Context               | Column used                                       | Content depth       |
+| --------------------- | ------------------------------------------------- | ------------------- |
+| Drift (execution)     | `description` only                                | Compact, actionable |
+| Opplaering (learning) | `description` + `training_content` + `media_urls` | Rich, pedagogical   |
+| Documents (reading)   | All columns                                       | Full reference      |
+
+### 15.3 framework_rule.evaluation_config — JSON Schema
+
+```jsonc
+// For HACCP temperature control point
+{
+  "check_type": "range",
+  "min": 0,
+  "max": 4,
+  "unit": "celsius",
+  "frequency_minutes": 240,
+  "linked_procedure_id": "<uuid>",    // FK to procedure (soft reference in jsonb)
+  "control_point_name": "Walk-in cooler",
+  "equipment_id": "<uuid>",           // Optional FK to asset table
+  "auto_create_task": true,           // Should framework_trigger create session_task?
+  "deviation_on_fail": true           // Should failing evaluation create deviation?
+}
+
+// For training requirement gate
+{
+  "check_type": "protocol_completion",
+  "required_protocol_ids": ["<uuid>", "<uuid>"],
+  "scope": "position",               // "position" | "department" | "team"
+  "scope_id": "<uuid>",
+  "blocks_scheduling": true           // D2 constraint: cannot schedule without completion
+}
+
+// For document acknowledgment
+{
+  "check_type": "confirmation_signed",
+  "confirmation_id": "<uuid>",
+  "max_age_days": 365,               // Re-sign annually
+  "scope": "workspace"
+}
+```
+
+### 15.4 engine_state_step.action_payload — Learning Journey Steps
+
+```jsonc
+// Step 1: Understand
+{
+  "stage": "understand",
+  "procedure_id": "<uuid>",
+  "expected_action": "view_training_content",
+  "min_time_seconds": 30              // Must spend at least 30s reading
+}
+
+// Step 2: Practice
+{
+  "stage": "practice",
+  "procedure_id": "<uuid>",
+  "expected_action": "complete_all_steps",
+  "step_ids": ["<uuid>", "<uuid>"]    // procedure_step IDs to mark as read
+}
+
+// Step 3: Test
+{
+  "stage": "test",
+  "knowledge_test_id": "<uuid>",
+  "expected_action": "pass_test",
+  "pass_threshold": 80
+}
+
+// Step 4: Confirm
+{
+  "stage": "confirm",
+  "confirmation_id": "<uuid>",
+  "expected_action": "sign_confirmation"
+}
+
+// Step 5: Done
+{
+  "stage": "done",
+  "assignment_id": "<uuid>",
+  "expected_action": "mark_assignment_completed",
+  "emit_event": "protocol completed"
+}
+```
+
+### 15.5 Join Paths — How Surfaces Query Data
+
+**Oversikt (IK-Mat compliance status):**
+
+```sql
+SELECT fr.rule_id, fr.code, fr.category, fr.evaluation_config, fr.severity
+FROM framework_rule fr
+JOIN regulatory_framework rf ON fr.framework_id = rf.framework_id
+WHERE rf.code = 'ik-mat-no-2025'
+  AND rf.is_active = true
+-- Then for each rule, check last session_task completion time
+-- against evaluation_config.frequency_minutes
+```
+
+**Oversikt (readiness vs target):**
+
+```sql
+-- Actual readiness
+SELECT
+  p.profile_id,
+  COUNT(*) FILTER (WHERE pa.status = 'completed') AS completed,
+  COUNT(*) AS total
+FROM protocol_assignment pa
+JOIN protocol pr ON pa.protocol_id = pr.protocol_id
+WHERE pr.workspace_id = $workspace_id
+GROUP BY p.profile_id;
+
+-- Target
+SELECT target_value FROM workspace_kpi_target
+WHERE workspace_id = $workspace_id AND metric = 'team_readiness_percent';
+```
+
+**Drift (today's tasks for employee):**
+
+```sql
+SELECT st.*
+FROM session_task st
+JOIN department_session ds ON st.department_session_id = ds.session_id
+WHERE ds.date = CURRENT_DATE
+  AND ds.status IN ('active', 'upcoming')
+  AND (st.assigned_to = $profile_id OR st.assigned_to IS NULL)
+  AND st.status IN ('pending', 'available', 'in_progress')
+ORDER BY st.created_at;
+```
+
+**Documents (procedure with framework rule link):**
+
+```sql
+SELECT p.*, fr.code AS rule_code, fr.severity, fr.source_reference,
+       rf.name AS framework_name
+FROM procedure p
+LEFT JOIN framework_rule fr
+  ON fr.evaluation_config->>'linked_procedure_id' = p.procedure_id::text
+LEFT JOIN regulatory_framework rf ON fr.framework_id = rf.framework_id;
+```
+
+**Deviations (three-level linked, Phase 2):**
+
+```sql
+SELECT d.*,
+  p.name AS procedure_name,
+  pr.name AS protocol_name,
+  st.title AS task_title,
+  ds.date AS session_date
+FROM deviation d
+LEFT JOIN procedure p ON d.procedure_id = p.procedure_id
+LEFT JOIN protocol pr ON d.protocol_id = pr.protocol_id
+LEFT JOIN session_task st ON d.source_task_id = st.id
+LEFT JOIN department_session ds ON d.session_id = ds.session_id
+WHERE d.workspace_id = $workspace_id;
+```
+
+### 15.6 I1 Bootstrap Seed Data Required
+
+The hospitality I1 package must seed:
+
+| Table                  | Seed content                                                                                        | Count  |
+| ---------------------- | --------------------------------------------------------------------------------------------------- | ------ |
+| `regulatory_framework` | IK-mat NO 2025, HMS NO, Fire Safety NO                                                              | 3      |
+| `framework_rule`       | HACCP temperature gates, hygiene gates, allergen gates, fire safety constraints, HMS advisory rules | ~15-25 |
+| `framework_trigger`    | Overdue check triggers per rule, escalation triggers                                                | ~10-15 |
+| `engine_process`       | "learning-journey-v1" blueprint                                                                     | 1      |
+| `procedure` templates  | Temperature check, cleaning, allergen handling, fire drill, etc.                                    | ~10-15 |
+| `policy` templates     | HACCP policy, hygiene policy, fire safety policy, HR onboarding policy                              | ~5-8   |
+| `protocol` templates   | One per policy, linking to procedures                                                               | ~5-8   |
+
+Seed SQL lives in `supabase/templates/restaurant/` and is applied via `_apply.sql` during workspace onboarding.
+
+### 15.7 Migration Sequence by Phase
+
+| Phase | Migration                                                                               | Tables affected                                         |
+| ----- | --------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| 1     | Add training_content + media_urls to procedure_step                                     | procedure_step                                          |
+| 1     | Seed engine_process "learning-journey-v1" blueprint                                     | engine_process                                          |
+| 1     | Seed workspace_kpi_target default for readiness                                         | workspace_kpi_target                                    |
+| 2     | Add due_at, priority, source_type to session_task                                       | session_task                                            |
+| 2     | Add procedure_id, protocol_id, source_task_id, assigned_to, closure_record to deviation | deviation                                               |
+| 2     | Extend deviation_status enum (assigned, in_progress, closed, reopened)                  | deviation_status                                        |
+| 3     | Seed regulatory_framework + framework_rule + framework_trigger for IK-mat               | regulatory_framework, framework_rule, framework_trigger |
+| 3     | Link session_hook to framework_trigger (add framework_trigger_id FK)                    | session_hook                                            |
+
+---
+
+## 16. Phasing
 
 ### Phase 1: Legibility (make the system coherent)
 
