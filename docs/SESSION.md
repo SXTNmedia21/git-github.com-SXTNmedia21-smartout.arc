@@ -7,36 +7,46 @@ created: 2026-03-02
 
 ## Last Session
 
-| Field   | Value                         |
-| ------- | ----------------------------- |
-| Date    | 2026-03-22                    |
-| Branch  | `feat/website-factory` (wt-6) |
-| Feature | Website Factory — closure     |
-| Status  | ready_for_closure             |
+| Field   | Value                            |
+| ------- | -------------------------------- |
+| Date    | 2026-03-22                       |
+| Branch  | `feat/cascade-foundation` (wt-2) |
+| Feature | Cascade Foundation Completion    |
+| Status  | in_progress                      |
 
 ### What was done
 
-- All closure gates verified and passed
-- WORKLOG updated, decision log (12 entries), learning log (9 entries), user journeys all complete
-- Typecheck: 23/23 pass
-- Branch already merged to development (commit `fe0e9e8f`)
-- DASHBOARD.md updated with closure entry
+- Full cascade audit: code (48% overall), docs (75% aligned)
+- STATE.md rewritten: tables by cascade dimension, build order by phase
+- Spec written: `docs/superpowers/specs/2026-03-22-cascade-foundation-completion-design.md` v1.3.0
+  - 3 review rounds: 14 user corrections + 4 blocking steward fixes + 7 final polish
+  - 26 design decisions locked, 11 invariants, 17 bootstrap completion criteria
+- Implementation plan: `docs/superpowers/plans/2026-03-22-cascade-foundation-completion.md`
+  - 18 tasks, 5 phases, hardened with execution semantics
+  - Non-negotiable rules, pre-flight assumptions, overnight hours semantics
+- Feature branch + worktree created: wt-2
 
 ### Where we stopped
 
-- Feature ready for closure
-- Run: `~/.claude/scripts/close-feature.sh 6`
+- Feature just initialized in wt-2, ready for implementation
+- Plan is in main repo docs/ — copy spec+plan to worktree before starting
+- Start with Phase 1 Task 1: validate A1+A2 migrations via `supabase db reset`
 
-### Previous session (walkie-talkie / Komm)
+### Previous session (website-factory closure)
 
-- Phase 1 channel messaging: 16 enums, 12 tables, 42 RLS, RPCs, triggers, seed data
-- Web UI: 15+ components, renamed /dashboard/channels → /dashboard/komm
-- Komm rebuild: 5 of 8 tasks done (DB, telemetry, AI tools, web routes)
-- Remaining: Tasks 6-8 (conversation rewrite, help desk, mobile rebuild)
+- All closure gates verified and passed
+- Branch merged to development
 
 ### Known blockers / errors
 
-- None (all gates passed)
+- A1+A2 migrations not yet validated via db reset (Task 1)
+- `hospitality.ts` tariff rates still wrong in code (Task 4)
+- `create-invitation` EF payload validation needs inspection (Task 8)
+
+### Pending decisions
+
+- [ ] Confirm `create-invitation` accepts `invite_employment_type` + metadata pass-through
+- [ ] Resolve ADR-DRAFT 3 remaining decisions (template day-overrides, hook offset, cascade conflicts) — deferred to scheduling product phase
 
 ### Pending decisions
 

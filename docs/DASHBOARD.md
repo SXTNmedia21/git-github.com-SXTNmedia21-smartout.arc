@@ -16,7 +16,7 @@ tags: [dashboard, worktrees, tracking]
 | #    | Branch                        | Module          | Status      | Progress                                                                                                             | Blockers | Health |
 | ---- | ----------------------------- | --------------- | ----------- | -------------------------------------------------------------------------------------------------------------------- | -------- | ------ |
 | wt-1 | `feat/workspace-intelligence` | core            | merged      | Fully merged to development. Worktree needs cleanup removal.                                                         | —        | stale  |
-| wt-2 | `feat/walkie-talkie`          | communications  | in_progress | Just started. Spec + Phase 1 plan ready. 16 tasks.                                                                   | —        | clean  |
+| wt-2 | `feat/cascade-foundation`     | cross-cutting   | in_progress | Just started. Spec v1.3.0 + plan (18 tasks, 5 phases) ready. Bootstrap + rules + governance + invite cascade.        | —        | clean  |
 | wt-3 | `feat/emma-arena-views`       | walkAi          | in_progress | Spec + mockups done, settings persistence committed. Implementation not started.                                     | None     | clean  |
 | wt-4 | `feat/vaktlista-view`         | schedule        | in_progress | —                                                                                                                    | —        | —      |
 | wt-5 | `feat/payroll-foundation`     | payroll         | in_progress | —                                                                                                                    | —        | —      |
@@ -51,6 +51,7 @@ tags: [dashboard, worktrees, tracking]
 | wt-4 | infra-hardening        | `docs/journeys/JOURNEY-infra-hardening.md`        | missing |
 | wt-6 | website-factory        | `docs/journeys/JOURNEY-website-factory.md`        | missing |
 | wt-2 | walkie-talkie          | `docs/journeys/JOURNEY-walkie-talkie.md`          | missing |
+| wt-2 | cascade-foundation     | `docs/journeys/JOURNEY-cascade-foundation.md`     | missing |
 
 ## Recent Closures
 
@@ -100,6 +101,7 @@ tags: [dashboard, worktrees, tracking]
 
 ## Session History
 
+| 2026-03-22 | cascade-foundation | started | wt-2, module: cross-cutting. Spec v1.3.0 (3 review rounds, 14+4+7 corrections). Plan: 18 tasks, 5 phases. Bootstrap + rules + governance + invite cascade. |
 | 2026-03-22 | walkie-talkie | started | wt-2, module: communications. Channel comms spec + Phase 1 plan (16 tasks). LiveKit voice/video Phase 2. |
 | 2026-03-22 | website-factory | closed | Merged to development, wt-6 freed. Plan A (12 tables, shared package, public site, publish pipeline) + Plan B (builder UI, spokesperson flow, mobile admin). 30+ commits. |
 | 2026-03-22 | website-factory | started | wt-6, module: website-factory. Spec + Plan A (foundation) ready. |
