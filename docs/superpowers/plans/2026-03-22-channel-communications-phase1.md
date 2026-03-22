@@ -21,15 +21,27 @@ tags: [channels, chat, messaging, supabase, realtime, phase-1]
 
 ---
 
+## Prerequisites
+
+Before starting Task 1, verify:
+
+1. **Helper functions exist:** Run `SELECT proname FROM pg_proc WHERE proname IN ('get_workspace_ids_for_user', 'is_admin_in_workspace', 'get_api_workspace_id', 'set_updated_at');` — all 4 must exist.
+2. **Profile role enum:** `profile_role` is `employee | manager | admin | owner`. No `system` value exists. Botsson needs a different approach (see Task 5).
+3. **Existing chat tables:** `chat_conversation`, `chat_participant`, `chat_message` exist and remain untouched.
+
+---
+
 ## File Structure
 
 ### Database
 
 ```
 supabase/migrations/
-  YYYYMMDDHHMMSS_channel_communications.sql     -- All enums, tables, indexes, RLS, triggers
-  YYYYMMDDHHMMSS_channel_seed_botsson.sql        -- Seed Botsson system profile per workspace
-  YYYYMMDDHHMMSS_channel_auto_create_triggers.sql -- Triggers for auto-creating dept/team channels
+  YYYYMMDDHHMMSS_channel_communications.sql       -- Enums, tables, indexes, constraints, triggers
+  YYYYMMDDHHMMSS_channel_rls_policies.sql          -- All RLS policies (separate for readability)
+  YYYYMMDDHHMMSS_channel_functions.sql             -- create_channel(), read-model RPCs
+  YYYYMMDDHHMMSS_channel_seed_botsson.sql          -- Botsson profile seed
+  YYYYMMDDHHMMSS_channel_auto_create_triggers.sql  -- Dept/team auto-create triggers
 ```
 
 ### Telemetry
@@ -52,36 +64,37 @@ packages/supabase/src/
 apps/web/src/app/dashboard/channels/
   _hooks/
     channel-keys.ts               -- TanStack Query key factory
-    channel-types.ts              -- TypeScript types derived from database.types.ts
-    use-channels.ts               -- Channel list query (grouped by type)
-    use-channel-messages.ts       -- Infinite query with cursor pagination
-    use-channel-realtime.ts       -- Supabase Realtime subscription (messages + reactions)
-    use-send-message.ts           -- Send message mutation with optimistic update
+    channel-types.ts              -- TypeScript types from database.types.ts
+    use-channels.ts               -- Channel list via RPC
+    use-channel-messages.ts       -- Messages via RPC with cursor pagination
+    use-channel-realtime.ts       -- Supabase Realtime subscription
+    use-send-message.ts           -- Send message mutation (optimistic + idempotent)
     use-reactions.ts              -- Toggle reaction mutation
-    use-mark-as-read.ts           -- Mark channel as read mutation
-    use-create-channel.ts         -- Create custom/direct channel mutation
-    use-channel-members.ts        -- Members query + add/remove mutations
-    use-unread-counts.ts          -- Unread counts for sidebar badges
+    use-mark-as-read.ts           -- Mark channel as read
+    use-create-channel.ts         -- Create channel via create_channel() RPC
+    use-channel-members.ts        -- Members query + add/remove
+    use-unread-counts.ts          -- Unread counts via RPC
 ```
 
 ### Web UI — Components
 
 ```
 apps/web/src/app/dashboard/channels/
-  page.tsx                        -- Server component entry point
+  page.tsx                        -- Server component wrapper
   loading.tsx                     -- Suspense fallback
   _components/
-    ChannelShell.tsx              -- "use client" main 3-column layout
-    ChannelList.tsx               -- Left panel: channels grouped by type
-    ChannelItem.tsx               -- Single row in channel list
-    ChannelHeader.tsx             -- Channel title bar + actions
+    ChannelsPageClient.tsx        -- "use client" entry (consumes DashboardContext)
+    ChannelShell.tsx              -- 3-column layout
+    ChannelList.tsx               -- Left panel: grouped by type
+    ChannelItem.tsx               -- Single row in list
+    ChannelHeader.tsx             -- Title bar + actions
     MessageTimeline.tsx           -- Scrollable message area
     MessageBubble.tsx             -- Single user message
-    SystemMessage.tsx             -- Brief/handoff/reminder/summary display
-    MessageInput.tsx              -- Text input + attachment + send
+    SystemMessage.tsx             -- Brief/handoff/reminder/summary
+    MessageInput.tsx              -- Text input + send
     ReplyPreview.tsx              -- "Replying to..." banner
     MemberPanel.tsx               -- Right panel: member list
-    CreateChannel.tsx             -- Modal: create custom/direct channel
+    CreateChannel.tsx             -- Modal: create custom/direct
 ```
 
 ---
@@ -94,43 +107,14 @@ apps/web/src/app/dashboard/channels/
 
 - Create: `supabase/migrations/YYYYMMDDHHMMSS_channel_communications.sql`
 
-**Context:** Check existing enums first: `SELECT typname FROM pg_type WHERE typname LIKE 'channel%' OR typname LIKE 'comm_%';`. The spec defines 14 new enums. All must use `IF NOT EXISTS` or a DO block guard.
+- [ ] **Step 1: Create migration file with all 14 enum definitions**
 
-- [ ] **Step 1: Create migration file with all enum definitions**
+All enums from spec Section 3.1. Each wrapped in `DO $$ BEGIN IF NOT EXISTS ... END $$;` guard. Enum names prefixed per spec: `comm_channel_type`, `channel_message_type`, `channel_origin_type`, `channel_delivery_mode`, `channel_message_visibility`, `channel_audio_policy`, `channel_video_policy`, `channel_recording_policy`, `channel_ai_voice_policy`, `channel_member_role`, `channel_call_status`, `channel_presence_status`, `channel_integration_status`, `channel_ai_text_mode`, `channel_ai_voice_mode`, `channel_notification_priority`.
 
-```sql
--- File: supabase/migrations/YYYYMMDDHHMMSS_channel_communications.sql
--- Part 1: Enums
-
-DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'comm_channel_type') THEN
-    CREATE TYPE comm_channel_type AS ENUM (
-      'department', 'team', 'session', 'custom', 'direct', 'news', 'skill'
-    );
-  END IF;
-END $$;
-
-DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'channel_message_type') THEN
-    CREATE TYPE channel_message_type AS ENUM (
-      'text', 'image', 'file', 'voice_clip', 'system', 'brief',
-      'handoff', 'announcement', 'reminder', 'summary'
-    );
-  END IF;
-END $$;
-
--- Repeat for all 14 enums from spec Section 3.1
--- channel_origin_type, channel_delivery_mode, channel_message_visibility,
--- channel_audio_policy, channel_video_policy, channel_recording_policy,
--- channel_ai_voice_policy, channel_member_role, channel_call_status,
--- channel_presence_status, channel_integration_status,
--- channel_ai_text_mode, channel_ai_voice_mode, channel_notification_priority
-```
-
-- [ ] **Step 2: Run migration against local Supabase**
+- [ ] **Step 2: Run migration**
 
 Run: `docker exec -i $(docker ps -q -f name=supabase_db) psql -U postgres < supabase/migrations/<filename>.sql`
-Expected: No errors. Verify: `SELECT typname FROM pg_type WHERE typname LIKE 'channel%' OR typname LIKE 'comm_%';` returns 14 rows.
+Verify: `SELECT typname FROM pg_type WHERE typname LIKE 'channel%' OR typname LIKE 'comm_%';` returns 14+ rows.
 
 - [ ] **Step 3: Commit**
 
@@ -141,134 +125,84 @@ git commit -m "feat(channels): add 14 channel communication enums"
 
 ---
 
-### Task 2: Database Migration — Core Tables (channel, channel_member, channel_message)
+### Task 2: Database Migration — Core Tables + Constraints
 
 **Files:**
 
 - Modify: `supabase/migrations/YYYYMMDDHHMMSS_channel_communications.sql` (append)
 
-**Context:** Read spec Section 3.1 for exact column definitions. All FKs use `profile(profile_id)` and `workspace(workspace_id)`. All tables with `updated_at` get `set_updated_at()` trigger.
+**Context:** All FKs use `profile(profile_id)` and `workspace(workspace_id)` per spec convention. All tables with `updated_at` get `set_updated_at()` trigger.
 
-- [ ] **Step 1: Add channel table**
+- [ ] **Step 1: Add `channel` table**
+
+Per spec Section 3.1. Include `direct_pair_hash text` column.
+
+Uniqueness constraints (critical for trigger safety):
 
 ```sql
-CREATE TABLE IF NOT EXISTS channel (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id uuid NOT NULL REFERENCES workspace(workspace_id),
-  channel_type comm_channel_type NOT NULL,
-  name text,
-  description text,
-  avatar_url text,
-  created_by uuid REFERENCES profile(profile_id),
-  department_id uuid REFERENCES department(department_id),
-  team_id uuid REFERENCES team(team_id),
-  session_id uuid REFERENCES department_session(department_session_id),
-  is_read_only boolean NOT NULL DEFAULT false,
-  is_archived boolean NOT NULL DEFAULT false,
-  read_receipts_enabled boolean NOT NULL DEFAULT false,
-  audio_policy channel_audio_policy NOT NULL DEFAULT 'disabled',
-  video_policy channel_video_policy NOT NULL DEFAULT 'disabled',
-  recording_policy channel_recording_policy NOT NULL DEFAULT 'off',
-  ai_voice_policy channel_ai_voice_policy NOT NULL DEFAULT 'disabled',
-  allow_user_override boolean NOT NULL DEFAULT true,
-  direct_pair_hash text,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
-
-ALTER TABLE channel ENABLE ROW LEVEL SECURITY;
-
-CREATE INDEX idx_channel_workspace ON channel(workspace_id);
-CREATE INDEX idx_channel_department ON channel(department_id) WHERE department_id IS NOT NULL;
-CREATE INDEX idx_channel_team ON channel(team_id) WHERE team_id IS NOT NULL;
-CREATE INDEX idx_channel_session ON channel(session_id) WHERE session_id IS NOT NULL;
-CREATE UNIQUE INDEX idx_channel_direct_pair ON channel(workspace_id, direct_pair_hash)
-  WHERE direct_pair_hash IS NOT NULL;
-
-CREATE TRIGGER set_updated_at BEFORE UPDATE ON channel
-  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+CREATE UNIQUE INDEX idx_channel_direct_pair
+  ON channel(workspace_id, direct_pair_hash) WHERE direct_pair_hash IS NOT NULL;
+CREATE UNIQUE INDEX idx_channel_one_per_department
+  ON channel(department_id) WHERE department_id IS NOT NULL AND is_archived = false;
+CREATE UNIQUE INDEX idx_channel_one_per_team
+  ON channel(team_id) WHERE team_id IS NOT NULL AND is_archived = false;
+CREATE UNIQUE INDEX idx_channel_one_per_session
+  ON channel(session_id) WHERE session_id IS NOT NULL AND is_archived = false;
 ```
 
-- [ ] **Step 2: Add channel_member table**
+- [ ] **Step 2: Add `channel_member` table**
+
+Per spec. Include `workspace_id` for API key RLS. `UNIQUE(channel_id, profile_id)`.
+
+Note: `last_read_message_id` FK added after `channel_message` exists (Step 3). Integrity trigger added in Task 3.
+
+- [ ] **Step 3: Add `channel_message` table**
+
+Per spec. Include `channel_id` as denormalized FK. Include `client_message_id` with partial unique index.
+
+Add deferred FK for `channel_member.last_read_message_id`:
 
 ```sql
-CREATE TABLE IF NOT EXISTS channel_member (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  channel_id uuid NOT NULL REFERENCES channel(id) ON DELETE CASCADE,
-  workspace_id uuid NOT NULL REFERENCES workspace(workspace_id),
-  profile_id uuid NOT NULL REFERENCES profile(profile_id) ON DELETE RESTRICT,
-  role channel_member_role NOT NULL DEFAULT 'member',
-  is_ai boolean NOT NULL DEFAULT false,
-  last_read_message_id uuid,  -- FK added after channel_message exists
-  is_muted boolean NOT NULL DEFAULT false,
-  muted_until timestamptz,
-  joined_at timestamptz NOT NULL DEFAULT now(),
-  left_at timestamptz,
-  UNIQUE(channel_id, profile_id)
-);
-
-ALTER TABLE channel_member ENABLE ROW LEVEL SECURITY;
-
-CREATE INDEX idx_channel_member_channel_active ON channel_member(channel_id) WHERE left_at IS NULL;
-CREATE INDEX idx_channel_member_profile_active ON channel_member(profile_id) WHERE left_at IS NULL;
-CREATE INDEX idx_channel_member_workspace ON channel_member(workspace_id);
-```
-
-- [ ] **Step 3: Add channel_message table**
-
-```sql
-CREATE TABLE IF NOT EXISTS channel_message (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  channel_id uuid NOT NULL REFERENCES channel(id) ON DELETE CASCADE,
-  workspace_id uuid NOT NULL REFERENCES workspace(workspace_id),
-  sender_id uuid NOT NULL REFERENCES profile(profile_id) ON DELETE RESTRICT,
-  content text NOT NULL,
-  message_type channel_message_type NOT NULL DEFAULT 'text',
-  origin_type channel_origin_type NOT NULL DEFAULT 'human',
-  origin_id text,
-  delivery_mode channel_delivery_mode NOT NULL DEFAULT 'timeline',
-  visibility_scope channel_message_visibility NOT NULL DEFAULT 'all_members',
-  target_profile_ids uuid[],
-  event_id uuid,  -- FK added after channel_event exists
-  reply_to_id uuid REFERENCES channel_message(id) ON DELETE SET NULL,
-  system_data jsonb,
-  is_pinned boolean NOT NULL DEFAULT false,
-  pinned_by uuid REFERENCES profile(profile_id),
-  pinned_at timestamptz,
-  edited_at timestamptz,
-  deleted_at timestamptz,
-  client_message_id uuid,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
-
-ALTER TABLE channel_message ENABLE ROW LEVEL SECURITY;
-
--- Add deferred FK from channel_member
 ALTER TABLE channel_member
   ADD CONSTRAINT channel_member_last_read_fk
   FOREIGN KEY (last_read_message_id) REFERENCES channel_message(id) ON DELETE SET NULL;
-
-CREATE INDEX idx_channel_message_channel_created ON channel_message(channel_id, created_at DESC);
-CREATE INDEX idx_channel_message_workspace ON channel_message(workspace_id);
-CREATE INDEX idx_channel_message_reply_to ON channel_message(reply_to_id) WHERE reply_to_id IS NOT NULL;
-CREATE UNIQUE INDEX idx_channel_message_client_id ON channel_message(channel_id, client_message_id)
-  WHERE client_message_id IS NOT NULL;
-
-CREATE TRIGGER set_updated_at BEFORE UPDATE ON channel_message
-  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 ```
 
-- [ ] **Step 4: Run migration**
+- [ ] **Step 4: Add `last_read_message_id` integrity trigger**
 
-Run: `docker exec -i $(docker ps -q -f name=supabase_db) psql -U postgres < supabase/migrations/<filename>.sql`
-Expected: No errors. Verify tables exist: `\dt channel*`
+Ensures `last_read_message_id` references a message in the same channel:
 
-- [ ] **Step 5: Commit**
+```sql
+CREATE OR REPLACE FUNCTION validate_last_read_same_channel()
+RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.last_read_message_id IS NOT NULL THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM channel_message
+      WHERE id = NEW.last_read_message_id
+        AND channel_id = NEW.channel_id
+    ) THEN
+      RAISE EXCEPTION 'last_read_message_id must reference a message in the same channel';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trg_validate_last_read
+  BEFORE INSERT OR UPDATE OF last_read_message_id ON channel_member
+  FOR EACH ROW EXECUTE FUNCTION validate_last_read_same_channel();
+```
+
+- [ ] **Step 5: Run migration and verify**
+
+Verify tables exist. Verify uniqueness constraints work (try inserting duplicate department channel — should fail).
+
+- [ ] **Step 6: Commit**
 
 ```bash
 git add supabase/migrations/YYYYMMDDHHMMSS_channel_communications.sql
-git commit -m "feat(channels): add channel, channel_member, channel_message tables"
+git commit -m "feat(channels): add channel, channel_member, channel_message with constraints"
 ```
 
 ---
@@ -279,31 +213,41 @@ git commit -m "feat(channels): add channel, channel_member, channel_message tabl
 
 - Modify: `supabase/migrations/YYYYMMDDHHMMSS_channel_communications.sql` (append)
 
-**Context:** `channel_event`, `channel_message_reaction`, `channel_message_attachment`, `channel_message_read`. Plus Subsystem 3 policy tables.
+- [ ] **Step 1: Add `channel_event`**
 
-- [ ] **Step 1: Add channel_event**
+Per spec. Immutable (no updated_at). Idempotency key with partial unique index. No back-reference to channel_message.
 
-Per spec Section 3.1. No `updated_at` (immutable). Idempotency key with partial unique index.
+- [ ] **Step 2: Add `channel_message_reaction`**
 
-- [ ] **Step 2: Add channel_message_reaction**
+Per spec. **Include `channel_id`** (denormalized from parent message) for Realtime filter and RLS. `workspace_id` for API key RLS.
 
-Per spec. Includes `workspace_id` for API key RLS. `UNIQUE(message_id, profile_id, emoji)`.
+```sql
+CREATE TABLE IF NOT EXISTS channel_message_reaction (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  message_id uuid NOT NULL REFERENCES channel_message(id) ON DELETE CASCADE,
+  channel_id uuid NOT NULL REFERENCES channel(id) ON DELETE CASCADE,
+  workspace_id uuid NOT NULL REFERENCES workspace(workspace_id),
+  profile_id uuid NOT NULL REFERENCES profile(profile_id) ON DELETE RESTRICT,
+  emoji text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(message_id, profile_id, emoji)
+);
+```
 
-- [ ] **Step 3: Add channel_message_attachment**
+- [ ] **Step 3: Add `channel_message_attachment`**
 
-Per spec. Includes `workspace_id`.
+Per spec. **Include `channel_id`** (same reasoning as reactions).
 
-- [ ] **Step 4: Add channel_message_read**
+- [ ] **Step 4: Add `channel_message_read`**
 
-Per spec. Only used when `channel.read_receipts_enabled = true`. `UNIQUE(message_id, profile_id)`.
+Per spec. Only used when `channel.read_receipts_enabled = true`.
 
-- [ ] **Step 5: Add event_id FK on channel_message**
+- [ ] **Step 5: Add `event_id` FK on `channel_message`**
 
 ```sql
 ALTER TABLE channel_message
   ADD CONSTRAINT channel_message_event_fk
   FOREIGN KEY (event_id) REFERENCES channel_event(id) ON DELETE SET NULL;
-
 CREATE INDEX idx_channel_message_event ON channel_message(event_id) WHERE event_id IS NOT NULL;
 ```
 
@@ -313,7 +257,7 @@ CREATE INDEX idx_channel_message_event ON channel_message(event_id) WHERE event_
 
 - [ ] **Step 7: Run migration and verify**
 
-Run migration. Verify all tables: `\dt channel*` should show 11 tables + `call_log` (Phase 2).
+All tables present. Reactions have `channel_id`. Attachments have `channel_id`.
 
 - [ ] **Step 8: Commit**
 
@@ -328,57 +272,104 @@ git commit -m "feat(channels): add event, reaction, attachment, read, policy tab
 
 **Files:**
 
-- Modify: `supabase/migrations/YYYYMMDDHHMMSS_channel_communications.sql` (append)
+- Create: `supabase/migrations/YYYYMMDDHHMMSS_channel_rls_policies.sql`
 
-**Context:** Read spec Section 3.4 for complete SQL. Every table needs JWT SELECT + API key SELECT. Core tables (channel, channel_member, channel_message) need INSERT/UPDATE/DELETE too.
+**Critical rule:** Child tables (reaction, attachment, read, presence, call participant) must authorize via **channel membership**, not generic workspace membership. Workspace-level policies only for admin/config tables (integration, notification_policy, ai_policy, retention_policy).
 
-- [ ] **Step 1: Add channel RLS policies**
+- [ ] **Step 1: `channel` policies**
 
-Copy exact SQL from spec Section 3.4: `channel_jwt_select`, `channel_jwt_insert` (gated to custom/direct), `channel_jwt_update` (admin only), `channel_api_select`.
+Per spec Section 3.4:
 
-- [ ] **Step 2: Add channel_member RLS policies**
+- `channel_jwt_select`: active member check
+- `channel_jwt_insert`: restricted to `custom`/`direct` types + workspace member (all other types created by system/triggers)
+- `channel_jwt_update`: channel admin only
+- `channel_api_select`: workspace-scoped
 
-`member_jwt_select`, `member_jwt_insert`, `member_jwt_update`, `member_jwt_delete`, `member_api_select`.
+- [ ] **Step 2: `channel_member` policies**
 
-- [ ] **Step 3: Add channel_message RLS policies**
+Per spec:
 
-`message_jwt_select` (with visibility_scope check), `message_jwt_insert`, `message_jwt_update`, `message_jwt_delete`, `message_api_select`.
+- SELECT: members of channels you belong to
+- INSERT: channel admin
+- UPDATE: own record only (mute, read pointer)
+- DELETE: self or admin
+- API key: workspace-scoped
 
-- [ ] **Step 4: Add channel_event RLS policies**
+- [ ] **Step 3: `channel_message` policies**
 
-`event_jwt_select`, `event_api_select`. Insert is service_role only.
+Per spec. SELECT includes visibility_scope check. INSERT requires membership + sender = self. UPDATE/DELETE on own messages only.
 
-- [ ] **Step 5: Add remaining table RLS policies**
+- [ ] **Step 4: `channel_event` policies**
 
-For `channel_message_reaction`, `channel_message_attachment`, `channel_message_read`, `channel_integration`, `channel_notification_policy`, `channel_ai_policy`, `channel_retention_policy`:
+SELECT: channel member. INSERT: service role only.
+
+- [ ] **Step 5: Channel-child table policies (membership-scoped)**
+
+For `channel_message_reaction`, `channel_message_attachment`, `channel_message_read`:
+
+```sql
+-- Example: reaction SELECT requires membership in the parent channel
+CREATE POLICY "reaction_jwt_select" ON channel_message_reaction FOR SELECT USING (
+  channel_id IN (
+    SELECT channel_id FROM channel_member
+    WHERE profile_id IN (SELECT profile_id FROM profile WHERE user_id = auth.uid())
+    AND left_at IS NULL
+  )
+);
+
+-- INSERT: member of channel + own profile
+CREATE POLICY "reaction_jwt_insert" ON channel_message_reaction FOR INSERT WITH CHECK (
+  channel_id IN (
+    SELECT channel_id FROM channel_member
+    WHERE profile_id IN (SELECT profile_id FROM profile WHERE user_id = auth.uid())
+    AND left_at IS NULL
+  )
+  AND profile_id IN (SELECT profile_id FROM profile WHERE user_id = auth.uid())
+);
+
+-- DELETE: own reactions only
+CREATE POLICY "reaction_jwt_delete" ON channel_message_reaction FOR DELETE USING (
+  profile_id IN (SELECT profile_id FROM profile WHERE user_id = auth.uid())
+);
+
+-- API key
+CREATE POLICY "reaction_api_select" ON channel_message_reaction FOR SELECT
+  USING (workspace_id = get_api_workspace_id());
+```
+
+Same pattern for attachment and read tables.
+
+- [ ] **Step 6: Admin/config table policies (workspace-scoped)**
+
+For `channel_integration`, `channel_notification_policy`, `channel_ai_policy`, `channel_retention_policy`:
 
 - JWT SELECT: `workspace_id IN (SELECT get_workspace_ids_for_user(auth.uid()))`
-- JWT INSERT/DELETE: own profile scoped
-- API key SELECT: `workspace_id = get_api_workspace_id()`
+- JWT INSERT/UPDATE: workspace admin check via `is_admin_in_workspace()`
+- API key: workspace-scoped
 
-- [ ] **Step 6: Run migration and test RLS**
+- [ ] **Step 7: Run migration and test**
 
-Run migration. Test with a JWT: `SELECT * FROM channel;` should return empty (no membership yet).
+Test: with a JWT, `SELECT * FROM channel;` returns empty (no membership). Insert a member, then SELECT works.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
-git add supabase/migrations/YYYYMMDDHHMMSS_channel_communications.sql
-git commit -m "feat(channels): add RLS policies for all channel tables"
+git add supabase/migrations/YYYYMMDDHHMMSS_channel_rls_policies.sql
+git commit -m "feat(channels): add membership-scoped RLS for all channel tables"
 ```
 
 ---
 
-### Task 5: Database Migration — create_channel() Function + Botsson Seed
+### Task 5: Database Functions — create_channel() + Botsson Seed
 
 **Files:**
 
+- Create: `supabase/migrations/YYYYMMDDHHMMSS_channel_functions.sql`
 - Create: `supabase/migrations/YYYYMMDDHHMMSS_channel_seed_botsson.sql`
-- Modify: `supabase/migrations/YYYYMMDDHHMMSS_channel_communications.sql` (append create_channel function)
 
-**Context:** `create_channel()` is a SECURITY DEFINER function that enforces channel creation rules (spec Section 12). Direct channels compute `direct_pair_hash` for uniqueness. Botsson needs a system profile per workspace.
+**Critical rule:** ALL user-created channels go through `create_channel()`. No raw INSERT from client.
 
-- [ ] **Step 1: Write create_channel() function**
+- [ ] **Step 1: Write `create_channel()` SECURITY DEFINER function**
 
 ```sql
 CREATE OR REPLACE FUNCTION create_channel(
@@ -387,41 +378,70 @@ CREATE OR REPLACE FUNCTION create_channel(
   p_name text DEFAULT NULL,
   p_created_by uuid DEFAULT NULL,
   p_member_profile_ids uuid[] DEFAULT NULL
-) RETURNS uuid
+) RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
   v_channel_id uuid;
   v_pair_hash text;
   v_pid uuid;
+  v_creator_role text;
 BEGIN
-  -- Direct channel: enforce exactly 2 members + compute pair hash
-  IF p_channel_type = 'direct' THEN
-    IF array_length(p_member_profile_ids, 1) != 2 THEN
+  -- Permission checks by type
+  IF p_channel_type = 'custom' THEN
+    SELECT role::text INTO v_creator_role FROM profile
+      WHERE profile_id = p_created_by AND workspace_id = p_workspace_id;
+    IF v_creator_role NOT IN ('manager', 'admin', 'owner') THEN
+      RAISE EXCEPTION 'Only manager/admin/owner can create custom channels';
+    END IF;
+  ELSIF p_channel_type = 'direct' THEN
+    -- Validate exactly 2 distinct members
+    IF p_member_profile_ids IS NULL OR array_length(p_member_profile_ids, 1) != 2 THEN
       RAISE EXCEPTION 'Direct channels require exactly 2 members';
     END IF;
-    -- Sort for deterministic hash
+    IF p_member_profile_ids[1] = p_member_profile_ids[2] THEN
+      RAISE EXCEPTION 'Direct channel members must be distinct';
+    END IF;
+    -- Caller must be one of the two members
+    IF p_created_by != p_member_profile_ids[1] AND p_created_by != p_member_profile_ids[2] THEN
+      RAISE EXCEPTION 'Caller must be a member of the direct channel';
+    END IF;
+    -- Both must belong to same workspace
+    IF NOT EXISTS (
+      SELECT 1 FROM profile WHERE profile_id = p_member_profile_ids[1] AND workspace_id = p_workspace_id
+    ) OR NOT EXISTS (
+      SELECT 1 FROM profile WHERE profile_id = p_member_profile_ids[2] AND workspace_id = p_workspace_id
+    ) THEN
+      RAISE EXCEPTION 'Both members must belong to the workspace';
+    END IF;
+    -- Compute pair hash (sorted for determinism)
     IF p_member_profile_ids[1]::text < p_member_profile_ids[2]::text THEN
       v_pair_hash := p_member_profile_ids[1]::text || ':' || p_member_profile_ids[2]::text;
     ELSE
       v_pair_hash := p_member_profile_ids[2]::text || ':' || p_member_profile_ids[1]::text;
     END IF;
-
-    -- Check for existing
+    -- Idempotent: return existing (even if archived — reactivate)
     SELECT id INTO v_channel_id FROM channel
       WHERE workspace_id = p_workspace_id AND direct_pair_hash = v_pair_hash;
     IF v_channel_id IS NOT NULL THEN
-      RETURN v_channel_id;  -- Idempotent: return existing
+      -- Reactivate if archived
+      UPDATE channel SET is_archived = false, updated_at = now()
+        WHERE id = v_channel_id AND is_archived = true;
+      RETURN jsonb_build_object('channel_id', v_channel_id, 'created', false);
     END IF;
+  ELSIF p_channel_type IN ('department', 'team', 'session', 'skill', 'news') THEN
+    RAISE EXCEPTION 'Channel type % can only be created by system triggers or admin functions', p_channel_type;
   END IF;
 
+  -- Insert channel
   INSERT INTO channel (workspace_id, channel_type, name, created_by, direct_pair_hash)
   VALUES (p_workspace_id, p_channel_type, p_name, p_created_by, v_pair_hash)
   RETURNING id INTO v_channel_id;
 
-  -- Add creator as admin (if human-created)
+  -- Add creator as admin
   IF p_created_by IS NOT NULL THEN
     INSERT INTO channel_member (channel_id, workspace_id, profile_id, role)
-    VALUES (v_channel_id, p_workspace_id, p_created_by, 'admin');
+    VALUES (v_channel_id, p_workspace_id, p_created_by, 'admin')
+    ON CONFLICT (channel_id, profile_id) DO NOTHING;
   END IF;
 
   -- Add specified members
@@ -433,50 +453,67 @@ BEGIN
     END LOOP;
   END IF;
 
-  RETURN v_channel_id;
+  RETURN jsonb_build_object('channel_id', v_channel_id, 'created', true);
 END;
 $$;
 ```
 
 - [ ] **Step 2: Write Botsson seed migration**
 
+`profile_role` enum does not have `system`. Two options:
+
+- **Option A:** `ALTER TYPE profile_role ADD VALUE IF NOT EXISTS 'system';` then seed with role=system
+- **Option B:** Use role=`employee` with a dedicated `is_system_profile boolean DEFAULT false` column
+
+**Choose Option A** (cleaner, role is semantic). Then seed:
+
 ```sql
--- For each existing workspace, create a Botsson system profile if not exists
--- This is a one-time seed. New workspaces get Botsson during onboarding finalization.
+ALTER TYPE profile_role ADD VALUE IF NOT EXISTS 'system';
+
+-- Botsson needs a deterministic unique identity per workspace.
+-- Use a well-known UUID namespace for Botsson user_id.
+-- Actual auth.users entry created via admin API or existing service user.
+-- This migration only creates profile rows for workspaces that lack one.
+
 DO $$
 DECLARE
   ws RECORD;
-  v_user_id uuid;
+  v_botsson_user_id uuid;
 BEGIN
-  -- Find or create the Botsson service user
-  SELECT id INTO v_user_id FROM auth.users WHERE email = 'botsson@system.smartout.ai';
-  IF v_user_id IS NULL THEN
-    -- Service user creation should be done via Supabase admin API
-    -- For seed: skip if no service user exists yet
-    RAISE NOTICE 'Botsson service user not found. Skipping seed.';
+  -- Look up existing Botsson service user (created during infra setup)
+  SELECT id INTO v_botsson_user_id FROM auth.users
+    WHERE email = 'botsson@system.smartout.ai' LIMIT 1;
+
+  IF v_botsson_user_id IS NULL THEN
+    RAISE NOTICE 'Botsson service user not found in auth.users. Create it via admin API first.';
     RETURN;
   END IF;
 
   FOR ws IN SELECT workspace_id FROM workspace LOOP
     INSERT INTO profile (workspace_id, user_id, full_name, display_name, role, is_active)
-    VALUES (ws.workspace_id, v_user_id, 'Mr. Botsson', 'Mr. Botsson', 'system', true)
-    ON CONFLICT DO NOTHING;
+    VALUES (ws.workspace_id, v_botsson_user_id, 'Mr. Botsson', 'Mr. Botsson', 'system', true)
+    ON CONFLICT (workspace_id, user_id) DO NOTHING;
   END LOOP;
 END $$;
 ```
 
+Note: `ON CONFLICT (workspace_id, user_id)` requires this unique constraint to exist on profile. Verify before running. If not, use a guard query instead.
+
 - [ ] **Step 3: Run migrations and verify**
+
+Verify `create_channel()` exists. Test: `SELECT create_channel(ws_id, 'custom', '#test', profile_id);`
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add supabase/migrations/
+git add supabase/migrations/YYYYMMDDHHMMSS_channel_functions.sql
+git add supabase/migrations/YYYYMMDDHHMMSS_channel_seed_botsson.sql
 git commit -m "feat(channels): add create_channel() function + Botsson seed"
 ```
 
 ---
 
-### Task 6: Regenerate Types + Add Telemetry Events
+### Task 6: Regenerate Types + Telemetry Events
 
 **Files:**
 
@@ -486,51 +523,35 @@ git commit -m "feat(channels): add create_channel() function + Botsson seed"
 - [ ] **Step 1: Regenerate database types**
 
 Run: `npx supabase gen types typescript --local > packages/supabase/src/database.types.ts`
-
-Verify: File contains `channel`, `channel_member`, `channel_message`, `comm_channel_type` etc.
+Verify: File contains `channel`, `channel_member`, `channel_message`, `comm_channel_type`.
 
 - [ ] **Step 2: Add channel entity types to telemetry registry**
 
-In `packages/telemetry/src/registry.ts`, add to `EntityType`:
+Add to `EntityType`: `"channel" | "channel_member" | "channel_message" | "channel_event"`
+Add to `ActionVerb`: `"joined" | "left" | "pinned" | "unpinned" | "reacted" | "unreacted" | "read"`
+Add `EventCategory`: `"channels"`
 
-```typescript
-| "channel"
-| "channel_member"
-| "channel_message"
-| "channel_event"
-```
+- [ ] **Step 3: Add event interfaces**
 
-Add to `ActionVerb`:
-
-```typescript
-| "joined"
-| "left"
-| "pinned"
-| "unpinned"
-| "reacted"
-| "unreacted"
-| "read"
-```
-
-Add `EventCategory`: `"channels"` (separate from existing `"communication"` which covers notifications).
-
-- [ ] **Step 3: Add channel event interfaces**
-
-Add event type interfaces following existing pattern (e.g., `AuthSignedUp`):
+Use **dotted event names** consistently (e.g., `channel.created`, not `channel created`):
 
 ```typescript
 export interface ChannelCreated extends BaseEvent {
-  event: "channel created";
+  event: "channel.created";
   properties: { channel_type: string; name: string | null };
   entity: EntityRef;
 }
-// ... for all events in spec Section 7.2
+export interface MessageSent extends BaseEvent {
+  event: "message.sent";
+  properties: { channel_id: string; origin_type: string; message_type: string };
+  entity: EntityRef;
+}
+// ... all events from spec Section 7.2
 ```
 
 - [ ] **Step 4: Typecheck**
 
 Run: `pnpm turbo typecheck`
-Expected: 0 errors.
 
 - [ ] **Step 5: Commit**
 
@@ -541,16 +562,194 @@ git commit -m "feat(channels): regenerate types + add channel telemetry events"
 
 ---
 
-### Task 7: Query Key Factory + Types
+### Task 7: Read-Model RPCs
+
+**Files:**
+
+- Modify: `supabase/migrations/YYYYMMDDHHMMSS_channel_functions.sql` (append)
+
+**Context:** Complex queries (channel list with preview, messages with sender/reactions, unread counts) belong in DB RPCs, not ad-hoc Supabase selects. This keeps hooks simple and enables mobile reuse.
+
+- [ ] **Step 1: `get_my_channels()` RPC**
+
+Returns channel list for current user with last message preview and unread count:
+
+```sql
+CREATE OR REPLACE FUNCTION get_my_channels(p_profile_id uuid)
+RETURNS TABLE (
+  channel_id uuid,
+  workspace_id uuid,
+  channel_type comm_channel_type,
+  name text,
+  description text,
+  avatar_url text,
+  is_read_only boolean,
+  is_archived boolean,
+  audio_policy channel_audio_policy,
+  video_policy channel_video_policy,
+  member_count bigint,
+  unread_count bigint,
+  last_message_content text,
+  last_message_at timestamptz,
+  last_message_sender_name text,
+  last_message_sender_avatar text
+) LANGUAGE sql STABLE SECURITY INVOKER AS $$
+  SELECT
+    c.id AS channel_id,
+    c.workspace_id,
+    c.channel_type,
+    c.name,
+    c.description,
+    c.avatar_url,
+    c.is_read_only,
+    c.is_archived,
+    c.audio_policy,
+    c.video_policy,
+    (SELECT count(*) FROM channel_member cm2
+      WHERE cm2.channel_id = c.id AND cm2.left_at IS NULL) AS member_count,
+    (SELECT count(*) FROM channel_message msg
+      WHERE msg.channel_id = c.id
+        AND msg.deleted_at IS NULL
+        AND msg.delivery_mode = 'timeline'
+        AND (cm.last_read_message_id IS NULL
+          OR msg.created_at > (SELECT created_at FROM channel_message WHERE id = cm.last_read_message_id))
+    ) AS unread_count,
+    lm.content AS last_message_content,
+    lm.created_at AS last_message_at,
+    sp.display_name AS last_message_sender_name,
+    sp.avatar_url AS last_message_sender_avatar
+  FROM channel c
+  JOIN channel_member cm ON cm.channel_id = c.id
+    AND cm.profile_id = p_profile_id AND cm.left_at IS NULL
+  LEFT JOIN LATERAL (
+    SELECT content, created_at, sender_id FROM channel_message
+    WHERE channel_id = c.id AND deleted_at IS NULL AND delivery_mode = 'timeline'
+    ORDER BY created_at DESC LIMIT 1
+  ) lm ON true
+  LEFT JOIN profile sp ON sp.profile_id = lm.sender_id
+  WHERE c.is_archived = false
+  ORDER BY COALESCE(lm.created_at, c.created_at) DESC;
+$$;
+```
+
+- [ ] **Step 2: `get_channel_messages()` RPC**
+
+Cursor-based pagination. Returns messages with sender profile, reaction aggregation, and attachment list:
+
+```sql
+CREATE OR REPLACE FUNCTION get_channel_messages(
+  p_channel_id uuid,
+  p_cursor timestamptz DEFAULT now(),
+  p_limit int DEFAULT 50
+) RETURNS TABLE (
+  message_id uuid,
+  channel_id uuid,
+  sender_id uuid,
+  sender_name text,
+  sender_avatar text,
+  sender_role text,
+  content text,
+  message_type channel_message_type,
+  origin_type channel_origin_type,
+  visibility_scope channel_message_visibility,
+  reply_to_id uuid,
+  reply_to_content text,
+  reply_to_sender_name text,
+  system_data jsonb,
+  is_pinned boolean,
+  edited_at timestamptz,
+  deleted_at timestamptz,
+  client_message_id uuid,
+  created_at timestamptz,
+  reactions jsonb,
+  attachments jsonb
+) LANGUAGE sql STABLE SECURITY INVOKER AS $$
+  SELECT
+    m.id AS message_id,
+    m.channel_id,
+    m.sender_id,
+    sp.display_name AS sender_name,
+    sp.avatar_url AS sender_avatar,
+    sp.role::text AS sender_role,
+    m.content,
+    m.message_type,
+    m.origin_type,
+    m.visibility_scope,
+    m.reply_to_id,
+    rt.content AS reply_to_content,
+    rtp.display_name AS reply_to_sender_name,
+    m.system_data,
+    m.is_pinned,
+    m.edited_at,
+    m.deleted_at,
+    m.client_message_id,
+    m.created_at,
+    COALESCE((
+      SELECT jsonb_agg(jsonb_build_object('emoji', r.emoji, 'profile_id', r.profile_id))
+      FROM channel_message_reaction r WHERE r.message_id = m.id
+    ), '[]'::jsonb) AS reactions,
+    COALESCE((
+      SELECT jsonb_agg(jsonb_build_object(
+        'id', a.id, 'file_type', a.file_type, 'url', a.url,
+        'filename', a.filename, 'size_bytes', a.size_bytes
+      ))
+      FROM channel_message_attachment a WHERE a.message_id = m.id
+    ), '[]'::jsonb) AS attachments
+  FROM channel_message m
+  JOIN profile sp ON sp.profile_id = m.sender_id
+  LEFT JOIN channel_message rt ON rt.id = m.reply_to_id
+  LEFT JOIN profile rtp ON rtp.profile_id = rt.sender_id
+  WHERE m.channel_id = p_channel_id
+    AND m.created_at < p_cursor
+    AND m.delivery_mode = 'timeline'
+  ORDER BY m.created_at DESC
+  LIMIT p_limit;
+$$;
+```
+
+- [ ] **Step 3: `get_unread_counts()` RPC**
+
+```sql
+CREATE OR REPLACE FUNCTION get_unread_counts(p_profile_id uuid)
+RETURNS TABLE (channel_id uuid, unread_count bigint)
+LANGUAGE sql STABLE SECURITY INVOKER AS $$
+  SELECT
+    cm.channel_id,
+    count(msg.id) AS unread_count
+  FROM channel_member cm
+  JOIN channel c ON c.id = cm.channel_id AND c.is_archived = false
+  LEFT JOIN channel_message msg ON msg.channel_id = cm.channel_id
+    AND msg.deleted_at IS NULL
+    AND msg.delivery_mode = 'timeline'
+    AND (cm.last_read_message_id IS NULL
+      OR msg.created_at > (SELECT created_at FROM channel_message WHERE id = cm.last_read_message_id))
+  WHERE cm.profile_id = p_profile_id AND cm.left_at IS NULL
+  GROUP BY cm.channel_id
+  HAVING count(msg.id) > 0;
+$$;
+```
+
+- [ ] **Step 4: Run migration and test RPCs**
+
+Test: `SELECT * FROM get_my_channels('some-profile-id');` — should return empty (no channels yet).
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add supabase/migrations/YYYYMMDDHHMMSS_channel_functions.sql
+git commit -m "feat(channels): add read-model RPCs (get_my_channels, get_channel_messages, get_unread_counts)"
+```
+
+---
+
+### Task 8: Query Key Factory + Types
 
 **Files:**
 
 - Create: `apps/web/src/app/dashboard/channels/_hooks/channel-keys.ts`
 - Create: `apps/web/src/app/dashboard/channels/_hooks/channel-types.ts`
 
-- [ ] **Step 1: Create channel-keys.ts**
-
-Follow pattern from `chat-keys.ts`:
+- [ ] **Step 1: Create `channel-keys.ts`**
 
 ```typescript
 export const channelKeys = {
@@ -566,56 +765,9 @@ export const channelKeys = {
 };
 ```
 
-- [ ] **Step 2: Create channel-types.ts**
+- [ ] **Step 2: Create `channel-types.ts`**
 
-Derive types from regenerated `database.types.ts`:
-
-```typescript
-import type { Database } from "@smartout/supabase/database.types";
-
-type Tables = Database["public"]["Tables"];
-type Enums = Database["public"]["Enums"];
-
-export type ChannelRow = Tables["channel"]["Row"];
-export type ChannelMemberRow = Tables["channel_member"]["Row"];
-export type ChannelMessageRow = Tables["channel_message"]["Row"];
-export type ChannelEventRow = Tables["channel_event"]["Row"];
-export type ChannelType = Enums["comm_channel_type"];
-export type ChannelMessageType = Enums["channel_message_type"];
-
-export type ChannelProfile = {
-  profile_id: string;
-  display_name: string | null;
-  avatar_url: string | null;
-  role: string | null;
-};
-
-export type ChannelWithPreview = ChannelRow & {
-  member_count: number;
-  last_message: {
-    content: string;
-    created_at: string;
-    sender: ChannelProfile;
-  } | null;
-  unread_count: number;
-};
-
-export type MessageWithSender = ChannelMessageRow & {
-  sender: ChannelProfile;
-  reply_to: {
-    id: string;
-    content: string;
-    sender: ChannelProfile;
-  } | null;
-  reactions: Array<{ emoji: string; count: number; reacted_by_me: boolean }>;
-  attachments: Array<{
-    id: string;
-    file_type: string;
-    url: string;
-    filename: string;
-  }>;
-};
-```
+Derive from `database.types.ts` + define UI composite types (`ChannelWithPreview`, `MessageWithSender`). Follow existing `chat-types.ts` pattern.
 
 - [ ] **Step 3: Commit**
 
@@ -626,118 +778,55 @@ git commit -m "feat(channels): add query key factory + TypeScript types"
 
 ---
 
-### Task 8: Core Hooks — useChannels + useChannelMessages
+### Task 9: Core Hooks
 
 **Files:**
 
-- Create: `apps/web/src/app/dashboard/channels/_hooks/use-channels.ts`
-- Create: `apps/web/src/app/dashboard/channels/_hooks/use-channel-messages.ts`
+- Create all hooks listed in File Structure
 
-**Context:** Follow pattern from existing `use-conversations.ts` and `use-messages.ts`. Use `@tanstack/react-query` with `useQuery` and `useInfiniteQuery`.
+**Critical rule:** All channel creation goes through `create_channel()` RPC. Never raw INSERT.
 
-- [ ] **Step 1: Write use-channels.ts**
+- [ ] **Step 1: `use-channels.ts`**
 
-```typescript
-import { useQuery } from "@tanstack/react-query";
-import { channelKeys } from "./channel-keys";
-import type { ChannelWithPreview } from "./channel-types";
-// Query: fetch channels with last_message, member_count, unread_count
-// Group by channel_type for the UI list
-```
+Calls `get_my_channels()` RPC via `supabase.rpc('get_my_channels', { p_profile_id })`. Groups results by `channel_type` for the UI.
 
-Supabase query pattern:
+- [ ] **Step 2: `use-channel-messages.ts`**
 
-```typescript
-const { data } = await supabase
-  .from("channel")
-  .select(
-    `
-    *,
-    members:channel_member!inner(count),
-    last_message:channel_message(content, created_at, sender:profile!sender_id(profile_id, display_name, avatar_url))
-  `,
-  )
-  .eq("is_archived", false)
-  .order("updated_at", { ascending: false });
-```
+Calls `get_channel_messages()` RPC with cursor pagination via `useInfiniteQuery`. `getNextPageParam` uses last message's `created_at`.
 
-- [ ] **Step 2: Write use-channel-messages.ts**
+- [ ] **Step 3: `use-send-message.ts`**
 
-```typescript
-import { useInfiniteQuery } from "@tanstack/react-query";
-// Cursor-based pagination: 50 messages per page, ordered by created_at DESC
-// Join sender profile, reply_to message + sender, reactions (aggregated), attachments
-```
+Mutation: INSERT into `channel_message`. Generates `client_message_id = crypto.randomUUID()` before insert. Optimistic update: prepend to cache. On success: emit `message.sent`. On duplicate `client_message_id`: return existing (idempotent).
 
-- [ ] **Step 3: Verify types compile**
+- [ ] **Step 4: `use-reactions.ts`**
+
+Toggle: check if own reaction exists (DELETE) or create (INSERT). Must include `channel_id` in insert. Emit `reaction.added` / `reaction.removed`.
+
+- [ ] **Step 5: `use-mark-as-read.ts`**
+
+Update `channel_member.last_read_message_id`. Emit `channel.read`. Invalidate unread counts.
+
+- [ ] **Step 6: `use-create-channel.ts`**
+
+ALL types via `supabase.rpc('create_channel', { ... })`. Returns `{ channel_id, created }`. Emit `channel.created`.
+
+- [ ] **Step 7: `use-channel-members.ts`**
+
+Query members. Add/remove mutations with telemetry.
+
+- [ ] **Step 8: `use-unread-counts.ts`**
+
+Calls `get_unread_counts()` RPC. Used for sidebar badges.
+
+- [ ] **Step 9: Typecheck**
 
 Run: `pnpm turbo typecheck`
 
-- [ ] **Step 4: Commit**
-
-```bash
-git add apps/web/src/app/dashboard/channels/_hooks/use-channels.ts
-git add apps/web/src/app/dashboard/channels/_hooks/use-channel-messages.ts
-git commit -m "feat(channels): add useChannels + useChannelMessages hooks"
-```
-
----
-
-### Task 9: Mutation Hooks — useSendMessage + useReactions + useMarkAsRead
-
-**Files:**
-
-- Create: `apps/web/src/app/dashboard/channels/_hooks/use-send-message.ts`
-- Create: `apps/web/src/app/dashboard/channels/_hooks/use-reactions.ts`
-- Create: `apps/web/src/app/dashboard/channels/_hooks/use-mark-as-read.ts`
-- Create: `apps/web/src/app/dashboard/channels/_hooks/use-create-channel.ts`
-- Create: `apps/web/src/app/dashboard/channels/_hooks/use-channel-members.ts`
-- Create: `apps/web/src/app/dashboard/channels/_hooks/use-unread-counts.ts`
-
-**Context:** Every mutation emits via `@smartout/telemetry`. Follow pattern from existing chat hooks. `useSendMessage` includes optimistic update. `client_message_id` generated client-side as UUID for idempotent retry.
-
-- [ ] **Step 1: Write use-send-message.ts with optimistic update**
-
-```typescript
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { emit } from "@smartout/telemetry";
-import { v4 as uuid } from "uuid";
-// Generate client_message_id = uuid() before insert
-// Optimistic: prepend to cache immediately
-// onSuccess: emit("message.sent", ...)
-// onError: rollback
-// onSettled: invalidate messages + channels
-```
-
-- [ ] **Step 2: Write use-reactions.ts**
-
-Toggle reaction: check if exists (DELETE) or create (INSERT). Emit `reaction.added` / `reaction.removed`.
-
-- [ ] **Step 3: Write use-mark-as-read.ts**
-
-Update `channel_member.last_read_message_id` for current profile. Emit `channel.read`.
-
-- [ ] **Step 4: Write use-create-channel.ts**
-
-Call `create_channel()` RPC for direct channels (idempotent). For custom: standard INSERT. Emit `channel.created`.
-
-- [ ] **Step 5: Write use-channel-members.ts**
-
-Query members + add/remove mutations. Emit `channel.member_joined` / `channel.member_left`.
-
-- [ ] **Step 6: Write use-unread-counts.ts**
-
-Query unread count per channel: `SELECT count(*) FROM channel_message WHERE created_at > (SELECT cm.last_read_message_id...)`.
-
-- [ ] **Step 7: Typecheck**
-
-Run: `pnpm turbo typecheck`
-
-- [ ] **Step 8: Commit**
+- [ ] **Step 10: Commit**
 
 ```bash
 git add apps/web/src/app/dashboard/channels/_hooks/
-git commit -m "feat(channels): add mutation hooks (send, react, read, create, members)"
+git commit -m "feat(channels): add all data hooks (channels, messages, send, react, read, create, members, unread)"
 ```
 
 ---
@@ -748,15 +837,11 @@ git commit -m "feat(channels): add mutation hooks (send, react, read, create, me
 
 - Create: `apps/web/src/app/dashboard/channels/_hooks/use-channel-realtime.ts`
 
-**Context:** Follow pattern from `use-chat-realtime.ts`. Subscribe to `channel_message` and `channel_message_reaction` changes for the active channel. Invalidate TanStack Query cache on events.
+**Context:** Subscribe to `channel_message` and `channel_message_reaction` changes. Both tables now have `channel_id`, so we can filter directly. Note: Supabase Realtime requires explicit channel setup — subscriptions are not automatic from RLS.
 
-- [ ] **Step 1: Write use-channel-realtime.ts**
+- [ ] **Step 1: Write `use-channel-realtime.ts`**
 
 ```typescript
-import { useEffect } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { channelKeys } from "./channel-keys";
-
 export function useChannelRealtime(
   workspaceId: string,
   channelId: string | null,
@@ -767,7 +852,7 @@ export function useChannelRealtime(
   useEffect(() => {
     if (!channelId) return;
 
-    const channel = supabase
+    const realtimeChannel = supabase
       .channel(`channel:${workspaceId}:${channelId}`)
       .on(
         "postgres_changes",
@@ -781,6 +866,9 @@ export function useChannelRealtime(
           queryClient.invalidateQueries({
             queryKey: channelKeys.messages(workspaceId, channelId),
           });
+          queryClient.invalidateQueries({
+            queryKey: channelKeys.list(workspaceId),
+          });
         },
       )
       .on(
@@ -789,7 +877,7 @@ export function useChannelRealtime(
           event: "*",
           schema: "public",
           table: "channel_message_reaction",
-          // Reactions don't have channel_id — invalidate via message cache
+          filter: `channel_id=eq.${channelId}`,
         },
         () => {
           queryClient.invalidateQueries({
@@ -800,13 +888,17 @@ export function useChannelRealtime(
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(realtimeChannel);
     };
   }, [workspaceId, channelId, supabase, queryClient]);
 }
 ```
 
-- [ ] **Step 2: Commit**
+- [ ] **Step 2: Verify Supabase Realtime config**
+
+Ensure `channel_message` and `channel_message_reaction` tables have Realtime enabled in Supabase Dashboard (or via migration: `ALTER PUBLICATION supabase_realtime ADD TABLE channel_message, channel_message_reaction;`).
+
+- [ ] **Step 3: Commit**
 
 ```bash
 git add apps/web/src/app/dashboard/channels/_hooks/use-channel-realtime.ts
@@ -815,27 +907,36 @@ git commit -m "feat(channels): add Supabase Realtime subscription hook"
 
 ---
 
-### Task 11: UI Components — ChannelShell + ChannelList + ChannelItem
+### Task 11: UI — Page Entry + Shell + List
 
 **Files:**
 
 - Create: `apps/web/src/app/dashboard/channels/page.tsx`
 - Create: `apps/web/src/app/dashboard/channels/loading.tsx`
+- Create: `apps/web/src/app/dashboard/channels/_components/ChannelsPageClient.tsx`
 - Create: `apps/web/src/app/dashboard/channels/_components/ChannelShell.tsx`
 - Create: `apps/web/src/app/dashboard/channels/_components/ChannelList.tsx`
 - Create: `apps/web/src/app/dashboard/channels/_components/ChannelItem.tsx`
 
-**Context:** Follow existing patterns from `dashboard/chat/`. Use `DashboardContext` for `profileId`. Use shadcn/ui components. CSS variables for colors (never hardcoded). The shell is a 3-column layout: list | messages | member panel.
+- [ ] **Step 1: Create `page.tsx` as server wrapper**
 
-- [ ] **Step 1: Create page.tsx**
+```typescript
+import { ChannelsPageClient } from "./_components/ChannelsPageClient";
+
+export default function ChannelsPage() {
+  return <ChannelsPageClient />;
+}
+```
+
+- [ ] **Step 2: Create `ChannelsPageClient.tsx` as client entry**
 
 ```typescript
 "use client";
 import { useContext } from "react";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { ChannelShell } from "./_components/ChannelShell";
+import { ChannelShell } from "./ChannelShell";
 
-export default function ChannelsPage() {
+export function ChannelsPageClient() {
   const { profileId } = useContext(DashboardContext);
   if (!profileId) {
     return <div className="flex h-full items-center justify-center">
@@ -846,106 +947,79 @@ export default function ChannelsPage() {
 }
 ```
 
-- [ ] **Step 2: Create loading.tsx**
+- [ ] **Step 3: Create `loading.tsx`**
 
-Skeleton loader following existing pattern.
+Skeleton loader following existing chat pattern.
 
-- [ ] **Step 3: Create ChannelShell.tsx**
+- [ ] **Step 4: Create `ChannelShell.tsx`**
 
-3-column flex layout. Manages active channel state. Wires all hooks.
+3-column flex layout. Manages `activeChannelId` state. Wires all hooks.
 
-- [ ] **Step 4: Create ChannelList.tsx**
+- [ ] **Step 5: Create `ChannelList.tsx`**
 
-Groups channels by type (department, team, session, custom, direct, news, skill). Shows unread badges. Search/filter.
+Groups channels by type. Section headers: Avdelinger, Team, Sesjoner, Kanaler, Direktemeldinger, Nyheter, Ferdigheter. Shows unread badges via `use-unread-counts`.
 
-- [ ] **Step 5: Create ChannelItem.tsx**
+- [ ] **Step 6: Create `ChannelItem.tsx`**
 
-Single row: avatar, name, last message preview, unread badge, timestamp. Active state highlighting.
+Row: avatar, name, last message preview, unread badge, timestamp. Active state: `bg-accent border-l-2 border-primary`.
 
-- [ ] **Step 6: Verify renders**
+- [ ] **Step 7: Verify renders**
 
-Run: `pnpm --filter web dev`
-Navigate to `/dashboard/channels`. Should show empty channel list.
+Run: `pnpm --filter web dev`. Navigate to `/dashboard/channels`. Should render empty channel list.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
 git add apps/web/src/app/dashboard/channels/
-git commit -m "feat(channels): add ChannelShell, ChannelList, ChannelItem components"
+git commit -m "feat(channels): add page entry, shell, channel list components"
 ```
 
 ---
 
-### Task 12: UI Components — Message Area
+### Task 12: UI — Message Area
 
 **Files:**
 
-- Create: `apps/web/src/app/dashboard/channels/_components/ChannelHeader.tsx`
-- Create: `apps/web/src/app/dashboard/channels/_components/MessageTimeline.tsx`
-- Create: `apps/web/src/app/dashboard/channels/_components/MessageBubble.tsx`
-- Create: `apps/web/src/app/dashboard/channels/_components/SystemMessage.tsx`
-- Create: `apps/web/src/app/dashboard/channels/_components/MessageInput.tsx`
-- Create: `apps/web/src/app/dashboard/channels/_components/ReplyPreview.tsx`
+- Create: `ChannelHeader.tsx`, `MessageTimeline.tsx`, `MessageBubble.tsx`, `SystemMessage.tsx`, `MessageInput.tsx`, `ReplyPreview.tsx`
 
-**Context:** Evolve from existing chat components. MessageTimeline uses infinite scroll (load more on scroll up). MessageBubble shows sender, content, time, reactions, reply preview. SystemMessage has distinct styling for briefs/handoffs/reminders/summaries.
+- [ ] **Step 1: `ChannelHeader.tsx`** — Channel name, member count, settings button. Voice/video buttons disabled (Phase 2 placeholder).
 
-- [ ] **Step 1: Create ChannelHeader.tsx**
+- [ ] **Step 2: `MessageTimeline.tsx`** — Infinite scroll container. Date group separators. "Nye meldinger" indicator.
 
-Channel name, member count, settings button. Phone/video buttons placeholder (disabled, Phase 2).
+- [ ] **Step 3: `MessageBubble.tsx`** — Sender avatar, name, content, timestamp, reaction bar, reply button.
 
-- [ ] **Step 2: Create MessageTimeline.tsx**
+- [ ] **Step 4: `SystemMessage.tsx`** — Distinct rendering per `message_type`: system, brief, handoff, announcement, reminder, summary. Muted styling with icon per type.
 
-Infinite scroll container. Date group separators. "New messages" indicator.
+- [ ] **Step 5: `MessageInput.tsx`** — Text input, send button, attachment icon placeholder.
 
-- [ ] **Step 3: Create MessageBubble.tsx**
+- [ ] **Step 6: `ReplyPreview.tsx`** — "Svarer [name]..." banner with close button.
 
-User message: sender avatar, name, content (markdown), timestamp, reaction bar, reply button.
-
-- [ ] **Step 4: Create SystemMessage.tsx**
-
-Distinct rendering for `message_type` in: system, brief, handoff, announcement, reminder, summary. Muted styling, icon per type.
-
-- [ ] **Step 5: Create MessageInput.tsx**
-
-Text input, send button, attachment icon (placeholder), emoji quick-react.
-
-- [ ] **Step 6: Create ReplyPreview.tsx**
-
-"Replying to [name]..." banner with close button.
-
-- [ ] **Step 7: Verify end-to-end**
-
-Create a test channel via SQL, add test messages, verify they render.
+- [ ] **Step 7: End-to-end verify** — Create channel via RPC, add messages via SQL, verify rendering.
 
 - [ ] **Step 8: Commit**
 
 ```bash
 git add apps/web/src/app/dashboard/channels/_components/
-git commit -m "feat(channels): add message area components (timeline, bubble, input, system)"
+git commit -m "feat(channels): add message area components"
 ```
 
 ---
 
-### Task 13: UI Components — Members + Create Channel
+### Task 13: UI — Members + Create Channel
 
 **Files:**
 
-- Create: `apps/web/src/app/dashboard/channels/_components/MemberPanel.tsx`
-- Create: `apps/web/src/app/dashboard/channels/_components/CreateChannel.tsx`
+- Create: `MemberPanel.tsx`, `CreateChannel.tsx`
 
-- [ ] **Step 1: Create MemberPanel.tsx**
+- [ ] **Step 1: `MemberPanel.tsx`** — Right panel: member list, avatar, name, role badge, AI badge.
 
-Right panel: member list with avatar, name, role badge, AI badge for Botsson. Online/offline indicator (placeholder for Phase 2 presence).
-
-- [ ] **Step 2: Create CreateChannel.tsx**
-
-Modal with steps: select type (custom/direct) -> name + description (custom only) -> select members -> create. Uses `create_channel()` RPC for direct channels.
+- [ ] **Step 2: `CreateChannel.tsx`** — Modal. Select type (custom/direct) -> name + description (custom) -> select members -> calls `create_channel()` RPC.
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git add apps/web/src/app/dashboard/channels/_components/
-git commit -m "feat(channels): add MemberPanel + CreateChannel components"
+git commit -m "feat(channels): add MemberPanel + CreateChannel modal"
 ```
 
 ---
@@ -956,17 +1030,17 @@ git commit -m "feat(channels): add MemberPanel + CreateChannel components"
 
 - Create: `supabase/migrations/YYYYMMDDHHMMSS_channel_auto_create_triggers.sql`
 
-**Context:** When a department or team is created, auto-create the corresponding channel. When a profile joins a department, auto-add them to the department channel.
+**Context:** Triggers auto-create channels when departments/teams are created. Profile sync adds/removes members when department changes. Uniqueness constraints from Task 2 make upserts safe.
 
-- [ ] **Step 1: Write department channel auto-create trigger**
+- [ ] **Step 1: Department channel trigger**
 
 ```sql
 CREATE OR REPLACE FUNCTION auto_create_department_channel()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
 BEGIN
   INSERT INTO channel (workspace_id, channel_type, name, department_id)
-  VALUES (NEW.workspace_id, 'department', '#' || NEW.name, NEW.department_id)
-  ON CONFLICT DO NOTHING;
+  VALUES (NEW.workspace_id, 'department', '#' || lower(NEW.name), NEW.department_id)
+  ON CONFLICT ON CONSTRAINT idx_channel_one_per_department DO NOTHING;
   RETURN NEW;
 END;
 $$;
@@ -976,70 +1050,101 @@ CREATE TRIGGER trg_department_channel
   FOR EACH ROW EXECUTE FUNCTION auto_create_department_channel();
 ```
 
-- [ ] **Step 2: Write team channel auto-create trigger**
+- [ ] **Step 2: Team channel trigger**
 
-Same pattern for team.
+Same pattern, targeting `idx_channel_one_per_team`.
 
-- [ ] **Step 3: Write profile -> channel_member sync trigger**
+- [ ] **Step 3: Profile department-sync trigger**
 
-When `profile.department_id` changes, add to new department channel, remove from old.
+When `profile.department_id` changes:
+
+- Set `left_at = now()` on old department channel membership (soft-leave, not delete)
+- Insert new membership (or reactivate: set `left_at = NULL`)
+
+```sql
+CREATE OR REPLACE FUNCTION sync_profile_department_channel()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE
+  v_old_channel_id uuid;
+  v_new_channel_id uuid;
+BEGIN
+  -- Find old department channel
+  IF OLD.department_id IS NOT NULL AND OLD.department_id != NEW.department_id THEN
+    SELECT id INTO v_old_channel_id FROM channel
+      WHERE department_id = OLD.department_id AND is_archived = false LIMIT 1;
+    IF v_old_channel_id IS NOT NULL THEN
+      UPDATE channel_member SET left_at = now()
+        WHERE channel_id = v_old_channel_id AND profile_id = NEW.profile_id AND left_at IS NULL;
+    END IF;
+  END IF;
+
+  -- Find new department channel
+  IF NEW.department_id IS NOT NULL THEN
+    SELECT id INTO v_new_channel_id FROM channel
+      WHERE department_id = NEW.department_id AND is_archived = false LIMIT 1;
+    IF v_new_channel_id IS NOT NULL THEN
+      INSERT INTO channel_member (channel_id, workspace_id, profile_id, role)
+      VALUES (v_new_channel_id, NEW.workspace_id, NEW.profile_id, 'member')
+      ON CONFLICT (channel_id, profile_id) DO UPDATE SET left_at = NULL;
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trg_sync_profile_department
+  AFTER UPDATE OF department_id ON profile
+  FOR EACH ROW EXECUTE FUNCTION sync_profile_department_channel();
+```
 
 - [ ] **Step 4: Run migration and test**
 
-Create a department via SQL, verify channel auto-created.
+Create a department via SQL. Verify channel auto-created. Change a profile's department. Verify membership changes.
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add supabase/migrations/YYYYMMDDHHMMSS_channel_auto_create_triggers.sql
-git commit -m "feat(channels): add auto-create triggers for dept/team channels"
+git commit -m "feat(channels): add auto-create triggers for dept/team channels + profile sync"
 ```
 
 ---
 
-### Task 15: Integration Test + Navigation
+### Task 15: Integration — Sidebar Navigation + Manual Test
 
 **Files:**
 
-- Modify: sidebar/navigation to add Channels link
+- Modify: sidebar/navigation component
 
-**Context:** Add `/dashboard/channels` to the dashboard sidebar navigation. Verify the full flow: navigate -> see channels -> select channel -> see messages -> send message -> see it appear via realtime.
+- [ ] **Step 1: Add "Kanaler" to sidebar**
 
-- [ ] **Step 1: Add Channels to sidebar navigation**
-
-Find the sidebar component (likely `DashboardShell.tsx` or a nav component) and add a "Kanaler" link to `/dashboard/channels` with a MessageSquare icon.
+Find sidebar nav component. Add link to `/dashboard/channels` with `MessageSquare` icon (lucide).
 
 - [ ] **Step 2: Manual integration test**
 
 1. Navigate to `/dashboard/channels`
-2. Create a custom channel via CreateChannel modal
+2. Create a custom channel via modal
 3. Send a message
-4. Open a second browser tab — verify message appears via Realtime
+4. Open second browser tab — verify message appears via Realtime
 5. React to a message — verify reaction appears
-6. Mark as read — verify unread count clears
+6. Mark as read — verify unread badge clears
+7. Create a direct channel — verify idempotent (same pair returns same channel)
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git add apps/web/src/
-git commit -m "feat(channels): add sidebar navigation + integration verification"
+git commit -m "feat(channels): add sidebar navigation + verify integration"
 ```
 
 ---
 
-### Task 16: Typecheck + Final Cleanup
+### Task 16: Typecheck + Lint + Final Cleanup
 
-- [ ] **Step 1: Run full typecheck**
-
-Run: `pnpm turbo typecheck`
-Expected: 0 errors.
-
-- [ ] **Step 2: Run lint**
-
-Run: `pnpm lint`
-Fix any issues.
-
-- [ ] **Step 3: Final commit**
+- [ ] **Step 1:** Run `pnpm turbo typecheck` — 0 errors
+- [ ] **Step 2:** Run `pnpm lint` — fix issues
+- [ ] **Step 3:** Commit
 
 ```bash
 git commit -m "chore(channels): typecheck + lint cleanup"
@@ -1047,32 +1152,29 @@ git commit -m "chore(channels): typecheck + lint cleanup"
 
 ---
 
-## Dependencies Between Tasks
+## Task Dependencies
 
 ```
-Task 1 (enums) -> Task 2 (core tables) -> Task 3 (supporting tables) -> Task 4 (RLS)
-                                                                            |
-Task 5 (functions + seed) -------------------------------------------------+
-                                                                            |
-Task 6 (types + telemetry) ------------------------------------------------+
-                                                                            |
-Task 7 (keys + types) -> Task 8 (query hooks) -> Task 9 (mutation hooks) -> Task 10 (realtime)
-                                                                            |
-Task 11 (shell + list) -> Task 12 (messages) -> Task 13 (members + create) -> Task 15 (integration)
-                                                                            |
-Task 14 (auto-create triggers) --------------------------------------------+
-                                                                            |
-Task 16 (typecheck + cleanup) <--------------------------------------------+
+Task 1 (enums) → Task 2 (core tables + constraints) → Task 3 (supporting tables)
+     → Task 4 (RLS) → Task 5 (functions + seed)
+     → Task 6 (types + telemetry) → Task 7 (RPCs)
+     → Task 8 (keys + types) → Task 9 (hooks) → Task 10 (realtime)
+     → Task 11 (shell) → Task 12 (messages) → Task 13 (members)
+     → Task 15 (integration)
+
+Task 14 (auto-create triggers) depends on Task 2 (constraints exist)
+Task 16 depends on all other tasks
 ```
 
-Tasks 1-5 are sequential (DB). Tasks 7-10 are sequential (hooks). Tasks 11-13 are sequential (UI). Task 6 can run in parallel with Task 5. Task 14 can run in parallel with Tasks 7-13.
+Tasks 1-7 are sequential (DB + types). Tasks 8-10 sequential (hooks). Tasks 11-13 sequential (UI). Task 14 can run in parallel with 8-13.
 
 ---
 
-## What This Plan Does NOT Cover (Future Plans)
+## What This Plan Does NOT Cover
 
-- **Phase 2:** LiveKit voice/video (call tables, PTT, video grid, Agent SDK provider)
-- **Phase 3:** AI participation (Botsson channel member, @mention routing, pipelines)
+- **Phase 2:** LiveKit voice/video
+- **Phase 3:** AI participation (Botsson @mention, shift prep, summary pipelines)
 - **Phase 4:** Integrations + old chat sunset
-- **E2E Tests:** Playwright specs for channel flows (separate task after Phase 1 is stable)
-- **Mobile:** React Native channel screens (after web is proven)
+- **E2E Tests:** Playwright specs (separate task after stable)
+- **Mobile:** React Native channel screens (after web proven)
+- **Supabase Realtime authorization:** Private channel subscriptions (document + implement if needed)
