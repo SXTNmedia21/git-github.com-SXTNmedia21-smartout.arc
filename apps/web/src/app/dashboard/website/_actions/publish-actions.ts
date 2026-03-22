@@ -241,8 +241,8 @@ export async function publishWebsite(websiteId: string): Promise<PublishResult> 
     });
 
     // Revalidate ISR cache
-    revalidateTag(`website:${websiteId}`, "default");
-    revalidateTag(`website:workspace:${workspaceId}`, "default");
+    revalidateTag(`website:${websiteId}`);
+    revalidateTag(`website:workspace:${workspaceId}`);
 
     // Emit telemetry
     await emit({
@@ -341,8 +341,8 @@ export async function rollbackWebsite(
     });
 
     // Revalidate ISR cache
-    revalidateTag(`website:${websiteId}`, "default");
-    revalidateTag(`website:workspace:${workspaceId}`, "default");
+    revalidateTag(`website:${websiteId}`);
+    revalidateTag(`website:workspace:${workspaceId}`);
 
     // Emit telemetry
     await emit({
@@ -393,8 +393,8 @@ export async function unpublishWebsite(websiteId: string): Promise<ActionResult>
     });
 
     // Revalidate ISR cache
-    revalidateTag(`website:${websiteId}`, "default");
-    revalidateTag(`website:workspace:${workspaceId}`, "default");
+    revalidateTag(`website:${websiteId}`);
+    revalidateTag(`website:workspace:${workspaceId}`);
 
     // Emit telemetry
     await emit({
