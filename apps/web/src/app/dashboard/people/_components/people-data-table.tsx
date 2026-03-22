@@ -30,6 +30,7 @@ import {
   deactivateProfile,
   resetUserPassword,
   cancelInvitation,
+  resendInvitation,
   bulkUpdateProfiles,
 } from "../_actions/people-actions";
 import type { Enums } from "@smartout/supabase";
@@ -165,8 +166,15 @@ export function PeopleDataTable({
     }
   }
 
-  function handleResendInvite(email: string) {
-    toast.info(`Resend invite to ${email} — not yet implemented`);
+  async function handleResendInvite(invitationId: string, email: string) {
+    if (!workspaceId) return;
+    try {
+      await resendInvitation(workspaceId, invitationId);
+      toast.success(`Invitation resent to ${email}`);
+      onRefresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to resend invitation");
+    }
   }
 
   const handleScroll = useCallback(

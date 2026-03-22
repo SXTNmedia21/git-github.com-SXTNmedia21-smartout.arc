@@ -31,6 +31,30 @@ function generateProfileCode(): string {
   return crypto.randomUUID().replace(/-/g, "").substring(0, 6);
 }
 
+/**
+ * Ensures a company_member row exists linking the user to the company.
+ * Uses upsert so re-invites and idempotent re-clicks are safe.
+ */
+async function ensureCompanyMember(
+  client: ReturnType<typeof createClient>,
+  userId: string,
+  companyId: string | null,
+) {
+  if (!companyId) return;
+  await client
+    .from("company_member")
+    .upsert(
+      {
+        user_id: userId,
+        company_id: companyId,
+        role: "member",
+        is_active: true,
+        joined_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id,company_id" },
+    );
+}
+
 Deno.serve(async (req: Request) => {
   // ── CORS preflight ──
   if (req.method === "OPTIONS") {
@@ -113,8 +137,12 @@ Deno.serve(async (req: Request) => {
     // ── 2. Create or find auth user ──
     // Check if an auth user already exists with this email.
     // This handles the case where someone was invited to multiple workspaces.
-    const { data: existingUsers } = await adminClient.auth.admin.listUsers();
-    const existingUser = existingUsers?.users?.find((u) => u.email === invitation.email);
+    const { data: listResult } = await adminClient.auth.admin.listUsers({
+      page: 1,
+      perPage: 1,
+      filter: invitation.email,
+    });
+    const existingUser = listResult?.users?.[0] ?? null;
 
     let userId: string;
 
@@ -164,6 +192,9 @@ Deno.serve(async (req: Request) => {
       .maybeSingle();
 
     if (existingProfile) {
+      // Ensure company_member exists even on re-click
+      await ensureCompanyMember(adminClient, userId, invitation.company_id);
+
       // Profile already exists -- just mark the invitation as accepted
       await adminClient
         .from("invitation")
@@ -217,6 +248,9 @@ Deno.serve(async (req: Request) => {
         },
       );
     }
+
+    // ── 3b. Ensure company_member exists ──
+    await ensureCompanyMember(adminClient, userId, invitation.company_id);
 
     // ── 4. Assign teams via team_member join table ──
     if (teamIds.length > 0) {
