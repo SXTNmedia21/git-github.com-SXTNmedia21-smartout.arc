@@ -262,10 +262,11 @@ template = "Your code is {{ .Code }}"
 max_frequency = "5s"
 
 # Use pre-defined map of phone number to OTP for testing.
+# Phone numbers must be E.164 WITHOUT the leading + sign (Supabase Cloud requirement)
 [auth.sms.test_otp]
-"+4700000000" = "123456"
-"+4711111111" = "123456"
-"+4722222222" = "123456"
+"4700000000" = "123456"
+"4711111111" = "123456"
+"4722222222" = "123456"
 
 # Configure logged in session timeouts.
 # [auth.sessions]

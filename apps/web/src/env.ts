@@ -5,9 +5,9 @@ export const env = createEnv({
   server: {
     DATABASE_URL: z.string().optional(),
     SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
-    STRIPE_SECRET_KEY: z.string().startsWith("sk_").optional(),
-    STRIPE_WEBHOOK_SECRET: z.string().startsWith("whsec_").optional(),
-    SENDGRID_API_KEY: z.string().startsWith("SG.").optional(),
+    STRIPE_SECRET_KEY: z.string().optional(),
+    STRIPE_WEBHOOK_SECRET: z.string().optional(),
+    SENDGRID_API_KEY: z.string().optional(),
     TWILIO_ACCOUNT_SID: z.string().optional(),
     TWILIO_AUTH_TOKEN: z.string().optional(),
     JWT_SECRET: z.string().min(32).optional(),
