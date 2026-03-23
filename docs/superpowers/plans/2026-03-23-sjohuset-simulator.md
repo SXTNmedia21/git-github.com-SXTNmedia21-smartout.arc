@@ -24,14 +24,14 @@ tags: [cascade, testing, simulation, microservice, plan]
 
 ## Phase Overview
 
-| Phase | Name                 | Tasks       | Dependencies | Can Parallelize                    |
-| ----- | -------------------- | ----------- | ------------ | ---------------------------------- |
-| 1     | Foundation           | Tasks 1-4   | None         | Tasks 2-4 parallel after Task 1    |
-| 2     | Core Engine          | Tasks 5-8   | Phase 1      | Tasks 5-7 parallel, Task 8 after 5 |
-| 3     | API + System Proof   | Tasks 9-11  | Phase 2      | Task 9 alone, then 10-11 parallel  |
-| 4     | Floating UI Panel    | Tasks 12-13 | Phase 3      | Independent from Phase 5           |
-| 5     | AI Swarm (Demo Mode) | Tasks 14-15 | Phase 3      | Independent from Phase 4           |
-| 6     | Integration + Polish | Task 16     | Phases 4-5   | Sequential                         |
+| Phase | Name                 | Tasks       | Dependencies | Can Parallelize                          |
+| ----- | -------------------- | ----------- | ------------ | ---------------------------------------- |
+| 1     | Foundation           | Tasks 1-4   | None         | Tasks 2-4 parallel after Task 1          |
+| 2     | Core Engine          | Tasks 5-9   | Phase 1      | Tasks 5-8 all parallel, Task 9 after any |
+| 3     | API + System Proof   | Tasks 10-12 | Phase 2      | Task 10 alone, then 11-12 parallel       |
+| 4     | Floating UI Panel    | Tasks 13-14 | Phase 3      | Independent from Phase 5                 |
+| 5     | AI Swarm (Demo Mode) | Tasks 15-16 | Phase 3      | Independent from Phase 4                 |
+| 6     | Integration + Polish | Task 17     | Phases 4-5   | Sequential                               |
 
 ---
 
@@ -41,14 +41,16 @@ tags: [cascade, testing, simulation, microservice, plan]
 
 **Files:**
 
-- Create: `supabase/migrations/20260323200000_simulation_schema.sql`
+- Create: `supabase/migrations/20260423100000_simulation_schema.sql`
+
+**IMPORTANT:** Timestamp must sort AFTER the latest existing migration (`20260422400500`). Do NOT use `20260323` — it would sort before cascade migrations.
 
 This is the prerequisite for everything else. Creates the `simulation` schema with all 9 tables.
 
 - [ ] **Step 1: Write the migration SQL**
 
 ```sql
--- supabase/migrations/20260323200000_simulation_schema.sql
+-- supabase/migrations/20260423100000_simulation_schema.sql
 
 -- Create simulation schema
 CREATE SCHEMA IF NOT EXISTS simulation;
@@ -205,28 +207,28 @@ CREATE INDEX idx_gap_report_run ON simulation.gap_report(run_id);
 
 -- updated_at triggers (reuse existing set_updated_at function)
 CREATE TRIGGER set_updated_at BEFORE UPDATE ON simulation.run
-  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER set_updated_at BEFORE UPDATE ON simulation.clock_segment
-  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER set_updated_at BEFORE UPDATE ON simulation.run_scope
-  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER set_updated_at BEFORE UPDATE ON simulation.seed_manifest
-  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER set_updated_at BEFORE UPDATE ON simulation.mutation_manifest
-  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER set_updated_at BEFORE UPDATE ON simulation.gap_report
-  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER set_updated_at BEFORE UPDATE ON simulation.timeline_event
-  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER set_updated_at BEFORE UPDATE ON simulation.agent_session
-  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER set_updated_at BEFORE UPDATE ON simulation.cleanup_job
-  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 ```
 
 - [ ] **Step 2: Apply migration to local Supabase**
 
-Run: `docker exec -i $(docker ps -q -f name=supabase_db) psql -U postgres < supabase/migrations/20260323200000_simulation_schema.sql`
+Run: `docker exec -i $(docker ps -q -f name=supabase_db) psql -U postgres < supabase/migrations/20260423100000_simulation_schema.sql`
 Expected: No errors. Tables created in `simulation` schema.
 
 - [ ] **Step 3: Verify tables exist**
@@ -242,7 +244,7 @@ Expected: File regenerated (simulation schema types may not appear — that's OK
 - [ ] **Step 5: Commit**
 
 ```bash
-git add supabase/migrations/20260323200000_simulation_schema.sql packages/supabase/src/database.types.ts
+git add supabase/migrations/20260423100000_simulation_schema.sql packages/supabase/src/database.types.ts
 git commit -m "feat(simulation): add simulation schema migration (9 tables, 8 enums)
 
 ADR-0058: Dedicated simulation schema for cascade system testing.
@@ -277,14 +279,16 @@ Follow stage-engine pattern. ESM module, tsx watch for dev, tsc for build.
   "type": "module",
   "scripts": {
     "dev": "tsx watch --env-file=.env src/index.ts",
-    "build": "tsc",
+    "build": "tsc && node ../../scripts/fix-esm-imports.mjs",
     "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
     "hono": "^4.7.0",
     "@hono/node-server": "^1.13.0",
+    "@hono/zod-validator": "^0.4.0",
     "@supabase/supabase-js": "^2.49.1",
     "zod": "^3.24.2"
   },
@@ -299,18 +303,44 @@ Follow stage-engine pattern. ESM module, tsx watch for dev, tsc for build.
 
 - [ ] **Step 2: Create tsconfig.json**
 
+Copy stage-engine's inline tsconfig exactly (do NOT extend shared base.json):
+
 ```json
 {
-  "extends": "../../packages/typescript-config/base.json",
   "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "outDir": "dist",
-    "rootDir": "src"
+    "rootDir": "src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "resolveJsonModule": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
 }
 ```
 
-- [ ] **Step 3: Create Supabase client helper**
+- [ ] **Step 3: Create vitest.config.ts**
+
+```typescript
+// services/simulator/vitest.config.ts
+import { defineConfig } from "vitest/config";
+
+export default defineConfig({
+  test: {
+    include: ["src/**/*.test.ts"],
+  },
+});
+```
+
+- [ ] **Step 4: Create Supabase client helper**
 
 ```typescript
 // services/simulator/src/lib/supabase.ts
@@ -760,7 +790,7 @@ const emptyClient = {
       error: null,
     }),
   }),
-} as any;
+} as unknown as SupabaseClient;
 
 const workspaceId = "00000000-0000-0000-0000-000000000001";
 
@@ -853,7 +883,7 @@ describe("TrackedSeeder", () => {
         },
         select: () => ({ eq: () => ({ data: [], error: null }) }),
       }),
-    } as any;
+    } as unknown as SupabaseClient;
 
     const seeder = new TrackedSeeder(mockClient, "run-123");
     await seeder.insert(
@@ -895,7 +925,7 @@ describe("TrackedSeeder", () => {
           }),
         }),
       }),
-    } as any;
+    } as unknown as SupabaseClient;
 
     const seeder = new TrackedSeeder(mockClient, "run-123");
     await seeder.mutate("public", "workspace", "ws-1", "name", "New Name");
@@ -1023,7 +1053,176 @@ Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 
 ## Phase 3: API + System Proof
 
-### Task 9: API Routes
+### Task 9: Coverage Tracker (TDD)
+
+**Files:**
+
+- Create: `services/simulator/src/analysis/coverage-tracker.ts`
+- Create: `services/simulator/src/analysis/coverage-tracker.test.ts`
+
+Registry-backed coverage accounting. Computes expected coverage at run start from source-of-truth registries, then tracks fired events during execution.
+
+- [ ] **Step 1: Write failing tests**
+
+```typescript
+// services/simulator/src/analysis/coverage-tracker.test.ts
+import { describe, it, expect } from "vitest";
+import { CoverageTracker } from "./coverage-tracker.js";
+
+describe("CoverageTracker", () => {
+  it("initializes with expected events from scenario", () => {
+    const tracker = new CoverageTracker({
+      telemetryEvents: ["shift created", "session opened"],
+      actionTypes: ["assign_task", "upsert_session"],
+      engineProcesses: ["onboarding_journey"],
+      cascadeDimensions: ["D1", "D2"],
+    });
+    expect(tracker.summary().telemetry.expected).toBe(2);
+    expect(tracker.summary().telemetry.fired).toBe(0);
+    expect(tracker.summary().telemetry.pct).toBe(0);
+  });
+
+  it("tracks fired telemetry events", () => {
+    const tracker = new CoverageTracker({
+      telemetryEvents: ["shift created", "session opened"],
+      actionTypes: [],
+      engineProcesses: [],
+      cascadeDimensions: [],
+    });
+    tracker.recordTelemetry("shift created");
+    expect(tracker.summary().telemetry.fired).toBe(1);
+    expect(tracker.summary().telemetry.pct).toBe(50);
+  });
+
+  it("ignores duplicate fires", () => {
+    const tracker = new CoverageTracker({
+      telemetryEvents: ["shift created"],
+      actionTypes: [],
+      engineProcesses: [],
+      cascadeDimensions: [],
+    });
+    tracker.recordTelemetry("shift created");
+    tracker.recordTelemetry("shift created");
+    expect(tracker.summary().telemetry.fired).toBe(1);
+  });
+
+  it("tracks dimension coverage", () => {
+    const tracker = new CoverageTracker({
+      telemetryEvents: [],
+      actionTypes: [],
+      engineProcesses: [],
+      cascadeDimensions: ["D1", "D2", "D3"],
+    });
+    tracker.recordDimension("D1");
+    tracker.recordDimension("D2");
+    const s = tracker.summary();
+    expect(s.dimensions.covered).toEqual(["D1", "D2"]);
+    expect(s.dimensions.missing).toEqual(["D3"]);
+  });
+});
+```
+
+- [ ] **Step 2: Run tests to verify they fail**
+
+Run: `cd services/simulator && pnpm test -- src/analysis/coverage-tracker.test.ts`
+Expected: FAIL — module not found.
+
+- [ ] **Step 3: Implement coverage tracker**
+
+```typescript
+// services/simulator/src/analysis/coverage-tracker.ts
+
+interface CoverageInit {
+  telemetryEvents: string[];
+  actionTypes: string[];
+  engineProcesses: string[];
+  cascadeDimensions: string[];
+}
+
+export class CoverageTracker {
+  private expectedTelemetry: Set<string>;
+  private firedTelemetry = new Set<string>();
+  private expectedActions: Set<string>;
+  private firedActions = new Set<string>();
+  private expectedProcesses: Set<string>;
+  private firedProcesses = new Set<string>();
+  private expectedDimensions: Set<string>;
+  private coveredDimensions = new Set<string>();
+
+  constructor(init: CoverageInit) {
+    this.expectedTelemetry = new Set(init.telemetryEvents);
+    this.expectedActions = new Set(init.actionTypes);
+    this.expectedProcesses = new Set(init.engineProcesses);
+    this.expectedDimensions = new Set(init.cascadeDimensions);
+  }
+
+  recordTelemetry(event: string) {
+    if (this.expectedTelemetry.has(event)) this.firedTelemetry.add(event);
+  }
+
+  recordActionType(action: string) {
+    if (this.expectedActions.has(action)) this.firedActions.add(action);
+  }
+
+  recordProcess(process: string) {
+    if (this.expectedProcesses.has(process)) this.firedProcesses.add(process);
+  }
+
+  recordDimension(dimension: string) {
+    if (this.expectedDimensions.has(dimension)) this.coveredDimensions.add(dimension);
+  }
+
+  summary() {
+    const pct = (fired: number, expected: number) =>
+      expected === 0 ? 100 : Math.round((fired / expected) * 100);
+
+    return {
+      telemetry: {
+        fired: this.firedTelemetry.size,
+        expected: this.expectedTelemetry.size,
+        pct: pct(this.firedTelemetry.size, this.expectedTelemetry.size),
+      },
+      actionTypes: {
+        fired: this.firedActions.size,
+        expected: this.expectedActions.size,
+        pct: pct(this.firedActions.size, this.expectedActions.size),
+      },
+      engineProcesses: {
+        triggered: this.firedProcesses.size,
+        expected: this.expectedProcesses.size,
+        pct: pct(this.firedProcesses.size, this.expectedProcesses.size),
+      },
+      dimensions: {
+        covered: [...this.coveredDimensions].sort(),
+        missing: [...this.expectedDimensions].filter((d) => !this.coveredDimensions.has(d)).sort(),
+      },
+    };
+  }
+}
+```
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `cd services/simulator && pnpm test -- src/analysis/coverage-tracker.test.ts`
+Expected: All 4 tests PASS.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add services/simulator/src/analysis/coverage-tracker.ts services/simulator/src/analysis/coverage-tracker.test.ts
+git commit -m "feat(simulation): implement registry-backed coverage tracker with TDD
+
+Tracks telemetry events, action types, engine processes, and cascade
+dimensions against scenario expectations. No hardcoded counts.
+
+Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
+```
+
+---
+
+## Phase 3: API + System Proof
+
+### Task 10: API Routes
 
 **Files:**
 
@@ -1071,7 +1270,7 @@ Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 
 ---
 
-### Task 10: SSE Stream
+### Task 11: SSE Stream
 
 **Files:**
 
@@ -1141,7 +1340,7 @@ Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 
 ---
 
-### Task 11: System Proof Executor
+### Task 12: System Proof Executor
 
 **Files:**
 
@@ -1172,7 +1371,7 @@ The executor:
 - [ ] **Step 5: Add `simulate:test` script to root package.json**
 
 ```json
-"simulate:test": "cd services/simulator && pnpm dev -- --mode=system_proof"
+"simulate:test": "pnpm --filter @smartout/simulator run start -- --mode=system_proof"
 ```
 
 - [ ] **Step 6: Commit**
@@ -1190,7 +1389,7 @@ Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 
 ## Phase 4: Floating UI Panel
 
-### Task 12: SSE Hook + Panel Components
+### Task 13: SSE Hook + Panel Components
 
 **Files:**
 
@@ -1241,7 +1440,7 @@ Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 
 ---
 
-### Task 13: Mount Panel in Dashboard
+### Task 14: Mount Panel in Dashboard
 
 **Files:**
 
@@ -1270,7 +1469,7 @@ Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 
 ## Phase 5: AI Swarm (Demo Mode)
 
-### Task 14: Swarm Persona Definitions
+### Task 15: Swarm Persona Definitions
 
 **Files:**
 
@@ -1306,7 +1505,7 @@ Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 
 ---
 
-### Task 15: Director Agent + Demo Executor
+### Task 16: Director Agent + Demo Executor
 
 **Files:**
 
@@ -1350,7 +1549,7 @@ Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 
 ## Phase 6: Integration + Polish
 
-### Task 16: Docker Compose + Integration Test
+### Task 17: Docker Compose + Integration Test
 
 **Files:**
 
@@ -1375,7 +1574,7 @@ simulator:
     - SUPABASE_URL=${SUPABASE_URL}
     - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
     - STAGE_ENGINE_URL=http://stage-engine:5010
-    - PORT=5013
+    - SIMULATOR_PORT=5013
   networks:
     - smartout-internal
 ```
